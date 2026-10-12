@@ -13,6 +13,8 @@ finish-args:
 modules:
   - name: truce-editor
     buildsystem: simple
+    # Flutter's release build is prebuilt and has no debug info to split off.
+    no-debuginfo: true
     build-commands:
       - cp -r bundle /app/truce_editor
       - mkdir -p /app/bin
