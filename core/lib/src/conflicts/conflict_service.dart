@@ -6,8 +6,8 @@ import 'resolution.dart';
 /// Finds and resolves conflicts in one folder. The app's only entry point
 /// for conflicts.
 ///
-/// Built from the folder's `FileStore`, the `SyncAdapter`, a backup
-/// `FileStore` in app storage, a `FileTypeDetector`, and a map from
+/// Built from the folder's `FileStore`, the `SyncAdapter`, a `FileFilter`,
+/// a backup `FileStore` in app storage, a `FileTypeDetector`, and a map from
 /// `FileType` to `ConflictHandler`. Types without a handler fall back to
 /// the user's choice.
 abstract interface class ConflictService {
@@ -26,6 +26,9 @@ abstract interface class ConflictService {
     ConflictCopy copy,
     Resolution resolution,
   );
+
+  /// Deletes backups made by [resolve] before [olderThan].
+  Future<Result<void, StoreError>> pruneBackups({required DateTime olderThan});
 }
 
 enum ResolveError { changedSinceScan, backupFailed, accessDenied, ioFailure }

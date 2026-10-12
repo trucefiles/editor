@@ -9,12 +9,16 @@ import 'rel_path.dart';
 /// platform-specific (plain file system, Android, Linux portal, in-memory
 /// fake for tests); everything above sees only this interface.
 ///
-/// Atomic writes go through a temp file next to the target, named by the
-/// `SyncAdapter` so the sync tool never picks it up.
+/// Atomic writes go through a temp file next to the target. Implementations
+/// get a [TempFileNamer] when built, so storage never depends on the sync
+/// layer; the wiring passes in the sync tool's naming rule.
 abstract interface class FileStore {
   /// Every file below the root, recursively, hidden files included.
-  /// Filtering is the caller's job.
-  Future<Result<List<FileEntry>, StoreError>> list();
+  /// Folders for which [enterFolder] returns `false` are not walked.
+  /// Filtering files is the caller's job.
+  Future<Result<List<FileEntry>, StoreError>> list({
+    bool Function(RelPath folder)? enterFolder,
+  });
 
   Future<Result<FileContent, StoreError>> read(RelPath path);
 
@@ -39,6 +43,10 @@ abstract interface class FileStore {
     required FileStamp ifUnchanged,
   });
 }
+
+/// Names the temp file of an atomic write. [randomToken] keeps concurrent
+/// writes apart.
+typedef TempFileNamer = String Function(String randomToken);
 
 /// Identifies one version of a file on disk, for change checks.
 final class FileStamp {
