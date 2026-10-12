@@ -10,17 +10,27 @@
 /// 5. `conflicts`: resolving conflicts ([ConflictService]), found by each
 ///    sync tool's [ConflictSource] and merged per file type
 ///    ([ConflictHandler]).
+///
+/// Implementations sit next to their interface; everything specific to
+/// Syncthing is in `syncthing`.
 library;
 
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
+export 'src/conflicts/conflict_backups.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
+export 'src/conflicts/default_conflict_service.dart';
 export 'src/conflicts/resolution.dart';
+export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
+export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/storage/file_store.dart';
+export 'src/storage/local_file_store.dart';
 export 'src/storage/rel_path.dart';
 export 'src/sync/sync_adapter.dart';
+export 'src/syncthing/syncthing_adapter.dart';
+export 'src/syncthing/syncthing_conflict_source.dart';

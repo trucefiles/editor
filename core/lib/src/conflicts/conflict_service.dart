@@ -7,10 +7,10 @@ import 'resolution.dart';
 /// for conflicts.
 ///
 /// Only orchestrates; never knows how a sync tool records conflicts. Built
-/// from the folder's `FileStore`, the sync tool's `ConflictSource`, a backup
-/// `FileStore` in app storage, a `FileTypeDetector`, and a map from
-/// `FileType` to `ConflictHandler`. Types without a handler fall back to
-/// the user's choice.
+/// from the folder's `FileStore`, the sync tool's `ConflictSource` and
+/// backups in app storage. Phase 1 adds a `FileTypeDetector` and a map from
+/// `FileType` to `ConflictHandler` for automatic merges; types without a
+/// handler fall back to the user's choice.
 abstract interface class ConflictService {
   /// All pending conflicts in the folder, grouped by main file.
   Future<Result<List<Conflict>, StoreError>> scan();

@@ -7,7 +7,8 @@ import '../storage/rel_path.dart';
 /// How the tool's conflicts are found is its `ConflictSource`'s job.
 abstract interface class SyncAdapter {
   /// Whether [path] belongs to the sync tool itself (folder markers, version
-  /// folders, temp files) and must never be shown or touched.
+  /// folders, temp files, conflict copies). Such files are never shown, and
+  /// touched only by the tool's own `ConflictSource`.
   bool isInternal(RelPath path);
 
   /// File name for the temp file of an atomic write, placed next to the
