@@ -12,6 +12,7 @@ import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
+import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_files.dart';
 import '../notes_controller.dart';
@@ -51,6 +52,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       appBar: AppBar(
         title: const Text('Notes'),
         actions: [
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Folders',
             icon: const Icon(Icons.folder_outlined),
@@ -109,6 +118,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 }
 
+/// Card layout shared by every note grid.
+const noteGridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 240,
+  mainAxisExtent: 200,
+  crossAxisSpacing: 8,
+  mainAxisSpacing: 8,
+);
+
 Future<void> openNote(
   BuildContext context,
   Note note, {
@@ -161,12 +178,7 @@ class _NotesBody extends ConsumerWidget {
               ? const Center(child: Text('No notes yet.'))
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 240,
-                    mainAxisExtent: 200,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
+                  gridDelegate: noteGridDelegate,
                   itemCount: orphans.length + notes.length,
                   itemBuilder: (context, index) {
                     if (index < orphans.length) {
