@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../checklist/checklist_preview.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_title.dart';
 
-/// A note in the grid: title, first lines and its folder.
+/// A note in the grid: title, first lines (open items for checklists)
+/// and its folder.
 class NoteCard extends StatelessWidget {
   const NoteCard(this.note, {required this.onTap, super.key});
 
@@ -32,7 +34,8 @@ class NoteCard extends StatelessWidget {
               const SizedBox(height: 6),
               Expanded(
                 child: Text(
-                  notePreview(note.file.text),
+                  checklistPreview(note.file.text) ??
+                      notePreview(note.file.text),
                   style: textTheme.bodySmall,
                   overflow: TextOverflow.fade,
                 ),
