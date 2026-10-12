@@ -10,6 +10,8 @@
 /// 5. `conflicts`: resolving conflicts ([ConflictService]), found by each
 ///    sync tool's [ConflictSource] and merged per file type
 ///    ([ConflictHandler]).
+/// 6. `text`: decoding files for editing without changing their byte style
+///    ([TextFile]).
 ///
 /// Implementations sit next to their interface; everything specific to
 /// Syncthing is in `syncthing`.
@@ -34,3 +36,4 @@ export 'src/storage/rel_path.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/syncthing/syncthing_adapter.dart';
 export 'src/syncthing/syncthing_conflict_source.dart';
+export 'src/text/text_file.dart';
