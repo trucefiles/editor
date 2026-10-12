@@ -1,31 +1,53 @@
 name: Release
 
-# A version tag (vX.Y.Z) builds the signed APK and the Flatpak and publishes
-# them as a GitHub Release. Only the publish job can write to the repository;
-# only the Android job, in the "release" environment, can read the signing key.
+# Builds the signed APK and the Flatpak and publishes them as a GitHub Release
+# for the pubspec version. Starts either from a pushed version tag (vX.Y.Z), or
+# by hand on main ("Run workflow"), which creates the tag on publish. Only the
+# publish job can write to the repository; only the Android job, in the
+# "release" environment, can read the signing key.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   version:
-    name: Check tag matches app version
+    name: Work out the release tag
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Compare tag with pubspec version
+      - name: Take the tag from the pubspec version
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match app version $version"
+          tag="v$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            if [ "$GITHUB_REF" != refs/heads/main ]; then
+              echo "::error::Start releases from main only"
+              exit 1
+            fi
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --silent 2>/dev/null; then
+              echo "::error::$tag already exists; raise the version in app/pubspec.yaml"
+              exit 1
+            fi
+          elif [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match app version $tag"
             exit 1
           fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   android:
     name: Build signed APK
@@ -50,6 +72,7 @@ jobs:
       - name: Check the APK is signed with the project key
         env:
           APK: ${{ steps.apk.outputs.path }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort --version-sort | tail -n 1)
           # The file uses keytool's format (AB:CD:...); apksigner prints abcd...
@@ -61,7 +84,7 @@ jobs:
             exit 1
           fi
           mkdir dist
-          cp "$APK" "dist/truce-editor-$GITHUB_REF_NAME.apk"
+          cp "$APK" "dist/truce-editor-$TAG.apk"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: apk
@@ -83,9 +106,10 @@ jobs:
       - name: Name the bundle after the version
         env:
           FLATPAK: ${{ steps.flatpak.outputs.path }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           mkdir dist
-          cp "$FLATPAK" "dist/truce-editor-$GITHUB_REF_NAME.flatpak"
+          cp "$FLATPAK" "dist/truce-editor-$TAG.flatpak"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flatpak
@@ -95,7 +119,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [android, flatpak]
+    needs: [version, android, flatpak]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -109,9 +133,11 @@ jobs:
         working-directory: dist
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           sha256sum -- * > SHA256SUMS
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "Truce Editor $GITHUB_REF_NAME" --generate-notes \
+          # Creates the tag on the built commit when it doesn't exist yet.
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Truce Editor $TAG" --generate-notes \
             -- *
