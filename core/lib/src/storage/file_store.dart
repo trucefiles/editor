@@ -82,5 +82,5 @@ enum StoreError {
   alreadyExists,
   changedSinceRead,
   accessDenied,
-  ioFailure
+  ioFailure,
 }
