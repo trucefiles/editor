@@ -1,0 +1,7 @@
+name: truce_core
+description: File storage, sync-tool adapters and conflict handling. No UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
