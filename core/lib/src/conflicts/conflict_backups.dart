@@ -7,8 +7,9 @@ import '../storage/rel_path.dart';
 /// Copies of conflict inputs in app storage, so a resolution can be undone.
 ///
 /// One flat folder; a file per input, named
-/// `<time in µs since epoch>.<side>.<main path, URI-encoded>`, e.g.
-/// `1791818275000000.other.lists%2Ftodo.md`.
+/// `<time in µs since epoch>.<side>.<main path>`, e.g.
+/// `1791818275000000.other.lists%2Ftodo.md`. Only `%` and `/` in the path
+/// are escaped (`%25`, `%2F`), so names stay short in any script.
 final class ConflictBackups {
   const ConflictBackups(this._store);
 
@@ -55,7 +56,7 @@ final class ConflictBackups {
   ) async {
     final name =
         '${at.microsecondsSinceEpoch}.$side.'
-        '${Uri.encodeComponent(mainPath.value)}';
+        '${mainPath.value.replaceAll('%', '%25').replaceAll('/', '%2F')}';
     final created = await _store.create(RelPath.parse(name)!, bytes);
     return switch (created) {
       Ok() => const Ok(null),

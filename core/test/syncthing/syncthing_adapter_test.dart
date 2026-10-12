@@ -16,16 +16,16 @@ void main() {
         '.syncthing.todo.md.tmp',
         'notes/.syncthing.truce-1a2b.tmp',
         '~syncthing~todo.md.tmp',
+        'notes/todo.sync-conflict-20261003-134809-4I343AW.md',
       ]) {
         expect(adapter.isInternal(path(raw)), isTrue, reason: raw);
       }
     });
 
-    test('does not match notes, conflict copies or other dotfiles', () {
+    test('does not match notes or other dotfiles', () {
       for (final raw in [
         'todo.md',
         'notes/todo.md',
-        'todo.sync-conflict-20261003-134809-4I343AW.md',
         '.hidden',
         '.syncthing.todo.md',
         'stversions/todo.md',

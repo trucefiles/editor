@@ -85,7 +85,7 @@ final class LocalFileStore implements FileStore {
     List<FileEntry> entries,
   ) async {
     await for (final entity in folder.list(followLinks: false)) {
-      final name = entity.path.substring(folder.path.length + 1);
+      final name = entity.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
       final path = RelPath.parse('$prefix$name');
       if (path == null) continue;
       if (entity is File) {

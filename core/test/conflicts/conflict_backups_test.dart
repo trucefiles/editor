@@ -28,6 +28,20 @@ void main() {
     expect(store.textOf('$atMicros.other.lists%2Ftodo.md'), 'other');
   });
 
+  test('escapes only % and / in the main path', () async {
+    await backups.save(
+      at: at,
+      mainPath: path('Pläne/100% 日本語.md'),
+      current: null,
+      other: bytesOf('other'),
+    );
+
+    expect(
+      store.files.keys.single.value,
+      '$atMicros.other.Pläne%2F100%25 日本語.md',
+    );
+  });
+
   test('saves only the other side of an orphaned conflict', () async {
     await backups.save(
       at: at,

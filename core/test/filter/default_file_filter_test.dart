@@ -20,5 +20,11 @@ void main() {
     expect(filter.includesFile(path('photo.jpg')), isFalse);
     expect(filter.includesFile(path('.hidden.md')), isFalse);
     expect(filter.includesFile(path('.syncthing.todo.md.tmp')), isFalse);
+    expect(
+      filter.includesFile(
+        path('todo.sync-conflict-20261003-134809-4I343AW.md'),
+      ),
+      isFalse,
+    );
   });
 }

@@ -1,5 +1,6 @@
 import '../storage/rel_path.dart';
 import '../sync/sync_adapter.dart';
+import 'syncthing_conflict_name.dart';
 
 /// Syncthing's file-name rules.
 ///
@@ -14,7 +15,8 @@ final class SyncthingAdapter implements SyncAdapter {
   @override
   bool isInternal(RelPath path) =>
       path.value.split('/').any(_internalNames.contains) ||
-      _isTempFile(path.name);
+      _isTempFile(path.name) ||
+      SyncthingConflictName.parse(path.name) != null;
 
   /// Syncthing never syncs `.syncthing.*` files and deletes stale ones
   /// after a day, so a temp file left by a crash is cleaned up.

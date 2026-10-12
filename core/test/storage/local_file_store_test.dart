@@ -54,6 +54,16 @@ void main() {
       expect(paths, ['a.md']);
     });
 
+    test('names files correctly if the root path ends in /', () async {
+      await write('abc.md', 'a');
+      await write('sub/def.md', 'd');
+      final slashed = LocalFileStore('${root.path}/', (t) => t);
+
+      final paths = (await slashed.list()).value.map((e) => e.path.value);
+
+      expect(paths.toSet(), {'abc.md', 'sub/def.md'});
+    });
+
     test('fails with notFound if the root is missing', () async {
       final missing = LocalFileStore('${root.path}/missing', (t) => t);
 
