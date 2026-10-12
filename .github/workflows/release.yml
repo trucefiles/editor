@@ -66,6 +66,7 @@ jobs:
           name: apk
           path: dist/
           if-no-files-found: error
+          retention-days: 1
 
   flatpak:
     name: Build Flatpak
@@ -89,6 +90,7 @@ jobs:
           name: flatpak
           path: dist/
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     name: Publish GitHub Release
