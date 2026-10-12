@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../checklist/checklist_editor.dart';
+import '../../checklist/checklist_settings.dart';
+import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../folders/ui/folder_badge.dart';
@@ -13,7 +16,8 @@ import '../note_files.dart';
 import '../note_title.dart';
 import '../notes_controller.dart';
 
-/// Plain-text editor for one note. Saves as the user types.
+/// Editor for one note, as plain text or as a checklist. Saves as the user
+/// types.
 class NoteEditorScreen extends ConsumerStatefulWidget {
   const NoteEditorScreen(this.note, {this.autofocus = false, super.key});
 
@@ -33,6 +37,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final _session = NoteEditSession(widget.note, _files);
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
+  late final _checklist = ChecklistEditor(_session);
+  late bool _listView = _checklist.list.hasItems;
 
   @override
   void initState() {
@@ -45,6 +51,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void dispose() {
     _lifecycle.dispose();
+    _checklist.dispose();
     _session.removeListener(_onSessionChanged);
     final session = _session;
     unawaited(
@@ -93,6 +100,36 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     Navigator.pop(context);
   }
 
+  Widget _menu() {
+    final separateDone = ref.watch(doneSectionProvider);
+    return PopupMenuButton<VoidCallback>(
+      onSelected: (action) => action(),
+      itemBuilder: (_) => [
+        if (_listView) ...[
+          PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
+          CheckedPopupMenuItem(
+            value: () => ref
+                .read(doneSectionProvider.notifier)
+                .set(enabled: !separateDone),
+            checked: separateDone,
+            child: const Text('Done section'),
+          ),
+        ],
+        PopupMenuItem(value: _delete, child: const Text('Delete note')),
+      ],
+    );
+  }
+
+  void _clearDone() {
+    final before = _checklist.clearDone();
+    showSnack(
+      context,
+      'Done items cleared',
+      actionLabel: 'Undo',
+      onAction: () => _checklist.undo(before),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(notesProvider, (_, next) {
@@ -124,10 +161,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         actions: [
           _SaveIndicator(_session.state),
           IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
+            tooltip: _listView ? 'Text view' : 'List view',
+            icon: Icon(_listView ? Icons.notes : Icons.checklist),
+            onPressed: () => setState(() => _listView = !_listView),
           ),
+          _menu(),
         ],
       ),
       body: Column(
@@ -156,18 +194,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               actions: {'Retry': _session.flush},
             ),
           Expanded(
-            child: TextField(
-              controller: _text,
-              maxLines: null,
-              expands: true,
-              autofocus: widget.autofocus,
-              keyboardType: TextInputType.multiline,
-              textAlignVertical: TextAlignVertical.top,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
-              ),
-            ),
+            child: _listView
+                ? ChecklistView(_checklist)
+                : TextField(
+                    controller: _text,
+                    maxLines: null,
+                    expands: true,
+                    autofocus: widget.autofocus,
+                    keyboardType: TextInputType.multiline,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(16),
+                    ),
+                  ),
           ),
         ],
       ),
