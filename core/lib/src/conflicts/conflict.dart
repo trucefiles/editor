@@ -24,9 +24,11 @@ final class Conflict {
 }
 
 final class ConflictCopy {
-  const ConflictCopy({required this.path, required this.stamp, this.createdAt});
+  const ConflictCopy({required this.id, required this.stamp, this.createdAt});
 
-  final RelPath path;
+  /// Identifies the copy within its `ConflictSource`; opaque to everyone
+  /// else (for Syncthing, the copy's file path).
+  final String id;
 
   /// Version of the copy at scan time.
   final FileStamp stamp;

@@ -4,17 +4,19 @@
 ///
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]).
-/// 2. `sync`: what a sync tool's file names mean ([SyncAdapter]).
+/// 2. `sync`: a sync tool's file-name rules ([SyncAdapter]).
 /// 3. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 4. `filetypes`: which [FileType] a file is ([FileTypeDetector]).
-/// 5. `conflicts`: finding and resolving conflict copies ([ConflictService]),
-///    with per-file-type merge logic ([ConflictHandler]).
+/// 5. `conflicts`: resolving conflicts ([ConflictService]), found by each
+///    sync tool's [ConflictSource] and merged per file type
+///    ([ConflictHandler]).
 library;
 
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
+export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/resolution.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
