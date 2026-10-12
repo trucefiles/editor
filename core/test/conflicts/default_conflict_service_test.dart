@@ -168,4 +168,18 @@ void main() {
 
     expect(backupStore.files, isEmpty);
   });
+
+  test('readCopy returns the copy as scanned', () async {
+    folder.put('todo.md', 'current');
+    folder.put(copyName, 'other');
+
+    final conflict = await scanOne();
+
+    expect(
+      String.fromCharCodes(
+        (await service.readCopy(conflict.copies.single)).value,
+      ),
+      'other',
+    );
+  });
 }

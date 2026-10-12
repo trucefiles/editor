@@ -26,6 +26,10 @@ final class DefaultConflictService implements ConflictService {
   Future<Result<List<Conflict>, StoreError>> scan() => _source.find();
 
   @override
+  Future<Result<Uint8List, StoreError>> readCopy(ConflictCopy copy) =>
+      _source.read(copy);
+
+  @override
   Future<Result<void, ResolveError>> resolve(
     Conflict conflict,
     ConflictCopy copy,

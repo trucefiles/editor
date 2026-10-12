@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/notes/note_files.dart';
 
 import '../support.dart';
@@ -14,7 +13,7 @@ void main() {
   setUp(() {
     dir = tempFolder();
     final folder = folderAt(dir);
-    files = NoteFiles(folder, FolderServices.syncthing(folder));
+    files = NoteFiles(folder, servicesFor(folder));
   });
 
   String read(String name) => File('${dir.path}/$name').readAsStringSync();

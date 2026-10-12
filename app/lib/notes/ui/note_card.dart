@@ -8,9 +8,18 @@ import '../note_title.dart';
 /// A note in the grid: title, first lines (open items for checklists)
 /// and its folder.
 class NoteCard extends StatelessWidget {
-  const NoteCard(this.note, {required this.onTap, super.key});
+  const NoteCard(
+    this.note, {
+    required this.onTap,
+    this.hasConflict = false,
+    super.key,
+  });
 
   final Note note;
+
+  /// Shows a badge: another version from a sync conflict is waiting.
+  final bool hasConflict;
+
   final VoidCallback onTap;
 
   @override
@@ -41,7 +50,20 @@ class NoteCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              FolderBadge(note.folder),
+              Row(
+                children: [
+                  Expanded(child: FolderBadge(note.folder)),
+                  if (hasConflict)
+                    Tooltip(
+                      message: 'Sync conflict',
+                      child: Icon(
+                        Icons.call_split,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),

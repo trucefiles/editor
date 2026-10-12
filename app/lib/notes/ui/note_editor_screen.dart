@@ -9,6 +9,8 @@ import '../../checklist/checklist_settings.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../conflicts/conflicts_controller.dart';
+import '../../conflicts/ui/conflict_banner.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_edit_session.dart';
@@ -170,6 +172,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
       body: Column(
         children: [
+          if (ref.watch(conflictsProvider).value?.forNote(widget.note.key)
+              case final conflict?)
+            ConflictBanner(conflict),
           if (_session.state == EditState.changedElsewhere)
             _Banner(
               message: 'This note changed on another device or app.',
