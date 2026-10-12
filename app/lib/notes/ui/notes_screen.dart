@@ -99,16 +99,22 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     switch (created) {
       case Ok(value: final note):
         await ref.read(notesProvider.notifier).refresh();
-        if (mounted) await openNote(context, note);
+        if (mounted) await openNote(context, note, autofocus: true);
       case Err(:final error):
         showSnack(context, error.text);
     }
   }
 }
 
-Future<void> openNote(BuildContext context, Note note) => Navigator.push(
+Future<void> openNote(
+  BuildContext context,
+  Note note, {
+  bool autofocus = false,
+}) => Navigator.push(
   context,
-  MaterialPageRoute<void>(builder: (_) => NoteEditorScreen(note)),
+  MaterialPageRoute<void>(
+    builder: (_) => NoteEditorScreen(note, autofocus: autofocus),
+  ),
 );
 
 class _NotesBody extends ConsumerWidget {

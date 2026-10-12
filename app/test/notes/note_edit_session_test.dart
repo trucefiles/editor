@@ -24,11 +24,13 @@ void main() {
     addTearDown(session.dispose);
   });
 
-  String onDisk() => File('${dir.path}/a.md').readAsStringSync();
+  File file() => File('${dir.path}/a.md');
+
+  String onDisk() => file().readAsStringSync();
 
   /// Simulates an edit from another device and returns the new version.
   Future<Note> editElsewhere(String text) async {
-    File('${dir.path}/a.md').writeAsStringSync(text);
+    file().writeAsStringSync(text);
     return (await files.reload(note)).value;
   }
 
@@ -79,6 +81,20 @@ void main() {
     expect(session.state, EditState.saved);
   });
 
+  test('keep mine asks again if the file changed once more', () async {
+    await editElsewhere('# a\ntheirs, longer');
+    session.edit('# a\nmine');
+    await session.flush();
+    await editElsewhere('# a\ntheirs, even longer');
+
+    await session.keepMine();
+    expect(session.state, EditState.changedElsewhere);
+    expect(onDisk(), '# a\ntheirs, even longer');
+
+    await session.keepMine();
+    expect(onDisk(), '# a\nmine');
+  });
+
   test('load theirs drops the edits', () async {
     await editElsewhere('# a\ntheirs, longer');
     session.edit('# a\nmine');
@@ -90,11 +106,34 @@ void main() {
     expect(session.state, EditState.saved);
   });
 
-  test('writes a note deleted elsewhere again', () async {
-    File('${dir.path}/a.md').deleteSync();
+  test('stops saving a note deleted elsewhere', () async {
+    file().deleteSync();
     session.edit('# a\nkept');
     await session.flush();
 
+    expect(session.state, EditState.deletedElsewhere);
+
+    session.edit('# a\nkept, more');
+    await session.flush();
+
+    expect(file().existsSync(), isFalse);
+    expect(session.text, '# a\nkept, more');
+  });
+
+  test('a rescan reports a note deleted elsewhere', () {
+    session.onRescan(null, scannedAt: later);
+
+    expect(session.state, EditState.deletedElsewhere);
+  });
+
+  test('restore mine writes the text again', () async {
+    file().deleteSync();
+    session.edit('# a\nkept');
+    await session.flush();
+
+    await session.restoreMine();
+
     expect(onDisk(), '# a\nkept');
+    expect(session.state, EditState.saved);
   });
 }

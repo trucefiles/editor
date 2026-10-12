@@ -15,9 +15,13 @@ import '../notes_controller.dart';
 
 /// Plain-text editor for one note. Saves as the user types.
 class NoteEditorScreen extends ConsumerStatefulWidget {
-  const NoteEditorScreen(this.note, {super.key});
+  const NoteEditorScreen(this.note, {this.autofocus = false, super.key});
 
   final Note note;
+
+  /// Puts the cursor in the text right away, e.g. for a new note. Off by
+  /// default, so opening a note on a phone does not pop up the keyboard.
+  final bool autofocus;
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -92,7 +96,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(notesProvider, (_, next) {
-      if (next.value case final snapshot?) {
+      if (next.value case final snapshot?
+          when !snapshot.failedFolders.keys.any(
+            (folder) => folder.id == widget.note.folder.id,
+          )) {
         _session.onRescan(
           snapshot.find(widget.note.key),
           scannedAt: snapshot.startedAt,
@@ -133,6 +140,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 'Keep mine': _session.keepMine,
               },
             ),
+          if (_session.state == EditState.deletedElsewhere)
+            _Banner(
+              message:
+                  'This note was deleted on another device or app. '
+                  'Your text is kept here but not saved.',
+              actions: {
+                'Restore with my text': _session.restoreMine,
+                'Close': () => Navigator.pop(context),
+              },
+            ),
           if (_session.state == EditState.saveFailed)
             _Banner(
               message: 'Saving failed. Your text is kept here.',
@@ -143,7 +160,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               controller: _text,
               maxLines: null,
               expands: true,
-              autofocus: true,
+              autofocus: widget.autofocus,
               keyboardType: TextInputType.multiline,
               textAlignVertical: TextAlignVertical.top,
               decoration: const InputDecoration(
@@ -169,6 +186,7 @@ class _SaveIndicator extends StatelessWidget {
       EditState.saved => (Icons.cloud_done_outlined, 'Saved'),
       EditState.unsaved => (Icons.edit_outlined, 'Saving…'),
       EditState.changedElsewhere => (Icons.sync_problem, 'Changed elsewhere'),
+      EditState.deletedElsewhere => (Icons.sync_problem, 'Deleted elsewhere'),
       EditState.saveFailed => (Icons.error_outline, 'Not saved'),
     };
     return Tooltip(
