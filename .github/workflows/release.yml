@@ -52,7 +52,8 @@ jobs:
           APK: ${{ steps.apk.outputs.path }}
         run: |
           apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort --version-sort | tail -n 1)
-          expected=$(cat app/android/release-certificate-sha256.txt)
+          # The file uses keytool's format (AB:CD:...); apksigner prints abcd...
+          expected=$(tr -d ':\n' < app/android/release-certificate-sha256.txt | tr 'A-F' 'a-f')
           actual=$("$apksigner" verify --print-certs "$APK" \
             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
           if [ "$actual" != "$expected" ]; then
