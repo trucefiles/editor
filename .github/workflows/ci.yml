@@ -1,7 +1,7 @@
 name: CI
 
-# Pull requests run the checks only. Builds run after merge to main, or on
-# any branch when started by hand ("Run workflow").
+# Pull requests and merges to main run the checks only. Builds run only when
+# started by hand ("Run workflow", any branch); releases build on their own.
 on:
   push:
     branches: [main]
@@ -41,7 +41,7 @@ jobs:
   build-android:
     name: Build Android APK
     needs: check
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -53,7 +53,7 @@ jobs:
   build-flatpak:
     name: Build Flatpak
     needs: check
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
