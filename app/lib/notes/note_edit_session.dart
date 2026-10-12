@@ -27,7 +27,8 @@ enum EditState {
 }
 
 /// Saves the text of one open note shortly after the user stops typing and
-/// keeps it in step with changes from elsewhere. No UI.
+/// keeps it in step with changes from elsewhere. No UI. Listeners hear of
+/// every change to [text] or [state].
 ///
 /// Never overwrites a change from elsewhere and never recreates a deleted
 /// file without the user's choice.
@@ -61,8 +62,9 @@ final class NoteEditSession extends ChangeNotifier {
     if (text == _text) return;
     _text = text;
     if (_state == EditState.saved || _state == EditState.saveFailed) {
-      _set(EditState.unsaved);
+      _state = EditState.unsaved;
     }
+    notifyListeners();
     _timer?.cancel();
     if (_state == EditState.unsaved) _timer = Timer(saveDelay, _save);
   }

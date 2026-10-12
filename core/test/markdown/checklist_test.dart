@@ -1,0 +1,209 @@
+import 'package:test/test.dart';
+import 'package:truce_core/truce_core.dart';
+
+/// Id of the first line whose text is [text].
+int idOf(Checklist list, String text) =>
+    list.lines.firstWhere((line) => line.text == text).id;
+
+void main() {
+  const doc = '# Shopping\n- [ ] milk\n- [x] eggs\n  - [ ] large\nnote\n';
+
+  test('round-trips the text unchanged', () {
+    expect(Checklist.parse(doc).text, doc);
+  });
+
+  test('reads items in all bullet and mark styles', () {
+    final list = Checklist.parse(
+      '* [ ] a\n+ [X] b\n- [x] c\n- no box\n1. [ ] d',
+    );
+
+    expect(list.lines.map((line) => line.isItem), [
+      true,
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(list.lines.map((line) => line.isChecked), [
+      false,
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  test('hasItems only with checkbox items', () {
+    expect(Checklist.parse(doc).hasItems, isTrue);
+    expect(Checklist.parse('# Title\ntext').hasItems, isFalse);
+  });
+
+  test('toggle changes only the mark', () {
+    final list = Checklist.parse('* [X] a\n- [ ] b');
+
+    final toggled = list.toggle(idOf(list, 'a')).toggle(idOf(list, 'b'));
+
+    expect(toggled.text, '* [ ] a\n- [x] b');
+  });
+
+  test('setText keeps the prefix', () {
+    final list = Checklist.parse('  +  [ ] a');
+
+    expect(list.setText(idOf(list, 'a'), 'b').text, '  +  [ ] b');
+  });
+
+  test('ids survive edits', () {
+    final list = Checklist.parse(doc);
+    final id = idOf(list, 'milk');
+
+    final edited = list.setText(id, 'oat milk').toggle(id);
+
+    expect(edited.lines[1].id, id);
+  });
+
+  group('insertAfter', () {
+    test('adds a sibling after the subitems', () {
+      final list = Checklist.parse(doc);
+
+      final (added, id) = list.insertAfter(idOf(list, 'eggs'), 'bread');
+
+      expect(
+        added.text,
+        '# Shopping\n- [ ] milk\n- [x] eggs\n  - [ ] large\n- [ ] bread\nnote\n',
+      );
+      expect(added.lines[4].id, id);
+    });
+
+    test('uses the bullet style and level of the item', () {
+      final list = Checklist.parse('  * [x] a');
+
+      final (added, _) = list.insertAfter(idOf(list, 'a'), 'b');
+
+      expect(added.text, '  * [x] a\n  * [ ] b');
+    });
+
+    test('new ids are unique', () {
+      final list = Checklist.parse('- [ ] a');
+      final (once, first) = list.append('b');
+      final (twice, second) = once.append('c');
+
+      expect(first, isNot(second));
+      expect(twice.lines.map((line) => line.id).toSet(), hasLength(3));
+    });
+  });
+
+  group('append', () {
+    test('goes after the last item', () {
+      final list = Checklist.parse(doc);
+
+      expect(
+        list.append('bread').$1.text,
+        '# Shopping\n- [ ] milk\n- [x] eggs\n  - [ ] large\n- [ ] bread\nnote\n',
+      );
+    });
+
+    test('goes before the final line break if there are no items', () {
+      expect(
+        Checklist.parse('# Title\n').append('a').$1.text,
+        '# Title\n- [ ] a\n',
+      );
+    });
+  });
+
+  test('remove takes the subitems along', () {
+    final list = Checklist.parse(doc);
+
+    expect(
+      list.remove(idOf(list, 'eggs')).text,
+      '# Shopping\n- [ ] milk\nnote\n',
+    );
+  });
+
+  group('move', () {
+    test('moves the item with its subitems', () {
+      final list = Checklist.parse(doc);
+
+      final moved = list.move(idOf(list, 'eggs'), beforeId: idOf(list, 'milk'));
+
+      expect(
+        moved.text,
+        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+      );
+    });
+
+    test('to the end stays before the final line break', () {
+      final list = Checklist.parse('- [ ] a\n- [ ] b\n');
+
+      expect(
+        list.move(idOf(list, 'a'), beforeId: null).text,
+        '- [ ] b\n- [ ] a\n',
+      );
+    });
+
+    test('into its own subitems does nothing', () {
+      final list = Checklist.parse(doc);
+
+      expect(
+        list.move(idOf(list, 'eggs'), beforeId: idOf(list, 'large')).text,
+        doc,
+      );
+    });
+  });
+
+  group('indent', () {
+    test('indents the subitems too, in the file\'s unit', () {
+      final list = Checklist.parse('- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d');
+
+      final indented = list.indent(idOf(list, 'b'));
+
+      expect(indented.text, '- [ ] a\n    - [ ] b\n        - [ ] c\n- [ ] d');
+    });
+
+    test('needs an item above', () {
+      final list = Checklist.parse('# T\n- [ ] a');
+
+      expect(list.indent(idOf(list, 'a')).text, '# T\n- [ ] a');
+    });
+
+    test('outdent reverses indent', () {
+      final list = Checklist.parse(doc);
+
+      expect(
+        list.outdent(idOf(list, 'large')).text,
+        '# Shopping\n- [ ] milk\n- [x] eggs\n- [ ] large\nnote\n',
+      );
+    });
+
+    test('outdent at the margin does nothing', () {
+      final list = Checklist.parse(doc);
+
+      expect(list.outdent(idOf(list, 'milk')).text, doc);
+    });
+
+    test('depth counts levels', () {
+      final list = Checklist.parse(doc);
+
+      expect(list.depthOf(list.lines[3]), 1);
+      expect(list.depthOf(list.lines[1]), 0);
+    });
+  });
+
+  test('clearDone removes checked items and their subitems', () {
+    expect(
+      Checklist.parse(doc).clearDone().text,
+      '# Shopping\n- [ ] milk\nnote\n',
+    );
+  });
+
+  test('doneIds holds checked items and their subitems', () {
+    final list = Checklist.parse(doc);
+
+    expect(list.doneIds, {idOf(list, 'eggs'), idOf(list, 'large')});
+  });
+
+  test('an empty line ends a block', () {
+    final list = Checklist.parse('- [x] a\n\n  indented text');
+
+    expect(list.clearDone().text, '\n  indented text');
+  });
+}

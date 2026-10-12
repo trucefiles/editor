@@ -12,6 +12,7 @@
 ///    ([ConflictHandler]).
 /// 6. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
+/// 7. `markdown`: Markdown documents as line-level edits ([Checklist]).
 ///
 /// Implementations sit next to their interface; everything specific to
 /// Syncthing is in `syncthing`.
@@ -30,6 +31,7 @@ export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
+export 'src/markdown/checklist.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/rel_path.dart';
