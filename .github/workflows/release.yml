@@ -39,8 +39,11 @@ jobs:
               echo "::error::Start releases from main only"
               exit 1
             fi
-            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --silent 2>/dev/null; then
+            if lookup=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" 2>&1); then
               echo "::error::$tag already exists; raise the version in app/pubspec.yaml"
+              exit 1
+            elif ! grep -q 'HTTP 404' <<< "$lookup"; then
+              echo "::error::Couldn't check whether $tag exists: $lookup"
               exit 1
             fi
           elif [ "$GITHUB_REF_NAME" != "$tag" ]; then
