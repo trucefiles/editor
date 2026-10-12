@@ -181,4 +181,39 @@ void main() {
       expect(textAt('a.md'), 'changed elsewhere');
     });
   });
+
+  group('symbolic links', () {
+    late Directory outside;
+
+    setUp(() async {
+      outside = await Directory.systemTemp.createTemp('truce_outside');
+      await File('${outside.path}/secret.md').writeAsString('secret');
+      await Link('${root.path}/linked').create(outside.path);
+      await Link('${root.path}/note.md').create('${outside.path}/secret.md');
+    });
+
+    tearDown(() => outside.delete(recursive: true));
+
+    test('are not listed', () async {
+      expect((await store.list()).value, isEmpty);
+    });
+
+    test('are not read, through a folder or as a file', () async {
+      expect(
+        (await store.read(path('linked/secret.md'))).error,
+        StoreError.accessDenied,
+      );
+      expect(
+        (await store.read(path('note.md'))).error,
+        StoreError.accessDenied,
+      );
+    });
+
+    test('are not written through', () async {
+      final created = await store.create(path('linked/new.md'), bytesOf('x'));
+
+      expect(created.error, StoreError.accessDenied);
+      expect(File('${outside.path}/new.md').existsSync(), isFalse);
+    });
+  });
 }

@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../platform/folder_picker.dart';
+import '../../platform/storage_access.dart';
 import '../folder_selection.dart';
 import '../folders_controller.dart';
 import '../note_folder.dart';
@@ -92,12 +93,51 @@ class FoldersScreen extends ConsumerWidget {
   }
 }
 
-/// Lets the user pick a folder and adds it.
+/// Makes sure the app may open folders, lets the user pick one and adds
+/// it.
 Future<void> addFolder(BuildContext context, WidgetRef ref) async {
-  final path = await ref.read(folderPickerProvider).pick();
-  if (path == null) return;
-  final added = await ref.read(foldersProvider.notifier).add(path);
-  if (added case Err(:final error) when context.mounted) {
-    showSnack(context, error.text);
+  final access = ref.read(storageAccessProvider);
+  if (!await access.isGranted()) {
+    if (context.mounted && await _askForAccess(context)) await access.request();
+    return;
+  }
+  final picked = await ref.read(folderPickerProvider).pick();
+  if (!context.mounted) return;
+  switch (picked) {
+    case Ok(value: final path?):
+      final added = await ref.read(foldersProvider.notifier).add(path);
+      if (added case Err(:final error) when context.mounted) {
+        showSnack(context, error.text);
+      }
+    case Ok():
+      return;
+    case Err(error: PickError.unsupportedLocation):
+      showSnack(context, 'Please pick a folder on the device storage.');
   }
 }
+
+/// Explains why the app needs all-files access; `true` to continue.
+Future<bool> _askForAccess(BuildContext context) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Allow file access'),
+        content: const Text(
+          'To edit notes in your synced folders, Android needs to allow '
+          'this app access to files. The app only opens the folders you '
+          'add here. Turn on the switch on the next page, then come back '
+          'and add a folder.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    ) ??
+    false;
