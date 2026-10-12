@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'notes/ui/notes_screen.dart';
+
 /// Root widget: app-wide theme and the first screen.
 class TruceApp extends StatelessWidget {
   const TruceApp({super.key});
@@ -15,7 +17,7 @@ class TruceApp extends StatelessWidget {
         colorSchemeSeed: Colors.teal,
         brightness: Brightness.dark,
       ),
-      home: const Scaffold(body: Center(child: Text(title))),
+      home: const NotesScreen(),
     );
   }
 }

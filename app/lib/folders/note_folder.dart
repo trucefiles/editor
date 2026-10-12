@@ -1,0 +1,63 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
+
+/// A folder the user added on this device, with its display settings.
+///
+/// Per device and never synced: another device may name and color the same
+/// folder differently.
+@immutable
+final class NoteFolder {
+  const NoteFolder({
+    required this.id,
+    required this.path,
+    required this.name,
+    required this.color,
+  });
+
+  /// Random, stable on this device; names app storage that belongs to the
+  /// folder (e.g. its conflict backups).
+  final String id;
+
+  /// Absolute path on this device.
+  final String path;
+
+  final String name;
+  final Color color;
+
+  NoteFolder copyWith({String? name, Color? color}) => NoteFolder(
+    id: id,
+    path: path,
+    name: name ?? this.name,
+    color: color ?? this.color,
+  );
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'path': path,
+    'name': name,
+    'color': color.toARGB32(),
+  };
+
+  /// `null` if [json] is not a folder written by [toJson].
+  static NoteFolder? fromJson(Object? json) => switch (json) {
+    {
+      'id': final String id,
+      'path': final String path,
+      'name': final String name,
+      'color': final int color,
+    } =>
+      NoteFolder(id: id, path: path, name: name, color: Color(color)),
+    _ => null,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is NoteFolder &&
+      other.id == id &&
+      other.path == path &&
+      other.name == name &&
+      other.color == color;
+
+  @override
+  int get hashCode => Object.hash(id, path, name, color);
+}

@@ -11,6 +11,10 @@ import 'rel_path.dart';
 ///
 /// Change checks compare the [FileStamp] right before writing; a change in
 /// the moment between that check and the write cannot be detected.
+///
+/// Never follows symbolic links below the root, so it cannot reach files
+/// outside the root folder: [list] skips them, and every other operation
+/// fails with [StoreError.accessDenied] if its path goes through one.
 final class LocalFileStore implements FileStore {
   LocalFileStore(this.rootPath, this._tempFileName);
 
@@ -32,7 +36,7 @@ final class LocalFileStore implements FileStore {
   @override
   Future<Result<FileContent, StoreError>> read(RelPath path) =>
       _guard(() async {
-        final file = _file(path);
+        final file = await _file(path);
         // Stamp first: if the file changes while it is read, the stamp is
         // older than the bytes, so the next write fails its change check
         // instead of overwriting the change.
@@ -43,7 +47,7 @@ final class LocalFileStore implements FileStore {
   @override
   Future<Result<FileStamp, StoreError>> create(RelPath path, Uint8List bytes) =>
       _guard(() async {
-        final file = _file(path);
+        final file = await _file(path);
         await file.parent.create(recursive: true);
         return _writeAtomically(
           file,
@@ -58,7 +62,7 @@ final class LocalFileStore implements FileStore {
     Uint8List bytes, {
     required FileStamp ifUnchanged,
   }) => _guard(() async {
-    final file = _file(path);
+    final file = await _file(path);
     return _writeAtomically(
       file,
       bytes,
@@ -71,12 +75,25 @@ final class LocalFileStore implements FileStore {
     RelPath path, {
     required FileStamp ifUnchanged,
   }) => _guard(() async {
-    final file = _file(path);
+    final file = await _file(path);
     await _checkUnchanged(file, ifUnchanged);
     await file.delete();
   });
 
-  File _file(RelPath path) => File('$rootPath/${path.value}');
+  /// The file at [path]; refused if any part of the path below the root
+  /// is a symbolic link.
+  Future<File> _file(RelPath path) async {
+    var prefix = rootPath;
+    for (final segment in path.value.split('/')) {
+      prefix = '$prefix/$segment';
+      final type = await FileSystemEntity.type(prefix, followLinks: false);
+      if (type == FileSystemEntityType.link) {
+        throw const _Refused(StoreError.accessDenied);
+      }
+      if (type == FileSystemEntityType.notFound) break;
+    }
+    return File('$rootPath/${path.value}');
+  }
 
   Future<void> _walk(
     Directory folder,
