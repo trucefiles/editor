@@ -1,0 +1,117 @@
+name: Release
+
+# A version tag (vX.Y.Z) builds the signed APK and the Flatpak and publishes
+# them as a GitHub Release. Only the publish job can write to the repository;
+# only the Android job, in the "release" environment, can read the signing key.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Check tag matches app version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare tag with pubspec version
+        run: |
+          version=$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match app version $version"
+            exit 1
+          fi
+
+  android:
+    name: Build signed APK
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Unpack signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/build-apk
+        id: apk
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      - name: Check the APK is signed with the project key
+        env:
+          APK: ${{ steps.apk.outputs.path }}
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort --version-sort | tail -n 1)
+          # The file uses keytool's format (AB:CD:...); apksigner prints abcd...
+          expected=$(tr -d ':\n' < app/android/release-certificate-sha256.txt | tr 'A-F' 'a-f')
+          actual=$("$apksigner" verify --print-certs "$APK" \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::APK certificate $actual is not the project key $expected"
+            exit 1
+          fi
+          mkdir dist
+          cp "$APK" "dist/truce-editor-$GITHUB_REF_NAME.apk"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: apk
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  flatpak:
+    name: Build Flatpak
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-flatpak
+        id: flatpak
+      - name: Name the bundle after the version
+        env:
+          FLATPAK: ${{ steps.flatpak.outputs.path }}
+        run: |
+          mkdir dist
+          cp "$FLATPAK" "dist/truce-editor-$GITHUB_REF_NAME.flatpak"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flatpak
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish GitHub Release
+    needs: [android, flatpak]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create release with checksums
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum -- * > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Truce Editor $GITHUB_REF_NAME" --generate-notes \
+            -- *

@@ -28,11 +28,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // The release workflow provides the project key through the environment.
+    // Without it (local runs, CI test builds) release builds use the debug key.
+    val releaseKeystore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                val password = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").get()
+                storeFile = file(releaseKeystore)
+                storePassword = password
+                keyAlias = "release"
+                keyPassword = password
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 }
