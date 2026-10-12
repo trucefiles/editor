@@ -5,8 +5,11 @@ extension type const RelPath._(String value) {
   /// Returns `null` if [raw] breaks any of the rules above.
   static RelPath? parse(String raw) {
     if (raw.isEmpty || raw.startsWith('/')) return null;
-    final valid = raw.split('/').every(
-        (segment) => segment.isNotEmpty && segment != '.' && segment != '..');
+    final valid = raw
+        .split('/')
+        .every(
+          (segment) => segment.isNotEmpty && segment != '.' && segment != '..',
+        );
     return valid ? RelPath._(raw) : null;
   }
 

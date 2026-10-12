@@ -1,0 +1,21 @@
+name: truce_editor
+description: Truce Editor app. UI on top of truce_core.
+publish_to: none
+resolution: workspace
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  truce_lints: any
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,5 @@
+# Analyzer and lint settings for Flutter packages: Dart settings plus
+# Flutter's recommended rules.
+include:
+  - package:flutter_lints/flutter.yaml
+  - dart.yaml

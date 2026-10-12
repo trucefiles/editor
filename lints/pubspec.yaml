@@ -1,0 +1,11 @@
+name: truce_lints
+description: Shared analyzer and lint settings for all Truce packages.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter_lints: ^6.0.0
+  lints: ^6.1.0
