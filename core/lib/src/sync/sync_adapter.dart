@@ -1,0 +1,17 @@
+import '../storage/rel_path.dart';
+
+/// A sync tool's file-name rules that other layers need. Pure: no file
+/// access.
+///
+/// One implementation per sync tool. Syncthing is the only one for now.
+/// How the tool's conflicts are found is its `ConflictSource`'s job.
+abstract interface class SyncAdapter {
+  /// Whether [path] belongs to the sync tool itself (folder markers, version
+  /// folders, temp files) and must never be shown or touched.
+  bool isInternal(RelPath path);
+
+  /// File name for the temp file of an atomic write, placed next to the
+  /// target. The sync tool must never sync it and must clean it up if left
+  /// behind. [randomToken] keeps concurrent writes apart.
+  String tempFileName(String randomToken);
+}
