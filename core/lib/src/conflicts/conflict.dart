@@ -17,8 +17,9 @@ final class Conflict {
   /// Never empty. Ordered as they must be resolved, oldest first.
   final List<ConflictCopy> copies;
 
-  /// Only copies are left: the main file was deleted on another device
-  /// while this one edited it.
+  /// Only copies are left. Syncthing does this when a file is edited on one
+  /// device and later deleted on another: the delete wins, and the edit
+  /// survives only as a conflict copy.
   bool get isOrphaned => mainStamp == null;
 }
 
