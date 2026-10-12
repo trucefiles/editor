@@ -83,7 +83,7 @@ jobs:
           certs=$("$apksigner" verify --print-certs "$APK")
           echo "$certs"
           # One line per signer and signature scheme; all must be our key.
-          actual=$(sed -n 's/^Signer.* certificate SHA-256 digest: //p' <<< "$certs" | sort -u)
+          actual=$(sed -n 's/^.*Signer.* certificate SHA-256 digest: //p' <<< "$certs" | sort -u)
           if [ "$actual" != "$expected" ]; then
             echo "::error::APK certificate $actual is not the project key $expected"
             exit 1
