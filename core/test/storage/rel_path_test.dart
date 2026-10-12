@@ -19,4 +19,14 @@ void main() {
     expect(RelPath.parse('lists/todo.md')!.name, 'todo.md');
     expect(RelPath.parse('todo.md')!.name, 'todo.md');
   });
+
+  test('RelPath.sibling replaces the last segment', () {
+    expect(
+      RelPath.parse('lists/todo.md')!.sibling('done.md')?.value,
+      'lists/done.md',
+    );
+    expect(RelPath.parse('todo.md')!.sibling('done.md')?.value, 'done.md');
+    expect(RelPath.parse('todo.md')!.sibling('a/b'), isNull);
+    expect(RelPath.parse('todo.md')!.sibling('..'), isNull);
+  });
 }

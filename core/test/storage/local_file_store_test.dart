@@ -1,0 +1,174 @@
+import 'dart:io';
+
+import 'package:test/test.dart';
+import 'package:truce_core/truce_core.dart';
+
+import '../support/test_helpers.dart';
+
+void main() {
+  late Directory root;
+  late LocalFileStore store;
+
+  setUp(() async {
+    root = await Directory.systemTemp.createTemp('truce_store_test');
+    store = LocalFileStore(root.path, (token) => '.tmp-$token');
+  });
+
+  tearDown(() => root.delete(recursive: true));
+
+  Future<void> write(String relPath, String text) async {
+    final file = File('${root.path}/$relPath');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(text);
+  }
+
+  String? textAt(String relPath) {
+    final file = File('${root.path}/$relPath');
+    return file.existsSync() ? file.readAsStringSync() : null;
+  }
+
+  Future<FileStamp> stampOf(String relPath) async =>
+      (await store.read(path(relPath))).value.stamp;
+
+  group('list', () {
+    test('lists files recursively, hidden ones included', () async {
+      await write('a.md', 'a');
+      await write('.hidden', 'h');
+      await write('sub/deep/b.md', 'b');
+
+      final result = await store.list();
+
+      final paths = result.value.map((e) => e.path.value).toSet();
+      expect(paths, {'a.md', '.hidden', 'sub/deep/b.md'});
+    });
+
+    test('skips folders that enterFolder rejects', () async {
+      await write('a.md', 'a');
+      await write('.stversions/a.md', 'old');
+
+      final result = await store.list(
+        enterFolder: (folder) => folder.value != '.stversions',
+      );
+
+      final paths = result.value.map((e) => e.path.value);
+      expect(paths, ['a.md']);
+    });
+
+    test('fails with notFound if the root is missing', () async {
+      final missing = LocalFileStore('${root.path}/missing', (t) => t);
+
+      expect((await missing.list()).error, StoreError.notFound);
+    });
+  });
+
+  group('read', () {
+    test('returns bytes and a stamp matching the listing', () async {
+      await write('a.md', 'hello');
+
+      final content = (await store.read(path('a.md'))).value;
+      final listed = (await store.list()).value.single;
+
+      expect(String.fromCharCodes(content.bytes), 'hello');
+      expect(content.stamp, listed.stamp);
+      expect(content.stamp.size, 5);
+    });
+
+    test('fails with notFound for a missing file', () async {
+      final result = await store.read(path('missing.md'));
+
+      expect(result.error, StoreError.notFound);
+    });
+  });
+
+  group('create', () {
+    test('writes a new file and its parent folders', () async {
+      final result = await store.create(path('sub/new.md'), bytesOf('new'));
+
+      expect(result, isA<Ok<FileStamp, StoreError>>());
+      expect(textAt('sub/new.md'), 'new');
+    });
+
+    test('fails with alreadyExists and keeps the file', () async {
+      await write('a.md', 'old');
+
+      final result = await store.create(path('a.md'), bytesOf('new'));
+
+      expect(result.error, StoreError.alreadyExists);
+      expect(textAt('a.md'), 'old');
+    });
+  });
+
+  group('replace', () {
+    test('replaces an unchanged file and leaves no temp file', () async {
+      await write('a.md', 'old');
+      final stamp = await stampOf('a.md');
+
+      final result = await store.replace(
+        path('a.md'),
+        bytesOf('new text'),
+        ifUnchanged: stamp,
+      );
+
+      final newStamp = result.value;
+      expect(textAt('a.md'), 'new text');
+      expect(newStamp, await stampOf('a.md'));
+      expect(root.listSync().map((e) => e.uri.pathSegments.last), ['a.md']);
+    });
+
+    test('fails with changedSinceRead and writes nothing', () async {
+      await write('a.md', 'old');
+      final stamp = await stampOf('a.md');
+      await write('a.md', 'changed elsewhere');
+
+      final result = await store.replace(
+        path('a.md'),
+        bytesOf('new'),
+        ifUnchanged: stamp,
+      );
+
+      expect(result.error, StoreError.changedSinceRead);
+      expect(textAt('a.md'), 'changed elsewhere');
+      expect(root.listSync(), hasLength(1));
+    });
+
+    test('fails with notFound for a missing file', () async {
+      await write('a.md', 'old');
+      final stamp = await stampOf('a.md');
+      await File('${root.path}/a.md').delete();
+
+      final result = await store.replace(
+        path('a.md'),
+        bytesOf('new'),
+        ifUnchanged: stamp,
+      );
+
+      expect(result.error, StoreError.notFound);
+      expect(root.listSync(), isEmpty);
+    });
+  });
+
+  group('delete', () {
+    test('deletes an unchanged file', () async {
+      await write('a.md', 'old');
+
+      final result = await store.delete(
+        path('a.md'),
+        ifUnchanged: await stampOf('a.md'),
+      );
+
+      expect(result, isA<Ok<void, StoreError>>());
+      expect(textAt('a.md'), isNull);
+    });
+
+    test('keeps a changed file', () async {
+      await write('a.md', 'old');
+      final stamp = await stampOf('a.md');
+      await write('a.md', 'changed elsewhere');
+
+      final result = await store.delete(path('a.md'), ifUnchanged: stamp);
+
+      expect(result.error, StoreError.changedSinceRead);
+      expect(textAt('a.md'), 'changed elsewhere');
+    });
+  });
+}
