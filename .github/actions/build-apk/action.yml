@@ -1,0 +1,27 @@
+name: Build APK
+description: >
+  Builds the Android release APK. Signs it with the project key when
+  ANDROID_KEYSTORE_PATH and ANDROID_KEYSTORE_PASSWORD are set, else with the
+  debug key.
+
+outputs:
+  path:
+    description: The built APK file.
+    value: ${{ steps.apk.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup-flutter
+
+    - name: Get packages from the lock file
+      shell: bash
+      run: flutter pub get --enforce-lockfile
+
+    - name: Build APK
+      id: apk
+      shell: bash
+      working-directory: app
+      run: |
+        flutter build apk --release
+        echo "path=$PWD/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
