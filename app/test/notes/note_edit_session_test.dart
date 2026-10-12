@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
@@ -18,7 +17,7 @@ void main() {
   setUp(() async {
     dir = tempFolder();
     final folder = folderAt(dir);
-    files = NoteFiles(folder, FolderServices.syncthing(folder));
+    files = NoteFiles(folder, servicesFor(folder));
     note = (await files.create('a')).value;
     session = NoteEditSession(note, files, saveDelay: Duration.zero);
     addTearDown(session.dispose);

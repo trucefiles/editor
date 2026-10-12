@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 
 RelPath path(String raw) => RelPath.parse(raw)!;
@@ -20,6 +21,10 @@ NoteFolder folderAt(Directory dir, {String id = 'f1'}) => NoteFolder(
   name: 'Notes',
   color: const Color(0xFF009688),
 );
+
+/// Services for [folder], with backups in their own temp folder.
+FolderServices servicesFor(NoteFolder folder) =>
+    FolderServices.syncthing(folder, backupsPath: tempFolder().path);
 
 /// Unwraps results in tests; a wrong variant fails with a cast error.
 extension ResultUnwrap<T, E> on Result<T, E> {

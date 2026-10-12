@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/notes/note_scanner.dart';
 
 import '../support.dart';
@@ -13,7 +12,7 @@ void main() {
   setUp(() {
     dir = tempFolder();
     final folder = folderAt(dir);
-    scanner = NoteScanner(folder, FolderServices.syncthing(folder));
+    scanner = NoteScanner(folder, servicesFor(folder));
   });
 
   void write(String name, List<int> bytes) => (File(

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import 'conflict.dart';
@@ -14,6 +16,10 @@ import 'resolution.dart';
 abstract interface class ConflictService {
   /// All pending conflicts in the folder, grouped by main file.
   Future<Result<List<Conflict>, StoreError>> scan();
+
+  /// Content of [copy], to show it to the user. Fails with
+  /// [StoreError.changedSinceRead] if it changed since [scan].
+  Future<Result<Uint8List, StoreError>> readCopy(ConflictCopy copy);
 
   /// Applies [resolution] to [copy] of [conflict], in this order:
   /// 1. back up the main file and the copy in app storage;

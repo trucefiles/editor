@@ -4,6 +4,9 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../conflicts/conflicts_controller.dart';
+import '../../conflicts/ui/conflict_banner.dart';
+import '../../conflicts/ui/orphan_card.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
@@ -126,14 +129,23 @@ class _NotesBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedId = ref.watch(selectedFolderIdProvider);
     final snapshot = ref.watch(notesProvider).value;
+    final conflicts = ref.watch(conflictsProvider).value;
+    bool shown(String folderId) => selectedId == null || folderId == selectedId;
     final notes = [
       for (final note in snapshot?.notes ?? const <Note>[])
-        if (selectedId == null || note.folder.id == selectedId) note,
+        if (shown(note.folder.id)) note,
+    ];
+    final orphans = [
+      for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
+        if (shown(orphan.folder.id)) orphan,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FolderFilterBar(folders),
+        FolderFilterBar(
+          folders,
+          conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
+        ),
         for (final MapEntry(key: folder, value: error)
             in snapshot?.failedFolders.entries ??
                 const <MapEntry<NoteFolder, StoreError>>[])
@@ -145,7 +157,7 @@ class _NotesBody extends ConsumerWidget {
         Expanded(
           child: snapshot == null
               ? const Center(child: CircularProgressIndicator())
-              : notes.isEmpty
+              : notes.isEmpty && orphans.isEmpty
               ? const Center(child: Text('No notes yet.'))
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
@@ -155,11 +167,22 @@ class _NotesBody extends ConsumerWidget {
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
-                  itemCount: notes.length,
-                  itemBuilder: (context, index) => NoteCard(
-                    notes[index],
-                    onTap: () => openNote(context, notes[index]),
-                  ),
+                  itemCount: orphans.length + notes.length,
+                  itemBuilder: (context, index) {
+                    if (index < orphans.length) {
+                      final orphan = orphans[index];
+                      return OrphanCard(
+                        orphan,
+                        onTap: () => openConflict(context, orphan),
+                      );
+                    }
+                    final note = notes[index - orphans.length];
+                    return NoteCard(
+                      note,
+                      hasConflict: conflicts?.forNote(note.key) != null,
+                      onTap: () => openNote(context, note),
+                    );
+                  },
                 ),
         ),
       ],
