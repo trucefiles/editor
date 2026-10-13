@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
+import '../platform/parent_folder_access.dart';
 import 'note_folder.dart';
 
 /// The core services for one folder, wired for Syncthing. The only place
@@ -22,7 +23,10 @@ final class FolderServices {
       store: store,
       filter: filter,
       syncToolName: adapter.name,
-      syncRoots: const SyncthingRootFinder(readLocalFolderNames),
+      syncRoots: const SyncthingRootFinder(
+        readLocalFolderNames,
+        canReadParents: canReadParents,
+      ),
       conflicts: DefaultConflictService(
         folder: store,
         source: SyncthingConflictSource(store, filter),

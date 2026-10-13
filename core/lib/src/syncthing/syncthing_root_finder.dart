@@ -6,19 +6,24 @@ import '../sync/sync_root_finder.dart';
 /// Finds a Syncthing folder's root by its `.stfolder` marker, which
 /// Syncthing creates in every root it syncs.
 final class SyncthingRootFinder implements SyncRootFinder {
-  const SyncthingRootFinder(this._readNames);
+  /// [canReadParents] tells whether the platform lets the app read the
+  /// parent folders of a folder (not in a sandbox, for example).
+  const SyncthingRootFinder(
+    this._readNames, {
+    required bool Function(String folderPath) canReadParents,
+  }) : _canReadParents = canReadParents;
 
   static const _rootMarker = '.stfolder';
 
   final FolderNamesReader _readNames;
+  final bool Function(String folderPath) _canReadParents;
 
   /// Walks up to the file system root, and stops at the first parent it
-  /// cannot read: Syncthing folders lie where apps can read.
+  /// cannot read: Syncthing folders lie where apps can read. Where parents
+  /// are hidden, looks only at the folder itself.
   @override
-  Future<SyncRootSearch> find(
-    String folderPath, {
-    required bool parentsVisible,
-  }) async {
+  Future<SyncRootSearch> find(String folderPath) async {
+    final parentsVisible = _canReadParents(folderPath);
     final folders = parentsVisible ? _withParents(folderPath) : [folderPath];
     for (final (index, folder) in folders.indexed) {
       final names = await _readNames(folder);

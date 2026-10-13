@@ -4,12 +4,8 @@
 /// root and walks up the parents in its own way.
 abstract interface class SyncRootFinder {
   /// Looks for the root of the folder at the absolute [folderPath]: the
-  /// folder itself or one of its parents. Without [parentsVisible] (e.g. in
-  /// a sandbox), only the folder itself is looked at.
-  Future<SyncRootSearch> find(
-    String folderPath, {
-    required bool parentsVisible,
-  });
+  /// folder itself or one of its parents.
+  Future<SyncRootSearch> find(String folderPath);
 }
 
 /// Outcome of [SyncRootFinder.find].

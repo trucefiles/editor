@@ -4,15 +4,21 @@ import 'package:truce_core/truce_core.dart';
 void main() {
   /// A finder over folders given as path → entry names; missing paths
   /// cannot be read.
-  SyncthingRootFinder finderOver(Map<String, Set<String>> folders) =>
-      SyncthingRootFinder((path) async => folders[path]);
+  /// Parents are visible unless [hidden].
+  SyncthingRootFinder finderOver(
+    Map<String, Set<String>> folders, {
+    bool hidden = false,
+  }) => SyncthingRootFinder(
+    (path) async => folders[path],
+    canReadParents: (_) => !hidden,
+  );
 
   test('finds the folder itself as the root', () async {
     final finder = finderOver({
       '/sync/notes': {'.stfolder', 'a.md'},
     });
 
-    final found = await finder.find('/sync/notes', parentsVisible: true);
+    final found = await finder.find('/sync/notes');
 
     expect(
       found,
@@ -27,7 +33,7 @@ void main() {
       '/sync': {'.stfolder', 'notes'},
     });
 
-    final found = await finder.find('/sync/notes/work', parentsVisible: true);
+    final found = await finder.find('/sync/notes/work');
 
     expect(
       found,
@@ -42,10 +48,7 @@ void main() {
       '/': {'home'},
     });
 
-    expect(
-      await finder.find('/home/notes', parentsVisible: true),
-      isA<SyncRootMissing>(),
-    );
+    expect(await finder.find('/home/notes'), isA<SyncRootMissing>());
   });
 
   test('stops at the first parent it cannot read', () async {
@@ -55,38 +58,26 @@ void main() {
       '/': {'.stfolder'},
     });
 
-    expect(
-      await finder.find('/storage/0/notes', parentsVisible: true),
-      isA<SyncRootMissing>(),
-    );
+    expect(await finder.find('/storage/0/notes'), isA<SyncRootMissing>());
   });
 
   test('unknown without visible parents and no marker', () async {
     final finder = finderOver({
       '/run/doc/notes': {'a.md'},
-    });
+    }, hidden: true);
 
-    expect(
-      await finder.find('/run/doc/notes', parentsVisible: false),
-      isA<SyncRootUnknown>(),
-    );
+    expect(await finder.find('/run/doc/notes'), isA<SyncRootUnknown>());
   });
 
   test('found without visible parents if the folder is a root', () async {
     final finder = finderOver({
       '/run/doc/notes': {'.stfolder'},
-    });
+    }, hidden: true);
 
-    expect(
-      await finder.find('/run/doc/notes', parentsVisible: false),
-      isA<SyncRootFound>(),
-    );
+    expect(await finder.find('/run/doc/notes'), isA<SyncRootFound>());
   });
 
   test('unknown if the folder itself cannot be read', () async {
-    expect(
-      await finderOver({}).find('/gone', parentsVisible: true),
-      isA<SyncRootUnknown>(),
-    );
+    expect(await finderOver({}).find('/gone'), isA<SyncRootUnknown>());
   });
 }
