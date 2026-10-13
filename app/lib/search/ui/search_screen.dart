@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../notes/note.dart';
 import '../../notes/ui/note_card.dart';
-import '../../notes/ui/notes_screen.dart';
+import '../../notes/ui/note_grid.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note_search.dart';
 

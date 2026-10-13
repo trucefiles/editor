@@ -24,7 +24,7 @@ NoteFolder folderAt(Directory dir, {String id = 'f1'}) => NoteFolder(
 
 /// Services for [folder], with backups in their own temp folder.
 FolderServices servicesFor(NoteFolder folder) =>
-    FolderServices.syncthing(folder, backupsPath: tempFolder().path);
+    FolderServices.syncthing(folder.path, backupsPath: tempFolder().path);
 
 /// Unwraps results in tests; a wrong variant fails with a cast error.
 extension ResultUnwrap<T, E> on Result<T, E> {

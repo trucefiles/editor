@@ -20,7 +20,9 @@ import '../note_files.dart';
 import '../note_title.dart';
 import '../note_view.dart';
 import '../note_views_controller.dart';
+import 'edit_state_banner.dart';
 import 'note_view_button.dart';
+import 'save_indicator.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
 /// types.
@@ -240,7 +242,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
         ),
         actions: [
-          _SaveIndicator(_session.state),
+          SaveIndicator(_session.state),
           if (!_isDone) ...[
             NoteViewButton(view: _view, onChanged: _showView),
             _menu(),
@@ -256,36 +258,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   .forNote(widget.note.key)
               case final conflict?)
             ConflictBanner(conflict),
-          if (_session.state == EditState.changedElsewhere)
-            _Banner(
-              message: 'This note changed on another device or app.',
-              actions: {
-                'Load theirs': _session.loadTheirs,
-                'Keep mine': _session.keepMine,
-              },
-            ),
-          if (_session.state == EditState.deletedElsewhere)
-            _Banner(
-              message:
-                  'This note was deleted on another device or app. '
-                  'Your text is kept here; closing keeps it as a conflict.',
-              actions: {
-                'Restore with my text': _session.restoreMine,
-                'Close': _leave,
-              },
-            ),
-          if (_session.state == EditState.saveFailed)
-            _Banner(
-              message: 'Saving failed. Your text is kept here.',
-              actions: {'Retry': _session.flush},
-            ),
-          if (_isDone)
-            _Banner(
-              message:
-                  'Your edits were kept as a conflict copy, to resolve '
-                  'from the notes list.',
-              actions: {'Close': _close},
-            ),
+          EditStateBanner(_session, onClose: _leave),
           Expanded(
             // Read-only once done: the session takes no more edits.
             child: switch (_isDone ? NoteView.rendered : _view) {
@@ -326,47 +299,4 @@ class _ToggleLabel extends StatelessWidget {
       Icon(on ? Icons.check_box : Icons.check_box_outline_blank),
     ],
   );
-}
-
-class _SaveIndicator extends StatelessWidget {
-  const _SaveIndicator(this.state);
-
-  final EditState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, label) = switch (state) {
-      EditState.saved => (Icons.cloud_done_outlined, 'Saved'),
-      EditState.unsaved => (Icons.edit_outlined, 'Saving…'),
-      EditState.changedElsewhere => (Icons.sync_problem, 'Changed elsewhere'),
-      EditState.deletedElsewhere => (Icons.sync_problem, 'Deleted elsewhere'),
-      EditState.saveFailed => (Icons.error_outline, 'Not saved'),
-      EditState.keptAsConflict => (Icons.sync_problem, 'Kept as conflict'),
-    };
-    return Tooltip(
-      message: label,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Icon(icon),
-      ),
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner({required this.message, required this.actions});
-
-  final String message;
-  final Map<String, FutureOr<void> Function()> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialBanner(
-      content: Text(message),
-      actions: [
-        for (final MapEntry(key: label, value: action) in actions.entries)
-          TextButton(onPressed: action, child: Text(label)),
-      ],
-    );
-  }
 }

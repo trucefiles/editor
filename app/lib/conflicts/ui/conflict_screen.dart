@@ -28,7 +28,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
   bool _busy = false;
 
   FolderServices get _services =>
-      ref.read(folderServicesProvider(_conflict.folder));
+      ref.read(folderServicesProvider(_conflict.folder.location));
 
   @override
   void initState() {

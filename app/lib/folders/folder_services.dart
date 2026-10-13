@@ -9,24 +9,21 @@ import 'note_folder.dart';
 /// in the app that picks implementations.
 final class FolderServices {
   /// [backupsPath] is the folder's private backup folder in app storage.
-  factory FolderServices.syncthing(
-    NoteFolder folder, {
-    required String backupsPath,
-  }) {
+  factory FolderServices.syncthing(String path, {required String backupsPath}) {
     const adapter = SyncthingAdapter();
     const filter = DefaultFileFilter(
       adapter,
       ExtensionFileTypeDetector.standard(),
     );
-    final store = LocalFileStore(folder.path, adapter.tempFileName);
+    final store = LocalFileStore(path, adapter.tempFileName);
     return FolderServices._(
       store: store,
       scanner: SyncthingFolderScanner(store, filter),
       syncToolName: adapter.name,
       syncCheck: SyncthingSyncCheck(
-        folder.path,
+        path,
         readNames: readLocalFolderNames,
-        parentsVisible: canReadParents(folder.path),
+        parentsVisible: canReadParents(path),
       ),
       conflicts: DefaultConflictService(
         folder: store,
@@ -59,9 +56,9 @@ ConflictBackups conflictBackupsAt(String path) => ConflictBackups(
   LocalFileStore(path, const SyncthingAdapter().tempFileName),
 );
 
-final folderServicesProvider = Provider.family<FolderServices, NoteFolder>(
-  (ref, folder) => FolderServices.syncthing(
-    folder,
-    backupsPath: ref.watch(appStorageProvider).backupsPath(folder.id),
+final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
+  (ref, location) => FolderServices.syncthing(
+    location.path,
+    backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
   ),
 );

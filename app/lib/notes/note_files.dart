@@ -103,5 +103,6 @@ final class NoteFiles {
 }
 
 final noteFilesProvider = Provider.family<NoteFiles, NoteFolder>(
-  (ref, folder) => NoteFiles(folder, ref.watch(folderServicesProvider(folder))),
+  (ref, folder) =>
+      NoteFiles(folder, ref.watch(folderServicesProvider(folder.location))),
 );

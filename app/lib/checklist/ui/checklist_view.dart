@@ -8,6 +8,7 @@ import '../checklist_editor.dart';
 import '../checklist_settings.dart';
 import 'checklist_blocks.dart';
 import 'checklist_row.dart';
+import 'checklist_text_block.dart';
 import 'row_focus.dart';
 
 /// Keep-like view of a checklist: open items to drag and edit, an add row,
