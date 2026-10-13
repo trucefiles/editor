@@ -12,13 +12,15 @@ import '../../common/snack.dart';
 import '../../conflicts/conflicts_controller.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../folders/ui/folder_badge.dart';
+import '../../markdown/markdown_view.dart';
 import '../note.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
-import '../note_view_store.dart';
+import '../note_view.dart';
 import '../note_views_controller.dart';
 import '../notes_controller.dart';
+import 'note_view_button.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
 /// types.
@@ -46,11 +48,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteViewsController _views;
 
   /// The note's last view on this device; else a list if it has items.
-  late bool _listView = switch (_views.viewOf(widget.note.key)) {
-    NoteView.list => true,
-    NoteView.text => false,
-    null => _checklist.list.hasItems,
-  };
+  late NoteView _view =
+      _views.viewOf(widget.note.key) ??
+      (_checklist.list.hasItems ? NoteView.list : NoteView.text);
 
   @override
   void initState() {
@@ -119,7 +119,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     return PopupMenuButton<VoidCallback>(
       onSelected: (action) => action(),
       itemBuilder: (_) => [
-        if (_listView) ...[
+        if (_view == NoteView.list) ...[
           PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
           PopupMenuItem(
             value: () => ref
@@ -133,14 +133,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  void _toggleView() {
-    setState(() => _listView = !_listView);
-    unawaited(
-      _views.remember(
-        widget.note.key,
-        _listView ? NoteView.list : NoteView.text,
-      ),
-    );
+  void _showView(NoteView view) {
+    setState(() => _view = view);
+    unawaited(_views.remember(widget.note.key, view));
   }
 
   void _clearDone() {
@@ -183,11 +178,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
         actions: [
           _SaveIndicator(_session.state),
-          IconButton(
-            tooltip: _listView ? 'Text view' : 'List view',
-            icon: Icon(_listView ? Icons.notes : Icons.checklist),
-            onPressed: _toggleView,
-          ),
+          NoteViewButton(view: _view, onChanged: _showView),
           _menu(),
         ],
       ),
@@ -220,20 +211,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               actions: {'Retry': _session.flush},
             ),
           Expanded(
-            child: _listView
-                ? ChecklistView(_checklist)
-                : TextField(
-                    controller: _text,
-                    maxLines: null,
-                    expands: true,
-                    autofocus: widget.autofocus,
-                    keyboardType: TextInputType.multiline,
-                    textAlignVertical: TextAlignVertical.top,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(16),
-                    ),
-                  ),
+            child: switch (_view) {
+              NoteView.list => ChecklistView(_checklist),
+              NoteView.rendered => MarkdownView(_session.text),
+              NoteView.text => TextField(
+                controller: _text,
+                maxLines: null,
+                expands: true,
+                autofocus: widget.autofocus,
+                keyboardType: TextInputType.multiline,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                ),
+              ),
+            },
           ),
         ],
       ),
