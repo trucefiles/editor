@@ -39,7 +39,10 @@ final class ChecklistEditor extends ChangeNotifier {
   void move(int id, {required int? beforeId}) =>
       _apply(_list.move(id, beforeId: beforeId));
 
-  void indent(int id) => _apply(_list.indent(id));
+  /// [hidden]: lines the UI does not show above the item, see
+  /// [Checklist.indent].
+  void indent(int id, {Set<int> hidden = const {}}) =>
+      _apply(_list.indent(id, hidden: hidden));
 
   void outdent(int id) => _apply(_list.outdent(id));
 
@@ -50,7 +53,7 @@ final class ChecklistEditor extends ChangeNotifier {
   String clearDone() => _applyUndoable(_list.clearDone());
 
   /// Goes back to [text] returned by an earlier action.
-  void undo(String text) => _apply(Checklist.parse(text));
+  void undo(String text) => _apply(_list.reparse(text));
 
   String _applyUndoable(Checklist list) {
     final before = _list.text;
@@ -66,7 +69,7 @@ final class ChecklistEditor extends ChangeNotifier {
 
   void _onSessionChanged() {
     if (_session.text == _list.text) return;
-    _list = Checklist.parse(_session.text);
+    _list = _list.reparse(_session.text);
     notifyListeners();
   }
 

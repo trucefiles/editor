@@ -88,6 +88,10 @@ final class NoteEditSession extends ChangeNotifier {
       return false;
     }
     if (latest.stamp == _note.stamp) return false;
+    if (_isRestamped(latest)) {
+      _note = latest;
+      return false;
+    }
     if (_state == EditState.saved) {
       _note = latest;
       _text = latest.file.text;
@@ -142,7 +146,9 @@ final class NoteEditSession extends ChangeNotifier {
     return _saving = previous.then((_) => _saveOnce());
   }
 
-  Future<void> _saveOnce() async {
+  /// [retried] after the file turned out to be only restamped, so a stamp
+  /// that keeps changing cannot loop.
+  Future<void> _saveOnce({bool retried = false}) async {
     if (_state != EditState.unsaved && _state != EditState.saveFailed) return;
     final text = _text;
     switch (await _write(() => _files.save(_note, text))) {
@@ -152,12 +158,24 @@ final class NoteEditSession extends ChangeNotifier {
       case Err(error: StoreError.notFound):
         _goneElsewhere();
       case Err(error: StoreError.changedSinceRead):
-        _theirs = await _reload();
-        if (_theirs != null) _set(EditState.changedElsewhere);
+        final theirs = await _reload();
+        if (theirs == null) return;
+        if (!retried && _isRestamped(theirs)) {
+          _note = theirs;
+          return _saveOnce(retried: true);
+        }
+        _theirs = theirs;
+        _set(EditState.changedElsewhere);
       case Err():
         _set(EditState.saveFailed);
     }
   }
+
+  /// Whether [latest] has a new stamp but the same text as [note]: not a
+  /// change from elsewhere. Some file systems (e.g. Android's shared
+  /// storage) report a stale stamp right after a write and the real one
+  /// a moment later.
+  bool _isRestamped(Note latest) => latest.file.text == _note.file.text;
 
   /// Runs one write, marking it so rescans in the meantime are ignored.
   Future<Result<Note, StoreError>> _write(

@@ -165,6 +165,32 @@ void main() {
       expect(list.indent(idOf(list, 'a')).text, '# T\n- [ ] a');
     });
 
+    test('goes at most one level below the item above', () {
+      final list = Checklist.parse('- [ ] a\n  - [ ] b');
+
+      expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b');
+    });
+
+    test('needs the line shown above to be an item', () {
+      final list = Checklist.parse('- [ ] a\n## Later\n- [ ] b');
+
+      expect(list.indent(idOf(list, 'b')).text, list.text);
+    });
+
+    test('skips hidden lines and moves the item above them', () {
+      final list = Checklist.parse(
+        '- [ ] a\n- [x] done\n  - [ ] sub\n- [ ] b\n  - [ ] c',
+      );
+
+      final indented = list.indent(idOf(list, 'b'), hidden: list.doneIds);
+
+      expect(
+        indented.text,
+        '- [ ] a\n  - [ ] b\n    - [ ] c\n- [x] done\n  - [ ] sub',
+      );
+      expect(indented.doneIds, isNot(contains(idOf(list, 'b'))));
+    });
+
     test('outdent reverses indent', () {
       final list = Checklist.parse(doc);
 
@@ -186,6 +212,17 @@ void main() {
       expect(list.depthOf(list.lines[3]), 1);
       expect(list.depthOf(list.lines[1]), 0);
     });
+  });
+
+  test('reparse gives ids that never repeat earlier ones', () {
+    final list = Checklist.parse('- [ ] a\n- [ ] b');
+    final (added, newId) = list.append('c');
+
+    final reparsed = added.reparse('- [ ] x');
+
+    final oldIds = {...added.lines.map((line) => line.id), newId};
+    expect(reparsed.lines.single.id, isNot(isIn(oldIds)));
+    expect(reparsed.text, '- [ ] x');
   });
 
   test('clearDone removes checked items and their subitems', () {

@@ -60,6 +60,37 @@ void main() {
     expect(session.text, '# a\nmine');
   });
 
+  /// Simulates a file system reporting a new stamp for unchanged content.
+  Future<Note> restamp() async {
+    file().setLastModifiedSync(DateTime(2001));
+    return (await files.reload(note)).value;
+  }
+
+  test('a new stamp with the same text is not a change', () async {
+    session.edit('# a\nmine');
+    await session.flush();
+    final restamped = await restamp();
+
+    session.edit('# a\nmine, more');
+    session.onRescan(restamped, scannedAt: later);
+    await session.flush();
+
+    expect(session.state, EditState.saved);
+    expect(onDisk(), '# a\nmine, more');
+  });
+
+  test('saves over a file that was only restamped', () async {
+    session.edit('# a\nmine');
+    await session.flush();
+    await restamp();
+
+    session.edit('# a\nmine, more');
+    await session.flush();
+
+    expect(session.state, EditState.saved);
+    expect(onDisk(), '# a\nmine, more');
+  });
+
   test('asks before overwriting a change from elsewhere', () async {
     await editElsewhere('# a\ntheirs, longer');
     session.edit('# a\nmine');
