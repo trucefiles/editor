@@ -6,6 +6,9 @@ import '../storage/rel_path.dart';
 /// One implementation per sync tool. Syncthing is the only one for now.
 /// How the tool's conflicts are found is its `ConflictSource`'s job.
 abstract interface class SyncAdapter {
+  /// The sync tool's name, for the UI.
+  String get name;
+
   /// Whether [path] belongs to the sync tool itself (folder markers, version
   /// folders, temp files, conflict copies). Such files are never shown, and
   /// touched only by the tool's own `ConflictSource`.

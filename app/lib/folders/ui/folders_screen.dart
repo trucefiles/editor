@@ -11,6 +11,7 @@ import '../folders_controller.dart';
 import '../note_folder.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
+import 'sync_root_warning.dart';
 
 /// Lists the folders on this device: add, rename, recolor, remove.
 class FoldersScreen extends ConsumerWidget {
@@ -32,7 +33,13 @@ class FoldersScreen extends ConsumerWidget {
             ListTile(
               leading: FolderDot(folder.color, size: 16),
               title: Text(folder.name),
-              subtitle: Text(folder.path),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(folder.path),
+                  SyncRootWarning(folder, includeUnknown: true),
+                ],
+              ),
               onTap: () => _edit(context, ref, folder),
               trailing: IconButton(
                 tooltip: 'Remove from app',
