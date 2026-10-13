@@ -111,12 +111,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       itemBuilder: (_) => [
         if (_listView) ...[
           PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
-          CheckedPopupMenuItem(
+          PopupMenuItem(
             value: () => ref
                 .read(doneSectionProvider.notifier)
                 .set(enabled: !separateDone),
-            checked: separateDone,
-            child: const Text('Done section'),
+            child: _ToggleLabel('Done section', on: separateDone),
           ),
         ],
         PopupMenuItem(value: _delete, child: const Text('Delete note')),
@@ -220,6 +219,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
     );
   }
+}
+
+/// A menu label with a checkbox icon that shows on and off alike, so it
+/// lines up with plain menu items.
+class _ToggleLabel extends StatelessWidget {
+  const _ToggleLabel(this.label, {required this.on});
+
+  final String label;
+  final bool on;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(child: Text(label)),
+      Icon(on ? Icons.check_box : Icons.check_box_outline_blank),
+    ],
+  );
 }
 
 class _SaveIndicator extends StatelessWidget {

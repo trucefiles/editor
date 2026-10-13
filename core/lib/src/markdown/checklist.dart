@@ -11,13 +11,20 @@ final class Checklist {
   const Checklist._(this.lines, this._indentUnit, this._nextId);
 
   /// Parses [text] with `\n` line breaks.
-  factory Checklist.parse(String text) {
+  factory Checklist.parse(String text) => Checklist._parseFrom(text, 0);
+
+  factory Checklist._parseFrom(String text, int firstId) {
     final lines = <ChecklistLine>[];
     for (final raw in text.split('\n')) {
-      lines.add(ChecklistLine._parse(lines.length, raw));
+      lines.add(ChecklistLine._parse(firstId + lines.length, raw));
     }
-    return Checklist._(lines, _detectIndentUnit(lines), lines.length);
+    return Checklist._(lines, _detectIndentUnit(lines), firstId + lines.length);
   }
+
+  /// Parses [text] as a whole new document, e.g. after it changed
+  /// elsewhere. Its ids never repeat this checklist's ids, so a UI cannot
+  /// mistake a new line for an old one.
+  Checklist reparse(String text) => Checklist._parseFrom(text, _nextId);
 
   /// All lines, in file order.
   final List<ChecklistLine> lines;
@@ -99,12 +106,26 @@ final class Checklist {
     return _with(rest..insertAll(target, block));
   }
 
-  /// Makes the item [id] a subitem of the item above it, with its own
-  /// subitems. Does nothing if no item is above it.
-  Checklist indent(int id) {
+  /// Moves the item [id] with its subitems one level right, under the
+  /// line shown above it. Lines in [hidden] (e.g. done items a UI shows
+  /// elsewhere) and empty lines are not shown; hidden lines in between
+  /// move below the item, so it lands under the line the user saw.
+  ///
+  /// Does nothing if the line shown above is not an item, or if the item
+  /// is already one level deeper than it.
+  Checklist indent(int id, {Set<int> hidden = const {}}) {
     final index = _indexOf(id);
-    if (!lines.take(index).any((line) => line.isItem)) return this;
-    return _reindentBlock(index, (indent) => '$indent$_indentUnit');
+    final above = _shownAbove(index, hidden);
+    if (above == null || !lines[above].isItem) return this;
+    if (depthOf(lines[index]) > depthOf(lines[above])) return this;
+    final aboveEnd = _blockEnd(above);
+    final placed = aboveEnd < index
+        ? move(id, beforeId: lines[aboveEnd].id)
+        : this;
+    return placed._reindentBlock(
+      placed._indexOf(id),
+      (indent) => '$indent$_indentUnit',
+    );
   }
 
   /// Moves the item [id] with its subitems one level left. Does nothing at
@@ -126,6 +147,17 @@ final class Checklist {
   Checklist clearDone() {
     final done = doneIds;
     return _with(lines.where((line) => !done.contains(line.id)).toList());
+  }
+
+  /// Index of the nearest line above [index] that is neither empty nor
+  /// in [hidden]; `null` if there is none.
+  int? _shownAbove(int index, Set<int> hidden) {
+    for (var i = index - 1; i >= 0; i--) {
+      if (lines[i].raw.trim().isNotEmpty && !hidden.contains(lines[i].id)) {
+        return i;
+      }
+    }
+    return null;
   }
 
   /// Index just past [index]'s block: the line and every following line

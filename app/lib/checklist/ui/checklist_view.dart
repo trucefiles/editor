@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -6,6 +7,7 @@ import '../../common/snack.dart';
 import '../checklist_editor.dart';
 import '../checklist_settings.dart';
 import 'checklist_row.dart';
+import 'row_focus.dart';
 
 /// Keep-like view of a checklist: open items to drag and edit, an add row,
 /// and checked items in a collapsible "Done" section.
@@ -19,9 +21,11 @@ class ChecklistView extends ConsumerStatefulWidget {
 }
 
 class _ChecklistViewState extends ConsumerState<ChecklistView> {
+  /// Row key of the "Add item" field in [_focus].
+  static const _addRowKey = 'add';
+
   final _newItem = TextEditingController();
-  final _newItemFocus = FocusNode();
-  int? _focusId;
+  final _focus = RowFocus();
   bool _doneExpanded = true;
 
   ChecklistEditor get _editor => widget.editor;
@@ -29,7 +33,7 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
   @override
   void dispose() {
     _newItem.dispose();
-    _newItemFocus.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -37,13 +41,18 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
     if (text.trim().isEmpty) return;
     _editor.append(text.trim());
     _newItem.clear();
-    _newItemFocus.requestFocus();
+    _focus.of(_addRowKey).requestFocus();
   }
 
   void _onAction(ChecklistLine line, ItemAction action) {
     switch (action) {
       case ItemAction.indent:
-        _editor.indent(line.id);
+        // Done items are shown in their own section, so they are not
+        // "above" an open item on screen.
+        final hidden = ref.read(doneSectionProvider)
+            ? _editor.list.doneIds
+            : const <int>{};
+        _editor.indent(line.id, hidden: hidden);
       case ItemAction.outdent:
         _editor.outdent(line.id);
       case ItemAction.delete:
@@ -75,6 +84,14 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
           for (final line in list.lines)
             if (done.contains(line.id)) line,
         ];
+        _focus.show([
+          for (final line in open)
+            if (line.isItem) line.id,
+          _addRowKey,
+          if (_doneExpanded)
+            for (final line in doneLines)
+              if (line.isItem) line.id,
+        ]);
         return CustomScrollView(
           slivers: [
             SliverReorderableList(
@@ -117,14 +134,14 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
       key: ValueKey(line.id),
       line: line,
       depth: list.depthOf(line),
-      autofocus: line.id == _focusId,
+      focusNode: _focus.of(line.id),
+      onFocusStep: (step) => _focus.move(line.id, step),
       dragHandle: index == null
           ? null
           : (icon) => ReorderableDragStartListener(index: index, child: icon),
       onToggle: () => _editor.toggle(line.id),
       onTextChanged: (text) => _editor.setText(line.id, text),
-      onSubmitted: () =>
-          setState(() => _focusId = _editor.insertAfter(line.id)),
+      onSubmitted: () => _focus.focusLater(_editor.insertAfter(line.id)),
       onAction: (action) => _onAction(line, action),
     );
   }
@@ -135,14 +152,22 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
       children: [
         const Padding(padding: EdgeInsets.all(12), child: Icon(Icons.add)),
         Expanded(
-          child: TextField(
-            controller: _newItem,
-            focusNode: _newItemFocus,
-            decoration: const InputDecoration(
-              hintText: 'Add item',
-              border: InputBorder.none,
+          child: CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                  _focus.move(_addRowKey, -1),
+              const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                  _focus.move(_addRowKey, 1),
+            },
+            child: TextField(
+              controller: _newItem,
+              focusNode: _focus.of(_addRowKey),
+              decoration: const InputDecoration(
+                hintText: 'Add item',
+                border: InputBorder.none,
+              ),
+              onSubmitted: _addItem,
             ),
-            onSubmitted: _addItem,
           ),
         ),
       ],

@@ -14,8 +14,9 @@ class ChecklistItemRow extends StatefulWidget {
     required this.onTextChanged,
     required this.onSubmitted,
     required this.onAction,
+    required this.focusNode,
+    required this.onFocusStep,
     this.dragHandle,
-    this.autofocus = false,
     super.key,
   });
 
@@ -31,7 +32,12 @@ class ChecklistItemRow extends StatefulWidget {
   /// Wraps the drag icon so it starts a reorder; `null` if not draggable.
   final Widget Function(Widget icon)? dragHandle;
 
-  final bool autofocus;
+  /// Focus of the text field; owned by the list, which moves it between
+  /// rows.
+  final FocusNode focusNode;
+
+  /// Arrow up (−1) or down (+1): the cursor should go to the next row.
+  final ValueChanged<int> onFocusStep;
 
   @override
   State<ChecklistItemRow> createState() => _ChecklistItemRowState();
@@ -41,14 +47,13 @@ enum ItemAction { indent, outdent, delete }
 
 class _ChecklistItemRowState extends State<ChecklistItemRow> {
   late final _text = TextEditingController(text: widget.line.text);
-  final _focus = FocusNode();
 
   @override
   void didUpdateWidget(ChecklistItemRow old) {
     super.didUpdateWidget(old);
     // Text changed elsewhere (another device, undo): show it unless the
     // user is typing here.
-    if (!_focus.hasFocus && _text.text != widget.line.text) {
+    if (!widget.focusNode.hasFocus && _text.text != widget.line.text) {
       _text.text = widget.line.text;
     }
   }
@@ -56,7 +61,6 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
   @override
   void dispose() {
     _text.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -89,11 +93,14 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                   shift: true,
                 ): () =>
                     widget.onAction(ItemAction.outdent),
+                const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                    widget.onFocusStep(-1),
+                const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                    widget.onFocusStep(1),
               },
               child: TextField(
                 controller: _text,
-                focusNode: _focus,
-                autofocus: widget.autofocus,
+                focusNode: widget.focusNode,
                 style: textStyle,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
