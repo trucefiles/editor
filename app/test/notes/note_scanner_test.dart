@@ -41,6 +41,16 @@ void main() {
     expect((await scanner.scan()).value, isEmpty);
   });
 
+  test('keeps the last version of a note that turned unreadable', () async {
+    write('a.md', '# A'.codeUnits);
+    final first = (await scanner.scan()).value.single;
+    write('a.md', [0xFF, 0xFE, 0xFD]);
+
+    final second = (await scanner.scan()).value.single;
+
+    expect(identical(first, second), isTrue);
+  });
+
   test('reuses unchanged notes on rescan', () async {
     write('a.md', '# A'.codeUnits);
     final first = (await scanner.scan()).value.single;

@@ -17,6 +17,21 @@ final class SyncthingConflictName {
     return SyncthingConflictName._(mainName, _parseTime(match[2]!));
   }
 
+  /// The name of a conflict copy of [mainName] made [at] (local time), in
+  /// Syncthing's format without the device-ID part, which only Syncthing
+  /// knows. Syncthing syncs such a copy like any other file.
+  static String format(String mainName, DateTime at) {
+    final dot = mainName.lastIndexOf('.');
+    final (base, extension) = dot > 0
+        ? (mainName.substring(0, dot), mainName.substring(dot))
+        : (mainName, '');
+    String two(int n) => n.toString().padLeft(2, '0');
+    final date =
+        '${at.year.toString().padLeft(4, '0')}${two(at.month)}${two(at.day)}';
+    final time = '${two(at.hour)}${two(at.minute)}${two(at.second)}';
+    return '$base.sync-conflict-$date-$time$extension';
+  }
+
   /// One or more markers between the base name and the extension, as
   /// Syncthing inserts them before the last `.`.
   static final _pattern = RegExp(

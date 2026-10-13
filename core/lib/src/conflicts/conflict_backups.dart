@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import '../common/result.dart';
@@ -9,7 +10,8 @@ import '../storage/rel_path.dart';
 /// One flat folder; a file per input, named
 /// `<time in µs since epoch>.<side>.<main path>`, e.g.
 /// `1791818275000000.other.lists%2Ftodo.md`. Only `%` and `/` in the path
-/// are escaped (`%25`, `%2F`), so names stay short in any script.
+/// are escaped (`%25`, `%2F`), so names stay short in any script. A long
+/// path keeps only its end.
 final class ConflictBackups {
   const ConflictBackups(this._store);
 
@@ -54,14 +56,34 @@ final class ConflictBackups {
     RelPath mainPath,
     Uint8List bytes,
   ) async {
-    final name =
-        '${at.microsecondsSinceEpoch}.$side.'
-        '${mainPath.value.replaceAll('%', '%25').replaceAll('/', '%2F')}';
+    final escaped = mainPath.value
+        .replaceAll('%', '%25')
+        .replaceAll('/', '%2F');
+    final name = '${at.microsecondsSinceEpoch}.$side.${_tail(escaped)}';
     final created = await _store.create(RelPath.parse(name)!, bytes);
     return switch (created) {
       Ok() => const Ok(null),
       Err(:final error) => Err(error),
     };
+  }
+
+  /// File systems allow 255 bytes per name; this leaves room for the time
+  /// and side.
+  static const _maxPathBytes = 200;
+
+  /// The end of [escaped] that fits [_maxPathBytes] in UTF-8, so the
+  /// note's own name stays readable.
+  static String _tail(String escaped) {
+    final runes = escaped.runes.toList();
+    var start = runes.length;
+    var bytes = 0;
+    while (start > 0) {
+      final size = utf8.encode(String.fromCharCode(runes[start - 1])).length;
+      if (bytes + size > _maxPathBytes) break;
+      bytes += size;
+      start--;
+    }
+    return String.fromCharCodes(runes, start);
   }
 
   /// When the backup at [path] was saved; `null` if it is not a backup.

@@ -113,7 +113,15 @@ final class LocalFileStore implements FileStore {
           entries.add(FileEntry(path, _toStamp(stat)));
         }
       } else if (entity is Directory && (enterFolder?.call(path) ?? true)) {
-        await _walk(entity, '${path.value}/', enterFolder, entries);
+        // A subfolder that can't be read (e.g. `lost+found`) or is gone by
+        // now is skipped, so it doesn't hide the rest of the folder.
+        try {
+          await _walk(entity, '${path.value}/', enterFolder, entries);
+        } on PathAccessException {
+          continue;
+        } on PathNotFoundException {
+          continue;
+        }
       }
     }
   }
@@ -128,6 +136,7 @@ final class LocalFileStore implements FileStore {
   }) async {
     final temp = File('${file.parent.path}/${_tempFileName(_randomToken())}');
     try {
+      await _copyModeOf(file, temp);
       await temp.writeAsBytes(bytes, flush: true);
       await isAllowed();
       await temp.rename(file.path);
@@ -135,6 +144,18 @@ final class LocalFileStore implements FileStore {
       if (await temp.exists()) await temp.delete();
     }
     return _stamp(file);
+  }
+
+  /// Creates [temp] with [file]'s permissions, if [file] exists, so the
+  /// rename keeps them (e.g. a private note stays private). A copy is the
+  /// only way `dart:io` creates a file with a given mode; the process's
+  /// umask still applies, so permissions can only get stricter.
+  Future<void> _copyModeOf(File file, File temp) async {
+    try {
+      await file.copy(temp.path);
+    } on PathNotFoundException {
+      // A new file: it gets the default permissions.
+    }
   }
 
   Future<void> _checkAbsent(File file) async {

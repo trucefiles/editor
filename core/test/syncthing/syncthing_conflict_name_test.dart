@@ -44,6 +44,21 @@ void main() {
     expect(name.createdAt, DateTime(2026, 10, 4, 8));
   });
 
+  test('formats names that parse back to the main file', () {
+    final at = DateTime(2026, 10, 3, 9, 8, 7);
+
+    for (final (main, copy) in [
+      ('todo.md', 'todo.sync-conflict-20261003-090807.md'),
+      ('a.b.txt', 'a.b.sync-conflict-20261003-090807.txt'),
+      ('notes', 'notes.sync-conflict-20261003-090807'),
+    ]) {
+      expect(SyncthingConflictName.format(main, at), copy);
+      final parsed = SyncthingConflictName.parse(copy)!;
+      expect(parsed.mainName, main);
+      expect(parsed.createdAt, at);
+    }
+  });
+
   test('rejects other names', () {
     for (final raw in [
       'todo.md',

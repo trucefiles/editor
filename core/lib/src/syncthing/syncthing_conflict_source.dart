@@ -13,10 +13,18 @@ import 'syncthing_conflict_name.dart';
 /// Only conflicts whose main file the [FileFilter] includes are found, in
 /// the folders it lets through. A copy's id is its path.
 final class SyncthingConflictSource implements ConflictSource {
-  const SyncthingConflictSource(this._store, this._filter);
+  const SyncthingConflictSource(
+    this._store,
+    this._filter, {
+    this._clock = DateTime.now,
+  });
+
+  /// Gives up on a free name after this many seconds' worth of tries.
+  static const _maxAttempts = 60;
 
   final FileStore _store;
   final FileFilter _filter;
+  final DateTime Function() _clock;
 
   @override
   Future<Result<List<Conflict>, StoreError>> find() async {
@@ -42,6 +50,28 @@ final class SyncthingConflictSource implements ConflictSource {
   @override
   Future<Result<void, StoreError>> discard(ConflictCopy copy) =>
       _store.delete(_path(copy), ifUnchanged: copy.stamp);
+
+  /// Names hold the time to the second; a taken name moves on a second.
+  @override
+  Future<Result<void, StoreError>> add(
+    RelPath mainPath,
+    Uint8List bytes,
+  ) async {
+    final now = _clock();
+    for (var attempt = 0; attempt < _maxAttempts; attempt++) {
+      final at = now.add(Duration(seconds: attempt));
+      final name = SyncthingConflictName.format(mainPath.name, at);
+      switch (await _store.create(mainPath.sibling(name)!, bytes)) {
+        case Ok():
+          return const Ok(null);
+        case Err(error: StoreError.alreadyExists):
+          continue;
+        case Err(:final error):
+          return Err(error);
+      }
+    }
+    return const Err(StoreError.alreadyExists);
+  }
 
   List<Conflict> _group(List<FileEntry> entries) {
     final stamps = {for (final e in entries) e.path: e.stamp};

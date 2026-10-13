@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +60,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _views = ref.read(noteViewsProvider.notifier);
     _text.addListener(() => _session.edit(_text.text));
     _session.addListener(_onSessionChanged);
-    _lifecycle = AppLifecycleListener(onHide: _session.flush);
+    _lifecycle = AppLifecycleListener(
+      onHide: _session.secure,
+      onExitRequested: _onExitRequested,
+    );
   }
 
   @override
@@ -69,7 +73,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _session.removeListener(_onSessionChanged);
     final session = _session;
     unawaited(
-      session.flush().whenComplete(() {
+      session.secure().whenComplete(() {
         session.dispose();
         unawaited(_notes.refresh());
       }),
@@ -88,6 +92,53 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       );
     }
     setState(() {});
+  }
+
+  /// Leaves only once the edits are in the file or in a conflict copy;
+  /// asks if they can be kept nowhere.
+  Future<void> _leave() async {
+    if (await _session.secure() || await _askToDiscard()) _close();
+  }
+
+  /// On desktop: quits once the edits are kept, or the user discards them.
+  Future<AppExitResponse> _onExitRequested() async {
+    if (await _session.secure()) return AppExitResponse.exit;
+    if (await _askToDiscard()) return AppExitResponse.exit;
+    return AppExitResponse.cancel;
+  }
+
+  /// Whether the user drops edits that can be kept nowhere.
+  Future<bool> _askToDiscard() async {
+    if (!mounted) return false;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Your edits can't be saved"),
+        content: const Text(
+          'Neither the note nor a conflict copy could be written. '
+          'Stay to copy your text elsewhere, or discard it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
+  }
+
+  /// Closes the editor if it is still the top screen (the user may have
+  /// left it meanwhile).
+  void _close() {
+    if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _delete() async {
@@ -161,6 +212,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         );
       }
     });
+    return PopScope(
+      canPop: _session.state == EditState.saved || _isDone,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_leave());
+      },
+      child: _scaffold(context),
+    );
+  }
+
+  /// The edits were kept as a conflict copy; nothing more to edit here.
+  bool get _isDone => _session.state == EditState.keptAsConflict;
+
+  Widget _scaffold(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: ListenableBuilder(
@@ -178,8 +242,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
         actions: [
           _SaveIndicator(_session.state),
-          NoteViewButton(view: _view, onChanged: _showView),
-          _menu(),
+          if (!_isDone) ...[
+            NoteViewButton(view: _view, onChanged: _showView),
+            _menu(),
+          ],
         ],
       ),
       body: Column(
@@ -199,10 +265,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             _Banner(
               message:
                   'This note was deleted on another device or app. '
-                  'Your text is kept here but not saved.',
+                  'Your text is kept here; closing keeps it as a conflict.',
               actions: {
                 'Restore with my text': _session.restoreMine,
-                'Close': () => Navigator.pop(context),
+                'Close': _leave,
               },
             ),
           if (_session.state == EditState.saveFailed)
@@ -210,8 +276,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               message: 'Saving failed. Your text is kept here.',
               actions: {'Retry': _session.flush},
             ),
+          if (_isDone)
+            _Banner(
+              message:
+                  'Your edits were kept as a conflict copy, to resolve '
+                  'from the notes list.',
+              actions: {'Close': _close},
+            ),
           Expanded(
-            child: switch (_view) {
+            // Read-only once done: the session takes no more edits.
+            child: switch (_isDone ? NoteView.rendered : _view) {
               NoteView.list => ChecklistView(_checklist),
               NoteView.rendered => MarkdownView(_session.text),
               NoteView.text => TextField(
@@ -264,6 +338,7 @@ class _SaveIndicator extends StatelessWidget {
       EditState.changedElsewhere => (Icons.sync_problem, 'Changed elsewhere'),
       EditState.deletedElsewhere => (Icons.sync_problem, 'Deleted elsewhere'),
       EditState.saveFailed => (Icons.error_outline, 'Not saved'),
+      EditState.keptAsConflict => (Icons.sync_problem, 'Kept as conflict'),
     };
     return Tooltip(
       message: label,

@@ -24,6 +24,11 @@ enum EditState {
 
   /// Saving failed for another reason (e.g. no access); edits are kept.
   saveFailed,
+
+  /// Edits that could not go into the file are kept as a conflict copy
+  /// by [NoteEditSession.secure]. Set as the copy is written, so no edit
+  /// can slip past it. The session is done: it takes no more edits.
+  keptAsConflict,
 }
 
 /// Saves the text of one open note shortly after the user stops typing and
@@ -59,7 +64,7 @@ final class NoteEditSession extends ChangeNotifier {
 
   /// The user changed the text; saves after [saveDelay] without edits.
   void edit(String text) {
-    if (text == _text) return;
+    if (text == _text || _state == EditState.keptAsConflict) return;
     _text = text;
     if (_state == EditState.saved || _state == EditState.saveFailed) {
       _state = EditState.unsaved;
@@ -69,27 +74,83 @@ final class NoteEditSession extends ChangeNotifier {
     if (_state == EditState.unsaved) _timer = Timer(saveDelay, _save);
   }
 
-  /// Saves pending edits now, e.g. when the editor closes.
+  /// Saves pending edits now.
   Future<void> flush() async {
     _timer?.cancel();
     await _save();
   }
 
+  /// Saves pending edits, or keeps them as a conflict copy if they cannot
+  /// go into the file (changed or deleted elsewhere, or saving failed), so
+  /// nothing is left only in memory. For when the editor closes or the app
+  /// is hidden and may be ended. Returns `false` if the edits could be kept
+  /// nowhere.
+  Future<bool> secure() {
+    _timer?.cancel();
+    final secured = (_saving ?? Future<void>.value()).then(
+      (_) => _secureOnce(),
+    );
+    _saving = secured;
+    return secured;
+  }
+
+  Future<bool> _secureOnce() async {
+    await _saveOnce();
+    switch (_state) {
+      case EditState.saved || EditState.keptAsConflict:
+        return true;
+      case EditState.unsaved:
+        // Edited during the save: save that too.
+        return _secureOnce();
+      case EditState.deletedElsewhere when _text == _note.file.text:
+        // No edits: nothing to keep.
+        return true;
+      case EditState.changedElsewhere ||
+          EditState.deletedElsewhere ||
+          EditState.saveFailed:
+        return _keepAsConflict();
+    }
+  }
+
+  Future<bool> _keepAsConflict() async {
+    final before = _state;
+    _timer?.cancel();
+    _set(EditState.keptAsConflict);
+    if (await _files.saveAsConflict(_note, _text) is Err) {
+      _set(before);
+      return false;
+    }
+    _theirs = null;
+    return true;
+  }
+
   /// A rescan that started at [scannedAt] found [latest] for this note;
   /// `null` if the file is gone. Ignored while this session writes, and
-  /// for scans that started before its last write: they may hold the old
-  /// version.
+  /// for scans that started before its last write ended: they may hold
+  /// the old version.
   ///
   /// Returns `true` if [text] was replaced by the latest file content.
   bool onRescan(Note? latest, {required DateTime scannedAt}) {
-    if (_writing || scannedAt.isBefore(_lastWrite)) return false;
+    if (_writing ||
+        scannedAt.isBefore(_lastWrite) ||
+        _state == EditState.keptAsConflict) {
+      return false;
+    }
     if (latest == null) {
       _goneElsewhere();
+      return false;
+    }
+    if (_state == EditState.deletedElsewhere) {
+      _cameBack(latest);
       return false;
     }
     if (latest.stamp == _note.stamp) return false;
     if (_isRestamped(latest)) {
       _note = latest;
+      return false;
+    }
+    if (_holdsText(latest)) {
+      _inStepWith(latest);
       return false;
     }
     if (_state == EditState.saved) {
@@ -164,6 +225,7 @@ final class NoteEditSession extends ChangeNotifier {
           _note = theirs;
           return _saveOnce(retried: true);
         }
+        if (_holdsText(theirs)) return _inStepWith(theirs);
         _theirs = theirs;
         _set(EditState.changedElsewhere);
       case Err():
@@ -182,11 +244,13 @@ final class NoteEditSession extends ChangeNotifier {
     Future<Result<Note, StoreError>> Function() write,
   ) async {
     _writing = true;
-    _lastWrite = DateTime.now();
     try {
       return await write();
     } finally {
       _writing = false;
+      // A scan that started during the write may have listed the old
+      // version and still be running; it must be ignored too.
+      _lastWrite = DateTime.now();
     }
   }
 
@@ -202,6 +266,36 @@ final class NoteEditSession extends ChangeNotifier {
         _set(EditState.saveFailed);
     }
     return null;
+  }
+
+  /// The file is back after it looked deleted: in step if it holds [text];
+  /// shown as is if there are no edits; saving again if it is the version
+  /// the edits are based on; else a change from elsewhere.
+  void _cameBack(Note latest) {
+    if (_holdsText(latest)) {
+      _inStepWith(latest);
+    } else if (_text == _note.file.text) {
+      _note = latest;
+      _text = latest.file.text;
+      _set(EditState.saved);
+    } else if (latest.stamp == _note.stamp) {
+      _set(EditState.unsaved);
+      _timer = Timer(saveDelay, _save);
+    } else {
+      _theirs = latest;
+      _set(EditState.changedElsewhere);
+    }
+  }
+
+  /// Whether [latest] holds exactly the text being edited: nothing to
+  /// save or ask.
+  bool _holdsText(Note latest) => latest.file.text == _text;
+
+  void _inStepWith(Note latest) {
+    _timer?.cancel();
+    _note = latest;
+    _theirs = null;
+    _set(EditState.saved);
   }
 
   void _goneElsewhere() {

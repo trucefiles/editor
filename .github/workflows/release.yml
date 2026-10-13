@@ -4,7 +4,8 @@ name: Release
 # for the pubspec version. Starts either from a pushed version tag (vX.Y.Z), or
 # by hand on main ("Run workflow"), which creates the tag on publish. Only the
 # publish job can write to the repository; only the Android job, in the
-# "release" environment, can read the signing key.
+# "release" environment, can read the signing key. Nothing is built before
+# the checks pass.
 on:
   push:
     tags: ['v*']
@@ -50,11 +51,26 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match app version $tag"
             exit 1
           fi
+          metainfo=app/linux/flatpak/io.github.trucefiles.editor.metainfo.xml
+          if ! grep -qF "<release version=\"${tag#v}\"" "$metainfo"; then
+            echo "::error::Add a <release> entry for ${tag#v} to $metainfo"
+            exit 1
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: Format, analyze, test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/check
 
   android:
     name: Build signed APK
-    needs: version
+    needs: [version, check]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: release
@@ -99,7 +115,7 @@ jobs:
 
   flatpak:
     name: Build Flatpak
-    needs: version
+    needs: [version, check]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

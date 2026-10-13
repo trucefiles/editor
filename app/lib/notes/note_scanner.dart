@@ -8,7 +8,10 @@ import 'note.dart';
 /// only files whose stamp changed.
 ///
 /// Files that are not valid UTF-8 are left out: they cannot be edited
-/// without damaging them.
+/// without damaging them. A note that can't be read as text any more
+/// (e.g. mid-rewrite, briefly no access) keeps its last version while the
+/// file exists, so it doesn't look deleted; saving to it then fails its
+/// change check instead of overwriting anything.
 final class NoteScanner {
   NoteScanner(this.folder, this._services);
 
@@ -37,22 +40,27 @@ final class NoteScanner {
     return Ok(next.values.toList());
   }
 
-  /// The cached note if unchanged, else a fresh read; `null` if the file
-  /// vanished or is not text.
+  /// The cached note if unchanged, else a fresh read; the cached note if
+  /// that fails while the file still exists; `null` if the file vanished,
+  /// or is not text and was never read as text.
   Future<Note?> _noteFor(FileEntry entry) async {
     final cached = _last[entry.path];
     if (cached != null && cached.stamp == entry.stamp) return cached;
-    final read = await _services.store.read(entry.path);
-    if (read case Ok(value: final content)) {
-      final file = TextFile.decode(content.bytes);
-      if (file == null) return null;
-      return Note(
-        folder: folder,
-        path: entry.path,
-        file: file,
-        stamp: content.stamp,
-      );
+    switch (await _services.store.read(entry.path)) {
+      case Ok(value: final content):
+        return switch (TextFile.decode(content.bytes)) {
+          final file? => Note(
+            folder: folder,
+            path: entry.path,
+            file: file,
+            stamp: content.stamp,
+          ),
+          null => cached,
+        };
+      case Err(error: StoreError.notFound):
+        return null;
+      case Err():
+        return cached;
     }
-    return null;
   }
 }

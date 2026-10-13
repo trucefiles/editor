@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../common/result.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import 'conflict.dart';
 import 'resolution.dart';
 
@@ -32,6 +33,13 @@ abstract interface class ConflictService {
     Conflict conflict,
     ConflictCopy copy,
     Resolution resolution,
+  );
+
+  /// Keeps [bytes] as a new conflict with [mainPath], e.g. edits that
+  /// cannot be saved to it because it changed or was deleted elsewhere.
+  Future<Result<void, StoreError>> keepAsConflict(
+    RelPath mainPath,
+    Uint8List bytes,
   );
 
   /// Deletes backups made by [resolve] before [olderThan].

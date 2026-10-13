@@ -51,4 +51,30 @@ void main() {
     expect(file.text, 'b\n');
     expect(utf8.decode(file.encode(file.text)), 'b\r\n');
   });
+
+  test('keeps each line\'s break in files that mix styles', () {
+    final file = TextFile.decode(utf8Of('a\r\nb\nc\r\nd\n'))!;
+
+    expect(file.text, 'a\nb\nc\nd\n');
+    expect(utf8.decode(file.encode('a\nB\nc\nd\n')), 'a\r\nB\nc\r\nd\n');
+  });
+
+  test('new lines in a mixed file get its first break style', () {
+    final file = TextFile.decode(utf8Of('a\r\nb\nc'))!;
+
+    expect(utf8.decode(file.encode('a\nb\nx\ny\nc')), 'a\r\nb\nx\r\ny\nc');
+  });
+
+  test('reads \r and \r\n in one file as one break each', () {
+    final file = TextFile.decode(utf8Of('a\rb\r\nc'))!;
+
+    expect(file.text, 'a\nb\nc');
+    expect(utf8.decode(file.encode(file.text)), 'a\rb\r\nc');
+  });
+
+  test('withText remembers the breaks it saved with', () {
+    final saved = TextFile.decode(utf8Of('a\nb\r\nc'))!.withText('a\nb\nc\nd');
+
+    expect(utf8.decode(saved.encode('a\nb\nc\nd')), 'a\nb\r\nc\nd');
+  });
 }

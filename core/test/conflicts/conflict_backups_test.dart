@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -40,6 +42,21 @@ void main() {
       store.files.keys.single.value,
       '$atMicros.other.Pläne%2F100%25 日本語.md',
     );
+  });
+
+  test('keeps only the end of a long path, within 255 bytes', () async {
+    final folders = List.filled(40, '日本語').join('/');
+    await backups.save(
+      at: at,
+      mainPath: path('$folders/todo.md'),
+      current: null,
+      other: bytesOf('other'),
+    );
+
+    final name = store.files.keys.single.value;
+    expect(utf8.encode(name).length, lessThanOrEqualTo(255));
+    expect(name, startsWith('$atMicros.other.'));
+    expect(name, endsWith('%2Ftodo.md'));
   });
 
   test('saves only the other side of an orphaned conflict', () async {

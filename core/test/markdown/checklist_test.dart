@@ -52,6 +52,16 @@ void main() {
     expect(list.setText(idOf(list, 'a'), 'b').text, '  +  [ ] b');
   });
 
+  test('item text with line breaks stays one item', () {
+    final list = Checklist.parse('- [ ] a');
+    final id = idOf(list, 'a');
+
+    final edited = list.setText(id, 'b\r\nc\rd\u2028e');
+
+    expect(edited.text, '- [ ] b c d e');
+    expect(edited.lines.single.isItem, isTrue);
+  });
+
   test('ids survive edits', () {
     final list = Checklist.parse(doc);
     final id = idOf(list, 'milk');

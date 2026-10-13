@@ -78,6 +78,11 @@ final class NoteFiles {
     };
   }
 
+  /// Keeps [text] as a conflict copy of [note], for edits that cannot go
+  /// into its file. It syncs, and is resolved like any conflict.
+  Future<Result<void, StoreError>> saveAsConflict(Note note, String text) =>
+      _services.conflicts.keepAsConflict(note.path, note.file.encode(text));
+
   Future<Result<void, StoreError>> delete(Note note) =>
       _store.delete(note.path, ifUnchanged: note.stamp);
 

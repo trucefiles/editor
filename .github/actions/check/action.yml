@@ -1,0 +1,29 @@
+name: Check
+description: Checks formatting, analyzes, and runs the core and app tests.
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup-flutter
+
+    - name: Get packages from the lock file
+      shell: bash
+      run: flutter pub get --enforce-lockfile
+
+    - name: Check formatting
+      shell: bash
+      run: dart format --output=none --set-exit-if-changed .
+
+    - name: Analyze
+      shell: bash
+      run: flutter analyze --fatal-infos
+
+    - name: Test core
+      shell: bash
+      working-directory: core
+      run: dart test
+
+    - name: Test app
+      shell: bash
+      working-directory: app
+      run: flutter test
