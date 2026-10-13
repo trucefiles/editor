@@ -2,8 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Lets the user swipe [child] right to indent or left to outdent, by
-/// touch or mouse. The child follows the pointer a little and slides back
-/// on release.
+/// touch or mouse. The child follows the pointer by up to one [step], the
+/// width of one indent level; a swipe that reaches it acts on release.
+/// The child slides back either way.
 ///
 /// Watches raw pointer moves rather than joining the gesture arena, so a
 /// swipe that starts on the item's text field still counts. A mouse drag
@@ -11,21 +12,19 @@ import 'package:flutter/material.dart';
 /// to select text.
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
+    required this.step,
     required this.onIndent,
     required this.onOutdent,
     required this.child,
     super.key,
   });
 
+  /// Width of one indent level on screen.
+  final double step;
+
   final VoidCallback onIndent;
   final VoidCallback onOutdent;
   final Widget child;
-
-  /// How far to swipe for an action.
-  static const threshold = 48.0;
-
-  /// How far the child follows the pointer.
-  static const _maxShift = 64.0;
 
   /// Leaves mouse drags that start on [child] to it, e.g. text selection
   /// or reordering.
@@ -82,8 +81,8 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   }
 
   void _onUp(PointerUpEvent _) {
-    if (_dx >= SwipeToIndent.threshold) widget.onIndent();
-    if (_dx <= -SwipeToIndent.threshold) widget.onOutdent();
+    if (_dx >= widget.step) widget.onIndent();
+    if (_dx <= -widget.step) widget.onOutdent();
     _reset();
   }
 
@@ -103,7 +102,7 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
         // Follows the pointer at once; slides back after release.
         duration: _dx == 0 ? const Duration(milliseconds: 150) : Duration.zero,
         transform: Matrix4.translationValues(
-          _dx.clamp(-SwipeToIndent._maxShift, SwipeToIndent._maxShift),
+          _dx.clamp(-widget.step, widget.step),
           0,
           0,
         ),

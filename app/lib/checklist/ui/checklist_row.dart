@@ -70,6 +70,7 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
   @override
   Widget build(BuildContext context) {
     return SwipeToIndent(
+      step: _levelIndent,
       onIndent: () => widget.onAction(ItemAction.indent),
       onOutdent: () => widget.onAction(ItemAction.outdent),
       child: _row(context),
