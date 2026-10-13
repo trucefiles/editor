@@ -11,7 +11,8 @@ final class Note {
     required this.folder,
     required this.path,
     required this.file,
-    required this.stamp,
+    required this.version,
+    required this.modified,
   });
 
   final NoteFolder folder;
@@ -19,7 +20,10 @@ final class Note {
   final TextFile file;
 
   /// Version on disk that [file] was read from or written as.
-  final FileStamp stamp;
+  final FileVersion version;
+
+  /// When the file was last changed, for sorting.
+  final DateTime modified;
 
   NoteKey get key => (folderId: folder.id, path: path);
 

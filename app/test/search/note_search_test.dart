@@ -18,7 +18,8 @@ Note note(String name, String text) => Note(
   folder: _folder,
   path: path(name),
   file: const TextFile.empty().withText(text),
-  stamp: FileStamp(modified: DateTime(2026), size: text.length),
+  version: const FileVersion(0),
+  modified: DateTime(2026),
 );
 
 void main() {

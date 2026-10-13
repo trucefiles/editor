@@ -23,24 +23,24 @@ abstract interface class FileStore {
   Future<Result<FileContent, StoreError>> read(RelPath path);
 
   /// Creates [path] with [bytes]; fails with [StoreError.alreadyExists]
-  /// instead of overwriting.
-  Future<Result<FileStamp, StoreError>> create(RelPath path, Uint8List bytes);
+  /// instead of overwriting. Returns the new file's entry.
+  Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes);
 
   /// Atomically replaces [path] with [bytes]: readers see the old or the new
-  /// file, never a partial one.
+  /// file, never a partial one. Returns the new file's entry.
   ///
   /// Writes nothing and fails with [StoreError.changedSinceRead] if the file
-  /// on disk no longer matches [ifUnchanged].
-  Future<Result<FileStamp, StoreError>> replace(
+  /// on disk is no longer at version [ifUnchanged].
+  Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   });
 
   /// Deletes [path], with the same change check as [replace].
   Future<Result<void, StoreError>> delete(
     RelPath path, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   });
 }
 
@@ -48,33 +48,51 @@ abstract interface class FileStore {
 /// writes apart.
 typedef TempFileNamer = String Function(String randomToken);
 
-/// Identifies one version of a file on disk, for change checks.
-final class FileStamp {
-  const FileStamp({required this.modified, required this.size});
+/// One version of a file, for change checks.
+///
+/// Opaque: two versions are equal or not, nothing more. How a store tells
+/// versions apart (file times, a revision number, a hash) is its own
+/// business.
+final class FileVersion {
+  /// [token] must compare by value, e.g. a record or a number.
+  const FileVersion(this._token);
 
-  final DateTime modified;
-  final int size;
+  final Object _token;
 
   @override
   bool operator ==(Object other) =>
-      other is FileStamp && other.modified == modified && other.size == size;
+      other is FileVersion && other._token == _token;
 
   @override
-  int get hashCode => Object.hash(modified, size);
+  int get hashCode => _token.hashCode;
 }
 
+/// A file as the store last saw it.
 final class FileEntry {
-  const FileEntry(this.path, this.stamp);
+  const FileEntry(this.path, {required this.version, required this.modified});
 
   final RelPath path;
-  final FileStamp stamp;
+  final FileVersion version;
+
+  /// When the file was last changed, for showing and sorting only; change
+  /// checks use [version].
+  final DateTime modified;
 }
 
 final class FileContent {
-  const FileContent(this.bytes, this.stamp);
+  const FileContent(
+    this.bytes, {
+    required this.version,
+    required this.modified,
+  });
 
   final Uint8List bytes;
-  final FileStamp stamp;
+
+  /// The version [bytes] were read from.
+  final FileVersion version;
+
+  /// See [FileEntry.modified].
+  final DateTime modified;
 }
 
 enum StoreError {

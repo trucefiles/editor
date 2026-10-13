@@ -10,17 +10,16 @@ import '../../checklist/checklist_settings.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../conflicts/conflicts_controller.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../markdown/markdown_view.dart';
+import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
 import '../note_view.dart';
 import '../note_views_controller.dart';
-import '../notes_controller.dart';
 import 'note_view_button.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
@@ -41,7 +40,7 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteFiles _files = ref.read(noteFilesProvider(widget.note.folder));
   // Read up front: dispose() needs it, and ref is unusable by then.
-  late final NotesController _notes;
+  late final FolderScansController _scans;
   late final _session = NoteEditSession(widget.note, _files);
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
@@ -56,7 +55,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _notes = ref.read(notesProvider.notifier);
+    _scans = ref.read(folderScansProvider.notifier);
     _views = ref.read(noteViewsProvider.notifier);
     _text.addListener(() => _session.edit(_text.text));
     _session.addListener(_onSessionChanged);
@@ -75,7 +74,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     unawaited(
       session.secure().whenComplete(() {
         session.dispose();
-        unawaited(_notes.refresh());
+        unawaited(_scans.refresh());
       }),
     );
     _text.dispose();
@@ -152,14 +151,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       return;
     }
     final files = _files;
-    final notes = _notes;
+    final scans = _scans;
     showSnack(
       context,
       'Note deleted',
       actionLabel: 'Undo',
       onAction: () async {
         await files.restore(note, text);
-        await notes.refresh();
+        await scans.refresh();
       },
     );
     Navigator.pop(context);
@@ -201,14 +200,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(notesProvider, (_, next) {
-      if (next.value case final snapshot?
-          when !snapshot.failedFolders.keys.any(
+    ref.listen(folderScansProvider, (_, next) {
+      if (next.value case final scans?
+          when !scans.failedFolders.keys.any(
             (folder) => folder.id == widget.note.folder.id,
           )) {
         _session.onRescan(
-          snapshot.find(widget.note.key),
-          scannedAt: snapshot.startedAt,
+          scans.findNote(widget.note.key),
+          scannedAt: scans.startedAt,
         );
       }
     });
@@ -250,7 +249,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
       body: Column(
         children: [
-          if (ref.watch(conflictsProvider).value?.forNote(widget.note.key)
+          if (ref
+                  .watch(folderScansProvider)
+                  .value
+                  ?.conflicts
+                  .forNote(widget.note.key)
               case final conflict?)
             ConflictBanner(conflict),
           if (_session.state == EditState.changedElsewhere)

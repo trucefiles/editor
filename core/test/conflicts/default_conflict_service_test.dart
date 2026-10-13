@@ -19,19 +19,19 @@ void main() {
     backupStore = MemoryFileStore();
     service = DefaultConflictService(
       folder: folder,
-      source: SyncthingConflictSource(
-        folder,
-        const DefaultFileFilter(
-          SyncthingAdapter(),
-          ExtensionFileTypeDetector.standard(),
-        ),
-      ),
+      source: SyncthingConflictSource(folder),
       backups: ConflictBackups(backupStore),
       clock: () => now = now.add(const Duration(seconds: 1)),
     );
   });
 
-  Future<Conflict> scanOne() async => (await service.scan()).value.single;
+  Future<Conflict> scanOne() async => (await SyncthingFolderScanner(
+    folder,
+    const DefaultFileFilter(
+      SyncthingAdapter(),
+      ExtensionFileTypeDetector.standard(),
+    ),
+  ).scan()).value.conflicts.single;
 
   Future<Result<void, ResolveError>> resolve(
     Conflict conflict,
@@ -181,5 +181,37 @@ void main() {
       ),
       'other',
     );
+  });
+
+  group('readMain', () {
+    test('returns the main file as scanned', () async {
+      folder
+        ..put('todo.md', 'current')
+        ..put(copyName, 'other');
+
+      final main = await service.readMain(await scanOne());
+
+      expect(String.fromCharCodes(main.value), 'current');
+    });
+
+    test('fails if the main file changed since the scan', () async {
+      folder
+        ..put('todo.md', 'current')
+        ..put(copyName, 'other');
+      final conflict = await scanOne();
+      folder.put('todo.md', 'edited');
+
+      final main = await service.readMain(conflict);
+
+      expect(main.error, StoreError.changedSinceRead);
+    });
+
+    test('fails with notFound for an orphaned conflict', () async {
+      folder.put(copyName, 'other');
+
+      final main = await service.readMain(await scanOne());
+
+      expect(main.error, StoreError.notFound);
+    });
   });
 }

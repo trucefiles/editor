@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../notes/note.dart';
-import '../../notes/notes_controller.dart';
 import '../../notes/ui/note_card.dart';
 import '../../notes/ui/notes_screen.dart';
+import '../../scan/folder_scans_controller.dart';
 import '../note_search.dart';
 
 /// Full-text search across all folders, updated as the user types.
@@ -26,7 +26,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notes = ref.watch(notesProvider).value?.notes ?? const <Note>[];
+    final notes = ref.watch(folderScansProvider).value?.notes ?? const <Note>[];
     return Scaffold(
       appBar: AppBar(
         title: TextField(

@@ -24,7 +24,17 @@ final class DefaultConflictService implements ConflictService {
   final DateTime Function() _clock;
 
   @override
-  Future<Result<List<Conflict>, StoreError>> scan() => _source.find();
+  Future<Result<Uint8List, StoreError>> readMain(Conflict conflict) async {
+    final main = conflict.main;
+    if (main == null) return const Err(StoreError.notFound);
+    return switch (await _folder.read(conflict.mainPath)) {
+      Ok(:final value) when value.version != main.version => const Err(
+        StoreError.changedSinceRead,
+      ),
+      Ok(:final value) => Ok(value.bytes),
+      Err(:final error) => Err(error),
+    };
+  }
 
   @override
   Future<Result<Uint8List, StoreError>> readCopy(ConflictCopy copy) =>
@@ -51,12 +61,10 @@ final class DefaultConflictService implements ConflictService {
     }
 
     Uint8List? current;
-    if (conflict.mainStamp case final mainStamp?) {
-      switch (await _folder.read(conflict.mainPath)) {
-        case Ok(:final value) when value.stamp == mainStamp:
-          current = value.bytes;
-        case Ok():
-          return const Err(ResolveError.changedSinceScan);
+    if (!conflict.isOrphaned) {
+      switch (await readMain(conflict)) {
+        case Ok(:final value):
+          current = value;
         case Err(:final error):
           return Err(_resolveError(error));
       }
@@ -92,12 +100,12 @@ final class DefaultConflictService implements ConflictService {
     Conflict conflict,
     Uint8List bytes,
   ) async {
-    final written = switch (conflict.mainStamp) {
+    final written = switch (conflict.main) {
       null => await _folder.create(conflict.mainPath, bytes),
-      final stamp => await _folder.replace(
+      final main => await _folder.replace(
         conflict.mainPath,
         bytes,
-        ifUnchanged: stamp,
+        ifUnchanged: main.version,
       ),
     };
     return switch (written) {

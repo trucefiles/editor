@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../folders/ui/folder_badge.dart';
-import '../conflicts_controller.dart';
+import '../folder_conflicts.dart';
 
 /// A note deleted on one device while edited on another: only the edited
 /// version is left. Opens the conflict screen to restore or discard it.

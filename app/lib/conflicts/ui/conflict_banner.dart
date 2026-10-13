@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../conflicts_controller.dart';
+import '../folder_conflicts.dart';
 import 'conflict_screen.dart';
 
 /// Tells that an open note has another version from a sync conflict.

@@ -9,7 +9,7 @@ import 'rel_path.dart';
 /// [FileStore] on the local file system (`dart:io`), for platforms where
 /// the app can open the folder by path.
 ///
-/// Change checks compare the [FileStamp] right before writing; a change in
+/// Change checks compare the [FileVersion] right before writing; a change in
 /// the moment between that check and the write cannot be detected.
 ///
 /// Never follows symbolic links below the root, so it cannot reach files
@@ -37,19 +37,24 @@ final class LocalFileStore implements FileStore {
   Future<Result<FileContent, StoreError>> read(RelPath path) =>
       _guard(() async {
         final file = await _file(path);
-        // Stamp first: if the file changes while it is read, the stamp is
-        // older than the bytes, so the next write fails its change check
+        // Version first: if the file changes while it is read, the version
+        // is older than the bytes, so the next write fails its change check
         // instead of overwriting the change.
-        final stamp = await _stamp(file);
-        return FileContent(await file.readAsBytes(), stamp);
+        final stat = await _stat(file);
+        return FileContent(
+          await file.readAsBytes(),
+          version: _version(stat),
+          modified: stat.modified,
+        );
       });
 
   @override
-  Future<Result<FileStamp, StoreError>> create(RelPath path, Uint8List bytes) =>
+  Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
       _guard(() async {
         final file = await _file(path);
         await file.parent.create(recursive: true);
         return _writeAtomically(
+          path,
           file,
           bytes,
           isAllowed: () => _checkAbsent(file),
@@ -57,13 +62,14 @@ final class LocalFileStore implements FileStore {
       });
 
   @override
-  Future<Result<FileStamp, StoreError>> replace(
+  Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   }) => _guard(() async {
     final file = await _file(path);
     return _writeAtomically(
+      path,
       file,
       bytes,
       isAllowed: () => _checkUnchanged(file, ifUnchanged),
@@ -73,7 +79,7 @@ final class LocalFileStore implements FileStore {
   @override
   Future<Result<void, StoreError>> delete(
     RelPath path, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   }) => _guard(() async {
     final file = await _file(path);
     await _checkUnchanged(file, ifUnchanged);
@@ -110,7 +116,7 @@ final class LocalFileStore implements FileStore {
         // files); one that is gone by now is skipped.
         final stat = await entity.stat();
         if (stat.type == FileSystemEntityType.file) {
-          entries.add(FileEntry(path, _toStamp(stat)));
+          entries.add(_entry(path, stat));
         }
       } else if (entity is Directory && (enterFolder?.call(path) ?? true)) {
         // A subfolder that can't be read (e.g. `lost+found`) or is gone by
@@ -129,7 +135,8 @@ final class LocalFileStore implements FileStore {
   /// Writes [bytes] to a temp file next to [file], then renames it over
   /// [file]. [isAllowed] runs last before the rename and throws [_Refused]
   /// to stop it.
-  Future<FileStamp> _writeAtomically(
+  Future<FileEntry> _writeAtomically(
+    RelPath path,
     File file,
     Uint8List bytes, {
     required Future<void> Function() isAllowed,
@@ -143,7 +150,7 @@ final class LocalFileStore implements FileStore {
     } finally {
       if (await temp.exists()) await temp.delete();
     }
-    return _stamp(file);
+    return _entry(path, await _stat(file));
   }
 
   /// Creates [temp] with [file]'s permissions, if [file] exists, so the
@@ -162,22 +169,28 @@ final class LocalFileStore implements FileStore {
     if (await file.exists()) throw const _Refused(StoreError.alreadyExists);
   }
 
-  Future<void> _checkUnchanged(File file, FileStamp expected) async {
-    if (await _stamp(file) != expected) {
+  Future<void> _checkUnchanged(File file, FileVersion expected) async {
+    if (_version(await _stat(file)) != expected) {
       throw const _Refused(StoreError.changedSinceRead);
     }
   }
 
-  Future<FileStamp> _stamp(File file) async {
+  /// The stat of [file]; refused if it is not a file.
+  Future<FileStat> _stat(File file) async {
     final stat = await file.stat();
     if (stat.type != FileSystemEntityType.file) {
       throw const _Refused(StoreError.notFound);
     }
-    return _toStamp(stat);
+    return stat;
   }
 
-  static FileStamp _toStamp(FileStat stat) =>
-      FileStamp(modified: stat.modified, size: stat.size);
+  static FileEntry _entry(RelPath path, FileStat stat) =>
+      FileEntry(path, version: _version(stat), modified: stat.modified);
+
+  /// A file's modification time and size: a new version of a file changes
+  /// at least one of them.
+  static FileVersion _version(FileStat stat) =>
+      FileVersion((stat.modified, stat.size));
 
   String _randomToken() =>
       List.generate(8, (_) => _random.nextInt(16).toRadixString(16)).join();

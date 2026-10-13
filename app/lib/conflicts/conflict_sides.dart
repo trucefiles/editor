@@ -40,9 +40,9 @@ final class ConflictSides {
     }
     String? current;
     if (!conflict.isOrphaned) {
-      switch (await services.store.read(conflict.mainPath)) {
+      switch (await services.conflicts.readMain(conflict)) {
         case Ok(:final value):
-          current = _text(value.bytes);
+          current = _text(value);
         case Err(:final error):
           return Err(error);
       }

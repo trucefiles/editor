@@ -74,13 +74,13 @@ void main() {
     expect(session.text, '# a\nmine');
   });
 
-  /// Simulates a file system reporting a new stamp for unchanged content.
+  /// Simulates a file system reporting a new version for unchanged content.
   Future<Note> restamp() async {
     file().setLastModifiedSync(DateTime(2001));
     return (await files.reload(note)).value;
   }
 
-  test('a new stamp with the same text is not a change', () async {
+  test('a new version with the same text is not a change', () async {
     session.edit('# a\nmine');
     await session.flush();
     final restamped = await restamp();
@@ -135,7 +135,7 @@ void main() {
     waiting.onRescan(theirs, scannedAt: later);
 
     expect(waiting.state, EditState.saved);
-    expect(waiting.note.stamp, theirs.stamp);
+    expect(waiting.note.version, theirs.version);
   });
 
   test('keep mine overwrites the change from elsewhere', () async {
@@ -306,7 +306,8 @@ void main() {
           folder: note.folder,
           path: path(name),
           file: note.file,
-          stamp: note.stamp,
+          version: note.version,
+          modified: note.modified,
         ),
       )).value;
       final longSession = NoteEditSession(

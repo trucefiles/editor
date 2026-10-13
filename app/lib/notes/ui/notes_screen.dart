@@ -4,7 +4,8 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../conflicts/conflicts_controller.dart';
+import '../../conflicts/backup_pruning.dart';
+import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../folders/folder_selection.dart';
@@ -12,12 +13,12 @@ import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
-import '../../folders/ui/sync_root_warning.dart';
+import '../../folders/ui/sync_status_warning.dart';
+import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_files.dart';
 import '../note_views_controller.dart';
-import '../notes_controller.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_editor_screen.dart';
@@ -37,7 +38,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(
-      onShow: () => ref.read(notesProvider.notifier).refresh(),
+      onShow: () => ref.read(folderScansProvider.notifier).refresh(),
     );
   }
 
@@ -51,7 +52,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   Widget build(BuildContext context) {
     final folders = ref.watch(foldersProvider);
     // Loaded up front, so a note opens in its remembered view.
-    ref.watch(noteViewsProvider);
+    ref
+      ..watch(noteViewsProvider)
+      ..watch(backupPruningProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notes'),
@@ -114,7 +117,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     if (!mounted) return;
     switch (created) {
       case Ok(value: final note):
-        await ref.read(notesProvider.notifier).refresh();
+        await ref.read(folderScansProvider.notifier).refresh();
         if (mounted) await openNote(context, note, autofocus: true);
       case Err(:final error):
         showSnack(context, error.text);
@@ -149,11 +152,11 @@ class _NotesBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedId = ref.watch(selectedFolderIdProvider);
-    final snapshot = ref.watch(notesProvider).value;
-    final conflicts = ref.watch(conflictsProvider).value;
+    final scans = ref.watch(folderScansProvider).value;
+    final conflicts = scans?.conflicts;
     bool shown(String folderId) => selectedId == null || folderId == selectedId;
     final notes = [
-      for (final note in snapshot?.notes ?? const <Note>[])
+      for (final note in scans?.notes ?? const <Note>[])
         if (shown(note.folder.id)) note,
     ];
     final orphans = [
@@ -168,7 +171,7 @@ class _NotesBody extends ConsumerWidget {
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),
         for (final MapEntry(key: folder, value: error)
-            in snapshot?.failedFolders.entries ??
+            in scans?.failedFolders.entries ??
                 const <MapEntry<NoteFolder, StoreError>>[])
           ListTile(
             leading: const Icon(Icons.error_outline),
@@ -179,10 +182,10 @@ class _NotesBody extends ConsumerWidget {
           if (shown(folder.id))
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SyncRootWarning(folder, showFolderName: true),
+              child: SyncStatusWarning(folder, showFolderName: true),
             ),
         Expanded(
-          child: snapshot == null
+          child: scans == null
               ? const Center(child: CircularProgressIndicator())
               : notes.isEmpty && orphans.isEmpty
               ? const Center(child: Text('No notes yet.'))

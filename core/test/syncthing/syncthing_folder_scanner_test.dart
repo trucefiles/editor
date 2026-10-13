@@ -1,0 +1,105 @@
+import 'package:test/test.dart';
+import 'package:truce_core/truce_core.dart';
+
+import '../support/memory_file_store.dart';
+import '../support/test_helpers.dart';
+
+void main() {
+  const copy1 = 'todo.sync-conflict-20261003-134809-4I343AW.md';
+  const copy2 = 'todo.sync-conflict-20261004-080000-ABCDEFG.md';
+
+  late MemoryFileStore store;
+  late SyncthingFolderScanner scanner;
+
+  setUp(() {
+    store = MemoryFileStore();
+    scanner = SyncthingFolderScanner(
+      store,
+      const DefaultFileFilter(
+        SyncthingAdapter(),
+        ExtensionFileTypeDetector.standard(),
+      ),
+    );
+  });
+
+  group('files', () {
+    test('are the included files, without conflict copies', () async {
+      store
+        ..put('todo.md', 'main')
+        ..put('lists/a.md', 'a')
+        ..put(copy1, 'copy')
+        ..put('photo.jpg', 'jpg')
+        ..put('.stversions/todo.md', 'old');
+
+      final files = (await scanner.scan()).value.files;
+
+      expect(
+        files.map((f) => f.path.value),
+        unorderedEquals(['todo.md', 'lists/a.md']),
+      );
+    });
+
+    test('come from a single listing with the conflicts', () async {
+      store
+        ..put('todo.md', 'main')
+        ..put(copy1, 'copy');
+
+      await scanner.scan();
+
+      expect(store.listCount, 1);
+    });
+  });
+
+  group('conflicts', () {
+    test('groups copies by main file, oldest first', () async {
+      final main = store.put('todo.md', 'main');
+      store
+        ..put(copy2, 'second')
+        ..put(copy1, 'first')
+        ..put('other.md', 'no conflict');
+
+      final conflict = (await scanner.scan()).value.conflicts.single;
+
+      expect(conflict.mainPath, path('todo.md'));
+      expect(conflict.main?.version, main.version);
+      expect(conflict.isOrphaned, isFalse);
+      expect(conflict.copies.map((c) => c.id), [copy1, copy2]);
+      expect(conflict.copies.first.createdAt, DateTime(2026, 10, 3, 13, 48, 9));
+    });
+
+    test('finds copies in subfolders, next to their main file', () async {
+      store
+        ..put('lists/todo.md', 'main')
+        ..put('lists/$copy1', 'copy');
+
+      final conflict = (await scanner.scan()).value.conflicts.single;
+
+      expect(conflict.mainPath, path('lists/todo.md'));
+      expect(conflict.copies.single.id, 'lists/$copy1');
+    });
+
+    test('reports a copy without main file as orphaned', () async {
+      store.put(copy1, 'copy');
+
+      final conflict = (await scanner.scan()).value.conflicts.single;
+
+      expect(conflict.mainPath, path('todo.md'));
+      expect(conflict.isOrphaned, isTrue);
+    });
+
+    test('skips filtered files and folders', () async {
+      store
+        ..put('photo.sync-conflict-20261003-134809-4I343AW.jpg', 'copy')
+        ..put('.stversions/$copy1', 'old')
+        ..put('.hidden/$copy1', 'copy');
+
+      expect((await scanner.scan()).value.conflicts, isEmpty);
+    });
+  });
+
+  test('passes storage errors on', () async {
+    store.failWith = StoreError.accessDenied;
+
+    expect((await scanner.scan()).error, StoreError.accessDenied);
+  });
+}
