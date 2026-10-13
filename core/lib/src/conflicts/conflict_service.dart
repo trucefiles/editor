@@ -43,9 +43,6 @@ abstract interface class ConflictService {
     RelPath mainPath,
     Uint8List bytes,
   );
-
-  /// Deletes backups made by [resolve] before [olderThan].
-  Future<Result<void, StoreError>> pruneBackups({required DateTime olderThan});
 }
 
 enum ResolveError { changedSinceScan, backupFailed, accessDenied, ioFailure }

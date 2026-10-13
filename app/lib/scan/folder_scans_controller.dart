@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../common/fresh_runs.dart';
 import '../conflicts/folder_conflicts.dart';
 import '../folders/folder_services.dart';
 import '../folders/folders_controller.dart';
@@ -27,27 +28,24 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
 
   List<NoteFolder> _folders = const [];
   final Map<String, NoteLoader> _loaders = {};
-  Future<FolderScans>? _running;
+  late final _scans = FreshRuns(_scanFolders);
 
   @override
   Future<FolderScans> build() async {
     _folders = await ref.watch(foldersProvider.future);
     final timer = Timer.periodic(pollInterval, (_) => refresh());
     ref.onDispose(timer.cancel);
-    return _scanAll();
+    return _scans.run();
   }
 
   /// Rescans now, e.g. after a write or when the app comes back to the
-  /// foreground. Joins a scan that is already running.
-  /// Does nothing once this controller is disposed.
+  /// foreground. The scan starts after this call, so it sees every write
+  /// made before. Does nothing once this controller is disposed.
   Future<void> refresh() async {
     if (!ref.mounted) return;
-    final scans = await _scanAll();
+    final scans = await _scans.run();
     if (ref.mounted) state = AsyncData(scans);
   }
-
-  Future<FolderScans> _scanAll() =>
-      _running ??= _scanFolders().whenComplete(() => _running = null);
 
   Future<FolderScans> _scanFolders() async {
     final startedAt = DateTime.now();

@@ -90,11 +90,6 @@ final class DefaultConflictService implements ConflictService {
     };
   }
 
-  @override
-  Future<Result<void, StoreError>> pruneBackups({
-    required DateTime olderThan,
-  }) => _backups.prune(olderThan: olderThan);
-
   /// Replaces the main file, or restores it if the conflict is orphaned.
   Future<Result<void, StoreError>> _writeMain(
     Conflict conflict,

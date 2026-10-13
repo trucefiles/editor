@@ -31,9 +31,7 @@ final class FolderServices {
       conflicts: DefaultConflictService(
         folder: store,
         source: SyncthingConflictSource(store),
-        backups: ConflictBackups(
-          LocalFileStore(backupsPath, adapter.tempFileName),
-        ),
+        backups: conflictBackupsAt(backupsPath),
       ),
     );
   }
@@ -55,6 +53,11 @@ final class FolderServices {
   final SyncCheck syncCheck;
   final ConflictService conflicts;
 }
+
+/// The conflict backups in the app storage folder at [path].
+ConflictBackups conflictBackupsAt(String path) => ConflictBackups(
+  LocalFileStore(path, const SyncthingAdapter().tempFileName),
+);
 
 final folderServicesProvider = Provider.family<FolderServices, NoteFolder>(
   (ref, folder) => FolderServices.syncthing(
