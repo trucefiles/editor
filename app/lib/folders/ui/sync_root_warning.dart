@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folder_services.dart';
-import '../folder_sync_coverage.dart';
+import '../folder_sync_root.dart';
 import '../note_folder.dart';
 
 /// Warns that the sync tool may not sync [folder]. Shows nothing while
 /// checking or when the folder is synced.
-class SyncCoverageWarning extends ConsumerWidget {
-  const SyncCoverageWarning(
+class SyncRootWarning extends ConsumerWidget {
+  const SyncRootWarning(
     this.folder, {
     this.includeUnknown = false,
     this.showFolderName = false,
@@ -28,14 +28,14 @@ class SyncCoverageWarning extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tool = ref.watch(folderServicesProvider(folder)).syncToolName;
     final error = Theme.of(context).colorScheme.error;
-    final shown = switch (ref.watch(syncCoverageProvider(folder))) {
-      AsyncData(value: SyncCoverage.notSynced) => (
+    final shown = switch (ref.watch(syncRootProvider(folder))) {
+      AsyncData(value: SyncRootMissing()) => (
         Icons.warning_amber,
         error,
         'Not inside a $tool folder. Changes may not reach your other '
             'devices.',
       ),
-      AsyncData(value: SyncCoverage.unknown) when includeUnknown => (
+      AsyncData(value: SyncRootUnknown()) when includeUnknown => (
         Icons.info_outline,
         null,
         "Can't check whether $tool syncs this folder. Add the $tool "

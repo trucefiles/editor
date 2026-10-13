@@ -11,7 +11,7 @@ import '../folders_controller.dart';
 import '../note_folder.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
-import 'sync_coverage_warning.dart';
+import 'sync_root_warning.dart';
 
 /// Lists the folders on this device: add, rename, recolor, remove.
 class FoldersScreen extends ConsumerWidget {
@@ -37,7 +37,7 @@ class FoldersScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(folder.path),
-                  SyncCoverageWarning(folder, includeUnknown: true),
+                  SyncRootWarning(folder, includeUnknown: true),
                 ],
               ),
               onTap: () => _edit(context, ref, folder),

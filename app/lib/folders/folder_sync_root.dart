@@ -5,10 +5,10 @@ import '../platform/parent_folder_access.dart';
 import 'folder_services.dart';
 import 'note_folder.dart';
 
-/// Whether the sync tool syncs [NoteFolder]; checked once per app run.
-final syncCoverageProvider = FutureProvider.family<SyncCoverage, NoteFolder>(
+/// Where the sync tool syncs [NoteFolder] from; looked up once per app run.
+final syncRootProvider = FutureProvider.family<SyncRootSearch, NoteFolder>(
   (ref, folder) => ref
       .watch(folderServicesProvider(folder))
-      .syncCoverage
-      .check(folder.path, parentsVisible: canReadParents(folder.path)),
+      .syncRoots
+      .find(folder.path, parentsVisible: canReadParents(folder.path)),
 );

@@ -35,11 +35,6 @@ void main() {
     });
   });
 
-  test('.stfolder marks a Syncthing root', () {
-    expect(adapter.marksSyncRoot('.stfolder'), isTrue);
-    expect(adapter.marksSyncRoot('.stignore'), isFalse);
-  });
-
   test('temp files are Syncthing temp files', () {
     final name = adapter.tempFileName('1a2b');
 

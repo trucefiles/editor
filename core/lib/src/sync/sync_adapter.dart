@@ -9,10 +9,6 @@ abstract interface class SyncAdapter {
   /// The sync tool's name, for the UI.
   String get name;
 
-  /// Whether a file or folder named [name] marks the folder holding it as
-  /// a root folder the sync tool syncs.
-  bool marksSyncRoot(String name);
-
   /// Whether [path] belongs to the sync tool itself (folder markers, version
   /// folders, temp files, conflict copies). Such files are never shown, and
   /// touched only by the tool's own `ConflictSource`.

@@ -22,7 +22,7 @@ final class FolderServices {
       store: store,
       filter: filter,
       syncToolName: adapter.name,
-      syncCoverage: const SyncCoverageCheck(adapter, readLocalFolderNames),
+      syncRoots: const SyncthingRootFinder(readLocalFolderNames),
       conflicts: DefaultConflictService(
         folder: store,
         source: SyncthingConflictSource(store, filter),
@@ -37,7 +37,7 @@ final class FolderServices {
     required this.store,
     required this.filter,
     required this.syncToolName,
-    required this.syncCoverage,
+    required this.syncRoots,
     required this.conflicts,
   });
 
@@ -47,7 +47,7 @@ final class FolderServices {
   /// The sync tool's name, for the UI.
   final String syncToolName;
 
-  final SyncCoverageCheck syncCoverage;
+  final SyncRootFinder syncRoots;
   final ConflictService conflicts;
 }
 
