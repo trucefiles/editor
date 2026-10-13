@@ -87,6 +87,29 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('swiping right indents, left outdents', (tester) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    await tester.drag(field('b'), const Offset(100, 0));
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n  - [ ] b');
+
+    await tester.drag(field('b'), const Offset(-100, 0));
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
+  testWidgets('a short swipe does nothing', (tester) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    await tester.drag(field('b'), const Offset(20, 0));
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
   testWidgets('undo after a delete shows each line in its row', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
     await tester.tap(field('a'));

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:truce_core/truce_core.dart';
 
+import 'swipe_to_indent.dart';
+
 /// Indent per checklist level.
 const _levelIndent = 28.0;
 
-/// One checkbox item: checkbox, inline-editable text and a menu.
+/// One checkbox item: checkbox, inline-editable text and a menu. Swipe
+/// right or left to indent or outdent.
 class ChecklistItemRow extends StatefulWidget {
   const ChecklistItemRow({
     required this.line,
@@ -66,6 +69,14 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
 
   @override
   Widget build(BuildContext context) {
+    return SwipeToIndent(
+      onIndent: () => widget.onAction(ItemAction.indent),
+      onOutdent: () => widget.onAction(ItemAction.outdent),
+      child: _row(context),
+    );
+  }
+
+  Widget _row(BuildContext context) {
     final checked = widget.line.isChecked;
     final textStyle = checked
         ? TextStyle(
