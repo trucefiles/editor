@@ -14,7 +14,10 @@ void main() {
     store = LocalFileStore(root.path, (token) => '.tmp-$token');
   });
 
-  tearDown(() => root.delete(recursive: true));
+  tearDown(() async {
+    // Some tests remove the root.
+    if (await root.exists()) await root.delete(recursive: true);
+  });
 
   Future<void> write(String relPath, String text) async {
     final file = File('${root.path}/$relPath');
@@ -123,6 +126,31 @@ void main() {
 
       expect(result.error, StoreError.alreadyExists);
       expect(textAt('a.md'), 'old');
+      expect(root.listSync(), hasLength(1));
+    });
+
+    test('never recreates a missing root folder', () async {
+      // E.g. the folder was moved or deleted, or its drive is not mounted.
+      await root.delete();
+
+      final result = await store.create(path('sub/new.md'), bytesOf('new'));
+
+      expect(result.error, StoreError.notFound);
+      expect(root.existsSync(), isFalse);
+    });
+
+    test('creates a missing root folder if told to', () async {
+      await root.delete();
+      final appStore = LocalFileStore(
+        '${root.path}/backups',
+        (token) => '.tmp-$token',
+        createsRoot: true,
+      );
+
+      final result = await appStore.create(path('a.md'), bytesOf('a'));
+
+      expect(result, isA<Ok<FileEntry, StoreError>>());
+      expect(textAt('backups/a.md'), 'a');
     });
   });
 
@@ -208,6 +236,30 @@ void main() {
       expect(result.error, StoreError.changedSinceRead);
       expect(textAt('a.md'), 'changed elsewhere');
     });
+
+    test('never deletes a folder', () async {
+      await write('sub/a.md', 'a');
+      final version = (await store.list()).value.single.version;
+
+      final result = await store.delete(path('sub'), ifUnchanged: version);
+
+      expect(result.error, StoreError.notFound);
+      expect(textAt('sub/a.md'), 'a');
+    });
+  });
+
+  test('replace never writes over a folder', () async {
+    await write('sub/a.md', 'a');
+    final version = (await store.list()).value.single.version;
+
+    final result = await store.replace(
+      path('sub'),
+      bytesOf('new'),
+      ifUnchanged: version,
+    );
+
+    expect(result, isA<Err<FileEntry, StoreError>>());
+    expect(textAt('sub/a.md'), 'a');
   });
 
   group('symbolic links', () {
@@ -242,6 +294,25 @@ void main() {
 
       expect(created.error, StoreError.accessDenied);
       expect(File('${outside.path}/new.md').existsSync(), isFalse);
+    });
+
+    test('are not replaced or deleted, nor their targets', () async {
+      final version = FileVersion((
+        File('${outside.path}/secret.md').statSync().modified,
+        6,
+      ));
+
+      final replaced = await store.replace(
+        path('note.md'),
+        bytesOf('x'),
+        ifUnchanged: version,
+      );
+      final deleted = await store.delete(path('note.md'), ifUnchanged: version);
+
+      expect(replaced.error, StoreError.accessDenied);
+      expect(deleted.error, StoreError.accessDenied);
+      expect(Link('${root.path}/note.md').existsSync(), isTrue);
+      expect(File('${outside.path}/secret.md').readAsStringSync(), 'secret');
     });
   });
 }

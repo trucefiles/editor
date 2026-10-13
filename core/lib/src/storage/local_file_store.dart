@@ -15,11 +15,19 @@ import 'rel_path.dart';
 /// Never follows symbolic links below the root, so it cannot reach files
 /// outside the root folder: [list] skips them, and every other operation
 /// fails with [StoreError.accessDenied] if its path goes through one.
+///
+/// Never creates the root folder unless [createsRoot]: a missing root means
+/// the folder was moved, deleted or is on a drive that is not mounted, so
+/// [create] fails with [StoreError.notFound] instead of bringing it back.
 final class LocalFileStore implements FileStore {
-  LocalFileStore(this.rootPath, this._tempFileName);
+  LocalFileStore(this.rootPath, this._tempFileName, {this.createsRoot = false});
 
   /// Absolute path of the root folder.
   final String rootPath;
+
+  /// Whether [create] may create a missing root folder, e.g. for the app's
+  /// own storage, which exists only once something is saved there.
+  final bool createsRoot;
 
   final TempFileNamer _tempFileName;
   final Random _random = Random.secure();
@@ -52,6 +60,7 @@ final class LocalFileStore implements FileStore {
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
       _guard(() async {
         final file = await _file(path);
+        if (!createsRoot) await _checkRootExists();
         await file.parent.create(recursive: true);
         return _writeAtomically(
           path,
@@ -167,6 +176,12 @@ final class LocalFileStore implements FileStore {
       await file.copy(temp.path);
     } on PathNotFoundException {
       // A new file: it gets the default permissions.
+    }
+  }
+
+  Future<void> _checkRootExists() async {
+    if (!await FileSystemEntity.isDirectory(rootPath)) {
+      throw const _Refused(StoreError.notFound);
     }
   }
 

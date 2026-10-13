@@ -82,6 +82,15 @@ void main() {
     expect((await device('phone').load()).value, {path('todo.md'): pinned});
   });
 
+  test('never writes over its own file if it cannot read it', () async {
+    store.put('.truce/marks/phone.json', 'not json');
+
+    final set = await device('phone').set(path('todo.md'), pinned);
+
+    expect(set.error, StoreError.ioFailure);
+    expect(store.textOf('.truce/marks/phone.json'), 'not json');
+  });
+
   test('reports store failures', () async {
     store.failWith = StoreError.accessDenied;
 

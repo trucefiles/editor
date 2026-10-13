@@ -22,16 +22,16 @@ typedef StampedMark = ({NoteMark mark, DateTime changed});
 /// Keeps unmarked notes too (`"pinned": false, "color": null`), so an unpin
 /// beats an older pin from another device.
 abstract final class NoteMarksFile {
-  /// The marks in [bytes]. Skips entries it cannot read; empty if the whole
-  /// file is unreadable.
-  static Map<RelPath, StampedMark> decode(Uint8List bytes) {
+  /// The marks in [bytes]. Skips entries it cannot read; `null` if the
+  /// whole file is unreadable.
+  static Map<RelPath, StampedMark>? decode(Uint8List bytes) {
     final Object? json;
     try {
       json = jsonDecode(utf8.decode(bytes));
     } on FormatException {
-      return {};
+      return null;
     }
-    if (json is! Map<String, Object?>) return {};
+    if (json is! Map<String, Object?>) return null;
     return {
       for (final MapEntry(:key, :value) in json.entries)
         if ((RelPath.parse(key), _decodeEntry(value)) case (

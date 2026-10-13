@@ -25,6 +25,15 @@ extension UiDriver on WidgetTester {
     }
   }
 
+  /// Lets the app run for [duration], e.g. to show that it leaves a file
+  /// alone.
+  Future<void> runFor(Duration duration) async {
+    final end = DateTime.now().add(duration);
+    while (DateTime.now().isBefore(end)) {
+      await pump(const Duration(milliseconds: 100));
+    }
+  }
+
   /// Waits until [file] holds exactly [text].
   Future<void> waitForFile(File file, String text) =>
       waitUntil(() => file.existsSync() && file.readAsStringSync() == text);

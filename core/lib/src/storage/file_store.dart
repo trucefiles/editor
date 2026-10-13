@@ -24,6 +24,10 @@ abstract interface class FileStore {
 
   /// Creates [path] with [bytes]; fails with [StoreError.alreadyExists]
   /// instead of overwriting. Returns the new file's entry.
+  ///
+  /// Creates missing folders below the root. A store over a user's folder
+  /// never creates the root itself: if it is gone, this fails with
+  /// [StoreError.notFound], so a write never brings the folder back.
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes);
 
   /// Atomically replaces [path] with [bytes]: readers see the old or the new

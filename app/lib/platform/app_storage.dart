@@ -15,6 +15,10 @@ final class AppStorage {
 
   String get settingsPath => '$rootPath/settings';
 
+  /// This device's id; kept out of Android backups (see
+  /// `android/app/src/main/res/xml`).
+  String get deviceIdPath => '$settingsPath/device_id';
+
   /// Holds one backup folder per note folder.
   String get _backupsRootPath => '$rootPath/backups';
 

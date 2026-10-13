@@ -41,8 +41,8 @@ void main() {
 ''');
   });
 
-  test('reads a file that is not a JSON object as empty', () {
-    expect(NoteMarksFile.decode(bytesOf('[1, 2]')), isEmpty);
-    expect(NoteMarksFile.decode(bytesOf('{')), isEmpty);
+  test('reads a file that is not a JSON object as unreadable', () {
+    expect(NoteMarksFile.decode(bytesOf('[1, 2]')), isNull);
+    expect(NoteMarksFile.decode(bytesOf('{')), isNull);
   });
 }

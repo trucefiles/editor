@@ -224,6 +224,12 @@ void main() {
       );
     });
 
+    test('outdent keeps a tab-indented subitem under a space item', () {
+      final list = Checklist.parse('  - [ ] a\n\t- [ ] b');
+
+      expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n- [ ] b');
+    });
+
     test('outdent at the margin does nothing', () {
       final list = Checklist.parse(doc);
 
