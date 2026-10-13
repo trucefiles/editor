@@ -1,7 +1,8 @@
 name: CI
 
-# Pull requests and merges to main run the checks only. Builds run only when
-# started by hand ("Run workflow", any branch); releases build on their own.
+# Pull requests and merges to main run the checks and UI tests only. Builds
+# run only when started by hand ("Run workflow", any branch); releases build
+# on their own.
 on:
   push:
     branches: [main]
@@ -37,6 +38,26 @@ jobs:
       - name: Test app
         working-directory: app
         run: flutter test
+
+  ui-test:
+    name: UI tests (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-flutter
+      - name: Install Linux build tools and a virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            ninja-build libgtk-3-dev xvfb
+      - name: Get packages from the lock file
+        run: flutter pub get --enforce-lockfile
+      - name: Run the app's UI tests
+        working-directory: app
+        run: xvfb-run --auto-servernum flutter test integration_test -d linux
 
   build-android:
     name: Build Android APK
