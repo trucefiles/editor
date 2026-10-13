@@ -52,7 +52,7 @@ jobs:
             exit 1
           fi
           metainfo=app/linux/flatpak/io.github.trucefiles.editor.metainfo.xml
-          if ! grep -q "<release version=\"${tag#v}\"" "$metainfo"; then
+          if ! grep -qF "<release version=\"${tag#v}\"" "$metainfo"; then
             echo "::error::Add a <release> entry for ${tag#v} to $metainfo"
             exit 1
           fi

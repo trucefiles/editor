@@ -114,6 +114,30 @@ void main() {
     expect(onDisk(), '# a\ntheirs, longer');
   });
 
+  test('a change elsewhere to the same text is not a conflict', () async {
+    await editElsewhere('# a\nsame');
+    session.edit('# a\nsame');
+    await session.flush();
+
+    expect(session.state, EditState.saved);
+  });
+
+  test('a rescan finding the same text is not a conflict', () async {
+    final waiting = NoteEditSession(
+      note,
+      files,
+      saveDelay: const Duration(hours: 1),
+    );
+    addTearDown(waiting.dispose);
+    waiting.edit('# a\nsame');
+    final theirs = await editElsewhere('# a\nsame');
+
+    waiting.onRescan(theirs, scannedAt: later);
+
+    expect(waiting.state, EditState.saved);
+    expect(waiting.note.stamp, theirs.stamp);
+  });
+
   test('keep mine overwrites the change from elsewhere', () async {
     await editElsewhere('# a\ntheirs, longer');
     session.edit('# a\nmine');
@@ -181,8 +205,19 @@ void main() {
     expect(onDisk(), '# a\nmine');
   });
 
+  test('shows a note back with other text if there were no edits', () async {
+    session.onRescan(null, scannedAt: later);
+    final theirs = await editElsewhere('# a\ntheirs');
+
+    session.onRescan(theirs, scannedAt: later);
+
+    expect(session.state, EditState.saved);
+    expect(session.text, '# a\ntheirs');
+  });
+
   test('a note back with other text is a change from elsewhere', () async {
     session.onRescan(null, scannedAt: later);
+    session.edit('# a\nmine');
     final theirs = await editElsewhere('# a\ntheirs');
 
     session.onRescan(theirs, scannedAt: later);
@@ -244,6 +279,48 @@ void main() {
 
       expect(await session.secure(), isTrue);
       expect(dir.listSync(), isEmpty);
+    });
+
+    test('takes no edits once it keeps them as a conflict', () async {
+      await editElsewhere('# a\ntheirs, longer');
+      session
+        ..edit('# a\nmine')
+        ..addListener(() {
+          if (session.state == EditState.keptAsConflict) {
+            session.edit('# a\ntoo late');
+          }
+        });
+
+      await session.secure();
+
+      expect(session.text, '# a\nmine');
+      expect(conflictCopies(), ['# a\nmine']);
+    });
+
+    test('reports edits that can be kept nowhere', () async {
+      // Too long for a conflict copy's name: 251 bytes + its marker.
+      final name = '${'x' * 248}.md';
+      File('${dir.path}/$name').writeAsStringSync('# x');
+      final long = (await files.reload(
+        Note(
+          folder: note.folder,
+          path: path(name),
+          file: note.file,
+          stamp: note.stamp,
+        ),
+      )).value;
+      final longSession = NoteEditSession(
+        long,
+        files,
+        saveDelay: Duration.zero,
+      );
+      addTearDown(longSession.dispose);
+      File('${dir.path}/$name').writeAsStringSync('# x\ntheirs');
+      longSession.edit('# x\nmine');
+
+      expect(await longSession.secure(), isFalse);
+      expect(longSession.state, EditState.changedElsewhere);
+      expect(conflictCopies(), isEmpty);
     });
 
     test('keeps edits only once', () async {

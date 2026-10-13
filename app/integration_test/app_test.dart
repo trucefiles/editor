@@ -84,6 +84,35 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
   });
 
+  testWidgets('hiding the app keeps clashing edits, menus stay put', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+
+    // The user switches apps and comes back.
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+
+    await tester.waitFor(find.textContaining('kept as a conflict copy'));
+    expect(find.text('Delete note'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Close'));
+    await tester.waitFor(find.byTooltip('New note'));
+  });
+
   testWidgets('reopens a note in the view it was left in', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
     await addFolder(tester);

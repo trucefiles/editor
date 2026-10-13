@@ -47,7 +47,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
   late final NoteViewsController _views;
-  bool _closed = false;
 
   /// The note's last view on this device; else a list if it has items.
   late NoteView _view =
@@ -83,13 +82,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     super.dispose();
   }
 
-  /// Shows text the session took from the file (rescan or "load theirs"),
-  /// and closes once the edits were kept as a conflict copy.
+  /// Shows text the session took from the file (rescan or "load theirs").
   void _onSessionChanged() {
-    if (_session.state == EditState.keptAsConflict) {
-      _close(message: 'Your edits were kept as a conflict copy');
-      return;
-    }
     if (_text.text != _session.text) {
       final offset = _text.selection.baseOffset.clamp(0, _session.text.length);
       _text.value = TextEditingValue(
@@ -103,18 +97,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// Leaves only once the edits are in the file or in a conflict copy;
   /// asks if they can be kept nowhere.
   Future<void> _leave() async {
-    final kept = await _session.secure();
-    if (!mounted) return;
-    kept ? _close() : await _askToDiscard();
+    if (await _session.secure() || await _askToDiscard()) _close();
   }
 
+  /// On desktop: quits once the edits are kept, or the user discards them.
   Future<AppExitResponse> _onExitRequested() async {
     if (await _session.secure()) return AppExitResponse.exit;
-    if (mounted) unawaited(_askToDiscard());
+    if (await _askToDiscard()) return AppExitResponse.exit;
     return AppExitResponse.cancel;
   }
 
-  Future<void> _askToDiscard() async {
+  /// Whether the user drops edits that can be kept nowhere.
+  Future<bool> _askToDiscard() async {
+    if (!mounted) return false;
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -135,14 +130,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ],
       ),
     );
-    if (discard ?? false) _close();
+    return discard ?? false;
   }
 
-  void _close({String? message}) {
-    if (_closed || !mounted) return;
-    _closed = true;
-    if (message != null) showSnack(context, message);
-    Navigator.pop(context);
+  /// Closes the editor if it is still the top screen (the user may have
+  /// left it meanwhile).
+  void _close() {
+    if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _delete() async {
@@ -217,15 +213,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
     });
     return PopScope(
-      canPop:
-          _session.state == EditState.saved ||
-          _session.state == EditState.keptAsConflict,
+      canPop: _session.state == EditState.saved || _isDone,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave());
       },
       child: _scaffold(context),
     );
   }
+
+  /// The edits were kept as a conflict copy; nothing more to edit here.
+  bool get _isDone => _session.state == EditState.keptAsConflict;
 
   Widget _scaffold(BuildContext context) {
     return Scaffold(
@@ -245,8 +242,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
         actions: [
           _SaveIndicator(_session.state),
-          NoteViewButton(view: _view, onChanged: _showView),
-          _menu(),
+          if (!_isDone) ...[
+            NoteViewButton(view: _view, onChanged: _showView),
+            _menu(),
+          ],
         ],
       ),
       body: Column(
@@ -277,8 +276,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               message: 'Saving failed. Your text is kept here.',
               actions: {'Retry': _session.flush},
             ),
+          if (_isDone)
+            _Banner(
+              message:
+                  'Your edits were kept as a conflict copy, to resolve '
+                  'from the notes list.',
+              actions: {'Close': _close},
+            ),
           Expanded(
-            child: switch (_view) {
+            // Read-only once done: the session takes no more edits.
+            child: switch (_isDone ? NoteView.rendered : _view) {
               NoteView.list => ChecklistView(_checklist),
               NoteView.rendered => MarkdownView(_session.text),
               NoteView.text => TextField(

@@ -8,9 +8,10 @@ import 'note.dart';
 /// only files whose stamp changed.
 ///
 /// Files that are not valid UTF-8 are left out: they cannot be edited
-/// without damaging them. A listed file that can't be read as text right
-/// now (e.g. mid-rewrite, or briefly no access) keeps its last version, so
-/// it doesn't look deleted.
+/// without damaging them. A note that can't be read as text any more
+/// (e.g. mid-rewrite, briefly no access) keeps its last version while the
+/// file exists, so it doesn't look deleted; saving to it then fails its
+/// change check instead of overwriting anything.
 final class NoteScanner {
   NoteScanner(this.folder, this._services);
 

@@ -23,6 +23,11 @@ void main() {
   });
 
   test('limits the length without splitting characters', () {
-    expect(noteFileName('😀' * 100), '${'😀' * 80}.md');
+    expect(noteFileName('a' * 100), '${'a' * 80}.md');
+  });
+
+  test('leaves room for a conflict copy in 255 bytes', () {
+    // 4 bytes each: 50 fit in 200 bytes.
+    expect(noteFileName('😀' * 100), '${'😀' * 50}.md');
   });
 }

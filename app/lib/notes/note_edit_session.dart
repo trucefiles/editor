@@ -25,8 +25,9 @@ enum EditState {
   /// Saving failed for another reason (e.g. no access); edits are kept.
   saveFailed,
 
-  /// Edits that could not go into the file were kept as a conflict copy
-  /// by [NoteEditSession.secure]. The session is done.
+  /// Edits that could not go into the file are kept as a conflict copy
+  /// by [NoteEditSession.secure]. Set as the copy is written, so no edit
+  /// can slip past it. The session is done: it takes no more edits.
   keptAsConflict,
 }
 
@@ -107,12 +108,20 @@ final class NoteEditSession extends ChangeNotifier {
       case EditState.changedElsewhere ||
           EditState.deletedElsewhere ||
           EditState.saveFailed:
-        if (await _files.saveAsConflict(_note, _text) is Err) return false;
-        _timer?.cancel();
-        _theirs = null;
-        _set(EditState.keptAsConflict);
-        return true;
+        return _keepAsConflict();
     }
+  }
+
+  Future<bool> _keepAsConflict() async {
+    final before = _state;
+    _timer?.cancel();
+    _set(EditState.keptAsConflict);
+    if (await _files.saveAsConflict(_note, _text) is Err) {
+      _set(before);
+      return false;
+    }
+    _theirs = null;
+    return true;
   }
 
   /// A rescan that started at [scannedAt] found [latest] for this note;
@@ -138,6 +147,10 @@ final class NoteEditSession extends ChangeNotifier {
     if (latest.stamp == _note.stamp) return false;
     if (_isRestamped(latest)) {
       _note = latest;
+      return false;
+    }
+    if (_holdsText(latest)) {
+      _inStepWith(latest);
       return false;
     }
     if (_state == EditState.saved) {
@@ -212,6 +225,7 @@ final class NoteEditSession extends ChangeNotifier {
           _note = theirs;
           return _saveOnce(retried: true);
         }
+        if (_holdsText(theirs)) return _inStepWith(theirs);
         _theirs = theirs;
         _set(EditState.changedElsewhere);
       case Err():
@@ -255,11 +269,14 @@ final class NoteEditSession extends ChangeNotifier {
   }
 
   /// The file is back after it looked deleted: in step if it holds [text];
-  /// saving again if it is the version the edits are based on; else a
-  /// change from elsewhere.
+  /// shown as is if there are no edits; saving again if it is the version
+  /// the edits are based on; else a change from elsewhere.
   void _cameBack(Note latest) {
-    if (latest.file.text == _text) {
+    if (_holdsText(latest)) {
+      _inStepWith(latest);
+    } else if (_text == _note.file.text) {
       _note = latest;
+      _text = latest.file.text;
       _set(EditState.saved);
     } else if (latest.stamp == _note.stamp) {
       _set(EditState.unsaved);
@@ -268,6 +285,17 @@ final class NoteEditSession extends ChangeNotifier {
       _theirs = latest;
       _set(EditState.changedElsewhere);
     }
+  }
+
+  /// Whether [latest] holds exactly the text being edited: nothing to
+  /// save or ask.
+  bool _holdsText(Note latest) => latest.file.text == _text;
+
+  void _inStepWith(Note latest) {
+    _timer?.cancel();
+    _note = latest;
+    _theirs = null;
+    _set(EditState.saved);
   }
 
   void _goneElsewhere() {
