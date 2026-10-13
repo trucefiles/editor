@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
-import '../../platform/folder_picker.dart';
-import '../../platform/storage_access.dart';
-import '../folder_selection.dart';
+import '../folder_actions.dart';
 import '../folders_controller.dart';
 import '../note_folder.dart';
+import 'add_folder_error_text.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
 import 'settings_error_text.dart';
@@ -59,7 +58,7 @@ class FoldersScreen extends ConsumerWidget {
   ) async {
     final changed = await showFolderEditDialog(context, folder);
     if (changed == null) return;
-    final saved = await ref.read(foldersProvider.notifier).change(changed);
+    final saved = await ref.read(folderActionsProvider).change(changed);
     if (saved case Err(:final error) when context.mounted) {
       showSnack(context, error.text);
     }
@@ -70,56 +69,50 @@ class FoldersScreen extends ConsumerWidget {
     WidgetRef ref,
     NoteFolder folder,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remove "${folder.name}"?'),
-        content: const Text(
-          'The app stops showing this folder. Its files stay untouched.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    if (ref.read(selectedFolderIdProvider) == folder.id) {
-      ref.read(selectedFolderIdProvider.notifier).choose(null);
-    }
-    final saved = await ref.read(foldersProvider.notifier).remove(folder);
+    if (!await _confirmRemove(context, folder)) return;
+    final saved = await ref.read(folderActionsProvider).remove(folder);
     if (saved case Err(:final error) when context.mounted) {
       showSnack(context, error.text);
     }
   }
+
+  /// Whether the user wants to remove [folder] from the app.
+  Future<bool> _confirmRemove(BuildContext context, NoteFolder folder) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Remove "${folder.name}"?'),
+          content: const Text(
+            'The app stops showing this folder. Its files stay untouched.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 /// Makes sure the app may open folders, lets the user pick one and adds
 /// it.
 Future<void> addFolder(BuildContext context, WidgetRef ref) async {
-  final access = ref.read(storageAccessProvider);
-  if (!await access.isGranted()) {
-    if (context.mounted && await _askForAccess(context)) await access.request();
+  final actions = ref.read(folderActionsProvider);
+  if (!await actions.hasAccess()) {
+    if (context.mounted && await _askForAccess(context)) {
+      await actions.requestAccess();
+    }
     return;
   }
-  final picked = await ref.read(folderPickerProvider).pick();
-  if (!context.mounted) return;
-  switch (picked) {
-    case Ok(value: final path?):
-      final added = await ref.read(foldersProvider.notifier).add(path);
-      if (added case Err(:final error) when context.mounted) {
-        showSnack(context, error.text);
-      }
-    case Ok():
-      return;
-    case Err(error: PickError.unsupportedLocation):
-      showSnack(context, 'Please pick a folder on the device storage.');
+  final added = await actions.pickAndAdd();
+  if (added case Err(:final error) when context.mounted) {
+    showSnack(context, error.text);
   }
 }
 

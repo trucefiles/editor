@@ -140,6 +140,23 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
   });
 
+  testWidgets('removes a folder from the app, keeping its files', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    await tester.tapAndSettle(find.byTooltip('Folders'));
+    await tester.tapAndSettle(find.byTooltip('Remove from app'));
+    await tester.tapAndSettle(find.text('Remove'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.waitFor(find.text('Add folder'));
+    expect(app.file('plan.md').existsSync(), isTrue);
+  });
+
   testWidgets('reopens a note in the view it was left in', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
     await addFolder(tester);
