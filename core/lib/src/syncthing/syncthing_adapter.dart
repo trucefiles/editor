@@ -9,8 +9,17 @@ import 'syncthing_conflict_name.dart';
 final class SyncthingAdapter implements SyncAdapter {
   const SyncthingAdapter();
 
+  /// Marks the root of every Syncthing folder; Syncthing creates it.
+  static const _rootMarker = '.stfolder';
+
   /// Syncthing's own files and folders, at the root of a Syncthing folder.
-  static const _internalNames = {'.stfolder', '.stignore', '.stversions'};
+  static const _internalNames = {_rootMarker, '.stignore', '.stversions'};
+
+  @override
+  String get name => 'Syncthing';
+
+  @override
+  bool marksSyncRoot(String name) => name == _rootMarker;
 
   @override
   bool isInternal(RelPath path) =>

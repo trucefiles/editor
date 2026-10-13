@@ -21,6 +21,8 @@ final class FolderServices {
     return FolderServices._(
       store: store,
       filter: filter,
+      syncToolName: adapter.name,
+      syncCoverage: const SyncCoverageCheck(adapter, readLocalFolderNames),
       conflicts: DefaultConflictService(
         folder: store,
         source: SyncthingConflictSource(store, filter),
@@ -34,11 +36,18 @@ final class FolderServices {
   const FolderServices._({
     required this.store,
     required this.filter,
+    required this.syncToolName,
+    required this.syncCoverage,
     required this.conflicts,
   });
 
   final FileStore store;
   final FileFilter filter;
+
+  /// The sync tool's name, for the UI.
+  final String syncToolName;
+
+  final SyncCoverageCheck syncCoverage;
   final ConflictService conflicts;
 }
 
