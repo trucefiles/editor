@@ -4,8 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../folders/folder_services.dart';
-import '../../scan/folder_scans_controller.dart';
+import '../conflict_controller.dart';
 import '../conflict_sides.dart';
 import '../folder_conflicts.dart';
 import 'version_pane.dart';
@@ -22,69 +21,24 @@ class ConflictScreen extends ConsumerStatefulWidget {
 }
 
 class _ConflictScreenState extends ConsumerState<ConflictScreen> {
-  late FolderConflict _conflict = widget.initial;
-  ConflictSides? _sides;
-  String? _error;
-  bool _busy = false;
-
-  FolderServices get _services =>
-      ref.read(folderServicesProvider(_conflict.folder.location));
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final loaded = await ConflictSides.load(_services, _conflict.conflict);
-    if (!mounted) return;
-    setState(() {
-      switch (loaded) {
-        case Ok(:final value):
-          _sides = value;
-          _error = null;
-        case Err(:final error):
-          _error = error.text;
-      }
-    });
-  }
+  ConflictController get _controller =>
+      ref.read(conflictProvider(widget.initial).notifier);
 
   Future<void> _keep(Resolution resolution) async {
-    final sides = _sides;
-    if (sides == null || !await _confirm(resolution)) return;
-    setState(() => _busy = true);
-    final resolved = await _services.conflicts.resolve(
-      _conflict.conflict,
-      sides.copy,
-      resolution,
-    );
-    await ref.read(folderScansProvider.notifier).refresh();
+    final conflict = ref.read(conflictProvider(widget.initial)).conflict;
+    if (!await _confirm(conflict, resolution)) return;
+    final kept = await _controller.keep(resolution);
     if (!mounted) return;
-    setState(() => _busy = false);
-    final next = ref
-        .read(folderScansProvider)
-        .value
-        ?.conflicts
-        .forNote(_conflict.key);
-    if (resolved case Err(:final error)) {
+    if (kept.error case final error?) {
       showSnack(context, _resolveText(error));
-    } else if (next == null) {
+    } else if (kept.done) {
       showSnack(context, 'Conflict resolved. A backup is kept for 7 days.');
     }
-    if (next == null) {
-      Navigator.pop(context);
-      return;
-    }
-    setState(() {
-      _conflict = next;
-      _sides = null;
-    });
-    await _load();
+    if (kept.done) Navigator.pop(context);
   }
 
-  Future<bool> _confirm(Resolution resolution) async {
-    final orphaned = _conflict.conflict.isOrphaned;
+  Future<bool> _confirm(FolderConflict conflict, Resolution resolution) async {
+    final orphaned = conflict.conflict.isOrphaned;
     final message = switch (resolution) {
       KeepCurrent() when orphaned =>
         'The note stays deleted and the other version is removed.',
@@ -124,11 +78,13 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final conflict = _conflict.conflict;
-    final count = conflict.copies.length;
+    final ConflictState(:conflict, :sides, :busy) = ref.watch(
+      conflictProvider(widget.initial),
+    );
+    final count = conflict.conflict.copies.length;
     return Scaffold(
       appBar: AppBar(
-        title: Text(conflict.mainPath.name),
+        title: Text(conflict.conflict.mainPath.name),
         bottom: count > 1
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(24),
@@ -136,15 +92,15 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
               )
             : null,
       ),
-      body: switch ((_sides, _error)) {
-        (_, final error?) => Center(child: Text(error)),
-        (final sides?, _) => _Comparison(
-          conflict: conflict,
+      body: switch (sides) {
+        Err(:final error) => Center(child: Text(error.text)),
+        Ok(value: final sides) => _Comparison(
+          conflict: conflict.conflict,
           sides: sides,
-          enabled: !_busy,
+          enabled: !busy,
           onKeep: _keep,
         ),
-        _ => const Center(child: CircularProgressIndicator()),
+        null => const Center(child: CircularProgressIndicator()),
       },
     );
   }
