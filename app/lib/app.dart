@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'common/keypad_navigation.dart';
 import 'notes/ui/notes_screen.dart';
 
 /// Root widget: app-wide theme and the first screen.
@@ -17,6 +18,7 @@ class TruceApp extends StatelessWidget {
         colorSchemeSeed: Colors.teal,
         brightness: Brightness.dark,
       ),
+      builder: (context, child) => KeypadNavigation(child: child!),
       home: const NotesScreen(),
     );
   }
