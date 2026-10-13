@@ -96,6 +96,10 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
               itemCount: open.length,
               itemBuilder: (context, index) =>
                   _row(list, open[index], index: index),
+              // The dragged row floats outside the page, so it needs its
+              // own Material for its checkbox and text field.
+              proxyDecorator: (child, _, _) =>
+                  Material(elevation: 4, child: child),
               onReorderItem: (from, to) {
                 final rest = [...open]..removeAt(from);
                 _editor.move(

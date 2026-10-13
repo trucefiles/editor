@@ -134,6 +134,22 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('dragging an item takes its indented text along', (tester) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b\n  note');
+
+    final handle = find.byIcon(Icons.drag_indicator).at(1);
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    await tester.pump(kLongPressTimeout);
+    await gesture.moveBy(const Offset(0, -200));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] b\n  note\n- [ ] a');
+    expect(find.text('note'), findsOne);
+    await close(tester);
+  });
+
   testWidgets('a short swipe does nothing', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
