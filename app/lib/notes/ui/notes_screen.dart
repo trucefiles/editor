@@ -16,6 +16,7 @@ import '../../folders/ui/sync_root_warning.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_files.dart';
+import '../note_views_controller.dart';
 import '../notes_controller.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
@@ -49,6 +50,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final folders = ref.watch(foldersProvider);
+    // Loaded up front, so a note opens in its remembered view.
+    ref.watch(noteViewsProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notes'),
