@@ -8,10 +8,7 @@ void main() {
   SyncthingRootFinder finderOver(
     Map<String, Set<String>> folders, {
     bool hidden = false,
-  }) => SyncthingRootFinder(
-    (path) async => folders[path],
-    canReadParents: (_) => !hidden,
-  );
+  }) => SyncthingRootFinder((path) async => folders[path], (_) => !hidden);
 
   test('finds the folder itself as the root', () async {
     final finder = finderOver({

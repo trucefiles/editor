@@ -25,7 +25,7 @@ final class FolderServices {
       syncToolName: adapter.name,
       syncRoots: const SyncthingRootFinder(
         readLocalFolderNames,
-        canReadParents: canReadParents,
+        canReadParents,
       ),
       conflicts: DefaultConflictService(
         folder: store,

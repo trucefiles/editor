@@ -6,12 +6,9 @@ import '../sync/sync_root_finder.dart';
 /// Finds a Syncthing folder's root by its `.stfolder` marker, which
 /// Syncthing creates in every root it syncs.
 final class SyncthingRootFinder implements SyncRootFinder {
-  /// [canReadParents] tells whether the platform lets the app read the
+  /// [_canReadParents] tells whether the platform lets the app read the
   /// parent folders of a folder (not in a sandbox, for example).
-  const SyncthingRootFinder(
-    this._readNames, {
-    required bool Function(String folderPath) canReadParents,
-  }) : _canReadParents = canReadParents;
+  const SyncthingRootFinder(this._readNames, this._canReadParents);
 
   static const _rootMarker = '.stfolder';
 
