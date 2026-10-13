@@ -35,7 +35,8 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteFiles _files = ref.read(noteFilesProvider(widget.note.folder));
-  late final NotesController _notes = ref.read(notesProvider.notifier);
+  // Read up front: dispose() needs it, and ref is unusable by then.
+  late final NotesController _notes;
   late final _session = NoteEditSession(widget.note, _files);
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
@@ -45,6 +46,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
+    _notes = ref.read(notesProvider.notifier);
     _text.addListener(() => _session.edit(_text.text));
     _session.addListener(_onSessionChanged);
     _lifecycle = AppLifecycleListener(onHide: _session.flush);

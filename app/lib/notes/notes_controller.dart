@@ -61,7 +61,9 @@ class NotesController extends AsyncNotifier<NotesSnapshot> {
 
   /// Rescans now, e.g. after a write or when the app comes back to the
   /// foreground. Joins a scan that is already running.
+  /// Does nothing once this controller is disposed.
   Future<void> refresh() async {
+    if (!ref.mounted) return;
     final snapshot = await _scanAll();
     if (ref.mounted) state = AsyncData(snapshot);
   }
