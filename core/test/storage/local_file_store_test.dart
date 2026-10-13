@@ -27,8 +27,8 @@ void main() {
     return file.existsSync() ? file.readAsStringSync() : null;
   }
 
-  Future<FileStamp> stampOf(String relPath) async =>
-      (await store.read(path(relPath))).value.stamp;
+  Future<FileVersion> versionOf(String relPath) async =>
+      (await store.read(path(relPath))).value.version;
 
   group('list', () {
     test('lists files recursively, hidden ones included', () async {
@@ -89,15 +89,15 @@ void main() {
   });
 
   group('read', () {
-    test('returns bytes and a stamp matching the listing', () async {
+    test('returns bytes and a version matching the listing', () async {
       await write('a.md', 'hello');
 
       final content = (await store.read(path('a.md'))).value;
       final listed = (await store.list()).value.single;
 
       expect(String.fromCharCodes(content.bytes), 'hello');
-      expect(content.stamp, listed.stamp);
-      expect(content.stamp.size, 5);
+      expect(content.version, listed.version);
+      expect(content.modified, listed.modified);
     });
 
     test('fails with notFound for a missing file', () async {
@@ -111,7 +111,8 @@ void main() {
     test('writes a new file and its parent folders', () async {
       final result = await store.create(path('sub/new.md'), bytesOf('new'));
 
-      expect(result, isA<Ok<FileStamp, StoreError>>());
+      expect(result.value.path, path('sub/new.md'));
+      expect(result.value.version, await versionOf('sub/new.md'));
       expect(textAt('sub/new.md'), 'new');
     });
 
@@ -128,26 +129,25 @@ void main() {
   group('replace', () {
     test('replaces an unchanged file and leaves no temp file', () async {
       await write('a.md', 'old');
-      final stamp = await stampOf('a.md');
+      final version = await versionOf('a.md');
 
       final result = await store.replace(
         path('a.md'),
         bytesOf('new text'),
-        ifUnchanged: stamp,
+        ifUnchanged: version,
       );
 
-      final newStamp = result.value;
       expect(textAt('a.md'), 'new text');
-      expect(newStamp, await stampOf('a.md'));
+      expect(result.value.version, await versionOf('a.md'));
       expect(root.listSync().map((e) => e.uri.pathSegments.last), ['a.md']);
     });
 
     test('keeps the file\'s permissions', () async {
       await write('a.md', 'old');
       await Process.run('chmod', ['600', '${root.path}/a.md']);
-      final stamp = await stampOf('a.md');
+      final version = await versionOf('a.md');
 
-      await store.replace(path('a.md'), bytesOf('new'), ifUnchanged: stamp);
+      await store.replace(path('a.md'), bytesOf('new'), ifUnchanged: version);
 
       final mode = File('${root.path}/a.md').statSync().modeString();
       expect(mode, 'rw-------');
@@ -155,13 +155,13 @@ void main() {
 
     test('fails with changedSinceRead and writes nothing', () async {
       await write('a.md', 'old');
-      final stamp = await stampOf('a.md');
+      final version = await versionOf('a.md');
       await write('a.md', 'changed elsewhere');
 
       final result = await store.replace(
         path('a.md'),
         bytesOf('new'),
-        ifUnchanged: stamp,
+        ifUnchanged: version,
       );
 
       expect(result.error, StoreError.changedSinceRead);
@@ -171,13 +171,13 @@ void main() {
 
     test('fails with notFound for a missing file', () async {
       await write('a.md', 'old');
-      final stamp = await stampOf('a.md');
+      final version = await versionOf('a.md');
       await File('${root.path}/a.md').delete();
 
       final result = await store.replace(
         path('a.md'),
         bytesOf('new'),
-        ifUnchanged: stamp,
+        ifUnchanged: version,
       );
 
       expect(result.error, StoreError.notFound);
@@ -191,7 +191,7 @@ void main() {
 
       final result = await store.delete(
         path('a.md'),
-        ifUnchanged: await stampOf('a.md'),
+        ifUnchanged: await versionOf('a.md'),
       );
 
       expect(result, isA<Ok<void, StoreError>>());
@@ -200,10 +200,10 @@ void main() {
 
     test('keeps a changed file', () async {
       await write('a.md', 'old');
-      final stamp = await stampOf('a.md');
+      final version = await versionOf('a.md');
       await write('a.md', 'changed elsewhere');
 
-      final result = await store.delete(path('a.md'), ifUnchanged: stamp);
+      final result = await store.delete(path('a.md'), ifUnchanged: version);
 
       expect(result.error, StoreError.changedSinceRead);
       expect(textAt('a.md'), 'changed elsewhere');

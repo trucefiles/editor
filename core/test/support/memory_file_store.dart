@@ -4,22 +4,22 @@ import 'package:truce_core/truce_core.dart';
 
 import 'test_helpers.dart';
 
-/// In-memory [FileStore] for tests. Each write gets a new, later stamp.
+/// In-memory [FileStore] for tests. Each write gets a new version and a
+/// later modification time.
 final class MemoryFileStore implements FileStore {
   final Map<RelPath, FileContent> files = {};
 
   /// When set, every operation fails with this error.
   StoreError? failWith;
 
+  /// How often [list] was called.
+  int listCount = 0;
+
   int _clock = 0;
 
   /// Adds or overwrites [path] without any checks.
-  FileStamp put(String path, String text) {
-    final bytes = bytesOf(text);
-    final stamp = _nextStamp(bytes);
-    files[RelPath.parse(path)!] = FileContent(bytes, stamp);
-    return stamp;
-  }
+  FileEntry put(String path, String text) =>
+      _write(RelPath.parse(path)!, bytesOf(text));
 
   String? textOf(String path) {
     final content = files[RelPath.parse(path)!];
@@ -30,6 +30,7 @@ final class MemoryFileStore implements FileStore {
   Future<Result<List<FileEntry>, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
   }) async {
+    listCount++;
     if (failWith case final error?) return Err(error);
     bool entered(RelPath path) {
       final segments = path.value.split('/');
@@ -42,7 +43,7 @@ final class MemoryFileStore implements FileStore {
 
     return Ok([
       for (final MapEntry(key: path, value: content) in files.entries)
-        if (entered(path)) FileEntry(path, content.stamp),
+        if (entered(path)) _entryOf(path, content),
     ]);
   }
 
@@ -54,7 +55,7 @@ final class MemoryFileStore implements FileStore {
   }
 
   @override
-  Future<Result<FileStamp, StoreError>> create(
+  Future<Result<FileEntry, StoreError>> create(
     RelPath path,
     Uint8List bytes,
   ) async {
@@ -64,10 +65,10 @@ final class MemoryFileStore implements FileStore {
   }
 
   @override
-  Future<Result<FileStamp, StoreError>> replace(
+  Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   }) async {
     if (_check(path, ifUnchanged) case final error?) return Err(error);
     return Ok(_write(path, bytes));
@@ -76,28 +77,30 @@ final class MemoryFileStore implements FileStore {
   @override
   Future<Result<void, StoreError>> delete(
     RelPath path, {
-    required FileStamp ifUnchanged,
+    required FileVersion ifUnchanged,
   }) async {
     if (_check(path, ifUnchanged) case final error?) return Err(error);
     files.remove(path);
     return const Ok(null);
   }
 
-  StoreError? _check(RelPath path, FileStamp expected) {
+  StoreError? _check(RelPath path, FileVersion expected) {
     if (failWith case final error?) return error;
     final content = files[path];
     if (content == null) return StoreError.notFound;
-    return content.stamp == expected ? null : StoreError.changedSinceRead;
+    return content.version == expected ? null : StoreError.changedSinceRead;
   }
 
-  FileStamp _write(RelPath path, Uint8List bytes) {
-    final stamp = _nextStamp(bytes);
-    files[path] = FileContent(bytes, stamp);
-    return stamp;
+  FileEntry _write(RelPath path, Uint8List bytes) {
+    final content = FileContent(
+      bytes,
+      version: FileVersion(++_clock),
+      modified: DateTime.fromMillisecondsSinceEpoch(_clock),
+    );
+    files[path] = content;
+    return _entryOf(path, content);
   }
 
-  FileStamp _nextStamp(Uint8List bytes) => FileStamp(
-    modified: DateTime.fromMillisecondsSinceEpoch(++_clock),
-    size: bytes.length,
-  );
+  static FileEntry _entryOf(RelPath path, FileContent content) =>
+      FileEntry(path, version: content.version, modified: content.modified);
 }

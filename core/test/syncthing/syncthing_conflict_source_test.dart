@@ -6,7 +6,6 @@ import '../support/test_helpers.dart';
 
 void main() {
   const copy1 = 'todo.sync-conflict-20261003-134809-4I343AW.md';
-  const copy2 = 'todo.sync-conflict-20261004-080000-ABCDEFG.md';
 
   late MemoryFileStore store;
   late SyncthingConflictSource source;
@@ -15,80 +14,32 @@ void main() {
     store = MemoryFileStore();
     source = SyncthingConflictSource(
       store,
-      const DefaultFileFilter(
-        SyncthingAdapter(),
-        ExtensionFileTypeDetector.standard(),
-      ),
       clock: () => DateTime(2026, 10, 13, 14, 30),
     );
   });
 
-  group('find', () {
-    test('groups copies by main file, oldest first', () async {
-      final mainStamp = store.put('todo.md', 'main');
-      store
-        ..put(copy2, 'second')
-        ..put(copy1, 'first')
-        ..put('other.md', 'no conflict');
-
-      final conflict = (await source.find()).value.single;
-
-      expect(conflict.mainPath, path('todo.md'));
-      expect(conflict.mainStamp, mainStamp);
-      expect(conflict.isOrphaned, isFalse);
-      expect(conflict.copies.map((c) => c.id), [copy1, copy2]);
-      expect(conflict.copies.first.createdAt, DateTime(2026, 10, 3, 13, 48, 9));
-    });
-
-    test('finds copies in subfolders, next to their main file', () async {
-      store
-        ..put('lists/todo.md', 'main')
-        ..put('lists/$copy1', 'copy');
-
-      final conflict = (await source.find()).value.single;
-
-      expect(conflict.mainPath, path('lists/todo.md'));
-      expect(conflict.copies.single.id, 'lists/$copy1');
-    });
-
-    test('reports a copy without main file as orphaned', () async {
-      store.put(copy1, 'copy');
-
-      final conflict = (await source.find()).value.single;
-
-      expect(conflict.mainPath, path('todo.md'));
-      expect(conflict.isOrphaned, isTrue);
-    });
-
-    test('skips filtered files and folders', () async {
-      store
-        ..put('photo.sync-conflict-20261003-134809-4I343AW.jpg', 'copy')
-        ..put('.stversions/$copy1', 'old')
-        ..put('.hidden/$copy1', 'copy');
-
-      expect((await source.find()).value, isEmpty);
-    });
-
-    test('passes storage errors on', () async {
-      store.failWith = StoreError.accessDenied;
-
-      expect((await source.find()).error, StoreError.accessDenied);
-    });
-  });
+  /// The conflicts in [store], as the scan finds them.
+  Future<List<Conflict>> scan() async => (await SyncthingFolderScanner(
+    store,
+    const DefaultFileFilter(
+      SyncthingAdapter(),
+      ExtensionFileTypeDetector.standard(),
+    ),
+  ).scan()).value.conflicts;
 
   group('read and discard', () {
     late ConflictCopy copy;
 
     setUp(() async {
       store.put(copy1, 'copy');
-      copy = (await source.find()).value.single.copies.single;
+      copy = (await scan()).single.copies.single;
     });
 
     test('read returns the content of an unchanged copy', () async {
       expect(String.fromCharCodes((await source.read(copy)).value), 'copy');
     });
 
-    test('read fails if the copy changed since find', () async {
+    test('read fails if the copy changed since the scan', () async {
       store.put(copy1, 'changed');
 
       expect((await source.read(copy)).error, StoreError.changedSinceRead);
@@ -109,12 +60,12 @@ void main() {
   });
 
   group('add', () {
-    test('adds a copy that find reports for the main file', () async {
+    test('adds a copy that the scan reports for the main file', () async {
       store.put('lists/todo.md', 'main');
 
       await source.add(path('lists/todo.md'), bytesOf('mine'));
 
-      final conflict = (await source.find()).value.single;
+      final conflict = (await scan()).single;
       expect(conflict.mainPath, path('lists/todo.md'));
       expect(
         conflict.copies.single.id,

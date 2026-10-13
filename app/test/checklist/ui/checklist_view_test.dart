@@ -24,7 +24,8 @@ void main() {
       folder: folder,
       path: path('a.md'),
       file: const TextFile.empty().withText(text),
-      stamp: FileStamp(modified: DateTime(2000), size: 0),
+      version: const FileVersion(0),
+      modified: DateTime(2000),
     );
     session = NoteEditSession(
       note,

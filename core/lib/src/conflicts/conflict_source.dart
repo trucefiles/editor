@@ -5,17 +5,15 @@ import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 import 'conflict.dart';
 
-/// Where a sync tool keeps its conflicts. One implementation per sync tool.
+/// Where a sync tool keeps its conflict copies. One implementation per
+/// sync tool.
 ///
-/// Syncthing's finds conflict copies by file name next to the main file;
-/// another tool may read its own metadata instead. Everything above sees
-/// only neutral [Conflict]s.
+/// Syncthing keeps them as files next to the main file; another tool may
+/// keep them in its own metadata. Finding them is part of the sync tool's
+/// `FolderScanner`.
 abstract interface class ConflictSource {
-  /// All pending conflicts in the folder, grouped by main file.
-  Future<Result<List<Conflict>, StoreError>> find();
-
   /// Content of [copy]. Fails with [StoreError.changedSinceRead] if it
-  /// changed since [find].
+  /// changed since it was scanned.
   Future<Result<Uint8List, StoreError>> read(ConflictCopy copy);
 
   /// Removes [copy] once it is resolved, with the same change check as

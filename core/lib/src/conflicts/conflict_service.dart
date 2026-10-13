@@ -6,8 +6,8 @@ import '../storage/rel_path.dart';
 import 'conflict.dart';
 import 'resolution.dart';
 
-/// Finds and resolves conflicts in one folder. The app's only entry point
-/// for conflicts.
+/// Reads and resolves the conflicts of one folder, as found by its
+/// `FolderScanner`. The app's only entry point for conflict content.
 ///
 /// Only orchestrates; never knows how a sync tool records conflicts. Built
 /// from the folder's `FileStore`, the sync tool's `ConflictSource` and
@@ -15,11 +15,13 @@ import 'resolution.dart';
 /// `FileType` to `ConflictHandler` for automatic merges; types without a
 /// handler fall back to the user's choice.
 abstract interface class ConflictService {
-  /// All pending conflicts in the folder, grouped by main file.
-  Future<Result<List<Conflict>, StoreError>> scan();
+  /// Content of [conflict]'s main file, to show it to the user. Fails with
+  /// [StoreError.changedSinceRead] if it changed since the scan, and with
+  /// [StoreError.notFound] if the conflict is orphaned.
+  Future<Result<Uint8List, StoreError>> readMain(Conflict conflict);
 
   /// Content of [copy], to show it to the user. Fails with
-  /// [StoreError.changedSinceRead] if it changed since [scan].
+  /// [StoreError.changedSinceRead] if it changed since the scan.
   Future<Result<Uint8List, StoreError>> readCopy(ConflictCopy copy);
 
   /// Applies [resolution] to [copy] of [conflict], in this order:
@@ -28,7 +30,7 @@ abstract interface class ConflictService {
   /// 3. have the `ConflictSource` discard the copy.
   ///
   /// Stops at the first failing step, so nothing is lost. Fails with
-  /// [ResolveError.changedSinceScan] if either file changed since [scan].
+  /// [ResolveError.changedSinceScan] if either file changed since the scan.
   Future<Result<void, ResolveError>> resolve(
     Conflict conflict,
     ConflictCopy copy,

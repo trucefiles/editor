@@ -21,15 +21,16 @@ final class FolderServices {
     final store = LocalFileStore(folder.path, adapter.tempFileName);
     return FolderServices._(
       store: store,
-      filter: filter,
+      scanner: SyncthingFolderScanner(store, filter),
       syncToolName: adapter.name,
-      syncRoots: const SyncthingRootFinder(
-        readLocalFolderNames,
-        canReadParents,
+      syncCheck: SyncthingSyncCheck(
+        folder.path,
+        readNames: readLocalFolderNames,
+        parentsVisible: canReadParents(folder.path),
       ),
       conflicts: DefaultConflictService(
         folder: store,
-        source: SyncthingConflictSource(store, filter),
+        source: SyncthingConflictSource(store),
         backups: ConflictBackups(
           LocalFileStore(backupsPath, adapter.tempFileName),
         ),
@@ -39,19 +40,19 @@ final class FolderServices {
 
   const FolderServices._({
     required this.store,
-    required this.filter,
+    required this.scanner,
     required this.syncToolName,
-    required this.syncRoots,
+    required this.syncCheck,
     required this.conflicts,
   });
 
   final FileStore store;
-  final FileFilter filter;
+  final FolderScanner scanner;
 
   /// The sync tool's name, for the UI.
   final String syncToolName;
 
-  final SyncRootFinder syncRoots;
+  final SyncCheck syncCheck;
   final ConflictService conflicts;
 }
 

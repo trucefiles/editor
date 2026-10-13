@@ -44,7 +44,10 @@ final class ConflictBackups {
     for (final entry in entries) {
       final savedAt = _savedAt(entry.path);
       if (savedAt == null || !savedAt.isBefore(olderThan)) continue;
-      final deleted = await _store.delete(entry.path, ifUnchanged: entry.stamp);
+      final deleted = await _store.delete(
+        entry.path,
+        ifUnchanged: entry.version,
+      );
       if (deleted is Err) return deleted;
     }
     return const Ok(null);

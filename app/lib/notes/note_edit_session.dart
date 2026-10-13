@@ -55,7 +55,7 @@ final class NoteEditSession extends ChangeNotifier {
   bool _writing = false;
   DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
 
-  /// The version the edits are based on; its stamp guards the next save.
+  /// The version the edits are based on; it guards the next save.
   Note get note => _note;
 
   String get text => _text;
@@ -144,7 +144,7 @@ final class NoteEditSession extends ChangeNotifier {
       _cameBack(latest);
       return false;
     }
-    if (latest.stamp == _note.stamp) return false;
+    if (latest.version == _note.version) return false;
     if (_isRestamped(latest)) {
       _note = latest;
       return false;
@@ -207,8 +207,8 @@ final class NoteEditSession extends ChangeNotifier {
     return _saving = previous.then((_) => _saveOnce());
   }
 
-  /// [retried] after the file turned out to be only restamped, so a stamp
-  /// that keeps changing cannot loop.
+  /// [retried] after the file turned out to be only restamped, so a
+  /// version that keeps changing cannot loop.
   Future<void> _saveOnce({bool retried = false}) async {
     if (_state != EditState.unsaved && _state != EditState.saveFailed) return;
     final text = _text;
@@ -233,10 +233,10 @@ final class NoteEditSession extends ChangeNotifier {
     }
   }
 
-  /// Whether [latest] has a new stamp but the same text as [note]: not a
-  /// change from elsewhere. Some file systems (e.g. Android's shared
-  /// storage) report a stale stamp right after a write and the real one
-  /// a moment later.
+  /// Whether [latest] is a new version but holds the same text as [note]:
+  /// not a change from elsewhere. Some file systems (e.g. Android's shared
+  /// storage) report stale file times right after a write and the real
+  /// ones a moment later.
   bool _isRestamped(Note latest) => latest.file.text == _note.file.text;
 
   /// Runs one write, marking it so rescans in the meantime are ignored.
@@ -278,7 +278,7 @@ final class NoteEditSession extends ChangeNotifier {
       _note = latest;
       _text = latest.file.text;
       _set(EditState.saved);
-    } else if (latest.stamp == _note.stamp) {
+    } else if (latest.version == _note.version) {
       _set(EditState.unsaved);
       _timer = Timer(saveDelay, _save);
     } else {

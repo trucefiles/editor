@@ -18,7 +18,7 @@ void main() {
     write('a.md', 'current\r\n');
     write(copy, 'other');
     final services = servicesFor(folderAt(dir));
-    final conflict = (await services.conflicts.scan()).value.single;
+    final conflict = (await services.scanner.scan()).value.conflicts.single;
 
     final sides = (await ConflictSides.load(services, conflict)).value;
 
@@ -29,7 +29,7 @@ void main() {
   test('has no current side when the main file is gone', () async {
     write(copy, 'other');
     final services = servicesFor(folderAt(dir));
-    final conflict = (await services.conflicts.scan()).value.single;
+    final conflict = (await services.scanner.scan()).value.conflicts.single;
 
     final sides = (await ConflictSides.load(services, conflict)).value;
 

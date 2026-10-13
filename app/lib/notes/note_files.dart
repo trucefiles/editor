@@ -24,7 +24,9 @@ final class NoteFiles {
     final read = await _store.read(note.path);
     return switch (read) {
       Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
-        final file? => Ok(_note(note.path, file, content.stamp)),
+        final file? => Ok(
+          _note(note.path, file, content.version, content.modified),
+        ),
         null => const Err(StoreError.ioFailure),
       },
       Err(:final error) => Err(error),
@@ -39,8 +41,8 @@ final class NoteFiles {
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
       final path = RelPath.parse(noteFileName(title, attempt: attempt))!;
       switch (await _store.create(path, bytes)) {
-        case Ok(value: final stamp):
-          return Ok(_note(path, file, stamp));
+        case Ok(value: final entry):
+          return Ok(_noteAt(entry, file));
         case Err(error: StoreError.alreadyExists):
           continue;
         case Err(:final error):
@@ -56,12 +58,10 @@ final class NoteFiles {
     final written = await _store.replace(
       note.path,
       note.file.encode(text),
-      ifUnchanged: note.stamp,
+      ifUnchanged: note.version,
     );
     return switch (written) {
-      Ok(value: final stamp) => Ok(
-        _note(note.path, note.file.withText(text), stamp),
-      ),
+      Ok(value: final entry) => Ok(_noteAt(entry, note.file.withText(text))),
       Err(:final error) => Err(error),
     };
   }
@@ -71,9 +71,7 @@ final class NoteFiles {
   Future<Result<Note, StoreError>> restore(Note note, String text) async {
     final created = await _store.create(note.path, note.file.encode(text));
     return switch (created) {
-      Ok(value: final stamp) => Ok(
-        _note(note.path, note.file.withText(text), stamp),
-      ),
+      Ok(value: final entry) => Ok(_noteAt(entry, note.file.withText(text))),
       Err(:final error) => Err(error),
     };
   }
@@ -84,10 +82,24 @@ final class NoteFiles {
       _services.conflicts.keepAsConflict(note.path, note.file.encode(text));
 
   Future<Result<void, StoreError>> delete(Note note) =>
-      _store.delete(note.path, ifUnchanged: note.stamp);
+      _store.delete(note.path, ifUnchanged: note.version);
 
-  Note _note(RelPath path, TextFile file, FileStamp stamp) =>
-      Note(folder: _folder, path: path, file: file, stamp: stamp);
+  /// The note just written as [entry], holding [file].
+  Note _noteAt(FileEntry entry, TextFile file) =>
+      _note(entry.path, file, entry.version, entry.modified);
+
+  Note _note(
+    RelPath path,
+    TextFile file,
+    FileVersion version,
+    DateTime modified,
+  ) => Note(
+    folder: _folder,
+    path: path,
+    file: file,
+    version: version,
+    modified: modified,
+  );
 }
 
 final noteFilesProvider = Provider.family<NoteFiles, NoteFolder>(

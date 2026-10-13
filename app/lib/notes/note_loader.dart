@@ -4,63 +4,54 @@ import '../folders/folder_services.dart';
 import '../folders/note_folder.dart';
 import 'note.dart';
 
-/// Reads all notes of one folder. Keeps the last scan, so a rescan reads
-/// only files whose stamp changed.
+/// Reads the notes of one folder from its scanned files. Keeps the last
+/// notes, so only files with a new version are read again.
 ///
 /// Files that are not valid UTF-8 are left out: they cannot be edited
 /// without damaging them. A note that can't be read as text any more
 /// (e.g. mid-rewrite, briefly no access) keeps its last version while the
 /// file exists, so it doesn't look deleted; saving to it then fails its
 /// change check instead of overwriting anything.
-final class NoteScanner {
-  NoteScanner(this.folder, this._services);
+final class NoteLoader {
+  NoteLoader(this._folder, this._services);
 
-  final NoteFolder folder;
+  final NoteFolder _folder;
   final FolderServices _services;
   Map<RelPath, Note> _last = {};
 
-  Future<Result<List<Note>, StoreError>> scan() async {
-    final List<FileEntry> entries;
-    switch (await _services.store.list(
-      enterFolder: _services.filter.includesFolder,
-    )) {
-      case Ok(:final value):
-        entries = value;
-      case Err(:final error):
-        return Err(error);
-    }
-
+  /// The notes in [files], as listed by the folder's scan.
+  Future<List<Note>> load(List<FileEntry> files) async {
     final next = <RelPath, Note>{};
-    for (final entry in entries) {
-      if (!_services.filter.includesFile(entry.path)) continue;
+    for (final entry in files) {
       final note = await _noteFor(entry);
       if (note != null) next[entry.path] = note;
     }
     _last = next;
-    return Ok(next.values.toList());
+    return next.values.toList();
   }
 
-  /// The cached note if unchanged, else a fresh read; the cached note if
-  /// that fails while the file still exists; `null` if the file vanished,
-  /// or is not text and was never read as text.
+  /// The last note if unchanged, else a fresh read; the last note if that
+  /// fails while the file still exists; `null` if the file vanished, or is
+  /// not text and was never read as text.
   Future<Note?> _noteFor(FileEntry entry) async {
-    final cached = _last[entry.path];
-    if (cached != null && cached.stamp == entry.stamp) return cached;
+    final last = _last[entry.path];
+    if (last != null && last.version == entry.version) return last;
     switch (await _services.store.read(entry.path)) {
       case Ok(value: final content):
         return switch (TextFile.decode(content.bytes)) {
           final file? => Note(
-            folder: folder,
+            folder: _folder,
             path: entry.path,
             file: file,
-            stamp: content.stamp,
+            version: content.version,
+            modified: content.modified,
           ),
-          null => cached,
+          null => last,
         };
       case Err(error: StoreError.notFound):
         return null;
       case Err():
-        return cached;
+        return last;
     }
   }
 }

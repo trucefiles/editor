@@ -5,8 +5,9 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../folders/folder_services.dart';
+import '../../scan/folder_scans_controller.dart';
 import '../conflict_sides.dart';
-import '../conflicts_controller.dart';
+import '../folder_conflicts.dart';
 import 'version_pane.dart';
 
 /// Shows both versions of a conflicting note side by side; the user keeps
@@ -58,11 +59,14 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       sides.copy,
       resolution,
     );
-    final conflicts = ref.read(conflictsProvider.notifier);
-    await conflicts.refresh();
+    await ref.read(folderScansProvider.notifier).refresh();
     if (!mounted) return;
     setState(() => _busy = false);
-    final next = ref.read(conflictsProvider).value?.forNote(_conflict.key);
+    final next = ref
+        .read(folderScansProvider)
+        .value
+        ?.conflicts
+        .forNote(_conflict.key);
     if (resolved case Err(:final error)) {
       showSnack(context, _resolveText(error));
     } else if (next == null) {
@@ -166,7 +170,7 @@ class _Comparison extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = VersionPane(
       label: 'Current version',
-      modified: conflict.mainStamp?.modified,
+      modified: conflict.main?.modified,
       text: sides.current,
       compareTo: sides.other,
       keepLabel: sides.current == null ? 'Keep deleted' : 'Keep this',
@@ -174,7 +178,7 @@ class _Comparison extends StatelessWidget {
     );
     final other = VersionPane(
       label: 'Other version',
-      modified: sides.copy.createdAt ?? sides.copy.stamp.modified,
+      modified: sides.copy.createdAt,
       text: sides.other,
       compareTo: sides.current ?? '',
       keepLabel: sides.current == null ? 'Restore' : 'Keep this',
