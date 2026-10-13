@@ -38,7 +38,7 @@ final class NoteMarks {
     final newest = <RelPath, StampedMark>{};
     for (final entry in entries.where(_isDeviceFile)) {
       if (await _store.read(entry.path) case Ok(:final value)) {
-        NoteMarksFile.decode(value.bytes).forEach((note, stamped) {
+        NoteMarksFile.decode(value.bytes)?.forEach((note, stamped) {
           final known = newest[note];
           if (known == null || stamped.changed.isAfter(known.changed)) {
             newest[note] = stamped;
@@ -52,14 +52,18 @@ final class NoteMarks {
     });
   }
 
-  /// Sets the mark of [note] in this device's file.
+  /// Sets the mark of [note] in this device's file. Fails with
+  /// [StoreError.ioFailure] if the file cannot be read as marks, instead of
+  /// writing over the marks in it.
   Future<Result<void, StoreError>> set(RelPath note, NoteMark mark) async {
     final FileVersion? version;
     final Map<RelPath, StampedMark> marks;
     switch (await _store.read(_ownFile)) {
       case Ok(:final value):
         version = value.version;
-        marks = NoteMarksFile.decode(value.bytes);
+        final decoded = NoteMarksFile.decode(value.bytes);
+        if (decoded == null) return const Err(StoreError.ioFailure);
+        marks = decoded;
       case Err(error: StoreError.notFound):
         version = null;
         marks = {};

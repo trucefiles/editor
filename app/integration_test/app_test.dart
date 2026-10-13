@@ -62,6 +62,55 @@ void main() {
     await tester.waitFor(find.textContaining('v2 from elsewhere'));
   });
 
+  testWidgets('never writes back a change shown in the open note', (
+    tester,
+  ) async {
+    app.file('todo.md').writeAsStringSync('# Todo\n- [ ] milk\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+    final file = app.file('todo.md');
+    final from = DateTime(2001);
+
+    /// Changes the note elsewhere, waits until the open note shows it, and
+    /// over a few rescans checks that the app leaves the file alone.
+    Future<void> changeElsewhere(String text, Finder shown) async {
+      file
+        ..writeAsStringSync(text)
+        ..setLastModifiedSync(from);
+      await tester.waitFor(shown);
+      await tester.runFor(const Duration(seconds: 12));
+      expect(file.readAsStringSync(), text);
+      expect(file.lastModifiedSync(), from);
+    }
+
+    // The list view, then the text view.
+    await changeElsewhere(
+      '# Todo\n- [x] milk\n- [ ] eggs\n',
+      find.text('eggs'),
+    );
+    await tester.tapAndSettle(find.byTooltip('View: List'));
+    await tester.tapAndSettle(find.text('Text'));
+    await changeElsewhere(
+      '# Todo\n- [x] milk\n- [ ] eggs\n- [ ] tea\n',
+      find.textContaining('tea'),
+    );
+  });
+
+  testWidgets('a new note never brings back a folder that is gone', (
+    tester,
+  ) async {
+    await addFolder(tester);
+    await tester.waitFor(find.byTooltip('New note'));
+    app.notes.deleteSync();
+
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.enterText(find.byType(TextField), 'Groceries');
+    await tester.tapAndSettle(find.text('Create'));
+
+    await tester.waitFor(find.text('The file or folder no longer exists.'));
+    expect(app.notes.existsSync(), isFalse);
+  });
+
   testWidgets('back keeps edits that clash as a conflict copy', (tester) async {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);

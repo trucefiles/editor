@@ -1,3 +1,5 @@
+import 'dart:math';
+
 /// A Markdown document seen as a checklist.
 ///
 /// Every edit is a plain line edit: lines that are not touched stay
@@ -140,9 +142,11 @@ final class Checklist {
     final cut = indent.endsWith(_indentUnit)
         ? _indentUnit.length
         : (indent.endsWith('\t') ? 1 : indent.length);
+    // A subitem indented with other characters (a tab under spaces) may be
+    // shorter than the cut; it then moves to the margin.
     return _reindentBlock(
       index,
-      (lineIndent) => lineIndent.substring(0, lineIndent.length - cut),
+      (lineIndent) => lineIndent.substring(0, max(0, lineIndent.length - cut)),
     );
   }
 

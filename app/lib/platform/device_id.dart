@@ -11,7 +11,7 @@ import 'app_storage.dart';
 /// If the id cannot be saved, the next start makes a new one; files under
 /// the old id still count, they just get no more writes.
 Future<String> loadDeviceId(AppStorage storage) async {
-  final file = File('${storage.settingsPath}/device_id');
+  final file = File(storage.deviceIdPath);
   try {
     final saved = (await file.readAsString()).trim();
     if (_isValid(saved)) return saved;

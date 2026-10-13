@@ -60,9 +60,14 @@ final class FolderServices {
   final NoteMarks marks;
 }
 
-/// The conflict backups in the app storage folder at [path].
+/// The conflict backups in the app storage folder at [path], which is
+/// created with the first backup.
 ConflictBackups conflictBackupsAt(String path) => ConflictBackups(
-  LocalFileStore(path, const SyncthingAdapter().tempFileName),
+  LocalFileStore(
+    path,
+    const SyncthingAdapter().tempFileName,
+    createsRoot: true,
+  ),
 );
 
 final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
