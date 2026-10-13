@@ -90,7 +90,9 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
       child: Row(
         children: [
           if (handle != null)
-            handle(const Icon(Icons.drag_indicator))
+            SwipeToIndent.keepMouseDrags(
+              handle(const Icon(Icons.drag_indicator)),
+            )
           else
             const SizedBox(width: 24),
           Checkbox(value: checked, onChanged: (_) => widget.onToggle()),
@@ -109,16 +111,18 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                 const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
                     widget.onFocusStep(1),
               },
-              child: TextField(
-                controller: _text,
-                focusNode: widget.focusNode,
-                style: textStyle,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
+              child: SwipeToIndent.keepMouseDrags(
+                TextField(
+                  controller: _text,
+                  focusNode: widget.focusNode,
+                  style: textStyle,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  onChanged: widget.onTextChanged,
+                  onSubmitted: (_) => widget.onSubmitted(),
                 ),
-                onChanged: widget.onTextChanged,
-                onSubmitted: (_) => widget.onSubmitted(),
               ),
             ),
           ),

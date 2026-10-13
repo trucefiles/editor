@@ -2,12 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Lets the user swipe [child] right to indent or left to outdent, by
-/// touch. The child follows the finger a little and slides back on
-/// release.
+/// touch or mouse. The child follows the pointer a little and slides back
+/// on release.
 ///
 /// Watches raw pointer moves rather than joining the gesture arena, so a
-/// swipe that starts on the item's text field still counts. Mouse drags
-/// are left to text selection; keyboards have Tab.
+/// swipe that starts on the item's text field still counts. A mouse drag
+/// that starts inside [SwipeToIndent.keepMouseDrags] is left alone, e.g.
+/// to select text.
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
     required this.onIndent,
@@ -23,22 +24,49 @@ class SwipeToIndent extends StatefulWidget {
   /// How far to swipe for an action.
   static const threshold = 48.0;
 
-  /// How far the child follows the finger.
+  /// How far the child follows the pointer.
   static const _maxShift = 64.0;
+
+  /// Leaves mouse drags that start on [child] to it, e.g. text selection
+  /// or reordering.
+  static Widget keepMouseDrags(Widget child) => _KeepMouseDrags(child);
 
   @override
   State<SwipeToIndent> createState() => _SwipeToIndentState();
+}
+
+/// Tells the enclosing swipe that a mouse press landed on [child].
+class _KeepMouseDrags extends StatelessWidget {
+  const _KeepMouseDrags(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    // Runs before the enclosing swipe's listener: deeper widgets get
+    // pointer events first.
+    onPointerDown: (event) {
+      if (event.kind == PointerDeviceKind.mouse) {
+        context.findAncestorStateOfType<_SwipeToIndentState>()?._kept =
+            event.pointer;
+      }
+    },
+    child: child,
+  );
 }
 
 class _SwipeToIndentState extends State<SwipeToIndent> {
   Offset? _start;
   double _dx = 0;
 
+  /// The mouse pointer that went down in a [SwipeToIndent.keepMouseDrags]
+  /// child, if any.
+  int? _kept;
+
   void _onDown(PointerDownEvent event) {
-    final touch =
-        event.kind == PointerDeviceKind.touch ||
-        event.kind == PointerDeviceKind.stylus;
-    _start = touch ? event.position : null;
+    final kept = event.pointer == _kept;
+    _kept = null;
+    _start = kept ? null : event.position;
   }
 
   void _onMove(PointerMoveEvent event) {
@@ -72,7 +100,7 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
       onPointerUp: _onUp,
       onPointerCancel: (_) => _reset(),
       child: AnimatedContainer(
-        // Follows the finger at once; slides back after release.
+        // Follows the pointer at once; slides back after release.
         duration: _dx == 0 ? const Duration(milliseconds: 150) : Duration.zero,
         transform: Matrix4.translationValues(
           _dx.clamp(-SwipeToIndent._maxShift, SwipeToIndent._maxShift),
