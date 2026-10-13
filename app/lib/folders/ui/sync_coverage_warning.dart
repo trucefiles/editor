@@ -38,8 +38,8 @@ class SyncCoverageWarning extends ConsumerWidget {
       AsyncData(value: SyncCoverage.unknown) when includeUnknown => (
         Icons.info_outline,
         null,
-        "Can't check whether $tool syncs this folder: the app can't see "
-            'the folders above it.',
+        "Can't check whether $tool syncs this folder. Add the $tool "
+            'folder itself to confirm.',
       ),
       _ => null,
     };
