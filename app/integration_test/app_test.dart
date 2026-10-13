@@ -59,4 +59,19 @@ void main() {
 
     await tester.waitFor(find.textContaining('v2 from elsewhere'));
   });
+
+  testWidgets('reopens a note in the view it was left in', (tester) async {
+    app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+    expect(find.byType(Checkbox), findsOneWidget);
+
+    await tester.tapAndSettle(find.byTooltip('Text view'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await openNote(tester, 'Todo');
+
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.byTooltip('List view'), findsOneWidget);
+  });
 }

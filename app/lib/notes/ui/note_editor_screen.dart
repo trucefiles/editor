@@ -16,6 +16,8 @@ import '../note.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
+import '../note_view_store.dart';
+import '../note_views_controller.dart';
 import '../notes_controller.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
@@ -41,12 +43,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
-  late bool _listView = _checklist.list.hasItems;
+  late final NoteViewsController _views;
+
+  /// The note's last view on this device; else a list if it has items.
+  late bool _listView = switch (_views.viewOf(widget.note.key)) {
+    NoteView.list => true,
+    NoteView.text => false,
+    null => _checklist.list.hasItems,
+  };
 
   @override
   void initState() {
     super.initState();
     _notes = ref.read(notesProvider.notifier);
+    _views = ref.read(noteViewsProvider.notifier);
     _text.addListener(() => _session.edit(_text.text));
     _session.addListener(_onSessionChanged);
     _lifecycle = AppLifecycleListener(onHide: _session.flush);
@@ -123,6 +133,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
+  void _toggleView() {
+    setState(() => _listView = !_listView);
+    unawaited(
+      _views.remember(
+        widget.note.key,
+        _listView ? NoteView.list : NoteView.text,
+      ),
+    );
+  }
+
   void _clearDone() {
     final before = _checklist.clearDone();
     showSnack(
@@ -166,7 +186,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           IconButton(
             tooltip: _listView ? 'Text view' : 'List view',
             icon: Icon(_listView ? Icons.notes : Icons.checklist),
-            onPressed: () => setState(() => _listView = !_listView),
+            onPressed: _toggleView,
           ),
           _menu(),
         ],
