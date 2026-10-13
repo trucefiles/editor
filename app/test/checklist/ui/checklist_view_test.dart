@@ -124,6 +124,16 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('shows the lines between items as Markdown', (tester) async {
+    await show(tester, '# Shop\n\n**Fresh** only\n- [ ] milk');
+
+    expect(find.text('Shop'), findsOne);
+    expect(find.textContaining('#'), findsNothing);
+    expect(find.textContaining('**'), findsNothing);
+    expect(field('milk'), findsOne);
+    await close(tester);
+  });
+
   testWidgets('a short swipe does nothing', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
