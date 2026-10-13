@@ -135,6 +135,10 @@ final class LocalFileStore implements FileStore {
   /// Writes [bytes] to a temp file next to [file], then renames it over
   /// [file]. [isAllowed] runs last before the rename and throws [_Refused]
   /// to stop it.
+  ///
+  /// The returned entry is the temp file's: a rename keeps the file's
+  /// times and size. Reading [file] again after the rename could return a
+  /// change made in that moment, which the next write would then overwrite.
   Future<FileEntry> _writeAtomically(
     RelPath path,
     File file,
@@ -145,12 +149,13 @@ final class LocalFileStore implements FileStore {
     try {
       await _copyModeOf(file, temp);
       await temp.writeAsBytes(bytes, flush: true);
+      final written = await _stat(temp);
       await isAllowed();
       await temp.rename(file.path);
+      return _entry(path, written);
     } finally {
       if (await temp.exists()) await temp.delete();
     }
-    return _entry(path, await _stat(file));
   }
 
   /// Creates [temp] with [file]'s permissions, if [file] exists, so the

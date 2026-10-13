@@ -143,4 +143,33 @@ void main() {
       findsOne,
     );
   });
+
+  testWidgets('resolves two conflict copies one by one', (tester) async {
+    app.file('todo.md').writeAsStringSync('# Todo\nmine\n');
+    app
+        .file('todo.sync-conflict-20261003-134809-ABCDEFG.md')
+        .writeAsStringSync('# Todo\nfirst\n');
+    app
+        .file('todo.sync-conflict-20261004-080000-ABCDEFG.md')
+        .writeAsStringSync('# Todo\nsecond\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+
+    await tester.waitFor(find.text('Compare'));
+    await tester.tapAndSettle(find.text('Compare'));
+    await tester.waitFor(find.text('2 other versions, oldest first'));
+    await tester.tapAndSettle(find.text('Keep this').first);
+    await tester.tapAndSettle(find.text('Keep'));
+    await tester.waitFor(find.textContaining('second', findRichText: true));
+    expect(find.text('2 other versions, oldest first'), findsNothing);
+
+    await tester.tapAndSettle(find.text('Keep this').first);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitFor(find.textContaining('Conflict resolved'));
+    expect(app.notes.listSync().map((entry) => entry.uri.pathSegments.last), [
+      'todo.md',
+    ]);
+    expect(app.file('todo.md').readAsStringSync(), '# Todo\nmine\n');
+  });
 }

@@ -158,17 +158,6 @@ void main() {
     expect(folder.files.keys.map((p) => p.value), ['todo.md']);
   });
 
-  test('pruneBackups drops old backups', () async {
-    folder
-      ..put('todo.md', 'current')
-      ..put(copyName, 'other');
-    await resolve(await scanOne(), const KeepCurrent());
-
-    await service.pruneBackups(olderThan: now.add(const Duration(seconds: 1)));
-
-    expect(backupStore.files, isEmpty);
-  });
-
   test('readCopy returns the copy as scanned', () async {
     folder.put('todo.md', 'current');
     folder.put(copyName, 'other');

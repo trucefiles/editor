@@ -50,6 +50,10 @@ final class ConflictSides {
     return Ok(ConflictSides(copy: copy, current: current, other: _text(other)));
   }
 
+  /// [bytes] as text with `\n` line breaks, also for `\r\n` and old Mac
+  /// `\r` files.
   static String _text(Uint8List bytes) =>
-      utf8.decode(bytes, allowMalformed: true).replaceAll('\r\n', '\n');
+      utf8.decode(bytes, allowMalformed: true).replaceAll(_lineBreak, '\n');
+
+  static final _lineBreak = RegExp('\r\n?');
 }
