@@ -11,10 +11,30 @@ String noteTitle(String text, RelPath path) {
   return dot > 0 ? name.substring(0, dot) : name;
 }
 
-/// Up to [maxLines] non-empty lines after the title heading, for cards.
-String notePreview(String text, {int maxLines = 6}) => text
-    .split('\n')
-    .where((line) => line.trim().isNotEmpty)
-    .skipWhile((line) => _heading.hasMatch(line))
-    .take(maxLines)
-    .join('\n');
+/// Up to [maxLines] non-empty lines after the title heading, for cards, in
+/// file order: checkbox items as `☐ text` or `☑ text` at their level, other
+/// lines without their Markdown block markers.
+String notePreview(String text, {int maxLines = 6}) {
+  final list = Checklist.parse(text);
+  return list.lines
+      .where((line) => line.raw.trim().isNotEmpty)
+      .skipWhile((line) => _heading.hasMatch(line.raw))
+      .take(maxLines)
+      .map(
+        (line) => line.isItem
+            ? '${'  ' * list.depthOf(line)}${line.isChecked ? '☑' : '☐'} '
+                  '${line.text}'
+            : _withoutBlockMarkers(line.raw),
+      )
+      .join('\n');
+}
+
+final _headingMarker = RegExp(r'^\s*#{1,6}[ \t]+');
+final _quoteMarker = RegExp(r'^\s*>[ \t]?');
+final _bulletMarker = RegExp(r'^(\s*)[-*+][ \t]+');
+
+/// [line] without heading, quote and bullet markers; bullets become `•`.
+String _withoutBlockMarkers(String line) => line
+    .replaceFirst(_headingMarker, '')
+    .replaceFirst(_quoteMarker, '')
+    .replaceFirstMapped(_bulletMarker, (match) => '${match[1]}• ');

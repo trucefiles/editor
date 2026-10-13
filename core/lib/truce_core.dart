@@ -15,6 +15,8 @@
 /// 7. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
 /// 8. `markdown`: Markdown documents as line-level edits ([Checklist]).
+/// 9. `marks`: pins and colors of notes, synced inside the folder
+///    ([NoteMarks]).
 ///
 /// Implementations sit next to their interface; everything specific to
 /// Syncthing is in `syncthing`.
@@ -34,6 +36,8 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/markdown/checklist.dart';
+export 'src/marks/note_mark.dart';
+export 'src/marks/note_marks.dart';
 export 'src/scan/folder_scanner.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';

@@ -26,6 +26,12 @@ class NoteViewButton extends StatelessWidget {
     NoteView.rendered => 'Rendered',
   };
 
+  /// What the user may not expect of [view].
+  static String? _hint(NoteView view) => switch (view) {
+    NoteView.rendered => 'Read-only',
+    NoteView.text || NoteView.list => null,
+  };
+
   @override
   Widget build(BuildContext context) {
     final selected = Theme.of(context).colorScheme.primary;
@@ -41,9 +47,16 @@ class NoteViewButton extends StatelessWidget {
               spacing: 12,
               children: [
                 Icon(_icon(option), color: option == view ? selected : null),
-                Text(
-                  _label(option),
-                  style: option == view ? TextStyle(color: selected) : null,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _label(option),
+                      style: option == view ? TextStyle(color: selected) : null,
+                    ),
+                    if (_hint(option) case final hint?)
+                      Text(hint, style: Theme.of(context).textTheme.bodySmall),
+                  ],
                 ),
               ],
             ),

@@ -26,4 +26,18 @@ void main() {
       'first\nsecond',
     );
   });
+
+  test('notePreview keeps file order and shows items as boxes', () {
+    expect(
+      notePreview('# T\nintro\n- [ ] a\n- [x] b\n  - [ ] c\nend'),
+      'intro\n☐ a\n☑ b\n  ☐ c\nend',
+    );
+  });
+
+  test('notePreview drops heading, quote and bullet markers', () {
+    expect(
+      notePreview('# T\n## Sub\n> quoted\n- one\n  * two'),
+      'Sub\nquoted\n• one\n  • two',
+    );
+  });
 }

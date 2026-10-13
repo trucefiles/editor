@@ -23,6 +23,7 @@ import '../note_views_controller.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_grid.dart';
+import 'note_mark_sheet.dart';
 
 /// Home: all notes as cards, filtered by folder.
 class NotesScreen extends ConsumerStatefulWidget {
@@ -186,8 +187,10 @@ class _NotesBody extends ConsumerWidget {
                     final note = notes[index - orphans.length];
                     return NoteCard(
                       note,
+                      mark: scans.markOf(note.key),
                       hasConflict: conflicts?.forNote(note.key) != null,
                       onTap: () => openNote(context, note),
+                      onMark: () => editNoteMark(context, ref, note),
                     );
                   },
                 ),

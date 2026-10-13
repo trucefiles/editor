@@ -50,6 +50,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   Future<FolderScans> _scanFolders() async {
     final startedAt = DateTime.now();
     final notes = <Note>[];
+    final marks = <NoteKey, NoteMark>{};
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
     for (final folder in _folders) {
@@ -57,6 +58,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
       switch (await services.scanner.scan()) {
         case Ok(value: final scan):
           notes.addAll(await _loaderFor(folder, services).load(scan.files));
+          marks.addAll(await _marksOf(folder, services));
           conflicts.addAll(
             scan.conflicts.map((conflict) => FolderConflict(folder, conflict)),
           );
@@ -64,14 +66,32 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
           failed[folder] = error;
       }
     }
-    notes.sort((a, b) => b.modified.compareTo(a.modified));
+    bool pinned(Note note) => marks[note.key]?.pinned ?? false;
+    notes.sort(
+      (a, b) => pinned(a) != pinned(b)
+          ? (pinned(a) ? -1 : 1)
+          : b.modified.compareTo(a.modified),
+    );
     return FolderScans(
       notes: notes,
+      marks: marks,
       conflicts: FolderConflicts(conflicts),
       failedFolders: failed,
       startedAt: startedAt,
     );
   }
+
+  /// The folder's marks; none if they cannot be read, as they only help.
+  Future<Map<NoteKey, NoteMark>> _marksOf(
+    NoteFolder folder,
+    FolderServices services,
+  ) async => switch (await services.marks.load()) {
+    Ok(:final value) => {
+      for (final MapEntry(key: path, value: mark) in value.entries)
+        (folderId: folder.id, path: path): mark,
+    },
+    Err() => const {},
+  };
 
   NoteLoader _loaderFor(NoteFolder folder, FolderServices services) =>
       _loaders.putIfAbsent(folder.id, () => NoteLoader(folder, services));

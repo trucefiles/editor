@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 
 import '../support.dart';
 
@@ -11,6 +12,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
       ],
     );
     addTearDown(container.dispose);

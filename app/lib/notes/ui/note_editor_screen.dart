@@ -21,6 +21,7 @@ import '../note_title.dart';
 import '../note_view.dart';
 import '../note_views_controller.dart';
 import 'edit_state_banner.dart';
+import 'note_mark_sheet.dart';
 import 'note_view_button.dart';
 import 'save_indicator.dart';
 
@@ -180,6 +181,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             child: _ToggleLabel('Done section', on: separateDone),
           ),
         ],
+        PopupMenuItem(
+          value: () => editNoteMark(context, ref, widget.note),
+          child: const Text('Pin or color'),
+        ),
         PopupMenuItem(value: _delete, child: const Text('Delete note')),
       ],
     );
@@ -270,6 +275,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 expands: true,
                 autofocus: widget.autofocus,
                 keyboardType: TextInputType.multiline,
+                // The raw source, so monospace: Markdown syntax lines up as
+                // in a code editor.
+                style: const TextStyle(fontFamily: 'monospace'),
                 textAlignVertical: TextAlignVertical.top,
                 decoration: const InputDecoration(
                   border: InputBorder.none,

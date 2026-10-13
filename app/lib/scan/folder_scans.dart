@@ -10,13 +10,17 @@ import '../notes/note.dart';
 final class FolderScans {
   const FolderScans({
     required this.notes,
+    required this.marks,
     required this.conflicts,
     required this.failedFolders,
     required this.startedAt,
   });
 
-  /// Newest first.
+  /// Pinned first, then newest first.
   final List<Note> notes;
+
+  /// Pins and colors; notes without a mark are left out.
+  final Map<NoteKey, NoteMark> marks;
 
   final FolderConflicts conflicts;
 
@@ -25,6 +29,8 @@ final class FolderScans {
 
   /// When the scan began; files written later may show older versions.
   final DateTime startedAt;
+
+  NoteMark markOf(NoteKey key) => marks[key] ?? NoteMark.none;
 
   Note? findNote(NoteKey key) {
     for (final note in notes) {

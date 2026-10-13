@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_sync_status.dart';
 import 'package:truce_editor/folders/ui/sync_status_warning.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 
 import '../../support.dart';
 
@@ -17,6 +18,7 @@ void main() {
     ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
         syncStatusProvider.overrideWith((ref, folder) async => status),
       ],
       child: MaterialApp(
