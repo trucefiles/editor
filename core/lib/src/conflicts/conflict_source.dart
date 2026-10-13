@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../common/result.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import 'conflict.dart';
 
 /// Where a sync tool keeps its conflicts. One implementation per sync tool.
@@ -20,4 +21,9 @@ abstract interface class ConflictSource {
   /// Removes [copy] once it is resolved, with the same change check as
   /// [read].
   Future<Result<void, StoreError>> discard(ConflictCopy copy);
+
+  /// Records [bytes] as a new conflict copy of [mainPath], the way the sync
+  /// tool records its own, so it syncs and is resolved like one. For edits
+  /// that cannot go into the main file.
+  Future<Result<void, StoreError>> add(RelPath mainPath, Uint8List bytes);
 }

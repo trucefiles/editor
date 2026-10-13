@@ -60,6 +60,20 @@ void main() {
     expect(session.text, '# a\nmine');
   });
 
+  test('ignores scans that started during its last write', () async {
+    session.edit('# a\nmine');
+    final saving = session.flush();
+    // Lets the save start its write, which then waits for the disk.
+    await Future<void>.delayed(Duration.zero);
+    final scannedAt = DateTime.now();
+    await saving;
+
+    final replaced = session.onRescan(note, scannedAt: scannedAt);
+
+    expect(replaced, isFalse);
+    expect(session.text, '# a\nmine');
+  });
+
   /// Simulates a file system reporting a new stamp for unchanged content.
   Future<Note> restamp() async {
     file().setLastModifiedSync(DateTime(2001));
@@ -156,6 +170,26 @@ void main() {
     expect(session.state, EditState.deletedElsewhere);
   });
 
+  test('saves again once a note that looked deleted is back', () async {
+    session.onRescan(null, scannedAt: later);
+    session.edit('# a\nmine');
+
+    session.onRescan(note, scannedAt: later);
+    await session.flush();
+
+    expect(session.state, EditState.saved);
+    expect(onDisk(), '# a\nmine');
+  });
+
+  test('a note back with other text is a change from elsewhere', () async {
+    session.onRescan(null, scannedAt: later);
+    final theirs = await editElsewhere('# a\ntheirs');
+
+    session.onRescan(theirs, scannedAt: later);
+
+    expect(session.state, EditState.changedElsewhere);
+  });
+
   test('restore mine writes the text again', () async {
     file().deleteSync();
     session.edit('# a\nkept');
@@ -165,5 +199,62 @@ void main() {
 
     expect(onDisk(), '# a\nkept');
     expect(session.state, EditState.saved);
+  });
+
+  group('secure', () {
+    List<String> conflictCopies() => [
+      for (final f in dir.listSync())
+        if (f.path.contains('.sync-conflict-')) File(f.path).readAsStringSync(),
+    ];
+
+    test('saves pending edits as usual', () async {
+      session.edit('# a\nmine');
+
+      expect(await session.secure(), isTrue);
+      expect(onDisk(), '# a\nmine');
+      expect(conflictCopies(), isEmpty);
+    });
+
+    test(
+      'keeps edits as a conflict copy if the note changed elsewhere',
+      () async {
+        await editElsewhere('# a\ntheirs, longer');
+        session.edit('# a\nmine');
+
+        expect(await session.secure(), isTrue);
+        expect(session.state, EditState.keptAsConflict);
+        expect(onDisk(), '# a\ntheirs, longer');
+        expect(conflictCopies(), ['# a\nmine']);
+      },
+    );
+
+    test('keeps edits as a conflict copy if the note was deleted', () async {
+      file().deleteSync();
+      session.edit('# a\nmine');
+      await session.flush();
+
+      expect(await session.secure(), isTrue);
+      expect(file().existsSync(), isFalse);
+      expect(conflictCopies(), ['# a\nmine']);
+    });
+
+    test('keeps nothing for a deleted note without edits', () async {
+      file().deleteSync();
+      session.onRescan(null, scannedAt: later);
+
+      expect(await session.secure(), isTrue);
+      expect(dir.listSync(), isEmpty);
+    });
+
+    test('keeps edits only once', () async {
+      await editElsewhere('# a\ntheirs, longer');
+      session.edit('# a\nmine');
+
+      await Future.wait([session.secure(), session.secure()]);
+      session.edit('# a\nignored');
+      await session.secure();
+
+      expect(conflictCopies(), ['# a\nmine']);
+    });
   });
 }

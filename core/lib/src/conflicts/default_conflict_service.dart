@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../common/result.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import 'conflict.dart';
 import 'conflict_backups.dart';
 import 'conflict_service.dart';
@@ -28,6 +29,12 @@ final class DefaultConflictService implements ConflictService {
   @override
   Future<Result<Uint8List, StoreError>> readCopy(ConflictCopy copy) =>
       _source.read(copy);
+
+  @override
+  Future<Result<void, StoreError>> keepAsConflict(
+    RelPath mainPath,
+    Uint8List bytes,
+  ) => _source.add(mainPath, bytes);
 
   @override
   Future<Result<void, ResolveError>> resolve(

@@ -64,6 +64,23 @@ void main() {
       expect(paths.toSet(), {'abc.md', 'sub/def.md'});
     });
 
+    test(
+      'skips subfolders it cannot read',
+      () async {
+        await write('a.md', 'a');
+        await write('locked/b.md', 'b');
+        await Process.run('chmod', ['000', '${root.path}/locked']);
+        addTearDown(() => Process.run('chmod', ['700', '${root.path}/locked']));
+
+        final paths = (await store.list()).value.map((e) => e.path.value);
+
+        expect(paths, ['a.md']);
+      },
+      skip: Platform.isWindows || _isRoot()
+          ? 'needs file permissions that apply'
+          : false,
+    );
+
     test('fails with notFound if the root is missing', () async {
       final missing = LocalFileStore('${root.path}/missing', (t) => t);
 
@@ -124,6 +141,17 @@ void main() {
       expect(newStamp, await stampOf('a.md'));
       expect(root.listSync().map((e) => e.uri.pathSegments.last), ['a.md']);
     });
+
+    test('keeps the file\'s permissions', () async {
+      await write('a.md', 'old');
+      await Process.run('chmod', ['600', '${root.path}/a.md']);
+      final stamp = await stampOf('a.md');
+
+      await store.replace(path('a.md'), bytesOf('new'), ifUnchanged: stamp);
+
+      final mode = File('${root.path}/a.md').statSync().modeString();
+      expect(mode, 'rw-------');
+    }, skip: Platform.isWindows ? 'no Unix permissions' : false);
 
     test('fails with changedSinceRead and writes nothing', () async {
       await write('a.md', 'old');
@@ -217,3 +245,10 @@ void main() {
     });
   });
 }
+
+/// Root reads any folder, whatever its permissions.
+bool _isRoot() =>
+    Platform.isLinux &&
+    File('/proc/self/status')
+        .readAsLinesSync()
+        .any((line) => RegExp(r'^Uid:\s+0\s').hasMatch(line));

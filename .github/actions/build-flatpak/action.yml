@@ -42,5 +42,8 @@ runs:
           --repo="$RUNNER_TEMP/flatpak-repo" "$RUNNER_TEMP/flatpak-build" \
           "app/linux/flatpak/$APP_ID.yml"
         path="$RUNNER_TEMP/truce-editor.flatpak"
-        flatpak build-bundle "$RUNNER_TEMP/flatpak-repo" "$path" "$APP_ID"
+        # The runtime repo lets `flatpak install` fetch the runtime itself.
+        flatpak build-bundle \
+          --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+          "$RUNNER_TEMP/flatpak-repo" "$path" "$APP_ID"
         echo "path=$path" >> "$GITHUB_OUTPUT"

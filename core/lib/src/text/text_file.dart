@@ -4,16 +4,22 @@ import 'dart:typed_data';
 /// A UTF-8 text file decoded for editing.
 ///
 /// Editors work on [text] with `\n` line breaks only. [encode] puts the
-/// file's own byte order mark and line break back, so saving changes only
+/// file's own byte order mark and line breaks back, so saving changes only
 /// the lines that were edited.
 final class TextFile {
-  const TextFile._(this.text, {required this.hasBom, required this.lineBreak});
+  const TextFile._(
+    this.text, {
+    required this.hasBom,
+    required this.lineBreak,
+    required this._breaks,
+  });
 
   /// Decodes [bytes]; `null` if they are not valid UTF-8, so such files are
   /// never rewritten with replacement characters.
   ///
-  /// The first line break found is taken as the file's style; `\n` if
-  /// there is none. A file mixing styles is saved with that first one.
+  /// Each line keeps its own line break, also in files that mix styles.
+  /// The first one found is the file's style, for new lines; `\n` if there
+  /// is none.
   static TextFile? decode(Uint8List bytes) {
     final hasBom =
         bytes.length >= 3 &&
@@ -26,40 +32,78 @@ final class TextFile {
     } on FormatException {
       return null;
     }
-    final lineBreak = _firstLineBreak(raw);
+    final breaks = [for (final m in _anyBreak.allMatches(raw)) m[0]!];
     return TextFile._(
-      lineBreak == '\n' ? raw : raw.replaceAll(lineBreak, '\n'),
+      raw.replaceAll(_anyBreak, '\n'),
       hasBom: hasBom,
-      lineBreak: lineBreak,
+      lineBreak: breaks.firstOrNull ?? '\n',
+      breaks: breaks,
     );
   }
 
   /// A new file's style: no byte order mark, `\n` line breaks.
-  const TextFile.empty() : this._('', hasBom: false, lineBreak: '\n');
+  const TextFile.empty()
+    : this._('', hasBom: false, lineBreak: '\n', breaks: const []);
+
+  static final _anyBreak = RegExp('\r\n|\r|\n');
 
   /// Content with `\n` line breaks.
   final String text;
 
   final bool hasBom;
 
-  /// `\n`, `\r\n` or `\r`.
+  /// `\n`, `\r\n` or `\r`: the break for new lines.
   final String lineBreak;
+
+  /// The break after each line of [text] but the last, as in the file.
+  final List<String> _breaks;
 
   /// [newText] (with `\n` line breaks) in this file's byte style.
   Uint8List encode(String newText) {
-    final body = utf8.encode(
-      lineBreak == '\n' ? newText : newText.replaceAll('\n', lineBreak),
-    );
+    final lines = newText.split('\n');
+    final breaks = _breaksFor(lines);
+    final buffer = StringBuffer(lines.first);
+    for (var i = 1; i < lines.length; i++) {
+      buffer
+        ..write(breaks[i - 1])
+        ..write(lines[i]);
+    }
+    final body = utf8.encode(buffer.toString());
     return hasBom ? Uint8List.fromList([0xEF, 0xBB, 0xBF, ...body]) : body;
   }
 
   /// This file's style with [newText] as content, e.g. after saving it.
-  TextFile withText(String newText) =>
-      TextFile._(newText, hasBom: hasBom, lineBreak: lineBreak);
+  TextFile withText(String newText) => TextFile._(
+    newText,
+    hasBom: hasBom,
+    lineBreak: lineBreak,
+    breaks: _breaksFor(newText.split('\n')),
+  );
 
-  static String _firstLineBreak(String raw) {
-    final index = raw.indexOf(RegExp('[\r\n]'));
-    if (index < 0 || raw[index] == '\n') return '\n';
-    return raw.startsWith('\r\n', index) ? '\r\n' : '\r';
+  /// The breaks between [lines]: the unchanged lines before and after the
+  /// edited part keep theirs, on both sides; other breaks get [lineBreak].
+  List<String> _breaksFor(List<String> lines) {
+    final old = text.split('\n');
+    final shorter = old.length < lines.length ? old.length : lines.length;
+    var same = 0;
+    while (same < shorter && old[same] == lines[same]) {
+      same++;
+    }
+    var sameAtEnd = 0;
+    while (sameAtEnd < shorter - same &&
+        old[old.length - 1 - sameAtEnd] ==
+            lines[lines.length - 1 - sameAtEnd]) {
+      sameAtEnd++;
+    }
+    final shift = old.length - lines.length;
+    return [
+      for (var i = 0; i < lines.length - 1; i++)
+        if (i < same && i < _breaks.length)
+          _breaks[i]
+        else if (i + 1 >= lines.length - sameAtEnd && i + shift >= 0)
+          _breaks[i + shift]
+        else
+          lineBreak,
+    ];
   }
 }

@@ -19,6 +19,7 @@ void main() {
         SyncthingAdapter(),
         ExtensionFileTypeDetector.standard(),
       ),
+      clock: () => DateTime(2026, 10, 13, 14, 30),
     );
   });
 
@@ -104,6 +105,29 @@ void main() {
 
       expect((await source.discard(copy)).error, StoreError.changedSinceRead);
       expect(store.textOf(copy1), 'changed');
+    });
+  });
+
+  group('add', () {
+    test('adds a copy that find reports for the main file', () async {
+      store.put('lists/todo.md', 'main');
+
+      await source.add(path('lists/todo.md'), bytesOf('mine'));
+
+      final conflict = (await source.find()).value.single;
+      expect(conflict.mainPath, path('lists/todo.md'));
+      expect(
+        conflict.copies.single.id,
+        'lists/todo.sync-conflict-20261013-143000.md',
+      );
+      expect(store.textOf(conflict.copies.single.id), 'mine');
+    });
+
+    test('moves on a second if the name is taken', () async {
+      await source.add(path('todo.md'), bytesOf('first'));
+      await source.add(path('todo.md'), bytesOf('second'));
+
+      expect(store.textOf('todo.sync-conflict-20261013-143001.md'), 'second');
     });
   });
 }

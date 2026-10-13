@@ -80,7 +80,10 @@ final class Checklist {
       final sibling = lines[lastItem]._newSibling(_nextId, text);
       return _insert(_blockEnd(lastItem), sibling._withIndent(''));
     }
-    final item = ChecklistLine._parse(_nextId, '- [ ] $text');
+    final item = ChecklistLine._parse(
+      _nextId,
+      '- [ ] ${ChecklistLine._oneLine(text)}',
+    );
     final trailingEmpty = lines.length > 1 && lines.last.raw.isEmpty;
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }
@@ -280,7 +283,7 @@ final class ChecklistLine {
     final item = _item!;
     var prefix = raw.substring(0, item.textStart);
     if (!prefix.endsWith(' ')) prefix = '$prefix ';
-    return ChecklistLine._parse(id, '$prefix$text');
+    return ChecklistLine._parse(id, '$prefix${_oneLine(text)}');
   }
 
   ChecklistLine _withIndent(String indent) =>
@@ -290,8 +293,14 @@ final class ChecklistLine {
   ChecklistLine _newSibling(int id, String text) {
     final item = _item!;
     final prefix = raw.substring(0, item.markIndex - 1);
-    return ChecklistLine._parse(id, '$prefix[ ] $text');
+    return ChecklistLine._parse(id, '$prefix[ ] ${_oneLine(text)}');
   }
+
+  /// [text] with line breaks as spaces: an item is one line, and pasted
+  /// text can hold breaks (`\r`, U+2028) that a text field lets through.
+  static String _oneLine(String text) => text.replaceAll(_lineBreaks, ' ');
+
+  static final _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 }
 
 final class _ItemParts {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -58,6 +60,28 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
 
     await tester.waitFor(find.textContaining('v2 from elsewhere'));
+  });
+
+  testWidgets('back keeps edits that clash as a conflict copy', (tester) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.pageBack();
+
+    List<File> copies() => [
+      for (final file in app.notes.listSync().whereType<File>())
+        if (file.path.contains('.sync-conflict-')) file,
+    ];
+    await tester.waitUntil(() => copies().isNotEmpty);
+    expect(copies().single.readAsStringSync(), '# Plan\nmine\n');
+    expect(
+      app.file('plan.md').readAsStringSync(),
+      '# Plan\nv2 from elsewhere\n',
+    );
+    await tester.waitFor(find.byTooltip('New note'));
   });
 
   testWidgets('reopens a note in the view it was left in', (tester) async {
