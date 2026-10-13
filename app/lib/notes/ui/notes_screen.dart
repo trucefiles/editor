@@ -12,6 +12,7 @@ import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
+import '../../folders/ui/sync_root_warning.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_files.dart';
@@ -174,6 +175,12 @@ class _NotesBody extends ConsumerWidget {
             title: Text(folder.name),
             subtitle: Text(error.text),
           ),
+        for (final folder in folders)
+          if (shown(folder.id))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SyncRootWarning(folder, showFolderName: true),
+            ),
         Expanded(
           child: snapshot == null
               ? const Center(child: CircularProgressIndicator())

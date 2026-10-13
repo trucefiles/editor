@@ -13,6 +13,9 @@ final class SyncthingAdapter implements SyncAdapter {
   static const _internalNames = {'.stfolder', '.stignore', '.stversions'};
 
   @override
+  String get name => 'Syncthing';
+
+  @override
   bool isInternal(RelPath path) =>
       path.value.split('/').any(_internalNames.contains) ||
       _isTempFile(path.name) ||

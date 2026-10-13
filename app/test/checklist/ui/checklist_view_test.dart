@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,6 +85,52 @@ void main() {
 
     expect(editor.list.text, '- [ ] a\n  - [ ] b\n- [x] done');
     expect(find.text('1 done'), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets('swiping right indents, left outdents', (tester) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    await tester.drag(field('b'), const Offset(100, 0));
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n  - [ ] b');
+
+    await tester.drag(field('b'), const Offset(-100, 0));
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
+  testWidgets('a mouse drag indents from the checkbox, not the text', (
+    tester,
+  ) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    await tester.drag(
+      field('b'),
+      const Offset(100, 0),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n- [ ] b', reason: 'selects text');
+
+    await tester.drag(
+      find.byType(Checkbox).at(1),
+      const Offset(100, 0),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(editor.list.text, '- [ ] a\n  - [ ] b');
+    await close(tester);
+  });
+
+  testWidgets('a short swipe does nothing', (tester) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    await tester.drag(field('b'), const Offset(20, 0));
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
     await close(tester);
   });
 

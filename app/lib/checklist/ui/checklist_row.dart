@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:truce_core/truce_core.dart';
 
+import 'swipe_to_indent.dart';
+
 /// Indent per checklist level.
 const _levelIndent = 28.0;
 
-/// One checkbox item: checkbox, inline-editable text and a menu.
+/// One checkbox item: checkbox, inline-editable text and a menu. Swipe
+/// right or left to indent or outdent.
 class ChecklistItemRow extends StatefulWidget {
   const ChecklistItemRow({
     required this.line,
@@ -66,6 +69,14 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
 
   @override
   Widget build(BuildContext context) {
+    return SwipeToIndent(
+      onIndent: () => widget.onAction(ItemAction.indent),
+      onOutdent: () => widget.onAction(ItemAction.outdent),
+      child: _row(context),
+    );
+  }
+
+  Widget _row(BuildContext context) {
     final checked = widget.line.isChecked;
     final textStyle = checked
         ? TextStyle(
@@ -79,7 +90,9 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
       child: Row(
         children: [
           if (handle != null)
-            handle(const Icon(Icons.drag_indicator))
+            SwipeToIndent.keepMouseDrags(
+              handle(const Icon(Icons.drag_indicator)),
+            )
           else
             const SizedBox(width: 24),
           Checkbox(value: checked, onChanged: (_) => widget.onToggle()),
@@ -98,16 +111,18 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                 const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
                     widget.onFocusStep(1),
               },
-              child: TextField(
-                controller: _text,
-                focusNode: widget.focusNode,
-                style: textStyle,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
+              child: SwipeToIndent.keepMouseDrags(
+                TextField(
+                  controller: _text,
+                  focusNode: widget.focusNode,
+                  style: textStyle,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  onChanged: widget.onTextChanged,
+                  onSubmitted: (_) => widget.onSubmitted(),
                 ),
-                onChanged: widget.onTextChanged,
-                onSubmitted: (_) => widget.onSubmitted(),
               ),
             ),
           ),
