@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
+/// Where a folder's files live: all its services depend on. Name and color
+/// are left out, so changing them keeps the services.
+typedef FolderLocation = ({String id, String path});
+
 /// A folder the user added on this device, with its display settings.
 ///
 /// Per device and never synced: another device may name and color the same
@@ -23,6 +27,8 @@ final class NoteFolder {
 
   final String name;
   final Color color;
+
+  FolderLocation get location => (id: id, path: path);
 
   NoteFolder copyWith({String? name, Color? color}) => NoteFolder(
     id: id,

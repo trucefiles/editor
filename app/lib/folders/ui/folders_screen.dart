@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../platform/folder_picker.dart';
 import '../../platform/storage_access.dart';
@@ -11,6 +10,7 @@ import '../folders_controller.dart';
 import '../note_folder.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
+import 'settings_error_text.dart';
 import 'sync_status_warning.dart';
 
 /// Lists the folders on this device: add, rename, recolor, remove.

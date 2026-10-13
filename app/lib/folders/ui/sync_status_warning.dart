@@ -26,9 +26,11 @@ class SyncStatusWarning extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tool = ref.watch(folderServicesProvider(folder)).syncToolName;
+    final tool = ref
+        .watch(folderServicesProvider(folder.location))
+        .syncToolName;
     final error = Theme.of(context).colorScheme.error;
-    final shown = switch (ref.watch(syncStatusProvider(folder))) {
+    final shown = switch (ref.watch(syncStatusProvider(folder.location))) {
       AsyncData(value: SyncStatus.notSynced) => (
         Icons.warning_amber,
         error,

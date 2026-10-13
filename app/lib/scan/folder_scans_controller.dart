@@ -53,7 +53,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
     for (final folder in _folders) {
-      final services = ref.read(folderServicesProvider(folder));
+      final services = ref.read(folderServicesProvider(folder.location));
       switch (await services.scanner.scan()) {
         case Ok(value: final scan):
           notes.addAll(await _loaderFor(folder, services).load(scan.files));

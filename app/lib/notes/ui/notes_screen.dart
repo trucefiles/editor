@@ -13,6 +13,7 @@ import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
+import '../../folders/ui/settings_error_text.dart';
 import '../../folders/ui/sync_status_warning.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
@@ -21,7 +22,7 @@ import '../note_files.dart';
 import '../note_views_controller.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
-import 'note_editor_screen.dart';
+import 'note_grid.dart';
 
 /// Home: all notes as cards, filtered by folder.
 class NotesScreen extends ConsumerStatefulWidget {
@@ -124,25 +125,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     }
   }
 }
-
-/// Card layout shared by every note grid.
-const noteGridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
-  maxCrossAxisExtent: 240,
-  mainAxisExtent: 200,
-  crossAxisSpacing: 8,
-  mainAxisSpacing: 8,
-);
-
-Future<void> openNote(
-  BuildContext context,
-  Note note, {
-  bool autofocus = false,
-}) => Navigator.push(
-  context,
-  MaterialPageRoute<void>(
-    builder: (_) => NoteEditorScreen(note, autofocus: autofocus),
-  ),
-);
 
 class _NotesBody extends ConsumerWidget {
   const _NotesBody(this.folders);
