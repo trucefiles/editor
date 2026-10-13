@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/conflicts/backup_pruning.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 
 import '../support.dart';
 
@@ -22,7 +23,10 @@ void main() {
 
   Future<void> prune() async {
     final container = ProviderContainer(
-      overrides: [appStorageProvider.overrideWithValue(storage)],
+      overrides: [
+        appStorageProvider.overrideWithValue(storage),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+      ],
     );
     addTearDown(container.dispose);
     await container.read(backupPruningProvider.future);

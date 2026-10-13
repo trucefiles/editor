@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
@@ -28,6 +29,7 @@ final class TestApp {
     ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(_storage),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
         folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
       ],
       child: const TruceApp(),

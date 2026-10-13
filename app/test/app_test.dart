@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 
 import 'support.dart';
 
@@ -12,7 +13,10 @@ void main() {
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
-          overrides: [appStorageProvider.overrideWithValue(storage)],
+          overrides: [
+            appStorageProvider.overrideWithValue(storage),
+            deviceIdProvider.overrideWithValue('0123456789abcdef'),
+          ],
           child: const TruceApp(),
         ),
       ),

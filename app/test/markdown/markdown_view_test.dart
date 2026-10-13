@@ -16,6 +16,19 @@ void main() {
     expect(find.textContaining('#'), findsNothing);
   });
 
+  testWidgets('checkboxes stand out in a dark theme', (tester) async {
+    final dark = ThemeData(brightness: Brightness.dark);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: dark,
+        home: const Scaffold(body: MarkdownView('- [ ] open')),
+      ),
+    );
+
+    final box = tester.widget<Icon>(find.byIcon(Icons.check_box_outline_blank));
+    expect(box.color, dark.colorScheme.primary);
+  });
+
   testWidgets('keeps line breaks as typed', (tester) async {
     await show(tester, 'one\ntwo');
 

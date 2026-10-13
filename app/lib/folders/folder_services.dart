@@ -2,14 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
+import '../platform/device_id.dart';
 import '../platform/parent_folder_access.dart';
 import 'note_folder.dart';
 
 /// The core services for one folder, wired for Syncthing. The only place
 /// in the app that picks implementations.
 final class FolderServices {
-  /// [backupsPath] is the folder's private backup folder in app storage.
-  factory FolderServices.syncthing(String path, {required String backupsPath}) {
+  /// [backupsPath] is the folder's private backup folder in app storage;
+  /// [deviceId] names this device's files in the folder.
+  factory FolderServices.syncthing(
+    String path, {
+    required String backupsPath,
+    required String deviceId,
+  }) {
     const adapter = SyncthingAdapter();
     const filter = DefaultFileFilter(
       adapter,
@@ -30,6 +36,7 @@ final class FolderServices {
         source: SyncthingConflictSource(store),
         backups: conflictBackupsAt(backupsPath),
       ),
+      marks: NoteMarks(store, deviceId: deviceId),
     );
   }
 
@@ -39,6 +46,7 @@ final class FolderServices {
     required this.syncToolName,
     required this.syncCheck,
     required this.conflicts,
+    required this.marks,
   });
 
   final FileStore store;
@@ -49,6 +57,7 @@ final class FolderServices {
 
   final SyncCheck syncCheck;
   final ConflictService conflicts;
+  final NoteMarks marks;
 }
 
 /// The conflict backups in the app storage folder at [path].
@@ -60,5 +69,6 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
   (ref, location) => FolderServices.syncthing(
     location.path,
     backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
+    deviceId: ref.watch(deviceIdProvider),
   ),
 );

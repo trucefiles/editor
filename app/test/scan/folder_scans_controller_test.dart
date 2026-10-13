@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 
@@ -18,7 +19,10 @@ void main() {
   Future<void> start(List<NoteFolder> folders) async {
     final storage = AppStorage(tempFolder().path);
     container = ProviderContainer(
-      overrides: [appStorageProvider.overrideWithValue(storage)],
+      overrides: [
+        appStorageProvider.overrideWithValue(storage),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+      ],
     );
     addTearDown(container.dispose);
     await container.read(folderSettingsStoreProvider).save(folders);
@@ -55,6 +59,25 @@ void main() {
     await start([folderAt(dir)]);
 
     expect((await scans()).notes.map((n) => n.title), ['New', 'Old']);
+  });
+
+  test('lists pinned notes first and keeps marks by note', () async {
+    final dir = tempFolder();
+    write(dir, 'old.md', '# Old', modified: DateTime(2020));
+    write(dir, 'new.md', '# New', modified: DateTime(2025));
+    final folder = folderAt(dir);
+    final marks = servicesFor(folder).marks;
+    await marks.set(path('old.md'), const NoteMark(pinned: true));
+    await marks.set(path('new.md'), const NoteMark(color: 'teal'));
+    await start([folder]);
+
+    final found = await scans();
+
+    expect(found.notes.map((n) => n.title), ['Old', 'New']);
+    expect(
+      found.markOf((folderId: folder.id, path: path('new.md'))),
+      const NoteMark(color: 'teal'),
+    );
   });
 
   test('reports a folder that cannot be read', () async {
