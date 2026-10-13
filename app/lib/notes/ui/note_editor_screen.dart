@@ -15,6 +15,7 @@ import '../../folders/ui/folder_badge.dart';
 import '../../markdown/markdown_view.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
+import '../note_actions.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
@@ -145,26 +146,30 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   Future<void> _delete() async {
     await _session.flush();
-    final note = _session.note;
-    final text = _session.text;
-    final deleted = await _files.delete(note);
+    final actions = ref.read(noteActionsProvider);
+    final deleted = await actions.delete(_session.note, _session.text);
     if (!mounted) return;
-    if (deleted case Err(:final error)) {
-      showSnack(context, error.text);
-      return;
+    switch (deleted) {
+      case Ok(:final value):
+        _offerUndo(actions, value);
+        Navigator.pop(context);
+      case Err(:final error):
+        showSnack(context, error.text);
     }
-    final files = _files;
-    final scans = _scans;
-    showSnack(
-      context,
+  }
+
+  /// The hint outlives this screen, so it shows on the app's messenger.
+  void _offerUndo(NoteActions actions, DeletedNote deleted) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showHint(
       'Note deleted',
       actionLabel: 'Undo',
       onAction: () async {
-        await files.restore(note, text);
-        await scans.refresh();
+        if (await actions.undoDelete(deleted) case Err(:final error)) {
+          messenger.showHint(error.text);
+        }
       },
     );
-    Navigator.pop(context);
   }
 
   Widget _menu() {

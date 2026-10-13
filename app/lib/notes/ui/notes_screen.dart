@@ -18,7 +18,7 @@ import '../../folders/ui/sync_status_warning.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
-import '../note_files.dart';
+import '../note_actions.dart';
 import '../note_views_controller.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
@@ -100,27 +100,18 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   Future<void> _create(List<NoteFolder> folders) async {
-    NoteFolder? byId(String? id) =>
-        folders.where((folder) => folder.id == id).firstOrNull;
-    final initial =
-        byId(ref.read(selectedFolderIdProvider)) ??
-        byId(ref.read(lastUsedFolderIdProvider)) ??
-        folders.first;
+    final actions = ref.read(noteActionsProvider);
     final input = await showNewNoteDialog(
       context,
       folders: folders,
-      initial: initial,
+      initial: actions.defaultFolder(folders),
     );
-    if (input == null || !mounted) return;
-    ref.read(lastUsedFolderIdProvider.notifier).choose(input.folder.id);
-    final created = await ref
-        .read(noteFilesProvider(input.folder))
-        .create(input.title);
+    if (input == null) return;
+    final created = await actions.create(input.title, input.folder);
     if (!mounted) return;
     switch (created) {
       case Ok(value: final note):
-        await ref.read(folderScansProvider.notifier).refresh();
-        if (mounted) await openNote(context, note, autofocus: true);
+        await openNote(context, note, autofocus: true);
       case Err(:final error):
         showSnack(context, error.text);
     }

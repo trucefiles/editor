@@ -113,6 +113,33 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
   });
 
+  testWidgets('deletes a note and undoes it', (tester) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Delete note'));
+    await tester.waitFor(find.text('Undo'));
+    expect(app.file('plan.md').existsSync(), isFalse);
+    await tester.tapAndSettle(find.text('Undo'));
+
+    await tester.waitForFile(app.file('plan.md'), '# Plan\nv1\n');
+    await tester.waitFor(find.text('Plan'));
+  });
+
+  testWidgets('pins a note from the grid', (tester) async {
+    app.file('plan.md').writeAsStringSync('# Plan\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    await tester.longPress(find.text('Plan'));
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Pin'));
+
+    await tester.waitFor(find.byTooltip('Pinned'));
+  });
+
   testWidgets('reopens a note in the view it was left in', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
     await addFolder(tester);

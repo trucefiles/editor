@@ -4,9 +4,8 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../folders/folder_services.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
+import '../note_actions.dart';
 import '../note_colors.dart';
 
 /// Lets the user pin [note] or pick its color, then saves the choice.
@@ -15,19 +14,13 @@ Future<void> editNoteMark(
   WidgetRef ref,
   Note note,
 ) async {
-  final scans = ref.read(folderScansProvider.notifier);
-  final current =
-      ref.read(folderScansProvider).value?.markOf(note.key) ?? NoteMark.none;
+  final actions = ref.read(noteActionsProvider);
   final chosen = await showModalBottomSheet<NoteMark>(
     context: context,
-    builder: (_) => _NoteMarkSheet(current),
+    builder: (_) => _NoteMarkSheet(actions.markOf(note)),
   );
-  if (chosen == null || chosen == current) return;
-  final saved = await ref
-      .read(folderServicesProvider(note.folder.location))
-      .marks
-      .set(note.path, chosen);
-  await scans.refresh();
+  if (chosen == null) return;
+  final saved = await actions.setMark(note, chosen);
   if (saved case Err(:final error) when context.mounted) {
     showSnack(context, error.text);
   }
