@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/notes/note_view.dart';
 import 'package:truce_editor/notes/note_view_store.dart';
 
 import '../support.dart';

@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'note.dart';
-
-/// How a note is shown in the editor.
-enum NoteView { text, list }
+import 'note_view.dart';
 
 /// Keeps the last view of each note in a JSON file in app storage. Per
 /// device and never synced. A convenience: read and write failures are

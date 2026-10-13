@@ -131,6 +131,14 @@ void main() {
       );
     });
 
+    test('takes indented text lines along, up to an empty line', () {
+      final list = Checklist.parse('- [ ] a\n- [ ] b\n  note\n\n  stays');
+
+      final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
+
+      expect(moved.text, '- [ ] b\n  note\n- [ ] a\n\n  stays');
+    });
+
     test('to the end stays before the final line break', () {
       final list = Checklist.parse('- [ ] a\n- [ ] b\n');
 
@@ -157,6 +165,12 @@ void main() {
       final indented = list.indent(idOf(list, 'b'));
 
       expect(indented.text, '- [ ] a\n    - [ ] b\n        - [ ] c\n- [ ] d');
+    });
+
+    test('indents indented text lines too', () {
+      final list = Checklist.parse('- [ ] a\n- [ ] b\n  note');
+
+      expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b\n    note');
     });
 
     test('needs an item above', () {

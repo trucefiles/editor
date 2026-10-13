@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'swipe_to_indent.dart';
@@ -141,22 +142,15 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
   }
 }
 
-/// A line that is not a checkbox item (heading, text), shown as is.
-class ChecklistTextRow extends StatelessWidget {
-  const ChecklistTextRow(this.line, {super.key});
+/// Lines between checkbox items (headings, notes), rendered as Markdown.
+class ChecklistTextBlock extends StatelessWidget {
+  const ChecklistTextBlock(this.markdown, {super.key});
 
-  final ChecklistLine line;
+  final String markdown;
 
   @override
-  Widget build(BuildContext context) {
-    final raw = line.raw.trim();
-    final heading = raw.startsWith('#');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Text(
-        heading ? raw.replaceFirst(RegExp(r'^#+\s*'), '') : raw,
-        style: heading ? Theme.of(context).textTheme.titleMedium : null,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+    child: MarkdownBody(data: markdown, softLineBreak: true),
+  );
 }

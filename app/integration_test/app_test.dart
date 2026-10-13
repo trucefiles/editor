@@ -66,12 +66,28 @@ void main() {
     await openNote(tester, 'Todo');
     expect(find.byType(Checkbox), findsOneWidget);
 
-    await tester.tapAndSettle(find.byTooltip('Text view'));
+    await tester.tapAndSettle(find.byTooltip('View: List'));
+    await tester.tapAndSettle(find.text('Text'));
     await tester.pageBack();
     await tester.pumpAndSettle();
     await openNote(tester, 'Todo');
 
     expect(find.byType(Checkbox), findsNothing);
-    expect(find.byTooltip('List view'), findsOneWidget);
+    expect(find.byTooltip('View: Text'), findsOneWidget);
+  });
+
+  testWidgets('renders a note as Markdown', (tester) async {
+    app.file('read.md').writeAsStringSync('# Read me\n\nSome **bold** text.\n');
+    await addFolder(tester);
+    await openNote(tester, 'Read me');
+
+    await tester.tapAndSettle(find.byTooltip('View: Text'));
+    await tester.tapAndSettle(find.text('Rendered'));
+
+    expect(find.byType(TextField), findsNothing);
+    expect(
+      find.textContaining('Some bold text.', findRichText: true),
+      findsOne,
+    );
   });
 }

@@ -12,6 +12,7 @@ dependencies:
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
+  flutter_markdown_plus: ^1.0.12
   flutter_riverpod: ^3.4.3
   path_provider: ^2.1.6
   truce_core: any
