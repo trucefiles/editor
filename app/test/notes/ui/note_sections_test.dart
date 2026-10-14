@@ -47,4 +47,23 @@ void main() {
     expect(find.text('Pinned'), findsOne);
     expect(find.text('Others'), findsNothing);
   });
+
+  testWidgets('cards keep their own height', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: NoteSections(
+            pinned: [],
+            others: [
+              SizedBox(height: 50, child: Text('short')),
+              SizedBox(height: 300, child: Text('tall')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(SizedBox).at(0)).height, 50);
+    expect(tester.getSize(find.byType(SizedBox).at(1)).height, 300);
+  });
 }

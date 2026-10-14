@@ -19,6 +19,9 @@ class NoteCard extends StatelessWidget {
     super.key,
   });
 
+  /// Most lines of the note a card shows.
+  static const previewLines = 10;
+
   final Note note;
   final NoteMark mark;
 
@@ -34,6 +37,7 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final preview = notePreview(note.file.text, maxLines: previewLines);
     return Card(
       clipBehavior: Clip.antiAlias,
       color: noteTint(mark.color, theme.colorScheme),
@@ -44,6 +48,7 @@ class NoteCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -52,14 +57,15 @@ class NoteCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: Text(
-                  notePreview(note.file.text),
+              if (preview.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  preview,
                   style: textTheme.bodySmall,
-                  overflow: TextOverflow.fade,
+                  maxLines: previewLines,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+              ],
               const SizedBox(height: 8),
               Row(
                 spacing: 6,

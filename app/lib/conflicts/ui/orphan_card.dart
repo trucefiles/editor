@@ -22,6 +22,7 @@ class OrphanCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -31,12 +32,11 @@ class OrphanCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
-              const Expanded(
-                child: Text(
-                  'Deleted on one device, edited on another. '
-                  'Tap to restore or discard.',
-                ),
+              const Text(
+                'Deleted on one device, edited on another. '
+                'Tap to restore or discard.',
               ),
+              const SizedBox(height: 8),
               FolderBadge(conflict.folder, file: conflict.conflict.mainPath),
             ],
           ),

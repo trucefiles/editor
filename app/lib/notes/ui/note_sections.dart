@@ -25,24 +25,19 @@ class NoteSections extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
           sliver: SliverMainAxisGroup(
             slivers: [
-              _grid(leading),
+              noteGrid(leading),
               if (pinned.isNotEmpty) ...[
                 const _Heading('Pinned'),
-                _grid(pinned),
+                noteGrid(pinned),
                 if (others.isNotEmpty) const _Heading('Others'),
               ],
-              _grid(others),
+              noteGrid(others),
             ],
           ),
         ),
       ],
     );
   }
-
-  static Widget _grid(List<Widget> cards) => SliverGrid(
-    gridDelegate: noteGridDelegate,
-    delegate: SliverChildListDelegate(cards),
-  );
 }
 
 class _Heading extends StatelessWidget {

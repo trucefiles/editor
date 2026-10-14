@@ -53,16 +53,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               text: 'Nothing found.',
             );
           }
-          return GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: noteGridDelegate,
-            itemCount: found.length,
-            itemBuilder: (context, index) => NoteCard(
-              found[index],
-              mark: scans?.markOf(found[index].key) ?? NoteMark.none,
-              onTap: () => openNote(context, found[index]),
-              onMark: () => editNoteMark(context, ref, found[index]),
-            ),
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(12),
+                sliver: noteGrid([
+                  for (final note in found)
+                    NoteCard(
+                      note,
+                      mark: scans?.markOf(note.key) ?? NoteMark.none,
+                      onTap: () => openNote(context, note),
+                      onMark: () => editNoteMark(context, ref, note),
+                    ),
+                ]),
+              ),
+            ],
           );
         },
       ),
