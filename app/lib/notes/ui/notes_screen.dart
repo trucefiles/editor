@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../common/empty_state.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../conflicts/backup_pruning.dart';
@@ -172,7 +173,10 @@ class _NotesBody extends ConsumerWidget {
           child: scans == null
               ? const Center(child: CircularProgressIndicator())
               : notes.isEmpty && orphans.isEmpty
-              ? const Center(child: Text('No notes yet.'))
+              ? const EmptyState(
+                  icon: Icons.sticky_note_2_outlined,
+                  text: 'No notes yet.',
+                )
               : NoteSections(
                   leading: [
                     for (final orphan in orphans)
@@ -201,18 +205,13 @@ class _NoFolders extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 16,
-        children: [
-          const Text('Add a synced folder to see its notes.'),
-          FilledButton.icon(
-            onPressed: () => addFolder(context, ref),
-            icon: const Icon(Icons.create_new_folder_outlined),
-            label: const Text('Add folder'),
-          ),
-        ],
+    return EmptyState(
+      icon: Icons.folder_open_outlined,
+      text: 'Add a synced folder to see its notes.',
+      action: FilledButton.icon(
+        onPressed: () => addFolder(context, ref),
+        icon: const Icon(Icons.create_new_folder_outlined),
+        label: const Text('Add folder'),
       ),
     );
   }

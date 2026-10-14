@@ -34,7 +34,7 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    return Card.outlined(
+    return Card(
       clipBehavior: Clip.antiAlias,
       color: noteTint(mark.color, theme.colorScheme),
       child: InkWell(
