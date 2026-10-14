@@ -105,9 +105,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       context,
       folders: folders,
       initial: actions.defaultFolder(folders),
+      subfoldersOf: (folder) =>
+          ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ??
+          const [],
     );
     if (input == null) return;
-    final created = await actions.create(input.title, input.folder);
+    final created = await actions.create(
+      input.title,
+      input.folder,
+      subfolder: input.subfolder,
+    );
     if (!mounted) return;
     switch (created) {
       case Ok(value: final note):

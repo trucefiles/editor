@@ -33,13 +33,19 @@ final class NoteFiles {
     };
   }
 
-  /// New note at the folder's root, named after [title], starting with a
-  /// `# title` line.
-  Future<Result<Note, StoreError>> create(String title) async {
+  /// New note in [subfolder] (the folder's root if `null`), named after
+  /// [title], starting with a `# title` line.
+  Future<Result<Note, StoreError>> create(
+    String title, {
+    RelPath? subfolder,
+  }) async {
     final file = TextFile.empty().withText('# ${title.trim()}\n');
     final bytes = file.encode(file.text);
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
-      final path = RelPath.parse(noteFileName(title, attempt: attempt))!;
+      final name = noteFileName(title, attempt: attempt);
+      final path = subfolder == null
+          ? RelPath.parse(name)!
+          : subfolder.child(name)!;
       switch (await _store.create(path, bytes)) {
         case Ok(value: final entry):
           return Ok(_noteAt(entry, file));

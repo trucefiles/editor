@@ -32,6 +32,20 @@ final class FolderScans {
 
   NoteMark markOf(NoteKey key) => marks[key] ?? NoteMark.none;
 
+  /// The subfolders of folder [folderId] that hold notes, directly or
+  /// deeper, sorted by path. Empty subfolders are not scanned, so they are
+  /// left out.
+  List<RelPath> subfoldersOf(String folderId) {
+    final found = <RelPath>{};
+    for (final note in notes.where((note) => note.folder.id == folderId)) {
+      for (var folder = note.path.parent; folder != null;) {
+        if (!found.add(folder)) break;
+        folder = folder.parent;
+      }
+    }
+    return found.toList()..sort((a, b) => a.value.compareTo(b.value));
+  }
+
   Note? findNote(NoteKey key) {
     for (final note in notes) {
       if (note.key == key) return note;

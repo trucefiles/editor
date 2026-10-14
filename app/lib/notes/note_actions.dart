@@ -32,14 +32,18 @@ final class NoteActions {
         folders.first;
   }
 
-  /// Creates a note titled [title] in [folder], remembers [folder] as the
-  /// next default and rescans, so the grid shows the note.
+  /// Creates a note titled [title] in [folder], inside [subfolder] if
+  /// given, remembers [folder] as the next default and rescans, so the grid
+  /// shows the note.
   Future<Result<Note, StoreError>> create(
     String title,
-    NoteFolder folder,
-  ) async {
+    NoteFolder folder, {
+    RelPath? subfolder,
+  }) async {
     _ref.read(lastUsedFolderIdProvider.notifier).choose(folder.id);
-    final created = await _ref.read(noteFilesProvider(folder)).create(title);
+    final created = await _ref
+        .read(noteFilesProvider(folder))
+        .create(title, subfolder: subfolder);
     if (created is Ok) await _scans.refresh();
     return created;
   }

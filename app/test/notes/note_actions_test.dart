@@ -92,6 +92,19 @@ void main() {
     expect((await scans()).findNote(note.key), isNotNull);
   });
 
+  test('create puts the note in the chosen subfolder', () async {
+    await scans();
+
+    final note = (await actions.create(
+      'Plan',
+      folders[0],
+      subfolder: path('a/b'),
+    )).value;
+
+    expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
+    expect((await scans()).findNote(note.key)?.path, path('a/b/Plan.md'));
+  });
+
   test('delete removes the note; undo writes it back', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
 

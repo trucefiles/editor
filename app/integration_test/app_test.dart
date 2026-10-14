@@ -45,6 +45,25 @@ void main() {
     await tester.waitFor(find.byTooltip('Saved'));
   });
 
+  testWidgets('creates a note in a subfolder', (tester) async {
+    app.write('a/b/c/old.md', '# Old\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.enterText(find.byType(TextField), 'Groceries');
+    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.text('a/b/c').last);
+    await tester.tapAndSettle(find.text('Create'));
+    await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+
+    await tester.waitForFile(
+      app.file('a/b/c/Groceries.md'),
+      '# Groceries\nMilk\n',
+    );
+    expect(app.file('Groceries.md').existsSync(), isFalse);
+  });
+
   testWidgets('checks a checklist item and saves it', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
     await addFolder(tester);

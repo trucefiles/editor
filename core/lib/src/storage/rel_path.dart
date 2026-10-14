@@ -23,6 +23,11 @@ extension type const RelPath._(String value) {
     return slash < 0 ? null : RelPath._(value.substring(0, slash));
   }
 
+  /// The path of [name] inside this folder, e.g. `lists/todo.md` for
+  /// `lists` and `todo.md`. `null` if [name] is not a valid name.
+  RelPath? child(String name) =>
+      name.contains('/') ? null : parse('$value/$name');
+
   /// The path of [name] in the same folder, e.g. `lists/done.md` for
   /// `lists/todo.md` and `done.md`. `null` if [name] is not a valid name.
   RelPath? sibling(String name) {

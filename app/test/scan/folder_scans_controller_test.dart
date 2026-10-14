@@ -80,6 +80,28 @@ void main() {
     expect(found.conflicts.forNote(shallow), isNull);
   });
 
+  test('lists the subfolders that hold notes, per folder', () async {
+    final dir = tempFolder();
+    final other = tempFolder();
+    write(dir, 'root.md', '# Root');
+    write(dir, 'a/b/c/deep.md', '# Deep');
+    write(dir, 'a/b/c/deeper.md', '# Deeper');
+    write(dir, 'x/note.md', '# X');
+    write(dir, 'y/photo.jpg', 'not a note');
+    write(other, 'z/note.md', '# Z');
+    await start([folderAt(dir, id: 'one'), folderAt(other, id: 'two')]);
+
+    final found = await scans();
+
+    expect(found.subfoldersOf('one').map((p) => p.value), [
+      'a',
+      'a/b',
+      'a/b/c',
+      'x',
+    ]);
+    expect(found.subfoldersOf('two').map((p) => p.value), ['z']);
+  });
+
   test('lists notes newest first', () async {
     final dir = tempFolder();
     write(dir, 'old.md', '# Old', modified: DateTime(2020));
