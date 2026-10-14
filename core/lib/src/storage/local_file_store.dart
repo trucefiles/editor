@@ -36,9 +36,8 @@ final class LocalFileStore implements FileStore {
 
   /// Whether a replaced file keeps its permissions, by starting the temp
   /// file as a copy of it. Off where files have no permissions of their
-  /// own (Android's shared storage): there, replaced files kept the old
-  /// file's modification time, so sync tools saw same-size changes as
-  /// unchanged.
+  /// own (Android's shared storage), so the new file never starts from
+  /// the old one and gets a fresh modification time.
   final bool keepsPermissions;
 
   final TempFileNamer _tempFileName;
