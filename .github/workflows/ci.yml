@@ -34,13 +34,20 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-flutter
-      - name: Install Linux build tools and a virtual display
+      - name: Install Linux build tools, a virtual display and a session bus
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
-            ninja-build libgtk-3-dev xvfb
+            ninja-build libgtk-3-dev xvfb dbus-daemon
       - name: Get packages from the lock file
         run: flutter pub get --enforce-lockfile
       - name: Run the app's UI tests
         working-directory: app
-        run: xvfb-run --auto-servernum flutter test integration_test -d linux
+        # The tray test needs a session bus. On one, the app is a single
+        # instance, and a run of several files fails to start the second
+        # file's app; one run per file avoids that.
+        run: |
+          for test in integration_test/*_test.dart; do
+            dbus-run-session -- \
+              xvfb-run --auto-servernum flutter test "$test" -d linux
+          done
