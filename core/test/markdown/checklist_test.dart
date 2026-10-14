@@ -118,6 +118,10 @@ void main() {
         '# Title\n- [ ] a\n',
       );
     });
+
+    test('goes first in an empty document', () {
+      expect(Checklist.parse('').append('a').$1.text, '- [ ] a\n');
+    });
   });
 
   test('remove takes the subitems along', () {
