@@ -15,7 +15,7 @@ List<Conflict> groupSyncthingConflicts(
   for (final entry in entries) {
     final name = SyncthingConflictName.parse(entry.path.name);
     if (name == null) continue;
-    final mainPath = entry.path.sibling(name.mainName);
+    final mainPath = syncthingConflictMain(entry.path);
     if (mainPath == null || !includesFile(mainPath)) continue;
     copiesByMain
         .putIfAbsent(mainPath, () => [])
@@ -37,3 +37,11 @@ List<Conflict> groupSyncthingConflicts(
       ),
   ];
 }
+
+/// The main file that [path] is a Syncthing conflict copy of; `null` if it
+/// is not a conflict copy.
+RelPath? syncthingConflictMain(RelPath path) =>
+    switch (SyncthingConflictName.parse(path.name)) {
+      final name? => path.sibling(name.mainName),
+      null => null,
+    };

@@ -15,9 +15,11 @@ import 'rel_path.dart';
 abstract interface class FileStore {
   /// Every file and folder below the root, recursively, hidden ones
   /// included. Folders for which [enterFolder] returns `false` are not
-  /// walked. Filtering files is the caller's job.
+  /// walked; files for which [includeFile] returns `false` are skipped
+  /// before anything else is read about them.
   Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
   });
 
   Future<Result<FileContent, StoreError>> read(RelPath path);

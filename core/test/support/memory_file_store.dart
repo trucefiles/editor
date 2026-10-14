@@ -18,6 +18,9 @@ final class MemoryFileStore implements FileStore {
   /// How often [list] was called.
   int listCount = 0;
 
+  /// The files the last [list] call returned.
+  List<RelPath> lastListed = const [];
+
   int _clock = 0;
 
   /// Adds or overwrites [path] without any checks.
@@ -32,6 +35,7 @@ final class MemoryFileStore implements FileStore {
   @override
   Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
   }) async {
     listCount++;
     if (failWith case final error?) return Err(error);
@@ -47,18 +51,19 @@ final class MemoryFileStore implements FileStore {
           folder,
       ...emptyFolders,
     };
-    return Ok(
-      Listing(
-        files: [
-          for (final MapEntry(key: path, value: content) in files.entries)
-            if (reached(path.parent)) _entryOf(path, content),
-        ],
-        folders: [
-          for (final folder in folders)
-            if (reached(folder)) folder,
-        ],
-      ),
+    final listing = Listing(
+      files: [
+        for (final MapEntry(key: path, value: content) in files.entries)
+          if (reached(path.parent) && (includeFile?.call(path) ?? true))
+            _entryOf(path, content),
+      ],
+      folders: [
+        for (final folder in folders)
+          if (reached(folder)) folder,
+      ],
     );
+    lastListed = [for (final entry in listing.files) entry.path];
+    return Ok(listing);
   }
 
   @override

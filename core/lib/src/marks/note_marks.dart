@@ -29,14 +29,17 @@ final class NoteMarks {
   /// cannot be read.
   Future<Result<Map<RelPath, NoteMark>, StoreError>> load() async {
     final List<FileEntry> entries;
-    switch (await _store.list(enterFolder: _leadsToFolder)) {
+    switch (await _store.list(
+      enterFolder: _leadsToFolder,
+      includeFile: _isDeviceFile,
+    )) {
       case Ok(:final value):
         entries = value.files;
       case Err(:final error):
         return Err(error);
     }
     final newest = <RelPath, StampedMark>{};
-    for (final entry in entries.where(_isDeviceFile)) {
+    for (final entry in entries) {
       if (await _store.read(entry.path) case Ok(:final value)) {
         NoteMarksFile.decode(value.bytes)?.forEach((note, stamped) {
           final known = newest[note];
@@ -85,7 +88,6 @@ final class NoteMarks {
   static bool _leadsToFolder(RelPath folder) =>
       folder.value == _folder || _folder.startsWith('${folder.value}/');
 
-  static bool _isDeviceFile(FileEntry entry) =>
-      entry.path.value == '$_folder/${entry.path.name}' &&
-      entry.path.name.endsWith('.json');
+  static bool _isDeviceFile(RelPath path) =>
+      path.value == '$_folder/${path.name}' && path.name.endsWith('.json');
 }

@@ -78,6 +78,21 @@ void main() {
       );
     });
 
+    test('are the only files listed, with their conflict copies', () async {
+      store
+        ..put('a/todo.md', 'main')
+        ..put('a/$copy1', 'copy')
+        ..put('a/photo.jpg', 'jpg')
+        ..put('a/photo.sync-conflict-20261003-134809-4I343AW.jpg', 'copy');
+
+      await scanner.scan();
+
+      expect(
+        store.lastListed.map((p) => p.value),
+        unorderedEquals(['a/todo.md', 'a/$copy1']),
+      );
+    });
+
     test('come from a single listing with the conflicts', () async {
       store
         ..put('todo.md', 'main')

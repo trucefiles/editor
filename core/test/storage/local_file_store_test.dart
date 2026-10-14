@@ -60,6 +60,18 @@ void main() {
       );
     });
 
+    test('skips files that includeFile rejects', () async {
+      await write('a.md', 'a');
+      await write('sub/b.jpg', 'b');
+
+      final result = await store.list(
+        includeFile: (file) => file.value.endsWith('.md'),
+      );
+
+      expect(result.value.files.map((e) => e.path.value), ['a.md']);
+      expect(result.value.folders.map((f) => f.value), ['sub']);
+    });
+
     test('skips folders that enterFolder rejects', () async {
       await write('a.md', 'a');
       await write('.stversions/a.md', 'old');
