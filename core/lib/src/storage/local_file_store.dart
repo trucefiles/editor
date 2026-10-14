@@ -20,7 +20,12 @@ import 'rel_path.dart';
 /// the folder was moved, deleted or is on a drive that is not mounted, so
 /// [create] fails with [StoreError.notFound] instead of bringing it back.
 final class LocalFileStore implements FileStore {
-  LocalFileStore(this.rootPath, this._tempFileName, {this.createsRoot = false});
+  LocalFileStore(
+    this.rootPath,
+    this._tempFileName, {
+    this.createsRoot = false,
+    this.keepsPermissions = true,
+  });
 
   /// Absolute path of the root folder.
   final String rootPath;
@@ -28,6 +33,13 @@ final class LocalFileStore implements FileStore {
   /// Whether [create] may create a missing root folder, e.g. for the app's
   /// own storage, which exists only once something is saved there.
   final bool createsRoot;
+
+  /// Whether a replaced file keeps its permissions, by starting the temp
+  /// file as a copy of it. Off where files have no permissions of their
+  /// own (Android's shared storage): there, replaced files kept the old
+  /// file's modification time, so sync tools saw same-size changes as
+  /// unchanged.
+  final bool keepsPermissions;
 
   final TempFileNamer _tempFileName;
   final Random _random = Random.secure();
@@ -161,7 +173,7 @@ final class LocalFileStore implements FileStore {
   }) async {
     final temp = File('${file.parent.path}/${_tempFileName(_randomToken())}');
     try {
-      await _copyModeOf(file, temp);
+      if (keepsPermissions) await _copyModeOf(file, temp);
       await temp.writeAsBytes(bytes, flush: true);
       final written = await _stat(temp);
       await isAllowed();

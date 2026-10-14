@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -21,7 +23,12 @@ final class FolderServices {
       adapter,
       ExtensionFileTypeDetector.standard(),
     );
-    final store = LocalFileStore(path, adapter.tempFileName);
+    final store = LocalFileStore(
+      path,
+      adapter.tempFileName,
+      // Android's shared storage has no per-file permissions.
+      keepsPermissions: !Platform.isAndroid,
+    );
     return FolderServices._(
       store: store,
       scanner: SyncthingFolderScanner(store, filter),

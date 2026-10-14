@@ -209,6 +209,29 @@ void main() {
       expect(mode, 'rw-------');
     }, skip: Platform.isWindows ? 'no Unix permissions' : false);
 
+    test('gives a fresh file without copying the old one if told to', () async {
+      await write('a.md', 'old');
+      final old = File('${root.path}/a.md');
+      await Process.run('chmod', ['600', old.path]);
+      final oldTime = DateTime(2000);
+      old.setLastModifiedSync(oldTime);
+      final plain = LocalFileStore(
+        root.path,
+        (token) => '.tmp-$token',
+        keepsPermissions: false,
+      );
+
+      await plain.replace(
+        path('a.md'),
+        bytesOf('new'),
+        ifUnchanged: await versionOf('a.md'),
+      );
+
+      final stat = old.statSync();
+      expect(stat.modeString(), isNot('rw-------'), reason: 'not a copy');
+      expect(stat.modified.isAfter(oldTime), isTrue);
+    }, skip: Platform.isWindows ? 'no Unix permissions' : false);
+
     test('fails with changedSinceRead and writes nothing', () async {
       await write('a.md', 'old');
       final version = await versionOf('a.md');
