@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shrunk to fit the launcher mask's safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M28,26a4,4 0,0 1,4 -4H66L80,36V82a4,4 0,0 1,-4 4H32a4,4 0,0 1,-4 -4Z" />
+        <path
+            android:fillColor="#B2DFDB"
+            android:pathData="M66,22V32a4,4 0,0 0,4 4H80Z" />
+        <path
+            android:pathData="M40,42L67,52L50,70Z"
+            android:strokeColor="#00897B"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#00897B"
+            android:pathData="M33.5,42a6.5,6.5 0,1 0,13 0a6.5,6.5 0,1 0,-13 0Z M60.5,52a6.5,6.5 0,1 0,13 0a6.5,6.5 0,1 0,-13 0Z" />
+        <path
+            android:fillColor="#00796B"
+            android:pathData="M38,70a12,12 0,1 0,24 0a12,12 0,1 0,-24 0Z" />
+        <path
+            android:pathData="M44,70.5l4.2,4.2 7.8,-8.4"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3.6"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
