@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
+import 'add_folder_error.dart';
 import 'folder_colors.dart';
 import 'folder_settings_store.dart';
 import 'note_folder.dart';
@@ -34,13 +36,21 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       };
 
   /// Adds the folder at [path], named after its last segment. Does nothing
-  /// if it is already added.
-  Future<Result<void, SettingsError>> add(String path) async {
+  /// if it is already added. Refuses a folder inside an added one, or one
+  /// holding an added one: their notes would show twice.
+  Future<Result<void, AddFolderError>> add(String path) async {
     final folders = await future;
-    if (folders.any((folder) => folder.path == path)) return const Ok(null);
-    final segments = path.split(Platform.pathSeparator)
-      ..removeWhere((s) => s.isEmpty);
-    return _save([
+    final segments = _segments(path);
+    final added = folders.map((folder) => _segments(folder.path));
+    if (added.any((other) => listEquals(other, segments))) {
+      return const Ok(null);
+    }
+    if (added.any(
+      (other) => _isWithin(segments, other) || _isWithin(other, segments),
+    )) {
+      return const Err(AddFolderError.overlaps);
+    }
+    final saved = await _save([
       ...folders,
       NoteFolder(
         id: _newId(),
@@ -49,6 +59,10 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
         color: nextFolderColor(folders.map((folder) => folder.color)),
       ),
     ]);
+    return switch (saved) {
+      Ok() => const Ok(null),
+      Err() => const Err(AddFolderError.notSaved),
+    };
   }
 
   Future<Result<void, SettingsError>> change(NoteFolder changed) async {
@@ -69,6 +83,14 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     if (saved is Ok) state = AsyncData(folders);
     return saved;
   }
+
+  static List<String> _segments(String path) =>
+      path.split(Platform.pathSeparator)..removeWhere((s) => s.isEmpty);
+
+  /// Whether the folder at [inner] lies inside the one at [outer].
+  static bool _isWithin(List<String> inner, List<String> outer) =>
+      inner.length > outer.length &&
+      listEquals(inner.sublist(0, outer.length), outer);
 
   String _newId() =>
       List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();

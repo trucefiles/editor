@@ -42,7 +42,9 @@ void main() {
   File file(Directory dir, String name) => File('${dir.path}/$name');
 
   Future<Note> noteIn(Directory dir, String name, String text) async {
-    file(dir, name).writeAsStringSync(text);
+    file(dir, name)
+      ..createSync(recursive: true)
+      ..writeAsStringSync(text);
     // The first scan must be done, or the refresh finds no folders yet.
     await scans();
     await container.read(folderScansProvider.notifier).refresh();
@@ -88,6 +90,19 @@ void main() {
     expect(file(home, 'Plan.md').readAsStringSync(), '# Plan\n');
     expect(container.read(lastUsedFolderIdProvider), 'home');
     expect((await scans()).findNote(note.key), isNotNull);
+  });
+
+  test('create puts the note in the chosen subfolder', () async {
+    await scans();
+
+    final note = (await actions.create(
+      'Plan',
+      folders[0],
+      subfolder: path('a/b'),
+    )).value;
+
+    expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
+    expect((await scans()).findNote(note.key)?.path, path('a/b/Plan.md'));
   });
 
   test('delete removes the note; undo writes it back', () async {
@@ -138,5 +153,26 @@ void main() {
     await actions.setMark(note, NoteMark.none);
 
     expect(Directory('${work.path}/.truce').existsSync(), isFalse);
+  });
+
+  test('marks, deletes and restores a note several levels deep', () async {
+    await noteIn(work, 'todo.md', '# Root\n');
+    final deep = await noteIn(work, 'a/b/c/todo.md', '# Deep\n');
+    final root = (await scans()).notes.singleWhere(
+      (note) => note.path.value == 'todo.md',
+    );
+    const mark = NoteMark(pinned: true, color: 'teal');
+
+    await actions.setMark(deep, mark);
+
+    expect((await scans()).markOf(deep.key), mark);
+    expect((await scans()).markOf(root.key), NoteMark.none);
+
+    final deleted = (await actions.delete(deep, '# Deep\nmine\n')).value;
+    expect(file(work, 'a/b/c/todo.md').existsSync(), isFalse);
+    expect(file(work, 'todo.md').existsSync(), isTrue);
+    await actions.undoDelete(deleted);
+    expect(file(work, 'a/b/c/todo.md').readAsStringSync(), '# Deep\nmine\n');
+    expect((await scans()).markOf(deep.key), mark);
   });
 }

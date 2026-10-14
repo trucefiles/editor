@@ -2,11 +2,12 @@ import '../common/result.dart';
 import '../filter/file_filter.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import 'syncthing_conflict_grouping.dart';
 
 /// Scans a Syncthing folder with one listing: Syncthing keeps conflict
 /// copies as files next to their main file, so the same listing holds
-/// both.
+/// both. Lists only included files and their conflict copies.
 final class SyncthingFolderScanner implements FolderScanner {
   const SyncthingFolderScanner(this._store, this._filter);
 
@@ -15,18 +16,29 @@ final class SyncthingFolderScanner implements FolderScanner {
 
   @override
   Future<Result<FolderScan, StoreError>> scan() async {
-    final listed = await _store.list(enterFolder: _filter.includesFolder);
+    final listed = await _store.list(
+      enterFolder: _filter.includesFolder,
+      includeFile: _isWanted,
+    );
     return switch (listed) {
-      Ok(value: final entries) => Ok(
+      Ok(value: Listing(files: final entries, :final folders)) => Ok(
         FolderScan(
           files: [
             for (final entry in entries)
               if (_filter.includesFile(entry.path)) entry,
           ],
+          subfolders: folders,
           conflicts: groupSyncthingConflicts(entries, _filter.includesFile),
         ),
       ),
       Err(:final error) => Err(error),
     };
+  }
+
+  /// Included files and the conflict copies of included files.
+  bool _isWanted(RelPath file) {
+    if (_filter.includesFile(file)) return true;
+    final main = syncthingConflictMain(file);
+    return main != null && _filter.includesFile(main);
   }
 }

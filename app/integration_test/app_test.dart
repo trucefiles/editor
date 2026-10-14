@@ -45,6 +45,28 @@ void main() {
     await tester.waitFor(find.byTooltip('Saved'));
   });
 
+  testWidgets('creates a note in an empty subfolder', (tester) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.enterText(find.byType(TextField), 'Groceries');
+    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.text('a/b/c').last);
+    await tester.tapAndSettle(find.text('Create'));
+    // The editor opens once the file is written and rescanned.
+    await tester.waitFor(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+
+    await tester.waitForFile(
+      app.file('a/b/c/Groceries.md'),
+      '# Groceries\nMilk\n',
+    );
+    expect(app.file('Groceries.md').existsSync(), isFalse);
+  });
+
   testWidgets('checks a checklist item and saves it', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call Bob\n');
     await addFolder(tester);
@@ -282,6 +304,86 @@ void main() {
       find.textContaining('Some bold text.', findRichText: true),
       findsOne,
     );
+  });
+
+  testWidgets('edits a note several levels deep', (tester) async {
+    app.write('a/b/c/todo.md', '# Deep\n- [ ] Call Bob\n');
+    app.write('todo.md', '# Root\n');
+    await addFolder(tester);
+
+    await tester.waitFor(find.text('Notes/a/b/c'));
+    await openNote(tester, 'Deep');
+    expect(find.text('Notes/a/b/c'), findsOne);
+    await tester.tapAndSettle(find.byType(Checkbox));
+
+    await tester.waitForFile(
+      app.file('a/b/c/todo.md'),
+      '# Deep\n- [x] Call Bob\n',
+    );
+    expect(app.file('todo.md').readAsStringSync(), '# Root\n');
+  });
+
+  testWidgets('pins a note several levels deep from the grid', (tester) async {
+    app.write('a/b/c/plan.md', '# Plan\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    await tester.longPress(find.text('Plan'));
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Pin'));
+
+    await tester.waitFor(find.byTooltip('Pinned'));
+    expect(
+      Directory('${app.notes.path}/a/b/c')
+          .listSync()
+          .map((entry) => entry.uri.pathSegments.last),
+      ['plan.md'],
+    );
+  });
+
+  testWidgets('keeps clashing edits of a deep note as a conflict copy', (
+    tester,
+  ) async {
+    app.write('a/b/c/plan.md', '# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
+    await tester.pageBack();
+
+    final deep = Directory('${app.notes.path}/a/b/c');
+    List<File> copies() => [
+      for (final file in deep.listSync().whereType<File>())
+        if (file.path.contains('.sync-conflict-')) file,
+    ];
+    await tester.waitUntil(() => copies().isNotEmpty);
+    expect(copies().single.readAsStringSync(), '# Plan\nmine\n');
+    expect(app.notes.listSync().whereType<File>(), isEmpty);
+    await tester.waitFor(find.byTooltip('Sync conflict'));
+  });
+
+  testWidgets('resolves a conflict several levels deep', (tester) async {
+    app.write('a/b/c/todo.md', '# Todo\nmine\n');
+    app.write(
+      'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md',
+      '# Todo\nfirst\n',
+    );
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+
+    await tester.waitFor(find.text('Compare'));
+    await tester.tapAndSettle(find.text('Compare'));
+    expect(find.text('Notes/a/b/c'), findsOne);
+    await tester.tapAndSettle(find.text('Keep this').last);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitFor(find.textContaining('Conflict resolved'));
+    final deep = Directory('${app.notes.path}/a/b/c');
+    expect(deep.listSync().map((entry) => entry.uri.pathSegments.last), [
+      'todo.md',
+    ]);
+    expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
   });
 
   testWidgets('resolves two conflict copies one by one', (tester) async {

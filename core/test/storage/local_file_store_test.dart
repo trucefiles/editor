@@ -41,8 +41,35 @@ void main() {
 
       final result = await store.list();
 
-      final paths = result.value.map((e) => e.path.value).toSet();
+      final paths = result.value.files.map((e) => e.path.value).toSet();
       expect(paths, {'a.md', '.hidden', 'sub/deep/b.md'});
+    });
+
+    test('lists the folders it walked, empty ones included', () async {
+      await write('a/b/c/x.md', 'x');
+      await write('.stversions/a.md', 'old');
+      Directory('${root.path}/empty/deeper').createSync(recursive: true);
+
+      final result = await store.list(
+        enterFolder: (folder) => folder.value != '.stversions',
+      );
+
+      expect(
+        result.value.folders.map((f) => f.value),
+        unorderedEquals(['a', 'a/b', 'a/b/c', 'empty', 'empty/deeper']),
+      );
+    });
+
+    test('skips files that includeFile rejects', () async {
+      await write('a.md', 'a');
+      await write('sub/b.jpg', 'b');
+
+      final result = await store.list(
+        includeFile: (file) => file.value.endsWith('.md'),
+      );
+
+      expect(result.value.files.map((e) => e.path.value), ['a.md']);
+      expect(result.value.folders.map((f) => f.value), ['sub']);
     });
 
     test('skips folders that enterFolder rejects', () async {
@@ -53,7 +80,7 @@ void main() {
         enterFolder: (folder) => folder.value != '.stversions',
       );
 
-      final paths = result.value.map((e) => e.path.value);
+      final paths = result.value.files.map((e) => e.path.value);
       expect(paths, ['a.md']);
     });
 
@@ -62,7 +89,7 @@ void main() {
       await write('sub/def.md', 'd');
       final slashed = LocalFileStore('${root.path}/', (t) => t);
 
-      final paths = (await slashed.list()).value.map((e) => e.path.value);
+      final paths = (await slashed.list()).value.files.map((e) => e.path.value);
 
       expect(paths.toSet(), {'abc.md', 'sub/def.md'});
     });
@@ -75,9 +102,10 @@ void main() {
         await Process.run('chmod', ['000', '${root.path}/locked']);
         addTearDown(() => Process.run('chmod', ['700', '${root.path}/locked']));
 
-        final paths = (await store.list()).value.map((e) => e.path.value);
+        final listing = (await store.list()).value;
 
-        expect(paths, ['a.md']);
+        expect(listing.files.map((e) => e.path.value), ['a.md']);
+        expect(listing.folders, isEmpty);
       },
       skip: Platform.isWindows || _isRoot()
           ? 'needs file permissions that apply'
@@ -96,7 +124,7 @@ void main() {
       await write('a.md', 'hello');
 
       final content = (await store.read(path('a.md'))).value;
-      final listed = (await store.list()).value.single;
+      final listed = (await store.list()).value.files.single;
 
       expect(String.fromCharCodes(content.bytes), 'hello');
       expect(content.version, listed.version);
@@ -239,7 +267,7 @@ void main() {
 
     test('never deletes a folder', () async {
       await write('sub/a.md', 'a');
-      final version = (await store.list()).value.single.version;
+      final version = (await store.list()).value.files.single.version;
 
       final result = await store.delete(path('sub'), ifUnchanged: version);
 
@@ -250,7 +278,7 @@ void main() {
 
   test('replace never writes over a folder', () async {
     await write('sub/a.md', 'a');
-    final version = (await store.list()).value.single.version;
+    final version = (await store.list()).value.files.single.version;
 
     final result = await store.replace(
       path('sub'),
@@ -275,7 +303,7 @@ void main() {
     tearDown(() => outside.delete(recursive: true));
 
     test('are not listed', () async {
-      expect((await store.list()).value, isEmpty);
+      expect((await store.list()).value.files, isEmpty);
     });
 
     test('are not read, through a folder or as a file', () async {

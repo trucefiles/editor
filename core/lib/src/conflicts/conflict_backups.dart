@@ -37,7 +37,7 @@ final class ConflictBackups {
     final List<FileEntry> entries;
     switch (await _store.list()) {
       case Ok(:final value):
-        entries = value;
+        entries = value.files;
       case Err(:final error):
         return Err(error);
     }

@@ -51,6 +51,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     final startedAt = DateTime.now();
     final notes = <Note>[];
     final marks = <NoteKey, NoteMark>{};
+    final subfolders = <String, List<RelPath>>{};
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
     for (final folder in _folders) {
@@ -59,6 +60,8 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
         case Ok(value: final scan):
           notes.addAll(await _loaderFor(folder, services).load(scan.files));
           marks.addAll(await _marksOf(folder, services));
+          subfolders[folder.id] = [...scan.subfolders]
+            ..sort((a, b) => a.value.compareTo(b.value));
           conflicts.addAll(
             scan.conflicts.map((conflict) => FolderConflict(folder, conflict)),
           );
@@ -74,6 +77,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     return FolderScans(
       notes: notes,
       marks: marks,
+      subfolders: subfolders,
       conflicts: FolderConflicts(conflicts),
       failedFolders: failed,
       startedAt: startedAt,

@@ -25,6 +25,20 @@ void main() {
     expect(read('Shopping.md'), '# Shopping\n');
   });
 
+  test('creates a note in a subfolder several levels deep', () async {
+    Directory('${dir.path}/a/b/c').createSync(recursive: true);
+    File('${dir.path}/a/b/c/Shopping.md').writeAsStringSync('taken');
+
+    final note = (await files.create(
+      'Shopping',
+      subfolder: path('a/b/c'),
+    )).value;
+
+    expect(note.path.value, 'a/b/c/Shopping 2.md');
+    expect(read('a/b/c/Shopping 2.md'), '# Shopping\n');
+    expect(File('${dir.path}/Shopping.md').existsSync(), isFalse);
+  });
+
   test('picks a free name', () async {
     await files.create('Shopping');
 

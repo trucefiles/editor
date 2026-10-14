@@ -20,6 +20,18 @@ void main() {
     expect(RelPath.parse('todo.md')!.name, 'todo.md');
   });
 
+  test('RelPath.parent is the folder path, null at the root', () {
+    expect(RelPath.parse('a/b/c/todo.md')!.parent?.value, 'a/b/c');
+    expect(RelPath.parse('lists/todo.md')!.parent?.value, 'lists');
+    expect(RelPath.parse('todo.md')!.parent, isNull);
+  });
+
+  test('RelPath.child adds a last segment', () {
+    expect(RelPath.parse('a/b')!.child('todo.md')?.value, 'a/b/todo.md');
+    expect(RelPath.parse('a')!.child('b/c'), isNull);
+    expect(RelPath.parse('a')!.child('..'), isNull);
+  });
+
   test('RelPath.sibling replaces the last segment', () {
     expect(
       RelPath.parse('lists/todo.md')!.sibling('done.md')?.value,

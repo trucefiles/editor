@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../platform/folder_picker.dart';
 import '../platform/storage_access.dart';
+import 'add_folder_error.dart';
 import 'folder_selection.dart';
 import 'folder_settings_store.dart';
 import 'folders_controller.dart';
@@ -31,10 +32,7 @@ final class FolderActions {
   Future<Result<void, AddFolderError>> pickAndAdd() async {
     switch (await _ref.read(folderPickerProvider).pick()) {
       case Ok(value: final path?):
-        return switch (await _folders.add(path)) {
-          Ok() => const Ok(null),
-          Err() => const Err(AddFolderError.notSaved),
-        };
+        return _folders.add(path);
       case Ok():
         return const Ok(null);
       case Err(error: PickError.unsupportedLocation):
@@ -53,12 +51,4 @@ final class FolderActions {
     }
     return _folders.remove(folder);
   }
-}
-
-enum AddFolderError {
-  /// The picked folder has no path the app can open.
-  unsupportedLocation,
-
-  /// The folder list could not be saved.
-  notSaved,
 }

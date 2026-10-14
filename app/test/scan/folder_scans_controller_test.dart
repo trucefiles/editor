@@ -31,7 +31,9 @@ void main() {
   Future<FolderScans> scans() => container.read(folderScansProvider.future);
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
-    final file = File('${dir.path}/$name')..writeAsStringSync(text);
+    final file = File('${dir.path}/$name')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(text);
     if (modified != null) file.setLastModifiedSync(modified);
   }
 
@@ -50,6 +52,59 @@ void main() {
     expect(conflict.folder.id, 'home');
     expect(conflict.conflict.mainPath, path('todo.md'));
     expect(found.failedFolders, isEmpty);
+  });
+
+  test('finds notes, marks and conflicts several levels deep', () async {
+    final dir = tempFolder();
+    write(dir, 'todo.md', '# Root');
+    write(dir, 'a/todo.md', '# A');
+    write(dir, 'a/b/c/todo.md', '# Deep');
+    write(dir, 'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Old');
+    final folder = folderAt(dir);
+    await servicesFor(folder).marks
+        .set(path('a/b/c/todo.md'), const NoteMark(pinned: true));
+    await start([folder]);
+
+    final found = await scans();
+
+    expect(found.notes.first.path, path('a/b/c/todo.md'), reason: 'pinned');
+    expect(
+      found.notes.map((n) => n.path.value),
+      unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
+    );
+    final deep = (folderId: folder.id, path: path('a/b/c/todo.md'));
+    final shallow = (folderId: folder.id, path: path('a/todo.md'));
+    expect(found.markOf(deep).pinned, isTrue);
+    expect(found.markOf(shallow).pinned, isFalse);
+    expect(found.conflicts.forNote(deep), isNotNull);
+    expect(found.conflicts.forNote(shallow), isNull);
+  });
+
+  test('lists every subfolder per folder, empty ones too', () async {
+    final dir = tempFolder();
+    final other = tempFolder();
+    write(dir, 'root.md', '# Root');
+    write(dir, 'a/b/c/deep.md', '# Deep');
+    write(dir, 'a/b/c/deeper.md', '# Deeper');
+    write(dir, 'x/note.md', '# X');
+    write(dir, 'y/photo.jpg', 'not a note');
+    write(other, 'z/note.md', '# Z');
+    Directory('${dir.path}/empty/deeper').createSync(recursive: true);
+    write(dir, '.hidden/note.md', '# Hidden');
+    await start([folderAt(dir, id: 'one'), folderAt(other, id: 'two')]);
+
+    final found = await scans();
+
+    expect(found.subfoldersOf('one').map((p) => p.value), [
+      'a',
+      'a/b',
+      'a/b/c',
+      'empty',
+      'empty/deeper',
+      'x',
+      'y',
+    ]);
+    expect(found.subfoldersOf('two').map((p) => p.value), ['z']);
   });
 
   test('lists notes newest first', () async {

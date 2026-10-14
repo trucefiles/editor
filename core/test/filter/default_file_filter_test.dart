@@ -13,10 +13,16 @@ void main() {
     expect(filter.includesFolder(path('lists')), isTrue);
     expect(filter.includesFolder(path('lists/.git')), isFalse);
     expect(filter.includesFolder(path('.stversions')), isFalse);
+    expect(filter.includesFolder(path('a/b/c')), isTrue);
+    expect(filter.includesFolder(path('a/b/.git')), isFalse);
+    expect(filter.includesFolder(path('a/b/.stversions')), isFalse);
   });
 
   test('includes visible files of a known type only', () {
     expect(filter.includesFile(path('lists/todo.md')), isTrue);
+    expect(filter.includesFile(path('a/b/c/todo.md')), isTrue);
+    expect(filter.includesFile(path('a/b/.hidden.md')), isFalse);
+    expect(filter.includesFile(path('a/.stversions/b/todo.md')), isFalse);
     expect(filter.includesFile(path('photo.jpg')), isFalse);
     expect(filter.includesFile(path('.hidden.md')), isFalse);
     expect(filter.includesFile(path('.syncthing.todo.md.tmp')), isFalse);

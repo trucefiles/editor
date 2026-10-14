@@ -33,12 +33,16 @@ final class LocalFileStore implements FileStore {
   final Random _random = Random.secure();
 
   @override
-  Future<Result<List<FileEntry>, StoreError>> list({
+  Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
   }) => _guard(() async {
-    final entries = <FileEntry>[];
-    await _walk(Directory(rootPath), '', enterFolder, entries);
-    return entries;
+    final listing = Listing(files: [], folders: []);
+    await _walk(Directory(rootPath), '', (
+      enterFolder: enterFolder ?? _all,
+      includeFile: includeFile ?? _all,
+    ), listing);
+    return listing;
   });
 
   @override
@@ -113,25 +117,26 @@ final class LocalFileStore implements FileStore {
   Future<void> _walk(
     Directory folder,
     String prefix,
-    bool Function(RelPath folder)? enterFolder,
-    List<FileEntry> entries,
+    _Filters filters,
+    Listing listing,
   ) async {
     await for (final entity in folder.list(followLinks: false)) {
       final name = entity.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
       final path = RelPath.parse('$prefix$name');
       if (path == null) continue;
-      if (entity is File) {
+      if (entity is File && filters.includeFile(path)) {
         // Files come and go while walking (e.g. the sync tool's temp
         // files); one that is gone by now is skipped.
         final stat = await entity.stat();
         if (stat.type == FileSystemEntityType.file) {
-          entries.add(_entry(path, stat));
+          listing.files.add(_entry(path, stat));
         }
-      } else if (entity is Directory && (enterFolder?.call(path) ?? true)) {
+      } else if (entity is Directory && filters.enterFolder(path)) {
         // A subfolder that can't be read (e.g. `lost+found`) or is gone by
         // now is skipped, so it doesn't hide the rest of the folder.
         try {
-          await _walk(entity, '${path.value}/', enterFolder, entries);
+          await _walk(entity, '${path.value}/', filters, listing);
+          listing.folders.add(path);
         } on PathAccessException {
           continue;
         } on PathNotFoundException {
@@ -215,6 +220,14 @@ final class LocalFileStore implements FileStore {
   String _randomToken() =>
       List.generate(8, (_) => _random.nextInt(16).toRadixString(16)).join();
 }
+
+bool _all(RelPath _) => true;
+
+/// The filters of one [LocalFileStore.list] call.
+typedef _Filters = ({
+  bool Function(RelPath folder) enterFolder,
+  bool Function(RelPath file) includeFile,
+});
 
 /// Turns expected file-system failures into [Err] values.
 Future<Result<T, StoreError>> _guard<T>(Future<T> Function() action) async {
