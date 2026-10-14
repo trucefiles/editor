@@ -125,6 +125,23 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('a mouse drag by one level outdents', (tester) async {
+    final editor = await show(tester, '- [ ] a\n  - [ ] b');
+    final a = tester.getCenter(find.byType(Checkbox).at(0));
+    final b = tester.getCenter(find.byType(Checkbox).at(1));
+
+    // Left by the width of one level, as shown on screen.
+    await tester.dragFrom(
+      b,
+      Offset(a.dx - b.dx, 0),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
   testWidgets('shows the lines between items as Markdown', (tester) async {
     await show(tester, '# Shop\n\n**Fresh** only\n- [ ] milk');
 
