@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../common/snack.dart';
 import '../checklist_editor.dart';
 import '../checklist_settings.dart';
 import 'checklist_blocks.dart';
 import 'checklist_row.dart';
 import 'checklist_text_block.dart';
+import 'checklist_undo_hint.dart';
 import 'row_focus.dart';
 
 /// Keep-like view of a checklist: open items to drag and edit, an add row,
@@ -49,25 +49,33 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
   void _onAction(ChecklistLine line, ItemAction action) {
     switch (action) {
       case ItemAction.indent:
-        // Done items are shown in their own section, so they are not
-        // "above" an open item on screen.
-        final hidden = ref.read(doneSectionProvider)
-            ? _editor.list.doneIds
-            : const <int>{};
-        _editor.indent(line.id, hidden: hidden);
+        _editor.indent(line.id, hidden: _hiddenFrom(line));
       case ItemAction.outdent:
         _editor.outdent(line.id);
       case ItemAction.delete:
-        final before = _editor.remove(line.id);
-        _offerUndo('Item deleted', before);
+        _offerUndo('Item deleted', _editor.remove(line.id));
     }
   }
 
-  void _offerUndo(String message, String before) => showSnack(
-    context,
+  /// Lines not shown in [line]'s section. With a "Done" section, open and
+  /// done items are shown apart, so only items of the same section are
+  /// "above" [line] on screen.
+  Set<int> _hiddenFrom(ChecklistLine line) {
+    if (!ref.read(doneSectionProvider)) return const {};
+    final list = _editor.list;
+    final done = list.doneIds;
+    if (!done.contains(line.id)) return done;
+    return {
+      for (final other in list.lines)
+        if (!done.contains(other.id)) other.id,
+    };
+  }
+
+  void _offerUndo(String message, ChecklistUndo undo) => showChecklistUndoHint(
+    ScaffoldMessenger.of(context),
+    _editor,
     message,
-    actionLabel: 'Undo',
-    onAction: () => _editor.undo(before),
+    undo,
   );
 
   @override

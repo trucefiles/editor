@@ -187,6 +187,22 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
   });
 
+  testWidgets('an undo in a checklist goes away with the note', (tester) async {
+    app.file('list.md').writeAsStringSync('# List\n- [ ] a\n- [x] b\n');
+    await addFolder(tester);
+    await openNote(tester, 'List');
+    await tester.tapAndSettle(find.text('Clear done'));
+    expect(find.text('Undo'), findsOneWidget);
+
+    await tester.pageBack();
+
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    expect(find.text('Undo'), findsNothing);
+    await tester.waitForFile(app.file('list.md'), '# List\n- [ ] a\n');
+  });
+
   testWidgets('deletes a note and undoes it', (tester) async {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);

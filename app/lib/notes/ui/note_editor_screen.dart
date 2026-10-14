@@ -7,6 +7,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../checklist/checklist_editor.dart';
 import '../../checklist/checklist_settings.dart';
+import '../../checklist/ui/checklist_undo_hint.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
@@ -52,6 +53,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
   late final NoteViewsController _views;
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
 
   /// The note's last view on this device; else a list if it has items.
   late NoteView _view =
@@ -146,11 +148,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
-  Future<void> _delete() async {
+  /// [context] is this screen's, below its own messenger.
+  Future<void> _delete(BuildContext context) async {
     await _session.flush();
     final actions = ref.read(noteActionsProvider);
     final deleted = await actions.delete(_session.note, _session.text);
-    if (!mounted) return;
+    if (!context.mounted) return;
     switch (deleted) {
       case Ok(:final value):
         _offerUndo(actions, value);
@@ -160,7 +163,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
-  /// The hint outlives this screen, so it shows on the app's messenger.
+  /// The hint outlives this screen, so it shows on the app's messenger,
+  /// found from above this screen's own.
   void _offerUndo(NoteActions actions, DeletedNote deleted) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showHint(
@@ -174,7 +178,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  Widget _menu() {
+  /// [context] is this screen's, below its own messenger.
+  Widget _menu(BuildContext context) {
     final separateDone = ref.watch(doneSectionProvider);
     return PopupMenuButton<VoidCallback>(
       onSelected: (action) => action(),
@@ -192,7 +197,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           value: () => editNoteMark(context, ref, widget.note),
           child: const Text('Pin or color'),
         ),
-        PopupMenuItem(value: _delete, child: const Text('Delete note')),
+        PopupMenuItem(
+          value: () => _delete(context),
+          child: const Text('Delete note'),
+        ),
       ],
     );
   }
@@ -202,15 +210,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     unawaited(_views.remember(widget.note.key, view));
   }
 
-  void _clearDone() {
-    final before = _checklist.clearDone();
-    showSnack(
-      context,
-      'Done items cleared',
-      actionLabel: 'Undo',
-      onAction: () => _checklist.undo(before),
-    );
-  }
+  void _clearDone() => showChecklistUndoHint(
+    _messenger.currentState!,
+    _checklist,
+    'Done items cleared',
+    _checklist.clearDone(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -230,14 +235,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave());
       },
-      child: _scaffold(context),
+      child: _scaffold(),
     );
   }
 
   /// The edits were kept as a conflict copy; nothing more to edit here.
   bool get _isDone => _session.state == EditState.keptAsConflict;
 
-  Widget _scaffold(BuildContext context) {
+  /// Hints whose action works on this screen (e.g. undoing a checklist
+  /// action) show on this screen's own messenger, so they go with it: once
+  /// it is closed, there is nothing left to act on.
+  Widget _scaffold() => ScaffoldMessenger(
+    key: _messenger,
+    child: Builder(builder: _content),
+  );
+
+  Widget _content(BuildContext context) {
     final scans = ref.watch(folderScansProvider).value;
     final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
     final tint = noteTint(mark.color, Theme.of(context).colorScheme);
@@ -258,7 +271,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           SaveIndicator(_session.state),
           if (!_isDone) ...[
             NoteViewButton(view: _view, onChanged: _showView),
-            _menu(),
+            _menu(context),
           ],
         ],
       ),
