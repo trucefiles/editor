@@ -1,13 +1,11 @@
 name: CI
 
-# Pull requests and merges to main run the checks and UI tests only. Builds
-# run only when started by hand ("Run workflow", any branch); releases build
-# on their own.
+# Pull requests and merges to main run the checks and UI tests. Builds live
+# in the Test build and Release workflows.
 on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -46,27 +44,3 @@ jobs:
       - name: Run the app's UI tests
         working-directory: app
         run: xvfb-run --auto-servernum flutter test integration_test -d linux
-
-  build-android:
-    name: Build Android APK
-    needs: check
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/build-apk
-
-  build-flatpak:
-    name: Build Flatpak
-    needs: check
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/build-flatpak
