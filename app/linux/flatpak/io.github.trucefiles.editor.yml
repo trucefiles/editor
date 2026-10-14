@@ -22,7 +22,9 @@ modules:
       - ln -s /app/truce_editor/truce_editor /app/bin/truce_editor
       - install -Dm644 io.github.trucefiles.editor.desktop -t /app/share/applications
       - install -Dm644 io.github.trucefiles.editor.metainfo.xml -t /app/share/metainfo
-      - install -Dm644 io.github.trucefiles.editor.svg -t /app/share/icons/hicolor/scalable/apps
+      # PNGs only: appstreamcli compose can't read SVG icons.
+      - install -Dm644 io.github.trucefiles.editor-128.png /app/share/icons/hicolor/128x128/apps/io.github.trucefiles.editor.png
+      - install -Dm644 io.github.trucefiles.editor-256.png /app/share/icons/hicolor/256x256/apps/io.github.trucefiles.editor.png
     sources:
       - type: dir
         path: ../../build/linux/x64/release/bundle
@@ -31,5 +33,8 @@ modules:
         path: io.github.trucefiles.editor.desktop
       - type: file
         path: io.github.trucefiles.editor.metainfo.xml
+      # Rendered from io.github.trucefiles.editor.svg, the icon's source.
       - type: file
-        path: io.github.trucefiles.editor.svg
+        path: io.github.trucefiles.editor-128.png
+      - type: file
+        path: io.github.trucefiles.editor-256.png
