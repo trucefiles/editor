@@ -68,6 +68,29 @@ void main() {
     expect(identical(first, second), isTrue);
   });
 
+  test('keeps the time of a note whose file time went back', () async {
+    write('a.md', '# A'.codeUnits);
+    File('${dir.path}/a.md').setLastModifiedSync(DateTime(2025));
+    await load();
+    // Same text, older time: e.g. a stale time right after a write.
+    File('${dir.path}/a.md').setLastModifiedSync(DateTime(2024));
+
+    final note = (await load()).single;
+
+    expect(note.modified, DateTime(2025));
+    expect(note.version, (await services.store.read(note.path)).value.version);
+  });
+
+  test('takes the time of a changed note, even if older', () async {
+    write('a.md', '# A'.codeUnits);
+    File('${dir.path}/a.md').setLastModifiedSync(DateTime(2025));
+    await load();
+    write('a.md', '# B'.codeUnits);
+    File('${dir.path}/a.md').setLastModifiedSync(DateTime(2024));
+
+    expect((await load()).single.modified, DateTime(2024));
+  });
+
   test('drops a note whose file vanished after the scan', () async {
     write('a.md', '# A'.codeUnits);
     final files = (await services.scanner.scan()).value.files;

@@ -68,9 +68,8 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     }
     bool pinned(Note note) => marks[note.key]?.pinned ?? false;
     notes.sort(
-      (a, b) => pinned(a) != pinned(b)
-          ? (pinned(a) ? -1 : 1)
-          : b.modified.compareTo(a.modified),
+      (a, b) =>
+          pinned(a) != pinned(b) ? (pinned(a) ? -1 : 1) : _newestFirst(a, b),
     );
     return FolderScans(
       notes: notes,
@@ -79,6 +78,15 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
       failedFolders: failed,
       startedAt: startedAt,
     );
+  }
+
+  /// Newest first; notes with the same time by folder and path, so the
+  /// order never changes between scans of the same files.
+  static int _newestFirst(Note a, Note b) {
+    final byTime = b.modified.compareTo(a.modified);
+    if (byTime != 0) return byTime;
+    final byFolder = a.folder.id.compareTo(b.folder.id);
+    return byFolder != 0 ? byFolder : a.path.value.compareTo(b.path.value);
   }
 
   /// The folder's marks; none if they cannot be read, as they only help.

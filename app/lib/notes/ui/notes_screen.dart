@@ -24,6 +24,7 @@ import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_grid.dart';
 import 'note_mark_sheet.dart';
+import 'note_sections.dart';
 
 /// Home: all notes as cards, filtered by folder.
 class NotesScreen extends ConsumerStatefulWidget {
@@ -128,11 +129,20 @@ class _NotesBody extends ConsumerWidget {
     final selectedId = ref.watch(selectedFolderIdProvider);
     final scans = ref.watch(folderScansProvider).value;
     final conflicts = scans?.conflicts;
+    NoteMark markOf(Note note) => scans?.markOf(note.key) ?? NoteMark.none;
     bool shown(String folderId) => selectedId == null || folderId == selectedId;
     final notes = [
       for (final note in scans?.notes ?? const <Note>[])
         if (shown(note.folder.id)) note,
     ];
+    bool pinned(Note note) => markOf(note).pinned;
+    Widget card(Note note) => NoteCard(
+      note,
+      mark: markOf(note),
+      hasConflict: conflicts?.forNote(note.key) != null,
+      onTap: () => openNote(context, note),
+      onMark: () => editNoteMark(context, ref, note),
+    );
     final orphans = [
       for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
         if (shown(orphan.folder.id)) orphan,
@@ -163,27 +173,22 @@ class _NotesBody extends ConsumerWidget {
               ? const Center(child: CircularProgressIndicator())
               : notes.isEmpty && orphans.isEmpty
               ? const Center(child: Text('No notes yet.'))
-              : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
-                  gridDelegate: noteGridDelegate,
-                  itemCount: orphans.length + notes.length,
-                  itemBuilder: (context, index) {
-                    if (index < orphans.length) {
-                      final orphan = orphans[index];
-                      return OrphanCard(
+              : NoteSections(
+                  leading: [
+                    for (final orphan in orphans)
+                      OrphanCard(
                         orphan,
                         onTap: () => openConflict(context, orphan),
-                      );
-                    }
-                    final note = notes[index - orphans.length];
-                    return NoteCard(
-                      note,
-                      mark: scans.markOf(note.key),
-                      hasConflict: conflicts?.forNote(note.key) != null,
-                      onTap: () => openNote(context, note),
-                      onMark: () => editNoteMark(context, ref, note),
-                    );
-                  },
+                      ),
+                  ],
+                  pinned: [
+                    for (final note in notes)
+                      if (pinned(note)) card(note),
+                  ],
+                  others: [
+                    for (final note in notes)
+                      if (!pinned(note)) card(note),
+                  ],
                 ),
         ),
       ],
