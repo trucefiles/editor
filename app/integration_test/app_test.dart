@@ -12,8 +12,8 @@ import 'ui_driver.dart';
 
 /// End-to-end tests of the real app on the desktop, against a real folder.
 ///
-/// Run on Linux with `flutter test integration_test -d linux` (in CI under
-/// `xvfb-run`).
+/// Run on Linux with `flutter test integration_test/app_test.dart -d linux`
+/// (in CI under `xvfb-run`), one file per run.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

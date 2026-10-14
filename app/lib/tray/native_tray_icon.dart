@@ -4,7 +4,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'hosted_tray.dart';
 
 /// Tray icons from tray_manager: the image asset [iconAsset], with an
-/// "Open" and a "Quit" entry.
+/// "Open" and a "Quit" entry that a click on the icon opens.
 ShowTrayIcon nativeTrayIcon({
   required String iconAsset,
   required String tooltip,
@@ -19,6 +19,8 @@ ShowTrayIcon nativeTrayIcon({
     ..icon = ImageAsset.fromAsset(iconAsset)
     ..setTooltip(tooltip)
     ..setContextMenu(menu)
+    // Without a trigger the Linux tray gets no menu, and clicks do nothing.
+    ..setContextMenuTrigger(ContextMenuTrigger.clicked)
     ..setVisible(true);
   return icon.dispose;
 };
