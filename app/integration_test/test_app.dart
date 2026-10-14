@@ -7,6 +7,7 @@ import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_editor/tray/tray_wiring.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
 /// [notes] instead of opening the system dialog.
@@ -30,6 +31,7 @@ final class TestApp {
       overrides: [
         appStorageProvider.overrideWithValue(_storage),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        systemTrayProvider.overrideWithValue(null),
         folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
       ],
       child: const TruceApp(),

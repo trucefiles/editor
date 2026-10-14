@@ -17,6 +17,7 @@ import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
+import '../../tray/ui/close_to_tray_menu.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_views_controller.dart';
@@ -78,6 +79,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
             ),
           ),
+          const CloseToTrayMenu(),
         ],
       ),
       floatingActionButton: switch (folders.value) {

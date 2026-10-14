@@ -10,6 +10,7 @@ import '../../checklist/checklist_settings.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../common/toggle_label.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../markdown/markdown_view.dart';
 import '../../scan/folder_scans_controller.dart';
@@ -184,7 +185,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             value: () => ref
                 .read(doneSectionProvider.notifier)
                 .set(enabled: !separateDone),
-            child: _ToggleLabel('Done section', on: separateDone),
+            child: ToggleLabel('Done section', on: separateDone),
           ),
         ],
         PopupMenuItem(
@@ -295,21 +296,4 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
     );
   }
-}
-
-/// A menu label with a checkbox icon that shows on and off alike, so it
-/// lines up with plain menu items.
-class _ToggleLabel extends StatelessWidget {
-  const _ToggleLabel(this.label, {required this.on});
-
-  final String label;
-  final bool on;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(child: Text(label)),
-      Icon(on ? Icons.check_box : Icons.check_box_outline_blank),
-    ],
-  );
 }

@@ -10,6 +10,11 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
+  # The tray icon (StatusNotifierItem) on KDE, GNOME with AppIndicator, etc.
+  # tray_manager names the icon org.kde.StatusNotifierItem-<pid>-<n>;
+  # Flatpak takes wildcards only for whole name parts, hence org.kde.*.
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --own-name=org.kde.*
 modules:
   - name: truce-editor
     buildsystem: simple
