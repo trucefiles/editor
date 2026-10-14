@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../common/empty_state.dart';
 import '../../notes/note.dart';
 import '../../notes/ui/note_card.dart';
 import '../../notes/ui/note_grid.dart';
@@ -46,17 +47,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         builder: (context, _) {
           if (_query.text.trim().isEmpty) return const SizedBox.shrink();
           final found = searchNotes(notes, _query.text);
-          if (found.isEmpty) return const Center(child: Text('Nothing found.'));
-          return GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: noteGridDelegate,
-            itemCount: found.length,
-            itemBuilder: (context, index) => NoteCard(
-              found[index],
-              mark: scans?.markOf(found[index].key) ?? NoteMark.none,
-              onTap: () => openNote(context, found[index]),
-              onMark: () => editNoteMark(context, ref, found[index]),
-            ),
+          if (found.isEmpty) {
+            return const EmptyState(
+              icon: Icons.search_off,
+              text: 'Nothing found.',
+            );
+          }
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(12),
+                sliver: noteGrid([
+                  for (final note in found)
+                    NoteCard(
+                      note,
+                      mark: scans?.markOf(note.key) ?? NoteMark.none,
+                      onTap: () => openNote(context, note),
+                      onMark: () => editNoteMark(context, ref, note),
+                    ),
+                ]),
+              ),
+            ],
           );
         },
       ),

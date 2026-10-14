@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'notes/ui/notes_screen.dart';
+import 'theme/app_theme.dart';
 
 /// Root widget: app-wide theme and the first screen.
 class TruceApp extends StatefulWidget {
@@ -22,11 +23,8 @@ class _TruceAppState extends State<TruceApp> {
     return MaterialApp(
       title: TruceApp.title,
       navigatorKey: _navigator,
-      theme: ThemeData(colorSchemeSeed: Colors.teal),
-      darkTheme: ThemeData(
-        colorSchemeSeed: Colors.teal,
-        brightness: Brightness.dark,
-      ),
+      theme: appTheme(Brightness.light),
+      darkTheme: appTheme(Brightness.dark),
       builder: (context, child) => MouseBackNavigation(
         navigator: _navigator,
         child: KeypadNavigation(child: child!),
