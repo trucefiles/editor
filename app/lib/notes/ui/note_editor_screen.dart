@@ -249,6 +249,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           builder: (context, _) => NoteHeading(
             title: noteTitle(_text.text, widget.note.path),
             folder: widget.note.folder,
+            file: widget.note.path,
             edited: _session.note.modified,
           ),
         ),

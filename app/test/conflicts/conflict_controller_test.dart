@@ -31,8 +31,9 @@ void main() {
     await container.read(folderSettingsStoreProvider).save([folderAt(dir)]);
   });
 
-  void write(String name, String text) =>
-      File('${dir.path}/$name').writeAsStringSync(text);
+  void write(String name, String text) => File('${dir.path}/$name')
+    ..createSync(recursive: true)
+    ..writeAsStringSync(text);
 
   List<String> files() =>
       [for (final entry in dir.listSync()) entry.uri.pathSegments.last]..sort();
@@ -94,6 +95,21 @@ void main() {
 
     expect(kept.done, isTrue);
     expect(File('${dir.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
+  });
+
+  test('resolves a conflict several levels deep', () async {
+    write('a/b/c/todo.md', '# Todo\nmine\n');
+    write('a/b/c/$first', '# Todo\nfirst\n');
+    write('todo.md', '# Root todo\n');
+    final controller = await open();
+
+    final kept = await controller.keep(const KeepOther());
+
+    expect(kept.done, isTrue);
+    final deep = Directory('${dir.path}/a/b/c');
+    expect(deep.listSync().map((e) => e.uri.pathSegments.last), ['todo.md']);
+    expect(File('${deep.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
+    expect(File('${dir.path}/todo.md').readAsStringSync(), '# Root todo\n');
   });
 
   test('reports files changed since the scan and reloads them', () async {

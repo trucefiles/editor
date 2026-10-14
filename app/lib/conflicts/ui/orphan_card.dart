@@ -37,7 +37,7 @@ class OrphanCard extends StatelessWidget {
                   'Tap to restore or discard.',
                 ),
               ),
-              FolderBadge(conflict.folder),
+              FolderBadge(conflict.folder, file: conflict.conflict.mainPath),
             ],
           ),
         ),

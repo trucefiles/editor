@@ -36,7 +36,13 @@ final class TestApp {
     ),
   );
 
+  /// [name] may lead through subfolders; [write] creates them.
   File file(String name) => File('${notes.path}/$name');
+
+  /// Writes [text] to [name], creating its subfolders.
+  void write(String name, String text) => file(name)
+    ..createSync(recursive: true)
+    ..writeAsStringSync(text);
 }
 
 final class _FixedPicker implements FolderPicker {

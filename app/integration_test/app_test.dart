@@ -284,6 +284,46 @@ void main() {
     );
   });
 
+  testWidgets('edits a note several levels deep', (tester) async {
+    app.write('a/b/c/todo.md', '# Deep\n- [ ] Call Bob\n');
+    app.write('todo.md', '# Root\n');
+    await addFolder(tester);
+
+    await tester.waitFor(find.text('Notes/a/b/c'));
+    await openNote(tester, 'Deep');
+    expect(find.text('Notes/a/b/c'), findsOne);
+    await tester.tapAndSettle(find.byType(Checkbox));
+
+    await tester.waitForFile(
+      app.file('a/b/c/todo.md'),
+      '# Deep\n- [x] Call Bob\n',
+    );
+    expect(app.file('todo.md').readAsStringSync(), '# Root\n');
+  });
+
+  testWidgets('resolves a conflict several levels deep', (tester) async {
+    app.write('a/b/c/todo.md', '# Todo\nmine\n');
+    app.write(
+      'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md',
+      '# Todo\nfirst\n',
+    );
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+
+    await tester.waitFor(find.text('Compare'));
+    await tester.tapAndSettle(find.text('Compare'));
+    expect(find.text('Notes/a/b/c'), findsOne);
+    await tester.tapAndSettle(find.text('Keep this').last);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitFor(find.textContaining('Conflict resolved'));
+    final deep = Directory('${app.notes.path}/a/b/c');
+    expect(deep.listSync().map((entry) => entry.uri.pathSegments.last), [
+      'todo.md',
+    ]);
+    expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
+  });
+
   testWidgets('resolves two conflict copies one by one', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\nmine\n');
     app

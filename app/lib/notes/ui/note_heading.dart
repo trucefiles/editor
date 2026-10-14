@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../../common/edited_time.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_badge.dart';
 
-/// The editor's title: the note's title, its folder and its last edit.
+/// The editor's title: the note's title, where it lives and its last edit.
 class NoteHeading extends StatelessWidget {
   const NoteHeading({
     required this.title,
     required this.folder,
+    required this.file,
     required this.edited,
     super.key,
   });
 
   final String title;
   final NoteFolder folder;
+
+  /// The note's path in [folder].
+  final RelPath file;
   final DateTime edited;
 
   @override
@@ -31,7 +36,7 @@ class NoteHeading extends StatelessWidget {
         Row(
           spacing: 8,
           children: [
-            Flexible(child: FolderBadge(folder)),
+            Flexible(child: FolderBadge(folder, file: file)),
             Text('Edited $time', style: Theme.of(context).textTheme.labelSmall),
           ],
         ),

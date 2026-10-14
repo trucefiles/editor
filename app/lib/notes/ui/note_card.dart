@@ -64,7 +64,7 @@ class NoteCard extends StatelessWidget {
               Row(
                 spacing: 6,
                 children: [
-                  Expanded(child: FolderBadge(note.folder)),
+                  Expanded(child: FolderBadge(note.folder, file: note.path)),
                   Text(
                     editedTime(
                       MaterialLocalizations.of(context),

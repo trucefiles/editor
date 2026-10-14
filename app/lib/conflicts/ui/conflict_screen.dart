@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../folders/ui/folder_badge.dart';
 import '../conflict_controller.dart';
 import '../conflict_sides.dart';
 import '../folder_conflicts.dart';
@@ -84,7 +85,16 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     final count = conflict.conflict.copies.length;
     return Scaffold(
       appBar: AppBar(
-        title: Text(conflict.conflict.mainPath.name),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              conflict.conflict.mainPath.name,
+              overflow: TextOverflow.ellipsis,
+            ),
+            FolderBadge(conflict.folder, file: conflict.conflict.mainPath),
+          ],
+        ),
         bottom: count > 1
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(24),

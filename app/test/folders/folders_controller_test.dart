@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folders/add_folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
@@ -43,6 +45,29 @@ void main() {
     final list = await folders.read(foldersProvider.future);
     expect(list.map((f) => f.path), ['/sync/a', '/sync/b']);
     expect(list[0].color, isNot(list[1].color));
+  });
+
+  test('refuses a folder inside or holding an added one', () async {
+    final folders = container();
+    final controller = folders.read(foldersProvider.notifier);
+    await controller.add('/sync/Notes');
+
+    expect(
+      (await controller.add('/sync/Notes/work/2026')).error,
+      AddFolderError.overlaps,
+    );
+    expect((await controller.add('/sync')).error, AddFolderError.overlaps);
+    expect(
+      await controller.add('/sync/Notes/'),
+      isA<Ok<void, AddFolderError>>(),
+    );
+    expect(
+      await controller.add('/sync/Notes2'),
+      isA<Ok<void, AddFolderError>>(),
+    );
+
+    final list = await folders.read(foldersProvider.future);
+    expect(list.map((f) => f.path), ['/sync/Notes', '/sync/Notes2']);
   });
 
   test('saves changes and removals for the next start', () async {

@@ -59,17 +59,26 @@ void main() {
     });
   });
 
+  test('reads and discards a copy several levels deep', () async {
+    store.put('a/b/c/$copy1', 'deep copy');
+    final copy = (await scan()).single.copies.single;
+
+    expect(String.fromCharCodes((await source.read(copy)).value), 'deep copy');
+    await source.discard(copy);
+    expect(store.files, isEmpty);
+  });
+
   group('add', () {
     test('adds a copy that the scan reports for the main file', () async {
-      store.put('lists/todo.md', 'main');
+      store.put('a/b/c/todo.md', 'main');
 
-      await source.add(path('lists/todo.md'), bytesOf('mine'));
+      await source.add(path('a/b/c/todo.md'), bytesOf('mine'));
 
       final conflict = (await scan()).single;
-      expect(conflict.mainPath, path('lists/todo.md'));
+      expect(conflict.mainPath, path('a/b/c/todo.md'));
       expect(
         conflict.copies.single.id,
-        'lists/todo.sync-conflict-20261013-143000.md',
+        'a/b/c/todo.sync-conflict-20261013-143000.md',
       );
       expect(store.textOf(conflict.copies.single.id), 'mine');
     });

@@ -31,7 +31,9 @@ void main() {
   Future<FolderScans> scans() => container.read(folderScansProvider.future);
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
-    final file = File('${dir.path}/$name')..writeAsStringSync(text);
+    final file = File('${dir.path}/$name')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(text);
     if (modified != null) file.setLastModifiedSync(modified);
   }
 
@@ -50,6 +52,32 @@ void main() {
     expect(conflict.folder.id, 'home');
     expect(conflict.conflict.mainPath, path('todo.md'));
     expect(found.failedFolders, isEmpty);
+  });
+
+  test('finds notes, marks and conflicts several levels deep', () async {
+    final dir = tempFolder();
+    write(dir, 'todo.md', '# Root');
+    write(dir, 'a/todo.md', '# A');
+    write(dir, 'a/b/c/todo.md', '# Deep');
+    write(dir, 'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Old');
+    final folder = folderAt(dir);
+    await servicesFor(folder).marks
+        .set(path('a/b/c/todo.md'), const NoteMark(pinned: true));
+    await start([folder]);
+
+    final found = await scans();
+
+    expect(found.notes.first.path, path('a/b/c/todo.md'), reason: 'pinned');
+    expect(
+      found.notes.map((n) => n.path.value),
+      unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
+    );
+    final deep = (folderId: folder.id, path: path('a/b/c/todo.md'));
+    final shallow = (folderId: folder.id, path: path('a/todo.md'));
+    expect(found.markOf(deep).pinned, isTrue);
+    expect(found.markOf(shallow).pinned, isFalse);
+    expect(found.conflicts.forNote(deep), isNotNull);
+    expect(found.conflicts.forNote(shallow), isNull);
   });
 
   test('lists notes newest first', () async {

@@ -39,6 +39,22 @@ void main() {
       );
     });
 
+    test('include notes several levels deep', () async {
+      store
+        ..put('a/b/c/d/deep.md', 'deep')
+        ..put('a/b/mid.md', 'mid')
+        ..put('a/b/.git/objects/x.md', 'hidden')
+        ..put('a/.stversions/b/old.md', 'old')
+        ..put('a/b/c/.syncthing.d.md.tmp', 'temp');
+
+      final files = (await scanner.scan()).value.files;
+
+      expect(
+        files.map((f) => f.path.value),
+        unorderedEquals(['a/b/c/d/deep.md', 'a/b/mid.md']),
+      );
+    });
+
     test('come from a single listing with the conflicts', () async {
       store
         ..put('todo.md', 'main')
@@ -76,6 +92,28 @@ void main() {
 
       expect(conflict.mainPath, path('lists/todo.md'));
       expect(conflict.copies.single.id, 'lists/$copy1');
+    });
+
+    test('keeps same-named notes in different subfolders apart', () async {
+      store
+        ..put('todo.md', 'root')
+        ..put('a/todo.md', 'a')
+        ..put('a/$copy1', 'a copy')
+        ..put('a/b/c/todo.md', 'c')
+        ..put('a/b/c/$copy2', 'c copy');
+
+      final conflicts = (await scanner.scan()).value.conflicts;
+
+      expect(
+        {
+          for (final c in conflicts)
+            c.mainPath.value: c.copies.map((copy) => copy.id).toList(),
+        },
+        {
+          'a/todo.md': ['a/$copy1'],
+          'a/b/c/todo.md': ['a/b/c/$copy2'],
+        },
+      );
     });
 
     test('reports a copy without main file as orphaned', () async {

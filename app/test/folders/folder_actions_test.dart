@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folders/add_folder_error.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -68,6 +69,17 @@ void main() {
 
     expect(added.error, AddFolderError.unsupportedLocation);
     expect(await paths(), isEmpty);
+  });
+
+  test('reports a folder inside an added one', () async {
+    picker.result = const Ok('/sync/Notes');
+    await actions.pickAndAdd();
+    picker.result = const Ok('/sync/Notes/work');
+
+    final added = await actions.pickAndAdd();
+
+    expect(added.error, AddFolderError.overlaps);
+    expect(await paths(), ['/sync/Notes']);
   });
 
   test('remove stops filtering the notes by that folder', () async {
