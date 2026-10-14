@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../common/edited_time.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_colors.dart';
 import '../note_title.dart';
 
-/// A note in the grid: title, first lines, folder, pin and color.
+/// A note in the grid: title, first lines, folder, last edit, pin and
+/// color.
 class NoteCard extends StatelessWidget {
   const NoteCard(
     this.note, {
@@ -60,8 +62,17 @@ class NoteCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Row(
+                spacing: 6,
                 children: [
                   Expanded(child: FolderBadge(note.folder)),
+                  Text(
+                    editedTime(
+                      MaterialLocalizations.of(context),
+                      note.modified,
+                      now: DateTime.now(),
+                    ),
+                    style: textTheme.labelSmall,
+                  ),
                   if (mark.pinned)
                     const Tooltip(
                       message: 'Pinned',

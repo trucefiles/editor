@@ -21,7 +21,7 @@ class NoteViewButton extends StatelessWidget {
   };
 
   static String _label(NoteView view) => switch (view) {
-    NoteView.text => 'Text',
+    NoteView.text => 'Source',
     NoteView.list => 'List',
     NoteView.rendered => 'Rendered',
   };

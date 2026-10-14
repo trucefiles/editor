@@ -61,6 +61,20 @@ void main() {
     expect((await scans()).notes.map((n) => n.title), ['New', 'Old']);
   });
 
+  test('lists notes with the same time by path', () async {
+    final dir = tempFolder();
+    for (final name in ['c.md', 'a.md', 'b.md']) {
+      write(dir, name, '# ${name[0]}', modified: DateTime(2025));
+    }
+    await start([folderAt(dir)]);
+
+    expect((await scans()).notes.map((n) => n.path.value), [
+      'a.md',
+      'b.md',
+      'c.md',
+    ]);
+  });
+
   test('lists pinned notes first and keeps marks by note', () async {
     final dir = tempFolder();
     write(dir, 'old.md', '# Old', modified: DateTime(2020));

@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/notes/note_colors.dart';
+import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -89,7 +92,7 @@ void main() {
       find.text('eggs'),
     );
     await tester.tapAndSettle(find.byTooltip('View: List'));
-    await tester.tapAndSettle(find.text('Text'));
+    await tester.tapAndSettle(find.text('Source'));
     await changeElsewhere(
       '# Todo\n- [x] milk\n- [ ] eggs\n- [ ] tea\n',
       find.textContaining('tea'),
@@ -179,14 +182,33 @@ void main() {
 
   testWidgets('pins a note from the grid', (tester) async {
     app.file('plan.md').writeAsStringSync('# Plan\n');
+    app.file('ideas.md').writeAsStringSync('# Ideas\n');
     await addFolder(tester);
     await tester.waitFor(find.text('Plan'));
+    expect(find.text('Others'), findsNothing);
 
     await tester.longPress(find.text('Plan'));
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.text('Pin'));
 
     await tester.waitFor(find.byTooltip('Pinned'));
+    // In its own section, above the others.
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Pinned'), lessThan(top('Plan')));
+    expect(top('Plan'), lessThan(top('Others')));
+    expect(top('Others'), lessThan(top('Ideas')));
+  });
+
+  testWidgets('warns about an unsynced folder in full only in Folders', (
+    tester,
+  ) async {
+    await addFolder(tester);
+
+    await tester.waitFor(find.byTooltip('Not inside a Syncthing folder'));
+    expect(find.textContaining('may not reach'), findsNothing);
+
+    await tester.tapAndSettle(find.byTooltip('Folders'));
+    await tester.waitFor(find.textContaining('may not reach'));
   });
 
   testWidgets('removes a folder from the app, keeping its files', (
@@ -213,13 +235,38 @@ void main() {
     expect(find.byType(Checkbox), findsOneWidget);
 
     await tester.tapAndSettle(find.byTooltip('View: List'));
-    await tester.tapAndSettle(find.text('Text'));
+    await tester.tapAndSettle(find.text('Source'));
     await tester.pageBack();
     await tester.pumpAndSettle();
     await openNote(tester, 'Todo');
 
     expect(find.byType(Checkbox), findsNothing);
-    expect(find.byTooltip('View: Text'), findsOneWidget);
+    expect(find.byTooltip('View: Source'), findsOneWidget);
+  });
+
+  testWidgets('an open note shows its color and last edit', (tester) async {
+    app.file('plan.md').writeAsStringSync('# Plan\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+    // Right click, as with a mouse.
+    await tester.tap(
+      find.text('Plan'),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.byTooltip('teal'));
+
+    await openNote(tester, 'Plan');
+
+    final screen = find.byType(NoteEditorScreen);
+    await tester.waitFor(screen);
+    final scheme = Theme.of(tester.element(screen)).colorScheme;
+    final scaffold = tester.widget<Scaffold>(
+      find.descendant(of: screen, matching: find.byType(Scaffold)),
+    );
+    expect(scaffold.backgroundColor, noteTint('teal', scheme));
+    expect(find.textContaining('Edited '), findsOne);
   });
 
   testWidgets('renders a note as Markdown', (tester) async {
@@ -227,7 +274,7 @@ void main() {
     await addFolder(tester);
     await openNote(tester, 'Read me');
 
-    await tester.tapAndSettle(find.byTooltip('View: Text'));
+    await tester.tapAndSettle(find.byTooltip('View: Source'));
     await tester.tapAndSettle(find.text('Rendered'));
 
     expect(find.byType(TextField), findsNothing);

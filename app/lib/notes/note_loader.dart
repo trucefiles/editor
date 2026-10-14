@@ -12,6 +12,11 @@ import 'note.dart';
 /// (e.g. mid-rewrite, briefly no access) keeps its last version while the
 /// file exists, so it doesn't look deleted; saving to it then fails its
 /// change check instead of overwriting anything.
+///
+/// A new version with the same text never moves a note's time back: some
+/// file systems (e.g. Android's shared storage) report a stale file time
+/// right after a write and the real one a moment later, which would make
+/// the note jump in the newest-first order and back.
 final class NoteLoader {
   NoteLoader(this._folder, this._services);
 
@@ -44,7 +49,7 @@ final class NoteLoader {
             path: entry.path,
             file: file,
             version: content.version,
-            modified: content.modified,
+            modified: _modified(content.modified, file, last),
           ),
           null => last,
         };
@@ -54,4 +59,13 @@ final class NoteLoader {
         return last;
     }
   }
+
+  /// [read], or [last]'s time if [file] holds [last]'s text and [read] is
+  /// older: a restamp, not a change.
+  static DateTime _modified(DateTime read, TextFile file, Note? last) =>
+      last != null &&
+          last.file.text == file.text &&
+          read.isBefore(last.modified)
+      ? last.modified
+      : read;
 }

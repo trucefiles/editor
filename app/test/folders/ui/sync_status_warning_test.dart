@@ -25,7 +25,6 @@ void main() {
         home: SyncStatusWarning(
           folderAt(tempFolder()),
           includeUnknown: includeUnknown,
-          showFolderName: true,
         ),
       ),
     ),
@@ -35,7 +34,7 @@ void main() {
     await show(tester, SyncStatus.notSynced);
     await tester.pump();
 
-    expect(find.textContaining('Notes: Not inside a Syncthing'), findsOne);
+    expect(find.textContaining('Not inside a Syncthing'), findsOne);
   });
 
   testWidgets('says nothing about a synced folder', (tester) async {

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' show AppExitResponse;
+import 'dart:ui' show AppExitResponse, BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,17 +11,18 @@ import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
-import '../../folders/ui/folder_badge.dart';
 import '../../markdown/markdown_view.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
+import '../note_colors.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
 import '../note_view.dart';
 import '../note_views_controller.dart';
 import 'edit_state_banner.dart';
+import 'note_heading.dart';
 import 'note_mark_sheet.dart';
 import 'note_view_button.dart';
 import 'save_indicator.dart';
@@ -236,19 +237,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool get _isDone => _session.state == EditState.keptAsConflict;
 
   Widget _scaffold(BuildContext context) {
+    final scans = ref.watch(folderScansProvider).value;
+    final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
+    final tint = noteTint(mark.color, Theme.of(context).colorScheme);
     return Scaffold(
+      backgroundColor: tint,
       appBar: AppBar(
+        backgroundColor: tint,
         title: ListenableBuilder(
           listenable: _text,
-          builder: (context, _) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                noteTitle(_text.text, widget.note.path),
-                overflow: TextOverflow.ellipsis,
-              ),
-              FolderBadge(widget.note.folder),
-            ],
+          builder: (context, _) => NoteHeading(
+            title: noteTitle(_text.text, widget.note.path),
+            folder: widget.note.folder,
+            edited: _session.note.modified,
           ),
         ),
         actions: [
@@ -261,12 +262,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
       body: Column(
         children: [
-          if (ref
-                  .watch(folderScansProvider)
-                  .value
-                  ?.conflicts
-                  .forNote(widget.note.key)
-              case final conflict?)
+          if (scans?.conflicts.forNote(widget.note.key) case final conflict?)
             ConflictBanner(conflict),
           EditStateBanner(_session, onClose: _leave),
           Expanded(
@@ -283,6 +279,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 // The raw source, so monospace: Markdown syntax lines up as
                 // in a code editor.
                 style: const TextStyle(fontFamily: 'monospace'),
+                // Highlights only the selected text, not up to the longest
+                // line (Flutter's default outside the web).
+                selectionWidthStyle: BoxWidthStyle.tight,
                 textAlignVertical: TextAlignVertical.top,
                 decoration: const InputDecoration(
                   border: InputBorder.none,

@@ -12,7 +12,6 @@ class SyncStatusWarning extends ConsumerWidget {
   const SyncStatusWarning(
     this.folder, {
     this.includeUnknown = false,
-    this.showFolderName = false,
     super.key,
   });
 
@@ -20,9 +19,6 @@ class SyncStatusWarning extends ConsumerWidget {
 
   /// Also says when the check was not possible (e.g. in a sandbox).
   final bool includeUnknown;
-
-  /// Starts the text with the folder's name, for lists of all folders.
-  final bool showFolderName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,10 +51,7 @@ class SyncStatusWarning extends ConsumerWidget {
         children: [
           Icon(icon, size: 18, color: color),
           Expanded(
-            child: Text(
-              showFolderName ? '${folder.name}: $message' : message,
-              style: TextStyle(color: color),
-            ),
+            child: Text(message, style: TextStyle(color: color)),
           ),
         ],
       ),
