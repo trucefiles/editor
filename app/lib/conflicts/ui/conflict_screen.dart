@@ -12,6 +12,7 @@ import 'version_pane.dart';
 
 /// Shows both versions of a conflicting note side by side; the user keeps
 /// one. Several conflict copies are resolved one by one, oldest first.
+/// Closes once no copy is left, with the outcome to tell as its result.
 class ConflictScreen extends ConsumerStatefulWidget {
   const ConflictScreen(this.initial, {super.key});
 
@@ -30,12 +31,16 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     if (!await _confirm(conflict, resolution)) return;
     final kept = await _controller.keep(resolution);
     if (!mounted) return;
-    if (kept.error case final error?) {
-      showSnack(context, _resolveText(error));
-    } else if (kept.done) {
-      showSnack(context, 'Conflict resolved. A backup is kept for 7 days.');
+    final outcome = switch (kept.error) {
+      final error? => _resolveText(error),
+      null => 'Conflict resolved. A backup is kept for 7 days.',
+    };
+    if (kept.done) {
+      // The opener tells it, where the user lands.
+      Navigator.pop(context, outcome);
+    } else if (kept.error != null) {
+      showSnack(context, outcome);
     }
-    if (kept.done) Navigator.pop(context);
   }
 
   Future<bool> _confirm(FolderConflict conflict, Resolution resolution) async {

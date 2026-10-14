@@ -46,19 +46,25 @@ final class ChecklistEditor extends ChangeNotifier {
 
   void outdent(int id) => _apply(_list.outdent(id));
 
-  /// Returns the text before, for [undo].
-  String remove(int id) => _applyUndoable(_list.remove(id));
+  /// Returns how to [undo] it.
+  ChecklistUndo remove(int id) => _applyUndoable(_list.remove(id));
 
-  /// Returns the text before, for [undo].
-  String clearDone() => _applyUndoable(_list.clearDone());
+  /// Returns how to [undo] it.
+  ChecklistUndo clearDone() => _applyUndoable(_list.clearDone());
 
-  /// Goes back to [text] returned by an earlier action.
-  void undo(String text) => _apply(_list.reparse(text));
+  /// Goes back to before the action that returned [undo]; returns whether
+  /// it did. Does nothing once the checklist changed since, here or
+  /// elsewhere: going back would drop that change.
+  bool undo(ChecklistUndo undo) {
+    if (_list.text != undo.after) return false;
+    _apply(_list.reparse(undo.before));
+    return true;
+  }
 
-  String _applyUndoable(Checklist list) {
+  ChecklistUndo _applyUndoable(Checklist list) {
     final before = _list.text;
     _apply(list);
-    return before;
+    return (before: before, after: list.text);
   }
 
   void _apply(Checklist list) {
@@ -79,3 +85,6 @@ final class ChecklistEditor extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// The text before and after an action, for [ChecklistEditor.undo].
+typedef ChecklistUndo = ({String before, String after});

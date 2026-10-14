@@ -44,12 +44,30 @@ void main() {
   });
 
   test('undo restores the text before clear done', () {
-    final before = editor.clearDone();
+    final undo = editor.clearDone();
     expect(session.text, '# list\n- [ ] a\n');
 
-    editor.undo(before);
+    expect(editor.undo(undo), isTrue);
 
     expect(session.text, '# list\n- [ ] a\n- [x] b\n');
+  });
+
+  test('undo keeps an edit made after the action', () {
+    final undo = editor.remove(idOf('b'));
+    editor.setText(idOf('a'), 'a2');
+
+    expect(editor.undo(undo), isFalse);
+
+    expect(session.text, '# list\n- [ ] a2\n');
+  });
+
+  test('undo keeps a change from elsewhere made after the action', () {
+    final undo = editor.clearDone();
+    session.edit('# list\n- [ ] from elsewhere\n');
+
+    expect(editor.undo(undo), isFalse);
+
+    expect(session.text, '# list\n- [ ] from elsewhere\n');
   });
 
   test('follows text edited in the text view', () {

@@ -89,6 +89,20 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('tab in the done section indents under the done item above', (
+    tester,
+  ) async {
+    final editor = await show(tester, '- [ ] a\n- [x] d1\n- [x] d2');
+    await tester.tap(field('d2'));
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    expect(editor.list.text, '- [ ] a\n- [x] d1\n  - [x] d2');
+    await close(tester);
+  });
+
   testWidgets('swiping right indents, left outdents', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
