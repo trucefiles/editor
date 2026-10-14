@@ -10,6 +10,8 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
+  # The tray icon (StatusNotifierItem) on KDE, GNOME with AppIndicator, etc.
+  - --talk-name=org.kde.StatusNotifierWatcher
 modules:
   - name: truce-editor
     buildsystem: simple

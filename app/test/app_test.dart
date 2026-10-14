@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
+import 'package:truce_editor/tray/tray_wiring.dart';
 
 import 'support.dart';
 
@@ -16,6 +17,7 @@ void main() {
           overrides: [
             appStorageProvider.overrideWithValue(storage),
             deviceIdProvider.overrideWithValue('0123456789abcdef'),
+            systemTrayProvider.overrideWithValue(null),
           ],
           child: const TruceApp(),
         ),
