@@ -241,6 +241,77 @@ void main() {
     });
   });
 
+  group('replace in place', () {
+    late LocalFileStore inPlace;
+
+    setUp(() {
+      inPlace = LocalFileStore(
+        root.path,
+        (token) => '.tmp-$token',
+        replacesInPlace: true,
+      );
+    });
+
+    Future<Result<FileEntry, StoreError>> replace(String text) async =>
+        inPlace.replace(
+          path('a.md'),
+          bytesOf(text),
+          ifUnchanged: await versionOf('a.md'),
+        );
+
+    test('replaces the text and leaves no temp file', () async {
+      await write('a.md', 'old');
+
+      final result = await replace('new text');
+
+      expect(textAt('a.md'), 'new text');
+      expect(result.value.version, await versionOf('a.md'));
+      expect(root.listSync().map((e) => e.uri.pathSegments.last), ['a.md']);
+    });
+
+    test('writes into the existing file', () async {
+      await write('a.md', 'old');
+      // A hard link shares the file: it sees the new text only if the
+      // store wrote into the file instead of renaming a new one over it.
+      await Process.run('ln', ['${root.path}/a.md', '${root.path}/link']);
+
+      await replace('new');
+
+      expect(textAt('link'), 'new');
+    }, skip: Platform.isWindows ? 'no ln' : false);
+
+    test('fails with changedSinceRead and writes nothing', () async {
+      await write('a.md', 'old');
+      final version = await versionOf('a.md');
+      await write('a.md', 'changed elsewhere');
+
+      final result = await inPlace.replace(
+        path('a.md'),
+        bytesOf('new'),
+        ifUnchanged: version,
+      );
+
+      expect(result.error, StoreError.changedSinceRead);
+      expect(textAt('a.md'), 'changed elsewhere');
+      expect(root.listSync(), hasLength(1));
+    });
+
+    test('never recreates a deleted file', () async {
+      await write('a.md', 'old');
+      final version = await versionOf('a.md');
+      await File('${root.path}/a.md').delete();
+
+      final result = await inPlace.replace(
+        path('a.md'),
+        bytesOf('new'),
+        ifUnchanged: version,
+      );
+
+      expect(result.error, StoreError.notFound);
+      expect(root.listSync(), isEmpty);
+    });
+  });
+
   group('delete', () {
     test('deletes an unchanged file', () async {
       await write('a.md', 'old');

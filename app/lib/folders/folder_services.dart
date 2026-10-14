@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -21,7 +23,13 @@ final class FolderServices {
       adapter,
       ExtensionFileTypeDetector.standard(),
     );
-    final store = LocalFileStore(path, adapter.tempFileName);
+    final store = LocalFileStore(
+      path,
+      adapter.tempFileName,
+      // On Android shared storage, a renamed-over file soon shows other
+      // apps the old file's modification time, so sync tools miss the save.
+      replacesInPlace: Platform.isAndroid,
+    );
     return FolderServices._(
       store: store,
       scanner: SyncthingFolderScanner(store, filter),
