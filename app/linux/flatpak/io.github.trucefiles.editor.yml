@@ -12,6 +12,7 @@ finish-args:
   - --device=dri
   # The tray icon (StatusNotifierItem) on KDE, GNOME with AppIndicator, etc.
   - --talk-name=org.kde.StatusNotifierWatcher
+  - --own-name=org.kde.StatusNotifierItem-*
 modules:
   - name: truce-editor
     buildsystem: simple

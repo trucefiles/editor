@@ -2,7 +2,7 @@ name: truce_editor
 description: Truce Editor app. UI on top of truce_core.
 publish_to: none
 resolution: workspace
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.13.0
@@ -17,6 +17,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   flutter_staggered_grid_view: ^0.7.0
   path_provider: ^2.1.6
+  tray_manager: ^0.7.0
   truce_core: any
 
 dev_dependencies:
