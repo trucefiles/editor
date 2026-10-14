@@ -74,8 +74,8 @@ final class Checklist {
   }
 
   /// Adds an unchecked item at the left margin after the last item, or at
-  /// the end if there are none. Returns the new checklist and the new
-  /// line's id.
+  /// the end if there are none; an empty document gets it as its first
+  /// line. Returns the new checklist and the new line's id.
   (Checklist, int) append(String text) {
     final lastItem = lines.lastIndexWhere((line) => line.isItem);
     if (lastItem >= 0) {
@@ -86,6 +86,7 @@ final class Checklist {
       _nextId,
       '- [ ] ${ChecklistLine._oneLine(text)}',
     );
+    if (this.text.isEmpty) return _insert(0, item);
     final trailingEmpty = lines.length > 1 && lines.last.raw.isEmpty;
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }

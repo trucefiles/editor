@@ -39,11 +39,14 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
     super.dispose();
   }
 
-  void _addItem(String text) {
-    if (text.trim().isEmpty) return;
-    _editor.append(text.trim());
+  /// Typing in the add row starts a new item right away and moves the
+  /// cursor into it, so typed text never lives only in this field: it is
+  /// in the note and saved like any other edit.
+  void _startItem(String typed) {
+    final text = typed.trimLeft();
+    if (text.isEmpty) return;
     _newItem.clear();
-    _focus.of(_addRowKey).requestFocus();
+    _focus.focusLater(_editor.append(text));
   }
 
   void _onAction(ChecklistLine line, ItemAction action) {
@@ -176,7 +179,7 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
                 hintText: 'Add item',
                 border: InputBorder.none,
               ),
-              onSubmitted: _addItem,
+              onChanged: _startItem,
             ),
           ),
         ),

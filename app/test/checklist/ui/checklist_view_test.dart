@@ -76,6 +76,42 @@ void main() {
     );
   });
 
+  testWidgets('typing in the add row starts an item in the note', (
+    tester,
+  ) async {
+    final editor = await show(tester, '');
+
+    await tester.enterText(field('Add item'), 'M');
+    await tester.pump();
+
+    expect(editor.list.text, '- [ ] M\n');
+    expect(session.text, '- [ ] M\n', reason: 'saved without Enter');
+    expect(hasFocus(tester, 'M'), isTrue, reason: 'typing goes on there');
+    expect(
+      tester.widget<TextField>(field('M')).controller!.selection,
+      const TextSelection.collapsed(offset: 1),
+    );
+    expect(tester.widget<TextField>(field('Add item')).controller!.text, '');
+
+    await tester.enterText(field('M'), 'Milk');
+    await tester.pump();
+    expect(session.text, '- [ ] Milk\n');
+    await close(tester);
+  });
+
+  testWidgets('spaces alone in the add row start no item', (tester) async {
+    final editor = await show(tester, '- [ ] a');
+
+    await tester.enterText(field('Add item'), ' ');
+    await tester.pump();
+    expect(editor.list.text, '- [ ] a');
+
+    await tester.enterText(field('Add item'), ' b');
+    await tester.pump();
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
   testWidgets('tab indents under the open item shown above', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [x] done\n- [ ] b');
     await tester.tap(field('b'));
