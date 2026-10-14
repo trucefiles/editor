@@ -17,12 +17,13 @@ final class SyncthingFolderScanner implements FolderScanner {
   Future<Result<FolderScan, StoreError>> scan() async {
     final listed = await _store.list(enterFolder: _filter.includesFolder);
     return switch (listed) {
-      Ok(value: final entries) => Ok(
+      Ok(value: Listing(files: final entries, :final folders)) => Ok(
         FolderScan(
           files: [
             for (final entry in entries)
               if (_filter.includesFile(entry.path)) entry,
           ],
+          subfolders: folders,
           conflicts: groupSyncthingConflicts(entries, _filter.includesFile),
         ),
       ),

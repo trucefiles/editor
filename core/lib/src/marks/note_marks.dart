@@ -31,7 +31,7 @@ final class NoteMarks {
     final List<FileEntry> entries;
     switch (await _store.list(enterFolder: _leadsToFolder)) {
       case Ok(:final value):
-        entries = value;
+        entries = value.files;
       case Err(:final error):
         return Err(error);
     }

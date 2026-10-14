@@ -13,10 +13,10 @@ import 'rel_path.dart';
 /// get a [TempFileNamer] when built, so storage never depends on the sync
 /// layer; the wiring passes in the sync tool's naming rule.
 abstract interface class FileStore {
-  /// Every file below the root, recursively, hidden files included.
-  /// Folders for which [enterFolder] returns `false` are not walked.
-  /// Filtering files is the caller's job.
-  Future<Result<List<FileEntry>, StoreError>> list({
+  /// Every file and folder below the root, recursively, hidden ones
+  /// included. Folders for which [enterFolder] returns `false` are not
+  /// walked. Filtering files is the caller's job.
+  Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
   });
 
@@ -46,6 +46,17 @@ abstract interface class FileStore {
     RelPath path, {
     required FileVersion ifUnchanged,
   });
+}
+
+/// What [FileStore.list] found.
+final class Listing {
+  const Listing({required this.files, required this.folders});
+
+  final List<FileEntry> files;
+
+  /// The folders that were walked, empty ones included: [FileStore.list]'s
+  /// `enterFolder` accepted them and they could be read.
+  final List<RelPath> folders;
 }
 
 /// Names the temp file of an atomic write. [randomToken] keeps concurrent

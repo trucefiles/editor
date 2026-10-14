@@ -80,7 +80,7 @@ void main() {
     expect(found.conflicts.forNote(shallow), isNull);
   });
 
-  test('lists the subfolders that hold notes, per folder', () async {
+  test('lists every subfolder per folder, empty ones too', () async {
     final dir = tempFolder();
     final other = tempFolder();
     write(dir, 'root.md', '# Root');
@@ -89,6 +89,8 @@ void main() {
     write(dir, 'x/note.md', '# X');
     write(dir, 'y/photo.jpg', 'not a note');
     write(other, 'z/note.md', '# Z');
+    Directory('${dir.path}/empty/deeper').createSync(recursive: true);
+    write(dir, '.hidden/note.md', '# Hidden');
     await start([folderAt(dir, id: 'one'), folderAt(other, id: 'two')]);
 
     final found = await scans();
@@ -97,7 +99,10 @@ void main() {
       'a',
       'a/b',
       'a/b/c',
+      'empty',
+      'empty/deeper',
       'x',
+      'y',
     ]);
     expect(found.subfoldersOf('two').map((p) => p.value), ['z']);
   });

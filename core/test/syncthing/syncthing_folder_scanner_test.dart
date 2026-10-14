@@ -55,6 +55,29 @@ void main() {
       );
     });
 
+    test('come with every included subfolder, empty ones too', () async {
+      store
+        ..put('a/b/c/deep.md', 'deep')
+        ..put('a/.git/x.md', 'hidden')
+        ..put('.stversions/b/old.md', 'old')
+        ..put('photos/cat.jpg', 'jpg')
+        ..emptyFolders.add(path('empty/deeper'));
+
+      final subfolders = (await scanner.scan()).value.subfolders;
+
+      expect(
+        subfolders.map((f) => f.value),
+        unorderedEquals([
+          'a',
+          'a/b',
+          'a/b/c',
+          'photos',
+          'empty',
+          'empty/deeper',
+        ]),
+      );
+    });
+
     test('come from a single listing with the conflicts', () async {
       store
         ..put('todo.md', 'main')

@@ -45,8 +45,9 @@ void main() {
     await tester.waitFor(find.byTooltip('Saved'));
   });
 
-  testWidgets('creates a note in a subfolder', (tester) async {
-    app.write('a/b/c/old.md', '# Old\n');
+  testWidgets('creates a note in an empty subfolder', (tester) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
     await addFolder(tester);
     await tester.waitFor(find.text('Old'));
 
@@ -55,6 +56,8 @@ void main() {
     await tester.tapAndSettle(find.text('Top level'));
     await tester.tapAndSettle(find.text('a/b/c').last);
     await tester.tapAndSettle(find.text('Create'));
+    // The editor opens once the file is written and rescanned.
+    await tester.waitFor(find.byType(TextField));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
     await tester.waitForFile(

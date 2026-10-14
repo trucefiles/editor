@@ -12,6 +12,9 @@ final class MemoryFileStore implements FileStore {
   /// When set, every operation fails with this error.
   StoreError? failWith;
 
+  /// Folders without files; folders holding files exist implicitly.
+  final Set<RelPath> emptyFolders = {};
+
   /// How often [list] was called.
   int listCount = 0;
 
@@ -27,24 +30,35 @@ final class MemoryFileStore implements FileStore {
   }
 
   @override
-  Future<Result<List<FileEntry>, StoreError>> list({
+  Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
   }) async {
     listCount++;
     if (failWith case final error?) return Err(error);
-    bool entered(RelPath path) {
-      final segments = path.value.split('/');
-      for (var i = 1; i < segments.length; i++) {
-        final folder = RelPath.parse(segments.take(i).join('/'))!;
-        if (!(enterFolder?.call(folder) ?? true)) return false;
-      }
-      return true;
-    }
+    bool enters(RelPath folder) => enterFolder?.call(folder) ?? true;
 
-    return Ok([
-      for (final MapEntry(key: path, value: content) in files.entries)
-        if (entered(path)) _entryOf(path, content),
-    ]);
+    /// Whether [path] and every folder above it are entered.
+    bool reached(RelPath? path) =>
+        path == null || (enters(path) && reached(path.parent));
+
+    final folders = {
+      for (final path in [...files.keys, ...emptyFolders])
+        for (var folder = path.parent; folder != null; folder = folder.parent)
+          folder,
+      ...emptyFolders,
+    };
+    return Ok(
+      Listing(
+        files: [
+          for (final MapEntry(key: path, value: content) in files.entries)
+            if (reached(path.parent)) _entryOf(path, content),
+        ],
+        folders: [
+          for (final folder in folders)
+            if (reached(folder)) folder,
+        ],
+      ),
+    );
   }
 
   @override

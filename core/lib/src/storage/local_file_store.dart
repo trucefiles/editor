@@ -33,12 +33,12 @@ final class LocalFileStore implements FileStore {
   final Random _random = Random.secure();
 
   @override
-  Future<Result<List<FileEntry>, StoreError>> list({
+  Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
   }) => _guard(() async {
-    final entries = <FileEntry>[];
-    await _walk(Directory(rootPath), '', enterFolder, entries);
-    return entries;
+    final listing = Listing(files: [], folders: []);
+    await _walk(Directory(rootPath), '', enterFolder, listing);
+    return listing;
   });
 
   @override
@@ -114,7 +114,7 @@ final class LocalFileStore implements FileStore {
     Directory folder,
     String prefix,
     bool Function(RelPath folder)? enterFolder,
-    List<FileEntry> entries,
+    Listing listing,
   ) async {
     await for (final entity in folder.list(followLinks: false)) {
       final name = entity.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
@@ -125,13 +125,14 @@ final class LocalFileStore implements FileStore {
         // files); one that is gone by now is skipped.
         final stat = await entity.stat();
         if (stat.type == FileSystemEntityType.file) {
-          entries.add(_entry(path, stat));
+          listing.files.add(_entry(path, stat));
         }
       } else if (entity is Directory && (enterFolder?.call(path) ?? true)) {
         // A subfolder that can't be read (e.g. `lost+found`) or is gone by
         // now is skipped, so it doesn't hide the rest of the folder.
         try {
-          await _walk(entity, '${path.value}/', enterFolder, entries);
+          await _walk(entity, '${path.value}/', enterFolder, listing);
+          listing.folders.add(path);
         } on PathAccessException {
           continue;
         } on PathNotFoundException {
