@@ -199,6 +199,18 @@ void main() {
     expect(top('Others'), lessThan(top('Ideas')));
   });
 
+  testWidgets('warns about an unsynced folder in full only in Folders', (
+    tester,
+  ) async {
+    await addFolder(tester);
+
+    await tester.waitFor(find.byTooltip('Not inside a Syncthing folder'));
+    expect(find.textContaining('may not reach'), findsNothing);
+
+    await tester.tapAndSettle(find.byTooltip('Folders'));
+    await tester.waitFor(find.textContaining('may not reach'));
+  });
+
   testWidgets('removes a folder from the app, keeping its files', (
     tester,
   ) async {
