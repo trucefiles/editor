@@ -43,9 +43,8 @@ jobs:
         run: flutter pub get --enforce-lockfile
       - name: Run the app's UI tests
         working-directory: app
-        # The tray test needs a session bus. On one, the app is a single
-        # instance, and a run of several files fails to start the second
-        # file's app; one run per file avoids that.
+        # The tray test needs a session bus. One run per file: on Linux,
+        # Flutter fails to start the app for the second file of a run.
         run: |
           for test in integration_test/*_test.dart; do
             dbus-run-session -- \
