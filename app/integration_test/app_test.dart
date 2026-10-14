@@ -301,6 +301,46 @@ void main() {
     expect(app.file('todo.md').readAsStringSync(), '# Root\n');
   });
 
+  testWidgets('pins a note several levels deep from the grid', (tester) async {
+    app.write('a/b/c/plan.md', '# Plan\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    await tester.longPress(find.text('Plan'));
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Pin'));
+
+    await tester.waitFor(find.byTooltip('Pinned'));
+    expect(
+      Directory('${app.notes.path}/a/b/c')
+          .listSync()
+          .map((entry) => entry.uri.pathSegments.last),
+      ['plan.md'],
+    );
+  });
+
+  testWidgets('keeps clashing edits of a deep note as a conflict copy', (
+    tester,
+  ) async {
+    app.write('a/b/c/plan.md', '# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
+    await tester.pageBack();
+
+    final deep = Directory('${app.notes.path}/a/b/c');
+    List<File> copies() => [
+      for (final file in deep.listSync().whereType<File>())
+        if (file.path.contains('.sync-conflict-')) file,
+    ];
+    await tester.waitUntil(() => copies().isNotEmpty);
+    expect(copies().single.readAsStringSync(), '# Plan\nmine\n');
+    expect(app.notes.listSync().whereType<File>(), isEmpty);
+    await tester.waitFor(find.byTooltip('Sync conflict'));
+  });
+
   testWidgets('resolves a conflict several levels deep', (tester) async {
     app.write('a/b/c/todo.md', '# Todo\nmine\n');
     app.write(

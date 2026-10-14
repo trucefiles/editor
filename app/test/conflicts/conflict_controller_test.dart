@@ -112,6 +112,19 @@ void main() {
     expect(File('${dir.path}/todo.md').readAsStringSync(), '# Root todo\n');
   });
 
+  test('restores a note deleted several levels deep', () async {
+    write('a/b/c/$first', '# Todo\nfirst\n');
+    final controller = await open();
+    expect(current().sides!.value.current, isNull);
+
+    final kept = await controller.keep(const KeepOther());
+
+    expect(kept.done, isTrue);
+    final deep = Directory('${dir.path}/a/b/c');
+    expect(deep.listSync().map((e) => e.uri.pathSegments.last), ['todo.md']);
+    expect(File('${deep.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
+  });
+
   test('reports files changed since the scan and reloads them', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');
