@@ -33,6 +33,7 @@ FolderServices syncthingFolderServices(
       replacesInPlace: Platform.isAndroid,
     ),
   );
+  final backups = conflictBackupsAt(backupsPath);
   return FolderServices(
     store: store,
     scanner: SyncthingFolderScanner(store, filter),
@@ -40,8 +41,9 @@ FolderServices syncthingFolderServices(
     conflicts: DefaultConflictService(
       folder: store,
       source: SyncthingConflictSource(store),
-      backups: conflictBackupsAt(backupsPath),
+      backups: backups,
     ),
+    backups: backups,
     marks: NoteMarks(store, deviceId: deviceId),
   );
 }

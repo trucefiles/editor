@@ -214,25 +214,42 @@ final class NoteEditSession extends ChangeNotifier {
     return false;
   }
 
-  /// Overwrites the version from elsewhere with the text being edited.
-  Future<void> keepMine() async {
+  /// Overwrites the version from elsewhere with the text being edited,
+  /// after a backup of both. `false` if no backup could be made: nothing
+  /// changed.
+  Future<bool> keepMine() async {
     final theirs = _theirs ?? await _reload();
-    if (theirs == null) return;
+    if (theirs == null) return true;
+    if (!await _backUp(theirs)) return false;
+    // Settled meanwhile, e.g. the file came back to the edits.
+    if (_state != EditState.changedElsewhere) return true;
+    // The backed-up version: if a newer one came meanwhile, saving over
+    // it fails and asks again, so no version is lost unseen.
     _note = theirs;
     _theirs = null;
     _set(EditState.unsaved);
     await flush();
+    return true;
   }
 
-  /// Drops the edits and shows the version from elsewhere.
-  void loadTheirs() {
+  /// Drops the edits and shows the version from elsewhere, after a backup
+  /// of both. `false` if no backup could be made: nothing changed.
+  Future<bool> loadTheirs() async {
     if (_theirs case final theirs?) {
-      _note = theirs;
-      _text = theirs.file.text;
+      if (!await _backUp(theirs)) return false;
+      if (_state != EditState.changedElsewhere) return true;
+      // The newest version from elsewhere, which may have come meanwhile.
+      final latest = _theirs ?? theirs;
+      _note = latest;
+      _text = latest.file.text;
     }
     _theirs = null;
     _settle(EditState.saved);
+    return true;
   }
+
+  Future<bool> _backUp(Note theirs) async =>
+      await _files.backUp(theirs, _text) is Ok;
 
   /// Writes the text being edited as the note's file again, after it was
   /// deleted elsewhere.

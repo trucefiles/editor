@@ -66,24 +66,31 @@ void main() {
   testWidgets('a change from elsewhere opens both versions', (tester) async {
     await pumpBanner(tester);
 
-    expect(find.text('Your version'), findsOneWidget);
-    expect(find.text('Other version'), findsOneWidget);
+    expect(find.text('Current version'), findsOneWidget);
+    expect(find.text('Your edits'), findsOneWidget);
     expect(find.textContaining('mine'), findsOneWidget);
     expect(find.textContaining('theirs'), findsOneWidget);
   });
 
-  testWidgets('keeping the other version closes the comparison', (
+  testWidgets('keeping the current version closes the comparison', (
     tester,
   ) async {
     await pumpBanner(tester);
 
-    await tester.tap(find.text('Keep this').last);
+    await tester.tap(find.text('Keep this').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Keep'));
+    // The backup is written outside the test's fake time.
+    for (var step = 0; step < 100 && session.text != '# a\ntheirs'; step++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
 
     expect(session.text, '# a\ntheirs');
-    expect(find.text('Your version'), findsNothing);
+    expect(find.text('Your edits'), findsNothing);
     expect(find.text('Compare'), findsNothing);
   });
 
@@ -92,24 +99,24 @@ void main() {
 
     await tester.tap(find.text('Keep this').first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('No backup is kept'), findsOneWidget);
+    expect(find.textContaining('A backup of both stays'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(session.state, EditState.changedElsewhere);
-    expect(find.text('Your version'), findsOneWidget);
+    expect(find.text('Your edits'), findsOneWidget);
   });
 
   testWidgets('settled under the dialog: closes itself, not the dialog', (
     tester,
   ) async {
     await pumpBanner(tester);
-    await tester.tap(find.text('Keep this').last);
+    await tester.tap(find.text('Keep this').first);
     await tester.pumpAndSettle();
 
     session.onRescan(version('# a\nmine', 4), scannedAt: later);
     await tester.pumpAndSettle();
-    expect(find.text('Your version'), findsNothing);
+    expect(find.text('Your edits'), findsNothing);
     expect(find.text('Keep this version?'), findsOneWidget);
 
     await tester.tap(find.text('Keep'));
@@ -136,7 +143,7 @@ void main() {
     session.onRescan(version('# a\nmine', 4), scannedAt: later);
     await tester.pumpAndSettle();
 
-    expect(find.text('Your version'), findsNothing);
+    expect(find.text('Your edits'), findsNothing);
     expect(find.byType(Scaffold), findsOneWidget);
   });
 }

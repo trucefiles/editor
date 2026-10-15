@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/folders/syncthing_folder_services.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -10,6 +11,7 @@ import '../support.dart';
 
 void main() {
   late Directory dir;
+  late Directory backups;
   late NoteFiles files;
   late Note note;
   late NoteEditSession session;
@@ -17,8 +19,16 @@ void main() {
 
   setUp(() async {
     dir = tempFolder();
+    backups = tempFolder();
     final folder = folderAt(dir);
-    files = NoteFiles(folder, servicesFor(folder));
+    files = NoteFiles(
+      folder,
+      syncthingFolderServices(
+        folder.path,
+        backupsPath: backups.path,
+        deviceId: '0123456789abcdef',
+      ),
+    );
     note = (await files.create('a')).value;
     session = NoteEditSession(
       note,
@@ -32,6 +42,12 @@ void main() {
   File file() => File('${dir.path}/a.md');
 
   String onDisk() => file().readAsStringSync();
+
+  /// The backed-up texts, as `side: text`.
+  List<String> backedUp() => [
+    for (final f in backups.listSync().whereType<File>())
+      '${f.path.split('.')[1]}: ${f.readAsStringSync()}',
+  ]..sort();
 
   /// Simulates an edit from another device and returns the new version.
   Future<Note> editElsewhere(String text) async {
@@ -170,6 +186,43 @@ void main() {
     expect(onDisk(), '# a\nmine');
   });
 
+  test('keep mine and load theirs back up both versions first', () async {
+    for (final (name, keep) in [
+      ('keep mine', session.keepMine),
+      ('load theirs', session.loadTheirs),
+    ]) {
+      backups.listSync().forEach((f) => f.deleteSync());
+      session.edit('# a\nmine, $name');
+      session.onRescan(
+        await editElsewhere('# a\ntheirs, $name'),
+        scannedAt: later,
+      );
+
+      expect(await keep(), isTrue);
+
+      expect(backedUp(), [
+        'current: # a\ntheirs, $name',
+        'other: # a\nmine, $name',
+      ], reason: name);
+    }
+  });
+
+  test('keeps both if no backup can be made', () async {
+    session.edit('# a\nmine');
+    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    backups.deleteSync();
+    File(backups.path).writeAsStringSync('in the way');
+
+    expect(await session.keepMine(), isFalse);
+    expect(await session.loadTheirs(), isFalse);
+
+    expect(session.state, EditState.changedElsewhere);
+    expect(session.text, '# a\nmine');
+    expect(onDisk(), '# a\ntheirs');
+    File(backups.path).deleteSync();
+    backups.createSync();
+  });
+
   test('tells of a newer change from elsewhere while asking', () async {
     session.edit('# a\nmine');
     session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
@@ -189,7 +242,7 @@ void main() {
     session.edit('# a\nmine');
     await session.flush();
 
-    session.loadTheirs();
+    expect(await session.loadTheirs(), isTrue);
 
     expect(session.text, '# a\ntheirs, longer');
     expect(session.state, EditState.saved);
@@ -443,7 +496,7 @@ void main() {
       await settle();
       staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
 
-      staged.loadTheirs();
+      await staged.loadTheirs();
       await settle();
 
       expect(await draftTexts(), isEmpty);

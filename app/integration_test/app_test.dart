@@ -304,11 +304,11 @@ void main() {
     await tester.waitFor(find.text('Compare'));
     await tester.tapAndSettle(find.text('Compare'));
     expect(find.textContaining('v2 from elsewhere'), findsOneWidget);
-    await tester.tapAndSettle(find.text('Keep this').first);
+    await tester.tapAndSettle(find.text('Keep this').last);
     await tester.tapAndSettle(find.text('Keep'));
 
     await tester.waitForFile(app.file('plan.md'), '# Plan\nmine\n');
-    expect(find.text('Your version'), findsNothing);
+    await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
   });
 
   testWidgets('hiding the app keeps clashing edits, menus stay put', (

@@ -15,6 +15,7 @@ final class FolderServices {
     required this.scanner,
     required this.syncToolName,
     required this.conflicts,
+    required this.backups,
     required this.marks,
   });
 
@@ -25,6 +26,10 @@ final class FolderServices {
   final String syncToolName;
 
   final ConflictService conflicts;
+
+  /// Copies of both versions, kept before the user keeps one of them.
+  final ConflictBackups backups;
+
   final NoteMarks marks;
 }
 
