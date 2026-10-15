@@ -33,8 +33,6 @@ void main() {
     );
     final saved = folder.listSync(recursive: true).whereType<File>().single;
     File('${saved.parent.path}/.truce-0123.tmp').writeAsStringSync('a');
-    // The naming of versions up to 0.5.
-    File('${saved.parent.path}/.syncthing.0123.tmp').writeAsStringSync('a');
 
     final listed = (await backups.list()).value;
 

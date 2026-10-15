@@ -16,10 +16,6 @@ const _tempSuffix = '.tmp';
 String _tempFileName(String randomToken) =>
     '$_tempPrefix$randomToken$_tempSuffix';
 
-/// A temp file of an atomic write cut short, e.g. by a crash; also in the
-/// naming that versions up to 0.5 used, which may still be left over.
+/// A temp file of an atomic write cut short, e.g. by a crash.
 bool _isTempFile(String name) =>
-    name.endsWith(_tempSuffix) &&
-    (name.startsWith(_tempPrefix) || name.startsWith(_oldTempPrefix));
-
-const _oldTempPrefix = '.syncthing.';
+    name.startsWith(_tempPrefix) && name.endsWith(_tempSuffix);
