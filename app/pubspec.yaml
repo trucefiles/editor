@@ -2,7 +2,7 @@ name: truce_editor
 description: Truce Editor app. UI on top of truce_core.
 publish_to: none
 resolution: workspace
-version: 0.4.3+7
+version: 0.5.0+8
 
 environment:
   sdk: ^3.13.0
