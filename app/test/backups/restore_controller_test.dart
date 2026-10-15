@@ -17,7 +17,7 @@ import '../support.dart';
 void main() {
   late Directory dir;
   late ProviderContainer container;
-  late NoteBackups backups;
+  late FileBackups backups;
 
   setUp(() async {
     dir = tempFolder();
@@ -42,7 +42,7 @@ void main() {
   Future<RestoreController> open(String text) async {
     await backups.saveBeforeEdit(
       at: DateTime.now(),
-      notePath: path('todo.md'),
+      filePath: path('todo.md'),
       bytes: utf8.encode(text),
     );
     // Kept alive like the backups screen does.
@@ -65,7 +65,7 @@ void main() {
     final listed = await container.read(allBackupsProvider.future);
 
     expect(listed.single.folder.path, dir.path);
-    expect(listed.single.backup.notePath, path('todo.md'));
+    expect(listed.single.backup.filePath, path('todo.md'));
   });
 
   test('loads the backup next to the note', () async {

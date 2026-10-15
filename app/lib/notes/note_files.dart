@@ -100,7 +100,7 @@ final class NoteFiles {
   Future<Result<void, StoreError>> backUp(Note current, String edited) =>
       _services.backups.saveBoth(
         at: DateTime.now(),
-        notePath: current.path,
+        filePath: current.path,
         current: current.file.encode(current.file.text),
         other: current.file.encode(edited),
       );
@@ -109,7 +109,7 @@ final class NoteFiles {
   Future<Result<void, StoreError>> backUpBeforeEdit(Note note) =>
       _services.backups.saveBeforeEdit(
         at: DateTime.now(),
-        notePath: note.path,
+        filePath: note.path,
         bytes: note.file.encode(note.file.text),
       );
 

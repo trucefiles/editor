@@ -55,7 +55,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
     return Scaffold(
       appBar: compareAppBar(
         folder: folder,
-        file: backup.notePath,
+        file: backup.filePath,
         note: 'Backup: ${backup.kind.text}',
       ),
       body: switch (choice) {

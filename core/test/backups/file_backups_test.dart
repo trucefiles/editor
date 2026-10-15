@@ -9,17 +9,17 @@ void main() {
   final atMicros = at.microsecondsSinceEpoch;
 
   late MemoryFileStore store;
-  late NoteBackups backups;
+  late FileBackups backups;
 
   setUp(() {
     store = MemoryFileStore();
-    backups = NoteBackups(store);
+    backups = FileBackups(store);
   });
 
   test('saves a note before editing', () async {
     await backups.saveBeforeEdit(
       at: at,
-      notePath: path('lists/todo.md'),
+      filePath: path('lists/todo.md'),
       bytes: bytesOf('before'),
     );
 
@@ -29,7 +29,7 @@ void main() {
   test('saves both versions', () async {
     await backups.saveBoth(
       at: at,
-      notePath: path('lists/todo.md'),
+      filePath: path('lists/todo.md'),
       current: bytesOf('current'),
       other: bytesOf('other'),
     );
@@ -41,7 +41,7 @@ void main() {
   test('saves only the other version of a deleted note', () async {
     await backups.saveBoth(
       at: at,
-      notePath: path('todo.md'),
+      filePath: path('todo.md'),
       current: null,
       other: bytesOf('other'),
     );
@@ -54,7 +54,7 @@ void main() {
 
     final result = await backups.saveBoth(
       at: at,
-      notePath: path('todo.md'),
+      filePath: path('todo.md'),
       current: bytesOf('current'),
       other: bytesOf('other'),
     );
@@ -66,19 +66,19 @@ void main() {
     final earlier = at.subtract(const Duration(hours: 1));
     await backups.saveBeforeEdit(
       at: earlier,
-      notePath: path('a.md'),
+      filePath: path('a.md'),
       bytes: bytesOf('a'),
     );
     await backups.saveBeforeEdit(
       at: at,
-      notePath: path('b.md'),
+      filePath: path('b.md'),
       bytes: bytesOf('b'),
     );
     store.put('not-a-backup.txt', 'x');
 
     final listed = (await backups.list()).value;
 
-    expect(listed.map((b) => (b.notePath, b.savedAt)), [
+    expect(listed.map((b) => (b.filePath, b.savedAt)), [
       (path('b.md'), at),
       (path('a.md'), earlier),
     ]);
@@ -88,17 +88,17 @@ void main() {
   test('lists no ignored files, e.g. temp files', () async {
     await backups.saveBeforeEdit(
       at: at,
-      notePath: path('a.md'),
+      filePath: path('a.md'),
       bytes: bytesOf('a'),
     );
     store.put('$atMicros.edit/.a.md.tmp', 'cut short');
 
-    final listed = await NoteBackups(
+    final listed = await FileBackups(
       store,
       ignores: (file) => file.name.endsWith('.tmp'),
     ).list();
 
-    expect(listed.value.map((b) => b.notePath), [path('a.md')]);
+    expect(listed.value.map((b) => b.filePath), [path('a.md')]);
   });
 
   test('lists none before the first backup', () async {
@@ -112,7 +112,7 @@ void main() {
     for (final savedAt in [old, at]) {
       await backups.saveBeforeEdit(
         at: savedAt,
-        notePath: path('todo.md'),
+        filePath: path('todo.md'),
         bytes: bytesOf('before'),
       );
     }

@@ -10,13 +10,13 @@ void main() {
 
   late MemoryFileStore folder;
   late MemoryFileStore backupStore;
-  late NoteBackups backups;
+  late FileBackups backups;
   late BackupRestore restore;
 
   setUp(() async {
     folder = MemoryFileStore();
     backupStore = MemoryFileStore();
-    backups = NoteBackups(backupStore);
+    backups = FileBackups(backupStore);
     restore = BackupRestore(
       folder: folder,
       backups: backups,
@@ -24,7 +24,7 @@ void main() {
     );
     await backups.saveBeforeEdit(
       at: at,
-      notePath: path('todo.md'),
+      filePath: path('todo.md'),
       bytes: bytesOf('backup'),
     );
   });

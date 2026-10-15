@@ -1,13 +1,13 @@
 import 'dart:typed_data';
 
 import '../backups/backup.dart';
-import '../backups/note_backups.dart';
+import '../backups/file_backups.dart';
 import '../common/result.dart';
 import '../conflicts/conflict_service.dart';
 import '../conflicts/resolution.dart';
 import '../storage/file_store.dart';
 
-/// A backup next to its note's file as it is now, for the user to keep one.
+/// A backup next to its file as it is now, for the user to keep one.
 final class RestoreChoice {
   const RestoreChoice(
     this.backup, {
@@ -18,7 +18,7 @@ final class RestoreChoice {
   final Backup backup;
   final Uint8List bytes;
 
-  /// The note's file now; `null` if it is deleted.
+  /// The file now; `null` if it is deleted.
   final FileContent? current;
 }
 
@@ -32,10 +32,10 @@ final class BackupRestore {
   });
 
   final FileStore _folder;
-  final NoteBackups _backups;
+  final FileBackups _backups;
   final DateTime Function() _clock;
 
-  /// [backup] and its note's file, to compare them.
+  /// [backup] and its file, to compare them.
   Future<Result<RestoreChoice, StoreError>> load(Backup backup) async {
     final Uint8List bytes;
     switch (await _backups.read(backup)) {
@@ -44,7 +44,7 @@ final class BackupRestore {
       case Err(:final error):
         return Err(error);
     }
-    return switch (await _folder.read(backup.notePath)) {
+    return switch (await _folder.read(backup.filePath)) {
       Ok(:final value) => Ok(
         RestoreChoice(backup, bytes: bytes, current: value),
       ),
@@ -55,7 +55,7 @@ final class BackupRestore {
     };
   }
 
-  /// Keeps the note's file as it is ([KeepCurrent]: changes nothing) or
+  /// Keeps the file as it is ([KeepCurrent]: changes nothing) or
   /// puts the backup in its place ([KeepOther]), after a backup of the
   /// file. Fails with [ResolveError.changedSinceScan] if the file changed
   /// since [choice] was loaded.
@@ -64,12 +64,12 @@ final class BackupRestore {
     Resolution resolution,
   ) async {
     if (resolution is KeepCurrent) return const Ok(null);
-    final path = choice.backup.notePath;
+    final path = choice.backup.filePath;
     final current = choice.current;
     if (current != null) {
       final backedUp = await _backups.saveCurrent(
         at: _clock(),
-        notePath: path,
+        filePath: path,
         bytes: current.bytes,
       );
       if (backedUp is Err) return const Err(ResolveError.backupFailed);

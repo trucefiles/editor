@@ -54,7 +54,7 @@ void main() {
     await recovery.recover(before: later);
 
     final backup = (await services.backups.list()).value.single;
-    expect(backup.notePath, path('a.md'));
+    expect(backup.filePath, path('a.md'));
     expect(backup.kind, BackupKind.beforeEdit);
     expect(
       String.fromCharCodes((await services.backups.read(backup)).value),

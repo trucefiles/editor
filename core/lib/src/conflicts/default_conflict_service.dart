@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import '../backups/note_backups.dart';
+import '../backups/file_backups.dart';
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
@@ -20,7 +20,7 @@ final class DefaultConflictService implements ConflictService {
 
   final FileStore _folder;
   final ConflictSource _source;
-  final NoteBackups _backups;
+  final FileBackups _backups;
   final DateTime Function() _clock;
 
   @override
@@ -72,7 +72,7 @@ final class DefaultConflictService implements ConflictService {
 
     final backedUp = await _backups.saveBoth(
       at: _clock(),
-      notePath: conflict.mainPath,
+      filePath: conflict.mainPath,
       current: current,
       other: other,
     );

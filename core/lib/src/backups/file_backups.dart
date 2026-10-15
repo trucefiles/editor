@@ -5,50 +5,50 @@ import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 import 'backup.dart';
 
-/// Copies of one folder's notes in app storage, so a change can be undone.
+/// Copies of one folder's files in app storage, so a change can be undone.
 /// Never synced; only the user restores one.
-final class NoteBackups {
+final class FileBackups {
   /// [ignores]: files in the store that are no backups, e.g. the temp
   /// files of atomic writes cut short.
-  const NoteBackups(this._store, {this._ignores});
+  const FileBackups(this._store, {this._ignores});
 
   final FileStore _store;
   final bool Function(RelPath file)? _ignores;
 
-  /// Saves [bytes], the file at [notePath], before an editing session saves
+  /// Saves [bytes], the file at [filePath], before an editing session saves
   /// over it [at].
   Future<Result<void, StoreError>> saveBeforeEdit({
     required DateTime at,
-    required RelPath notePath,
+    required RelPath filePath,
     required Uint8List bytes,
-  }) => _save(Backup.of(notePath, at: at, kind: BackupKind.beforeEdit), bytes);
+  }) => _save(Backup.of(filePath, at: at, kind: BackupKind.beforeEdit), bytes);
 
   /// Saves both versions the user picks from [at], before keeping one.
-  /// [current] is `null` if the note's file is deleted.
+  /// [current] is `null` if the file is deleted.
   Future<Result<void, StoreError>> saveBoth({
     required DateTime at,
-    required RelPath notePath,
+    required RelPath filePath,
     required Uint8List? current,
     required Uint8List other,
   }) async {
     if (current != null) {
       final saved = await saveCurrent(
         at: at,
-        notePath: notePath,
+        filePath: filePath,
         bytes: current,
       );
       if (saved is Err) return saved;
     }
-    return _save(Backup.of(notePath, at: at, kind: BackupKind.other), other);
+    return _save(Backup.of(filePath, at: at, kind: BackupKind.other), other);
   }
 
-  /// Saves [bytes], the file at [notePath], before the user replaces it
+  /// Saves [bytes], the file at [filePath], before the user replaces it
   /// [at] with a version that is kept already (e.g. a backup restored).
   Future<Result<void, StoreError>> saveCurrent({
     required DateTime at,
-    required RelPath notePath,
+    required RelPath filePath,
     required Uint8List bytes,
-  }) => _save(Backup.of(notePath, at: at, kind: BackupKind.current), bytes);
+  }) => _save(Backup.of(filePath, at: at, kind: BackupKind.current), bytes);
 
   /// Every backup, newest first; none before the first one is saved.
   Future<Result<List<Backup>, StoreError>> list() async {

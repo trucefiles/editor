@@ -28,8 +28,8 @@ final class FolderServices {
 
   final ConflictService conflicts;
 
-  /// Copies of the folder's notes in app storage.
-  final NoteBackups backups;
+  /// Copies of the folder's files in app storage.
+  final FileBackups backups;
 
   /// Puts [backups] back into the folder.
   final BackupRestore restore;

@@ -1,14 +1,14 @@
 import '../storage/rel_path.dart';
 
-/// Why a backup of a note was made.
+/// Why a backup of a file was made.
 enum BackupKind {
-  /// The note's file before the first save of an editing session.
+  /// The file before the first save of an editing session.
   beforeEdit('edit'),
 
-  /// The note's file before the user kept one of two versions.
+  /// The file before the user kept one of two versions.
   current('current'),
 
-  /// The version that clashed with the note's file (a conflict copy,
+  /// The version that clashed with the file (a conflict copy,
   /// edits made from an older version, or a backup being restored).
   other('other');
 
@@ -25,24 +25,24 @@ enum BackupKind {
   }
 }
 
-/// One backup of a note, in a backup store.
+/// One backup of a file, in a backup store.
 ///
-/// Kept at `<time in µs since epoch>.<kind>/<note path>`, e.g.
-/// `1791818275000000.edit/lists/todo.md`: the note's path is kept whole,
+/// Kept at `<time in µs since epoch>.<kind>/<file path>`, e.g.
+/// `1791818275000000.edit/lists/todo.md`: the file's path is kept whole,
 /// so the backup knows where it belongs.
 final class Backup {
   const Backup._(
     this.storePath, {
-    required this.notePath,
+    required this.filePath,
     required this.savedAt,
     required this.kind,
   });
 
-  /// A new backup of [notePath], saved [at] as [kind].
-  Backup.of(this.notePath, {required DateTime at, required this.kind})
+  /// A new backup of [filePath], saved [at] as [kind].
+  Backup.of(this.filePath, {required DateTime at, required this.kind})
     : savedAt = at.toUtc(),
       storePath = RelPath.parse(
-        '${at.microsecondsSinceEpoch}.${kind._tag}/${notePath.value}',
+        '${at.microsecondsSinceEpoch}.${kind._tag}/${filePath.value}',
       )!;
 
   /// The backup kept at [storePath]; `null` if it is not one.
@@ -53,7 +53,7 @@ final class Backup {
     return switch (_head(value.substring(0, slash))) {
       (:final savedAt, :final kind) => Backup._(
         storePath,
-        notePath: RelPath.parse(value.substring(slash + 1))!,
+        filePath: RelPath.parse(value.substring(slash + 1))!,
         savedAt: savedAt,
         kind: kind,
       ),
@@ -82,8 +82,8 @@ final class Backup {
   /// Where the backup is kept in its store.
   final RelPath storePath;
 
-  /// The note it is a copy of, in the note's folder.
-  final RelPath notePath;
+  /// The file it is a copy of, in its folder.
+  final RelPath filePath;
 
   final DateTime savedAt;
   final BackupKind kind;

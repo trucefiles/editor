@@ -50,17 +50,17 @@ class _BackupTile extends ConsumerWidget {
     final (:folder, backup: shown) = backup;
     final note = ref.watch(folderScansProvider).value?.findNote((
       folderId: folder.id,
-      path: shown.notePath,
+      path: shown.filePath,
     ));
     final local = MaterialLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.history),
-      title: Text(note?.title ?? shown.notePath.name),
+      title: Text(note?.title ?? shown.filePath.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${shown.kind.text}, ${fullTime(local, shown.savedAt)}'),
-          FolderBadge(folder, file: shown.notePath),
+          FolderBadge(folder, file: shown.filePath),
         ],
       ),
       onTap: () => openRestore(context, backup),

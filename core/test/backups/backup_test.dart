@@ -24,7 +24,7 @@ void main() {
       final parsed = Backup.parse(written.storePath)!;
 
       expect(parsed, written);
-      expect(parsed.notePath, path('a/b/日本語 100%.md'));
+      expect(parsed.filePath, path('a/b/日本語 100%.md'));
       expect(parsed.savedAt, at);
       expect(parsed.kind, kind);
     }
@@ -39,7 +39,7 @@ void main() {
       kind: BackupKind.other,
     );
 
-    expect(Backup.parse(backup.storePath)!.notePath, path('$folders/todo.md'));
+    expect(Backup.parse(backup.storePath)!.filePath, path('$folders/todo.md'));
   });
 
   test('parses nothing else', () {

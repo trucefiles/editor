@@ -22,7 +22,7 @@ final class AppStorage {
   /// Holds one backup folder per note folder.
   String get _backupsRootPath => '$rootPath/backups';
 
-  /// Note backups of one folder, by [folderId].
+  /// Backups of one folder's files, by [folderId].
   String backupsPath(String folderId) => '$_backupsRootPath/$folderId';
 
   /// Edits not yet in one folder's note files, by [folderId].

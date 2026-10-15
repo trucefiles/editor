@@ -4,7 +4,7 @@
 ///
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]).
-/// 2. `backups`: copies of notes in app storage ([NoteBackups]), made
+/// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
 /// 3. `sync`: a sync tool's file-name rules ([SyncAdapter]), whether it
 ///    syncs a folder ([SyncCheck]) and what to tell the user about a folder
@@ -30,7 +30,7 @@
 library;
 
 export 'src/backups/backup.dart';
-export 'src/backups/note_backups.dart';
+export 'src/backups/file_backups.dart';
 export 'src/changes/fallback_folder_changes.dart';
 export 'src/changes/folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
