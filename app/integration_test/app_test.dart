@@ -40,6 +40,7 @@ void main() {
     await addFolder(tester);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Create'));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
@@ -50,6 +51,21 @@ void main() {
     await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
   });
 
+  testWidgets('offers an empty subfolder made while the app runs', (
+    tester,
+  ) async {
+    app.write('old.md', '# Old\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    Directory('${app.notes.path}/later').createSync();
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
+    await tester.tapAndSettle(find.text('Top level'));
+
+    expect(find.text('later'), findsWidgets);
+  });
+
   testWidgets('creates a note in an empty subfolder', (tester) async {
     app.write('old.md', '# Old\n');
     Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
@@ -57,6 +73,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Top level'));
     await tester.tapAndSettle(find.text('a/b/c').last);
@@ -227,6 +244,7 @@ void main() {
     app.notes.deleteSync();
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Create'));
 

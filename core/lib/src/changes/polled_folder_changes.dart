@@ -38,7 +38,7 @@ final class PolledFolderChanges implements FolderChanges {
       try {
         final now = await _snapshot();
         final before = last;
-        if (now == null || controller.isClosed) return;
+        if (now == null) return;
         last = now;
         if (before != null) _changedPaths(before, now).forEach(controller.add);
       } finally {

@@ -36,15 +36,6 @@ void main() {
 
     expect(await changes.changes.toList(), isEmpty);
   });
-
-  test('goes on with the fallback once the primary ends', () async {
-    final changes = SyncthingFolderChanges(
-      _FixedChanges(['a.md']),
-      fallback: _FixedChanges(['b.md']),
-    );
-
-    expect(await changes.changes.toList(), [path('a.md'), path('b.md')]);
-  });
 }
 
 /// Emits [paths], then ends.

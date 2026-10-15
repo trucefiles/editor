@@ -8,7 +8,9 @@ import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/platform/app_activity.dart';
-import 'package:truce_editor/refresh/auto_refresh.dart';
+import 'package:truce_editor/refresh/refresh_settings.dart';
+import 'package:truce_editor/refresh/refresh_settings_controller.dart';
+import 'package:truce_editor/scan/auto_rescan.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 
@@ -34,15 +36,16 @@ void main() {
         ),
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
         folderScansProvider.overrideWith(() => scans),
+        refreshSettingsProvider.overrideWith(_FixedSettings.new),
       ],
     );
     addTearDown(container.dispose);
-    container.listen(autoRefreshProvider, (_, _) {});
-    await container.read(autoRefreshProvider.future);
+    container.listen(autoRescanProvider, (_, _) {});
+    await container.read(autoRescanProvider.future);
   }
 
   Future<void> settle() => Future<void>.delayed(
-    AutoRefresh.settleTime + const Duration(milliseconds: 100),
+    AutoRescan.settleTime + const Duration(milliseconds: 100),
   );
 
   test('rescans once for changes that come close together', () async {
@@ -87,24 +90,53 @@ void main() {
     (container.read(appActiveProvider.notifier) as _FixedActivity).set(
       active: false,
     );
-    await container.read(autoRefreshProvider.future);
+    await container.read(autoRescanProvider.future);
 
     expect(changes.hasListener, isFalse);
   });
 
-  test('rescans once when it starts looking again', () async {
+  test('leaves catching up after a pause to the screens', () async {
     await start();
     final activity =
         container.read(appActiveProvider.notifier) as _FixedActivity
           ..set(active: false);
-    await container.read(autoRefreshProvider.future);
+    await container.read(autoRescanProvider.future);
 
     activity.set(active: true);
-    await container.read(autoRefreshProvider.future);
+    await container.read(autoRescanProvider.future);
     await settle();
+
+    expect(scans.refreshes, 0);
+    expect(changes.hasListener, isTrue);
+  });
+
+  test('rescans once when the refresh setting changes', () async {
+    await start();
+
+    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).change(
+      RefreshSettings.standard.copyWith(mode: RefreshMode.periodic),
+    );
+    await container.read(autoRescanProvider.future);
 
     expect(scans.refreshes, 1);
   });
+
+  test(
+    'rescans while changes keep coming, at the latest after a while',
+    () async {
+      await start();
+      final until = DateTime.now().add(
+        AutoRescan.maxWait + const Duration(milliseconds: 500),
+      );
+
+      while (DateTime.now().isBefore(until)) {
+        changes.add(path('a.md'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+
+      expect(scans.refreshes, 1);
+    },
+  );
 }
 
 final class _StreamChanges implements FolderChanges {
@@ -123,6 +155,13 @@ class _FixedFolders extends FoldersController {
 
   @override
   Future<List<NoteFolder>> build() async => _folders;
+}
+
+class _FixedSettings extends RefreshSettingsController {
+  @override
+  Future<RefreshSettings> build() async => RefreshSettings.standard;
+
+  void change(RefreshSettings settings) => state = AsyncData(settings);
 }
 
 class _FixedActivity extends AppActivity {

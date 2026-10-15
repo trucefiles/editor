@@ -25,6 +25,7 @@
 /// Syncthing is in `syncthing`.
 library;
 
+export 'src/changes/fallback_folder_changes.dart';
 export 'src/changes/folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';

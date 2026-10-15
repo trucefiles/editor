@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 
 import '../storage/rel_path.dart';
@@ -23,17 +24,16 @@ final class WatchedFolderChanges implements FolderChanges {
   @override
   Stream<RelPath> get changes {
     final watcher = DirectoryWatcher(rootPath);
-    final prefix = '${watcher.path}/';
     return watcher.events
-        .map((event) => _relative(event.path, prefix))
+        .map((event) => _relative(event.path, watcher.path))
         .where((path) => path != null)
         .cast<RelPath>()
         .transform(_endOnError);
   }
 
-  static RelPath? _relative(String path, String prefix) =>
-      path.startsWith(prefix)
-      ? RelPath.parse(path.substring(prefix.length))
+  /// [path] relative to [root], '/'-separated on every platform.
+  static RelPath? _relative(String path, String root) => p.isWithin(root, path)
+      ? RelPath.parse(p.split(p.relative(path, from: root)).join('/'))
       : null;
 
   /// Watching failed (folder gone, too many watches): the stream ends, as

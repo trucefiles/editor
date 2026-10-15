@@ -16,7 +16,7 @@ import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
-import '../../refresh/auto_refresh.dart';
+import '../../scan/auto_rescan.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
@@ -62,7 +62,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     ref
       ..watch(noteViewsProvider)
       ..watch(backupPruningProvider)
-      ..watch(autoRefreshProvider);
+      ..watch(autoRescanProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folders'),
@@ -114,6 +114,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   Future<void> _create(List<NoteFolder> folders) async {
     final actions = ref.read(noteActionsProvider);
+    // Change events don't tell about new empty subfolders; a rescan finds
+    // them, so the dialog offers them.
+    await _refresh();
+    if (!mounted) return;
     final input = await showNewNoteDialog(
       context,
       folders: folders,

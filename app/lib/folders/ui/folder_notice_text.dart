@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../../refresh/ui/interval_text.dart';
+import '../../common/interval_text.dart';
 
 /// The words for a [FolderNotice] of a folder synced by [tool].
 extension FolderNoticeText on FolderNotice {
