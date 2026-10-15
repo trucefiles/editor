@@ -153,7 +153,9 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
             ),
             if (doneBlocks.isNotEmpty) ...[
               SliverToBoxAdapter(
-                child: _doneHeader(doneBlocks.whereType<ItemBlock>().length),
+                child: _doneHeader(
+                  list.lines.where((line) => line.isChecked).length,
+                ),
               ),
               if (_doneExpanded)
                 SliverList.list(

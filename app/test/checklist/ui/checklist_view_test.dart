@@ -138,6 +138,13 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('the done count counts only checked items', (tester) async {
+    await show(tester, '- [x] a\n  - [ ] sub\n- [ ] b');
+
+    expect(find.text('1 done'), findsOneWidget);
+    await close(tester);
+  });
+
   testWidgets('tab indents under the open item shown above', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [x] done\n- [ ] b');
     await tester.tap(field('b'));

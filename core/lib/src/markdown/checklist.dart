@@ -91,14 +91,13 @@ final class Checklist {
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }
 
-  /// Adds an unchecked item at the left margin before the first item; with
-  /// no items, as [append] does. Returns the new checklist and the new
-  /// line's id.
+  /// Adds an unchecked item before the first item, at its level, so the
+  /// items below never become its subitems; with no items, as [append]
+  /// does. Returns the new checklist and the new line's id.
   (Checklist, int) prepend(String text) {
     final firstItem = lines.indexWhere((line) => line.isItem);
     if (firstItem < 0) return append(text);
-    final sibling = lines[firstItem]._newSibling(_nextId, text);
-    return _insert(firstItem, sibling._withIndent(''));
+    return _insert(firstItem, lines[firstItem]._newSibling(_nextId, text));
   }
 
   /// Removes the item [id] with its subitems.
@@ -255,8 +254,11 @@ final class ChecklistLine {
     );
   }
 
-  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`.
-  static final _itemPattern = RegExp(r'^([ \t]*)([-*+][ \t]+)\[[ xX]\] ?(.*)$');
+  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; not a
+  /// bulleted link such as `- [x](url)` or `- [x][ref]`.
+  static final _itemPattern = RegExp(
+    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?![(\[]) ?(.*)$',
+  );
 
   final int id;
 
@@ -294,10 +296,15 @@ final class ChecklistLine {
     );
   }
 
+  /// Keeps the prefix as written; only an item that had no text gets a
+  /// space before its new text.
   ChecklistLine _withText(String text) {
     final item = _item!;
     var prefix = raw.substring(0, item.textStart);
-    if (!prefix.endsWith(' ')) prefix = '$prefix ';
+    final hadText = item.textStart < raw.length;
+    if (!hadText && text.isNotEmpty && !prefix.endsWith(' ')) {
+      prefix = '$prefix ';
+    }
     return ChecklistLine._parse(id, '$prefix${_oneLine(text)}');
   }
 
