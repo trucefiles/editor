@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
 import '../folder_actions.dart';
+import '../folder_services.dart';
 import '../folders_controller.dart';
 import '../note_folder.dart';
 import 'add_folder_error_text.dart';
@@ -11,6 +12,16 @@ import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
 import 'folder_notices_view.dart';
 import 'settings_error_text.dart';
+
+/// Opens the [FoldersScreen]. Notices can change while the app runs (e.g.
+/// watching a folder failed), so they are checked again first.
+Future<void> openFoldersScreen(BuildContext context, WidgetRef ref) {
+  ref.invalidate(folderNoticesProvider);
+  return Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
+  );
+}
 
 /// Lists the folders on this device: add, rename, recolor, remove.
 class FoldersScreen extends ConsumerWidget {

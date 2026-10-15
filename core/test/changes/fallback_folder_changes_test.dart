@@ -15,6 +15,22 @@ void main() {
     expect(await changes.changes.toList(), [path('a.md'), path('b.md')]);
   });
 
+  test('tells when it is on the fallback', () async {
+    final primary = StreamController<RelPath>();
+    final changes = FallbackFolderChanges(
+      _StreamChanges(primary),
+      _FixedChanges([]),
+    );
+    final done = changes.changes.toList();
+    await Future<void>.delayed(Duration.zero);
+    expect(changes.isOnFallback, isFalse);
+
+    await primary.close();
+    await done;
+
+    expect(changes.isOnFallback, isTrue);
+  });
+
   test('never starts the fallback while the primary runs', () async {
     final primary = StreamController<RelPath>();
     final fallback = StreamController<RelPath>();
@@ -28,6 +44,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(fallback.hasListener, isFalse);
+    expect(changes.isOnFallback, isFalse);
     await subscription.cancel();
     expect(primary.hasListener, isFalse);
   });

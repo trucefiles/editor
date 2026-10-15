@@ -44,40 +44,46 @@ FolderServices syncthingFolderServices(
 }
 
 /// How changes to the Syncthing folder at [path] are found, as [refresh]
-/// asks; `null` for manual refresh. Watched, and polled once watching
-/// fails; or only polled, at the set interval.
-FolderChanges? syncthingFolderChanges(String path, RefreshSettings refresh) {
+/// asks, and what to tell the user about the folder; built together, so
+/// the notices see how changes are actually followed.
+///
+/// Changes are `null` for manual refresh. Otherwise watched, and polled
+/// once watching fails; or only polled, at the set interval.
+FolderFollowing syncthingFolderFollowing(String path, RefreshSettings refresh) {
   const adapter = SyncthingAdapter();
   final polled = PolledFolderChanges(
     LocalFileStore(path, adapter.tempFileName),
     interval: refresh.interval,
     enterFolder: (folder) => !adapter.isInternal(folder),
   );
-  return switch (_following(path, refresh)) {
-    _Following.none => null,
-    _Following.watched => SyncthingFolderChanges(
-      FallbackFolderChanges(WatchedFolderChanges(path), polled),
-    ),
-    _Following.polled => SyncthingFolderChanges(polled),
-  };
+  final syncCheck = SyncthingSyncCheck(
+    path,
+    readNames: readLocalFolderNames,
+    parentsVisible: canReadParents(path),
+  );
+  switch (_following(path, refresh)) {
+    case _Following.none:
+      return (changes: null, notices: SyncthingFolderNotices(syncCheck));
+    case _Following.watched:
+      final watched = FallbackFolderChanges(WatchedFolderChanges(path), polled);
+      return (
+        changes: SyncthingFolderChanges(watched),
+        notices: SyncthingFolderNotices(
+          syncCheck,
+          pollInterval: () => watched.isOnFallback ? refresh.interval : null,
+        ),
+      );
+    case _Following.polled:
+      final asked = refresh.mode == RefreshMode.live;
+      return (
+        changes: SyncthingFolderChanges(polled),
+        notices: SyncthingFolderNotices(
+          syncCheck,
+          pollInterval: () => asked ? refresh.interval : null,
+        ),
+      );
+  }
 }
-
-/// What the user should know about the Syncthing folder at [path]: whether
-/// Syncthing syncs it, and when [refresh] asks for live updates that this
-/// folder can't give.
-FolderNotices syncthingFolderNotices(String path, RefreshSettings refresh) =>
-    SyncthingFolderNotices(
-      SyncthingSyncCheck(
-        path,
-        readNames: readLocalFolderNames,
-        parentsVisible: canReadParents(path),
-      ),
-      pollInterval:
-          refresh.mode == RefreshMode.live &&
-              _following(path, refresh) == _Following.polled
-          ? refresh.interval
-          : null,
-    );
 
 /// How a Syncthing folder's changes are followed.
 enum _Following { none, watched, polled }

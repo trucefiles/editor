@@ -2,13 +2,15 @@ import '../sync/folder_notices.dart';
 import '../sync/sync_check.dart';
 
 /// The notices of a Syncthing folder: whether Syncthing syncs it (from
-/// [_syncCheck]), and, given a [_pollInterval], that its changes are polled
-/// because they can't be followed live.
+/// [_syncCheck]), and, while [_pollInterval] gives one, that its changes
+/// are polled at that interval because they can't be followed live.
 final class SyncthingFolderNotices implements FolderNotices {
   const SyncthingFolderNotices(this._syncCheck, {this._pollInterval});
 
   final SyncCheck _syncCheck;
-  final Duration? _pollInterval;
+
+  /// Asked at each check, as live following can stop at any time.
+  final Duration? Function()? _pollInterval;
 
   @override
   Future<List<FolderNotice>> check() async => [
@@ -17,6 +19,6 @@ final class SyncthingFolderNotices implements FolderNotices {
       SyncStatus.notSynced => const [NotSyncedNotice()],
       SyncStatus.unknown => const [SyncUnknownNotice()],
     },
-    if (_pollInterval case final interval?) PolledNotice(interval),
+    if (_pollInterval?.call() case final interval?) PolledNotice(interval),
   ];
 }

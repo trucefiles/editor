@@ -7,7 +7,7 @@ void main() {
     Duration? pollInterval,
   }) => SyncthingFolderNotices(
     _FixedCheck(status),
-    pollInterval: pollInterval,
+    pollInterval: () => pollInterval,
   ).check();
 
   test('none for a synced folder', () async {

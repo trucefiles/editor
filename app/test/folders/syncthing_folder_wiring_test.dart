@@ -15,20 +15,29 @@ void main() {
 
   group('changes', () {
     test('none are looked for with manual refresh', () {
-      expect(syncthingFolderChanges(tempFolder().path, manual), isNull);
+      expect(
+        syncthingFolderFollowing(tempFolder().path, manual).changes,
+        isNull,
+      );
     });
 
     test('are found with periodic and live refresh', () {
-      expect(syncthingFolderChanges(tempFolder().path, periodic), isNotNull);
-      expect(syncthingFolderChanges(tempFolder().path, live), isNotNull);
+      expect(
+        syncthingFolderFollowing(tempFolder().path, periodic).changes,
+        isNotNull,
+      );
+      expect(
+        syncthingFolderFollowing(tempFolder().path, live).changes,
+        isNotNull,
+      );
     });
 
     test('leave out Syncthing temp files', () async {
       final folder = tempFolder();
-      final changes = syncthingFolderChanges(
+      final changes = syncthingFolderFollowing(
         folder.path,
         periodic.copyWith(interval: const Duration(milliseconds: 20)),
-      )!;
+      ).changes!;
       final seen = <RelPath>[];
       final subscription = changes.changes.listen(seen.add);
       addTearDown(subscription.cancel);
@@ -46,7 +55,7 @@ void main() {
     Future<List<FolderNotice>> noticesOf(
       String path,
       RefreshSettings refresh,
-    ) => syncthingFolderNotices(path, refresh).check();
+    ) => syncthingFolderFollowing(path, refresh).notices.check();
 
     test('tell when live updates fall back to polling', () async {
       final notices = await noticesOf(portalFolder, live);
@@ -71,5 +80,27 @@ void main() {
         Platform.isLinux ? isEmpty : isNotEmpty,
       );
     });
+
+    test('tell when watching failed and changes are polled', () async {
+      final folder = tempFolder();
+      final following = syncthingFolderFollowing(folder.path, live);
+      final subscription = following.changes!.changes.listen((_) {});
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(
+        (await following.notices.check()).whereType<PolledNotice>(),
+        isEmpty,
+      );
+
+      // Watching ends with the folder.
+      folder.deleteSync(recursive: true);
+      addTearDown(folder.createSync);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      expect(
+        await following.notices.check(),
+        contains(PolledNotice(live.interval)),
+      );
+    }, testOn: 'linux');
   });
 }

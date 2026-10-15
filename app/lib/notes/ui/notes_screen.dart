@@ -84,10 +84,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           IconButton(
             tooltip: 'Manage folders',
             icon: const Icon(Icons.folder_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
-            ),
+            onPressed: () => openFoldersScreen(context, ref),
           ),
           const HomeMenu(),
         ],

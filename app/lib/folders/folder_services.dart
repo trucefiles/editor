@@ -37,22 +37,32 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
   ),
 );
 
-/// How changes to the folder at [FolderLocation] are found, as the refresh
-/// setting asks; `null` if they aren't looked for (manual refresh).
-final folderChangesProvider =
-    FutureProvider.family<FolderChanges?, FolderLocation>(
-      (ref, location) async => syncthingFolderChanges(
+/// How a folder's changes are found (`null`: not looked for), and what the
+/// user should know about the folder. Built together by the sync tool's
+/// wiring, so the notices can tell how changes are actually followed.
+typedef FolderFollowing = ({FolderChanges? changes, FolderNotices notices});
+
+final _folderFollowingProvider =
+    FutureProvider.family<FolderFollowing, FolderLocation>(
+      (ref, location) async => syncthingFolderFollowing(
         location.path,
         await ref.watch(refreshSettingsProvider.future),
       ),
     );
 
-/// What the user should know about the folder at [FolderLocation]; checked
-/// once per app run and refresh setting.
+/// How changes to the folder at [FolderLocation] are found, as the refresh
+/// setting asks; `null` if they aren't looked for (manual refresh).
+final folderChangesProvider =
+    FutureProvider.family<FolderChanges?, FolderLocation>(
+      (ref, location) async =>
+          (await ref.watch(_folderFollowingProvider(location).future)).changes,
+    );
+
+/// What the user should know about the folder at [FolderLocation]. Checked
+/// once; invalidate to check again.
 final folderNoticesProvider =
     FutureProvider.family<List<FolderNotice>, FolderLocation>(
-      (ref, location) async => syncthingFolderNotices(
-        location.path,
-        await ref.watch(refreshSettingsProvider.future),
-      ).check(),
+      (ref, location) async =>
+          (await ref.watch(_folderFollowingProvider(location).future)).notices
+              .check(),
     );
