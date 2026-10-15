@@ -44,7 +44,7 @@ void main() {
 
   FileVersion versionOnDisk() => inner.files[note]!.version;
 
-  test('rewrites a same-size write within the gap after the gap', () async {
+  test('rewrites a write within the gap after the gap', () async {
     final first = (await store.create(note, bytesOf('v1'))).value;
     now = now.add(const Duration(seconds: 1));
     final second = (await store.replace(
@@ -59,17 +59,38 @@ void main() {
     expect(versionOnDisk(), isNot(second.version));
   });
 
-  test('does not rewrite a write of another size', () async {
+  test('rewrites a write of another size within the gap too', () async {
+    // The tool may have indexed any write of the gap: here 'v1', which the
+    // third write matches in size.
     final first = (await store.create(note, bytesOf('v1'))).value;
     final second = (await store.replace(
       note,
       bytesOf('v22'),
       ifUnchanged: first.version,
     )).value;
+    final third = (await store.replace(
+      note,
+      bytesOf('v3'),
+      ifUnchanged: second.version,
+    )).value;
 
     await passGap();
 
-    expect(waits, isEmpty);
+    expect(inner.textOf('a.md'), 'v3');
+    expect(versionOnDisk(), isNot(third.version));
+  });
+
+  test('rewrites nothing with a zero gap', () async {
+    final unguarded = RestampingFileStore(inner, gap: Duration.zero);
+    final first = (await unguarded.create(note, bytesOf('v1'))).value;
+    final second = (await unguarded.replace(
+      note,
+      bytesOf('v2'),
+      ifUnchanged: first.version,
+    )).value;
+
+    await pumpEventQueue();
+
     expect(versionOnDisk(), second.version);
   });
 
@@ -118,6 +139,7 @@ void main() {
   });
 
   test('a later write replaces a pending rewrite', () async {
+    // Only the last write is rewritten, once.
     final first = (await store.create(note, bytesOf('v1'))).value;
     final second = (await store.replace(
       note,
@@ -133,7 +155,10 @@ void main() {
 
     await passGap();
 
-    expect(versionOnDisk(), third.version);
+    expect(inner.textOf('a.md'), 'v3-longer');
+    // Three writes, then a single rewrite: the memory store counts them.
+    expect(third.version, const FileVersion(3));
+    expect(versionOnDisk(), const FileVersion(4));
   });
 
   test('a delete cancels a pending rewrite', () async {

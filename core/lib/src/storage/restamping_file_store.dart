@@ -9,15 +9,22 @@ import 'rel_path.dart';
 /// misses same-size rewrites in quick succession.
 ///
 /// Some sync tools see a file as unchanged while its size stays the same
-/// and its modification time moved less than a [gap]. A file written twice
-/// within the gap with the same size can then keep content the tool never
-/// syncs. So when a write follows the last one to the same path within the
-/// gap with the same size, the same bytes are written once more after the
-/// gap, unless the file changed meanwhile.
+/// and its modification time moved less than a [gap] from the version they
+/// last indexed. Any write within the gap may be indexed, so a later write
+/// of the same size within the gap can keep content the tool never syncs.
+/// So when a write follows another one to the same path within the gap,
+/// whatever their sizes, the same bytes are written once more after the
+/// gap, unless the file changed meanwhile. With a zero gap, nothing is
+/// rewritten.
 ///
-/// The extra write is hidden from callers: a version they got from a write
-/// stays valid for their next change check. Writes to one path run one at a
-/// time. Remembers each path written while it lives.
+/// A version a caller got from a write stays valid for its next change
+/// check ([replace], [delete]) after the rewrite. [read] and [list] show
+/// the rewrite's version: a new version of the same bytes. Writes to one
+/// path run one at a time. Remembers each path written while it lives.
+///
+/// A rewrite that fails, or that does not happen because the app ends
+/// within the gap, is not retried: the content may then stay unseen until
+/// the file's next write.
 final class RestampingFileStore implements FileStore {
   RestampingFileStore(
     this._inner, {
@@ -77,8 +84,8 @@ final class RestampingFileStore implements FileStore {
       path,
       ifUnchanged: _onDisk(path, ifUnchanged),
     );
-    // Keeps when and how big the last write was: a new file at the same
-    // path can look like that version to the sync tool.
+    // Keeps when the last write was: a new file at the same path can look
+    // like that version to the sync tool.
     if (deleted is Ok) {
       if (_written[path] case final last?) _written[path] = last.deleted();
     }
@@ -97,15 +104,9 @@ final class RestampingFileStore implements FileStore {
 
   void _wrote(RelPath path, Uint8List bytes, FileEntry entry) {
     final last = _written[path];
-    final written = _Written(
-      at: _now(),
-      size: bytes.length,
-      version: entry.version,
-    );
+    final written = _Written(at: _now(), version: entry.version);
     _written[path] = written;
-    if (last != null &&
-        last.size == bytes.length &&
-        written.at.difference(last.at) < _gap) {
+    if (last != null && written.at.difference(last.at) < _gap) {
       unawaited(_rewriteLater(path, bytes, written));
     }
   }
@@ -154,16 +155,10 @@ final class RestampingFileStore implements FileStore {
 
 /// The last write to a path.
 final class _Written {
-  const _Written({
-    required this.at,
-    required this.size,
-    required this.version,
-    this.rewrittenAs,
-  });
+  const _Written({required this.at, required this.version, this.rewrittenAs});
 
-  /// When it ended; the next same-size write within the gap is rewritten.
+  /// When it ended; the next write within the gap is rewritten.
   final DateTime at;
-  final int size;
 
   /// The version the caller got; `null` once the file is deleted.
   final FileVersion? version;
@@ -172,7 +167,7 @@ final class _Written {
   final FileVersion? rewrittenAs;
 
   _Written rewritten({required DateTime at, required FileVersion as}) =>
-      _Written(at: at, size: size, version: version, rewrittenAs: as);
+      _Written(at: at, version: version, rewrittenAs: as);
 
-  _Written deleted() => _Written(at: at, size: size, version: null);
+  _Written deleted() => _Written(at: at, version: null);
 }

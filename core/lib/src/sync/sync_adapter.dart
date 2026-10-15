@@ -19,8 +19,8 @@ abstract interface class SyncAdapter {
   /// behind. [randomToken] keeps concurrent writes apart.
   String tempFileName(String randomToken);
 
-  /// A file rewritten with the same size less than this after its last
-  /// write may look unchanged to the sync tool, which then never syncs the
+  /// A file rewritten with the same size less than this after a version
+  /// the sync tool indexed may look unchanged to it, so it never syncs the
   /// new content. [Duration.zero] if the tool sees every write.
   Duration get sameSizeRewriteGap;
 }
