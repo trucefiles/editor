@@ -35,6 +35,29 @@ void main() {
     });
   });
 
+  group('isInternalFolder', () {
+    test("matches Syncthing's folders and anything inside them", () {
+      for (final names in [
+        ['sync', '.stversions'],
+        ['sync', '.stversions', 'Notes'],
+        ['sync', '.stfolder'],
+      ]) {
+        expect(adapter.isInternalFolder(names), isTrue, reason: '$names');
+      }
+    });
+
+    test('does not match note folders', () {
+      for (final names in [
+        <String>[],
+        ['sync', 'Notes'],
+        ['sync', 'stversions'],
+        ['sync', '.hidden'],
+      ]) {
+        expect(adapter.isInternalFolder(names), isFalse, reason: '$names');
+      }
+    });
+  });
+
   test('temp files are Syncthing temp files', () {
     final name = adapter.tempFileName('1a2b');
 

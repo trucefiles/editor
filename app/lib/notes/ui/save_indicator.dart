@@ -3,23 +3,33 @@ import 'package:flutter/material.dart';
 import '../note_edit_session.dart';
 
 /// App bar icon telling where an open note's edits are: being edited,
-/// saved on this device, or saved in the note's file in the folder.
+/// saved on this device, or saved in the note's file in the folder. While
+/// they are saved on this device only, tapping it calls [onSave].
 class SaveIndicator extends StatelessWidget {
-  const SaveIndicator(this.state, {super.key});
+  const SaveIndicator(this.state, {required this.onSave, super.key});
 
   final EditState state;
+
+  /// Saves the edits in the note's file now.
+  final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
     final (icon, label) = switch (state) {
       EditState.saved => (Icons.cloud_done_outlined, 'Saved in the folder'),
-      EditState.savedOnDevice => (Icons.save_outlined, 'Saved on this device'),
+      EditState.savedOnDevice => (
+        Icons.save_outlined,
+        'Saved on this device. Tap to save in the folder now',
+      ),
       EditState.unsaved => (Icons.edit_outlined, 'Editing…'),
       EditState.changedElsewhere => (Icons.sync_problem, 'Changed elsewhere'),
       EditState.deletedElsewhere => (Icons.sync_problem, 'Deleted elsewhere'),
       EditState.saveFailed => (Icons.error_outline, 'Not saved'),
       EditState.keptAsConflict => (Icons.sync_problem, 'Kept as conflict'),
     };
+    if (state == EditState.savedOnDevice) {
+      return IconButton(tooltip: label, icon: Icon(icon), onPressed: onSave);
+    }
     return Tooltip(
       message: label,
       child: Padding(

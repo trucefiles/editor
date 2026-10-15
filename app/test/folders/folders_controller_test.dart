@@ -72,6 +72,25 @@ void main() {
     expect(list.map((f) => f.path), ['/sync/Notes', '/sync/Notes2']);
   });
 
+  test("refuses the sync tool's own folders, also on the host", () async {
+    final folders = container(
+      hostPaths: const _FakeHostPaths({
+        '/doc/1/Notes': '/sync/.stversions/Notes',
+      }),
+    );
+    final controller = folders.read(foldersProvider.notifier);
+
+    expect(
+      (await controller.add('/sync/.stversions')).error,
+      AddFolderError.syncToolInternal,
+    );
+    expect(
+      (await controller.add('/doc/1/Notes')).error,
+      AddFolderError.syncToolInternal,
+    );
+    expect(await folders.read(foldersProvider.future), isEmpty);
+  });
+
   test('refuses a folder that overlaps an added one on the host', () async {
     final folders = container(
       hostPaths: const _FakeHostPaths({

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../note_edit_session.dart';
+import 'changed_elsewhere_screen.dart';
 
 /// Tells what went wrong with an open note's edits and offers the
 /// session's ways out. Shows nothing while all is well.
@@ -21,10 +22,7 @@ class EditStateBanner extends StatelessWidget {
     EditState.unsaved => const SizedBox.shrink(),
     EditState.changedElsewhere => _Banner(
       message: 'This note changed on another device or app.',
-      actions: {
-        'Load theirs': session.loadTheirs,
-        'Keep mine': session.keepMine,
-      },
+      actions: {'Compare': () => openChangedElsewhere(context, session)},
     ),
     EditState.deletedElsewhere => _Banner(
       message:

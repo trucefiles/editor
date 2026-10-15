@@ -87,6 +87,10 @@ final class NoteEditSession extends ChangeNotifier {
 
   EditState get state => _state;
 
+  /// The version from elsewhere the user picks against, while
+  /// [EditState.changedElsewhere].
+  Note? get theirs => _theirs;
+
   /// The user changed the text; keeps it on the device after [saveDelay]
   /// without edits.
   void edit(String text) {
@@ -203,6 +207,9 @@ final class NoteEditSession extends ChangeNotifier {
     _theirs = latest;
     if (_state == EditState.unsaved || _state == EditState.savedOnDevice) {
       _set(EditState.changedElsewhere);
+    } else if (_state == EditState.changedElsewhere) {
+      // The user must pick against the newest version.
+      notifyListeners();
     }
     return false;
   }

@@ -7,6 +7,10 @@ enum AddFolderError {
   /// show twice.
   overlaps,
 
+  /// The folder belongs to the sync tool itself (e.g. its version folder),
+  /// so it holds no notes.
+  syncToolInternal,
+
   /// The folder list could not be saved.
   notSaved,
 }

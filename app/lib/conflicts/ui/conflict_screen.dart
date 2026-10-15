@@ -8,6 +8,7 @@ import '../../folders/ui/folder_badge.dart';
 import '../conflict_controller.dart';
 import '../conflict_sides.dart';
 import '../folder_conflicts.dart';
+import 'version_comparison.dart';
 import 'version_pane.dart';
 
 /// Shows both versions of a conflicting note side by side; the user keeps
@@ -129,9 +130,6 @@ class _Comparison extends StatelessWidget {
     required this.onKeep,
   });
 
-  /// Below this width the versions are stacked instead of side by side.
-  static const _sideBySideWidth = 700.0;
-
   final Conflict conflict;
   final ConflictSides sides;
   final bool enabled;
@@ -155,18 +153,6 @@ class _Comparison extends StatelessWidget {
       keepLabel: sides.current == null ? 'Restore' : 'Keep this',
       onKeep: enabled ? () => onKeep(const KeepOther()) : null,
     );
-    return LayoutBuilder(
-      builder: (context, constraints) => Flex(
-        direction: constraints.maxWidth >= _sideBySideWidth
-            ? Axis.horizontal
-            : Axis.vertical,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: current),
-          const VerticalDivider(width: 1),
-          Expanded(child: other),
-        ],
-      ),
-    );
+    return VersionComparison(first: current, second: other);
   }
 }

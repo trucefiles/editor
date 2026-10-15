@@ -14,6 +14,11 @@ abstract interface class SyncAdapter {
   /// touched only by the tool's own `ConflictSource`.
   bool isInternal(RelPath path);
 
+  /// Whether the folder whose path, from the top, has the folder [names]
+  /// is the sync tool's own (e.g. its version folder) or lies inside it.
+  /// Such a folder never holds the user's notes.
+  bool isInternalFolder(List<String> names);
+
   /// File name for the temp file of an atomic write, placed next to the
   /// target. The sync tool must never sync it and must clean it up if left
   /// behind. [randomToken] keeps concurrent writes apart.

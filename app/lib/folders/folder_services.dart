@@ -37,6 +37,10 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
   ),
 );
 
+/// The sync tool's file-name rules, e.g. to refuse adding a folder of its
+/// own.
+final syncAdapterProvider = Provider<SyncAdapter>((_) => syncthingAdapter);
+
 /// How a folder's changes are found (`null`: not looked for), and what the
 /// user should know about the folder. Built together by the sync tool's
 /// wiring, so the notices can tell how changes are actually followed.

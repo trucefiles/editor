@@ -21,6 +21,10 @@ final class SyncthingAdapter implements SyncAdapter {
       _isTempFile(path.name) ||
       SyncthingConflictName.parse(path.name) != null;
 
+  @override
+  bool isInternalFolder(List<String> names) =>
+      names.any(_internalNames.contains);
+
   /// Syncthing never syncs `.syncthing.*` files and deletes stale ones
   /// after a day, so a temp file left by a crash is cleaned up.
   @override

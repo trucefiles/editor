@@ -170,6 +170,20 @@ void main() {
     expect(onDisk(), '# a\nmine');
   });
 
+  test('tells of a newer change from elsewhere while asking', () async {
+    session.edit('# a\nmine');
+    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    expect(session.state, EditState.changedElsewhere);
+    var told = 0;
+    session.addListener(() => told++);
+
+    final newer = await editElsewhere('# a\ntheirs, newer');
+    session.onRescan(newer, scannedAt: later);
+
+    expect(told, 1);
+    expect(session.theirs?.file.text, '# a\ntheirs, newer');
+  });
+
   test('load theirs drops the edits', () async {
     await editElsewhere('# a\ntheirs, longer');
     session.edit('# a\nmine');
