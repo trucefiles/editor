@@ -22,15 +22,22 @@ void main() {
   late ProviderContainer container;
 
   /// Starts auto refresh for one folder whose changes come from [changes];
-  /// none are looked for if [manual].
-  Future<void> start({bool active = true, bool manual = false}) async {
+  /// none are looked for if [manual]. With [folders], the folder list
+  /// loads only once it completes, and the start does not wait for it.
+  Future<void> start({
+    bool active = true,
+    bool manual = false,
+    Completer<void>? folders,
+  }) async {
     // Broadcast: a rebuild listens again.
     changes = StreamController<RelPath>.broadcast();
     scans = _CountingScans();
     final folder = folderAt(tempFolder());
     container = ProviderContainer(
       overrides: [
-        foldersProvider.overrideWith(() => _FixedFolders([folder])),
+        foldersProvider.overrideWith(
+          () => _FixedFolders([folder], loaded: folders?.future),
+        ),
         folderChangesProvider.overrideWith(
           (ref, location) async => manual ? null : _StreamChanges(changes),
         ),
@@ -41,7 +48,7 @@ void main() {
     );
     addTearDown(container.dispose);
     container.listen(autoRescanProvider, (_, _) {});
-    await container.read(autoRescanProvider.future);
+    if (folders == null) await container.read(autoRescanProvider.future);
   }
 
   Future<void> settle() => Future<void>.delayed(
@@ -91,6 +98,20 @@ void main() {
       active: false,
     );
     await container.read(autoRescanProvider.future);
+
+    expect(changes.hasListener, isFalse);
+  });
+
+  test('a start the app left meanwhile looks for no changes', () async {
+    final folders = Completer<void>();
+    await start(folders: folders);
+
+    (container.read(appActiveProvider.notifier) as _FixedActivity).set(
+      active: false,
+    );
+    await container.read(autoRescanProvider.future);
+    folders.complete();
+    await settle();
 
     expect(changes.hasListener, isFalse);
   });
@@ -149,12 +170,16 @@ final class _StreamChanges implements FolderChanges {
 }
 
 class _FixedFolders extends FoldersController {
-  _FixedFolders(this._folders);
+  _FixedFolders(this._folders, {Future<void>? loaded}) : _loaded = loaded;
 
   final List<NoteFolder> _folders;
+  final Future<void>? _loaded;
 
   @override
-  Future<List<NoteFolder>> build() async => _folders;
+  Future<List<NoteFolder>> build() async {
+    await _loaded;
+    return _folders;
+  }
 }
 
 class _FixedSettings extends RefreshSettingsController {
