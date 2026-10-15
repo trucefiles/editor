@@ -20,7 +20,12 @@ import 'rel_path.dart';
 /// the folder was moved, deleted or is on a drive that is not mounted, so
 /// [create] fails with [StoreError.notFound] instead of bringing it back.
 final class LocalFileStore implements FileStore {
-  LocalFileStore(this.rootPath, this._tempFileName, {this.createsRoot = false});
+  LocalFileStore(
+    this.rootPath,
+    this._tempFileName, {
+    this.createsRoot = false,
+    this.replacesInPlace = false,
+  });
 
   /// Absolute path of the root folder.
   final String rootPath;
@@ -28,6 +33,14 @@ final class LocalFileStore implements FileStore {
   /// Whether [create] may create a missing root folder, e.g. for the app's
   /// own storage, which exists only once something is saved there.
   final bool createsRoot;
+
+  /// Whether [replace] writes into the existing file instead of renaming
+  /// a new file over it. For file systems where a renamed-over file shows
+  /// other apps the old file's modification time a moment later (Android
+  /// shared storage), so a sync tool would miss the change.
+  ///
+  /// Not atomic: if the app is killed mid-write, the file is cut short.
+  final bool replacesInPlace;
 
   final TempFileNamer _tempFileName;
   final Random _random = Random.secure();
@@ -81,12 +94,10 @@ final class LocalFileStore implements FileStore {
     required FileVersion ifUnchanged,
   }) => _guard(() async {
     final file = await _file(path);
-    return _writeAtomically(
-      path,
-      file,
-      bytes,
-      isAllowed: () => _checkUnchanged(file, ifUnchanged),
-    );
+    Future<void> isAllowed() => _checkUnchanged(file, ifUnchanged);
+    return replacesInPlace
+        ? _writeInPlace(path, file, bytes, isAllowed: isAllowed)
+        : _writeAtomically(path, file, bytes, isAllowed: isAllowed);
   });
 
   @override
@@ -167,6 +178,28 @@ final class LocalFileStore implements FileStore {
       await isAllowed();
       await temp.rename(file.path);
       return _entry(path, written);
+    } finally {
+      if (await temp.exists()) await temp.delete();
+    }
+  }
+
+  /// Writes [bytes] into the existing [file]. [isAllowed] runs last before
+  /// the write and throws [_Refused] to stop it.
+  ///
+  /// The bytes go to a temp file first, so a full disk fails before [file]
+  /// is touched.
+  Future<FileEntry> _writeInPlace(
+    RelPath path,
+    File file,
+    Uint8List bytes, {
+    required Future<void> Function() isAllowed,
+  }) async {
+    final temp = File('${file.parent.path}/${_tempFileName(_randomToken())}');
+    try {
+      await temp.writeAsBytes(bytes, flush: true);
+      await isAllowed();
+      await file.writeAsBytes(bytes, flush: true);
+      return _entry(path, await _stat(file));
     } finally {
       if (await temp.exists()) await temp.delete();
     }

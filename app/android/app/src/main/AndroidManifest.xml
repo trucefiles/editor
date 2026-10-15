@@ -2,12 +2,7 @@
     <!-- Reads and writes notes in the folders the user adds, by path. The
          app only opens files inside those folders. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <!-- requestRawExternalStorageAccess: reads and writes go straight to
-         the file system instead of through Android's media layer, which
-         otherwise left saved notes with the old file's modification time,
-         so sync tools missed same-size changes. -->
     <application
-        android:requestRawExternalStorageAccess="true"
         android:label="Truce Editor"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
