@@ -9,8 +9,8 @@ import '../note_folder.dart';
 import 'add_folder_error_text.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
+import 'folder_notices_view.dart';
 import 'settings_error_text.dart';
-import 'sync_status_warning.dart';
 
 /// Lists the folders on this device: add, rename, recolor, remove.
 class FoldersScreen extends ConsumerWidget {
@@ -34,10 +34,7 @@ class FoldersScreen extends ConsumerWidget {
               title: Text(folder.name),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(folder.path),
-                  SyncStatusWarning(folder, includeUnknown: true),
-                ],
+                children: [Text(folder.path), FolderNoticesView(folder)],
               ),
               onTap: () => _edit(context, ref, folder),
               trailing: IconButton(

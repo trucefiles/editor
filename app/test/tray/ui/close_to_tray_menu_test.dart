@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/notes/ui/home_menu.dart';
 import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/tray/close_to_tray_controller.dart';
 import 'package:truce_editor/tray/tray_wiring.dart';
-import 'package:truce_editor/tray/ui/close_to_tray_menu.dart';
 
 import '../../support.dart';
 import '../fakes.dart';
@@ -17,7 +18,7 @@ void main() {
     window = FakeWindow();
   });
 
-  final menuButton = find.byType(PopupMenuButton<bool>);
+  final menuButton = find.byType(PopupMenuButton<VoidCallback>);
 
   /// Lets file reads and writes finish, which complete outside the test's
   /// fake time, until [until] holds; then renders the result.
@@ -45,12 +46,19 @@ void main() {
             appWindowProvider.overrideWithValue(window),
           ],
           child: MaterialApp(
-            home: Scaffold(appBar: AppBar(actions: const [CloseToTrayMenu()])),
+            home: Scaffold(appBar: AppBar(actions: const [HomeMenu()])),
           ),
         ),
       ),
     );
-    await settle(tester, until: () => menuButton.evaluate().isNotEmpty);
+    await settle(
+      tester,
+      until: () =>
+          menuButton.evaluate().isNotEmpty &&
+          ProviderScope.containerOf(tester.element(menuButton))
+              .read(closeToTrayProvider)
+              .hasValue,
+    );
   }
 
   Future<void> openMenu(WidgetTester tester) async {
@@ -89,9 +97,12 @@ void main() {
     expect(find.text('No tray on this desktop: closing quits'), findsOneWidget);
   });
 
-  testWidgets('has no menu where the platform has no tray', (tester) async {
+  testWidgets('has no tray setting where the platform has no tray', (
+    tester,
+  ) async {
     await pumpMenu(tester, withTray: false);
+    await openMenu(tester);
 
-    expect(menuButton, findsNothing);
+    expect(find.text('Keep running in tray'), findsNothing);
   });
 }

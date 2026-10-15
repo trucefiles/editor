@@ -7,6 +7,8 @@ import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_editor/refresh/refresh_settings.dart';
+import 'package:truce_editor/refresh/refresh_settings_store.dart';
 import 'package:truce_editor/tray/tray_wiring.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
@@ -37,6 +39,12 @@ final class TestApp {
       child: const TruceApp(),
     ),
   );
+
+  /// Starts the app with [mode] as the refresh setting, e.g. manual for
+  /// tests of what refreshes without live updates.
+  Future<void> useRefresh(RefreshMode mode) =>
+      RefreshSettingsStore(File('${_storage.settingsPath}/refresh.json'))
+          .save(RefreshSettings.standard.copyWith(mode: mode));
 
   /// [name] may lead through subfolders; [write] creates them.
   File file(String name) => File('${notes.path}/$name');

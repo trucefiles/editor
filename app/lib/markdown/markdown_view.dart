@@ -17,5 +17,7 @@ class MarkdownView extends StatelessWidget {
     // Keep line breaks as typed, as notes apps do.
     softLineBreak: true,
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+    // Pulls down even when the text fits, to refresh.
+    physics: const AlwaysScrollableScrollPhysics(),
   );
 }

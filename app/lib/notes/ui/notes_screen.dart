@@ -16,12 +16,13 @@ import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
+import '../../refresh/auto_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
-import '../../tray/ui/close_to_tray_menu.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_views_controller.dart';
+import 'home_menu.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_grid.dart';
@@ -60,7 +61,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     // Loaded up front, so a note opens in its remembered view.
     ref
       ..watch(noteViewsProvider)
-      ..watch(backupPruningProvider);
+      ..watch(backupPruningProvider)
+      ..watch(autoRefreshProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folders'),
@@ -87,7 +89,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
             ),
           ),
-          const CloseToTrayMenu(),
+          const HomeMenu(),
         ],
       ),
       floatingActionButton: switch (folders.value) {

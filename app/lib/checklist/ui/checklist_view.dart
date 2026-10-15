@@ -115,6 +115,8 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
               first.id,
         ]);
         return CustomScrollView(
+          // Pulls down even when the items fit, to refresh.
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             if (hasOpenItems)
               SliverToBoxAdapter(
