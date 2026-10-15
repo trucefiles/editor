@@ -30,15 +30,20 @@ final class ShownVersion {
 
   final String keepLabel;
 
-  /// What keeping this version does to the other one, to confirm it.
+  /// What keeping this version does, including which backup is kept
+  /// (e.g. [bothBackedUp]), to confirm it.
   final String keptMessage;
 
   final DateTime? modified;
 }
 
-/// The one view for every clash between two versions of a note: shows both,
-/// asks before keeping one, and tells that a backup of both is kept. The
-/// owner of [onKeep] makes that backup before it changes anything.
+/// Tells that both versions are backed up before one is kept.
+const bothBackedUp = 'A backup of both stays on this device for 7 days.';
+
+/// The one view for every clash between two versions of a note: shows both
+/// and asks before keeping one. The owner of [onKeep] makes the backups
+/// its versions' [ShownVersion.keptMessage] tells of, before it changes
+/// anything.
 class VersionChooser extends StatelessWidget {
   const VersionChooser({
     required this.current,
@@ -59,10 +64,7 @@ class VersionChooser extends StatelessWidget {
 
   Future<void> _keep(BuildContext context, VersionSide side) async {
     final kept = side == VersionSide.current ? current : other;
-    final confirmed = await confirmKeepVersion(
-      context,
-      '${kept.keptMessage} A backup of both stays on this device for 7 days.',
-    );
+    final confirmed = await confirmKeepVersion(context, kept.keptMessage);
     if (confirmed) onKeep(side);
   }
 

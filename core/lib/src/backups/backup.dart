@@ -1,0 +1,97 @@
+import '../storage/rel_path.dart';
+
+/// Why a backup of a file was made.
+enum BackupKind {
+  /// The file before the first save of an editing session.
+  beforeEdit('edit'),
+
+  /// The file before the user kept one of two versions.
+  current('current'),
+
+  /// The version that clashed with the file (a conflict copy,
+  /// edits made from an older version, or a backup being restored).
+  other('other');
+
+  const BackupKind(this._tag);
+
+  /// The kind's part of a backup's path.
+  final String _tag;
+
+  static BackupKind? _ofTag(String tag) {
+    for (final kind in values) {
+      if (kind._tag == tag) return kind;
+    }
+    return null;
+  }
+}
+
+/// One backup of a file, in a backup store.
+///
+/// Kept at `<time in µs since epoch>.<kind>/<file path>`, e.g.
+/// `1791818275000000.edit/lists/todo.md`: the file's path is kept whole,
+/// so the backup knows where it belongs.
+final class Backup {
+  const Backup._(
+    this.storePath, {
+    required this.filePath,
+    required this.savedAt,
+    required this.kind,
+  });
+
+  /// A new backup of [filePath], saved [at] as [kind].
+  Backup.of(this.filePath, {required DateTime at, required this.kind})
+    : savedAt = at.toUtc(),
+      storePath = RelPath.parse(
+        '${at.microsecondsSinceEpoch}.${kind._tag}/${filePath.value}',
+      )!;
+
+  /// The backup kept at [storePath]; `null` if it is not one.
+  static Backup? parse(RelPath storePath) {
+    final value = storePath.value;
+    final slash = value.indexOf('/');
+    if (slash < 0) return null;
+    return switch (_head(value.substring(0, slash))) {
+      (:final savedAt, :final kind) => Backup._(
+        storePath,
+        filePath: RelPath.parse(value.substring(slash + 1))!,
+        savedAt: savedAt,
+        kind: kind,
+      ),
+      null => null,
+    };
+  }
+
+  /// When the backups in the store's top folder [name] were saved; `null`
+  /// if it holds no backups.
+  static DateTime? savedAtOfFolder(String name) => _head(name)?.savedAt;
+
+  /// The time and kind in a backup's top folder [name],
+  /// `<time in µs since epoch>.<kind>`.
+  static ({DateTime savedAt, BackupKind kind})? _head(String name) {
+    final parts = name.split('.');
+    if (parts.length != 2) return null;
+    final micros = int.tryParse(parts[0]);
+    final kind = BackupKind._ofTag(parts[1]);
+    if (micros == null || kind == null) return null;
+    return (
+      savedAt: DateTime.fromMicrosecondsSinceEpoch(micros, isUtc: true),
+      kind: kind,
+    );
+  }
+
+  /// Where the backup is kept in its store.
+  final RelPath storePath;
+
+  /// The file it is a copy of, in its folder.
+  final RelPath filePath;
+
+  final DateTime savedAt;
+  final BackupKind kind;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Backup && other.storePath == storePath;
+
+  @override
+  int get hashCode => storePath.hashCode;
+}

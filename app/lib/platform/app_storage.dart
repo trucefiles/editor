@@ -22,7 +22,7 @@ final class AppStorage {
   /// Holds one backup folder per note folder.
   String get _backupsRootPath => '$rootPath/backups';
 
-  /// Conflict backups of one folder, by [folderId].
+  /// Backups of one folder's files, by [folderId].
   String backupsPath(String folderId) => '$_backupsRootPath/$folderId';
 
   /// Edits not yet in one folder's note files, by [folderId].
@@ -38,6 +38,46 @@ final class AppStorage {
           .toList();
     } on FileSystemException {
       return const [];
+    }
+  }
+
+  /// Removes the empty folders in the folders right below [path] whose
+  /// name [isStale] accepts, those folders included; e.g. the ones pruned
+  /// backups leave. Other folders are never touched, so a folder being
+  /// filled right now stays. Folders that can't be removed stay.
+  Future<void> removeEmptyFolders(
+    String path, {
+    required bool Function(String name) isStale,
+  }) async {
+    final folders = <Directory>[];
+    try {
+      await for (final entity in Directory(path).list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        if (!isStale(entity.uri.pathSegments.lastWhere((s) => s.isNotEmpty))) {
+          continue;
+        }
+        folders
+          ..add(entity)
+          ..addAll(
+            await entity
+                .list(recursive: true, followLinks: false)
+                .where((inner) => inner is Directory)
+                .cast<Directory>()
+                .toList(),
+          );
+      }
+    } on FileSystemException {
+      return;
+    }
+    // Deepest first, so a folder holding only empty folders goes too.
+    folders.sort((a, b) => b.path.length.compareTo(a.path.length));
+    for (final folder in folders) {
+      try {
+        // Not recursive: fails for a folder that still holds anything.
+        await folder.delete();
+      } on FileSystemException {
+        continue;
+      }
     }
   }
 }

@@ -4,34 +4,39 @@
 ///
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]).
-/// 2. `sync`: a sync tool's file-name rules ([SyncAdapter]), whether it
+/// 2. `backups`: copies of files in app storage ([FileBackups]), made
+///    before edits and before the user keeps one of two versions.
+/// 3. `sync`: a sync tool's file-name rules ([SyncAdapter]), whether it
 ///    syncs a folder ([SyncCheck]) and what to tell the user about a folder
 ///    ([FolderNotices]).
-/// 3. `filter`: which files and folders Truce looks at ([FileFilter]).
-/// 4. `filetypes`: which [FileType] a file is ([FileTypeDetector]).
-/// 5. `conflicts`: reading and resolving conflicts ([ConflictService]),
+/// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
+/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]).
+/// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
 ///    whose copies each sync tool keeps in its [ConflictSource], merged per
 ///    file type ([ConflictHandler]).
-/// 6. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
-/// 7. `text`: decoding files for editing without changing their byte style
+/// 7. `restore`: putting a backup back, kept like any choice between two
+///    versions ([BackupRestore]).
+/// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
+/// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 8. `markdown`: Markdown documents as line-level edits ([Checklist]).
-/// 9. `marks`: pins and colors of notes, synced inside the folder
+/// 10. `markdown`: Markdown documents as line-level edits ([Checklist]).
+/// 11. `marks`: pins and colors of notes, synced inside the folder
 ///    ([NoteMarks]).
-/// 10. `changes`: changes to a folder's files as they happen
+/// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).
 ///
 /// Implementations sit next to their interface; everything specific to
 /// Syncthing is in `syncthing`.
 library;
 
+export 'src/backups/backup.dart';
+export 'src/backups/file_backups.dart';
 export 'src/changes/fallback_folder_changes.dart';
 export 'src/changes/folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
-export 'src/conflicts/conflict_backups.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
@@ -45,6 +50,7 @@ export 'src/filter/file_filter.dart';
 export 'src/markdown/checklist.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
+export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/notes/draft_recovery.dart';
 import 'package:truce_editor/notes/note_draft.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
@@ -11,6 +13,7 @@ import '../support.dart';
 void main() {
   late Directory dir;
   late NoteDrafts drafts;
+  late FolderServices services;
   late DraftRecovery recovery;
   final later = DateTime.now().add(const Duration(days: 1));
 
@@ -18,7 +21,8 @@ void main() {
     dir = tempFolder();
     final folder = folderAt(dir);
     drafts = tempDrafts();
-    recovery = DraftRecovery(drafts, NoteFiles(folder, servicesFor(folder)));
+    services = servicesFor(folder);
+    recovery = DraftRecovery(drafts, NoteFiles(folder, services));
   });
 
   File note() => File('${dir.path}/a.md');
@@ -41,6 +45,21 @@ void main() {
     expect(note().readAsStringSync(), '# a\nmine\n');
     expect(conflictCopies(), isEmpty);
     expect(await drafts.all(before: later), isEmpty);
+  });
+
+  test('backs up the file before writing the edits', () async {
+    note().writeAsStringSync('# a\nv1\n');
+    await leaveDraft('# a\nmine\n');
+
+    await recovery.recover(before: later);
+
+    final backup = (await services.backups.list()).value.single;
+    expect(backup.filePath, path('a.md'));
+    expect(backup.kind, BackupKind.beforeEdit);
+    expect(
+      String.fromCharCodes((await services.backups.read(backup)).value),
+      '# a\nv1\n',
+    );
   });
 
   test('keeps the edits as a conflict copy if the file changed', () async {

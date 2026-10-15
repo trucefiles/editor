@@ -43,11 +43,15 @@ void main() {
 
   String onDisk() => file().readAsStringSync();
 
-  /// The backed-up texts, as `side: text`.
+  /// The backed-up texts, as `kind: text`.
   List<String> backedUp() => [
-    for (final f in backups.listSync().whereType<File>())
-      '${f.path.split('.')[1]}: ${f.readAsStringSync()}',
+    for (final f in backups.listSync(recursive: true).whereType<File>())
+      '${f.path.substring(backups.path.length + 1).split(RegExp('[./]'))[1]}: '
+          '${f.readAsStringSync()}',
   ]..sort();
+
+  void clearBackups() =>
+      backups.listSync().forEach((f) => f.deleteSync(recursive: true));
 
   /// Simulates an edit from another device and returns the new version.
   Future<Note> editElsewhere(String text) async {
@@ -56,6 +60,52 @@ void main() {
   }
 
   test('saves edits', () async {
+    session.edit('# a\nmine');
+    await session.flush();
+
+    expect(onDisk(), '# a\nmine');
+    expect(session.state, EditState.saved);
+  });
+
+  test('backs up the file once, before the first save', () async {
+    session.edit('# a\nfirst');
+    await session.flush();
+    session.edit('# a\nsecond');
+    await session.flush();
+
+    expect(onDisk(), '# a\nsecond');
+    expect(backedUp(), ['edit: # a\n']);
+  });
+
+  test('backs up a version from elsewhere before saving over it', () async {
+    session.edit('# a\nfirst');
+    await session.flush();
+    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    expect(session.text, '# a\ntheirs');
+    clearBackups();
+
+    session.edit('# a\nmine');
+    await session.flush();
+
+    expect(onDisk(), '# a\nmine');
+    expect(backedUp(), ['edit: # a\ntheirs']);
+  });
+
+  test('backs up nothing if nothing is saved', () async {
+    session.edit('# a\n');
+    await session.flush();
+
+    expect(backedUp(), isEmpty);
+  });
+
+  test('saves even if no backup can be made', () async {
+    backups.deleteSync();
+    File(backups.path).writeAsStringSync('in the way');
+    addTearDown(() {
+      File(backups.path).deleteSync();
+      backups.createSync();
+    });
+
     session.edit('# a\nmine');
     await session.flush();
 
@@ -191,7 +241,7 @@ void main() {
       ('keep mine', session.keepMine),
       ('load theirs', session.loadTheirs),
     ]) {
-      backups.listSync().forEach((f) => f.deleteSync());
+      clearBackups();
       session.edit('# a\nmine, $name');
       session.onRescan(
         await editElsewhere('# a\ntheirs, $name'),

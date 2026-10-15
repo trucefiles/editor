@@ -207,12 +207,16 @@ void main() {
     await tester.tapAndSettle(find.text('Refresh: Live'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
+    // The setting is saved, then the app rescans once for changes made
+    // meanwhile; a file written before that is rightly found.
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.waitFor(find.text('Refresh: Manual'));
+    await tester.tapAt(const Offset(1, 1));
+    await tester.runFor(const Duration(seconds: 1));
     app.write('new.md', '# New\n');
     await tester.runFor(const Duration(seconds: 2));
 
     expect(find.text('New'), findsNothing);
-    await tester.tapAndSettle(find.byTooltip('Show menu'));
-    expect(find.text('Refresh: Manual'), findsOne);
   });
 
   testWidgets('never writes back a change shown in the open note', (
@@ -309,6 +313,26 @@ void main() {
 
     await tester.waitForFile(app.file('plan.md'), '# Plan\nmine\n');
     await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
+  });
+
+  testWidgets('restores the version from before editing', (tester) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await tester.enterText(find.byType(TextField), '# Plan\nbroken\n');
+    await tester.pageBack();
+    await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Backups'));
+    await tester.waitFor(find.textContaining('Before editing'));
+    await tester.tapAndSettle(find.textContaining('Before editing'));
+    await tester.waitFor(find.text('Restore'));
+    await tester.tapAndSettle(find.text('Restore'));
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitForFile(app.file('plan.md'), '# Plan\nv1\n');
+    await tester.waitFor(find.text('Backup restored.'));
   });
 
   testWidgets('hiding the app keeps clashing edits, menus stay put', (

@@ -20,7 +20,7 @@ void main() {
     service = DefaultConflictService(
       folder: folder,
       source: SyncthingConflictSource(folder),
-      backups: ConflictBackups(backupStore),
+      backups: FileBackups(backupStore),
       clock: () => now = now.add(const Duration(seconds: 1)),
     );
   });
