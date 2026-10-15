@@ -170,7 +170,7 @@ final class _StreamChanges implements FolderChanges {
 }
 
 class _FixedFolders extends FoldersController {
-  _FixedFolders(this._folders, {Future<void>? loaded}) : _loaded = loaded;
+  _FixedFolders(this._folders, {this._loaded});
 
   final List<NoteFolder> _folders;
   final Future<void>? _loaded;

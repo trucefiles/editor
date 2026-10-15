@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../backups/backup_pruning.dart';
 import 'keep_version_dialog.dart';
 import 'version_comparison.dart';
 import 'version_pane.dart';
@@ -38,7 +39,9 @@ final class ShownVersion {
 }
 
 /// Tells that both versions are backed up before one is kept.
-const bothBackedUp = 'A backup of both stays on this device for 7 days.';
+final bothBackedUp =
+    'A backup of both stays on this device for '
+    '${backupRetention.inDays} days.';
 
 /// The one view for every clash between two versions of a note: shows both
 /// and asks before keeping one. The owner of [onKeep] makes the backups

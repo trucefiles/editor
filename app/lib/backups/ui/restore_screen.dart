@@ -9,6 +9,7 @@ import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/version_text.dart';
 import '../all_backups.dart';
+import '../backup_pruning.dart';
 import '../restore_controller.dart';
 import 'backup_kind_text.dart';
 
@@ -87,7 +88,8 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         keptMessage: deleted
             ? 'The note is restored from this backup.'
             : 'The current version is replaced by the backup. A backup of '
-                  'the current version stays on this device for 7 days.',
+                  'the current version stays on this device for '
+                  '${backupRetention.inDays} days.',
       ),
       enabled: !busy,
       onKeep: _keep,

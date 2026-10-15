@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../backups/backup_pruning.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../versions/resolve_error_text.dart';
@@ -35,7 +36,9 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     if (!mounted) return;
     final outcome = switch (kept.error) {
       final error? => error.text,
-      null => 'Conflict resolved. A backup is kept for 7 days.',
+      null =>
+        'Conflict resolved. A backup is kept for '
+            '${backupRetention.inDays} days.',
     };
     if (kept.done) {
       // The opener tells it, where the user lands.

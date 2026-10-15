@@ -91,13 +91,12 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       });
 
   /// Forgets the folder; its files stay untouched.
-  Future<Result<void, SettingsError>> remove(NoteFolder removed) =>
-      _oneAtATime(() async {
-        final folders = await future;
-        return _save(
-          folders.where((folder) => folder.id != removed.id).toList(),
-        );
-      });
+  Future<Result<void, SettingsError>> remove(NoteFolder removed) => _oneAtATime(
+    () async {
+      final folders = await future;
+      return _save(folders.where((folder) => folder.id != removed.id).toList());
+    },
+  );
 
   /// Runs [step] after every earlier change, so each change starts from the
   /// list the one before saved.
