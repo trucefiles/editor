@@ -20,13 +20,14 @@ final class NoteFiles {
   FileStore get _store => _services.store;
 
   /// The current version of [note]'s file.
-  Future<Result<Note, StoreError>> reload(Note note) async {
-    final read = await _store.read(note.path);
+  Future<Result<Note, StoreError>> reload(Note note) => open(note.path);
+
+  /// The note in the file at [path].
+  Future<Result<Note, StoreError>> open(RelPath path) async {
+    final read = await _store.read(path);
     return switch (read) {
       Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
-        final file? => Ok(
-          _note(note.path, file, content.version, content.modified),
-        ),
+        final file? => Ok(_note(path, file, content.version, content.modified)),
         null => const Err(StoreError.ioFailure),
       },
       Err(:final error) => Err(error),
@@ -86,6 +87,13 @@ final class NoteFiles {
   /// into its file. It syncs, and is resolved like any conflict.
   Future<Result<void, StoreError>> saveAsConflict(Note note, String text) =>
       _services.conflicts.keepAsConflict(note.path, note.file.encode(text));
+
+  /// Like [saveAsConflict], for a note whose file is gone: [text] is
+  /// written in the default byte style.
+  Future<Result<void, StoreError>> saveAsConflictOfGone(
+    RelPath path,
+    String text,
+  ) => _services.conflicts.keepAsConflict(path, TextFile.empty().encode(text));
 
   Future<Result<void, StoreError>> delete(Note note) =>
       _store.delete(note.path, ifUnchanged: note.version);

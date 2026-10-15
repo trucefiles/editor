@@ -43,6 +43,7 @@ export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/rel_path.dart';
+export 'src/storage/restamping_file_store.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
 export 'src/syncthing/syncthing_adapter.dart';

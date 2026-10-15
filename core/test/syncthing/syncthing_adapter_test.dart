@@ -41,4 +41,8 @@ void main() {
     expect(name, '.syncthing.truce-1a2b.tmp');
     expect(adapter.isInternal(path(name)), isTrue);
   });
+
+  test("same-size rewrites wait out Syncthing's 2 s mtime window", () {
+    expect(adapter.sameSizeRewriteGap, const Duration(seconds: 2));
+  });
 }

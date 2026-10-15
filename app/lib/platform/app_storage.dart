@@ -25,6 +25,9 @@ final class AppStorage {
   /// Conflict backups of one folder, by [folderId].
   String backupsPath(String folderId) => '$_backupsRootPath/$folderId';
 
+  /// Edits not yet in one folder's note files, by [folderId].
+  String draftsPath(String folderId) => '$rootPath/drafts/$folderId';
+
   /// Every backup folder, also of folders removed from the app since.
   Future<List<String>> allBackupsPaths() async {
     try {

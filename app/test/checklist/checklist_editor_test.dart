@@ -22,7 +22,12 @@ void main() {
       created,
       '# list\n- [ ] a\n- [x] b\n',
     )).value;
-    session = NoteEditSession(note, files, saveDelay: Duration.zero);
+    session = NoteEditSession(
+      note,
+      files,
+      tempDrafts(),
+      saveDelay: Duration.zero,
+    );
     editor = ChecklistEditor(session);
     addTearDown(() {
       editor.dispose();

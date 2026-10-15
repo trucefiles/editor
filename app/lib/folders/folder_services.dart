@@ -23,12 +23,16 @@ final class FolderServices {
       adapter,
       ExtensionFileTypeDetector.standard(),
     );
-    final store = LocalFileStore(
-      path,
-      adapter.tempFileName,
-      // On Android shared storage, a renamed-over file soon shows other
-      // apps the old file's modification time, so sync tools miss the save.
-      replacesInPlace: Platform.isAndroid,
+    final store = RestampingFileStore(
+      LocalFileStore(
+        path,
+        adapter.tempFileName,
+        // On Android shared storage, a renamed-over file soon shows other
+        // apps the old file's modification time, so sync tools miss the
+        // save.
+        replacesInPlace: Platform.isAndroid,
+      ),
+      gap: adapter.sameSizeRewriteGap,
     );
     return FolderServices._(
       store: store,
