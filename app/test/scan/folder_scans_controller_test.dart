@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/note_draft.dart';
+import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
@@ -14,10 +16,11 @@ import '../support.dart';
 
 void main() {
   late ProviderContainer container;
+  late AppStorage storage;
 
   /// Starts the app's providers with [folders] saved as the folder list.
   Future<void> start(List<NoteFolder> folders) async {
-    final storage = AppStorage(tempFolder().path);
+    storage = AppStorage(tempFolder().path);
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
@@ -52,6 +55,29 @@ void main() {
     expect(conflict.folder.id, 'home');
     expect(conflict.conflict.mainPath, path('todo.md'));
     expect(found.failedFolders, isEmpty);
+  });
+
+  test('the first scan shows edits left by the last run', () async {
+    final dir = tempFolder();
+    write(dir, 'plan.md', '# Plan\nv1\n');
+    await start([folderAt(dir, id: 'f1')]);
+    final drafts = NoteDrafts(Directory(storage.draftsPath('f1')));
+    await drafts.keep(
+      NoteDraft(
+        id: '1',
+        path: path('plan.md'),
+        base: '# Plan\nv1\n',
+        text: '# Plan\nmine\n',
+      ),
+    );
+    // Written before this run started.
+    File('${storage.draftsPath('f1')}/1.json')
+        .setLastModifiedSync(DateTime(2000));
+
+    final found = await scans();
+
+    expect(found.notes.single.file.text, '# Plan\nmine\n');
+    expect(await drafts.all(before: DateTime.now()), isEmpty);
   });
 
   test('finds notes, marks and conflicts several levels deep', () async {

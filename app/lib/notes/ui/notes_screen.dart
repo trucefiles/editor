@@ -19,7 +19,6 @@ import '../../folders/ui/settings_error_text.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../../tray/ui/close_to_tray_menu.dart';
-import '../draft_recovery.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_views_controller.dart';
@@ -61,8 +60,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     // Loaded up front, so a note opens in its remembered view.
     ref
       ..watch(noteViewsProvider)
-      ..watch(backupPruningProvider)
-      ..watch(draftRecoveryProvider);
+      ..watch(backupPruningProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folders'),

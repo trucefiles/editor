@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'note.dart';
-import 'note_draft.dart';
 import 'note_drafts.dart';
 import 'note_files.dart';
+import 'note_staging.dart';
 
 /// Where an open note stands against its file.
 enum EditState {
@@ -14,7 +14,7 @@ enum EditState {
   saved,
 
   /// Edits are kept on this device; they go into the file when the note
-  /// closes, the app is hidden, or [NoteEditSession.publishDelay] passed.
+  /// closes, the app is hidden, or a while after they were first kept.
   savedOnDevice,
 
   /// Edits are waiting to be kept on this device, or are being saved.
@@ -49,34 +49,34 @@ enum EditState {
 /// Never overwrites a change from elsewhere and never recreates a deleted
 /// file without the user's choice.
 final class NoteEditSession extends ChangeNotifier {
+  /// [publishDelay]: how long after edits were first kept on the device
+  /// they go into the file at the latest, for a note that stays open.
   NoteEditSession(
     this._note,
     this._files,
-    this._drafts, {
+    NoteDrafts drafts, {
     this.saveDelay = const Duration(seconds: 2),
-    this.publishDelay = const Duration(minutes: 1),
-  }) : _text = _note.file.text;
+    Duration publishDelay = const Duration(minutes: 1),
+  }) : _text = _note.file.text {
+    _staging = NoteStaging(
+      drafts,
+      publishDelay: publishDelay,
+      onDue: () => unawaited(_save()),
+    );
+  }
 
   final NoteFiles _files;
-  final NoteDrafts _drafts;
+  late final NoteStaging _staging;
 
   /// How long after the last edit the edits are kept on the device.
   final Duration saveDelay;
-
-  /// How long after edits were first kept on the device they go into the
-  /// file at the latest, for a note that stays open.
-  final Duration publishDelay;
 
   Note _note;
   String _text;
   EditState _state = EditState.saved;
   Note? _theirs;
   Timer? _timer;
-  Timer? _publishTimer;
   Future<void>? _saving;
-  final _draftId = NoteDraft.newId();
-  bool _drafted = false;
-  Future<void> _draftWork = Future<void>.value();
   bool _writing = false;
   DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -132,7 +132,7 @@ final class NoteEditSession extends ChangeNotifier {
         return _secureOnce();
       case EditState.deletedElsewhere when _text == _note.file.text:
         // No edits: nothing to keep.
-        _dropDraft();
+        _staging.drop();
         return true;
       case EditState.changedElsewhere ||
           EditState.deletedElsewhere ||
@@ -248,19 +248,15 @@ final class NoteEditSession extends ChangeNotifier {
     }
   }
 
-  /// Keeps the edits on the device, and has them go into the file within
-  /// [publishDelay]. Writes the file right away if the device cannot keep
-  /// them.
+  /// Keeps the edits on the device; they go into the file when due. Writes
+  /// the file right away if the device cannot keep them.
   Future<void> _stash() async {
     if (_state != EditState.unsaved) return;
     final text = _text;
     if (!await _keepDraft(text)) return _save();
-    if (_state != EditState.unsaved) return;
-    if (text == _text) _set(EditState.savedOnDevice);
-    _publishTimer ??= Timer(publishDelay, () {
-      _publishTimer = null;
-      unawaited(_save());
-    });
+    if (_state == EditState.unsaved && text == _text) {
+      _set(EditState.savedOnDevice);
+    }
   }
 
   /// Writes the edits into the file.
@@ -378,37 +374,17 @@ final class NoteEditSession extends ChangeNotifier {
   /// dropped.
   void _settle(EditState state) {
     _timer?.cancel();
-    _publishTimer?.cancel();
-    _publishTimer = null;
-    _dropDraft();
+    _staging.drop();
     _set(state);
   }
 
-  /// Keeps [text] as this session's draft; `false` if it could not be
-  /// written. Draft writes run in order.
-  Future<bool> _keepDraft(String text) {
-    final draft = NoteDraft(
-      id: _draftId,
-      path: _note.path,
-      base: _note.file.text,
-      text: text,
-    );
-    _drafted = true;
-    final kept = _draftWork.then((_) => _drafts.keep(draft));
-    _draftWork = kept;
-    return kept;
-  }
-
-  void _dropDraft() {
-    if (!_drafted) return;
-    _drafted = false;
-    _draftWork = _draftWork.then((_) => _drafts.remove(_draftId));
-  }
+  Future<bool> _keepDraft(String text) =>
+      _staging.keep(_note.path, base: _note.file.text, text: text);
 
   @override
   void dispose() {
     _timer?.cancel();
-    _publishTimer?.cancel();
+    _staging.dispose();
     super.dispose();
   }
 }

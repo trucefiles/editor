@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/folders_controller.dart';
-import '../scan/folder_scans_controller.dart';
 import 'note_draft.dart';
 import 'note_drafts.dart';
 import 'note_files.dart';
@@ -53,18 +52,17 @@ final class DraftRecovery {
   }
 }
 
-/// Recovers the drafts of every folder once per app run, then rescans if
-/// any were kept. Drafts written after the app started belong to open
-/// notes and are left alone.
+/// Recovers the drafts of every folder once per app run, before the first
+/// scan, so no note opens with its old text while its draft is pending.
+/// Drafts written after the app started belong to open notes and are left
+/// alone.
 final draftRecoveryProvider = FutureProvider<void>((ref) async {
   final startedAt = DateTime.now();
   final folders = await ref.read(foldersProvider.future);
-  var kept = 0;
   for (final folder in folders) {
-    kept += await DraftRecovery(
+    await DraftRecovery(
       ref.read(noteDraftsProvider(folder.id)),
       ref.read(noteFilesProvider(folder)),
     ).recover(before: startedAt);
   }
-  if (kept > 0) await ref.read(folderScansProvider.notifier).refresh();
 });

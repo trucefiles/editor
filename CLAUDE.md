@@ -24,7 +24,7 @@ Prefer the simpler option when in doubt.
 - Expected failures are result values; exceptions are only for bugs.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
 - Never silently recreate deleted files or folders.
-- No automatic writes into synced folders; only user actions write there, so devices can't ping-pong.
+- No automatic writes into synced folders; only user actions write there, so devices can't ping-pong. Finishing a user's own write later is allowed (pending edits written at the next start, the same bytes rewritten once so the sync tool sees them): it is never caused by a remote change.
 - Byte-exact edits: change only what the user touched; never parse-and-reprint user files.
 - Concurrency: reads that follow a write must see that write.
 
