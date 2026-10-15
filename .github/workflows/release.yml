@@ -68,7 +68,7 @@ jobs:
             echo "::error::Add a <release> entry with a <description> for $version to $metainfo"
             exit 1
           fi
-          changelog=fastlane/metadata/android/en-US/changelogs/$build.txt
+          changelog=app/android/app/fastlane/metadata/android/en-US/changelogs/$build.txt
           if [ -z "$build" ] || ! grep -q '[^[:space:]]' "$changelog" 2>/dev/null; then
             echo "::error::Add the release notes for build $build to $changelog"
             exit 1
