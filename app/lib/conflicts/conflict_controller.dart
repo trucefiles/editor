@@ -36,11 +36,14 @@ class ConflictController extends Notifier<ConflictState> {
       return (error: null, done: false);
     }
     state = ConflictState(conflict, sides: sides, busy: true);
+    // Read before the first await: the screen may close meanwhile, and
+    // the rescan must still run.
+    final scans = ref.read(folderScansProvider.notifier);
     final resolved = await ref
         .read(folderServicesProvider(conflict.folder.location))
         .conflicts
         .resolve(conflict.conflict, sides.value.copy, resolution);
-    await ref.read(folderScansProvider.notifier).refresh();
+    await scans.refresh();
     if (!ref.mounted) return (error: null, done: true);
     final next = ref
         .read(folderScansProvider)

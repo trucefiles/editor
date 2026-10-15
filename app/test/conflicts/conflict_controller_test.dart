@@ -38,6 +38,7 @@ void main() {
   List<String> files() =>
       [for (final entry in dir.listSync()) entry.uri.pathSegments.last]..sort();
 
+  late ProviderSubscription<ConflictState> watching;
   late NotifierProvider<ConflictController, ConflictState> provider;
 
   /// Opens the scanned conflict and waits until its sides are loaded.
@@ -46,7 +47,7 @@ void main() {
     final conflict = scans.conflicts.all.single;
     provider = conflictProvider(conflict);
     final loaded = Completer<void>();
-    container.listen(provider, (_, state) {
+    watching = container.listen(provider, (_, state) {
       if (state.sides != null && !loaded.isCompleted) loaded.complete();
     }, fireImmediately: true);
     await loaded.future;
@@ -65,6 +66,19 @@ void main() {
     final sides = current().sides!.value;
     expect(sides.current, '# Todo\nmine\n');
     expect(sides.other, '# Todo\nfirst\n');
+  });
+
+  test('resolves and rescans when the screen closes meanwhile', () async {
+    write('todo.md', '# Todo\nmine\n');
+    write(first, '# Todo\nfirst\n');
+    final controller = await open();
+
+    final kept = controller.keep(const KeepCurrent());
+    watching.close();
+
+    expect((await kept).done, isTrue);
+    final scans = await container.read(folderScansProvider.future);
+    expect(scans.conflicts.all, isEmpty);
   });
 
   test('moves on to the next copy, then is done', () async {
