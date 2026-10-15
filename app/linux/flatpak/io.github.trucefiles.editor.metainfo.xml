@@ -19,7 +19,18 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.5.0" date="2026-10-15"/>
+    <release version="0.5.0" date="2026-10-15">
+      <description>
+        <ul>
+          <li>Edits are kept on the device first and written to the folder when you leave the note, hide the app, or after a minute.</li>
+          <li>Notes refresh when opened, when the app comes back, on Refresh or pull-down; no more polling.</li>
+          <li>Conflicts stand out on cards and have their own list.</li>
+          <li>An open note shows when another device changed it.</li>
+          <li>Lists have an "Add item at top" row.</li>
+          <li>Fix: some quick saves on Android never synced.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.3" date="2026-10-15"/>
     <release version="0.4.2" date="2026-10-14"/>
     <release version="0.4.1" date="2026-10-14"/>

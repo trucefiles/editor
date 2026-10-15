@@ -51,12 +51,32 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match app version $tag"
             exit 1
           fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Check the release notes for the stores
+        run: |
+          version=$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)
+          build=$(sed -n 's/^version: [^+]*+\([0-9]*\)$/\1/p' app/pubspec.yaml)
           metainfo=app/linux/flatpak/io.github.trucefiles.editor.metainfo.xml
-          if ! grep -qF "<release version=\"${tag#v}\"" "$metainfo"; then
-            echo "::error::Add a <release> entry for ${tag#v} to $metainfo"
+          notes=$(python3 -c '
+          import sys, xml.etree.ElementTree as ET
+          path, version = sys.argv[1:]
+          release = ET.parse(path).find(f"releases/release[@version=\x27{version}\x27]")
+          description = None if release is None else release.find("description")
+          print("".join(description.itertext()).strip() if description is not None else "")
+          ' "$metainfo" "$version")
+          if [ -z "$notes" ]; then
+            echo "::error::Add a <release> entry with a <description> for $version to $metainfo"
             exit 1
           fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          changelog=fastlane/metadata/android/en-US/changelogs/$build.txt
+          if [ -z "$build" ] || ! grep -q '[^[:space:]]' "$changelog" 2>/dev/null; then
+            echo "::error::Add the release notes for build $build to $changelog"
+            exit 1
+          fi
+          if [ "$(wc -m < "$changelog")" -gt 500 ]; then
+            echo "::error::Shorten $changelog to 500 characters (store limit)"
+            exit 1
+          fi
 
   check:
     name: Format, analyze, test
