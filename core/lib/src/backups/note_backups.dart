@@ -87,7 +87,7 @@ final class NoteBackups {
         return Err(error);
     }
     for (final entry in entries) {
-      final savedAt = Backup.savedAtOf(entry.path);
+      final savedAt = Backup.parse(entry.path)?.savedAt;
       if (savedAt == null || !savedAt.isBefore(olderThan)) continue;
       final deleted = await _store.delete(
         entry.path,

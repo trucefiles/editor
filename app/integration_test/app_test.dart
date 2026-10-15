@@ -207,12 +207,16 @@ void main() {
     await tester.tapAndSettle(find.text('Refresh: Live'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
+    // The setting is saved, then the app rescans once for changes made
+    // meanwhile; a file written before that is rightly found.
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.waitFor(find.text('Refresh: Manual'));
+    await tester.tapAt(const Offset(1, 1));
+    await tester.runFor(const Duration(seconds: 1));
     app.write('new.md', '# New\n');
     await tester.runFor(const Duration(seconds: 2));
 
     expect(find.text('New'), findsNothing);
-    await tester.tapAndSettle(find.byTooltip('Show menu'));
-    expect(find.text('Refresh: Manual'), findsOne);
   });
 
   testWidgets('never writes back a change shown in the open note', (

@@ -56,9 +56,9 @@ void main() {
     }
   });
 
-  test('tells when a file was saved as a backup, in any layout', () {
-    expect(Backup.savedAtOf(path('$micros.edit/todo.md')), at);
-    expect(Backup.savedAtOf(path('$micros.current.lists%2Ftodo.md')), at);
-    expect(Backup.savedAtOf(path('not-a-backup.txt')), isNull);
+  test('tells when the backups in a top folder were saved', () {
+    expect(Backup.savedAtOfFolder('$micros.edit'), at);
+    expect(Backup.savedAtOfFolder('$micros.unknown'), isNull);
+    expect(Backup.savedAtOfFolder('notes'), isNull);
   });
 }

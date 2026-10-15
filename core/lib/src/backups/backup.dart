@@ -50,28 +50,34 @@ final class Backup {
     final value = storePath.value;
     final slash = value.indexOf('/');
     if (slash < 0) return null;
-    final head = value.substring(0, slash).split('.');
-    if (head.length != 2) return null;
-    final savedAt = _time(head[0]);
-    final kind = BackupKind._ofTag(head[1]);
-    if (savedAt == null || kind == null) return null;
-    return Backup._(
-      storePath,
-      notePath: RelPath.parse(value.substring(slash + 1))!,
-      savedAt: savedAt,
+    return switch (_head(value.substring(0, slash))) {
+      (:final savedAt, :final kind) => Backup._(
+        storePath,
+        notePath: RelPath.parse(value.substring(slash + 1))!,
+        savedAt: savedAt,
+        kind: kind,
+      ),
+      null => null,
+    };
+  }
+
+  /// When the backups in the store's top folder [name] were saved; `null`
+  /// if it holds no backups.
+  static DateTime? savedAtOfFolder(String name) => _head(name)?.savedAt;
+
+  /// The time and kind in a backup's top folder [name],
+  /// `<time in µs since epoch>.<kind>`.
+  static ({DateTime savedAt, BackupKind kind})? _head(String name) {
+    final parts = name.split('.');
+    if (parts.length != 2) return null;
+    final micros = int.tryParse(parts[0]);
+    final kind = BackupKind._ofTag(parts[1]);
+    if (micros == null || kind == null) return null;
+    return (
+      savedAt: DateTime.fromMicrosecondsSinceEpoch(micros, isUtc: true),
       kind: kind,
     );
   }
-
-  /// When the file at [storePath] was saved as a backup, also for backups
-  /// in earlier layouts; `null` if it is no backup.
-  static DateTime? savedAtOf(RelPath storePath) =>
-      _time(storePath.value.split(RegExp('[./]')).first);
-
-  static DateTime? _time(String micros) => switch (int.tryParse(micros)) {
-    final micros? => DateTime.fromMicrosecondsSinceEpoch(micros, isUtc: true),
-    null => null,
-  };
 
   /// Where the backup is kept in its store.
   final RelPath storePath;

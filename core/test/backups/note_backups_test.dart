@@ -116,10 +116,7 @@ void main() {
         bytes: bytesOf('before'),
       );
     }
-    final oldMicros = old.microsecondsSinceEpoch;
-    store
-      ..put('not-a-backup.txt', 'kept')
-      ..put('$oldMicros.other.todo.md', 'earlier layout');
+    store.put('not-a-backup.txt', 'kept');
 
     await backups.prune(olderThan: at.subtract(const Duration(days: 7)));
 

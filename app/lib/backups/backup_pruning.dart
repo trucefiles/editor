@@ -18,10 +18,8 @@ final backupPruningProvider = FutureProvider<void>((ref) async {
     await noteBackupsAt(path).prune(olderThan: olderThan);
     await storage.removeEmptyFolders(
       path,
-      isStale: (name) => switch (RelPath.parse(name)) {
-        final folder? => Backup.savedAtOf(folder)?.isBefore(olderThan) ?? false,
-        null => false,
-      },
+      isStale: (name) =>
+          Backup.savedAtOfFolder(name)?.isBefore(olderThan) ?? false,
     );
   }
 });
