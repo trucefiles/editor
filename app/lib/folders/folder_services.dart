@@ -15,6 +15,7 @@ final class FolderServices {
     required this.scanner,
     required this.syncToolName,
     required this.conflicts,
+    required this.backups,
     required this.marks,
   });
 
@@ -25,10 +26,15 @@ final class FolderServices {
   final String syncToolName;
 
   final ConflictService conflicts;
+
+  /// Copies of both versions, kept before the user keeps one of them.
+  final ConflictBackups backups;
+
   final NoteMarks marks;
 }
 
-/// The only place in the app that picks the sync tool: Syncthing.
+/// Picks the sync tool, Syncthing, for a folder's services. This file is
+/// the only place that picks it.
 final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
   (ref, location) => syncthingFolderServices(
     location.path,
@@ -36,6 +42,10 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
     deviceId: ref.watch(deviceIdProvider),
   ),
 );
+
+/// The sync tool's file-name rules, e.g. to refuse adding a folder of its
+/// own. Picks the same sync tool as [folderServicesProvider].
+final syncAdapterProvider = Provider<SyncAdapter>((_) => syncthingAdapter);
 
 /// How a folder's changes are found (`null`: not looked for), and what the
 /// user should know about the folder. Built together by the sync tool's

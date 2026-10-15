@@ -285,7 +285,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
         ),
         actions: [
-          SaveIndicator(_session.state),
+          SaveIndicator(_session.state, onSave: _session.flush),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),

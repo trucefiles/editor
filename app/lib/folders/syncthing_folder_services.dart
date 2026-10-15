@@ -7,6 +7,9 @@ import '../platform/parent_folder_access.dart';
 import '../refresh/refresh_settings.dart';
 import 'folder_services.dart';
 
+/// Syncthing's file-name rules.
+const SyncAdapter syncthingAdapter = SyncthingAdapter();
+
 /// The core services for one folder, wired for Syncthing. [backupsPath] is
 /// the folder's private backup folder in app storage; [deviceId] names this
 /// device's files in the folder.
@@ -15,7 +18,7 @@ FolderServices syncthingFolderServices(
   required String backupsPath,
   required String deviceId,
 }) {
-  const adapter = SyncthingAdapter();
+  const adapter = syncthingAdapter;
   const filter = DefaultFileFilter(
     adapter,
     ExtensionFileTypeDetector.standard(),
@@ -30,6 +33,7 @@ FolderServices syncthingFolderServices(
       replacesInPlace: Platform.isAndroid,
     ),
   );
+  final backups = conflictBackupsAt(backupsPath);
   return FolderServices(
     store: store,
     scanner: SyncthingFolderScanner(store, filter),
@@ -37,8 +41,9 @@ FolderServices syncthingFolderServices(
     conflicts: DefaultConflictService(
       folder: store,
       source: SyncthingConflictSource(store),
-      backups: conflictBackupsAt(backupsPath),
+      backups: backups,
     ),
+    backups: backups,
     marks: NoteMarks(store, deviceId: deviceId),
   );
 }
@@ -50,7 +55,7 @@ FolderServices syncthingFolderServices(
 /// Changes are `null` for manual refresh. Otherwise watched, and polled
 /// once watching fails; or only polled, at the set interval.
 FolderFollowing syncthingFolderFollowing(String path, RefreshSettings refresh) {
-  const adapter = SyncthingAdapter();
+  const adapter = syncthingAdapter;
   final polled = PolledFolderChanges(
     LocalFileStore(path, adapter.tempFileName),
     interval: refresh.interval,

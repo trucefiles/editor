@@ -9,6 +9,7 @@ import '../platform/app_storage.dart';
 import '../platform/host_paths.dart';
 import 'add_folder_error.dart';
 import 'folder_colors.dart';
+import 'folder_services.dart';
 import 'folder_settings_store.dart';
 import 'note_folder.dart';
 
@@ -37,9 +38,10 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       };
 
   /// Adds the folder at [path], named after its last segment. Does nothing
-  /// if it is already added. Refuses a folder inside an added one, or one
-  /// holding an added one: their notes would show twice. Compares the
-  /// folders' host paths, as a sandbox may show each at its own path.
+  /// if it is already added. Refuses a folder of the sync tool's own (e.g.
+  /// its version folder), a folder inside an added one, or one holding an
+  /// added one: their notes would show twice. Compares the folders' host
+  /// paths, as a sandbox may show each at its own path.
   Future<Result<void, AddFolderError>> add(String path) async {
     final folders = await future;
     final hostPaths = ref.read(hostPathsProvider);
@@ -47,6 +49,11 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     final added = [
       for (final folder in folders) _segments(await hostPaths.of(folder.path)),
     ];
+    // Best effort in a sandbox: a path whose host path is unknown is
+    // checked as the sandbox shows it.
+    if (ref.read(syncAdapterProvider).isInternalFolder(segments)) {
+      return const Err(AddFolderError.syncToolInternal);
+    }
     if (added.any((other) => listEquals(other, segments))) {
       return const Ok(null);
     }

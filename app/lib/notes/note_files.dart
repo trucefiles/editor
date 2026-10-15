@@ -95,6 +95,16 @@ final class NoteFiles {
     String text,
   ) => _services.conflicts.keepAsConflict(path, TextFile.empty().encode(text));
 
+  /// Keeps a backup of [current], the note's file, and [edited], text the
+  /// user edited from an older version, before the user keeps one of them.
+  Future<Result<void, StoreError>> backUp(Note current, String edited) =>
+      _services.backups.save(
+        at: DateTime.now(),
+        mainPath: current.path,
+        current: current.file.encode(current.file.text),
+        other: current.file.encode(edited),
+      );
+
   Future<Result<void, StoreError>> delete(Note note) =>
       _store.delete(note.path, ifUnchanged: note.version);
 
