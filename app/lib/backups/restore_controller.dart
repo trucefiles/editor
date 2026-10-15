@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/folder_services.dart';
 import '../scan/folder_scans_controller.dart';
+import '../sync_tool/folder_services.dart';
 import 'all_backups.dart';
 
 final restoreProvider = NotifierProvider.autoDispose

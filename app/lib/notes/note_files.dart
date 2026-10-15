@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/folder_services.dart';
 import '../folders/note_folder.dart';
+import '../sync_tool/folder_services.dart';
 import 'note.dart';
 import 'note_file_name.dart';
 

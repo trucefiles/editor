@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../platform/app_storage.dart';
+import '../storage/app_storage.dart';
 import 'note.dart';
 import 'note_view.dart';
 import 'note_view_store.dart';

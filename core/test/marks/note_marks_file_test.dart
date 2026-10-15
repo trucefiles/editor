@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:truce_core/src/marks/note_marks_file.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../support/test_helpers.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   final changed = DateTime.utc(2026, 10, 13, 18, 40);

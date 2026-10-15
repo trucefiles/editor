@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/platform/app_storage.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/tray/close_to_tray_controller.dart';
-import 'package:truce_editor/tray/tray_wiring.dart';
 
 import '../support.dart';
 import 'fakes.dart';

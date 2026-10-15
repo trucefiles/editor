@@ -1,5 +1,5 @@
 name: Check
-description: Checks formatting, analyzes, and runs the core and app tests.
+description: Checks formatting, analyzes, and runs the core, Syncthing and app tests.
 
 runs:
   using: composite
@@ -21,6 +21,11 @@ runs:
     - name: Test core
       shell: bash
       working-directory: core
+      run: dart test
+
+    - name: Test Syncthing
+      shell: bash
+      working-directory: syncthing
       run: dart test
 
     - name: Test app

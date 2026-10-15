@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'platform/app_log.dart';
-import 'platform/app_storage.dart';
-import 'platform/device_id.dart';
+import 'storage/app_storage.dart';
+import 'storage/device_id.dart';
 import 'theme/font_licenses.dart';
 
 Future<void> main() async {

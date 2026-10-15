@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_store.dart';
-import 'package:truce_editor/tray/tray_wiring.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
 /// [notes] instead of opening the system dialog.

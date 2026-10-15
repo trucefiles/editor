@@ -2,8 +2,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../support/test_helpers.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late Directory root;

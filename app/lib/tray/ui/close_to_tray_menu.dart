@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/toggle_label.dart';
+import '../../platform/platform_wiring.dart';
 import '../close_to_tray_controller.dart';
-import '../tray_wiring.dart';
 
 /// Menu entries with the "keep running in tray" setting; none where the
 /// platform has no tray.

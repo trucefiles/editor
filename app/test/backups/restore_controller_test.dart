@@ -7,10 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/backups/restore_controller.dart';
-import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_editor/sync_tool/folder_services.dart';
 
 import '../support.dart';
 

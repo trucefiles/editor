@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import '../backups/backup.dart';
 import '../backups/file_backups.dart';
 import '../common/result.dart';
-import '../conflicts/conflict_service.dart';
-import '../conflicts/resolution.dart';
 import '../storage/file_store.dart';
+import '../versions/resolution.dart';
+import '../versions/resolve_error.dart';
 
 /// A backup next to its file as it is now, for the user to keep one.
 final class RestoreChoice {

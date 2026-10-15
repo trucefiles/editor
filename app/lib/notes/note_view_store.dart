@@ -1,6 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:truce_core/truce_core.dart';
+
+import '../storage/json_file.dart';
 import 'note.dart';
 import 'note_view.dart';
 
@@ -8,44 +10,23 @@ import 'note_view.dart';
 /// device and never synced. A convenience: read and write failures are
 /// ignored.
 final class NoteViewStore {
-  const NoteViewStore(this._file);
+  NoteViewStore(File file) : _file = JsonFile(file);
 
-  final File _file;
+  final JsonFile _file;
 
   /// The saved views by [storeKey]; empty if none or unreadable.
-  Future<Map<String, NoteView>> load() async {
-    try {
-      if (!await _file.exists()) return const {};
-      return switch (jsonDecode(await _file.readAsString())) {
-        final Map<String, Object?> json => {
-          for (final MapEntry(:key, :value) in json.entries)
-            key: ?NoteView.values.asNameMap()[value],
-        },
-        _ => const {},
-      };
-    } on FileSystemException {
-      return const {};
-    } on FormatException {
-      return const {};
-    }
-  }
+  Future<Map<String, NoteView>> load() async => switch (await _file.read()) {
+    Ok(value: final Map<String, Object?> json) => {
+      for (final MapEntry(:key, :value) in json.entries)
+        key: ?NoteView.values.asNameMap()[value],
+    },
+    _ => const {},
+  };
 
-  /// Replaces the saved views atomically, via a temp file.
-  Future<void> save(Map<String, NoteView> views) async {
-    final temp = File('${_file.path}.tmp');
-    try {
-      await _file.parent.create(recursive: true);
-      await temp.writeAsString(
-        jsonEncode({
-          for (final MapEntry(:key, :value) in views.entries) key: value.name,
-        }),
-        flush: true,
-      );
-      await temp.rename(_file.path);
-    } on FileSystemException {
-      // Only a convenience; the next save tries again.
-    }
-  }
+  /// Replaces the saved views; on failure the next save tries again.
+  Future<void> save(Map<String, NoteView> views) => _file.write({
+    for (final MapEntry(:key, :value) in views.entries) key: value.name,
+  });
 
   /// Key of [note] in the saved map.
   static String storeKey(NoteKey note) => '${note.folderId}/${note.path.value}';

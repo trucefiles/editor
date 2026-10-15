@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
 
 import '../support.dart';
 

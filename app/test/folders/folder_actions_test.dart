@@ -7,11 +7,12 @@ import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/notes/note_draft.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/host_paths.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/platform/storage_access.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../common/debouncer.dart';
-import '../folders/folder_services.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
+import '../sync_tool/folder_services.dart';
 import 'folder_scans_controller.dart';
 
 final autoRescanProvider = AsyncNotifierProvider<AutoRescan, void>(

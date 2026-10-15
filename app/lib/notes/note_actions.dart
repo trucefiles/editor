@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/folder_selection.dart';
-import '../folders/folder_services.dart';
 import '../folders/note_folder.dart';
 import '../scan/folder_scans_controller.dart';
+import '../sync_tool/folder_services.dart';
 import 'note.dart';
 import 'note_files.dart';
 

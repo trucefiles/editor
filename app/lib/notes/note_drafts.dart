@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../platform/app_storage.dart';
+import '../storage/app_storage.dart';
 import 'note_draft.dart';
 
 /// The drafts of one folder's notes, one JSON file each in app storage.

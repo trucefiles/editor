@@ -1,4 +1,4 @@
-/// Core of Truce: files, sync-tool conventions and conflict handling.
+/// Core of Truce: files, sync-tool interfaces and conflict handling.
 ///
 /// Pure Dart, no UI. The app uses only what this library exports.
 ///
@@ -25,8 +25,13 @@
 /// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).
 ///
-/// Implementations sit next to their interface; everything specific to
-/// Syncthing is in `syncthing`.
+/// `versions` holds what conflicts and restore share: the user's choice
+/// between two versions of a file ([Resolution]) and why keeping it failed
+/// ([ResolveError]).
+///
+/// Implementations sit next to their interface. Nothing here is specific
+/// to one sync tool; each tool's conventions live in a package of their
+/// own (`truce_syncthing`).
 library;
 
 export 'src/backups/backup.dart';
@@ -41,7 +46,6 @@ export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/default_conflict_service.dart';
-export 'src/conflicts/resolution.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -59,11 +63,6 @@ export 'src/storage/rel_path.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
-export 'src/syncthing/syncthing_adapter.dart';
-export 'src/syncthing/syncthing_conflict_source.dart';
-export 'src/syncthing/syncthing_folder_changes.dart';
-export 'src/syncthing/syncthing_folder_notices.dart';
-export 'src/syncthing/syncthing_folder_scanner.dart';
-export 'src/syncthing/syncthing_mtime_window_store.dart';
-export 'src/syncthing/syncthing_sync_check.dart';
 export 'src/text/text_file.dart';
+export 'src/versions/resolution.dart';
+export 'src/versions/resolve_error.dart';

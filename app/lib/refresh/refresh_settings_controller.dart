@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../platform/app_storage.dart';
-import '../platform/change_events.dart';
+import '../platform/platform_wiring.dart';
+import '../storage/app_storage.dart';
 import 'refresh_settings.dart';
 import 'refresh_settings_store.dart';
 
@@ -16,7 +16,7 @@ final refreshSettingsStoreProvider = Provider<RefreshSettingsStore>(
 /// Whether live updates are possible anywhere on this platform; if not,
 /// the user can't pick them.
 final liveRefreshAvailableProvider = Provider<bool>(
-  (ref) => platformReportsChanges,
+  (ref) => ref.watch(platformFactsProvider).reportsChanges,
 );
 
 final refreshSettingsProvider =

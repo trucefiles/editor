@@ -6,10 +6,13 @@ Prefer the simpler option when in doubt.
 
 ## Architecture
 - `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
+- Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`); `core` never knows one, and in the app only the sync-tool wiring imports it.
 - Lower layers never know upper ones; they receive what they need from above.
 - Each concern lives in the layer that owns it; app-wide concerns stay in the app.
 - App follows MVVM (Flutter's official architecture guide): widgets render state and forward events; controllers / view models own UI flows; services and repositories do the I/O. Riverpod is thin glue, no codegen. Feature folders.
 - One wiring point picks implementations; implementation-specific wiring lives in its own file.
+- Platforms are told apart only in `app/lib/platform/platform_wiring.dart`; platform-specific code lives in `platform/<os>/` (e.g. `linux/`, `android/`), and everything else gets platform facts injected.
+- App-private storage (settings, drafts, backups) is never synced, so it never follows a sync tool's rules (temp names, ignored files).
 
 ## Interfaces
 - Information hiding: an interface states the question, not how one implementation answers it. No parameters, types or concepts that only some implementations need.
@@ -35,4 +38,7 @@ Prefer the simpler option when in doubt.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.
 - Unit tests for core and controllers; UI tests for user flows.
+- Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
+- Shared test doubles live in the test-only `test_support` package, never in a production `lib`.
+- Structural refactors change no behavior: the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
 - Adversarial self-review of the diff before asking for review.

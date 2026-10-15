@@ -5,11 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../platform/app_storage.dart';
-import '../platform/host_paths.dart';
+import '../platform/platform_wiring.dart';
+import '../storage/app_storage.dart';
+import '../sync_tool/folder_services.dart';
 import 'add_folder_error.dart';
 import 'folder_colors.dart';
-import 'folder_services.dart';
 import 'folder_settings_store.dart';
 import 'note_folder.dart';
 

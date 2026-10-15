@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../platform/app_storage.dart';
+import '../platform/platform_wiring.dart';
+import '../storage/app_storage.dart';
 import 'close_to_tray_store.dart';
-import 'tray_wiring.dart';
 
 final closeToTrayStoreProvider = Provider<CloseToTrayStore>(
   (ref) => CloseToTrayStore(

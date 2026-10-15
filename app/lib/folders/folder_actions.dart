@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../notes/note_drafts.dart';
 import '../platform/folder_picker.dart';
+import '../platform/platform_wiring.dart';
 import '../platform/storage_access.dart';
 import 'add_folder_error.dart';
 import 'folder_selection.dart';

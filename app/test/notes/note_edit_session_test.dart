@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/folders/syncthing_folder_services.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
 import '../support.dart';
 
@@ -27,6 +27,7 @@ void main() {
         folder.path,
         backupsPath: backups.path,
         deviceId: '0123456789abcdef',
+        platform: hostFacts(),
       ),
     );
     note = (await files.create('a')).value;

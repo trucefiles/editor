@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../folder_services.dart';
+import '../../sync_tool/folder_services.dart';
 import '../note_folder.dart';
 import 'folder_notice_text.dart';
 
