@@ -1,10 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/platform/platform_facts.dart';
+
+import '../support.dart';
 
 void main() {
-  final facts = platformFacts;
+  late PlatformFacts facts;
+
+  setUp(() => facts = hostFacts());
 
   test('folders from the Flatpak document portal report no changes', () {
     expect(facts.reportsChangesIn('/run/user/1000/doc/1a2b3c/Notes'), isFalse);

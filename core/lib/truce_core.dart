@@ -1,4 +1,4 @@
-/// Core of Truce: files, sync-tool conventions and conflict handling.
+/// Core of Truce: files, sync-tool interfaces and conflict handling.
 ///
 /// Pure Dart, no UI. The app uses only what this library exports.
 ///
@@ -16,10 +16,6 @@
 ///    file type ([ConflictHandler]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
-///
-/// `versions` holds what conflicts and restore share: the user's choice
-/// between two versions of a file ([Resolution]) and why keeping it failed
-/// ([ResolveError]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
@@ -28,6 +24,10 @@
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).
+///
+/// `versions` holds what conflicts and restore share: the user's choice
+/// between two versions of a file ([Resolution]) and why keeping it failed
+/// ([ResolveError]).
 ///
 /// Implementations sit next to their interface. Nothing here is specific
 /// to one sync tool; each tool's conventions live in a package of their

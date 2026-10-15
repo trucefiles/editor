@@ -20,16 +20,18 @@ import 'storage_access.dart';
 // their interfaces.
 
 /// Facts about this platform, for the sync-tool wiring and settings.
-final platformFacts = PlatformFacts(
-  // Only where package:watcher has a native watcher; elsewhere, as on
-  // Android, it only polls.
-  reportsChanges:
-      FileSystemEntity.isWatchSupported &&
-      (Platform.isLinux || Platform.isMacOS || Platform.isWindows),
-  // On Android shared storage, a renamed-over file soon shows other apps
-  // the old file's modification time.
-  replacesInPlace: Platform.isAndroid,
-  isPortalFolder: isInDocumentPortal,
+final platformFactsProvider = Provider<PlatformFacts>(
+  (ref) => PlatformFacts(
+    // Only where package:watcher has a native watcher; elsewhere, as on
+    // Android, it only polls.
+    reportsChanges:
+        FileSystemEntity.isWatchSupported &&
+        (Platform.isLinux || Platform.isMacOS || Platform.isWindows),
+    // On Android shared storage, a renamed-over file soon shows other apps
+    // the old file's modification time.
+    replacesInPlace: Platform.isAndroid,
+    isPortalFolder: isInDocumentPortal,
+  ),
 );
 
 /// Whether the app may open folders by path.

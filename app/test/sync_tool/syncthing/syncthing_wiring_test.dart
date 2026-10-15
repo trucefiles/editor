@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
@@ -20,7 +19,7 @@ void main() {
         syncthingFolderFollowing(
           tempFolder().path,
           manual,
-          platformFacts,
+          hostFacts(),
         ).changes,
         isNull,
       );
@@ -31,16 +30,12 @@ void main() {
         syncthingFolderFollowing(
           tempFolder().path,
           periodic,
-          platformFacts,
+          hostFacts(),
         ).changes,
         isNotNull,
       );
       expect(
-        syncthingFolderFollowing(
-          tempFolder().path,
-          live,
-          platformFacts,
-        ).changes,
+        syncthingFolderFollowing(tempFolder().path, live, hostFacts()).changes,
         isNotNull,
       );
     });
@@ -50,7 +45,7 @@ void main() {
       final changes = syncthingFolderFollowing(
         folder.path,
         periodic.copyWith(interval: const Duration(milliseconds: 20)),
-        platformFacts,
+        hostFacts(),
       ).changes!;
       final seen = <RelPath>[];
       final subscription = changes.changes.listen(seen.add);
@@ -69,7 +64,7 @@ void main() {
     Future<List<FolderNotice>> noticesOf(
       String path,
       RefreshSettings refresh,
-    ) => syncthingFolderFollowing(path, refresh, platformFacts).notices.check();
+    ) => syncthingFolderFollowing(path, refresh, hostFacts()).notices.check();
 
     test('tell when live updates fall back to polling', () async {
       final notices = await noticesOf(portalFolder, live);
@@ -100,7 +95,7 @@ void main() {
       final following = syncthingFolderFollowing(
         folder.path,
         live,
-        platformFacts,
+        hostFacts(),
       );
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);

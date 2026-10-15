@@ -45,7 +45,7 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
     location.path,
     backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
     deviceId: ref.watch(deviceIdProvider),
-    platform: platformFacts,
+    platform: ref.watch(platformFactsProvider),
   ),
 );
 
@@ -63,7 +63,7 @@ final _folderFollowingProvider =
       (ref, location) async => syncthingFolderFollowing(
         location.path,
         await ref.watch(refreshSettingsProvider.future),
-        platformFacts,
+        ref.watch(platformFactsProvider),
       ),
     );
 

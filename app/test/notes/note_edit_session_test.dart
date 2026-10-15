@@ -5,7 +5,6 @@ import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
-import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
 import '../support.dart';
@@ -28,7 +27,7 @@ void main() {
         folder.path,
         backupsPath: backups.path,
         deviceId: '0123456789abcdef',
-        platform: platformFacts,
+        platform: hostFacts(),
       ),
     );
     note = (await files.create('a')).value;
