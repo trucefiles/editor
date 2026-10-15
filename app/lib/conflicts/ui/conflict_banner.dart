@@ -16,9 +16,11 @@ class ConflictBanner extends StatelessWidget {
     return MaterialBanner(
       leading: const Icon(Icons.call_split),
       content: Text(
+        // Either side may have won the sync conflict, so this names
+        // neither: the file shows the winner, the copies the others.
         count == 1
-            ? 'Another device saved a different version.'
-            : 'Other devices saved $count different versions.',
+            ? 'A sync conflict left another version of this note.'
+            : 'A sync conflict left $count other versions of this note.',
       ),
       actions: [
         TextButton(

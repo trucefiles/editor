@@ -8,6 +8,7 @@ import '../../common/snack.dart';
 import '../../conflicts/backup_pruning.dart';
 import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
+import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
@@ -69,6 +70,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _refresh,
           ),
+          const _ConflictsButton(),
           IconButton(
             tooltip: 'Search',
             icon: const Icon(Icons.search),
@@ -204,6 +206,27 @@ class _NotesBody extends ConsumerWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// Opens the list of all conflicts; shown only while there are some, with
+/// their count.
+class _ConflictsButton extends ConsumerWidget {
+  const _ConflictsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count =
+        ref.watch(folderScansProvider).value?.conflicts.all.length ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: 'Conflicts',
+      icon: Badge.count(count: count, child: const Icon(Icons.call_split)),
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const ConflictsScreen()),
+      ),
     );
   }
 }

@@ -432,6 +432,24 @@ void main() {
     expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
   });
 
+  testWidgets('lists every conflict and resolves one from the list', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\nmine\n');
+    app.write('todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Todo\nx\n');
+    await addFolder(tester);
+
+    await tester.waitFor(find.byTooltip('Conflicts'));
+    await tester.tapAndSettle(find.byTooltip('Conflicts'));
+    expect(find.text('1 other version'), findsOne);
+    await tester.tapAndSettle(find.text('Todo'));
+    await tester.tapAndSettle(find.text('Keep this').last);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitFor(find.text('No sync conflicts.'));
+    expect(app.file('todo.md').readAsStringSync(), '# Todo\nx\n');
+  });
+
   testWidgets('resolves two conflict copies one by one', (tester) async {
     app.file('todo.md').writeAsStringSync('# Todo\nmine\n');
     app
