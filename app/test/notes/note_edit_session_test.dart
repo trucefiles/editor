@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/sync_tool/folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
 import '../support.dart';
@@ -12,6 +16,7 @@ import '../support.dart';
 void main() {
   late Directory dir;
   late Directory backups;
+  late FolderServices services;
   late NoteFiles files;
   late Note note;
   late NoteEditSession session;
@@ -21,15 +26,13 @@ void main() {
     dir = tempFolder();
     backups = tempFolder();
     final folder = folderAt(dir);
-    files = NoteFiles(
-      folder,
-      syncthingFolderServices(
-        folder.path,
-        backupsPath: backups.path,
-        deviceId: '0123456789abcdef',
-        platform: hostFacts(),
-      ),
+    services = syncthingFolderServices(
+      folder.path,
+      backupsPath: backups.path,
+      deviceId: '0123456789abcdef',
+      platform: hostFacts(),
     );
+    files = NoteFiles(folder, services);
     note = (await files.create('a')).value;
     session = NoteEditSession(
       note,
@@ -67,6 +70,45 @@ void main() {
     expect(onDisk(), '# a\nmine');
     expect(session.state, EditState.saved);
   });
+
+  test(
+    'writes nothing if the edits reach the file during the backup',
+    () async {
+      final held = _HeldStore(
+        LocalFileStore(tempFolder().path, (t) => t, createsRoot: true),
+      );
+      final slow = NoteEditSession(
+        note,
+        NoteFiles(
+          note.folder,
+          FolderServices(
+            store: services.store,
+            scanner: services.scanner,
+            syncToolName: services.syncToolName,
+            conflicts: services.conflicts,
+            backups: FileBackups(held),
+            restore: services.restore,
+            marks: services.marks,
+          ),
+        ),
+        tempDrafts(),
+        saveDelay: const Duration(hours: 1),
+      );
+      addTearDown(slow.dispose);
+      slow.edit('# a\nsame');
+      final saving = slow.flush();
+      await held.reached.future;
+
+      final theirs = await editElsewhere('# a\nsame');
+      slow.onRescan(theirs, scannedAt: later);
+      held.release.complete();
+      await saving;
+
+      expect(slow.state, EditState.saved);
+      expect(slow.note.version, theirs.version);
+      expect(file().statSync().modified, theirs.modified);
+    },
+  );
 
   test('backs up the file once, before the first save', () async {
     session.edit('# a\nfirst');
@@ -217,7 +259,7 @@ void main() {
     session.edit('# a\nmine');
     await session.flush();
 
-    await session.keepMine();
+    await session.keepMine(session.theirs!);
 
     expect(onDisk(), '# a\nmine');
     expect(session.state, EditState.saved);
@@ -229,18 +271,18 @@ void main() {
     await session.flush();
     await editElsewhere('# a\ntheirs, even longer');
 
-    await session.keepMine();
+    await session.keepMine(session.theirs!);
     expect(session.state, EditState.changedElsewhere);
     expect(onDisk(), '# a\ntheirs, even longer');
 
-    await session.keepMine();
+    await session.keepMine(session.theirs!);
     expect(onDisk(), '# a\nmine');
   });
 
   test('keep mine and load theirs back up both versions first', () async {
     for (final (name, keep) in [
-      ('keep mine', session.keepMine),
-      ('load theirs', session.loadTheirs),
+      ('keep mine', () => session.keepMine(session.theirs!)),
+      ('load theirs', () => session.loadTheirs(session.theirs!)),
     ]) {
       clearBackups();
       session.edit('# a\nmine, $name');
@@ -249,7 +291,7 @@ void main() {
         scannedAt: later,
       );
 
-      expect(await keep(), isTrue);
+      expect(await keep(), PickResult.done);
 
       expect(backedUp(), [
         'current: # a\ntheirs, $name',
@@ -264,8 +306,9 @@ void main() {
     backups.deleteSync();
     File(backups.path).writeAsStringSync('in the way');
 
-    expect(await session.keepMine(), isFalse);
-    expect(await session.loadTheirs(), isFalse);
+    final theirs = session.theirs!;
+    expect(await session.keepMine(theirs), PickResult.noBackup);
+    expect(await session.loadTheirs(theirs), PickResult.noBackup);
 
     expect(session.state, EditState.changedElsewhere);
     expect(session.text, '# a\nmine');
@@ -288,12 +331,26 @@ void main() {
     expect(session.theirs?.file.text, '# a\ntheirs, newer');
   });
 
+  test('keep mine never saves over a version the user did not see', () async {
+    session.edit('# a\nmine');
+    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    final seen = session.theirs!;
+    session.onRescan(await editElsewhere('# a\nnewer'), scannedAt: later);
+
+    expect(await session.keepMine(seen), PickResult.newerVersion);
+    expect(await session.loadTheirs(seen), PickResult.newerVersion);
+
+    expect(session.state, EditState.changedElsewhere);
+    expect(onDisk(), '# a\nnewer');
+    expect(session.text, '# a\nmine');
+  });
+
   test('load theirs drops the edits', () async {
     await editElsewhere('# a\ntheirs, longer');
     session.edit('# a\nmine');
     await session.flush();
 
-    expect(await session.loadTheirs(), isTrue);
+    expect(await session.loadTheirs(session.theirs!), PickResult.done);
 
     expect(session.text, '# a\ntheirs, longer');
     expect(session.state, EditState.saved);
@@ -542,12 +599,31 @@ void main() {
       expect(await draftTexts(), ['# a\nmine']);
     });
 
+    test('keeps edits made while changed or deleted elsewhere', () async {
+      staged.edit('# a\nmine');
+      await settle();
+      staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+
+      staged.edit('# a\nmine, more');
+      await settle();
+      expect(await draftTexts(), ['# a\nmine, more']);
+
+      file().deleteSync();
+      staged.onRescan(null, scannedAt: later);
+      staged.edit('# a\nmine, even more');
+      await settle();
+
+      expect(staged.state, EditState.deletedElsewhere);
+      expect(await draftTexts(), ['# a\nmine, even more']);
+      expect(file().existsSync(), isFalse);
+    });
+
     test('load theirs drops the draft', () async {
       staged.edit('# a\nmine');
       await settle();
       staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
 
-      await staged.loadTheirs();
+      await staged.loadTheirs(staged.theirs!);
       await settle();
 
       expect(await draftTexts(), isEmpty);
@@ -585,4 +661,46 @@ void main() {
       expect(broken.state, EditState.saved);
     });
   });
+}
+
+/// Holds the first [create] until [release] completes.
+final class _HeldStore implements FileStore {
+  _HeldStore(this._inner);
+
+  final FileStore _inner;
+  final reached = Completer<void>();
+  final release = Completer<void>();
+
+  @override
+  Future<Result<FileEntry, StoreError>> create(
+    RelPath path,
+    Uint8List bytes,
+  ) async {
+    if (!reached.isCompleted) reached.complete();
+    await release.future;
+    return _inner.create(path, bytes);
+  }
+
+  @override
+  Future<Result<Listing, StoreError>> list({
+    bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
+  }) => _inner.list(enterFolder: enterFolder, includeFile: includeFile);
+
+  @override
+  Future<Result<FileContent, StoreError>> read(RelPath path) =>
+      _inner.read(path);
+
+  @override
+  Future<Result<FileEntry, StoreError>> replace(
+    RelPath path,
+    Uint8List bytes, {
+    required FileVersion ifUnchanged,
+  }) => _inner.replace(path, bytes, ifUnchanged: ifUnchanged);
+
+  @override
+  Future<Result<void, StoreError>> delete(
+    RelPath path, {
+    required FileVersion ifUnchanged,
+  }) => _inner.delete(path, ifUnchanged: ifUnchanged);
 }
