@@ -18,18 +18,18 @@ import 'note.dart';
 /// right after a write and the real one a moment later, which would make
 /// the note jump in the newest-first order and back.
 final class NoteLoader {
-  NoteLoader(this._folder, this._services);
+  NoteLoader(this._services);
 
-  final NoteFolder _folder;
   final FolderServices _services;
   Map<RelPath, Note> _last = {};
 
-  /// The notes in [files], as listed by the folder's scan.
-  Future<List<Note>> load(List<FileEntry> files) async {
+  /// The notes in [files], as listed by the scan of [folder]. [folder] is
+  /// passed on every load: the user may rename or recolor it meanwhile.
+  Future<List<Note>> load(NoteFolder folder, List<FileEntry> files) async {
     final next = <RelPath, Note>{};
     for (final entry in files) {
-      final note = await _noteFor(entry);
-      if (note != null) next[entry.path] = note;
+      final note = await _noteFor(folder, entry);
+      if (note != null) next[entry.path] = note.inFolder(folder);
     }
     _last = next;
     return next.values.toList();
@@ -38,14 +38,14 @@ final class NoteLoader {
   /// The last note if unchanged, else a fresh read; the last note if that
   /// fails while the file still exists; `null` if the file vanished, or is
   /// not text and was never read as text.
-  Future<Note?> _noteFor(FileEntry entry) async {
+  Future<Note?> _noteFor(NoteFolder folder, FileEntry entry) async {
     final last = _last[entry.path];
     if (last != null && last.version == entry.version) return last;
     switch (await _services.store.read(entry.path)) {
       case Ok(value: final content):
         return switch (TextFile.decode(content.bytes)) {
           final file? => Note(
-            folder: _folder,
+            folder: folder,
             path: entry.path,
             file: file,
             version: content.version,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
+import '../platform/host_paths.dart';
 import 'add_folder_error.dart';
 import 'folder_colors.dart';
 import 'folder_settings_store.dart';
@@ -37,11 +38,15 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
 
   /// Adds the folder at [path], named after its last segment. Does nothing
   /// if it is already added. Refuses a folder inside an added one, or one
-  /// holding an added one: their notes would show twice.
+  /// holding an added one: their notes would show twice. Compares the
+  /// folders' host paths, as a sandbox may show each at its own path.
   Future<Result<void, AddFolderError>> add(String path) async {
     final folders = await future;
-    final segments = _segments(path);
-    final added = folders.map((folder) => _segments(folder.path));
+    final hostPaths = ref.read(hostPathsProvider);
+    final segments = _segments(await hostPaths.of(path));
+    final added = [
+      for (final folder in folders) _segments(await hostPaths.of(folder.path)),
+    ];
     if (added.any((other) => listEquals(other, segments))) {
       return const Ok(null);
     }
@@ -55,7 +60,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       NoteFolder(
         id: _newId(),
         path: path,
-        name: segments.isEmpty ? path : segments.last,
+        name: _segments(path).lastOrNull ?? path,
         color: nextFolderColor(folders.map((folder) => folder.color)),
       ),
     ]);

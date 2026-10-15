@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -17,15 +15,10 @@ final folderScansProvider =
       FolderScansController.new,
     );
 
-/// Scans every folder for notes and conflicts, and rescans every
-/// [pollInterval] so changes from the sync tool or other editors show up
-/// without a restart.
-///
-/// Riverpod builds a new controller whenever the folders change, so each
-/// controller scans one fixed list of folders.
+/// Scans every folder for notes and conflicts, again whenever the folders
+/// change, and on [refresh]: changes from the sync tool or other editors
+/// show up at the next refresh.
 class FolderScansController extends AsyncNotifier<FolderScans> {
-  static const pollInterval = Duration(seconds: 5);
-
   List<NoteFolder> _folders = const [];
   final Map<String, NoteLoader> _loaders = {};
   late final _scans = FreshRuns(_scanFolders);
@@ -33,14 +26,13 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   @override
   Future<FolderScans> build() async {
     _folders = await ref.watch(foldersProvider.future);
-    final timer = Timer.periodic(pollInterval, (_) => refresh());
-    ref.onDispose(timer.cancel);
     return _scans.run();
   }
 
-  /// Rescans now, e.g. after a write or when the app comes back to the
-  /// foreground. The scan starts after this call, so it sees every write
-  /// made before. Does nothing once this controller is disposed.
+  /// Rescans now, e.g. after a write, when a note opens, when the app
+  /// comes back to the foreground, or when the user asks. The scan starts
+  /// after this call, so it sees every write made before. Does nothing
+  /// once this controller is disposed.
   Future<void> refresh() async {
     if (!ref.mounted) return;
     final scans = await _scans.run();
@@ -58,7 +50,9 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
       final services = ref.read(folderServicesProvider(folder.location));
       switch (await services.scanner.scan()) {
         case Ok(value: final scan):
-          notes.addAll(await _loaderFor(folder, services).load(scan.files));
+          notes.addAll(
+            await _loaderFor(folder, services).load(folder, scan.files),
+          );
           marks.addAll(await _marksOf(folder, services));
           subfolders[folder.id] = [...scan.subfolders]
             ..sort((a, b) => a.value.compareTo(b.value));
@@ -106,5 +100,5 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   };
 
   NoteLoader _loaderFor(NoteFolder folder, FolderServices services) =>
-      _loaders.putIfAbsent(folder.id, () => NoteLoader(folder, services));
+      _loaders.putIfAbsent(folder.id, () => NoteLoader(services));
 }

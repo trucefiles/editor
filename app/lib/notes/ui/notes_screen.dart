@@ -41,9 +41,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(
-      onShow: () => ref.read(folderScansProvider.notifier).refresh(),
-    );
+    // On desktop, also when the window gets the focus back.
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
   }
 
   @override
@@ -51,6 +50,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     _lifecycle.dispose();
     super.dispose();
   }
+
+  Future<void> _refresh() => ref.read(folderScansProvider.notifier).refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +62,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ..watch(backupPruningProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notes'),
+        title: const Text('Folders'),
         actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _refresh,
+          ),
           IconButton(
             tooltip: 'Search',
             icon: const Icon(Icons.search),
@@ -72,7 +78,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Folders',
+            tooltip: 'Manage folders',
             icon: const Icon(Icons.folder_outlined),
             onPressed: () => Navigator.push(
               context,

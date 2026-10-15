@@ -20,7 +20,7 @@ class FoldersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final folders = ref.watch(foldersProvider).value ?? const [];
     return Scaffold(
-      appBar: AppBar(title: const Text('Folders')),
+      appBar: AppBar(title: const Text('Manage folders')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => addFolder(context, ref),
         icon: const Icon(Icons.create_new_folder_outlined),
