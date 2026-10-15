@@ -130,6 +130,23 @@ void main() {
     final loaded = await container().read(foldersProvider.future);
     expect(loaded.map((f) => (f.id, f.name)), [(a.id, 'Work')]);
   });
+
+  test('changes made at the same time all land', () async {
+    final first = container();
+    final controller = first.read(foldersProvider.notifier);
+    await controller.add('/sync/a');
+    await controller.add('/sync/b');
+    final [a, b] = await first.read(foldersProvider.future);
+
+    await Future.wait([
+      controller.remove(a),
+      controller.change(b.copyWith(name: 'Work')),
+      controller.add('/sync/c'),
+    ]);
+
+    final loaded = await container().read(foldersProvider.future);
+    expect(loaded.map((f) => f.name), ['Work', 'c']);
+  });
 }
 
 /// Host paths from a table; other paths are their own.
