@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
+import '../../sync_tool/folder_services.dart';
 import '../folder_actions.dart';
-import '../folder_services.dart';
 import '../folders_controller.dart';
 import '../note_folder.dart';
 import 'add_folder_error_text.dart';

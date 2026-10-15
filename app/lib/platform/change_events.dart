@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'document_portal.dart';
+import 'linux/document_portal.dart';
 
 /// Whether this platform tells the app about changes other apps make to
 /// files as they happen, through `package:watcher`'s native watchers.

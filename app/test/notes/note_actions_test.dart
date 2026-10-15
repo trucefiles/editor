@@ -8,10 +8,10 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../platform/app_storage.dart';
 import '../platform/change_events.dart';
+import '../storage/app_storage.dart';
 import 'refresh_settings.dart';
 import 'refresh_settings_store.dart';
 

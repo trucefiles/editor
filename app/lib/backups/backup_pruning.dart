@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/syncthing_folder_services.dart';
-import '../platform/app_storage.dart';
+import '../storage/app_storage.dart';
+import '../sync_tool/syncthing/syncthing_wiring.dart';
 
 /// How long backups are kept.
 const backupRetention = Duration(days: 7);

@@ -1,4 +1,4 @@
-import 'document_portal.dart';
+import 'linux/document_portal.dart';
 
 /// Whether the app can read the parent folders of the folder at
 /// [folderPath].

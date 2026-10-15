@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/folder_services.dart';
 import 'package:truce_editor/notes/draft_recovery.dart';
 import 'package:truce_editor/notes/note_draft.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/sync_tool/folder_services.dart';
 
 import '../support.dart';
 

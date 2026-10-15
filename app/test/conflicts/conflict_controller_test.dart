@@ -7,9 +7,9 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/conflicts/conflict_controller.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

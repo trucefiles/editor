@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/syncthing_folder_services.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
+import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
-import '../support.dart';
+import '../../support.dart';
 
 void main() {
   const live = RefreshSettings.standard;

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
-import '../tray_host.dart';
+import '../../tray/tray_host.dart';
 
 /// The tray of Linux desktops: present while a StatusNotifierWatcher runs
 /// on the session bus (KDE, GNOME with AppIndicator, and most others).

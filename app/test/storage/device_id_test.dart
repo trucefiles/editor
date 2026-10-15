@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

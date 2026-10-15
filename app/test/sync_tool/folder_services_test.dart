@@ -1,9 +1,9 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/folders/folder_services.dart';
-import 'package:truce_editor/platform/app_storage.dart';
-import 'package:truce_editor/platform/device_id.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_editor/sync_tool/folder_services.dart';
 
 import '../support.dart';
 

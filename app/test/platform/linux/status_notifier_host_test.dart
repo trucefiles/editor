@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/tray/linux/status_notifier_host.dart';
+import 'package:truce_editor/platform/linux/status_notifier_host.dart';
 
 void main() {
   late DBusServer server;

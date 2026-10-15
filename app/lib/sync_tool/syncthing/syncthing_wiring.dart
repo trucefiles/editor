@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 
-import '../platform/change_events.dart';
-import '../platform/parent_folder_access.dart';
-import '../refresh/refresh_settings.dart';
-import 'folder_services.dart';
+import '../../platform/change_events.dart';
+import '../../platform/parent_folder_access.dart';
+import '../../refresh/refresh_settings.dart';
+import '../folder_services.dart';
 
 /// Syncthing's file-name rules.
 const SyncAdapter syncthingAdapter = SyncthingAdapter();

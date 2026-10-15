@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../platform/app_storage.dart';
-import '../platform/device_id.dart';
+import '../folders/note_folder.dart';
 import '../refresh/refresh_settings_controller.dart';
-import 'note_folder.dart';
-import 'syncthing_folder_services.dart';
+import '../storage/app_storage.dart';
+import '../storage/device_id.dart';
+import 'syncthing/syncthing_wiring.dart';
 
 /// The core services for one folder. Built by the sync tool's wiring
 /// ([syncthingFolderServices]); the rest of the app sees only this.

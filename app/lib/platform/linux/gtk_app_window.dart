@@ -2,7 +2,7 @@ import 'dart:ui' show AppExitType;
 
 import 'package:flutter/services.dart';
 
-import 'app_window.dart';
+import '../../tray/app_window.dart';
 
 /// The GTK window of the Linux runner (`linux/runner/my_application.cc`).
 final class GtkAppWindow implements AppWindow {

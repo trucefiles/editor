@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'app_window.dart';
-import 'gtk_app_window.dart';
-import 'hosted_tray.dart';
+import '../tray/app_window.dart';
+import '../tray/hosted_tray.dart';
+import '../tray/native_tray_icon.dart';
+import '../tray/system_tray.dart';
+import 'linux/gtk_app_window.dart';
 import 'linux/status_notifier_host.dart';
-import 'native_tray_icon.dart';
-import 'system_tray.dart';
 
 /// The system tray of this platform; `null` where the app has none.
 final systemTrayProvider = Provider<SystemTray?>(

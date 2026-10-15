@@ -3,12 +3,12 @@ import 'package:truce_core/truce_core.dart';
 
 import '../common/fresh_runs.dart';
 import '../conflicts/folder_conflicts.dart';
-import '../folders/folder_services.dart';
 import '../folders/folders_controller.dart';
 import '../folders/note_folder.dart';
 import '../notes/draft_recovery.dart';
 import '../notes/note.dart';
 import '../notes/note_loader.dart';
+import '../sync_tool/folder_services.dart';
 import 'folder_scans.dart';
 
 final folderScansProvider =

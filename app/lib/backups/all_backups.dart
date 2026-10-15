@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/folder_services.dart';
 import '../folders/folders_controller.dart';
 import '../folders/note_folder.dart';
+import '../sync_tool/folder_services.dart';
 
 /// A backup and the folder its note is in.
 typedef FolderBackup = ({NoteFolder folder, Backup backup});
