@@ -15,6 +15,8 @@ import 'ui_driver.dart';
 ///
 /// Run on Linux with `flutter test integration_test/app_test.dart -d linux`
 /// (in CI under `xvfb-run`), one file per run.
+const _savedOnDevice = 'Saved on this device. Tap to save in the folder now';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -45,10 +47,25 @@ void main() {
     await tester.tapAndSettle(find.text('Create'));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
-    await tester.waitFor(find.byTooltip('Saved on this device'));
+    await tester.waitFor(find.byTooltip(_savedOnDevice));
     expect(app.file('Groceries.md').readAsStringSync(), '# Groceries\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
+  });
+
+  testWidgets('tapping the save icon saves in the file right away', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+    await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
+    await tester.waitFor(find.byTooltip(_savedOnDevice));
+
+    await tester.tapAndSettle(find.byTooltip(_savedOnDevice));
+
+    await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
+    await tester.waitFor(find.byTooltip('Saved in the folder'));
   });
 
   testWidgets('offers an empty subfolder made while the app runs', (
@@ -272,6 +289,26 @@ void main() {
       '# Plan\nv2 from elsewhere\n',
     );
     await tester.waitFor(find.byTooltip('New note'));
+  });
+
+  testWidgets('compares a change from elsewhere and keeps mine', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+
+    await tester.waitFor(find.text('Compare'));
+    await tester.tapAndSettle(find.text('Compare'));
+    expect(find.textContaining('v2 from elsewhere'), findsOneWidget);
+    await tester.tapAndSettle(find.text('Keep this').first);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitForFile(app.file('plan.md'), '# Plan\nmine\n');
+    expect(find.text('Your version'), findsNothing);
   });
 
   testWidgets('hiding the app keeps clashing edits, menus stay put', (
