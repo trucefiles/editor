@@ -190,6 +190,32 @@ void main() {
     expect(timers, isEmpty);
   });
 
+  test('counts versions read from a clock slightly ahead', () async {
+    inner.files[note] = FileContent(
+      bytesOf('theirs'),
+      version: const FileVersion('theirs'),
+      modified: now.add(seconds(1)),
+    );
+    final read = (await store.read(note)).value;
+
+    await store.replace(note, bytesOf('mine!!'), ifUnchanged: read.version);
+
+    expect(pending().single.duration, seconds(3) + margin);
+  });
+
+  test('ignores versions read from a clock far ahead', () async {
+    inner.files[note] = FileContent(
+      bytesOf('theirs'),
+      version: const FileVersion('theirs'),
+      modified: now.add(const Duration(hours: 1)),
+    );
+    final read = (await store.read(note)).value;
+
+    await store.replace(note, bytesOf('mine!!'), ifUnchanged: read.version);
+
+    expect(timers, isEmpty);
+  });
+
   test('keeps files apart', () async {
     await write('v1', null);
     await store.create(path('b.md'), bytesOf('v1'));

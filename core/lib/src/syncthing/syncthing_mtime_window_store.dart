@@ -114,7 +114,9 @@ final class SyncthingMtimeWindowStore implements FileStore {
     final earlier = state.newest;
     final now = _now();
     state.wrote(entry.version, at: now);
-    if (earlier == null || now.difference(earlier) >= window) return;
+    // An earlier time can be ahead of the clock: Syncthing keeps the mtimes
+    // of other devices. Far enough ahead, it is outside the window too.
+    if (earlier == null || now.difference(earlier).abs() >= window) return;
     state.due = _timer(earlier.add(window + margin).difference(now), () {
       state.due = null;
       unawaited(_rewrite(path, bytes, entry.version));
@@ -157,7 +159,13 @@ final class SyncthingMtimeWindowStore implements FileStore {
     final done = (_queues[path] ?? Future<void>.value()).then(
       (_) => operation(),
     );
-    _queues[path] = done.then<void>((_) {}, onError: (_) {});
+    final tail = done.then<void>((_) {}, onError: (_) {});
+    _queues[path] = tail;
+    unawaited(
+      tail.whenComplete(() {
+        if (identical(_queues[path], tail)) _queues.remove(path);
+      }),
+    );
     return done;
   }
 
