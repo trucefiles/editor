@@ -4,14 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'note.dart';
+import 'note_drafts.dart';
 import 'note_files.dart';
+import 'note_staging.dart';
 
 /// Where an open note stands against its file.
 enum EditState {
   /// The file holds the text being edited.
   saved,
 
-  /// Edits are waiting for or in their save.
+  /// Edits are kept on this device; they go into the file when the note
+  /// closes, the app is hidden, or a while after they were first kept.
+  savedOnDevice,
+
+  /// Edits are waiting to be kept on this device, or are being saved.
   unsaved,
 
   /// The file changed elsewhere while there were unsaved edits; the user
@@ -31,19 +37,38 @@ enum EditState {
   keptAsConflict,
 }
 
-/// Saves the text of one open note shortly after the user stops typing and
-/// keeps it in step with changes from elsewhere. No UI. Listeners hear of
-/// every change to [text] or [state].
+/// Keeps the text of one open note on this device shortly after the user
+/// stops typing, writes it into the note's file less often, and keeps it in
+/// step with changes from elsewhere. No UI. Listeners hear of every change
+/// to [text] or [state].
+///
+/// Edits kept on the device survive the app being ended; the next start
+/// puts them into the file (see `DraftRecovery`). Writing the file less
+/// often puts less load on the sync tool.
 ///
 /// Never overwrites a change from elsewhere and never recreates a deleted
 /// file without the user's choice.
 final class NoteEditSession extends ChangeNotifier {
-  NoteEditSession(this._note, this._files, {this.saveDelay = _defaultDelay})
-    : _text = _note.file.text;
-
-  static const _defaultDelay = Duration(seconds: 2);
+  /// [publishDelay]: how long after edits were first kept on the device
+  /// they go into the file at the latest, for a note that stays open.
+  NoteEditSession(
+    this._note,
+    this._files,
+    NoteDrafts drafts, {
+    this.saveDelay = const Duration(seconds: 2),
+    Duration publishDelay = const Duration(minutes: 1),
+  }) : _text = _note.file.text {
+    _staging = NoteStaging(
+      drafts,
+      publishDelay: publishDelay,
+      onDue: () => unawaited(_save()),
+    );
+  }
 
   final NoteFiles _files;
+  late final NoteStaging _staging;
+
+  /// How long after the last edit the edits are kept on the device.
   final Duration saveDelay;
 
   Note _note;
@@ -62,19 +87,22 @@ final class NoteEditSession extends ChangeNotifier {
 
   EditState get state => _state;
 
-  /// The user changed the text; saves after [saveDelay] without edits.
+  /// The user changed the text; keeps it on the device after [saveDelay]
+  /// without edits.
   void edit(String text) {
     if (text == _text || _state == EditState.keptAsConflict) return;
     _text = text;
-    if (_state == EditState.saved || _state == EditState.saveFailed) {
+    if (_state == EditState.saved ||
+        _state == EditState.savedOnDevice ||
+        _state == EditState.saveFailed) {
       _state = EditState.unsaved;
     }
     notifyListeners();
     _timer?.cancel();
-    if (_state == EditState.unsaved) _timer = Timer(saveDelay, _save);
+    if (_state == EditState.unsaved) _timer = Timer(saveDelay, _stash);
   }
 
-  /// Saves pending edits now.
+  /// Writes pending edits into the file now.
   Future<void> flush() async {
     _timer?.cancel();
     await _save();
@@ -99,16 +127,20 @@ final class NoteEditSession extends ChangeNotifier {
     switch (_state) {
       case EditState.saved || EditState.keptAsConflict:
         return true;
-      case EditState.unsaved:
+      case EditState.unsaved || EditState.savedOnDevice:
         // Edited during the save: save that too.
         return _secureOnce();
       case EditState.deletedElsewhere when _text == _note.file.text:
         // No edits: nothing to keep.
+        _staging.drop();
         return true;
       case EditState.changedElsewhere ||
           EditState.deletedElsewhere ||
           EditState.saveFailed:
-        return _keepAsConflict();
+        if (await _keepAsConflict()) return true;
+        // Kept on the device at least: the next start tries again.
+        await _keepDraft(_text);
+        return false;
     }
   }
 
@@ -121,7 +153,16 @@ final class NoteEditSession extends ChangeNotifier {
       return false;
     }
     _theirs = null;
+    _settle(EditState.keptAsConflict);
     return true;
+  }
+
+  /// Drops edits that could be kept nowhere, when the user chose so: the
+  /// text goes back to the file's.
+  void discard() {
+    _text = _note.file.text;
+    _theirs = null;
+    _settle(EditState.saved);
   }
 
   /// A rescan that started at [scannedAt] found [latest] for this note;
@@ -160,7 +201,9 @@ final class NoteEditSession extends ChangeNotifier {
       return true;
     }
     _theirs = latest;
-    if (_state == EditState.unsaved) _set(EditState.changedElsewhere);
+    if (_state == EditState.unsaved || _state == EditState.savedOnDevice) {
+      _set(EditState.changedElsewhere);
+    }
     return false;
   }
 
@@ -176,13 +219,12 @@ final class NoteEditSession extends ChangeNotifier {
 
   /// Drops the edits and shows the version from elsewhere.
   void loadTheirs() {
-    _timer?.cancel();
     if (_theirs case final theirs?) {
       _note = theirs;
       _text = theirs.file.text;
     }
     _theirs = null;
-    _set(EditState.saved);
+    _settle(EditState.saved);
   }
 
   /// Writes the text being edited as the note's file again, after it was
@@ -192,8 +234,12 @@ final class NoteEditSession extends ChangeNotifier {
     switch (await _write(() => _files.restore(_note, text))) {
       case Ok(value: final restored):
         _note = restored;
-        _set(text == _text ? EditState.saved : EditState.unsaved);
-        if (_state == EditState.unsaved) await flush();
+        if (text == _text) {
+          _settle(EditState.saved);
+        } else {
+          _set(EditState.unsaved);
+          await flush();
+        }
       case Err(error: StoreError.alreadyExists):
         _theirs = await _reload();
         if (_theirs != null) _set(EditState.changedElsewhere);
@@ -202,6 +248,18 @@ final class NoteEditSession extends ChangeNotifier {
     }
   }
 
+  /// Keeps the edits on the device; they go into the file when due. Writes
+  /// the file right away if the device cannot keep them.
+  Future<void> _stash() async {
+    if (_state != EditState.unsaved) return;
+    final text = _text;
+    if (!await _keepDraft(text)) return _save();
+    if (_state == EditState.unsaved && text == _text) {
+      _set(EditState.savedOnDevice);
+    }
+  }
+
+  /// Writes the edits into the file.
   Future<void> _save() {
     final previous = _saving ?? Future<void>.value();
     return _saving = previous.then((_) => _saveOnce());
@@ -210,12 +268,16 @@ final class NoteEditSession extends ChangeNotifier {
   /// [retried] after the file turned out to be only restamped, so a
   /// version that keeps changing cannot loop.
   Future<void> _saveOnce({bool retried = false}) async {
-    if (_state != EditState.unsaved && _state != EditState.saveFailed) return;
+    if (_state != EditState.unsaved &&
+        _state != EditState.savedOnDevice &&
+        _state != EditState.saveFailed) {
+      return;
+    }
     final text = _text;
     switch (await _write(() => _files.save(_note, text))) {
       case Ok(value: final saved):
         _note = saved;
-        if (text == _text) _set(EditState.saved);
+        if (text == _text) _settle(EditState.saved);
       case Err(error: StoreError.notFound):
         _goneElsewhere();
       case Err(error: StoreError.changedSinceRead):
@@ -277,10 +339,10 @@ final class NoteEditSession extends ChangeNotifier {
     } else if (_text == _note.file.text) {
       _note = latest;
       _text = latest.file.text;
-      _set(EditState.saved);
+      _settle(EditState.saved);
     } else if (latest.version == _note.version) {
       _set(EditState.unsaved);
-      _timer = Timer(saveDelay, _save);
+      _timer = Timer(saveDelay, _stash);
     } else {
       _theirs = latest;
       _set(EditState.changedElsewhere);
@@ -292,10 +354,9 @@ final class NoteEditSession extends ChangeNotifier {
   bool _holdsText(Note latest) => latest.file.text == _text;
 
   void _inStepWith(Note latest) {
-    _timer?.cancel();
     _note = latest;
     _theirs = null;
-    _set(EditState.saved);
+    _settle(EditState.saved);
   }
 
   void _goneElsewhere() {
@@ -309,9 +370,21 @@ final class NoteEditSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// No edits are pending any more: in the file, in a conflict copy, or
+  /// dropped.
+  void _settle(EditState state) {
+    _timer?.cancel();
+    _staging.drop();
+    _set(state);
+  }
+
+  Future<bool> _keepDraft(String text) =>
+      _staging.keep(_note.path, base: _note.file.text, text: text);
+
   @override
   void dispose() {
     _timer?.cancel();
+    _staging.dispose();
     super.dispose();
   }
 }

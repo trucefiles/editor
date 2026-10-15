@@ -18,6 +18,7 @@ import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_colors.dart';
+import '../note_drafts.dart';
 import '../note_edit_session.dart';
 import '../note_files.dart';
 import '../note_title.dart';
@@ -48,7 +49,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteFiles _files = ref.read(noteFilesProvider(widget.note.folder));
   // Read up front: dispose() needs it, and ref is unusable by then.
   late final FolderScansController _scans;
-  late final _session = NoteEditSession(widget.note, _files);
+  late final _session = NoteEditSession(
+    widget.note,
+    _files,
+    ref.read(noteDraftsProvider(widget.note.folder.id)),
+  );
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
@@ -116,7 +121,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     return AppExitResponse.cancel;
   }
 
-  /// Whether the user drops edits that can be kept nowhere.
+  /// Whether the user drops edits that can be kept nowhere; if so, the
+  /// session drops them.
   Future<bool> _askToDiscard() async {
     if (!mounted) return false;
     final discard = await showDialog<bool>(
@@ -139,7 +145,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ],
       ),
     );
-    return discard ?? false;
+    if (discard ?? false) {
+      _session.discard();
+      return true;
+    }
+    return false;
   }
 
   /// Closes the editor if it is still the top screen (the user may have

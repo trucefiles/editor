@@ -30,6 +30,7 @@ void main() {
     session = NoteEditSession(
       note,
       NoteFiles(folder, servicesFor(folder)),
+      tempDrafts(),
       saveDelay: const Duration(days: 1),
     );
     final editor = ChecklistEditor(session);

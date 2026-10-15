@@ -48,5 +48,6 @@ export 'src/sync/sync_check.dart';
 export 'src/syncthing/syncthing_adapter.dart';
 export 'src/syncthing/syncthing_conflict_source.dart';
 export 'src/syncthing/syncthing_folder_scanner.dart';
+export 'src/syncthing/syncthing_mtime_window_store.dart';
 export 'src/syncthing/syncthing_sync_check.dart';
 export 'src/text/text_file.dart';

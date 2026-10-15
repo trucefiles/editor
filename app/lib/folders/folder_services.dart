@@ -1,54 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
 import '../platform/device_id.dart';
-import '../platform/parent_folder_access.dart';
 import 'note_folder.dart';
+import 'syncthing_folder_services.dart';
 
-/// The core services for one folder, wired for Syncthing. The only place
-/// in the app that picks implementations.
+/// The core services for one folder. Built by the sync tool's wiring
+/// ([syncthingFolderServices]); the rest of the app sees only this.
 final class FolderServices {
-  /// [backupsPath] is the folder's private backup folder in app storage;
-  /// [deviceId] names this device's files in the folder.
-  factory FolderServices.syncthing(
-    String path, {
-    required String backupsPath,
-    required String deviceId,
-  }) {
-    const adapter = SyncthingAdapter();
-    const filter = DefaultFileFilter(
-      adapter,
-      ExtensionFileTypeDetector.standard(),
-    );
-    final store = LocalFileStore(
-      path,
-      adapter.tempFileName,
-      // On Android shared storage, a renamed-over file soon shows other
-      // apps the old file's modification time, so sync tools miss the save.
-      replacesInPlace: Platform.isAndroid,
-    );
-    return FolderServices._(
-      store: store,
-      scanner: SyncthingFolderScanner(store, filter),
-      syncToolName: adapter.name,
-      syncCheck: SyncthingSyncCheck(
-        path,
-        readNames: readLocalFolderNames,
-        parentsVisible: canReadParents(path),
-      ),
-      conflicts: DefaultConflictService(
-        folder: store,
-        source: SyncthingConflictSource(store),
-        backups: conflictBackupsAt(backupsPath),
-      ),
-      marks: NoteMarks(store, deviceId: deviceId),
-    );
-  }
-
-  const FolderServices._({
+  const FolderServices({
     required this.store,
     required this.scanner,
     required this.syncToolName,
@@ -68,18 +29,9 @@ final class FolderServices {
   final NoteMarks marks;
 }
 
-/// The conflict backups in the app storage folder at [path], which is
-/// created with the first backup.
-ConflictBackups conflictBackupsAt(String path) => ConflictBackups(
-  LocalFileStore(
-    path,
-    const SyncthingAdapter().tempFileName,
-    createsRoot: true,
-  ),
-);
-
+/// The only place in the app that picks the sync tool: Syncthing.
 final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
-  (ref, location) => FolderServices.syncthing(
+  (ref, location) => syncthingFolderServices(
     location.path,
     backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
     deviceId: ref.watch(deviceIdProvider),

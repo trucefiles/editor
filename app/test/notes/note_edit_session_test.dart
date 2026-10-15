@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note.dart';
+import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
 
@@ -19,7 +20,12 @@ void main() {
     final folder = folderAt(dir);
     files = NoteFiles(folder, servicesFor(folder));
     note = (await files.create('a')).value;
-    session = NoteEditSession(note, files, saveDelay: Duration.zero);
+    session = NoteEditSession(
+      note,
+      files,
+      tempDrafts(),
+      saveDelay: Duration.zero,
+    );
     addTearDown(session.dispose);
   });
 
@@ -126,6 +132,7 @@ void main() {
     final waiting = NoteEditSession(
       note,
       files,
+      tempDrafts(),
       saveDelay: const Duration(hours: 1),
     );
     addTearDown(waiting.dispose);
@@ -310,9 +317,11 @@ void main() {
           modified: note.modified,
         ),
       )).value;
+      final drafts = tempDrafts();
       final longSession = NoteEditSession(
         long,
         files,
+        drafts,
         saveDelay: Duration.zero,
       );
       addTearDown(longSession.dispose);
@@ -322,6 +331,9 @@ void main() {
       expect(await longSession.secure(), isFalse);
       expect(longSession.state, EditState.changedElsewhere);
       expect(conflictCopies(), isEmpty);
+      // Kept on the device for the next start.
+      final kept = await drafts.all(before: later);
+      expect([for (final draft in kept) draft.text], ['# x\nmine']);
     });
 
     test('keeps edits only once', () async {
@@ -333,6 +345,126 @@ void main() {
       await session.secure();
 
       expect(conflictCopies(), ['# a\nmine']);
+    });
+  });
+
+  group('on the device first', () {
+    late NoteDrafts drafts;
+    late NoteEditSession staged;
+
+    setUp(() {
+      drafts = tempDrafts();
+      staged = NoteEditSession(
+        note,
+        files,
+        drafts,
+        saveDelay: Duration.zero,
+        publishDelay: const Duration(hours: 1),
+      );
+      addTearDown(staged.dispose);
+    });
+
+    Future<List<String>> draftTexts() async => [
+      for (final draft in await drafts.all(before: later)) draft.text,
+    ];
+
+    /// Lets the save timer fire and the draft be written or removed.
+    Future<void> settle() =>
+        Future<void>.delayed(const Duration(milliseconds: 50));
+
+    test('keeps edits on the device, not yet in the file', () async {
+      staged.edit('# a\nmine');
+      await settle();
+
+      expect(staged.state, EditState.savedOnDevice);
+      expect(onDisk(), '# a\n');
+      final draft = (await drafts.all(before: later)).single;
+      expect(draft.text, '# a\nmine');
+      expect(draft.base, '# a\n');
+      expect(draft.path, note.path);
+    });
+
+    test('writes the file after the publish delay', () async {
+      final soon = NoteEditSession(
+        note,
+        files,
+        drafts,
+        saveDelay: Duration.zero,
+        publishDelay: const Duration(milliseconds: 10),
+      );
+      addTearDown(soon.dispose);
+      soon.edit('# a\nmine');
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect(onDisk(), '# a\nmine');
+      expect(soon.state, EditState.saved);
+      expect(await draftTexts(), isEmpty);
+    });
+
+    test('secure writes the file and drops the draft', () async {
+      staged.edit('# a\nmine');
+      await settle();
+
+      expect(await staged.secure(), isTrue);
+
+      expect(onDisk(), '# a\nmine');
+      expect(staged.state, EditState.saved);
+      expect(await draftTexts(), isEmpty);
+    });
+
+    test('a change elsewhere keeps the draft and asks', () async {
+      staged.edit('# a\nmine');
+      await settle();
+      final theirs = await editElsewhere('# a\ntheirs');
+
+      staged.onRescan(theirs, scannedAt: later);
+
+      expect(staged.state, EditState.changedElsewhere);
+      expect(await draftTexts(), ['# a\nmine']);
+    });
+
+    test('load theirs drops the draft', () async {
+      staged.edit('# a\nmine');
+      await settle();
+      staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+
+      staged.loadTheirs();
+      await settle();
+
+      expect(await draftTexts(), isEmpty);
+    });
+
+    test('discard drops the edits and the draft', () async {
+      staged.edit('# a\nmine');
+      await settle();
+
+      staged.discard();
+      await settle();
+
+      expect(staged.text, '# a\n');
+      expect(staged.state, EditState.saved);
+      expect(await draftTexts(), isEmpty);
+      expect(await staged.secure(), isTrue);
+      expect(onDisk(), '# a\n');
+    });
+
+    test('writes the file right away if the device cannot keep it', () async {
+      final blocker = File('${tempFolder().path}/file')..writeAsStringSync('');
+      final broken = NoteEditSession(
+        note,
+        files,
+        NoteDrafts(Directory(blocker.path)),
+        saveDelay: Duration.zero,
+        publishDelay: const Duration(hours: 1),
+      );
+      addTearDown(broken.dispose);
+
+      broken.edit('# a\nmine');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(onDisk(), '# a\nmine');
+      expect(broken.state, EditState.saved);
     });
   });
 }

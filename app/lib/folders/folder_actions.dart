@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../notes/note_drafts.dart';
 import '../platform/folder_picker.dart';
 import '../platform/storage_access.dart';
 import 'add_folder_error.dart';
@@ -43,12 +44,14 @@ final class FolderActions {
   Future<Result<void, SettingsError>> change(NoteFolder changed) =>
       _folders.change(changed);
 
-  /// Forgets [folder] (its files stay untouched) and stops filtering the
-  /// notes by it.
-  Future<Result<void, SettingsError>> remove(NoteFolder folder) {
+  /// Forgets [folder] (its files stay untouched), stops filtering the
+  /// notes by it, and deletes its drafts: no edit is recovered into it.
+  Future<Result<void, SettingsError>> remove(NoteFolder folder) async {
     if (_ref.read(selectedFolderIdProvider) == folder.id) {
       _ref.read(selectedFolderIdProvider.notifier).choose(null);
     }
-    return _folders.remove(folder);
+    final removed = await _folders.remove(folder);
+    if (removed is Ok) await _ref.read(noteDraftsProvider(folder.id)).clear();
+    return removed;
   }
 }

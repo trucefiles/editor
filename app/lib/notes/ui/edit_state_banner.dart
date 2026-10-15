@@ -16,7 +16,9 @@ class EditStateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => switch (session.state) {
-    EditState.saved || EditState.unsaved => const SizedBox.shrink(),
+    EditState.saved ||
+    EditState.savedOnDevice ||
+    EditState.unsaved => const SizedBox.shrink(),
     EditState.changedElsewhere => _Banner(
       message: 'This note changed on another device or app.',
       actions: {

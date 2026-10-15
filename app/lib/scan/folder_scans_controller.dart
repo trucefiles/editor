@@ -6,6 +6,7 @@ import '../conflicts/folder_conflicts.dart';
 import '../folders/folder_services.dart';
 import '../folders/folders_controller.dart';
 import '../folders/note_folder.dart';
+import '../notes/draft_recovery.dart';
 import '../notes/note.dart';
 import '../notes/note_loader.dart';
 import 'folder_scans.dart';
@@ -26,6 +27,8 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   @override
   Future<FolderScans> build() async {
     _folders = await ref.watch(foldersProvider.future);
+    // Notes show only once edits left by the last run are in their files.
+    await ref.watch(draftRecoveryProvider.future);
     return _scans.run();
   }
 

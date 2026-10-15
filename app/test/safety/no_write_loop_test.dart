@@ -106,7 +106,12 @@ final class _Device {
     final folder = folderAt(dir, id: name);
     final files = NoteFiles(folder, servicesFor(folder));
     final scan = (await files.reload(_placeholder(folder))).value;
-    final session = NoteEditSession(scan, files, saveDelay: saveDelay);
+    final session = NoteEditSession(
+      scan,
+      files,
+      tempDrafts(),
+      saveDelay: saveDelay,
+    );
     addTearDown(session.dispose);
     return _Device._(dir, files, session);
   }

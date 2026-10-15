@@ -33,7 +33,9 @@ void main() {
     await tester.tapAndSettle(find.text(title));
   }
 
-  testWidgets('creates a note and saves what is typed', (tester) async {
+  testWidgets('saves what is typed on the device, then in the file on back', (
+    tester,
+  ) async {
     await addFolder(tester);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
@@ -41,8 +43,10 @@ void main() {
     await tester.tapAndSettle(find.text('Create'));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
+    await tester.waitFor(find.byTooltip('Saved on this device'));
+    expect(app.file('Groceries.md').readAsStringSync(), '# Groceries\n');
+    await tester.pageBack();
     await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
-    await tester.waitFor(find.byTooltip('Saved'));
   });
 
   testWidgets('creates a note in an empty subfolder', (tester) async {
@@ -59,6 +63,7 @@ void main() {
     // The editor opens once the file is written and rescanned.
     await tester.waitFor(find.byType(TextField));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+    await tester.pageBack();
 
     await tester.waitForFile(
       app.file('a/b/c/Groceries.md'),
@@ -73,6 +78,7 @@ void main() {
     await openNote(tester, 'Todo');
 
     await tester.tapAndSettle(find.byType(Checkbox));
+    await tester.pageBack();
 
     await tester.waitForFile(app.file('todo.md'), '# Todo\n- [x] Call Bob\n');
   });
@@ -373,6 +379,7 @@ void main() {
     await openNote(tester, 'Deep');
     expect(find.text('Notes/a/b/c'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));
+    await tester.pageBack();
 
     await tester.waitForFile(
       app.file('a/b/c/todo.md'),
