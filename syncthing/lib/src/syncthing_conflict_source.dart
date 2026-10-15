@@ -1,10 +1,7 @@
 import 'dart:typed_data';
 
-import '../common/result.dart';
-import '../conflicts/conflict.dart';
-import '../conflicts/conflict_source.dart';
-import '../storage/file_store.dart';
-import '../storage/rel_path.dart';
+import 'package:truce_core/truce_core.dart';
+
 import 'syncthing_conflict_name.dart';
 
 /// Syncthing's conflict copies: files next to their main file, named by

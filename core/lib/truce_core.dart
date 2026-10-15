@@ -25,8 +25,9 @@
 /// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).
 ///
-/// Implementations sit next to their interface; everything specific to
-/// Syncthing is in `syncthing`.
+/// Implementations sit next to their interface. Nothing here is specific
+/// to one sync tool; each tool's conventions live in a package of their
+/// own (`truce_syncthing`).
 library;
 
 export 'src/backups/backup.dart';
@@ -59,11 +60,4 @@ export 'src/storage/rel_path.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
-export 'src/syncthing/syncthing_adapter.dart';
-export 'src/syncthing/syncthing_conflict_source.dart';
-export 'src/syncthing/syncthing_folder_changes.dart';
-export 'src/syncthing/syncthing_folder_notices.dart';
-export 'src/syncthing/syncthing_folder_scanner.dart';
-export 'src/syncthing/syncthing_mtime_window_store.dart';
-export 'src/syncthing/syncthing_sync_check.dart';
 export 'src/text/text_file.dart';

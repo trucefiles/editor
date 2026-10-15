@@ -1,8 +1,5 @@
-import '../common/result.dart';
-import '../filter/file_filter.dart';
-import '../scan/folder_scanner.dart';
-import '../storage/file_store.dart';
-import '../storage/rel_path.dart';
+import 'package:truce_core/truce_core.dart';
+
 import 'syncthing_conflict_grouping.dart';
 
 /// Scans a Syncthing folder with one listing: Syncthing keeps conflict

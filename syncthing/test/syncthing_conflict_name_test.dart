@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_core/src/syncthing/syncthing_conflict_name.dart';
+import 'package:truce_syncthing/src/syncthing_conflict_name.dart';
 
 void main() {
   test('parses a current conflict name', () {

@@ -1,5 +1,5 @@
-import '../storage/rel_path.dart';
-import '../sync/sync_adapter.dart';
+import 'package:truce_core/truce_core.dart';
+
 import 'syncthing_conflict_name.dart';
 
 /// Syncthing's file-name rules.

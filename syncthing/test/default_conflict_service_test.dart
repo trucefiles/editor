@@ -1,8 +1,7 @@
 import 'package:test/test.dart';
+import 'package:truce_core/testing.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../support/memory_file_store.dart';
-import '../support/test_helpers.dart';
+import 'package:truce_syncthing/truce_syncthing.dart';
 
 void main() {
   const copyName = 'todo.sync-conflict-20261003-134809-4I343AW.md';

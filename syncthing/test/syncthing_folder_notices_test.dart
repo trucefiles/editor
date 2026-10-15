@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_syncthing/truce_syncthing.dart';
 
 void main() {
   Future<List<FolderNotice>> check(

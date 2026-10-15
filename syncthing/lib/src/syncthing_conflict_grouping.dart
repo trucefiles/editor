@@ -1,6 +1,5 @@
-import '../conflicts/conflict.dart';
-import '../storage/file_store.dart';
-import '../storage/rel_path.dart';
+import 'package:truce_core/truce_core.dart';
+
 import 'syncthing_conflict_name.dart';
 
 /// The conflicts among [entries], found by Syncthing's conflict-copy names

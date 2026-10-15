@@ -2,10 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
-
-import '../common/result.dart';
-import '../storage/file_store.dart';
-import '../storage/rel_path.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// [FileStore] that makes sure Syncthing sees every write.
 ///

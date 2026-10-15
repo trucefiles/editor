@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
+import 'package:truce_core/testing.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../support/test_helpers.dart';
 
 void main() {
   test('goes on with the fallback once the primary ends', () async {

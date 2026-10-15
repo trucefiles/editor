@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import '../storage/folder_names.dart';
-import '../sync/sync_check.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// Checks a folder for Syncthing's `.stfolder` marker, which Syncthing
 /// creates in the root of every folder it syncs: the folder is synced if

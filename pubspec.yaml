@@ -7,4 +7,5 @@ environment:
 workspace:
   - app
   - core
+  - syncthing
   - lints

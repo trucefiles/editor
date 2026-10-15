@@ -6,6 +6,7 @@ Prefer the simpler option when in doubt.
 
 ## Architecture
 - `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
+- Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`); `core` never knows one, and in the app only the sync-tool wiring imports it.
 - Lower layers never know upper ones; they receive what they need from above.
 - Each concern lives in the layer that owns it; app-wide concerns stay in the app.
 - App follows MVVM (Flutter's official architecture guide): widgets render state and forward events; controllers / view models own UI flows; services and repositories do the I/O. Riverpod is thin glue, no codegen. Feature folders.

@@ -1,5 +1,4 @@
-import '../sync/folder_notices.dart';
-import '../sync/sync_check.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// The notices of a Syncthing folder: whether Syncthing syncs it (from
 /// [_syncCheck]), and, while [_pollInterval] gives one, that its changes

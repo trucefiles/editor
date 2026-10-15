@@ -21,6 +21,7 @@ dependencies:
   path_provider: ^2.1.6
   tray_manager: ^0.7.0
   truce_core: any
+  truce_syncthing: any
   url_launcher: ^6.3.3
 
 dev_dependencies:

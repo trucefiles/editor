@@ -1,5 +1,5 @@
-import '../changes/folder_changes.dart';
-import '../storage/rel_path.dart';
+import 'package:truce_core/truce_core.dart';
+
 import 'syncthing_adapter.dart';
 import 'syncthing_conflict_grouping.dart';
 
