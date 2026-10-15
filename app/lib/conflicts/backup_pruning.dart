@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../folders/folder_services.dart';
+import '../folders/syncthing_folder_services.dart';
 import '../platform/app_storage.dart';
 
 /// How long conflict backups are kept.

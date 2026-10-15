@@ -27,12 +27,6 @@ final class SyncthingAdapter implements SyncAdapter {
   String tempFileName(String randomToken) =>
       '.syncthing.truce-$randomToken.tmp';
 
-  /// Syncthing treats a file as unchanged while its size is the same and
-  /// its modification time is within the folder's `modTimeWindowS`: 2 s by
-  /// default on Android, settable on every platform.
-  @override
-  Duration get sameSizeRewriteGap => const Duration(seconds: 2);
-
   /// Syncthing's temp files: `.syncthing.*.tmp`, and `~syncthing~*.tmp`
   /// on Windows.
   static bool _isTempFile(String name) =>

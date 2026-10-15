@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_services.dart';
+import 'package:truce_editor/folders/syncthing_folder_services.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_files.dart';
 
@@ -24,7 +25,7 @@ void main() {
     backups = Directory('${base.path}/app/backups/f1');
     _populate(base);
     final folder = folderAt(notes);
-    services = FolderServices.syncthing(
+    services = syncthingFolderServices(
       notes.path,
       backupsPath: backups.path,
       deviceId: '0123456789abcdef',
