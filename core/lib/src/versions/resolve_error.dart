@@ -3,6 +3,10 @@ import '../storage/file_store.dart';
 /// Why keeping one of two versions of a file failed.
 enum ResolveError {
   changedSinceScan,
+
+  /// The folder to write into is gone, e.g. on a drive that is not
+  /// mounted.
+  folderMissing,
   backupFailed,
   accessDenied,
   ioFailure;

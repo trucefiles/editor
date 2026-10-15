@@ -85,6 +85,10 @@ final class BackupRestore {
     };
     return switch (written) {
       Ok() => const Ok(null),
+      // Creating fails so only if the folder itself is gone.
+      Err(error: StoreError.notFound) when current == null => const Err(
+        ResolveError.folderMissing,
+      ),
       Err(:final error) => Err(ResolveError.ofStore(error)),
     };
   }
