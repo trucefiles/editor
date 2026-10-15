@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
@@ -56,6 +57,24 @@ void main() {
               ? store.create(note, bytesOf(text))
               : store.replace(note, bytesOf(text), ifUnchanged: last.version)))
           .value;
+
+  test('a read waits for a write to the same file', () async {
+    final held = _HeldWrites(inner);
+    final serial = SyncthingMtimeWindowStore(held);
+    final first = (await serial.create(note, bytesOf('v1'))).value;
+    held.hold = Completer<void>();
+
+    final writing = serial.replace(
+      note,
+      bytesOf('v2'),
+      ifUnchanged: first.version,
+    );
+    final reading = serial.read(note);
+    held.hold!.complete();
+    await writing;
+
+    expect(String.fromCharCodes((await reading).value.bytes), 'v2');
+  });
 
   test('rewrites a write within the window, a window after the earlier '
       'version', () async {
@@ -257,4 +276,47 @@ final class _FakeTimer implements Timer {
 
   @override
   int get tick => 0;
+}
+
+/// Holds writes to [_inner] while [hold] is pending.
+final class _HeldWrites implements FileStore {
+  _HeldWrites(this._inner);
+
+  final FileStore _inner;
+  Completer<void>? hold;
+
+  @override
+  Future<Result<FileEntry, StoreError>> create(
+    RelPath path,
+    Uint8List bytes,
+  ) async {
+    await hold?.future;
+    return _inner.create(path, bytes);
+  }
+
+  @override
+  Future<Result<FileEntry, StoreError>> replace(
+    RelPath path,
+    Uint8List bytes, {
+    required FileVersion ifUnchanged,
+  }) async {
+    await hold?.future;
+    return _inner.replace(path, bytes, ifUnchanged: ifUnchanged);
+  }
+
+  @override
+  Future<Result<void, StoreError>> delete(
+    RelPath path, {
+    required FileVersion ifUnchanged,
+  }) => _inner.delete(path, ifUnchanged: ifUnchanged);
+
+  @override
+  Future<Result<Listing, StoreError>> list({
+    bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
+  }) => _inner.list(enterFolder: enterFolder, includeFile: includeFile);
+
+  @override
+  Future<Result<FileContent, StoreError>> read(RelPath path) =>
+      _inner.read(path);
 }

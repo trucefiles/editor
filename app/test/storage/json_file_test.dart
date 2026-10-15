@@ -19,6 +19,15 @@ void main() {
     expect((await json.read()).error, JsonFileError.missing);
   });
 
+  test('writes at the same time all land, the last one wins', () async {
+    final results = await Future.wait([
+      for (var i = 0; i < 20; i++) JsonFile(file).write({'n': i}),
+    ]);
+
+    expect(results, everyElement(isA<Ok<void, JsonFileError>>()));
+    expect((await json.read()).value, {'n': 19});
+  });
+
   test('reads back what was written', () async {
     await json.write({
       'a': [1, true],

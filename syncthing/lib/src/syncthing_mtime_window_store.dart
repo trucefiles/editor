@@ -20,8 +20,9 @@ import 'package:truce_core/truce_core.dart';
 ///
 /// A version a caller got from a write stays valid for its next change
 /// check ([replace], [delete]) after the rewrite. [read] and [list] show
-/// the rewrite's version: a new version of the same bytes. Writes to one
-/// file run one at a time, so a rewrite never interleaves with a write.
+/// the rewrite's version: a new version of the same bytes. Reads and writes
+/// of one file run one at a time, so a rewrite never interleaves with a
+/// write, and a read never sees a write half done (in-place writes).
 ///
 /// A rewrite that fails, or that does not happen because the app ends
 /// first, is not retried: the content may then stay unseen until the
@@ -57,13 +58,14 @@ final class SyncthingMtimeWindowStore implements FileStore {
   }) => _inner.list(enterFolder: enterFolder, includeFile: includeFile);
 
   @override
-  Future<Result<FileContent, StoreError>> read(RelPath path) async {
-    final read = await _inner.read(path);
-    if (read case Ok(value: final content)) {
-      _stateOf(path).saw(content.modified);
-    }
-    return read;
-  }
+  Future<Result<FileContent, StoreError>> read(RelPath path) =>
+      _serial(path, () async {
+        final read = await _inner.read(path);
+        if (read case Ok(value: final content)) {
+          _stateOf(path).saw(content.modified);
+        }
+        return read;
+      });
 
   @override
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
@@ -151,7 +153,7 @@ final class SyncthingMtimeWindowStore implements FileStore {
         }
       });
 
-  /// Runs [operation] after every earlier write to [path] is done.
+  /// Runs [operation] after every earlier operation on [path] is done.
   Future<T> _serial<T>(RelPath path, Future<T> Function() operation) {
     final done = (_queues[path] ?? Future<void>.value()).then(
       (_) => operation(),
