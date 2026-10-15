@@ -79,10 +79,45 @@ void main() {
 
     await tester.tap(find.text('Keep this').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
 
     expect(session.text, '# a\ntheirs');
     expect(find.text('Your version'), findsNothing);
     expect(find.text('Compare'), findsNothing);
+  });
+
+  testWidgets('keeps both while the user cancels', (tester) async {
+    await pumpBanner(tester);
+
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No backup is kept'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(session.state, EditState.changedElsewhere);
+    expect(find.text('Your version'), findsOneWidget);
+  });
+
+  testWidgets('settled under the dialog: closes itself, not the dialog', (
+    tester,
+  ) async {
+    await pumpBanner(tester);
+    await tester.tap(find.text('Keep this').last);
+    await tester.pumpAndSettle();
+
+    session.onRescan(version('# a\nmine', 4), scannedAt: later);
+    await tester.pumpAndSettle();
+    expect(find.text('Your version'), findsNothing);
+    expect(find.text('Keep this version?'), findsOneWidget);
+
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+
+    // The choice was settled meanwhile: the late tap changes nothing.
+    expect(session.text, '# a\nmine');
+    expect(session.state, EditState.saved);
   });
 
   testWidgets('shows a newer version from elsewhere', (tester) async {

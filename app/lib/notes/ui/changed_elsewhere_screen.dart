@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../conflicts/ui/version_comparison.dart';
-import '../../conflicts/ui/version_pane.dart';
+import '../../versions/ui/keep_version_dialog.dart';
+import '../../versions/ui/version_comparison.dart';
+import '../../versions/ui/version_pane.dart';
 import '../note_edit_session.dart';
 
 /// Shows the open note's edits next to the version from elsewhere, so the
@@ -33,14 +34,36 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
     super.dispose();
   }
 
+  /// Removes this screen's own route, not whatever is on top (e.g. a
+  /// dialog).
   void _onSessionChanged() {
     if (_session.state == EditState.changedElsewhere) {
       setState(() {});
     } else if (!_closed && mounted) {
       _closed = true;
-      Navigator.pop(context);
+      if (ModalRoute.of(context) case final route?) {
+        Navigator.removeRoute(context, route);
+      }
     }
   }
+
+  Future<void> _keepMine() async {
+    if (await _confirm('The other version is replaced by yours.')) {
+      await _session.keepMine();
+    }
+  }
+
+  Future<void> _keepTheirs() async {
+    if (await _confirm('Your edits are replaced by the other version.')) {
+      _session.loadTheirs();
+    }
+  }
+
+  /// Only while the choice is still open: it may have been settled while
+  /// the dialog showed.
+  Future<bool> _confirm(String message) async =>
+      await confirmKeepVersion(context, '$message No backup is kept.') &&
+      _session.state == EditState.changedElsewhere;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +79,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                 text: _session.text,
                 compareTo: theirs.file.text,
                 keepLabel: 'Keep this',
-                onKeep: _session.keepMine,
+                onKeep: _keepMine,
               ),
               second: VersionPane(
                 label: 'Other version',
@@ -64,7 +87,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                 text: theirs.file.text,
                 compareTo: _session.text,
                 keepLabel: 'Keep this',
-                onKeep: _session.loadTheirs,
+                onKeep: _keepTheirs,
               ),
             ),
     );

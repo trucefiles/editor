@@ -5,11 +5,12 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../folders/ui/folder_badge.dart';
+import '../../versions/ui/keep_version_dialog.dart';
+import '../../versions/ui/version_comparison.dart';
+import '../../versions/ui/version_pane.dart';
 import '../conflict_controller.dart';
 import '../conflict_sides.dart';
 import '../folder_conflicts.dart';
-import 'version_comparison.dart';
-import 'version_pane.dart';
 
 /// Shows both versions of a conflicting note side by side; the user keeps
 /// one. Several conflict copies are resolved one by one, oldest first.
@@ -44,7 +45,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     }
   }
 
-  Future<bool> _confirm(FolderConflict conflict, Resolution resolution) async {
+  Future<bool> _confirm(FolderConflict conflict, Resolution resolution) {
     final orphaned = conflict.conflict.isOrphaned;
     final message = switch (resolution) {
       KeepCurrent() when orphaned =>
@@ -53,26 +54,10 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       KeepOther() when orphaned => 'The note is restored from this version.',
       KeepOther() => 'The current version is replaced by the other one.',
     };
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Keep this version?'),
-        content: Text(
-          '$message A backup of both stays on this device for 7 days.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Keep'),
-          ),
-        ],
-      ),
+    return confirmKeepVersion(
+      context,
+      '$message A backup of both stays on this device for 7 days.',
     );
-    return confirmed ?? false;
   }
 
   static String _resolveText(ResolveError error) => switch (error) {

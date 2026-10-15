@@ -49,6 +49,8 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     final added = [
       for (final folder in folders) _segments(await hostPaths.of(folder.path)),
     ];
+    // Best effort in a sandbox: a path whose host path is unknown is
+    // checked as the sandbox shows it.
     if (ref.read(syncAdapterProvider).isInternalFolder(segments)) {
       return const Err(AddFolderError.syncToolInternal);
     }

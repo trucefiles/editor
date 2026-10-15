@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/conflicts/changed_lines.dart';
+import 'package:truce_editor/versions/changed_lines.dart';
 
 void main() {
   test('marks lines the other side lacks', () {

@@ -17,12 +17,14 @@ final class SyncthingAdapter implements SyncAdapter {
 
   @override
   bool isInternal(RelPath path) =>
-      path.value.split('/').any(_internalNames.contains) ||
+      _hasInternalName(path.value.split('/')) ||
       _isTempFile(path.name) ||
       SyncthingConflictName.parse(path.name) != null;
 
   @override
-  bool isInternalFolder(List<String> names) =>
+  bool isInternalFolder(List<String> names) => _hasInternalName(names);
+
+  static bool _hasInternalName(List<String> names) =>
       names.any(_internalNames.contains);
 
   /// Syncthing never syncs `.syncthing.*` files and deletes stale ones
