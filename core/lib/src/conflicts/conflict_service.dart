@@ -3,8 +3,9 @@ import 'dart:typed_data';
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
+import '../versions/resolution.dart';
+import '../versions/resolve_error.dart';
 import 'conflict.dart';
-import 'resolution.dart';
 
 /// Reads and resolves the conflicts of one folder, as found by its
 /// `FolderScanner`. The app's only entry point for conflict content.
@@ -43,21 +44,4 @@ abstract interface class ConflictService {
     RelPath mainPath,
     Uint8List bytes,
   );
-}
-
-enum ResolveError {
-  changedSinceScan,
-  backupFailed,
-  accessDenied,
-  ioFailure;
-
-  /// Why a write failed: a file that is missing, already exists or changed
-  /// means the folder no longer matches what the user saw.
-  static ResolveError ofStore(StoreError error) => switch (error) {
-    StoreError.notFound ||
-    StoreError.alreadyExists ||
-    StoreError.changedSinceRead => changedSinceScan,
-    StoreError.accessDenied => accessDenied,
-    StoreError.ioFailure => ioFailure,
-  };
 }

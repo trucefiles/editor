@@ -16,6 +16,10 @@
 ///    file type ([ConflictHandler]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
+///
+/// `versions` holds what conflicts and restore share: the user's choice
+/// between two versions of a file ([Resolution]) and why keeping it failed
+/// ([ResolveError]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
@@ -42,7 +46,6 @@ export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/default_conflict_service.dart';
-export 'src/conflicts/resolution.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -61,3 +64,5 @@ export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
 export 'src/text/text_file.dart';
+export 'src/versions/resolution.dart';
+export 'src/versions/resolve_error.dart';

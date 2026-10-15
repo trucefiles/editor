@@ -1,4 +1,5 @@
-/// The user's choice for one conflict copy.
+/// The user's choice between a file's current version and another one,
+/// e.g. a conflict copy or a backup.
 ///
 /// Phase 0 has only pick-a-side. Later choices (merged text, keep both) are
 /// added as further subclasses.

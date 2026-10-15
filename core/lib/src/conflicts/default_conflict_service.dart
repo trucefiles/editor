@@ -4,10 +4,11 @@ import '../backups/file_backups.dart';
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
+import '../versions/resolution.dart';
+import '../versions/resolve_error.dart';
 import 'conflict.dart';
 import 'conflict_service.dart';
 import 'conflict_source.dart';
-import 'resolution.dart';
 
 /// [ConflictService] for phase 0: the user picks a side, nothing is merged.
 final class DefaultConflictService implements ConflictService {
