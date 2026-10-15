@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../folder_selection.dart';
 import '../note_folder.dart';
 import 'folder_badge.dart';
-import 'sync_warning_icon.dart';
+import 'folder_warning_icon.dart';
 
 /// "All" plus one chip per folder; picks the folder the grid shows. A
-/// chip shows its folder's conflicts and a sign if it may not sync.
+/// chip shows its folder's conflicts and a sign if its sync tool warns
+/// about it.
 class FolderFilterBar extends ConsumerWidget {
   const FolderFilterBar(this.folders, {required this.conflictCount, super.key});
 
@@ -46,7 +47,7 @@ class FolderFilterBar extends ConsumerWidget {
                       child: Text(folder.name),
                     ),
                   },
-                  SyncWarningIcon(folder),
+                  FolderWarningIcon(folder),
                 ],
               ),
               selected: selected == folder.id,

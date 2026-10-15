@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:truce_editor/notes/note_colors.dart';
 import 'package:truce_editor/notes/ui/note_editor_screen.dart';
+import 'package:truce_editor/refresh/refresh_settings.dart';
 
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -39,6 +40,7 @@ void main() {
     await addFolder(tester);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Create'));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
@@ -49,6 +51,21 @@ void main() {
     await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
   });
 
+  testWidgets('offers an empty subfolder made while the app runs', (
+    tester,
+  ) async {
+    app.write('old.md', '# Old\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    Directory('${app.notes.path}/later').createSync();
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
+    await tester.tapAndSettle(find.text('Top level'));
+
+    expect(find.text('later'), findsWidgets);
+  });
+
   testWidgets('creates a note in an empty subfolder', (tester) async {
     app.write('old.md', '# Old\n');
     Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
@@ -56,6 +73,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Top level'));
     await tester.tapAndSettle(find.text('a/b/c').last);
@@ -84,6 +102,7 @@ void main() {
   });
 
   testWidgets('shows a change made by another app', (tester) async {
+    await app.useRefresh(RefreshMode.manual);
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
@@ -99,6 +118,7 @@ void main() {
   });
 
   testWidgets('shows a change made before the note opened', (tester) async {
+    await app.useRefresh(RefreshMode.manual);
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await tester.waitFor(find.text('Plan'));
@@ -110,6 +130,7 @@ void main() {
   });
 
   testWidgets('the refresh button shows new notes', (tester) async {
+    await app.useRefresh(RefreshMode.manual);
     await addFolder(tester);
     await tester.waitFor(find.byTooltip('New note'));
 
@@ -120,6 +141,7 @@ void main() {
   });
 
   testWidgets('pulling the grid down shows new notes', (tester) async {
+    await app.useRefresh(RefreshMode.manual);
     app.write('old.md', '# Old\n');
     await addFolder(tester);
     await tester.waitFor(find.text('Old'));
@@ -129,6 +151,51 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.waitFor(find.text('New'));
+  });
+
+  testWidgets('the refresh button in an open note shows a change', (
+    tester,
+  ) async {
+    await app.useRefresh(RefreshMode.manual);
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+
+    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+  });
+
+  testWidgets('shows new notes and changes live, without refreshing', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    app.write('deep/new.md', '# New\n');
+    await tester.waitFor(find.text('New'));
+
+    await openNote(tester, 'Plan');
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+  });
+
+  testWidgets('switches to manual refresh in the menu', (tester) async {
+    await addFolder(tester);
+    await tester.waitFor(find.byTooltip('New note'));
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Refresh: Live'));
+    await tester.tapAndSettle(find.text('Manual'));
+    await tester.tapAndSettle(find.text('Save'));
+    app.write('new.md', '# New\n');
+    await tester.runFor(const Duration(seconds: 2));
+
+    expect(find.text('New'), findsNothing);
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    expect(find.text('Refresh: Manual'), findsOne);
   });
 
   testWidgets('never writes back a change shown in the open note', (
@@ -177,6 +244,7 @@ void main() {
     app.notes.deleteSync();
 
     await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Create'));
 

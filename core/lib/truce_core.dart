@@ -4,8 +4,9 @@
 ///
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]).
-/// 2. `sync`: a sync tool's file-name rules ([SyncAdapter]) and whether it
-///    syncs a folder ([SyncCheck]).
+/// 2. `sync`: a sync tool's file-name rules ([SyncAdapter]), whether it
+///    syncs a folder ([SyncCheck]) and what to tell the user about a folder
+///    ([FolderNotices]).
 /// 3. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 4. `filetypes`: which [FileType] a file is ([FileTypeDetector]).
 /// 5. `conflicts`: reading and resolving conflicts ([ConflictService]),
@@ -17,11 +18,17 @@
 /// 8. `markdown`: Markdown documents as line-level edits ([Checklist]).
 /// 9. `marks`: pins and colors of notes, synced inside the folder
 ///    ([NoteMarks]).
+/// 10. `changes`: changes to a folder's files as they happen
+///    ([FolderChanges]).
 ///
 /// Implementations sit next to their interface; everything specific to
 /// Syncthing is in `syncthing`.
 library;
 
+export 'src/changes/fallback_folder_changes.dart';
+export 'src/changes/folder_changes.dart';
+export 'src/changes/polled_folder_changes.dart';
+export 'src/changes/watched_folder_changes.dart';
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_backups.dart';
@@ -43,10 +50,13 @@ export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/rel_path.dart';
+export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
 export 'src/syncthing/syncthing_adapter.dart';
 export 'src/syncthing/syncthing_conflict_source.dart';
+export 'src/syncthing/syncthing_folder_changes.dart';
+export 'src/syncthing/syncthing_folder_notices.dart';
 export 'src/syncthing/syncthing_folder_scanner.dart';
 export 'src/syncthing/syncthing_mtime_window_store.dart';
 export 'src/syncthing/syncthing_sync_check.dart';

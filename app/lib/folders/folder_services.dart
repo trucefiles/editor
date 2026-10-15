@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_storage.dart';
 import '../platform/device_id.dart';
+import '../refresh/refresh_settings_controller.dart';
 import 'note_folder.dart';
 import 'syncthing_folder_services.dart';
 
@@ -13,7 +14,6 @@ final class FolderServices {
     required this.store,
     required this.scanner,
     required this.syncToolName,
-    required this.syncCheck,
     required this.conflicts,
     required this.marks,
   });
@@ -24,7 +24,6 @@ final class FolderServices {
   /// The sync tool's name, for the UI.
   final String syncToolName;
 
-  final SyncCheck syncCheck;
   final ConflictService conflicts;
   final NoteMarks marks;
 }
@@ -37,3 +36,33 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
     deviceId: ref.watch(deviceIdProvider),
   ),
 );
+
+/// How a folder's changes are found (`null`: not looked for), and what the
+/// user should know about the folder. Built together by the sync tool's
+/// wiring, so the notices can tell how changes are actually followed.
+typedef FolderFollowing = ({FolderChanges? changes, FolderNotices notices});
+
+final _folderFollowingProvider =
+    FutureProvider.family<FolderFollowing, FolderLocation>(
+      (ref, location) async => syncthingFolderFollowing(
+        location.path,
+        await ref.watch(refreshSettingsProvider.future),
+      ),
+    );
+
+/// How changes to the folder at [FolderLocation] are found, as the refresh
+/// setting asks; `null` if they aren't looked for (manual refresh).
+final folderChangesProvider =
+    FutureProvider.family<FolderChanges?, FolderLocation>(
+      (ref, location) async =>
+          (await ref.watch(_folderFollowingProvider(location).future)).changes,
+    );
+
+/// What the user should know about the folder at [FolderLocation]. Checked
+/// once; invalidate to check again.
+final folderNoticesProvider =
+    FutureProvider.family<List<FolderNotice>, FolderLocation>(
+      (ref, location) async =>
+          (await ref.watch(_folderFollowingProvider(location).future)).notices
+              .check(),
+    );

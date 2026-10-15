@@ -16,12 +16,13 @@ import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
+import '../../scan/auto_rescan.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
-import '../../tray/ui/close_to_tray_menu.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_views_controller.dart';
+import 'home_menu.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_grid.dart';
@@ -60,7 +61,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     // Loaded up front, so a note opens in its remembered view.
     ref
       ..watch(noteViewsProvider)
-      ..watch(backupPruningProvider);
+      ..watch(backupPruningProvider)
+      ..watch(autoRescanProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folders'),
@@ -82,12 +84,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           IconButton(
             tooltip: 'Manage folders',
             icon: const Icon(Icons.folder_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
-            ),
+            onPressed: () => openFoldersScreen(context, ref),
           ),
-          const CloseToTrayMenu(),
+          const HomeMenu(),
         ],
       ),
       floatingActionButton: switch (folders.value) {
@@ -112,6 +111,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   Future<void> _create(List<NoteFolder> folders) async {
     final actions = ref.read(noteActionsProvider);
+    // Change events don't tell about new empty subfolders; a rescan finds
+    // them, so the dialog offers them.
+    await _refresh();
+    if (!mounted) return;
     final input = await showNewNoteDialog(
       context,
       folders: folders,

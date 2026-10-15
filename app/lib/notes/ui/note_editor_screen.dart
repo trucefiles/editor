@@ -286,6 +286,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
         actions: [
           SaveIndicator(_session.state),
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _scans.refresh,
+          ),
           if (!_isDone) ...[
             NoteViewButton(view: _view, onChanged: _showView),
             _menu(context),
@@ -298,32 +303,44 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             ConflictBanner(conflict),
           EditStateBanner(_session, onClose: _leave),
           Expanded(
-            // Read-only once done: the session takes no more edits.
-            child: switch (_isDone ? NoteView.rendered : _view) {
-              NoteView.list => ChecklistView(_checklist),
-              NoteView.rendered => MarkdownView(_session.text),
-              NoteView.text => TextField(
-                controller: _text,
-                maxLines: null,
-                expands: true,
-                autofocus: widget.autofocus,
-                keyboardType: TextInputType.multiline,
-                // The raw source, so monospace: Markdown syntax lines up as
-                // in a code editor.
-                style: const TextStyle(fontFamily: 'monospace'),
-                // Highlights only the selected text, not up to the longest
-                // line (Flutter's default outside the web).
-                selectionWidthStyle: BoxWidthStyle.tight,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-              ),
-            },
+            child: RefreshIndicator(
+              onRefresh: _scans.refresh,
+              // The views scroll inside, e.g. the text field's own
+              // scrollable; sideways scrolling (wide tables) never pulls.
+              notificationPredicate: (notification) =>
+                  notification.metrics.axis == Axis.vertical,
+              child: _body(),
+            ),
           ),
         ],
       ),
     );
   }
+
+  /// The note in the chosen view; read-only once done, as the session
+  /// takes no more edits.
+  Widget _body() => switch (_isDone ? NoteView.rendered : _view) {
+    NoteView.list => ChecklistView(_checklist),
+    NoteView.rendered => MarkdownView(_session.text),
+    NoteView.text => TextField(
+      controller: _text,
+      maxLines: null,
+      expands: true,
+      autofocus: widget.autofocus,
+      keyboardType: TextInputType.multiline,
+      // The raw source, so monospace: Markdown syntax lines up as
+      // in a code editor.
+      style: const TextStyle(fontFamily: 'monospace'),
+      // Highlights only the selected text, not up to the longest
+      // line (Flutter's default outside the web).
+      selectionWidthStyle: BoxWidthStyle.tight,
+      textAlignVertical: TextAlignVertical.top,
+      decoration: const InputDecoration(
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.all(16),
+      ),
+      // Pulls down even when the text fits, to refresh.
+      scrollPhysics: const AlwaysScrollableScrollPhysics(),
+    ),
+  };
 }
