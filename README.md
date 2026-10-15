@@ -8,13 +8,15 @@ GPL-3.0. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with four packages:
+A Dart pub workspace with five packages:
 
 - `core`: files, sync-tool interfaces and conflict handling. Pure Dart, no
   UI, nothing specific to one sync tool.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `app`: the Flutter app (Android, Linux). Uses only `core` and, in its
   sync-tool wiring, `syncthing`.
+- `test_support`: test doubles shared by the packages' tests (a fake sync
+  tool, an in-memory file store). Only a dev dependency.
 - `lints`: analyzer and lint settings shared by all packages.
 
 Needs Flutter 3.47.7. From the repository root:

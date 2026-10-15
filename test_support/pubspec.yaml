@@ -1,0 +1,13 @@
+name: truce_test_support
+description: Test doubles shared by the tests of the Truce packages. Never a regular dependency.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  truce_core: any
+
+dev_dependencies:
+  truce_lints: any

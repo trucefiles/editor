@@ -14,3 +14,4 @@ dev_dependencies:
   async: ^2.13.1
   test: ^1.31.0
   truce_lints: any
+  truce_test_support: any

@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:truce_core/testing.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 /// The generic filter on a made-up sync tool; Syncthing's own names are
 /// tested in the Syncthing package.

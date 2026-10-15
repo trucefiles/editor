@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
-import 'package:truce_core/testing.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   const margin = SyncthingMtimeWindowStore.margin;
