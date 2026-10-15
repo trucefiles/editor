@@ -57,6 +57,17 @@ void main() {
     expect(found.failedFolders, isEmpty);
   });
 
+  test('a refresh still running when the app ends does no harm', () async {
+    await start([folderAt(tempFolder(), id: 'a'), folderAt(tempFolder())]);
+    await scans();
+    final controller = container.read(folderScansProvider.notifier);
+
+    final refreshes = [controller.refresh(), controller.refresh()];
+    container.dispose();
+
+    await Future.wait(refreshes);
+  });
+
   test('the first scan shows edits left by the last run', () async {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');
