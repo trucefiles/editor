@@ -107,9 +107,6 @@ _Following _following(String path, RefreshSettings refresh) =>
 /// The note backups in the app storage folder at [path], which is created
 /// with the first backup.
 NoteBackups noteBackupsAt(String path) => NoteBackups(
-  LocalFileStore(
-    path,
-    const SyncthingAdapter().tempFileName,
-    createsRoot: true,
-  ),
+  LocalFileStore(path, syncthingAdapter.tempFileName, createsRoot: true),
+  ignores: syncthingAdapter.isInternal,
 );

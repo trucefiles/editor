@@ -47,11 +47,17 @@ void main() {
   test('removes the folders old backups leave empty', () async {
     final old = backup('current', const Duration(days: 8));
     final recent = backup('current', const Duration(days: 1));
+    // A backup on its way: its folder is made, its file not yet.
+    final micros = DateTime.now().microsecondsSinceEpoch;
+    final fresh = Directory(
+      '${storage.backupsPath('current')}/$micros.edit/notes',
+    )..createSync(recursive: true);
 
     await prune();
 
     expect(old.parent.parent.existsSync(), isFalse);
     expect(recent.parent.existsSync(), isTrue);
+    expect(fresh.existsSync(), isTrue);
     expect(Directory(storage.backupsPath('current')).existsSync(), isTrue);
   });
 

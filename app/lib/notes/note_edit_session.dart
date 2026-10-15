@@ -80,9 +80,9 @@ final class NoteEditSession extends ChangeNotifier {
   bool _writing = false;
   DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
 
-  /// Whether the file as it was before this session's edits is backed up
-  /// (or a backup was tried): once per session, before the first save.
-  bool _backedUp = false;
+  /// File text that needs no backup before a save over it: backed up (or
+  /// tried) already, or written by this session. `null` until then.
+  String? _safeText;
 
   /// The version the edits are based on; it guards the next save.
   Note get note => _note;
@@ -256,15 +256,18 @@ final class NoteEditSession extends ChangeNotifier {
   /// that is backed up already.
   Future<bool> _backUp(Note theirs) async {
     if (await _files.backUp(theirs, _text) is Err) return false;
-    _backedUp = true;
+    _safeText = theirs.file.text;
     return true;
   }
 
-  /// Backs up the file before the session's first save over it. A failed
-  /// backup never stops the save: the edits matter more.
+  /// Backs up the file before a save over a version this session did not
+  /// write: before the first save, and again after taking a version from
+  /// elsewhere. Tried once per version; a failed backup never stops the
+  /// save: the edits matter more.
   Future<void> _backUpBeforeEdit() async {
-    if (_backedUp) return;
-    _backedUp = true;
+    final text = _note.file.text;
+    if (text == _safeText) return;
+    _safeText = text;
     await _files.backUpBeforeEdit(_note);
   }
 
@@ -275,6 +278,7 @@ final class NoteEditSession extends ChangeNotifier {
     switch (await _write(() => _files.restore(_note, text))) {
       case Ok(value: final restored):
         _note = restored;
+        _safeText = text;
         if (text == _text) {
           _settle(EditState.saved);
         } else {
@@ -319,6 +323,7 @@ final class NoteEditSession extends ChangeNotifier {
     switch (await _write(() => _files.save(_note, text))) {
       case Ok(value: final saved):
         _note = saved;
+        _safeText = text;
         if (text == _text) _settle(EditState.saved);
       case Err(error: StoreError.notFound):
         _goneElsewhere();

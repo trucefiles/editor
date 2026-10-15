@@ -41,16 +41,31 @@ final class AppStorage {
     }
   }
 
-  /// Removes the empty folders below [path], e.g. those left by pruned
-  /// backups. Folders that can't be removed stay.
-  Future<void> removeEmptyFolders(String path) async {
-    final List<Directory> folders;
+  /// Removes the empty folders in the folders right below [path] whose
+  /// name [isStale] accepts, those folders included; e.g. the ones pruned
+  /// backups leave. Other folders are never touched, so a folder being
+  /// filled right now stays. Folders that can't be removed stay.
+  Future<void> removeEmptyFolders(
+    String path, {
+    required bool Function(String name) isStale,
+  }) async {
+    final folders = <Directory>[];
     try {
-      folders = await Directory(path)
-          .list(recursive: true, followLinks: false)
-          .where((entity) => entity is Directory)
-          .cast<Directory>()
-          .toList();
+      await for (final entity in Directory(path).list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        if (!isStale(entity.uri.pathSegments.lastWhere((s) => s.isNotEmpty))) {
+          continue;
+        }
+        folders
+          ..add(entity)
+          ..addAll(
+            await entity
+                .list(recursive: true, followLinks: false)
+                .where((inner) => inner is Directory)
+                .cast<Directory>()
+                .toList(),
+          );
+      }
     } on FileSystemException {
       return;
     }

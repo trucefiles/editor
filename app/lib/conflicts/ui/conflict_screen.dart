@@ -74,8 +74,9 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         text: sides.current,
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
-            ? 'The note stays deleted and the other version is removed.'
-            : 'The other version is removed.',
+            ? 'The note stays deleted and the other version is removed. '
+                  '$bothBackedUp'
+            : 'The other version is removed. $bothBackedUp',
       ),
       other: ShownVersion(
         label: 'Other version',
@@ -83,8 +84,9 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         text: sides.other,
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
-            ? 'The note is restored from this version.'
-            : 'The current version is replaced by the other one.',
+            ? 'The note is restored from this version. $bothBackedUp'
+            : 'The current version is replaced by the other one. '
+                  '$bothBackedUp',
       ),
       enabled: !busy,
       onKeep: _keep,

@@ -86,7 +86,8 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         keepLabel: 'Restore',
         keptMessage: deleted
             ? 'The note is restored from this backup.'
-            : 'The current version is replaced by the backup.',
+            : 'The current version is replaced by the backup. A backup of '
+                  'the current version stays on this device for 7 days.',
       ),
       enabled: !busy,
       onKeep: _keep,

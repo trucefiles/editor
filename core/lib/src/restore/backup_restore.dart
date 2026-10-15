@@ -22,8 +22,8 @@ final class RestoreChoice {
   final FileContent? current;
 }
 
-/// Restores backups into one folder, like any choice between two versions:
-/// both are backed up before one is kept. Only the user restores.
+/// Restores backups into one folder. The file a backup replaces is backed
+/// up first; the backup itself stays as it is. Only the user restores.
 final class BackupRestore {
   BackupRestore({
     required this._folder,
@@ -55,25 +55,26 @@ final class BackupRestore {
     };
   }
 
-  /// Keeps the note's file ([KeepCurrent]) or puts the backup in its place
-  /// ([KeepOther]), after a backup of both. Fails with
-  /// [ResolveError.changedSinceScan] if the file changed since [choice] was
-  /// loaded.
+  /// Keeps the note's file as it is ([KeepCurrent]: changes nothing) or
+  /// puts the backup in its place ([KeepOther]), after a backup of the
+  /// file. Fails with [ResolveError.changedSinceScan] if the file changed
+  /// since [choice] was loaded.
   Future<Result<void, ResolveError>> keep(
     RestoreChoice choice,
     Resolution resolution,
   ) async {
-    final current = choice.current;
-    final backedUp = await _backups.saveBoth(
-      at: _clock(),
-      notePath: choice.backup.notePath,
-      current: current?.bytes,
-      other: choice.bytes,
-    );
-    if (backedUp is Err) return const Err(ResolveError.backupFailed);
     if (resolution is KeepCurrent) return const Ok(null);
-
     final path = choice.backup.notePath;
+    final current = choice.current;
+    if (current != null) {
+      final backedUp = await _backups.saveCurrent(
+        at: _clock(),
+        notePath: path,
+        bytes: current.bytes,
+      );
+      if (backedUp is Err) return const Err(ResolveError.backupFailed);
+    }
+
     final written = switch (current) {
       null => await _folder.create(path, choice.bytes),
       final current => await _folder.replace(

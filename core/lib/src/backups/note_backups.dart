@@ -8,12 +8,15 @@ import 'backup.dart';
 /// Copies of one folder's notes in app storage, so a change can be undone.
 /// Never synced; only the user restores one.
 final class NoteBackups {
-  const NoteBackups(this._store);
+  /// [ignores]: files in the store that are no backups, e.g. the temp
+  /// files of atomic writes cut short.
+  const NoteBackups(this._store, {this._ignores});
 
   final FileStore _store;
+  final bool Function(RelPath file)? _ignores;
 
-  /// Saves [bytes], the file at [notePath], before the first save of an
-  /// editing session made [at].
+  /// Saves [bytes], the file at [notePath], before an editing session saves
+  /// over it [at].
   Future<Result<void, StoreError>> saveBeforeEdit({
     required DateTime at,
     required RelPath notePath,
@@ -29,18 +32,31 @@ final class NoteBackups {
     required Uint8List other,
   }) async {
     if (current != null) {
-      final saved = await _save(
-        Backup.of(notePath, at: at, kind: BackupKind.current),
-        current,
+      final saved = await saveCurrent(
+        at: at,
+        notePath: notePath,
+        bytes: current,
       );
       if (saved is Err) return saved;
     }
     return _save(Backup.of(notePath, at: at, kind: BackupKind.other), other);
   }
 
+  /// Saves [bytes], the file at [notePath], before the user replaces it
+  /// [at] with a version that is kept already (e.g. a backup restored).
+  Future<Result<void, StoreError>> saveCurrent({
+    required DateTime at,
+    required RelPath notePath,
+    required Uint8List bytes,
+  }) => _save(Backup.of(notePath, at: at, kind: BackupKind.current), bytes);
+
   /// Every backup, newest first; none before the first one is saved.
   Future<Result<List<Backup>, StoreError>> list() async {
-    switch (await _store.list()) {
+    final ignores = _ignores;
+    final listed = await _store.list(
+      includeFile: ignores == null ? null : (file) => !ignores(file),
+    );
+    switch (listed) {
       case Ok(:final value):
         final backups = [
           for (final entry in value.files) ?Backup.parse(entry.path),

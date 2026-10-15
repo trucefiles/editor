@@ -85,13 +85,15 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                 modified: theirs.modified,
                 text: theirs.file.text,
                 keepLabel: 'Keep this',
-                keptMessage: 'Your edits are dropped.',
+                keptMessage: 'Your edits are dropped. $bothBackedUp',
               ),
               other: ShownVersion(
                 label: 'Your edits',
                 text: _session.text,
                 keepLabel: 'Keep this',
-                keptMessage: 'The current version is replaced by your edits.',
+                keptMessage:
+                    'The current version is replaced by your edits. '
+                    '$bothBackedUp',
               ),
               enabled: !_busy,
               onKeep: _keep,

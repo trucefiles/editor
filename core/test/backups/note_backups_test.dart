@@ -85,6 +85,22 @@ void main() {
     expect(String.fromCharCodes((await backups.read(listed.first)).value), 'b');
   });
 
+  test('lists no ignored files, e.g. temp files', () async {
+    await backups.saveBeforeEdit(
+      at: at,
+      notePath: path('a.md'),
+      bytes: bytesOf('a'),
+    );
+    store.put('$atMicros.edit/.a.md.tmp', 'cut short');
+
+    final listed = await NoteBackups(
+      store,
+      ignores: (file) => file.name.endsWith('.tmp'),
+    ).list();
+
+    expect(listed.value.map((b) => b.notePath), [path('a.md')]);
+  });
+
   test('lists none before the first backup', () async {
     store.failWith = StoreError.notFound;
 

@@ -48,14 +48,14 @@ void main() {
     expect(String.fromCharCodes(choice.current!.bytes), 'now');
   });
 
-  test('restores the backup over the note, after a backup of both', () async {
+  test('restores the backup over the note, after a backup of it', () async {
     folder.put('todo.md', 'now');
 
     final kept = await restore.keep(await load(), const KeepOther());
 
     expect(kept, isA<Ok<void, ResolveError>>());
     expect(folder.textOf('todo.md'), 'backup');
-    expect(keptBackups(), {'now', 'backup'});
+    expect(keptBackups(), {'now'});
   });
 
   test('restores a deleted note', () async {
@@ -65,16 +65,16 @@ void main() {
     await restore.keep(choice, const KeepOther());
 
     expect(folder.textOf('todo.md'), 'backup');
-    expect(keptBackups(), {'backup'});
+    expect(keptBackups(), isEmpty);
   });
 
-  test('keeping the note writes nothing to it', () async {
+  test('keeping the note changes nothing', () async {
     folder.put('todo.md', 'now');
 
     await restore.keep(await load(), const KeepCurrent());
 
     expect(folder.textOf('todo.md'), 'now');
-    expect(keptBackups(), {'now', 'backup'});
+    expect(keptBackups(), isEmpty);
   });
 
   test('never overwrites a change made after loading', () async {

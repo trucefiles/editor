@@ -77,6 +77,20 @@ void main() {
     expect(backedUp(), ['edit: # a\n']);
   });
 
+  test('backs up a version from elsewhere before saving over it', () async {
+    session.edit('# a\nfirst');
+    await session.flush();
+    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    expect(session.text, '# a\ntheirs');
+    clearBackups();
+
+    session.edit('# a\nmine');
+    await session.flush();
+
+    expect(onDisk(), '# a\nmine');
+    expect(backedUp(), ['edit: # a\ntheirs']);
+  });
+
   test('backs up nothing if nothing is saved', () async {
     session.edit('# a\n');
     await session.flush();
