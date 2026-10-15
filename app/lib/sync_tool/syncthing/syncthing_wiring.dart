@@ -1,6 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 
+import '../../backups/file_backups_at.dart';
 import '../../platform/platform_facts.dart';
 import '../../refresh/refresh_settings.dart';
 import '../folder_services.dart';
@@ -106,10 +107,3 @@ _Following _following(
   RefreshMode.live when platform.reportsChangesIn(path) => _Following.watched,
   RefreshMode.live || RefreshMode.periodic => _Following.polled,
 };
-
-/// The backups in the app storage folder at [path], which is created
-/// with the first backup.
-FileBackups fileBackupsAt(String path) => FileBackups(
-  LocalFileStore(path, syncthingAdapter.tempFileName, createsRoot: true),
-  ignores: syncthingAdapter.isInternal,
-);
