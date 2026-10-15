@@ -20,6 +20,8 @@ class NoteSections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      // Pulls down even when the cards fit, to refresh.
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),

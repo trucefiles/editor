@@ -187,22 +187,25 @@ class _NotesBody extends ConsumerWidget {
                   icon: Icons.sticky_note_2_outlined,
                   text: 'No notes yet.',
                 )
-              : NoteSections(
-                  leading: [
-                    for (final orphan in orphans)
-                      OrphanCard(
-                        orphan,
-                        onTap: () => openConflict(context, orphan),
-                      ),
-                  ],
-                  pinned: [
-                    for (final note in notes)
-                      if (pinned(note)) card(note),
-                  ],
-                  others: [
-                    for (final note in notes)
-                      if (!pinned(note)) card(note),
-                  ],
+              : RefreshIndicator(
+                  onRefresh: ref.read(folderScansProvider.notifier).refresh,
+                  child: NoteSections(
+                    leading: [
+                      for (final orphan in orphans)
+                        OrphanCard(
+                          orphan,
+                          onTap: () => openConflict(context, orphan),
+                        ),
+                    ],
+                    pinned: [
+                      for (final note in notes)
+                        if (pinned(note)) card(note),
+                    ],
+                    others: [
+                      for (final note in notes)
+                        if (!pinned(note)) card(note),
+                    ],
+                  ),
                 ),
         ),
       ],

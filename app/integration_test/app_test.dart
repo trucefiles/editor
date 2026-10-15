@@ -113,6 +113,18 @@ void main() {
     await tester.waitFor(find.text('New'));
   });
 
+  testWidgets('pulling the grid down shows new notes', (tester) async {
+    app.write('old.md', '# Old\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    app.write('new.md', '# New\n');
+    await tester.fling(find.text('Old'), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+
+    await tester.waitFor(find.text('New'));
+  });
+
   testWidgets('never writes back a change shown in the open note', (
     tester,
   ) async {
