@@ -618,6 +618,19 @@ void main() {
       expect(file().existsSync(), isFalse);
     });
 
+    test('drops the draft once the edits are undone while deleted '
+        'elsewhere', () async {
+      staged.edit('# a\nmine');
+      await settle();
+      file().deleteSync();
+      staged.onRescan(null, scannedAt: later);
+
+      staged.edit('# a\n');
+      await settle();
+
+      expect(await draftTexts(), isEmpty);
+    });
+
     test('load theirs drops the draft', () async {
       staged.edit('# a\nmine');
       await settle();

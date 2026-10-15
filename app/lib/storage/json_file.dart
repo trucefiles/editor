@@ -1,22 +1,21 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
 
-/// A JSON value kept in one file in app storage, e.g. a setting. Writes
-/// replace the file atomically, so a read never sees half of one, and
-/// writes to one file run one at a time, so they never share a temp file.
+/// A JSON value kept in one file in app storage, e.g. a setting; one
+/// [JsonFile] per file. Writes replace the file atomically, so a read
+/// never sees half of one; they run one at a time, so they never share a
+/// temp file, and a read waits for the writes before it.
 final class JsonFile {
-  const JsonFile(this._file);
+  JsonFile(this._file);
 
   final File _file;
-
-  /// The last write to each file path, for every [JsonFile] of the app.
-  static final Map<String, Future<void>> _writes = {};
+  Future<void> _lastWrite = Future<void>.value();
 
   /// The saved value.
   Future<Result<Object?, JsonFileError>> read() async {
+    await _lastWrite;
     final String raw;
     try {
       if (!await _file.exists()) return const Err(JsonFileError.missing);
@@ -34,17 +33,8 @@ final class JsonFile {
   /// Replaces the saved value with [json], via a temp file, after every
   /// earlier write to the file.
   Future<Result<void, JsonFileError>> write(Object? json) {
-    final path = _file.path;
-    final written = (_writes[path] ?? Future<void>.value()).then(
-      (_) => _writeNow(json),
-    );
-    final tail = written.then<void>((_) {}, onError: (_) {});
-    _writes[path] = tail;
-    unawaited(
-      tail.whenComplete(() {
-        if (identical(_writes[path], tail)) _writes.remove(path);
-      }),
-    );
+    final written = _lastWrite.then((_) => _writeNow(json));
+    _lastWrite = written.then<void>((_) {}, onError: (_) {});
     return written;
   }
 

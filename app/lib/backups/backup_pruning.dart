@@ -3,10 +3,8 @@ import 'package:truce_core/truce_core.dart';
 
 import '../platform/app_activity.dart';
 import '../storage/app_storage.dart';
+import 'backup_retention.dart';
 import 'file_backups_at.dart';
-
-/// How long backups are kept.
-const backupRetention = Duration(days: 7);
 
 /// Deletes backups older than [backupRetention] in every backup
 /// folder, also those of folders removed since, each time the app comes

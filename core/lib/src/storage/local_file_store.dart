@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -40,10 +41,15 @@ final class LocalFileStore implements FileStore {
   /// shared storage), so a sync tool would miss the change.
   ///
   /// Not atomic: if the app is killed mid-write, the file is cut short.
+  /// Reads and writes of one file then run one at a time, so a read never
+  /// sees a write half done.
   final bool replacesInPlace;
 
   final TempFileNamer _tempFileName;
   final Random _random = Random.secure();
+
+  /// The last read or in-place write of each file, while [replacesInPlace].
+  final Map<RelPath, Future<void>> _queues = {};
 
   @override
   Future<Result<Listing, StoreError>> list({
@@ -60,7 +66,7 @@ final class LocalFileStore implements FileStore {
 
   @override
   Future<Result<FileContent, StoreError>> read(RelPath path) =>
-      _guard(() async {
+      _inTurn(path, () async {
         final file = await _file(path);
         // Version first: if the file changes while it is read, the version
         // is older than the bytes, so the next write fails its change check
@@ -92,7 +98,7 @@ final class LocalFileStore implements FileStore {
     RelPath path,
     Uint8List bytes, {
     required FileVersion ifUnchanged,
-  }) => _guard(() async {
+  }) => _inTurn(path, () async {
     final file = await _file(path);
     Future<void> isAllowed() => _checkUnchanged(file, ifUnchanged);
     return replacesInPlace
@@ -109,6 +115,26 @@ final class LocalFileStore implements FileStore {
     await _checkUnchanged(file, ifUnchanged);
     await file.delete();
   });
+
+  /// Runs [action] guarded; while [replacesInPlace], after every earlier
+  /// read or write of [path] that runs in turn.
+  Future<Result<T, StoreError>> _inTurn<T>(
+    RelPath path,
+    Future<T> Function() action,
+  ) {
+    if (!replacesInPlace) return _guard(action);
+    final done = (_queues[path] ?? Future<void>.value()).then(
+      (_) => _guard(action),
+    );
+    final tail = done.then<void>((_) {}, onError: (_) {});
+    _queues[path] = tail;
+    unawaited(
+      tail.whenComplete(() {
+        if (identical(_queues[path], tail)) _queues.remove(path);
+      }),
+    );
+    return done;
+  }
 
   /// The file at [path]; refused if any part of the path below the root
   /// is a symbolic link.

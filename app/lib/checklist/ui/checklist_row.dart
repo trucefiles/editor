@@ -50,6 +50,7 @@ enum ItemAction { indent, outdent, delete }
 
 class _ChecklistItemRowState extends State<ChecklistItemRow> {
   late final _text = TextEditingController(text: widget.line.text);
+  final _scroll = ScrollController();
 
   @override
   void didUpdateWidget(ChecklistItemRow old) {
@@ -64,6 +65,7 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
   @override
   void dispose() {
     _text.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -113,8 +115,12 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                     widget.onFocusStep(1),
               },
               child: SwipeToIndent.keepMouseDrags(
+                // A text too long to show scrolls on a sideways drag.
+                keepTouch: () =>
+                    _scroll.hasClients && _scroll.position.maxScrollExtent > 0,
                 TextField(
                   controller: _text,
+                  scrollController: _scroll,
                   focusNode: widget.focusNode,
                   style: textStyle,
                   decoration: const InputDecoration(

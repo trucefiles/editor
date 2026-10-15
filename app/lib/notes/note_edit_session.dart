@@ -126,7 +126,7 @@ final class NoteEditSession extends ChangeNotifier {
       _timer = Timer(saveDelay, _stash);
     } else if (_state == EditState.changedElsewhere ||
         _state == EditState.deletedElsewhere) {
-      _timer = Timer(saveDelay, () => unawaited(_keepDraft(_text)));
+      _timer = Timer(saveDelay, _keepWhilePicking);
     }
   }
 
@@ -310,6 +310,16 @@ final class NoteEditSession extends ChangeNotifier {
         if (_theirs != null) _set(EditState.changedElsewhere);
       case Err():
         _set(EditState.saveFailed);
+    }
+  }
+
+  /// Keeps the edits on the device while the user has to pick; drops the
+  /// kept ones once the text is back to the file's: nothing to keep.
+  void _keepWhilePicking() {
+    if (_text == _note.file.text) {
+      _staging.drop();
+    } else {
+      unawaited(_keepDraft(_text));
     }
   }
 

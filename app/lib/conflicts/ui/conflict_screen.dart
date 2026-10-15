@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../backups/backup_pruning.dart';
+import '../../backups/backup_retention.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../versions/resolve_error_text.dart';

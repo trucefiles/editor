@@ -257,6 +257,11 @@ void main() {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
     final gesture = await tester.startGesture(tester.getCenter(field('b')));
+    // A finger holding still still jitters a little.
+    await gesture.moveBy(
+      const Offset(1, 1),
+      timeStamp: const Duration(milliseconds: 100),
+    );
     final held = kLongPressTimeout + const Duration(milliseconds: 100);
     await tester.pump(held);
     await gesture.moveBy(const Offset(100, 0), timeStamp: held);
@@ -264,6 +269,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
+  testWidgets('a touch drag on a text too long to show scrolls it', (
+    tester,
+  ) async {
+    final long = 'long ' * 100;
+    final editor = await show(tester, '- [ ] a\n- [ ] $long');
+
+    await tester.drag(field(long), const Offset(100, 0));
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] $long');
     await close(tester);
   });
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,11 +22,17 @@ void main() {
 
   test('writes at the same time all land, the last one wins', () async {
     final results = await Future.wait([
-      for (var i = 0; i < 20; i++) JsonFile(file).write({'n': i}),
+      for (var i = 0; i < 20; i++) json.write({'n': i}),
     ]);
 
     expect(results, everyElement(isA<Ok<void, JsonFileError>>()));
     expect((await json.read()).value, {'n': 19});
+  });
+
+  test('a read waits for the write before it', () async {
+    unawaited(json.write({'a': 1}));
+
+    expect((await json.read()).value, {'a': 1});
   });
 
   test('reads back what was written', () async {
