@@ -1,0 +1,7 @@
+- Refresh setting: live (default), periodic or manual.
+- Backups of the last 7 days, restorable from the home menu.
+- Tap the save icon to save to the folder now.
+- About page with version, license and source.
+- Fix: adding an item at the top of an indented list no longer nests the items below.
+- Fix: search finds notes by a title taken from the file name.
+- Fixes for edits made while a note changed elsewhere, and other edge cases.
