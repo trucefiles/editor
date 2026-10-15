@@ -1,0 +1,6 @@
+- Edits are kept on the device first and written to the folder when you leave the note, hide the app, or after a minute.
+- Notes refresh when opened, when the app comes back, on Refresh or pull-down; no more polling.
+- Conflicts stand out on cards and have their own list.
+- An open note shows when another device changed it.
+- Lists have an "Add item at top" row.
+- Fix: some quick saves on Android never synced.
