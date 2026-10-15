@@ -9,7 +9,8 @@ import 'package:flutter/material.dart';
 /// Watches raw pointer moves rather than joining the gesture arena, so a
 /// swipe that starts on the item's text field still counts. A mouse drag
 /// that starts inside [SwipeToIndent.keepMouseDrags] is left alone, e.g.
-/// to select text.
+/// to select text, and so is a long press that then moves (touch text
+/// selection).
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
     required this.step,
@@ -56,6 +57,7 @@ class _KeepMouseDrags extends StatelessWidget {
 
 class _SwipeToIndentState extends State<SwipeToIndent> {
   Offset? _start;
+  Duration _downAt = Duration.zero;
   double _dx = 0;
 
   /// The mouse pointer that went down in a [SwipeToIndent.keepMouseDrags]
@@ -66,12 +68,20 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
     final kept = event.pointer == _kept;
     _kept = null;
     _start = kept ? null : event.position;
+    _downAt = event.timeStamp;
   }
 
   void _onMove(PointerMoveEvent event) {
     final start = _start;
     if (start == null) return;
     final delta = event.position - start;
+    // Held still first: a long press, e.g. to select text, not a swipe.
+    if (_dx == 0 &&
+        delta.distance > kTouchSlop &&
+        event.timeStamp - _downAt > kLongPressTimeout) {
+      _reset();
+      return;
+    }
     // Mostly vertical: a scroll, not a swipe.
     if (delta.dy.abs() > delta.dx.abs() && delta.dy.abs() > kTouchSlop) {
       _reset();

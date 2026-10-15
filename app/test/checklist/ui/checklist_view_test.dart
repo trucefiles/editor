@@ -251,6 +251,22 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('a long press that moves, to select text, does not indent', (
+    tester,
+  ) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    final gesture = await tester.startGesture(tester.getCenter(field('b')));
+    final held = kLongPressTimeout + const Duration(milliseconds: 100);
+    await tester.pump(held);
+    await gesture.moveBy(const Offset(100, 0), timeStamp: held);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
   testWidgets('a short swipe does nothing', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
