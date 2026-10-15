@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
@@ -29,6 +30,7 @@ void main() {
       notes.path,
       backupsPath: backups.path,
       deviceId: '0123456789abcdef',
+      platform: platformFacts,
     );
     files = NoteFiles(folder, services);
   });

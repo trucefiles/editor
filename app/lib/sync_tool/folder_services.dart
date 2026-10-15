@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/note_folder.dart';
+import '../platform/platform_wiring.dart';
 import '../refresh/refresh_settings_controller.dart';
 import '../storage/app_storage.dart';
 import '../storage/device_id.dart';
@@ -44,6 +45,7 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
     location.path,
     backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
     deviceId: ref.watch(deviceIdProvider),
+    platform: platformFacts,
   ),
 );
 
@@ -61,6 +63,7 @@ final _folderFollowingProvider =
       (ref, location) async => syncthingFolderFollowing(
         location.path,
         await ref.watch(refreshSettingsProvider.future),
+        platformFacts,
       ),
     );
 

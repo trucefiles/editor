@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
@@ -16,18 +17,30 @@ void main() {
   group('changes', () {
     test('none are looked for with manual refresh', () {
       expect(
-        syncthingFolderFollowing(tempFolder().path, manual).changes,
+        syncthingFolderFollowing(
+          tempFolder().path,
+          manual,
+          platformFacts,
+        ).changes,
         isNull,
       );
     });
 
     test('are found with periodic and live refresh', () {
       expect(
-        syncthingFolderFollowing(tempFolder().path, periodic).changes,
+        syncthingFolderFollowing(
+          tempFolder().path,
+          periodic,
+          platformFacts,
+        ).changes,
         isNotNull,
       );
       expect(
-        syncthingFolderFollowing(tempFolder().path, live).changes,
+        syncthingFolderFollowing(
+          tempFolder().path,
+          live,
+          platformFacts,
+        ).changes,
         isNotNull,
       );
     });
@@ -37,6 +50,7 @@ void main() {
       final changes = syncthingFolderFollowing(
         folder.path,
         periodic.copyWith(interval: const Duration(milliseconds: 20)),
+        platformFacts,
       ).changes!;
       final seen = <RelPath>[];
       final subscription = changes.changes.listen(seen.add);
@@ -55,7 +69,7 @@ void main() {
     Future<List<FolderNotice>> noticesOf(
       String path,
       RefreshSettings refresh,
-    ) => syncthingFolderFollowing(path, refresh).notices.check();
+    ) => syncthingFolderFollowing(path, refresh, platformFacts).notices.check();
 
     test('tell when live updates fall back to polling', () async {
       final notices = await noticesOf(portalFolder, live);
@@ -83,7 +97,11 @@ void main() {
 
     test('tell when watching failed and changes are polled', () async {
       final folder = tempFolder();
-      final following = syncthingFolderFollowing(folder.path, live);
+      final following = syncthingFolderFollowing(
+        folder.path,
+        live,
+        platformFacts,
+      );
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
