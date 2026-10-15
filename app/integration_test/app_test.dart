@@ -83,8 +83,46 @@ void main() {
     await openNote(tester, 'Plan');
 
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.refocusApp();
 
     await tester.waitFor(find.textContaining('v2 from elsewhere'));
+    expect(
+      find.text('Updated with a change from another device or app'),
+      findsOne,
+    );
+  });
+
+  testWidgets('shows a change made before the note opened', (tester) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Plan'));
+
+    app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
+    await tester.tapAndSettle(find.text('Plan'));
+
+    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+  });
+
+  testWidgets('the refresh button shows new notes', (tester) async {
+    await addFolder(tester);
+    await tester.waitFor(find.byTooltip('New note'));
+
+    app.write('new.md', '# New\n');
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+
+    await tester.waitFor(find.text('New'));
+  });
+
+  testWidgets('pulling the grid down shows new notes', (tester) async {
+    app.write('old.md', '# Old\n');
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    app.write('new.md', '# New\n');
+    await tester.fling(find.text('Old'), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+
+    await tester.waitFor(find.text('New'));
   });
 
   testWidgets('never writes back a change shown in the open note', (
@@ -102,8 +140,12 @@ void main() {
       file
         ..writeAsStringSync(text)
         ..setLastModifiedSync(from);
+      await tester.refocusApp();
       await tester.waitFor(shown);
-      await tester.runFor(const Duration(seconds: 12));
+      for (var i = 0; i < 3; i++) {
+        await tester.runFor(const Duration(seconds: 3));
+        await tester.refocusApp();
+      }
       expect(file.readAsStringSync(), text);
       expect(file.lastModifiedSync(), from);
     }
@@ -245,7 +287,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Not inside a Syncthing folder'));
     expect(find.textContaining('may not reach'), findsNothing);
 
-    await tester.tapAndSettle(find.byTooltip('Folders'));
+    await tester.tapAndSettle(find.byTooltip('Manage folders'));
     await tester.waitFor(find.textContaining('may not reach'));
   });
 
@@ -256,7 +298,7 @@ void main() {
     await addFolder(tester);
     await tester.waitFor(find.text('Plan'));
 
-    await tester.tapAndSettle(find.byTooltip('Folders'));
+    await tester.tapAndSettle(find.byTooltip('Manage folders'));
     await tester.tapAndSettle(find.byTooltip('Remove from app'));
     await tester.tapAndSettle(find.text('Remove'));
     await tester.pageBack();
@@ -400,6 +442,24 @@ void main() {
       'todo.md',
     ]);
     expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
+  });
+
+  testWidgets('lists every conflict and resolves one from the list', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\nmine\n');
+    app.write('todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Todo\nx\n');
+    await addFolder(tester);
+
+    await tester.waitFor(find.byTooltip('Conflicts'));
+    await tester.tapAndSettle(find.byTooltip('Conflicts'));
+    expect(find.text('1 other version'), findsOne);
+    await tester.tapAndSettle(find.text('Todo'));
+    await tester.tapAndSettle(find.text('Keep this').last);
+    await tester.tapAndSettle(find.text('Keep'));
+
+    await tester.waitFor(find.text('No sync conflicts.'));
+    expect(app.file('todo.md').readAsStringSync(), '# Todo\nx\n');
   });
 
   testWidgets('resolves two conflict copies one by one', (tester) async {

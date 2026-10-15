@@ -8,6 +8,7 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/storage_access.dart';
 
 import '../support.dart';
@@ -27,6 +28,7 @@ void main() {
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         folderPickerProvider.overrideWithValue(picker),
         storageAccessProvider.overrideWithValue(access),
+        hostPathsProvider.overrideWithValue(const SameHostPaths()),
       ],
     );
     addTearDown(container.dispose);

@@ -30,6 +30,13 @@ final class ChecklistEditor extends ChangeNotifier {
   }
 
   /// Returns the id of the new item.
+  int prepend(String text) {
+    final (list, newId) = _list.prepend(text);
+    _apply(list);
+    return newId;
+  }
+
+  /// Returns the id of the new item.
   int append(String text) {
     final (list, newId) = _list.append(text);
     _apply(list);

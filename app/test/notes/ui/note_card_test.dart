@@ -53,4 +53,25 @@ void main() {
   testWidgets('shows only the title for a note without text', (tester) async {
     expect(await heightWith(tester, 0), lessThan(await heightWith(tester, 1)));
   });
+
+  testWidgets('labels a note with a sync conflict', (tester) async {
+    Future<void> show({required bool hasConflict}) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NoteCard(
+            note('# Title'),
+            hasConflict: hasConflict,
+            onTap: () {},
+            onMark: () {},
+          ),
+        ),
+      ),
+    );
+
+    await show(hasConflict: false);
+    expect(find.text('Conflict'), findsNothing);
+
+    await show(hasConflict: true);
+    expect(find.text('Conflict'), findsOne);
+  });
 }

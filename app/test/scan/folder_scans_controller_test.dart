@@ -169,4 +169,18 @@ void main() {
 
     expect((await scans()).notes.single.title, 'New');
   });
+
+  test('shows a renamed folder on its notes', () async {
+    final dir = tempFolder();
+    write(dir, 'todo.md', '# Todo');
+    final folder = folderAt(dir);
+    await start([folder]);
+    await scans();
+
+    await container
+        .read(foldersProvider.notifier)
+        .change(folder.copyWith(name: 'Renamed'));
+
+    expect((await scans()).notes.single.folder.name, 'Renamed');
+  });
 }

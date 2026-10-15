@@ -28,6 +28,18 @@ final class Note {
   NoteKey get key => (folderId: folder.id, path: path);
 
   String get title => noteTitle(file.text, path);
+
+  /// This note with [folder]'s current name and color; itself if they are
+  /// unchanged.
+  Note inFolder(NoteFolder folder) => folder == this.folder
+      ? this
+      : Note(
+          folder: folder,
+          path: path,
+          file: file,
+          version: version,
+          modified: modified,
+        );
 }
 
 /// Identifies a note across rescans.

@@ -124,6 +124,24 @@ void main() {
     });
   });
 
+  group('prepend', () {
+    test('goes before the first item, at the left margin', () {
+      final list = Checklist.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
+
+      expect(
+        list.prepend('bread').$1.text,
+        '# Shopping\n* [ ] bread\n  * [x] milk\n- [ ] eggs\n',
+      );
+    });
+
+    test('appends if there are no items', () {
+      expect(
+        Checklist.parse('# Title\n').prepend('a').$1.text,
+        '# Title\n- [ ] a\n',
+      );
+    });
+  });
+
   test('remove takes the subitems along', () {
     final list = Checklist.parse(doc);
 

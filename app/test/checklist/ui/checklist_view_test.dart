@@ -99,6 +99,31 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('typing in the top add row starts an item above the others', (
+    tester,
+  ) async {
+    final editor = await show(tester, '# Todo\n- [ ] a\n- [ ] b\n');
+
+    await tester.enterText(field('Add item at top'), 'M');
+    await tester.pump();
+
+    expect(editor.list.text, '# Todo\n- [ ] M\n- [ ] a\n- [ ] b\n');
+    expect(hasFocus(tester, 'M'), isTrue, reason: 'typing goes on there');
+    expect(
+      tester.widget<TextField>(field('Add item at top')).controller!.text,
+      '',
+    );
+    await close(tester);
+  });
+
+  testWidgets('without open items there is one add row', (tester) async {
+    await show(tester, '- [x] a');
+
+    expect(field('Add item at top'), findsNothing);
+    expect(field('Add item'), findsOneWidget);
+    await close(tester);
+  });
+
   testWidgets('spaces alone in the add row start no item', (tester) async {
     final editor = await show(tester, '- [ ] a');
 
@@ -235,7 +260,8 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     await tester.pump();
-    await tester.enterText(find.byType(TextField).at(1), 'x');
+    // The fields: top add row, a, the new item, b, add row.
+    await tester.enterText(find.byType(TextField).at(2), 'x');
     await tester.tap(field('b'));
     await tester.pump();
 

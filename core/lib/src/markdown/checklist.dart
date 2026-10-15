@@ -91,6 +91,16 @@ final class Checklist {
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }
 
+  /// Adds an unchecked item at the left margin before the first item; with
+  /// no items, as [append] does. Returns the new checklist and the new
+  /// line's id.
+  (Checklist, int) prepend(String text) {
+    final firstItem = lines.indexWhere((line) => line.isItem);
+    if (firstItem < 0) return append(text);
+    final sibling = lines[firstItem]._newSibling(_nextId, text);
+    return _insert(firstItem, sibling._withIndent(''));
+  }
+
   /// Removes the item [id] with its subitems.
   Checklist remove(int id) {
     final index = _indexOf(id);

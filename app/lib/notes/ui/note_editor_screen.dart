@@ -71,6 +71,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       onHide: _session.secure,
       onExitRequested: _onExitRequested,
     );
+    // The note may have changed since the last scan.
+    unawaited(_scans.refresh());
   }
 
   @override
@@ -224,10 +226,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           when !scans.failedFolders.keys.any(
             (folder) => folder.id == widget.note.folder.id,
           )) {
-        _session.onRescan(
+        final replaced = _session.onRescan(
           scans.findNote(widget.note.key),
           scannedAt: scans.startedAt,
         );
+        if (replaced) {
+          _messenger.currentState?.showHint(
+            'Updated with a change from another device or app',
+          );
+        }
       }
     });
     return PopScope(

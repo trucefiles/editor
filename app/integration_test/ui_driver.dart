@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
 /// Waits in real time, for the app's timers (save delay, rescans) and file
@@ -32,6 +34,15 @@ extension UiDriver on WidgetTester {
     while (DateTime.now().isBefore(end)) {
       await pump(const Duration(milliseconds: 100));
     }
+  }
+
+  /// Takes the focus from the app's window and gives it back, as switching
+  /// to another window and back does.
+  Future<void> refocusApp() async {
+    binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await pump();
   }
 
   /// Waits until [file] holds exactly [text].

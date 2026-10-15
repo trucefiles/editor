@@ -8,6 +8,7 @@ import '../../common/snack.dart';
 import '../../conflicts/backup_pruning.dart';
 import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
+import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
@@ -41,9 +42,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(
-      onShow: () => ref.read(folderScansProvider.notifier).refresh(),
-    );
+    // On desktop, also when the window gets the focus back.
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
   }
 
   @override
@@ -51,6 +51,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     _lifecycle.dispose();
     super.dispose();
   }
+
+  Future<void> _refresh() => ref.read(folderScansProvider.notifier).refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +63,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ..watch(backupPruningProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notes'),
+        title: const Text('Folders'),
         actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _refresh,
+          ),
+          const _ConflictsButton(),
           IconButton(
             tooltip: 'Search',
             icon: const Icon(Icons.search),
@@ -72,7 +80,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Folders',
+            tooltip: 'Manage folders',
             icon: const Icon(Icons.folder_outlined),
             onPressed: () => Navigator.push(
               context,
@@ -179,25 +187,49 @@ class _NotesBody extends ConsumerWidget {
                   icon: Icons.sticky_note_2_outlined,
                   text: 'No notes yet.',
                 )
-              : NoteSections(
-                  leading: [
-                    for (final orphan in orphans)
-                      OrphanCard(
-                        orphan,
-                        onTap: () => openConflict(context, orphan),
-                      ),
-                  ],
-                  pinned: [
-                    for (final note in notes)
-                      if (pinned(note)) card(note),
-                  ],
-                  others: [
-                    for (final note in notes)
-                      if (!pinned(note)) card(note),
-                  ],
+              : RefreshIndicator(
+                  onRefresh: ref.read(folderScansProvider.notifier).refresh,
+                  child: NoteSections(
+                    leading: [
+                      for (final orphan in orphans)
+                        OrphanCard(
+                          orphan,
+                          onTap: () => openConflict(context, orphan),
+                        ),
+                    ],
+                    pinned: [
+                      for (final note in notes)
+                        if (pinned(note)) card(note),
+                    ],
+                    others: [
+                      for (final note in notes)
+                        if (!pinned(note)) card(note),
+                    ],
+                  ),
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// Opens the list of all conflicts; shown only while there are some, with
+/// their count.
+class _ConflictsButton extends ConsumerWidget {
+  const _ConflictsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count =
+        ref.watch(folderScansProvider).value?.conflicts.all.length ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: 'Conflicts',
+      icon: Badge.count(count: count, child: const Icon(Icons.call_split)),
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const ConflictsScreen()),
+      ),
     );
   }
 }

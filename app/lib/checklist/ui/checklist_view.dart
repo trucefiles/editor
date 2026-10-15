@@ -11,8 +11,9 @@ import 'checklist_text_block.dart';
 import 'checklist_undo_hint.dart';
 import 'row_focus.dart';
 
-/// Keep-like view of a checklist: open items to drag and edit, an add row,
-/// and checked items in a collapsible "Done" section.
+/// Keep-like view of a checklist: open items to drag and edit, add rows
+/// above and below them, and checked items in a collapsible "Done"
+/// section.
 class ChecklistView extends ConsumerStatefulWidget {
   const ChecklistView(this.editor, {super.key});
 
@@ -23,9 +24,11 @@ class ChecklistView extends ConsumerStatefulWidget {
 }
 
 class _ChecklistViewState extends ConsumerState<ChecklistView> {
-  /// Row key of the "Add item" field in [_focus].
+  /// Row keys of the add fields in [_focus].
+  static const _addTopKey = 'add top';
   static const _addRowKey = 'add';
 
+  final _newTopItem = TextEditingController();
   final _newItem = TextEditingController();
   final _focus = RowFocus();
   bool _doneExpanded = true;
@@ -34,19 +37,24 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
 
   @override
   void dispose() {
+    _newTopItem.dispose();
     _newItem.dispose();
     _focus.dispose();
     super.dispose();
   }
 
-  /// Typing in the add row starts a new item right away and moves the
-  /// cursor into it, so typed text never lives only in this field: it is
-  /// in the note and saved like any other edit.
-  void _startItem(String typed) {
+  /// Typing in an add row starts a new item right away with [add] and
+  /// moves the cursor into it, so typed text never lives only in [field]:
+  /// it is in the note and saved like any other edit.
+  void _startItem(
+    TextEditingController field,
+    int Function(String text) add,
+    String typed,
+  ) {
     final text = typed.trimLeft();
     if (text.isEmpty) return;
-    _newItem.clear();
-    _focus.focusLater(_editor.append(text));
+    field.clear();
+    _focus.focusLater(add(text));
   }
 
   void _onAction(ChecklistLine line, ItemAction action) {
@@ -95,7 +103,11 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
         final doneBlocks = blocksOf(
           list.lines.where((line) => done.contains(line.id)),
         );
+        // Above the items only when there are some: else both rows would
+        // add at the same place.
+        final hasOpenItems = open.any((block) => block is ItemBlock);
         _focus.show([
+          if (hasOpenItems) _addTopKey,
           for (final ItemBlock(:first) in open.whereType<ItemBlock>()) first.id,
           _addRowKey,
           if (_doneExpanded)
@@ -104,6 +116,15 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
         ]);
         return CustomScrollView(
           slivers: [
+            if (hasOpenItems)
+              SliverToBoxAdapter(
+                child: _addRow(
+                  _addTopKey,
+                  _newTopItem,
+                  _editor.prepend,
+                  hint: 'Add item at top',
+                ),
+              ),
             SliverReorderableList(
               itemCount: open.length,
               itemBuilder: (context, index) =>
@@ -120,7 +141,14 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
                 );
               },
             ),
-            SliverToBoxAdapter(child: _addRow()),
+            SliverToBoxAdapter(
+              child: _addRow(
+                _addRowKey,
+                _newItem,
+                _editor.append,
+                hint: 'Add item',
+              ),
+            ),
             if (doneBlocks.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: _doneHeader(doneBlocks.whereType<ItemBlock>().length),
@@ -159,7 +187,13 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
     );
   }
 
-  Widget _addRow() => Padding(
+  /// A field that starts an item with [add]; [key] is its row in [_focus].
+  Widget _addRow(
+    String key,
+    TextEditingController field,
+    int Function(String text) add, {
+    required String hint,
+  }) => Padding(
     padding: const EdgeInsets.only(left: 24),
     child: Row(
       children: [
@@ -168,18 +202,18 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
           child: CallbackShortcuts(
             bindings: {
               const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                  _focus.move(_addRowKey, -1),
+                  _focus.move(key, -1),
               const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                  _focus.move(_addRowKey, 1),
+                  _focus.move(key, 1),
             },
             child: TextField(
-              controller: _newItem,
-              focusNode: _focus.of(_addRowKey),
-              decoration: const InputDecoration(
-                hintText: 'Add item',
+              controller: field,
+              focusNode: _focus.of(key),
+              decoration: InputDecoration(
+                hintText: hint,
                 border: InputBorder.none,
               ),
-              onChanged: _startItem,
+              onChanged: (typed) => _startItem(field, add, typed),
             ),
           ),
         ),

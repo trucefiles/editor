@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/folders/folder_services.dart';
+import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_loader.dart';
 
@@ -9,14 +10,15 @@ import '../support.dart';
 
 void main() {
   late Directory dir;
+  late NoteFolder folder;
   late FolderServices services;
   late NoteLoader loader;
 
   setUp(() {
     dir = tempFolder();
-    final folder = folderAt(dir);
+    folder = folderAt(dir);
     services = servicesFor(folder);
-    loader = NoteLoader(folder, services);
+    loader = NoteLoader(services);
   });
 
   void write(String name, List<int> bytes) => (File(
@@ -25,7 +27,7 @@ void main() {
 
   /// Loads the notes of the files the folder's scan lists.
   Future<List<Note>> load() async =>
-      loader.load((await services.scanner.scan()).value.files);
+      loader.load(folder, (await services.scanner.scan()).value.files);
 
   test('reads the scanned notes, not other files', () async {
     write('a.md', '# A'.codeUnits);
@@ -91,11 +93,19 @@ void main() {
     expect((await load()).single.modified, DateTime(2024));
   });
 
+  test('shows unchanged notes in the folder as now named', () async {
+    write('a.md', '# A'.codeUnits);
+    await load();
+    folder = folder.copyWith(name: 'Renamed');
+
+    expect((await load()).single.folder.name, 'Renamed');
+  });
+
   test('drops a note whose file vanished after the scan', () async {
     write('a.md', '# A'.codeUnits);
     final files = (await services.scanner.scan()).value.files;
     File('${dir.path}/a.md').deleteSync();
 
-    expect(await loader.load(files), isEmpty);
+    expect(await loader.load(folder, files), isEmpty);
   });
 }

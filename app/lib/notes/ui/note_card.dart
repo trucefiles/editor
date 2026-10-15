@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/edited_time.dart';
+import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_colors.dart';
@@ -41,6 +42,12 @@ class NoteCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       color: noteTint(mark.color, theme.colorScheme),
+      // An outline makes a conflict stand out in a full grid.
+      shape: hasConflict
+          ? (theme.cardTheme.shape as OutlinedBorder?)?.copyWith(
+              side: BorderSide(color: theme.colorScheme.error, width: 2),
+            )
+          : null,
       child: InkWell(
         onTap: onTap,
         onLongPress: onMark,
@@ -84,15 +91,7 @@ class NoteCard extends StatelessWidget {
                       message: 'Pinned',
                       child: Icon(Icons.push_pin, size: 18),
                     ),
-                  if (hasConflict)
-                    Tooltip(
-                      message: 'Sync conflict',
-                      child: Icon(
-                        Icons.call_split,
-                        size: 18,
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
+                  if (hasConflict) const ConflictLabel(),
                 ],
               ),
             ],
