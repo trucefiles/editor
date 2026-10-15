@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../conflicts/backup_pruning.dart';
 import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';

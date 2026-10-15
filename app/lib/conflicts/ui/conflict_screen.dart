@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../versions/resolve_error_text.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../conflict_controller.dart';
@@ -33,7 +34,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     });
     if (!mounted) return;
     final outcome = switch (kept.error) {
-      final error? => _resolveText(error),
+      final error? => error.text,
       null => 'Conflict resolved. A backup is kept for 7 days.',
     };
     if (kept.done) {
@@ -43,14 +44,6 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       showSnack(context, outcome);
     }
   }
-
-  static String _resolveText(ResolveError error) => switch (error) {
-    ResolveError.changedSinceScan =>
-      'The files changed in the meantime. Please check again.',
-    ResolveError.backupFailed => 'No backup could be made, so nothing changed.',
-    ResolveError.accessDenied => 'The app has no access to this folder.',
-    ResolveError.ioFailure => 'The files could not be written.',
-  };
 
   @override
   Widget build(BuildContext context) {

@@ -36,6 +36,8 @@ final class DraftRecovery {
       case Ok(value: final note) when note.file.text == draft.text:
         return true;
       case Ok(value: final note) when note.file.text == draft.base:
+        // Best effort, like before an open note's first save.
+        await _files.backUpBeforeEdit(note);
         return switch (await _files.save(note, draft.text)) {
           Ok() => true,
           Err(error: StoreError.changedSinceRead) =>

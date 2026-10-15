@@ -22,7 +22,7 @@ final class AppStorage {
   /// Holds one backup folder per note folder.
   String get _backupsRootPath => '$rootPath/backups';
 
-  /// Conflict backups of one folder, by [folderId].
+  /// Note backups of one folder, by [folderId].
   String backupsPath(String folderId) => '$_backupsRootPath/$folderId';
 
   /// Edits not yet in one folder's note files, by [folderId].
@@ -38,6 +38,31 @@ final class AppStorage {
           .toList();
     } on FileSystemException {
       return const [];
+    }
+  }
+
+  /// Removes the empty folders below [path], e.g. those left by pruned
+  /// backups. Folders that can't be removed stay.
+  Future<void> removeEmptyFolders(String path) async {
+    final List<Directory> folders;
+    try {
+      folders = await Directory(path)
+          .list(recursive: true, followLinks: false)
+          .where((entity) => entity is Directory)
+          .cast<Directory>()
+          .toList();
+    } on FileSystemException {
+      return;
+    }
+    // Deepest first, so a folder holding only empty folders goes too.
+    folders.sort((a, b) => b.path.length.compareTo(a.path.length));
+    for (final folder in folders) {
+      try {
+        // Not recursive: fails for a folder that still holds anything.
+        await folder.delete();
+      } on FileSystemException {
+        continue;
+      }
     }
   }
 }

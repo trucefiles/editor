@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../about/ui/about_menu_item.dart';
+import '../../backups/ui/backups_screen.dart';
 import '../../refresh/ui/refresh_menu_item.dart';
 import '../../tray/ui/close_to_tray_menu.dart';
 
-/// The home screen's app bar menu: app-wide settings and About.
+/// The home screen's app bar menu: app-wide settings, backups and About.
 class HomeMenu extends ConsumerWidget {
   const HomeMenu({super.key});
 
@@ -16,6 +17,10 @@ class HomeMenu extends ConsumerWidget {
     final items = [
       refreshMenuItem(context, ref),
       ...closeToTrayMenuItems(ref),
+      PopupMenuItem(
+        value: () => openBackups(context),
+        child: const Text('Backups'),
+      ),
       aboutMenuItem(context, ref),
     ];
     return PopupMenuButton<VoidCallback>(

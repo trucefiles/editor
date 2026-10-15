@@ -16,6 +16,7 @@ final class FolderServices {
     required this.syncToolName,
     required this.conflicts,
     required this.backups,
+    required this.restore,
     required this.marks,
   });
 
@@ -27,8 +28,11 @@ final class FolderServices {
 
   final ConflictService conflicts;
 
-  /// Copies of both versions, kept before the user keeps one of them.
-  final ConflictBackups backups;
+  /// Copies of the folder's notes in app storage.
+  final NoteBackups backups;
+
+  /// Puts [backups] back into the folder.
+  final BackupRestore restore;
 
   final NoteMarks marks;
 }

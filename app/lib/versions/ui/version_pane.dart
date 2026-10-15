@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../common/full_time.dart';
 import '../changed_lines.dart';
 
 /// One side of a conflict: its text with lines the other side lacks
@@ -36,7 +37,9 @@ class VersionPane extends StatelessWidget {
         ListTile(
           title: Text(label),
           subtitle: switch (modified) {
-            final time? => Text(_formatTime(context, time)),
+            final time? => Text(
+              fullTime(MaterialLocalizations.of(context), time),
+            ),
             null => null,
           },
           trailing: FilledButton(onPressed: onKeep, child: Text(keepLabel)),
@@ -55,13 +58,6 @@ class VersionPane extends StatelessWidget {
       ],
     );
   }
-}
-
-String _formatTime(BuildContext context, DateTime time) {
-  final local = MaterialLocalizations.of(context);
-  final date = local.formatFullDate(time);
-  final clock = local.formatTimeOfDay(TimeOfDay.fromDateTime(time));
-  return '$date, $clock';
 }
 
 class _HighlightedText extends StatelessWidget {

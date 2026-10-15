@@ -98,11 +98,19 @@ final class NoteFiles {
   /// Keeps a backup of [current], the note's file, and [edited], text the
   /// user edited from an older version, before the user keeps one of them.
   Future<Result<void, StoreError>> backUp(Note current, String edited) =>
-      _services.backups.save(
+      _services.backups.saveBoth(
         at: DateTime.now(),
-        mainPath: current.path,
+        notePath: current.path,
         current: current.file.encode(current.file.text),
         other: current.file.encode(edited),
+      );
+
+  /// Keeps a backup of [note]'s file before edits are first saved over it.
+  Future<Result<void, StoreError>> backUpBeforeEdit(Note note) =>
+      _services.backups.saveBeforeEdit(
+        at: DateTime.now(),
+        notePath: note.path,
+        bytes: note.file.encode(note.file.text),
       );
 
   Future<Result<void, StoreError>> delete(Note note) =>

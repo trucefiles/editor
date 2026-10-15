@@ -33,7 +33,7 @@ FolderServices syncthingFolderServices(
       replacesInPlace: Platform.isAndroid,
     ),
   );
-  final backups = conflictBackupsAt(backupsPath);
+  final backups = noteBackupsAt(backupsPath);
   return FolderServices(
     store: store,
     scanner: SyncthingFolderScanner(store, filter),
@@ -44,6 +44,7 @@ FolderServices syncthingFolderServices(
       backups: backups,
     ),
     backups: backups,
+    restore: BackupRestore(folder: store, backups: backups),
     marks: NoteMarks(store, deviceId: deviceId),
   );
 }
@@ -103,9 +104,9 @@ _Following _following(String path, RefreshSettings refresh) =>
       RefreshMode.live || RefreshMode.periodic => _Following.polled,
     };
 
-/// The conflict backups in the app storage folder at [path], which is
-/// created with the first backup.
-ConflictBackups conflictBackupsAt(String path) => ConflictBackups(
+/// The note backups in the app storage folder at [path], which is created
+/// with the first backup.
+NoteBackups noteBackupsAt(String path) => NoteBackups(
   LocalFileStore(
     path,
     const SyncthingAdapter().tempFileName,

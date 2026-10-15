@@ -80,6 +80,10 @@ final class NoteEditSession extends ChangeNotifier {
   bool _writing = false;
   DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Whether the file as it was before this session's edits is backed up
+  /// (or a backup was tried): once per session, before the first save.
+  bool _backedUp = false;
+
   /// The version the edits are based on; it guards the next save.
   Note get note => _note;
 
@@ -248,8 +252,21 @@ final class NoteEditSession extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> _backUp(Note theirs) async =>
-      await _files.backUp(theirs, _text) is Ok;
+  /// Backs up [theirs] and the edits; the edits then save over a version
+  /// that is backed up already.
+  Future<bool> _backUp(Note theirs) async {
+    if (await _files.backUp(theirs, _text) is Err) return false;
+    _backedUp = true;
+    return true;
+  }
+
+  /// Backs up the file before the session's first save over it. A failed
+  /// backup never stops the save: the edits matter more.
+  Future<void> _backUpBeforeEdit() async {
+    if (_backedUp) return;
+    _backedUp = true;
+    await _files.backUpBeforeEdit(_note);
+  }
 
   /// Writes the text being edited as the note's file again, after it was
   /// deleted elsewhere.
@@ -297,6 +314,7 @@ final class NoteEditSession extends ChangeNotifier {
         _state != EditState.saveFailed) {
       return;
     }
+    await _backUpBeforeEdit();
     final text = _text;
     switch (await _write(() => _files.save(_note, text))) {
       case Ok(value: final saved):

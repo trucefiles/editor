@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/folder_services.dart';
+import '../versions/version_text.dart';
 
 /// The two versions of one conflict copy, as text to compare.
 final class ConflictSides {
@@ -21,11 +21,7 @@ final class ConflictSides {
 
   final String other;
 
-  /// Reads both sides of [conflict]'s oldest copy.
-  ///
-  /// Text is decoded for display only; bytes that are not valid UTF-8
-  /// show as replacement characters. Writing goes through
-  /// [ConflictService.resolve], which uses the original bytes.
+  /// Reads both sides of [conflict]'s oldest copy, as [versionText].
   static Future<Result<ConflictSides, StoreError>> load(
     FolderServices services,
     Conflict conflict,
@@ -42,18 +38,13 @@ final class ConflictSides {
     if (!conflict.isOrphaned) {
       switch (await services.conflicts.readMain(conflict)) {
         case Ok(:final value):
-          current = _text(value);
+          current = versionText(value);
         case Err(:final error):
           return Err(error);
       }
     }
-    return Ok(ConflictSides(copy: copy, current: current, other: _text(other)));
+    return Ok(
+      ConflictSides(copy: copy, current: current, other: versionText(other)),
+    );
   }
-
-  /// [bytes] as text with `\n` line breaks, also for `\r\n` and old Mac
-  /// `\r` files.
-  static String _text(Uint8List bytes) =>
-      utf8.decode(bytes, allowMalformed: true).replaceAll(_lineBreak, '\n');
-
-  static final _lineBreak = RegExp('\r\n?');
 }

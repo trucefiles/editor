@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
+import '../backups/note_backups.dart';
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 import 'conflict.dart';
-import 'conflict_backups.dart';
 import 'conflict_service.dart';
 import 'conflict_source.dart';
 import 'resolution.dart';
@@ -20,7 +20,7 @@ final class DefaultConflictService implements ConflictService {
 
   final FileStore _folder;
   final ConflictSource _source;
-  final ConflictBackups _backups;
+  final NoteBackups _backups;
   final DateTime Function() _clock;
 
   @override
@@ -57,7 +57,7 @@ final class DefaultConflictService implements ConflictService {
       case Ok(:final value):
         other = value;
       case Err(:final error):
-        return Err(_resolveError(error));
+        return Err(ResolveError.ofStore(error));
     }
 
     Uint8List? current;
@@ -66,13 +66,13 @@ final class DefaultConflictService implements ConflictService {
         case Ok(:final value):
           current = value;
         case Err(:final error):
-          return Err(_resolveError(error));
+          return Err(ResolveError.ofStore(error));
       }
     }
 
-    final backedUp = await _backups.save(
+    final backedUp = await _backups.saveBoth(
       at: _clock(),
-      mainPath: conflict.mainPath,
+      notePath: conflict.mainPath,
       current: current,
       other: other,
     );
@@ -82,11 +82,11 @@ final class DefaultConflictService implements ConflictService {
       KeepCurrent() => const Ok<void, StoreError>(null),
       KeepOther() => await _writeMain(conflict, other),
     };
-    if (written case Err(:final error)) return Err(_resolveError(error));
+    if (written case Err(:final error)) return Err(ResolveError.ofStore(error));
 
     return switch (await _source.discard(copy)) {
       Ok() => const Ok(null),
-      Err(:final error) => Err(_resolveError(error)),
+      Err(:final error) => Err(ResolveError.ofStore(error)),
     };
   }
 
@@ -108,14 +108,4 @@ final class DefaultConflictService implements ConflictService {
       Err(:final error) => Err(error),
     };
   }
-
-  /// A file that is missing, already exists or changed means the folder no
-  /// longer matches the scan.
-  static ResolveError _resolveError(StoreError error) => switch (error) {
-    StoreError.notFound ||
-    StoreError.alreadyExists ||
-    StoreError.changedSinceRead => ResolveError.changedSinceScan,
-    StoreError.accessDenied => ResolveError.accessDenied,
-    StoreError.ioFailure => ResolveError.ioFailure,
-  };
 }
