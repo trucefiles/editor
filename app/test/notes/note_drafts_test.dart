@@ -33,6 +33,22 @@ void main() {
     expect(await drafts.all(before: later), isEmpty);
   });
 
+  test('clears all drafts', () async {
+    await drafts.keep(draft('1', 'one'));
+    await drafts.keep(draft('2', 'two'));
+
+    await drafts.clear();
+
+    expect(await drafts.all(before: later), isEmpty);
+    expect(dir.existsSync(), isFalse);
+  });
+
+  test('clears nothing before the first draft', () async {
+    await drafts.clear();
+
+    expect(await drafts.all(before: later), isEmpty);
+  });
+
   test('has none before the first draft', () async {
     expect(await drafts.all(before: later), isEmpty);
   });

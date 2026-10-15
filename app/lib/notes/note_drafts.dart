@@ -58,6 +58,15 @@ final class NoteDrafts {
     }
   }
 
+  /// Deletes every draft, once their folder is removed from the app.
+  Future<void> clear() async {
+    try {
+      await _folder.delete(recursive: true);
+    } on FileSystemException {
+      // None yet, or tried again when the folder is removed again.
+    }
+  }
+
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
   static Future<NoteDraft?> _read(String id, File file) async {

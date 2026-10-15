@@ -5,6 +5,8 @@ import 'package:truce_editor/folders/add_folder_error.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/notes/note_draft.dart';
+import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/platform/app_storage.dart';
 import 'package:truce_editor/platform/device_id.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
@@ -99,6 +101,30 @@ void main() {
     await actions.remove(b);
     expect(container.read(selectedFolderIdProvider), isNull);
     expect(await paths(), isEmpty);
+  });
+
+  test('remove deletes the drafts of that folder only', () async {
+    picker.result = const Ok('/sync/a');
+    await actions.pickAndAdd();
+    picker.result = const Ok('/sync/b');
+    await actions.pickAndAdd();
+    final [a, b] = await container.read(foldersProvider.future);
+    NoteDraft draft() =>
+        NoteDraft(id: '1', path: path('x.md'), base: '', text: 'mine');
+    await container.read(noteDraftsProvider(a.id)).keep(draft());
+    await container.read(noteDraftsProvider(b.id)).keep(draft());
+
+    await actions.remove(a);
+
+    final later = DateTime.now().add(const Duration(days: 1));
+    expect(
+      await container.read(noteDraftsProvider(a.id)).all(before: later),
+      isEmpty,
+    );
+    expect(
+      await container.read(noteDraftsProvider(b.id)).all(before: later),
+      hasLength(1),
+    );
   });
 
   test('change saves the folder', () async {
