@@ -45,6 +45,8 @@ void main() {
     await tester.waitFor(find.text('Create'));
     await tester.enterText(find.byType(TextField), 'Groceries');
     await tester.tapAndSettle(find.text('Create'));
+    // The editor opens once the file is written and rescanned.
+    await tester.waitFor(find.byType(NoteEditorScreen));
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
     await tester.waitFor(find.byTooltip(_savedOnDevice));

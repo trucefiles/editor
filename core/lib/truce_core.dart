@@ -40,6 +40,7 @@ export 'src/changes/fallback_folder_changes.dart';
 export 'src/changes/folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';
+export 'src/common/keyed_task_queue.dart';
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';

@@ -50,6 +50,8 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
     for (final folder in _folders) {
+      // Disposed meanwhile (e.g. the app ends): the result is dropped.
+      if (!ref.mounted) break;
       final services = ref.read(folderServicesProvider(folder.location));
       switch (await services.scanner.scan()) {
         case Ok(value: final scan):

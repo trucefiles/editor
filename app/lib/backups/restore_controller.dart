@@ -35,8 +35,11 @@ class RestoreController extends Notifier<RestoreState> {
     final RestoreState(:choice, :busy) = state;
     if (choice is! Ok<RestoreChoice, StoreError> || busy) return null;
     state = RestoreState(choice: choice, busy: true);
+    // Read before the first await: the screen may close meanwhile, and
+    // the rescan must still run.
+    final scans = ref.read(folderScansProvider.notifier);
     final kept = await _restore.keep(choice.value, resolution);
-    await ref.read(folderScansProvider.notifier).refresh();
+    await scans.refresh();
     if (!ref.mounted) return kept;
     ref.invalidate(allBackupsProvider);
     if (kept is Err) await _load();

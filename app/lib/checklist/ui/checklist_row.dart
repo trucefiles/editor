@@ -52,8 +52,21 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
   late final _text = TextEditingController(text: widget.line.text);
 
   @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChanged);
+  }
+
+  /// The menu shows only on the row being edited.
+  void _onFocusChanged() => setState(() {});
+
+  @override
   void didUpdateWidget(ChecklistItemRow old) {
     super.didUpdateWidget(old);
+    if (old.focusNode != widget.focusNode) {
+      old.focusNode.removeListener(_onFocusChanged);
+      widget.focusNode.addListener(_onFocusChanged);
+    }
     // Text changed elsewhere (another device, undo): show it unless the
     // user is typing here.
     if (!widget.focusNode.hasFocus && _text.text != widget.line.text) {
@@ -63,6 +76,7 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
 
   @override
   void dispose() {
+    widget.focusNode.removeListener(_onFocusChanged);
     _text.dispose();
     super.dispose();
   }
@@ -116,6 +130,10 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                 TextField(
                   controller: _text,
                   focusNode: widget.focusNode,
+                  // Long text wraps instead of scrolling sideways, so a
+                  // swipe on it indents; Enter still adds the next item.
+                  maxLines: null,
+                  textInputAction: TextInputAction.done,
                   style: textStyle,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
@@ -127,14 +145,24 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
               ),
             ),
           ),
-          PopupMenuButton<ItemAction>(
-            tooltip: 'Item actions',
-            onSelected: widget.onAction,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: ItemAction.indent, child: Text('Indent')),
-              PopupMenuItem(value: ItemAction.outdent, child: Text('Outdent')),
-              PopupMenuItem(value: ItemAction.delete, child: Text('Delete')),
-            ],
+          // Kept in the tree while hidden: an open menu outlives the focus.
+          Visibility(
+            visible: widget.focusNode.hasFocus,
+            maintainState: true,
+            maintainAnimation: true,
+            maintainSize: true,
+            child: PopupMenuButton<ItemAction>(
+              tooltip: 'Item actions',
+              onSelected: widget.onAction,
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: ItemAction.indent, child: Text('Indent')),
+                PopupMenuItem(
+                  value: ItemAction.outdent,
+                  child: Text('Outdent'),
+                ),
+                PopupMenuItem(value: ItemAction.delete, child: Text('Delete')),
+              ],
+            ),
           ),
         ],
       ),

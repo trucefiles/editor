@@ -35,7 +35,11 @@ class AutoRescan extends AsyncNotifier<void> {
   Future<void> build() async {
     final subscriptions = <StreamSubscription<RelPath>>[];
     final rescanSoon = Debouncer(_rescan, settle: settleTime, maxWait: maxWait);
+    // This build's own end: `ref.mounted` speaks for the newest build, so
+    // a build that a newer one replaced while it awaited must stop by this.
+    var disposed = false;
     ref.onDispose(() {
+      disposed = true;
       rescanSoon.cancel();
       for (final subscription in subscriptions) {
         unawaited(subscription.cancel());
@@ -43,16 +47,18 @@ class AutoRescan extends AsyncNotifier<void> {
     });
     final active = ref.watch(appActiveProvider);
     final settings = await ref.watch(refreshSettingsProvider.future);
+    if (disposed) return;
     final settingChanged = _lastSettings != null && _lastSettings != settings;
     _lastSettings = settings;
     if (settingChanged) _rescan();
     if (!active) return;
     final folders = await ref.watch(foldersProvider.future);
+    if (disposed) return;
     final changes = await Future.wait([
       for (final folder in folders)
         ref.watch(folderChangesProvider(folder.location).future),
     ]);
-    if (!ref.mounted) return;
+    if (disposed) return;
     for (final folderChanges in changes.nonNulls) {
       subscriptions.add(folderChanges.changes.listen((_) => rescanSoon()));
     }

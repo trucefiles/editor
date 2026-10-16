@@ -25,6 +25,7 @@ import '../note_title.dart';
 import '../note_view.dart';
 import '../note_views_controller.dart';
 import 'edit_state_banner.dart';
+import 'line_break_formatter.dart';
 import 'note_heading.dart';
 import 'note_mark_sheet.dart';
 import 'note_view_button.dart';
@@ -328,6 +329,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       expands: true,
       autofocus: widget.autofocus,
       keyboardType: TextInputType.multiline,
+      inputFormatters: [lineBreakFormatter],
       // The raw source, so monospace: Markdown syntax lines up as
       // in a code editor.
       style: const TextStyle(fontFamily: 'monospace'),

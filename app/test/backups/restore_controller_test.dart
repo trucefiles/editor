@@ -8,6 +8,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/backups/restore_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
@@ -35,6 +36,7 @@ void main() {
 
   File note() => File('${dir.path}/todo.md');
 
+  late ProviderSubscription<RestoreState> watching;
   late NotifierProvider<RestoreController, RestoreState> provider;
 
   /// Backs up [text] as the note before editing, then opens that backup
@@ -50,7 +52,7 @@ void main() {
     final backup = (await container.read(allBackupsProvider.future)).single;
     provider = restoreProvider(backup);
     final loaded = Completer<void>();
-    container.listen(provider, (_, state) {
+    watching = container.listen(provider, (_, state) {
       if (state.choice != null && !loaded.isCompleted) loaded.complete();
     }, fireImmediately: true);
     await loaded.future;
@@ -66,6 +68,18 @@ void main() {
 
     expect(listed.single.folder.path, dir.path);
     expect(listed.single.backup.filePath, path('todo.md'));
+  });
+
+  test('restores and rescans when the screen closes meanwhile', () async {
+    note().writeAsStringSync('# Todo\nnow\n');
+    final controller = await open('# Todo\nbackup\n');
+
+    final kept = controller.keep(const KeepOther());
+    watching.close();
+
+    expect(await kept, isA<Ok<void, ResolveError>>());
+    final scans = await container.read(folderScansProvider.future);
+    expect(scans.notes.single.file.text, '# Todo\nbackup\n');
   });
 
   test('loads the backup next to the note', () async {

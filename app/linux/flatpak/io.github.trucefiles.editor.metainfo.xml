@@ -19,6 +19,20 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.6.0" date="2026-10-16">
+      <description>
+        <ul>
+          <li>Refresh setting: live (where supported), periodic or manual.</li>
+          <li>Backups of the last 7 days, restorable from the home menu.</li>
+          <li>Tap the save icon to save to the folder now.</li>
+          <li>About page with version and license.</li>
+          <li>Fix: adding an item at the top of an indented list no longer nests the items below.</li>
+          <li>Fix: search finds titles taken from file names.</li>
+          <li>Long list items wrap; the item menu shows on the item being edited.</li>
+          <li>Fixes for edits made while a note changed elsewhere, and other edge cases.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-10-15">
       <description>
         <ul>

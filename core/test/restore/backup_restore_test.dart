@@ -66,6 +66,15 @@ void main() {
     expect(keptBackups(), isEmpty);
   });
 
+  test('tells when the folder is gone', () async {
+    final choice = await load();
+    folder.failWith = StoreError.notFound;
+
+    final kept = await restore.keep(choice, const KeepOther());
+
+    expect(kept.error, ResolveError.folderMissing);
+  });
+
   test('keeping the note changes nothing', () async {
     folder.put('todo.md', 'now');
 

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pool/pool.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/platform_wiring.dart';
@@ -27,6 +28,7 @@ final foldersProvider =
 /// The folders added on this device; every change is saved right away.
 class FoldersController extends AsyncNotifier<List<NoteFolder>> {
   final Random _random = Random.secure();
+  final _changes = Pool(1);
 
   FolderSettingsStore get _store => ref.read(folderSettingsStoreProvider);
 
@@ -42,7 +44,10 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
   /// its version folder), a folder inside an added one, or one holding an
   /// added one: their notes would show twice. Compares the folders' host
   /// paths, as a sandbox may show each at its own path.
-  Future<Result<void, AddFolderError>> add(String path) async {
+  Future<Result<void, AddFolderError>> add(String path) =>
+      _oneAtATime(() => _add(path));
+
+  Future<Result<void, AddFolderError>> _add(String path) async {
     final folders = await future;
     final hostPaths = ref.read(hostPathsProvider);
     final segments = _segments(await hostPaths.of(path));
@@ -77,18 +82,27 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     };
   }
 
-  Future<Result<void, SettingsError>> change(NoteFolder changed) async {
-    final folders = await future;
-    return _save([
-      for (final folder in folders) folder.id == changed.id ? changed : folder,
-    ]);
-  }
+  Future<Result<void, SettingsError>> change(NoteFolder changed) =>
+      _oneAtATime(() async {
+        final folders = await future;
+        return _save([
+          for (final folder in folders)
+            folder.id == changed.id ? changed : folder,
+        ]);
+      });
 
   /// Forgets the folder; its files stay untouched.
-  Future<Result<void, SettingsError>> remove(NoteFolder removed) async {
-    final folders = await future;
-    return _save(folders.where((folder) => folder.id != removed.id).toList());
-  }
+  Future<Result<void, SettingsError>> remove(NoteFolder removed) => _oneAtATime(
+    () async {
+      final folders = await future;
+      return _save(folders.where((folder) => folder.id != removed.id).toList());
+    },
+  );
+
+  /// Runs [step] after every earlier change, so each change starts from the
+  /// list the one before saved.
+  Future<T> _oneAtATime<T>(Future<T> Function() step) =>
+      _changes.withResource(step);
 
   Future<Result<void, SettingsError>> _save(List<NoteFolder> folders) async {
     final saved = await _store.save(folders);

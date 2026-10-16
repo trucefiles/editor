@@ -127,6 +127,23 @@ void main() {
     expect(session.state, EditState.saved);
   });
 
+  testWidgets('a newer version under the dialog is never overwritten', (
+    tester,
+  ) async {
+    await pumpBanner(tester);
+    await tester.tap(find.text('Keep this').last);
+    await tester.pumpAndSettle();
+
+    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: later);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('changed again'), findsOneWidget);
+    expect(session.state, EditState.changedElsewhere);
+    expect(session.theirs?.file.text, '# a\ntheirs, newer');
+  });
+
   testWidgets('shows a newer version from elsewhere', (tester) async {
     await pumpBanner(tester);
 

@@ -91,14 +91,13 @@ final class Checklist {
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }
 
-  /// Adds an unchecked item at the left margin before the first item; with
-  /// no items, as [append] does. Returns the new checklist and the new
-  /// line's id.
+  /// Adds an unchecked item before the first item, at its level, so the
+  /// items below never become its subitems; with no items, as [append]
+  /// does. Returns the new checklist and the new line's id.
   (Checklist, int) prepend(String text) {
     final firstItem = lines.indexWhere((line) => line.isItem);
     if (firstItem < 0) return append(text);
-    final sibling = lines[firstItem]._newSibling(_nextId, text);
-    return _insert(firstItem, sibling._withIndent(''));
+    return _insert(firstItem, lines[firstItem]._newSibling(_nextId, text));
   }
 
   /// Removes the item [id] with its subitems.
@@ -255,8 +254,12 @@ final class ChecklistLine {
     );
   }
 
-  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`.
-  static final _itemPattern = RegExp(r'^([ \t]*)([-*+][ \t]+)\[[ xX]\] ?(.*)$');
+  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; as in
+  /// GitHub Flavored Markdown, the box is followed by whitespace or the end
+  /// of the line, so `- [x](url)` is a bulleted link, not an item.
+  static final _itemPattern = RegExp(
+    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?:[ \t]|$)(.*)$',
+  );
 
   final int id;
 
@@ -294,10 +297,12 @@ final class ChecklistLine {
     );
   }
 
+  /// Keeps the prefix as written; a box at the end of the line gets a
+  /// space before its first text.
   ChecklistLine _withText(String text) {
     final item = _item!;
     var prefix = raw.substring(0, item.textStart);
-    if (!prefix.endsWith(' ')) prefix = '$prefix ';
+    if (text.isNotEmpty && prefix.endsWith(']')) prefix = '$prefix ';
     return ChecklistLine._parse(id, '$prefix${_oneLine(text)}');
   }
 

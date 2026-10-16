@@ -6,7 +6,7 @@ import '../../common/full_time.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../all_backups.dart';
-import '../backup_pruning.dart';
+import '../backup_retention.dart';
 import 'backup_kind_text.dart';
 import 'restore_screen.dart';
 

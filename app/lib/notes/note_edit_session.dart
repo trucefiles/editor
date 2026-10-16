@@ -37,6 +37,19 @@ enum EditState {
   keptAsConflict,
 }
 
+/// How [NoteEditSession.keepMine] or [NoteEditSession.loadTheirs] went.
+enum PickResult {
+  /// Kept, or settled meanwhile.
+  done,
+
+  /// No backup could be made: nothing changed.
+  noBackup,
+
+  /// A newer version came than the one the user saw: nothing changed, the
+  /// user picks again.
+  newerVersion,
+}
+
 /// Keeps the text of one open note on this device shortly after the user
 /// stops typing, writes it into the note's file less often, and keeps it in
 /// step with changes from elsewhere. No UI. Listeners hear of every change
@@ -96,7 +109,9 @@ final class NoteEditSession extends ChangeNotifier {
   Note? get theirs => _theirs;
 
   /// The user changed the text; keeps it on the device after [saveDelay]
-  /// without edits.
+  /// without edits. While the file changed or was deleted elsewhere, the
+  /// edits are kept on the device too, but not saved: they must survive
+  /// the app being ended until the user picks.
   void edit(String text) {
     if (text == _text || _state == EditState.keptAsConflict) return;
     _text = text;
@@ -107,7 +122,12 @@ final class NoteEditSession extends ChangeNotifier {
     }
     notifyListeners();
     _timer?.cancel();
-    if (_state == EditState.unsaved) _timer = Timer(saveDelay, _stash);
+    if (_state == EditState.unsaved) {
+      _timer = Timer(saveDelay, _stash);
+    } else if (_state == EditState.changedElsewhere ||
+        _state == EditState.deletedElsewhere) {
+      _timer = Timer(saveDelay, _keepWhilePicking);
+    }
   }
 
   /// Writes pending edits into the file now.
@@ -218,39 +238,39 @@ final class NoteEditSession extends ChangeNotifier {
     return false;
   }
 
-  /// Overwrites the version from elsewhere with the text being edited,
-  /// after a backup of both. `false` if no backup could be made: nothing
-  /// changed.
-  Future<bool> keepMine() async {
-    final theirs = _theirs ?? await _reload();
-    if (theirs == null) return true;
-    if (!await _backUp(theirs)) return false;
+  /// Overwrites the version from elsewhere the user [seen] with the text
+  /// being edited, after a backup of both.
+  Future<PickResult> keepMine(Note seen) async {
+    if (!_isTheirs(seen)) return PickResult.newerVersion;
+    if (!await _backUp(seen)) return PickResult.noBackup;
     // Settled meanwhile, e.g. the file came back to the edits.
-    if (_state != EditState.changedElsewhere) return true;
+    if (_state != EditState.changedElsewhere) return PickResult.done;
+    if (!_isTheirs(seen)) return PickResult.newerVersion;
     // The backed-up version: if a newer one came meanwhile, saving over
     // it fails and asks again, so no version is lost unseen.
-    _note = theirs;
+    _note = seen;
     _theirs = null;
     _set(EditState.unsaved);
     await flush();
-    return true;
+    return PickResult.done;
   }
 
-  /// Drops the edits and shows the version from elsewhere, after a backup
-  /// of both. `false` if no backup could be made: nothing changed.
-  Future<bool> loadTheirs() async {
-    if (_theirs case final theirs?) {
-      if (!await _backUp(theirs)) return false;
-      if (_state != EditState.changedElsewhere) return true;
-      // The newest version from elsewhere, which may have come meanwhile.
-      final latest = _theirs ?? theirs;
-      _note = latest;
-      _text = latest.file.text;
-    }
+  /// Drops the edits and shows the version from elsewhere the user [seen],
+  /// after a backup of both.
+  Future<PickResult> loadTheirs(Note seen) async {
+    if (!_isTheirs(seen)) return PickResult.newerVersion;
+    if (!await _backUp(seen)) return PickResult.noBackup;
+    if (_state != EditState.changedElsewhere) return PickResult.done;
+    if (!_isTheirs(seen)) return PickResult.newerVersion;
+    _note = seen;
+    _text = seen.file.text;
     _theirs = null;
     _settle(EditState.saved);
-    return true;
+    return PickResult.done;
   }
+
+  /// Whether [seen] is still the version from elsewhere to pick against.
+  bool _isTheirs(Note seen) => _theirs?.version == seen.version;
 
   /// Backs up [theirs] and the edits; the edits then save over a version
   /// that is backed up already.
@@ -293,6 +313,16 @@ final class NoteEditSession extends ChangeNotifier {
     }
   }
 
+  /// Keeps the edits on the device while the user has to pick; drops the
+  /// kept ones once the text is back to the file's: nothing to keep.
+  void _keepWhilePicking() {
+    if (_text == _note.file.text) {
+      _staging.drop();
+    } else {
+      unawaited(_keepDraft(_text));
+    }
+  }
+
   /// Keeps the edits on the device; they go into the file when due. Writes
   /// the file right away if the device cannot keep them.
   Future<void> _stash() async {
@@ -313,12 +343,11 @@ final class NoteEditSession extends ChangeNotifier {
   /// [retried] after the file turned out to be only restamped, so a
   /// version that keeps changing cannot loop.
   Future<void> _saveOnce({bool retried = false}) async {
-    if (_state != EditState.unsaved &&
-        _state != EditState.savedOnDevice &&
-        _state != EditState.saveFailed) {
-      return;
-    }
+    if (!_hasEditsToSave) return;
     await _backUpBeforeEdit();
+    // Settled during the backup, e.g. a rescan found the edits in the
+    // file: nothing to write.
+    if (!_hasEditsToSave) return;
     final text = _text;
     switch (await _write(() => _files.save(_note, text))) {
       case Ok(value: final saved):
@@ -341,6 +370,11 @@ final class NoteEditSession extends ChangeNotifier {
         _set(EditState.saveFailed);
     }
   }
+
+  bool get _hasEditsToSave =>
+      _state == EditState.unsaved ||
+      _state == EditState.savedOnDevice ||
+      _state == EditState.saveFailed;
 
   /// Whether [latest] is a new version but holds the same text as [note]:
   /// not a change from elsewhere. Some file systems (e.g. Android's shared

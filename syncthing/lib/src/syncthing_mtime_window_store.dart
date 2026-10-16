@@ -48,7 +48,7 @@ final class SyncthingMtimeWindowStore implements FileStore {
   final Timer Function(Duration, void Function()) _timer;
 
   final Map<RelPath, _FileState> _files = {};
-  final Map<RelPath, Future<void>> _queues = {};
+  final _writes = KeyedTaskQueue<RelPath>();
 
   @override
   Future<Result<Listing, StoreError>> list({
@@ -152,19 +152,8 @@ final class SyncthingMtimeWindowStore implements FileStore {
       });
 
   /// Runs [operation] after every earlier write to [path] is done.
-  Future<T> _serial<T>(RelPath path, Future<T> Function() operation) {
-    final done = (_queues[path] ?? Future<void>.value()).then(
-      (_) => operation(),
-    );
-    final tail = done.then<void>((_) {}, onError: (_) {});
-    _queues[path] = tail;
-    unawaited(
-      tail.whenComplete(() {
-        if (identical(_queues[path], tail)) _queues.remove(path);
-      }),
-    );
-    return done;
-  }
+  Future<T> _serial<T>(RelPath path, Future<T> Function() operation) =>
+      _writes.run(path, operation);
 
   static bool _sameBytes(Uint8List a, Uint8List b) {
     if (a.length != b.length) return false;

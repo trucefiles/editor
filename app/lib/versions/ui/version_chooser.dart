@@ -31,14 +31,11 @@ final class ShownVersion {
   final String keepLabel;
 
   /// What keeping this version does, including which backup is kept
-  /// (e.g. [bothBackedUp]), to confirm it.
+  /// (e.g. that both are backed up), to confirm it.
   final String keptMessage;
 
   final DateTime? modified;
 }
-
-/// Tells that both versions are backed up before one is kept.
-const bothBackedUp = 'A backup of both stays on this device for 7 days.';
 
 /// The one view for every clash between two versions of a note: shows both
 /// and asks before keeping one. The owner of [onKeep] makes the backups

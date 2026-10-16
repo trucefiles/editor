@@ -36,6 +36,12 @@ void main() {
     expect(searchNotes(notes, 'milk'), [milk, shopping]);
   });
 
+  test('finds a title taken from the file name', () {
+    final named = note('Groceries.md', '- [ ] milk');
+
+    expect(searchNotes([named], 'groceries'), [named]);
+  });
+
   test('finds nothing for an empty query', () {
     expect(searchNotes(notes, '  '), isEmpty);
   });

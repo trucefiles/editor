@@ -33,6 +33,12 @@ void main() {
     ]);
   });
 
+  test('a bulleted link is no item', () {
+    final list = Checklist.parse('- [x](https://example.com)\n- [ ][ref]');
+
+    expect(list.lines.map((line) => line.isItem), [false, false]);
+  });
+
   test('hasItems only with checkbox items', () {
     expect(Checklist.parse(doc).hasItems, isTrue);
     expect(Checklist.parse('# Title\ntext').hasItems, isFalse);
@@ -50,6 +56,24 @@ void main() {
     final list = Checklist.parse('  +  [ ] a');
 
     expect(list.setText(idOf(list, 'a'), 'b').text, '  +  [ ] b');
+  });
+
+  test('setText keeps a tab after the box', () {
+    final list = Checklist.parse('- [ ]\tfoo');
+
+    expect(list.setText(list.lines.single.id, 'foox').text, '- [ ]\tfoox');
+  });
+
+  test('an item needs whitespace after the box', () {
+    final list = Checklist.parse('- [ ]tight\n- [x]: def\n- [ ]');
+
+    expect(list.lines.map((line) => line.isItem), [false, false, true]);
+  });
+
+  test('setText separates the first text of an empty item', () {
+    final list = Checklist.parse('- [ ]');
+
+    expect(list.setText(list.lines.single.id, 'a').text, '- [ ] a');
   });
 
   test('item text with line breaks stays one item', () {
@@ -125,13 +149,21 @@ void main() {
   });
 
   group('prepend', () {
-    test('goes before the first item, at the left margin', () {
+    test('goes before the first item, at its level', () {
       final list = Checklist.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
 
       expect(
         list.prepend('bread').$1.text,
-        '# Shopping\n* [ ] bread\n  * [x] milk\n- [ ] eggs\n',
+        '# Shopping\n  * [ ] bread\n  * [x] milk\n- [ ] eggs\n',
       );
+    });
+
+    test('never takes the items below as its subitems', () {
+      final list = Checklist.parse('Groceries:\n  - [ ] milk\n  - [ ] eggs');
+
+      final (added, id) = list.prepend('bread');
+
+      expect(added.toggle(id).clearDone().text, list.text);
     });
 
     test('appends if there are no items', () {

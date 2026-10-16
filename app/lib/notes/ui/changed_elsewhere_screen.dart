@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../backups/backup_retention.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../note.dart';
 import '../note_edit_session.dart';
 
 /// Shows the open note's edits next to the version from elsewhere, in the
@@ -52,18 +54,23 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   }
 
   /// Only while the choice is still open: it may have been settled while
-  /// the user confirmed.
-  Future<void> _keep(VersionSide side) async {
+  /// the user confirmed. [seen]: the version shown when the user tapped.
+  Future<void> _keep(VersionSide side, Note seen) async {
     if (!_asking) return;
     setState(() => _busy = true);
-    final kept = switch (side) {
-      VersionSide.current => await _session.loadTheirs(),
-      VersionSide.other => await _session.keepMine(),
+    final picked = switch (side) {
+      VersionSide.current => await _session.loadTheirs(seen),
+      VersionSide.other => await _session.keepMine(seen),
     };
     if (!mounted) return;
     setState(() => _busy = false);
-    if (!kept) {
-      showSnack(context, 'No backup could be made, so nothing changed.');
+    switch (picked) {
+      case PickResult.done:
+        break;
+      case PickResult.noBackup:
+        showSnack(context, 'No backup could be made, so nothing changed.');
+      case PickResult.newerVersion:
+        showSnack(context, 'It changed again meanwhile. Please choose again.');
     }
   }
 
@@ -96,7 +103,8 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                     '$bothBackedUp',
               ),
               enabled: !_busy,
-              onKeep: _keep,
+              // This build's version: the one shown when the user taps.
+              onKeep: (side) => _keep(side, theirs),
             ),
     );
   }

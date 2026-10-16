@@ -138,6 +138,13 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('the done count counts only checked items', (tester) async {
+    await show(tester, '- [x] a\n  - [ ] sub\n- [ ] b');
+
+    expect(find.text('1 done'), findsOneWidget);
+    await close(tester);
+  });
+
   testWidgets('tab indents under the open item shown above', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [x] done\n- [ ] b');
     await tester.tap(field('b'));
@@ -244,6 +251,57 @@ void main() {
     await close(tester);
   });
 
+  testWidgets('a long press that moves, to select text, does not indent', (
+    tester,
+  ) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+
+    final gesture = await tester.startGesture(tester.getCenter(field('b')));
+    // A finger holding still still jitters a little.
+    await gesture.moveBy(
+      const Offset(1, 1),
+      timeStamp: const Duration(milliseconds: 100),
+    );
+    final held = kLongPressTimeout + const Duration(milliseconds: 100);
+    await tester.pump(held);
+    await gesture.moveBy(const Offset(100, 0), timeStamp: held);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] b');
+    await close(tester);
+  });
+
+  testWidgets('a long item wraps, and a swipe on its text indents it', (
+    tester,
+  ) async {
+    final long = 'long ' * 100;
+    final editor = await show(tester, '- [ ] a\n- [ ] $long');
+
+    await tester.drag(field(long), const Offset(100, 0));
+    await tester.pumpAndSettle();
+
+    expect(editor.list.text, '- [ ] a\n  - [ ] $long');
+    await close(tester);
+  });
+
+  testWidgets('only the row being edited shows its menu', (tester) async {
+    await show(tester, '- [ ] a\n- [ ] b');
+    final menus = find.byTooltip('Item actions').hitTestable();
+    expect(menus, findsNothing);
+
+    await tester.tap(field('b'));
+    await tester.pump();
+
+    expect(menus, findsOneWidget);
+    await tester.tap(menus);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(field('b'), findsNothing);
+    await close(tester);
+  });
+
   testWidgets('a short swipe does nothing', (tester) async {
     final editor = await show(tester, '- [ ] a\n- [ ] b');
 
@@ -263,7 +321,7 @@ void main() {
     await tester.pump();
     // The fields: top add row, a, the new item, b, add row.
     await tester.enterText(find.byType(TextField).at(2), 'x');
-    await tester.tap(field('b'));
+    await tester.tap(field('x'));
     await tester.pump();
 
     await tester.tap(find.byTooltip('Item actions').at(1));

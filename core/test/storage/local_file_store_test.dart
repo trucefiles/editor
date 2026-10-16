@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:test/test.dart';
@@ -257,6 +258,30 @@ void main() {
           bytesOf(text),
           ifUnchanged: await versionOf('a.md'),
         );
+
+    test('a read during a write sees the old or the new file', () async {
+      const size = 32 << 20;
+      await write('a.md', 'a' * size);
+
+      final version = await versionOf('a.md');
+      final writing = inPlace.replace(
+        path('a.md'),
+        bytesOf('b' * size),
+        ifUnchanged: version,
+      );
+      var written = false;
+      unawaited(writing.then((_) => written = true));
+      final reads = <Result<FileContent, StoreError>>[];
+      while (!written) {
+        reads.add(await inPlace.read(path('a.md')));
+      }
+
+      for (final read in reads) {
+        final text = String.fromCharCodes(read.value.bytes);
+        expect(text.length, size);
+        expect({text[0], text[size - 1]}, hasLength(1));
+      }
+    });
 
     test('replaces the text and leaves no temp file', () async {
       await write('a.md', 'old');
