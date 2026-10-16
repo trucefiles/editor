@@ -15,6 +15,7 @@ final class FolderScans {
     required this.subfolders,
     required this.conflicts,
     required this.failedFolders,
+    required this.unreadable,
     required this.startedAt,
   });
 
@@ -32,6 +33,10 @@ final class FolderScans {
   /// Folders that could not be scanned; they have no notes or conflicts.
   final Map<NoteFolder, StoreError> failedFolders;
 
+  /// Each folder's subfolders that could not be read, by folder id; only
+  /// folders that have some.
+  final Map<String, List<RelPath>> unreadable;
+
   /// When the scan began; files written later may show older versions.
   final Moment startedAt;
 
@@ -40,6 +45,15 @@ final class FolderScans {
   /// The subfolders of folder [folderId], empty ones too, sorted by path.
   List<RelPath> subfoldersOf(String folderId) =>
       subfolders[folderId] ?? const [];
+
+  /// Whether this scan could see the note at [key], if it exists: its
+  /// folder was scanned and no subfolder above it was unreadable. If not,
+  /// a note missing from [notes] may still exist.
+  bool covers(NoteKey key) =>
+      !failedFolders.keys.any((folder) => folder.id == key.folderId) &&
+      !(unreadable[key.folderId] ?? const []).any(
+        (folder) => key.path.value.startsWith('${folder.value}/'),
+      );
 
   Note? findNote(NoteKey key) {
     for (final note in notes) {

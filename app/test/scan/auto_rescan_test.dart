@@ -211,6 +211,7 @@ class _CountingScans extends FolderScansController {
     subfolders: const {},
     conflicts: FolderConflicts(const []),
     failedFolders: const {},
+    unreadable: const {},
     startedAt: Moment.now(),
   );
 

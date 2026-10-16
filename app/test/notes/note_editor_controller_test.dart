@@ -29,12 +29,14 @@ void main() {
   FolderScans scans({
     List<Note> notes = const [],
     Map<NoteFolder, StoreError> failed = const {},
+    Map<String, List<RelPath>> unreadable = const {},
   }) => FolderScans(
     notes: notes,
     marks: const {},
     subfolders: const {},
     conflicts: FolderConflicts(const []),
     failedFolders: failed,
+    unreadable: unreadable,
     startedAt: Moment.now(),
   );
 
@@ -62,5 +64,22 @@ void main() {
       isFalse,
     );
     expect(controller.session.state, EditState.saved);
+  });
+
+  test('skips scans that could not read a subfolder above the note', () async {
+    final inSub = (await files.create('b', subfolder: path('sub'))).value;
+    final session = NoteEditSession(inSub, files, tempDrafts());
+    addTearDown(session.dispose);
+
+    final skipped = NoteEditorController(session).onScans(
+      scans(
+        unreadable: {
+          folder.id: [path('sub')],
+        },
+      ),
+    );
+
+    expect(skipped, isFalse);
+    expect(session.state, EditState.saved);
   });
 }

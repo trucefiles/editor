@@ -15,6 +15,10 @@ final class MemoryFileStore implements FileStore {
   /// Folders without files; folders holding files exist implicitly.
   final Set<RelPath> emptyFolders = {};
 
+  /// Folders that [list] can't read: it lists them as unreadable, nothing
+  /// below them. Other operations still reach their files.
+  final Set<RelPath> unreadableFolders = {};
+
   /// How often [list] was called.
   int listCount = 0;
 
@@ -41,9 +45,12 @@ final class MemoryFileStore implements FileStore {
     if (failWith case final error?) return Err(error);
     bool enters(RelPath folder) => enterFolder?.call(folder) ?? true;
 
-    /// Whether [path] and every folder above it are entered.
+    /// Whether [path] and every folder above it are entered and readable.
     bool reached(RelPath? path) =>
-        path == null || (enters(path) && reached(path.parent));
+        path == null ||
+        (enters(path) &&
+            !unreadableFolders.contains(path) &&
+            reached(path.parent));
 
     final folders = {
       for (final path in [...files.keys, ...emptyFolders])
@@ -60,6 +67,10 @@ final class MemoryFileStore implements FileStore {
       folders: [
         for (final folder in folders)
           if (reached(folder)) folder,
+      ],
+      unreadable: [
+        for (final folder in unreadableFolders)
+          if (enters(folder) && reached(folder.parent)) folder,
       ],
     );
     lastListed = [for (final entry in listing.files) entry.path];

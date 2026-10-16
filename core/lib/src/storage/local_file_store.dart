@@ -56,7 +56,7 @@ final class LocalFileStore implements FileStore {
     bool Function(RelPath folder)? enterFolder,
     bool Function(RelPath file)? includeFile,
   }) => _guard(() async {
-    final listing = Listing(files: [], folders: []);
+    final listing = Listing(files: [], folders: [], unreadable: []);
     await _walk(Directory(rootPath), '', (
       enterFolder: enterFolder ?? _all,
       includeFile: includeFile ?? _all,
@@ -157,15 +157,16 @@ final class LocalFileStore implements FileStore {
           listing.files.add(_entry(path, stat));
         }
       } else if (entity is Directory && filters.enterFolder(path)) {
-        // A subfolder that can't be read (e.g. `lost+found`) or is gone by
-        // now is skipped, so it doesn't hide the rest of the folder.
+        // A subfolder that is gone by now is skipped; one that can't be read
+        // (e.g. `lost+found`) is reported, so it doesn't hide the rest of
+        // the folder and what is below it doesn't look deleted.
         try {
           await _walk(entity, '${path.value}/', filters, listing);
           listing.folders.add(path);
-        } on PathAccessException {
-          continue;
         } on PathNotFoundException {
           continue;
+        } on FileSystemException {
+          listing.unreadable.add(path);
         }
       }
     }

@@ -42,9 +42,10 @@ class NoteViewsController extends AsyncNotifier<Map<String, NoteView>> {
   Future<void> forget(NoteKey note) =>
       _change((views) => views.remove(NoteViewStore.storeKey(note)));
 
-  /// Forgets the views of notes that [scans] did not find in folders that
-  /// were scanned, and of folders that are gone. Keeps those of folders
-  /// that could not be scanned. As [remember].
+  /// Forgets the views of notes that [scans] did not find where they could
+  /// be seen, and of folders that are gone. Keeps those of folders that
+  /// could not be scanned, and below subfolders that could not be read.
+  /// As [remember].
   Future<void> prune(FolderScans scans) {
     final found = {
       for (final note in scans.notes) NoteViewStore.storeKey(note.key),
@@ -52,6 +53,10 @@ class NoteViewsController extends AsyncNotifier<Map<String, NoteView>> {
     final unknown = [
       for (final folder in scans.failedFolders.keys)
         NoteViewStore.folderPrefix(folder.id),
+      for (final MapEntry(key: folderId, value: subfolders)
+          in scans.unreadable.entries)
+        for (final subfolder in subfolders)
+          '${NoteViewStore.storeKey((folderId: folderId, path: subfolder))}/',
     ];
     return _change(
       (views) => views.removeWhere(

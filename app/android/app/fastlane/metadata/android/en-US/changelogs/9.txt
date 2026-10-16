@@ -1,9 +1,9 @@
-- Refresh: live (where supported), periodic or manual.
+- Refresh setting: live (where supported), periodic or manual.
 - Backups of the last 7 days, restorable from the home menu.
 - Tap the save icon to save to the folder now.
 - About page with version and license.
-- Fix: adding an item at the top of an indented list no longer nests the items below.
+- Fix: adding an item at the top of an indented list no longer nests those below.
 - Fix: search finds titles taken from file names.
-- Long items wrap; the item menu shows on the item being edited.
+- Long list items wrap; the item menu shows on the item being edited.
 - Each note keeps its Done section choice.
 - More fixes for notes changed elsewhere.

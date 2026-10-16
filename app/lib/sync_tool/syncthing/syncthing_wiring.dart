@@ -34,13 +34,15 @@ FolderServices syncthingFolderServices(
   required PlatformFacts platform,
 }) {
   const adapter = syncthingAdapter;
-  final store = SyncthingMtimeWindowStore(
+  final folder = SyncthingMtimeWindowStore(
     LocalFileStore(
       path,
       adapter.tempFileName,
       replacesInPlace: platform.replacesInPlace,
     ),
   );
+  final reach = FolderReach(folder);
+  final store = ReachReportingStore(folder, reach);
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(
     store: store,
@@ -54,6 +56,7 @@ FolderServices syncthingFolderServices(
     backups: backups,
     restore: BackupRestore(folder: store, backups: backups),
     marks: NoteMarks(store, deviceId: deviceId),
+    reach: reach,
   );
 }
 

@@ -19,16 +19,20 @@ final class SyncthingFolderScanner implements FolderScanner {
       includeFile: SyncthingFileFilter(_filter).includesFile,
     );
     return switch (listed) {
-      Ok(value: Listing(files: final entries, :final folders)) => Ok(
-        FolderScan(
-          files: [
-            for (final entry in entries)
-              if (_filter.includesFile(entry.path)) entry,
-          ],
-          subfolders: folders,
-          conflicts: groupSyncthingConflicts(entries, _filter.includesFile),
+      Ok(
+        value: Listing(files: final entries, :final folders, :final unreadable),
+      ) =>
+        Ok(
+          FolderScan(
+            files: [
+              for (final entry in entries)
+                if (_filter.includesFile(entry.path)) entry,
+            ],
+            subfolders: folders,
+            conflicts: groupSyncthingConflicts(entries, _filter.includesFile),
+            unreadable: unreadable,
+          ),
         ),
-      ),
       Err(:final error) => Err(error),
     };
   }

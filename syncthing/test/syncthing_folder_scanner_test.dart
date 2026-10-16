@@ -22,6 +22,18 @@ void main() {
   });
 
   group('files', () {
+    test('come with the subfolders that could not be read', () async {
+      store
+        ..put('todo.md', 'main')
+        ..put('private/a.md', 'a')
+        ..unreadableFolders.add(path('private'));
+
+      final scan = (await scanner.scan()).value;
+
+      expect(scan.files.map((e) => e.path), [path('todo.md')]);
+      expect(scan.unreadable, [path('private')]);
+    });
+
     test('are the included files, without conflict copies', () async {
       store
         ..put('todo.md', 'main')

@@ -26,11 +26,11 @@
           <li>Backups of the last 7 days, restorable from the home menu.</li>
           <li>Tap the save icon to save to the folder now.</li>
           <li>About page with version and license.</li>
-          <li>Fix: adding an item at the top of an indented list no longer nests the items below.</li>
+          <li>Fix: adding an item at the top of an indented list no longer nests those below.</li>
           <li>Fix: search finds titles taken from file names.</li>
           <li>Long list items wrap; the item menu shows on the item being edited.</li>
           <li>Each note keeps its Done section choice.</li>
-          <li>Fixes for edits made while a note changed elsewhere, and other edge cases.</li>
+          <li>More fixes for notes changed elsewhere.</li>
         </ul>
       </description>
     </release>

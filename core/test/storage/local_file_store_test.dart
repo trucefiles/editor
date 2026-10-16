@@ -95,7 +95,7 @@ void main() {
     });
 
     test(
-      'skips subfolders it cannot read',
+      'lists subfolders it cannot read as unreadable',
       () async {
         await write('a.md', 'a');
         await write('locked/b.md', 'b');
@@ -106,6 +106,7 @@ void main() {
 
         expect(listing.files.map((e) => e.path.value), ['a.md']);
         expect(listing.folders, isEmpty);
+        expect(listing.unreadable, [path('locked')]);
       },
       skip: Platform.isWindows || _isRoot()
           ? 'needs file permissions that apply'

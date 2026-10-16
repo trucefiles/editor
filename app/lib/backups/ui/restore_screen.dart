@@ -4,8 +4,11 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../reach/folder_reach_controller.dart';
+import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/resolve_error_text.dart';
 import '../../versions/ui/compare_app_bar.dart';
+import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/version_text.dart';
 import '../all_backups.dart';
@@ -59,11 +62,23 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         file: backup.filePath,
         note: 'Backup: ${backup.kind.text}',
       ),
-      body: switch (choice) {
-        Err(:final error) => Center(child: Text(error.text)),
-        Ok(value: final choice) => _chooser(choice, busy),
-        null => const Center(child: CircularProgressIndicator()),
-      },
+      body: Column(
+        children: [
+          UnreachableBanner(folder, message: waitMessage),
+          Expanded(
+            child: switch (choice) {
+              Err(:final error) => Center(child: Text(error.text)),
+              Ok(value: final choice) => _chooser(
+                choice,
+                busy ||
+                    ref.watch(folderReachProvider(folder.location)) ==
+                        Reach.unreachable,
+              ),
+              null => const Center(child: CircularProgressIndicator()),
+            },
+          ),
+        ],
+      ),
     );
   }
 

@@ -75,12 +75,14 @@ void main() {
     FolderScans scans(
       List<Note> notes, {
       Map<NoteFolder, StoreError> failed = const {},
+      Map<String, List<RelPath>> unreadable = const {},
     }) => FolderScans(
       notes: notes,
       marks: const {},
       subfolders: const {},
       conflicts: FolderConflicts(const []),
       failedFolders: failed,
+      unreadable: unreadable,
       startedAt: Moment.now(),
     );
 
@@ -105,6 +107,25 @@ void main() {
       await views.prune(scans([], failed: {home: StoreError.ioFailure}));
 
       expect(views.viewOf(unread.key), NoteView.rendered);
+    });
+
+    test('keeps views below subfolders that could not be read', () async {
+      final hidden = noteAt(work, 'private/a.md');
+      final gone = noteAt(work, 'privateer.md');
+      await views.remember(hidden.key, NoteView.rendered);
+      await views.remember(gone.key, NoteView.text);
+
+      await views.prune(
+        scans(
+          [],
+          unreadable: {
+            work.id: [path('private')],
+          },
+        ),
+      );
+
+      expect(views.viewOf(hidden.key), NoteView.rendered);
+      expect(views.viewOf(gone.key), isNull);
     });
   });
 }

@@ -19,6 +19,7 @@ final class FolderScan {
     required this.files,
     required this.subfolders,
     required this.conflicts,
+    this.unreadable = const [],
   });
 
   /// Files the `FileFilter` includes; never the sync tool's own files.
@@ -30,4 +31,8 @@ final class FolderScan {
 
   /// Pending conflicts of included files, grouped by main file.
   final List<Conflict> conflicts;
+
+  /// Subfolders that could not be read: what is below them is unknown, not
+  /// gone.
+  final List<RelPath> unreadable;
 }

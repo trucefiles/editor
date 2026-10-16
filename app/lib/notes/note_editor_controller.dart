@@ -9,15 +9,12 @@ final class NoteEditorController {
   final NoteEditSession session;
 
   /// Hands what [scans] found for the note to the [session]. Skips scans
-  /// in which the note's folder failed: they found no notes there, which
-  /// says nothing about the note. Returns `true` if the text was replaced
-  /// by the latest file content.
+  /// that could not see the note (its folder failed, or a subfolder above
+  /// it was unreadable): not finding it there says nothing about it.
+  /// Returns `true` if the text was replaced by the latest file content.
   bool onScans(FolderScans scans) {
     final note = session.note;
-    final folderFailed = scans.failedFolders.keys.any(
-      (folder) => folder.id == note.folder.id,
-    );
-    if (folderFailed) return false;
+    if (!scans.covers(note.key)) return false;
     return session.onRescan(
       scans.findNote(note.key),
       scannedAt: scans.startedAt,

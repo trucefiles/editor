@@ -5,8 +5,12 @@ import 'package:truce_core/truce_core.dart';
 import '../../backups/backup_retention.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
+import '../../folders/note_folder.dart';
+import '../../reach/folder_reach_controller.dart';
+import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/resolve_error_text.dart';
 import '../../versions/ui/compare_app_bar.dart';
+import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../conflict_controller.dart';
 import '../conflict_sides.dart';
@@ -60,13 +64,27 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         file: conflict.conflict.mainPath,
         note: count > 1 ? '$count other versions, oldest first' : null,
       ),
-      body: switch (sides) {
-        Err(:final error) => Center(child: Text(error.text)),
-        Ok(value: final sides) => _chooser(conflict.conflict, sides, busy),
-        null => const Center(child: CircularProgressIndicator()),
-      },
+      body: Column(
+        children: [
+          UnreachableBanner(conflict.folder, message: waitMessage),
+          Expanded(
+            child: switch (sides) {
+              Err(:final error) => Center(child: Text(error.text)),
+              Ok(value: final sides) => _chooser(
+                conflict.conflict,
+                sides,
+                busy || _unreachable(conflict.folder),
+              ),
+              null => const Center(child: CircularProgressIndicator()),
+            },
+          ),
+        ],
+      ),
     );
   }
+
+  bool _unreachable(NoteFolder folder) =>
+      ref.watch(folderReachProvider(folder.location)) == Reach.unreachable;
 
   Widget _chooser(Conflict conflict, ConflictSides sides, bool busy) {
     final deleted = sides.current == null;
