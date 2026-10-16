@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import '../common/result.dart';
+import '../filter/file_filter.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 import 'folder_changes.dart';
 
 /// [FolderChanges] found by listing the folder every [interval] and
 /// comparing the listing with the one before. Works on any [FileStore].
+/// Lists only the files [followed] includes, so other folders cost
+/// nothing.
 ///
 /// A folder that is gone counts as empty, so its files show as deleted
 /// and again as created once it is back. Other listing failures skip the
@@ -15,15 +18,15 @@ final class PolledFolderChanges implements FolderChanges {
   const PolledFolderChanges(
     this._store, {
     required this.interval,
-    this.enterFolder,
+    required this.followed,
   });
 
   final FileStore _store;
 
   final Duration interval;
 
-  /// Folders to look into, as for [FileStore.list]; all if `null`.
-  final bool Function(RelPath folder)? enterFolder;
+  /// The files and folders whose changes count.
+  final FileFilter followed;
 
   @override
   Stream<RelPath> get changes {
@@ -59,7 +62,10 @@ final class PolledFolderChanges implements FolderChanges {
   /// Every file's version; empty if the folder is gone, `null` if it could
   /// not be listed.
   Future<Map<RelPath, FileVersion>?> _snapshot() async =>
-      switch (await _store.list(enterFolder: enterFolder)) {
+      switch (await _store.list(
+        enterFolder: followed.includesFolder,
+        includeFile: followed.includesFile,
+      )) {
         Ok(:final value) => {
           for (final file in value.files) file.path: file.version,
         },

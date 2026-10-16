@@ -8,6 +8,8 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
+import 'package:truce_editor/notes/note_view.dart';
+import 'package:truce_editor/notes/note_views_controller.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -40,6 +42,10 @@ void main() {
   Future<FolderScans> scans() => container.read(folderScansProvider.future);
 
   File file(Directory dir, String name) => File('${dir.path}/$name');
+
+  /// This device's marks file in [dir].
+  String marksFile(Directory dir) =>
+      file(dir, '.truce/marks/0123456789abcdef.json').readAsStringSync();
 
   Future<Note> noteIn(Directory dir, String name, String text) async {
     file(dir, name)
@@ -114,6 +120,33 @@ void main() {
     expect(await actions.undoDelete(deleted), isA<Ok<void, StoreError>>());
     expect(file(work, 'plan.md').readAsStringSync(), '# Plan\nmine\n');
     expect((await scans()).findNote(note.key), isNotNull);
+  });
+
+  test('delete drops the mark and view; undo brings them back', () async {
+    final note = await noteIn(work, 'plan.md', '# Plan\n');
+    final views = container.read(noteViewsProvider.notifier);
+    const mark = NoteMark(pinned: true, doneSection: false);
+    await actions.setMark(note, mark);
+    await views.remember(note.key, NoteView.rendered);
+
+    final deleted = (await actions.delete(note, '# Plan\n')).value;
+    expect(marksFile(work), isNot(contains('plan.md')));
+    expect(views.viewOf(note.key), isNull);
+
+    await actions.undoDelete(deleted);
+    expect((await scans()).markOf(note.key), mark);
+    expect(views.viewOf(note.key), NoteView.rendered);
+  });
+
+  test('a failed undo brings back no mark', () async {
+    final note = await noteIn(work, 'plan.md', '# Plan\n');
+    await actions.setMark(note, const NoteMark(pinned: true));
+    final deleted = (await actions.delete(note, '# Plan\n')).value;
+    file(work, 'plan.md').writeAsStringSync('# Other\n');
+
+    await actions.undoDelete(deleted);
+
+    expect((await scans()).markOf(note.key), NoteMark.none);
   });
 
   test('delete fails if the note changed since it was read', () async {

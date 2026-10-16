@@ -16,7 +16,12 @@ void main() {
     now: () => clock = clock.add(const Duration(seconds: 1)),
   );
 
-  setUp(() => store = MemoryFileStore());
+  setUp(
+    () => store = MemoryFileStore()
+      ..put('todo.md', 'todo')
+      ..put('plan.md', 'plan')
+      ..put('lists/shop.md', 'shop'),
+  );
 
   test('reads back what was set', () async {
     final marks = device('phone');
@@ -48,6 +53,9 @@ void main() {
     await device('laptop').set(path('todo.md'), teal);
 
     expect(store.files.keys.map((p) => p.value), [
+      'todo.md',
+      'plan.md',
+      'lists/shop.md',
       '.truce/marks/phone.json',
       '.truce/marks/laptop.json',
     ]);
@@ -70,6 +78,58 @@ void main() {
     await device('laptop').set(path('todo.md'), NoteMark.none);
 
     expect((await device('phone').load()).value, isEmpty);
+  });
+
+  test('keeps whether a note shows a Done section', () async {
+    const noDone = NoteMark(doneSection: false);
+    await device('phone').set(path('todo.md'), noDone);
+
+    expect((await device('laptop').load()).value, {path('todo.md'): noDone});
+  });
+
+  test('remove drops the mark of a note', () async {
+    final marks = device('phone');
+    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('plan.md'), teal);
+
+    await marks.remove(path('todo.md'));
+
+    expect((await marks.load()).value, {path('plan.md'): teal});
+  });
+
+  test('remove writes nothing if there is nothing to drop', () async {
+    final marks = device('phone');
+    await marks.set(path('todo.md'), pinned);
+    final before = store.files[path('.truce/marks/phone.json')]!.version;
+
+    expect(await marks.remove(path('plan.md')), isA<Ok<void, StoreError>>());
+    expect(store.files[path('.truce/marks/phone.json')]!.version, before);
+  });
+
+  test('each write drops the marks of gone notes', () async {
+    final marks = device('phone');
+    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('lists/shop.md'), teal);
+    // Deleted or renamed outside the app.
+    store.files.remove(path('todo.md'));
+    store.files.remove(path('lists/shop.md'));
+
+    await marks.set(path('plan.md'), pinned);
+
+    expect(
+      store.textOf('.truce/marks/phone.json'),
+      allOf(contains('plan.md'), isNot(contains('todo.md'))),
+    );
+    expect(store.textOf('.truce/marks/phone.json'), isNot(contains('shop')));
+  });
+
+  test("never drops other devices' marks", () async {
+    await device('laptop').set(path('todo.md'), pinned);
+    store.files.remove(path('todo.md'));
+
+    await device('phone').set(path('plan.md'), teal);
+
+    expect(store.textOf('.truce/marks/laptop.json'), contains('todo.md'));
   });
 
   test('ignores files outside the marks folder and unreadable ones', () async {

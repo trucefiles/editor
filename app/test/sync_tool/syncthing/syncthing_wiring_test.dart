@@ -58,6 +58,46 @@ void main() {
 
       expect(seen, [path('a.md')]);
     });
+
+    for (final (name, refresh) in [
+      ('polled', periodic.copyWith(interval: const Duration(milliseconds: 20))),
+      ('watched', live),
+    ]) {
+      test('$name, follow only notes, conflict copies and marks', () async {
+        final folder = tempFolder();
+        final changes = syncthingFolderFollowing(
+          folder.path,
+          refresh,
+          hostFacts(),
+        ).changes!;
+        final seen = <RelPath>{};
+        final subscription = changes.changes.listen(seen.add);
+        addTearDown(subscription.cancel);
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+
+        for (final file in [
+          '.git/HEAD',
+          '.obsidian/workspace.json',
+          '.a.md.swp',
+          'a.md~',
+          'notes.txt',
+          'sub/a.md',
+          'a.sync-conflict-20261003-134809-ABCDEFG.md',
+          '.truce/marks/laptop.json',
+        ]) {
+          File('${folder.path}/$file')
+            ..parent.createSync(recursive: true)
+            ..writeAsStringSync('a');
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+
+        expect(seen, {
+          path('sub/a.md'),
+          path('a.sync-conflict-20261003-134809-ABCDEFG.md'),
+          path('.truce/marks/laptop.json'),
+        });
+      });
+    }
   });
 
   group('notices', () {

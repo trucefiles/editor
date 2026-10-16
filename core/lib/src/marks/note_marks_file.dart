@@ -14,13 +14,15 @@ typedef StampedMark = ({NoteMark mark, DateTime changed});
 ///   "lists/todo.md": {
 ///     "pinned": true,
 ///     "color": "teal",
+///     "doneSection": false,
 ///     "changed": "2026-10-13T18:40:00.000Z"
 ///   }
 /// }
 /// ```
 ///
 /// Keeps unmarked notes too (`"pinned": false, "color": null`), so an unpin
-/// beats an older pin from another device.
+/// beats an older pin from another device. `doneSection` may be missing
+/// (files of older app versions): it is then `true`.
 abstract final class NoteMarksFile {
   /// The marks in [bytes]. Skips entries it cannot read; `null` if the
   /// whole file is unreadable.
@@ -55,6 +57,7 @@ abstract final class NoteMarksFile {
   static Map<String, Object?> _encodeEntry(StampedMark stamped) => {
     'pinned': stamped.mark.pinned,
     'color': stamped.mark.color,
+    'doneSection': stamped.mark.doneSection,
     'changed': stamped.changed.toUtc().toIso8601String(),
   };
 
@@ -64,13 +67,25 @@ abstract final class NoteMarksFile {
       'color': final String? color,
       'changed': final String changed,
     } =>
-      switch (DateTime.tryParse(changed)) {
-        final time? => (
-          mark: NoteMark(pinned: pinned, color: color),
+      switch ((DateTime.tryParse(changed), _doneSection(json))) {
+        (final time?, final doneSection?) => (
+          mark: NoteMark(
+            pinned: pinned,
+            color: color,
+            doneSection: doneSection,
+          ),
           changed: time,
         ),
-        null => null,
+        _ => null,
       },
     _ => null,
   };
+
+  /// `true` if missing; `null` if not a bool.
+  static bool? _doneSection(Map<dynamic, dynamic> json) =>
+      switch (json['doneSection']) {
+        null => true,
+        final bool value => value,
+        _ => null,
+      };
 }

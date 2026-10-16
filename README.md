@@ -2,6 +2,10 @@
 
 A peer-to-peer text editor that works natively with Syncthing.
 
+## Known limitations
+
+See [docs/known-limitations.md](docs/known-limitations.md).
+
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).

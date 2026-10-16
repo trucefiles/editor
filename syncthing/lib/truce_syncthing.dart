@@ -7,7 +7,7 @@ library;
 
 export 'src/syncthing_adapter.dart';
 export 'src/syncthing_conflict_source.dart';
-export 'src/syncthing_folder_changes.dart';
+export 'src/syncthing_file_filter.dart';
 export 'src/syncthing_folder_notices.dart';
 export 'src/syncthing_folder_scanner.dart';
 export 'src/syncthing_mtime_window_store.dart';

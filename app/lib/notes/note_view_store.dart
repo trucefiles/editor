@@ -29,5 +29,9 @@ final class NoteViewStore {
   });
 
   /// Key of [note] in the saved map.
-  static String storeKey(NoteKey note) => '${note.folderId}/${note.path.value}';
+  static String storeKey(NoteKey note) =>
+      '${folderPrefix(note.folderId)}${note.path.value}';
+
+  /// How the keys of the notes in folder [folderId] start.
+  static String folderPrefix(String folderId) => '$folderId/';
 }

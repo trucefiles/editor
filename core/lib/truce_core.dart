@@ -50,6 +50,7 @@ export 'src/conflicts/default_conflict_service.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
+export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/markdown/checklist.dart';
