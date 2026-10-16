@@ -34,13 +34,15 @@ FolderServices syncthingFolderServices(
   required PlatformFacts platform,
 }) {
   const adapter = syncthingAdapter;
-  final store = SyncthingMtimeWindowStore(
+  final folder = SyncthingMtimeWindowStore(
     LocalFileStore(
       path,
       adapter.tempFileName,
       replacesInPlace: platform.replacesInPlace,
     ),
   );
+  final reach = FolderReach(folder);
+  final store = ReachReportingStore(folder, reach);
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(
     store: store,
@@ -54,23 +56,27 @@ FolderServices syncthingFolderServices(
     backups: backups,
     restore: BackupRestore(folder: store, backups: backups),
     marks: NoteMarks(store, deviceId: deviceId),
+    reach: reach,
   );
 }
 
 /// How changes to the Syncthing folder at [path] are found, as [refresh]
 /// asks, and what to tell the user about the folder; built together, so
-/// the notices see how changes are actually followed.
+/// the notices see how changes are actually followed. Polls tell [reach]
+/// how they went, like every other access to the folder.
 ///
 /// Changes are `null` for manual refresh. Otherwise watched, and polled
 /// once watching fails; or only polled, at the set interval.
 FolderFollowing syncthingFolderFollowing(
   String path,
   RefreshSettings refresh,
-  PlatformFacts platform,
-) {
+  PlatformFacts platform, {
+  required FolderReach reach,
+}) {
   const adapter = syncthingAdapter;
   final polled = PolledFolderChanges(
-    LocalFileStore(path, adapter.tempFileName),
+    // A poll that works brings an unreachable folder back.
+    ReachReportingStore(LocalFileStore(path, adapter.tempFileName), reach),
     interval: refresh.interval,
     followed: _followed,
   );

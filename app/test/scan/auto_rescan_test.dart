@@ -8,6 +8,7 @@ import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_controller.dart';
 import 'package:truce_editor/scan/auto_rescan.dart';
@@ -21,6 +22,7 @@ void main() {
   late StreamController<RelPath> changes;
   late _CountingScans scans;
   late ProviderContainer container;
+  late NoteFolder folder;
 
   /// Starts auto refresh for one folder whose changes come from [changes];
   /// none are looked for if [manual]. With [folders], the folder list
@@ -33,7 +35,7 @@ void main() {
     // Broadcast: a rebuild listens again.
     changes = StreamController<RelPath>.broadcast();
     scans = _CountingScans();
-    final folder = folderAt(tempFolder());
+    folder = folderAt(tempFolder());
     container = ProviderContainer(
       overrides: [
         foldersProvider.overrideWith(
@@ -45,6 +47,7 @@ void main() {
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
         folderScansProvider.overrideWith(() => scans),
         refreshSettingsProvider.overrideWith(_FixedSettings.new),
+        folderReachProvider.overrideWith2(_SettableReach.new),
       ],
     );
     addTearDown(container.dispose);
@@ -55,6 +58,23 @@ void main() {
   Future<void> settle() => Future<void>.delayed(
     AutoRescan.settleTime + const Duration(milliseconds: 100),
   );
+
+  test('follows a folder afresh once it is reachable again', () async {
+    await start();
+    var listens = 0;
+    changes.onListen = () => listens++;
+    final reach = container.read(
+      folderReachProvider(folder.location).notifier,
+    ) as _SettableReach;
+
+    reach.set(Reach.unreachable);
+    await container.read(autoRescanProvider.future);
+    final before = listens;
+    reach.set(Reach.reachable);
+    await container.read(autoRescanProvider.future);
+
+    expect(listens, before + 1);
+  });
 
   test('rescans once for changes that come close together', () async {
     await start();
@@ -211,9 +231,20 @@ class _CountingScans extends FolderScansController {
     subfolders: const {},
     conflicts: FolderConflicts(const []),
     failedFolders: const {},
+    unreadable: const {},
     startedAt: Moment.now(),
   );
 
   @override
   Future<void> refresh() async => refreshes++;
+}
+
+/// One reach for every folder, set by the test.
+class _SettableReach extends FolderReachController {
+  _SettableReach(super.location);
+
+  @override
+  Reach build() => Reach.reachable;
+
+  void set(Reach reach) => state = reach;
 }

@@ -72,6 +72,7 @@ void main() {
           backups: FileBackups(backups),
           restore: services.restore,
           marks: services.marks,
+          reach: services.reach,
         ),
       ),
       tempDrafts(),

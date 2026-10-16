@@ -24,6 +24,8 @@
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).
+/// 13. `reach`: whether a folder can be reached, from how accesses to its
+///    files go ([FolderReach]).
 ///
 /// `versions` holds what conflicts and restore share: the user's choice
 /// between two versions of a file ([Resolution]) and why keeping it failed
@@ -56,6 +58,8 @@ export 'src/filter/file_filter.dart';
 export 'src/markdown/checklist.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
+export 'src/reach/folder_reach.dart';
+export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
 export 'src/storage/file_store.dart';

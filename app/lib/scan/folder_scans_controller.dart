@@ -50,6 +50,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     final subfolders = <String, List<RelPath>>{};
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
+    final unreadable = <String, List<RelPath>>{};
     for (final folder in _folders) {
       // Disposed meanwhile (e.g. the app ends): the result is dropped.
       if (!ref.mounted) break;
@@ -65,6 +66,9 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
           conflicts.addAll(
             scan.conflicts.map((conflict) => FolderConflict(folder, conflict)),
           );
+          if (scan.unreadable.isNotEmpty) {
+            unreadable[folder.id] = scan.unreadable;
+          }
         case Err(:final error):
           failed[folder] = error;
       }
@@ -80,6 +84,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
       subfolders: subfolders,
       conflicts: FolderConflicts(conflicts),
       failedFolders: failed,
+      unreadable: unreadable,
       startedAt: startedAt,
     );
   }

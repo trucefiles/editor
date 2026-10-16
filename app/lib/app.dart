@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'notes/ui/notes_screen.dart';
+import 'reach/ui/reach_overlay.dart';
 import 'theme/app_theme.dart';
 import 'tray/close_to_tray_controller.dart';
 
-/// Root widget: app-wide theme, the first screen, and the tray.
+/// Root widget: app-wide theme, the first screen, the tray, and the
+/// overlay while a folder is being reached again.
 class TruceApp extends ConsumerStatefulWidget {
   const TruceApp({super.key});
 
@@ -29,9 +31,11 @@ class _TruceAppState extends ConsumerState<TruceApp> {
       navigatorKey: _navigator,
       theme: appTheme(Brightness.light),
       darkTheme: appTheme(Brightness.dark),
-      builder: (context, child) => MouseBackNavigation(
-        navigator: _navigator,
-        child: KeypadNavigation(child: child!),
+      builder: (context, child) => ReachOverlay(
+        child: MouseBackNavigation(
+          navigator: _navigator,
+          child: KeypadNavigation(child: child!),
+        ),
       ),
       home: const NotesScreen(),
     );

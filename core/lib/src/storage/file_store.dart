@@ -16,7 +16,9 @@ abstract interface class FileStore {
   /// Every file and folder below the root, recursively, hidden ones
   /// included. Folders for which [enterFolder] returns `false` are not
   /// walked; files for which [includeFile] returns `false` are skipped
-  /// before anything else is read about them.
+  /// before anything else is read about them. A subfolder that can't be
+  /// read is listed in [Listing.unreadable]; only a root that can't be read
+  /// fails the listing.
   Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
     bool Function(RelPath file)? includeFile,
@@ -52,13 +54,21 @@ abstract interface class FileStore {
 
 /// What [FileStore.list] found.
 final class Listing {
-  const Listing({required this.files, required this.folders});
+  const Listing({
+    required this.files,
+    required this.folders,
+    this.unreadable = const [],
+  });
 
   final List<FileEntry> files;
 
   /// The folders that were walked, empty ones included: [FileStore.list]'s
   /// `enterFolder` accepted them and they could be read.
   final List<RelPath> folders;
+
+  /// Folders that `enterFolder` accepted but that could not be read (e.g.
+  /// no access): what is below them is unknown, not gone.
+  final List<RelPath> unreadable;
 }
 
 /// Names the temp file of an atomic write. [randomToken] keeps concurrent

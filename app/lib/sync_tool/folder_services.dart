@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -19,8 +21,10 @@ final class FolderServices {
     required this.backups,
     required this.restore,
     required this.marks,
+    required this.reach,
   });
 
+  /// Tells [reach] how each access went.
   final FileStore store;
   final FolderScanner scanner;
 
@@ -36,18 +40,26 @@ final class FolderServices {
   final BackupRestore restore;
 
   final NoteMarks marks;
+
+  /// Whether the folder can be reached, as accesses through [store] show.
+  final FolderReach reach;
 }
 
 /// Picks the sync tool, Syncthing, for a folder's services. This file is
 /// the only place that picks it.
-final folderServicesProvider = Provider.family<FolderServices, FolderLocation>(
-  (ref, location) => syncthingFolderServices(
+final folderServicesProvider = Provider.family<FolderServices, FolderLocation>((
+  ref,
+  location,
+) {
+  final services = syncthingFolderServices(
     location.path,
     backupsPath: ref.watch(appStorageProvider).backupsPath(location.id),
     deviceId: ref.watch(deviceIdProvider),
     platform: ref.watch(platformFactsProvider),
-  ),
-);
+  );
+  ref.onDispose(() => unawaited(services.reach.dispose()));
+  return services;
+});
 
 /// The sync tool's file-name rules, e.g. to refuse adding a folder of its
 /// own. Picks the same sync tool as [folderServicesProvider].
@@ -64,6 +76,7 @@ final _folderFollowingProvider =
         location.path,
         await ref.watch(refreshSettingsProvider.future),
         ref.watch(platformFactsProvider),
+        reach: ref.watch(folderServicesProvider(location)).reach,
       ),
     );
 

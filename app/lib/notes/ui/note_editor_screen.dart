@@ -13,6 +13,8 @@ import '../../common/snack.dart';
 import '../../common/toggle_label.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../markdown/markdown_view.dart';
+import '../../reach/folder_reach_controller.dart';
+import '../../reach/ui/unreachable_banner.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
@@ -55,7 +57,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _files,
     ref.read(noteDraftsProvider(widget.note.folder.id)),
   );
-  late final _controller = NoteEditorController(_session);
+  late final _controller = NoteEditorController(
+    _session,
+    reachSettled: ref
+        .read(folderReachProvider(widget.note.folder.location).notifier)
+        .settled,
+  );
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
@@ -110,16 +117,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     setState(() {});
   }
 
-  /// Leaves only once the edits are in the file or in a conflict copy;
-  /// asks if they can be kept nowhere.
+  /// Leaves once the edits are kept (see [NoteEditorController.keep]);
+  /// asks if they can be kept nowhere. While the folder can't be reached,
+  /// they stay on this device and go into the file at the next start.
   Future<void> _leave() async {
-    if (await _session.secure() || await _askToDiscard()) _close();
+    if (await _controller.keep() || await _askToDiscard()) _close();
   }
 
   /// On desktop: quits once the edits are kept, or the user discards them.
   Future<AppExitResponse> _onExitRequested() async {
-    if (await _session.secure()) return AppExitResponse.exit;
-    if (await _askToDiscard()) return AppExitResponse.exit;
+    if (await _controller.keep() || await _askToDiscard()) {
+      return AppExitResponse.exit;
+    }
     return AppExitResponse.cancel;
   }
 
@@ -272,6 +281,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   );
 
   Widget _content(BuildContext context) {
+    final unreachable =
+        ref.watch(folderReachProvider(widget.note.folder.location)) ==
+        Reach.unreachable;
+    final readOnly = _isDone || unreachable;
     final scans = ref.watch(folderScansProvider).value;
     final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
     final tint = noteTint(mark.color, Theme.of(context).colorScheme);
@@ -295,7 +308,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _scans.refresh,
           ),
-          if (!_isDone) ...[
+          if (!readOnly) ...[
             NoteViewButton(view: _view, onChanged: _showView),
             _menu(context, mark),
           ],
@@ -305,7 +318,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         children: [
           if (scans?.conflicts.forNote(widget.note.key) case final conflict?)
             ConflictBanner(conflict),
-          EditStateBanner(_session, onClose: _leave),
+          UnreachableBanner(
+            widget.note.folder,
+            message: 'Your text is kept on this device.',
+          ),
+          // Its ways out need the folder.
+          if (!unreachable) EditStateBanner(_session, onClose: _leave),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _scans.refresh,
@@ -313,7 +331,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               // scrollable; sideways scrolling (wide tables) never pulls.
               notificationPredicate: (notification) =>
                   notification.metrics.axis == Axis.vertical,
-              child: _body(mark),
+              child: _body(mark, readOnly: readOnly),
             ),
           ),
         ],
@@ -321,9 +339,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// The note in the chosen view, with its [mark]; read-only once done, as
-  /// the session takes no more edits.
-  Widget _body(NoteMark mark) => switch (_isDone ? NoteView.rendered : _view) {
+  /// The note in the chosen view, with its [mark]; rendered while
+  /// [readOnly]: once done, as the session takes no more edits, or while
+  /// the folder can't be reached.
+  Widget _body(NoteMark mark, {required bool readOnly}) => switch (readOnly
+      ? NoteView.rendered
+      : _view) {
     NoteView.list => ChecklistView(_checklist, separateDone: mark.doneSection),
     NoteView.rendered => MarkdownView(_session.text),
     NoteView.text => TextField(

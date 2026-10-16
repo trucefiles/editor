@@ -117,8 +117,9 @@ final class NoteMarks {
     };
   }
 
-  /// Drops the marks of notes that are no longer in the folder; keeps all
-  /// if that cannot be told. Returns whether it dropped any.
+  /// Drops the marks of notes that are no longer in the folder; keeps
+  /// those that cannot be told, e.g. in a subfolder that can't be read.
+  /// Returns whether it dropped any.
   Future<bool> _dropGone(Map<RelPath, StampedMark> marks) async {
     final notes = marks.keys.map((note) => note.value).toSet();
     final listed = await _store.list(
@@ -126,10 +127,12 @@ final class NoteMarks {
           notes.any((note) => note.startsWith('${folder.value}/')),
       includeFile: (file) => notes.contains(file.value),
     );
-    if (listed case Ok(value: Listing(:final files))) {
+    if (listed case Ok(value: Listing(:final files, :final unreadable))) {
       final present = {for (final file in files) file.path};
+      bool unknown(RelPath note) =>
+          unreadable.any((folder) => note.value.startsWith('${folder.value}/'));
       final before = marks.length;
-      marks.removeWhere((note, _) => !present.contains(note));
+      marks.removeWhere((note, _) => !present.contains(note) && !unknown(note));
       return marks.length != before;
     }
     return false;

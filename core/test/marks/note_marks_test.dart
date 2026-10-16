@@ -172,4 +172,18 @@ void main() {
       StoreError.accessDenied,
     );
   });
+
+  test('a write keeps marks of notes in subfolders it cannot read', () async {
+    final marks = device('phone');
+    await marks.set(path('lists/shop.md'), teal);
+    store.unreadableFolders.add(path('lists'));
+
+    await marks.set(path('todo.md'), pinned);
+    store.unreadableFolders.clear();
+
+    expect((await marks.load()).value, {
+      path('lists/shop.md'): teal,
+      path('todo.md'): pinned,
+    });
+  });
 }

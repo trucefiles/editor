@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../folders/folder_selection.dart';
 import '../folders/note_folder.dart';
+import '../reach/folder_reach_controller.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
 import 'note.dart';
@@ -39,6 +40,14 @@ final class NoteActions {
         byId(_ref.read(lastUsedFolderIdProvider)) ??
         folders.first;
   }
+
+  /// Those of [folders] that new notes can go into: the ones that can be
+  /// reached.
+  List<NoteFolder> reachableOf(List<NoteFolder> folders) => [
+    for (final folder in folders)
+      if (_ref.read(folderReachProvider(folder.location)) != Reach.unreachable)
+        folder,
+  ];
 
   /// Creates a note titled [title] in [folder], inside [subfolder] if
   /// given, remembers [folder] as the next default and rescans, so the grid

@@ -259,20 +259,64 @@ void main() {
     );
   });
 
-  testWidgets('a new note never brings back a folder that is gone', (
+  /// Removes the notes folder, refreshes, and waits through the retries
+  /// until the app marks it as unreachable.
+  Future<void> loseFolder(WidgetTester tester) async {
+    app.notes.renameSync('${app.notes.path}-away');
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.waitFor(find.text('Trying to reach Notes…'));
+    await tester.waitUntil(
+      () => find.text('Trying to reach Notes…').evaluate().isEmpty,
+      timeout: const Duration(seconds: 15),
+    );
+  }
+
+  testWidgets('a folder that is gone is retried, then no new note goes in', (
     tester,
   ) async {
     await addFolder(tester);
     await tester.waitFor(find.byTooltip('New note'));
-    app.notes.deleteSync();
+    await loseFolder(tester);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.enterText(find.byType(TextField), 'Groceries');
-    await tester.tapAndSettle(find.text('Create'));
 
-    await tester.waitFor(find.text('The file or folder no longer exists.'));
+    await tester.waitFor(find.text('No folder can be reached right now.'));
     expect(app.notes.existsSync(), isFalse);
+  });
+
+  testWidgets('an open note is read-only while its folder is unreachable', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await loseFolder(tester);
+
+    await tester.waitFor(find.textContaining("Notes can't be reached."));
+    expect(find.byType(TextField), findsNothing);
+
+    Directory('${app.notes.path}-away').renameSync(app.notes.path);
+    await tester.tapAndSettle(find.text('Retry'));
+    await tester.waitFor(find.byType(TextField));
+    expect(find.textContaining("can't be reached"), findsNothing);
+  });
+
+  testWidgets('back from a note whose folder just went away keeps the edits', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.notes.renameSync('${app.notes.path}-away');
+
+    await tester.pageBack();
+
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+      timeout: const Duration(seconds: 20),
+    );
+    expect(find.text("Your edits can't be saved"), findsNothing);
   });
 
   testWidgets('back keeps edits that clash as a conflict copy', (tester) async {

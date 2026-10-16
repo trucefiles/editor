@@ -14,6 +14,7 @@ import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_filter_bar.dart';
+import '../../folders/ui/folder_problems.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
 import '../../scan/auto_rescan.dart';
@@ -111,12 +112,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
   }
 
-  Future<void> _create(List<NoteFolder> folders) async {
+  Future<void> _create(List<NoteFolder> all) async {
     final actions = ref.read(noteActionsProvider);
     // Change events don't tell about new empty subfolders; a rescan finds
     // them, so the dialog offers them.
     await _refresh();
     if (!mounted) return;
+    final folders = actions.reachableOf(all);
+    if (folders.isEmpty) {
+      return showSnack(context, 'No folder can be reached right now.');
+    }
     final input = await showNewNoteDialog(
       context,
       folders: folders,
@@ -176,14 +181,7 @@ class _NotesBody extends ConsumerWidget {
           folders,
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),
-        for (final MapEntry(key: folder, value: error)
-            in scans?.failedFolders.entries ??
-                const <MapEntry<NoteFolder, StoreError>>[])
-          ListTile(
-            leading: const Icon(Icons.error_outline),
-            title: Text(folder.name),
-            subtitle: Text(error.text),
-          ),
+        if (scans != null) FolderProblems(scans, folders: folders),
         Expanded(
           child: scans == null
               ? const Center(child: CircularProgressIndicator())
