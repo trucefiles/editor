@@ -114,11 +114,16 @@ final class Checklist {
   /// (its subitems) stay where they are.
   Checklist join(int id, {required int into}) {
     final text = lines[_indexOf(id)].text;
-    final joined = _replaceLine(
+    return _replaceLine(
       into,
       (line) => line._withText(line.text + text),
-    );
-    return joined._with([...joined.lines]..removeAt(joined._indexOf(id)));
+    ).removeLine(id);
+  }
+
+  /// Removes only the line of [id]; lines below it (its subitems) stay
+  /// where they are, as deleting an empty line in a text editor.
+  Checklist removeLine(int id) {
+    return _with([...lines]..removeAt(_indexOf(id)));
   }
 
   /// Removes the item [id] with its subitems.

@@ -50,6 +50,9 @@ final class ChecklistEditor extends ChangeNotifier {
     return newId;
   }
 
+  /// See [Checklist.removeLine].
+  void removeLine(int id) => _apply(_list.removeLine(id));
+
   /// See [Checklist.join].
   void join(int id, {required int into}) => _apply(_list.join(id, into: into));
 

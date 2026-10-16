@@ -198,6 +198,12 @@ void main() {
     });
   });
 
+  test('removeLine keeps the subitems in place', () {
+    final list = Checklist.parse('- [ ] a\n- [ ] \n  - [ ] c');
+
+    expect(list.removeLine(idOf(list, '')).text, '- [ ] a\n  - [ ] c');
+  });
+
   group('join', () {
     test("appends the item's text to the other and removes its line", () {
       final list = Checklist.parse('- [ ] milk\n- [x] eggs\nnote');

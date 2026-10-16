@@ -29,6 +29,13 @@ final class RowFocus {
     });
   }
 
+  /// The row [step] rows from row [key] (−1 up, +1 down); `null` past
+  /// the first or last row.
+  Object? near(Object key, int step) {
+    final target = _order.indexOf(key) + step;
+    return target < 0 || target >= _order.length ? null : _order[target];
+  }
+
   /// Moves the focus from row [key] by [step] rows (−1 up, +1 down).
   /// Stays put at the first and last row.
   void move(Object key, int step) {

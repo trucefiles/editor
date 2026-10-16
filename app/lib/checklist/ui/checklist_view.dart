@@ -94,25 +94,51 @@ class _ChecklistViewState extends State<ChecklistView> {
   /// Joins [line] with the item shown next to it in [section] (open or
   /// done blocks), as joining lines in a text editor: Backspace appends
   /// the item to the one above; Delete appends the one below to it, or
-  /// drops the item if it is empty. Does nothing if no item is shown
-  /// there, e.g. text or the end of the section.
+  /// drops the item if it is empty. With no item shown there, e.g. text or
+  /// the end of the section, only an empty item is dropped.
   void _join(List<ChecklistBlock> section, ChecklistLine line, ItemJoin join) {
     final index = section.indexWhere((block) => block.first.id == line.id);
-    final neighbor = index + (join == ItemJoin.above ? -1 : 1);
-    if (index < 0 || neighbor < 0 || neighbor >= section.length) return;
-    if (section[neighbor] case ItemBlock(first: final other)) {
-      switch (join) {
-        case ItemJoin.above:
-          _editor.join(line.id, into: other.id);
-          _focus.focusLater(other.id, caret: other.text.length);
-        case ItemJoin.below when line.text.isEmpty:
-          _editor.join(line.id, into: other.id);
-          _focus.focusLater(other.id, caret: 0);
-        case ItemJoin.below:
-          _editor.join(other.id, into: line.id);
-          _focus.focusLater(line.id, caret: line.text.length);
-      }
+    if (index < 0) return;
+    final step = join == ItemJoin.above ? -1 : 1;
+    final neighbor = index + step < 0
+        ? null
+        : section.elementAtOrNull(index + step);
+    if (neighbor is! ItemBlock) {
+      if (line.text.isEmpty) _drop(line, join);
+      return;
     }
+    final other = neighbor.first;
+    switch (join) {
+      case ItemJoin.above:
+        _editor.join(line.id, into: other.id);
+        _focus.focusLater(other.id, caret: other.text.length);
+      case ItemJoin.below when line.text.isEmpty:
+        _editor.join(line.id, into: other.id);
+        _focus.focusLater(other.id, caret: 0);
+      case ItemJoin.below:
+        _editor.join(other.id, into: line.id);
+        _focus.focusLater(line.id, caret: line.text.length);
+    }
+  }
+
+  /// Drops the empty item [line] and moves the cursor to the row next to
+  /// it: above for Backspace, unless that is the top add row, which may
+  /// go with the item; else below.
+  void _drop(ChecklistLine line, ItemJoin join) {
+    final above = _focus.near(line.id, -1);
+    final target =
+        join == ItemJoin.above && above != null && above != _addTopKey
+        ? above
+        : (_focus.near(line.id, 1) ?? above);
+    _editor.removeLine(line.id);
+    if (target == null) return;
+    final caret = switch (target) {
+      final int id when join == ItemJoin.above =>
+        _editor.list.lines.firstWhere((other) => other.id == id).text.length,
+      int() => 0,
+      _ => null,
+    };
+    _focus.focusLater(target, caret: caret);
   }
 
   @override

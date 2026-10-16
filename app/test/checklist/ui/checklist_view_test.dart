@@ -568,6 +568,39 @@ void main() {
       await close(tester);
     });
 
+    testWidgets('either key drops an empty item with nothing to join', (
+      tester,
+    ) async {
+      final editor = await show(tester, '# T\n- [ ] \n- [ ] a\n- [ ] ');
+
+      await cursorIn(tester, item(0), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '# T\n- [ ] a\n- [ ] ', reason: 'below text');
+      expect(hasFocus(tester, 'a'), isTrue, reason: 'not the top add row');
+
+      await cursorIn(tester, item(1), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '# T\n- [ ] a', reason: 'the last item');
+      expect(
+        tester.widget<TextField>(field('Add item')).focusNode!.hasFocus,
+        isTrue,
+      );
+      await close(tester);
+    });
+
+    testWidgets('drops the only item if it is empty', (tester) async {
+      final editor = await show(tester, '- [ ] ');
+
+      await cursorIn(tester, item(0), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '');
+      await close(tester);
+    });
+
     testWidgets('keys inside the text edit it as usual', (tester) async {
       final editor = await show(tester, '- [ ] milk\n- [ ] eggs');
       await cursorAt(tester, 'eggs', 2);
