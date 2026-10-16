@@ -26,8 +26,11 @@ void main() {
   )..createSync(recursive: true)).writeAsBytesSync(bytes);
 
   /// Loads the notes of the files the folder's scan lists.
-  Future<List<Note>> load() async =>
+  Future<NoteLoad> loadAll() async =>
       loader.load(folder, (await services.scanner.scan()).value.files);
+
+  /// The notes of [loadAll].
+  Future<List<Note>> load() async => (await loadAll()).notes;
 
   test('reads the scanned notes, not other files', () async {
     write('a.md', '# A'.codeUnits);
@@ -106,6 +109,28 @@ void main() {
     final files = (await services.scanner.scan()).value.files;
     File('${dir.path}/a.md').deleteSync();
 
-    expect(await loader.load(folder, files), isEmpty);
+    final loaded = await loader.load(folder, files);
+
+    expect(loaded.notes, isEmpty);
+    expect(loaded.unread, {path('a.md')});
+  });
+
+  test('tells no unread files when all could be read', () async {
+    write('a.md', '# A'.codeUnits);
+    await load();
+    write('a.md', '# B'.codeUnits);
+
+    expect((await loadAll()).unread, isEmpty);
+  });
+
+  test('tells a note it kept in its last version as unread', () async {
+    write('a.md', '# A'.codeUnits);
+    await load();
+    write('a.md', [0xFF, 0xFE, 0xFD]);
+
+    final loaded = await loadAll();
+
+    expect(loaded.notes.single.file.text, '# A');
+    expect(loaded.unread, {path('a.md')});
   });
 }

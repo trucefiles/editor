@@ -17,6 +17,7 @@ final class FolderScans {
     required this.failedFolders,
     required this.unreadable,
     required this.startedAt,
+    this.unreadNotes = const {},
   });
 
   /// Pinned first, then newest first.
@@ -40,16 +41,23 @@ final class FolderScans {
   /// When the scan began; files written later may show older versions.
   final Moment startedAt;
 
+  /// Notes whose files were listed but could not be read in their current
+  /// version (e.g. no access for a moment, no longer text, gone right
+  /// after the listing): [notes] holds their last version, if any.
+  final Set<NoteKey> unreadNotes;
+
   NoteMark markOf(NoteKey key) => marks[key] ?? NoteMark.none;
 
   /// The subfolders of folder [folderId], empty ones too, sorted by path.
   List<RelPath> subfoldersOf(String folderId) =>
       subfolders[folderId] ?? const [];
 
-  /// Whether this scan could see the note at [key], if it exists: its
-  /// folder was scanned and no subfolder above it was unreadable. If not,
-  /// a note missing from [notes] may still exist.
+  /// Whether this scan could see the note at [key] as it is, if it exists:
+  /// its folder was scanned, no subfolder above it was unreadable, and its
+  /// file was read. If not, a note missing from [notes] may still exist,
+  /// and one in [notes] may be older than its file.
   bool covers(NoteKey key) =>
+      !unreadNotes.contains(key) &&
       !failedFolders.keys.any((folder) => folder.id == key.folderId) &&
       !(unreadable[key.folderId] ?? const []).any(
         (folder) => key.path.value.startsWith('${folder.value}/'),

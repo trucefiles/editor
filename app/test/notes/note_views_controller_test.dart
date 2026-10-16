@@ -76,6 +76,7 @@ void main() {
       List<Note> notes, {
       Map<NoteFolder, StoreError> failed = const {},
       Map<String, List<RelPath>> unreadable = const {},
+      Set<NoteKey> unreadNotes = const {},
     }) => FolderScans(
       notes: notes,
       marks: const {},
@@ -84,6 +85,7 @@ void main() {
       failedFolders: failed,
       unreadable: unreadable,
       startedAt: Moment.now(),
+      unreadNotes: unreadNotes,
     );
 
     test('drops views of notes and folders that are gone', () async {
@@ -126,6 +128,15 @@ void main() {
 
       expect(views.viewOf(hidden.key), NoteView.rendered);
       expect(views.viewOf(gone.key), isNull);
+    });
+
+    test('keeps views of notes whose files could not be read', () async {
+      final unread = noteAt(work, 'a.md');
+      await views.remember(unread.key, NoteView.rendered);
+
+      await views.prune(scans([], unreadNotes: {unread.key}));
+
+      expect(views.viewOf(unread.key), NoteView.rendered);
     });
   });
 }

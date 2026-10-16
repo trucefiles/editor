@@ -11,7 +11,9 @@ import 'note.dart';
 /// without damaging them. A note that can't be read as text any more
 /// (e.g. mid-rewrite, briefly no access) keeps its last version while the
 /// file exists, so it doesn't look deleted; saving to it then fails its
-/// change check instead of overwriting anything.
+/// change check instead of overwriting anything. Such notes, and files
+/// that vanished after the scan, are [NoteLoad.unread]: the load does not
+/// know their current version.
 ///
 /// A new version with the same text never moves a note's time back: some
 /// file systems (e.g. Android's shared storage) report a stale file time
@@ -25,38 +27,49 @@ final class NoteLoader {
 
   /// The notes in [files], as listed by the scan of [folder]. [folder] is
   /// passed on every load: the user may rename or recolor it meanwhile.
-  Future<List<Note>> load(NoteFolder folder, List<FileEntry> files) async {
+  Future<NoteLoad> load(NoteFolder folder, List<FileEntry> files) async {
     final next = <RelPath, Note>{};
+    final unread = <RelPath>{};
     for (final entry in files) {
-      final note = await _noteFor(folder, entry);
+      final (:note, :read) = await _noteFor(folder, entry);
       if (note != null) next[entry.path] = note.inFolder(folder);
+      if (!read) unread.add(entry.path);
     }
     _last = next;
-    return next.values.toList();
+    return (notes: next.values.toList(), unread: unread);
   }
 
   /// The last note if unchanged, else a fresh read; the last note if that
   /// fails while the file still exists; `null` if the file vanished, or is
-  /// not text and was never read as text.
-  Future<Note?> _noteFor(NoteFolder folder, FileEntry entry) async {
+  /// not text and was never read as text. [read]: whether the note is the
+  /// listed version or a newer one, not a stand-in.
+  Future<({Note? note, bool read})> _noteFor(
+    NoteFolder folder,
+    FileEntry entry,
+  ) async {
     final last = _last[entry.path];
-    if (last != null && last.version == entry.version) return last;
+    if (last != null && last.version == entry.version) {
+      return (note: last, read: true);
+    }
     switch (await _services.store.read(entry.path)) {
       case Ok(value: final content):
         return switch (TextFile.decode(content.bytes)) {
-          final file? => Note(
-            folder: folder,
-            path: entry.path,
-            file: file,
-            version: content.version,
-            modified: _modified(content.modified, file, last),
+          final file? => (
+            note: Note(
+              folder: folder,
+              path: entry.path,
+              file: file,
+              version: content.version,
+              modified: _modified(content.modified, file, last),
+            ),
+            read: true,
           ),
-          null => last,
+          null => (note: last, read: false),
         };
       case Err(error: StoreError.notFound):
-        return null;
+        return (note: null, read: false);
       case Err():
-        return last;
+        return (note: last, read: false);
     }
   }
 
@@ -69,3 +82,7 @@ final class NoteLoader {
       ? last.modified
       : read;
 }
+
+/// What [NoteLoader.load] found: the notes to show, and the listed files
+/// whose current version could not be read.
+typedef NoteLoad = ({List<Note> notes, Set<RelPath> unread});
