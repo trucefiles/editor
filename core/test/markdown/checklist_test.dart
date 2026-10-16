@@ -148,12 +148,43 @@ void main() {
     });
   });
 
-  group('prepend', () {
-    test('goes before the first item, at its level', () {
+  group('appendAfter', () {
+    test('goes after the item and its subitems, at the margin', () {
+      final list = Checklist.parse(doc);
+
+      expect(
+        list.appendAfter(idOf(list, 'milk'), 'bread').$1.text,
+        '# Shopping\n- [ ] milk\n- [ ] bread\n- [x] eggs\n  - [ ] large\nnote\n',
+      );
+    });
+
+    test('after a subitem, goes after the item it is under', () {
+      final list = Checklist.parse(
+        '- [ ] a\n  - [ ] b\n    - [ ] c\n  - [x] d',
+      );
+
+      expect(
+        list.appendAfter(idOf(list, 'c'), 'e').$1.text,
+        '- [ ] a\n  - [ ] b\n    - [ ] c\n  - [x] d\n- [ ] e',
+      );
+    });
+
+    test('keeps the bullet style of the item', () {
+      final list = Checklist.parse('* [x] a\ntext');
+
+      expect(
+        list.appendAfter(idOf(list, 'a'), 'b').$1.text,
+        '* [x] a\n* [ ] b\ntext',
+      );
+    });
+  });
+
+  group('insertBefore', () {
+    test('goes before the item, at its level', () {
       final list = Checklist.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
 
       expect(
-        list.prepend('bread').$1.text,
+        list.insertBefore(idOf(list, 'milk'), 'bread').$1.text,
         '# Shopping\n  * [ ] bread\n  * [x] milk\n- [ ] eggs\n',
       );
     });
@@ -161,16 +192,44 @@ void main() {
     test('never takes the items below as its subitems', () {
       final list = Checklist.parse('Groceries:\n  - [ ] milk\n  - [ ] eggs');
 
-      final (added, id) = list.prepend('bread');
+      final (added, id) = list.insertBefore(idOf(list, 'milk'), 'bread');
 
       expect(added.toggle(id).clearDone().text, list.text);
     });
+  });
 
-    test('appends if there are no items', () {
+  group('join', () {
+    test("appends the item's text to the other and removes its line", () {
+      final list = Checklist.parse('- [ ] milk\n- [x] eggs\nnote');
+
       expect(
-        Checklist.parse('# Title\n').prepend('a').$1.text,
-        '# Title\n- [ ] a\n',
+        list.join(idOf(list, 'eggs'), into: idOf(list, 'milk')).text,
+        '- [ ] milkeggs\nnote',
       );
+    });
+
+    test('joins into the item below, e.g. to drop an empty item', () {
+      final list = Checklist.parse('- [ ] \n- [x] eggs');
+
+      expect(
+        list.join(idOf(list, ''), into: idOf(list, 'eggs')).text,
+        '- [x] eggs',
+      );
+    });
+
+    test('keeps the subitems of the removed item in place', () {
+      final list = Checklist.parse('- [ ] a\n- [ ] b\n  - [ ] c');
+
+      expect(
+        list.join(idOf(list, 'b'), into: idOf(list, 'a')).text,
+        '- [ ] ab\n  - [ ] c',
+      );
+    });
+
+    test('adds a space after a box at the end of the line', () {
+      final list = Checklist.parse('- [ ]\n- [ ] b');
+
+      expect(list.join(idOf(list, 'b'), into: idOf(list, '')).text, '- [ ] b');
     });
   });
 

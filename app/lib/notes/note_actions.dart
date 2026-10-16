@@ -8,13 +8,12 @@ import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
 import 'note.dart';
 import 'note_files.dart';
-import 'note_view.dart';
-import 'note_views_controller.dart';
+import 'note_settings.dart';
+import 'note_settings_controller.dart';
 
 final noteActionsProvider = Provider<NoteActions>(NoteActions.new);
 
-/// The user's actions on notes: create, delete and undo, marks (pin,
-/// color, "Done" section).
+/// The user's actions on notes: create, delete and undo, color.
 /// No UI: screens ask the user, then call these and show the result.
 ///
 /// Outlives every screen, so an undo still works after the editor closed.
@@ -25,7 +24,8 @@ final class NoteActions {
 
   FolderScansController get _scans => _ref.read(folderScansProvider.notifier);
 
-  NoteViewsController get _views => _ref.read(noteViewsProvider.notifier);
+  NoteSettingsController get _settings =>
+      _ref.read(noteSettingsProvider.notifier);
 
   NoteMarks _marksOf(Note note) =>
       _ref.read(folderServicesProvider(note.folder.location)).marks;
@@ -65,34 +65,34 @@ final class NoteActions {
     return created;
   }
 
-  /// Deletes [note] with its mark and saved view, keeping them and its
+  /// Deletes [note] with its mark and settings, keeping them and its
   /// [text] for [undoDelete]. Fails if the file changed since [note] was
   /// read. No rescan: the open editor would take the note as deleted
   /// elsewhere; it rescans as it closes.
   Future<Result<DeletedNote, StoreError>> delete(Note note, String text) async {
     final mark = markOf(note);
-    final view = _views.viewOf(note.key);
+    final settings = _settings.settingsOf(note.key);
     final deleted = await _ref
         .read(noteFilesProvider(note.folder))
         .delete(note);
     if (deleted case Err(:final error)) return Err(error);
     // Best effort: the next write of the marks drops it anyway.
     await _marksOf(note).remove(note.path);
-    await _views.forget(note.key);
-    return Ok((note: note, text: text, mark: mark, view: view));
+    await _settings.forget(note.key);
+    return Ok((note: note, text: text, mark: mark, settings: settings));
   }
 
-  /// Writes [deleted] back with its mark and view, and rescans. Never
+  /// Writes [deleted] back with its mark and settings, and rescans. Never
   /// overwrites a file that was created at its path meanwhile.
   Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async {
-    final DeletedNote(:note, :text, :mark, :view) = deleted;
+    final DeletedNote(:note, :text, :mark, :settings) = deleted;
     final restored = await _ref
         .read(noteFilesProvider(note.folder))
         .restore(note, text);
     if (restored is Ok) {
       // Even no mark: else an older mark from another device would win.
       await _marksOf(note).set(note.path, mark);
-      if (view != null) await _views.remember(note.key, view);
+      await _settings.edit(note.key, (_) => settings);
     }
     await _scans.refresh();
     return switch (restored) {
@@ -101,7 +101,7 @@ final class NoteActions {
     };
   }
 
-  /// [note]'s pin and color, as last scanned.
+  /// [note]'s color, as last scanned.
   NoteMark markOf(Note note) =>
       _ref.read(folderScansProvider).value?.markOf(note.key) ?? NoteMark.none;
 
@@ -115,6 +115,11 @@ final class NoteActions {
   }
 }
 
-/// A deleted note with its text, mark and saved view, enough to write it
+/// A deleted note with its text, mark and settings, enough to write it
 /// back as it was.
-typedef DeletedNote = ({Note note, String text, NoteMark mark, NoteView? view});
+typedef DeletedNote = ({
+  Note note,
+  String text,
+  NoteMark mark,
+  NoteSettings settings,
+});

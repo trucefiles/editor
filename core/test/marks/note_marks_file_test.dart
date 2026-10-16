@@ -10,13 +10,8 @@ void main() {
 
   test('round-trips marks, unmarked notes included', () {
     final marks = <RelPath, StampedMark>{
-      path('todo.md'): (mark: const NoteMark(pinned: true), changed: changed),
       path('a/b.md'): (mark: const NoteMark(color: 'teal'), changed: changed),
       path('gone.md'): (mark: NoteMark.none, changed: changed),
-      path('list.md'): (
-        mark: const NoteMark(doneSection: false),
-        changed: changed,
-      ),
     };
 
     expect(NoteMarksFile.decode(NoteMarksFile.encode(marks)), marks);
@@ -25,46 +20,45 @@ void main() {
   test('writes readable JSON sorted by path', () {
     final bytes = NoteMarksFile.encode({
       path('z.md'): (mark: NoteMark.none, changed: changed),
-      path('a.md'): (mark: const NoteMark(pinned: true), changed: changed),
+      path('a.md'): (mark: const NoteMark(color: 'teal'), changed: changed),
     });
 
     expect(utf8.decode(bytes), '''
 {
   "a.md": {
-    "pinned": true,
-    "color": null,
-    "doneSection": true,
+    "color": "teal",
     "changed": "2026-10-13T18:40:00.000Z"
   },
   "z.md": {
-    "pinned": false,
     "color": null,
-    "doneSection": true,
     "changed": "2026-10-13T18:40:00.000Z"
   }
 }
 ''');
   });
 
-  test('reads a mark without doneSection, from older versions, as on', () {
-    final decoded = NoteMarksFile.decode(
-      bytesOf(
-        '{"todo.md": {"pinned": true, "color": null, '
-        '"changed": "2026-10-13T18:40:00.000Z"}}',
-      ),
-    );
+  test(
+    'reads marks of older versions, ignoring their pin and Done section',
+    () {
+      final decoded = NoteMarksFile.decode(
+        bytesOf(
+          '{"todo.md": {"pinned": true, "color": "teal", "doneSection": false, '
+          '"changed": "2026-10-13T18:40:00.000Z"}}',
+        ),
+      );
 
-    expect(decoded, {
-      path('todo.md'): (mark: const NoteMark(pinned: true), changed: changed),
-    });
-  });
+      expect(decoded, {
+        path('todo.md'): (
+          mark: const NoteMark(color: 'teal'),
+          changed: changed,
+        ),
+      });
+    },
+  );
 
-  test('skips a mark whose doneSection is not a bool', () {
+  test('skips a mark whose color is not a string', () {
     final decoded = NoteMarksFile.decode(
-      bytesOf(
-        '{"todo.md": {"pinned": true, "color": null, "doneSection": 1, '
-        '"changed": "2026-10-13T18:40:00.000Z"}}',
-      ),
+      bytesOf('{"todo.md": {"color": 1, "changed": "2026-10-13T18:40:00Z"}}'),
     );
 
     expect(decoded, isEmpty);

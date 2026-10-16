@@ -1,39 +1,22 @@
-/// How the user marked one note. Synced through `NoteMarks`.
+/// How the user marked one note for every device. Synced through
+/// `NoteMarks`.
 final class NoteMark {
-  const NoteMark({this.pinned = false, this.color, this.doneSection = true});
+  const NoteMark({this.color});
 
-  /// Not pinned, no color, the default "Done" section.
+  /// No color.
   static const none = NoteMark();
-
-  /// Shown before notes that are not pinned.
-  final bool pinned;
 
   /// Name of a color the app offers, e.g. `teal`; `null` for none. A name,
   /// not a value, so each app picks shades that fit its theme.
   final String? color;
 
-  /// Whether a checklist shows its checked items apart, in a "Done"
-  /// section at the bottom. View only: the file order never changes.
-  final bool doneSection;
-
   bool get isNone => this == none;
 
-  NoteMark withPinned({required bool pinned}) =>
-      NoteMark(pinned: pinned, color: color, doneSection: doneSection);
-
-  NoteMark withColor(String? color) =>
-      NoteMark(pinned: pinned, color: color, doneSection: doneSection);
-
-  NoteMark withDoneSection({required bool doneSection}) =>
-      NoteMark(pinned: pinned, color: color, doneSection: doneSection);
+  NoteMark withColor(String? color) => NoteMark(color: color);
 
   @override
-  bool operator ==(Object other) =>
-      other is NoteMark &&
-      other.pinned == pinned &&
-      other.color == color &&
-      other.doneSection == doneSection;
+  bool operator ==(Object other) => other is NoteMark && other.color == color;
 
   @override
-  int get hashCode => Object.hash(pinned, color, doneSection);
+  int get hashCode => color.hashCode;
 }

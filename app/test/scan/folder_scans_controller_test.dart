@@ -99,20 +99,19 @@ void main() {
     write(dir, 'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Old');
     final folder = folderAt(dir);
     await servicesFor(folder).marks
-        .set(path('a/b/c/todo.md'), const NoteMark(pinned: true));
+        .set(path('a/b/c/todo.md'), const NoteMark(color: 'teal'));
     await start([folder]);
 
     final found = await scans();
 
-    expect(found.notes.first.path, path('a/b/c/todo.md'), reason: 'pinned');
     expect(
       found.notes.map((n) => n.path.value),
       unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
     );
     final deep = (folderId: folder.id, path: path('a/b/c/todo.md'));
     final shallow = (folderId: folder.id, path: path('a/todo.md'));
-    expect(found.markOf(deep).pinned, isTrue);
-    expect(found.markOf(shallow).pinned, isFalse);
+    expect(found.markOf(deep).color, 'teal');
+    expect(found.markOf(shallow), NoteMark.none);
     expect(found.conflicts.forNote(deep), isNotNull);
     expect(found.conflicts.forNote(shallow), isNull);
   });
@@ -167,19 +166,18 @@ void main() {
     ]);
   });
 
-  test('lists pinned notes first and keeps marks by note', () async {
+  test('lists the newest notes first and keeps marks by note', () async {
     final dir = tempFolder();
     write(dir, 'old.md', '# Old', modified: DateTime(2020));
     write(dir, 'new.md', '# New', modified: DateTime(2025));
     final folder = folderAt(dir);
     final marks = servicesFor(folder).marks;
-    await marks.set(path('old.md'), const NoteMark(pinned: true));
     await marks.set(path('new.md'), const NoteMark(color: 'teal'));
     await start([folder]);
 
     final found = await scans();
 
-    expect(found.notes.map((n) => n.title), ['Old', 'New']);
+    expect(found.notes.map((n) => n.title), ['New', 'Old']);
     expect(
       found.markOf((folderId: folder.id, path: path('new.md'))),
       const NoteMark(color: 'teal'),

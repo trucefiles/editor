@@ -20,7 +20,7 @@
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
 /// 10. `markdown`: Markdown documents as line-level edits ([Checklist]).
-/// 11. `marks`: pins and colors of notes, synced inside the folder
+/// 11. `marks`: colors of notes, synced inside the folder
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
 ///    ([FolderChanges]).

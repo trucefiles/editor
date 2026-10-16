@@ -91,6 +91,30 @@ class _ChecklistViewState extends State<ChecklistView> {
     undo,
   );
 
+  /// Joins [line] with the item shown next to it in [section] (open or
+  /// done blocks), as joining lines in a text editor: Backspace appends
+  /// the item to the one above; Delete appends the one below to it, or
+  /// drops the item if it is empty. Does nothing if no item is shown
+  /// there, e.g. text or the end of the section.
+  void _join(List<ChecklistBlock> section, ChecklistLine line, ItemJoin join) {
+    final index = section.indexWhere((block) => block.first.id == line.id);
+    final neighbor = index + (join == ItemJoin.above ? -1 : 1);
+    if (index < 0 || neighbor < 0 || neighbor >= section.length) return;
+    if (section[neighbor] case ItemBlock(first: final other)) {
+      switch (join) {
+        case ItemJoin.above:
+          _editor.join(line.id, into: other.id);
+          _focus.focusLater(other.id, caret: other.text.length);
+        case ItemJoin.below when line.text.isEmpty:
+          _editor.join(line.id, into: other.id);
+          _focus.focusLater(other.id, caret: 0);
+        case ItemJoin.below:
+          _editor.join(other.id, into: line.id);
+          _focus.focusLater(line.id, caret: line.text.length);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final separateDone = widget.separateDone;
@@ -105,12 +129,17 @@ class _ChecklistViewState extends State<ChecklistView> {
         final doneBlocks = blocksOf(
           list.lines.where((line) => done.contains(line.id)),
         );
-        // Above the items only when there are some: else both rows would
-        // add at the same place.
-        final hasOpenItems = open.any((block) => block is ItemBlock);
+        // The add rows sit right above the first open item and right below
+        // the last; without open items, one row adds below all.
+        final (:head, :body, :tail) = splitAtItems(open);
+        final items = [
+          for (final ItemBlock(:first) in body.whereType<ItemBlock>()) first,
+        ];
+        Widget row(ChecklistBlock block, List<ChecklistBlock> section) =>
+            _row(list, block, section);
         _focus.show([
-          if (hasOpenItems) _addTopKey,
-          for (final ItemBlock(:first) in open.whereType<ItemBlock>()) first.id,
+          if (items.isNotEmpty) _addTopKey,
+          for (final item in items) item.id,
           _addRowKey,
           if (_doneExpanded)
             for (final ItemBlock(:first) in doneBlocks.whereType<ItemBlock>())
@@ -120,38 +149,44 @@ class _ChecklistViewState extends State<ChecklistView> {
           // Pulls down even when the items fit, to refresh.
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            if (hasOpenItems)
+            SliverList.list(
+              children: [for (final block in head) row(block, open)],
+            ),
+            if (items.isNotEmpty)
               SliverToBoxAdapter(
                 child: _addRow(
                   _addTopKey,
                   _newTopItem,
-                  _editor.prepend,
+                  (text) => _editor.insertBefore(items.first.id, text),
                   hint: 'Add item at top',
                 ),
               ),
             SliverReorderableList(
-              itemCount: open.length,
+              itemCount: body.length,
               itemBuilder: (context, index) =>
-                  _row(list, open[index], index: index),
+                  _row(list, body[index], open, index: index),
               // The dragged row floats outside the page, so it needs its
               // own Material for its checkbox and text field.
               proxyDecorator: (child, _, _) =>
                   Material(elevation: 4, child: child),
               onReorderItem: (from, to) {
-                final rest = [...open]..removeAt(from);
-                _editor.move(
-                  open[from].first.id,
-                  beforeId: to < rest.length ? rest[to].first.id : null,
-                );
+                final rest = [...body]..removeAt(from);
+                final before = to < rest.length ? rest[to] : tail.firstOrNull;
+                _editor.move(body[from].first.id, beforeId: before?.first.id);
               },
             ),
             SliverToBoxAdapter(
               child: _addRow(
                 _addRowKey,
                 _newItem,
-                _editor.append,
+                (text) => items.isEmpty
+                    ? _editor.append(text)
+                    : _editor.appendAfter(items.last.id, text),
                 hint: 'Add item',
               ),
+            ),
+            SliverList.list(
+              children: [for (final block in tail) row(block, open)],
             ),
             if (doneBlocks.isNotEmpty) ...[
               SliverToBoxAdapter(
@@ -161,7 +196,9 @@ class _ChecklistViewState extends State<ChecklistView> {
               ),
               if (_doneExpanded)
                 SliverList.list(
-                  children: [for (final block in doneBlocks) _row(list, block)],
+                  children: [
+                    for (final block in doneBlocks) row(block, doneBlocks),
+                  ],
                 ),
             ],
             const SliverPadding(padding: EdgeInsets.only(bottom: 88)),
@@ -171,8 +208,14 @@ class _ChecklistViewState extends State<ChecklistView> {
     );
   }
 
-  /// [index] is set for rows in the reorderable list.
-  Widget _row(Checklist list, ChecklistBlock block, {int? index}) {
+  /// [block] of [section] (open or done blocks); [index] is set for rows in
+  /// the reorderable list.
+  Widget _row(
+    Checklist list,
+    ChecklistBlock block,
+    List<ChecklistBlock> section, {
+    int? index,
+  }) {
     final line = block.first;
     if (block case TextBlock(:final markdown)) {
       return ChecklistTextBlock(markdown, key: ValueKey(line.id));
@@ -183,6 +226,8 @@ class _ChecklistViewState extends State<ChecklistView> {
       depth: list.depthOf(line),
       focusNode: _focus.of(line.id),
       onFocusStep: (step) => _focus.move(line.id, step),
+      onJoin: (join) => _join(section, line, join),
+      takeCaret: () => _focus.takeCaret(line.id),
       dragHandle: index == null
           ? null
           : (icon) => ReorderableDragStartListener(index: index, child: icon),
@@ -194,37 +239,35 @@ class _ChecklistViewState extends State<ChecklistView> {
   }
 
   /// A field that starts an item with [add]; [key] is its row in [_focus].
+  /// Lined up with the item rows: its icon in their box's place.
   Widget _addRow(
     String key,
     TextEditingController field,
     int Function(String text) add, {
     required String hint,
-  }) => Padding(
-    padding: const EdgeInsets.only(left: 24),
-    child: Row(
-      children: [
-        const Padding(padding: EdgeInsets.all(12), child: Icon(Icons.add)),
-        Expanded(
-          child: CallbackShortcuts(
-            bindings: {
-              const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                  _focus.move(key, -1),
-              const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                  _focus.move(key, 1),
-            },
-            child: TextField(
-              controller: field,
-              focusNode: _focus.of(key),
-              decoration: InputDecoration(
-                hintText: hint,
-                border: InputBorder.none,
-              ),
-              onChanged: (typed) => _startItem(field, add, typed),
-            ),
+  }) => Row(
+    children: [
+      const SizedBox(width: checklistHandleWidth),
+      const ChecklistBoxSlot(Icon(Icons.add)),
+      Expanded(
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                _focus.move(key, -1),
+            const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                _focus.move(key, 1),
+          },
+          child: TextField(
+            controller: field,
+            focusNode: _focus.of(key),
+            decoration: checklistFieldDecoration(hint: hint),
+            onChanged: (typed) => _startItem(field, add, typed),
           ),
         ),
-      ],
-    ),
+      ),
+      // Where the item rows have their menu.
+      const SizedBox(width: kMinInteractiveDimension),
+    ],
   );
 
   Widget _doneHeader(int count) => ListTile(

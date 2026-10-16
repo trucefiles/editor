@@ -20,10 +20,10 @@ final class FolderScans {
     this.unreadNotes = const {},
   });
 
-  /// Pinned first, then newest first.
+  /// Newest first.
   final List<Note> notes;
 
-  /// Pins and colors; notes without a mark are left out.
+  /// Colors; notes without a mark are left out.
   final Map<NoteKey, NoteMark> marks;
 
   /// Each folder's subfolders by folder id, sorted by path.

@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const pinned = NoteMark(pinned: true);
+  const amber = NoteMark(color: 'amber');
   const teal = NoteMark(color: 'teal');
 
   late MemoryFileStore store;
@@ -25,11 +25,11 @@ void main() {
 
   test('reads back what was set', () async {
     final marks = device('phone');
-    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('todo.md'), amber);
     await marks.set(path('lists/shop.md'), teal);
 
     expect((await marks.load()).value, {
-      path('todo.md'): pinned,
+      path('todo.md'): amber,
       path('lists/shop.md'): teal,
     });
   });
@@ -37,19 +37,19 @@ void main() {
   test('marks set at the same time are all kept', () async {
     final marks = device('phone');
     final set = await Future.wait([
-      marks.set(path('todo.md'), pinned),
+      marks.set(path('todo.md'), amber),
       marks.set(path('lists/shop.md'), teal),
     ]);
 
     expect(set, everyElement(isA<Ok<void, StoreError>>()));
     expect((await marks.load()).value, {
-      path('todo.md'): pinned,
+      path('todo.md'): amber,
       path('lists/shop.md'): teal,
     });
   });
 
   test('writes only its own device file', () async {
-    await device('phone').set(path('todo.md'), pinned);
+    await device('phone').set(path('todo.md'), amber);
     await device('laptop').set(path('todo.md'), teal);
 
     expect(store.files.keys.map((p) => p.value), [
@@ -62,34 +62,27 @@ void main() {
   });
 
   test('the newest mark of a note wins across devices', () async {
-    await device('phone').set(path('todo.md'), pinned);
+    await device('phone').set(path('todo.md'), amber);
     await device('laptop').set(path('todo.md'), teal);
     await device('laptop').set(path('plan.md'), teal);
-    await device('phone').set(path('plan.md'), pinned);
+    await device('phone').set(path('plan.md'), amber);
 
     expect((await device('phone').load()).value, {
       path('todo.md'): teal,
-      path('plan.md'): pinned,
+      path('plan.md'): amber,
     });
   });
 
   test('an unmark beats an older mark from another device', () async {
-    await device('phone').set(path('todo.md'), pinned);
+    await device('phone').set(path('todo.md'), amber);
     await device('laptop').set(path('todo.md'), NoteMark.none);
 
     expect((await device('phone').load()).value, isEmpty);
   });
 
-  test('keeps whether a note shows a Done section', () async {
-    const noDone = NoteMark(doneSection: false);
-    await device('phone').set(path('todo.md'), noDone);
-
-    expect((await device('laptop').load()).value, {path('todo.md'): noDone});
-  });
-
   test('remove drops the mark of a note', () async {
     final marks = device('phone');
-    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('todo.md'), amber);
     await marks.set(path('plan.md'), teal);
 
     await marks.remove(path('todo.md'));
@@ -99,7 +92,7 @@ void main() {
 
   test('remove writes nothing if there is nothing to drop', () async {
     final marks = device('phone');
-    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('todo.md'), amber);
     final before = store.files[path('.truce/marks/phone.json')]!.version;
 
     expect(await marks.remove(path('plan.md')), isA<Ok<void, StoreError>>());
@@ -108,13 +101,13 @@ void main() {
 
   test('each write drops the marks of gone notes', () async {
     final marks = device('phone');
-    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('todo.md'), amber);
     await marks.set(path('lists/shop.md'), teal);
     // Deleted or renamed outside the app.
     store.files.remove(path('todo.md'));
     store.files.remove(path('lists/shop.md'));
 
-    await marks.set(path('plan.md'), pinned);
+    await marks.set(path('plan.md'), amber);
 
     expect(
       store.textOf('.truce/marks/phone.json'),
@@ -124,7 +117,7 @@ void main() {
   });
 
   test("never drops other devices' marks", () async {
-    await device('laptop').set(path('todo.md'), pinned);
+    await device('laptop').set(path('todo.md'), amber);
     store.files.remove(path('todo.md'));
 
     await device('phone').set(path('plan.md'), teal);
@@ -138,26 +131,26 @@ void main() {
       ..put('.truce/marks/old/phone.json', '{}')
       ..put('.truce/marks/.syncthing.truce-1.tmp', '{}')
       ..put('.truce/marks/broken.json', 'not json');
-    await device('phone').set(path('todo.md'), pinned);
+    await device('phone').set(path('todo.md'), amber);
 
-    expect((await device('phone').load()).value, {path('todo.md'): pinned});
+    expect((await device('phone').load()).value, {path('todo.md'): amber});
   });
 
   test('keeps entries of a file it reads in part', () async {
     store.put('.truce/marks/laptop.json', '''
 {
-  "todo.md": {"pinned": true, "color": null, "changed": "2026-10-13T00:00:00Z"},
-  "bad.md": {"pinned": "yes"},
-  "/abs.md": {"pinned": true, "color": null, "changed": "2026-10-13T00:00:00Z"}
+  "todo.md": {"color": "amber", "changed": "2026-10-13T00:00:00Z"},
+  "bad.md": {"color": 1},
+  "/abs.md": {"color": "amber", "changed": "2026-10-13T00:00:00Z"}
 }''');
 
-    expect((await device('phone').load()).value, {path('todo.md'): pinned});
+    expect((await device('phone').load()).value, {path('todo.md'): amber});
   });
 
   test('never writes over its own file if it cannot read it', () async {
     store.put('.truce/marks/phone.json', 'not json');
 
-    final set = await device('phone').set(path('todo.md'), pinned);
+    final set = await device('phone').set(path('todo.md'), amber);
 
     expect(set.error, StoreError.ioFailure);
     expect(store.textOf('.truce/marks/phone.json'), 'not json');
@@ -168,7 +161,7 @@ void main() {
 
     expect((await device('phone').load()).error, StoreError.accessDenied);
     expect(
-      (await device('phone').set(path('todo.md'), pinned)).error,
+      (await device('phone').set(path('todo.md'), amber)).error,
       StoreError.accessDenied,
     );
   });
@@ -178,12 +171,12 @@ void main() {
     await marks.set(path('lists/shop.md'), teal);
     store.unreadableFolders.add(path('lists'));
 
-    await marks.set(path('todo.md'), pinned);
+    await marks.set(path('todo.md'), amber);
     store.unreadableFolders.clear();
 
     expect((await marks.load()).value, {
       path('lists/shop.md'): teal,
-      path('todo.md'): pinned,
+      path('todo.md'): amber,
     });
   });
 }

@@ -30,8 +30,15 @@ final class ChecklistEditor extends ChangeNotifier {
   }
 
   /// Returns the id of the new item.
-  int prepend(String text) {
-    final (list, newId) = _list.prepend(text);
+  int insertBefore(int id, String text) {
+    final (list, newId) = _list.insertBefore(id, text);
+    _apply(list);
+    return newId;
+  }
+
+  /// Returns the id of the new item.
+  int appendAfter(int id, String text) {
+    final (list, newId) = _list.appendAfter(id, text);
     _apply(list);
     return newId;
   }
@@ -42,6 +49,9 @@ final class ChecklistEditor extends ChangeNotifier {
     _apply(list);
     return newId;
   }
+
+  /// See [Checklist.join].
+  void join(int id, {required int into}) => _apply(_list.join(id, into: into));
 
   void move(int id, {required int? beforeId}) =>
       _apply(_list.move(id, beforeId: beforeId));

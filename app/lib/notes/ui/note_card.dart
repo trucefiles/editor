@@ -16,6 +16,7 @@ class NoteCard extends StatelessWidget {
     required this.onTap,
     required this.onMark,
     this.mark = NoteMark.none,
+    this.pinned = false,
     this.hasConflict = false,
     super.key,
   });
@@ -25,6 +26,9 @@ class NoteCard extends StatelessWidget {
 
   final Note note;
   final NoteMark mark;
+
+  /// Shows a pin.
+  final bool pinned;
 
   /// Shows a badge: another version from a sync conflict is waiting.
   final bool hasConflict;
@@ -86,7 +90,7 @@ class NoteCard extends StatelessWidget {
                     ),
                     style: textTheme.labelSmall,
                   ),
-                  if (mark.pinned)
+                  if (pinned)
                     const Tooltip(
                       message: 'Pinned',
                       child: Icon(Icons.push_pin, size: 18),

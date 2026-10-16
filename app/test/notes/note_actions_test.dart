@@ -8,8 +8,9 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
+import 'package:truce_editor/notes/note_settings.dart';
+import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_view.dart';
-import 'package:truce_editor/notes/note_views_controller.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -123,20 +124,25 @@ void main() {
     expect((await scans()).findNote(note.key), isNotNull);
   });
 
-  test('delete drops the mark and view; undo brings them back', () async {
+  test('delete drops the mark and settings; undo brings them back', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
-    final views = container.read(noteViewsProvider.notifier);
-    const mark = NoteMark(pinned: true, doneSection: false);
+    final settings = container.read(noteSettingsProvider.notifier);
+    const mark = NoteMark(color: 'teal');
+    const mine = NoteSettings(
+      view: NoteView.rendered,
+      pinned: true,
+      doneSection: false,
+    );
     await actions.setMark(note, mark);
-    await views.remember(note.key, NoteView.rendered);
+    await settings.edit(note.key, (_) => mine);
 
     final deleted = (await actions.delete(note, '# Plan\n')).value;
     expect(marksFile(work), isNot(contains('plan.md')));
-    expect(views.viewOf(note.key), isNull);
+    expect(settings.settingsOf(note.key), NoteSettings.defaults);
 
     await actions.undoDelete(deleted);
     expect((await scans()).markOf(note.key), mark);
-    expect(views.viewOf(note.key), NoteView.rendered);
+    expect(settings.settingsOf(note.key), mine);
   });
 
   test(
@@ -148,7 +154,7 @@ void main() {
         deviceId: 'laptop',
         now: () => DateTime.utc(2000),
       );
-      await laptop.set(note.path, const NoteMark(pinned: true));
+      await laptop.set(note.path, const NoteMark(color: 'amber'));
       await actions.setMark(note, const NoteMark(color: 'teal'));
       await actions.setMark(note, NoteMark.none);
 
@@ -161,7 +167,7 @@ void main() {
 
   test('a failed undo brings back no mark', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
-    await actions.setMark(note, const NoteMark(pinned: true));
+    await actions.setMark(note, const NoteMark(color: 'teal'));
     final deleted = (await actions.delete(note, '# Plan\n')).value;
     file(work, 'plan.md').writeAsStringSync('# Other\n');
 
@@ -193,12 +199,12 @@ void main() {
 
   test('setMark saves the mark and rescans', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
-    const pinned = NoteMark(pinned: true, color: 'teal');
+    const teal = NoteMark(color: 'teal');
 
-    await actions.setMark(note, pinned);
+    await actions.setMark(note, teal);
 
-    expect(actions.markOf(note), pinned);
-    expect((await scans()).markOf(note.key), pinned);
+    expect(actions.markOf(note), teal);
+    expect((await scans()).markOf(note.key), teal);
   });
 
   test('setMark writes nothing if the mark is already set', () async {
@@ -215,7 +221,7 @@ void main() {
     final root = (await scans()).notes.singleWhere(
       (note) => note.path.value == 'todo.md',
     );
-    const mark = NoteMark(pinned: true, color: 'teal');
+    const mark = NoteMark(color: 'teal');
 
     await actions.setMark(deep, mark);
 

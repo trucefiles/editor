@@ -91,13 +91,34 @@ final class Checklist {
     return _insert(trailingEmpty ? lines.length - 1 : lines.length, item);
   }
 
-  /// Adds an unchecked item before the first item, at its level, so the
-  /// items below never become its subitems; with no items, as [append]
-  /// does. Returns the new checklist and the new line's id.
-  (Checklist, int) prepend(String text) {
-    final firstItem = lines.indexWhere((line) => line.isItem);
-    if (firstItem < 0) return append(text);
-    return _insert(firstItem, lines[firstItem]._newSibling(_nextId, text));
+  /// Adds an unchecked item at the left margin after the item [afterId]
+  /// and its subitems; for a subitem, after the item at the margin it is
+  /// under, so the new item never takes subitems of another. Returns the
+  /// new checklist and the new line's id.
+  (Checklist, int) appendAfter(int afterId, String text) {
+    final top = _marginItemOf(_indexOf(afterId));
+    final sibling = lines[top]._newSibling(_nextId, text)._withIndent('');
+    return _insert(_blockEnd(top), sibling);
+  }
+
+  /// Adds an unchecked item just before the item [beforeId], at its level,
+  /// so the items below never become its subitems. Returns the new
+  /// checklist and the new line's id.
+  (Checklist, int) insertBefore(int beforeId, String text) {
+    final index = _indexOf(beforeId);
+    return _insert(index, lines[index]._newSibling(_nextId, text));
+  }
+
+  /// Appends the text of the item [id] to the item [into] and removes the
+  /// line of [id], as joining two lines in a text editor. Lines below it
+  /// (its subitems) stay where they are.
+  Checklist join(int id, {required int into}) {
+    final text = lines[_indexOf(id)].text;
+    final joined = _replaceLine(
+      into,
+      (line) => line._withText(line.text + text),
+    );
+    return joined._with([...joined.lines]..removeAt(joined._indexOf(id)));
   }
 
   /// Removes the item [id] with its subitems.
@@ -175,6 +196,18 @@ final class Checklist {
       }
     }
     return null;
+  }
+
+  /// Index of the item at the left margin that the item at [index] is
+  /// under: the nearest less indented item above, up to the margin, within
+  /// its run of items. [index] itself if it is at the margin.
+  int _marginItemOf(int index) {
+    var top = index;
+    for (var i = index - 1; i >= 0 && _width(lines[top].indent) > 0; i--) {
+      if (!lines[i].isItem) break;
+      if (_width(lines[i].indent) < _width(lines[top].indent)) top = i;
+    }
+    return top;
   }
 
   /// Index just past [index]'s block: the line and every following line

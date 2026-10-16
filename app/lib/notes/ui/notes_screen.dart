@@ -17,19 +17,20 @@ import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folder_problems.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
+import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/auto_rescan.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_actions.dart';
-import '../note_views_controller.dart';
-import '../note_views_pruning.dart';
+import '../note_settings_controller.dart';
+import '../note_settings_pruning.dart';
 import 'home_menu.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
 import 'note_grid.dart';
-import 'note_mark_sheet.dart';
 import 'note_sections.dart';
+import 'pin_or_color_sheet.dart';
 
 /// Home: all notes as cards, filtered by folder.
 class NotesScreen extends ConsumerStatefulWidget {
@@ -62,9 +63,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final folders = ref.watch(foldersProvider);
     // Loaded up front, so a note opens in its remembered view.
     ref
-      ..watch(noteViewsProvider)
+      ..watch(noteSettingsProvider)
       ..watch(backupPruningProvider)
-      ..watch(noteViewsPruningProvider)
+      ..watch(noteSettingsPruningProvider)
       ..watch(autoRescanProvider);
     return Scaffold(
       appBar: AppBar(
@@ -162,13 +163,16 @@ class _NotesBody extends ConsumerWidget {
       for (final note in scans?.notes ?? const <Note>[])
         if (shown(note.folder.id)) note,
     ];
-    bool pinned(Note note) => markOf(note).pinned;
+    ref.watch(noteSettingsProvider);
+    final settings = ref.read(noteSettingsProvider.notifier);
+    bool pinned(Note note) => settings.settingsOf(note.key).pinned;
     Widget card(Note note) => NoteCard(
       note,
       mark: markOf(note),
+      pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
       onTap: () => openNote(context, note),
-      onMark: () => editNoteMark(context, ref, note),
+      onMark: () => editPinOrColor(context, ref, note),
     );
     final orphans = [
       for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
@@ -190,7 +194,7 @@ class _NotesBody extends ConsumerWidget {
                   icon: Icons.sticky_note_2_outlined,
                   text: 'No notes yet.',
                 )
-              : RefreshIndicator(
+              : PullToRefresh(
                   onRefresh: ref.read(folderScansProvider.notifier).refresh,
                   child: NoteSections(
                     leading: [
