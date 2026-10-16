@@ -47,7 +47,7 @@ void main() {
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
         folderScansProvider.overrideWith(() => scans),
         refreshSettingsProvider.overrideWith(_FixedSettings.new),
-        folderReachProvider.overrideWith(_SettableReach.new),
+        folderReachProvider.overrideWith2(_SettableReach.new),
       ],
     );
     addTearDown(container.dispose);
@@ -241,9 +241,7 @@ class _CountingScans extends FolderScansController {
 
 /// One reach for every folder, set by the test.
 class _SettableReach extends FolderReachController {
-  _SettableReach() : super(anyFolder);
-
-  static const FolderLocation anyFolder = (id: 'any', path: '/any');
+  _SettableReach(super.location);
 
   @override
   Reach build() => Reach.reachable;
