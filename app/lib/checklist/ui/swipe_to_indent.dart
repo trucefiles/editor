@@ -10,8 +10,7 @@ import 'package:flutter/material.dart';
 /// swipe that starts on the item's text field still counts. A mouse drag
 /// that starts inside [SwipeToIndent.keepMouseDrags] is left alone, e.g.
 /// to select text, and so is a long press that then moves (touch text
-/// selection) and a touch drag that child asks to keep (e.g. to scroll
-/// its text).
+/// selection).
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
     required this.step,
@@ -29,34 +28,25 @@ class SwipeToIndent extends StatefulWidget {
   final Widget child;
 
   /// Leaves mouse drags that start on [child] to it, e.g. text selection
-  /// or reordering; touch drags too while [keepTouch] says so.
-  static Widget keepMouseDrags(Widget child, {bool Function()? keepTouch}) =>
-      _KeepMouseDrags(child, keepTouch: keepTouch);
+  /// or reordering.
+  static Widget keepMouseDrags(Widget child) => _KeepMouseDrags(child);
 
   @override
   State<SwipeToIndent> createState() => _SwipeToIndentState();
 }
 
-/// Tells the enclosing swipe that a press it should leave alone landed on
-/// [child].
+/// Tells the enclosing swipe that a mouse press landed on [child].
 class _KeepMouseDrags extends StatelessWidget {
-  const _KeepMouseDrags(this.child, {this.keepTouch});
+  const _KeepMouseDrags(this.child);
 
   final Widget child;
-  final bool Function()? keepTouch;
-
-  bool _keeps(PointerDownEvent event) => switch (event.kind) {
-    PointerDeviceKind.mouse => true,
-    PointerDeviceKind.touch => keepTouch?.call() ?? false,
-    _ => false,
-  };
 
   @override
   Widget build(BuildContext context) => Listener(
     // Runs before the enclosing swipe's listener: deeper widgets get
     // pointer events first.
     onPointerDown: (event) {
-      if (_keeps(event)) {
+      if (event.kind == PointerDeviceKind.mouse) {
         context.findAncestorStateOfType<_SwipeToIndentState>()?._kept =
             event.pointer;
       }
@@ -73,8 +63,8 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   bool _swiping = false;
   double _dx = 0;
 
-  /// The pointer that went down in a [SwipeToIndent.keepMouseDrags] child
-  /// that keeps its drag, if any.
+  /// The mouse pointer that went down in a [SwipeToIndent.keepMouseDrags]
+  /// child, if any.
   int? _kept;
 
   void _onDown(PointerDownEvent event) {
