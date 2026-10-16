@@ -27,7 +27,7 @@ final foldersProvider =
 /// The folders added on this device; every change is saved right away.
 class FoldersController extends AsyncNotifier<List<NoteFolder>> {
   final Random _random = Random.secure();
-  Future<void> _lastChange = Future<void>.value();
+  final _changes = TaskQueue();
 
   FolderSettingsStore get _store => ref.read(folderSettingsStoreProvider);
 
@@ -100,11 +100,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
 
   /// Runs [step] after every earlier change, so each change starts from the
   /// list the one before saved.
-  Future<T> _oneAtATime<T>(Future<T> Function() step) {
-    final done = _lastChange.then((_) => step());
-    _lastChange = done.then<void>((_) {}, onError: (_) {});
-    return done;
-  }
+  Future<T> _oneAtATime<T>(Future<T> Function() step) => _changes.run(step);
 
   Future<Result<void, SettingsError>> _save(List<NoteFolder> folders) async {
     final saved = await _store.save(folders);

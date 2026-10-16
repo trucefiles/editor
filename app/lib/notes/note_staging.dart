@@ -22,7 +22,7 @@ final class NoteStaging {
   final _id = NoteDraft.newId();
   bool _kept = false;
   Timer? _due;
-  Future<void> _work = Future<void>.value();
+  final _work = TaskQueue();
 
   /// Keeps [text] of the note at [path], edited from the file's [base]
   /// text; `false` if it could not be written.
@@ -32,11 +32,10 @@ final class NoteStaging {
     required String text,
   }) {
     _kept = true;
-    final kept = _work.then(
-      (_) =>
+    final kept = _work.run(
+      () =>
           _drafts.keep(NoteDraft(id: _id, path: path, base: base, text: text)),
     );
-    _work = kept;
     return kept.then((written) {
       // Not if dropped meanwhile.
       if (written && _kept) {
@@ -55,7 +54,7 @@ final class NoteStaging {
     _cancelDue();
     if (!_kept) return;
     _kept = false;
-    _work = _work.then((_) => _drafts.remove(_id));
+    unawaited(_work.run(() => _drafts.remove(_id)));
   }
 
   void dispose() => _cancelDue();

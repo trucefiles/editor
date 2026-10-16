@@ -11,11 +11,11 @@ final class JsonFile {
   JsonFile(this._file);
 
   final File _file;
-  Future<void> _lastWrite = Future<void>.value();
+  final _writes = TaskQueue();
 
   /// The saved value.
   Future<Result<Object?, JsonFileError>> read() async {
-    await _lastWrite;
+    await _writes.run(() async {});
     final String raw;
     try {
       if (!await _file.exists()) return const Err(JsonFileError.missing);
@@ -32,11 +32,8 @@ final class JsonFile {
 
   /// Replaces the saved value with [json], via a temp file, after every
   /// earlier write to the file.
-  Future<Result<void, JsonFileError>> write(Object? json) {
-    final written = _lastWrite.then((_) => _writeNow(json));
-    _lastWrite = written.then<void>((_) {}, onError: (_) {});
-    return written;
-  }
+  Future<Result<void, JsonFileError>> write(Object? json) =>
+      _writes.run(() => _writeNow(json));
 
   Future<Result<void, JsonFileError>> _writeNow(Object? json) async {
     final temp = File('${_file.path}.tmp');

@@ -1,9 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
 import '../common/result.dart';
+import '../common/task_queue.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
 
@@ -48,8 +48,8 @@ final class LocalFileStore implements FileStore {
   final TempFileNamer _tempFileName;
   final Random _random = Random.secure();
 
-  /// The last read or in-place write of each file, while [replacesInPlace].
-  final Map<RelPath, Future<void>> _queues = {};
+  /// Reads and in-place writes per file, while [replacesInPlace].
+  final _turns = KeyedTaskQueue<RelPath>();
 
   @override
   Future<Result<Listing, StoreError>> list({
@@ -121,20 +121,8 @@ final class LocalFileStore implements FileStore {
   Future<Result<T, StoreError>> _inTurn<T>(
     RelPath path,
     Future<T> Function() action,
-  ) {
-    if (!replacesInPlace) return _guard(action);
-    final done = (_queues[path] ?? Future<void>.value()).then(
-      (_) => _guard(action),
-    );
-    final tail = done.then<void>((_) {}, onError: (_) {});
-    _queues[path] = tail;
-    unawaited(
-      tail.whenComplete(() {
-        if (identical(_queues[path], tail)) _queues.remove(path);
-      }),
-    );
-    return done;
-  }
+  ) =>
+      replacesInPlace ? _turns.run(path, () => _guard(action)) : _guard(action);
 
   /// The file at [path]; refused if any part of the path below the root
   /// is a symbolic link.
