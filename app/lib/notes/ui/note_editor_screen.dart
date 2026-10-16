@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse, BoxWidthStyle;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -9,6 +10,7 @@ import '../../checklist/checklist_editor.dart';
 import '../../checklist/ui/checklist_undo_hint.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
+import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../common/toggle_label.dart';
 import '../../conflicts/ui/conflict_banner.dart';
@@ -269,6 +271,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
+  /// Ctrl+1, 2, 3 pick the views in the view menu's order.
+  late final Map<SingleActivator, VoidCallback> _viewKeys = {
+    for (final (index, view) in NoteView.values.indexed)
+      SingleActivator(_digits[index], control: true): () {
+        if (!_isReadOnly && view != _view) _showView(view);
+      },
+  };
+
+  static const _digits = [
+    LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2,
+    LogicalKeyboardKey.digit3,
+  ];
+
   /// The edits were kept as a conflict copy; nothing more to edit here.
   bool get _isDone => _session.state == EditState.keptAsConflict;
 
@@ -277,14 +293,24 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// it is closed, there is nothing left to act on.
   Widget _scaffold() => ScaffoldMessenger(
     key: _messenger,
-    child: Builder(builder: _content),
+    child: ScreenShortcuts(
+      bindings: _viewKeys,
+      child: Builder(builder: _content),
+    ),
   );
 
+  /// Only rendered: no view to pick (see [_body]).
+  bool get _isReadOnly => _isDone || _isUnreachable;
+
+  bool get _isUnreachable =>
+      ref.read(folderReachProvider(widget.note.folder.location)) ==
+      Reach.unreachable;
+
   Widget _content(BuildContext context) {
-    final unreachable =
-        ref.watch(folderReachProvider(widget.note.folder.location)) ==
-        Reach.unreachable;
-    final readOnly = _isDone || unreachable;
+    // Rebuilds when the folder's reach changes.
+    ref.watch(folderReachProvider(widget.note.folder.location));
+    final unreachable = _isUnreachable;
+    final readOnly = _isReadOnly;
     final scans = ref.watch(folderScansProvider).value;
     final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
     final tint = noteTint(mark.color, Theme.of(context).colorScheme);
