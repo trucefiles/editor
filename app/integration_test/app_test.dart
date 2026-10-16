@@ -301,6 +301,24 @@ void main() {
     expect(find.textContaining("can't be reached"), findsNothing);
   });
 
+  testWidgets('back from a note whose folder just went away keeps the edits', (
+    tester,
+  ) async {
+    app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    app.notes.renameSync('${app.notes.path}-away');
+
+    await tester.pageBack();
+
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+      timeout: const Duration(seconds: 20),
+    );
+    expect(find.text("Your edits can't be saved"), findsNothing);
+  });
+
   testWidgets('back keeps edits that clash as a conflict copy', (tester) async {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);

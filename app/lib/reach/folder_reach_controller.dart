@@ -26,6 +26,10 @@ class FolderReachController extends Notifier<Reach> {
     ref.onDispose(() => unawaited(changes.cancel()));
     return reach.state;
   }
+
+  /// The reach once a running check and its retries are over.
+  Future<Reach> settled() =>
+      ref.read(folderServicesProvider(_location)).reach.settled();
 }
 
 /// The folders that are [Reach.retrying] right now.

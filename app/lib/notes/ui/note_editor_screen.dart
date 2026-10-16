@@ -57,7 +57,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _files,
     ref.read(noteDraftsProvider(widget.note.folder.id)),
   );
-  late final _controller = NoteEditorController(_session);
+  late final _controller = NoteEditorController(
+    _session,
+    reachSettled: ref
+        .read(folderReachProvider(widget.note.folder.location).notifier)
+        .settled,
+  );
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
@@ -112,28 +117,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     setState(() {});
   }
 
-  /// Leaves only once the edits are in the file or in a conflict copy;
+  /// Leaves once the edits are kept (see [NoteEditorController.keep]);
   /// asks if they can be kept nowhere. While the folder can't be reached,
-  /// leaves right away: the edits stay on this device and go into the file
-  /// at the next start.
+  /// they stay on this device and go into the file at the next start.
   Future<void> _leave() async {
-    if (await _session.secure() || _unreachable || await _askToDiscard()) {
-      _close();
-    }
+    if (await _controller.keep() || await _askToDiscard()) _close();
   }
 
   /// On desktop: quits once the edits are kept, or the user discards them.
-  /// As [_leave] while the folder can't be reached.
   Future<AppExitResponse> _onExitRequested() async {
-    if (await _session.secure() || _unreachable) return AppExitResponse.exit;
-    if (await _askToDiscard()) return AppExitResponse.exit;
+    if (await _controller.keep() || await _askToDiscard()) {
+      return AppExitResponse.exit;
+    }
     return AppExitResponse.cancel;
   }
-
-  /// Whether the note's folder can't be reached: the note is read-only.
-  bool get _unreachable =>
-      ref.read(folderReachProvider(widget.note.folder.location)) ==
-      Reach.unreachable;
 
   /// Whether the user drops edits that can be kept nowhere; if so, the
   /// session drops them.

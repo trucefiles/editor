@@ -20,6 +20,7 @@ void main() {
           tempFolder().path,
           manual,
           hostFacts(),
+          reach: _reach(),
         ).changes,
         isNull,
       );
@@ -31,11 +32,17 @@ void main() {
           tempFolder().path,
           periodic,
           hostFacts(),
+          reach: _reach(),
         ).changes,
         isNotNull,
       );
       expect(
-        syncthingFolderFollowing(tempFolder().path, live, hostFacts()).changes,
+        syncthingFolderFollowing(
+          tempFolder().path,
+          live,
+          hostFacts(),
+          reach: _reach(),
+        ).changes,
         isNotNull,
       );
     });
@@ -46,6 +53,7 @@ void main() {
         folder.path,
         periodic.copyWith(interval: const Duration(milliseconds: 20)),
         hostFacts(),
+        reach: _reach(),
       ).changes!;
       final seen = <RelPath>[];
       final subscription = changes.changes.listen(seen.add);
@@ -69,6 +77,7 @@ void main() {
           folder.path,
           refresh,
           hostFacts(),
+          reach: _reach(),
         ).changes!;
         final seen = <RelPath>{};
         final subscription = changes.changes.listen(seen.add);
@@ -104,7 +113,12 @@ void main() {
     Future<List<FolderNotice>> noticesOf(
       String path,
       RefreshSettings refresh,
-    ) => syncthingFolderFollowing(path, refresh, hostFacts()).notices.check();
+    ) => syncthingFolderFollowing(
+      path,
+      refresh,
+      hostFacts(),
+      reach: _reach(),
+    ).notices.check();
 
     test('tell when live updates fall back to polling', () async {
       final notices = await noticesOf(portalFolder, live);
@@ -136,6 +150,7 @@ void main() {
         folder.path,
         live,
         hostFacts(),
+        reach: _reach(),
       );
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);
@@ -157,3 +172,6 @@ void main() {
     }, testOn: 'linux');
   });
 }
+
+/// A reach no test looks at.
+FolderReach _reach() => FolderReach(LocalFileStore('/', (token) => token));

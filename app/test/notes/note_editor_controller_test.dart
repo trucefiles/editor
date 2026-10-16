@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/common/moment.dart';
@@ -16,14 +18,16 @@ void main() {
   late NoteFiles files;
   late Note note;
   late NoteEditorController controller;
+  var reach = Reach.reachable;
 
   setUp(() async {
+    reach = Reach.reachable;
     folder = folderAt(tempFolder());
     files = NoteFiles(folder, servicesFor(folder));
     note = (await files.create('a')).value;
     final session = NoteEditSession(note, files, tempDrafts());
     addTearDown(session.dispose);
-    controller = NoteEditorController(session);
+    controller = NoteEditorController(session, reachSettled: () async => reach);
   });
 
   FolderScans scans({
@@ -71,15 +75,49 @@ void main() {
     final session = NoteEditSession(inSub, files, tempDrafts());
     addTearDown(session.dispose);
 
-    final skipped = NoteEditorController(session).onScans(
-      scans(
-        unreadable: {
-          folder.id: [path('sub')],
-        },
-      ),
-    );
+    final skipped =
+        NoteEditorController(session, reachSettled: () async => reach).onScans(
+          scans(
+            unreadable: {
+              folder.id: [path('sub')],
+            },
+          ),
+        );
 
     expect(skipped, isFalse);
     expect(session.state, EditState.saved);
+  });
+
+  group('keep', () {
+    /// Unsaved edits of a note whose folder is gone, so they can be kept
+    /// nowhere in it.
+    Future<void> editInGoneFolder() async {
+      controller.session.edit('# a\nmine\n');
+      final away = Directory(folder.path).renameSync('${folder.path}-away');
+      addTearDown(() => away.renameSync(folder.path));
+    }
+
+    test('edits saved in the file are kept', () async {
+      controller.session.edit('# a\nmine\n');
+
+      expect(await controller.keep(), isTrue);
+    });
+
+    test(
+      'edits are kept on the device while the folder is unreachable',
+      () async {
+        reach = Reach.unreachable;
+        await editInGoneFolder();
+
+        expect(await controller.keep(), isTrue);
+      },
+    );
+
+    test('edits are not kept if the folder can be reached', () async {
+      reach = Reach.reachable;
+      await editInGoneFolder();
+
+      expect(await controller.keep(), isFalse);
+    });
   });
 }

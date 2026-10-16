@@ -76,6 +76,7 @@ final _folderFollowingProvider =
         location.path,
         await ref.watch(refreshSettingsProvider.future),
         ref.watch(platformFactsProvider),
+        reach: ref.watch(folderServicesProvider(location)).reach,
       ),
     );
 

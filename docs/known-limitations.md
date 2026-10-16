@@ -33,3 +33,6 @@ Accepted behavior that is not planned to change.
 8. **Edits left in a folder that can't be reached wait for the next start.**
    Closing a note while its folder can't be reached keeps the edits on this
    device; they go into the file the next time the app starts.
+9. **A folder that is gone for good blocks the app briefly at each start.**
+   The app tries to reach it for a few seconds before marking it
+   unreachable; removing the folder from the app ends this.

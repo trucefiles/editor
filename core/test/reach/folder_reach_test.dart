@@ -155,6 +155,34 @@ void main() {
     expect(seen, [Reach.retrying]);
   });
 
+  test('an access that works during the first check ends it', () async {
+    final listing = Completer<void>();
+    final slow = FolderReach(
+      _SlowStore(listing.future),
+      wait: (_) => Completer<void>().future,
+    );
+    addTearDown(slow.dispose);
+
+    slow.saw(const Err(StoreError.ioFailure));
+    slow.saw(const Ok(null));
+    listing.complete();
+    await settle();
+
+    expect(slow.state, Reach.reachable);
+  });
+
+  test('settled waits for the check and its retries', () async {
+    store.failWith = StoreError.ioFailure;
+    reach.saw(const Err(StoreError.ioFailure));
+    final settled = reach.settled();
+    await settle();
+    await tick();
+    await tick();
+
+    expect(await settled, Reach.unreachable);
+    expect(await reach.settled(), Reach.unreachable);
+  });
+
   test('the reporting store tells how each access went', () async {
     final reported = ReachReportingStore(store, reach);
     store.failWith = StoreError.ioFailure;
@@ -179,6 +207,22 @@ final class _HangingStore implements FileStore {
     bool Function(RelPath folder)? enterFolder,
     bool Function(RelPath file)? includeFile,
   }) => Completer<Result<Listing, StoreError>>().future;
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+/// A store whose listing fails once [listed] completes.
+final class _SlowStore implements FileStore {
+  _SlowStore(this._listed);
+
+  final Future<void> _listed;
+
+  @override
+  Future<Result<Listing, StoreError>> list({
+    bool Function(RelPath folder)? enterFolder,
+    bool Function(RelPath file)? includeFile,
+  }) => _listed.then((_) => const Err(StoreError.ioFailure));
 
   @override
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();

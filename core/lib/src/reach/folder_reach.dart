@@ -51,49 +51,56 @@ final class FolderReach {
   final Future<void> Function(Duration) _wait;
   final _changes = StreamController<Reach>.broadcast(sync: true);
   Reach _state = Reach.reachable;
-  bool _checking = false;
+  Future<void>? _check;
+
+  /// Accesses that worked, so a check can tell one came meanwhile.
+  int _worked = 0;
 
   Reach get state => _state;
 
   /// Every change of [state].
   Stream<Reach> get changes => _changes.stream;
 
+  /// [state] once a running check and its retries are over, e.g. to tell
+  /// whether a failed save failed because the folder is out of reach.
+  Future<Reach> settled() async {
+    await _check;
+    return _state;
+  }
+
   /// An access to the folder's files ended with [outcome].
   void saw(Result<Object?, StoreError> outcome) {
     switch (outcome) {
       case Ok():
+        _worked++;
         _set(Reach.reachable);
       case Err(
             error: StoreError.notFound ||
                 StoreError.accessDenied ||
                 StoreError.ioFailure,
           )
-          when _state == Reach.reachable && !_checking:
-        unawaited(_check());
+          when _state == Reach.reachable && _check == null:
+        _check = _checkOnce().whenComplete(() => _check = null);
       case Err():
         break;
     }
   }
 
-  Future<void> _check() async {
-    _checking = true;
-    try {
-      if (await _canRead()) return;
-      if (_state != Reach.reachable) return;
-      _set(Reach.retrying);
-      for (var retry = 0; retry < retries; retry++) {
-        await _wait(retryEvery);
-        // An access worked meanwhile, or disposed.
-        if (_state != Reach.retrying || _changes.isClosed) return;
-        if (await _canRead()) {
-          _set(Reach.reachable);
-          return;
-        }
+  Future<void> _checkOnce() async {
+    final worked = _worked;
+    // An access that worked during the first check: the folder is there.
+    if (await _canRead() || _worked != worked) return;
+    _set(Reach.retrying);
+    for (var retry = 0; retry < retries; retry++) {
+      await _wait(retryEvery);
+      // An access worked meanwhile, or disposed.
+      if (_state != Reach.retrying || _changes.isClosed) return;
+      if (await _canRead()) {
+        _set(Reach.reachable);
+        return;
       }
-      if (_state == Reach.retrying) _set(Reach.unreachable);
-    } finally {
-      _checking = false;
     }
+    if (_state == Reach.retrying) _set(Reach.unreachable);
   }
 
   /// Whether the folder itself can be listed.
