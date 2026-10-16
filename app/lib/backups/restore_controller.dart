@@ -14,6 +14,7 @@ final restoreProvider = NotifierProvider.autoDispose
     );
 
 /// Shows one backup next to its note's file; the user keeps one of them.
+/// Versions that could not be loaded are loaded again with each new scan.
 class RestoreController extends Notifier<RestoreState> {
   RestoreController(this._backup);
 
@@ -24,6 +25,12 @@ class RestoreController extends Notifier<RestoreState> {
 
   @override
   RestoreState build() {
+    // E.g. once the folder can be reached again.
+    ref.listen(folderScansProvider, (_, _) {
+      if (state case RestoreState(choice: Err(), busy: false)) {
+        unawaited(_load());
+      }
+    });
     unawaited(_load());
     return const RestoreState();
   }
