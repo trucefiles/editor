@@ -32,6 +32,20 @@ void main() {
     expect(container.read(refreshSettingsProvider).value, periodic);
   });
 
+  test('shows the new setting while it is saved', () async {
+    final container = start(liveAvailable: true);
+    await container.read(refreshSettingsProvider.future);
+    const manual = RefreshSettings(
+      mode: RefreshMode.manual,
+      interval: Duration(seconds: 5),
+    );
+
+    final saving = container.read(refreshSettingsProvider.notifier).set(manual);
+
+    expect(container.read(refreshSettingsProvider).value, manual);
+    await saving;
+  });
+
   test('live counts as periodic where it is never possible', () async {
     final container = start(liveAvailable: false);
 

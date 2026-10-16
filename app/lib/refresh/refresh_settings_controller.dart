@@ -31,10 +31,12 @@ class RefreshSettingsController extends AsyncNotifier<RefreshSettings> {
   Future<RefreshSettings> build() async =>
       _possible(await ref.watch(refreshSettingsStoreProvider).load());
 
-  Future<void> set(RefreshSettings settings) async {
+  /// Takes [settings] right away, so every screen shows them while they
+  /// are saved. Saves run in order, so the last one stays.
+  Future<void> set(RefreshSettings settings) {
     final possible = _possible(settings);
-    await ref.read(refreshSettingsStoreProvider).save(possible);
     state = AsyncData(possible);
+    return ref.read(refreshSettingsStoreProvider).save(possible);
   }
 
   RefreshSettings _possible(RefreshSettings settings) =>

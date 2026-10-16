@@ -73,6 +73,34 @@ void main() {
     expect(window.hideOnClose, isFalse);
   });
 
+  test('shows the setting while the tray follows', () async {
+    final app = container();
+    await app.read(closeToTrayProvider.future);
+
+    final changing = app
+        .read(closeToTrayProvider.notifier)
+        .setEnabled(enabled: false);
+
+    expect(app.read(closeToTrayProvider).value!.enabled, isFalse);
+    await changing;
+    expect(tray.shown, isFalse);
+  });
+
+  test('changes made at once end as the last one says', () async {
+    final app = container();
+    await app.read(closeToTrayProvider.future);
+    final controller = app.read(closeToTrayProvider.notifier);
+
+    await Future.wait([
+      controller.setEnabled(enabled: false),
+      controller.setEnabled(enabled: true),
+    ]);
+
+    expect(app.read(closeToTrayProvider).value!.enabled, isTrue);
+    expect(tray.shown, isTrue);
+    expect(window.hideOnClose, isTrue);
+  });
+
   test('remembers the setting across starts', () async {
     final first = container();
     await first.read(closeToTrayProvider.future);
