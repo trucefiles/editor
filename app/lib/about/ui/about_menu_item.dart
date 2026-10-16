@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../common/snack.dart';
-import '../../platform/link_opener.dart';
+import '../../common/open_link.dart';
 import '../app_version.dart';
 
 /// Where the app's source code is.
@@ -40,16 +39,9 @@ Future<void> _show(BuildContext context, WidgetRef ref) async {
         child: TextButton.icon(
           icon: const Icon(Icons.open_in_new),
           label: const Text('Source code'),
-          onPressed: () => _open(context, ref, sourceLink),
+          onPressed: () => openLink(context, ref, sourceLink),
         ),
       ),
     ],
   );
-}
-
-Future<void> _open(BuildContext context, WidgetRef ref, Uri link) async {
-  final messenger = ScaffoldMessenger.of(context);
-  if (!await ref.read(linkOpenerProvider).open(link)) {
-    messenger.showHint('No app could open $link');
-  }
 }

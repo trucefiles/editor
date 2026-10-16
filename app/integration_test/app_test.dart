@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:truce_editor/notes/note_colors.dart';
@@ -567,6 +568,43 @@ void main() {
       find.textContaining('Some bold text.', findRichText: true),
       findsOne,
     );
+  });
+
+  testWidgets('Ctrl+1, 2 and 3 switch between Source, List and Rendered', (
+    tester,
+  ) async {
+    app.file('todo.md').writeAsStringSync('# Todo\n- [ ] Call\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+
+    Future<void> pressCtrl(LogicalKeyboardKey digit) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(digit);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+    }
+
+    await pressCtrl(LogicalKeyboardKey.digit3);
+    expect(find.byTooltip('View: Rendered'), findsOne);
+    await pressCtrl(LogicalKeyboardKey.digit1);
+    expect(find.byTooltip('View: Source'), findsOne);
+    await pressCtrl(LogicalKeyboardKey.digit2);
+    expect(find.byTooltip('View: List'), findsOne);
+  });
+
+  testWidgets('Esc leaves a note and saves it in the file', (tester) async {
+    app.file('todo.md').writeAsStringSync('# Todo\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+    await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
   });
 
   testWidgets('edits a note several levels deep', (tester) async {
