@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../backups/backup_retention.dart';
+import '../../common/busy_guard.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
@@ -22,7 +23,7 @@ class ChangedElsewhereScreen extends StatefulWidget {
 
 class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   bool _closed = false;
-  bool _busy = false;
+  final _picking = BusyGuard();
 
   NoteEditSession get _session => widget.session;
 
@@ -57,15 +58,19 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   /// the user confirmed. [seen]: the version shown when the user tapped.
   Future<void> _keep(VersionSide side, Note seen) async {
     if (!_asking) return;
-    setState(() => _busy = true);
-    final picked = switch (side) {
-      VersionSide.current => await _session.loadTheirs(seen),
-      VersionSide.other => await _session.keepMine(seen),
-    };
+    final running = _picking.run(
+      () => switch (side) {
+        VersionSide.current => _session.loadTheirs(seen),
+        VersionSide.other => _session.keepMine(seen),
+      },
+    );
+    // Shows the choice disabled while it runs.
+    setState(() {});
+    final picked = await running;
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() {});
     switch (picked) {
-      case PickResult.done:
+      case null || PickResult.done:
         break;
       case PickResult.noBackup:
         showSnack(context, 'No backup could be made, so nothing changed.');
@@ -102,7 +107,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                     'The current version is replaced by your edits. '
                     '$bothBackedUp',
               ),
-              enabled: !_busy,
+              enabled: !_picking.busy,
               // This build's version: the one shown when the user taps.
               onKeep: (side) => _keep(side, theirs),
             ),

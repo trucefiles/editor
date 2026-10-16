@@ -1,3 +1,5 @@
+import 'package:pool/pool.dart';
+
 import '../common/result.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
@@ -24,6 +26,9 @@ final class NoteMarks {
   final FileStore _store;
   final RelPath _ownFile;
   final DateTime Function() _now;
+
+  /// Changes to this device's file, one at a time.
+  final _changes = Pool(1);
 
   /// The marked notes; unmarked ones are left out. Skips device files that
   /// cannot be read.
@@ -57,8 +62,12 @@ final class NoteMarks {
 
   /// Sets the mark of [note] in this device's file. Fails with
   /// [StoreError.ioFailure] if the file cannot be read as marks, instead of
-  /// writing over the marks in it.
-  Future<Result<void, StoreError>> set(RelPath note, NoteMark mark) async {
+  /// writing over the marks in it. Runs after every earlier [set], so each
+  /// starts from the marks the one before wrote.
+  Future<Result<void, StoreError>> set(RelPath note, NoteMark mark) =>
+      _changes.withResource(() => _set(note, mark));
+
+  Future<Result<void, StoreError>> _set(RelPath note, NoteMark mark) async {
     final FileVersion? version;
     final Map<RelPath, StampedMark> marks;
     switch (await _store.read(_ownFile)) {

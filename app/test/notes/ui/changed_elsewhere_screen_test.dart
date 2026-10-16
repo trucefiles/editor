@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
@@ -14,7 +15,6 @@ import '../../support.dart';
 void main() {
   late Note note;
   late NoteEditSession session;
-  final later = DateTime.now().add(const Duration(days: 1));
 
   Note version(String text, int number) => Note(
     folder: note.folder,
@@ -45,7 +45,7 @@ void main() {
     addTearDown(session.dispose);
     session
       ..edit('# a\nmine')
-      ..onRescan(version('# a\ntheirs', 2), scannedAt: later);
+      ..onRescan(version('# a\ntheirs', 2), scannedAt: Moment.now());
   });
 
   Future<void> pumpBanner(WidgetTester tester) async {
@@ -114,7 +114,7 @@ void main() {
     await tester.tap(find.text('Keep this').first);
     await tester.pumpAndSettle();
 
-    session.onRescan(version('# a\nmine', 4), scannedAt: later);
+    session.onRescan(version('# a\nmine', 4), scannedAt: Moment.now());
     await tester.pumpAndSettle();
     expect(find.text('Your edits'), findsNothing);
     expect(find.text('Keep this version?'), findsOneWidget);
@@ -134,7 +134,7 @@ void main() {
     await tester.tap(find.text('Keep this').last);
     await tester.pumpAndSettle();
 
-    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: later);
+    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: Moment.now());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
@@ -147,7 +147,7 @@ void main() {
   testWidgets('shows a newer version from elsewhere', (tester) async {
     await pumpBanner(tester);
 
-    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: later);
+    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: Moment.now());
     await tester.pumpAndSettle();
 
     expect(find.textContaining('theirs, newer'), findsOneWidget);
@@ -157,7 +157,7 @@ void main() {
     await pumpBanner(tester);
 
     // The file now holds the edits: nothing left to choose.
-    session.onRescan(version('# a\nmine', 4), scannedAt: later);
+    session.onRescan(version('# a\nmine', 4), scannedAt: Moment.now());
     await tester.pumpAndSettle();
 
     expect(find.text('Your edits'), findsNothing);

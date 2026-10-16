@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../common/moment.dart';
 import '../conflicts/folder_conflicts.dart';
 import '../folders/note_folder.dart';
 import '../notes/note.dart';
@@ -32,7 +33,7 @@ final class FolderScans {
   final Map<NoteFolder, StoreError> failedFolders;
 
   /// When the scan began; files written later may show older versions.
-  final DateTime startedAt;
+  final Moment startedAt;
 
   NoteMark markOf(NoteKey key) => marks[key] ?? NoteMark.none;
 

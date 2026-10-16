@@ -29,6 +29,20 @@ void main() {
     });
   });
 
+  test('marks set at the same time are all kept', () async {
+    final marks = device('phone');
+    final set = await Future.wait([
+      marks.set(path('todo.md'), pinned),
+      marks.set(path('lists/shop.md'), teal),
+    ]);
+
+    expect(set, everyElement(isA<Ok<void, StoreError>>()));
+    expect((await marks.load()).value, {
+      path('todo.md'): pinned,
+      path('lists/shop.md'): teal,
+    });
+  });
+
   test('writes only its own device file', () async {
     await device('phone').set(path('todo.md'), pinned);
     await device('laptop').set(path('todo.md'), teal);
