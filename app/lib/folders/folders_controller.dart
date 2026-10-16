@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pool/pool.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../platform/platform_wiring.dart';
@@ -27,7 +28,7 @@ final foldersProvider =
 /// The folders added on this device; every change is saved right away.
 class FoldersController extends AsyncNotifier<List<NoteFolder>> {
   final Random _random = Random.secure();
-  final _changes = TaskQueue();
+  final _changes = Pool(1);
 
   FolderSettingsStore get _store => ref.read(folderSettingsStoreProvider);
 
@@ -100,7 +101,8 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
 
   /// Runs [step] after every earlier change, so each change starts from the
   /// list the one before saved.
-  Future<T> _oneAtATime<T>(Future<T> Function() step) => _changes.run(step);
+  Future<T> _oneAtATime<T>(Future<T> Function() step) =>
+      _changes.withResource(step);
 
   Future<Result<void, SettingsError>> _save(List<NoteFolder> folders) async {
     final saved = await _store.save(folders);

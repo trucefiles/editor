@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import '../common/keyed_task_queue.dart';
 import '../common/result.dart';
-import '../common/task_queue.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
 

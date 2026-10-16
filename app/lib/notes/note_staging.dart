@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:pool/pool.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'note_draft.dart';
@@ -22,7 +23,7 @@ final class NoteStaging {
   final _id = NoteDraft.newId();
   bool _kept = false;
   Timer? _due;
-  final _work = TaskQueue();
+  final _work = Pool(1);
 
   /// Keeps [text] of the note at [path], edited from the file's [base]
   /// text; `false` if it could not be written.
@@ -32,7 +33,7 @@ final class NoteStaging {
     required String text,
   }) {
     _kept = true;
-    final kept = _work.run(
+    final kept = _work.withResource(
       () =>
           _drafts.keep(NoteDraft(id: _id, path: path, base: base, text: text)),
     );
@@ -54,7 +55,7 @@ final class NoteStaging {
     _cancelDue();
     if (!_kept) return;
     _kept = false;
-    unawaited(_work.run(() => _drafts.remove(_id)));
+    unawaited(_work.withResource(() => _drafts.remove(_id)));
   }
 
   void dispose() => _cancelDue();
