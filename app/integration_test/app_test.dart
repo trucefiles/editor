@@ -592,6 +592,21 @@ void main() {
     expect(find.byTooltip('View: List'), findsOne);
   });
 
+  testWidgets('Esc leaves a note and saves it in the file', (tester) async {
+    app.file('todo.md').writeAsStringSync('# Todo\n');
+    await addFolder(tester);
+    await openNote(tester, 'Todo');
+    await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
+  });
+
   testWidgets('edits a note several levels deep', (tester) async {
     app.write('a/b/c/todo.md', '# Deep\n- [ ] Call Bob\n');
     app.write('todo.md', '# Root\n');

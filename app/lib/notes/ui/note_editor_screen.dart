@@ -271,8 +271,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// Ctrl+1, 2, 3 pick the views in the view menu's order.
-  late final Map<SingleActivator, VoidCallback> _viewKeys = {
+  /// Esc leaves the note, as the back arrow does; Ctrl+1, 2, 3 pick the
+  /// views in the view menu's order.
+  late final Map<SingleActivator, VoidCallback> _keys = {
+    const SingleActivator(LogicalKeyboardKey.escape): () =>
+        unawaited(Navigator.maybePop(context)),
     for (final (index, view) in NoteView.values.indexed)
       SingleActivator(_digits[index], control: true): () {
         if (!_isReadOnly && view != _view) _showView(view);
@@ -294,7 +297,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Widget _scaffold() => ScaffoldMessenger(
     key: _messenger,
     child: ScreenShortcuts(
-      bindings: _viewKeys,
+      bindings: _keys,
       child: Builder(builder: _content),
     ),
   );
