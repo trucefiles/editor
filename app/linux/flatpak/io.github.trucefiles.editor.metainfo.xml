@@ -29,7 +29,7 @@
           <li>Fix: adding an item at the top of an indented list no longer nests the items below.</li>
           <li>Fix: search finds titles taken from file names.</li>
           <li>Long list items wrap; the item menu shows on the item being edited.</li>
-          <li>Each note keeps its Done section choice, on every device.</li>
+          <li>Each note keeps its Done section choice.</li>
           <li>Fixes for edits made while a note changed elsewhere, and other edge cases.</li>
         </ul>
       </description>

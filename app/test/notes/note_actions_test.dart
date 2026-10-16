@@ -14,6 +14,7 @@ import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_editor/sync_tool/folder_services.dart';
 
 import '../support.dart';
 
@@ -137,6 +138,26 @@ void main() {
     expect((await scans()).markOf(note.key), mark);
     expect(views.viewOf(note.key), NoteView.rendered);
   });
+
+  test(
+    'undo of an unmarked note keeps older marks of other devices out',
+    () async {
+      final note = await noteIn(work, 'plan.md', '# Plan\n');
+      final laptop = NoteMarks(
+        container.read(folderServicesProvider(folders[0].location)).store,
+        deviceId: 'laptop',
+        now: () => DateTime.utc(2000),
+      );
+      await laptop.set(note.path, const NoteMark(pinned: true));
+      await actions.setMark(note, const NoteMark(color: 'teal'));
+      await actions.setMark(note, NoteMark.none);
+
+      final deleted = (await actions.delete(note, '# Plan\n')).value;
+      await actions.undoDelete(deleted);
+
+      expect((await scans()).markOf(note.key), NoteMark.none);
+    },
+  );
 
   test('a failed undo brings back no mark', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');

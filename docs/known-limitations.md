@@ -19,3 +19,7 @@ Accepted behavior that is not planned to change.
    subfolder is deleted on another device while the note has unsaved edits
    here, the edits are kept as a conflict copy in that subfolder, which
    recreates it, so the edits stay visible.
+5. **A new note can show an old mark.** Deleting a note drops only this
+   device's mark for it. If a note is later created at the same path, it
+   shows another device's older pin, color or "Done" section choice until
+   that device changes a mark in the folder.

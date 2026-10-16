@@ -81,7 +81,8 @@ final class NoteActions {
         .read(noteFilesProvider(note.folder))
         .restore(note, text);
     if (restored is Ok) {
-      if (!mark.isNone) await _marksOf(note).set(note.path, mark);
+      // Even no mark: else an older mark from another device would win.
+      await _marksOf(note).set(note.path, mark);
       if (view != null) await _views.remember(note.key, view);
     }
     await _scans.refresh();
