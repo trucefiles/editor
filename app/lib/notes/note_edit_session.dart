@@ -314,8 +314,11 @@ final class NoteEditSession extends ChangeNotifier {
           await flush();
         }
       case Err(error: StoreError.alreadyExists):
-        _theirs = await _reload();
-        if (_theirs != null) _set(EditState.changedElsewhere);
+        // Back meanwhile: as if a rescan found it.
+        final latest = await _reload();
+        if (latest != null && _state == EditState.deletedElsewhere) {
+          _cameBack(latest);
+        }
       case Err():
         _set(EditState.saveFailed);
     }

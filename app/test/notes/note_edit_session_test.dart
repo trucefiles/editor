@@ -461,6 +461,31 @@ void main() {
     expect(session.state, EditState.saved);
   });
 
+  test('restore mine of a note back with the same text is done', () async {
+    file().deleteSync();
+    session.edit('# a\nkept');
+    await session.flush();
+    file().writeAsStringSync('# a\nkept');
+
+    await session.restoreMine();
+
+    expect(session.state, EditState.saved);
+    expect(onDisk(), '# a\nkept');
+  });
+
+  test('restore mine of a note back with other text asks', () async {
+    file().deleteSync();
+    session.edit('# a\nkept');
+    await session.flush();
+    file().writeAsStringSync('# a\ntheirs');
+
+    await session.restoreMine();
+
+    expect(session.state, EditState.changedElsewhere);
+    expect(session.theirs?.file.text, '# a\ntheirs');
+    expect(onDisk(), '# a\ntheirs');
+  });
+
   test('restore mine tapped twice restores once', () async {
     file().deleteSync();
     session.edit('# a\nkept');
