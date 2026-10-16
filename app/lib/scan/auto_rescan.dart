@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import '../common/debouncer.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
+import '../reach/folder_reach_controller.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
 import '../sync_tool/folder_services.dart';
@@ -18,6 +19,9 @@ final autoRescanProvider = AsyncNotifierProvider<AutoRescan, void>(
 /// Rescans when a folder's files change, as the refresh setting asks, while
 /// the app is in use. Changes that come close together, like a sync of
 /// many files, lead to one rescan.
+///
+/// Starts following a folder's changes afresh once the folder is reachable
+/// again, so a folder that went away is watched again, not only polled.
 ///
 /// Also rescans once when the refresh setting changes, for changes made
 /// while nothing was looking. Changes made while the app was not in use
@@ -54,6 +58,14 @@ class AutoRescan extends AsyncNotifier<void> {
     if (!active) return;
     final folders = await ref.watch(foldersProvider.future);
     if (disposed) return;
+    // Follows again once a folder is back: watching ends when its folder
+    // goes away, and goes on by polling until then.
+    for (final folder in folders) {
+      ref.watch(
+        folderReachProvider(folder.location)
+            .select((reach) => reach == Reach.reachable),
+      );
+    }
     final changes = await Future.wait([
       for (final folder in folders)
         ref.watch(folderChangesProvider(folder.location).future),
