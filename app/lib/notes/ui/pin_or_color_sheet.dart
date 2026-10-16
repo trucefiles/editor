@@ -7,35 +7,67 @@ import '../../common/snack.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_colors.dart';
+import '../note_settings_controller.dart';
 
-/// Lets the user pin [note] or pick its color, then saves the choice.
-Future<void> editNoteMark(
+/// Lets the user pin [note] (on this device) or pick its color (on every
+/// device), then saves the choice.
+Future<void> editPinOrColor(
   BuildContext context,
   WidgetRef ref,
   Note note,
 ) async {
   final actions = ref.read(noteActionsProvider);
-  final chosen = await showModalBottomSheet<NoteMark>(
+  final settings = ref.read(noteSettingsProvider.notifier);
+  final pinned = settings.settingsOf(note.key).pinned;
+  final chosen = await showModalBottomSheet<_Choice>(
     context: context,
-    builder: (_) => _NoteMarkSheet(actions.markOf(note)),
+    builder: (_) =>
+        _PinOrColorSheet(pinned: pinned, color: actions.markOf(note).color),
   );
-  if (chosen == null) return;
-  final saved = await actions.setMark(note, chosen);
-  if (saved case Err(:final error) when context.mounted) {
-    showSnack(context, error.text);
+  switch (chosen) {
+    case null:
+      return;
+    case _Pin(:final pinned):
+      await settings.edit(
+        note.key,
+        (current) => current.withPinned(pinned: pinned),
+      );
+    case _Color(:final color):
+      final mark = actions.markOf(note).withColor(color);
+      final saved = await actions.setMark(note, mark);
+      if (saved case Err(:final error) when context.mounted) {
+        showSnack(context, error.text);
+      }
   }
 }
 
-/// Pin toggle and color choice; closes with the new mark on any tap.
-class _NoteMarkSheet extends StatelessWidget {
-  const _NoteMarkSheet(this.mark);
+sealed class _Choice {
+  const _Choice();
+}
 
-  final NoteMark mark;
+final class _Pin extends _Choice {
+  const _Pin({required this.pinned});
+
+  final bool pinned;
+}
+
+final class _Color extends _Choice {
+  const _Color(this.color);
+
+  final String? color;
+}
+
+/// Pin toggle and color choice; closes with the choice on any tap.
+class _PinOrColorSheet extends StatelessWidget {
+  const _PinOrColorSheet({required this.pinned, required this.color});
+
+  final bool pinned;
+  final String? color;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    void choose(NoteMark chosen) => Navigator.pop(context, chosen);
+    void choose(_Choice chosen) => Navigator.pop(context, chosen);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -43,11 +75,9 @@ class _NoteMarkSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                mark.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-              ),
-              title: Text(mark.pinned ? 'Unpin' : 'Pin'),
-              onTap: () => choose(mark.withPinned(pinned: !mark.pinned)),
+              leading: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
+              title: Text(pinned ? 'Unpin' : 'Pin'),
+              onTap: () => choose(_Pin(pinned: !pinned)),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -58,15 +88,15 @@ class _NoteMarkSheet extends StatelessWidget {
                   _ColorChoice(
                     tooltip: 'No color',
                     color: scheme.surface,
-                    selected: mark.color == null,
-                    onTap: () => choose(mark.withColor(null)),
+                    selected: color == null,
+                    onTap: () => choose(const _Color(null)),
                   ),
                   for (final name in noteColors.keys)
                     _ColorChoice(
                       tooltip: name,
                       color: noteTint(name, scheme)!,
-                      selected: mark.color == name,
-                      onTap: () => choose(mark.withColor(name)),
+                      selected: color == name,
+                      onTap: () => choose(_Color(name)),
                     ),
                 ],
               ),

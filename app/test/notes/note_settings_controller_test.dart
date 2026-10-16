@@ -5,9 +5,10 @@ import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
+import 'package:truce_editor/notes/note_settings.dart';
+import 'package:truce_editor/notes/note_settings_controller.dart';
+import 'package:truce_editor/notes/note_settings_store.dart';
 import 'package:truce_editor/notes/note_view.dart';
-import 'package:truce_editor/notes/note_view_store.dart';
-import 'package:truce_editor/notes/note_views_controller.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
@@ -15,7 +16,7 @@ import '../support.dart';
 
 void main() {
   late ProviderContainer container;
-  late NoteViewsController views;
+  late NoteSettingsController views;
   final a = (folderId: 'f1', path: path('a.md'));
   final b = (folderId: 'f1', path: path('b.md'));
 
@@ -25,34 +26,67 @@ void main() {
       overrides: [appStorageProvider.overrideWithValue(storage)],
     );
     addTearDown(container.dispose);
-    views = container.read(noteViewsProvider.notifier);
+    views = container.read(noteSettingsProvider.notifier);
   });
 
-  Future<Map<String, NoteView>> saved() =>
-      container.read(noteViewStoreProvider).load();
+  Future<Map<String, NoteSettings>> saved() =>
+      container.read(noteSettingsStoreProvider).load();
+
+  Future<void> remember(NoteKey note, NoteView view) =>
+      views.edit(note, (settings) => settings.withView(view));
+
+  NoteView? viewOf(NoteKey note) => views.settingsOf(note).view;
 
   test('views remembered at the same time are all kept', () async {
     await Future.wait([
-      views.remember(a, NoteView.text),
-      views.remember(b, NoteView.rendered),
+      remember(a, NoteView.text),
+      remember(b, NoteView.rendered),
     ]);
 
     final expected = {
-      NoteViewStore.storeKey(a): NoteView.text,
-      NoteViewStore.storeKey(b): NoteView.rendered,
+      NoteSettingsStore.storeKey(a): NoteSettings(view: NoteView.text),
+      NoteSettingsStore.storeKey(b): NoteSettings(view: NoteView.rendered),
     };
-    expect(container.read(noteViewsProvider).value, expected);
+    expect(container.read(noteSettingsProvider).value, expected);
     expect(await saved(), expected);
   });
 
   test('forget drops the view of a note', () async {
-    await views.remember(a, NoteView.text);
-    await views.remember(b, NoteView.rendered);
+    await remember(a, NoteView.text);
+    await remember(b, NoteView.rendered);
 
     await views.forget(a);
 
-    expect(views.viewOf(a), isNull);
-    expect(await saved(), {NoteViewStore.storeKey(b): NoteView.rendered});
+    expect(viewOf(a), isNull);
+    expect(await saved(), {
+      NoteSettingsStore.storeKey(b): NoteSettings(view: NoteView.rendered),
+    });
+  });
+
+  test('keeps pin and Done section with the view', () async {
+    await remember(a, NoteView.list);
+    await views.edit(a, (settings) => settings.withPinned(pinned: true));
+    await views.edit(
+      a,
+      (settings) => settings.withDoneSection(doneSection: false),
+    );
+
+    const expected = NoteSettings(
+      view: NoteView.list,
+      pinned: true,
+      doneSection: false,
+    );
+    expect(views.settingsOf(a), expected);
+    expect(await saved(), {NoteSettingsStore.storeKey(a): expected});
+  });
+
+  test('drops settings changed back to the defaults', () async {
+    await views.edit(a, (settings) => settings.withPinned(pinned: true));
+
+    await views.edit(a, (settings) => settings.withPinned(pinned: false));
+
+    expect(views.settingsOf(a), NoteSettings.defaults);
+    expect(await saved(), isEmpty);
   });
 
   group('prune', () {
@@ -90,32 +124,31 @@ void main() {
 
     test('drops views of notes and folders that are gone', () async {
       final kept = noteAt(work, 'kept.md');
-      await views.remember(kept.key, NoteView.list);
-      await views.remember(noteAt(work, 'gone.md').key, NoteView.text);
-      await views.remember((
-        folderId: 'removed',
-        path: path('a.md'),
-      ), NoteView.text);
+      await remember(kept.key, NoteView.list);
+      await remember(noteAt(work, 'gone.md').key, NoteView.text);
+      await remember((folderId: 'removed', path: path('a.md')), NoteView.text);
 
       await views.prune(scans([kept]));
 
-      expect(await saved(), {NoteViewStore.storeKey(kept.key): NoteView.list});
+      expect(await saved(), {
+        NoteSettingsStore.storeKey(kept.key): NoteSettings(view: NoteView.list),
+      });
     });
 
     test('keeps views of folders that could not be scanned', () async {
       final unread = noteAt(home, 'a.md');
-      await views.remember(unread.key, NoteView.rendered);
+      await remember(unread.key, NoteView.rendered);
 
       await views.prune(scans([], failed: {home: StoreError.ioFailure}));
 
-      expect(views.viewOf(unread.key), NoteView.rendered);
+      expect(viewOf(unread.key), NoteView.rendered);
     });
 
     test('keeps views below subfolders that could not be read', () async {
       final hidden = noteAt(work, 'private/a.md');
       final gone = noteAt(work, 'privateer.md');
-      await views.remember(hidden.key, NoteView.rendered);
-      await views.remember(gone.key, NoteView.text);
+      await remember(hidden.key, NoteView.rendered);
+      await remember(gone.key, NoteView.text);
 
       await views.prune(
         scans(
@@ -126,17 +159,17 @@ void main() {
         ),
       );
 
-      expect(views.viewOf(hidden.key), NoteView.rendered);
-      expect(views.viewOf(gone.key), isNull);
+      expect(viewOf(hidden.key), NoteView.rendered);
+      expect(viewOf(gone.key), isNull);
     });
 
     test('keeps views of notes whose files could not be read', () async {
       final unread = noteAt(work, 'a.md');
-      await views.remember(unread.key, NoteView.rendered);
+      await remember(unread.key, NoteView.rendered);
 
       await views.prune(scans([], unreadNotes: {unread.key}));
 
-      expect(views.viewOf(unread.key), NoteView.rendered);
+      expect(viewOf(unread.key), NoteView.rendered);
     });
   });
 }

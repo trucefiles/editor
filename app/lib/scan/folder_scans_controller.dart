@@ -79,11 +79,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
           failed[folder] = error;
       }
     }
-    bool pinned(Note note) => marks[note.key]?.pinned ?? false;
-    notes.sort(
-      (a, b) =>
-          pinned(a) != pinned(b) ? (pinned(a) ? -1 : 1) : _newestFirst(a, b),
-    );
+    notes.sort(_newestFirst);
     return FolderScans(
       notes: notes,
       marks: marks,

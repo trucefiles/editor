@@ -105,10 +105,10 @@ void main() {
     expect(restored, note.file.text);
   });
 
-  test('pinning a note adds only this device\'s marks file', () async {
+  test('coloring a note adds only this device\'s marks file', () async {
     final before = snapshot();
 
-    await services.marks.set(path('a.md'), const NoteMark(pinned: true));
+    await services.marks.set(path('a.md'), const NoteMark(color: 'teal'));
 
     expect(changed(before, snapshot()), {
       'Notes/.truce',
@@ -172,13 +172,13 @@ void main() {
       expect(changed(before, snapshot()), isEmpty);
     });
 
-    test('pinning a note does not bring it back', () async {
-      final pinned = await services.marks.set(
+    test('coloring a note does not bring it back', () async {
+      final colored = await services.marks.set(
         path('a.md'),
-        const NoteMark(pinned: true),
+        const NoteMark(color: 'teal'),
       );
 
-      expect(pinned.error, StoreError.notFound);
+      expect(colored.error, StoreError.notFound);
       expect(changed(before, snapshot()), isEmpty);
     });
 

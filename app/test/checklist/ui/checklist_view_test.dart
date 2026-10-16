@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/checklist/checklist_editor.dart';
+import 'package:truce_editor/checklist/ui/checklist_row.dart';
 import 'package:truce_editor/checklist/ui/checklist_view.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -380,5 +381,250 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Done items cleared'), findsNothing);
     await close(tester);
+  });
+
+  group('add rows', () {
+    double top(WidgetTester tester, Finder finder) =>
+        tester.getTopLeft(finder).dy;
+
+    testWidgets('sit right above the first item and below the last', (
+      tester,
+    ) async {
+      await show(tester, '# Shop\nintro\n- [ ] a\n## Later\n- [ ] b\n\nnote');
+
+      final order = [
+        find.text('Shop'),
+        field('Add item at top'),
+        field('a'),
+        find.text('Later'),
+        field('b'),
+        field('Add item'),
+        find.text('note'),
+      ].map((finder) => top(tester, finder)).toList();
+      expect(order, [...order]..sort());
+      await close(tester);
+    });
+
+    testWidgets('add where they sit', (tester) async {
+      final editor = await show(tester, '# Shop\n- [ ] a\n  - [ ] sub\n\nnote');
+
+      await tester.enterText(field('Add item at top'), 'T');
+      await tester.pump();
+      await tester.enterText(field('Add item'), 'B');
+      await tester.pump();
+
+      expect(
+        editor.list.text,
+        '# Shop\n- [ ] T\n- [ ] a\n  - [ ] sub\n- [ ] B\n\nnote',
+      );
+      await close(tester);
+    });
+
+    testWidgets('keep indented text below the last item above them', (
+      tester,
+    ) async {
+      await show(tester, '- [ ] a\n  details');
+
+      expect(
+        top(tester, find.text('details')),
+        lessThan(top(tester, field('Add item'))),
+      );
+      await close(tester);
+    });
+
+    testWidgets('go by the open items, past done ones and their text', (
+      tester,
+    ) async {
+      final editor = await show(tester, '- [x] d\n# Open\n- [ ] a\n- [x] e');
+
+      await tester.enterText(field('Add item at top'), 'T');
+      await tester.pump();
+      await tester.enterText(field('Add item'), 'B');
+      await tester.pump();
+
+      expect(
+        editor.list.text,
+        '- [x] d\n# Open\n- [ ] T\n- [ ] a\n- [ ] B\n- [x] e',
+      );
+      await close(tester);
+    });
+
+    testWidgets('line up with the items', (tester) async {
+      await show(tester, '- [ ] a');
+
+      expect(
+        tester.getCenter(find.byIcon(Icons.add).first).dx,
+        tester.getCenter(find.byType(Checkbox)).dx,
+      );
+      expect(
+        tester.getTopLeft(field('Add item')).dx,
+        tester.getTopLeft(field('a')).dx,
+      );
+      await close(tester);
+    });
+
+    testWidgets('dragging an item to the end keeps it above the text below', (
+      tester,
+    ) async {
+      final editor = await show(tester, '- [ ] a\n- [ ] b\n\nnote');
+
+      final handle = find.byIcon(Icons.drag_indicator).first;
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await tester.pump(kLongPressTimeout);
+      await gesture.moveBy(const Offset(0, 120));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '- [ ] b\n- [ ] a\n\nnote');
+      await close(tester);
+    });
+  });
+
+  group('joining items', () {
+    /// Puts the cursor of [field] at [offset].
+    Future<void> cursorIn(WidgetTester tester, Finder field, int offset) async {
+      await tester.tap(field);
+      await tester.pump();
+      tester.widget<TextField>(field).controller!.selection =
+          TextSelection.collapsed(offset: offset);
+      await tester.pump();
+    }
+
+    /// Puts the cursor of the field showing [text] at [offset].
+    Future<void> cursorAt(WidgetTester tester, String text, int offset) =>
+        cursorIn(tester, field(text), offset);
+
+    /// Text field of the [index]th item row.
+    Finder item(int index) => find.descendant(
+      of: find.byType(ChecklistItemRow).at(index),
+      matching: find.byType(TextField),
+    );
+
+    TextSelection selectionOf(WidgetTester tester, String text) =>
+        tester.widget<TextField>(field(text)).controller!.selection;
+
+    testWidgets('Backspace at the start joins the item to the one above', (
+      tester,
+    ) async {
+      final editor = await show(tester, '- [ ] milk\n- [ ] eggs');
+      await cursorAt(tester, 'eggs', 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '- [ ] milkeggs');
+      expect(hasFocus(tester, 'milkeggs'), isTrue);
+      expect(
+        selectionOf(tester, 'milkeggs'),
+        const TextSelection.collapsed(offset: 4),
+      );
+      await close(tester);
+    });
+
+    testWidgets('Delete at the end joins the item below onto it', (
+      tester,
+    ) async {
+      final editor = await show(tester, '- [ ] milk\n- [ ] eggs');
+      await cursorAt(tester, 'milk', 4);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '- [ ] milkeggs');
+      expect(hasFocus(tester, 'milkeggs'), isTrue);
+      expect(
+        selectionOf(tester, 'milkeggs'),
+        const TextSelection.collapsed(offset: 4),
+      );
+      await close(tester);
+    });
+
+    testWidgets('either key drops an empty item', (tester) async {
+      final editor = await show(
+        tester,
+        '- [ ] a\n- [ ] \n- [ ] \n- [x] b',
+        separateDone: false,
+      );
+      await cursorIn(tester, item(1), 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '- [ ] a\n- [ ] \n- [x] b');
+      expect(
+        selectionOf(tester, 'a'),
+        const TextSelection.collapsed(offset: 1),
+      );
+
+      await cursorIn(tester, item(1), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '- [ ] a\n- [x] b', reason: 'b keeps its box');
+      expect(hasFocus(tester, 'b'), isTrue);
+      expect(
+        selectionOf(tester, 'b'),
+        const TextSelection.collapsed(offset: 0),
+      );
+      await close(tester);
+    });
+
+    testWidgets('either key drops an empty item with nothing to join', (
+      tester,
+    ) async {
+      final editor = await show(tester, '# T\n- [ ] \n- [ ] a\n- [ ] ');
+
+      await cursorIn(tester, item(0), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '# T\n- [ ] a\n- [ ] ', reason: 'below text');
+      expect(hasFocus(tester, 'a'), isTrue, reason: 'not the top add row');
+
+      await cursorIn(tester, item(1), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+      await tester.pumpAndSettle();
+      expect(editor.list.text, '# T\n- [ ] a', reason: 'the last item');
+      expect(
+        tester.widget<TextField>(field('Add item')).focusNode!.hasFocus,
+        isTrue,
+      );
+      await close(tester);
+    });
+
+    testWidgets('drops the only item if it is empty', (tester) async {
+      final editor = await show(tester, '- [ ] ');
+
+      await cursorIn(tester, item(0), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '');
+      await close(tester);
+    });
+
+    testWidgets('keys inside the text edit it as usual', (tester) async {
+      final editor = await show(tester, '- [ ] milk\n- [ ] eggs');
+      await cursorAt(tester, 'eggs', 2);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+
+      expect(editor.list.text, '- [ ] milk\n- [ ] egs');
+      await close(tester);
+    });
+
+    testWidgets('nothing joins across text or past the first item', (
+      tester,
+    ) async {
+      final editor = await show(tester, '- [ ] a\n# Later\n- [ ] b');
+
+      await cursorAt(tester, 'b', 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await cursorAt(tester, 'a', 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+
+      expect(editor.list.text, '- [ ] a\n# Later\n- [ ] b');
+      await close(tester);
+    });
   });
 }

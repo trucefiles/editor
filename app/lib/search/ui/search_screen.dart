@@ -4,9 +4,10 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/empty_state.dart';
 import '../../notes/note.dart';
+import '../../notes/note_settings_controller.dart';
 import '../../notes/ui/note_card.dart';
 import '../../notes/ui/note_grid.dart';
-import '../../notes/ui/note_mark_sheet.dart';
+import '../../notes/ui/pin_or_color_sheet.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note_search.dart';
 
@@ -31,6 +32,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final scans = ref.watch(folderScansProvider).value;
     final notes = scans?.notes ?? const <Note>[];
+    ref.watch(noteSettingsProvider);
+    final settings = ref.read(noteSettingsProvider.notifier);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -62,8 +65,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     NoteCard(
                       note,
                       mark: scans?.markOf(note.key) ?? NoteMark.none,
+                      pinned: settings.settingsOf(note.key).pinned,
                       onTap: () => openNote(context, note),
-                      onMark: () => editNoteMark(context, ref, note),
+                      onMark: () => editPinOrColor(context, ref, note),
                     ),
                 ]),
               ),

@@ -427,7 +427,7 @@ void main() {
     await tester.waitForFile(app.file('list.md'), '# List\n- [ ] a\n');
   });
 
-  testWidgets('a note keeps its Done section choice, as a mark', (
+  testWidgets('a note keeps its Done section choice, on this device only', (
     tester,
   ) async {
     app.file('list.md').writeAsStringSync('# List\n- [ ] a\n- [x] b\n');
@@ -445,10 +445,7 @@ void main() {
     await openNote(tester, 'List');
 
     expect(find.text('1 done'), findsNothing);
-    final marks = Directory('${app.notes.path}/.truce/marks')
-        .listSync()
-        .whereType<File>();
-    expect(marks.single.readAsStringSync(), contains('"doneSection": false'));
+    expect(Directory('${app.notes.path}/.truce').existsSync(), isFalse);
   });
 
   testWidgets('deletes a note and undoes it', (tester) async {
@@ -483,6 +480,8 @@ void main() {
     expect(top('Pinned'), lessThan(top('Plan')));
     expect(top('Plan'), lessThan(top('Others')));
     expect(top('Others'), lessThan(top('Ideas')));
+    // A pin is this device's view, not synced with the folder.
+    expect(Directory('${app.notes.path}/.truce').existsSync(), isFalse);
   });
 
   testWidgets('warns about an unsynced folder in full only in Folders', (

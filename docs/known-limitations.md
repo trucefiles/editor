@@ -13,17 +13,17 @@ Accepted behavior that is not planned to change, grouped by topic.
   here, the edits are kept as a conflict copy in that subfolder, which
   recreates it, so the edits stay visible.
 
-## Pins, colors and views
+## Colors, pins and views
 
-- **A note renamed or moved outside the app loses its marks.** Its pin,
-  color and "Done" section choice, and the view it was last shown in,
-  belong to its old path. They are cleaned up later: marks at this
-  device's next change to any mark in that folder, views each time the app
-  comes into use.
-- **A new note can show an old mark.** Deleting a note drops only this
-  device's mark for it. If a note is later created at the same path, it
-  shows another device's older pin, color or "Done" section choice until
-  that device changes a mark in the folder.
+- **A note renamed or moved outside the app loses its color and
+  settings.** Its color (synced) and its pin, "Done" section choice and
+  last view (this device only) belong to its old path. They are cleaned up
+  later: colors at this device's next change to any color in that folder,
+  settings each time the app comes into use.
+- **A new note can show an old color.** Deleting a note drops only this
+  device's color for it. If a note is later created at the same path, it
+  shows another device's older color until that device changes a color in
+  the folder.
 
 ## Backups
 

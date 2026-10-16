@@ -88,9 +88,12 @@ void main() {
       final item = randomItem(list);
       final added = item == null
           ? list.append('new').$1
-          : (random.nextBool()
-                ? list.insertAfter(item.id, 'new').$1
-                : list.append('new').$1);
+          : switch (random.nextInt(4)) {
+              0 => list.insertAfter(item.id, 'new').$1,
+              1 => list.insertBefore(item.id, 'new').$1,
+              2 => list.appendAfter(item.id, 'new').$1,
+              _ => list.append('new').$1,
+            };
 
       expect(added.lines.length, list.lines.length + 1);
       expect(isSubsequence(raws(list), raws(added)), isTrue, reason: '$i');

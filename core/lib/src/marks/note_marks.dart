@@ -7,7 +7,7 @@ import '../storage/rel_path.dart';
 import 'note_mark.dart';
 import 'note_marks_file.dart';
 
-/// Pins and colors of the notes in one folder, kept in the folder itself so
+/// Colors of the notes in one folder, kept in the folder itself so
 /// they sync with it.
 ///
 /// Each device writes only its own file, `.truce/marks/<device id>.json`

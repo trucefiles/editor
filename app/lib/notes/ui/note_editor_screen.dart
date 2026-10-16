@@ -17,6 +17,7 @@ import '../../conflicts/ui/conflict_banner.dart';
 import '../../markdown/markdown_view.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
+import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
@@ -25,14 +26,15 @@ import '../note_drafts.dart';
 import '../note_edit_session.dart';
 import '../note_editor_controller.dart';
 import '../note_files.dart';
+import '../note_settings.dart';
+import '../note_settings_controller.dart';
 import '../note_title.dart';
 import '../note_view.dart';
-import '../note_views_controller.dart';
 import 'edit_state_banner.dart';
 import 'line_break_formatter.dart';
 import 'note_heading.dart';
-import 'note_mark_sheet.dart';
 import 'note_view_button.dart';
+import 'pin_or_color_sheet.dart';
 import 'save_indicator.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
@@ -68,19 +70,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
-  late final NoteViewsController _views;
+  late final NoteSettingsController _settings;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
   /// The note's last view on this device; else a list if it has items.
   late NoteView _view =
-      _views.viewOf(widget.note.key) ??
+      _settings.settingsOf(widget.note.key).view ??
       (_checklist.list.hasItems ? NoteView.list : NoteView.text);
 
   @override
   void initState() {
     super.initState();
     _scans = ref.read(folderScansProvider.notifier);
-    _views = ref.read(noteViewsProvider.notifier);
+    _settings = ref.read(noteSettingsProvider.notifier);
     _text.addListener(() => _session.edit(_text.text));
     _session.addListener(_onSessionChanged);
     _lifecycle = AppLifecycleListener(
@@ -203,21 +205,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// [context] is this screen's, below its own messenger; [mark] is the
-  /// note's.
-  Widget _menu(BuildContext context, NoteMark mark) =>
+  /// [context] is this screen's, below its own messenger; [settings] are
+  /// the note's.
+  Widget _menu(BuildContext context, NoteSettings settings) =>
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
           if (_view == NoteView.list) ...[
             PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
             PopupMenuItem(
-              value: () => _setDoneSection(context, mark),
-              child: ToggleLabel('Done section', on: mark.doneSection),
+              value: () => _setDoneSection(on: !settings.doneSection),
+              child: ToggleLabel('Done section', on: settings.doneSection),
             ),
           ],
           PopupMenuItem(
-            value: () => editNoteMark(context, ref, widget.note),
+            value: () => editPinOrColor(context, ref, widget.note),
             child: const Text('Pin or color'),
           ),
           PopupMenuItem(
@@ -227,23 +229,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ],
       );
 
-  /// Turns the "Done" section of this note on or off, on every device.
-  /// [context] is this screen's, below its own messenger.
-  Future<void> _setDoneSection(BuildContext context, NoteMark mark) async {
-    final saved = await ref
-        .read(noteActionsProvider)
-        .setMark(
-          widget.note,
-          mark.withDoneSection(doneSection: !mark.doneSection),
-        );
-    if (saved case Err(:final error) when context.mounted) {
-      showSnack(context, error.text);
-    }
-  }
+  /// Turns the "Done" section of this note on or off, on this device.
+  void _setDoneSection({required bool on}) => unawaited(
+    _settings.edit(
+      widget.note.key,
+      (settings) => settings.withDoneSection(doneSection: on),
+    ),
+  );
 
   void _showView(NoteView view) {
     setState(() => _view = view);
-    unawaited(_views.remember(widget.note.key, view));
+    unawaited(
+      _settings.edit(widget.note.key, (settings) => settings.withView(view)),
+    );
   }
 
   void _clearDone() => showChecklistUndoHint(
@@ -316,6 +314,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final readOnly = _isReadOnly;
     final scans = ref.watch(folderScansProvider).value;
     final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
+    ref.watch(noteSettingsProvider);
+    final settings = _settings.settingsOf(widget.note.key);
     final tint = noteTint(mark.color, Theme.of(context).colorScheme);
     return Scaffold(
       backgroundColor: tint,
@@ -339,7 +339,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
           if (!readOnly) ...[
             NoteViewButton(view: _view, onChanged: _showView),
-            _menu(context, mark),
+            _menu(context, settings),
           ],
         ],
       ),
@@ -354,13 +354,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           // Its ways out need the folder.
           if (!unreachable) EditStateBanner(_session, onClose: _leave),
           Expanded(
-            child: RefreshIndicator(
+            // The views scroll inside, e.g. the text field's own
+            // scrollable.
+            child: PullToRefresh(
               onRefresh: _scans.refresh,
-              // The views scroll inside, e.g. the text field's own
-              // scrollable; sideways scrolling (wide tables) never pulls.
-              notificationPredicate: (notification) =>
-                  notification.metrics.axis == Axis.vertical,
-              child: _body(mark, readOnly: readOnly),
+              child: _body(
+                doneSection: settings.doneSection,
+                readOnly: readOnly,
+              ),
             ),
           ),
         ],
@@ -368,34 +369,33 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// The note in the chosen view, with its [mark]; rendered while
-  /// [readOnly]: once done, as the session takes no more edits, or while
-  /// the folder can't be reached.
-  Widget _body(NoteMark mark, {required bool readOnly}) => switch (readOnly
-      ? NoteView.rendered
-      : _view) {
-    NoteView.list => ChecklistView(_checklist, separateDone: mark.doneSection),
-    NoteView.rendered => MarkdownView(_session.text),
-    NoteView.text => TextField(
-      controller: _text,
-      maxLines: null,
-      expands: true,
-      autofocus: widget.autofocus,
-      keyboardType: TextInputType.multiline,
-      inputFormatters: [lineBreakFormatter],
-      // The raw source, so monospace: Markdown syntax lines up as
-      // in a code editor.
-      style: const TextStyle(fontFamily: 'monospace'),
-      // Highlights only the selected text, not up to the longest
-      // line (Flutter's default outside the web).
-      selectionWidthStyle: BoxWidthStyle.tight,
-      textAlignVertical: TextAlignVertical.top,
-      decoration: const InputDecoration(
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.all(16),
-      ),
-      // Pulls down even when the text fits, to refresh.
-      scrollPhysics: const AlwaysScrollableScrollPhysics(),
-    ),
-  };
+  /// The note in the chosen view, a list with a "Done" section if
+  /// [doneSection]; rendered while [readOnly]: once done, as the session
+  /// takes no more edits, or while the folder can't be reached.
+  Widget _body({required bool doneSection, required bool readOnly}) =>
+      switch (readOnly ? NoteView.rendered : _view) {
+        NoteView.list => ChecklistView(_checklist, separateDone: doneSection),
+        NoteView.rendered => MarkdownView(_session.text),
+        NoteView.text => TextField(
+          controller: _text,
+          maxLines: null,
+          expands: true,
+          autofocus: widget.autofocus,
+          keyboardType: TextInputType.multiline,
+          inputFormatters: [lineBreakFormatter],
+          // The raw source, so monospace: Markdown syntax lines up as
+          // in a code editor.
+          style: const TextStyle(fontFamily: 'monospace'),
+          // Highlights only the selected text, not up to the longest
+          // line (Flutter's default outside the web).
+          selectionWidthStyle: BoxWidthStyle.tight,
+          textAlignVertical: TextAlignVertical.top,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.all(16),
+          ),
+          // Pulls down even when the text fits, to refresh.
+          scrollPhysics: const AlwaysScrollableScrollPhysics(),
+        ),
+      };
 }

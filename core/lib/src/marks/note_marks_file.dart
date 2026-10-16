@@ -12,17 +12,15 @@ typedef StampedMark = ({NoteMark mark, DateTime changed});
 /// ```json
 /// {
 ///   "lists/todo.md": {
-///     "pinned": true,
 ///     "color": "teal",
-///     "doneSection": false,
 ///     "changed": "2026-10-13T18:40:00.000Z"
 ///   }
 /// }
 /// ```
 ///
-/// Keeps unmarked notes too (`"pinned": false, "color": null`), so an unpin
-/// beats an older pin from another device. `doneSection` may be missing
-/// (files of older app versions): it is then `true`.
+/// Keeps unmarked notes too (`"color": null`), so taking a color off beats
+/// an older color from another device. Other keys, e.g. `pinned` written
+/// by older app versions, are ignored.
 abstract final class NoteMarksFile {
   /// The marks in [bytes]. Skips entries it cannot read; `null` if the
   /// whole file is unreadable.
@@ -55,37 +53,16 @@ abstract final class NoteMarksFile {
   }
 
   static Map<String, Object?> _encodeEntry(StampedMark stamped) => {
-    'pinned': stamped.mark.pinned,
     'color': stamped.mark.color,
-    'doneSection': stamped.mark.doneSection,
     'changed': stamped.changed.toUtc().toIso8601String(),
   };
 
   static StampedMark? _decodeEntry(Object? json) => switch (json) {
-    {
-      'pinned': final bool pinned,
-      'color': final String? color,
-      'changed': final String changed,
-    } =>
-      switch ((DateTime.tryParse(changed), _doneSection(json))) {
-        (final time?, final doneSection?) => (
-          mark: NoteMark(
-            pinned: pinned,
-            color: color,
-            doneSection: doneSection,
-          ),
-          changed: time,
-        ),
-        _ => null,
+    {'color': final String? color, 'changed': final String changed} =>
+      switch (DateTime.tryParse(changed)) {
+        final time? => (mark: NoteMark(color: color), changed: time),
+        null => null,
       },
     _ => null,
   };
-
-  /// `true` if missing; `null` if not a bool.
-  static bool? _doneSection(Map<dynamic, dynamic> json) =>
-      switch (json['doneSection']) {
-        null => true,
-        final bool value => value,
-        _ => null,
-      };
 }
