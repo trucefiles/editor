@@ -1,0 +1,2 @@
+- Links in rendered notes open on tap.
+- With a keyboard: Esc leaves a note; Ctrl+1, 2, 3 switch to Source, List, Rendered.
