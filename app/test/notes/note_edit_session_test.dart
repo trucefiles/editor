@@ -57,6 +57,29 @@ void main() {
   void clearBackups() =>
       backups.listSync().forEach((f) => f.deleteSync(recursive: true));
 
+  /// A session whose backups go to [backups]; it saves only when asked.
+  NoteEditSession sessionBackingUpTo(FileStore backups) {
+    final slow = NoteEditSession(
+      note,
+      NoteFiles(
+        note.folder,
+        FolderServices(
+          store: services.store,
+          scanner: services.scanner,
+          syncToolName: services.syncToolName,
+          conflicts: services.conflicts,
+          backups: FileBackups(backups),
+          restore: services.restore,
+          marks: services.marks,
+        ),
+      ),
+      tempDrafts(),
+      saveDelay: const Duration(hours: 1),
+    );
+    addTearDown(slow.dispose);
+    return slow;
+  }
+
   /// Simulates an edit from another device and returns the new version.
   Future<Note> editElsewhere(String text) async {
     file().writeAsStringSync(text);
@@ -77,24 +100,7 @@ void main() {
       final held = _HeldStore(
         LocalFileStore(tempFolder().path, (t) => t, createsRoot: true),
       );
-      final slow = NoteEditSession(
-        note,
-        NoteFiles(
-          note.folder,
-          FolderServices(
-            store: services.store,
-            scanner: services.scanner,
-            syncToolName: services.syncToolName,
-            conflicts: services.conflicts,
-            backups: FileBackups(held),
-            restore: services.restore,
-            marks: services.marks,
-          ),
-        ),
-        tempDrafts(),
-        saveDelay: const Duration(hours: 1),
-      );
-      addTearDown(slow.dispose);
+      final slow = sessionBackingUpTo(held);
       slow.edit('# a\nsame');
       final saving = slow.flush();
       await held.reached.future;
@@ -343,6 +349,25 @@ void main() {
     expect(session.state, EditState.changedElsewhere);
     expect(onDisk(), '# a\nnewer');
     expect(session.text, '# a\nmine');
+  });
+
+  test('load theirs asks again if a newer version comes during the '
+      'backup', () async {
+    final held = _HeldStore(
+      LocalFileStore(tempFolder().path, (t) => t, createsRoot: true),
+    );
+    final slow = sessionBackingUpTo(held);
+    slow.edit('# a\nmine');
+    slow.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+
+    final picking = slow.loadTheirs(slow.theirs!);
+    await held.reached.future;
+    slow.onRescan(await editElsewhere('# a\nnewer'), scannedAt: later);
+    held.release.complete();
+
+    expect(await picking, PickResult.newerVersion);
+    expect(slow.state, EditState.changedElsewhere);
+    expect(slow.text, '# a\nmine');
   });
 
   test('load theirs drops the edits', () async {
