@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../checklist_editor.dart';
-import '../checklist_settings.dart';
 import 'checklist_blocks.dart';
 import 'checklist_row.dart';
 import 'checklist_text_block.dart';
@@ -14,16 +12,20 @@ import 'row_focus.dart';
 /// Keep-like view of a checklist: open items to drag and edit, add rows
 /// above and below them, and checked items in a collapsible "Done"
 /// section.
-class ChecklistView extends ConsumerStatefulWidget {
-  const ChecklistView(this.editor, {super.key});
+class ChecklistView extends StatefulWidget {
+  const ChecklistView(this.editor, {this.separateDone = true, super.key});
 
   final ChecklistEditor editor;
 
+  /// Whether checked items show apart, in the "Done" section. View only:
+  /// the file order never changes.
+  final bool separateDone;
+
   @override
-  ConsumerState<ChecklistView> createState() => _ChecklistViewState();
+  State<ChecklistView> createState() => _ChecklistViewState();
 }
 
-class _ChecklistViewState extends ConsumerState<ChecklistView> {
+class _ChecklistViewState extends State<ChecklistView> {
   /// Row keys of the add fields in [_focus].
   static const _addTopKey = 'add top';
   static const _addRowKey = 'add';
@@ -72,7 +74,7 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
   /// done items are shown apart, so only items of the same section are
   /// "above" [line] on screen.
   Set<int> _hiddenFrom(ChecklistLine line) {
-    if (!ref.read(doneSectionProvider)) return const {};
+    if (!widget.separateDone) return const {};
     final list = _editor.list;
     final done = list.doneIds;
     if (!done.contains(line.id)) return done;
@@ -91,7 +93,7 @@ class _ChecklistViewState extends ConsumerState<ChecklistView> {
 
   @override
   Widget build(BuildContext context) {
-    final separateDone = ref.watch(doneSectionProvider);
+    final separateDone = widget.separateDone;
     return ListenableBuilder(
       listenable: _editor,
       builder: (context, _) {

@@ -26,7 +26,7 @@ Prefer the simpler option when in doubt.
 - No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
 - Expected failures are result values; exceptions are only for bugs.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
-- Never silently recreate deleted files or folders. Accepted edge case: a conflict copy of unsaved edits to a note whose subfolder was deleted elsewhere recreates that subfolder, so the edits stay visible.
+- Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.
 - No automatic writes into synced folders; only user actions write there, so devices can't ping-pong. Finishing a user's own write later is allowed (pending edits written at the next start, the same bytes rewritten once so the sync tool sees them): it is never caused by a remote change.
 - Byte-exact edits: change only what the user touched; never parse-and-reprint user files.
 - Concurrency: reads that follow a write must see that write.

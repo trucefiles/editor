@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../checklist/checklist_editor.dart';
-import '../../checklist/checklist_settings.dart';
 import '../../checklist/ui/checklist_undo_hint.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
@@ -20,6 +19,7 @@ import '../note_actions.dart';
 import '../note_colors.dart';
 import '../note_drafts.dart';
 import '../note_edit_session.dart';
+import '../note_editor_controller.dart';
 import '../note_files.dart';
 import '../note_title.dart';
 import '../note_view.dart';
@@ -55,6 +55,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _files,
     ref.read(noteDraftsProvider(widget.note.folder.id)),
   );
+  late final _controller = NoteEditorController(_session);
   late final _text = TextEditingController(text: _session.text);
   late final AppLifecycleListener _lifecycle;
   late final _checklist = ChecklistEditor(_session);
@@ -191,31 +192,42 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// [context] is this screen's, below its own messenger.
-  Widget _menu(BuildContext context) {
-    final separateDone = ref.watch(doneSectionProvider);
-    return PopupMenuButton<VoidCallback>(
-      onSelected: (action) => action(),
-      itemBuilder: (_) => [
-        if (_view == NoteView.list) ...[
-          PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
+  /// [context] is this screen's, below its own messenger; [mark] is the
+  /// note's.
+  Widget _menu(BuildContext context, NoteMark mark) =>
+      PopupMenuButton<VoidCallback>(
+        onSelected: (action) => action(),
+        itemBuilder: (_) => [
+          if (_view == NoteView.list) ...[
+            PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
+            PopupMenuItem(
+              value: () => _setDoneSection(context, mark),
+              child: ToggleLabel('Done section', on: mark.doneSection),
+            ),
+          ],
           PopupMenuItem(
-            value: () => ref
-                .read(doneSectionProvider.notifier)
-                .set(enabled: !separateDone),
-            child: ToggleLabel('Done section', on: separateDone),
+            value: () => editNoteMark(context, ref, widget.note),
+            child: const Text('Pin or color'),
+          ),
+          PopupMenuItem(
+            value: () => _delete(context),
+            child: const Text('Delete note'),
           ),
         ],
-        PopupMenuItem(
-          value: () => editNoteMark(context, ref, widget.note),
-          child: const Text('Pin or color'),
-        ),
-        PopupMenuItem(
-          value: () => _delete(context),
-          child: const Text('Delete note'),
-        ),
-      ],
-    );
+      );
+
+  /// Turns the "Done" section of this note on or off, on every device.
+  /// [context] is this screen's, below its own messenger.
+  Future<void> _setDoneSection(BuildContext context, NoteMark mark) async {
+    final saved = await ref
+        .read(noteActionsProvider)
+        .setMark(
+          widget.note,
+          mark.withDoneSection(doneSection: !mark.doneSection),
+        );
+    if (saved case Err(:final error) when context.mounted) {
+      showSnack(context, error.text);
+    }
   }
 
   void _showView(NoteView view) {
@@ -233,19 +245,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(folderScansProvider, (_, next) {
-      if (next.value case final scans?
-          when !scans.failedFolders.keys.any(
-            (folder) => folder.id == widget.note.folder.id,
-          )) {
-        final replaced = _session.onRescan(
-          scans.findNote(widget.note.key),
-          scannedAt: scans.startedAt,
+      if (next.value case final scans? when _controller.onScans(scans)) {
+        _messenger.currentState?.showHint(
+          'Updated with a change from another device or app',
         );
-        if (replaced) {
-          _messenger.currentState?.showHint(
-            'Updated with a change from another device or app',
-          );
-        }
       }
     });
     return PopScope(
@@ -294,7 +297,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
           if (!_isDone) ...[
             NoteViewButton(view: _view, onChanged: _showView),
-            _menu(context),
+            _menu(context, mark),
           ],
         ],
       ),
@@ -310,7 +313,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               // scrollable; sideways scrolling (wide tables) never pulls.
               notificationPredicate: (notification) =>
                   notification.metrics.axis == Axis.vertical,
-              child: _body(),
+              child: _body(mark),
             ),
           ),
         ],
@@ -318,10 +321,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// The note in the chosen view; read-only once done, as the session
-  /// takes no more edits.
-  Widget _body() => switch (_isDone ? NoteView.rendered : _view) {
-    NoteView.list => ChecklistView(_checklist),
+  /// The note in the chosen view, with its [mark]; read-only once done, as
+  /// the session takes no more edits.
+  Widget _body(NoteMark mark) => switch (_isDone ? NoteView.rendered : _view) {
+    NoteView.list => ChecklistView(_checklist, separateDone: mark.doneSection),
     NoteView.rendered => MarkdownView(_session.text),
     NoteView.text => TextField(
       controller: _text,

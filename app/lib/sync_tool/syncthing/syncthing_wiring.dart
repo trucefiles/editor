@@ -9,6 +9,21 @@ import '../folder_services.dart';
 /// Syncthing's file-name rules.
 const SyncAdapter syncthingAdapter = SyncthingAdapter();
 
+/// The files the app shows: notes of the types it handles, without
+/// Syncthing's own files.
+const FileFilter _shown = DefaultFileFilter(
+  syncthingAdapter,
+  ExtensionFileTypeDetector.standard(),
+);
+
+/// The files whose changes count: the shown ones, their conflict copies
+/// and the marks of all devices. Nothing else, e.g. `.git` or swap files,
+/// leads to a rescan.
+const FileFilter _followed = AnyFileFilter([
+  SyncthingFileFilter(_shown),
+  NoteMarks.files,
+]);
+
 /// The core services for one folder, wired for Syncthing. [backupsPath] is
 /// the folder's private backup folder in app storage; [deviceId] names this
 /// device's files in the folder.
@@ -19,10 +34,6 @@ FolderServices syncthingFolderServices(
   required PlatformFacts platform,
 }) {
   const adapter = syncthingAdapter;
-  const filter = DefaultFileFilter(
-    adapter,
-    ExtensionFileTypeDetector.standard(),
-  );
   final store = SyncthingMtimeWindowStore(
     LocalFileStore(
       path,
@@ -33,7 +44,7 @@ FolderServices syncthingFolderServices(
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(
     store: store,
-    scanner: SyncthingFolderScanner(store, filter),
+    scanner: SyncthingFolderScanner(store, _shown),
     syncToolName: adapter.name,
     conflicts: DefaultConflictService(
       folder: store,
@@ -61,7 +72,7 @@ FolderFollowing syncthingFolderFollowing(
   final polled = PolledFolderChanges(
     LocalFileStore(path, adapter.tempFileName),
     interval: refresh.interval,
-    enterFolder: (folder) => !adapter.isInternal(folder),
+    followed: _followed,
   );
   final syncCheck = SyncthingSyncCheck(
     path,
@@ -72,9 +83,12 @@ FolderFollowing syncthingFolderFollowing(
     case _Following.none:
       return (changes: null, notices: SyncthingFolderNotices(syncCheck));
     case _Following.watched:
-      final watched = FallbackFolderChanges(WatchedFolderChanges(path), polled);
+      final watched = FallbackFolderChanges(
+        WatchedFolderChanges(path, followed: _followed),
+        polled,
+      );
       return (
-        changes: SyncthingFolderChanges(watched),
+        changes: watched,
         notices: SyncthingFolderNotices(
           syncCheck,
           pollInterval: () => watched.isOnFallback ? refresh.interval : null,
@@ -83,7 +97,7 @@ FolderFollowing syncthingFolderFollowing(
     case _Following.polled:
       final asked = refresh.mode == RefreshMode.live;
       return (
-        changes: SyncthingFolderChanges(polled),
+        changes: polled,
         notices: SyncthingFolderNotices(
           syncCheck,
           pollInterval: () => asked ? refresh.interval : null,

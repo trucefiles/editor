@@ -22,6 +22,7 @@ import '../../search/ui/search_screen.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_views_controller.dart';
+import '../note_views_pruning.dart';
 import 'home_menu.dart';
 import 'new_note_dialog.dart';
 import 'note_card.dart';
@@ -62,6 +63,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     ref
       ..watch(noteViewsProvider)
       ..watch(backupPruningProvider)
+      ..watch(noteViewsPruningProvider)
       ..watch(autoRescanProvider);
     return Scaffold(
       appBar: AppBar(

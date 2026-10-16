@@ -17,7 +17,9 @@ void main() {
   });
 
   Future<StreamQueue<RelPath>> watch() async {
-    final queue = StreamQueue(WatchedFolderChanges(root.path).changes);
+    final queue = StreamQueue(
+      WatchedFolderChanges(root.path, followed: const _Notes()).changes,
+    );
     addTearDown(queue.cancel);
     // Lets the watcher start before files change.
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -46,8 +48,21 @@ void main() {
     expect(await queue.next, path('new/deep/b.md'));
   });
 
+  test('drops the changes of files it does not follow', () async {
+    final queue = await watch();
+
+    write('.git/HEAD');
+    write('a.md~');
+    write('b.md');
+
+    expect(await queue.next, path('b.md'));
+  });
+
   test('ends when the folder is deleted', () async {
-    final all = WatchedFolderChanges(root.path).changes.toList();
+    final all = WatchedFolderChanges(
+      root.path,
+      followed: const _Notes(),
+    ).changes.toList();
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     await root.delete(recursive: true);
@@ -58,8 +73,22 @@ void main() {
   test('ends at once if the folder is missing', () async {
     await root.delete();
 
-    final changes = WatchedFolderChanges(root.path).changes;
+    final changes = WatchedFolderChanges(
+      root.path,
+      followed: const _Notes(),
+    ).changes;
 
     expect(await changes.toList(), isEmpty);
   });
+}
+
+/// Follows `.md` files outside hidden folders.
+final class _Notes implements FileFilter {
+  const _Notes();
+
+  @override
+  bool includesFolder(RelPath folder) => !folder.name.startsWith('.');
+
+  @override
+  bool includesFile(RelPath file) => file.name.endsWith('.md');
 }

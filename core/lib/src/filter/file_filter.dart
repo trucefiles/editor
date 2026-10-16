@@ -12,3 +12,14 @@ abstract interface class FileFilter {
   /// Whether [file] is seen.
   bool includesFile(RelPath file);
 }
+
+/// Checks a path found without walking folders, e.g. from a change event.
+extension FileFilterPaths on FileFilter {
+  /// Whether [file] is included and every folder it is in is walked.
+  bool includesPath(RelPath file) {
+    for (var folder = file.parent; folder != null; folder = folder.parent) {
+      if (!includesFolder(folder)) return false;
+    }
+    return includesFile(file);
+  }
+}

@@ -1,6 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 
 import 'syncthing_conflict_grouping.dart';
+import 'syncthing_file_filter.dart';
 
 /// Scans a Syncthing folder with one listing: Syncthing keeps conflict
 /// copies as files next to their main file, so the same listing holds
@@ -15,7 +16,7 @@ final class SyncthingFolderScanner implements FolderScanner {
   Future<Result<FolderScan, StoreError>> scan() async {
     final listed = await _store.list(
       enterFolder: _filter.includesFolder,
-      includeFile: _isWanted,
+      includeFile: SyncthingFileFilter(_filter).includesFile,
     );
     return switch (listed) {
       Ok(value: Listing(files: final entries, :final folders)) => Ok(
@@ -30,12 +31,5 @@ final class SyncthingFolderScanner implements FolderScanner {
       ),
       Err(:final error) => Err(error),
     };
-  }
-
-  /// Included files and the conflict copies of included files.
-  bool _isWanted(RelPath file) {
-    if (_filter.includesFile(file)) return true;
-    final main = syncthingConflictMain(file);
-    return main != null && _filter.includesFile(main);
   }
 }

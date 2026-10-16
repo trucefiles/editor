@@ -17,7 +17,11 @@ void main() {
 
   /// Shows [text] as a checklist. Nothing is saved during the test; call
   /// [close] at its end.
-  Future<ChecklistEditor> show(WidgetTester tester, String text) async {
+  Future<ChecklistEditor> show(
+    WidgetTester tester,
+    String text, {
+    bool separateDone = true,
+  }) async {
     final dir = tempFolder();
     final folder = folderAt(dir);
     final note = Note(
@@ -37,7 +41,11 @@ void main() {
     addTearDown(editor.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(home: Scaffold(body: ChecklistView(editor))),
+        child: MaterialApp(
+          home: Scaffold(
+            body: ChecklistView(editor, separateDone: separateDone),
+          ),
+        ),
       ),
     );
     return editor;
@@ -142,6 +150,26 @@ void main() {
     await show(tester, '- [x] a\n  - [ ] sub\n- [ ] b');
 
     expect(find.text('1 done'), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets('without a Done section, checked items stay in place', (
+    tester,
+  ) async {
+    final editor = await show(
+      tester,
+      '- [ ] a\n- [x] done\n- [ ] b',
+      separateDone: false,
+    );
+    await tester.tap(field('b'));
+    await tester.pump();
+
+    expect(find.text('1 done'), findsNothing);
+    // The checked item is shown above, so b goes under it.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    expect(editor.list.text, '- [ ] a\n- [x] done\n  - [ ] b');
     await close(tester);
   });
 

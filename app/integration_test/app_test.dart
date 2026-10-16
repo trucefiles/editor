@@ -382,6 +382,30 @@ void main() {
     await tester.waitForFile(app.file('list.md'), '# List\n- [ ] a\n');
   });
 
+  testWidgets('a note keeps its Done section choice, as a mark', (
+    tester,
+  ) async {
+    app.file('list.md').writeAsStringSync('# List\n- [ ] a\n- [x] b\n');
+    await addFolder(tester);
+    await openNote(tester, 'List');
+    expect(find.text('1 done'), findsOneWidget);
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Done section'));
+    await tester.waitUntil(() => find.text('1 done').evaluate().isEmpty);
+    await tester.pageBack();
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    await openNote(tester, 'List');
+
+    expect(find.text('1 done'), findsNothing);
+    final marks = Directory('${app.notes.path}/.truce/marks')
+        .listSync()
+        .whereType<File>();
+    expect(marks.single.readAsStringSync(), contains('"doneSection": false'));
+  });
+
   testWidgets('deletes a note and undoes it', (tester) async {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
