@@ -27,7 +27,8 @@
           <li>Tap the save icon to save to the folder now.</li>
           <li>About page with version, license and source.</li>
           <li>Fix: adding an item at the top of an indented list no longer nests the items below.</li>
-          <li>Fix: search finds notes by a title taken from the file name.</li>
+          <li>Fix: search finds titles taken from file names.</li>
+          <li>Long list items wrap; the item menu shows on the item being edited.</li>
           <li>Fixes for edits made while a note changed elsewhere, and other edge cases.</li>
         </ul>
       </description>

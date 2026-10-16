@@ -3,5 +3,6 @@
 - Tap the save icon to save to the folder now.
 - About page with version, license and source.
 - Fix: adding an item at the top of an indented list no longer nests the items below.
-- Fix: search finds notes by a title taken from the file name.
+- Fix: search finds titles taken from file names.
+- Long list items wrap; the item menu shows on the item being edited.
 - Fixes for edits made while a note changed elsewhere, and other edge cases.
