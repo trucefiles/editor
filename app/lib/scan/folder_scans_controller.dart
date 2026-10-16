@@ -51,15 +51,21 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
     final conflicts = <FolderConflict>[];
     final failed = <NoteFolder, StoreError>{};
     final unreadable = <String, List<RelPath>>{};
+    final unreadNotes = <NoteKey>{};
     for (final folder in _folders) {
       // Disposed meanwhile (e.g. the app ends): the result is dropped.
       if (!ref.mounted) break;
       final services = ref.read(folderServicesProvider(folder.location));
       switch (await services.scanner.scan()) {
         case Ok(value: final scan):
-          notes.addAll(
-            await _loaderFor(folder, services).load(folder, scan.files),
-          );
+          final loaded = await _loaderFor(
+            folder,
+            services,
+          ).load(folder, scan.files);
+          notes.addAll(loaded.notes);
+          unreadNotes.addAll([
+            for (final path in loaded.unread) (folderId: folder.id, path: path),
+          ]);
           marks.addAll(await _marksOf(folder, services));
           subfolders[folder.id] = [...scan.subfolders]
             ..sort((a, b) => a.value.compareTo(b.value));
@@ -86,6 +92,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
       failedFolders: failed,
       unreadable: unreadable,
       startedAt: startedAt,
+      unreadNotes: unreadNotes,
     );
   }
 

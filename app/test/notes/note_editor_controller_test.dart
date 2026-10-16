@@ -34,6 +34,7 @@ void main() {
     List<Note> notes = const [],
     Map<NoteFolder, StoreError> failed = const {},
     Map<String, List<RelPath>> unreadable = const {},
+    Set<NoteKey> unreadNotes = const {},
   }) => FolderScans(
     notes: notes,
     marks: const {},
@@ -42,6 +43,7 @@ void main() {
     failedFolders: failed,
     unreadable: unreadable,
     startedAt: Moment.now(),
+    unreadNotes: unreadNotes,
   );
 
   Future<Note> changedElsewhere() async {
@@ -86,6 +88,21 @@ void main() {
 
     expect(skipped, isFalse);
     expect(session.state, EditState.saved);
+  });
+
+  test('skips scans that could not read the note in its version', () async {
+    final older = note;
+    controller.session.edit('# a\nmine\n');
+    await controller.session.flush();
+
+    // The scan shows the version it read before, as it can't read the file.
+    final skipped = controller.onScans(
+      scans(notes: [older], unreadNotes: {older.key}),
+    );
+
+    expect(skipped, isFalse);
+    expect(controller.session.text, '# a\nmine\n');
+    expect(controller.session.state, EditState.saved);
   });
 
   group('keep', () {

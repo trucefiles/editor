@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 
 import '../support.dart';
@@ -16,6 +17,7 @@ void main() {
   FolderScans scans({
     Map<NoteFolder, StoreError> failed = const {},
     Map<String, List<RelPath>> unreadable = const {},
+    Set<NoteKey> unreadNotes = const {},
   }) => FolderScans(
     notes: const [],
     marks: const {},
@@ -24,6 +26,7 @@ void main() {
     failedFolders: failed,
     unreadable: unreadable,
     startedAt: Moment.now(),
+    unreadNotes: unreadNotes,
   );
 
   group('covers', () {
@@ -36,6 +39,15 @@ void main() {
 
       expect(failed.covers((folderId: 'home', path: path('a.md'))), isFalse);
       expect(failed.covers((folderId: 'work', path: path('a.md'))), isTrue);
+    });
+
+    test('no note whose file could not be read', () {
+      final unread = scans(
+        unreadNotes: {(folderId: 'work', path: path('a.md'))},
+      );
+
+      expect(unread.covers((folderId: 'work', path: path('a.md'))), isFalse);
+      expect(unread.covers((folderId: 'work', path: path('b.md'))), isTrue);
     });
 
     test('no notes below a subfolder that could not be read', () {

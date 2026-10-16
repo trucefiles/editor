@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../scan/folder_scans.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
 import 'conflict_sides.dart';
@@ -16,7 +17,8 @@ final conflictProvider = NotifierProvider.autoDispose
 
 /// Resolves one note's conflict copies one by one, oldest first. Loads the
 /// sides of the oldest copy; after each resolve, moves on to the next copy
-/// the rescan finds.
+/// the rescan finds. Sides that could not be loaded are loaded again with
+/// each new scan.
 class ConflictController extends Notifier<ConflictState> {
   ConflictController(this._initial);
 
@@ -24,6 +26,9 @@ class ConflictController extends Notifier<ConflictState> {
 
   @override
   ConflictState build() {
+    ref.listen(folderScansProvider, (_, next) {
+      if (next.value case final scans?) _loadAgainIfFailed(scans);
+    });
     unawaited(_load(_initial));
     return ConflictState(_initial);
   }
@@ -61,6 +66,17 @@ class ConflictController extends Notifier<ConflictState> {
     state = ConflictState(next);
     await _load(next);
     return (error: error, done: false);
+  }
+
+  /// After a failed load (e.g. the folder could not be reached, or the
+  /// note changed since its scan), loads the sides of the note's conflict
+  /// as [scans] found it.
+  void _loadAgainIfFailed(FolderScans scans) {
+    final ConflictState(:conflict, :sides, :busy) = state;
+    if (sides is! Err || busy) return;
+    final latest = scans.conflicts.forNote(conflict.key) ?? conflict;
+    state = ConflictState(latest);
+    unawaited(_load(latest));
   }
 
   Future<void> _load(FolderConflict conflict) async {

@@ -44,11 +44,12 @@ class NoteViewsController extends AsyncNotifier<Map<String, NoteView>> {
 
   /// Forgets the views of notes that [scans] did not find where they could
   /// be seen, and of folders that are gone. Keeps those of folders that
-  /// could not be scanned, and below subfolders that could not be read.
-  /// As [remember].
+  /// could not be scanned, below subfolders that could not be read, and of
+  /// notes whose files could not be read. As [remember].
   Future<void> prune(FolderScans scans) {
     final found = {
       for (final note in scans.notes) NoteViewStore.storeKey(note.key),
+      for (final key in scans.unreadNotes) NoteViewStore.storeKey(key),
     };
     final unknown = [
       for (final folder in scans.failedFolders.keys)

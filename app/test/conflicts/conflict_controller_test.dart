@@ -152,6 +152,27 @@ void main() {
     expect(files(), [first, 'todo.md']..sort());
   });
 
+  test('loads the sides again at the next scan after they failed', () async {
+    write('todo.md', '# Todo\nmine\n');
+    write(first, '# Todo\nfirst\n');
+    final scans = await container.read(folderScansProvider.future);
+    provider = conflictProvider(scans.conflicts.all.single);
+    // Changed since the scan, so the sides can't be loaded from it.
+    write('todo.md', '# Todo\nchanged\n');
+    var loaded = Completer<void>();
+    container.listen(provider, (_, state) {
+      if (state.sides != null && !loaded.isCompleted) loaded.complete();
+    }, fireImmediately: true);
+    await loaded.future;
+    expect(current().sides!.error, StoreError.changedSinceRead);
+
+    loaded = Completer<void>();
+    await container.read(folderScansProvider.notifier).refresh();
+    await loaded.future;
+
+    expect(current().sides!.value.current, '# Todo\nchanged\n');
+  });
+
   test('shows why the sides cannot be read', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');

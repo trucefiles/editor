@@ -82,6 +82,36 @@ void main() {
     expect(scans.notes.single.file.text, '# Todo\nbackup\n');
   });
 
+  test('loads again at the next scan after loading failed', () async {
+    note().writeAsStringSync('# Todo\nnow\n');
+    await backups.saveBeforeEdit(
+      at: DateTime.now(),
+      filePath: path('todo.md'),
+      bytes: utf8.encode('# Todo\nbackup\n'),
+    );
+    container.listen(allBackupsProvider, (_, _) {});
+    final backup = (await container.read(allBackupsProvider.future)).single;
+    final kept = File(
+      '${container.read(appStorageProvider).backupsPath(backup.folder.id)}'
+      '/${backup.backup.storePath.value}',
+    );
+    final away = kept.renameSync('${kept.path}-away');
+    provider = restoreProvider(backup);
+    var loaded = Completer<void>();
+    container.listen(provider, (_, state) {
+      if (state.choice != null && !loaded.isCompleted) loaded.complete();
+    }, fireImmediately: true);
+    await loaded.future;
+    expect(current().choice!.error, StoreError.notFound);
+
+    away.renameSync(kept.path);
+    loaded = Completer<void>();
+    await container.read(folderScansProvider.notifier).refresh();
+    await loaded.future;
+
+    expect(current().choice!.value.bytes, utf8.encode('# Todo\nbackup\n'));
+  });
+
   test('loads the backup next to the note', () async {
     note().writeAsStringSync('# Todo\nnow\n');
 

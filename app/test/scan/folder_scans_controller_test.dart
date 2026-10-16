@@ -196,6 +196,26 @@ void main() {
     expect(found.notes, isEmpty);
   });
 
+  test(
+    'shows the last version of a note it could not read, uncovered',
+    () async {
+      final dir = tempFolder();
+      write(dir, 'plan.md', '# Plan\nv1\n');
+      await start([folderAt(dir, id: 'f1')]);
+      await scans();
+      // No longer text: the version read before is all the scan knows.
+      File('${dir.path}/plan.md').writeAsBytesSync([0xFF, 0xFE]);
+
+      await container.read(folderScansProvider.notifier).refresh();
+      final found = await scans();
+
+      final key = (folderId: 'f1', path: path('plan.md'));
+      expect(found.findNote(key)?.file.text, '# Plan\nv1\n');
+      expect(found.unreadNotes, {key});
+      expect(found.covers(key), isFalse);
+    },
+  );
+
   test('refresh shows a note written just before', () async {
     final dir = tempFolder();
     await start([folderAt(dir)]);
