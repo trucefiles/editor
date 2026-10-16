@@ -649,7 +649,11 @@ void main() {
       addTearDown(soon.dispose);
       soon.edit('# a\nmine');
 
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      // Waits for the write, not a fixed time: a busy test machine can
+      // take longer than the delay.
+      for (var i = 0; i < 100 && soon.state != EditState.saved; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
 
       expect(onDisk(), '# a\nmine');
       expect(soon.state, EditState.saved);
