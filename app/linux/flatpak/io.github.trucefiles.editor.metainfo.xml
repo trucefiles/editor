@@ -19,6 +19,16 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.6.2" date="2026-10-17">
+      <description>
+        <ul>
+          <li>List view: the add rows sit right above and below the items.</li>
+          <li>List view: Backspace at the start of an item joins it to the one above; Delete at the end joins the next one; on an empty item either key removes it.</li>
+          <li>Pull-to-refresh works by touch only, so trackpad scrolling no longer refreshes.</li>
+          <li>Pin and Done section are now per-device settings; only the color stays synced. After this update, pins and Done section choices reset once.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.1" date="2026-10-16">
       <description>
         <ul>

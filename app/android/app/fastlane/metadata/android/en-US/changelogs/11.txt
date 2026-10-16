@@ -1,0 +1,3 @@
+- List view: the add rows sit right above and below the items.
+- List view: Backspace at the start of an item joins it to the one above; Delete at the end joins the next one; on an empty item either key removes it.
+- Pin and Done section are now per-device settings; only the color stays synced. After this update, pins and Done section choices reset once.
