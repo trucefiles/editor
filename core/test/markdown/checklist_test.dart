@@ -58,14 +58,16 @@ void main() {
     expect(list.setText(idOf(list, 'a'), 'b').text, '  +  [ ] b');
   });
 
-  test('setText adds no byte to text the user did not touch', () {
-    final list = Checklist.parse('- [ ]\tfoo\n- [ ]tight');
+  test('setText keeps a tab after the box', () {
+    final list = Checklist.parse('- [ ]\tfoo');
 
-    final edited = list
-        .setText(list.lines[0].id, '\tfoox')
-        .setText(list.lines[1].id, 'tightx');
+    expect(list.setText(list.lines.single.id, 'foox').text, '- [ ]\tfoox');
+  });
 
-    expect(edited.text, '- [ ]\tfoox\n- [ ]tightx');
+  test('an item needs whitespace after the box', () {
+    final list = Checklist.parse('- [ ]tight\n- [x]: def\n- [ ]');
+
+    expect(list.lines.map((line) => line.isItem), [false, false, true]);
   });
 
   test('setText separates the first text of an empty item', () {

@@ -22,7 +22,7 @@
     <release version="0.6.0" date="2026-10-16">
       <description>
         <ul>
-          <li>Refresh setting: live (default), periodic or manual.</li>
+          <li>Refresh setting: live (where supported), periodic or manual.</li>
           <li>Backups of the last 7 days, restorable from the home menu.</li>
           <li>Tap the save icon to save to the folder now.</li>
           <li>About page with version, license and source.</li>

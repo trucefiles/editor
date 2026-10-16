@@ -1,4 +1,4 @@
-- Refresh setting: live (default), periodic or manual.
+- Refresh setting: live (where supported), periodic or manual.
 - Backups of the last 7 days, restorable from the home menu.
 - Tap the save icon to save to the folder now.
 - About page with version, license and source.

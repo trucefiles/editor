@@ -254,10 +254,11 @@ final class ChecklistLine {
     );
   }
 
-  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; not a
-  /// bulleted link such as `- [x](url)` or `- [x][ref]`.
+  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; as in
+  /// GitHub Flavored Markdown, the box is followed by whitespace or the end
+  /// of the line, so `- [x](url)` is a bulleted link, not an item.
   static final _itemPattern = RegExp(
-    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?![(\[]) ?(.*)$',
+    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?:[ \t]|$)(.*)$',
   );
 
   final int id;
@@ -296,15 +297,12 @@ final class ChecklistLine {
     );
   }
 
-  /// Keeps the prefix as written; only an item that had no text gets a
-  /// space before its new text.
+  /// Keeps the prefix as written; a box at the end of the line gets a
+  /// space before its first text.
   ChecklistLine _withText(String text) {
     final item = _item!;
     var prefix = raw.substring(0, item.textStart);
-    final hadText = item.textStart < raw.length;
-    if (!hadText && text.isNotEmpty && !prefix.endsWith(' ')) {
-      prefix = '$prefix ';
-    }
+    if (text.isNotEmpty && prefix.endsWith(']')) prefix = '$prefix ';
     return ChecklistLine._parse(id, '$prefix${_oneLine(text)}');
   }
 
