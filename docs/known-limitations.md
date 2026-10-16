@@ -24,9 +24,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   device's color for it. If a note is later created at the same path, it
   shows another device's older color until that device changes a color in
   the folder.
-- **Older app versions don't see colors set by newer ones.** Colors set
-  after the pin and "Done" section moved to each device show only on
-  devices with that version or later.
 
 ## Backups
 
