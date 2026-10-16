@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../common/fresh_runs.dart';
+import '../common/moment.dart';
 import '../conflicts/folder_conflicts.dart';
 import '../folders/folders_controller.dart';
 import '../folders/note_folder.dart';
@@ -43,7 +44,7 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   }
 
   Future<FolderScans> _scanFolders() async {
-    final startedAt = DateTime.now();
+    final startedAt = Moment.now();
     final notes = <Note>[];
     final marks = <NoteKey, NoteMark>{};
     final subfolders = <String, List<RelPath>>{};

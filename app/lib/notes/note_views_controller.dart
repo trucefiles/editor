@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pool/pool.dart';
 
 import '../storage/app_storage.dart';
 import 'note.dart';
@@ -20,6 +21,8 @@ final noteViewsProvider =
 
 /// The view each note was last shown in on this device.
 class NoteViewsController extends AsyncNotifier<Map<String, NoteView>> {
+  final _changes = Pool(1);
+
   @override
   Future<Map<String, NoteView>> build() =>
       ref.watch(noteViewStoreProvider).load();
@@ -27,9 +30,12 @@ class NoteViewsController extends AsyncNotifier<Map<String, NoteView>> {
   /// The last view of [note]; `null` if unknown or not loaded yet.
   NoteView? viewOf(NoteKey note) => state.value?[NoteViewStore.storeKey(note)];
 
-  Future<void> remember(NoteKey note, NoteView view) async {
-    final views = {...await future, NoteViewStore.storeKey(note): view};
-    state = AsyncData(views);
-    await ref.read(noteViewStoreProvider).save(views);
-  }
+  /// Runs after every earlier [remember], so each starts from the views
+  /// the one before saved.
+  Future<void> remember(NoteKey note, NoteView view) =>
+      _changes.withResource(() async {
+        final views = {...await future, NoteViewStore.storeKey(note): view};
+        state = AsyncData(views);
+        await ref.read(noteViewStoreProvider).save(views);
+      });
 }

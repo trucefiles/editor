@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -106,7 +107,7 @@ void main() {
       await held.reached.future;
 
       final theirs = await editElsewhere('# a\nsame');
-      slow.onRescan(theirs, scannedAt: later);
+      slow.onRescan(theirs, scannedAt: Moment.now());
       held.release.complete();
       await saving;
 
@@ -129,7 +130,10 @@ void main() {
   test('backs up a version from elsewhere before saving over it', () async {
     session.edit('# a\nfirst');
     await session.flush();
-    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    session.onRescan(
+      await editElsewhere('# a\ntheirs'),
+      scannedAt: Moment.now(),
+    );
     expect(session.text, '# a\ntheirs');
     clearBackups();
 
@@ -165,17 +169,18 @@ void main() {
   test('takes changes from elsewhere while nothing is unsaved', () async {
     final theirs = await editElsewhere('# a\ntheirs');
 
-    final replaced = session.onRescan(theirs, scannedAt: later);
+    final replaced = session.onRescan(theirs, scannedAt: Moment.now());
 
     expect(replaced, isTrue);
     expect(session.text, '# a\ntheirs');
   });
 
   test('ignores scans that started before its last write', () async {
+    final scannedAt = Moment.now();
     session.edit('# a\nmine');
     await session.flush();
 
-    final replaced = session.onRescan(note, scannedAt: DateTime(2000));
+    final replaced = session.onRescan(note, scannedAt: scannedAt);
 
     expect(replaced, isFalse);
     expect(session.text, '# a\nmine');
@@ -186,7 +191,7 @@ void main() {
     final saving = session.flush();
     // Lets the save start its write, which then waits for the disk.
     await Future<void>.delayed(Duration.zero);
-    final scannedAt = DateTime.now();
+    final scannedAt = Moment.now();
     await saving;
 
     final replaced = session.onRescan(note, scannedAt: scannedAt);
@@ -207,7 +212,7 @@ void main() {
     final restamped = await restamp();
 
     session.edit('# a\nmine, more');
-    session.onRescan(restamped, scannedAt: later);
+    session.onRescan(restamped, scannedAt: Moment.now());
     await session.flush();
 
     expect(session.state, EditState.saved);
@@ -254,7 +259,7 @@ void main() {
     waiting.edit('# a\nsame');
     final theirs = await editElsewhere('# a\nsame');
 
-    waiting.onRescan(theirs, scannedAt: later);
+    waiting.onRescan(theirs, scannedAt: Moment.now());
 
     expect(waiting.state, EditState.saved);
     expect(waiting.note.version, theirs.version);
@@ -294,7 +299,7 @@ void main() {
       session.edit('# a\nmine, $name');
       session.onRescan(
         await editElsewhere('# a\ntheirs, $name'),
-        scannedAt: later,
+        scannedAt: Moment.now(),
       );
 
       expect(await keep(), PickResult.done);
@@ -308,7 +313,10 @@ void main() {
 
   test('keeps both if no backup can be made', () async {
     session.edit('# a\nmine');
-    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    session.onRescan(
+      await editElsewhere('# a\ntheirs'),
+      scannedAt: Moment.now(),
+    );
     backups.deleteSync();
     File(backups.path).writeAsStringSync('in the way');
 
@@ -325,13 +333,16 @@ void main() {
 
   test('tells of a newer change from elsewhere while asking', () async {
     session.edit('# a\nmine');
-    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    session.onRescan(
+      await editElsewhere('# a\ntheirs'),
+      scannedAt: Moment.now(),
+    );
     expect(session.state, EditState.changedElsewhere);
     var told = 0;
     session.addListener(() => told++);
 
     final newer = await editElsewhere('# a\ntheirs, newer');
-    session.onRescan(newer, scannedAt: later);
+    session.onRescan(newer, scannedAt: Moment.now());
 
     expect(told, 1);
     expect(session.theirs?.file.text, '# a\ntheirs, newer');
@@ -339,9 +350,15 @@ void main() {
 
   test('keep mine never saves over a version the user did not see', () async {
     session.edit('# a\nmine');
-    session.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    session.onRescan(
+      await editElsewhere('# a\ntheirs'),
+      scannedAt: Moment.now(),
+    );
     final seen = session.theirs!;
-    session.onRescan(await editElsewhere('# a\nnewer'), scannedAt: later);
+    session.onRescan(
+      await editElsewhere('# a\nnewer'),
+      scannedAt: Moment.now(),
+    );
 
     expect(await session.keepMine(seen), PickResult.newerVersion);
     expect(await session.loadTheirs(seen), PickResult.newerVersion);
@@ -358,11 +375,11 @@ void main() {
     );
     final slow = sessionBackingUpTo(held);
     slow.edit('# a\nmine');
-    slow.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+    slow.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: Moment.now());
 
     final picking = slow.loadTheirs(slow.theirs!);
     await held.reached.future;
-    slow.onRescan(await editElsewhere('# a\nnewer'), scannedAt: later);
+    slow.onRescan(await editElsewhere('# a\nnewer'), scannedAt: Moment.now());
     held.release.complete();
 
     expect(await picking, PickResult.newerVersion);
@@ -396,16 +413,16 @@ void main() {
   });
 
   test('a rescan reports a note deleted elsewhere', () {
-    session.onRescan(null, scannedAt: later);
+    session.onRescan(null, scannedAt: Moment.now());
 
     expect(session.state, EditState.deletedElsewhere);
   });
 
   test('saves again once a note that looked deleted is back', () async {
-    session.onRescan(null, scannedAt: later);
+    session.onRescan(null, scannedAt: Moment.now());
     session.edit('# a\nmine');
 
-    session.onRescan(note, scannedAt: later);
+    session.onRescan(note, scannedAt: Moment.now());
     await session.flush();
 
     expect(session.state, EditState.saved);
@@ -413,21 +430,21 @@ void main() {
   });
 
   test('shows a note back with other text if there were no edits', () async {
-    session.onRescan(null, scannedAt: later);
+    session.onRescan(null, scannedAt: Moment.now());
     final theirs = await editElsewhere('# a\ntheirs');
 
-    session.onRescan(theirs, scannedAt: later);
+    session.onRescan(theirs, scannedAt: Moment.now());
 
     expect(session.state, EditState.saved);
     expect(session.text, '# a\ntheirs');
   });
 
   test('a note back with other text is a change from elsewhere', () async {
-    session.onRescan(null, scannedAt: later);
+    session.onRescan(null, scannedAt: Moment.now());
     session.edit('# a\nmine');
     final theirs = await editElsewhere('# a\ntheirs');
 
-    session.onRescan(theirs, scannedAt: later);
+    session.onRescan(theirs, scannedAt: Moment.now());
 
     expect(session.state, EditState.changedElsewhere);
   });
@@ -438,6 +455,17 @@ void main() {
     await session.flush();
 
     await session.restoreMine();
+
+    expect(onDisk(), '# a\nkept');
+    expect(session.state, EditState.saved);
+  });
+
+  test('restore mine tapped twice restores once', () async {
+    file().deleteSync();
+    session.edit('# a\nkept');
+    await session.flush();
+
+    await Future.wait([session.restoreMine(), session.restoreMine()]);
 
     expect(onDisk(), '# a\nkept');
     expect(session.state, EditState.saved);
@@ -482,7 +510,7 @@ void main() {
 
     test('keeps nothing for a deleted note without edits', () async {
       file().deleteSync();
-      session.onRescan(null, scannedAt: later);
+      session.onRescan(null, scannedAt: Moment.now());
 
       expect(await session.secure(), isTrue);
       expect(dir.listSync(), isEmpty);
@@ -618,7 +646,7 @@ void main() {
       await settle();
       final theirs = await editElsewhere('# a\ntheirs');
 
-      staged.onRescan(theirs, scannedAt: later);
+      staged.onRescan(theirs, scannedAt: Moment.now());
 
       expect(staged.state, EditState.changedElsewhere);
       expect(await draftTexts(), ['# a\nmine']);
@@ -627,14 +655,17 @@ void main() {
     test('keeps edits made while changed or deleted elsewhere', () async {
       staged.edit('# a\nmine');
       await settle();
-      staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+      staged.onRescan(
+        await editElsewhere('# a\ntheirs'),
+        scannedAt: Moment.now(),
+      );
 
       staged.edit('# a\nmine, more');
       await settle();
       expect(await draftTexts(), ['# a\nmine, more']);
 
       file().deleteSync();
-      staged.onRescan(null, scannedAt: later);
+      staged.onRescan(null, scannedAt: Moment.now());
       staged.edit('# a\nmine, even more');
       await settle();
 
@@ -648,7 +679,7 @@ void main() {
       staged.edit('# a\nmine');
       await settle();
       file().deleteSync();
-      staged.onRescan(null, scannedAt: later);
+      staged.onRescan(null, scannedAt: Moment.now());
 
       staged.edit('# a\n');
       await settle();
@@ -659,7 +690,10 @@ void main() {
     test('load theirs drops the draft', () async {
       staged.edit('# a\nmine');
       await settle();
-      staged.onRescan(await editElsewhere('# a\ntheirs'), scannedAt: later);
+      staged.onRescan(
+        await editElsewhere('# a\ntheirs'),
+        scannedAt: Moment.now(),
+      );
 
       await staged.loadTheirs(staged.theirs!);
       await settle();

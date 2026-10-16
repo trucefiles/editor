@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../common/busy_guard.dart';
+import '../common/moment.dart';
 import 'note.dart';
 import 'note_drafts.dart';
 import 'note_files.dart';
@@ -80,6 +82,7 @@ final class NoteEditSession extends ChangeNotifier {
 
   final NoteFiles _files;
   late final NoteStaging _staging;
+  final _restoring = BusyGuard();
 
   /// How long after the last edit the edits are kept on the device.
   final Duration saveDelay;
@@ -91,7 +94,7 @@ final class NoteEditSession extends ChangeNotifier {
   Timer? _timer;
   Future<void>? _saving;
   bool _writing = false;
-  DateTime _lastWrite = DateTime.fromMillisecondsSinceEpoch(0);
+  Moment? _lastWrite;
 
   /// File text that needs no backup before a save over it: backed up (or
   /// tried) already, or written by this session. `null` until then.
@@ -199,9 +202,10 @@ final class NoteEditSession extends ChangeNotifier {
   /// the old version.
   ///
   /// Returns `true` if [text] was replaced by the latest file content.
-  bool onRescan(Note? latest, {required DateTime scannedAt}) {
+  bool onRescan(Note? latest, {required Moment scannedAt}) {
+    final lastWrite = _lastWrite;
     if (_writing ||
-        scannedAt.isBefore(_lastWrite) ||
+        (lastWrite != null && scannedAt.isBefore(lastWrite)) ||
         _state == EditState.keptAsConflict) {
       return false;
     }
@@ -292,8 +296,12 @@ final class NoteEditSession extends ChangeNotifier {
   }
 
   /// Writes the text being edited as the note's file again, after it was
-  /// deleted elsewhere.
-  Future<void> restoreMine() async {
+  /// deleted elsewhere. Does nothing while a restore runs, or once the
+  /// note is no longer deleted.
+  Future<void> restoreMine() => _restoring.run(_restoreOnce);
+
+  Future<void> _restoreOnce() async {
+    if (_state != EditState.deletedElsewhere) return;
     final text = _text;
     switch (await _write(() => _files.restore(_note, text))) {
       case Ok(value: final restored):
@@ -393,7 +401,7 @@ final class NoteEditSession extends ChangeNotifier {
       _writing = false;
       // A scan that started during the write may have listed the old
       // version and still be running; it must be ignored too.
-      _lastWrite = DateTime.now();
+      _lastWrite = Moment.now();
     }
   }
 

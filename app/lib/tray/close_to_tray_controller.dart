@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pool/pool.dart';
 
 import '../platform/platform_wiring.dart';
 import '../storage/app_storage.dart';
@@ -36,6 +37,9 @@ final class CloseToTray {
 /// Keeps the app in the system tray on close, as the user's setting says.
 /// Inert where the platform has no tray.
 class CloseToTrayController extends AsyncNotifier<CloseToTray> {
+  /// Changes of the setting, one at a time.
+  final _changes = Pool(1);
+
   @override
   Future<CloseToTray> build() async {
     final tray = ref.watch(systemTrayProvider);
@@ -52,10 +56,20 @@ class CloseToTrayController extends AsyncNotifier<CloseToTray> {
     return _passOn(enabled: enabled);
   }
 
-  Future<void> setEnabled({required bool enabled}) async {
-    await ref.read(closeToTrayStoreProvider).save(enabled: enabled);
-    await _showTray(enabled: enabled);
-    state = AsyncData(await _passOn(enabled: enabled));
+  /// Takes the setting right away, so the menu shows it; saving it and
+  /// showing or hiding the tray follow, one change at a time.
+  Future<void> setEnabled({required bool enabled}) {
+    if (state.value case final current?) {
+      state = AsyncData(
+        CloseToTray(enabled: enabled, trayVisible: current.trayVisible),
+      );
+    }
+    return _changes.withResource(() async {
+      await ref.read(closeToTrayStoreProvider).save(enabled: enabled);
+      await _showTray(enabled: enabled);
+      final settled = await _passOn(enabled: enabled);
+      if (ref.mounted) state = AsyncData(settled);
+    });
   }
 
   Future<void> _showTray({required bool enabled}) async {
