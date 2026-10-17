@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   super_editor: 0.3.0-dev.52
   appflowy_editor: 6.2.0
+  re_editor: 0.10.0
 
 dev_dependencies:
   flutter_test:

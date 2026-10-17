@@ -3,6 +3,8 @@ import 'package:appflowy_editor/appflowy_editor.dart';
 import 'checklist.dart';
 
 /// PROTOTYPE: AppFlowy Editor as view/input on top of [Checklist].
+const lineIdKey = 'lineId';
+
 class AfChecklist {
   AfChecklist(String text) : _list = Checklist.parse(text) {
     editorState = EditorState(document: Document(root: _root()));
@@ -29,8 +31,7 @@ class AfChecklist {
           : paragraphNode(text: line.raw);
       final withId = Node(
         type: node.type,
-        id: '${line.id}',
-        attributes: node.attributes,
+        attributes: {...node.attributes, lineIdKey: '${line.id}'},
       );
       while (stack.last.$1 >= depth) {
         stack.removeLast();
@@ -43,17 +44,22 @@ class AfChecklist {
 
   void _readBack() {
     final blocks = <Block>[];
+    final seen = <String>{};
     void walk(Node node, int depth) {
       for (final child in node.children) {
         final text = child.delta?.toPlainText() ?? '';
+        final lineId = child.attributes[lineIdKey] as String?;
+        // A node copied from another (split) carries the same line id;
+        // only the first one is that line.
+        final id = lineId != null && seen.add(lineId) ? lineId : child.id;
         blocks.add(switch (child.type) {
           'todo_list' => ItemBlock(
-            child.id,
+            id,
             checked: child.attributes['checked'] == true,
             depth: depth,
             text: text,
           ),
-          'paragraph' => TextBlock(child.id, text),
+          'paragraph' => TextBlock(id, text),
           _ => throw StateError('unsupported ${child.type}'),
         });
         walk(child, depth + 1);

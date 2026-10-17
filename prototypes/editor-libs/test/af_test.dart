@@ -14,8 +14,6 @@ const source =
     'Some text with trailing spaces   ';
 
 Future<AfChecklist> pump(WidgetTester tester, [String text = source]) async {
-  debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-  addTearDown(() => debugDefaultTargetPlatformOverride = null);
   final model = AfChecklist(text);
   await tester.pumpWidget(
     MaterialApp(
@@ -24,6 +22,9 @@ Future<AfChecklist> pump(WidgetTester tester, [String text = source]) async {
         body: AppFlowyEditor(
           editorState: model.editorState,
           autoFocus: true,
+          editorStyle: const EditorStyle.desktop().copyWith(
+            textSpanDecorator: dimmedMarks,
+          ),
           characterShortcutEvents: [
             insertNewLineAfterTodoList,
             insertNewLine,
@@ -38,7 +39,7 @@ Future<AfChecklist> pump(WidgetTester tester, [String text = source]) async {
 
 Future<void> caret(WidgetTester tester, AfChecklist m, String id, int offset) async {
   Node? find(Node n) {
-    if (n.id == id) return n;
+    if (n.attributes['lineId'] == id) return n;
     for (final c in n.children) {
       final f = find(c);
       if (f != null) return f;
@@ -80,9 +81,31 @@ Future<void> type(WidgetTester tester, String char) async {
 
 List<String> lines(String t) => t.split('\n');
 
+final _bold = RegExp(r'\*\*(.+?)\*\*');
+const dim = Color(0xFF9E9E9E);
+
+/// PROTOTYPE: same text, marks dimmed and bold between them.
+InlineSpan dimmedMarks(BuildContext context, Node node, int index,
+    TextInsert insert, TextSpan before, TextSpan after) {
+  final text = insert.text;
+  final base = before.style;
+  final children = <TextSpan>[];
+  var pos = 0;
+  for (final m in _bold.allMatches(text)) {
+    children
+      ..add(TextSpan(text: text.substring(pos, m.start)))
+      ..add(TextSpan(text: '**', style: const TextStyle(color: dim)))
+      ..add(TextSpan(text: m.group(1), style: const TextStyle(fontWeight: FontWeight.bold)))
+      ..add(TextSpan(text: '**', style: const TextStyle(color: dim)));
+    pos = m.end;
+  }
+  children.add(TextSpan(text: text.substring(pos)));
+  return TextSpan(style: base, children: children);
+}
+
 void main() {
 
-  testWidgets('typing changes only the touched line', (tester) async {
+  testWidgets('typing changes only the touched line', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await caret(tester, m, '1', 4);
     await type(tester, ' and honey');
@@ -93,14 +116,16 @@ void main() {
     }
   });
 
-  testWidgets('Enter splits the item', (tester) async {
+  testWidgets('Enter splits the item', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await caret(tester, m, '3', 5);
     await type(tester, '\n');
     debugPrint('after enter:\n${m.text}\n---');
+    await type(tester, 'X');
+    debugPrint('after X:\n${m.text}\n---');
   });
 
-  testWidgets('Backspace at item start', (tester) async {
+  testWidgets('Backspace at item start', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await caret(tester, m, '3', 0);
     await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
@@ -111,28 +136,47 @@ void main() {
     debugPrint('after 2 backspaces:\n${m.text}\n---');
   });
 
-  testWidgets('Tab / Shift+Tab', (tester) async {
+  testWidgets('Tab / Shift+Tab', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await caret(tester, m, '3', 0);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();
     debugPrint('after tab:\n${m.text}\n---');
-    String ids(Node n) => n.children.map((c) => '${c.id}[${ids(c)}]').join(' ');
+    String ids(Node n) => n.children.map((c) => '${c.attributes['lineId']}/${c.id}[${ids(c)}]').join(' ');
     debugPrint('ids: ${ids(m.editorState.document.root)}');
   });
 
-  testWidgets('checkbox tap', (tester) async {
+  testWidgets('checkbox tap', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await tester.tap(find.byWidgetPredicate((w) => w.runtimeType.toString() == '_TodoListIcon').at(1));
     await tester.pumpAndSettle();
     debugPrint('after toggle:\n${m.text}\n--- writes ${m.writes.length}');
   });
 
-  testWidgets('arrow down keeps column', (tester) async {
+  testWidgets('arrow down keeps column', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
     final m = await pump(tester);
     await caret(tester, m, '1', 2);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
     debugPrint('down: ${m.editorState.selection}');
+  });
+
+  testWidgets('dimmed marks', variant: TargetPlatformVariant.only(TargetPlatform.linux), (tester) async {
+    final m = await pump(tester, '- [ ] bread **fresh** today');
+    final span = tester
+        .widgetList<RichText>(find.byWidgetPredicate((w) => w is RichText))
+        .map((t) => t.text)
+        .firstWhere((s) => s.toPlainText().contains('fresh'));
+    final styles = <String>[];
+    span.visitChildren((s) {
+      if (s is TextSpan && s.text != null && s.text!.isNotEmpty) {
+        styles.add('${s.text}:${s.style?.fontWeight == FontWeight.bold ? 'B' : ''}${s.style?.color == dim ? 'dim' : ''}');
+      }
+      return true;
+    });
+    debugPrint(styles.join(' | '));
+    await caret(tester, m, '0', 10);
+    await type(tester, 'X');
+    expect(m.text, '- [ ] bread **frXesh** today');
   });
 }
