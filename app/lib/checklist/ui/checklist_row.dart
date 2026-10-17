@@ -213,6 +213,9 @@ class _ChecklistItemRowState extends State<ChecklistItemRow> {
                     style: textStyle,
                     decoration: checklistFieldDecoration(),
                     onChanged: widget.onTextChanged,
+                    // Keeps the cursor here until the next item takes
+                    // it, so the keyboard stays open in between.
+                    onEditingComplete: () {},
                     onSubmitted: (_) => widget.onSubmitted(),
                   ),
                 ),

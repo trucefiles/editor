@@ -126,6 +126,51 @@ void main() {
     await close(tester);
   });
 
+  group('typing fast in an add row keeps every key', () {
+    for (final (hint, before, after) in [
+      ('Add item at top', '- [ ] M', '\n- [ ] a\n'),
+      ('Add item', '- [ ] a\n- [ ] M', '\n'),
+    ]) {
+      testWidgets(hint, (tester) async {
+        final editor = await show(tester, '- [ ] a\n');
+
+        // Both keys arrive before the new item's row takes the cursor.
+        await tester.enterText(field(hint), 'M');
+        tester.testTextInput.enterText('Mi');
+        await tester.pump();
+        await tester.pump();
+
+        expect(editor.list.text, '${before}i$after');
+        expect(hasFocus(tester, 'Mi'), isTrue, reason: 'typing goes on there');
+        expect(tester.widget<TextField>(field(hint)).controller!.text, '');
+        await close(tester);
+      });
+    }
+  });
+
+  testWidgets('Enter moves to the new item without closing the keyboard', (
+    tester,
+  ) async {
+    final editor = await show(tester, '- [ ] a\n- [ ] b');
+    await tester.tap(field('a'));
+    await tester.pump();
+    tester.testTextInput.log.clear();
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.pump();
+
+    expect(editor.list.text, '- [ ] a\n- [ ] \n- [ ] b');
+    // The fields: top add row, a, the new item, b, add row.
+    final added = tester.widget<TextField>(find.byType(TextField).at(2));
+    expect(added.focusNode!.hasFocus, isTrue);
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      isNot(contains('TextInput.hide')),
+    );
+    await close(tester);
+  });
+
   testWidgets('without open items there is one add row', (tester) async {
     await show(tester, '- [x] a');
 

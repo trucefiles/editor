@@ -38,11 +38,13 @@ void main() {
   });
 
   test('is due once, a delay after the first keep', () async {
-    final staged = staging(const Duration(milliseconds: 20));
+    // Longer than a draft write takes on a busy machine: a keep after
+    // the delay is rightly due again.
+    final staged = staging(const Duration(milliseconds: 500));
 
     await staged.keep(path('a.md'), base: 'b', text: 'one');
     await staged.keep(path('a.md'), base: 'b', text: 'two');
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await Future<void>.delayed(const Duration(seconds: 1));
 
     expect(due, 1);
   });
