@@ -37,6 +37,12 @@ void main() {
     await tester.tapAndSettle(find.text(title));
   }
 
+  /// Switches an open note that is no list from Rendered to Source.
+  Future<void> showSource(WidgetTester tester) async {
+    await tester.tapAndSettle(find.byTooltip('View: Rendered'));
+    await tester.tapAndSettle(find.text('Source'));
+  }
+
   testWidgets('saves what is typed on the device, then in the file on back', (
     tester,
   ) async {
@@ -62,6 +68,7 @@ void main() {
     app.write('todo.md', '# Todo\n');
     await addFolder(tester);
     await openNote(tester, 'Todo');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
     await tester.waitFor(find.byTooltip(_savedOnDevice));
 
@@ -130,7 +137,9 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
     await tester.refocusApp();
 
-    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+    await tester.waitFor(
+      find.textContaining('v2 from elsewhere', findRichText: true),
+    );
     expect(
       find.text('Updated with a change from another device or app'),
       findsOne,
@@ -146,7 +155,9 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.text('Plan'));
 
-    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+    await tester.waitFor(
+      find.textContaining('v2 from elsewhere', findRichText: true),
+    );
   });
 
   testWidgets('the refresh button shows new notes', (tester) async {
@@ -184,7 +195,9 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
 
-    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+    await tester.waitFor(
+      find.textContaining('v2 from elsewhere', findRichText: true),
+    );
   });
 
   testWidgets('shows new notes and changes live, without refreshing', (
@@ -199,7 +212,9 @@ void main() {
 
     await openNote(tester, 'Plan');
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
-    await tester.waitFor(find.textContaining('v2 from elsewhere'));
+    await tester.waitFor(
+      find.textContaining('v2 from elsewhere', findRichText: true),
+    );
   });
 
   testWidgets('switches to manual refresh in the menu', (tester) async {
@@ -291,6 +306,7 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
     await loseFolder(tester);
 
     await tester.waitFor(find.textContaining("Notes can't be reached."));
@@ -308,6 +324,7 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
     app.notes.renameSync('${app.notes.path}-away');
 
@@ -324,6 +341,7 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
 
     await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
@@ -348,6 +366,7 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -366,6 +385,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
@@ -388,6 +408,7 @@ void main() {
     app.file('plan.md').writeAsStringSync('# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
     app.file('plan.md').writeAsStringSync('# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Show menu'));
@@ -554,14 +575,13 @@ void main() {
     expect(find.textContaining('Edited '), findsOne);
   });
 
-  testWidgets('renders a note as Markdown', (tester) async {
+  testWidgets('first shows a note that is no list rendered', (tester) async {
     app.file('read.md').writeAsStringSync('# Read me\n\nSome **bold** text.\n');
     await addFolder(tester);
+
     await openNote(tester, 'Read me');
 
-    await tester.tapAndSettle(find.byTooltip('View: Source'));
-    await tester.tapAndSettle(find.text('Rendered'));
-
+    expect(find.byTooltip('View: Rendered'), findsOne);
     expect(find.byType(TextField), findsNothing);
     expect(
       find.textContaining('Some bold text.', findRichText: true),
@@ -595,6 +615,7 @@ void main() {
     app.file('todo.md').writeAsStringSync('# Todo\n');
     await addFolder(tester);
     await openNote(tester, 'Todo');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -648,6 +669,7 @@ void main() {
     app.write('a/b/c/plan.md', '# Plan\nv1\n');
     await addFolder(tester);
     await openNote(tester, 'Plan');
+    await showSource(tester);
 
     await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
     app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');

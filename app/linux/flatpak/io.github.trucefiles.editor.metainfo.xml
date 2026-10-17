@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.6.3" date="2026-10-17">
+      <description>
+        <ul>
+          <li>Notes that aren't checklists now open rendered for reading, until you pick another view; new notes still open in Source to type.</li>
+          <li>List view: Enter moves to the next item without the keyboard closing and reopening.</li>
+          <li>List view: fast typing in an add row keeps every key.</li>
+          <li>Pull-to-refresh: the indicator stays a moment, so a refresh is easy to tell apart from an early release.</li>
+          <li>Pull-to-refresh: pushing a pull back up no longer scrolls the note at the same time.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.2" date="2026-10-17">
       <description>
         <ul>

@@ -73,10 +73,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteSettingsController _settings;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
-  /// The note's last view on this device; else a list if it has items.
+  /// The note's last view on this device, else its first one.
   late NoteView _view =
       _settings.settingsOf(widget.note.key).view ??
-      (_checklist.list.hasItems ? NoteView.list : NoteView.text);
+      NoteView.first(
+        hasItems: _checklist.list.hasItems,
+        typing: widget.autofocus,
+      );
 
   @override
   void initState() {

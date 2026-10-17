@@ -1,0 +1,5 @@
+- Notes that aren't checklists now open rendered for reading, until you pick another view; new notes still open in Source to type.
+- List view: Enter moves to the next item without the keyboard closing and reopening.
+- List view: fast typing in an add row keeps every key.
+- Pull-to-refresh: the indicator stays a moment, so a refresh is easy to tell apart from an early release.
+- Pull-to-refresh: pushing a pull back up no longer scrolls the note.

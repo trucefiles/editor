@@ -33,6 +33,10 @@ class _ChecklistViewState extends State<ChecklistView> {
   final _newTopItem = TextEditingController();
   final _newItem = TextEditingController();
   final _focus = RowFocus();
+
+  /// Items started from an add row, by its field, while the cursor is
+  /// still there.
+  final _started = <TextEditingController, int>{};
   bool _doneExpanded = true;
 
   ChecklistEditor get _editor => widget.editor;
@@ -47,16 +51,29 @@ class _ChecklistViewState extends State<ChecklistView> {
 
   /// Typing in an add row starts a new item right away with [add] and
   /// moves the cursor into it, so typed text never lives only in [field]:
-  /// it is in the note and saved like any other edit.
+  /// it is in the note and saved like any other edit. Keys typed before
+  /// the cursor gets there go on into that item. [field] keeps its text
+  /// until the cursor leaves it, as clearing it while typing there may
+  /// drop keys (see [_endItem]).
   void _startItem(
     TextEditingController field,
     int Function(String text) add,
     String typed,
   ) {
     final text = typed.trimLeft();
+    if (_started[field] case final id?) {
+      _editor.setText(id, text);
+      return;
+    }
     if (text.isEmpty) return;
-    field.clear();
-    _focus.focusLater(add(text));
+    final id = add(text);
+    _started[field] = id;
+    _focus.focusLater(id);
+  }
+
+  /// The cursor left [field]: its text is in the item it started.
+  void _endItem(TextEditingController field) {
+    if (_started.remove(field) != null) field.clear();
   }
 
   void _onAction(ChecklistLine line, ItemAction action) {
@@ -283,11 +300,16 @@ class _ChecklistViewState extends State<ChecklistView> {
             const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
                 _focus.move(key, 1),
           },
-          child: TextField(
-            controller: field,
-            focusNode: _focus.of(key),
-            decoration: checklistFieldDecoration(hint: hint),
-            onChanged: (typed) => _startItem(field, add, typed),
+          child: Focus(
+            onFocusChange: (focused) {
+              if (!focused) _endItem(field);
+            },
+            child: TextField(
+              controller: field,
+              focusNode: _focus.of(key),
+              decoration: checklistFieldDecoration(hint: hint),
+              onChanged: (typed) => _startItem(field, add, typed),
+            ),
           ),
         ),
       ),
