@@ -1,0 +1,28 @@
+# Monthly update pull requests, one per ecosystem for minor and patch
+# versions; major versions come one by one, as they may need code changes.
+# New versions wait a week first, so broken or malicious releases are
+# usually pulled before they reach us. Security updates come at once.
+# Not covered: the Flutter SDK (pinned in .github/actions/setup-flutter) and
+# the Android Gradle setup, which follows the Flutter SDK's templates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      pub:
+        update-types: [minor, patch]
