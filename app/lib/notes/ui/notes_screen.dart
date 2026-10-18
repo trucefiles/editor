@@ -27,6 +27,7 @@ import '../note_actions.dart';
 import '../note_settings_controller.dart';
 import '../note_settings_pruning.dart';
 import '../quick/quick_note_drafts_provider.dart';
+import '../quick/quick_note_place_controller.dart';
 import '../quick/ui/quick_note_screen.dart';
 import 'home_menu.dart';
 import 'note_card.dart';
@@ -77,9 +78,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final folders = ref.watch(foldersProvider);
-    // Loaded up front, so a note opens in its remembered view.
+    // Loaded up front, so a note opens in its remembered view and a new
+    // one goes to the place set.
     ref
       ..watch(noteSettingsProvider)
+      ..watch(quickNotePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(noteSettingsPruningProvider)
       ..watch(autoRescanProvider);

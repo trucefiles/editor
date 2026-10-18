@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/notes/ui/home_menu.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/settings/ui/settings_screen.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/tray/close_to_tray_controller.dart';
 
@@ -18,7 +18,7 @@ void main() {
     window = FakeWindow();
   });
 
-  final menuButton = find.byType(PopupMenuButton<VoidCallback>);
+  final settings = find.byType(SettingsScreen);
 
   /// Lets file reads and writes finish, which complete outside the test's
   /// fake time, until [until] holds; then renders the result.
@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pumpMenu(WidgetTester tester, {bool withTray = true}) async {
+  Future<void> pumpSettings(WidgetTester tester, {bool withTray = true}) async {
     final storage = AppStorage(tempFolder().path);
     await tester.runAsync(
       () => tester.pumpWidget(
@@ -45,25 +45,18 @@ void main() {
             systemTrayProvider.overrideWithValue(withTray ? tray : null),
             appWindowProvider.overrideWithValue(window),
           ],
-          child: MaterialApp(
-            home: Scaffold(appBar: AppBar(actions: const [HomeMenu()])),
-          ),
+          child: const MaterialApp(home: SettingsScreen()),
         ),
       ),
     );
     await settle(
       tester,
       until: () =>
-          menuButton.evaluate().isNotEmpty &&
-          ProviderScope.containerOf(tester.element(menuButton))
+          settings.evaluate().isNotEmpty &&
+          ProviderScope.containerOf(tester.element(settings))
               .read(closeToTrayProvider)
               .hasValue,
     );
-  }
-
-  Future<void> openMenu(WidgetTester tester) async {
-    await tester.tap(menuButton);
-    await tester.pumpAndSettle();
   }
 
   /// Taps the setting and lets its file write finish, until the window
@@ -74,25 +67,25 @@ void main() {
     await settle(tester, until: () => window.hideOnClose == hideOnClose);
   }
 
+  bool switchedOn(WidgetTester tester) =>
+      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value;
+
   testWidgets('turns keeping running in the tray off and on', (tester) async {
-    await pumpMenu(tester);
-    await openMenu(tester);
-    expect(find.byIcon(Icons.check_box), findsOneWidget);
+    await pumpSettings(tester);
+    expect(switchedOn(tester), isTrue);
 
     await toggle(tester, hideOnClose: false);
     expect(window.hideOnClose, isFalse);
     expect(tray.shown, isFalse);
 
-    await openMenu(tester);
-    expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
+    expect(switchedOn(tester), isFalse);
     await toggle(tester, hideOnClose: true);
     expect(window.hideOnClose, isTrue);
   });
 
   testWidgets('says when no tray can take the icon', (tester) async {
     tray.hasTray = false;
-    await pumpMenu(tester);
-    await openMenu(tester);
+    await pumpSettings(tester);
 
     expect(find.text('No tray on this desktop: closing quits'), findsOneWidget);
   });
@@ -100,8 +93,7 @@ void main() {
   testWidgets('has no tray setting where the platform has no tray', (
     tester,
   ) async {
-    await pumpMenu(tester, withTray: false);
-    await openMenu(tester);
+    await pumpSettings(tester, withTray: false);
 
     expect(find.text('Keep running in tray'), findsNothing);
   });

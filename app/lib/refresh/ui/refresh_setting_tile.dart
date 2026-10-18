@@ -5,17 +5,20 @@ import '../refresh_settings.dart';
 import '../refresh_settings_controller.dart';
 import 'refresh_dialog.dart';
 
-/// Menu entry that shows the refresh setting and opens its dialog.
-PopupMenuItem<VoidCallback> refreshMenuItem(
-  BuildContext context,
-  WidgetRef ref,
-) {
-  final settings = ref.watch(refreshSettingsProvider).value;
-  return PopupMenuItem(
-    enabled: settings != null,
-    value: () => _change(context, ref, settings!),
-    child: Text('Refresh: ${_modeName(settings?.mode)}'),
-  );
+/// Settings row that shows the refresh setting and opens its dialog.
+class RefreshSettingTile extends ConsumerWidget {
+  const RefreshSettingTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(refreshSettingsProvider).value;
+    return ListTile(
+      enabled: settings != null,
+      title: const Text('Refresh'),
+      subtitle: Text(_modeName(settings?.mode)),
+      onTap: () => _change(context, ref, settings!),
+    );
+  }
 }
 
 Future<void> _change(
