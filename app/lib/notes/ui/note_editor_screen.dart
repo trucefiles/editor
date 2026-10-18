@@ -10,15 +10,17 @@ import '../../checklist/checklist_editor.dart';
 import '../../checklist/ui/checklist_undo_hint.dart';
 import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
+import '../../common/moment.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
-import '../../common/toggle_label.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../markdown/markdown_view.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
+import '../checked_items.dart';
+import '../new_note_session.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_colors.dart';
@@ -26,70 +28,109 @@ import '../note_drafts.dart';
 import '../note_edit_session.dart';
 import '../note_editor_controller.dart';
 import '../note_files.dart';
+import '../note_place.dart';
 import '../note_settings.dart';
 import '../note_settings_controller.dart';
+import '../note_staging.dart';
 import '../note_title.dart';
 import '../note_view.dart';
+import '../open_note.dart';
+import 'checked_items_dialog.dart';
 import 'edit_state_banner.dart';
 import 'line_break_formatter.dart';
 import 'note_heading.dart';
+import 'note_place_chip.dart';
 import 'note_view_button.dart';
 import 'pin_or_color_sheet.dart';
 import 'save_indicator.dart';
 
 /// Editor for one note, as plain text or as a checklist. Saves as the user
-/// types.
+/// types; a new note's file is created as the user leaves it or the app is
+/// hidden.
 class NoteEditorScreen extends ConsumerStatefulWidget {
-  const NoteEditorScreen(this.note, {this.autofocus = false, super.key});
+  const NoteEditorScreen(Note this.note, {super.key}) : place = null;
 
-  final Note note;
+  /// A new note, to go into [place].
+  const NoteEditorScreen.fresh(NotePlace this.place, {super.key}) : note = null;
 
-  /// Puts the cursor in the text right away, e.g. for a new note. Off by
-  /// default, so opening a note on a phone does not pop up the keyboard.
-  final bool autofocus;
+  /// The note to open; `null` for a new one.
+  final Note? note;
+  final NotePlace? place;
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
-  late final NoteFiles _files = ref.read(noteFilesProvider(widget.note.folder));
-  // Read up front: dispose() needs it, and ref is unusable by then.
+  // Read up front: dispose() needs them, and ref is unusable by then; a
+  // new note gets its session as it is kept on leaving.
   late final FolderScansController _scans;
-  late final _session = NoteEditSession(
-    widget.note,
-    _files,
-    ref.read(noteDraftsProvider(widget.note.folder.id)),
-  );
+  late final ProviderContainer _container;
+  late final OpenNote _open = switch ((widget.note, widget.place)) {
+    (final note?, _) => OpenNote(_sessionOf(note), sessionOf: _sessionOfNew),
+    (_, final place?) => OpenNote.fresh(
+      NewNoteSession(
+        place,
+        stagingOf: (folder) => NoteStaging.unpublished(
+          _container.read(noteDraftsProvider(folder.id)),
+        ),
+        create: ref.read(noteActionsProvider).create,
+        remove: (note) =>
+            _container.read(noteFilesProvider(note.folder)).delete(note),
+      ),
+      sessionOf: _sessionOfNew,
+    ),
+    _ => throw StateError('A note or a place is needed.'),
+  };
   late final _controller = NoteEditorController(
-    _session,
-    reachSettled: ref
-        .read(folderReachProvider(widget.note.folder.location).notifier)
-        .settled,
+    _open,
+    reachSettled: () =>
+        ref.read(folderReachProvider(_open.folder.location).notifier).settled(),
   );
-  late final _text = TextEditingController(text: _session.text);
+  late final _text = TextEditingController(text: _open.text);
   late final AppLifecycleListener _lifecycle;
-  late final _checklist = ChecklistEditor(_session);
+  late final _checklist = ChecklistEditor(_open);
   late final NoteSettingsController _settings;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
   /// The note's last view on this device, else its first one.
   late NoteView _view =
-      _settings.settingsOf(widget.note.key).view ??
+      _settingsNow.view ??
       NoteView.first(
         hasItems: _checklist.list.hasItems,
-        typing: widget.autofocus,
+        typing: widget.note == null,
       );
+
+  /// A view picked before the note had a file, to remember once it has.
+  bool _viewToSave = false;
+
+  NoteEditSession _sessionOf(Note note, {Moment? writtenAt}) => NoteEditSession(
+    note,
+    _container.read(noteFilesProvider(note.folder)),
+    _container.read(noteDraftsProvider(note.folder.id)),
+    writtenAt: writtenAt,
+  );
+
+  /// For a note just written: created, moved or renamed.
+  NoteEditSession _sessionOfNew(Note note) =>
+      _sessionOf(note, writtenAt: Moment.now());
+
+  /// The note's settings on this device; the defaults until it has a file.
+  NoteSettings get _settingsNow => switch (_open.note) {
+    final note? => _settings.settingsOf(note.key),
+    null => NoteSettings.defaults,
+  };
 
   @override
   void initState() {
     super.initState();
+    _container = ProviderScope.containerOf(context, listen: false);
     _scans = ref.read(folderScansProvider.notifier);
     _settings = ref.read(noteSettingsProvider.notifier);
-    _text.addListener(() => _session.edit(_text.text));
-    _session.addListener(_onSessionChanged);
+    _text.addListener(() => _open.edit(_text.text));
+    _open.addListener(_onOpenChanged);
     _lifecycle = AppLifecycleListener(
-      onHide: _session.secure,
+      onHide: _open.secure,
       onExitRequested: _onExitRequested,
     );
     // The note may have changed since the last scan.
@@ -100,11 +141,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void dispose() {
     _lifecycle.dispose();
     _checklist.dispose();
-    _session.removeListener(_onSessionChanged);
-    final session = _session;
+    _open.removeListener(_onOpenChanged);
+    final open = _open;
     unawaited(
-      session.secure().whenComplete(() {
-        session.dispose();
+      open.secure().whenComplete(() {
+        open.dispose();
         unawaited(_scans.refresh());
       }),
     );
@@ -112,14 +153,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     super.dispose();
   }
 
-  /// Shows text the session took from the file (rescan or "load theirs").
-  void _onSessionChanged() {
-    if (_text.text != _session.text) {
-      final offset = _text.selection.baseOffset.clamp(0, _session.text.length);
+  /// Shows text the note took from the file (rescan or "load theirs"),
+  /// and remembers a view picked before the note had a file.
+  void _onOpenChanged() {
+    if (_text.text != _open.text) {
+      final offset = _text.selection.baseOffset.clamp(0, _open.text.length);
       _text.value = TextEditingValue(
-        text: _session.text,
+        text: _open.text,
         selection: TextSelection.collapsed(offset: offset),
       );
+    }
+    if (_viewToSave && _open.note != null) {
+      _viewToSave = false;
+      _saveView(_view);
     }
     setState(() {});
   }
@@ -164,7 +210,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
     );
     if (discard ?? false) {
-      _session.discard();
+      _open.discard();
       return true;
     }
     return false;
@@ -178,11 +224,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
-  /// [context] is this screen's, below its own messenger.
+  /// [context] is this screen's, below its own messenger. A new note is
+  /// just dropped.
   Future<void> _delete(BuildContext context) async {
-    await _session.flush();
+    if (_open.pending != null) {
+      _open.discard();
+      return Navigator.pop(context);
+    }
+    await _open.flush();
     final actions = ref.read(noteActionsProvider);
-    final deleted = await actions.delete(_session.note, _session.text);
+    final deleted = await actions.delete(_open.note!, _open.text);
     if (!context.mounted) return;
     switch (deleted) {
       case Ok(:final value):
@@ -190,6 +241,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         Navigator.pop(context);
       case Err(:final error):
         showSnack(context, error.text);
+    }
+  }
+
+  /// Runs [action] on the note's file; a new note's file is created
+  /// first. [context] is this screen's, below its own messenger.
+  Future<void> _withFile(
+    BuildContext context,
+    FutureOr<void> Function(Note note) action,
+  ) async {
+    await _open.flush();
+    if (!context.mounted) return;
+    switch (_open.note) {
+      case final note?:
+        await action(note);
+      case null when _open.state == EditState.saved:
+        showSnack(
+          context,
+          'Write something first: an empty note is not saved.',
+        );
+      case null:
+        // Not created: the banner tells why.
+        break;
     }
   }
 
@@ -217,12 +290,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           if (_view == NoteView.list) ...[
             PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
             PopupMenuItem(
-              value: () => _setDoneSection(on: !settings.doneSection),
-              child: ToggleLabel('Done section', on: settings.doneSection),
+              value: () => _withFile(
+                context,
+                (note) => _pickCheckedItems(note, settings.checkedItems),
+              ),
+              child: Text(
+                'Checked items: ${checkedItemsName(settings.checkedItems)}',
+              ),
             ),
           ],
           PopupMenuItem(
-            value: () => editPinOrColor(context, ref, widget.note),
+            value: () => _withFile(
+              context,
+              (note) => editPinOrColor(context, ref, note),
+            ),
             child: const Text('Pin or color'),
           ),
           PopupMenuItem(
@@ -232,19 +313,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ],
       );
 
-  /// Turns the "Done" section of this note on or off, on this device.
-  void _setDoneSection({required bool on}) => unawaited(
-    _settings.edit(
-      widget.note.key,
-      (settings) => settings.withDoneSection(doneSection: on),
-    ),
-  );
+  /// Asks where [note]'s checked items go, on this device.
+  Future<void> _pickCheckedItems(Note note, CheckedItems current) async {
+    final chosen = await showCheckedItemsDialog(context, current: current);
+    if (chosen == null || chosen == current) return;
+    // Items checked before follow the new order too: the user chose it.
+    if (chosen == CheckedItems.toEnd) _checklist.sortChecked();
+    await _settings.edit(
+      note.key,
+      (settings) => settings.withCheckedItems(chosen),
+    );
+  }
 
   void _showView(NoteView view) {
     setState(() => _view = view);
-    unawaited(
-      _settings.edit(widget.note.key, (settings) => settings.withView(view)),
-    );
+    _saveView(view);
+  }
+
+  /// Remembers [view] on this device; for a new note, once it has a file.
+  void _saveView(NoteView view) {
+    final note = _open.note;
+    if (note == null) {
+      _viewToSave = true;
+      return;
+    }
+    unawaited(_settings.edit(note.key, (settings) => settings.withView(view)));
   }
 
   void _clearDone() => showChecklistUndoHint(
@@ -264,7 +357,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
     });
     return PopScope(
-      canPop: _session.state == EditState.saved || _isDone,
+      canPop: _open.state == EditState.saved || _isDone,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave());
       },
@@ -290,7 +383,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   ];
 
   /// The edits were kept as a conflict copy; nothing more to edit here.
-  bool get _isDone => _session.state == EditState.keptAsConflict;
+  bool get _isDone => _open.state == EditState.keptAsConflict;
 
   /// Hints whose action works on this screen (e.g. undoing a checklist
   /// action) show on this screen's own messenger, so they go with it: once
@@ -307,18 +400,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool get _isReadOnly => _isDone || _isUnreachable;
 
   bool get _isUnreachable =>
-      ref.read(folderReachProvider(widget.note.folder.location)) ==
-      Reach.unreachable;
+      ref.read(folderReachProvider(_open.folder.location)) == Reach.unreachable;
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
-    ref.watch(folderReachProvider(widget.note.folder.location));
+    ref.watch(folderReachProvider(_open.folder.location));
     final unreachable = _isUnreachable;
     final readOnly = _isReadOnly;
     final scans = ref.watch(folderScansProvider).value;
-    final mark = scans?.markOf(widget.note.key) ?? NoteMark.none;
+    final key = _open.note?.key;
+    final mark = key == null
+        ? NoteMark.none
+        : scans?.markOf(key) ?? NoteMark.none;
     ref.watch(noteSettingsProvider);
-    final settings = _settings.settingsOf(widget.note.key);
+    final settings = _settingsNow;
     final tint = noteTint(mark.color, Theme.of(context).colorScheme);
     return Scaffold(
       backgroundColor: tint,
@@ -327,14 +422,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         title: ListenableBuilder(
           listenable: _text,
           builder: (context, _) => NoteHeading(
-            title: noteTitle(_text.text, widget.note.path),
-            folder: widget.note.folder,
-            file: widget.note.path,
-            edited: _session.note.modified,
+            title: noteTitle(_text.text, _open.path),
+            edited: _open.note?.modified,
           ),
         ),
         actions: [
-          SaveIndicator(_session.state, onSave: _session.flush),
+          SaveIndicator(_open.state, onSave: _open.flush),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
@@ -348,23 +441,32 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ),
       body: Column(
         children: [
-          if (scans?.conflicts.forNote(widget.note.key) case final conflict?)
-            ConflictBanner(conflict),
+          if (key != null)
+            if (scans?.conflicts.forNote(key) case final conflict?)
+              ConflictBanner(conflict),
           UnreachableBanner(
-            widget.note.folder,
+            _open.folder,
             message: 'Your text is kept on this device.',
           ),
           // Its ways out need the folder.
-          if (!unreachable) EditStateBanner(_session, onClose: _leave),
+          if (!unreachable) EditStateBanner(_open, onClose: _leave),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              // A new note can still go to another folder.
+              child: NotePlaceChip(
+                _open,
+                enabled: _open.pending != null || !readOnly,
+              ),
+            ),
+          ),
           Expanded(
             // The views scroll inside, e.g. the text field's own
             // scrollable.
             child: PullToRefresh(
               onRefresh: _scans.refresh,
-              child: _body(
-                doneSection: settings.doneSection,
-                readOnly: readOnly,
-              ),
+              child: _body(settings, readOnly: readOnly),
             ),
           ),
         ],
@@ -372,18 +474,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// The note in the chosen view, a list with a "Done" section if
-  /// [doneSection]; rendered while [readOnly]: once done, as the session
-  /// takes no more edits, or while the folder can't be reached.
-  Widget _body({required bool doneSection, required bool readOnly}) =>
+  /// The note in the chosen view, a list as its [settings] say; rendered
+  /// while [readOnly]: once done, as the session takes no more edits, or
+  /// while the folder can't be reached.
+  Widget _body(NoteSettings settings, {required bool readOnly}) =>
       switch (readOnly ? NoteView.rendered : _view) {
-        NoteView.list => ChecklistView(_checklist, separateDone: doneSection),
-        NoteView.rendered => MarkdownView(_session.text),
+        NoteView.list => ChecklistView(
+          _checklist,
+          separateDone: settings.checkedItems.shownApart,
+          checkedToEnd: settings.checkedItems == CheckedItems.toEnd,
+        ),
+        NoteView.rendered => MarkdownView(_open.text),
         NoteView.text => TextField(
           controller: _text,
+          // A new note is for typing right away.
+          autofocus: widget.note == null,
           maxLines: null,
           expands: true,
-          autofocus: widget.autofocus,
           keyboardType: TextInputType.multiline,
           inputFormatters: [lineBreakFormatter],
           // The raw source, so monospace: Markdown syntax lines up as
@@ -394,6 +501,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           selectionWidthStyle: BoxWidthStyle.tight,
           textAlignVertical: TextAlignVertical.top,
           decoration: const InputDecoration(
+            // Never saved: an empty note gets its name from the first line
+            // typed.
+            hintText: 'Untitled',
             border: InputBorder.none,
             contentPadding: EdgeInsets.all(16),
           ),

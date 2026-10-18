@@ -8,6 +8,7 @@ import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/notes/open_note.dart';
 import 'package:truce_editor/notes/ui/edit_state_banner.dart';
 
 import '../../support.dart';
@@ -54,7 +55,10 @@ void main() {
         home: Scaffold(
           body: ListenableBuilder(
             listenable: session,
-            builder: (_, _) => EditStateBanner(session, onClose: () {}),
+            builder: (_, _) => EditStateBanner(
+              OpenNote(session, sessionOf: (_) => throw UnimplementedError()),
+              onClose: () {},
+            ),
           ),
         ),
       ),

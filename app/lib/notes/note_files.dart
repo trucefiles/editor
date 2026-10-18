@@ -35,15 +35,55 @@ final class NoteFiles {
   }
 
   /// New note in [subfolder] (the folder's root if `null`), named after
-  /// [title], starting with a `# title` line.
+  /// [title], holding [text]; by default a `# title` line. If [subfolder]
+  /// is gone, the note goes to the folder's top level: it is kept, and the
+  /// deleted folder never comes back.
   Future<Result<Note, StoreError>> create(
     String title, {
     RelPath? subfolder,
+    String? text,
   }) async {
-    final file = TextFile.empty().withText('# ${title.trim()}\n');
+    final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
+    final created = await _createNamed(title, '.md', subfolder, file);
+    if (created case Err(error: StoreError.notFound) when subfolder != null) {
+      return _createNamed(title, '.md', null, file);
+    }
+    return created;
+  }
+
+  /// A copy of [note], from any folder, holding [text] in [note]'s byte
+  /// style, in [subfolder] of this folder (its root if `null`); named
+  /// after [title] (by default [note]'s name) with [note]'s extension, and
+  /// a number if that name is taken.
+  Future<Result<Note, StoreError>> copyIn(
+    Note note,
+    String text, {
+    RelPath? subfolder,
+    String? title,
+  }) {
+    final (:base, :extension) = splitFileName(note.path.name);
+    return _createNamed(
+      title ?? base,
+      extension,
+      subfolder,
+      note.file.withText(text),
+    );
+  }
+
+  /// Fails with [StoreError.notFound] if [subfolder] is gone: the store
+  /// would create it, and a deleted folder never comes back.
+  Future<Result<Note, StoreError>> _createNamed(
+    String title,
+    String extension,
+    RelPath? subfolder,
+    TextFile file,
+  ) async {
+    if (subfolder != null && !await _hasFolder(subfolder)) {
+      return const Err(StoreError.notFound);
+    }
     final bytes = file.encode(file.text);
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
-      final name = noteFileName(title, attempt: attempt);
+      final name = noteFileName(title, attempt: attempt, extension: extension);
       final path = subfolder == null
           ? RelPath.parse(name)!
           : subfolder.child(name)!;
@@ -57,6 +97,22 @@ final class NoteFiles {
       }
     }
     return const Err(StoreError.alreadyExists);
+  }
+
+  /// Whether [subfolder] is there; lists only the folders on the way to it.
+  Future<bool> _hasFolder(RelPath subfolder) async {
+    bool onTheWay(RelPath folder) =>
+        folder == subfolder || subfolder.value.startsWith('${folder.value}/');
+    final listed = await _store.list(
+      enterFolder: onTheWay,
+      includeFile: (_) => false,
+    );
+    return switch (listed) {
+      Ok(value: final listing) =>
+        listing.folders.contains(subfolder) ||
+            listing.unreadable.contains(subfolder),
+      Err() => false,
+    };
   }
 
   /// Writes [text] over [note]; fails with [StoreError.changedSinceRead]

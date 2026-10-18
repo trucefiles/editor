@@ -6,6 +6,10 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/checked_items.dart';
+import 'package:truce_editor/notes/move_failure.dart';
+import 'package:truce_editor/notes/new_note_place/new_note_place.dart';
+import 'package:truce_editor/notes/new_note_place/new_note_place_controller.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/notes/note_settings.dart';
@@ -70,47 +74,162 @@ void main() {
     });
 
     test('is the folder the grid is filtered to', () {
-      choose(lastUsedFolderIdProvider, 'work');
       choose(selectedFolderIdProvider, 'home');
 
       expect(actions.defaultFolder(folders).id, 'home');
     });
 
-    test('is the last used folder when the grid shows all', () {
-      choose(lastUsedFolderIdProvider, 'home');
+    test('is the first one offered if the filtered one is not', () {
+      choose(selectedFolderIdProvider, 'work');
 
-      expect(actions.defaultFolder(folders).id, 'home');
-    });
-
-    test('skips a remembered folder that was removed', () {
-      choose(selectedFolderIdProvider, 'gone');
-      choose(lastUsedFolderIdProvider, 'gone');
-
-      expect(actions.defaultFolder(folders).id, 'work');
+      expect(actions.defaultFolder([folders[1]]).id, 'home');
     });
   });
 
-  test('create writes the note, remembers its folder and rescans', () async {
+  test('create writes the note and rescans', () async {
     await scans();
 
-    final note = (await actions.create('Plan', folders[1])).value;
+    final note = (await actions.create(
+      (folder: folders[1], subfolder: null),
+      title: 'Plan',
+      text: 'Plan\nsteps\n',
+    )).value;
 
-    expect(file(home, 'Plan.md').readAsStringSync(), '# Plan\n');
-    expect(container.read(lastUsedFolderIdProvider), 'home');
+    expect(file(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
     expect((await scans()).findNote(note.key), isNotNull);
   });
 
   test('create puts the note in the chosen subfolder', () async {
+    Directory('${work.path}/a/b').createSync(recursive: true);
     await scans();
 
     final note = (await actions.create(
-      'Plan',
-      folders[0],
-      subfolder: path('a/b'),
+      (folder: folders[0], subfolder: path('a/b')),
+      title: 'Plan',
+      text: '# Plan\n',
     )).value;
 
     expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
     expect((await scans()).findNote(note.key)?.path, path('a/b/Plan.md'));
+  });
+
+  group('newNotePlace', () {
+    Future<void> setPlace(NewNotePlaceSetting? place) =>
+        container.read(newNotePlaceProvider.notifier).set(place);
+
+    test('is the default folder without a setting', () async {
+      await container.read(newNotePlaceProvider.future);
+
+      expect(actions.newNotePlace(folders), (
+        folder: folders[0],
+        subfolder: null,
+      ));
+    });
+
+    test('is the place set, with a subfolder that is there', () async {
+      await noteIn(home, 'inbox/a.md', 'a');
+      await setPlace((folderId: 'home', subfolder: path('inbox')));
+
+      expect(actions.newNotePlace(folders), (
+        folder: folders[1],
+        subfolder: path('inbox'),
+      ));
+    });
+
+    test('falls back to the default for a folder not offered', () async {
+      await setPlace((folderId: 'home', subfolder: null));
+
+      expect(actions.newNotePlace([folders[0]]), (
+        folder: folders[0],
+        subfolder: null,
+      ));
+    });
+  });
+
+  group('move', () {
+    test('moves the note with its color and settings', () async {
+      final note = await noteIn(work, 'plan.md', '# Plan\r\n');
+      await noteIn(home, 'inbox/other.md', 'x');
+      final settings = container.read(noteSettingsProvider.notifier);
+      const mark = NoteMark(color: 'teal');
+      const mine = NoteSettings(view: NoteView.list, pinned: true);
+      await actions.setMark(note, mark);
+      await settings.edit(note.key, (_) => mine);
+
+      final moved = (await actions.move(note, '# Plan\nmore\n', (
+        folder: folders[1],
+        subfolder: path('inbox'),
+      ))).value;
+
+      await container.read(folderScansProvider.notifier).refresh();
+      expect(moved.path, path('inbox/plan.md'));
+      expect(file(work, 'plan.md').existsSync(), isFalse);
+      expect(
+        file(home, 'inbox/plan.md').readAsStringSync(),
+        '# Plan\r\nmore\r\n',
+      );
+      expect((await scans()).markOf(moved.key), mark);
+      expect(marksFile(work), isNot(contains('plan.md')));
+      expect(settings.settingsOf(moved.key), mine);
+      expect(settings.settingsOf(note.key), NoteSettings.defaults);
+    });
+
+    test('renames the note, keeping its extension', () async {
+      final note = await noteIn(work, 'plan.MD', 'a');
+
+      final moved = (await actions.move(note, 'a', (
+        folder: folders[0],
+        subfolder: null,
+      ), title: 'Ideas')).value;
+
+      expect(moved.path, path('Ideas.MD'));
+      expect(file(work, 'Ideas.MD').readAsStringSync(), 'a');
+      expect(file(work, 'plan.MD').existsSync(), isFalse);
+    });
+
+    test('takes a free name in the new place', () async {
+      final note = await noteIn(work, 'plan.md', 'a');
+      file(home, 'plan.md').writeAsStringSync('taken');
+
+      final moved = (await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ))).value;
+
+      expect(moved.path, path('plan 2.md'));
+      expect(file(home, 'plan.md').readAsStringSync(), 'taken');
+    });
+
+    test('is refused while a sync conflict of the note waits', () async {
+      file(
+        work,
+        'plan.sync-conflict-20261003-134809-4I343AW.md',
+      ).writeAsStringSync('b');
+      final note = await noteIn(work, 'plan.md', 'a');
+
+      final moved = await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ));
+
+      expect(moved.error, isA<MoveBlockedByConflict>());
+      expect(file(work, 'plan.md').existsSync(), isTrue);
+      expect(home.listSync(), isEmpty);
+    });
+
+    test('keeps both if the old file changed meanwhile', () async {
+      final note = await noteIn(work, 'plan.md', 'a');
+      file(work, 'plan.md').writeAsStringSync('changed elsewhere');
+
+      final moved = await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ));
+
+      expect(moved.error, isA<MoveLeftOriginal>());
+      expect(file(work, 'plan.md').readAsStringSync(), 'changed elsewhere');
+      expect(file(home, 'plan.md').readAsStringSync(), 'a');
+    });
   });
 
   test('delete removes the note; undo writes it back', () async {
@@ -131,7 +250,7 @@ void main() {
     const mine = NoteSettings(
       view: NoteView.rendered,
       pinned: true,
-      doneSection: false,
+      checkedItems: CheckedItems.inPlace,
     );
     await actions.setMark(note, mark);
     await settings.edit(note.key, (_) => mine);

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:truce_core/truce_core.dart';
 
 import '../storage/json_file.dart';
+import 'checked_items.dart';
 import 'note.dart';
 import 'note_settings.dart';
 import 'note_view.dart';
@@ -12,11 +13,12 @@ import 'note_view.dart';
 /// ignored.
 ///
 /// ```json
-/// {"f1/todo.md": {"view": "list", "pinned": true, "doneSection": false}}
+/// {"f1/todo.md": {"view": "list", "pinned": true, "checked": "toEnd"}}
 /// ```
 ///
 /// Older app versions kept only the view, as a string (`"f1/a.md": "list"`);
-/// those still read.
+/// those still read, as do entries with `"doneSection": true` or `false`
+/// instead of `checked`.
 final class NoteSettingsStore {
   NoteSettingsStore(File file) : _file = JsonFile(file);
 
@@ -47,7 +49,7 @@ final class NoteSettingsStore {
   static Map<String, Object?> _encode(NoteSettings settings) => {
     if (settings.view case final view?) 'view': view.name,
     'pinned': settings.pinned,
-    'doneSection': settings.doneSection,
+    'checked': settings.checkedItems.name,
   };
 
   static NoteSettings? _decode(Object? json) => switch (json) {
@@ -55,14 +57,24 @@ final class NoteSettingsStore {
       final view? => NoteSettings(view: view),
       null => null,
     },
-    {'pinned': final bool pinned, 'doneSection': final bool doneSection} =>
-      NoteSettings(
+    {'pinned': final bool pinned} => switch (_checkedItems(json)) {
+      final checkedItems? => NoteSettings(
         view: _view(json['view']),
         pinned: pinned,
-        doneSection: doneSection,
+        checkedItems: checkedItems,
       ),
+      null => null,
+    },
     _ => null,
   };
+
+  static CheckedItems? _checkedItems(Map<Object?, Object?> json) =>
+      switch (json) {
+        {'checked': final Object name} => CheckedItems.values.asNameMap()[name],
+        {'doneSection': final bool on} =>
+          on ? CheckedItems.doneSection : CheckedItems.inPlace,
+        _ => null,
+      };
 
   static NoteView? _view(Object? name) => NoteView.values.asNameMap()[name];
 }

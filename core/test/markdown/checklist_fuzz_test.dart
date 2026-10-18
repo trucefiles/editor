@@ -145,4 +145,27 @@ void main() {
       }
     }
   });
+
+  test('toggling and sorting changes only the mark and the order', () {
+    for (var i = 0; i < cases; i++) {
+      final list = randomList();
+      final item = randomItem(list);
+      if (item == null) continue;
+      final toggled = list.toggle(item.id);
+
+      final sorted = list.toggleAndSort(item.id);
+
+      expect(content(sorted), content(toggled), reason: 'case $i');
+      // Indented lines can belong to a moved item.
+      Iterable<String> marginText(Checklist list) => [
+        for (final line in list.lines)
+          if (!line.isItem && line.indent.isEmpty) line.raw,
+      ];
+      expect(
+        marginText(sorted),
+        marginText(toggled),
+        reason: 'text lines stay in order, case $i',
+      );
+    }
+  });
 }

@@ -39,6 +39,55 @@ void main() {
     expect(File('${dir.path}/Shopping.md').existsSync(), isFalse);
   });
 
+  test('creates a note holding the given text', () async {
+    final note = (await files.create('Milk', text: 'Milk\nEggs\n')).value;
+
+    expect(note.path.value, 'Milk.md');
+    expect(read('Milk.md'), 'Milk\nEggs\n');
+  });
+
+  test('copies a note in under its name, in its byte style', () async {
+    final other = tempFolder();
+    final otherFolder = folderAt(other);
+    final source = NoteFiles(otherFolder, servicesFor(otherFolder));
+    File('${other.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
+    final note = (await source.open(path('Plan.md'))).value;
+    File('${dir.path}/Plan.md').writeAsStringSync('taken');
+
+    final copy = (await files.copyIn(note, 'b\n')).value;
+
+    expect(copy.path.value, 'Plan 2.md');
+    expect(File('${dir.path}/Plan 2.md').readAsBytesSync(), [
+      ...[0xEF, 0xBB, 0xBF],
+      ...'b\r\n'.codeUnits,
+    ]);
+  });
+
+  test('copies under another name, with the extension kept', () async {
+    File('${dir.path}/plan.MD').writeAsStringSync('a');
+    final note = (await files.open(path('plan.MD'))).value;
+
+    final copy = (await files.copyIn(note, 'a', title: 'Ideas')).value;
+
+    expect(copy.path.value, 'Ideas.MD');
+  });
+
+  test('a new note whose subfolder is gone goes to the top level', () async {
+    final created = (await files.create('Milk', subfolder: path('gone'))).value;
+
+    expect(created.path, path('Milk.md'));
+    expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+  });
+
+  test('never copies into a subfolder deleted meanwhile', () async {
+    final note = (await files.create('Milk')).value;
+
+    final copied = await files.copyIn(note, 'Milk', subfolder: path('gone'));
+
+    expect(copied.error, StoreError.notFound);
+    expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+  });
+
   test('picks a free name', () async {
     await files.create('Shopping');
 

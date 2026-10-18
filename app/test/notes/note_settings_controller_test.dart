@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/checked_items.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
@@ -63,18 +64,18 @@ void main() {
     });
   });
 
-  test('keeps pin and Done section with the view', () async {
+  test('keeps pin and checked items with the view', () async {
     await remember(a, NoteView.list);
     await views.edit(a, (settings) => settings.withPinned(pinned: true));
     await views.edit(
       a,
-      (settings) => settings.withDoneSection(doneSection: false),
+      (settings) => settings.withCheckedItems(CheckedItems.toEnd),
     );
 
     const expected = NoteSettings(
       view: NoteView.list,
       pinned: true,
-      doneSection: false,
+      checkedItems: CheckedItems.toEnd,
     );
     expect(views.settingsOf(a), expected);
     expect(await saved(), {NoteSettingsStore.storeKey(a): expected});

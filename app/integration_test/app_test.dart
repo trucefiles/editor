@@ -17,6 +17,7 @@ import 'ui_driver.dart';
 /// Run on Linux with `flutter test integration_test/app_test.dart -d linux`
 /// (in CI under `xvfb-run`), one file per run.
 const _savedOnDevice = 'Saved on this device. Tap to save in the folder now';
+const _placeAndName = 'Place and name';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -43,23 +44,83 @@ void main() {
     await tester.tapAndSettle(find.text('Source'));
   }
 
-  testWidgets('saves what is typed on the device, then in the file on back', (
+  /// Starts a new note and types [text] into it.
+  Future<void> typeNewNote(WidgetTester tester, String text) async {
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip(_placeAndName));
+    await tester.enterText(find.byType(TextField), text);
+  }
+
+  /// Picks [subfolder] in the open place-and-name dialog.
+  Future<void> pickSubfolder(WidgetTester tester, String subfolder) async {
+    await tester.waitFor(find.text('Top level'));
+    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.text(subfolder).last);
+  }
+
+  testWidgets('a new note gets its file on back, named by its first line', (
     tester,
   ) async {
     await addFolder(tester);
 
+    await typeNewNote(tester, 'Groceries\nMilk\n');
+    await tester.waitFor(find.text('Notes/Groceries.md'));
+    await tester.runFor(const Duration(seconds: 3));
+    expect(app.notes.listSync().whereType<File>(), isEmpty);
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\nMilk\n');
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    expect(find.text('Groceries'), findsOneWidget);
+  });
+
+  testWidgets('an empty new note leaves no file', (tester) async {
+    await addFolder(tester);
     await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.enterText(find.byType(TextField), 'Groceries');
-    await tester.tapAndSettle(find.text('Create'));
-    // The editor opens once the file is written and rescanned.
-    await tester.waitFor(find.byType(NoteEditorScreen));
+    expect(find.text('Untitled'), findsWidgets);
+
+    await tester.pageBack();
+    await tester.waitFor(find.byTooltip('New note'));
+
+    expect(app.notes.listSync().whereType<File>(), isEmpty);
+  });
+
+  testWidgets("hiding the app writes a new note's file", (tester) async {
+    await addFolder(tester);
+    await typeNewNote(tester, 'Idea\n');
+
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
+
+    await tester.enterText(find.byType(TextField), 'Idea\nmore\n');
+    await tester.pageBack();
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\nmore\n');
+    await tester.waitFor(find.byTooltip('New note'));
+    expect(app.notes.listSync().whereType<File>(), hasLength(1));
+  });
+
+  testWidgets('saves what is typed on the device, then in the file on back', (
+    tester,
+  ) async {
+    app.write('groceries.md', '# Groceries\n');
+    await addFolder(tester);
+    await openNote(tester, 'Groceries');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
     await tester.waitFor(find.byTooltip(_savedOnDevice));
-    expect(app.file('Groceries.md').readAsStringSync(), '# Groceries\n');
+    expect(app.file('groceries.md').readAsStringSync(), '# Groceries\n');
     await tester.pageBack();
-    await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
+    await tester.waitForFile(app.file('groceries.md'), '# Groceries\nMilk\n');
   });
 
   testWidgets('tapping the save icon saves in the file right away', (
@@ -87,34 +148,119 @@ void main() {
 
     Directory('${app.notes.path}/later').createSync();
     await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+    await pickSubfolder(tester, 'later');
 
     expect(find.text('later'), findsWidgets);
   });
 
-  testWidgets('creates a note in an empty subfolder', (tester) async {
+  testWidgets('a new note goes into the subfolder and name picked', (
+    tester,
+  ) async {
     app.write('old.md', '# Old\n');
     Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
     await addFolder(tester);
     await tester.waitFor(find.text('Old'));
 
-    await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.enterText(find.byType(TextField), 'Groceries');
-    await tester.tapAndSettle(find.text('Top level'));
-    await tester.tapAndSettle(find.text('a/b/c').last);
-    await tester.tapAndSettle(find.text('Create'));
-    // The editor opens once the file is written and rescanned.
-    await tester.waitFor(find.byType(TextField));
-    await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+    await typeNewNote(tester, 'Groceries\nMilk\n');
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+    await pickSubfolder(tester, 'a/b/c');
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Shop');
+    await tester.tapAndSettle(find.text('OK'));
+    await tester.waitFor(find.text('Notes/a/b/c/Shop.md'));
     await tester.pageBack();
 
-    await tester.waitForFile(
-      app.file('a/b/c/Groceries.md'),
-      '# Groceries\nMilk\n',
+    await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\nMilk\n');
+    await tester.waitFor(find.byTooltip('New note'));
+    expect(app.notes.listSync().whereType<File>().length, 1);
+  });
+
+  testWidgets('a place picked while the app was hidden moves the new file', (
+    tester,
+  ) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/inbox').createSync();
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+    await typeNewNote(tester, 'Idea\n');
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+
+    // The user switches apps with the dialog open, and comes back.
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
+    await pickSubfolder(tester, 'inbox');
+    await tester.tapAndSettle(find.text('OK'));
+
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
+    await tester.pageBack();
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
     );
-    expect(app.file('Groceries.md').existsSync(), isFalse);
+    expect(app.file('Idea.md').existsSync(), isFalse);
+  });
+
+  testWidgets('new notes go to the place set in Settings', (tester) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/inbox').createSync();
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Settings'));
+    await tester.tapAndSettle(find.text('New notes go to'));
+    await pickSubfolder(tester, 'inbox');
+    await tester.tapAndSettle(find.text('OK'));
+    await tester.waitFor(find.text('Notes/inbox'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await typeNewNote(tester, 'Idea');
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea');
+    await tester.waitFor(find.byTooltip('New note'));
+  });
+
+  testWidgets('moves a note to a subfolder and edits on there', (tester) async {
+    app.write('plan.md', '# Plan\n');
+    Directory('${app.notes.path}/done').createSync();
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+    await pickSubfolder(tester, 'done');
+    await tester.tapAndSettle(find.text('OK'));
+
+    await tester.waitFor(find.text('Saved as Notes/done/plan.md'));
+    await tester.waitForFile(app.file('done/plan.md'), '# Plan\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
+
+    await showSource(tester);
+    await tester.enterText(find.byType(TextField), '# Plan\nmore\n');
+    await tester.pageBack();
+    await tester.waitForFile(app.file('done/plan.md'), '# Plan\nmore\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
+  });
+
+  testWidgets('renames a note', (tester) async {
+    app.write('plan.md', '# Plan\n');
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Ideas');
+    await tester.tapAndSettle(find.text('OK'));
+
+    await tester.waitForFile(app.file('Ideas.md'), '# Plan\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
+    expect(find.text('Notes/Ideas.md'), findsOneWidget);
   });
 
   testWidgets('checks a checklist item and saves it', (tester) async {
@@ -217,19 +363,20 @@ void main() {
     );
   });
 
-  testWidgets('switches to manual refresh in the menu', (tester) async {
+  testWidgets('switches to manual refresh in the settings', (tester) async {
     await addFolder(tester);
     await tester.waitFor(find.byTooltip('New note'));
 
     await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.tapAndSettle(find.text('Refresh: Live'));
+    await tester.tapAndSettle(find.text('Settings'));
+    await tester.tapAndSettle(find.text('Refresh'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
     // The setting is saved, then the app rescans once for changes made
     // meanwhile; a file written before that is rightly found.
-    await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.waitFor(find.text('Refresh: Manual'));
-    await tester.tapAt(const Offset(1, 1));
+    await tester.waitFor(find.text('Manual'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.runFor(const Duration(seconds: 1));
     app.write('new.md', '# New\n');
     await tester.runFor(const Duration(seconds: 2));
@@ -457,7 +604,8 @@ void main() {
     expect(find.text('1 done'), findsOneWidget);
 
     await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.tapAndSettle(find.text('Done section'));
+    await tester.tapAndSettle(find.text('Checked items: Done section'));
+    await tester.tapAndSettle(find.text('In place'));
     await tester.waitUntil(() => find.text('1 done').evaluate().isEmpty);
     await tester.pageBack();
     await tester.waitUntil(
@@ -467,6 +615,27 @@ void main() {
 
     expect(find.text('1 done'), findsNothing);
     expect(Directory('${app.notes.path}/.truce').existsSync(), isFalse);
+  });
+
+  testWidgets('with move to end, checking moves the item in the file', (
+    tester,
+  ) async {
+    app
+        .file('list.md')
+        .writeAsStringSync('# List\n- [x] a\n- [ ] b\n- [ ] c\n');
+    await addFolder(tester);
+    await openNote(tester, 'List');
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Checked items: Done section'));
+    await tester.tapAndSettle(find.text('Move to end'));
+    await tester.tapAndSettle(find.byType(Checkbox).first);
+    await tester.pageBack();
+
+    await tester.waitForFile(
+      app.file('list.md'),
+      '# List\n- [ ] c\n- [x] a\n- [x] b\n',
+    );
   });
 
   testWidgets('deletes a note and undoes it', (tester) async {
@@ -634,7 +803,7 @@ void main() {
 
     await tester.waitFor(find.text('Notes/a/b/c'));
     await openNote(tester, 'Deep');
-    expect(find.text('Notes/a/b/c'), findsOne);
+    expect(find.text('Notes/a/b/c/todo.md'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
 

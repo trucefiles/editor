@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import '../folders/folders_controller.dart';
 import 'note_draft.dart';
 import 'note_drafts.dart';
+import 'note_file_name.dart';
 import 'note_files.dart';
 
 /// Puts edits kept on this device into their notes' files, for drafts left
@@ -11,6 +12,7 @@ import 'note_files.dart';
 ///
 /// Same rules as an open note that closes: the edits go into the file if
 /// it still holds the text they started from, else into a conflict copy.
+/// A new note's file is created, as `NoteFiles.create` does.
 final class DraftRecovery {
   const DraftRecovery(this._drafts, this._files);
 
@@ -32,6 +34,7 @@ final class DraftRecovery {
 
   /// Whether [draft]'s edits are now in the file or in a conflict copy.
   Future<bool> _keep(NoteDraft draft) async {
+    if (draft.base == null) return _create(draft);
     switch (await _files.open(draft.path)) {
       case Ok(value: final note) when note.file.text == draft.text:
         return true;
@@ -51,6 +54,21 @@ final class DraftRecovery {
       case Err():
         return false;
     }
+  }
+
+  /// Whether the new note of [draft] now has its file.
+  Future<bool> _create(NoteDraft draft) async {
+    // Created already, as the app was ended before it dropped the draft.
+    if (await _files.open(draft.path) case Ok(value: final note)
+        when note.file.text == draft.text) {
+      return true;
+    }
+    final created = await _files.create(
+      splitFileName(draft.path.name).base,
+      subfolder: draft.path.parent,
+      text: draft.text,
+    );
+    return created is Ok;
   }
 }
 

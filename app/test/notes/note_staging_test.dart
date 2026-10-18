@@ -60,4 +60,15 @@ void main() {
     expect(await texts(), isEmpty);
     expect(due, 0);
   });
+
+  test('a new note is never due', () async {
+    final staged = NoteStaging.unpublished(drafts);
+    addTearDown(staged.dispose);
+
+    await staged.keep(path('a.md'), base: null, text: 'one');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(await texts(), ['one']);
+    expect(due, 0);
+  });
 }

@@ -16,13 +16,7 @@ Widget noteGrid(List<Widget> cards) => SliverMasonryGrid(
 );
 
 /// Opens [note] in the editor.
-Future<void> openNote(
-  BuildContext context,
-  Note note, {
-  bool autofocus = false,
-}) => Navigator.push(
+Future<void> openNote(BuildContext context, Note note) => Navigator.push(
   context,
-  MaterialPageRoute<void>(
-    builder: (_) => NoteEditorScreen(note, autofocus: autofocus),
-  ),
+  MaterialPageRoute<void>(builder: (_) => NoteEditorScreen(note)),
 );

@@ -7,18 +7,23 @@ import 'note_draft.dart';
 import 'note_drafts.dart';
 
 /// Keeps one open note's edits on this device until they are in the
-/// note's file, and calls [onDue] when they should go into the file. One
+/// note's file, and calls `onDue` when they should go into the file. One
 /// per edit session; its draft writes run in order.
 final class NoteStaging {
-  NoteStaging(this._drafts, {required this.publishDelay, required this.onDue});
+  /// [publishDelay]: how long after edits were first kept [onDue] is
+  /// called, unless they are dropped first.
+  NoteStaging(
+    this._drafts, {
+    required Duration publishDelay,
+    required void Function() onDue,
+  }) : _publish = (delay: publishDelay, onDue: onDue);
+
+  /// For a new note: its edits wait for the user's first write, so
+  /// nothing is ever due.
+  NoteStaging.unpublished(this._drafts) : _publish = null;
 
   final NoteDrafts _drafts;
-
-  /// How long after edits were first kept [onDue] is called, unless they
-  /// are dropped first.
-  final Duration publishDelay;
-
-  final void Function() onDue;
+  final ({Duration delay, void Function() onDue})? _publish;
 
   final _id = NoteDraft.newId();
   bool _kept = false;
@@ -26,10 +31,10 @@ final class NoteStaging {
   final _work = Pool(1);
 
   /// Keeps [text] of the note at [path], edited from the file's [base]
-  /// text; `false` if it could not be written.
+  /// text (`null` for a new note); `false` if it could not be written.
   Future<bool> keep(
     RelPath path, {
-    required String base,
+    required String? base,
     required String text,
   }) {
     _kept = true;
@@ -39,10 +44,10 @@ final class NoteStaging {
     );
     return kept.then((written) {
       // Not if dropped meanwhile.
-      if (written && _kept) {
-        _due ??= Timer(publishDelay, () {
+      if ((written && _kept, _publish) case (true, final publish?)) {
+        _due ??= Timer(publish.delay, () {
           _due = null;
-          onDue();
+          publish.onDue();
         });
       }
       return written;

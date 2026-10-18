@@ -40,4 +40,21 @@ void main() {
       'Sub\nquoted\n• one\n  • two',
     );
   });
+
+  test('notePreview can leave out done items and count them', () {
+    const text = '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\nend';
+
+    expect(notePreview(text, hideDone: true), '☐ b\nend\n+ 2 done');
+    expect(notePreview(text, maxLines: 2, hideDone: true), '☐ b\n+ 2 done');
+    expect(notePreview('# T\n- [ ] a', hideDone: true), '☐ a');
+  });
+
+  test('noteTitleLine takes the first line as plain words', () {
+    expect(noteTitleLine('\n  Milk and eggs \nmore'), 'Milk and eggs');
+    expect(noteTitleLine('# Plan\n'), 'Plan');
+    expect(noteTitleLine('- [ ] call Bob'), 'call Bob');
+    expect(noteTitleLine('> - quoted'), 'quoted');
+    expect(noteTitleLine('* one'), 'one');
+    expect(noteTitleLine(' \n'), '');
+  });
 }

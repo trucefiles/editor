@@ -5,11 +5,6 @@ final selectedFolderIdProvider = NotifierProvider<FolderIdChoice, String?>(
   FolderIdChoice.new,
 );
 
-/// Id of the folder a note was last created in, the next default.
-final lastUsedFolderIdProvider = NotifierProvider<FolderIdChoice, String?>(
-  FolderIdChoice.new,
-);
-
 /// A remembered folder id, for this app run only.
 class FolderIdChoice extends Notifier<String?> {
   @override

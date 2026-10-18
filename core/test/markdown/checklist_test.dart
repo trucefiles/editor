@@ -287,6 +287,96 @@ void main() {
     });
   });
 
+  group('toggleAndSort', () {
+    test('a checked item moves with its subitems below the last item', () {
+      final list = Checklist.parse(
+        '# T\n- [ ] a\n  - [ ] sub\n- [ ] b\n- [x] c\nnote\n',
+      );
+
+      expect(
+        list.toggleAndSort(idOf(list, 'a')).text,
+        '# T\n- [ ] b\n- [x] c\n- [x] a\n  - [ ] sub\nnote\n',
+      );
+    });
+
+    test('an unchecked item moves below the last open item', () {
+      final list = Checklist.parse('- [ ] a\n- [x] b\n- [x] c\n');
+
+      expect(
+        list.toggleAndSort(idOf(list, 'c')).text,
+        '- [ ] a\n- [ ] c\n- [x] b\n',
+      );
+    });
+
+    test('unchecked with no open item, it moves above the first item', () {
+      final list = Checklist.parse('# T\n- [x] a\n- [x] b');
+
+      expect(list.toggleAndSort(idOf(list, 'b')).text, '# T\n- [ ] b\n- [x] a');
+    });
+
+    test('already in place, only the mark changes', () {
+      final list = Checklist.parse('- [ ] a\ntext\n- [ ] b\n');
+
+      expect(
+        list.toggleAndSort(idOf(list, 'b')).text,
+        '- [ ] a\ntext\n- [x] b\n',
+      );
+      expect(Checklist.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
+    });
+
+    test('also moves checked items left among the open ones', () {
+      final list = Checklist.parse('- [x] a\n- [ ] b\n- [ ] c\n');
+
+      expect(
+        list.toggleAndSort(idOf(list, 'b')).text,
+        '- [ ] c\n- [x] a\n- [x] b\n',
+      );
+    });
+
+    test('items stay in their own list, up to a heading or text', () {
+      final list = Checklist.parse(
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [ ] c\nnote\n- [x] d\n',
+      );
+
+      expect(
+        list.toggleAndSort(idOf(list, 'a')).text,
+        '# Today\n- [ ] b\n- [x] a\n# Later\n- [ ] c\nnote\n- [x] d\n',
+      );
+      expect(
+        list.toggleAndSort(idOf(list, 'c')).text,
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [x] c\nnote\n- [x] d\n',
+      );
+    });
+
+    test('blank lines keep a list together', () {
+      final list = Checklist.parse('- [ ] a\n\n- [ ] b\n');
+
+      expect(list.toggleAndSort(idOf(list, 'a')).text, '\n- [ ] b\n- [x] a\n');
+    });
+
+    test('sortChecked moves all checked items below, in their order', () {
+      final list = Checklist.parse(
+        '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',
+      );
+
+      expect(
+        list.sortChecked().text,
+        '# T\n- [ ] b\n- [ ] d\n- [x] a\n  - [ ] sub\n- [x] c\nend',
+      );
+    });
+
+    test('a subitem toggles in place', () {
+      final list = Checklist.parse(
+        '- [ ] a\n  - [ ] sub\n  - [ ] two\n- [ ] b',
+      );
+
+      expect(
+        list.toggleAndSort(idOf(list, 'sub')).text,
+        '- [ ] a\n  - [x] sub\n  - [ ] two\n- [ ] b',
+      );
+    });
+  });
+
   group('indent', () {
     test('indents the subitems too, in the file\'s unit', () {
       final list = Checklist.parse('- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d');

@@ -101,4 +101,53 @@ void main() {
     expect(note().readAsStringSync(), '# a\nv1\n');
     expect(await drafts.all(before: later), hasLength(1));
   });
+
+  group('a new note', () {
+    Future<void> leaveNew(String file, String text) =>
+        drafts.keep(NoteDraft(id: '2', path: path(file), text: text));
+
+    test('gets its file', () async {
+      await leaveNew('Milk.md', 'Milk\n');
+
+      expect(await recovery.recover(before: later), 1);
+
+      expect(File('${dir.path}/Milk.md').readAsStringSync(), 'Milk\n');
+      expect(await drafts.all(before: later), isEmpty);
+    });
+
+    test(
+      'goes into its subfolder, with a number if the name is taken',
+      () async {
+        File('${dir.path}/inbox/Milk.md')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('other');
+        await leaveNew('inbox/Milk.md', 'Milk\n');
+
+        await recovery.recover(before: later);
+
+        expect(
+          File('${dir.path}/inbox/Milk 2.md').readAsStringSync(),
+          'Milk\n',
+        );
+      },
+    );
+
+    test('goes to the top level if its subfolder is gone', () async {
+      await leaveNew('gone/Milk.md', 'Milk\n');
+
+      expect(await recovery.recover(before: later), 1);
+
+      expect(File('${dir.path}/Milk.md').readAsStringSync(), 'Milk\n');
+      expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+    });
+
+    test('created before the app was ended is not created again', () async {
+      File('${dir.path}/Milk.md').writeAsStringSync('Milk\n');
+      await leaveNew('Milk.md', 'Milk\n');
+
+      expect(await recovery.recover(before: later), 1);
+
+      expect(dir.listSync().whereType<File>(), hasLength(1));
+    });
+  });
 }

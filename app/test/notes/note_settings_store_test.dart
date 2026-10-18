@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/notes/checked_items.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
 import 'package:truce_editor/notes/note_view.dart';
@@ -28,7 +29,7 @@ void main() {
     const settings = NoteSettings(
       view: NoteView.text,
       pinned: true,
-      doneSection: false,
+      checkedItems: CheckedItems.toEnd,
     );
 
     await store.save({key: settings, 'f1/b.md': const NoteSettings()});
@@ -43,6 +44,23 @@ void main() {
 
     expect(await store.load(), {
       'f1/a.md': const NoteSettings(view: NoteView.list),
+    });
+  });
+
+  test('reads the Done section older versions saved', () async {
+    file
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync(
+        '{"f1/a.md": {"pinned": true, "doneSection": false}, '
+        '"f1/b.md": {"pinned": false, "doneSection": true}}',
+      );
+
+    expect(await store.load(), {
+      'f1/a.md': const NoteSettings(
+        pinned: true,
+        checkedItems: CheckedItems.inPlace,
+      ),
+      'f1/b.md': const NoteSettings(),
     });
   });
 

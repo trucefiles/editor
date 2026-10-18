@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
-import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
@@ -21,13 +22,14 @@ import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/auto_rescan.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
+import '../new_note_place/new_note_place_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_settings_controller.dart';
 import '../note_settings_pruning.dart';
 import 'home_menu.dart';
-import 'new_note_dialog.dart';
 import 'note_card.dart';
+import 'note_editor_screen.dart';
 import 'note_grid.dart';
 import 'note_sections.dart';
 import 'pin_or_color_sheet.dart';
@@ -61,9 +63,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final folders = ref.watch(foldersProvider);
-    // Loaded up front, so a note opens in its remembered view.
+    // Loaded up front, so a note opens in its remembered view and a new
+    // one goes to the place set.
     ref
       ..watch(noteSettingsProvider)
+      ..watch(newNotePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(noteSettingsPruningProvider)
       ..watch(autoRescanProvider);
@@ -97,7 +101,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         final list? when list.isNotEmpty => FloatingActionButton(
           tooltip: 'New note',
           onPressed: () => _create(list),
-          child: const Icon(Icons.add),
+          child: const Icon(Icons.edit),
         ),
         _ => null,
       },
@@ -113,37 +117,19 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
   }
 
+  /// Opens a new note in the place for new notes, if any folder can take
+  /// it.
   Future<void> _create(List<NoteFolder> all) async {
     final actions = ref.read(noteActionsProvider);
-    // Change events don't tell about new empty subfolders; a rescan finds
-    // them, so the dialog offers them.
-    await _refresh();
-    if (!mounted) return;
     final folders = actions.reachableOf(all);
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
-    final input = await showNewNoteDialog(
+    final place = actions.newNotePlace(folders);
+    await Navigator.push(
       context,
-      folders: folders,
-      initial: actions.defaultFolder(folders),
-      subfoldersOf: (folder) =>
-          ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ??
-          const [],
+      MaterialPageRoute<void>(builder: (_) => NoteEditorScreen.fresh(place)),
     );
-    if (input == null) return;
-    final created = await actions.create(
-      input.title,
-      input.folder,
-      subfolder: input.subfolder,
-    );
-    if (!mounted) return;
-    switch (created) {
-      case Ok(value: final note):
-        await openNote(context, note, autofocus: true);
-      case Err(:final error):
-        showSnack(context, error.text);
-    }
   }
 }
 
@@ -171,6 +157,7 @@ class _NotesBody extends ConsumerWidget {
       mark: markOf(note),
       pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
+      hideDone: settings.settingsOf(note.key).checkedItems.shownApart,
       onTap: () => openNote(context, note),
       onMark: () => editPinOrColor(context, ref, note),
     );

@@ -74,7 +74,13 @@ void main() {
 
   test('a deleted note changes nothing', () async {
     final note =
-        (await container.read(noteActionsProvider).create('b', workFolder))
+        (await container
+                .read(noteActionsProvider)
+                .create(
+                  (folder: workFolder, subfolder: null),
+                  title: 'b',
+                  text: '# b\n',
+                ))
             .value;
     File('${work.path}/${note.path.value}').deleteSync();
 
