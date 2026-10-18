@@ -7,6 +7,7 @@ import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/checked_items.dart';
+import 'package:truce_editor/notes/move_failure.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/notes/note_settings.dart';
@@ -148,6 +149,79 @@ void main() {
         folder: folders[0],
         subfolder: null,
       ));
+    });
+  });
+
+  group('move', () {
+    test('moves the note with its color and settings', () async {
+      final note = await noteIn(work, 'plan.md', '# Plan\r\n');
+      await noteIn(home, 'inbox/other.md', 'x');
+      final settings = container.read(noteSettingsProvider.notifier);
+      const mark = NoteMark(color: 'teal');
+      const mine = NoteSettings(view: NoteView.list, pinned: true);
+      await actions.setMark(note, mark);
+      await settings.edit(note.key, (_) => mine);
+
+      final moved = (await actions.move(note, '# Plan\nmore\n', (
+        folder: folders[1],
+        subfolder: path('inbox'),
+      ))).value;
+
+      await container.read(folderScansProvider.notifier).refresh();
+      expect(moved.path, path('inbox/plan.md'));
+      expect(file(work, 'plan.md').existsSync(), isFalse);
+      expect(
+        file(home, 'inbox/plan.md').readAsStringSync(),
+        '# Plan\r\nmore\r\n',
+      );
+      expect((await scans()).markOf(moved.key), mark);
+      expect(marksFile(work), isNot(contains('plan.md')));
+      expect(settings.settingsOf(moved.key), mine);
+      expect(settings.settingsOf(note.key), NoteSettings.defaults);
+    });
+
+    test('takes a free name in the new place', () async {
+      final note = await noteIn(work, 'plan.md', 'a');
+      file(home, 'plan.md').writeAsStringSync('taken');
+
+      final moved = (await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ))).value;
+
+      expect(moved.path, path('plan 2.md'));
+      expect(file(home, 'plan.md').readAsStringSync(), 'taken');
+    });
+
+    test('is refused while a sync conflict of the note waits', () async {
+      file(
+        work,
+        'plan.sync-conflict-20261003-134809-4I343AW.md',
+      ).writeAsStringSync('b');
+      final note = await noteIn(work, 'plan.md', 'a');
+
+      final moved = await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ));
+
+      expect(moved.error, isA<MoveBlockedByConflict>());
+      expect(file(work, 'plan.md').existsSync(), isTrue);
+      expect(home.listSync(), isEmpty);
+    });
+
+    test('keeps both if the old file changed meanwhile', () async {
+      final note = await noteIn(work, 'plan.md', 'a');
+      file(work, 'plan.md').writeAsStringSync('changed elsewhere');
+
+      final moved = await actions.move(note, 'a', (
+        folder: folders[1],
+        subfolder: null,
+      ));
+
+      expect(moved.error, isA<MoveLeftOriginal>());
+      expect(file(work, 'plan.md').readAsStringSync(), 'changed elsewhere');
+      expect(file(home, 'plan.md').readAsStringSync(), 'a');
     });
   });
 

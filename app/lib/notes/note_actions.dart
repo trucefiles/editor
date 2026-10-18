@@ -6,6 +6,7 @@ import '../folders/note_folder.dart';
 import '../reach/folder_reach_controller.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
+import 'move_failure.dart';
 import 'note.dart';
 import 'note_files.dart';
 import 'note_place.dart';
@@ -17,7 +18,7 @@ import 'quick/quick_note_place_controller.dart';
 
 final noteActionsProvider = Provider<NoteActions>(NoteActions.new);
 
-/// The user's actions on notes: create, delete and undo, color.
+/// The user's actions on notes: create, move, delete and undo, color.
 /// No UI: screens ask the user, then call these and show the result.
 ///
 /// Outlives every screen, so an undo still works after the editor closed.
@@ -80,6 +81,47 @@ final class NoteActions {
         .create(noteTitleLine(text), subfolder: place.subfolder, text: text);
     if (created is Ok) await _scans.refresh();
     return created;
+  }
+
+  /// Moves [note], holding [text], to [place]: writes it there under its
+  /// name (with a number if taken), in its byte style, with its color and
+  /// settings, then removes the old file. Refused while a sync conflict of
+  /// the note waits. If the old file can't be removed, e.g. as it changed
+  /// since [note] was read, both stay: never lose data. No rescan, as for
+  /// [delete].
+  Future<Result<Note, MoveFailure>> move(
+    Note note,
+    String text,
+    NotePlace place,
+  ) async {
+    final scans = _ref.read(folderScansProvider).value;
+    if (scans?.conflicts.forNote(note.key) != null) {
+      return const Err(MoveBlockedByConflict());
+    }
+    final mark = markOf(note);
+    final settings = _settings.settingsOf(note.key);
+    final copied = await _ref
+        .read(noteFilesProvider(place.folder))
+        .copyIn(note, text, subfolder: place.subfolder);
+    final Note copy;
+    switch (copied) {
+      case Ok(:final value):
+        copy = value;
+      case Err(:final error):
+        return Err(MoveNotWritten(error));
+    }
+    // Best effort, as the color of a new note.
+    if (mark != NoteMark.none) await _marksOf(copy).set(copy.path, mark);
+    await _settings.edit(copy.key, (_) => settings);
+    final deleted = await _ref
+        .read(noteFilesProvider(note.folder))
+        .delete(note);
+    if (deleted case Err(:final error)) {
+      return Err(MoveLeftOriginal(copy, error));
+    }
+    await _marksOf(note).remove(note.path);
+    await _settings.forget(note.key);
+    return Ok(copy);
   }
 
   /// Deletes [note] with its mark and settings, keeping them and its

@@ -13,6 +13,8 @@ import '../../common/error_text.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
+import '../../folders/folders_controller.dart';
+import '../../folders/ui/folder_badge.dart';
 import '../../markdown/markdown_view.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
@@ -33,7 +35,9 @@ import '../note_view.dart';
 import 'checked_items_dialog.dart';
 import 'edit_state_banner.dart';
 import 'line_break_formatter.dart';
+import 'move_failure_text.dart';
 import 'note_heading.dart';
+import 'note_place_dialog.dart';
 import 'note_view_button.dart';
 import 'pin_or_color_sheet.dart';
 import 'save_indicator.dart';
@@ -187,6 +191,50 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  /// Asks where to, moves the note there and leaves; [context] is this
+  /// screen's, below its own messenger. Only a note saved in its folder
+  /// moves, so the move takes every edit along.
+  Future<void> _move(BuildContext context) async {
+    // The hint outlives this screen, as in [_offerUndo].
+    final appMessenger = ScaffoldMessenger.of(this.context);
+    await _session.flush();
+    if (!context.mounted) return;
+    if (_session.state != EditState.saved) {
+      return showSnack(context, 'The note must be saved in its folder first.');
+    }
+    // Change events don't tell about new empty subfolders; a rescan finds
+    // them, so the dialog offers them.
+    await _scans.refresh();
+    if (!context.mounted) return;
+    final actions = ref.read(noteActionsProvider);
+    final note = _session.note;
+    final here = (folder: note.folder, subfolder: note.path.parent);
+    final place = await showNotePlaceDialog(
+      context,
+      title: 'Move note',
+      action: 'Move',
+      folders: actions.reachableOf(ref.read(foldersProvider).value ?? []),
+      initial: here,
+      subfoldersOf: actions.subfoldersOf,
+    );
+    if (place == null || !context.mounted) return;
+    if (place.folder.id == here.folder.id &&
+        place.subfolder == here.subfolder) {
+      return;
+    }
+    final moved = await actions.move(note, _session.text, place);
+    if (!context.mounted) return;
+    switch (moved) {
+      case Ok(value: final copy):
+        appMessenger.showHint(
+          'Moved to ${placeName(copy.folder, copy.path.parent)}',
+        );
+        Navigator.pop(context);
+      case Err(:final error):
+        showSnack(context, moveFailureText(error));
+    }
+  }
+
   /// The hint outlives this screen, so it shows on the app's messenger,
   /// found from above this screen's own.
   void _offerUndo(NoteActions actions, DeletedNote deleted) {
@@ -220,6 +268,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           PopupMenuItem(
             value: () => editPinOrColor(context, ref, widget.note),
             child: const Text('Pin or color'),
+          ),
+          PopupMenuItem(
+            value: () => _move(context),
+            child: const Text('Move note'),
           ),
           PopupMenuItem(
             value: () => _delete(context),

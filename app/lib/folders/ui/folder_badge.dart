@@ -26,10 +26,7 @@ class FolderBadge extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            switch (file?.parent ?? subfolder) {
-              final subfolder? => '${folder.name}/${subfolder.value}',
-              null => folder.name,
-            },
+            placeName(folder, file?.parent ?? subfolder),
             style: Theme.of(context).textTheme.labelSmall,
             overflow: TextOverflow.ellipsis,
           ),
@@ -38,6 +35,12 @@ class FolderBadge extends StatelessWidget {
     );
   }
 }
+
+/// [folder]'s name, followed by [subfolder] if given, e.g. `Notes/work`.
+String placeName(NoteFolder folder, RelPath? subfolder) => switch (subfolder) {
+  final subfolder? => '${folder.name}/${subfolder.value}',
+  null => folder.name,
+};
 
 class FolderDot extends StatelessWidget {
   const FolderDot(this.color, {super.key, this.size = 10});
