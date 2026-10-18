@@ -171,7 +171,7 @@ class _NotesBody extends ConsumerWidget {
       mark: markOf(note),
       pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
-      hideDone: settings.settingsOf(note.key).doneSection,
+      hideDone: settings.settingsOf(note.key).checkedItems.shownApart,
       onTap: () => openNote(context, note),
       onMark: () => editPinOrColor(context, ref, note),
     );

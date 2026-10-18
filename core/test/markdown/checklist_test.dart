@@ -324,6 +324,17 @@ void main() {
       expect(Checklist.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
     });
 
+    test('sortChecked moves all checked items below, in their order', () {
+      final list = Checklist.parse(
+        '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',
+      );
+
+      expect(
+        list.sortChecked().text,
+        '# T\n- [ ] b\n- [ ] d\n- [x] a\n  - [ ] sub\n- [x] c\nend',
+      );
+    });
+
     test('a subitem toggles in place', () {
       final list = Checklist.parse(
         '- [ ] a\n  - [ ] sub\n  - [ ] two\n- [ ] b',

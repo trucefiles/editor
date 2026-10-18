@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'checked_items.dart';
 import 'note_view.dart';
 
 /// How this device shows one note: view settings, not properties of the
@@ -9,8 +10,7 @@ final class NoteSettings {
   const NoteSettings({
     this.view,
     this.pinned = false,
-    this.doneSection = true,
-    this.checkedToEnd = false,
+    this.checkedItems = CheckedItems.doneSection,
   });
 
   /// Nothing chosen yet.
@@ -22,47 +22,27 @@ final class NoteSettings {
   /// Shown before notes that are not pinned.
   final bool pinned;
 
-  /// Whether a checklist shows its checked items apart, in a "Done"
-  /// section at the bottom. View only: the file order never changes.
-  final bool doneSection;
-
-  /// Whether checking a checklist item moves it to the end of the list,
-  /// and unchecking moves it back below the open items. Changes the file,
-  /// as the user's own edit.
-  final bool checkedToEnd;
+  /// Where a checklist's checked items go.
+  final CheckedItems checkedItems;
 
   bool get isDefault => this == defaults;
 
-  NoteSettings withView(NoteView view) => _copy(view: view);
+  NoteSettings withView(NoteView view) =>
+      NoteSettings(view: view, pinned: pinned, checkedItems: checkedItems);
 
-  NoteSettings withPinned({required bool pinned}) => _copy(pinned: pinned);
+  NoteSettings withPinned({required bool pinned}) =>
+      NoteSettings(view: view, pinned: pinned, checkedItems: checkedItems);
 
-  NoteSettings withDoneSection({required bool doneSection}) =>
-      _copy(doneSection: doneSection);
-
-  NoteSettings withCheckedToEnd({required bool checkedToEnd}) =>
-      _copy(checkedToEnd: checkedToEnd);
-
-  NoteSettings _copy({
-    NoteView? view,
-    bool? pinned,
-    bool? doneSection,
-    bool? checkedToEnd,
-  }) => NoteSettings(
-    view: view ?? this.view,
-    pinned: pinned ?? this.pinned,
-    doneSection: doneSection ?? this.doneSection,
-    checkedToEnd: checkedToEnd ?? this.checkedToEnd,
-  );
+  NoteSettings withCheckedItems(CheckedItems checkedItems) =>
+      NoteSettings(view: view, pinned: pinned, checkedItems: checkedItems);
 
   @override
   bool operator ==(Object other) =>
       other is NoteSettings &&
       other.view == view &&
       other.pinned == pinned &&
-      other.doneSection == doneSection &&
-      other.checkedToEnd == checkedToEnd;
+      other.checkedItems == checkedItems;
 
   @override
-  int get hashCode => Object.hash(view, pinned, doneSection, checkedToEnd);
+  int get hashCode => Object.hash(view, pinned, checkedItems);
 }

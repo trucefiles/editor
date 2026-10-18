@@ -54,6 +54,20 @@ void main() {
     expect(session.text, '# list\n- [x] b\n- [x] a\n');
   });
 
+  test('sorting the checked items saves only if any moved', () {
+    var changes = 0;
+    editor
+      ..addListener(() => changes++)
+      ..sortChecked();
+    expect(changes, 0);
+
+    editor.toggle(idOf('a'));
+    editor.toggle(idOf('b'));
+    editor.sortChecked();
+
+    expect(session.text, '# list\n- [ ] b\n- [x] a\n');
+  });
+
   test('undo restores the text before clear done', () {
     final undo = editor.clearDone();
     expect(session.text, '# list\n- [ ] a\n');

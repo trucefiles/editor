@@ -39,6 +39,30 @@ void main() {
     expect(File('${dir.path}/Shopping.md').existsSync(), isFalse);
   });
 
+  test('creates a note holding the given text', () async {
+    final note = (await files.create('Milk', text: 'Milk\nEggs\n')).value;
+
+    expect(note.path.value, 'Milk.md');
+    expect(read('Milk.md'), 'Milk\nEggs\n');
+  });
+
+  test('copies a note in under its name, in its byte style', () async {
+    final other = tempFolder();
+    final otherFolder = folderAt(other);
+    final source = NoteFiles(otherFolder, servicesFor(otherFolder));
+    File('${other.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
+    final note = (await source.open(path('Plan.md'))).value;
+    File('${dir.path}/Plan.md').writeAsStringSync('taken');
+
+    final copy = (await files.copyIn(note, 'b\n')).value;
+
+    expect(copy.path.value, 'Plan 2.md');
+    expect(File('${dir.path}/Plan 2.md').readAsBytesSync(), [
+      ...[0xEF, 0xBB, 0xBF],
+      ...'b\r\n'.codeUnits,
+    ]);
+  });
+
   test('picks a free name', () async {
     await files.create('Shopping');
 

@@ -12,13 +12,13 @@ import '../../checklist/ui/checklist_view.dart';
 import '../../common/error_text.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
-import '../../common/toggle_label.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../markdown/markdown_view.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
+import '../checked_items.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_colors.dart';
@@ -30,6 +30,7 @@ import '../note_settings.dart';
 import '../note_settings_controller.dart';
 import '../note_title.dart';
 import '../note_view.dart';
+import 'checked_items_dialog.dart';
 import 'edit_state_banner.dart';
 import 'line_break_formatter.dart';
 import 'note_heading.dart';
@@ -217,14 +218,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           if (_view == NoteView.list) ...[
             PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
             PopupMenuItem(
-              value: () => _setDoneSection(on: !settings.doneSection),
-              child: ToggleLabel('Done section', on: settings.doneSection),
-            ),
-            PopupMenuItem(
-              value: () => _setCheckedToEnd(on: !settings.checkedToEnd),
-              child: ToggleLabel(
-                'Move checked to end',
-                on: settings.checkedToEnd,
+              value: () => _pickCheckedItems(settings.checkedItems),
+              child: Text(
+                'Checked items: ${checkedItemsName(settings.checkedItems)}',
               ),
             ),
           ],
@@ -239,22 +235,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ],
       );
 
-  /// Turns the "Done" section of this note on or off, on this device.
-  void _setDoneSection({required bool on}) => unawaited(
-    _settings.edit(
+  /// Asks where this note's checked items go, on this device.
+  Future<void> _pickCheckedItems(CheckedItems current) async {
+    final chosen = await showCheckedItemsDialog(context, current: current);
+    if (chosen == null || chosen == current) return;
+    // Items checked before follow the new order too: the user chose it.
+    if (chosen == CheckedItems.toEnd) _checklist.sortChecked();
+    await _settings.edit(
       widget.note.key,
-      (settings) => settings.withDoneSection(doneSection: on),
-    ),
-  );
-
-  /// Turns moving checked items to the end of this note on or off, on
-  /// this device.
-  void _setCheckedToEnd({required bool on}) => unawaited(
-    _settings.edit(
-      widget.note.key,
-      (settings) => settings.withCheckedToEnd(checkedToEnd: on),
-    ),
-  );
+      (settings) => settings.withCheckedItems(chosen),
+    );
+  }
 
   void _showView(NoteView view) {
     setState(() => _view = view);
@@ -392,8 +383,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       switch (readOnly ? NoteView.rendered : _view) {
         NoteView.list => ChecklistView(
           _checklist,
-          separateDone: settings.doneSection,
-          checkedToEnd: settings.checkedToEnd,
+          separateDone: settings.checkedItems.shownApart,
+          checkedToEnd: settings.checkedItems == CheckedItems.toEnd,
         ),
         NoteView.rendered => MarkdownView(_session.text),
         NoteView.text => TextField(

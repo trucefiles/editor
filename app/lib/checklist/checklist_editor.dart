@@ -22,6 +22,12 @@ final class ChecklistEditor extends ChangeNotifier {
   void toggle(int id, {bool sort = false}) =>
       _apply(sort ? _list.toggleAndSort(id) : _list.toggle(id));
 
+  /// See [Checklist.sortChecked]; saves only if anything moved.
+  void sortChecked() {
+    final sorted = _list.sortChecked();
+    if (sorted.text != _list.text) _apply(sorted);
+  }
+
   void setText(int id, String text) => _apply(_list.setText(id, text));
 
   /// Returns the id of the new item.

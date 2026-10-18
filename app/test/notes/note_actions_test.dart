@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/checked_items.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/notes/note_settings.dart';
@@ -131,7 +132,7 @@ void main() {
     const mine = NoteSettings(
       view: NoteView.rendered,
       pinned: true,
-      doneSection: false,
+      checkedItems: CheckedItems.inPlace,
     );
     await actions.setMark(note, mark);
     await settings.edit(note.key, (_) => mine);

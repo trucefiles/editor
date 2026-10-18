@@ -35,12 +35,35 @@ final class NoteFiles {
   }
 
   /// New note in [subfolder] (the folder's root if `null`), named after
-  /// [title], starting with a `# title` line.
+  /// [title], holding [text]; by default a `# title` line.
   Future<Result<Note, StoreError>> create(
     String title, {
     RelPath? subfolder,
-  }) async {
-    final file = TextFile.empty().withText('# ${title.trim()}\n');
+    String? text,
+  }) {
+    final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
+    return _createNamed(title, subfolder, file);
+  }
+
+  /// A copy of [note], from any folder, holding [text] in [note]'s byte
+  /// style, in [subfolder] of this folder (its root if `null`); named as
+  /// [note], with a number if that name is taken.
+  Future<Result<Note, StoreError>> copyIn(
+    Note note,
+    String text, {
+    RelPath? subfolder,
+  }) {
+    final name = note.path.name;
+    final dot = name.lastIndexOf('.');
+    final title = dot > 0 ? name.substring(0, dot) : name;
+    return _createNamed(title, subfolder, note.file.withText(text));
+  }
+
+  Future<Result<Note, StoreError>> _createNamed(
+    String title,
+    RelPath? subfolder,
+    TextFile file,
+  ) async {
     final bytes = file.encode(file.text);
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
       final name = noteFileName(title, attempt: attempt);

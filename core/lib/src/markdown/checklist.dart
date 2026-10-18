@@ -68,24 +68,30 @@ final class Checklist {
   /// open. A subitem toggles in place, under its item. Lines other than
   /// items (text, headings) stay in place, and an item with only such lines
   /// between it and its place does not move.
-  Checklist toggleAndSort(int id) {
-    final toggled = toggle(id);
-    final index = toggled._indexOf(id);
-    if (toggled.lines[index].indent.isNotEmpty) return toggled;
-    final target = toggled._sortTarget(index);
-    if (target == null) return toggled;
-    final end = toggled._blockEnd(index);
+  Checklist toggleAndSort(int id) => toggle(id)._sorted(id);
+
+  /// Moves every checked item at the left margin, with its subitems, below
+  /// the last item, keeping their order; as [toggleAndSort] does for one.
+  Checklist sortChecked() => [
+    for (final line in lines)
+      if (line.isChecked && line.indent.isEmpty) line.id,
+  ].fold(this, (list, id) => list._sorted(id));
+
+  /// The item [id] moved to where [toggleAndSort] puts it.
+  Checklist _sorted(int id) {
+    final index = _indexOf(id);
+    if (lines[index].indent.isNotEmpty) return this;
+    final target = _sortTarget(index);
+    if (target == null) return this;
+    final end = _blockEnd(index);
     final between = target < index
-        ? toggled.lines.sublist(target, index)
-        : toggled.lines.sublist(end, max(end, target));
-    if (!between.any((line) => line.isItem)) return toggled;
-    return toggled.move(
-      id,
-      beforeId: target < toggled.lines.length ? toggled.lines[target].id : null,
-    );
+        ? lines.sublist(target, index)
+        : lines.sublist(end, max(end, target));
+    if (!between.any((line) => line.isItem)) return this;
+    return move(id, beforeId: target < lines.length ? lines[target].id : null);
   }
 
-  /// Where [toggleAndSort] puts the margin item at [index]: the index of
+  /// Where [_sorted] puts the margin item at [index]: the index of
   /// the line to go before (the length for the end); `null` if there is
   /// no other item to sort against.
   int? _sortTarget(int index) {
