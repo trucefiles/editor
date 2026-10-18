@@ -74,27 +74,19 @@ void main() {
     });
 
     test('is the folder the grid is filtered to', () {
-      choose(lastUsedFolderIdProvider, 'work');
       choose(selectedFolderIdProvider, 'home');
 
       expect(actions.defaultFolder(folders).id, 'home');
     });
 
-    test('is the last used folder when the grid shows all', () {
-      choose(lastUsedFolderIdProvider, 'home');
+    test('is the first one offered if the filtered one is not', () {
+      choose(selectedFolderIdProvider, 'work');
 
-      expect(actions.defaultFolder(folders).id, 'home');
-    });
-
-    test('skips a remembered folder that was removed', () {
-      choose(selectedFolderIdProvider, 'gone');
-      choose(lastUsedFolderIdProvider, 'gone');
-
-      expect(actions.defaultFolder(folders).id, 'work');
+      expect(actions.defaultFolder([folders[1]]).id, 'home');
     });
   });
 
-  test('create writes the note, remembers its folder and rescans', () async {
+  test('create writes the note and rescans', () async {
     await scans();
 
     final note = (await actions.create(
@@ -104,7 +96,6 @@ void main() {
     )).value;
 
     expect(file(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
-    expect(container.read(lastUsedFolderIdProvider), 'home');
     expect((await scans()).findNote(note.key), isNotNull);
   });
 

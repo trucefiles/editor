@@ -25,7 +25,7 @@ class NewNotePlaceTile extends ConsumerWidget {
       enabled: setting.hasValue && folders.isNotEmpty,
       title: const Text('New notes go to'),
       subtitle: place == null
-          ? const Text('The folder shown, else the one used last')
+          ? const Text('The folder shown, else the first one')
           : Align(
               alignment: AlignmentDirectional.centerStart,
               child: FolderBadge(place.folder, subfolder: place.subfolder),

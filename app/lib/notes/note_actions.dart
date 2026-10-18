@@ -35,14 +35,12 @@ final class NoteActions {
   NoteMarks _marksOf(Note note) =>
       _ref.read(folderServicesProvider(note.folder.location)).marks;
 
-  /// Where a new note goes unless the user picks another of [folders]:
-  /// the folder the grid is filtered to, else the last one used, else the
-  /// first. [folders] must not be empty.
+  /// Where a new note goes without a place set for new notes: the one of
+  /// [folders] the grid is filtered to, else the first. [folders] must not
+  /// be empty.
   NoteFolder defaultFolder(List<NoteFolder> folders) {
-    NoteFolder? byId(String? id) =>
-        folders.where((folder) => folder.id == id).firstOrNull;
-    return byId(_ref.read(selectedFolderIdProvider)) ??
-        byId(_ref.read(lastUsedFolderIdProvider)) ??
+    final selected = _ref.read(selectedFolderIdProvider);
+    return folders.where((folder) => folder.id == selected).firstOrNull ??
         folders.first;
   }
 
@@ -64,15 +62,13 @@ final class NoteActions {
   List<RelPath> subfoldersOf(NoteFolder folder) =>
       _ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ?? const [];
 
-  /// Creates a note holding [text] at [place], named after [title],
-  /// remembers the folder as the next default and rescans, so the grid
-  /// shows the note.
+  /// Creates a note holding [text] at [place], named after [title], and
+  /// rescans, so the grid shows the note.
   Future<Result<Note, StoreError>> create(
     NotePlace place, {
     required String title,
     required String text,
   }) async {
-    _ref.read(lastUsedFolderIdProvider.notifier).choose(place.folder.id);
     final created = await _ref
         .read(noteFilesProvider(place.folder))
         .create(title, subfolder: place.subfolder, text: text);
