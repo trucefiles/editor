@@ -83,11 +83,8 @@ void main() {
     await clashInPlan(tester);
     await tester.pageBack();
 
-    await tester.waitUntil(() => app.conflictCopies(app.notes).isNotEmpty);
-    expect(
-      app.conflictCopies(app.notes).single.readAsStringSync(),
-      '# Plan\nmine\n',
-    );
+    await tester.waitUntil(() => app.conflictCopies().isNotEmpty);
+    expect(app.conflictCopies().single.readAsStringSync(), '# Plan\nmine\n');
     expect(
       app.file('plan.md').readAsStringSync(),
       '# Plan\nv2 from elsewhere\n',
@@ -157,10 +154,9 @@ void main() {
     app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.pageBack();
 
-    final deep = app.folder('a/b/c');
-    await tester.waitUntil(() => app.conflictCopies(deep).isNotEmpty);
+    await tester.waitUntil(() => app.conflictCopies('a/b/c').isNotEmpty);
     expect(
-      app.conflictCopies(deep).single.readAsStringSync(),
+      app.conflictCopies('a/b/c').single.readAsStringSync(),
       '# Plan\nmine\n',
     );
     expect(app.topFiles, isEmpty);
@@ -181,7 +177,7 @@ void main() {
     await tester.keep(find.text('Keep this').last);
 
     await tester.waitFor(find.textContaining('Conflict resolved'));
-    expect(app.namesIn(app.folder('a/b/c')), ['todo.md']);
+    expect(app.namesIn('a/b/c'), ['todo.md']);
     expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
   });
 
@@ -224,7 +220,7 @@ void main() {
     await tester.keep(find.text('Keep this').first);
 
     await tester.waitFor(find.textContaining('Conflict resolved'));
-    expect(app.namesIn(app.notes), ['todo.md']);
+    expect(app.namesIn(), ['todo.md']);
     expect(app.file('todo.md').readAsStringSync(), '# Todo\nmine\n');
   });
 }

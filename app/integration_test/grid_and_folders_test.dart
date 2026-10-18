@@ -68,7 +68,7 @@ void main() {
 
     await pin(tester, 'Plan');
 
-    expect(app.namesIn(app.folder('a/b/c')), ['plan.md']);
+    expect(app.namesIn('a/b/c'), ['plan.md']);
   });
 
   testWidgets('an open note shows its color and last edit', (tester) async {

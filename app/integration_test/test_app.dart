@@ -60,14 +60,15 @@ final class TestApp {
   /// The files at the top of the notes folder.
   Iterable<File> get topFiles => notes.listSync().whereType<File>();
 
-  /// The names of what [folder] holds, files and folders.
-  List<String> namesIn(Directory folder) => [
-    for (final entry in folder.listSync()) entry.uri.pathSegments.last,
+  /// The names of what [name] holds, files and folders; the notes folder
+  /// itself if [name] is empty.
+  List<String> namesIn([String name = '']) => [
+    for (final entry in folder(name).listSync()) entry.uri.pathSegments.last,
   ];
 
-  /// The sync conflict copies in [folder].
-  List<File> conflictCopies(Directory folder) => [
-    for (final file in folder.listSync().whereType<File>())
+  /// The sync conflict copies in [name], or in the notes folder itself.
+  List<File> conflictCopies([String name = '']) => [
+    for (final file in folder(name).listSync().whereType<File>())
       if (file.path.contains('.sync-conflict-')) file,
   ];
 }

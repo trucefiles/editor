@@ -18,6 +18,7 @@ extension AppSteps on WidgetTester {
     await waitUntil(() => find.text('Add folder').evaluate().isEmpty);
   }
 
+  /// Opens the note titled [title] from the grid.
   Future<void> openNote(String title) async {
     await waitFor(find.text(title));
     await tapAndSettle(find.text(title));

@@ -102,10 +102,13 @@ void main() {
 
   test('ignores scans that started before the note was just written', () {
     final scannedAt = Moment.now();
-    final created = fx.open(
-      saveDelay: const Duration(seconds: 2),
+    final created = NoteEditSession(
+      fx.note,
+      fx.files,
+      tempDrafts(),
       writtenAt: Moment.now(),
     );
+    addTearDown(created.dispose);
 
     // The scan may have listed the folder before the file was created.
     created.onRescan(null, scannedAt: scannedAt);
