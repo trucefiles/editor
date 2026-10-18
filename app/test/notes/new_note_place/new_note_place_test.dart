@@ -11,38 +11,22 @@ void main() {
   final work = folderAt(Directory('/work'), id: 'f2');
 
   group('resolveNewNotePlace', () {
-    test('finds the folder and a subfolder that is still there', () {
+    test('finds the folder, with the subfolder as set', () {
       expect(
         resolveNewNotePlace(
           (folderId: 'f2', subfolder: path('inbox')),
           [notes, work],
-          (folder) => [path('inbox')],
         ),
         (folder: work, subfolder: path('inbox')),
       );
     });
 
-    test('a subfolder that is gone gives the top level', () {
-      expect(
-        resolveNewNotePlace(
-          (folderId: 'f2', subfolder: path('gone')),
-          [notes, work],
-          (folder) => const [],
-        ),
-        (folder: work, subfolder: null),
-      );
-    });
-
     test('none for a folder that is not offered, or no setting', () {
       expect(
-        resolveNewNotePlace(
-          (folderId: 'f9', subfolder: null),
-          [notes],
-          (folder) => const [],
-        ),
+        resolveNewNotePlace((folderId: 'f9', subfolder: null), [notes]),
         isNull,
       );
-      expect(resolveNewNotePlace(null, [notes], (folder) => const []), isNull);
+      expect(resolveNewNotePlace(null, [notes]), isNull);
     });
   });
 

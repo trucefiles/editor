@@ -46,6 +46,7 @@ void main() {
           if (failure case final error?) return Err(error);
           return files.create(title, subfolder: place.subfolder, text: text);
         },
+        remove: files.delete,
       ),
       sessionOf: sessionOf,
     );

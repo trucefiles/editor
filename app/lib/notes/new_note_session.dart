@@ -27,18 +27,21 @@ typedef CreateNote = Future<Result<Note, StoreError>> Function(
 /// Its draft survives the app being ended; the next start creates the file
 /// (see `DraftRecovery`).
 final class NewNoteSession extends ChangeNotifier implements NoteText {
-  /// [stagingOf] keeps drafts in a folder's store; [saveDelay]: how long
-  /// after the last edit the text is kept on the device.
+  /// [stagingOf] keeps drafts in a folder's store; [remove] deletes a file
+  /// just created; [saveDelay]: how long after the last edit the text is
+  /// kept on the device.
   NewNoteSession(
     this._place, {
     required NoteStaging Function(NoteFolder folder) stagingOf,
     required this._create,
+    required this._remove,
     this.saveDelay = const Duration(seconds: 2),
   }) : _stagingOf = stagingOf,
        _staging = stagingOf(_place.folder);
 
   final NoteStaging Function(NoteFolder folder) _stagingOf;
   final CreateNote _create;
+  final Future<Result<void, StoreError>> Function(Note note) _remove;
   final Duration saveDelay;
 
   NoteStaging _staging;
@@ -115,8 +118,10 @@ final class NewNoteSession extends ChangeNotifier implements NoteText {
     if (_isEmpty) return const Ok(null);
     final created = await _create(_place, title: title, text: _text);
     switch (created) {
-      case Ok():
+      case Ok(value: final note):
         _staging.drop();
+        // Dropped or emptied while the file was created.
+        if (_isEmpty && await _remove(note) is Ok) return const Ok(null);
       case Err():
         await _keepDraft();
         _set(EditState.saveFailed);

@@ -124,6 +124,7 @@ void main() {
         stagingOf: (_) => NoteStaging.unpublished(tempDrafts()),
         create: (_, {required title, required text}) =>
             throw UnimplementedError(),
+        remove: (_) => throw UnimplementedError(),
       ),
       sessionOf: (_) => throw UnimplementedError(),
     );

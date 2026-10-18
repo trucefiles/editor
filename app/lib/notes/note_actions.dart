@@ -57,11 +57,7 @@ final class NoteActions {
   /// Where a new note goes: the place the user set for new notes, if its
   /// folder is one of [folders], else the [defaultFolder] of [folders].
   NotePlace newNotePlace(List<NoteFolder> folders) =>
-      resolveNewNotePlace(
-        _ref.read(newNotePlaceProvider).value,
-        folders,
-        subfoldersOf,
-      ) ??
+      resolveNewNotePlace(_ref.read(newNotePlaceProvider).value, folders) ??
       (folder: defaultFolder(folders), subfolder: null);
 
   /// The subfolders of [folder], as last scanned.

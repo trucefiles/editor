@@ -175,6 +175,37 @@ void main() {
     expect(app.notes.listSync().whereType<File>().length, 1);
   });
 
+  testWidgets('a place picked while the app was hidden moves the new file', (
+    tester,
+  ) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/inbox').createSync();
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+    await typeNewNote(tester, 'Idea\n');
+    await tester.tapAndSettle(find.byTooltip(_placeAndName));
+
+    // The user switches apps with the dialog open, and comes back.
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
+    await pickSubfolder(tester, 'inbox');
+    await tester.tapAndSettle(find.text('OK'));
+
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
+    await tester.pageBack();
+    await tester.waitUntil(
+      () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    );
+    expect(app.file('Idea.md').existsSync(), isFalse);
+  });
+
   testWidgets('new notes go to the place set in Settings', (tester) async {
     app.write('old.md', '# Old\n');
     Directory('${app.notes.path}/inbox').createSync();

@@ -49,3 +49,13 @@ String _cut(String text) {
       ? (base: name.substring(0, dot), extension: name.substring(dot))
       : (base: name, extension: '');
 }
+
+/// Whether the file [name] is what [noteFileName] gives for [title], with
+/// any number added and in any case: renaming it would change nothing, or
+/// only the case, which some storage (e.g. Android's) can't tell apart.
+bool isNamedAfter(String name, String title) {
+  final base = splitFileName(name).base.toLowerCase();
+  final wanted = splitFileName(noteFileName(title)).base.toLowerCase();
+  return base == wanted ||
+      RegExp('^${RegExp.escape(wanted)} [0-9]+\$').hasMatch(base);
+}

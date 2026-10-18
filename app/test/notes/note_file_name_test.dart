@@ -42,4 +42,12 @@ void main() {
     expect(splitFileName('README'), (base: 'README', extension: ''));
     expect(splitFileName('.hidden'), (base: '.hidden', extension: ''));
   });
+
+  test('isNamedAfter ignores an added number and the case', () {
+    expect(isNamedAfter('Milk 2.md', 'Milk'), isTrue);
+    expect(isNamedAfter('milk.md', 'Milk'), isTrue);
+    expect(isNamedAfter('a b.md', 'a/b'), isTrue);
+    expect(isNamedAfter('Milk 2.md', 'Eggs'), isFalse);
+    expect(isNamedAfter('Milky.md', 'Milk'), isFalse);
+  });
 }

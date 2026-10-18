@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/note_folder.dart';
@@ -19,6 +22,8 @@ void main() {
   late Map<String, NoteDrafts> drafts;
   late List<({NotePlace place, String title, String text})> created;
   late StoreError? failure;
+  late List<Note> removed;
+  late Completer<void>? holdCreate;
   late NewNoteSession session;
 
   setUp(() {
@@ -27,16 +32,23 @@ void main() {
     drafts = {'work': tempDrafts(), 'home': tempDrafts()};
     created = [];
     failure = null;
+    removed = [];
+    holdCreate = null;
     session = NewNoteSession(
       (folder: work, subfolder: null),
       stagingOf: (folder) => NoteStaging.unpublished(drafts[folder.id]!),
       create: (place, {required title, required text}) async {
         created.add((place: place, title: title, text: text));
+        await holdCreate?.future;
         if (failure case final error?) return Err(error);
         return NoteFiles(
           place.folder,
           servicesFor(place.folder),
         ).create(title, subfolder: place.subfolder, text: text);
+      },
+      remove: (note) {
+        removed.add(note);
+        return NoteFiles(note.folder, servicesFor(note.folder)).delete(note);
       },
       saveDelay: saveDelay,
     );
@@ -121,6 +133,19 @@ void main() {
     expect((await session.write()).error, StoreError.ioFailure);
     expect(session.state, EditState.saveFailed);
     expect(await draftsIn('work'), [('Milk.md', null, 'Milk')]);
+  });
+
+  test('a note dropped while its file is created leaves no file', () async {
+    holdCreate = Completer();
+    session.edit('Milk');
+
+    final writing = session.write();
+    session.discard();
+    holdCreate!.complete();
+
+    expect(await writing, const Ok<Note?, StoreError>(null));
+    expect(removed.single.path, path('Milk.md'));
+    expect(File('${work.path}/Milk.md').existsSync(), isFalse);
   });
 
   test('discard drops the note', () async {

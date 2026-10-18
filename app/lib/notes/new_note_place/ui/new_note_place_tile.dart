@@ -6,6 +6,7 @@ import '../../../folders/ui/folder_badge.dart';
 import '../../../scan/folder_scans_controller.dart';
 import '../../note_actions.dart';
 import '../../ui/note_place_dialog.dart';
+import '../new_note_place.dart';
 import '../new_note_place_controller.dart';
 
 /// Settings row with where new notes go; opens a dialog to pick a folder
@@ -19,17 +20,7 @@ class NewNotePlaceTile extends ConsumerWidget {
     final setting = ref.watch(newNotePlaceProvider);
     ref.watch(folderScansProvider);
     final actions = ref.read(noteActionsProvider);
-    // As set, also a subfolder the last scan missed (e.g. while the
-    // folder can't be reached): new notes check it as they go there.
-    final place = switch (setting.value) {
-      (:final folderId, :final subfolder) => switch (folders
-          .where((folder) => folder.id == folderId)
-          .firstOrNull) {
-        final folder? => (folder: folder, subfolder: subfolder),
-        null => null,
-      },
-      null => null,
-    };
+    final place = resolveNewNotePlace(setting.value, folders);
     return ListTile(
       enabled: setting.hasValue && folders.isNotEmpty,
       title: const Text('New notes go to'),

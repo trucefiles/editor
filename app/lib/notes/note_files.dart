@@ -35,14 +35,20 @@ final class NoteFiles {
   }
 
   /// New note in [subfolder] (the folder's root if `null`), named after
-  /// [title], holding [text]; by default a `# title` line.
+  /// [title], holding [text]; by default a `# title` line. If [subfolder]
+  /// is gone, the note goes to the folder's top level: it is kept, and the
+  /// deleted folder never comes back.
   Future<Result<Note, StoreError>> create(
     String title, {
     RelPath? subfolder,
     String? text,
-  }) {
+  }) async {
     final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
-    return _createNamed(title, '.md', subfolder, file);
+    final created = await _createNamed(title, '.md', subfolder, file);
+    if (created case Err(error: StoreError.notFound) when subfolder != null) {
+      return _createNamed(title, '.md', null, file);
+    }
+    return created;
   }
 
   /// A copy of [note], from any folder, holding [text] in [note]'s byte

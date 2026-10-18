@@ -75,6 +75,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           _container.read(noteDraftsProvider(folder.id)),
         ),
         create: ref.read(noteActionsProvider).create,
+        remove: (note) =>
+            _container.read(noteFilesProvider(note.folder)).delete(note),
       ),
       sessionOf: _sessionOfNew,
     ),

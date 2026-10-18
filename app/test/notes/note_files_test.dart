@@ -72,10 +72,19 @@ void main() {
     expect(copy.path.value, 'Ideas.MD');
   });
 
-  test('never brings back a subfolder deleted meanwhile', () async {
-    final created = await files.create('Milk', subfolder: path('gone'));
+  test('a new note whose subfolder is gone goes to the top level', () async {
+    final created = (await files.create('Milk', subfolder: path('gone'))).value;
 
-    expect(created.error, StoreError.notFound);
+    expect(created.path, path('Milk.md'));
+    expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+  });
+
+  test('never copies into a subfolder deleted meanwhile', () async {
+    final note = (await files.create('Milk')).value;
+
+    final copied = await files.copyIn(note, 'Milk', subfolder: path('gone'));
+
+    expect(copied.error, StoreError.notFound);
     expect(Directory('${dir.path}/gone').existsSync(), isFalse);
   });
 

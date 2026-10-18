@@ -44,16 +44,16 @@ class NotePlaceChip extends ConsumerWidget {
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
-    final pending = note.pending;
     final picked = await showNoteFileDialog(
       context,
       folders: folders,
       initial: (folder: note.folder, subfolder: note.path.parent),
-      name: pending?.title ?? splitFileName(note.path.name).base,
+      name: note.pending?.title ?? splitFileName(note.path.name).base,
       subfoldersOf: actions.subfoldersOf,
     );
     if (picked == null || !context.mounted) return;
-    if (pending != null) {
+    // Read after the dialog: hiding the app meanwhile creates the file.
+    if (note.pending case final pending?) {
       return pending.moveTo(picked.place, title: picked.name);
     }
     await _move(context, actions, picked.place, picked.name);
@@ -77,10 +77,9 @@ class NotePlaceChip extends ConsumerWidget {
     final current = note.note!;
     final text = note.text;
     final title = name.trim().isEmpty ? noteTitleLine(text) : name.trim();
-    final extension = splitFileName(current.path.name).extension;
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&
-        noteFileName(title, extension: extension) == current.path.name) {
+        isNamedAfter(current.path.name, title)) {
       return;
     }
     final moved = await actions.move(current, text, place, title: title);

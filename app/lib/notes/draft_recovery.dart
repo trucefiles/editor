@@ -12,8 +12,7 @@ import 'note_files.dart';
 ///
 /// Same rules as an open note that closes: the edits go into the file if
 /// it still holds the text they started from, else into a conflict copy.
-/// A new note's file is created, at its folder's top level if its
-/// subfolder is gone.
+/// A new note's file is created, as `NoteFiles.create` does.
 final class DraftRecovery {
   const DraftRecovery(this._drafts, this._files);
 
@@ -64,16 +63,11 @@ final class DraftRecovery {
         when note.file.text == draft.text) {
       return true;
     }
-    final title = splitFileName(draft.path.name).base;
-    final subfolder = draft.path.parent;
-    var created = await _files.create(
-      title,
-      subfolder: subfolder,
+    final created = await _files.create(
+      splitFileName(draft.path.name).base,
+      subfolder: draft.path.parent,
       text: draft.text,
     );
-    if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      created = await _files.create(title, text: draft.text);
-    }
     return created is Ok;
   }
 }

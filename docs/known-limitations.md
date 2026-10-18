@@ -28,9 +28,8 @@ Accepted behavior that is not planned to change, grouped by topic.
   last view (this device only) belong to its old path. Moving or renaming
   it in the app keeps its color everywhere and its settings on this
   device; other devices lose their own settings for it. They are cleaned
-  up
-  later: colors at this device's next change to any color in that folder,
-  settings each time the app comes into use.
+  up later: colors at this device's next change to any color in that
+  folder, settings each time the app comes into use.
 - **A new note can show an old color.** Deleting a note drops only this
   device's color for it. If a note is later created at the same path, it
   shows another device's older color until that device changes a color in
