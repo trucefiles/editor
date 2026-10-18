@@ -324,6 +324,15 @@ void main() {
       expect(Checklist.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
     });
 
+    test('also moves checked items left among the open ones', () {
+      final list = Checklist.parse('- [x] a\n- [ ] b\n- [ ] c\n');
+
+      expect(
+        list.toggleAndSort(idOf(list, 'b')).text,
+        '- [ ] c\n- [x] a\n- [x] b\n',
+      );
+    });
+
     test('sortChecked moves all checked items below, in their order', () {
       final list = Checklist.parse(
         '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',

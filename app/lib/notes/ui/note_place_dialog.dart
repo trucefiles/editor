@@ -3,71 +3,61 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../folders/note_folder.dart';
 import '../../folders/ui/folder_badge.dart';
+import '../note_place.dart';
 
-/// What the user entered for a new note. [subfolder] is `null` for the
-/// folder's top level.
-typedef NewNoteInput = ({String title, NoteFolder folder, RelPath? subfolder});
-
-/// Asks for a title, the target folder (preselecting [initial]) and, if
-/// [subfoldersOf] the folder offers any, one of its subfolders.
-Future<NewNoteInput?> showNewNoteDialog(
+/// Asks for a folder of [folders] and, if [subfoldersOf] the folder offers
+/// any, one of its subfolders, starting at [initial]; titled [title], with
+/// [action] on the confirming button. The chosen place, or `null` if
+/// cancelled.
+Future<NotePlace?> showNotePlaceDialog(
   BuildContext context, {
+  required String title,
+  required String action,
   required List<NoteFolder> folders,
-  required NoteFolder initial,
+  required NotePlace initial,
   required List<RelPath> Function(NoteFolder folder) subfoldersOf,
-}) => showDialog<NewNoteInput>(
+}) => showDialog<NotePlace>(
   context: context,
-  builder: (_) => _NewNoteDialog(folders, initial, subfoldersOf),
+  builder: (_) =>
+      _NotePlaceDialog(title, action, folders, initial, subfoldersOf),
 );
 
-class _NewNoteDialog extends StatefulWidget {
-  const _NewNoteDialog(this.folders, this.initial, this.subfoldersOf);
+class _NotePlaceDialog extends StatefulWidget {
+  const _NotePlaceDialog(
+    this.title,
+    this.action,
+    this.folders,
+    this.initial,
+    this.subfoldersOf,
+  );
 
+  final String title;
+  final String action;
   final List<NoteFolder> folders;
-  final NoteFolder initial;
+  final NotePlace initial;
   final List<RelPath> Function(NoteFolder folder) subfoldersOf;
 
   @override
-  State<_NewNoteDialog> createState() => _NewNoteDialogState();
+  State<_NotePlaceDialog> createState() => _NotePlaceDialogState();
 }
 
-class _NewNoteDialogState extends State<_NewNoteDialog> {
-  final _title = TextEditingController();
-  late NoteFolder _folder = widget.initial;
-  RelPath? _subfolder;
+class _NotePlaceDialogState extends State<_NotePlaceDialog> {
+  late NoteFolder _folder = widget.folders.contains(widget.initial.folder)
+      ? widget.initial.folder
+      : widget.folders.first;
+  late RelPath? _subfolder = _subfolders.contains(widget.initial.subfolder)
+      ? widget.initial.subfolder
+      : null;
 
   List<RelPath> get _subfolders => widget.subfoldersOf(_folder);
 
   @override
-  void dispose() {
-    _title.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final title = _title.text.trim();
-    if (title.isEmpty) return;
-    Navigator.pop(context, (
-      title: title,
-      folder: _folder,
-      subfolder: _subfolder,
-    ));
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('New note'),
+      title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: _title,
-            autofocus: true,
-            decoration: const InputDecoration(labelText: 'Title'),
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 16),
           DropdownButtonFormField<NoteFolder>(
             initialValue: _folder,
             decoration: const InputDecoration(labelText: 'Folder'),
@@ -85,7 +75,7 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
             DropdownButtonFormField<RelPath?>(
               // A new key per folder resets the field to the top level.
               key: ValueKey(_folder.id),
-              initialValue: null,
+              initialValue: _subfolder,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Subfolder'),
               items: [
@@ -109,7 +99,11 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Create')),
+        FilledButton(
+          onPressed: () =>
+              Navigator.pop(context, (folder: _folder, subfolder: _subfolder)),
+          child: Text(widget.action),
+        ),
       ],
     );
   }

@@ -65,10 +65,12 @@ final class Checklist {
   /// Toggles the item [id] and, at the left margin, moves it with its
   /// subitems: once checked, below the last item; once unchecked, below
   /// the last open item at the margin, or above the first item if none is
-  /// open. A subitem toggles in place, under its item. Lines other than
-  /// items (text, headings) stay in place, and an item with only such lines
-  /// between it and its place does not move.
-  Checklist toggleAndSort(int id) => toggle(id)._sorted(id);
+  /// open. A subitem toggles in place, under its item. Then every other
+  /// checked item at the margin moves below too (see [sortChecked]), e.g.
+  /// ones another editor left among the open items. Lines other than
+  /// items (text, headings) stay in place, and an item with only such
+  /// lines between it and its place does not move.
+  Checklist toggleAndSort(int id) => toggle(id)._sorted(id).sortChecked();
 
   /// Moves every checked item at the left margin, with its subitems, below
   /// the last item, keeping their order; as [toggleAndSort] does for one.

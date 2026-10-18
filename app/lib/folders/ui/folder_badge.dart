@@ -4,14 +4,18 @@ import 'package:truce_core/truce_core.dart';
 import '../note_folder.dart';
 
 /// The folder's color dot and name, so it is always clear where a note
-/// lives. With [file], also the subfolders it is in, e.g. `Notes/work/2026`.
+/// lives. With [file], also the subfolders it is in, e.g. `Notes/work/2026`;
+/// with [subfolder], that subfolder.
 class FolderBadge extends StatelessWidget {
-  const FolderBadge(this.folder, {this.file, super.key});
+  const FolderBadge(this.folder, {this.file, this.subfolder, super.key});
 
   final NoteFolder folder;
 
   /// A file in [folder].
   final RelPath? file;
+
+  /// A subfolder of [folder], shown if there is no [file].
+  final RelPath? subfolder;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +26,7 @@ class FolderBadge extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            switch (file?.parent) {
+            switch (file?.parent ?? subfolder) {
               final subfolder? => '${folder.name}/${subfolder.value}',
               null => folder.name,
             },
