@@ -63,18 +63,23 @@ void main() {
     });
   });
 
-  test('keeps pin and Done section with the view', () async {
+  test('keeps pin, Done section and checked order with the view', () async {
     await remember(a, NoteView.list);
     await views.edit(a, (settings) => settings.withPinned(pinned: true));
     await views.edit(
       a,
       (settings) => settings.withDoneSection(doneSection: false),
     );
+    await views.edit(
+      a,
+      (settings) => settings.withCheckedToEnd(checkedToEnd: true),
+    );
 
     const expected = NoteSettings(
       view: NoteView.list,
       pinned: true,
       doneSection: false,
+      checkedToEnd: true,
     );
     expect(views.settingsOf(a), expected);
     expect(await saved(), {NoteSettingsStore.storeKey(a): expected});

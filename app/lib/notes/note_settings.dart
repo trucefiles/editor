@@ -6,7 +6,12 @@ import 'note_view.dart';
 /// note, so they are kept per device and never synced.
 @immutable
 final class NoteSettings {
-  const NoteSettings({this.view, this.pinned = false, this.doneSection = true});
+  const NoteSettings({
+    this.view,
+    this.pinned = false,
+    this.doneSection = true,
+    this.checkedToEnd = false,
+  });
 
   /// Nothing chosen yet.
   static const defaults = NoteSettings();
@@ -21,24 +26,43 @@ final class NoteSettings {
   /// section at the bottom. View only: the file order never changes.
   final bool doneSection;
 
+  /// Whether checking a checklist item moves it to the end of the list,
+  /// and unchecking moves it back below the open items. Changes the file,
+  /// as the user's own edit.
+  final bool checkedToEnd;
+
   bool get isDefault => this == defaults;
 
-  NoteSettings withView(NoteView view) =>
-      NoteSettings(view: view, pinned: pinned, doneSection: doneSection);
+  NoteSettings withView(NoteView view) => _copy(view: view);
 
-  NoteSettings withPinned({required bool pinned}) =>
-      NoteSettings(view: view, pinned: pinned, doneSection: doneSection);
+  NoteSettings withPinned({required bool pinned}) => _copy(pinned: pinned);
 
   NoteSettings withDoneSection({required bool doneSection}) =>
-      NoteSettings(view: view, pinned: pinned, doneSection: doneSection);
+      _copy(doneSection: doneSection);
+
+  NoteSettings withCheckedToEnd({required bool checkedToEnd}) =>
+      _copy(checkedToEnd: checkedToEnd);
+
+  NoteSettings _copy({
+    NoteView? view,
+    bool? pinned,
+    bool? doneSection,
+    bool? checkedToEnd,
+  }) => NoteSettings(
+    view: view ?? this.view,
+    pinned: pinned ?? this.pinned,
+    doneSection: doneSection ?? this.doneSection,
+    checkedToEnd: checkedToEnd ?? this.checkedToEnd,
+  );
 
   @override
   bool operator ==(Object other) =>
       other is NoteSettings &&
       other.view == view &&
       other.pinned == pinned &&
-      other.doneSection == doneSection;
+      other.doneSection == doneSection &&
+      other.checkedToEnd == checkedToEnd;
 
   @override
-  int get hashCode => Object.hash(view, pinned, doneSection);
+  int get hashCode => Object.hash(view, pinned, doneSection, checkedToEnd);
 }

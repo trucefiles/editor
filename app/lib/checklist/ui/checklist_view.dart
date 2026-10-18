@@ -13,13 +13,22 @@ import 'row_focus.dart';
 /// above and below them, and checked items in a collapsible "Done"
 /// section.
 class ChecklistView extends StatefulWidget {
-  const ChecklistView(this.editor, {this.separateDone = true, super.key});
+  const ChecklistView(
+    this.editor, {
+    this.separateDone = true,
+    this.checkedToEnd = false,
+    super.key,
+  });
 
   final ChecklistEditor editor;
 
   /// Whether checked items show apart, in the "Done" section. View only:
   /// the file order never changes.
   final bool separateDone;
+
+  /// Whether checking an item moves it to the end of the list, and
+  /// unchecking back below the open items.
+  final bool checkedToEnd;
 
   @override
   State<ChecklistView> createState() => _ChecklistViewState();
@@ -274,7 +283,7 @@ class _ChecklistViewState extends State<ChecklistView> {
       dragHandle: index == null
           ? null
           : (icon) => ReorderableDragStartListener(index: index, child: icon),
-      onToggle: () => _editor.toggle(line.id),
+      onToggle: () => _editor.toggle(line.id, sort: widget.checkedToEnd),
       onTextChanged: (text) => _editor.setText(line.id, text),
       onSubmitted: () => _focus.focusLater(_editor.insertAfter(line.id)),
       onAction: (action) => _onAction(line, action),

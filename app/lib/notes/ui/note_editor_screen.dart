@@ -220,6 +220,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               value: () => _setDoneSection(on: !settings.doneSection),
               child: ToggleLabel('Done section', on: settings.doneSection),
             ),
+            PopupMenuItem(
+              value: () => _setCheckedToEnd(on: !settings.checkedToEnd),
+              child: ToggleLabel(
+                'Move checked to end',
+                on: settings.checkedToEnd,
+              ),
+            ),
           ],
           PopupMenuItem(
             value: () => editPinOrColor(context, ref, widget.note),
@@ -237,6 +244,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _settings.edit(
       widget.note.key,
       (settings) => settings.withDoneSection(doneSection: on),
+    ),
+  );
+
+  /// Turns moving checked items to the end of this note on or off, on
+  /// this device.
+  void _setCheckedToEnd({required bool on}) => unawaited(
+    _settings.edit(
+      widget.note.key,
+      (settings) => settings.withCheckedToEnd(checkedToEnd: on),
     ),
   );
 
@@ -361,10 +377,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             // scrollable.
             child: PullToRefresh(
               onRefresh: _scans.refresh,
-              child: _body(
-                doneSection: settings.doneSection,
-                readOnly: readOnly,
-              ),
+              child: _body(settings, readOnly: readOnly),
             ),
           ),
         ],
@@ -372,12 +385,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// The note in the chosen view, a list with a "Done" section if
-  /// [doneSection]; rendered while [readOnly]: once done, as the session
-  /// takes no more edits, or while the folder can't be reached.
-  Widget _body({required bool doneSection, required bool readOnly}) =>
+  /// The note in the chosen view, a list as its [settings] say; rendered
+  /// while [readOnly]: once done, as the session takes no more edits, or
+  /// while the folder can't be reached.
+  Widget _body(NoteSettings settings, {required bool readOnly}) =>
       switch (readOnly ? NoteView.rendered : _view) {
-        NoteView.list => ChecklistView(_checklist, separateDone: doneSection),
+        NoteView.list => ChecklistView(
+          _checklist,
+          separateDone: settings.doneSection,
+          checkedToEnd: settings.checkedToEnd,
+        ),
         NoteView.rendered => MarkdownView(_session.text),
         NoteView.text => TextField(
           controller: _text,

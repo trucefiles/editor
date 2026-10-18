@@ -13,20 +13,26 @@ String noteTitle(String text, RelPath path) {
 
 /// Up to [maxLines] non-empty lines after the title heading, for cards, in
 /// file order: checkbox items as `☐ text` or `☑ text` at their level, other
-/// lines without their Markdown block markers.
-String notePreview(String text, {int maxLines = 6}) {
+/// lines without their Markdown block markers. With [hideDone], checked
+/// items and their subitems are left out and counted in a last line, e.g.
+/// `+ 3 done`.
+String notePreview(String text, {int maxLines = 6, bool hideDone = false}) {
   final list = Checklist.parse(text);
-  return list.lines
-      .where((line) => line.raw.trim().isNotEmpty)
+  final done = hideDone ? list.doneIds : const <int>{};
+  final shown = list.lines
+      .where((line) => line.raw.trim().isNotEmpty && !done.contains(line.id))
       .skipWhile((line) => _heading.hasMatch(line.raw))
-      .take(maxLines)
       .map(
         (line) => line.isItem
             ? '${'  ' * list.depthOf(line)}${line.isChecked ? '☑' : '☐'} '
                   '${line.text}'
             : _withoutBlockMarkers(line.raw),
-      )
-      .join('\n');
+      );
+  final checked = list.lines.where(
+    (line) => done.contains(line.id) && line.isChecked,
+  );
+  if (checked.isEmpty) return shown.take(maxLines).join('\n');
+  return [...shown.take(maxLines - 1), '+ ${checked.length} done'].join('\n');
 }
 
 final _headingMarker = RegExp(r'^\s*#{1,6}[ \t]+');

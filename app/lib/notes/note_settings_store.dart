@@ -12,11 +12,12 @@ import 'note_view.dart';
 /// ignored.
 ///
 /// ```json
-/// {"f1/todo.md": {"view": "list", "pinned": true, "doneSection": false}}
+/// {"f1/todo.md": {"view": "list", "pinned": true, "doneSection": false,
+///   "checkedToEnd": true}}
 /// ```
 ///
 /// Older app versions kept only the view, as a string (`"f1/a.md": "list"`);
-/// those still read.
+/// those still read, as do entries without `checkedToEnd`.
 final class NoteSettingsStore {
   NoteSettingsStore(File file) : _file = JsonFile(file);
 
@@ -48,6 +49,7 @@ final class NoteSettingsStore {
     if (settings.view case final view?) 'view': view.name,
     'pinned': settings.pinned,
     'doneSection': settings.doneSection,
+    'checkedToEnd': settings.checkedToEnd,
   };
 
   static NoteSettings? _decode(Object? json) => switch (json) {
@@ -60,6 +62,7 @@ final class NoteSettingsStore {
         view: _view(json['view']),
         pinned: pinned,
         doneSection: doneSection,
+        checkedToEnd: json['checkedToEnd'] == true,
       ),
     _ => null,
   };

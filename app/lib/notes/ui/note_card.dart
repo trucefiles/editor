@@ -18,6 +18,7 @@ class NoteCard extends StatelessWidget {
     this.mark = NoteMark.none,
     this.pinned = false,
     this.hasConflict = false,
+    this.hideDone = false,
     super.key,
   });
 
@@ -33,6 +34,9 @@ class NoteCard extends StatelessWidget {
   /// Shows a badge: another version from a sync conflict is waiting.
   final bool hasConflict;
 
+  /// Leaves checked items out of the preview, counting them instead.
+  final bool hideDone;
+
   final VoidCallback onTap;
 
   /// Asks for a pin or color: on long press, or right click with a mouse.
@@ -42,7 +46,11 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final preview = notePreview(note.file.text, maxLines: previewLines);
+    final preview = notePreview(
+      note.file.text,
+      maxLines: previewLines,
+      hideDone: hideDone,
+    );
     return Card(
       clipBehavior: Clip.antiAlias,
       color: noteTint(mark.color, theme.colorScheme),

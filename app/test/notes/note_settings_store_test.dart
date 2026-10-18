@@ -29,6 +29,7 @@ void main() {
       view: NoteView.text,
       pinned: true,
       doneSection: false,
+      checkedToEnd: true,
     );
 
     await store.save({key: settings, 'f1/b.md': const NoteSettings()});

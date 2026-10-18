@@ -62,6 +62,47 @@ final class Checklist {
 
   Checklist toggle(int id) => _replaceLine(id, (line) => line._toggled());
 
+  /// Toggles the item [id] and, at the left margin, moves it with its
+  /// subitems: once checked, below the last item; once unchecked, below
+  /// the last open item at the margin, or above the first item if none is
+  /// open. A subitem toggles in place, under its item. Lines other than
+  /// items (text, headings) stay in place, and an item with only such lines
+  /// between it and its place does not move.
+  Checklist toggleAndSort(int id) {
+    final toggled = toggle(id);
+    final index = toggled._indexOf(id);
+    if (toggled.lines[index].indent.isNotEmpty) return toggled;
+    final target = toggled._sortTarget(index);
+    if (target == null) return toggled;
+    final end = toggled._blockEnd(index);
+    final between = target < index
+        ? toggled.lines.sublist(target, index)
+        : toggled.lines.sublist(end, max(end, target));
+    if (!between.any((line) => line.isItem)) return toggled;
+    return toggled.move(
+      id,
+      beforeId: target < toggled.lines.length ? toggled.lines[target].id : null,
+    );
+  }
+
+  /// Where [toggleAndSort] puts the margin item at [index]: the index of
+  /// the line to go before (the length for the end); `null` if there is
+  /// no other item to sort against.
+  int? _sortTarget(int index) {
+    final end = _blockEnd(index);
+    final others = [
+      for (var i = 0; i < lines.length; i++)
+        if ((i < index || i >= end) &&
+            lines[i].isItem &&
+            lines[i].indent.isEmpty)
+          i,
+    ];
+    if (others.isEmpty) return null;
+    if (lines[index].isChecked) return _blockEnd(others.last);
+    final open = others.where((i) => !lines[i].isChecked);
+    return open.isEmpty ? others.first : _blockEnd(open.last);
+  }
+
   Checklist setText(int id, String text) =>
       _replaceLine(id, (line) => line._withText(text));
 
