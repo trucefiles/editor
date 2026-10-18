@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../../common/error_text.dart';
+import '../../../common/screen_shortcuts.dart';
 import '../../../common/snack.dart';
 import '../../../folders/folders_controller.dart';
 import '../../../folders/note_folder.dart';
@@ -131,40 +133,49 @@ class _QuickNoteScreenState extends ConsumerState<QuickNoteScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave());
       },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('New note')),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => _placeChip(),
-              ),
-            ),
-            Expanded(
-              child: TextField(
-                controller: _text,
-                enabled: _started,
-                autofocus: true,
-                maxLines: null,
-                expands: true,
-                keyboardType: TextInputType.multiline,
-                inputFormatters: [lineBreakFormatter],
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  hintText: 'Note',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-              ),
-            ),
-          ],
-        ),
+      // Esc leaves, as in an open note.
+      child: ScreenShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              unawaited(Navigator.maybePop(context)),
+        },
+        child: _scaffold(),
       ),
     );
   }
+
+  Widget _scaffold() => Scaffold(
+    appBar: AppBar(title: const Text('New note')),
+    body: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) => _placeChip(),
+          ),
+        ),
+        Expanded(
+          child: TextField(
+            controller: _text,
+            enabled: _started,
+            autofocus: true,
+            maxLines: null,
+            expands: true,
+            keyboardType: TextInputType.multiline,
+            inputFormatters: [lineBreakFormatter],
+            textAlignVertical: TextAlignVertical.top,
+            decoration: const InputDecoration(
+              hintText: 'Note',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.all(16),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _placeChip() {
     final folders = _folders;

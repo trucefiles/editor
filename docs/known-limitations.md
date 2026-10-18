@@ -13,11 +13,19 @@ Accepted behavior that is not planned to change, grouped by topic.
   here, the edits are kept as a conflict copy in that subfolder, which
   recreates it, so the edits stay visible.
 
+- **A moved note can come back.** Sync tools see a move between folders
+  as a delete and a new file. If another device edits the note before it
+  learns of the move, the edited note shows up again in its old place,
+  next to the moved one.
+- **Backups stay with a note's old place.** After a move, the Backups
+  screen lists the note's earlier backups under its old folder and name.
+
 ## Colors, pins and views
 
 - **A note renamed or moved outside the app loses its color and
-  settings.** Its color (synced) and its pin, "Done" section choice and
-  last view (this device only) belong to its old path. They are cleaned up
+  settings.** Its color (synced) and its pin, checked items choice and
+  last view (this device only) belong to its old path. Moving it in the
+  app keeps them. They are cleaned up
   later: colors at this device's next change to any color in that folder,
   settings each time the app comes into use.
 - **A new note can show an old color.** Deleting a note drops only this

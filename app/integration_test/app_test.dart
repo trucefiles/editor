@@ -43,23 +43,40 @@ void main() {
     await tester.tapAndSettle(find.text('Source'));
   }
 
-  testWidgets('saves what is typed on the device, then in the file on back', (
+  /// Starts a quick note and types [text] into it.
+  Future<void> typeQuickNote(WidgetTester tester, String text) async {
+    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip('Folder'));
+    await tester.enterText(find.byType(TextField), text);
+  }
+
+  testWidgets('a quick note goes into the folder on back, named by its line', (
     tester,
   ) async {
     await addFolder(tester);
 
-    await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.enterText(find.byType(TextField), 'Groceries');
-    await tester.tapAndSettle(find.text('Create'));
-    // The editor opens once the file is written and rescanned.
-    await tester.waitFor(find.byType(NoteEditorScreen));
+    await typeQuickNote(tester, 'Groceries\nMilk\n');
+    await tester.runFor(const Duration(seconds: 1));
+    expect(app.notes.listSync().whereType<File>(), isEmpty);
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\nMilk\n');
+    await tester.waitFor(find.text('Groceries'));
+  });
+
+  testWidgets('saves what is typed on the device, then in the file on back', (
+    tester,
+  ) async {
+    app.write('groceries.md', '# Groceries\n');
+    await addFolder(tester);
+    await openNote(tester, 'Groceries');
+    await showSource(tester);
     await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
 
     await tester.waitFor(find.byTooltip(_savedOnDevice));
-    expect(app.file('Groceries.md').readAsStringSync(), '# Groceries\n');
+    expect(app.file('groceries.md').readAsStringSync(), '# Groceries\n');
     await tester.pageBack();
-    await tester.waitForFile(app.file('Groceries.md'), '# Groceries\nMilk\n');
+    await tester.waitForFile(app.file('groceries.md'), '# Groceries\nMilk\n');
   });
 
   testWidgets('tapping the save icon saves in the file right away', (
@@ -86,35 +103,74 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     Directory('${app.notes.path}/later').createSync();
-    await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
+    await typeQuickNote(tester, 'x');
+    await tester.tapAndSettle(find.byTooltip('Folder'));
+    await tester.waitFor(find.text('Top level'));
     await tester.tapAndSettle(find.text('Top level'));
 
     expect(find.text('later'), findsWidgets);
   });
 
-  testWidgets('creates a note in an empty subfolder', (tester) async {
+  testWidgets('a quick note goes into the subfolder picked', (tester) async {
     app.write('old.md', '# Old\n');
     Directory('${app.notes.path}/a/b/c').createSync(recursive: true);
     await addFolder(tester);
     await tester.waitFor(find.text('Old'));
 
-    await tester.tapAndSettle(find.byTooltip('New note'));
-    await tester.waitFor(find.text('Create'));
-    await tester.enterText(find.byType(TextField), 'Groceries');
+    await typeQuickNote(tester, 'Groceries\nMilk\n');
+    await tester.tapAndSettle(find.byTooltip('Folder'));
+    await tester.waitFor(find.text('Top level'));
     await tester.tapAndSettle(find.text('Top level'));
     await tester.tapAndSettle(find.text('a/b/c').last);
-    await tester.tapAndSettle(find.text('Create'));
-    // The editor opens once the file is written and rescanned.
-    await tester.waitFor(find.byType(TextField));
-    await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+    await tester.tapAndSettle(find.text('OK'));
     await tester.pageBack();
 
     await tester.waitForFile(
       app.file('a/b/c/Groceries.md'),
-      '# Groceries\nMilk\n',
+      'Groceries\nMilk\n',
     );
     expect(app.file('Groceries.md').existsSync(), isFalse);
+  });
+
+  testWidgets('new notes go to the place set in Settings', (tester) async {
+    app.write('old.md', '# Old\n');
+    Directory('${app.notes.path}/inbox').createSync();
+    await addFolder(tester);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Settings'));
+    await tester.tapAndSettle(find.text('New notes go to'));
+    await tester.waitFor(find.text('Top level'));
+    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.text('inbox').last);
+    await tester.tapAndSettle(find.text('OK'));
+    await tester.waitFor(find.text('Notes/inbox'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await typeQuickNote(tester, 'Idea');
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea');
+  });
+
+  testWidgets('moves a note to a subfolder', (tester) async {
+    app.write('plan.md', '# Plan\n');
+    Directory('${app.notes.path}/done').createSync();
+    await addFolder(tester);
+    await openNote(tester, 'Plan');
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Move note'));
+    await tester.waitFor(find.text('Top level'));
+    await tester.tapAndSettle(find.text('Top level'));
+    await tester.tapAndSettle(find.text('done').last);
+    await tester.tapAndSettle(find.text('Move'));
+
+    await tester.waitFor(find.text('Moved to Notes/done'));
+    await tester.waitForFile(app.file('done/plan.md'), '# Plan\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
   });
 
   testWidgets('checks a checklist item and saves it', (tester) async {
@@ -217,19 +273,20 @@ void main() {
     );
   });
 
-  testWidgets('switches to manual refresh in the menu', (tester) async {
+  testWidgets('switches to manual refresh in the settings', (tester) async {
     await addFolder(tester);
     await tester.waitFor(find.byTooltip('New note'));
 
     await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.tapAndSettle(find.text('Refresh: Live'));
+    await tester.tapAndSettle(find.text('Settings'));
+    await tester.tapAndSettle(find.text('Refresh'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
     // The setting is saved, then the app rescans once for changes made
     // meanwhile; a file written before that is rightly found.
-    await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.waitFor(find.text('Refresh: Manual'));
-    await tester.tapAt(const Offset(1, 1));
+    await tester.waitFor(find.text('Manual'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.runFor(const Duration(seconds: 1));
     app.write('new.md', '# New\n');
     await tester.runFor(const Duration(seconds: 2));
@@ -457,7 +514,8 @@ void main() {
     expect(find.text('1 done'), findsOneWidget);
 
     await tester.tapAndSettle(find.byTooltip('Show menu'));
-    await tester.tapAndSettle(find.text('Done section'));
+    await tester.tapAndSettle(find.text('Checked items: Done section'));
+    await tester.tapAndSettle(find.text('In place'));
     await tester.waitUntil(() => find.text('1 done').evaluate().isEmpty);
     await tester.pageBack();
     await tester.waitUntil(
@@ -467,6 +525,27 @@ void main() {
 
     expect(find.text('1 done'), findsNothing);
     expect(Directory('${app.notes.path}/.truce').existsSync(), isFalse);
+  });
+
+  testWidgets('with move to end, checking moves the item in the file', (
+    tester,
+  ) async {
+    app
+        .file('list.md')
+        .writeAsStringSync('# List\n- [x] a\n- [ ] b\n- [ ] c\n');
+    await addFolder(tester);
+    await openNote(tester, 'List');
+
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    await tester.tapAndSettle(find.text('Checked items: Done section'));
+    await tester.tapAndSettle(find.text('Move to end'));
+    await tester.tapAndSettle(find.byType(Checkbox).first);
+    await tester.pageBack();
+
+    await tester.waitForFile(
+      app.file('list.md'),
+      '# List\n- [ ] c\n- [x] a\n- [x] b\n',
+    );
   });
 
   testWidgets('deletes a note and undoes it', (tester) async {
