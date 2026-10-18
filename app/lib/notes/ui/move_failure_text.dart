@@ -8,6 +8,6 @@ String moveFailureText(MoveFailure failure) => switch (failure) {
     'Resolve the sync conflict of this note first, then move it.',
   MoveNotWritten(:final error) => "Couldn't move the note: ${error.text}",
   MoveLeftOriginal(:final copy, :final error) =>
-    'The note is now also in ${placeName(copy.folder, copy.path.parent)}, '
-        "but couldn't be removed here: ${error.text}",
+    'Saved as ${placeName(copy.folder, copy.path.parent)}/${copy.path.name}, '
+        "but the old file couldn't be removed: ${error.text}",
 };

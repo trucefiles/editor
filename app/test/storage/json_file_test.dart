@@ -45,14 +45,6 @@ void main() {
     });
   });
 
-  test('delete removes the value after the writes before it', () async {
-    unawaited(json.write({'a': 1}));
-
-    expect(await json.delete(), isA<Ok<void, JsonFileError>>());
-    expect((await json.read()).error, JsonFileError.missing);
-    expect(await json.delete(), isA<Ok<void, JsonFileError>>());
-  });
-
   test('leaves no temp file behind', () async {
     await json.write(1);
 

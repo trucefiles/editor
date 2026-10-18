@@ -102,4 +102,41 @@ void main() {
 
     expect(await result, isNull);
   });
+
+  testWidgets('with a name, asks for it too', (tester) async {
+    late Future<({NotePlace place, String name})?> result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => result = showNoteFileDialog(
+              context,
+              folders: [notes, work],
+              initial: (folder: notes, subfolder: null),
+              name: 'Milk',
+              subfoldersOf: (_) => const [],
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextField, 'Milk'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Shopping');
+    await tester.tap(find.text('OK'));
+
+    expect(await result, (
+      place: (folder: notes, subfolder: null),
+      name: 'Shopping',
+    ));
+  });
+
+  testWidgets('without a name, asks for none', (tester) async {
+    await open(tester, const {});
+
+    expect(find.byType(TextField), findsNothing);
+  });
 }

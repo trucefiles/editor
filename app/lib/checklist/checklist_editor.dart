@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../notes/note_edit_session.dart';
+import '../notes/note_text.dart';
 
 /// Applies checklist actions to an open note. No UI.
 ///
-/// Each action edits the [Checklist] and hands the new text to the
-/// [NoteEditSession], which saves it. When the session's text changes from
+/// Each action edits the [Checklist] and hands the new text to the open
+/// note's [NoteText], which saves it. When that text changes from
 /// elsewhere, the checklist is parsed again.
 final class ChecklistEditor extends ChangeNotifier {
-  ChecklistEditor(this._session) : _list = Checklist.parse(_session.text) {
-    _session.addListener(_onSessionChanged);
+  ChecklistEditor(this._note) : _list = Checklist.parse(_note.text) {
+    _note.addListener(_onNoteChanged);
   }
 
-  final NoteEditSession _session;
+  final NoteText _note;
   Checklist _list;
 
   Checklist get list => _list;
@@ -97,19 +97,19 @@ final class ChecklistEditor extends ChangeNotifier {
 
   void _apply(Checklist list) {
     _list = list;
-    _session.edit(list.text);
+    _note.edit(list.text);
     notifyListeners();
   }
 
-  void _onSessionChanged() {
-    if (_session.text == _list.text) return;
-    _list = _list.reparse(_session.text);
+  void _onNoteChanged() {
+    if (_note.text == _list.text) return;
+    _list = _list.reparse(_note.text);
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _session.removeListener(_onSessionChanged);
+    _note.removeListener(_onNoteChanged);
     super.dispose();
   }
 }

@@ -3,43 +3,42 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../note_edit_session.dart';
+import '../open_note.dart';
 import 'changed_elsewhere_screen.dart';
 
-/// Tells what went wrong with an open note's edits and offers the
-/// session's ways out. Shows nothing while all is well.
+/// Tells what went wrong with an open note's edits and offers its ways
+/// out. Shows nothing while all is well.
 class EditStateBanner extends StatelessWidget {
-  const EditStateBanner(this.session, {required this.onClose, super.key});
+  const EditStateBanner(this.note, {required this.onClose, super.key});
 
-  final NoteEditSession session;
+  final OpenNote note;
 
   /// Closes the editor, keeping the edits where they can be kept.
   final FutureOr<void> Function() onClose;
 
   @override
-  Widget build(BuildContext context) => switch (session.state) {
-    EditState.saved ||
-    EditState.savedOnDevice ||
-    EditState.unsaved => const SizedBox.shrink(),
-    EditState.changedElsewhere => _Banner(
+  Widget build(BuildContext context) => switch ((note.state, note.session)) {
+    (EditState.changedElsewhere, final session?) => _Banner(
       message: 'This note changed on another device or app.',
       actions: {'Compare': () => openChangedElsewhere(context, session)},
     ),
-    EditState.deletedElsewhere => _Banner(
+    (EditState.deletedElsewhere, final session?) => _Banner(
       message:
           'This note was deleted on another device or app. '
           'Your text is kept here; closing keeps it as a conflict.',
       actions: {'Restore with my text': session.restoreMine, 'Close': onClose},
     ),
-    EditState.saveFailed => _Banner(
+    (EditState.saveFailed, _) => _Banner(
       message: 'Saving failed. Your text is kept here.',
-      actions: {'Retry': session.flush},
+      actions: {'Retry': note.flush},
     ),
-    EditState.keptAsConflict => _Banner(
+    (EditState.keptAsConflict, _) => _Banner(
       message:
           'Your edits were kept as a conflict copy, to resolve from the '
           'notes list.',
       actions: {'Close': onClose},
     ),
+    _ => const SizedBox.shrink(),
   };
 }
 

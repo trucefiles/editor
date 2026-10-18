@@ -9,6 +9,7 @@ import 'note.dart';
 import 'note_drafts.dart';
 import 'note_files.dart';
 import 'note_staging.dart';
+import 'note_text.dart';
 
 /// Where an open note stands against its file.
 enum EditState {
@@ -63,16 +64,20 @@ enum PickResult {
 ///
 /// Never overwrites a change from elsewhere and never recreates a deleted
 /// file without the user's choice.
-final class NoteEditSession extends ChangeNotifier {
+final class NoteEditSession extends ChangeNotifier implements NoteText {
   /// [publishDelay]: how long after edits were first kept on the device
   /// they go into the file at the latest, for a note that stays open.
+  /// [writtenAt]: when this app just wrote [_note], e.g. created it; scans
+  /// that started before are ignored, as after the session's own writes.
   NoteEditSession(
     this._note,
     this._files,
     NoteDrafts drafts, {
     this.saveDelay = const Duration(seconds: 2),
     Duration publishDelay = const Duration(minutes: 1),
-  }) : _text = _note.file.text {
+    Moment? writtenAt,
+  }) : _text = _note.file.text,
+       _lastWrite = writtenAt {
     _staging = NoteStaging(
       drafts,
       publishDelay: publishDelay,
@@ -103,6 +108,7 @@ final class NoteEditSession extends ChangeNotifier {
   /// The version the edits are based on; it guards the next save.
   Note get note => _note;
 
+  @override
   String get text => _text;
 
   EditState get state => _state;
@@ -115,6 +121,7 @@ final class NoteEditSession extends ChangeNotifier {
   /// without edits. While the file changed or was deleted elsewhere, the
   /// edits are kept on the device too, but not saved: they must survive
   /// the app being ended until the user picks.
+  @override
   void edit(String text) {
     if (text == _text || _state == EditState.keptAsConflict) return;
     _text = text;

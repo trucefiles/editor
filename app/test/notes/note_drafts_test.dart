@@ -33,6 +33,13 @@ void main() {
     expect(await drafts.all(before: later), isEmpty);
   });
 
+  test("keeps a new note's draft, without a base", () async {
+    await drafts.keep(NoteDraft(id: '1', path: path('Milk.md'), text: 'Milk'));
+
+    final [kept] = await drafts.all(before: later);
+    expect((kept.path, kept.base, kept.text), (path('Milk.md'), null, 'Milk'));
+  });
+
   test('clears all drafts', () async {
     await drafts.keep(draft('1', 'one'));
     await drafts.keep(draft('2', 'two'));

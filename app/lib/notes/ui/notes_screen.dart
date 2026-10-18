@@ -22,15 +22,14 @@ import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/auto_rescan.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
+import '../new_note_place/new_note_place_controller.dart';
 import '../note.dart';
 import '../note_actions.dart';
 import '../note_settings_controller.dart';
 import '../note_settings_pruning.dart';
-import '../quick/quick_note_drafts_provider.dart';
-import '../quick/quick_note_place_controller.dart';
-import '../quick/ui/quick_note_screen.dart';
 import 'home_menu.dart';
 import 'note_card.dart';
+import 'note_editor_screen.dart';
 import 'note_grid.dart';
 import 'note_sections.dart';
 import 'pin_or_color_sheet.dart';
@@ -51,20 +50,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     super.initState();
     // On desktop, also when the window gets the focus back.
     _lifecycle = AppLifecycleListener(onResume: _refresh);
-    unawaited(_offerLeftQuickNote());
-  }
-
-  /// Tells about a quick note left from before, e.g. as the app was ended
-  /// while it was open; New note goes on with it.
-  Future<void> _offerLeftQuickNote() async {
-    final draft = await ref.read(quickNoteDraftsProvider).load();
-    if (!mounted || draft == null || draft.text.trim().isEmpty) return;
-    showSnack(
-      context,
-      'A note you started is kept on this device.',
-      actionLabel: 'Open',
-      onAction: _openQuickNote,
-    );
   }
 
   @override
@@ -82,7 +67,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     // one goes to the place set.
     ref
       ..watch(noteSettingsProvider)
-      ..watch(quickNotePlaceProvider)
+      ..watch(newNotePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(noteSettingsPruningProvider)
       ..watch(autoRescanProvider);
@@ -132,18 +117,20 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
   }
 
-  /// Starts a quick note, if any folder can take it.
+  /// Opens a new note in the place for new notes, if any folder can take
+  /// it.
   Future<void> _create(List<NoteFolder> all) async {
-    if (ref.read(noteActionsProvider).reachableOf(all).isEmpty) {
+    final actions = ref.read(noteActionsProvider);
+    final folders = actions.reachableOf(all);
+    if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
-    await _openQuickNote();
+    final place = actions.newNotePlace(folders);
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => NoteEditorScreen.fresh(place)),
+    );
   }
-
-  Future<void> _openQuickNote() => Navigator.push(
-    context,
-    MaterialPageRoute<void>(builder: (_) => const QuickNoteScreen()),
-  );
 }
 
 class _NotesBody extends ConsumerWidget {

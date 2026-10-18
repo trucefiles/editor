@@ -333,6 +333,30 @@ void main() {
       );
     });
 
+    test('items stay in their own list, up to a heading or text', () {
+      final list = Checklist.parse(
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [ ] c\nnote\n- [x] d\n',
+      );
+
+      expect(
+        list.toggleAndSort(idOf(list, 'a')).text,
+        '# Today\n- [ ] b\n- [x] a\n# Later\n- [ ] c\nnote\n- [x] d\n',
+      );
+      expect(
+        list.toggleAndSort(idOf(list, 'c')).text,
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [x] c\nnote\n- [x] d\n',
+      );
+    });
+
+    test('blank lines keep a list together', () {
+      final list = Checklist.parse('- [ ] a\n\n- [ ] b\n');
+
+      expect(
+        list.toggleAndSort(idOf(list, 'a')).text,
+        '\n- [ ] b\n- [x] a\n',
+      );
+    });
+
     test('sortChecked moves all checked items below, in their order', () {
       final list = Checklist.parse(
         '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',

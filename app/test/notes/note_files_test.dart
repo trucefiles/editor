@@ -63,6 +63,22 @@ void main() {
     ]);
   });
 
+  test('copies under another name, with the extension kept', () async {
+    File('${dir.path}/plan.MD').writeAsStringSync('a');
+    final note = (await files.open(path('plan.MD'))).value;
+
+    final copy = (await files.copyIn(note, 'a', title: 'Ideas')).value;
+
+    expect(copy.path.value, 'Ideas.MD');
+  });
+
+  test('never brings back a subfolder deleted meanwhile', () async {
+    final created = await files.create('Milk', subfolder: path('gone'));
+
+    expect(created.error, StoreError.notFound);
+    expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+  });
+
   test('picks a free name', () async {
     await files.create('Shopping');
 

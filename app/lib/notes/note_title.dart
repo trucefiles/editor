@@ -1,14 +1,14 @@
 import 'package:truce_core/truce_core.dart';
 
+import 'note_file_name.dart';
+
 final _heading = RegExp(r'^#[ \t]+(.*\S)', multiLine: true);
 
 /// Displayed title: the first level-1 heading, else the file name without
 /// its extension.
 String noteTitle(String text, RelPath path) {
   if (_heading.firstMatch(text) case final match?) return match.group(1)!;
-  final name = path.name;
-  final dot = name.lastIndexOf('.');
-  return dot > 0 ? name.substring(0, dot) : name;
+  return splitFileName(path.name).base;
 }
 
 /// The first non-empty line of [text] as plain words, without Markdown

@@ -187,6 +187,22 @@ void main() {
     expect(session.text, '# a\nmine');
   });
 
+  test('ignores scans that started before the note was just written', () {
+    final scannedAt = Moment.now();
+    final created = NoteEditSession(
+      note,
+      files,
+      tempDrafts(),
+      writtenAt: Moment.now(),
+    );
+    addTearDown(created.dispose);
+
+    // The scan may have listed the folder before the file was created.
+    created.onRescan(null, scannedAt: scannedAt);
+
+    expect(created.state, EditState.saved);
+  });
+
   test('ignores scans that started during its last write', () async {
     session.edit('# a\nmine');
     final saving = session.flush();

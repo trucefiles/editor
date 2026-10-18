@@ -63,17 +63,20 @@ final class Checklist {
   Checklist toggle(int id) => _replaceLine(id, (line) => line._toggled());
 
   /// Toggles the item [id] and, at the left margin, moves it with its
-  /// subitems: once checked, below the last item; once unchecked, below
-  /// the last open item at the margin, or above the first item if none is
-  /// open. A subitem toggles in place, under its item. Then every other
-  /// checked item at the margin moves below too (see [sortChecked]), e.g.
-  /// ones another editor left among the open items. Lines other than
-  /// items (text, headings) stay in place, and an item with only such
-  /// lines between it and its place does not move.
+  /// subitems within its own list: once checked, below the list's last
+  /// item; once unchecked, below its last open item at the margin, or
+  /// above its first item if none is open. A list ends at a line at the
+  /// margin that is neither an item nor blank, e.g. a heading. A subitem
+  /// toggles in place, under its item. Then every other checked item at
+  /// the margin moves below too (see [sortChecked]), e.g. ones another
+  /// editor left among the open items. Lines other than items stay in
+  /// place, and an item with only such lines between it and its place
+  /// does not move.
   Checklist toggleAndSort(int id) => toggle(id)._sorted(id).sortChecked();
 
   /// Moves every checked item at the left margin, with its subitems, below
-  /// the last item, keeping their order; as [toggleAndSort] does for one.
+  /// the last item of its list, keeping their order; as [toggleAndSort]
+  /// does for one.
   Checklist sortChecked() => [
     for (final line in lines)
       if (line.isChecked && line.indent.isEmpty) line.id,
@@ -94,12 +97,13 @@ final class Checklist {
   }
 
   /// Where [_sorted] puts the margin item at [index]: the index of
-  /// the line to go before (the length for the end); `null` if there is
-  /// no other item to sort against.
+  /// the line to go before (the length for the end); `null` if its list
+  /// has no other item to sort against.
   int? _sortTarget(int index) {
     final end = _blockEnd(index);
+    final (first, last) = _listAround(index);
     final others = [
-      for (var i = 0; i < lines.length; i++)
+      for (var i = first; i < last; i++)
         if ((i < index || i >= end) &&
             lines[i].isItem &&
             lines[i].indent.isEmpty)
@@ -109,6 +113,22 @@ final class Checklist {
     if (lines[index].isChecked) return _blockEnd(others.last);
     final open = others.where((i) => !lines[i].isChecked);
     return open.isEmpty ? others.first : _blockEnd(open.last);
+  }
+
+  /// The list the line at [index] is in: from its first line to past its
+  /// last, up to the lines at the margin that are neither items nor blank.
+  (int, int) _listAround(int index) {
+    bool ends(ChecklistLine line) =>
+        !line.isItem && line.indent.isEmpty && line.raw.trim().isNotEmpty;
+    var first = index;
+    while (first > 0 && !ends(lines[first - 1])) {
+      first--;
+    }
+    var last = index + 1;
+    while (last < lines.length && !ends(lines[last])) {
+      last++;
+    }
+    return (first, last);
   }
 
   Checklist setText(int id, String text) =>

@@ -42,31 +42,42 @@ final class NoteFiles {
     String? text,
   }) {
     final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
-    return _createNamed(title, subfolder, file);
+    return _createNamed(title, '.md', subfolder, file);
   }
 
   /// A copy of [note], from any folder, holding [text] in [note]'s byte
-  /// style, in [subfolder] of this folder (its root if `null`); named as
-  /// [note], with a number if that name is taken.
+  /// style, in [subfolder] of this folder (its root if `null`); named
+  /// after [title] (by default [note]'s name) with [note]'s extension, and
+  /// a number if that name is taken.
   Future<Result<Note, StoreError>> copyIn(
     Note note,
     String text, {
     RelPath? subfolder,
+    String? title,
   }) {
-    final name = note.path.name;
-    final dot = name.lastIndexOf('.');
-    final title = dot > 0 ? name.substring(0, dot) : name;
-    return _createNamed(title, subfolder, note.file.withText(text));
+    final (:base, :extension) = splitFileName(note.path.name);
+    return _createNamed(
+      title ?? base,
+      extension,
+      subfolder,
+      note.file.withText(text),
+    );
   }
 
+  /// Fails with [StoreError.notFound] if [subfolder] is gone: the store
+  /// would create it, and a deleted folder never comes back.
   Future<Result<Note, StoreError>> _createNamed(
     String title,
+    String extension,
     RelPath? subfolder,
     TextFile file,
   ) async {
+    if (subfolder != null && !await _hasFolder(subfolder)) {
+      return const Err(StoreError.notFound);
+    }
     final bytes = file.encode(file.text);
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
-      final name = noteFileName(title, attempt: attempt);
+      final name = noteFileName(title, attempt: attempt, extension: extension);
       final path = subfolder == null
           ? RelPath.parse(name)!
           : subfolder.child(name)!;
@@ -80,6 +91,22 @@ final class NoteFiles {
       }
     }
     return const Err(StoreError.alreadyExists);
+  }
+
+  /// Whether [subfolder] is there; lists only the folders on the way to it.
+  Future<bool> _hasFolder(RelPath subfolder) async {
+    bool onTheWay(RelPath folder) =>
+        folder == subfolder || subfolder.value.startsWith('${folder.value}/');
+    final listed = await _store.list(
+      enterFolder: onTheWay,
+      includeFile: (_) => false,
+    );
+    return switch (listed) {
+      Ok(value: final listing) =>
+        listing.folders.contains(subfolder) ||
+            listing.unreadable.contains(subfolder),
+      Err() => false,
+    };
   }
 
   /// Writes [text] over [note]; fails with [StoreError.changedSinceRead]

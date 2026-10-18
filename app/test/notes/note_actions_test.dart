@@ -8,13 +8,13 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/checked_items.dart';
 import 'package:truce_editor/notes/move_failure.dart';
+import 'package:truce_editor/notes/new_note_place/new_note_place.dart';
+import 'package:truce_editor/notes/new_note_place/new_note_place_controller.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_view.dart';
-import 'package:truce_editor/notes/quick/quick_note_place.dart';
-import 'package:truce_editor/notes/quick/quick_note_place_controller.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -97,10 +97,11 @@ void main() {
   test('create writes the note, remembers its folder and rescans', () async {
     await scans();
 
-    final note = (await actions.create((
-      folder: folders[1],
-      subfolder: null,
-    ), text: 'Plan\nsteps\n')).value;
+    final note = (await actions.create(
+      (folder: folders[1], subfolder: null),
+      title: 'Plan',
+      text: 'Plan\nsteps\n',
+    )).value;
 
     expect(file(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
     expect(container.read(lastUsedFolderIdProvider), 'home');
@@ -108,23 +109,25 @@ void main() {
   });
 
   test('create puts the note in the chosen subfolder', () async {
+    Directory('${work.path}/a/b').createSync(recursive: true);
     await scans();
 
-    final note = (await actions.create((
-      folder: folders[0],
-      subfolder: path('a/b'),
-    ), text: '# Plan\n')).value;
+    final note = (await actions.create(
+      (folder: folders[0], subfolder: path('a/b')),
+      title: 'Plan',
+      text: '# Plan\n',
+    )).value;
 
     expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
     expect((await scans()).findNote(note.key)?.path, path('a/b/Plan.md'));
   });
 
   group('newNotePlace', () {
-    Future<void> setPlace(QuickNotePlace? place) =>
-        container.read(quickNotePlaceProvider.notifier).set(place);
+    Future<void> setPlace(NewNotePlaceSetting? place) =>
+        container.read(newNotePlaceProvider.notifier).set(place);
 
     test('is the default folder without a setting', () async {
-      await container.read(quickNotePlaceProvider.future);
+      await container.read(newNotePlaceProvider.future);
 
       expect(actions.newNotePlace(folders), (
         folder: folders[0],
@@ -178,6 +181,19 @@ void main() {
       expect(marksFile(work), isNot(contains('plan.md')));
       expect(settings.settingsOf(moved.key), mine);
       expect(settings.settingsOf(note.key), NoteSettings.defaults);
+    });
+
+    test('renames the note, keeping its extension', () async {
+      final note = await noteIn(work, 'plan.MD', 'a');
+
+      final moved = (await actions.move(note, 'a', (
+        folder: folders[0],
+        subfolder: null,
+      ), title: 'Ideas')).value;
+
+      expect(moved.path, path('Ideas.MD'));
+      expect(file(work, 'Ideas.MD').readAsStringSync(), 'a');
+      expect(file(work, 'plan.MD').existsSync(), isFalse);
     });
 
     test('takes a free name in the new place', () async {

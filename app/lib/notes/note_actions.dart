@@ -7,18 +7,18 @@ import '../reach/folder_reach_controller.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
 import 'move_failure.dart';
+import 'new_note_place/new_note_place.dart';
+import 'new_note_place/new_note_place_controller.dart';
 import 'note.dart';
 import 'note_files.dart';
 import 'note_place.dart';
 import 'note_settings.dart';
 import 'note_settings_controller.dart';
-import 'note_title.dart';
-import 'quick/quick_note_place.dart';
-import 'quick/quick_note_place_controller.dart';
 
 final noteActionsProvider = Provider<NoteActions>(NoteActions.new);
 
-/// The user's actions on notes: create, move, delete and undo, color.
+/// The user's actions on notes: create, move or rename, delete and undo,
+/// color.
 /// No UI: screens ask the user, then call these and show the result.
 ///
 /// Outlives every screen, so an undo still works after the editor closed.
@@ -54,11 +54,11 @@ final class NoteActions {
         folder,
   ];
 
-  /// Where a new note goes: the quick note place the user set, if its
+  /// Where a new note goes: the place the user set for new notes, if its
   /// folder is one of [folders], else the [defaultFolder] of [folders].
   NotePlace newNotePlace(List<NoteFolder> folders) =>
-      resolveQuickNotePlace(
-        _ref.read(quickNotePlaceProvider).value,
+      resolveNewNotePlace(
+        _ref.read(newNotePlaceProvider).value,
         folders,
         subfoldersOf,
       ) ??
@@ -68,32 +68,35 @@ final class NoteActions {
   List<RelPath> subfoldersOf(NoteFolder folder) =>
       _ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ?? const [];
 
-  /// Creates a note holding [text] at [place], named after its first line
-  /// (see [noteTitleLine]), remembers the folder as the next default and
-  /// rescans, so the grid shows the note.
+  /// Creates a note holding [text] at [place], named after [title],
+  /// remembers the folder as the next default and rescans, so the grid
+  /// shows the note.
   Future<Result<Note, StoreError>> create(
     NotePlace place, {
+    required String title,
     required String text,
   }) async {
     _ref.read(lastUsedFolderIdProvider.notifier).choose(place.folder.id);
     final created = await _ref
         .read(noteFilesProvider(place.folder))
-        .create(noteTitleLine(text), subfolder: place.subfolder, text: text);
+        .create(title, subfolder: place.subfolder, text: text);
     if (created is Ok) await _scans.refresh();
     return created;
   }
 
-  /// Moves [note], holding [text], to [place]: writes it there under its
-  /// name (with a number if taken), in its byte style, with its color and
-  /// settings, then removes the old file. Refused while a sync conflict of
+  /// Moves [note], holding [text], to [place], renamed after [title] if
+  /// given: writes it there under that name (with a number if taken), in
+  /// its byte style, with its color and settings, then removes the old
+  /// file. Refused while a sync conflict of
   /// the note waits. If the old file can't be removed, e.g. as it changed
   /// since [note] was read, both stay: never lose data. No rescan, as for
   /// [delete].
   Future<Result<Note, MoveFailure>> move(
     Note note,
     String text,
-    NotePlace place,
-  ) async {
+    NotePlace place, {
+    String? title,
+  }) async {
     final scans = _ref.read(folderScansProvider).value;
     if (scans?.conflicts.forNote(note.key) != null) {
       return const Err(MoveBlockedByConflict());
@@ -102,7 +105,7 @@ final class NoteActions {
     final settings = _settings.settingsOf(note.key);
     final copied = await _ref
         .read(noteFilesProvider(place.folder))
-        .copyIn(note, text, subfolder: place.subfolder);
+        .copyIn(note, text, subfolder: place.subfolder, title: title);
     final Note copy;
     switch (copied) {
       case Ok(:final value):

@@ -6,25 +6,30 @@ import '../../../folders/ui/folder_badge.dart';
 import '../../../scan/folder_scans_controller.dart';
 import '../../note_actions.dart';
 import '../../ui/note_place_dialog.dart';
-import '../quick_note_place.dart';
-import '../quick_note_place_controller.dart';
+import '../new_note_place_controller.dart';
 
 /// Settings row with where new notes go; opens a dialog to pick a folder
 /// and subfolder, and can go back to the default.
-class QuickNotePlaceTile extends ConsumerWidget {
-  const QuickNotePlaceTile({super.key});
+class NewNotePlaceTile extends ConsumerWidget {
+  const NewNotePlaceTile({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final folders = ref.watch(foldersProvider).value ?? const [];
-    final setting = ref.watch(quickNotePlaceProvider);
+    final setting = ref.watch(newNotePlaceProvider);
     ref.watch(folderScansProvider);
     final actions = ref.read(noteActionsProvider);
-    final place = resolveQuickNotePlace(
-      setting.value,
-      folders,
-      actions.subfoldersOf,
-    );
+    // As set, also a subfolder the last scan missed (e.g. while the
+    // folder can't be reached): new notes check it as they go there.
+    final place = switch (setting.value) {
+      (:final folderId, :final subfolder) => switch (folders
+          .where((folder) => folder.id == folderId)
+          .firstOrNull) {
+        final folder? => (folder: folder, subfolder: subfolder),
+        null => null,
+      },
+      null => null,
+    };
     return ListTile(
       enabled: setting.hasValue && folders.isNotEmpty,
       title: const Text('New notes go to'),
@@ -40,7 +45,7 @@ class QuickNotePlaceTile extends ConsumerWidget {
               tooltip: 'Use the default',
               icon: const Icon(Icons.close),
               onPressed: () =>
-                  ref.read(quickNotePlaceProvider.notifier).set(null),
+                  ref.read(newNotePlaceProvider.notifier).set(null),
             ),
       onTap: () async {
         // Change events don't tell about new empty subfolders; a rescan
@@ -56,7 +61,7 @@ class QuickNotePlaceTile extends ConsumerWidget {
           subfoldersOf: actions.subfoldersOf,
         );
         if (picked == null) return;
-        await ref.read(quickNotePlaceProvider.notifier).set((
+        await ref.read(newNotePlaceProvider.notifier).set((
           folderId: picked.folder.id,
           subfolder: picked.subfolder,
         ));

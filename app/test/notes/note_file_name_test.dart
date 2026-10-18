@@ -30,4 +30,16 @@ void main() {
     // 4 bytes each: 50 fit in 200 bytes.
     expect(noteFileName('😀' * 100), '${'😀' * 50}.md');
   });
+
+  test('ends in the extension given', () {
+    expect(noteFileName('plan', extension: '.MD'), 'plan.MD');
+    expect(noteFileName('plan', attempt: 2, extension: ''), 'plan 2');
+  });
+
+  test('splitFileName splits before the extension', () {
+    expect(splitFileName('todo.md'), (base: 'todo', extension: '.md'));
+    expect(splitFileName('a.b.md'), (base: 'a.b', extension: '.md'));
+    expect(splitFileName('README'), (base: 'README', extension: ''));
+    expect(splitFileName('.hidden'), (base: '.hidden', extension: ''));
+  });
 }

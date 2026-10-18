@@ -16,11 +16,37 @@ Future<NotePlace?> showNotePlaceDialog(
   required List<NoteFolder> folders,
   required NotePlace initial,
   required List<RelPath> Function(NoteFolder folder) subfoldersOf,
-}) => showDialog<NotePlace>(
+}) async => (await showDialog<_Choice>(
   context: context,
   builder: (_) =>
-      _NotePlaceDialog(title, action, folders, initial, subfoldersOf),
-);
+      _NotePlaceDialog(title, action, folders, initial, subfoldersOf, null),
+))?.place;
+
+/// Like [showNotePlaceDialog], also asking for a note's file name without
+/// its extension, starting at [name]. The chosen place and name as typed,
+/// or `null` if cancelled.
+Future<({NotePlace place, String name})?> showNoteFileDialog(
+  BuildContext context, {
+  required List<NoteFolder> folders,
+  required NotePlace initial,
+  required String name,
+  required List<RelPath> Function(NoteFolder folder) subfoldersOf,
+}) async => switch (await showDialog<_Choice>(
+  context: context,
+  builder: (_) => _NotePlaceDialog(
+    'Place and name',
+    'OK',
+    folders,
+    initial,
+    subfoldersOf,
+    name,
+  ),
+)) {
+  (:final place, name: final name?) => (place: place, name: name),
+  _ => null,
+};
+
+typedef _Choice = ({NotePlace place, String? name});
 
 class _NotePlaceDialog extends StatefulWidget {
   const _NotePlaceDialog(
@@ -29,6 +55,7 @@ class _NotePlaceDialog extends StatefulWidget {
     this.folders,
     this.initial,
     this.subfoldersOf,
+    this.name,
   );
 
   final String title;
@@ -36,6 +63,9 @@ class _NotePlaceDialog extends StatefulWidget {
   final List<NoteFolder> folders;
   final NotePlace initial;
   final List<RelPath> Function(NoteFolder folder) subfoldersOf;
+
+  /// The file name to start at; `null` asks for none.
+  final String? name;
 
   @override
   State<_NotePlaceDialog> createState() => _NotePlaceDialogState();
@@ -49,7 +79,20 @@ class _NotePlaceDialogState extends State<_NotePlaceDialog> {
       ? widget.initial.subfolder
       : null;
 
+  late final _name = TextEditingController(text: widget.name);
+
   List<RelPath> get _subfolders => widget.subfoldersOf(_folder);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _confirm() => Navigator.pop<_Choice>(context, (
+    place: (folder: _folder, subfolder: _subfolder),
+    name: widget.name == null ? null : _name.text,
+  ));
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +135,17 @@ class _NotePlaceDialogState extends State<_NotePlaceDialog> {
               onChanged: (subfolder) => setState(() => _subfolder = subfolder),
             ),
           ],
+          if (widget.name != null) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: 'From the first line',
+              ),
+              onSubmitted: (_) => _confirm(),
+            ),
+          ],
         ],
       ),
       actions: [
@@ -99,11 +153,7 @@ class _NotePlaceDialogState extends State<_NotePlaceDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: () =>
-              Navigator.pop(context, (folder: _folder, subfolder: _subfolder)),
-          child: Text(widget.action),
-        ),
+        FilledButton(onPressed: _confirm, child: Text(widget.action)),
       ],
     );
   }
