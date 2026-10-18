@@ -36,6 +36,18 @@ final class JsonFile {
   Future<Result<void, JsonFileError>> write(Object? json) =>
       _writes.withResource(() => _writeNow(json));
 
+  /// Removes the saved value, after every earlier write; nothing saved is
+  /// fine.
+  Future<Result<void, JsonFileError>> delete() =>
+      _writes.withResource(() async {
+        try {
+          if (await _file.exists()) await _file.delete();
+          return const Ok(null);
+        } on FileSystemException {
+          return const Err(JsonFileError.unwritable);
+        }
+      });
+
   Future<Result<void, JsonFileError>> _writeNow(Object? json) async {
     final temp = File('${_file.path}.tmp');
     try {

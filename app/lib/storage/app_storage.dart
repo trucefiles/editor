@@ -28,6 +28,9 @@ final class AppStorage {
   /// Edits not yet in one folder's note files, by [folderId].
   String draftsPath(String folderId) => '$rootPath/drafts/$folderId';
 
+  /// The quick note being written, not yet in any folder.
+  String get quickNoteDraftPath => '$rootPath/quick_note/draft.json';
+
   /// Every backup folder, also of folders removed from the app since.
   Future<List<String>> allBackupsPaths() async {
     try {

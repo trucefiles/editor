@@ -8,8 +8,12 @@ import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
 import 'note.dart';
 import 'note_files.dart';
+import 'note_place.dart';
 import 'note_settings.dart';
 import 'note_settings_controller.dart';
+import 'note_title.dart';
+import 'quick/quick_note_place.dart';
+import 'quick/quick_note_place_controller.dart';
 
 final noteActionsProvider = Provider<NoteActions>(NoteActions.new);
 
@@ -49,18 +53,31 @@ final class NoteActions {
         folder,
   ];
 
-  /// Creates a note titled [title] in [folder], inside [subfolder] if
-  /// given, remembers [folder] as the next default and rescans, so the grid
-  /// shows the note.
+  /// Where a new note goes: the quick note place the user set, if its
+  /// folder is one of [folders], else the [defaultFolder] of [folders].
+  NotePlace newNotePlace(List<NoteFolder> folders) =>
+      resolveQuickNotePlace(
+        _ref.read(quickNotePlaceProvider).value,
+        folders,
+        subfoldersOf,
+      ) ??
+      (folder: defaultFolder(folders), subfolder: null);
+
+  /// The subfolders of [folder], as last scanned.
+  List<RelPath> subfoldersOf(NoteFolder folder) =>
+      _ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ?? const [];
+
+  /// Creates a note holding [text] at [place], named after its first line
+  /// (see [noteTitleLine]), remembers the folder as the next default and
+  /// rescans, so the grid shows the note.
   Future<Result<Note, StoreError>> create(
-    String title,
-    NoteFolder folder, {
-    RelPath? subfolder,
+    NotePlace place, {
+    required String text,
   }) async {
-    _ref.read(lastUsedFolderIdProvider.notifier).choose(folder.id);
+    _ref.read(lastUsedFolderIdProvider.notifier).choose(place.folder.id);
     final created = await _ref
-        .read(noteFilesProvider(folder))
-        .create(title, subfolder: subfolder);
+        .read(noteFilesProvider(place.folder))
+        .create(noteTitleLine(text), subfolder: place.subfolder, text: text);
     if (created is Ok) await _scans.refresh();
     return created;
   }

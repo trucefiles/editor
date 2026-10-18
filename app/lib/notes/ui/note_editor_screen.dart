@@ -41,13 +41,9 @@ import 'save_indicator.dart';
 /// Editor for one note, as plain text or as a checklist. Saves as the user
 /// types.
 class NoteEditorScreen extends ConsumerStatefulWidget {
-  const NoteEditorScreen(this.note, {this.autofocus = false, super.key});
+  const NoteEditorScreen(this.note, {super.key});
 
   final Note note;
-
-  /// Puts the cursor in the text right away, e.g. for a new note. Off by
-  /// default, so opening a note on a phone does not pop up the keyboard.
-  final bool autofocus;
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -77,10 +73,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// The note's last view on this device, else its first one.
   late NoteView _view =
       _settings.settingsOf(widget.note.key).view ??
-      NoteView.first(
-        hasItems: _checklist.list.hasItems,
-        typing: widget.autofocus,
-      );
+      NoteView.first(hasItems: _checklist.list.hasItems);
 
   @override
   void initState() {
@@ -391,7 +384,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           controller: _text,
           maxLines: null,
           expands: true,
-          autofocus: widget.autofocus,
           keyboardType: TextInputType.multiline,
           inputFormatters: [lineBreakFormatter],
           // The raw source, so monospace: Markdown syntax lines up as

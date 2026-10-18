@@ -12,6 +12,8 @@ import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_view.dart';
+import 'package:truce_editor/notes/quick/quick_note_place.dart';
+import 'package:truce_editor/notes/quick/quick_note_place_controller.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -94,9 +96,12 @@ void main() {
   test('create writes the note, remembers its folder and rescans', () async {
     await scans();
 
-    final note = (await actions.create('Plan', folders[1])).value;
+    final note = (await actions.create((
+      folder: folders[1],
+      subfolder: null,
+    ), text: 'Plan\nsteps\n')).value;
 
-    expect(file(home, 'Plan.md').readAsStringSync(), '# Plan\n');
+    expect(file(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
     expect(container.read(lastUsedFolderIdProvider), 'home');
     expect((await scans()).findNote(note.key), isNotNull);
   });
@@ -104,14 +109,46 @@ void main() {
   test('create puts the note in the chosen subfolder', () async {
     await scans();
 
-    final note = (await actions.create(
-      'Plan',
-      folders[0],
+    final note = (await actions.create((
+      folder: folders[0],
       subfolder: path('a/b'),
-    )).value;
+    ), text: '# Plan\n')).value;
 
     expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
     expect((await scans()).findNote(note.key)?.path, path('a/b/Plan.md'));
+  });
+
+  group('newNotePlace', () {
+    Future<void> setPlace(QuickNotePlace? place) =>
+        container.read(quickNotePlaceProvider.notifier).set(place);
+
+    test('is the default folder without a setting', () async {
+      await container.read(quickNotePlaceProvider.future);
+
+      expect(actions.newNotePlace(folders), (
+        folder: folders[0],
+        subfolder: null,
+      ));
+    });
+
+    test('is the place set, with a subfolder that is there', () async {
+      await noteIn(home, 'inbox/a.md', 'a');
+      await setPlace((folderId: 'home', subfolder: path('inbox')));
+
+      expect(actions.newNotePlace(folders), (
+        folder: folders[1],
+        subfolder: path('inbox'),
+      ));
+    });
+
+    test('falls back to the default for a folder not offered', () async {
+      await setPlace((folderId: 'home', subfolder: null));
+
+      expect(actions.newNotePlace([folders[0]]), (
+        folder: folders[0],
+        subfolder: null,
+      ));
+    });
   });
 
   test('delete removes the note; undo writes it back', () async {

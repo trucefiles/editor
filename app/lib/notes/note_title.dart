@@ -11,6 +11,21 @@ String noteTitle(String text, RelPath path) {
   return dot > 0 ? name.substring(0, dot) : name;
 }
 
+/// The first non-empty line of [text] as plain words, without Markdown
+/// block markers or a checkbox; empty if there is none. Names new notes.
+String noteTitleLine(String text) {
+  final line = Checklist.parse(text).lines
+      .where((line) => line.raw.trim().isNotEmpty)
+      .firstOrNull;
+  if (line == null) return '';
+  if (line.isItem) return line.text.trim();
+  return line.raw
+      .replaceFirst(_headingMarker, '')
+      .replaceFirst(_quoteMarker, '')
+      .replaceFirst(_bulletMarker, '')
+      .trim();
+}
+
 /// Up to [maxLines] non-empty lines after the title heading, for cards, in
 /// file order: checkbox items as `☐ text` or `☑ text` at their level, other
 /// lines without their Markdown block markers. With [hideDone], checked
