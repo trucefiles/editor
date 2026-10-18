@@ -351,10 +351,7 @@ void main() {
     test('blank lines keep a list together', () {
       final list = Checklist.parse('- [ ] a\n\n- [ ] b\n');
 
-      expect(
-        list.toggleAndSort(idOf(list, 'a')).text,
-        '\n- [ ] b\n- [x] a\n',
-      );
+      expect(list.toggleAndSort(idOf(list, 'a')).text, '\n- [ ] b\n- [x] a\n');
     });
 
     test('sortChecked moves all checked items below, in their order', () {
