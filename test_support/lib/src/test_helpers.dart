@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
@@ -11,4 +12,11 @@ Uint8List bytesOf(String text) => Uint8List.fromList(text.codeUnits);
 extension ResultUnwrap<T, E> on Result<T, E> {
   T get value => (this as Ok<T, E>).value;
   E get error => (this as Err<T, E>).error;
+}
+
+extension WriteCreatingFolders on File {
+  /// Writes [text], creating the folders on the file's path first.
+  void writeCreatingFolders(String text) => this
+    ..createSync(recursive: true)
+    ..writeAsStringSync(text);
 }

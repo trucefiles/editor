@@ -31,6 +31,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   truce_lints: any
+  truce_test_support: any
 
 flutter:
   uses-material-design: true

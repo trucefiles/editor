@@ -31,9 +31,8 @@ void main() {
     await container.read(folderSettingsStoreProvider).save([folderAt(dir)]);
   });
 
-  void write(String name, String text) => File('${dir.path}/$name')
-    ..createSync(recursive: true)
-    ..writeAsStringSync(text);
+  void write(String name, String text) =>
+      File('${dir.path}/$name')..writeCreatingFolders(text);
 
   List<String> files() =>
       [for (final entry in dir.listSync()) entry.uri.pathSegments.last]..sort();

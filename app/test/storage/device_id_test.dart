@@ -19,9 +19,7 @@ void main() {
 
   test('replaces a damaged id', () async {
     final storage = AppStorage(tempFolder().path);
-    File(storage.deviceIdPath)
-      ..createSync(recursive: true)
-      ..writeAsStringSync('../oops');
+    File(storage.deviceIdPath).writeCreatingFolders('../oops');
 
     expect(await loadDeviceId(storage), matches(RegExp(r'^[0-9a-f]{16}$')));
   });

@@ -4,14 +4,19 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
+import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/platform/platform_facts.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
+import 'package:truce_test_support/truce_test_support.dart' show path;
 
-RelPath path(String raw) => RelPath.parse(raw)!;
+export 'package:truce_test_support/truce_test_support.dart'
+    show ResultUnwrap, WriteCreatingFolders, bytesOf, path;
 
 /// A fresh temp folder, deleted after the test.
 Directory tempFolder() {
@@ -25,6 +30,21 @@ NoteFolder folderAt(Directory dir, {String id = 'f1'}) => NoteFolder(
   path: dir.path,
   name: 'Notes',
   color: const Color(0xFF009688),
+);
+
+/// A note held in memory, never read from a file.
+Note noteOf(
+  NoteFolder folder,
+  String text, {
+  String name = 'a.md',
+  int version = 0,
+  DateTime? modified,
+}) => Note(
+  folder: folder,
+  path: path(name),
+  file: const TextFile.empty().withText(text),
+  version: FileVersion(version),
+  modified: modified ?? DateTime(2000),
 );
 
 /// Services for [folder], with backups in their own temp folder.
@@ -42,8 +62,7 @@ PlatformFacts hostFacts() =>
 /// Drafts in their own temp folder.
 NoteDrafts tempDrafts() => NoteDrafts(tempFolder());
 
-/// Unwraps results in tests; a wrong variant fails with a cast error.
-extension ResultUnwrap<T, E> on Result<T, E> {
-  T get value => (this as Ok<T, E>).value;
-  E get error => (this as Err<T, E>).error;
+extension RescanNow on NoteEditSession {
+  /// Hands the session a rescan that starts now; see [onRescan].
+  bool rescanNow(Note? latest) => onRescan(latest, scannedAt: Moment.now());
 }

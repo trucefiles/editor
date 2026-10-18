@@ -118,9 +118,7 @@ void main() {
     test(
       'goes into its subfolder, with a number if the name is taken',
       () async {
-        File('${dir.path}/inbox/Milk.md')
-          ..createSync(recursive: true)
-          ..writeAsStringSync('other');
+        File('${dir.path}/inbox/Milk.md').writeCreatingFolders('other');
         await leaveNew('inbox/Milk.md', 'Milk\n');
 
         await recovery.recover(before: later);

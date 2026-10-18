@@ -38,9 +38,7 @@ void main() {
   });
 
   test('reads the views older versions saved', () async {
-    file
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync('{"f1/a.md": "list"}');
+    file.writeCreatingFolders('{"f1/a.md": "list"}');
 
     expect(await store.load(), {
       'f1/a.md': const NoteSettings(view: NoteView.list),
@@ -48,12 +46,10 @@ void main() {
   });
 
   test('reads the Done section older versions saved', () async {
-    file
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync(
-        '{"f1/a.md": {"pinned": true, "doneSection": false}, '
-        '"f1/b.md": {"pinned": false, "doneSection": true}}',
-      );
+    file.writeCreatingFolders(
+      '{"f1/a.md": {"pinned": true, "doneSection": false}, '
+      '"f1/b.md": {"pinned": false, "doneSection": true}}',
+    );
 
     expect(await store.load(), {
       'f1/a.md': const NoteSettings(
@@ -65,13 +61,11 @@ void main() {
   });
 
   test('ignores a damaged file and entries it cannot read', () async {
-    file
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync(
-        '{"f1/a.md": "list", "f1/b.md": "grid", '
-        '"f1/c.md": {"pinned": 1, "doneSection": true}, '
-        '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
-      );
+    file.writeCreatingFolders(
+      '{"f1/a.md": "list", "f1/b.md": "grid", '
+      '"f1/c.md": {"pinned": 1, "doneSection": true}, '
+      '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
+    );
     expect(await store.load(), {
       'f1/a.md': const NoteSettings(view: NoteView.list),
       'f1/d.md': const NoteSettings(pinned: true),

@@ -202,9 +202,8 @@ void main() {
 /// A Syncthing folder `Notes` with the tool's own files, files and folders
 /// the app does not show, a link to a folder outside, and files next to it.
 void _populate(Directory base) {
-  void write(String path, String text) => (File(
-    '${base.path}/$path',
-  )..createSync(recursive: true)).writeAsStringSync(text);
+  void write(String path, String text) =>
+      File('${base.path}/$path').writeCreatingFolders(text);
 
   Directory('${base.path}/Notes/.stfolder').createSync();
   write('Notes/.stignore', '// ignore nothing\n');

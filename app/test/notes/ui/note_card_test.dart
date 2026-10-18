@@ -1,21 +1,18 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/ui/note_card.dart';
 
 import '../../support.dart';
 
 void main() {
-  Note note(String text) => Note(
-    folder: folderAt(Directory.systemTemp),
-    path: path('note.md'),
-    file: TextFile.decode(Uint8List.fromList(utf8.encode(text)))!,
-    version: const FileVersion(1),
+  Note note(String text) => noteOf(
+    folderAt(Directory.systemTemp),
+    text,
+    name: 'note.md',
+    version: 1,
     modified: DateTime(2026, 10, 14),
   );
 

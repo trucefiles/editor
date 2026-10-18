@@ -34,9 +34,7 @@ void main() {
   Future<FolderScans> scans() => container.read(folderScansProvider.future);
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
-    final file = File('${dir.path}/$name')
-      ..createSync(recursive: true)
-      ..writeAsStringSync(text);
+    final file = File('${dir.path}/$name')..writeCreatingFolders(text);
     if (modified != null) file.setLastModifiedSync(modified);
   }
 

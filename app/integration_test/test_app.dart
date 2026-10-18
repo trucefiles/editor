@@ -10,6 +10,7 @@ import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_store.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
 /// [notes] instead of opening the system dialog.
@@ -50,9 +51,25 @@ final class TestApp {
   File file(String name) => File('${notes.path}/$name');
 
   /// Writes [text] to [name], creating its subfolders.
-  void write(String name, String text) => file(name)
-    ..createSync(recursive: true)
-    ..writeAsStringSync(text);
+  void write(String name, String text) =>
+      file(name)..writeCreatingFolders(text);
+
+  /// [name] may lead through subfolders.
+  Directory folder(String name) => Directory('${notes.path}/$name');
+
+  /// The files at the top of the notes folder.
+  Iterable<File> get topFiles => notes.listSync().whereType<File>();
+
+  /// The names of what [folder] holds, files and folders.
+  List<String> namesIn(Directory folder) => [
+    for (final entry in folder.listSync()) entry.uri.pathSegments.last,
+  ];
+
+  /// The sync conflict copies in [folder].
+  List<File> conflictCopies(Directory folder) => [
+    for (final file in folder.listSync().whereType<File>())
+      if (file.path.contains('.sync-conflict-')) file,
+  ];
 }
 
 final class _FixedPicker implements FolderPicker {

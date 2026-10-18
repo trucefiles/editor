@@ -94,9 +94,7 @@ void main() {
           'a.sync-conflict-20261003-134809-ABCDEFG.md',
           '.truce/marks/laptop.json',
         ]) {
-          File('${folder.path}/$file')
-            ..parent.createSync(recursive: true)
-            ..writeAsStringSync('a');
+          File('${folder.path}/$file').writeCreatingFolders('a');
         }
         await Future<void>.delayed(const Duration(milliseconds: 500));
 
