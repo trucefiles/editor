@@ -1,11 +1,11 @@
 name: Release
 
 # Builds the signed APK and the Flatpak and publishes them as a GitHub Release
-# for the pubspec version. Starts either from a pushed version tag (vX.Y.Z), or
-# by hand on main ("Run workflow"), which creates the tag on publish. Only the
-# publish job can write to the repository; only the Android job, in the
-# "release" environment, can read the signing key. Nothing is built before
-# the checks pass.
+# for the pubspec version. Starts either from a version tag (vX.Y.Z), pushed or
+# by hand on the tag (as Pre-release does), or by hand on main ("Run
+# workflow"), which creates the tag on publish. Only the publish job can write
+# to the repository; only the Android job, in the "release" environment, can
+# read the signing key. Nothing is built before the checks pass.
 on:
   push:
     tags: ['v*']
@@ -35,7 +35,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="v$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)"
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+          # Started from a tag: pushed, or by hand on a tag (Pre-release).
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "$GITHUB_REF_NAME" != "$tag" ]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match app version $tag"
+              exit 1
+            fi
+          else
             if [ "$GITHUB_REF" != refs/heads/main ]; then
               echo "::error::Start releases from main only"
               exit 1
@@ -47,9 +53,6 @@ jobs:
               echo "::error::Couldn't check whether $tag exists: $lookup"
               exit 1
             fi
-          elif [ "$GITHUB_REF_NAME" != "$tag" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match app version $tag"
-            exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Check the release notes for the stores
@@ -177,8 +180,12 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           sha256sum -- * > SHA256SUMS
+          # A version with a suffix (0.7.0-beta.1) is a pre-release, never
+          # the latest release.
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
           # Creates the tag on the built commit when it doesn't exist yet.
-          gh release create "$TAG" \
+          gh release create "$TAG" "${prerelease[@]}" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Truce Editor $TAG" --generate-notes \
             -- *
