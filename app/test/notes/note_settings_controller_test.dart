@@ -9,7 +9,7 @@ import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
-import 'package:truce_editor/notes/note_view.dart';
+import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
@@ -33,39 +33,39 @@ void main() {
   Future<Map<String, NoteSettings>> saved() =>
       container.read(noteSettingsStoreProvider).load();
 
-  Future<void> remember(NoteKey note, NoteView view) =>
-      views.edit(note, (settings) => settings.withView(view));
+  Future<void> remember(NoteKey note, NoteMode view) =>
+      views.edit(note, (settings) => settings.withMode(view));
 
-  NoteView? viewOf(NoteKey note) => views.settingsOf(note).view;
+  NoteMode? viewOf(NoteKey note) => views.settingsOf(note).mode;
 
   test('views remembered at the same time are all kept', () async {
     await Future.wait([
-      remember(a, NoteView.text),
-      remember(b, NoteView.rendered),
+      remember(a, NoteMode.markdown),
+      remember(b, NoteMode.read),
     ]);
 
     final expected = {
-      NoteSettingsStore.storeKey(a): NoteSettings(view: NoteView.text),
-      NoteSettingsStore.storeKey(b): NoteSettings(view: NoteView.rendered),
+      NoteSettingsStore.storeKey(a): NoteSettings(mode: NoteMode.markdown),
+      NoteSettingsStore.storeKey(b): NoteSettings(mode: NoteMode.read),
     };
     expect(container.read(noteSettingsProvider).value, expected);
     expect(await saved(), expected);
   });
 
   test('forget drops the view of a note', () async {
-    await remember(a, NoteView.text);
-    await remember(b, NoteView.rendered);
+    await remember(a, NoteMode.markdown);
+    await remember(b, NoteMode.read);
 
     await views.forget(a);
 
     expect(viewOf(a), isNull);
     expect(await saved(), {
-      NoteSettingsStore.storeKey(b): NoteSettings(view: NoteView.rendered),
+      NoteSettingsStore.storeKey(b): NoteSettings(mode: NoteMode.read),
     });
   });
 
   test('keeps pin and checked items with the view', () async {
-    await remember(a, NoteView.list);
+    await remember(a, NoteMode.visual);
     await views.edit(a, (settings) => settings.withPinned(pinned: true));
     await views.edit(
       a,
@@ -73,7 +73,7 @@ void main() {
     );
 
     const expected = NoteSettings(
-      view: NoteView.list,
+      mode: NoteMode.visual,
       pinned: true,
       checkedItems: CheckedItems.toEnd,
     );
@@ -120,31 +120,31 @@ void main() {
 
     test('drops views of notes and folders that are gone', () async {
       final kept = noteAt(work, 'kept.md');
-      await remember(kept.key, NoteView.list);
-      await remember(noteAt(work, 'gone.md').key, NoteView.text);
-      await remember((folderId: 'removed', path: path('a.md')), NoteView.text);
+      await remember(kept.key, NoteMode.visual);
+      await remember(noteAt(work, 'gone.md').key, NoteMode.markdown);
+      await remember((folderId: 'removed', path: path('a.md')), NoteMode.markdown);
 
       await views.prune(scans([kept]));
 
       expect(await saved(), {
-        NoteSettingsStore.storeKey(kept.key): NoteSettings(view: NoteView.list),
+        NoteSettingsStore.storeKey(kept.key): NoteSettings(mode: NoteMode.visual),
       });
     });
 
     test('keeps views of folders that could not be scanned', () async {
       final unread = noteAt(home, 'a.md');
-      await remember(unread.key, NoteView.rendered);
+      await remember(unread.key, NoteMode.read);
 
       await views.prune(scans([], failed: {home: StoreError.ioFailure}));
 
-      expect(viewOf(unread.key), NoteView.rendered);
+      expect(viewOf(unread.key), NoteMode.read);
     });
 
     test('keeps views below subfolders that could not be read', () async {
       final hidden = noteAt(work, 'private/a.md');
       final gone = noteAt(work, 'privateer.md');
-      await remember(hidden.key, NoteView.rendered);
-      await remember(gone.key, NoteView.text);
+      await remember(hidden.key, NoteMode.read);
+      await remember(gone.key, NoteMode.markdown);
 
       await views.prune(
         scans(
@@ -155,17 +155,17 @@ void main() {
         ),
       );
 
-      expect(viewOf(hidden.key), NoteView.rendered);
+      expect(viewOf(hidden.key), NoteMode.read);
       expect(viewOf(gone.key), isNull);
     });
 
     test('keeps views of notes whose files could not be read', () async {
       final unread = noteAt(work, 'a.md');
-      await remember(unread.key, NoteView.rendered);
+      await remember(unread.key, NoteMode.read);
 
       await views.prune(scans([], unreadNotes: {unread.key}));
 
-      expect(viewOf(unread.key), NoteView.rendered);
+      expect(viewOf(unread.key), NoteMode.read);
     });
   });
 }

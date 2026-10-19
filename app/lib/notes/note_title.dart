@@ -33,7 +33,7 @@ String noteTitleLine(String text) {
 /// `+ 3 done`.
 String notePreview(String text, {int maxLines = 6, bool hideDone = false}) {
   final list = MarkdownLines.parse(text);
-  final done = hideDone ? list.doneIds : const <int>{};
+  final done = hideDone ? list.doneIds : const <LineId>{};
   final shown = list.lines
       .where((line) => line.raw.trim().isNotEmpty && !done.contains(line.id))
       .skipWhile((line) => _heading.hasMatch(line.raw))
