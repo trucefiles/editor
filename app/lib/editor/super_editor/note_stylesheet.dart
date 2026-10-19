@@ -13,14 +13,14 @@ Stylesheet noteStylesheet(ThemeData theme, {required bool monospace}) {
     fontFamily: monospace ? 'monospace' : null,
   );
   return Stylesheet(
-    documentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+    documentPadding: _documentPadding,
     rules: [
       StyleRule(
         BlockSelector.all,
         (document, node) => {
           Styles.padding: const CascadingPadding.symmetric(
-            horizontal: 16,
-            vertical: 2,
+            horizontal: _lineInset,
+            vertical: _lineGap,
           ),
           Styles.textStyle: base,
         },
@@ -31,6 +31,16 @@ Stylesheet noteStylesheet(ThemeData theme, {required bool monospace}) {
     selectedTextColorStrategy: defaultSelectedTextColorStrategy,
   );
 }
+
+const _documentPadding = EdgeInsets.fromLTRB(0, 8, 0, 88);
+const _lineInset = 16.0;
+const _lineGap = 2.0;
+
+/// Where the text of a note's first line starts.
+final noteFirstLinePadding = EdgeInsets.only(
+  left: _lineInset,
+  top: _documentPadding.top + _lineGap,
+);
 
 /// Selection colors in [theme].
 SelectionStyles noteSelectionStyles(ThemeData theme) => SelectionStyles(

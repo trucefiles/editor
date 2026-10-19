@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../common/snack.dart';
-import '../checklist_editor.dart';
+import '../note_document_controller.dart';
 
-/// Shows [message] on [messenger] with an undo for the action of [editor]
-/// that returned [undo]; tells if the checklist changed since.
-void showChecklistUndoHint(
+/// Shows [message] on [messenger] with an undo for the action of [note]
+/// that returned [undo]; tells if the note changed since.
+void showUndoHint(
   ScaffoldMessengerState messenger,
-  ChecklistEditor editor,
+  NoteDocumentController note,
   String message,
-  ChecklistUndo undo,
+  EditUndo undo,
 ) => messenger.showHint(
   message,
   actionLabel: 'Undo',
   onAction: () {
-    if (!editor.undo(undo)) {
+    if (!note.undo(undo)) {
       messenger.showHint("Can't undo: the note changed since.");
     }
   },

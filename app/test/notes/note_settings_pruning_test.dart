@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/notes/note.dart';
+import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_pruning.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
@@ -43,13 +43,13 @@ void main() {
         ..set(active: false);
       container.listen(noteSettingsPruningProvider, (_, _) {});
       await container.read(noteSettingsPruningProvider.future);
-      expect(views.settingsOf(key('gone.md').mode, NoteMode.markdown);
+      expect(views.settingsOf(key('gone.md')).mode, NoteMode.markdown);
 
       activity.set(active: true);
       await container.read(noteSettingsPruningProvider.future);
 
-      expect(views.settingsOf(key('gone.md').mode, isNull);
-      expect(views.settingsOf(key('kept.md').mode, NoteMode.visual);
+      expect(views.settingsOf(key('gone.md')).mode, isNull);
+      expect(views.settingsOf(key('kept.md')).mode, NoteMode.visual);
     },
   );
 }

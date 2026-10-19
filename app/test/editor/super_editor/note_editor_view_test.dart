@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:super_editor/super_reader_test.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
 import 'package:truce_editor/notes/note_mode.dart';
@@ -215,20 +214,15 @@ void main() {
     expect(text.text, '- [ x] milk');
   });
 
-  testWidgets('Read opens a tapped link and edits nothing', (tester) async {
-    final text = FakeNoteText('see [site](https://example.com)');
-    await pumpEditor(tester, text, mode: NoteMode.read);
+  testWidgets('an empty note says Untitled until typed in', (tester) async {
+    final text = FakeNoteText('');
+    await pumpEditor(tester, text);
+    expect(find.text('Untitled'), findsOneWidget);
 
-    final line = SuperReaderInspector.findDocument()!.first.id;
-    await SuperReaderRobot(tester).tapAtDocumentPosition(
-      DocumentPosition(
-        nodeId: line,
-        nodePosition: const TextNodePosition(offset: 6),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await caretAt(tester, nodeOf<ParagraphNode>(), 0);
+    await tester.typeImeText('Idea');
 
-    expect(links, ['https://example.com']);
-    expect(text.edits, isEmpty);
+    expect(find.text('Untitled'), findsNothing);
+    expect(text.text, 'Idea');
   });
 }

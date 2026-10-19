@@ -6,10 +6,10 @@ import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/checked_items.dart';
 import 'package:truce_editor/notes/note.dart';
+import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
@@ -122,12 +122,17 @@ void main() {
       final kept = noteAt(work, 'kept.md');
       await remember(kept.key, NoteMode.visual);
       await remember(noteAt(work, 'gone.md').key, NoteMode.markdown);
-      await remember((folderId: 'removed', path: path('a.md')), NoteMode.markdown);
+      await remember((
+        folderId: 'removed',
+        path: path('a.md'),
+      ), NoteMode.markdown);
 
       await views.prune(scans([kept]));
 
       expect(await saved(), {
-        NoteSettingsStore.storeKey(kept.key): NoteSettings(mode: NoteMode.visual),
+        NoteSettingsStore.storeKey(kept.key): NoteSettings(
+          mode: NoteMode.visual,
+        ),
       });
     });
 

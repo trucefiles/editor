@@ -4,6 +4,7 @@ import 'package:super_editor/super_editor.dart';
 import '../../notes/note_mode.dart';
 import '../note_document_controller.dart';
 import '../text_format.dart';
+import '../ui/empty_note_hint.dart';
 import '../ui/format_toolbar.dart';
 import '../ui/link_dialog.dart';
 import 'apply_format.dart';
@@ -130,10 +131,16 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       ),
       contentTapDelegateFactories: const [],
     );
-    if (!visual) return editor;
+    final hinted = Stack(
+      children: [
+        editor,
+        EmptyNoteHint(widget.note, padding: noteFirstLinePadding),
+      ],
+    );
+    if (!visual) return hinted;
     return Column(
       children: [
-        Expanded(child: editor),
+        Expanded(child: hinted),
         FormatToolbar(onFormat: _format, onStartList: adapter.startList),
       ],
     );

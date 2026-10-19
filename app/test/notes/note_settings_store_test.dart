@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/checked_items.dart';
+import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 
 import '../support.dart';
 
