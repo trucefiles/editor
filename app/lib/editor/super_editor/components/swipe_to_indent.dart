@@ -44,7 +44,9 @@ class _KeepMouseDrags extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Listener(
     // Runs before the enclosing swipe's listener: deeper widgets get
-    // pointer events first.
+    // pointer events first. Hit anywhere on the child: text may not take
+    // hits itself.
+    behavior: HitTestBehavior.translucent,
     onPointerDown: (event) {
       if (event.kind == PointerDeviceKind.mouse) {
         context.findAncestorStateOfType<_SwipeToIndentState>()?._kept =
@@ -111,6 +113,8 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   @override
   Widget build(BuildContext context) {
     return Listener(
+      // Hit anywhere on the row: text may not take hits itself.
+      behavior: HitTestBehavior.translucent,
       onPointerDown: _onDown,
       onPointerMove: _onMove,
       onPointerUp: _onUp,
