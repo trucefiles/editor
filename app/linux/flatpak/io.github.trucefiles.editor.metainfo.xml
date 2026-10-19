@@ -19,6 +19,19 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.0" date="2026-10-19">
+      <description>
+        <ul>
+          <li>New editor: Visual edit shows a note as it reads, with the Markdown marks only on the line you edit; Markdown edit and Read too.</li>
+          <li>Lists of checkboxes, bullets and numbers, each with a Done section and an "Add item" button; drag to move, sideways to indent.</li>
+          <li>Format bar: bold, italic, link, heading, and list buttons that turn lines into a list and back.</li>
+          <li>New notes open right away to type; tap the place chip to move or rename a note.</li>
+          <li>Checked items per note: in place, in a Done section or moved to the end.</li>
+          <li>Settings screen with clearer names.</li>
+          <li>Linux: --background starts the app in the tray.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.0-beta.2" date="2026-10-19" type="development">
       <description>
         <ul>

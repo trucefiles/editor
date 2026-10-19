@@ -1,0 +1,7 @@
+- New editor: Visual edit (marks only on the edited line), Markdown edit, Read
+- Lists of checkboxes, bullets and numbers with Done section and "Add item"
+- Drag to move, sideways to indent
+- Format bar with list buttons
+- New notes open right away; tap the place chip to move or rename
+- Checked items: in place, Done section or at the end
+- Settings screen with clearer names
