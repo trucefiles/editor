@@ -132,6 +132,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       checkedItems: _settingsNow.checkedItems,
       addItems: ref.read(addItemPlaceProvider).value ?? AddItemPlace.top,
     );
+    _shownLook = _sessionLook;
     _open.addListener(_onOpenChanged);
     _lifecycle = AppLifecycleListener(
       onHide: _open.secure,
@@ -175,7 +176,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Object get _sessionLook =>
       (_open.state, _open.note?.key, _open.path, _open.pending != null);
 
-  late Object _shownLook = _sessionLook;
+  late Object _shownLook;
 
   /// The mode the note shows in: Read while it can't be edited.
   NoteMode get _shownMode => _isReadOnly ? NoteMode.read : _mode;
