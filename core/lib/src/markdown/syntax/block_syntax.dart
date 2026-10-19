@@ -94,6 +94,18 @@ final class ItemSyntax {
   final String? delimiter;
 }
 
+/// A list item line's kind, and where its marker (after the indent) and
+/// its text start.
+({ListKind kind, int markStart, int textStart})? itemMark(String line) =>
+    switch (ItemSyntax.of(line)) {
+      final item? => (
+        kind: item.kind,
+        markStart: item.markStart,
+        textStart: item.textStart,
+      ),
+      null => null,
+    };
+
 /// A heading line's level and where its text starts after the `#` marks:
 /// up to three spaces, one to six `#`, then whitespace or the line's end.
 ({int level, int textStart})? headingMark(String line) =>

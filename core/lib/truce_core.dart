@@ -67,7 +67,7 @@ export 'src/markdown/markdown_line.dart';
 export 'src/markdown/markdown_lines.dart';
 export 'src/markdown/start_list.dart';
 export 'src/markdown/syntax/block_syntax.dart'
-    show ListKind, headingMark, quoteTextStart;
+    show ListKind, headingMark, itemMark, quoteTextStart;
 export 'src/markdown/syntax/inline_markup.dart';
 export 'src/markdown/syntax/line_kinds.dart';
 export 'src/markdown/syntax/line_markup.dart';
