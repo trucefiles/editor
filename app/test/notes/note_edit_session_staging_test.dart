@@ -146,7 +146,12 @@ void main() {
       );
 
       broken.edit('# a\nmine');
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Waits for the write, not a fixed time: a busy test machine can
+      // take longer.
+      for (var i = 0; i < 100 && broken.state != EditState.saved; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
 
       expect(fx.onDisk(), '# a\nmine');
       expect(broken.state, EditState.saved);
