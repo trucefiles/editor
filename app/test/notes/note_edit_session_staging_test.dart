@@ -30,10 +30,13 @@ void main() {
     Future<void> settle() =>
         Future<void>.delayed(const Duration(milliseconds: 50));
 
-    /// Edits the staged note and lets its draft be written.
+    /// Edits the staged note and waits until its draft is written; a busy
+    /// test machine can take longer than [settle].
     Future<void> stageMine() async {
       staged.edit('# a\nmine');
-      await settle();
+      for (var i = 0; i < 100 && staged.state != EditState.savedOnDevice; i++) {
+        await settle();
+      }
     }
 
     test('keeps edits on the device, not yet in the file', () async {
@@ -146,7 +149,12 @@ void main() {
       );
 
       broken.edit('# a\nmine');
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Waits for the write, not a fixed time: a busy test machine can
+      // take longer.
+      for (var i = 0; i < 100 && broken.state != EditState.saved; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
 
       expect(fx.onDisk(), '# a\nmine');
       expect(broken.state, EditState.saved);

@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../editor/note_text.dart';
 import '../folders/note_folder.dart';
 import 'new_note_session.dart';
 import 'note.dart';
 import 'note_edit_session.dart';
-import 'note_text.dart';
 
 /// The note open in the editor, new or with a file: a new note is kept by
 /// a [NewNoteSession] until its first write creates the file, then by a

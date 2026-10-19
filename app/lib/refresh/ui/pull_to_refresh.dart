@@ -55,9 +55,13 @@ class _PullToRefreshState extends State<PullToRefresh> {
     super.didChangeDependencies();
     final ambient = ScrollConfiguration.of(context);
     _scrolling = ambient.copyWith(
+      // Pulls down even when the content fits, e.g. a short note in a
+      // scroll view the child builds itself.
       physics: PullHoldPhysics(
         _hold,
-        parent: ambient.getScrollPhysics(context),
+        parent: AlwaysScrollableScrollPhysics(
+          parent: ambient.getScrollPhysics(context),
+        ),
       ),
     );
   }

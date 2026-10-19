@@ -1,0 +1,8 @@
+Beta:
+- New editor: Visual edit (marks only on the edited line), Markdown edit, Read
+- Lists of bullets, numbers and checkboxes, each with Done section and add buttons
+- Format bar; links open on tap
+- New notes open right away to type
+- Tap the place chip to move or rename a note
+- Checked items per note: in place, Done section or at the end; previews show "+ N done"
+- Settings screen

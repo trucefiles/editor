@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_robots/flutter_test_robots.dart';
+import 'package:super_editor/super_editor.dart';
+import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'test_app.dart';
@@ -32,16 +36,32 @@ extension AppSteps on WidgetTester {
     timeout: timeout,
   );
 
-  /// Switches an open note that is no list from Rendered to Source.
-  Future<void> showSource() async {
-    await tapAndSettle(find.byTooltip('View: Rendered'));
-    await tapAndSettle(find.text('Source'));
+  /// Switches the open note to the mode labeled [mode], e.g. 'Read'.
+  Future<void> chooseMode(String mode) async {
+    await tapAndSettle(
+      find.byWidgetPredicate((widget) => widget is PopupMenuButton<NoteMode>),
+    );
+    await tapAndSettle(find.text(mode).last);
   }
 
-  /// Switches an open checklist from List to Source.
-  Future<void> showListSource() async {
-    await tapAndSettle(find.byTooltip('View: List'));
-    await tapAndSettle(find.text('Source'));
+  /// Types [text] over the open note's whole text, in Markdown edit.
+  Future<void> typeOver(String text) async {
+    if (find.byTooltip('Mode: Markdown edit').evaluate().isEmpty) {
+      await chooseMode('Markdown edit');
+    }
+    await tapAndSettle(find.byType(SuperEditor));
+    await pressCtlA();
+    await pressBackspace();
+    await typeLines(text);
+  }
+
+  /// Types [text] where the caret is, with Enter for each line break, as
+  /// on a desktop keyboard.
+  Future<void> typeLines(String text) async {
+    for (final (index, line) in text.split('\n').indexed) {
+      if (index > 0) await pressEnter();
+      if (line.isNotEmpty) await typeImeText(line);
+    }
   }
 
   /// Picks [item] in the screen's menu.
@@ -52,15 +72,15 @@ extension AppSteps on WidgetTester {
 
   /// Sets the open note's "Checked items" choice, from the default.
   Future<void> chooseCheckedItems(String choice) async {
-    await chooseInMenu('Checked items: Done section');
+    await chooseInMenu('Checked items: Show at end');
     await tapAndSettle(find.text(choice));
   }
 
-  /// Starts a new note and types [text] into it.
+  /// Starts a new note and types [text] into it, where the caret waits.
   Future<void> typeNewNote(String text) async {
     await tapAndSettle(find.byTooltip('New note'));
     await waitFor(find.byTooltip(placeAndName));
-    await enterText(find.byType(TextField), text);
+    await typeLines(text);
   }
 
   /// Picks [subfolder] in the open place-and-name dialog.

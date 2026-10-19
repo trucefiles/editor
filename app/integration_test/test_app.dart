@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -81,3 +82,13 @@ final class _FixedPicker implements FolderPicker {
   @override
   Future<Result<String?, PickError>> pick() async => Ok(_path);
 }
+
+/// A test of the app, [body]; then takes the app down and runs one more
+/// frame, for the work widgets schedule as they go (the editor lets go of
+/// the keyboard a frame later), before Flutter checks that none is left.
+void testApp(String description, WidgetTesterCallback body) =>
+    testWidgets(description, (tester) async {
+      await body(tester);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });

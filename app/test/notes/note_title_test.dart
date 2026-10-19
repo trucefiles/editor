@@ -12,6 +12,11 @@ void main() {
       );
     });
 
+    test('reads headings as the editor does: not in code, up to 3 spaces', () {
+      expect(noteTitle('```\n# Code\n```\n   # Plan', path('a.md')), 'Plan');
+      expect(noteTitle('    # Code', path('a.md')), 'a');
+    });
+
     test('falls back to the file name without extension', () {
       expect(
         noteTitle('## Sub\ntext', path('lists/Groceries.md')),

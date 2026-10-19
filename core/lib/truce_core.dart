@@ -19,7 +19,10 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `markdown`: Markdown documents as line-level edits ([Checklist]).
+/// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines]),
+///     what an editor shows of them ([Arrangement]), the single mapping
+///     from editor blocks back to lines ([ApplyBlockEdits]) and how their
+///     Markdown shows (`syntax`: [lineMarkup], [VisualLine]).
 /// 11. `marks`: colors of notes, synced inside the folder
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
@@ -55,7 +58,21 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
-export 'src/markdown/checklist.dart';
+export 'src/markdown/block.dart';
+export 'src/markdown/block_edit.dart';
+export 'src/markdown/display_arrangement.dart';
+export 'src/markdown/formatting.dart';
+export 'src/markdown/line_id.dart';
+export 'src/markdown/list_conversion.dart';
+export 'src/markdown/markdown_line.dart';
+export 'src/markdown/markdown_lines.dart';
+export 'src/markdown/syntax/block_syntax.dart'
+    show ListKind, headingMark, itemMark, quoteTextStart;
+export 'src/markdown/syntax/inline_markup.dart';
+export 'src/markdown/syntax/line_kinds.dart';
+export 'src/markdown/syntax/line_markup.dart';
+export 'src/markdown/syntax/markup.dart';
+export 'src/markdown/syntax/visual_line.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
 export 'src/reach/folder_reach.dart';

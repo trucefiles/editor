@@ -67,8 +67,11 @@ void main() {
     await settle(tester, until: () => window.hideOnClose == hideOnClose);
   }
 
-  bool switchedOn(WidgetTester tester) =>
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value;
+  bool switchedOn(WidgetTester tester) => tester
+      .widget<SwitchListTile>(
+        find.widgetWithText(SwitchListTile, 'Keep running in tray'),
+      )
+      .value;
 
   testWidgets('turns keeping running in the tray off and on', (tester) async {
     await pumpSettings(tester);

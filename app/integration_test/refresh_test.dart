@@ -23,7 +23,7 @@ void main() {
     findRichText: true,
   );
 
-  testWidgets('shows a change made by another app', (tester) async {
+  testApp('shows a change made by another app', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -39,7 +39,7 @@ void main() {
     );
   });
 
-  testWidgets('shows a change made before the note opened', (tester) async {
+  testApp('shows a change made before the note opened', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -51,7 +51,7 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
-  testWidgets('the refresh button shows new notes', (tester) async {
+  testApp('the refresh button shows new notes', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     await tester.addFolder(app);
     await tester.waitFor(find.byTooltip('New note'));
@@ -62,7 +62,7 @@ void main() {
     await tester.waitFor(find.text('New'));
   });
 
-  testWidgets('pulling the grid down shows new notes', (tester) async {
+  testApp('pulling the grid down shows new notes', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('old.md', '# Old\n');
     await tester.addFolder(app);
@@ -75,9 +75,7 @@ void main() {
     await tester.waitFor(find.text('New'));
   });
 
-  testWidgets('the refresh button in an open note shows a change', (
-    tester,
-  ) async {
+  testApp('the refresh button in an open note shows a change', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -89,7 +87,7 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
-  testWidgets('shows new notes and changes live, without refreshing', (
+  testApp('shows new notes and changes live, without refreshing', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
@@ -104,7 +102,7 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
-  testWidgets('switches to manual refresh in the settings', (tester) async {
+  testApp('switches to manual refresh in the settings', (tester) async {
     await tester.addFolder(app);
     await tester.waitFor(find.byTooltip('New note'));
 
@@ -124,9 +122,7 @@ void main() {
     expect(find.text('New'), findsNothing);
   });
 
-  testWidgets('never writes back a change shown in the open note', (
-    tester,
-  ) async {
+  testApp('never writes back a change shown in the open note', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] milk\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
@@ -149,15 +145,15 @@ void main() {
       expect(file.lastModifiedSync(), from);
     }
 
-    // The list view, then the text view.
+    // Visual edit, then Markdown edit.
     await changeElsewhere(
       '# Todo\n- [x] milk\n- [ ] eggs\n',
-      find.text('eggs'),
+      find.text('eggs', findRichText: true),
     );
-    await tester.showListSource();
+    await tester.chooseMode('Markdown edit');
     await changeElsewhere(
       '# Todo\n- [x] milk\n- [ ] eggs\n- [ ] tea\n',
-      find.textContaining('tea'),
+      find.textContaining('tea', findRichText: true),
     );
   });
 }

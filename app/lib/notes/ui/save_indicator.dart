@@ -4,11 +4,20 @@ import '../note_edit_session.dart';
 
 /// App bar icon telling where an open note's edits are: being edited,
 /// saved on this device, or saved in the note's file in the folder. While
-/// they are saved on this device only, tapping it calls [onSave].
+/// they are saved on this device only, tapping it calls [onSave]. A note
+/// with no file yet shows as being edited: nothing is in the folder.
 class SaveIndicator extends StatelessWidget {
-  const SaveIndicator(this.state, {required this.onSave, super.key});
+  const SaveIndicator(
+    this.state, {
+    required this.hasFile,
+    required this.onSave,
+    super.key,
+  });
 
   final EditState state;
+
+  /// Whether the note has its file in the folder.
+  final bool hasFile;
 
   /// Saves the edits in the note's file now.
   final VoidCallback onSave;
@@ -16,6 +25,7 @@ class SaveIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, label) = switch (state) {
+      EditState.saved when !hasFile => (Icons.edit_outlined, 'Editing…'),
       EditState.saved => (Icons.cloud_done_outlined, 'Saved in the folder'),
       EditState.savedOnDevice => (
         Icons.save_outlined,

@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/notes/checked_items.dart';
+import 'package:truce_editor/editor/checked_items.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
-import 'package:truce_editor/notes/note_view.dart';
 
 import '../support.dart';
 
@@ -27,7 +27,7 @@ void main() {
       path: path('a.md'),
     ));
     const settings = NoteSettings(
-      view: NoteView.text,
+      mode: NoteMode.markdown,
       pinned: true,
       checkedItems: CheckedItems.toEnd,
     );
@@ -37,11 +37,20 @@ void main() {
     expect(await store.load(), {key: settings, 'f1/b.md': NoteSettings()});
   });
 
-  test('reads the views older versions saved', () async {
-    file.writeCreatingFolders('{"f1/a.md": "list"}');
+  test('reads the views older versions saved, as their modes', () async {
+    file.writeCreatingFolders(
+      '{"f1/a.md": "list", "f1/b.md": "text", '
+      '"f1/c.md": {"view": "rendered", "pinned": true, "checked": "inPlace"}}',
+    );
 
     expect(await store.load(), {
-      'f1/a.md': const NoteSettings(view: NoteView.list),
+      'f1/a.md': const NoteSettings(mode: NoteMode.visual),
+      'f1/b.md': const NoteSettings(mode: NoteMode.markdown),
+      'f1/c.md': const NoteSettings(
+        mode: NoteMode.read,
+        pinned: true,
+        checkedItems: CheckedItems.inPlace,
+      ),
     });
   });
 
@@ -67,7 +76,7 @@ void main() {
       '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
     );
     expect(await store.load(), {
-      'f1/a.md': const NoteSettings(view: NoteView.list),
+      'f1/a.md': const NoteSettings(mode: NoteMode.visual),
       'f1/d.md': const NoteSettings(pinned: true),
     });
 

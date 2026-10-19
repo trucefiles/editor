@@ -7,8 +7,13 @@ void main() {
   late int refreshes;
   late ScrollController scroll;
 
-  /// Shows a list of [lines], the first one 'note'.
-  Future<void> show(WidgetTester tester, {int lines = 1}) async {
+  /// Shows a list of [lines], the first one 'note'; [physics] as the
+  /// list sets them.
+  Future<void> show(
+    WidgetTester tester, {
+    int lines = 1,
+    ScrollPhysics? physics = const AlwaysScrollableScrollPhysics(),
+  }) async {
     refreshes = 0;
     scroll = ScrollController();
     addTearDown(scroll.dispose);
@@ -19,7 +24,7 @@ void main() {
             onRefresh: () async => refreshes++,
             child: ListView(
               controller: scroll,
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: physics,
               children: [
                 const Text('note'),
                 for (var i = 1; i < lines; i++)
@@ -42,6 +47,17 @@ void main() {
 
   testWidgets('pulling down by touch refreshes', (tester) async {
     await show(tester);
+
+    await tester.fling(find.text('note'), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+
+    expect(refreshes, 1);
+  });
+
+  testWidgets('pulls a short list whose physics come from above', (
+    tester,
+  ) async {
+    await show(tester, physics: null);
 
     await tester.fling(find.text('note'), const Offset(0, 300), 1000);
     await tester.pumpAndSettle();

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -19,7 +18,7 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  testWidgets('a new note gets its file on back, named by its first line', (
+  testApp('a new note gets its file on back, named by its first line', (
     tester,
   ) async {
     await tester.addFolder(app);
@@ -35,7 +34,7 @@ void main() {
     expect(find.text('Groceries'), findsOneWidget);
   });
 
-  testWidgets('an empty new note leaves no file', (tester) async {
+  testApp('an empty new note leaves no file', (tester) async {
     await tester.addFolder(app);
     await tester.tapAndSettle(find.byTooltip('New note'));
     expect(find.text('Untitled'), findsWidgets);
@@ -46,28 +45,27 @@ void main() {
     expect(app.topFiles, isEmpty);
   });
 
-  testWidgets("hiding the app writes a new note's file", (tester) async {
+  testApp("hiding the app writes a new note's file", (tester) async {
     await tester.addFolder(app);
     await tester.typeNewNote('Idea\n');
 
     tester.hideAndComeBack();
     await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
 
-    await tester.enterText(find.byType(TextField), 'Idea\nmore\n');
+    await tester.typeOver('Idea\nmore\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('Idea.md'), 'Idea\nmore\n');
     await tester.waitFor(find.byTooltip('New note'));
     expect(app.topFiles, hasLength(1));
   });
 
-  testWidgets('saves what is typed on the device, then in the file on back', (
+  testApp('saves what is typed on the device, then in the file on back', (
     tester,
   ) async {
     app.write('groceries.md', '# Groceries\n');
     await tester.addFolder(app);
     await tester.openNote('Groceries');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Groceries\nMilk\n');
+    await tester.typeOver('# Groceries\nMilk\n');
 
     await tester.waitFor(find.byTooltip(savedOnDevice));
     expect(app.file('groceries.md').readAsStringSync(), '# Groceries\n');
@@ -75,14 +73,11 @@ void main() {
     await tester.waitForFile(app.file('groceries.md'), '# Groceries\nMilk\n');
   });
 
-  testWidgets('tapping the save icon saves in the file right away', (
-    tester,
-  ) async {
+  testApp('tapping the save icon saves in the file right away', (tester) async {
     app.write('todo.md', '# Todo\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
+    await tester.typeOver('# Todo\nCall\n');
     await tester.waitFor(find.byTooltip(savedOnDevice));
 
     await tester.tapAndSettle(find.byTooltip(savedOnDevice));
@@ -91,12 +86,11 @@ void main() {
     await tester.waitFor(find.byTooltip('Saved in the folder'));
   });
 
-  testWidgets('Esc leaves a note and saves it in the file', (tester) async {
+  testApp('Esc leaves a note and saves it in the file', (tester) async {
     app.write('todo.md', '# Todo\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Todo\nCall\n');
+    await tester.typeOver('# Todo\nCall\n');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -105,9 +99,7 @@ void main() {
     await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
   });
 
-  testWidgets('offers an empty subfolder made while the app runs', (
-    tester,
-  ) async {
+  testApp('offers an empty subfolder made while the app runs', (tester) async {
     app.write('old.md', '# Old\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
@@ -120,9 +112,7 @@ void main() {
     expect(find.text('later'), findsWidgets);
   });
 
-  testWidgets('a new note goes into the subfolder and name picked', (
-    tester,
-  ) async {
+  testApp('a new note goes into the subfolder and name picked', (tester) async {
     app.write('old.md', '# Old\n');
     app.folder('a/b/c').createSync(recursive: true);
     await tester.addFolder(app);
@@ -138,7 +128,7 @@ void main() {
     expect(app.topFiles.length, 1);
   });
 
-  testWidgets('a place picked while the app was hidden moves the new file', (
+  testApp('a place picked while the app was hidden moves the new file', (
     tester,
   ) async {
     app.write('old.md', '# Old\n');
@@ -159,7 +149,7 @@ void main() {
     expect(app.file('Idea.md').existsSync(), isFalse);
   });
 
-  testWidgets('new notes go to the place set in Settings', (tester) async {
+  testApp('new notes go to the place set in Settings', (tester) async {
     app.write('old.md', '# Old\n');
     app.folder('inbox').createSync();
     await tester.addFolder(app);
@@ -179,7 +169,7 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
   });
 
-  testWidgets('moves a note to a subfolder and edits on there', (tester) async {
+  testApp('moves a note to a subfolder and edits on there', (tester) async {
     app.write('plan.md', '# Plan\n');
     app.folder('done').createSync();
     await tester.addFolder(app);
@@ -191,14 +181,13 @@ void main() {
     await tester.waitForFile(app.file('done/plan.md'), '# Plan\n');
     expect(app.file('plan.md').existsSync(), isFalse);
 
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Plan\nmore\n');
+    await tester.typeOver('# Plan\nmore\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('done/plan.md'), '# Plan\nmore\n');
     expect(app.file('plan.md').existsSync(), isFalse);
   });
 
-  testWidgets('renames a note', (tester) async {
+  testApp('renames a note', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');

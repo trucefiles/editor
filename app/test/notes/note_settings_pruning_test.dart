@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_pruning.dart';
-import 'package:truce_editor/notes/note_view.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
@@ -37,19 +37,19 @@ void main() {
     'forgets the settings of gone notes as the app comes into use',
     () async {
       final views = container.read(noteSettingsProvider.notifier);
-      await views.edit(key('kept.md'), (s) => s.withView(NoteView.list));
-      await views.edit(key('gone.md'), (s) => s.withView(NoteView.text));
+      await views.edit(key('kept.md'), (s) => s.withMode(NoteMode.visual));
+      await views.edit(key('gone.md'), (s) => s.withMode(NoteMode.markdown));
       final activity = container.read(appActiveProvider.notifier) as _Activity
         ..set(active: false);
       container.listen(noteSettingsPruningProvider, (_, _) {});
       await container.read(noteSettingsPruningProvider.future);
-      expect(views.settingsOf(key('gone.md')).view, NoteView.text);
+      expect(views.settingsOf(key('gone.md')).mode, NoteMode.markdown);
 
       activity.set(active: true);
       await container.read(noteSettingsPruningProvider.future);
 
-      expect(views.settingsOf(key('gone.md')).view, isNull);
-      expect(views.settingsOf(key('kept.md')).view, NoteView.list);
+      expect(views.settingsOf(key('gone.md')).mode, isNull);
+      expect(views.settingsOf(key('kept.md')).mode, NoteMode.visual);
     },
   );
 }

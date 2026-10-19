@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:super_editor/super_editor.dart';
 
 import 'app_steps.dart';
 import 'test_app.dart';
@@ -27,12 +27,11 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    await tester.typeOver('# Plan\nmine\n');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
   }
 
-  testWidgets('a folder that is gone is retried, then no new note goes in', (
+  testApp('a folder that is gone is retried, then no new note goes in', (
     tester,
   ) async {
     await tester.addFolder(app);
@@ -45,32 +44,31 @@ void main() {
     expect(app.notes.existsSync(), isFalse);
   });
 
-  testWidgets('an open note is read-only while its folder is unreachable', (
+  testApp('an open note is read-only while its folder is unreachable', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.showSource();
+    await tester.chooseMode('Markdown edit');
     await tester.loseFolder(app);
 
     await tester.waitFor(find.textContaining("Notes can't be reached."));
-    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(SuperEditor), findsNothing);
 
     Directory('${app.notes.path}-away').renameSync(app.notes.path);
     await tester.tapAndSettle(find.text('Retry'));
-    await tester.waitFor(find.byType(TextField));
+    await tester.waitFor(find.byType(SuperEditor));
     expect(find.textContaining("can't be reached"), findsNothing);
   });
 
-  testWidgets('back from a note whose folder just went away keeps the edits', (
+  testApp('back from a note whose folder just went away keeps the edits', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    await tester.typeOver('# Plan\nmine\n');
     app.notes.renameSync('${app.notes.path}-away');
 
     await tester.pageBack();
@@ -79,7 +77,7 @@ void main() {
     expect(find.text("Your edits can't be saved"), findsNothing);
   });
 
-  testWidgets('back keeps edits that clash as a conflict copy', (tester) async {
+  testApp('back keeps edits that clash as a conflict copy', (tester) async {
     await clashInPlan(tester);
     await tester.pageBack();
 
@@ -92,9 +90,7 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
   });
 
-  testWidgets('compares a change from elsewhere and keeps mine', (
-    tester,
-  ) async {
+  testApp('compares a change from elsewhere and keeps mine', (tester) async {
     await clashInPlan(tester);
     await tester.tapAndSettle(find.byTooltip('Refresh'));
 
@@ -106,7 +102,7 @@ void main() {
     await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
   });
 
-  testWidgets('hiding the app keeps clashing edits, menus stay put', (
+  testApp('hiding the app keeps clashing edits, menus stay put', (
     tester,
   ) async {
     await clashInPlan(tester);
@@ -116,21 +112,21 @@ void main() {
 
     await tester.waitFor(find.textContaining('kept as a conflict copy'));
     expect(find.text('Delete note'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(SuperEditor), findsNothing);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.text('Close'));
     await tester.waitFor(find.byTooltip('New note'));
   });
 
-  testWidgets('restores the version from before editing', (tester) async {
+  testApp('restores the version from before editing', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.showSource();
-    await tester.enterText(find.byType(TextField), '# Plan\nbroken\n');
+    await tester.typeOver('# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
+    await tester.waitForNoteClosed();
 
     await tester.chooseInMenu('Backups');
     await tester.waitFor(find.textContaining('Before editing'));
@@ -142,15 +138,13 @@ void main() {
     await tester.waitFor(find.text('Backup restored.'));
   });
 
-  testWidgets('keeps clashing edits of a deep note as a conflict copy', (
+  testApp('keeps clashing edits of a deep note as a conflict copy', (
     tester,
   ) async {
     app.write('a/b/c/plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.showSource();
-
-    await tester.enterText(find.byType(TextField), '# Plan\nmine\n');
+    await tester.typeOver('# Plan\nmine\n');
     app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.pageBack();
 
@@ -163,7 +157,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Sync conflict'));
   });
 
-  testWidgets('resolves a conflict several levels deep', (tester) async {
+  testApp('resolves a conflict several levels deep', (tester) async {
     app.write('a/b/c/todo.md', '# Todo\nmine\n');
     app.write(
       'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md',
@@ -181,7 +175,7 @@ void main() {
     expect(app.file('a/b/c/todo.md').readAsStringSync(), '# Todo\nfirst\n');
   });
 
-  testWidgets('lists every conflict and resolves one from the list', (
+  testApp('lists every conflict and resolves one from the list', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\nmine\n');
@@ -198,7 +192,7 @@ void main() {
     expect(app.file('todo.md').readAsStringSync(), '# Todo\nx\n');
   });
 
-  testWidgets('resolves two conflict copies one by one', (tester) async {
+  testApp('resolves two conflict copies one by one', (tester) async {
     app.write('todo.md', '# Todo\nmine\n');
     app.write(
       'todo.sync-conflict-20261003-134809-ABCDEFG.md',

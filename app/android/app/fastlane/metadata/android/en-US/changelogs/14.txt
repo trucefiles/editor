@@ -1,0 +1,8 @@
+Beta 2:
+- Visual edit shows the marks of the edited line reliably
+- Caret visible in dark theme
+- Compact Read and lists; quotes with a bar
+- List buttons: checklist, bullets, numbers; tap again for text
+- One "Add item" per list
+- Drag moves the row; drag sideways to indent
+- Clearer labels; new notes show as being edited
