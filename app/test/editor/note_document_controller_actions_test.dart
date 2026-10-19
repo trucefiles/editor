@@ -24,20 +24,20 @@ void main() {
   LineId idOf(String lineText) =>
       note.lines.lines.firstWhere((line) => line.text == lineText).id;
 
-  test('each add button adds an empty item of its kind to its list', () {
-    open('- [ ] a\n- b');
-    final buttons = note.entries.whereType<AddItemEntry>().single;
+  test('the add button adds an empty item of the kind next to it', () {
+    open('* a\n- [ ] b');
+    final button = note.entries.whereType<AddItemEntry>().single;
 
-    note.addItem(buttons, ListKind.numbered);
+    note.addItem(button);
 
-    expect(text.text, '1. \n- [ ] a\n- b');
+    expect(text.text, '* \n* a\n- [ ] b');
   });
 
   test('the new item gets the id the editor puts the caret in', () {
     open('- [ ] a');
-    final buttons = note.entries.whereType<AddItemEntry>().single;
+    final button = note.entries.whereType<AddItemEntry>().single;
 
-    final id = note.addItem(buttons, ListKind.bullet);
+    final id = note.addItem(button);
 
     expect(note.lines.lines.first.id, id);
   });

@@ -26,6 +26,7 @@ List<DocumentNode> editNodes(
           document,
           ids.nodeOf(id),
           asItem: visual && _showsAsItem(byId[id]!, document, caretLine),
+          quote: visual && _isQuote(byId[id]!, document),
         ),
         DoneHeadingEntry() => DoneHeadingNode(entry),
         AddItemEntry() => AddItemNode(entry),
@@ -43,14 +44,30 @@ bool _showsAsItem(
   LineId? caretLine,
 ) => document.isItem(line) && !(line.id == caretLine && line.markEndsLine);
 
+bool _isQuote(MarkdownLine line, MarkdownLines document) =>
+    document.kindOf(line) == LineKind.plain && quoteTextStart(line.raw) != null;
+
 DocumentNode _lineNode(
   MarkdownLine line,
   MarkdownLines document,
   String id, {
   required bool asItem,
+  required bool quote,
 }) => asItem
     ? itemNode(id, line, AttributedText(line.text), document.depthOf(line))
-    : ParagraphNode(id: id, text: AttributedText(line.raw));
+    : lineParagraph(id, AttributedText(line.raw), quote: quote);
+
+/// The paragraph node [id] showing a line's [text]; a [quote] shows as
+/// one.
+ParagraphNode lineParagraph(
+  String id,
+  AttributedText text, {
+  required bool quote,
+}) => ParagraphNode(
+  id: id,
+  text: text,
+  metadata: quote ? {NodeMetadata.blockType: blockquoteAttribution} : null,
+);
 
 /// The node [id] showing the list item [line] at [depth] with [text].
 DocumentNode itemNode(

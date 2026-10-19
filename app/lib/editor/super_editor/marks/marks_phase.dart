@@ -9,6 +9,10 @@ import 'visual_lines.dart';
 /// lines, it hides the marks of every line outside the selection and
 /// records how those lines show there; the selected lines keep every
 /// character, so typing never touches a hidden mark.
+///
+/// It follows the selection until [close]. Not in [dispose]: super_editor
+/// disposes the phases of a layout it rebuilds, e.g. for a new stylesheet,
+/// and goes on with the same phases in the new one.
 final class MarksPhase extends SingleColumnLayoutStylePhase {
   MarksPhase({required this.kindOf, this.visual, this._composer}) {
     _composer?.selectionNotifier.addListener(markDirty);
@@ -20,11 +24,8 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   final VisualLines? visual;
   final DocumentComposer? _composer;
 
-  @override
-  void dispose() {
-    _composer?.selectionNotifier.removeListener(markDirty);
-    super.dispose();
-  }
+  /// Stops following the selection, once the editor is gone.
+  void close() => _composer?.selectionNotifier.removeListener(markDirty);
 
   @override
   SingleColumnLayoutViewModel style(

@@ -15,25 +15,26 @@ Future<CheckedItems?> showCheckedItemsDialog(
       RadioGroup<CheckedItems>(
         groupValue: current,
         onChanged: (choice) => Navigator.pop(context, choice),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile(
               value: CheckedItems.inPlace,
-              title: Text('In place'),
-              subtitle: Text('They stay where they are.'),
+              title: Text(checkedItemsName(CheckedItems.inPlace)),
+              subtitle: const Text('They stay where they are.'),
             ),
             RadioListTile(
               value: CheckedItems.doneSection,
-              title: Text('Done section'),
-              subtitle: Text(
-                'Shown apart at the bottom; the file keeps its order.',
+              title: Text(checkedItemsName(CheckedItems.doneSection)),
+              subtitle: const Text(
+                'Shown apart under "Done" at the bottom; the file keeps its '
+                'order.',
               ),
             ),
             RadioListTile(
               value: CheckedItems.toEnd,
-              title: Text('Move to end'),
-              subtitle: Text(
+              title: Text(checkedItemsName(CheckedItems.toEnd)),
+              subtitle: const Text(
                 'Checking moves an item to the end of the list in the file, '
                 'unchecking moves it back below the open items.',
               ),
@@ -45,9 +46,9 @@ Future<CheckedItems?> showCheckedItemsDialog(
   ),
 );
 
-/// The name of [choice] in menus.
+/// The name of [choice], also read after "Checked items:" in menus.
 String checkedItemsName(CheckedItems choice) => switch (choice) {
-  CheckedItems.inPlace => 'In place',
-  CheckedItems.doneSection => 'Done section',
+  CheckedItems.inPlace => 'Stay in place',
+  CheckedItems.doneSection => 'Show at end',
   CheckedItems.toEnd => 'Move to end',
 };

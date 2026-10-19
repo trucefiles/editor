@@ -31,9 +31,9 @@ final class DoneHeadingEntry extends DisplayEntry {
   final bool collapsed;
 }
 
-/// Buttons that add an item, of the kind the user picks, to the list
-/// [list]: before the item [anchor] if [before], else after it and its
-/// subitems. Not a line.
+/// The button that adds an item to the list [list], of the kind of the
+/// item [anchor]: before it if [before], else after it and its subitems.
+/// Not a line.
 final class AddItemEntry extends DisplayEntry {
   const AddItemEntry(this.list, this.anchor, {required this.before});
 
@@ -59,7 +59,7 @@ final class ImageEntry extends DisplayEntry {
   final String alt;
 }
 
-/// Where a list's add buttons go.
+/// Where a list's add button goes.
 enum AddItemPlace { top, bottom }
 
 /// How to arrange a document for display.
@@ -79,7 +79,7 @@ final class Arrangement {
   /// Lists, by their first line, whose "Done" section hides its items.
   final Set<LineId> collapsed;
 
-  /// Where each list gets its add buttons; none if `null`.
+  /// Where each list gets its add button; none if `null`.
   final AddItemPlace? addItems;
 
   /// Tables and images drawn, unless in [raw].

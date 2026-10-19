@@ -62,6 +62,9 @@ class ListLineBuilder implements ComponentBuilder {
         struckThrough: isComplete,
         marker: Checkbox(
           value: isComplete,
+          // As high as a line of text, so lists stay compact.
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
           onChanged: setComplete == null
               ? null
               : (checked) => setComplete(checked!),

@@ -26,12 +26,6 @@ class NoteModeButton extends StatelessWidget {
     NoteMode.read => 'Read',
   };
 
-  /// What the user may not expect of [mode].
-  static String? _hint(NoteMode mode) => switch (mode) {
-    NoteMode.read => 'Read-only',
-    NoteMode.visual || NoteMode.markdown => null,
-  };
-
   @override
   Widget build(BuildContext context) {
     final selected = Theme.of(context).colorScheme.primary;
@@ -47,16 +41,9 @@ class NoteModeButton extends StatelessWidget {
               spacing: 12,
               children: [
                 Icon(_icon(option), color: option == mode ? selected : null),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _label(option),
-                      style: option == mode ? TextStyle(color: selected) : null,
-                    ),
-                    if (_hint(option) case final hint?)
-                      Text(hint, style: Theme.of(context).textTheme.bodySmall),
-                  ],
+                Text(
+                  _label(option),
+                  style: option == mode ? TextStyle(color: selected) : null,
                 ),
               ],
             ),

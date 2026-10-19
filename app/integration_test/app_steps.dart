@@ -72,7 +72,7 @@ extension AppSteps on WidgetTester {
 
   /// Sets the open note's "Checked items" choice, from the default.
   Future<void> chooseCheckedItems(String choice) async {
-    await chooseInMenu('Checked items: Done section');
+    await chooseInMenu('Checked items: Show at end');
     await tapAndSettle(find.text(choice));
   }
 

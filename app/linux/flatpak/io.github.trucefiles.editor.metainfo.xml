@@ -19,6 +19,20 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.0-beta.2" date="2026-10-19" type="development">
+      <description>
+        <ul>
+          <li>Visual edit shows the Markdown marks of the line you edit, reliably, by click and by arrow keys.</li>
+          <li>The caret shows in dark theme.</li>
+          <li>Read and lists are compact; quotes have a bar.</li>
+          <li>Format bar: Checklist, Bulleted list and Numbered list turn the selected lines into a list, change its kind, or turn it back into text.</li>
+          <li>Each list has one "Add item" button, adding an item of its kind.</li>
+          <li>Dragging an item moves the row itself; dragging it sideways indents or outdents it.</li>
+          <li>Clearer names: "Clear checked items"; checked items stay in place, show at end or move to end.</li>
+          <li>A new note shows as being edited until it is saved.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.0-beta.1" date="2026-10-19" type="development">
       <description>
         <ul>

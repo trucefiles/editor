@@ -61,7 +61,9 @@ void main() {
 
     await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
     await tester.pressEnter();
-    await tester.caretIn(nodeOf<ListItemNode>(), 0);
+    // Not a tap: the caret's touch handle lies over the start of the next,
+    // compact row.
+    await tester.pressDownArrow();
     await tester.pressEnter();
     await tester.typeImeText('x');
 

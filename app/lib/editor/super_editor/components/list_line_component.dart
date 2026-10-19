@@ -11,6 +11,9 @@ const _levelIndent = 28.0;
 /// Width before the marker, where an item's drag handle sits.
 const _handleWidth = 24.0;
 
+/// Width of the box, bullet or number.
+const _markerWidth = 36.0;
+
 /// One list item: drag handle, its [marker] (box, bullet or number) and
 /// text, plus a menu while the caret is in it. Swipe right or left to
 /// indent or outdent. With no [actions] it is only shown: no handle, menu
@@ -44,6 +47,10 @@ enum _ItemAction { indent, outdent, delete }
 class _ListLineComponentState extends State<ListLineComponent>
     with ProxyDocumentComponent<ListLineComponent>, ProxyTextComposable {
   final _textKey = GlobalKey();
+  final _rowKey = GlobalKey();
+
+  /// Whether the user drags this item: it fades where it was.
+  bool _dragging = false;
 
   @override
   GlobalKey get childDocumentComponentKey => _textKey;
@@ -72,22 +79,22 @@ class _ListLineComponentState extends State<ListLineComponent>
     final row = Padding(
       padding: EdgeInsets.only(left: widget.indent * _levelIndent),
       child: Row(
+        key: _rowKey,
         children: [
-          SizedBox(
-            width: _handleWidth,
-            child: actions == null
-                ? null
-                : SwipeToIndent.keepMouseDrags(
-                    LineDragHandle(
-                      nodeId: _nodeId,
-                      label: widget.viewModel.text.toPlainText(),
-                    ),
-                  ),
-          ),
-          SizedBox.square(
-            dimension: kMinInteractiveDimension,
-            child: Center(child: widget.marker),
-          ),
+          if (actions != null)
+            SizedBox(
+              width: _handleWidth,
+              child: SwipeToIndent.keepMouseDrags(
+                LineDragHandle(
+                  nodeId: _nodeId,
+                  row: _rowKey,
+                  preview: _preview(),
+                  onDragging: (dragging) =>
+                      setState(() => _dragging = dragging),
+                ),
+              ),
+            ),
+          _marker(),
           Expanded(
             child: SwipeToIndent.keepMouseDrags(
               TextComponent(
@@ -111,15 +118,48 @@ class _ListLineComponentState extends State<ListLineComponent>
     if (actions == null) return row;
     return LineDropTarget(
       nodeId: _nodeId,
-      onDrop: (dragged, {required below}) =>
-          actions.move(dragged, target: _nodeId, below: below),
+      step: _levelIndent,
+      onDrop: (dragged, {required below, required levels}) =>
+          _drop(actions, dragged, below: below, levels: levels),
       child: SwipeToIndent(
         step: _levelIndent,
         onIndent: () => actions.indent(_nodeId),
         onOutdent: () => actions.outdent(_nodeId),
-        child: row,
+        child: Opacity(opacity: _dragging ? 0.3 : 1, child: row),
       ),
     );
+  }
+
+  Widget _marker() => SizedBox(
+    width: _markerWidth,
+    child: Center(child: widget.marker),
+  );
+
+  /// How the row looks while dragged: its marker and text.
+  Widget _preview() => Row(
+    children: [
+      const SizedBox(width: _handleWidth, child: Icon(Icons.drag_indicator)),
+      _marker(),
+      Expanded(
+        child: Text(widget.viewModel.text.toPlainText(), style: _style({})),
+      ),
+    ],
+  );
+
+  /// The item [dragged] dropped on this one: next to it, and [levels]
+  /// deeper or, if negative, shallower.
+  void _drop(
+    LineActions actions,
+    String dragged, {
+    required bool below,
+    required int levels,
+  }) {
+    if (dragged != _nodeId) {
+      actions.move(dragged, target: _nodeId, below: below);
+    }
+    for (var i = 0; i < levels.abs(); i++) {
+      levels > 0 ? actions.indent(dragged) : actions.outdent(dragged);
+    }
   }
 
   /// Shown only while the caret is in this item; kept in the tree while
@@ -131,6 +171,13 @@ class _ListLineComponentState extends State<ListLineComponent>
     maintainSize: true,
     child: PopupMenuButton<_ItemAction>(
       tooltip: 'Item actions',
+      // As high as a line of text, so the menu leaves the rows compact.
+      padding: EdgeInsets.zero,
+      iconSize: 20,
+      style: const ButtonStyle(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
       onSelected: (action) => switch (action) {
         _ItemAction.indent => actions.indent(_nodeId),
         _ItemAction.outdent => actions.outdent(_nodeId),

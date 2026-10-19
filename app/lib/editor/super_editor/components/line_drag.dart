@@ -1,25 +1,42 @@
 import 'package:flutter/material.dart';
 
-/// The handle that drags the item of node [nodeId] to another item; the
-/// item's [label] floats under the pointer meanwhile.
+/// The handle that drags the item of node [nodeId], whose row is
+/// [row]: a copy of the row, [preview], follows the pointer meanwhile, as
+/// if the row itself moved.
 class LineDragHandle extends StatelessWidget {
-  const LineDragHandle({required this.nodeId, required this.label, super.key});
+  const LineDragHandle({
+    required this.nodeId,
+    required this.row,
+    required this.preview,
+    this.onDragging,
+    super.key,
+  });
 
   final String nodeId;
-  final String label;
+  final GlobalKey row;
+  final Widget preview;
+
+  /// The drag started (`true`) or ended (`false`).
+  final ValueChanged<bool>? onDragging;
+
+  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
 
   @override
   Widget build(BuildContext context) => Draggable<LineDrag>(
-    data: LineDrag(nodeId),
-    // The feedback's corner is the pointer, so drop targets see where it
-    // points.
-    dragAnchorStrategy: pointerDragAnchorStrategy,
-    feedback: Material(
-      elevation: 4,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text(label),
+    data: LineDrag(nodeId, row),
+    // The copy starts right over the row, where the pointer took it.
+    dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
+    feedbackOffset: Offset.zero,
+    onDragStarted: () => onDragging?.call(true),
+    onDragEnd: (_) => onDragging?.call(false),
+    feedback: Builder(
+      builder: (context) => SizedBox(
+        width: _rowBox.size.width,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(4),
+          child: preview,
+        ),
       ),
     ),
     child: const MouseRegion(
@@ -29,20 +46,32 @@ class LineDragHandle extends StatelessWidget {
   );
 }
 
-/// The item of node [nodeId], being dragged.
+/// The item of node [nodeId], being dragged; its row is [row].
 @immutable
 final class LineDrag {
-  const LineDrag(this.nodeId);
+  const LineDrag(this.nodeId, this.row);
 
   final String nodeId;
+  final GlobalKey row;
+
+  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
+
+  double get height => _rowBox.size.height;
+
+  /// How far right of its row the dragged copy at [offset] is.
+  double shiftAt(Offset offset) =>
+      offset.dx - _rowBox.localToGlobal(Offset.zero).dx;
 }
 
 /// Takes items dropped on [child], the row of the item of node [nodeId]:
-/// on its upper half, they go above it, else below it. A line shows
-/// where.
+/// a copy whose middle is over the row's upper half goes above it, else
+/// below it; shifted sideways by whole [step]s, it goes that many levels
+/// deeper or shallower. Meanwhile a gap opens there, as large as the
+/// dragged row.
 class LineDropTarget extends StatefulWidget {
   const LineDropTarget({
     required this.nodeId,
+    required this.step,
     required this.onDrop,
     required this.child,
     super.key,
@@ -50,8 +79,13 @@ class LineDropTarget extends StatefulWidget {
 
   final String nodeId;
 
-  /// The dropped item's node, and whether it goes below.
-  final void Function(String nodeId, {required bool below}) onDrop;
+  /// Width of one level.
+  final double step;
+
+  /// The dropped item's node, whether it goes below, and by how many
+  /// levels it goes deeper (shallower if negative).
+  final void Function(String nodeId, {required bool below, required int levels})
+  onDrop;
   final Widget child;
 
   @override
@@ -59,44 +93,52 @@ class LineDropTarget extends StatefulWidget {
 }
 
 class _LineDropTargetState extends State<LineDropTarget> {
-  /// Where a dragged item hovering here would go: below or above; `null`
-  /// while none hovers.
-  bool? _below;
+  final _content = GlobalKey();
 
-  bool _isBelow(Offset globalPosition) {
-    final box = context.findRenderObject()! as RenderBox;
-    return box.globalToLocal(globalPosition).dy > box.size.height / 2;
+  /// Where a dragged item hovering here would go, and the gap it takes;
+  /// `null` while none hovers.
+  ({bool below, double height})? _gap;
+
+  /// Whether the dragged copy's middle is below this row's: measured from
+  /// the row's top as without the gap, which moves the row as it opens.
+  bool _isBelow(DragTargetDetails<LineDrag> details) {
+    final target = context.findRenderObject()! as RenderBox;
+    final content = _content.currentContext!.findRenderObject()! as RenderBox;
+    final middle = details.offset.dy + details.data.height / 2;
+    return target.globalToLocal(Offset(0, middle)).dy > content.size.height / 2;
+  }
+
+  bool _isSelf(LineDrag drag) => drag.nodeId == widget.nodeId;
+
+  void _hover(DragTargetDetails<LineDrag> details) {
+    final gap = _isSelf(details.data)
+        ? null
+        : (below: _isBelow(details), height: details.data.height);
+    if (gap != _gap) setState(() => _gap = gap);
   }
 
   @override
   Widget build(BuildContext context) {
-    final below = _below;
+    final gap = _gap;
     return DragTarget<LineDrag>(
-      onWillAcceptWithDetails: (details) =>
-          details.data.nodeId != widget.nodeId,
-      onMove: (details) => setState(() => _below = _isBelow(details.offset)),
-      onLeave: (_) => setState(() => _below = null),
+      onMove: _hover,
+      onLeave: (_) => setState(() => _gap = null),
       onAcceptWithDetails: (details) {
-        widget.onDrop(details.data.nodeId, below: _isBelow(details.offset));
-        setState(() => _below = null);
+        final drag = details.data;
+        widget.onDrop(
+          drag.nodeId,
+          below: _isBelow(details),
+          levels: (drag.shiftAt(details.offset) / widget.step).truncate(),
+        );
+        setState(() => _gap = null);
       },
-      // Nothing over the row but while an item hovers: anything that takes
-      // hits there keeps the editor from seeing taps on the row.
-      builder: (context, _, _) => Stack(
-        children: [
-          widget.child,
-          if (below != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: below ? null : 0,
-              bottom: below ? 0 : null,
-              height: 2,
-              child: IgnorePointer(
-                child: ColoredBox(color: Theme.of(context).colorScheme.primary),
-              ),
-            ),
-        ],
+      builder: (context, _, _) => AnimatedPadding(
+        duration: const Duration(milliseconds: 120),
+        padding: EdgeInsets.only(
+          top: gap != null && !gap.below ? gap.height : 0,
+          bottom: gap != null && gap.below ? gap.height : 0,
+        ),
+        child: KeyedSubtree(key: _content, child: widget.child),
       ),
     );
   }

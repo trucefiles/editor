@@ -94,17 +94,17 @@ void main() {
     expect(text.edits, isEmpty);
   });
 
-  testWidgets('each add button adds an item of its kind for typing', (
+  testWidgets('Add item adds an item of the list\'s kind for typing', (
     tester,
   ) async {
     final text = FakeNoteText('- [ ] milk');
     await pumpEditor(tester, text);
 
-    await tester.tap(find.byTooltip('Add bullet'));
+    await tester.tap(find.text('Add item'));
     await tester.pumpAndSettle();
-    await tester.typeImeText('note');
+    await tester.typeImeText('eggs');
 
-    expect(text.text, '- note\n- [ ] milk');
+    expect(text.text, '- [ ] eggs\n- [ ] milk');
   });
 
   testWidgets('deleting an item from its menu offers undo', (tester) async {
@@ -159,17 +159,60 @@ void main() {
     expect(text.text, '```\nbuy milk\n```');
   });
 
-  testWidgets('Start list adds a checkbox item below the line', (tester) async {
-    final text = FakeNoteText('milk');
-    await pumpEditor(tester, text);
+  group('list buttons', () {
+    Future<void> press(WidgetTester tester, String button) async {
+      await tester.tap(find.byTooltip(button));
+      await tester.pumpAndSettle();
+    }
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 0);
-    await tester.tap(find.byTooltip('Start list'));
-    await tester.pumpAndSettle();
+    testWidgets('turn the caret line into an item, the caret kept', (
+      tester,
+    ) async {
+      final text = FakeNoteText('milk\neggs');
+      await pumpEditor(tester, text);
 
-    await tester.typeImeText('eggs');
+      await tester.caretIn(nodeOf<ParagraphNode>(), 2);
+      await press(tester, 'Checklist');
+      await tester.typeImeText('X');
 
-    expect(text.text, 'milk\n- [ ] eggs');
+      expect(text.text, '- [ ] miXlk\neggs');
+    });
+
+    testWidgets('change the kind of an item and back to text', (tester) async {
+      final text = FakeNoteText('- [ ] milk');
+      await pumpEditor(tester, text);
+
+      await tester.caretIn(nodeOf<TaskNode>(), 4);
+      await press(tester, 'Numbered list');
+      expect(text.text, '1. milk');
+      await press(tester, 'Numbered list');
+      expect(text.text, 'milk');
+      await tester.typeImeText('!');
+      expect(text.text, 'milk!');
+    });
+
+    testWidgets('turn every selected line', (tester) async {
+      final text = FakeNoteText('a\nb\nc');
+      await pumpEditor(tester, text);
+
+      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+      await tester.pressShiftDownArrow();
+      await press(tester, 'Bulleted list');
+
+      expect(text.text, '- a\n- b\nc');
+    });
+
+    testWidgets('without a caret, add an item at the end for typing', (
+      tester,
+    ) async {
+      final text = FakeNoteText('milk\n');
+      await pumpEditor(tester, text);
+
+      await press(tester, 'Checklist');
+      await tester.typeImeText('eggs');
+
+      expect(text.text, 'milk\n- [ ] eggs\n');
+    });
   });
 
   testWidgets('Markdown edit edits every character', (tester) async {

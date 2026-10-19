@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../display_nodes.dart';
-import 'add_item_buttons.dart';
+import 'add_item_button.dart';
 import 'display_actions.dart';
 import 'done_heading.dart';
 import 'drawn_image.dart';
@@ -37,8 +37,8 @@ class DisplayComponentBuilder implements ComponentBuilder {
           entry,
           onTap: actions == null ? null : () => actions.toggleDone(entry.list),
         ),
-        AddItemNode(:final entry) => AddItemButtons(
-          onAdd: (kind) => actions?.addItem(entry, kind),
+        AddItemNode(:final entry) => AddItemButton(
+          onAdd: () => actions?.addItem(entry),
         ),
         DrawnTableNode(:final rows, :final lines) => DrawnTable(
           rows,

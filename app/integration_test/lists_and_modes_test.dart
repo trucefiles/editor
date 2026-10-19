@@ -53,7 +53,7 @@ void main() {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
     await tester.openNote('List');
-    await tester.chooseInMenu('Clear done');
+    await tester.chooseInMenu('Clear checked items');
     expect(find.text('Undo'), findsOneWidget);
 
     await tester.pageBack();
@@ -71,7 +71,7 @@ void main() {
     await tester.openNote('List');
     expect(find.text('Done (1)'), findsOneWidget);
 
-    await tester.chooseCheckedItems('In place');
+    await tester.chooseCheckedItems('Stay in place');
     await tester.waitUntil(() => find.text('Done (1)').evaluate().isEmpty);
     await tester.pageBack();
     await tester.waitForNoteClosed();

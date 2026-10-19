@@ -127,22 +127,23 @@ final class NoteDocumentController extends ChangeNotifier {
     _rearrange();
   }
 
-  /// Adds an empty item of [kind] where [buttons] say; returns its line.
-  LineId addItem(AddItemEntry buttons, ListKind kind) {
+  /// Adds an empty item where [button] says, of the kind of the item it
+  /// adds next to; returns its line.
+  LineId addItem(AddItemEntry button) {
     final (lines, id) = _lines.addItem(
-      kind,
-      anchor: buttons.anchor,
-      before: buttons.before,
+      _lines.lineOf(button.anchor)!.listKind!,
+      anchor: button.anchor,
+      before: button.before,
     );
     _apply(lines);
     return id;
   }
 
-  /// See [StartList.startList]; returns the new item's line.
-  LineId startList({LineId? at}) {
-    final (lines, id) = _lines.startList(at: at);
-    _apply(lines);
-    return id;
+  /// See [ListConversion.toList]; returns the added item's line, if any.
+  LineId? toList(List<LineId> lines, ListKind kind) {
+    final (converted, added) = _lines.toList(lines, kind);
+    _apply(converted);
+    return added;
   }
 
   /// See [MarkdownLines.moveNextTo].

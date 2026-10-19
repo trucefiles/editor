@@ -20,19 +20,30 @@ Future<NoteDocumentController> pumpNoteEditor(
 }) async {
   final note = documentOf(text, mode: mode, checkedItems: checkedItems);
   addTearDown(note.dispose);
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: NoteEditorView(
-          note,
-          onRemoved: onRemoved ?? (_, _) {},
-          onLink: onLink ?? (_) {},
-        ),
-      ),
-    ),
-  );
+  await showNoteEditor(tester, note, onRemoved: onRemoved, onLink: onLink);
   return note;
 }
+
+/// Shows [note] in a [NoteEditorView] in [theme]; shown again, the same
+/// view takes the new [theme].
+Future<void> showNoteEditor(
+  WidgetTester tester,
+  NoteDocumentController note, {
+  ThemeData? theme,
+  void Function(String message, EditUndo undo)? onRemoved,
+  void Function(String url)? onLink,
+}) => tester.pumpWidget(
+  MaterialApp(
+    theme: theme,
+    home: Scaffold(
+      body: NoteEditorView(
+        note,
+        onRemoved: onRemoved ?? (_, _) {},
+        onLink: onLink ?? (_) {},
+      ),
+    ),
+  ),
+);
 
 /// The id of the [index]th node of type [T] in the editor.
 String nodeOf<T extends DocumentNode>({int index = 0}) =>

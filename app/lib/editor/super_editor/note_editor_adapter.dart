@@ -78,9 +78,49 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     null => null,
   };
 
-  /// See [NoteDocumentController.startList]; the caret goes into the new
-  /// item.
-  void startList() => _caretInto(note.startList(at: caretLine));
+  /// Turns the selected lines into items of [kind], or back into text;
+  /// see [NoteDocumentController.toList]. The caret stays in its place in
+  /// the text, or goes into an item added for want of lines to turn.
+  void toList(ListKind kind) {
+    final selected = _selectedLines();
+    final caret = _caretInText();
+    final added = note.toList(selected, kind);
+    if (added != null) return _caretInto(added);
+    if (caret != null) _typedCaret = _caretAt(caret);
+  }
+
+  /// The lines the selection spans, in order.
+  List<LineId> _selectedLines() {
+    final selection = _composer.selection;
+    if (selection == null) return const [];
+    return [
+      for (final node in _document.getNodesInside(
+        selection.base,
+        selection.extent,
+      ))
+        ?_ids.lineOf(node.id),
+    ];
+  }
+
+  /// The collapsed caret as an offset in its line's text after any list
+  /// marker, which stays put when the marker changes.
+  ({LineId line, int offset})? _caretInText() {
+    final caret = _caretInLine();
+    final line = _line(caret?.line);
+    if (caret == null || line == null) return null;
+    return (line: line.id, offset: caret.offset - _markerLength(line));
+  }
+
+  /// [caret], an offset in its line's text, as an offset in the line.
+  ({LineId line, int offset})? _caretAt(({LineId line, int offset}) caret) {
+    final line = _line(caret.line);
+    if (line == null) return null;
+    final offset = caret.offset < 0 ? 0 : caret.offset;
+    return (line: line.id, offset: _markerLength(line) + offset);
+  }
+
+  int _markerLength(MarkdownLine line) =>
+      note.lines.isItem(line) ? line.raw.length - line.text.length : 0;
 
   /// Puts the caret at the start of the first line.
   void placeCaretAtStart() {
@@ -249,8 +289,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   void toggleDone(LineId list) => note.toggleCollapsed(list);
 
   @override
-  void addItem(AddItemEntry buttons, ListKind kind) =>
-      _caretInto(note.addItem(buttons, kind));
+  void addItem(AddItemEntry button) => _caretInto(note.addItem(button));
 
   @override
   void showRaw(LineId first) => note.showRaw(first);

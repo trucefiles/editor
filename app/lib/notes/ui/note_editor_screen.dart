@@ -302,7 +302,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         onSelected: (action) => action(),
         itemBuilder: (_) => [
           if (_note.lines.hasCheckboxes) ...[
-            PopupMenuItem(value: _clearDone, child: const Text('Clear done')),
+            PopupMenuItem(
+              value: _clearDone,
+              child: const Text('Clear checked items'),
+            ),
             PopupMenuItem(
               value: () => _withFile(
                 context,
@@ -355,7 +358,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     unawaited(_settings.edit(note.key, (settings) => settings.withMode(mode)));
   }
 
-  void _clearDone() => _offerUndoOf('Done items cleared', _note.clearDone());
+  void _clearDone() => _offerUndoOf('Checked items cleared', _note.clearDone());
 
   /// Hint with an undo for an action on the note's items.
   void _offerUndoOf(String message, EditUndo undo) =>
@@ -451,7 +454,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
         ),
         actions: [
-          SaveIndicator(_open.state, onSave: _open.flush),
+          SaveIndicator(
+            _open.state,
+            hasFile: _open.note != null,
+            onSave: _open.flush,
+          ),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),

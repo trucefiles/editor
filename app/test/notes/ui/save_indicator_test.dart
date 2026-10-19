@@ -4,13 +4,19 @@ import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/ui/save_indicator.dart';
 
 void main() {
-  Future<int Function()> pump(WidgetTester tester, EditState state) async {
+  Future<int Function()> pump(
+    WidgetTester tester,
+    EditState state, {
+    bool hasFile = true,
+  }) async {
     var saves = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           appBar: AppBar(
-            actions: [SaveIndicator(state, onSave: () => saves++)],
+            actions: [
+              SaveIndicator(state, hasFile: hasFile, onSave: () => saves++),
+            ],
           ),
         ),
       ),
@@ -31,5 +37,12 @@ void main() {
       await pump(tester, state);
       expect(find.byType(IconButton), findsNothing, reason: '$state');
     }
+  });
+
+  testWidgets('a note without a file shows as being edited', (tester) async {
+    await pump(tester, EditState.saved, hasFile: false);
+
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.cloud_done_outlined), findsNothing);
   });
 }

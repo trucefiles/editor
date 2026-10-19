@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../note_document_controller.dart';
 import '../note_mode.dart';
@@ -10,6 +11,7 @@ import '../ui/link_dialog.dart';
 import 'apply_format.dart';
 import 'components/display_component_builder.dart';
 import 'components/list_line_builder.dart';
+import 'components/quote_line_builder.dart';
 import 'editor_link_tap_handler.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
@@ -17,8 +19,8 @@ import 'marks/marks_phase.dart';
 import 'marks/visual_lines.dart';
 import 'note_editor_adapter.dart';
 import 'note_keyboard_actions.dart';
+import 'note_look.dart';
 import 'note_read_document.dart';
-import 'note_stylesheet.dart';
 
 /// The open [note] in its mode: editable in Visual and Markdown edit, with
 /// the format toolbar in Visual edit; read-only in Read. Links open with
@@ -54,6 +56,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   NoteReadDocument? _read;
   MarksPhase? _marks;
 
+  /// The look in the current theme. Kept between builds: super_editor
+  /// lays the whole note out anew for each new stylesheet.
+  late NoteLook _look;
+
   @override
   void initState() {
     super.initState();
@@ -76,10 +82,22 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final theme = Theme.of(context);
+    if (theme != _lookTheme) {
+      _lookTheme = theme;
+      _look = NoteLook(theme, monospace: _mode == NoteMode.markdown);
+    }
+  }
+
+  ThemeData? _lookTheme;
+
+  @override
   void dispose() {
     _adapter?.dispose();
     _read?.dispose();
-    _marks?.dispose();
+    _marks?.close();
     _focus.dispose();
     super.dispose();
   }
@@ -95,22 +113,23 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     _focus.requestFocus();
   }
 
+  void _toList(ListKind kind) {
+    _adapter!.toList(kind);
+    _focus.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final stylesheet = noteStylesheet(
-      theme,
-      monospace: _mode == NoteMode.markdown,
-    );
+    final look = _look;
     if (_read case final read?) {
       return SuperReader(
         editor: read.editor,
-        stylesheet: stylesheet,
-        selectionStyle: noteSelectionStyles(theme),
+        stylesheet: look.stylesheet,
+        selectionStyle: look.selection,
         componentBuilders: const [
           ListLineBuilder(),
           DisplayComponentBuilder(),
-          ParagraphComponentBuilder(),
+          QuoteLineBuilder(),
         ],
         contentTapDelegateFactory: (context) =>
             LinkTapHandler(context.document, onLink: widget.onLink),
@@ -122,8 +141,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       editor: adapter.editor,
       focusNode: _focus,
       autofocus: widget.autofocus,
-      stylesheet: stylesheet,
-      selectionStyle: noteSelectionStyles(theme),
+      stylesheet: look.stylesheet,
+      selectionStyle: look.selection,
+      documentOverlayBuilders: look.overlays,
+      androidHandleColor: look.handleColor,
       customStylePhases: [_marks!],
       componentBuilders: visual
           ? _visualBuilders(adapter)
@@ -151,7 +172,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     return Column(
       children: [
         Expanded(child: hinted),
-        FormatToolbar(onFormat: _format, onStartList: adapter.startList),
+        FormatToolbar(onFormat: _format, onList: _toList),
       ],
     );
   }
@@ -163,7 +184,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       MappedBuilder<ListItemComponentViewModel>(lines, _visualLines),
       DisplayComponentBuilder(actions: adapter),
       MappedBuilder<ParagraphComponentViewModel>(
-        const ParagraphComponentBuilder(),
+        const QuoteLineBuilder(),
         _visualLines,
       ),
     ];
