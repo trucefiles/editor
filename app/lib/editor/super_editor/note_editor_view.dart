@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-import '../../notes/note_mode.dart';
 import '../note_document_controller.dart';
+import '../note_mode.dart';
 import '../text_format.dart';
 import '../ui/empty_note_hint.dart';
 import '../ui/format_toolbar.dart';

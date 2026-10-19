@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
 
+import '../editor/checked_items.dart';
+import '../editor/note_mode.dart';
 import '../storage/json_file.dart';
-import 'checked_items.dart';
 import 'note.dart';
-import 'note_mode.dart';
 import 'note_settings.dart';
 
 /// Keeps the [NoteSettings] of each note in a JSON file in app storage. Per

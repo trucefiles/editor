@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/refresh/ui/pull_to_refresh.dart';
 
 import '../editor_support.dart';

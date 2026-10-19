@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
-import 'package:truce_editor/notes/checked_items.dart';
 
 import '../editor_support.dart';
 import 'editor_robot.dart';

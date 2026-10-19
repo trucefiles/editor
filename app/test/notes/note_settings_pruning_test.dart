@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/notes/note.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_pruning.dart';
 import 'package:truce_editor/platform/app_activity.dart';

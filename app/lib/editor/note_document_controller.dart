@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../notes/checked_items.dart';
-import '../notes/note_mode.dart';
-import '../notes/note_text.dart';
+import 'checked_items.dart';
+import 'note_mode.dart';
+import 'note_text.dart';
 
 /// The open note as the editor shows it: its lines, how they are arranged
 /// in the current mode, and every edit on them. No UI and no editor

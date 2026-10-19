@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_reader_test.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
 import 'package:truce_editor/markdown/markdown_links.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/platform/link_opener.dart';
 
 import '../editor_support.dart';

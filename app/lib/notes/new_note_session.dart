@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../editor/note_text.dart';
 import '../folders/note_folder.dart';
 import 'note.dart';
 import 'note_edit_session.dart';
 import 'note_file_name.dart';
 import 'note_place.dart';
 import 'note_staging.dart';
-import 'note_text.dart';
 import 'note_title.dart';
 
 /// Creates a note's file holding [text] at [place], named after [title].

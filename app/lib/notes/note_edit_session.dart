@@ -5,11 +5,11 @@ import 'package:truce_core/truce_core.dart';
 
 import '../common/busy_guard.dart';
 import '../common/moment.dart';
+import '../editor/note_text.dart';
 import 'note.dart';
 import 'note_drafts.dart';
 import 'note_files.dart';
 import 'note_staging.dart';
-import 'note_text.dart';
 
 /// Where an open note stands against its file.
 enum EditState {

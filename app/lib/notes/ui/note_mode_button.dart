@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../note_mode.dart';
+import '../../editor/note_mode.dart';
 
 /// App bar button that shows the current [mode] and lets the user pick
 /// another.

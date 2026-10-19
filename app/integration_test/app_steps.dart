@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/notes/note_mode.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'test_app.dart';

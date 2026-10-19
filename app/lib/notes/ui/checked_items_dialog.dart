@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../checked_items.dart';
+import '../../editor/checked_items.dart';
 
 /// Lets the user pick where a checklist's checked items go; the choice,
 /// or `null` if cancelled.

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'checked_items.dart';
-import 'note_mode.dart';
+import '../editor/checked_items.dart';
+import '../editor/note_mode.dart';
 
 /// How this device shows one note: view settings, not properties of the
 /// note, so they are kept per device and never synced.

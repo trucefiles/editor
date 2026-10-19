@@ -4,8 +4,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../notes/note_mode.dart';
 import '../note_document_controller.dart';
+import '../note_mode.dart';
 import 'components/display_actions.dart';
 import 'components/line_actions.dart';
 import 'edit_nodes.dart';

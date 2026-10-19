@@ -12,15 +12,16 @@ import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../editor/add_item_place/add_item_place_controller.dart';
+import '../../editor/checked_items.dart';
 import '../../editor/note_document_controller.dart';
-import '../../editor/super_editor/note_editor_view.dart';
+import '../../editor/note_editor.dart';
+import '../../editor/note_mode.dart';
 import '../../editor/ui/undo_hint.dart';
 import '../../markdown/markdown_links.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
-import '../checked_items.dart';
 import '../new_note_session.dart';
 import '../note.dart';
 import '../note_actions.dart';
@@ -29,7 +30,6 @@ import '../note_drafts.dart';
 import '../note_edit_session.dart';
 import '../note_editor_controller.dart';
 import '../note_files.dart';
-import '../note_mode.dart';
 import '../note_place.dart';
 import '../note_settings.dart';
 import '../note_settings_controller.dart';
@@ -158,13 +158,24 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Follows the session: Read once it takes no more edits, and the
   /// mode picked before the note had a file, remembered once it has.
+  /// Rebuilds only when what the screen shows of it changes; the editor
+  /// and the title follow the text on their own.
   void _onOpenChanged() {
     if (_modeToSave && _open.note != null) {
       _modeToSave = false;
       _saveMode(_mode);
     }
+    final look = _sessionLook;
+    if (look == _shownLook && _note.mode == _shownMode) return;
+    _shownLook = look;
     _showShownMode();
   }
+
+  /// What the screen shows of the session besides its text.
+  Object get _sessionLook =>
+      (_open.state, _open.note?.key, _open.path, _open.pending != null);
+
+  late Object _shownLook = _sessionLook;
 
   /// The mode the note shows in: Read while it can't be edited.
   NoteMode get _shownMode => _isReadOnly ? NoteMode.read : _mode;

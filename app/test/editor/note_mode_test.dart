@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/notes/note_mode.dart';
+import 'package:truce_editor/editor/note_mode.dart';
 
 void main() {
   group('a note first shows', () {
