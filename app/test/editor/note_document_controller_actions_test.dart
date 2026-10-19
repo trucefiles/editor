@@ -16,6 +16,11 @@ void main() {
     addTearDown(note.dispose);
   }
 
+  Set<LineId> shown() => {
+    for (final entry in note.entries)
+      if (entry case LineEntry(:final id)) id,
+  };
+
   LineId idOf(String lineText) =>
       note.lines.lines.firstWhere((line) => line.text == lineText).id;
 
@@ -68,13 +73,13 @@ void main() {
   test('a collapsed Done section hides its items', () {
     open('- [ ] a\n- [x] b');
     final list = idOf('a');
-    expect(note.shown, contains(idOf('b')));
+    expect(shown(), contains(idOf('b')));
 
     note.toggleCollapsed(list);
 
     final heading = note.entries.whereType<DoneHeadingEntry>().single;
     expect(heading.collapsed, isTrue);
-    expect(note.shown, isNot(contains(idOf('b'))));
+    expect(shown(), isNot(contains(idOf('b'))));
   });
 
   test('a table drawn in Visual edit shows its lines on request', () {
@@ -90,7 +95,7 @@ void main() {
     open('- [ ] a\n- [x] b', mode: NoteMode.markdown);
 
     expect(note.entries, everyElement(isA<LineEntry>()));
-    expect(note.shown, hasLength(2));
+    expect(shown(), hasLength(2));
   });
 
   test('Read has the Done section but no add buttons', () {

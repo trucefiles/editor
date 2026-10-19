@@ -46,18 +46,82 @@ void main() {
               ? {for (final list in doc.lists) list.first.id}
               : const {},
         );
+        final entries = arrangement.of(doc);
         final shown = [
-          for (final entry in arrangement.of(doc))
+          for (final entry in entries)
             if (entry is LineEntry) entry.id,
         ];
         final step = _Step.random(random, doc, shown, texts);
-        final (next, added) = doc.applyEdits(step.edits, shown: shown.toSet());
+        final (next, added) = doc.applyEdits(
+          step.edits,
+          shownBelow: linesShownBelow(entries),
+        );
         step.check(doc, next, added);
         doc = next;
       }
     }
   });
+
+  test('subitems not shown right below a line stay with it', () {
+    final random = Random(12);
+    for (var c = 0; c < cases; c++) {
+      var doc = MarkdownLines.parse(
+        [
+          for (var i = random.nextInt(12) + 1; i > 0; i--)
+            lineKinds[random.nextInt(lineKinds.length)],
+        ].join('\n'),
+      );
+      for (var s = 0; s < steps; s++) {
+        final entries = Arrangement(
+          doneSection: random.nextBool(),
+          collapsed: random.nextBool()
+              ? {for (final list in doc.lists) list.first.id}
+              : const {},
+        ).of(doc);
+        final shownBelow = linesShownBelow(entries);
+        final after = doc.lines[random.nextInt(doc.lines.length)].id;
+        final apart = _subitemsBefore(doc, after, shownBelow[after]);
+        final block = random.nextBool()
+            ? TextBlock(texts[random.nextInt(texts.length)])
+            : ItemBlock(
+                kind: ListKind.checkbox,
+                depth: random.nextInt(3),
+                text: '',
+              );
+
+        final (next, _) = doc.applyEdits([
+          BlocksAdded([block], after: after),
+        ], shownBelow: shownBelow);
+
+        expect(
+          _subitemsBefore(next, after, null).take(apart.length),
+          apart,
+          reason: 'before:\n${doc.text}\nafter:\n${next.text}',
+        );
+        doc = next;
+      }
+    }
+  });
 }
+
+/// The lines right below [line] in [doc] that are deeper than it, up to
+/// [until].
+List<LineId> _subitemsBefore(MarkdownLines doc, LineId line, LineId? until) {
+  final index = doc.lines.indexWhere((l) => l.id == line);
+  final width = _width(doc.lines[index].indent);
+  final subitems = <LineId>[];
+  for (final below in doc.lines.skip(index + 1)) {
+    if (below.id == until ||
+        below.raw.trim().isEmpty ||
+        _width(below.indent) <= width) {
+      break;
+    }
+    subitems.add(below.id);
+  }
+  return subitems;
+}
+
+int _width(String indent) => indent.replaceAll('\t', '    ').length;
 
 /// One random editor transaction on the shown lines.
 final class _Step {

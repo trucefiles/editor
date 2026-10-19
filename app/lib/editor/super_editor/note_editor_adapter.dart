@@ -9,6 +9,7 @@ import '../note_document_controller.dart';
 import 'components/display_actions.dart';
 import 'components/line_actions.dart';
 import 'edit_nodes.dart';
+import 'enter_at_item_start.dart';
 import 'join_lines.dart';
 import 'line_nodes.dart';
 import 'paste_lines.dart';
@@ -31,6 +32,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: [
         joinLines,
+        enterAtItemStart,
         pasteLines,
         ...defaultRequestHandlers.cast<EditRequestHandler>(),
       ],

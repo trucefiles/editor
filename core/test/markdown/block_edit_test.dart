@@ -8,8 +8,14 @@ import 'markdown_lines_support.dart';
 void main() {
   Set<LineId> all(MarkdownLines doc) => {for (final l in doc.lines) l.id};
 
+  /// Each line shown right below the one above it, as in Markdown edit.
+  Map<LineId, LineId> inFileOrder(MarkdownLines doc) => {
+    for (var i = 1; i < doc.lines.length; i++)
+      doc.lines[i - 1].id: doc.lines[i].id,
+  };
+
   MarkdownLines apply(MarkdownLines doc, List<BlockEdit> edits) =>
-      doc.applyEdits(edits, shown: all(doc)).$1;
+      doc.applyEdits(edits, shownBelow: inFileOrder(doc)).$1;
 
   group('a changed block', () {
     test('unchanged keeps the exact bytes', () {
@@ -147,7 +153,7 @@ void main() {
           ),
           TextBlock('more'),
         ], after: idOf(doc, 'a')),
-      ], shown: all(doc));
+      ], shownBelow: inFileOrder(doc));
 
       expect(added.text, '# Head\n* [ ] a\n* [ ] b\nmore\ntext');
       expect(ids, [added.lines[2].id, added.lines[3].id]);
@@ -165,7 +171,7 @@ void main() {
 
     test('skip the hidden subitems of the line above', () {
       final doc = MarkdownLines.parse('- [ ] a\n  - [x] done\n- [ ] c');
-      final shown = all(doc)..remove(idOf(doc, 'done'));
+      final shownBelow = {idOf(doc, 'a'): idOf(doc, 'c')};
 
       final (added, _) = doc.applyEdits([
         BlocksAdded(const [
@@ -176,9 +182,22 @@ void main() {
             text: 'b',
           ),
         ], after: idOf(doc, 'a')),
-      ], shown: shown);
+      ], shownBelow: shownBelow);
 
       expect(added.text, '- [ ] a\n  - [x] done\n- [ ] b\n- [ ] c');
+    });
+
+    test('skip the subitems of the line above shown in its Done section', () {
+      final doc = MarkdownLines.parse('- [ ] a\n  - [x] a1\n- [ ] b');
+      final entries = const Arrangement(doneSection: true).of(doc);
+
+      final (added, _) = doc.applyEdits([
+        BlocksAdded(const [
+          ItemBlock(kind: ListKind.checkbox, depth: 0, text: 'new'),
+        ], after: idOf(doc, 'a')),
+      ], shownBelow: linesShownBelow(entries));
+
+      expect(added.text, '- [ ] a\n  - [x] a1\n- [ ] new\n- [ ] b');
     });
 
     test('a checked new item gets a checked box', () {
@@ -203,10 +222,10 @@ void main() {
 
       final (removed, _) = doc.applyEdits([
         BlockRemoved(idOf(doc, 'b')),
-      ], shown: all(doc));
+      ], shownBelow: inFileOrder(doc));
       final (_, ids) = removed.applyEdits([
         BlocksAdded(const [TextBlock('c')], after: idOf(doc, 'a')),
-      ], shown: all(removed));
+      ], shownBelow: inFileOrder(removed));
 
       expect(all(doc), isNot(contains(ids.single)));
     });
@@ -255,7 +274,7 @@ void main() {
         BlocksAdded(const [
           ItemBlock(kind: ListKind.numbered, depth: 0, text: 'b'),
         ], after: idOf(doc, 'a')),
-      ], shown: all(doc));
+      ], shownBelow: inFileOrder(doc));
 
       expect(added.text, '1. a\n2. b');
     });

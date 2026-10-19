@@ -24,10 +24,11 @@ extension StartList on MarkdownLines {
       return (item, line.id);
     }
     final depth = isItem(line) ? depthOf(line) : 0;
+    final index = lines.indexOf(line);
     final (added, ids) = insertBlocks(
       [ItemBlock(kind: ListKind.checkbox, depth: depth, text: '')],
       after: line.id,
-      shown: {for (final line in lines) line.id},
+      shownBelow: index + 1 < lines.length ? lines[index + 1].id : null,
     );
     return (added, ids.single);
   }

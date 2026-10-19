@@ -36,12 +36,13 @@ extension ApplyBlockEdits on MarkdownLines {
   /// Applies [edits]: a changed block changes only its own line, keeping
   /// its prefix style; a removed block removes its line; added blocks go
   /// after the line shown above them (see [MarkdownLines.insertBlocks]).
-  /// Every other line stays byte-identical and in place. [shown] are the
-  /// lines the editor shows. Returns the ids of the added lines, in the
-  /// order of [edits].
+  /// Every other line stays byte-identical and in place. [shownBelow]
+  /// tells, for each line the editor shows, the line it shows right below
+  /// it (see `linesShownBelow`). Returns the ids of the added lines, in
+  /// the order of [edits].
   (MarkdownLines, List<LineId>) applyEdits(
     List<BlockEdit> edits, {
-    required Set<LineId> shown,
+    required Map<LineId, LineId> shownBelow,
   }) {
     var lines = this;
     final added = <LineId>[];
@@ -55,7 +56,7 @@ extension ApplyBlockEdits on MarkdownLines {
           final (withAdded, ids) = lines.insertBlocks(
             blocks,
             after: after,
-            shown: shown,
+            shownBelow: shownBelow[after],
           );
           lines = withAdded;
           added.addAll(ids);

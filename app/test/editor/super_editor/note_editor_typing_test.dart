@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/notes/checked_items.dart';
 
 import '../editor_support.dart';
 import 'editor_robot.dart';
@@ -37,4 +39,32 @@ void main() {
       expect((item as TextNode).text.toPlainText(), 'milk');
     });
   }
+
+  testWidgets('a new item keeps checked subitems with their item', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- [ ] a\n  - [x] a1\n- [ ] b');
+    await pumpNoteEditor(tester, text);
+
+    await tester.caretIn(nodeOf<TaskNode>(), 1);
+    await tester.pressEnter();
+    await tester.typeImeText('new');
+
+    expect(text.text, '- [ ] a\n  - [x] a1\n- [ ] new\n- [ ] b');
+  });
+
+  testWidgets('Enter at the start of an item adds an empty one above', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- [ ] a\n- [x] milk\n- b');
+    await pumpNoteEditor(tester, text, checkedItems: CheckedItems.inPlace);
+
+    await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+    await tester.pressEnter();
+    await tester.caretIn(nodeOf<ListItemNode>(), 0);
+    await tester.pressEnter();
+    await tester.typeImeText('x');
+
+    expect(text.text, '- [ ] a\n- [ ] \n- [x] milk\n- \n- xb');
+  });
 }

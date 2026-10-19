@@ -46,16 +46,6 @@ final class NoteDocumentController extends ChangeNotifier {
   /// What the editor shows, in display order.
   List<DisplayEntry> get entries => _entries;
 
-  /// The lines the editor shows.
-  Set<LineId> get shown => {
-    for (final entry in _entries)
-      ...switch (entry) {
-        LineEntry(:final id) || ImageEntry(:final id) => [id],
-        TableEntry(:final ids) => ids,
-        DoneHeadingEntry() || AddItemEntry() => const <LineId>[],
-      },
-  };
-
   Arrangement get _arrangement => switch (_mode) {
     NoteMode.markdown => const Arrangement(),
     NoteMode.visual => Arrangement(
@@ -101,7 +91,10 @@ final class NoteDocumentController extends ChangeNotifier {
   /// With checked items moved to the end, an item the user checked or
   /// unchecked moves there too. Returns the ids of the added lines.
   List<LineId> applyEdits(List<BlockEdit> edits) {
-    var (lines, added) = _lines.applyEdits(edits, shown: shown);
+    var (lines, added) = _lines.applyEdits(
+      edits,
+      shownBelow: linesShownBelow(_entries),
+    );
     if (_checkedItems == CheckedItems.toEnd) {
       for (final id in _toggledIn(edits)) {
         lines = lines.sortToggled(id);

@@ -275,14 +275,15 @@ final class MarkdownLines {
   }
 
   /// Adds lines for [blocks], in order, right after the line [after] and
-  /// the lines below it that [shown] leaves out, e.g. its subitems shown in
-  /// a "Done" section, so they stay with it; at the top if [after] is
-  /// `null`. New items take the bullet style of the item above them.
-  /// Returns the new document and the new lines' ids.
+  /// its subitems up to [shownBelow], the line an editor shows right below
+  /// [after], if any: subitems shown elsewhere (in a "Done" section) or
+  /// not at all stay with [after]. At the top if [after] is `null`. New
+  /// items take the bullet style of the item above them. Returns the new
+  /// document and the new lines' ids.
   (MarkdownLines, List<LineId>) insertBlocks(
     List<Block> blocks, {
     required LineId? after,
-    required Set<LineId> shown,
+    required LineId? shownBelow,
   }) {
     var at = 0;
     if (after != null) {
@@ -290,7 +291,7 @@ final class MarkdownLines {
       final width = _width(lines[anchor].indent);
       at = anchor + 1;
       while (at < lines.length &&
-          !shown.contains(lines[at].id) &&
+          lines[at].id != shownBelow &&
           lines[at].raw.trim().isNotEmpty &&
           _width(lines[at].indent) > width) {
         at++;

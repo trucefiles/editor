@@ -164,3 +164,27 @@ final class Arrangement {
     ];
   }
 }
+
+/// For each line [entries] show, the line shown right below it, if a line
+/// is: none before a heading, a button or the end.
+Map<LineId, LineId> linesShownBelow(List<DisplayEntry> entries) {
+  final below = <LineId, LineId>{};
+  List<LineId> linesOf(DisplayEntry entry) => switch (entry) {
+    LineEntry(:final id) || ImageEntry(:final id) => [id],
+    TableEntry(:final ids) => ids,
+    DoneHeadingEntry() || AddItemEntry() => const [],
+  };
+  LineId? above;
+  for (final entry in entries) {
+    final lines = linesOf(entry);
+    if (lines.isEmpty) {
+      above = null;
+      continue;
+    }
+    for (final line in lines) {
+      if (above != null) below[above] = line;
+      above = line;
+    }
+  }
+  return below;
+}
