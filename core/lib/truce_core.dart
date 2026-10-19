@@ -55,6 +55,8 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
+export 'src/markdown/line_id.dart';
+export 'src/markdown/markdown_line.dart';
 export 'src/markdown/markdown_lines.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';

@@ -1,5 +1,8 @@
 import 'dart:math';
 
+import 'line_id.dart';
+import 'markdown_line.dart';
+
 /// A Markdown document seen as lines, e.g. checkbox items, headings and
 /// text.
 ///
@@ -19,9 +22,13 @@ final class MarkdownLines {
   factory MarkdownLines._parseFrom(String text, int firstId) {
     final lines = <MarkdownLine>[];
     for (final raw in text.split('\n')) {
-      lines.add(MarkdownLine._parse(firstId + lines.length, raw));
+      lines.add(MarkdownLine.parse(LineId(firstId + lines.length), raw));
     }
-    return MarkdownLines._(lines, _detectIndentUnit(lines), firstId + lines.length);
+    return MarkdownLines._(
+      lines,
+      _detectIndentUnit(lines),
+      firstId + lines.length,
+    );
   }
 
   /// Parses [text] as a whole new document, e.g. after it changed
@@ -45,8 +52,8 @@ final class MarkdownLines {
 
   /// Ids of checked items and of every line below them (their subitems),
   /// which a UI shows as done together.
-  Set<int> get doneIds {
-    final ids = <int>{};
+  Set<LineId> get doneIds {
+    final ids = <LineId>{};
     for (var i = 0; i < lines.length; i++) {
       if (!lines[i].isChecked) continue;
       final end = _blockEnd(i);
@@ -61,7 +68,7 @@ final class MarkdownLines {
   /// Nesting level of [line]: 0 at the left margin.
   int depthOf(MarkdownLine line) => _width(line.indent) ~/ _width(_indentUnit);
 
-  MarkdownLines toggle(int id) => _replaceLine(id, (line) => line._toggled());
+  MarkdownLines toggle(LineId id) => _replaceLine(id, (line) => line.toggled());
 
   /// Toggles the item [id] and, at the left margin, moves it with its
   /// subitems within its own list: once checked, below the list's last
@@ -73,7 +80,8 @@ final class MarkdownLines {
   /// editor left among the open items. Lines other than items stay in
   /// place, and an item with only such lines between it and its place
   /// does not move.
-  MarkdownLines toggleAndSort(int id) => toggle(id)._sorted(id).sortChecked();
+  MarkdownLines toggleAndSort(LineId id) =>
+      toggle(id)._sorted(id).sortChecked();
 
   /// Moves every checked item at the left margin, with its subitems, below
   /// the last item of its list, keeping their order; as [toggleAndSort]
@@ -84,7 +92,7 @@ final class MarkdownLines {
   ].fold(this, (list, id) => list._sorted(id));
 
   /// The item [id] moved to where [toggleAndSort] puts it.
-  MarkdownLines _sorted(int id) {
+  MarkdownLines _sorted(LineId id) {
     final index = _indexOf(id);
     if (lines[index].indent.isNotEmpty) return this;
     final target = _sortTarget(index);
@@ -132,29 +140,29 @@ final class MarkdownLines {
     return (first, last);
   }
 
-  MarkdownLines setText(int id, String text) =>
-      _replaceLine(id, (line) => line._withText(text));
+  MarkdownLines setText(LineId id, String text) =>
+      _replaceLine(id, (line) => line.withText(text));
 
   /// Adds an unchecked item after the item [afterId] and its subitems, at
   /// the same level. Returns the new document and the new line's id.
-  (MarkdownLines, int) insertAfter(int afterId, String text) {
+  (MarkdownLines, LineId) insertAfter(LineId afterId, String text) {
     final index = _indexOf(afterId);
     final line = lines[index];
-    return _insert(_blockEnd(index), line._newSibling(_nextId, text));
+    return _insert(_blockEnd(index), line.newSibling(LineId(_nextId), text));
   }
 
   /// Adds an unchecked item at the left margin after the last item, or at
   /// the end if there are none; an empty document gets it as its first
   /// line. Returns the new document and the new line's id.
-  (MarkdownLines, int) append(String text) {
+  (MarkdownLines, LineId) append(String text) {
     final lastItem = lines.lastIndexWhere((line) => line.isItem);
     if (lastItem >= 0) {
-      final sibling = lines[lastItem]._newSibling(_nextId, text);
-      return _insert(_blockEnd(lastItem), sibling._withIndent(''));
+      final sibling = lines[lastItem].newSibling(LineId(_nextId), text);
+      return _insert(_blockEnd(lastItem), sibling.withIndent(''));
     }
-    final item = MarkdownLine._parse(
-      _nextId,
-      '- [ ] ${MarkdownLine._oneLine(text)}',
+    final item = MarkdownLine.parse(
+      LineId(_nextId),
+      '- [ ] ${MarkdownLine.oneLine(text)}',
     );
     if (this.text.isEmpty) return _insert(0, item);
     final trailingEmpty = lines.length > 1 && lines.last.raw.isEmpty;
@@ -165,46 +173,46 @@ final class MarkdownLines {
   /// and its subitems; for a subitem, after the item at the margin it is
   /// under, so the new item never takes subitems of another. Returns the
   /// new document and the new line's id.
-  (MarkdownLines, int) appendAfter(int afterId, String text) {
+  (MarkdownLines, LineId) appendAfter(LineId afterId, String text) {
     final top = _marginItemOf(_indexOf(afterId));
-    final sibling = lines[top]._newSibling(_nextId, text)._withIndent('');
+    final sibling = lines[top].newSibling(LineId(_nextId), text).withIndent('');
     return _insert(_blockEnd(top), sibling);
   }
 
   /// Adds an unchecked item just before the item [beforeId], at its level,
   /// so the items below never become its subitems. Returns the new
   /// document and the new line's id.
-  (MarkdownLines, int) insertBefore(int beforeId, String text) {
+  (MarkdownLines, LineId) insertBefore(LineId beforeId, String text) {
     final index = _indexOf(beforeId);
-    return _insert(index, lines[index]._newSibling(_nextId, text));
+    return _insert(index, lines[index].newSibling(LineId(_nextId), text));
   }
 
   /// Appends the text of the item [id] to the item [into] and removes the
   /// line of [id], as joining two lines in a text editor. Lines below it
   /// (its subitems) stay where they are.
-  MarkdownLines join(int id, {required int into}) {
+  MarkdownLines join(LineId id, {required LineId into}) {
     final text = lines[_indexOf(id)].text;
     return _replaceLine(
       into,
-      (line) => line._withText(line.text + text),
+      (line) => line.withText(line.text + text),
     ).removeLine(id);
   }
 
   /// Removes only the line of [id]; lines below it (its subitems) stay
   /// where they are, as deleting an empty line in a text editor.
-  MarkdownLines removeLine(int id) {
+  MarkdownLines removeLine(LineId id) {
     return _with([...lines]..removeAt(_indexOf(id)));
   }
 
   /// Removes the item [id] with its subitems.
-  MarkdownLines remove(int id) {
+  MarkdownLines remove(LineId id) {
     final index = _indexOf(id);
     return _with([...lines]..removeRange(index, _blockEnd(index)));
   }
 
   /// Moves the item [id] with its subitems to just before the line
   /// [beforeId], or to the end if [beforeId] is `null`. Levels are kept.
-  MarkdownLines move(int id, {required int? beforeId}) {
+  MarkdownLines move(LineId id, {required LineId? beforeId}) {
     final start = _indexOf(id);
     final end = _blockEnd(start);
     final block = lines.sublist(start, end);
@@ -224,7 +232,7 @@ final class MarkdownLines {
   ///
   /// Does nothing if the line shown above is not an item, or if the item
   /// is already one level deeper than it.
-  MarkdownLines indent(int id, {Set<int> hidden = const {}}) {
+  MarkdownLines indent(LineId id, {Set<LineId> hidden = const {}}) {
     final index = _indexOf(id);
     final above = _shownAbove(index, hidden);
     if (above == null || !lines[above].isItem) return this;
@@ -241,7 +249,7 @@ final class MarkdownLines {
 
   /// Moves the item [id] with its subitems one level left. Does nothing at
   /// the left margin.
-  MarkdownLines outdent(int id) {
+  MarkdownLines outdent(LineId id) {
     final index = _indexOf(id);
     final indent = lines[index].indent;
     if (indent.isEmpty) return this;
@@ -264,7 +272,7 @@ final class MarkdownLines {
 
   /// Index of the nearest line above [index] that is neither empty nor
   /// in [hidden]; `null` if there is none.
-  int? _shownAbove(int index, Set<int> hidden) {
+  int? _shownAbove(int index, Set<LineId> hidden) {
     for (var i = index - 1; i >= 0; i--) {
       if (lines[i].raw.trim().isNotEmpty && !hidden.contains(lines[i].id)) {
         return i;
@@ -303,17 +311,17 @@ final class MarkdownLines {
     return _with([
       for (var i = 0; i < lines.length; i++)
         i >= index && i < end
-            ? lines[i]._withIndent(change(lines[i].indent))
+            ? lines[i].withIndent(change(lines[i].indent))
             : lines[i],
     ]);
   }
 
-  (MarkdownLines, int) _insert(int index, MarkdownLine line) => (
+  (MarkdownLines, LineId) _insert(int index, MarkdownLine line) => (
     MarkdownLines._([...lines]..insert(index, line), _indentUnit, _nextId + 1),
     line.id,
   );
 
-  MarkdownLines _replaceLine(int id, MarkdownLine Function(MarkdownLine) f) {
+  MarkdownLines _replaceLine(LineId id, MarkdownLine Function(MarkdownLine) f) {
     final index = _indexOf(id);
     return _with([...lines]..[index] = f(lines[index]));
   }
@@ -321,7 +329,7 @@ final class MarkdownLines {
   MarkdownLines _with(List<MarkdownLine> lines) =>
       MarkdownLines._(lines, _indentUnit, _nextId);
 
-  int _indexOf(int id) {
+  int _indexOf(LineId id) {
     final index = lines.indexWhere((line) => line.id == id);
     if (index < 0) throw ArgumentError.value(id, 'id', 'no such line');
     return index;
@@ -341,109 +349,4 @@ final class MarkdownLines {
   /// Visual width of leading whitespace; a tab counts as four spaces.
   static int _width(String indent) =>
       indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));
-}
-
-/// One line of [MarkdownLines]: a checkbox item or any other line.
-final class MarkdownLine {
-  const MarkdownLine._(this.id, this.raw, this._item);
-
-  factory MarkdownLine._parse(int id, String raw) {
-    final match = _itemPattern.firstMatch(raw);
-    return MarkdownLine._(
-      id,
-      raw,
-      match == null
-          ? null
-          : _ItemParts(
-              indentEnd: match.group(1)!.length,
-              markIndex: match.group(1)!.length + match.group(2)!.length + 1,
-              textStart: raw.length - match.group(3)!.length,
-            ),
-    );
-  }
-
-  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; as in
-  /// GitHub Flavored Markdown, the box is followed by whitespace or the end
-  /// of the line, so `- [x](url)` is a bulleted link, not an item.
-  static final _itemPattern = RegExp(
-    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?:[ \t]|$)(.*)$',
-  );
-
-  final int id;
-
-  /// The line as in the file, without its line break.
-  final String raw;
-
-  final _ItemParts? _item;
-
-  bool get isItem => _item != null;
-
-  bool get isChecked => switch (_item) {
-    final item? => raw[item.markIndex] != ' ',
-    null => false,
-  };
-
-  /// The item's text after the checkbox; the whole line for other lines.
-  String get text => switch (_item) {
-    final item? => raw.substring(item.textStart),
-    null => raw,
-  };
-
-  /// Leading whitespace.
-  String get indent => switch (_item) {
-    final item? => raw.substring(0, item.indentEnd),
-    null => raw.substring(0, raw.length - raw.trimLeft().length),
-  };
-
-  MarkdownLine _toggled() {
-    final item = _item!;
-    final mark = isChecked ? ' ' : 'x';
-    return MarkdownLine._(
-      id,
-      raw.replaceRange(item.markIndex, item.markIndex + 1, mark),
-      item,
-    );
-  }
-
-  /// Keeps the prefix as written; a box at the end of the line gets a
-  /// space before its first text.
-  MarkdownLine _withText(String text) {
-    final item = _item!;
-    var prefix = raw.substring(0, item.textStart);
-    if (text.isNotEmpty && prefix.endsWith(']')) prefix = '$prefix ';
-    return MarkdownLine._parse(id, '$prefix${_oneLine(text)}');
-  }
-
-  MarkdownLine _withIndent(String indent) =>
-      MarkdownLine._parse(id, '$indent${raw.substring(this.indent.length)}');
-
-  /// An unchecked item at this line's level, with its bullet style.
-  MarkdownLine _newSibling(int id, String text) {
-    final item = _item!;
-    final prefix = raw.substring(0, item.markIndex - 1);
-    return MarkdownLine._parse(id, '$prefix[ ] ${_oneLine(text)}');
-  }
-
-  /// [text] with line breaks as spaces: an item is one line, and pasted
-  /// text can hold breaks (`\r`, U+2028) that a text field lets through.
-  static String _oneLine(String text) => text.replaceAll(_lineBreaks, ' ');
-
-  static final _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
-}
-
-final class _ItemParts {
-  const _ItemParts({
-    required this.indentEnd,
-    required this.markIndex,
-    required this.textStart,
-  });
-
-  /// End of leading whitespace.
-  final int indentEnd;
-
-  /// Index of the character between `[` and `]`.
-  final int markIndex;
-
-  /// Start of the item text.
-  final int textStart;
 }

@@ -91,7 +91,9 @@ void main() {
 
   group('insertBefore', () {
     test('goes before the item, at its level', () {
-      final list = MarkdownLines.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
+      final list = MarkdownLines.parse(
+        '# Shopping\n  * [x] milk\n- [ ] eggs\n',
+      );
 
       expect(
         list.insertBefore(idOf(list, 'milk'), 'bread').$1.text,
@@ -100,7 +102,9 @@ void main() {
     });
 
     test('never takes the items below as its subitems', () {
-      final list = MarkdownLines.parse('Groceries:\n  - [ ] milk\n  - [ ] eggs');
+      final list = MarkdownLines.parse(
+        'Groceries:\n  - [ ] milk\n  - [ ] eggs',
+      );
 
       final (added, id) = list.insertBefore(idOf(list, 'milk'), 'bread');
 
@@ -181,7 +185,8 @@ void main() {
         list.toggleAndSort(idOf(list, 'b')).text,
         '- [ ] a\ntext\n- [x] b\n',
       );
-      expect(MarkdownLines.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
+      final single = MarkdownLines.parse('- [x] a');
+      expect(single.toggleAndSort(idOf(single, 'a')).text, '- [ ] a');
     });
 
     test('also moves checked items left among the open ones', () {
@@ -239,7 +244,9 @@ void main() {
 
   group('indent', () {
     test('indents the subitems too, in the file\'s unit', () {
-      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d');
+      final list = MarkdownLines.parse(
+        '- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d',
+      );
 
       final indented = list.indent(idOf(list, 'b'));
 
