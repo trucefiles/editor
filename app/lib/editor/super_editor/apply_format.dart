@@ -3,17 +3,17 @@ import 'package:truce_core/truce_core.dart';
 
 import '../text_format.dart';
 
-/// Applies [format] to the selection in [editor], as Markdown marks in the
-/// line's text; a [TextFormat.link] goes to [url]. Does nothing for a
-/// selection across lines, in a code block or table (as [kindOf] tells a
-/// node's line), or a heading on a list item.
+/// Applies [format] to [selection] in [editor], as Markdown marks in the
+/// line's text; a [TextFormat.link] goes to [url]. Does nothing without a
+/// selection, for a selection across lines, in a code block or table (as
+/// [kindOf] tells a node's line), or a heading on a list item.
 void applyFormat(
   Editor editor,
   TextFormat format, {
+  required DocumentSelection? selection,
   required LineKind Function(String nodeId) kindOf,
   String url = '',
 }) {
-  final selection = editor.composer.selection;
   if (selection == null ||
       selection.base.nodeId != selection.extent.nodeId ||
       kindOf(selection.extent.nodeId) != LineKind.plain) {

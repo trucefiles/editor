@@ -40,6 +40,22 @@ void main() {
     });
   }
 
+  for (final typed in ['-', '1.', '- [ ]']) {
+    testWidgets('a lone mark shows as an empty item once left: $typed', (
+      tester,
+    ) async {
+      expect(await typeOnEmptyLine(tester, typed), 'Title\n$typed');
+      expect(SuperEditorInspector.findDocument()!.last, isA<ParagraphNode>());
+
+      await tester.pressUpArrow();
+      await tester.pumpAndSettle();
+
+      final item = SuperEditorInspector.findDocument()!.last;
+      expect(item, isNot(isA<ParagraphNode>()));
+      expect((item as TextNode).text.toPlainText(), isEmpty);
+    });
+  }
+
   testWidgets('a new item keeps checked subitems with their item', (
     tester,
   ) async {

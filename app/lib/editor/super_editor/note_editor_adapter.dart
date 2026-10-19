@@ -40,6 +40,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
       reactionPipeline: [],
     )..addListener(FunctionalEditListener(_onTransaction));
     note.addListener(_scheduleSync);
+    _composer.selectionNotifier.addListener(_onSelection);
   }
 
   final NoteDocumentController note;
@@ -61,6 +62,10 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   bool _syncing = false;
   bool _syncScheduled = false;
   bool _disposed = false;
+
+  /// The item shown as a paragraph because the caret was in it while its
+  /// marker ended it; see [editNodes].
+  LineId? _heldLine;
 
   /// Where the caret goes once the editor shows the note again.
   DocumentPosition? _pendingCaret;
@@ -142,13 +147,20 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   List<DocumentNode> _targetNodes() {
     _ids.retain({for (final line in note.lines.lines) line.id});
+    final caret = _line(caretLine);
+    _heldLine = caret != null && caret.markEndsLine ? caret.id : null;
     return editNodes(
       note.entries,
       note.lines,
       _ids,
       visual: _visual,
-      caretLine: caretLine,
+      caretLine: caret?.id,
     );
+  }
+
+  /// Shows a held line as the item it is once the caret leaves it.
+  void _onSelection() {
+    if (_heldLine != null && caretLine != _heldLine) _scheduleSync();
   }
 
   void _onTransaction(List<EditEvent> events) {
@@ -297,6 +309,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   void dispose() {
     _disposed = true;
     note.removeListener(_scheduleSync);
+    _composer.selectionNotifier.removeListener(_onSelection);
     editor.dispose();
   }
 }

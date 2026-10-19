@@ -159,6 +159,53 @@ void main() {
     expect(text.text, '```\nbuy milk\n```');
   });
 
+  group('Link', () {
+    Future<void> addLink(WidgetTester tester, String url) async {
+      await tester.enterText(find.byType(TextField), url);
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('from the toolbar links the selected word', (tester) async {
+      final text = FakeNoteText('buy milk');
+      await pumpEditor(tester, text);
+
+      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.tap(find.byTooltip('Link (Ctrl+K)'));
+      await tester.pumpAndSettle();
+      await addLink(tester, 'https://x.org');
+
+      expect(text.text, 'buy [milk](https://x.org)');
+    });
+
+    testWidgets('with Ctrl+K links the selected word', (tester) async {
+      final text = FakeNoteText('buy milk');
+      await pumpEditor(tester, text);
+
+      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      await addLink(tester, 'https://x.org');
+
+      expect(text.text, 'buy [milk](https://x.org)');
+    });
+
+    testWidgets('cancelled leaves the line as it is', (tester) async {
+      final text = FakeNoteText('buy milk');
+      await pumpEditor(tester, text);
+
+      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.tap(find.byTooltip('Link (Ctrl+K)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(text.text, 'buy milk');
+    });
+  });
+
   group('list buttons', () {
     Future<void> press(WidgetTester tester, String button) async {
       await tester.tap(find.byTooltip(button));

@@ -104,12 +104,21 @@ class _NoteEditorViewState extends State<NoteEditorView> {
 
   Future<void> _format(TextFormat format) async {
     final editor = _adapter!.editor;
+    // Taken before the link dialog: the editor drops its selection once
+    // the dialog takes focus.
+    final selection = editor.composer.selection;
     var url = '';
     if (format == TextFormat.link) {
       url = await askLinkUrl(context) ?? '';
       if (url.isEmpty) return;
     }
-    applyFormat(editor, format, kindOf: _adapter!.kindOf, url: url);
+    applyFormat(
+      editor,
+      format,
+      selection: selection,
+      kindOf: _adapter!.kindOf,
+      url: url,
+    );
     _focus.requestFocus();
   }
 
