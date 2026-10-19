@@ -26,19 +26,19 @@ void main() {
 
   setUp(() => random = Random(7));
 
-  Checklist randomList() => Checklist.parse(
+  MarkdownLines randomList() => MarkdownLines.parse(
     [
       for (var i = random.nextInt(10) + 1; i > 0; i--)
         lineKinds[random.nextInt(lineKinds.length)],
     ].join('\n'),
   );
 
-  ChecklistLine? randomItem(Checklist list) {
+  MarkdownLine? randomItem(MarkdownLines list) {
     final items = list.lines.where((line) => line.isItem).toList();
     return items.isEmpty ? null : items[random.nextInt(items.length)];
   }
 
-  List<String> raws(Checklist list) => [for (final l in list.lines) l.raw];
+  List<String> raws(MarkdownLines list) => [for (final l in list.lines) l.raw];
 
   /// Whether [part] appears in [whole] in the same order.
   bool isSubsequence(List<String> part, List<String> whole) {
@@ -51,13 +51,13 @@ void main() {
 
   /// Lines without their leading whitespace, sorted: what moving and
   /// indenting must keep.
-  List<String> content(Checklist list) =>
+  List<String> content(MarkdownLines list) =>
       [for (final l in list.lines) l.raw.trimLeft()]..sort();
 
   test('parsing keeps the text exactly', () {
     for (var i = 0; i < cases; i++) {
       final list = randomList();
-      expect(Checklist.parse(list.text).text, list.text);
+      expect(MarkdownLines.parse(list.text).text, list.text);
     }
   });
 
@@ -157,7 +157,7 @@ void main() {
 
       expect(content(sorted), content(toggled), reason: 'case $i');
       // Indented lines can belong to a moved item.
-      Iterable<String> marginText(Checklist list) => [
+      Iterable<String> marginText(MarkdownLines list) => [
         for (final line in list.lines)
           if (!line.isItem && line.indent.isEmpty) line.raw,
       ];

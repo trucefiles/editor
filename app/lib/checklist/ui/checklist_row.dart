@@ -46,7 +46,7 @@ class ChecklistItemRow extends StatefulWidget {
     super.key,
   });
 
-  final ChecklistLine line;
+  final MarkdownLine line;
   final int depth;
   final VoidCallback onToggle;
   final ValueChanged<String> onTextChanged;

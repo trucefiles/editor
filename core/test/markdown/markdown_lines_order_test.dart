@@ -1,13 +1,13 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'checklist_support.dart';
+import 'markdown_lines_support.dart';
 
 /// Adding, moving, sorting and indenting checklist items.
 void main() {
   group('insertAfter', () {
     test('adds a sibling after the subitems', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       final (added, id) = list.insertAfter(idOf(list, 'eggs'), 'bread');
 
@@ -19,7 +19,7 @@ void main() {
     });
 
     test('uses the bullet style and level of the item', () {
-      final list = Checklist.parse('  * [x] a');
+      final list = MarkdownLines.parse('  * [x] a');
 
       final (added, _) = list.insertAfter(idOf(list, 'a'), 'b');
 
@@ -27,7 +27,7 @@ void main() {
     });
 
     test('new ids are unique', () {
-      final list = Checklist.parse('- [ ] a');
+      final list = MarkdownLines.parse('- [ ] a');
       final (once, first) = list.append('b');
       final (twice, second) = once.append('c');
 
@@ -38,7 +38,7 @@ void main() {
 
   group('append', () {
     test('goes after the last item', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(
         list.append('bread').$1.text,
@@ -48,19 +48,19 @@ void main() {
 
     test('goes before the final line break if there are no items', () {
       expect(
-        Checklist.parse('# Title\n').append('a').$1.text,
+        MarkdownLines.parse('# Title\n').append('a').$1.text,
         '# Title\n- [ ] a\n',
       );
     });
 
     test('goes first in an empty document', () {
-      expect(Checklist.parse('').append('a').$1.text, '- [ ] a\n');
+      expect(MarkdownLines.parse('').append('a').$1.text, '- [ ] a\n');
     });
   });
 
   group('appendAfter', () {
     test('goes after the item and its subitems, at the margin', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(
         list.appendAfter(idOf(list, 'milk'), 'bread').$1.text,
@@ -69,7 +69,7 @@ void main() {
     });
 
     test('after a subitem, goes after the item it is under', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '- [ ] a\n  - [ ] b\n    - [ ] c\n  - [x] d',
       );
 
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('keeps the bullet style of the item', () {
-      final list = Checklist.parse('* [x] a\ntext');
+      final list = MarkdownLines.parse('* [x] a\ntext');
 
       expect(
         list.appendAfter(idOf(list, 'a'), 'b').$1.text,
@@ -91,7 +91,7 @@ void main() {
 
   group('insertBefore', () {
     test('goes before the item, at its level', () {
-      final list = Checklist.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
+      final list = MarkdownLines.parse('# Shopping\n  * [x] milk\n- [ ] eggs\n');
 
       expect(
         list.insertBefore(idOf(list, 'milk'), 'bread').$1.text,
@@ -100,7 +100,7 @@ void main() {
     });
 
     test('never takes the items below as its subitems', () {
-      final list = Checklist.parse('Groceries:\n  - [ ] milk\n  - [ ] eggs');
+      final list = MarkdownLines.parse('Groceries:\n  - [ ] milk\n  - [ ] eggs');
 
       final (added, id) = list.insertBefore(idOf(list, 'milk'), 'bread');
 
@@ -110,7 +110,7 @@ void main() {
 
   group('move', () {
     test('moves the item with its subitems', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       final moved = list.move(idOf(list, 'eggs'), beforeId: idOf(list, 'milk'));
 
@@ -121,7 +121,7 @@ void main() {
     });
 
     test('takes indented text lines along, up to an empty line', () {
-      final list = Checklist.parse('- [ ] a\n- [ ] b\n  note\n\n  stays');
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\n  stays');
 
       final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
 
@@ -129,7 +129,7 @@ void main() {
     });
 
     test('to the end stays before the final line break', () {
-      final list = Checklist.parse('- [ ] a\n- [ ] b\n');
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n');
 
       expect(
         list.move(idOf(list, 'a'), beforeId: null).text,
@@ -138,7 +138,7 @@ void main() {
     });
 
     test('into its own subitems does nothing', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(
         list.move(idOf(list, 'eggs'), beforeId: idOf(list, 'large')).text,
@@ -149,7 +149,7 @@ void main() {
 
   group('toggleAndSort', () {
     test('a checked item moves with its subitems below the last item', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '# T\n- [ ] a\n  - [ ] sub\n- [ ] b\n- [x] c\nnote\n',
       );
 
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('an unchecked item moves below the last open item', () {
-      final list = Checklist.parse('- [ ] a\n- [x] b\n- [x] c\n');
+      final list = MarkdownLines.parse('- [ ] a\n- [x] b\n- [x] c\n');
 
       expect(
         list.toggleAndSort(idOf(list, 'c')).text,
@@ -169,23 +169,23 @@ void main() {
     });
 
     test('unchecked with no open item, it moves above the first item', () {
-      final list = Checklist.parse('# T\n- [x] a\n- [x] b');
+      final list = MarkdownLines.parse('# T\n- [x] a\n- [x] b');
 
       expect(list.toggleAndSort(idOf(list, 'b')).text, '# T\n- [ ] b\n- [x] a');
     });
 
     test('already in place, only the mark changes', () {
-      final list = Checklist.parse('- [ ] a\ntext\n- [ ] b\n');
+      final list = MarkdownLines.parse('- [ ] a\ntext\n- [ ] b\n');
 
       expect(
         list.toggleAndSort(idOf(list, 'b')).text,
         '- [ ] a\ntext\n- [x] b\n',
       );
-      expect(Checklist.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
+      expect(MarkdownLines.parse('- [x] a').toggleAndSort(0).text, '- [ ] a');
     });
 
     test('also moves checked items left among the open ones', () {
-      final list = Checklist.parse('- [x] a\n- [ ] b\n- [ ] c\n');
+      final list = MarkdownLines.parse('- [x] a\n- [ ] b\n- [ ] c\n');
 
       expect(
         list.toggleAndSort(idOf(list, 'b')).text,
@@ -194,7 +194,7 @@ void main() {
     });
 
     test('items stay in their own list, up to a heading or text', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '# Today\n- [ ] a\n- [ ] b\n# Later\n- [ ] c\nnote\n- [x] d\n',
       );
 
@@ -209,13 +209,13 @@ void main() {
     });
 
     test('blank lines keep a list together', () {
-      final list = Checklist.parse('- [ ] a\n\n- [ ] b\n');
+      final list = MarkdownLines.parse('- [ ] a\n\n- [ ] b\n');
 
       expect(list.toggleAndSort(idOf(list, 'a')).text, '\n- [ ] b\n- [x] a\n');
     });
 
     test('sortChecked moves all checked items below, in their order', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',
       );
 
@@ -226,7 +226,7 @@ void main() {
     });
 
     test('a subitem toggles in place', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '- [ ] a\n  - [ ] sub\n  - [ ] two\n- [ ] b',
       );
 
@@ -239,7 +239,7 @@ void main() {
 
   group('indent', () {
     test('indents the subitems too, in the file\'s unit', () {
-      final list = Checklist.parse('- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d');
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n    - [ ] c\n- [ ] d');
 
       final indented = list.indent(idOf(list, 'b'));
 
@@ -247,31 +247,31 @@ void main() {
     });
 
     test('indents indented text lines too', () {
-      final list = Checklist.parse('- [ ] a\n- [ ] b\n  note');
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note');
 
       expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b\n    note');
     });
 
     test('needs an item above', () {
-      final list = Checklist.parse('# T\n- [ ] a');
+      final list = MarkdownLines.parse('# T\n- [ ] a');
 
       expect(list.indent(idOf(list, 'a')).text, '# T\n- [ ] a');
     });
 
     test('goes at most one level below the item above', () {
-      final list = Checklist.parse('- [ ] a\n  - [ ] b');
+      final list = MarkdownLines.parse('- [ ] a\n  - [ ] b');
 
       expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b');
     });
 
     test('needs the line shown above to be an item', () {
-      final list = Checklist.parse('- [ ] a\n## Later\n- [ ] b');
+      final list = MarkdownLines.parse('- [ ] a\n## Later\n- [ ] b');
 
       expect(list.indent(idOf(list, 'b')).text, list.text);
     });
 
     test('skips hidden lines and moves the item above them', () {
-      final list = Checklist.parse(
+      final list = MarkdownLines.parse(
         '- [ ] a\n- [x] done\n  - [ ] sub\n- [ ] b\n  - [ ] c',
       );
 
@@ -285,7 +285,7 @@ void main() {
     });
 
     test('outdent reverses indent', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(
         list.outdent(idOf(list, 'large')).text,
@@ -294,19 +294,19 @@ void main() {
     });
 
     test('outdent keeps a tab-indented subitem under a space item', () {
-      final list = Checklist.parse('  - [ ] a\n\t- [ ] b');
+      final list = MarkdownLines.parse('  - [ ] a\n\t- [ ] b');
 
       expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n- [ ] b');
     });
 
     test('outdent at the margin does nothing', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(list.outdent(idOf(list, 'milk')).text, doc);
     });
 
     test('depth counts levels', () {
-      final list = Checklist.parse(doc);
+      final list = MarkdownLines.parse(doc);
 
       expect(list.depthOf(list.lines[3]), 1);
       expect(list.depthOf(list.lines[1]), 0);

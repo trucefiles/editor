@@ -85,7 +85,7 @@ class _ChecklistViewState extends State<ChecklistView> {
     if (_started.remove(field) != null) field.clear();
   }
 
-  void _onAction(ChecklistLine line, ItemAction action) {
+  void _onAction(MarkdownLine line, ItemAction action) {
     switch (action) {
       case ItemAction.indent:
         _editor.indent(line.id, hidden: _hiddenFrom(line));
@@ -99,7 +99,7 @@ class _ChecklistViewState extends State<ChecklistView> {
   /// Lines not shown in [line]'s section. With a "Done" section, open and
   /// done items are shown apart, so only items of the same section are
   /// "above" [line] on screen.
-  Set<int> _hiddenFrom(ChecklistLine line) {
+  Set<int> _hiddenFrom(MarkdownLine line) {
     if (!widget.separateDone) return const {};
     final list = _editor.list;
     final done = list.doneIds;
@@ -122,7 +122,7 @@ class _ChecklistViewState extends State<ChecklistView> {
   /// the item to the one above; Delete appends the one below to it, or
   /// drops the item if it is empty. With no item shown there, e.g. text or
   /// the end of the section, only an empty item is dropped.
-  void _join(List<ChecklistBlock> section, ChecklistLine line, ItemJoin join) {
+  void _join(List<ChecklistBlock> section, MarkdownLine line, ItemJoin join) {
     final index = section.indexWhere((block) => block.first.id == line.id);
     if (index < 0) return;
     final step = join == ItemJoin.above ? -1 : 1;
@@ -150,7 +150,7 @@ class _ChecklistViewState extends State<ChecklistView> {
   /// Drops the empty item [line] and moves the cursor to the row next to
   /// it: above for Backspace, unless that is the top add row, which may
   /// go with the item; else below.
-  void _drop(ChecklistLine line, ItemJoin join) {
+  void _drop(MarkdownLine line, ItemJoin join) {
     final above = _focus.near(line.id, -1);
     final target =
         join == ItemJoin.above && above != null && above != _addTopKey
@@ -263,7 +263,7 @@ class _ChecklistViewState extends State<ChecklistView> {
   /// [block] of [section] (open or done blocks); [index] is set for rows in
   /// the reorderable list.
   Widget _row(
-    Checklist list,
+    MarkdownLines list,
     ChecklistBlock block,
     List<ChecklistBlock> section, {
     int? index,

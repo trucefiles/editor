@@ -6,32 +6,32 @@ sealed class ChecklistBlock {
   const ChecklistBlock();
 
   /// The block's first line; identifies it in the list.
-  ChecklistLine get first;
+  MarkdownLine get first;
 }
 
 final class ItemBlock extends ChecklistBlock {
   const ItemBlock(this.first);
 
   @override
-  final ChecklistLine first;
+  final MarkdownLine first;
 }
 
 final class TextBlock extends ChecklistBlock {
   const TextBlock(this.lines);
 
-  final List<ChecklistLine> lines;
+  final List<MarkdownLine> lines;
 
   @override
-  ChecklistLine get first => lines.first;
+  MarkdownLine get first => lines.first;
 
   String get markdown => lines.map((line) => line.raw).join('\n');
 }
 
 /// Splits [lines] into items and runs of other lines. Runs of only blank
 /// lines are left out.
-List<ChecklistBlock> blocksOf(Iterable<ChecklistLine> lines) {
+List<ChecklistBlock> blocksOf(Iterable<MarkdownLine> lines) {
   final blocks = <ChecklistBlock>[];
-  var text = <ChecklistLine>[];
+  var text = <MarkdownLine>[];
   void endText() {
     if (text.any((line) => line.raw.trim().isNotEmpty)) {
       blocks.add(TextBlock(text));
@@ -74,5 +74,5 @@ splitAtItems(List<ChecklistBlock> blocks) {
 }
 
 /// Whether [line], right below an item, is indented text that goes with it.
-bool _isIndentedBelow(ChecklistLine line) =>
+bool _isIndentedBelow(MarkdownLine line) =>
     line.raw.trim().isNotEmpty && line.indent.isNotEmpty;

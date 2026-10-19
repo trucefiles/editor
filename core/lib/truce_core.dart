@@ -19,7 +19,7 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `markdown`: Markdown documents as line-level edits ([Checklist]).
+/// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines]).
 /// 11. `marks`: colors of notes, synced inside the folder
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
@@ -55,7 +55,7 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
-export 'src/markdown/checklist.dart';
+export 'src/markdown/markdown_lines.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
 export 'src/reach/folder_reach.dart';

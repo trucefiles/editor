@@ -5,7 +5,7 @@ import 'package:truce_editor/checklist/ui/checklist_blocks.dart';
 void main() {
   /// Each block as `item: <raw>` or `text: <markdown>`.
   List<String> describe(String text) => [
-    for (final block in blocksOf(Checklist.parse(text).lines))
+    for (final block in blocksOf(MarkdownLines.parse(text).lines))
       switch (block) {
         ItemBlock(:final first) => 'item: ${first.raw}',
         TextBlock(:final markdown) => 'text: $markdown',
@@ -25,7 +25,7 @@ void main() {
     /// Number of blocks in head, body and tail.
     List<int> split(String text) {
       final (:head, :body, :tail) = splitAtItems(
-        blocksOf(Checklist.parse(text).lines),
+        blocksOf(MarkdownLines.parse(text).lines),
       );
       return [head.length, body.length, tail.length];
     }

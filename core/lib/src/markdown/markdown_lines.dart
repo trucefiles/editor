@@ -1,35 +1,36 @@
 import 'dart:math';
 
-/// A Markdown document seen as a checklist.
+/// A Markdown document seen as lines, e.g. checkbox items, headings and
+/// text.
 ///
 /// Every edit is a plain line edit: lines that are not touched stay
 /// byte-identical, and non-checkbox lines (headings, text) stay in place.
-/// Immutable; each edit returns a new [Checklist].
+/// Immutable; each edit returns a new [MarkdownLines].
 ///
-/// Every line has an [ChecklistLine.id] that survives edits, so a UI can
+/// Every line has an [MarkdownLine.id] that survives edits, so a UI can
 /// follow a line while its text changes. Ids are only unique within the
-/// checklists derived from one [Checklist.parse].
-final class Checklist {
-  const Checklist._(this.lines, this._indentUnit, this._nextId);
+/// documents derived from one [MarkdownLines.parse].
+final class MarkdownLines {
+  const MarkdownLines._(this.lines, this._indentUnit, this._nextId);
 
   /// Parses [text] with `\n` line breaks.
-  factory Checklist.parse(String text) => Checklist._parseFrom(text, 0);
+  factory MarkdownLines.parse(String text) => MarkdownLines._parseFrom(text, 0);
 
-  factory Checklist._parseFrom(String text, int firstId) {
-    final lines = <ChecklistLine>[];
+  factory MarkdownLines._parseFrom(String text, int firstId) {
+    final lines = <MarkdownLine>[];
     for (final raw in text.split('\n')) {
-      lines.add(ChecklistLine._parse(firstId + lines.length, raw));
+      lines.add(MarkdownLine._parse(firstId + lines.length, raw));
     }
-    return Checklist._(lines, _detectIndentUnit(lines), firstId + lines.length);
+    return MarkdownLines._(lines, _detectIndentUnit(lines), firstId + lines.length);
   }
 
   /// Parses [text] as a whole new document, e.g. after it changed
-  /// elsewhere. Its ids never repeat this checklist's ids, so a UI cannot
+  /// elsewhere. Its ids never repeat this document's ids, so a UI cannot
   /// mistake a new line for an old one.
-  Checklist reparse(String text) => Checklist._parseFrom(text, _nextId);
+  MarkdownLines reparse(String text) => MarkdownLines._parseFrom(text, _nextId);
 
   /// All lines, in file order.
-  final List<ChecklistLine> lines;
+  final List<MarkdownLine> lines;
 
   /// One indent level as written in this file: two spaces unless the
   /// file already uses another indent.
@@ -58,9 +59,9 @@ final class Checklist {
   }
 
   /// Nesting level of [line]: 0 at the left margin.
-  int depthOf(ChecklistLine line) => _width(line.indent) ~/ _width(_indentUnit);
+  int depthOf(MarkdownLine line) => _width(line.indent) ~/ _width(_indentUnit);
 
-  Checklist toggle(int id) => _replaceLine(id, (line) => line._toggled());
+  MarkdownLines toggle(int id) => _replaceLine(id, (line) => line._toggled());
 
   /// Toggles the item [id] and, at the left margin, moves it with its
   /// subitems within its own list: once checked, below the list's last
@@ -72,18 +73,18 @@ final class Checklist {
   /// editor left among the open items. Lines other than items stay in
   /// place, and an item with only such lines between it and its place
   /// does not move.
-  Checklist toggleAndSort(int id) => toggle(id)._sorted(id).sortChecked();
+  MarkdownLines toggleAndSort(int id) => toggle(id)._sorted(id).sortChecked();
 
   /// Moves every checked item at the left margin, with its subitems, below
   /// the last item of its list, keeping their order; as [toggleAndSort]
   /// does for one.
-  Checklist sortChecked() => [
+  MarkdownLines sortChecked() => [
     for (final line in lines)
       if (line.isChecked && line.indent.isEmpty) line.id,
   ].fold(this, (list, id) => list._sorted(id));
 
   /// The item [id] moved to where [toggleAndSort] puts it.
-  Checklist _sorted(int id) {
+  MarkdownLines _sorted(int id) {
     final index = _indexOf(id);
     if (lines[index].indent.isNotEmpty) return this;
     final target = _sortTarget(index);
@@ -118,7 +119,7 @@ final class Checklist {
   /// The list the line at [index] is in: from its first line to past its
   /// last, up to the lines at the margin that are neither items nor blank.
   (int, int) _listAround(int index) {
-    bool ends(ChecklistLine line) =>
+    bool ends(MarkdownLine line) =>
         !line.isItem && line.indent.isEmpty && line.raw.trim().isNotEmpty;
     var first = index;
     while (first > 0 && !ends(lines[first - 1])) {
@@ -131,12 +132,12 @@ final class Checklist {
     return (first, last);
   }
 
-  Checklist setText(int id, String text) =>
+  MarkdownLines setText(int id, String text) =>
       _replaceLine(id, (line) => line._withText(text));
 
   /// Adds an unchecked item after the item [afterId] and its subitems, at
-  /// the same level. Returns the new checklist and the new line's id.
-  (Checklist, int) insertAfter(int afterId, String text) {
+  /// the same level. Returns the new document and the new line's id.
+  (MarkdownLines, int) insertAfter(int afterId, String text) {
     final index = _indexOf(afterId);
     final line = lines[index];
     return _insert(_blockEnd(index), line._newSibling(_nextId, text));
@@ -144,16 +145,16 @@ final class Checklist {
 
   /// Adds an unchecked item at the left margin after the last item, or at
   /// the end if there are none; an empty document gets it as its first
-  /// line. Returns the new checklist and the new line's id.
-  (Checklist, int) append(String text) {
+  /// line. Returns the new document and the new line's id.
+  (MarkdownLines, int) append(String text) {
     final lastItem = lines.lastIndexWhere((line) => line.isItem);
     if (lastItem >= 0) {
       final sibling = lines[lastItem]._newSibling(_nextId, text);
       return _insert(_blockEnd(lastItem), sibling._withIndent(''));
     }
-    final item = ChecklistLine._parse(
+    final item = MarkdownLine._parse(
       _nextId,
-      '- [ ] ${ChecklistLine._oneLine(text)}',
+      '- [ ] ${MarkdownLine._oneLine(text)}',
     );
     if (this.text.isEmpty) return _insert(0, item);
     final trailingEmpty = lines.length > 1 && lines.last.raw.isEmpty;
@@ -163,8 +164,8 @@ final class Checklist {
   /// Adds an unchecked item at the left margin after the item [afterId]
   /// and its subitems; for a subitem, after the item at the margin it is
   /// under, so the new item never takes subitems of another. Returns the
-  /// new checklist and the new line's id.
-  (Checklist, int) appendAfter(int afterId, String text) {
+  /// new document and the new line's id.
+  (MarkdownLines, int) appendAfter(int afterId, String text) {
     final top = _marginItemOf(_indexOf(afterId));
     final sibling = lines[top]._newSibling(_nextId, text)._withIndent('');
     return _insert(_blockEnd(top), sibling);
@@ -172,8 +173,8 @@ final class Checklist {
 
   /// Adds an unchecked item just before the item [beforeId], at its level,
   /// so the items below never become its subitems. Returns the new
-  /// checklist and the new line's id.
-  (Checklist, int) insertBefore(int beforeId, String text) {
+  /// document and the new line's id.
+  (MarkdownLines, int) insertBefore(int beforeId, String text) {
     final index = _indexOf(beforeId);
     return _insert(index, lines[index]._newSibling(_nextId, text));
   }
@@ -181,7 +182,7 @@ final class Checklist {
   /// Appends the text of the item [id] to the item [into] and removes the
   /// line of [id], as joining two lines in a text editor. Lines below it
   /// (its subitems) stay where they are.
-  Checklist join(int id, {required int into}) {
+  MarkdownLines join(int id, {required int into}) {
     final text = lines[_indexOf(id)].text;
     return _replaceLine(
       into,
@@ -191,19 +192,19 @@ final class Checklist {
 
   /// Removes only the line of [id]; lines below it (its subitems) stay
   /// where they are, as deleting an empty line in a text editor.
-  Checklist removeLine(int id) {
+  MarkdownLines removeLine(int id) {
     return _with([...lines]..removeAt(_indexOf(id)));
   }
 
   /// Removes the item [id] with its subitems.
-  Checklist remove(int id) {
+  MarkdownLines remove(int id) {
     final index = _indexOf(id);
     return _with([...lines]..removeRange(index, _blockEnd(index)));
   }
 
   /// Moves the item [id] with its subitems to just before the line
   /// [beforeId], or to the end if [beforeId] is `null`. Levels are kept.
-  Checklist move(int id, {required int? beforeId}) {
+  MarkdownLines move(int id, {required int? beforeId}) {
     final start = _indexOf(id);
     final end = _blockEnd(start);
     final block = lines.sublist(start, end);
@@ -223,7 +224,7 @@ final class Checklist {
   ///
   /// Does nothing if the line shown above is not an item, or if the item
   /// is already one level deeper than it.
-  Checklist indent(int id, {Set<int> hidden = const {}}) {
+  MarkdownLines indent(int id, {Set<int> hidden = const {}}) {
     final index = _indexOf(id);
     final above = _shownAbove(index, hidden);
     if (above == null || !lines[above].isItem) return this;
@@ -240,7 +241,7 @@ final class Checklist {
 
   /// Moves the item [id] with its subitems one level left. Does nothing at
   /// the left margin.
-  Checklist outdent(int id) {
+  MarkdownLines outdent(int id) {
     final index = _indexOf(id);
     final indent = lines[index].indent;
     if (indent.isEmpty) return this;
@@ -256,7 +257,7 @@ final class Checklist {
   }
 
   /// Removes all checked items, with their subitems.
-  Checklist clearDone() {
+  MarkdownLines clearDone() {
     final done = doneIds;
     return _with(lines.where((line) => !done.contains(line.id)).toList());
   }
@@ -297,7 +298,7 @@ final class Checklist {
     return end;
   }
 
-  Checklist _reindentBlock(int index, String Function(String) change) {
+  MarkdownLines _reindentBlock(int index, String Function(String) change) {
     final end = _blockEnd(index);
     return _with([
       for (var i = 0; i < lines.length; i++)
@@ -307,18 +308,18 @@ final class Checklist {
     ]);
   }
 
-  (Checklist, int) _insert(int index, ChecklistLine line) => (
-    Checklist._([...lines]..insert(index, line), _indentUnit, _nextId + 1),
+  (MarkdownLines, int) _insert(int index, MarkdownLine line) => (
+    MarkdownLines._([...lines]..insert(index, line), _indentUnit, _nextId + 1),
     line.id,
   );
 
-  Checklist _replaceLine(int id, ChecklistLine Function(ChecklistLine) f) {
+  MarkdownLines _replaceLine(int id, MarkdownLine Function(MarkdownLine) f) {
     final index = _indexOf(id);
     return _with([...lines]..[index] = f(lines[index]));
   }
 
-  Checklist _with(List<ChecklistLine> lines) =>
-      Checklist._(lines, _indentUnit, _nextId);
+  MarkdownLines _with(List<MarkdownLine> lines) =>
+      MarkdownLines._(lines, _indentUnit, _nextId);
 
   int _indexOf(int id) {
     final index = lines.indexWhere((line) => line.id == id);
@@ -326,7 +327,7 @@ final class Checklist {
     return index;
   }
 
-  static String _detectIndentUnit(List<ChecklistLine> lines) {
+  static String _detectIndentUnit(List<MarkdownLine> lines) {
     String? unit;
     for (final line in lines) {
       if (!line.isItem || line.indent.isEmpty) continue;
@@ -342,13 +343,13 @@ final class Checklist {
       indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));
 }
 
-/// One line of a [Checklist]: a checkbox item or any other line.
-final class ChecklistLine {
-  const ChecklistLine._(this.id, this.raw, this._item);
+/// One line of [MarkdownLines]: a checkbox item or any other line.
+final class MarkdownLine {
+  const MarkdownLine._(this.id, this.raw, this._item);
 
-  factory ChecklistLine._parse(int id, String raw) {
+  factory MarkdownLine._parse(int id, String raw) {
     final match = _itemPattern.firstMatch(raw);
-    return ChecklistLine._(
+    return MarkdownLine._(
       id,
       raw,
       match == null
@@ -394,10 +395,10 @@ final class ChecklistLine {
     null => raw.substring(0, raw.length - raw.trimLeft().length),
   };
 
-  ChecklistLine _toggled() {
+  MarkdownLine _toggled() {
     final item = _item!;
     final mark = isChecked ? ' ' : 'x';
-    return ChecklistLine._(
+    return MarkdownLine._(
       id,
       raw.replaceRange(item.markIndex, item.markIndex + 1, mark),
       item,
@@ -406,21 +407,21 @@ final class ChecklistLine {
 
   /// Keeps the prefix as written; a box at the end of the line gets a
   /// space before its first text.
-  ChecklistLine _withText(String text) {
+  MarkdownLine _withText(String text) {
     final item = _item!;
     var prefix = raw.substring(0, item.textStart);
     if (text.isNotEmpty && prefix.endsWith(']')) prefix = '$prefix ';
-    return ChecklistLine._parse(id, '$prefix${_oneLine(text)}');
+    return MarkdownLine._parse(id, '$prefix${_oneLine(text)}');
   }
 
-  ChecklistLine _withIndent(String indent) =>
-      ChecklistLine._parse(id, '$indent${raw.substring(this.indent.length)}');
+  MarkdownLine _withIndent(String indent) =>
+      MarkdownLine._parse(id, '$indent${raw.substring(this.indent.length)}');
 
   /// An unchecked item at this line's level, with its bullet style.
-  ChecklistLine _newSibling(int id, String text) {
+  MarkdownLine _newSibling(int id, String text) {
     final item = _item!;
     final prefix = raw.substring(0, item.markIndex - 1);
-    return ChecklistLine._parse(id, '$prefix[ ] ${_oneLine(text)}');
+    return MarkdownLine._parse(id, '$prefix[ ] ${_oneLine(text)}');
   }
 
   /// [text] with line breaks as spaces: an item is one line, and pasted

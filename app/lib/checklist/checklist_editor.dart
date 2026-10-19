@@ -5,24 +5,24 @@ import '../notes/note_text.dart';
 
 /// Applies checklist actions to an open note. No UI.
 ///
-/// Each action edits the [Checklist] and hands the new text to the open
+/// Each action edits the [MarkdownLines] and hands the new text to the open
 /// note's [NoteText], which saves it. When that text changes from
 /// elsewhere, the checklist is parsed again.
 final class ChecklistEditor extends ChangeNotifier {
-  ChecklistEditor(this._note) : _list = Checklist.parse(_note.text) {
+  ChecklistEditor(this._note) : _list = MarkdownLines.parse(_note.text) {
     _note.addListener(_onNoteChanged);
   }
 
   final NoteText _note;
-  Checklist _list;
+  MarkdownLines _list;
 
-  Checklist get list => _list;
+  MarkdownLines get list => _list;
 
-  /// [sort]: also moves the item, see [Checklist.toggleAndSort].
+  /// [sort]: also moves the item, see [MarkdownLines.toggleAndSort].
   void toggle(int id, {bool sort = false}) =>
       _apply(sort ? _list.toggleAndSort(id) : _list.toggle(id));
 
-  /// See [Checklist.sortChecked]; saves only if anything moved.
+  /// See [MarkdownLines.sortChecked]; saves only if anything moved.
   void sortChecked() {
     final sorted = _list.sortChecked();
     if (sorted.text != _list.text) _apply(sorted);
@@ -58,17 +58,17 @@ final class ChecklistEditor extends ChangeNotifier {
     return newId;
   }
 
-  /// See [Checklist.removeLine].
+  /// See [MarkdownLines.removeLine].
   void removeLine(int id) => _apply(_list.removeLine(id));
 
-  /// See [Checklist.join].
+  /// See [MarkdownLines.join].
   void join(int id, {required int into}) => _apply(_list.join(id, into: into));
 
   void move(int id, {required int? beforeId}) =>
       _apply(_list.move(id, beforeId: beforeId));
 
   /// [hidden]: lines the UI does not show above the item, see
-  /// [Checklist.indent].
+  /// [MarkdownLines.indent].
   void indent(int id, {Set<int> hidden = const {}}) =>
       _apply(_list.indent(id, hidden: hidden));
 
@@ -89,13 +89,13 @@ final class ChecklistEditor extends ChangeNotifier {
     return true;
   }
 
-  ChecklistUndo _applyUndoable(Checklist list) {
+  ChecklistUndo _applyUndoable(MarkdownLines list) {
     final before = _list.text;
     _apply(list);
     return (before: before, after: list.text);
   }
 
-  void _apply(Checklist list) {
+  void _apply(MarkdownLines list) {
     _list = list;
     _note.edit(list.text);
     notifyListeners();

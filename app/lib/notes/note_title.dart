@@ -14,7 +14,7 @@ String noteTitle(String text, RelPath path) {
 /// The first non-empty line of [text] as plain words, without Markdown
 /// block markers or a checkbox; empty if there is none. Names new notes.
 String noteTitleLine(String text) {
-  final line = Checklist.parse(text).lines
+  final line = MarkdownLines.parse(text).lines
       .where((line) => line.raw.trim().isNotEmpty)
       .firstOrNull;
   if (line == null) return '';
@@ -32,7 +32,7 @@ String noteTitleLine(String text) {
 /// items and their subitems are left out and counted in a last line, e.g.
 /// `+ 3 done`.
 String notePreview(String text, {int maxLines = 6, bool hideDone = false}) {
-  final list = Checklist.parse(text);
+  final list = MarkdownLines.parse(text);
   final done = hideDone ? list.doneIds : const <int>{};
   final shown = list.lines
       .where((line) => line.raw.trim().isNotEmpty && !done.contains(line.id))
