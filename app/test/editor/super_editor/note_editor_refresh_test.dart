@@ -21,11 +21,7 @@ void main() {
           home: Scaffold(
             body: PullToRefresh(
               onRefresh: () async => refreshes++,
-              child: NoteEditorView(
-                note,
-                onRemoved: (_, _) {},
-                onLink: (_) {},
-              ),
+              child: NoteEditorView(note, onRemoved: (_, _) {}, onLink: (_) {}),
             ),
           ),
         ),

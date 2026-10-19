@@ -3,23 +3,28 @@ import 'package:super_editor/super_editor.dart';
 
 import '../text_format.dart';
 import 'components/line_actions.dart';
+import 'keypad_keys.dart';
 
 /// The editor's key handling: the library's defaults for IME input,
 /// without its own Markdown-unaware formatting, indenting and Backspace
 /// rules. Instead, Backspace at the start and Delete at the end of a line
 /// join lines (see `joinLines`), Ctrl+B, I and K [onFormat] the selection,
 /// and with [lineActions], Tab and Shift+Tab indent and outdent list items.
+/// The keypad's navigation keys work as the keys they stand for.
 List<SuperEditorKeyboardAction> noteKeyboardActions({
   required void Function(TextFormat format) onFormat,
   LineActions? lineActions,
-}) => [
-  _backspaceToJoinLines,
-  _deleteToJoinLines,
-  _formatShortcuts(onFormat),
-  if (lineActions != null) _tabToIndent(lineActions),
-  for (final action in defaultImeKeyboardActions)
-    if (!_replaced.contains(action)) action,
-];
+}) {
+  final actions = [
+    _backspaceToJoinLines,
+    _deleteToJoinLines,
+    _formatShortcuts(onFormat),
+    if (lineActions != null) _tabToIndent(lineActions),
+    for (final action in defaultImeKeyboardActions)
+      if (!_replaced.contains(action)) action,
+  ];
+  return [keypadKeys(actions), ...actions];
+}
 
 /// Default actions that format, indent or delete in ways that don't fit
 /// lines of Markdown.

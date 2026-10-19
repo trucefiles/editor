@@ -205,4 +205,32 @@ void main() {
 
     expect(text.text, 'a\nb\nc');
   });
+
+  final linux = TargetPlatformVariant.only(TargetPlatform.linux);
+
+  testWidgets('keypad keys move the caret with NumLock off', (tester) async {
+    final text = FakeNoteText('buy milk');
+    await pumpEditor(tester, text);
+
+    await tester.caretIn(nodeOf<ParagraphNode>(), 5);
+    await tester.sendKeyEvent(LogicalKeyboardKey.numpad4);
+    await tester.typeImeText('x');
+    await tester.sendKeyEvent(LogicalKeyboardKey.numpad7);
+    await tester.typeImeText('y');
+
+    expect(text.text, 'ybuy xmilk');
+  }, variant: linux);
+
+  testWidgets('keypad keys stay digits with NumLock on', (tester) async {
+    final text = FakeNoteText('buy milk');
+    await pumpEditor(tester, text);
+    await tester.sendKeyEvent(LogicalKeyboardKey.numLock);
+    addTearDown(() => tester.sendKeyEvent(LogicalKeyboardKey.numLock));
+
+    await tester.caretIn(nodeOf<ParagraphNode>(), 5);
+    await tester.sendKeyEvent(LogicalKeyboardKey.numpad4);
+    await tester.typeImeText('x');
+
+    expect(text.text, 'buy mxilk');
+  }, variant: linux);
 }
