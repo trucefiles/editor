@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-import 'markup_text.dart';
+import 'marks/markup_text.dart';
 
 /// The look of a note in the editor, in [theme]: lines close together like
 /// a notes app's, Markdown styled by its markup; [monospace] where every

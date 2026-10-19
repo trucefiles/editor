@@ -2,7 +2,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'display_nodes.dart';
-import 'markup_text.dart';
+import 'marks/markup_text.dart';
 
 /// The nodes for [entries] of [document] to read: each line formatted,
 /// its Markdown syntax hidden; checkbox items as tasks; "Done" headings
