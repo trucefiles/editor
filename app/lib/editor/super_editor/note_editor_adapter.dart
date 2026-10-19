@@ -109,17 +109,8 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     if (_disposed) return;
     _syncing = true;
     try {
-      syncDocument(editor, _targetNodes());
-      if (_pendingCaret case final caret?) {
-        _pendingCaret = null;
-        editor.execute([
-          ChangeSelectionRequest(
-            DocumentSelection.collapsed(position: caret),
-            SelectionChangeType.placeCaret,
-            SelectionReason.userInteraction,
-          ),
-        ]);
-      }
+      syncDocument(editor, _targetNodes(), caret: _pendingCaret);
+      _pendingCaret = null;
     } finally {
       _syncing = false;
     }

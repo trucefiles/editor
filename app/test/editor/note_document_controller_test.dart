@@ -1,17 +1,21 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/checklist/checklist_editor.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/editor/note_document_controller.dart';
+import 'package:truce_editor/notes/checked_items.dart';
+import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
 
 import '../support.dart';
+import 'editor_support.dart';
 
 void main() {
   late Directory dir;
   late NoteFiles files;
   late NoteEditSession session;
-  late ChecklistEditor editor;
+  late NoteDocumentController editor;
 
   setUp(() async {
     dir = tempFolder();
@@ -28,18 +32,34 @@ void main() {
       tempDrafts(),
       saveDelay: Duration.zero,
     );
-    editor = ChecklistEditor(session);
+    editor = documentOf(session, checkedItems: CheckedItems.inPlace);
     addTearDown(() {
       editor.dispose();
       session.dispose();
     });
   });
 
-  int idOf(String text) =>
-      editor.list.lines.firstWhere((line) => line.text == text).id;
+  LineId idOf(String text) =>
+      editor.lines.lines.firstWhere((line) => line.text == text).id;
+
+  /// Checks or unchecks the item [text] as the editor does.
+  void toggle(String text) {
+    final line = editor.lines.lines.firstWhere((line) => line.text == text);
+    editor.applyEdits([
+      BlockChanged(
+        line.id,
+        ItemBlock(
+          kind: ListKind.checkbox,
+          depth: 0,
+          text: text,
+          checked: !line.isChecked,
+        ),
+      ),
+    ]);
+  }
 
   test('saves each action to the file', () async {
-    editor.toggle(idOf('a'));
+    toggle('a');
     await session.flush();
 
     expect(
@@ -49,21 +69,22 @@ void main() {
   });
 
   test('a sorting toggle moves the checked item below the others', () {
-    editor.toggle(idOf('a'), sort: true);
+    editor.setCheckedItems(CheckedItems.toEnd);
+    toggle('a');
 
     expect(session.text, '# list\n- [x] b\n- [x] a\n');
   });
 
   test('sorting the checked items saves only if any moved', () {
     var changes = 0;
-    editor
-      ..addListener(() => changes++)
-      ..sortChecked();
+    session.addListener(() => changes++);
+    editor.setCheckedItems(CheckedItems.toEnd, chose: true);
     expect(changes, 0);
 
-    editor.toggle(idOf('a'));
-    editor.toggle(idOf('b'));
-    editor.sortChecked();
+    editor.setCheckedItems(CheckedItems.inPlace);
+    toggle('a');
+    toggle('b');
+    editor.setCheckedItems(CheckedItems.toEnd, chose: true);
 
     expect(session.text, '# list\n- [ ] b\n- [x] a\n');
   });
@@ -79,7 +100,12 @@ void main() {
 
   test('undo keeps an edit made after the action', () {
     final undo = editor.remove(idOf('b'));
-    editor.setText(idOf('a'), 'a2');
+    editor.applyEdits([
+      BlockChanged(
+        idOf('a'),
+        const ItemBlock(kind: ListKind.checkbox, depth: 0, text: 'a2'),
+      ),
+    ]);
 
     expect(editor.undo(undo), isFalse);
 
@@ -99,6 +125,6 @@ void main() {
     session.edit('# list\n- [ ] c\n');
     session.edit('# list\n- [ ] cd\n');
 
-    expect(editor.list.lines[1].text, 'cd');
+    expect(editor.lines.lines[1].text, 'cd');
   });
 }
