@@ -41,4 +41,12 @@ void main() {
   test('in an empty note, as its first line', () {
     expect(MarkdownLines.parse('').startList().$1.text, '- [ ] ');
   });
+
+  test('in a code block, at the end instead', () {
+    final doc = MarkdownLines.parse('```\ncode\n```');
+
+    final (started, _) = doc.startList(at: doc.lines[1].id);
+
+    expect(started.text, '```\ncode\n```\n- [ ] ');
+  });
 }

@@ -10,6 +10,7 @@ import '../ui/link_dialog.dart';
 import 'apply_format.dart';
 import 'components/display_component_builder.dart';
 import 'components/list_line_builder.dart';
+import 'editor_link_tap_handler.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
@@ -20,8 +21,9 @@ import 'note_read_document.dart';
 import 'note_stylesheet.dart';
 
 /// The open [note] in its mode: editable in Visual and Markdown edit, with
-/// the format toolbar in Visual edit; read-only in Read, where links open
-/// with [onLink]. Built anew for each mode.
+/// the format toolbar in Visual edit; read-only in Read. Links open with
+/// [onLink] (see [EditorLinkTapHandler] while editing). Built anew for
+/// each mode.
 class NoteEditorView extends StatefulWidget {
   const NoteEditorView(
     this.note, {
@@ -89,7 +91,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       url = await askLinkUrl(context) ?? '';
       if (url.isEmpty) return;
     }
-    applyFormat(editor, format, url: url);
+    applyFormat(editor, format, kindOf: _adapter!.kindOf, url: url);
     _focus.requestFocus();
   }
 
@@ -130,7 +132,14 @@ class _NoteEditorViewState extends State<NoteEditorView> {
         onFormat: _format,
         lineActions: visual ? adapter : null,
       ),
-      contentTapDelegateFactories: const [],
+      contentTapDelegateFactories: [
+        (_) => EditorLinkTapHandler(
+          adapter.editor,
+          kindOf: adapter.kindOf,
+          tapOpens: visual,
+          onLink: widget.onLink,
+        ),
+      ],
     );
     final hinted = Stack(
       children: [

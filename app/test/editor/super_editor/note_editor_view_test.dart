@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -147,6 +148,17 @@ void main() {
     expect(text.text, 'buy **milk**');
   });
 
+  testWidgets('Bold leaves a code block as it is', (tester) async {
+    final text = FakeNoteText('```\nbuy milk\n```');
+    await pumpEditor(tester, text);
+
+    await tester.selectWordIn(nodeOf<ParagraphNode>(index: 1), 5);
+    await tester.tap(find.byTooltip('Bold (Ctrl+B)'));
+    await tester.pumpAndSettle();
+
+    expect(text.text, '```\nbuy milk\n```');
+  });
+
   testWidgets('Start list adds a checkbox item below the line', (tester) async {
     final text = FakeNoteText('milk');
     await pumpEditor(tester, text);
@@ -177,6 +189,55 @@ void main() {
     expect(find.text('**a**', findRichText: true), findsOneWidget);
     expect(find.text('b', findRichText: true), findsOneWidget);
     expect(find.text('* * *', findRichText: true), findsOneWidget);
+  });
+
+  group('links', () {
+    const note = 'see [docs](https://a.b) now\nother';
+
+    testWidgets('a tap opens one in a line the caret is not in', (
+      tester,
+    ) async {
+      await pumpEditor(tester, FakeNoteText(note));
+      await tester.caretIn(nodeOf<ParagraphNode>(index: 1), 0);
+
+      await tester.tapAt(tester.tapPointIn(nodeOf<ParagraphNode>(), 6));
+      await tester.pumpAndSettle();
+
+      expect(links, ['https://a.b']);
+    });
+
+    testWidgets('a tap in the caret line places the caret to edit it', (
+      tester,
+    ) async {
+      await pumpEditor(tester, FakeNoteText(note));
+      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+
+      await tester.caretIn(nodeOf<ParagraphNode>(), 6);
+
+      expect(links, isEmpty);
+      expect(
+        SuperEditorInspector.findDocumentSelection()!.extent.nodePosition,
+        const TextNodePosition(offset: 6),
+      );
+    });
+
+    testWidgets('in Markdown edit, only Ctrl and a tap open one', (
+      tester,
+    ) async {
+      await pumpEditor(tester, FakeNoteText(note), mode: NoteMode.markdown);
+      final link = tester.tapPointIn(nodeOf<ParagraphNode>(), 6);
+
+      await tester.tapAt(link);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.pumpAndSettle();
+      expect(links, isEmpty);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.tapAt(link);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(links, ['https://a.b']);
+    });
   });
 
   testWidgets('an empty note says Untitled until typed in', (tester) async {

@@ -1,5 +1,5 @@
-/// What the user can do to a checkbox item from its row in the editor, by
-/// the id of the item's node.
+/// What the user can do to a list item from its row in the editor, by the
+/// id of the item's node.
 abstract interface class LineActions {
   void indent(String nodeId);
 

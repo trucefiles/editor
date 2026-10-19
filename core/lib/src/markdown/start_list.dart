@@ -2,14 +2,19 @@ import 'block.dart';
 import 'line_id.dart';
 import 'markdown_lines.dart';
 import 'syntax/block_syntax.dart';
+import 'syntax/line_kinds.dart';
 
 extension StartList on MarkdownLines {
   /// Starts a checklist with an empty item: on line [at] if it is blank,
   /// else on a new line below it, at its level if it is a list item; at the
-  /// end if [at] is `null`, keeping a final line break. Returns the new
-  /// document and the item's line.
+  /// end if [at] is `null` or in a code block or table, keeping a final
+  /// line break. Returns the new document and the item's line.
   (MarkdownLines, LineId) startList({LineId? at}) {
-    final line = switch (at) {
+    final plain = switch (at) {
+      final id? => kindOf(lineOf(id)!) == LineKind.plain,
+      null => false,
+    };
+    final line = switch (plain ? at : null) {
       final id? => lines.firstWhere((line) => line.id == id),
       null when text.isEmpty => lines.single,
       null when lines.length > 1 && lines.last.raw.isEmpty =>
