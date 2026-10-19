@@ -177,8 +177,12 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           sha256sum -- * > SHA256SUMS
+          # A version with a suffix (0.7.0-beta.1) is a pre-release, never
+          # the latest release.
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
           # Creates the tag on the built commit when it doesn't exist yet.
-          gh release create "$TAG" \
+          gh release create "$TAG" "${prerelease[@]}" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Truce Editor $TAG" --generate-notes \
             -- *

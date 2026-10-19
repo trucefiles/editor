@@ -1,0 +1,6 @@
+Beta of the new editor:
+- Visual edit shows the note as it reads, with Markdown marks only on the line you edit; Markdown edit is plain text; Read is locked.
+- Bullets, numbered items and checkboxes form lists, each with a Done section and add buttons.
+- Format bar: Bold, Italic, Link, Heading, Start list.
+- Links open on tap.
+- Setting: add buttons below lists.

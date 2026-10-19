@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.0-beta.1" date="2026-10-19" type="development">
+      <description>
+        <ul>
+          <li>A new editor with three modes: Visual edit shows the note as it reads, with Markdown marks only on the line you edit; Markdown edit is a plain text editor; Read shows the note locked.</li>
+          <li>Bullets, numbered items and checkboxes form lists, several per note, each with a Done section and add buttons for each kind.</li>
+          <li>Format bar: Bold, Italic, Link, Heading and Start list.</li>
+          <li>Links open on tap; on the line you edit, Ctrl+click opens them.</li>
+          <li>New setting: add buttons below lists instead of above.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.3" date="2026-10-17">
       <description>
         <ul>
