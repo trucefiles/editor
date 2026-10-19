@@ -60,6 +60,13 @@ final class MarkdownLine {
     null => raw,
   };
 
+  /// Whether this list item's marker ends the line with no space after
+  /// it, as while one is being typed: `-`, `1.` or `- [ ]`.
+  bool get markEndsLine => switch (_item) {
+    final item? => !_endsInSpace(raw.substring(0, item.textStart)),
+    null => false,
+  };
+
   /// Leading whitespace.
   String get indent => raw.substring(0, raw.length - raw.trimLeft().length);
 

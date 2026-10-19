@@ -25,8 +25,8 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     required this.onRemoved,
     required this.onCaretPlaced,
   }) {
-    _document = MutableDocument(nodes: _targetNodes());
     _composer = MutableDocumentComposer();
+    _document = MutableDocument(nodes: _targetNodes());
     editor = Editor(
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: [
@@ -63,6 +63,11 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   /// Where the caret goes once the editor shows the note again.
   DocumentPosition? _pendingCaret;
 
+  /// The caret after the user's last edit, as an offset in its line as in
+  /// the file: kept when the line shows in another kind of node, such as
+  /// a paragraph that became a list item.
+  ({LineId line, int offset})? _typedCaret;
+
   bool get _visual => note.mode == NoteMode.visual;
 
   /// The line the caret is in, if any.
@@ -95,7 +100,13 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   List<DocumentNode> _targetNodes() {
     _ids.retain({for (final line in note.lines.lines) line.id});
-    return editNodes(note.entries, note.lines, _ids, visual: _visual);
+    return editNodes(
+      note.entries,
+      note.lines,
+      _ids,
+      visual: _visual,
+      caretLine: caretLine,
+    );
   }
 
   void _onTransaction(List<EditEvent> events) {
@@ -106,6 +117,42 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     for (final (index, node) in added.indexed) {
       _ids.link(node, lines[index]);
     }
+    _typedCaret = _caretInLine();
+  }
+
+  ({LineId line, int offset})? _caretInLine() {
+    final selection = _composer.selection;
+    if (selection == null || !selection.isCollapsed) return null;
+    final position = selection.extent;
+    final line = _line(_ids.lineOf(position.nodeId));
+    final node = _document.getNodeById(position.nodeId);
+    if (line == null || node == null) return null;
+    if (position.nodePosition case TextNodePosition(:final offset)) {
+      return (line: line.id, offset: textStartIn(node, line) + offset);
+    }
+    return null;
+  }
+
+  /// The caret at [caret]'s place in its line, in the node [nodes] show
+  /// the line in; `null` if that node is gone.
+  DocumentSelection? _caretIn(
+    List<DocumentNode> nodes,
+    ({LineId line, int offset}) caret,
+  ) {
+    final nodeId = _ids.nodeOf(caret.line);
+    final line = _line(caret.line);
+    final node = nodes.where((node) => node.id == nodeId).firstOrNull;
+    if (line == null || node is! TextNode) return null;
+    final offset = (caret.offset - textStartIn(node, line)).clamp(
+      0,
+      node.text.length,
+    );
+    return DocumentSelection.collapsed(
+      position: DocumentPosition(
+        nodeId: nodeId,
+        nodePosition: TextNodePosition(offset: offset),
+      ),
+    );
   }
 
   /// Syncs once the current transaction and its listeners are done.
@@ -120,7 +167,14 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     if (_disposed) return;
     _syncing = true;
     try {
-      syncDocument(editor, _targetNodes());
+      final nodes = _targetNodes();
+      final caret = _typedCaret;
+      _typedCaret = null;
+      syncDocument(
+        editor,
+        nodes,
+        selection: caret == null ? null : _caretIn(nodes, caret),
+      );
     } finally {
       _syncing = false;
     }
@@ -155,6 +209,9 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   }
 
   LineId? _lineOfNode(String nodeId) => _ids.lineOf(nodeId);
+
+  MarkdownLine? _line(LineId? id) =>
+      note.lines.lines.where((line) => line.id == id).firstOrNull;
 
   @override
   void indent(String nodeId) {

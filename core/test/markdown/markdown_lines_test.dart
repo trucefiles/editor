@@ -112,6 +112,19 @@ void main() {
     ]);
   });
 
+  test('markEndsLine tells a marker with no space after it', () {
+    final list = MarkdownLines.parse('-\n1.\n- [ ]\n- \n- a\ntext');
+
+    expect(list.lines.map((line) => line.markEndsLine), [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
+  });
+
   test('item text with line breaks stays one item', () {
     final line = MarkdownLines.parse('- [ ] a').lines.single;
 
