@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
@@ -180,5 +181,28 @@ void main() {
 
     expect(find.text('Untitled'), findsNothing);
     expect(text.text, 'Idea');
+  });
+
+  testWidgets('pasted Windows line breaks make lines', (tester) async {
+    final text = FakeNoteText('');
+    await pumpEditor(tester, text, mode: NoteMode.markdown);
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': 'a\r\nb\rc'}
+          : null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+
+    expect(text.text, 'a\nb\nc');
   });
 }

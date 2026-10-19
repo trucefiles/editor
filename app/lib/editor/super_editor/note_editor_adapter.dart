@@ -11,6 +11,7 @@ import 'components/line_actions.dart';
 import 'edit_nodes.dart';
 import 'join_lines.dart';
 import 'line_nodes.dart';
+import 'paste_lines.dart';
 import 'sync_document.dart';
 import 'transaction_edits.dart';
 
@@ -30,6 +31,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: [
         joinLines,
+        pasteLines,
         ...defaultRequestHandlers.cast<EditRequestHandler>(),
       ],
       // No Markdown shortcuts: lines stay as typed.
