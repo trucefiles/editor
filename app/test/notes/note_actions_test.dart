@@ -54,9 +54,7 @@ void main() {
       file(dir, '.truce/marks/0123456789abcdef.json').readAsStringSync();
 
   Future<Note> noteIn(Directory dir, String name, String text) async {
-    file(dir, name)
-      ..createSync(recursive: true)
-      ..writeAsStringSync(text);
+    file(dir, name).writeCreatingFolders(text);
     // The first scan must be done, or the refresh finds no folders yet.
     await scans();
     await container.read(folderScansProvider.notifier).refresh();

@@ -52,18 +52,14 @@ void main() {
   });
 
   test('is corrupt when the file holds no JSON', () async {
-    file
-      ..createSync(recursive: true)
-      ..writeAsStringSync('{not json');
+    file.writeCreatingFolders('{not json');
 
     expect((await json.read()).error, JsonFileError.corrupt);
   });
 
   test('is unwritable when the parent is a file', () async {
     final blocked = JsonFile(File('${file.path}/b.json'));
-    file
-      ..createSync(recursive: true)
-      ..writeAsStringSync('1');
+    file.writeCreatingFolders('1');
 
     expect(await blocked.write(2), isA<Err<void, JsonFileError>>());
     expect((await blocked.read()).error, JsonFileError.missing);

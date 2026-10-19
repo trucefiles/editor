@@ -1,10 +1,5 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
@@ -17,11 +12,10 @@ void main() {
   late Note note;
   late NoteEditSession session;
 
-  Note version(String text, int number) => Note(
-    folder: note.folder,
-    path: note.path,
-    file: TextFile.decode(Uint8List.fromList(utf8.encode(text)))!,
-    version: FileVersion(number),
+  Note version(String text, int number) => noteOf(
+    note.folder,
+    text,
+    version: number,
     modified: DateTime(2026, 10, 15),
   );
 
@@ -30,13 +24,7 @@ void main() {
   setUp(() {
     final folder = folderAt(tempFolder());
     final files = NoteFiles(folder, servicesFor(folder));
-    note = Note(
-      folder: folder,
-      path: path('a.md'),
-      file: TextFile.decode(Uint8List.fromList(utf8.encode('# a')))!,
-      version: const FileVersion(1),
-      modified: DateTime(2026, 10, 14),
-    );
+    note = noteOf(folder, '# a', version: 1, modified: DateTime(2026, 10, 14));
     session = NoteEditSession(
       note,
       files,
@@ -46,7 +34,7 @@ void main() {
     addTearDown(session.dispose);
     session
       ..edit('# a\nmine')
-      ..onRescan(version('# a\ntheirs', 2), scannedAt: Moment.now());
+      ..rescanNow(version('# a\ntheirs', 2));
   });
 
   Future<void> pumpBanner(WidgetTester tester) async {
@@ -118,7 +106,7 @@ void main() {
     await tester.tap(find.text('Keep this').first);
     await tester.pumpAndSettle();
 
-    session.onRescan(version('# a\nmine', 4), scannedAt: Moment.now());
+    session.rescanNow(version('# a\nmine', 4));
     await tester.pumpAndSettle();
     expect(find.text('Your edits'), findsNothing);
     expect(find.text('Keep this version?'), findsOneWidget);
@@ -138,7 +126,7 @@ void main() {
     await tester.tap(find.text('Keep this').last);
     await tester.pumpAndSettle();
 
-    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: Moment.now());
+    session.rescanNow(version('# a\ntheirs, newer', 3));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
@@ -151,7 +139,7 @@ void main() {
   testWidgets('shows a newer version from elsewhere', (tester) async {
     await pumpBanner(tester);
 
-    session.onRescan(version('# a\ntheirs, newer', 3), scannedAt: Moment.now());
+    session.rescanNow(version('# a\ntheirs, newer', 3));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('theirs, newer'), findsOneWidget);
@@ -161,7 +149,7 @@ void main() {
     await pumpBanner(tester);
 
     // The file now holds the edits: nothing left to choose.
-    session.onRescan(version('# a\nmine', 4), scannedAt: Moment.now());
+    session.rescanNow(version('# a\nmine', 4));
     await tester.pumpAndSettle();
 
     expect(find.text('Your edits'), findsNothing);

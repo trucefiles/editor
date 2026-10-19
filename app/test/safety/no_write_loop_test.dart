@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -138,7 +137,7 @@ final class _Device {
       Ok(:final value) => value,
       Err() => null,
     };
-    session.onRescan(latest, scannedAt: Moment.now());
+    session.rescanNow(latest);
     await session.flush();
     final after = _state();
     return {

@@ -99,13 +99,8 @@ void main() {
       home = folderAt(tempFolder(), id: 'home');
     });
 
-    Note noteAt(NoteFolder folder, String name) => Note(
-      folder: folder,
-      path: path(name),
-      file: const TextFile.empty(),
-      version: const FileVersion(0),
-      modified: DateTime(2000),
-    );
+    Note noteAt(NoteFolder folder, String name) =>
+        noteOf(folder, '', name: name);
 
     FolderScans scans(
       List<Note> notes, {

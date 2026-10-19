@@ -18,8 +18,7 @@ void main() {
   File backup(String folderId, Duration age) {
     final savedAt = DateTime.now().subtract(age).microsecondsSinceEpoch;
     return File('${storage.backupsPath(folderId)}/$savedAt.other/notes/a.md')
-      ..createSync(recursive: true)
-      ..writeAsStringSync('backup');
+      ..writeCreatingFolders('backup');
   }
 
   ProviderContainer pruning() {

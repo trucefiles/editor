@@ -27,9 +27,7 @@ void main() {
   }
 
   void write(String relPath) {
-    File('${root.path}/$relPath')
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync('text');
+    File('${root.path}/$relPath').writeCreatingFolders('text');
   }
 
   test('reports files relative to the folder', () async {

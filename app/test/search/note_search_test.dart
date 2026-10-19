@@ -1,6 +1,5 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/search/note_search.dart';
@@ -14,13 +13,8 @@ const _folder = NoteFolder(
   color: Color(0xFF009688),
 );
 
-Note note(String name, String text) => Note(
-  folder: _folder,
-  path: path(name),
-  file: const TextFile.empty().withText(text),
-  version: const FileVersion(0),
-  modified: DateTime(2026),
-);
+Note note(String name, String text) =>
+    noteOf(_folder, text, name: name, modified: DateTime(2026));
 
 void main() {
   final shopping = note('a.md', '# Shopping\n- [ ] Milk');

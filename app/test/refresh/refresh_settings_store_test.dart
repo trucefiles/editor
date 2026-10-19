@@ -31,9 +31,7 @@ void main() {
   });
 
   test('falls back to the standard setting for an unreadable file', () async {
-    file
-      ..createSync(recursive: true)
-      ..writeAsStringSync('{not json');
+    file.writeCreatingFolders('{not json');
 
     expect(await store.load(), RefreshSettings.standard);
   });
