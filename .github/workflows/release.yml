@@ -2,8 +2,7 @@ name: Release
 
 # Builds the signed APK and the Flatpak and publishes them as a GitHub Release
 # for the pubspec version. Starts either from a pushed version tag (vX.Y.Z), or
-# by hand ("Run workflow") on main, or on any branch for a pre-release, which
-# creates the tag on publish. Only the
+# by hand on main ("Run workflow"), which creates the tag on publish. Only the
 # publish job can write to the repository; only the Android job, in the
 # "release" environment, can read the signing key. Nothing is built before
 # the checks pass.
@@ -37,10 +36,8 @@ jobs:
         run: |
           tag="v$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)"
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            # Pre-releases (a version with a suffix, e.g. 0.7.0-beta.1) may
-            # start from any branch, to try a change before it merges.
-            if [ "$GITHUB_REF" != refs/heads/main ] && [[ "$tag" != *-* ]]; then
-              echo "::error::Start releases from main only; pre-releases from any branch"
+            if [ "$GITHUB_REF" != refs/heads/main ]; then
+              echo "::error::Start releases from main only"
               exit 1
             fi
             if lookup=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" 2>&1); then
