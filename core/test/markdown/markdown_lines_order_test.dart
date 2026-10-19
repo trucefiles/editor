@@ -5,66 +5,20 @@ import 'markdown_lines_support.dart';
 
 /// Adding, moving, sorting and indenting checklist items.
 void main() {
-  group('insertAfter', () {
-    test('adds a sibling after the subitems', () {
-      final list = MarkdownLines.parse(doc);
-
-      final (added, id) = list.insertAfter(idOf(list, 'eggs'), 'bread');
-
-      expect(
-        added.text,
-        '# Shopping\n- [ ] milk\n- [x] eggs\n  - [ ] large\n- [ ] bread\nnote\n',
-      );
-      expect(added.lines[4].id, id);
-    });
-
-    test('uses the bullet style and level of the item', () {
-      final list = MarkdownLines.parse('  * [x] a');
-
-      final (added, _) = list.insertAfter(idOf(list, 'a'), 'b');
-
-      expect(added.text, '  * [x] a\n  * [ ] b');
-    });
-
-    test('new ids are unique', () {
-      final list = MarkdownLines.parse('- [ ] a');
-      final (once, first) = list.append('b');
-      final (twice, second) = once.append('c');
-
-      expect(first, isNot(second));
-      expect(twice.lines.map((line) => line.id).toSet(), hasLength(3));
-    });
-  });
-
-  group('append', () {
-    test('goes after the last item', () {
+  group('addItem', () {
+    test('after an item goes after its subitems, at the margin', () {
       final list = MarkdownLines.parse(doc);
 
       expect(
-        list.append('bread').$1.text,
-        '# Shopping\n- [ ] milk\n- [x] eggs\n  - [ ] large\n- [ ] bread\nnote\n',
-      );
-    });
-
-    test('goes before the final line break if there are no items', () {
-      expect(
-        MarkdownLines.parse('# Title\n').append('a').$1.text,
-        '# Title\n- [ ] a\n',
-      );
-    });
-
-    test('goes first in an empty document', () {
-      expect(MarkdownLines.parse('').append('a').$1.text, '- [ ] a\n');
-    });
-  });
-
-  group('appendAfter', () {
-    test('goes after the item and its subitems, at the margin', () {
-      final list = MarkdownLines.parse(doc);
-
-      expect(
-        list.appendAfter(idOf(list, 'milk'), 'bread').$1.text,
-        '# Shopping\n- [ ] milk\n- [ ] bread\n- [x] eggs\n  - [ ] large\nnote\n',
+        list
+            .addItem(
+              ListKind.checkbox,
+              anchor: idOf(list, 'milk'),
+              before: false,
+            )
+            .$1
+            .text,
+        '# Shopping\n- [ ] milk\n- [ ] \n- [x] eggs\n  - [ ] large\nnote\n',
       );
     });
 
@@ -74,41 +28,87 @@ void main() {
       );
 
       expect(
-        list.appendAfter(idOf(list, 'c'), 'e').$1.text,
-        '- [ ] a\n  - [ ] b\n    - [ ] c\n  - [x] d\n- [ ] e',
+        list
+            .addItem(ListKind.checkbox, anchor: idOf(list, 'c'), before: false)
+            .$1
+            .text,
+        '- [ ] a\n  - [ ] b\n    - [ ] c\n  - [x] d\n- [ ] ',
       );
     });
 
-    test('keeps the bullet style of the item', () {
+    test('keeps the bullet style of the item, in the kind asked for', () {
       final list = MarkdownLines.parse('* [x] a\ntext');
+      final a = idOf(list, 'a');
 
       expect(
-        list.appendAfter(idOf(list, 'a'), 'b').$1.text,
-        '* [x] a\n* [ ] b\ntext',
+        [
+          for (final kind in ListKind.values)
+            list.addItem(kind, anchor: a, before: false).$1.text,
+        ],
+        ['* [x] a\n* [ ] \ntext', '* [x] a\n* \ntext', '* [x] a\n1. \ntext'],
       );
     });
-  });
 
-  group('insertBefore', () {
-    test('goes before the item, at its level', () {
+    test('a numbered item after one takes the next number', () {
+      final list = MarkdownLines.parse('3) a');
+
+      expect(
+        list
+            .addItem(ListKind.numbered, anchor: idOf(list, 'a'), before: false)
+            .$1
+            .text,
+        '3) a\n4) ',
+      );
+    });
+
+    test('before an item goes before it, at its level', () {
       final list = MarkdownLines.parse(
         '# Shopping\n  * [x] milk\n- [ ] eggs\n',
       );
 
       expect(
-        list.insertBefore(idOf(list, 'milk'), 'bread').$1.text,
-        '# Shopping\n  * [ ] bread\n  * [x] milk\n- [ ] eggs\n',
+        list
+            .addItem(
+              ListKind.checkbox,
+              anchor: idOf(list, 'milk'),
+              before: true,
+            )
+            .$1
+            .text,
+        '# Shopping\n  * [ ] \n  * [x] milk\n- [ ] eggs\n',
       );
     });
 
-    test('never takes the items below as its subitems', () {
+    test('before never takes the items below as its subitems', () {
       final list = MarkdownLines.parse(
         'Groceries:\n  - [ ] milk\n  - [ ] eggs',
       );
 
-      final (added, id) = list.insertBefore(idOf(list, 'milk'), 'bread');
+      final (added, id) = list.addItem(
+        ListKind.checkbox,
+        anchor: idOf(list, 'milk'),
+        before: true,
+      );
 
       expect(added.toggle(id).clearDone().text, list.text);
+    });
+
+    test('new ids are unique', () {
+      final list = MarkdownLines.parse('- [ ] a');
+      final a = idOf(list, 'a');
+      final (once, first) = list.addItem(
+        ListKind.bullet,
+        anchor: a,
+        before: false,
+      );
+      final (twice, second) = once.addItem(
+        ListKind.bullet,
+        anchor: a,
+        before: false,
+      );
+
+      expect(first, isNot(second));
+      expect(twice.lines.map((line) => line.id).toSet(), hasLength(3));
     });
   });
 

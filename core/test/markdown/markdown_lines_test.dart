@@ -3,18 +3,18 @@ import 'package:truce_core/truce_core.dart';
 
 import 'markdown_lines_support.dart';
 
-/// Reading a checklist, and editing, joining and removing its items.
+/// Reading a document's lines, and editing and removing its items.
 void main() {
   test('round-trips the text unchanged', () {
     expect(MarkdownLines.parse(doc).text, doc);
   });
 
-  test('reads items in all bullet and mark styles', () {
+  test('reads checkboxes in all bullet and mark styles', () {
     final list = MarkdownLines.parse(
       '* [ ] a\n+ [X] b\n- [x] c\n- no box\n1. [ ] d',
     );
 
-    expect(list.lines.map((line) => line.isItem), [
+    expect(list.lines.map((line) => line.isCheckbox), [
       true,
       true,
       true,
@@ -30,15 +30,50 @@ void main() {
     ]);
   });
 
-  test('a bulleted link is no item', () {
+  test('a bulleted link is a bullet, not a checkbox', () {
     final list = MarkdownLines.parse('- [x](https://example.com)\n- [ ][ref]');
 
-    expect(list.lines.map((line) => line.isItem), [false, false]);
+    expect(list.lines.map((line) => line.listKind), [
+      ListKind.bullet,
+      ListKind.bullet,
+    ]);
   });
 
-  test('hasItems only with checkbox items', () {
-    expect(MarkdownLines.parse(doc).hasItems, isTrue);
-    expect(MarkdownLines.parse('# Title\ntext').hasItems, isFalse);
+  test('reads bullets and numbered items, but no thematic break', () {
+    final list = MarkdownLines.parse(
+      '- a\n* b\n+\n1. c\n2) d\n---\n* * *\n-text\n1.text',
+    );
+
+    expect(list.lines.map((line) => line.listKind), [
+      ListKind.bullet,
+      ListKind.bullet,
+      ListKind.bullet,
+      ListKind.numbered,
+      ListKind.numbered,
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(list.lines.map((line) => line.text).take(5), [
+      'a',
+      'b',
+      '',
+      'c',
+      'd',
+    ]);
+  });
+
+  test('lines in code blocks are no items', () {
+    final list = MarkdownLines.parse('```\n- [ ] a\n```\n- [ ] b');
+
+    expect(list.lines.map(list.isItem), [false, false, false, true]);
+    expect(list.lists, hasLength(1));
+  });
+
+  test('hasCheckboxes only with checkbox items', () {
+    expect(MarkdownLines.parse(doc).hasCheckboxes, isTrue);
+    expect(MarkdownLines.parse('# Title\n- text').hasCheckboxes, isFalse);
   });
 
   test('toggle changes only the mark', () {
@@ -49,45 +84,64 @@ void main() {
     expect(toggled.text, '* [ ] a\n- [x] b');
   });
 
-  test('setText keeps the prefix', () {
-    final list = MarkdownLines.parse('  +  [ ] a');
+  test('withText keeps the prefix', () {
+    final line = MarkdownLines.parse('  +  [ ] a').lines.single;
 
-    expect(list.setText(idOf(list, 'a'), 'b').text, '  +  [ ] b');
+    expect(line.withText('b').raw, '  +  [ ] b');
+    expect(MarkdownLine.parse(line.id, ' 3)  a').withText('b').raw, ' 3)  b');
   });
 
-  test('setText keeps a tab after the box', () {
-    final list = MarkdownLines.parse('- [ ]\tfoo');
+  test('withText keeps a tab after the box', () {
+    final line = MarkdownLines.parse('- [ ]\tfoo').lines.single;
 
-    expect(list.setText(list.lines.single.id, 'foox').text, '- [ ]\tfoox');
+    expect(line.withText('foox').raw, '- [ ]\tfoox');
   });
 
-  test('an item needs whitespace after the box', () {
+  test('a checkbox needs whitespace after the box', () {
     final list = MarkdownLines.parse('- [ ]tight\n- [x]: def\n- [ ]');
 
-    expect(list.lines.map((line) => line.isItem), [false, false, true]);
+    expect(list.lines.map((line) => line.isCheckbox), [false, false, true]);
   });
 
-  test('setText separates the first text of an empty item', () {
-    final list = MarkdownLines.parse('- [ ]');
+  test('withText separates the first text of an empty item', () {
+    final list = MarkdownLines.parse('- [ ]\n-');
 
-    expect(list.setText(list.lines.single.id, 'a').text, '- [ ] a');
+    expect(list.lines.map((line) => line.withText('a').raw), [
+      '- [ ] a',
+      '- a',
+    ]);
   });
 
   test('item text with line breaks stays one item', () {
-    final list = MarkdownLines.parse('- [ ] a');
-    final id = idOf(list, 'a');
+    final line = MarkdownLines.parse('- [ ] a').lines.single;
 
-    final edited = list.setText(id, 'b\r\nc\rd\u2028e');
+    final edited = line.withText('b\r\nc\rd\u2028e');
 
-    expect(edited.text, '- [ ] b c d e');
-    expect(edited.lines.single.isItem, isTrue);
+    expect(edited.raw, '- [ ] b c d e');
+    expect(edited.isCheckbox, isTrue);
+  });
+
+  test('withKind keeps the indent and bullet character', () {
+    final line = MarkdownLines.parse('  * [x] a').lines.single;
+
+    expect(line.withKind(ListKind.bullet, 'b').raw, '  * b');
+    expect(line.withKind(ListKind.numbered, 'b').raw, '  1. b');
+    expect(
+      line.withKind(ListKind.bullet, 'b').withKind(ListKind.checkbox, 'c').raw,
+      '  * [ ] c',
+    );
   });
 
   test('ids survive edits', () {
     final list = MarkdownLines.parse(doc);
     final id = idOf(list, 'milk');
 
-    final edited = list.setText(id, 'oat milk').toggle(id);
+    final edited = list
+        .withBlock(
+          id,
+          const ItemBlock(kind: ListKind.checkbox, depth: 0, text: 'oat'),
+        )
+        .toggle(id);
 
     expect(edited.lines[1].id, id);
   });
@@ -96,41 +150,6 @@ void main() {
     final list = MarkdownLines.parse('- [ ] a\n- [ ] \n  - [ ] c');
 
     expect(list.removeLine(idOf(list, '')).text, '- [ ] a\n  - [ ] c');
-  });
-
-  group('join', () {
-    test("appends the item's text to the other and removes its line", () {
-      final list = MarkdownLines.parse('- [ ] milk\n- [x] eggs\nnote');
-
-      expect(
-        list.join(idOf(list, 'eggs'), into: idOf(list, 'milk')).text,
-        '- [ ] milkeggs\nnote',
-      );
-    });
-
-    test('joins into the item below, e.g. to drop an empty item', () {
-      final list = MarkdownLines.parse('- [ ] \n- [x] eggs');
-
-      expect(
-        list.join(idOf(list, ''), into: idOf(list, 'eggs')).text,
-        '- [x] eggs',
-      );
-    });
-
-    test('keeps the subitems of the removed item in place', () {
-      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  - [ ] c');
-
-      expect(
-        list.join(idOf(list, 'b'), into: idOf(list, 'a')).text,
-        '- [ ] ab\n  - [ ] c',
-      );
-    });
-
-    test('adds a space after a box at the end of the line', () {
-      final list = MarkdownLines.parse('- [ ]\n- [ ] b');
-
-      expect(list.join(idOf(list, 'b'), into: idOf(list, '')).text, '- [ ] b');
-    });
   });
 
   test('remove takes the subitems along', () {
@@ -144,7 +163,11 @@ void main() {
 
   test('reparse gives ids that never repeat earlier ones', () {
     final list = MarkdownLines.parse('- [ ] a\n- [ ] b');
-    final (added, newId) = list.append('c');
+    final (added, newId) = list.addItem(
+      ListKind.checkbox,
+      anchor: idOf(list, 'b'),
+      before: false,
+    );
 
     final reparsed = added.reparse('- [ ] x');
 

@@ -157,4 +157,31 @@ void main() {
       [LineKind.fence, LineKind.code, LineKind.fence, LineKind.plain],
     );
   });
+
+  test('bullets, numbered items and checkboxes make one list', () {
+    final doc = MarkdownLines.parse(
+      '- [x] done\n- bullet\n1. first\n- [ ] open\nText\n- other',
+    );
+
+    expect(
+      describe(
+        doc,
+        const Arrangement(
+          doneSection: true,
+          addItems: AddItemPlace.bottom,
+        ).of(doc),
+      ),
+      [
+        'bullet',
+        'first',
+        'open',
+        '+after open',
+        'Done 1',
+        'done',
+        'Text',
+        'other',
+        '+after other',
+      ],
+    );
+  });
 }

@@ -16,8 +16,8 @@ final class LineEntry extends DisplayEntry {
   final LineKind kind;
 }
 
-/// The heading of the "Done" section of the checklist [list], over its
-/// [count] checked items; they follow unless [collapsed]. Not a line.
+/// The heading of the "Done" section of the list [list], over its [count]
+/// checked items; they follow unless [collapsed]. Not a line.
 final class DoneHeadingEntry extends DisplayEntry {
   const DoneHeadingEntry(
     this.list, {
@@ -25,18 +25,19 @@ final class DoneHeadingEntry extends DisplayEntry {
     required this.collapsed,
   });
 
-  /// The checklist, by its first line.
+  /// The list, by its first line.
   final LineId list;
   final int count;
   final bool collapsed;
 }
 
-/// A button that adds an item to the checklist [list]: before the item
-/// [anchor] if [before], else after it and its subitems. Not a line.
+/// Buttons that add an item, of the kind the user picks, to the list
+/// [list]: before the item [anchor] if [before], else after it and its
+/// subitems. Not a line.
 final class AddItemEntry extends DisplayEntry {
   const AddItemEntry(this.list, this.anchor, {required this.before});
 
-  /// The checklist, by its first line.
+  /// The list, by its first line.
   final LineId list;
   final LineId anchor;
   final bool before;
@@ -58,7 +59,7 @@ final class ImageEntry extends DisplayEntry {
   final String alt;
 }
 
-/// Where a checklist's add button goes.
+/// Where a list's add buttons go.
 enum AddItemPlace { top, bottom }
 
 /// How to arrange a document for display.
@@ -71,15 +72,14 @@ final class Arrangement {
     this.raw = const {},
   });
 
-  /// Each checklist's checked items, with their subitems, after its open
-  /// ones under a "Done" heading. Else everything in file order.
+  /// Each list's checked items, with their subitems, after its open ones
+  /// under a "Done" heading. Else everything in file order.
   final bool doneSection;
 
-  /// Checklists, by their first line, whose "Done" section hides its
-  /// items.
+  /// Lists, by their first line, whose "Done" section hides its items.
   final Set<LineId> collapsed;
 
-  /// Where each checklist gets an add button; none if `null`.
+  /// Where each list gets its add buttons; none if `null`.
   final AddItemPlace? addItems;
 
   /// Tables and images drawn, unless in [raw].
@@ -93,19 +93,16 @@ final class Arrangement {
   /// show as that.
   List<DisplayEntry> of(MarkdownLines document) {
     final lines = document.lines;
-    final kinds = lineKinds([for (final line in lines) line.raw]);
-    final checklists = {
-      for (final list in document.checklists) list.first.id: list,
-    };
+    final kinds = document.kinds;
+    final lists = {for (final list in document.lists) list.first.id: list};
     final tables = {for (final (start, end) in tableRanges(kinds)) start: end};
     final done = doneSection ? document.doneIds : const <LineId>{};
     final entries = <DisplayEntry>[];
     for (var i = 0; i < lines.length;) {
       final line = lines[i];
       final drawn = drawBlocks && !raw.contains(line.id);
-      if (checklists[line.id] case final list?
-          when kinds[i] == LineKind.plain) {
-        entries.addAll(_checklist(list, kinds.sublist(i), done));
+      if (lists[line.id] case final list?) {
+        entries.addAll(_list(document, list, kinds.sublist(i), done));
         i += list.length;
       } else if (tables[i] case final end? when drawn) {
         entries.add(TableEntry([for (final l in lines.sublist(i, end)) l.id]));
@@ -122,8 +119,10 @@ final class Arrangement {
     return entries;
   }
 
-  /// The entries of the checklist [list], whose lines have [kinds].
-  List<DisplayEntry> _checklist(
+  /// The entries of the list [list] of [document], whose lines have
+  /// [kinds].
+  List<DisplayEntry> _list(
+    MarkdownLines document,
     List<MarkdownLine> list,
     List<LineKind> kinds,
     Set<LineId> done,
@@ -137,10 +136,8 @@ final class Arrangement {
       for (final (i, line) in list.indexed)
         if (done.contains(line.id)) LineEntry(line.id, kinds[i]),
     ];
-    final openItems = list.where(
-      (line) => line.isItem && !done.contains(line.id),
-    );
-    final items = list.where((line) => line.isItem);
+    final items = list.where(document.isItem);
+    final openItems = items.where((line) => !done.contains(line.id));
     final isCollapsed = collapsed.contains(id);
     return [
       if (addItems == AddItemPlace.top)
@@ -159,7 +156,7 @@ final class Arrangement {
       if (checked.isNotEmpty) ...[
         DoneHeadingEntry(
           id,
-          count: list.where((line) => line.isChecked).length,
+          count: items.where((line) => line.isChecked).length,
           collapsed: isCollapsed,
         ),
         if (!isCollapsed) ...checked,

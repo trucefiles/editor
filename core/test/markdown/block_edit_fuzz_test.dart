@@ -22,6 +22,9 @@ void main() {
     '',
     '1. [ ] numbered',
     '- not a box',
+    '* bullet',
+    '  2) numbered sub',
+    '---',
     '| a | b |',
     '|---|---|',
   ];
@@ -40,7 +43,7 @@ void main() {
         final arrangement = Arrangement(
           doneSection: random.nextBool(),
           collapsed: random.nextBool()
-              ? {for (final list in doc.checklists) list.first.id}
+              ? {for (final list in doc.lists) list.first.id}
               : const {},
         );
         final shown = [
@@ -72,22 +75,27 @@ final class _Step {
     final removed = <LineId>{};
     final added = <Block>[];
     String text() => texts[random.nextInt(texts.length)];
-    Block randomBlock() => random.nextBool()
-        ? ItemBlock(
-            checked: random.nextBool(),
-            depth: random.nextInt(3),
-            text: text(),
-          )
-        : TextBlock(text());
+    Block randomItem({ListKind? kind, int? depth, String? itemText}) {
+      final itemKind =
+          kind ?? ListKind.values[random.nextInt(ListKind.values.length)];
+      return ItemBlock(
+        kind: itemKind,
+        checked: itemKind == ListKind.checkbox && random.nextBool(),
+        depth: depth ?? random.nextInt(3),
+        text: itemText ?? text(),
+      );
+    }
+
+    Block randomBlock() => random.nextBool() ? randomItem() : TextBlock(text());
     for (final id in shown) {
       final line = byId[id]!;
       switch (random.nextInt(8)) {
         case 0 when !removed.contains(id):
-          final block = line.isItem && random.nextBool()
-              ? ItemBlock(
-                  checked: random.nextBool() ? !line.isChecked : line.isChecked,
+          final block = doc.isItem(line) && random.nextBool()
+              ? randomItem(
+                  kind: random.nextInt(4) == 0 ? null : line.listKind,
                   depth: max(0, doc.depthOf(line) + random.nextInt(3) - 1),
-                  text: random.nextBool() ? line.text : text(),
+                  itemText: random.nextBool() ? line.text : null,
                 )
               : randomBlock();
           edits.add(BlockChanged(id, block));
@@ -141,10 +149,13 @@ final class _Step {
       switch (block) {
         case TextBlock(:final text):
           expect(line.raw, MarkdownLine.oneLine(text), reason: reason);
-        case ItemBlock(:final checked, :final depth, :final text):
-          expect(line.isItem, isTrue, reason: reason);
-          expect(line.isChecked, checked, reason: reason);
-          expect(line.text, text, reason: reason);
+        case ItemBlock(:final kind, :final checked, :final depth, :final text):
+          // The text can make it another kind, e.g. a bullet with `[ ] `.
+          var expected = MarkdownLine.newItem(line.id, kind, text);
+          if (checked) expected = expected.toggled();
+          expect(line.listKind, expected.listKind, reason: reason);
+          expect(line.isChecked, expected.isChecked, reason: reason);
+          expect(line.text, expected.text, reason: reason);
           expect(after.depthOf(line), depth, reason: reason);
       }
     }

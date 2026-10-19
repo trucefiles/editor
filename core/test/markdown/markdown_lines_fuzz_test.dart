@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// Random documents and checklist actions: every action changes only the
+/// Random documents and list actions: every action changes only the
 /// lines it is about, and never loses text it does not remove.
 void main() {
   const cases = 3000;
@@ -20,6 +20,9 @@ void main() {
     '',
     '1. [ ] numbered',
     '- not a box',
+    '* bullet',
+    '  2) numbered sub',
+    '---',
   ];
 
   late Random random;
@@ -34,7 +37,7 @@ void main() {
   );
 
   MarkdownLine? randomItem(MarkdownLines list) {
-    final items = list.lines.where((line) => line.isItem).toList();
+    final items = list.lines.where(list.isItem).toList();
     return items.isEmpty ? null : items[random.nextInt(items.length)];
   }
 
@@ -69,8 +72,16 @@ void main() {
       final index = list.lines.indexOf(item);
 
       for (final changed in [
-        list.toggle(item.id),
-        list.setText(item.id, 'new text'),
+        if (item.isCheckbox) list.toggle(item.id),
+        list.withBlock(
+          item.id,
+          ItemBlock(
+            kind: item.listKind!,
+            checked: item.isChecked,
+            depth: list.depthOf(item),
+            text: 'new text',
+          ),
+        ),
       ]) {
         final before = raws(list);
         final after = raws(changed);
@@ -86,14 +97,14 @@ void main() {
     for (var i = 0; i < cases; i++) {
       final list = randomList();
       final item = randomItem(list);
-      final added = item == null
-          ? list.append('new').$1
-          : switch (random.nextInt(4)) {
-              0 => list.insertAfter(item.id, 'new').$1,
-              1 => list.insertBefore(item.id, 'new').$1,
-              2 => list.appendAfter(item.id, 'new').$1,
-              _ => list.append('new').$1,
-            };
+      if (item == null) continue;
+      final added = list
+          .addItem(
+            ListKind.values[random.nextInt(ListKind.values.length)],
+            anchor: item.id,
+            before: random.nextBool(),
+          )
+          .$1;
 
       expect(added.lines.length, list.lines.length + 1);
       expect(isSubsequence(raws(list), raws(added)), isTrue, reason: '$i');
@@ -150,7 +161,7 @@ void main() {
     for (var i = 0; i < cases; i++) {
       final list = randomList();
       final item = randomItem(list);
-      if (item == null) continue;
+      if (item == null || !item.isCheckbox) continue;
       final toggled = list.toggle(item.id);
 
       final sorted = list.toggleAndSort(item.id);
@@ -159,7 +170,7 @@ void main() {
       // Indented lines can belong to a moved item.
       Iterable<String> marginText(MarkdownLines list) => [
         for (final line in list.lines)
-          if (!line.isItem && line.indent.isEmpty) line.raw,
+          if (!list.isItem(line) && line.indent.isEmpty) line.raw,
       ];
       expect(
         marginText(sorted),

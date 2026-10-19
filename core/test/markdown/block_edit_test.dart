@@ -18,7 +18,12 @@ void main() {
       final same = apply(doc, [
         BlockChanged(
           idOf(doc, 'milk  '),
-          const ItemBlock(checked: true, depth: 0, text: 'milk  '),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: true,
+            depth: 0,
+            text: 'milk  ',
+          ),
         ),
         BlockChanged(idOf(doc, '# Head  '), const TextBlock('# Head  ')),
       ]);
@@ -32,7 +37,12 @@ void main() {
       final changed = apply(doc, [
         BlockChanged(
           idOf(doc, 'milk'),
-          const ItemBlock(checked: true, depth: 1, text: 'oat milk'),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: true,
+            depth: 1,
+            text: 'oat milk',
+          ),
         ),
       ]);
 
@@ -45,7 +55,12 @@ void main() {
       final toggled = apply(doc, [
         BlockChanged(
           idOf(doc, 'a'),
-          const ItemBlock(checked: true, depth: 0, text: 'a'),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: true,
+            depth: 0,
+            text: 'a',
+          ),
         ),
       ]);
 
@@ -58,7 +73,12 @@ void main() {
       final indented = apply(doc, [
         BlockChanged(
           idOf(doc, 'c'),
-          const ItemBlock(checked: false, depth: 1, text: 'c'),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: false,
+            depth: 1,
+            text: 'c',
+          ),
         ),
       ]);
 
@@ -82,7 +102,12 @@ void main() {
       final changed = apply(doc, [
         BlockChanged(
           idOf(doc, 'a'),
-          const ItemBlock(checked: false, depth: 0, text: 'a'),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: false,
+            depth: 0,
+            text: 'a',
+          ),
         ),
       ]);
 
@@ -114,7 +139,12 @@ void main() {
 
       final (added, ids) = doc.applyEdits([
         BlocksAdded(const [
-          ItemBlock(checked: false, depth: 0, text: 'b'),
+          ItemBlock(
+            kind: ListKind.checkbox,
+            checked: false,
+            depth: 0,
+            text: 'b',
+          ),
           TextBlock('more'),
         ], after: idOf(doc, 'a')),
       ], shown: all(doc));
@@ -139,7 +169,12 @@ void main() {
 
       final (added, _) = doc.applyEdits([
         BlocksAdded(const [
-          ItemBlock(checked: false, depth: 0, text: 'b'),
+          ItemBlock(
+            kind: ListKind.checkbox,
+            checked: false,
+            depth: 0,
+            text: 'b',
+          ),
         ], after: idOf(doc, 'a')),
       ], shown: shown);
 
@@ -151,7 +186,12 @@ void main() {
 
       final added = apply(doc, [
         BlocksAdded(const [
-          ItemBlock(checked: true, depth: 0, text: 'x'),
+          ItemBlock(
+            kind: ListKind.checkbox,
+            checked: true,
+            depth: 0,
+            text: 'x',
+          ),
         ], after: doc.lines.single.id),
       ]);
 
@@ -169,6 +209,55 @@ void main() {
       ], shown: all(removed));
 
       expect(all(doc), isNot(contains(ids.single)));
+    });
+  });
+
+  group('list kinds', () {
+    test('a bullet or numbered item keeps its marker style', () {
+      final doc = MarkdownLines.parse('+   a\n7)  b');
+
+      final changed = apply(doc, [
+        BlockChanged(
+          idOf(doc, 'a'),
+          const ItemBlock(kind: ListKind.bullet, depth: 0, text: 'x'),
+        ),
+        BlockChanged(
+          idOf(doc, 'b'),
+          const ItemBlock(kind: ListKind.numbered, depth: 0, text: 'y'),
+        ),
+      ]);
+
+      expect(changed.text, '+   x\n7)  y');
+    });
+
+    test('another kind changes the marker, keeping indent and bullet', () {
+      final doc = MarkdownLines.parse('  * a');
+
+      final changed = apply(doc, [
+        BlockChanged(
+          idOf(doc, 'a'),
+          const ItemBlock(
+            kind: ListKind.checkbox,
+            checked: true,
+            depth: 1,
+            text: 'a',
+          ),
+        ),
+      ]);
+
+      expect(changed.text, '  * [x] a');
+    });
+
+    test('a new item after a numbered one takes the next number', () {
+      final doc = MarkdownLines.parse('1. a');
+
+      final (added, _) = doc.applyEdits([
+        BlocksAdded(const [
+          ItemBlock(kind: ListKind.numbered, depth: 0, text: 'b'),
+        ], after: idOf(doc, 'a')),
+      ], shown: all(doc));
+
+      expect(added.text, '1. a\n2. b');
     });
   });
 }
