@@ -76,6 +76,9 @@ final class MarkdownLines {
     for (final line in lines) line.raw,
   ]);
 
+  /// Whether each line, by its place, shows in a quote; see [isQuote].
+  late final List<bool> _quotes = _quoteLines();
+
   late final _indexById = {
     for (final (index, line) in lines.indexed) line.id: index,
   };
@@ -88,6 +91,29 @@ final class MarkdownLines {
 
   /// The kind of [line] by its place here.
   LineKind kindOf(MarkdownLine line) => kinds[_indexOf(line.id)];
+
+  /// Whether [line] shows in a quote: it has the quote's `>` marks, or it
+  /// continues the paragraph of a quote above it without them, which
+  /// Markdown keeps in the quote.
+  bool isQuote(MarkdownLine line) => _quotes[_indexOf(line.id)];
+
+  List<bool> _quoteLines() {
+    final quotes = List.filled(lines.length, false);
+    // Whether the line above ends inside a quote's paragraph.
+    var inParagraph = false;
+    for (final (index, line) in lines.indexed) {
+      final raw = line.raw;
+      final marked = quoteTextStart(raw);
+      final text = marked == null ? raw : raw.substring(marked);
+      quotes[index] =
+          kinds[index] == LineKind.plain &&
+          (marked != null ||
+              (inParagraph && raw.trim().isNotEmpty && !startsBlock(raw)));
+      inParagraph =
+          quotes[index] && text.trim().isNotEmpty && !startsBlock(text);
+    }
+    return quotes;
+  }
 
   /// Whether the document has checkbox items.
   bool get hasCheckboxes =>
@@ -117,6 +143,29 @@ final class MarkdownLines {
       i--;
     }
     return ids;
+  }
+
+  /// The number the numbered item [line] shows: as in Markdown, a run of
+  /// numbered items at one level counts on from its first item's number,
+  /// whatever the others say. `null` for any other line.
+  int? numberOf(MarkdownLine line) {
+    final index = _indexOf(line.id);
+    if (!_isItem(index) || line.listKind != ListKind.numbered) return null;
+    final depth = depthOf(line);
+    final (listStart, _) = _listAround(index);
+    var first = index;
+    for (var i = index - 1; i >= listStart; i--) {
+      if (!_isItem(i) || depthOf(lines[i]) > depth) continue;
+      if (depthOf(lines[i]) < depth || lines[i].listKind != ListKind.numbered) {
+        break;
+      }
+      first = i;
+    }
+    final before = [
+      for (var i = first; i < index; i++)
+        if (_isItem(i) && depthOf(lines[i]) == depth) i,
+    ].length;
+    return lines[first].number! + before;
   }
 
   /// Nesting level of [line]: 0 at the left margin.
@@ -355,17 +404,46 @@ final class MarkdownLines {
     return _with(rest..insertAll(target, block));
   }
 
-  /// Moves the item [id] with its subitems next to the line [target]:
-  /// [below] it and its subitems, else just above it, as dropping it
-  /// there. Levels are kept.
+  /// Moves the item [id] with its subitems next to the line [target], as
+  /// dropping it there: just above it, else [below] it. Below an item with
+  /// subitems, it becomes the first of them, at their level; else it goes
+  /// below the target's block, and levels are kept.
   MarkdownLines moveNextTo(
     LineId id, {
     required LineId target,
     required bool below,
   }) {
     if (!below) return move(id, beforeId: target);
-    final end = _blockEnd(_indexOf(target));
+    final index = _indexOf(target);
+    final end = _blockEnd(index);
+    if (index + 1 < end && _isItem(index + 1)) {
+      return _moveAsSubitem(id, firstSubitem: lines[index + 1]);
+    }
     return move(id, beforeId: end < lines.length ? lines[end].id : null);
+  }
+
+  /// Moves the item [id] with its subitems just above [firstSubitem], at
+  /// its indent.
+  MarkdownLines _moveAsSubitem(
+    LineId id, {
+    required MarkdownLine firstSubitem,
+  }) {
+    final start = _indexOf(id);
+    final end = _blockEnd(start);
+    final block = lines.sublist(start, end);
+    if (block.any((line) => line.id == firstSubitem.id)) return this;
+    final own = lines[start].indent;
+    // Lines of the block are deeper than the item; one indented with
+    // other characters (a tab under spaces) stays one level deeper.
+    String moved(String indent) =>
+        firstSubitem.indent +
+        (indent.startsWith(own) ? indent.substring(own.length) : _indentUnit);
+    final rest = [...lines]..removeRange(start, end);
+    return _with(
+      rest..insertAll(rest.indexWhere((line) => line.id == firstSubitem.id), [
+        for (final line in block) line.withIndent(moved(line.indent)),
+      ]),
+    );
   }
 
   /// Moves the item [id] with its subitems one level right, under the

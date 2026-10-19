@@ -61,8 +61,10 @@ FormattedText insertLink(String text, int start, int end, String url) {
 }
 
 /// [line] at the next heading level: none, `#`, `##`, `###`, none again.
-/// The selection from [start] to [end] stays on the same text.
-FormattedText cycleHeading(String line, int start, int end) {
+/// The selection from [start] to [end] stays on the same text. `null` for
+/// a quote, which takes no heading.
+FormattedText? cycleHeading(String line, int start, int end) {
+  if (quoteTextStart(line) != null) return null;
   final heading = headingMark(line);
   final prefix = line.substring(0, heading?.textStart ?? 0);
   final level = heading?.level ?? 0;

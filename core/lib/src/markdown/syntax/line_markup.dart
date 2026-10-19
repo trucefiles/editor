@@ -5,14 +5,23 @@ import 'markup.dart';
 
 /// The markup of a whole [line] of [kind]: its block marks (heading,
 /// quote, list marker) and its inline markup. Code and table
-/// lines have no inline markup.
-List<MarkupSpan> lineMarkup(String line, LineKind kind) => switch (kind) {
+/// lines have no inline markup. A line [inQuote] without marks of its
+/// own (see `MarkdownLines.isQuote`) shows as quoted.
+List<MarkupSpan> lineMarkup(
+  String line,
+  LineKind kind, {
+  bool inQuote = false,
+}) => switch (kind) {
   LineKind.fence => [
     MarkupSpan(const CodeBlockMarkup(), 0, line.length),
     MarkupSpan(const DimmedMarkup(), 0, line.length),
   ],
   LineKind.code ||
   LineKind.table => [MarkupSpan(const CodeBlockMarkup(), 0, line.length)],
+  LineKind.plain when inQuote && quoteTextStart(line) == null => [
+    MarkupSpan(const QuoteMarkup(), 0, line.length),
+    ...inlineMarkup(line),
+  ],
   LineKind.plain => _plainMarkup(line),
 };
 

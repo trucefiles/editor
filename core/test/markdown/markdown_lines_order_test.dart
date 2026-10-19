@@ -177,7 +177,7 @@ void main() {
       );
     });
 
-    test('below a line goes after its subitems', () {
+    test('below an item with subitems becomes the first of them', () {
       final list = MarkdownLines.parse(doc);
 
       expect(
@@ -188,7 +188,40 @@ void main() {
               below: true,
             )
             .text,
-        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+        '# Shopping\n- [x] eggs\n  - [ ] milk\n  - [ ] large\nnote\n',
+      );
+    });
+
+    test('below an item with subitems takes its own subitems along', () {
+      final list = MarkdownLines.parse('- a\n  - x\n- b\n    - y\n');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'b'), target: idOf(list, 'a'), below: true)
+            .text,
+        '- a\n  - b\n      - y\n  - x\n',
+      );
+    });
+
+    test('below a line without subitems goes after it and its text', () {
+      final list = MarkdownLines.parse('- a\n  more\n- b\n- c\n');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'c'), target: idOf(list, 'a'), below: true)
+            .text,
+        '- a\n  more\n- c\n- b\n',
+      );
+    });
+
+    test('below its own first subitem changes nothing', () {
+      final list = MarkdownLines.parse('- a\n  - x\n');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'x'), target: idOf(list, 'a'), below: true)
+            .text,
+        '- a\n  - x\n',
       );
     });
 

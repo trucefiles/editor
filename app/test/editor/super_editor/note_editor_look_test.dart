@@ -87,7 +87,7 @@ void main() {
   testWidgets('a quote has a bar in Visual edit and Read, not in Markdown', (
     tester,
   ) async {
-    const note = '> quoted\n**bold**';
+    const note = '> quoted\n\n**bold**';
     for (final (mode, bars) in [
       (NoteMode.visual, 1),
       (NoteMode.read, 1),
@@ -98,6 +98,28 @@ void main() {
       await pumpNoteEditor(tester, FakeNoteText(note), mode: mode);
       await tester.pumpAndSettle();
       expect(quoteBars(), findsNWidgets(bars), reason: '$mode');
+    }
+  });
+
+  testWidgets('a quote line without marks shows inside the quote', (
+    tester,
+  ) async {
+    const note = '> quoted\nmore\n\nafter';
+    for (final mode in [NoteMode.visual, NoteMode.read]) {
+      await tester.pumpWidget(const SizedBox());
+      await pumpNoteEditor(tester, FakeNoteText(note), mode: mode);
+      await tester.pumpAndSettle();
+      expect(quoteBars(), findsNWidgets(2), reason: '$mode');
+    }
+  });
+
+  testWidgets('numbered items count on from the first number', (tester) async {
+    for (final mode in [NoteMode.visual, NoteMode.read]) {
+      await tester.pumpWidget(const SizedBox());
+      await pumpNoteEditor(tester, FakeNoteText('3. a\n1. b'), mode: mode);
+      await tester.pumpAndSettle();
+      expect(find.text('3.'), findsOneWidget, reason: '$mode');
+      expect(find.text('4.'), findsOneWidget, reason: '$mode');
     }
   });
 

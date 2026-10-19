@@ -57,13 +57,14 @@ DocumentNode _lineNode(
       id,
       line,
       _formatted(line.text, itemTextMarkup(line.text)),
-      document.depthOf(line),
+      document,
     );
   }
+  final quote = document.isQuote(line);
   return lineParagraph(
     id,
-    _formatted(line.raw, lineMarkup(line.raw, kind)),
-    quote: kind == LineKind.plain && quoteTextStart(line.raw) != null,
+    _formatted(line.raw, lineMarkup(line.raw, kind, inQuote: quote)),
+    quote: quote,
   );
 }
 
