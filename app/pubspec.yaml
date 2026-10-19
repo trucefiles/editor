@@ -29,6 +29,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # The key robots super_editor's own tests use; already in its graph.
+  flutter_test_robots: 0.0.24
   integration_test:
     sdk: flutter
   truce_lints: any

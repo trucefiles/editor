@@ -34,7 +34,8 @@ TransactionEdits transactionEdits(
   if (touched.isEmpty) return (edits: const [], added: const []);
   final edits = <BlockEdit>[
     for (final id in touched)
-      if (document.getNodeById(id) == null) ..._removed(id, removedNodes[id], ids),
+      if (document.getNodeById(id) == null)
+        ..._removed(id, removedNodes[id], ids),
   ];
   final added = <String>[];
   LineId? above;

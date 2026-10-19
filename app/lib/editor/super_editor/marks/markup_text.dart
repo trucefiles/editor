@@ -23,18 +23,27 @@ final class MarkupAttribution implements Attribution {
   int get hashCode => markup.hashCode;
 }
 
-/// [text] with [markup] as attributions; links also as [LinkAttribution].
+/// [text] with [markup] as attributions.
 AttributedText markupText(String text, List<MarkupSpan> markup) {
   final attributed = AttributedText(text);
   for (final MarkupSpan(:markup, :start, :end) in markup) {
     if (end <= start) continue;
-    final range = SpanRange(start, end - 1);
-    attributed.addAttribution(MarkupAttribution(markup), range);
-    if (markup case LinkMarkup(:final url)) {
-      attributed.addAttribution(LinkAttribution(url), range);
-    }
+    attributed.addAttribution(
+      MarkupAttribution(markup),
+      SpanRange(start, end - 1),
+    );
   }
   return attributed;
+}
+
+/// The url of the link in [text] at [offset], if any.
+String? linkAt(AttributedText text, int offset) {
+  for (final attribution in text.getAllAttributionsAt(offset)) {
+    if (attribution case MarkupAttribution(markup: LinkMarkup(:final url))) {
+      return url;
+    }
+  }
+  return null;
 }
 
 /// How text with [attributions] looks, from [base], in the colors of
@@ -52,9 +61,7 @@ TextStyle markupStyle(
       SyntaxMarkup() || DimmedMarkup() => style.copyWith(color: dim),
       BoldMarkup() => style.copyWith(fontWeight: FontWeight.bold),
       ItalicMarkup() => style.copyWith(fontStyle: FontStyle.italic),
-      StrikeMarkup() => style.copyWith(
-        decoration: TextDecoration.lineThrough,
-      ),
+      StrikeMarkup() => style.copyWith(decoration: TextDecoration.lineThrough),
       CodeMarkup() => style.copyWith(
         fontFamily: 'monospace',
         backgroundColor: colors.surfaceContainerHighest,

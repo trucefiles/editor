@@ -151,6 +151,59 @@ void main() {
     });
   });
 
+  group('moveNextTo', () {
+    test('above a line goes just before it', () {
+      final list = MarkdownLines.parse(doc);
+
+      expect(
+        list
+            .moveNextTo(
+              idOf(list, 'milk'),
+              target: idOf(list, 'eggs'),
+              below: false,
+            )
+            .text,
+        doc,
+      );
+      expect(
+        list
+            .moveNextTo(
+              idOf(list, 'eggs'),
+              target: idOf(list, 'milk'),
+              below: false,
+            )
+            .text,
+        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+      );
+    });
+
+    test('below a line goes after its subitems', () {
+      final list = MarkdownLines.parse(doc);
+
+      expect(
+        list
+            .moveNextTo(
+              idOf(list, 'milk'),
+              target: idOf(list, 'eggs'),
+              below: true,
+            )
+            .text,
+        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+      );
+    });
+
+    test('below the last line goes to the end', () {
+      final list = MarkdownLines.parse('- a\n- b\n');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'a'), target: idOf(list, ''), below: true)
+            .text,
+        '- b\n- a\n',
+      );
+    });
+  });
+
   group('toggleAndSort', () {
     test('a checked item moves with its subitems below the last item', () {
       final list = MarkdownLines.parse(

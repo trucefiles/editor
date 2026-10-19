@@ -41,10 +41,7 @@ class _MappedTextComponentState extends State<MappedTextComponent>
 
   NodePosition _out(NodePosition position) =>
       switch ((widget.lines.of(widget.nodeId), position)) {
-        (
-          final line?,
-          TextNodePosition(:final offset, :final affinity),
-        ) =>
+        (final line?, TextNodePosition(:final offset, :final affinity)) =>
           TextNodePosition(offset: line.toSource(offset), affinity: affinity),
         _ => position,
       };

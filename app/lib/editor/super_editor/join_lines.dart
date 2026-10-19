@@ -5,22 +5,21 @@ import 'package:super_editor/super_editor.dart';
 /// joins the line below into it. Handles the requests both hardware keys
 /// and soft keyboards end in. Without a line right next to it (at the top,
 /// or by a heading or button), only an empty line goes away.
-EditCommand? joinLines(Editor editor, EditRequest request) =>
-    switch (request) {
-      DeleteUpstreamAtBeginningOfNodeRequest(:final TextNode node) =>
-        JoinLinesCommand(
-          upper: editor.document.getNodeBeforeById(node.id)?.id,
-          lower: node.id,
-          caretInLower: true,
-        ),
-      CombineParagraphsRequest(:final firstNodeId, :final secondNodeId) =>
-        JoinLinesCommand(
-          upper: firstNodeId,
-          lower: secondNodeId,
-          caretInLower: false,
-        ),
-      _ => null,
-    };
+EditCommand? joinLines(Editor editor, EditRequest request) => switch (request) {
+  DeleteUpstreamAtBeginningOfNodeRequest(:final TextNode node) =>
+    JoinLinesCommand(
+      upper: editor.document.getNodeBeforeById(node.id)?.id,
+      lower: node.id,
+      caretInLower: true,
+    ),
+  CombineParagraphsRequest(:final firstNodeId, :final secondNodeId) =>
+    JoinLinesCommand(
+      upper: firstNodeId,
+      lower: secondNodeId,
+      caretInLower: false,
+    ),
+  _ => null,
+};
 
 /// Joins the text node [lower] into [upper]. The caret is in [lower] for
 /// Backspace, else in [upper] for Delete.

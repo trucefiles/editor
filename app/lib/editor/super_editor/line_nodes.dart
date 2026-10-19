@@ -22,4 +22,11 @@ final class LineNodes {
     _lineOfNode[node] = line;
     _nodeOfLine[line] = node;
   }
+
+  /// Forgets every line but [lines], e.g. after lines were removed, so a
+  /// node that comes back (an undo) counts as new.
+  void retain(Set<LineId> lines) {
+    _nodeOfLine.removeWhere((line, _) => !lines.contains(line));
+    _lineOfNode.removeWhere((_, line) => !lines.contains(line));
+  }
 }

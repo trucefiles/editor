@@ -9,7 +9,10 @@ void syncDocument(Editor editor, List<DocumentNode> nodes) {
   final wanted = {for (final node in nodes) node.id};
   final current = [for (final node in document) node.id];
   final requests = <EditRequest>[
-    if (_selectsAny(editor.composer.selection, current.toSet().difference(wanted)))
+    if (_selectsAny(
+      editor.composer.selection,
+      current.toSet().difference(wanted),
+    ))
       const ClearSelectionRequest(),
     for (final id in current)
       if (!wanted.contains(id)) DeleteNodeRequest(nodeId: id),

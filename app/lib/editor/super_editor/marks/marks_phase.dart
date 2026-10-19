@@ -10,7 +10,7 @@ import 'visual_lines.dart';
 /// records how those lines show there; the selected lines keep every
 /// character, so typing never touches a hidden mark.
 final class MarksPhase extends SingleColumnLayoutStylePhase {
-  MarksPhase({this.visual, DocumentComposer? composer}) : _composer = composer {
+  MarksPhase({this.visual, this._composer}) {
     _composer?.selectionNotifier.addListener(markDirty);
   }
 

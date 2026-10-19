@@ -344,6 +344,19 @@ final class MarkdownLines {
     return _with(rest..insertAll(target, block));
   }
 
+  /// Moves the item [id] with its subitems next to the line [target]:
+  /// [below] it and its subitems, else just above it, as dropping it
+  /// there. Levels are kept.
+  MarkdownLines moveNextTo(
+    LineId id, {
+    required LineId target,
+    required bool below,
+  }) {
+    if (!below) return move(id, beforeId: target);
+    final end = _blockEnd(_indexOf(target));
+    return move(id, beforeId: end < lines.length ? lines[end].id : null);
+  }
+
   /// Moves the item [id] with its subitems one level right, under the
   /// line shown above it. Lines in [hidden] (e.g. done items a UI shows
   /// elsewhere) and empty lines are not shown; hidden lines in between

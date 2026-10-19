@@ -5,34 +5,44 @@ import 'line_actions.dart';
 import 'line_drag.dart';
 import 'swipe_to_indent.dart';
 
-/// Indent per checklist level.
+/// Indent per list level.
 const _levelIndent = 28.0;
 
-/// Width before the box, where an item's drag handle sits.
+/// Width before the marker, where an item's drag handle sits.
 const _handleWidth = 24.0;
 
-/// One checkbox item: drag handle, checkbox and text, plus a menu while
-/// the caret is in it. Swipe right or left to indent or outdent. With no
-/// [actions] it is only shown: no handle, menu or swipe, and the box
-/// can't be tapped.
-class TaskLineComponent extends StatefulWidget {
-  const TaskLineComponent({
+/// One list item: drag handle, its [marker] (box, bullet or number) and
+/// text, plus a menu while the caret is in it. Swipe right or left to
+/// indent or outdent. With no [actions] it is only shown: no handle, menu
+/// or swipe.
+class ListLineComponent extends StatefulWidget {
+  const ListLineComponent({
     required this.viewModel,
+    required this.indent,
+    required this.marker,
+    this.struckThrough = false,
     this.actions,
     super.key,
   });
 
-  final TaskComponentViewModel viewModel;
+  final TextComponentViewModel viewModel;
+
+  /// Nesting level: 0 at the left margin.
+  final int indent;
+  final Widget marker;
+
+  /// Whether the text shows struck through and faded, as a checked item.
+  final bool struckThrough;
   final LineActions? actions;
 
   @override
-  State<TaskLineComponent> createState() => _TaskLineComponentState();
+  State<ListLineComponent> createState() => _ListLineComponentState();
 }
 
 enum _ItemAction { indent, outdent, delete }
 
-class _TaskLineComponentState extends State<TaskLineComponent>
-    with ProxyDocumentComponent<TaskLineComponent>, ProxyTextComposable {
+class _ListLineComponentState extends State<ListLineComponent>
+    with ProxyDocumentComponent<ListLineComponent>, ProxyTextComposable {
   final _textKey = GlobalKey();
 
   @override
@@ -44,10 +54,9 @@ class _TaskLineComponentState extends State<TaskLineComponent>
 
   String get _nodeId => widget.viewModel.nodeId;
 
-  /// Checked items show struck through and faded.
   TextStyle _style(Set<Attribution> attributions) {
     final style = widget.viewModel.textStyleBuilder(attributions);
-    if (!widget.viewModel.isComplete) return style;
+    if (!widget.struckThrough) return style;
     return style.copyWith(
       decoration: TextDecoration.combine([
         TextDecoration.lineThrough,
@@ -61,9 +70,7 @@ class _TaskLineComponentState extends State<TaskLineComponent>
   Widget build(BuildContext context) {
     final actions = widget.actions;
     final row = Padding(
-      padding: EdgeInsets.only(
-        left: widget.viewModel.indent * _levelIndent,
-      ),
+      padding: EdgeInsets.only(left: widget.indent * _levelIndent),
       child: Row(
         children: [
           SizedBox(
@@ -77,12 +84,9 @@ class _TaskLineComponentState extends State<TaskLineComponent>
                     ),
                   ),
           ),
-          Checkbox(
-            value: widget.viewModel.isComplete,
-            onChanged: switch (widget.viewModel.setComplete) {
-              final setComplete? => (checked) => setComplete(checked!),
-              null => null,
-            },
+          SizedBox.square(
+            dimension: kMinInteractiveDimension,
+            child: Center(child: widget.marker),
           ),
           Expanded(
             child: SwipeToIndent.keepMouseDrags(

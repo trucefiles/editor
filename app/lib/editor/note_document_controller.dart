@@ -111,18 +111,18 @@ final class NoteDocumentController extends ChangeNotifier {
     return added;
   }
 
-  /// Lines of items whose box [edits] change.
+  /// Lines of checkboxes whose box [edits] change.
   Iterable<LineId> _toggledIn(List<BlockEdit> edits) sync* {
     final byId = {for (final line in _lines.lines) line.id: line};
     for (final edit in edits) {
       if (edit case BlockChanged(:final id, block: ItemBlock(:final checked))
-          when byId[id]?.isItem == true && byId[id]?.isChecked != checked) {
+          when byId[id]?.isCheckbox == true && byId[id]?.isChecked != checked) {
         yield id;
       }
     }
   }
 
-  /// Folds or unfolds the "Done" section of the checklist [list].
+  /// Folds or unfolds the "Done" section of the list [list].
   void toggleCollapsed(LineId list) {
     if (!_collapsed.remove(list)) _collapsed.add(list);
     _rearrange();
@@ -134,11 +134,13 @@ final class NoteDocumentController extends ChangeNotifier {
     _rearrange();
   }
 
-  /// Adds an empty item where [button] says; returns its line.
-  LineId addItem(AddItemEntry button) {
-    final (lines, id) = button.before
-        ? _lines.insertBefore(button.anchor, '')
-        : _lines.appendAfter(button.anchor, '');
+  /// Adds an empty item of [kind] where [buttons] say; returns its line.
+  LineId addItem(AddItemEntry buttons, ListKind kind) {
+    final (lines, id) = _lines.addItem(
+      kind,
+      anchor: buttons.anchor,
+      before: buttons.before,
+    );
     _apply(lines);
     return id;
   }
@@ -150,10 +152,9 @@ final class NoteDocumentController extends ChangeNotifier {
     return id;
   }
 
-  /// Moves the item [id] with its subitems before the line [beforeId], or
-  /// to the end.
-  void move(LineId id, {required LineId? beforeId}) =>
-      _apply(_lines.move(id, beforeId: beforeId));
+  /// See [MarkdownLines.moveNextTo].
+  void move(LineId id, {required LineId target, required bool below}) =>
+      _apply(_lines.moveNextTo(id, target: target, below: below));
 
   /// Indents the item [id] under the line shown above it.
   void indent(LineId id) => _apply(_lines.indent(id, hidden: _hiddenAbove(id)));

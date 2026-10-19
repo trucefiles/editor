@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 /// The handle that drags the item of node [nodeId] to another item; the
 /// item's [label] floats under the pointer meanwhile.
 class LineDragHandle extends StatelessWidget {
-  const LineDragHandle({
-    required this.nodeId,
-    required this.label,
-    super.key,
-  });
+  const LineDragHandle({required this.nodeId, required this.label, super.key});
 
   final String nodeId;
   final String label;
@@ -74,26 +70,33 @@ class _LineDropTargetState extends State<LineDropTarget> {
 
   @override
   Widget build(BuildContext context) {
-    final line = BorderSide(
-      color: Theme.of(context).colorScheme.primary,
-      width: 2,
-    );
+    final below = _below;
     return DragTarget<LineDrag>(
-      onWillAcceptWithDetails: (details) => details.data.nodeId != widget.nodeId,
+      onWillAcceptWithDetails: (details) =>
+          details.data.nodeId != widget.nodeId,
       onMove: (details) => setState(() => _below = _isBelow(details.offset)),
       onLeave: (_) => setState(() => _below = null),
       onAcceptWithDetails: (details) {
         widget.onDrop(details.data.nodeId, below: _isBelow(details.offset));
         setState(() => _below = null);
       },
-      builder: (context, _, _) => DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(
-            top: _below == false ? line : BorderSide.none,
-            bottom: _below == true ? line : BorderSide.none,
-          ),
-        ),
-        child: widget.child,
+      // Nothing over the row but while an item hovers: anything that takes
+      // hits there keeps the editor from seeing taps on the row.
+      builder: (context, _, _) => Stack(
+        children: [
+          widget.child,
+          if (below != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: below ? null : 0,
+              bottom: below ? 0 : null,
+              height: 2,
+              child: IgnorePointer(
+                child: ColoredBox(color: Theme.of(context).colorScheme.primary),
+              ),
+            ),
+        ],
       ),
     );
   }

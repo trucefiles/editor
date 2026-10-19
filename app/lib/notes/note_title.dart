@@ -18,7 +18,7 @@ String noteTitleLine(String text) {
       .where((line) => line.raw.trim().isNotEmpty)
       .firstOrNull;
   if (line == null) return '';
-  if (line.isItem) return line.text.trim();
+  if (line.isCheckbox) return line.text.trim();
   return line.raw
       .replaceFirst(_headingMarker, '')
       .replaceFirst(_quoteMarker, '')
@@ -38,7 +38,7 @@ String notePreview(String text, {int maxLines = 6, bool hideDone = false}) {
       .where((line) => line.raw.trim().isNotEmpty && !done.contains(line.id))
       .skipWhile((line) => _heading.hasMatch(line.raw))
       .map(
-        (line) => line.isItem
+        (line) => line.isCheckbox
             ? '${'  ' * list.depthOf(line)}${line.isChecked ? '☑' : '☐'} '
                   '${line.text}'
             : _withoutBlockMarkers(line.raw),
