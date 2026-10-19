@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'block.dart';
 import 'line_id.dart';
 import 'markdown_line.dart';
 
@@ -31,10 +32,33 @@ final class MarkdownLines {
     );
   }
 
-  /// Parses [text] as a whole new document, e.g. after it changed
-  /// elsewhere. Its ids never repeat this document's ids, so a UI cannot
-  /// mistake a new line for an old one.
-  MarkdownLines reparse(String text) => MarkdownLines._parseFrom(text, _nextId);
+  /// Parses [text] as a new version of this document, e.g. after it
+  /// changed elsewhere. The unchanged lines at its start and end keep their
+  /// ids, so a UI can keep its place there; all other lines get ids this
+  /// document never used, so a UI cannot mistake a new line for an old one.
+  MarkdownLines reparse(String text) {
+    final raws = text.split('\n');
+    var head = 0;
+    while (head < raws.length &&
+        head < lines.length &&
+        raws[head] == lines[head].raw) {
+      head++;
+    }
+    var tail = 0;
+    while (tail < raws.length - head &&
+        tail < lines.length - head &&
+        raws[raws.length - 1 - tail] == lines[lines.length - 1 - tail].raw) {
+      tail++;
+    }
+    var nextId = _nextId;
+    final parsed = [
+      ...lines.take(head),
+      for (final raw in raws.sublist(head, raws.length - tail))
+        MarkdownLine.parse(LineId(nextId++), raw),
+      ...lines.skip(lines.length - tail),
+    ];
+    return MarkdownLines._(parsed, _detectIndentUnit(parsed), nextId);
+  }
 
   /// All lines, in file order.
   final List<MarkdownLine> lines;
@@ -80,8 +104,10 @@ final class MarkdownLines {
   /// editor left among the open items. Lines other than items stay in
   /// place, and an item with only such lines between it and its place
   /// does not move.
-  MarkdownLines toggleAndSort(LineId id) =>
-      toggle(id)._sorted(id).sortChecked();
+  MarkdownLines toggleAndSort(LineId id) => toggle(id).sortToggled(id);
+
+  /// Moves the item [id], just toggled, as [toggleAndSort] does.
+  MarkdownLines sortToggled(LineId id) => _sorted(id).sortChecked();
 
   /// Moves every checked item at the left margin, with its subitems, below
   /// the last item of its list, keeping their order; as [toggleAndSort]
@@ -124,21 +150,43 @@ final class MarkdownLines {
     return open.isEmpty ? others.first : _blockEnd(open.last);
   }
 
+  /// The checklists: runs of lines from an item to the last item or
+  /// indented line before a line at the margin that is neither an item nor
+  /// blank, e.g. a heading. Blank lines inside a run belong to it.
+  List<List<MarkdownLine>> get checklists {
+    final runs = <List<MarkdownLine>>[];
+    var i = 0;
+    while (i < lines.length) {
+      if (!lines[i].isItem) {
+        i++;
+        continue;
+      }
+      var (_, end) = _listAround(i);
+      while (lines[end - 1].raw.trim().isEmpty) {
+        end--;
+      }
+      runs.add(lines.sublist(i, end));
+      i = end;
+    }
+    return runs;
+  }
+
   /// The list the line at [index] is in: from its first line to past its
   /// last, up to the lines at the margin that are neither items nor blank.
   (int, int) _listAround(int index) {
-    bool ends(MarkdownLine line) =>
-        !line.isItem && line.indent.isEmpty && line.raw.trim().isNotEmpty;
     var first = index;
-    while (first > 0 && !ends(lines[first - 1])) {
+    while (first > 0 && !_endsList(lines[first - 1])) {
       first--;
     }
     var last = index + 1;
-    while (last < lines.length && !ends(lines[last])) {
+    while (last < lines.length && !_endsList(lines[last])) {
       last++;
     }
     return (first, last);
   }
+
+  static bool _endsList(MarkdownLine line) =>
+      !line.isItem && line.indent.isEmpty && line.raw.trim().isNotEmpty;
 
   MarkdownLines setText(LineId id, String text) =>
       _replaceLine(id, (line) => line.withText(text));
@@ -196,6 +244,89 @@ final class MarkdownLines {
       into,
       (line) => line.withText(line.text + text),
     ).removeLine(id);
+  }
+
+  /// Line [id] as it shows [block] now: unchanged if it shows it already;
+  /// else only its own line changes, keeping its prefix style (bullet,
+  /// box, indent characters) where it can.
+  MarkdownLines withBlock(LineId id, Block block) =>
+      _replaceLine(id, (line) => _lineFor(line, block));
+
+  MarkdownLine _lineFor(MarkdownLine line, Block block) => switch (block) {
+    TextBlock(:final text) =>
+      line.raw == text
+          ? line
+          : MarkdownLine.parse(line.id, MarkdownLine.oneLine(text)),
+    ItemBlock() when !line.isItem => _newItem(line.id, block, style: null),
+    ItemBlock(:final checked, :final depth, :final text) => _item(
+      line,
+      checked: checked,
+      depth: depth,
+      text: text,
+    ),
+  };
+
+  MarkdownLine _item(
+    MarkdownLine line, {
+    required bool checked,
+    required int depth,
+    required String text,
+  }) {
+    var item = line;
+    if (item.isChecked != checked) item = item.toggled();
+    if (item.text != text) item = item.withText(text);
+    if (depthOf(item) != depth) item = item.withIndent(_indentUnit * depth);
+    return item;
+  }
+
+  /// A new item showing [block], with the bullet style of the item [style]
+  /// if any.
+  MarkdownLine _newItem(LineId id, ItemBlock block, {MarkdownLine? style}) {
+    final unchecked = style == null
+        ? MarkdownLine.parse(id, '- [ ] ${MarkdownLine.oneLine(block.text)}')
+        : style.newSibling(id, block.text);
+    final item = unchecked.withIndent(_indentUnit * block.depth);
+    return block.checked ? item.toggled() : item;
+  }
+
+  /// Adds lines for [blocks], in order, right after the line [after] and
+  /// the lines below it that [shown] leaves out, e.g. its subitems shown in
+  /// a "Done" section, so they stay with it; at the top if [after] is
+  /// `null`. New items take the bullet style of the item above them.
+  /// Returns the new document and the new lines' ids.
+  (MarkdownLines, List<LineId>) insertBlocks(
+    List<Block> blocks, {
+    required LineId? after,
+    required Set<LineId> shown,
+  }) {
+    var at = 0;
+    if (after != null) {
+      final anchor = _indexOf(after);
+      final width = _width(lines[anchor].indent);
+      at = anchor + 1;
+      while (at < lines.length &&
+          !shown.contains(lines[at].id) &&
+          lines[at].raw.trim().isNotEmpty &&
+          _width(lines[at].indent) > width) {
+        at++;
+      }
+    }
+    final itemAbove = lines.take(at).where((line) => line.isItem).lastOrNull;
+    var nextId = _nextId;
+    final added = [
+      for (final block in blocks)
+        switch (block) {
+          TextBlock(:final text) => MarkdownLine.parse(
+            LineId(nextId++),
+            MarkdownLine.oneLine(text),
+          ),
+          ItemBlock() => _newItem(LineId(nextId++), block, style: itemAbove),
+        },
+    ];
+    return (
+      MarkdownLines._([...lines]..insertAll(at, added), _indentUnit, nextId),
+      [for (final line in added) line.id],
+    );
   }
 
   /// Removes only the line of [id]; lines below it (its subitems) stay
