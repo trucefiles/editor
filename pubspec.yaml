@@ -10,9 +10,3 @@ workspace:
   - syncthing
   - test_support
   - lints
-
-dependency_overrides:
-  # 2.0.35 needs its users to compile against Android API 36, but
-  # super_keyboard 0.4.1 (via super_editor) compiles against 34, which
-  # breaks the APK build. Drop this once super_keyboard compiles against 36.
-  flutter_plugin_android_lifecycle: 2.0.34
