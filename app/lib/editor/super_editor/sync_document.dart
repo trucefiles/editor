@@ -3,13 +3,8 @@ import 'package:super_editor/super_editor.dart';
 /// Makes [editor]'s document show [nodes], in order, in one transaction:
 /// removes the nodes not among them, moves and replaces the ones that
 /// differ, inserts the new ones, and leaves equal nodes untouched, so the
-/// caret on them stays. A selection on a removed node is cleared; a
-/// [caret], if given, is placed in the same transaction.
-void syncDocument(
-  Editor editor,
-  List<DocumentNode> nodes, {
-  DocumentPosition? caret,
-}) {
+/// caret on them stays. A selection on a removed node is cleared.
+void syncDocument(Editor editor, List<DocumentNode> nodes) {
   final document = editor.document;
   final wanted = {for (final node in nodes) node.id};
   final current = [for (final node in document) node.id];
@@ -42,15 +37,6 @@ void syncDocument(
     if (document.getNodeById(node.id) != node) {
       requests.add(ReplaceNodeRequest(existingNodeId: node.id, newNode: node));
     }
-  }
-  if (caret != null) {
-    requests.add(
-      ChangeSelectionRequest(
-        DocumentSelection.collapsed(position: caret),
-        SelectionChangeType.placeCaret,
-        SelectionReason.userInteraction,
-      ),
-    );
   }
   if (requests.isNotEmpty) editor.execute(requests);
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -18,7 +19,11 @@ import 'transaction_edits.dart';
 /// [note] as block edits, which change the file's lines; whenever [note]
 /// changes, the editor's document is made to show it again.
 final class NoteEditorAdapter implements LineActions, DisplayActions {
-  NoteEditorAdapter(this.note, {required this.onRemoved}) {
+  NoteEditorAdapter(
+    this.note, {
+    required this.onRemoved,
+    required this.onCaretPlaced,
+  }) {
     _document = MutableDocument(nodes: _targetNodes());
     _composer = MutableDocumentComposer();
     editor = Editor(
@@ -37,6 +42,10 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   /// The user removed items; [undo] brings them back.
   final void Function(String message, EditUndo undo) onRemoved;
+
+  /// The caret went into a line the user added with a button: the editor
+  /// should take the keyboard.
+  final VoidCallback onCaretPlaced;
 
   late final Editor editor;
   late final MutableDocument _document;
@@ -109,11 +118,30 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     if (_disposed) return;
     _syncing = true;
     try {
-      syncDocument(editor, _targetNodes(), caret: _pendingCaret);
-      _pendingCaret = null;
+      syncDocument(editor, _targetNodes());
     } finally {
       _syncing = false;
     }
+    if (_pendingCaret case final caret?) {
+      _pendingCaret = null;
+      // Once the new line is laid out: super_editor draws the caret of a
+      // fresh selection before laying out a line added in the same frame.
+      SchedulerBinding.instance
+        ..addPostFrameCallback((_) => _placeCaret(caret))
+        ..scheduleFrame();
+    }
+  }
+
+  void _placeCaret(DocumentPosition caret) {
+    if (_disposed || _document.getNodeById(caret.nodeId) == null) return;
+    editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection.collapsed(position: caret),
+        SelectionChangeType.placeCaret,
+        SelectionReason.userInteraction,
+      ),
+    ]);
+    onCaretPlaced();
   }
 
   void _caretInto(LineId line) {

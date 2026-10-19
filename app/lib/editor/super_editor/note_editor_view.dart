@@ -61,6 +61,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     final adapter = NoteEditorAdapter(
       widget.note,
       onRemoved: (message, undo) => widget.onRemoved(message, undo),
+      onCaretPlaced: _focus.requestFocus,
     );
     _adapter = adapter;
     _marks = MarksPhase(

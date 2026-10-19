@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:super_editor/super_reader_test.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
 import 'package:truce_editor/notes/note_mode.dart';
@@ -43,8 +44,37 @@ void main() {
   String nodeOf<T extends DocumentNode>({int index = 0}) =>
       SuperEditorInspector.findDocument()!.whereType<T>().elementAt(index).id;
 
-  Future<void> caretAt(WidgetTester tester, String nodeId, int offset) =>
-      tester.placeCaretInComponent(nodeId, TextNodePosition(offset: offset));
+  /// Where a finger taps the line [nodeId] at [offset]: the middle of the
+  /// line. The robot's own taps hit the line's top edge.
+  Offset tapPoint(String nodeId, int offset) {
+    final layout = SuperEditorInspector.findDocumentLayout();
+    final rect = layout.getRectForPosition(
+      DocumentPosition(
+        nodeId: nodeId,
+        nodePosition: TextNodePosition(offset: offset),
+      ),
+    )!;
+    return layout.getAncestorOffsetFromDocumentOffset(rect.center);
+  }
+
+  Future<void> caretAt(WidgetTester tester, String nodeId, int offset) async {
+    await tester.tapAt(tapPoint(nodeId, offset));
+    await tester.pump(kTapTimeout);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> selectWordAt(
+    WidgetTester tester,
+    String nodeId,
+    int offset,
+  ) async {
+    final point = tapPoint(nodeId, offset);
+    await tester.tapAt(point);
+    await tester.pump(kTapMinTime + const Duration(milliseconds: 1));
+    await tester.tapAt(point);
+    await tester.pump(kTapTimeout);
+    await tester.pumpAndSettle();
+  }
 
   testWidgets('typing in an item changes only its line', (tester) async {
     final text = FakeNoteText('# Shop\n- [ ] milk\n- [ ] eggs');
@@ -125,7 +155,9 @@ void main() {
     await pumpEditor(tester, text);
 
     await caretAt(tester, nodeOf<TaskNode>(), 0);
-    await tester.tap(find.byTooltip('Item actions'));
+    final menu = find.byTooltip('Item actions').hitTestable();
+    expect(menu, findsOneWidget, reason: 'only the edited row has a menu');
+    await tester.tap(menu);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -152,14 +184,14 @@ void main() {
     final text = FakeNoteText('buy milk');
     await pumpEditor(tester, text);
 
-    await tester.doubleTapInParagraph(nodeOf<ParagraphNode>(), 5);
+    await selectWordAt(tester, nodeOf<ParagraphNode>(), 5);
     await tester.tap(find.byTooltip('Bold (Ctrl+B)'));
     await tester.pumpAndSettle();
 
     expect(text.text, 'buy **milk**');
   });
 
-  testWidgets('Start list turns the line into a checkbox item', (tester) async {
+  testWidgets('Start list adds a checkbox item below the line', (tester) async {
     final text = FakeNoteText('milk');
     await pumpEditor(tester, text);
 
@@ -167,7 +199,9 @@ void main() {
     await tester.tap(find.byTooltip('Start list'));
     await tester.pumpAndSettle();
 
-    expect(text.text, startsWith('- [ ] milk'));
+    await tester.typeImeText('eggs');
+
+    expect(text.text, 'milk\n- [ ] eggs');
   });
 
   testWidgets('Markdown edit edits every character', (tester) async {
@@ -178,16 +212,19 @@ void main() {
     await caretAt(tester, nodeOf<ParagraphNode>(), 4);
     await tester.typeImeText('x');
 
-    expect(text.text, '- [x] milk');
+    expect(text.text, '- [ x] milk');
   });
 
   testWidgets('Read opens a tapped link and edits nothing', (tester) async {
     final text = FakeNoteText('see [site](https://example.com)');
     await pumpEditor(tester, text, mode: NoteMode.read);
 
-    await tester.tapAt(
-      tester.getCenter(find.byType(SuperReader)) -
-          Offset(tester.getSize(find.byType(SuperReader)).width / 2 - 40, 0),
+    final line = SuperReaderInspector.findDocument()!.first.id;
+    await SuperReaderRobot(tester).tapAtDocumentPosition(
+      DocumentPosition(
+        nodeId: line,
+        nodePosition: const TextNodePosition(offset: 6),
+      ),
     );
     await tester.pumpAndSettle();
 
