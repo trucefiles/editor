@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/notes/checked_items.dart';
-import 'package:truce_editor/notes/note_mode.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/notes/note_files.dart';
 
