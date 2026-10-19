@@ -29,7 +29,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
   }
 
-  testWidgets('deletes a note and undoes it', (tester) async {
+  testApp('deletes a note and undoes it', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
@@ -43,7 +43,7 @@ void main() {
     await tester.waitFor(find.text('Plan'));
   });
 
-  testWidgets('pins a note from the grid', (tester) async {
+  testApp('pins a note from the grid', (tester) async {
     app.write('plan.md', '# Plan\n');
     app.write('ideas.md', '# Ideas\n');
     await tester.addFolder(app);
@@ -61,7 +61,7 @@ void main() {
     expect(app.folder('.truce').existsSync(), isFalse);
   });
 
-  testWidgets('pins a note several levels deep from the grid', (tester) async {
+  testApp('pins a note several levels deep from the grid', (tester) async {
     app.write('a/b/c/plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
@@ -71,7 +71,7 @@ void main() {
     expect(app.namesIn('a/b/c'), ['plan.md']);
   });
 
-  testWidgets('an open note shows its color and last edit', (tester) async {
+  testApp('an open note shows its color and last edit', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
@@ -96,7 +96,7 @@ void main() {
     expect(find.textContaining('Edited '), findsOne);
   });
 
-  testWidgets('warns about an unsynced folder in full only in Folders', (
+  testApp('warns about an unsynced folder in full only in Folders', (
     tester,
   ) async {
     await tester.addFolder(app);
@@ -108,9 +108,7 @@ void main() {
     await tester.waitFor(find.textContaining('may not reach'));
   });
 
-  testWidgets('removes a folder from the app, keeping its files', (
-    tester,
-  ) async {
+  testApp('removes a folder from the app, keeping its files', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
