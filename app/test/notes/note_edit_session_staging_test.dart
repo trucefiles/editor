@@ -30,10 +30,13 @@ void main() {
     Future<void> settle() =>
         Future<void>.delayed(const Duration(milliseconds: 50));
 
-    /// Edits the staged note and lets its draft be written.
+    /// Edits the staged note and waits until its draft is written; a busy
+    /// test machine can take longer than [settle].
     Future<void> stageMine() async {
       staged.edit('# a\nmine');
-      await settle();
+      for (var i = 0; i < 100 && staged.state != EditState.savedOnDevice; i++) {
+        await settle();
+      }
     }
 
     test('keeps edits on the device, not yet in the file', () async {
