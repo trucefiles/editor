@@ -1,9 +1,10 @@
+import 'block_syntax.dart';
 import 'inline_markup.dart';
 import 'line_kinds.dart';
 import 'markup.dart';
 
 /// The markup of a whole [line] of [kind]: its block marks (heading,
-/// quote, list bullet, checkbox) and its inline markup. Code and table
+/// quote, list marker) and its inline markup. Code and table
 /// lines have no inline markup.
 List<MarkupSpan> lineMarkup(String line, LineKind kind) => switch (kind) {
   LineKind.fence => [
@@ -19,37 +20,25 @@ List<MarkupSpan> lineMarkup(String line, LineKind kind) => switch (kind) {
 List<MarkupSpan> itemTextMarkup(String text) => inlineMarkup(text);
 
 List<MarkupSpan> _plainMarkup(String line) {
-  if (_heading.firstMatch(line) case final match?) {
+  if (headingMark(line) case (:final level, :final textStart)) {
     return [
-      MarkupSpan(HeadingMarkup(match[1]!.length), 0, line.length),
-      MarkupSpan(const SyntaxMarkup(), 0, match.end),
-      ...inlineMarkup(line, match.end),
+      MarkupSpan(HeadingMarkup(level), 0, line.length),
+      MarkupSpan(const SyntaxMarkup(), 0, textStart),
+      ...inlineMarkup(line, textStart),
     ];
   }
-  if (_quote.firstMatch(line) case final match?) {
+  if (quoteTextStart(line) case final textStart?) {
     return [
       MarkupSpan(const QuoteMarkup(), 0, line.length),
-      MarkupSpan(const SyntaxMarkup(), 0, match.end),
-      ...inlineMarkup(line, match.end),
+      MarkupSpan(const SyntaxMarkup(), 0, textStart),
+      ...inlineMarkup(line, textStart),
     ];
   }
-  if (_item.firstMatch(line) case final match?) {
+  if (ItemSyntax.of(line) case final item?) {
     return [
-      MarkupSpan(const SyntaxMarkup(), match[1]!.length, match.end),
-      ...inlineMarkup(line, match.end),
-    ];
-  }
-  if (_bullet.firstMatch(line) case final match?) {
-    final bullet = match[1]!.length;
-    return [
-      MarkupSpan(const BulletMarkup(), bullet, bullet + 1),
-      ...inlineMarkup(line, match.end),
+      MarkupSpan(const SyntaxMarkup(), item.markStart, item.textStart),
+      ...inlineMarkup(line, item.textStart),
     ];
   }
   return inlineMarkup(line);
 }
-
-final _heading = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+|$)');
-final _quote = RegExp(r'^(?: {0,3}>[ \t]?)+');
-final _item = RegExp(r'^([ \t]*)[-*+][ \t]+\[[ xX]\](?:[ \t]|$)');
-final _bullet = RegExp(r'^([ \t]*)[-*+][ \t]+');

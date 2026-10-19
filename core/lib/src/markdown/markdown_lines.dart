@@ -3,6 +3,7 @@ import 'dart:math';
 import 'block.dart';
 import 'line_id.dart';
 import 'markdown_line.dart';
+import 'syntax/block_syntax.dart';
 import 'syntax/line_kinds.dart';
 
 /// A Markdown document seen as lines, e.g. list items, headings and text.
@@ -78,6 +79,15 @@ final class MarkdownLines {
   late final _indexById = {
     for (final (index, line) in lines.indexed) line.id: index,
   };
+
+  /// The line [id]; `null` if there is none.
+  MarkdownLine? lineOf(LineId id) => switch (_indexById[id]) {
+    final index? => lines[index],
+    null => null,
+  };
+
+  /// The kind of [line] by its place here.
+  LineKind kindOf(MarkdownLine line) => kinds[_indexOf(line.id)];
 
   /// Whether the document has checkbox items.
   bool get hasCheckboxes =>

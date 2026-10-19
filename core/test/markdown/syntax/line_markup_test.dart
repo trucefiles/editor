@@ -28,9 +28,21 @@ void main() {
     ]);
   });
 
-  test('a bullet', () {
-    expect(lineMarkup('* a', LineKind.plain), [
-      const MarkupSpan(BulletMarkup(), 0, 1),
+  test('a bullet or number as text: its marker is syntax', () {
+    expect(lineMarkup('* a', LineKind.plain), [const MarkupSpan(syntax, 0, 2)]);
+    expect(lineMarkup(' 1. a', LineKind.plain), [
+      const MarkupSpan(syntax, 1, 4),
+    ]);
+  });
+
+  test('a thematic break is no list item', () {
+    expect(lineMarkup('* * *', LineKind.plain), isEmpty);
+  });
+
+  test('a heading may start with up to three spaces', () {
+    expect(lineMarkup('   # a', LineKind.plain), [
+      const MarkupSpan(HeadingMarkup(1), 0, 6),
+      const MarkupSpan(syntax, 0, 5),
     ]);
   });
 

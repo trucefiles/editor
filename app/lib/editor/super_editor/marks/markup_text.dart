@@ -79,7 +79,6 @@ TextStyle markupStyle(
         fontStyle: FontStyle.italic,
         color: colors.onSurfaceVariant,
       ),
-      BulletMarkup() => style,
     };
   }
   return style;

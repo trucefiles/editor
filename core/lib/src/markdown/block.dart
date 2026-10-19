@@ -1,4 +1,4 @@
-import 'markdown_line.dart';
+import 'syntax/block_syntax.dart';
 
 /// What an editor shows for one line of a document; library-neutral.
 sealed class Block {

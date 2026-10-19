@@ -17,8 +17,8 @@ void main() {
     ]);
   });
 
-  test('draws bullets', () {
-    expect(visual('  - a').text, '  • a');
+  test('hides list markers: items show as list items', () {
+    expect(visual('  - a').text, '  a');
   });
 
   test('maps offsets both ways', () {

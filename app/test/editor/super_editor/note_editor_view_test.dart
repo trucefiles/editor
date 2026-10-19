@@ -171,6 +171,14 @@ void main() {
     expect(text.text, '- [ x] milk');
   });
 
+  testWidgets('Visual edit formats lines but not code', (tester) async {
+    await pumpEditor(tester, FakeNoteText('```\n**a**\n```\n**b**\n* * *'));
+
+    expect(find.text('**a**', findRichText: true), findsOneWidget);
+    expect(find.text('b', findRichText: true), findsOneWidget);
+    expect(find.text('* * *', findRichText: true), findsOneWidget);
+  });
+
   testWidgets('an empty note says Untitled until typed in', (tester) async {
     final text = FakeNoteText('');
     await pumpEditor(tester, text);

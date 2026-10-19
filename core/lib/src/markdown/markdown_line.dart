@@ -1,16 +1,5 @@
 import 'line_id.dart';
-
-/// The kinds of list items.
-enum ListKind {
-  /// `- [ ] text`, with a box to check.
-  checkbox,
-
-  /// `- text`.
-  bullet,
-
-  /// `1. text`.
-  numbered,
-}
+import 'syntax/block_syntax.dart';
 
 /// One line of [MarkdownLines]: a list item or any other line. Knows only
 /// its own syntax; whether it is in a code block, where no list exists,
@@ -20,7 +9,7 @@ final class MarkdownLine {
 
   /// [raw] as line [id].
   factory MarkdownLine.parse(LineId id, String raw) =>
-      MarkdownLine._(id, raw, _ItemParts.of(raw));
+      MarkdownLine._(id, raw, ItemSyntax.of(raw));
 
   /// A new unchecked item [id] of [kind], with [indent] and [text].
   factory MarkdownLine.newItem(
@@ -38,7 +27,7 @@ final class MarkdownLine {
   /// The line as in the file, without its line break.
   final String raw;
 
-  final _ItemParts? _item;
+  final ItemSyntax? _item;
 
   /// The kind of list item this line is; `null` if it is none.
   ListKind? get listKind => _item?.kind;
@@ -48,7 +37,7 @@ final class MarkdownLine {
   bool get isCheckbox => listKind == ListKind.checkbox;
 
   bool get isChecked => switch (_item) {
-    _ItemParts(kind: ListKind.checkbox, :final markIndex) =>
+    ItemSyntax(kind: ListKind.checkbox, :final markIndex) =>
       raw[markIndex] != ' ',
     _ => false,
   };
@@ -135,76 +124,4 @@ final class MarkdownLine {
 
   static bool _endsInSpace(String prefix) =>
       prefix.endsWith(' ') || prefix.endsWith('\t');
-}
-
-/// Where the parts of a list item's line are.
-final class _ItemParts {
-  const _ItemParts({
-    required this.kind,
-    required this.textStart,
-    this.markIndex = -1,
-    this.bullet,
-    this.number,
-    this.delimiter,
-  });
-
-  /// The parts of [raw] if it is a list item.
-  static _ItemParts? of(String raw) {
-    if (_thematicBreak.hasMatch(raw)) return null;
-    if (_checkbox.firstMatch(raw) case final match?) {
-      return _ItemParts(
-        kind: ListKind.checkbox,
-        textStart: raw.length - match[3]!.length,
-        markIndex: match[1]!.length + match[2]!.length + 1,
-        bullet: match[2]!.trim(),
-      );
-    }
-    if (_bullet.firstMatch(raw) case final match?) {
-      return _ItemParts(
-        kind: ListKind.bullet,
-        textStart: raw.length - match[3]!.length,
-        bullet: match[2],
-      );
-    }
-    if (_numbered.firstMatch(raw) case final match?) {
-      return _ItemParts(
-        kind: ListKind.numbered,
-        textStart: raw.length - match[4]!.length,
-        number: int.parse(match[2]!),
-        delimiter: match[3],
-      );
-    }
-    return null;
-  }
-
-  /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; as in
-  /// GitHub Flavored Markdown, the box is followed by whitespace or the
-  /// end of the line, so `- [x](url)` is a bulleted link.
-  static final _checkbox = RegExp(
-    r'^([ \t]*)([-*+][ \t]+)\[[ xX]\](?:[ \t]|$)(.*)$',
-  );
-
-  static final _bullet = RegExp(r'^([ \t]*)([-*+])(?:[ \t]+|$)(.*)$');
-
-  static final _numbered = RegExp(r'^([ \t]*)(\d{1,9})([.)])(?:[ \t]+|$)(.*)$');
-
-  /// `---`, `* * *` and the like: a line, not a list item.
-  static final _thematicBreak = RegExp(
-    r'^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$',
-  );
-
-  final ListKind kind;
-
-  /// Start of the item text.
-  final int textStart;
-
-  /// Index of the character between `[` and `]` of a checkbox.
-  final int markIndex;
-
-  /// The bullet character of a checkbox or bullet item.
-  final String? bullet;
-
-  /// The number and the character after it of a numbered item.
-  final int? number;
-  final String? delimiter;
 }

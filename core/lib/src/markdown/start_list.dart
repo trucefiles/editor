@@ -1,7 +1,7 @@
 import 'block.dart';
 import 'line_id.dart';
-import 'markdown_line.dart';
 import 'markdown_lines.dart';
+import 'syntax/block_syntax.dart';
 
 extension StartList on MarkdownLines {
   /// Starts a checklist with an empty item: on line [at] if it is blank,

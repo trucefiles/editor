@@ -212,8 +212,14 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   LineId? _lineOfNode(String nodeId) => _ids.lineOf(nodeId);
 
-  MarkdownLine? _line(LineId? id) =>
-      note.lines.lines.where((line) => line.id == id).firstOrNull;
+  MarkdownLine? _line(LineId? id) => id == null ? null : note.lines.lineOf(id);
+
+  /// The kind of the line node [nodeId] shows, by its place in the note,
+  /// e.g. in a code block; a node not yet a line's is plain.
+  LineKind kindOf(String nodeId) => switch (_line(_ids.lineOf(nodeId))) {
+    final line? => note.lines.kindOf(line),
+    null => LineKind.plain,
+  };
 
   @override
   void indent(String nodeId) {

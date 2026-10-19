@@ -1,7 +1,6 @@
 import 'markup.dart';
 
-/// A line shown formatted: its Markdown syntax hidden and list bullets
-/// drawn as bullets, with the offsets between the shown text and the
+/// A line shown formatted: its Markdown syntax hidden, with the offsets between the shown text and the
 /// source text.
 final class VisualLine {
   VisualLine._(this.text, this.markup, this._sourceOffsets, this._shownBefore);
@@ -9,13 +8,10 @@ final class VisualLine {
   /// [source] with its [markup] applied.
   factory VisualLine.of(String source, List<MarkupSpan> markup) {
     final hidden = List.filled(source.length, false);
-    final bullets = <int>{};
     for (final span in markup) {
       switch (span.markup) {
         case SyntaxMarkup():
           hidden.fillRange(span.start, span.end, true);
-        case BulletMarkup():
-          bullets.add(span.start);
         default:
           break;
       }
@@ -27,7 +23,7 @@ final class VisualLine {
       shownBefore.add(sourceOffsets.length);
       if (hidden[i]) continue;
       sourceOffsets.add(i);
-      text.write(bullets.contains(i) ? '•' : source[i]);
+      text.write(source[i]);
     }
     shownBefore.add(sourceOffsets.length);
     sourceOffsets.add(source.length);
@@ -35,7 +31,7 @@ final class VisualLine {
       text.toString(),
       [
         for (final span in markup)
-          if (span.markup is! SyntaxMarkup && span.markup is! BulletMarkup)
+          if (span.markup is! SyntaxMarkup)
             if (MarkupSpan(
                   span.markup,
                   shownBefore[span.start],

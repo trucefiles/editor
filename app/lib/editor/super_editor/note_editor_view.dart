@@ -66,6 +66,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     _adapter = adapter;
     _marks = MarksPhase(
+      kindOf: adapter.kindOf,
       visual: _mode == NoteMode.visual ? _visualLines : null,
       composer: adapter.editor.composer,
     );

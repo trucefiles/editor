@@ -1,3 +1,5 @@
+import 'syntax/block_syntax.dart';
+
 /// Text with a selection in it, e.g. one line as a format button changes
 /// it. Offsets into [text]; [start] <= [end].
 typedef FormattedText = ({String text, int start, int end});
@@ -61,8 +63,9 @@ FormattedText insertLink(String text, int start, int end, String url) {
 /// [line] at the next heading level: none, `#`, `##`, `###`, none again.
 /// The selection from [start] to [end] stays on the same text.
 FormattedText cycleHeading(String line, int start, int end) {
-  final prefix = _heading.firstMatch(line)?[0] ?? '';
-  final level = prefix.trim().length;
+  final heading = headingMark(line);
+  final prefix = line.substring(0, heading?.textStart ?? 0);
+  final level = heading?.level ?? 0;
   final next = level >= 3 ? '' : '${'#' * (level + 1)} ';
   final shift = next.length - prefix.length;
   int moved(int offset) =>
@@ -73,5 +76,3 @@ FormattedText cycleHeading(String line, int start, int end) {
     end: moved(end),
   );
 }
-
-final _heading = RegExp(r'^#{1,6}(?:[ \t]+|$)');

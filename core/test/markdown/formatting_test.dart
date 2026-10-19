@@ -50,4 +50,8 @@ void main() {
     expect(cycleHeading('# Title', 4, 4), (text: '## Title', start: 5, end: 5));
     expect(cycleHeading('### Title', 6, 6), (text: 'Title', start: 2, end: 2));
   });
+
+  test('cycleHeading replaces a heading mark after leading spaces', () {
+    expect(cycleHeading(' # x', 3, 3), (text: '## x', start: 3, end: 3));
+  });
 }

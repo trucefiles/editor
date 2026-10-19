@@ -67,12 +67,6 @@ final class QuoteMarkup extends Markup {
   const QuoteMarkup();
 }
 
-/// A list bullet character (`-`, `*`, `+`), drawn as a bullet where the
-/// text shows formatted.
-final class BulletMarkup extends Markup {
-  const BulletMarkup();
-}
-
 /// [markup] on the text from [start] to [end] (exclusive).
 final class MarkupSpan {
   const MarkupSpan(this.markup, this.start, this.end);
