@@ -27,6 +27,10 @@
           <li>Format bar: Bold, Italic, Link, Heading and Start list.</li>
           <li>Links open on tap; on the line you edit, Ctrl+click opens them.</li>
           <li>New setting: add buttons below lists instead of above.</li>
+          <li>The pen button opens a new note right away to type; its file name follows the first line.</li>
+          <li>A chip at the top of each note shows its place and name; tap it to move or rename the note.</li>
+          <li>Per note, checked items stay in place, go to a Done section or move to the end; card previews show "+ N done" instead of them.</li>
+          <li>A Settings screen holds where new notes go, Refresh and Keep running in tray.</li>
         </ul>
       </description>
     </release>
