@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../editor/add_item_place/ui/add_item_place_tile.dart';
 import '../../notes/new_note_place/ui/new_note_place_tile.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
 import '../../tray/ui/close_to_tray_tile.dart';
@@ -14,6 +15,7 @@ class SettingsScreen extends StatelessWidget {
     body: ListView(
       children: const [
         NewNotePlaceTile(),
+        AddItemPlaceTile(),
         RefreshSettingTile(),
         CloseToTrayTile(),
       ],
