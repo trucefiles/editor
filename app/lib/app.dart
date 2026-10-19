@@ -7,9 +7,11 @@ import 'notes/ui/notes_screen.dart';
 import 'reach/ui/reach_overlay.dart';
 import 'theme/app_theme.dart';
 import 'tray/close_to_tray_controller.dart';
+import 'tray/start_in_background.dart';
 
-/// Root widget: app-wide theme, the first screen, the tray, and the
-/// overlay while a folder is being reached again.
+/// Root widget: app-wide theme, the first screen, the tray (also at a
+/// start in the background), and the overlay while a folder is being
+/// reached again.
 class TruceApp extends ConsumerStatefulWidget {
   const TruceApp({super.key});
 
@@ -25,7 +27,9 @@ class _TruceAppState extends ConsumerState<TruceApp> {
   @override
   Widget build(BuildContext context) {
     // Keeps the tray icon for as long as the app runs.
-    ref.listen(closeToTrayProvider, (_, _) {});
+    ref
+      ..listen(closeToTrayProvider, (_, _) {})
+      ..listen(backgroundStartProvider, (_, _) {});
     return MaterialApp(
       title: TruceApp.title,
       navigatorKey: _navigator,

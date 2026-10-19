@@ -65,6 +65,13 @@ sha256sum --check --ignore-missing SHA256SUMS
 flatpak install --user truce-editor-vX.Y.Z.flatpak
 ```
 
+On Linux, `--background` starts Truce in the tray, e.g. at login, when
+"Keep running in tray" is on in Settings:
+
+```sh
+flatpak run io.github.trucefiles.editor --background
+```
+
 ## Known limitations
 
 See [docs/known-limitations.md](docs/known-limitations.md).

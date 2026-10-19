@@ -30,7 +30,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Show changes from other devices'),
+    title: const Text('Refresh changes in folders'),
     content: RadioGroup<RefreshMode>(
       groupValue: _settings.mode,
       onChanged: (mode) =>
@@ -64,7 +64,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: DropdownMenu<Duration>(
-              label: const Text('Interval'),
+              label: const Text('Refresh interval'),
               initialSelection: _settings.interval,
               enabled: _settings.mode != RefreshMode.manual,
               onSelected: (interval) => setState(

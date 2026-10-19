@@ -107,7 +107,7 @@ void main() {
     await tester.waitFor(find.byTooltip('New note'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Refresh'));
+    await tester.tapAndSettle(find.text('Refresh changes in folders'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
     // The setting is saved, then the app rescans once for changes made

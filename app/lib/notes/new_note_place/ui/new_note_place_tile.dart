@@ -23,9 +23,9 @@ class NewNotePlaceTile extends ConsumerWidget {
     final place = resolveNewNotePlace(setting.value, folders);
     return ListTile(
       enabled: setting.hasValue && folders.isNotEmpty,
-      title: const Text('New notes go to'),
+      title: const Text('Default folder for new notes'),
       subtitle: place == null
-          ? const Text('The folder shown, else the first one')
+          ? const Text('Folder selected on home, else the first reachable one')
           : Align(
               alignment: AlignmentDirectional.centerStart,
               child: FolderBadge(place.folder, subfolder: place.subfolder),
@@ -45,7 +45,7 @@ class NewNotePlaceTile extends ConsumerWidget {
         if (!context.mounted) return;
         final picked = await showNotePlaceDialog(
           context,
-          title: 'New notes go to',
+          title: 'Default folder for new notes',
           action: 'OK',
           folders: folders,
           initial: place ?? (folder: folders.first, subfolder: null),

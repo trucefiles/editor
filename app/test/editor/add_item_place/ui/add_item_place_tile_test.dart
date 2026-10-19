@@ -44,14 +44,14 @@ void main() {
     await settle(tester, until: () => place(tester) != null);
     expect(place(tester), AddItemPlace.top);
 
-    await tester.tap(find.text('Add buttons below lists'));
+    await tester.tap(find.text('Show "Add item" below lists'));
     await settle(tester, until: () => place(tester) == AddItemPlace.bottom);
     expect(
       tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
       isTrue,
     );
 
-    await tester.tap(find.text('Add buttons below lists'));
+    await tester.tap(find.text('Show "Add item" below lists'));
     await settle(tester, until: () => place(tester) == AddItemPlace.top);
     expect(place(tester), AddItemPlace.top);
   });
