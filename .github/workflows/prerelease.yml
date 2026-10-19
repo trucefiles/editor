@@ -1,0 +1,84 @@
+name: Pre-release
+
+# Starts a pre-release (a version with a suffix, e.g. 0.7.0-beta.1) from any
+# branch, by hand ("Run workflow"). Once the checks pass, it tags the branch
+# head with the version and starts Release on that tag, which builds, waits
+# for approval and publishes. The tag comes first because the "release"
+# environment hands out the signing key only to runs from main or a v* tag.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Work out the pre-release tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Take the tag from the pubspec version
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(sed -n 's/^version: \([^+]*\).*/\1/p' app/pubspec.yaml)"
+          if [ "$GITHUB_REF_TYPE" != branch ]; then
+            echo "::error::Start pre-releases from a branch"
+            exit 1
+          fi
+          if [[ "$tag" != *-* ]]; then
+            echo "::error::$tag is not a pre-release; add a suffix such as -beta.1"
+            exit 1
+          fi
+          if lookup=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" 2>&1); then
+            echo "::error::$tag already exists; raise the version in app/pubspec.yaml"
+            exit 1
+          elif ! grep -q 'HTTP 404' <<< "$lookup"; then
+            echo "::error::Couldn't check whether $tag exists: $lookup"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: Format, analyze, test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/check
+
+  release:
+    name: Tag and start Release
+    needs: [version, check]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Tag the branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
+      # A tag made with this token starts no workflow by itself; a run
+      # started by hand does.
+      - name: Start Release on the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
