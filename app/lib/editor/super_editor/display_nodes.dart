@@ -1,8 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// A node that is not one editable line: a "Done" heading, an add button,
-/// or a drawn table or image. Equal to another with the same id and
+/// A node that is not text the user types in: a "Done" heading, an add
+/// button, or a drawn table. Equal to another with the same id and
 /// [content].
 sealed class DisplayNode extends BlockNode {
   DisplayNode(this.id, {required bool deletable, super.metadata}) {
@@ -12,8 +13,8 @@ sealed class DisplayNode extends BlockNode {
   @override
   final String id;
 
-  /// Everything this node shows, as one value.
-  String get content;
+  /// Everything this node shows.
+  List<Object?> get content;
 
   DisplayNode _copy(Map<String, dynamic> metadata);
 
@@ -30,7 +31,7 @@ sealed class DisplayNode extends BlockNode {
   bool hasEquivalentContent(DocumentNode other) =>
       other is DisplayNode &&
       other.runtimeType == runtimeType &&
-      other.content == content;
+      _equality.equals(other.content, content);
 
   @override
   DocumentNode copyWithAddedMetadata(Map<String, dynamic> newProperties) =>
@@ -42,83 +43,58 @@ sealed class DisplayNode extends BlockNode {
 
   @override
   bool operator ==(Object other) =>
-      other is DisplayNode &&
-      other.runtimeType == runtimeType &&
-      other.id == id &&
-      other.content == content;
+      other is DisplayNode && other.id == id && hasEquivalentContent(other);
 
   @override
-  int get hashCode => Object.hash(id, content);
+  int get hashCode => Object.hash(id, _equality.hash(content));
+
+  static const _equality = ListEquality<Object?>();
 }
 
-/// The heading of a checklist's "Done" section; see [DoneHeadingEntry].
+/// The heading of a list's "Done" section; see [DoneHeadingEntry].
 final class DoneHeadingNode extends DisplayNode {
-  DoneHeadingNode(this.entry, {super.metadata})
-    : super('done-${entry.list}', deletable: false);
+  DoneHeadingNode(super.id, this.entry, {super.metadata})
+    : super(deletable: false);
 
   final DoneHeadingEntry entry;
 
   @override
-  String get content => '${entry.count} ${entry.collapsed}';
+  List<Object?> get content => [entry.count, entry.collapsed];
 
   @override
   DisplayNode _copy(Map<String, dynamic> metadata) =>
-      DoneHeadingNode(entry, metadata: metadata);
+      DoneHeadingNode(id, entry, metadata: metadata);
 }
 
-/// A checklist's add button; see [AddItemEntry].
+/// A list's add button; see [AddItemEntry].
 final class AddItemNode extends DisplayNode {
-  AddItemNode(this.entry, {super.metadata})
-    : super('add-${entry.list}', deletable: false);
+  AddItemNode(super.id, this.entry, {super.metadata}) : super(deletable: false);
 
   final AddItemEntry entry;
 
   @override
-  String get content => '${entry.anchor} ${entry.before}';
+  List<Object?> get content => [entry.anchor, entry.before];
 
   @override
   DisplayNode _copy(Map<String, dynamic> metadata) =>
-      AddItemNode(entry, metadata: metadata);
+      AddItemNode(id, entry, metadata: metadata);
 }
 
-/// A table drawn from its lines; see [TableEntry].
+/// A table drawn as a grid, inside [frames]; see [TableEntry].
 final class DrawnTableNode extends DisplayNode {
-  DrawnTableNode(this.lines, {super.metadata})
-    : rows = tableCells([for (final line in lines) line.raw]),
-      super('table-${lines.first.id}', deletable: true);
+  DrawnTableNode(super.id, this.table, {required this.frames, super.metadata})
+    : super(deletable: true);
 
-  /// Its lines: header, delimiter row and rows.
-  final List<MarkdownLine> lines;
-
-  /// The header's cells, then each row's.
-  final List<List<String>> rows;
+  final TableBlock table;
+  final List<Frame> frames;
 
   @override
-  String get content => copyText;
+  List<Object?> get content => [table.text, ...frames];
 
   @override
-  String get copyText => [for (final line in lines) line.raw].join('\n');
+  String get copyText => table.text;
 
   @override
   DisplayNode _copy(Map<String, dynamic> metadata) =>
-      DrawnTableNode(lines, metadata: metadata);
-}
-
-/// An image drawn from its line; see [ImageEntry].
-final class DrawnImageNode extends DisplayNode {
-  DrawnImageNode(this.line, this.entry, {super.metadata})
-    : super('image-${line.id}', deletable: true);
-
-  final MarkdownLine line;
-  final ImageEntry entry;
-
-  @override
-  String get content => line.raw;
-
-  @override
-  String get copyText => line.raw;
-
-  @override
-  DisplayNode _copy(Map<String, dynamic> metadata) =>
-      DrawnImageNode(line, entry, metadata: metadata);
+      DrawnTableNode(id, table, frames: frames, metadata: metadata);
 }

@@ -24,10 +24,6 @@ enum NoteMode {
   /// Whether list items and quotes show as such, not as their lines.
   bool get showsBlocks => this != markdown;
 
-  /// How Markdown marks show in this mode.
-  MarkStyle get marks => switch (this) {
-    visual => MarkStyle.mixed,
-    markdown => MarkStyle.shown,
-    read => MarkStyle.hidden,
-  };
+  /// How Markdown marks show in this mode while editing.
+  MarkStyle get marks => this == markdown ? MarkStyle.shown : MarkStyle.mixed;
 }

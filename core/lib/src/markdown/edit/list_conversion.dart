@@ -34,15 +34,12 @@ extension ListConversion on MarkdownDocument {
           ? _addBelow(below, kind)
           : _addAtEnd(kind);
     }
-    final back = chosen.every(
-      (line) => outline.itemOf(line.id)?.kind == kind,
-    );
+    final back = chosen.every((line) => outline.itemOf(line.id)?.kind == kind);
     return (
       chosen.fold(
         this,
-        (document, line) => back
-            ? document._toText(line.id)
-            : document._toItem(line.id, kind),
+        (document, line) =>
+            back ? document._toText(line.id) : document._toItem(line.id, kind),
       ),
       null,
     );
@@ -68,9 +65,8 @@ extension ListConversion on MarkdownDocument {
     final line = lineOf(id)!;
     final parts = outline.partsOf(item, line);
     return withLines(
-      [...lines]..[indexOf(id)] = line.withRaw(
-        '${parts.outer}${_contentOf(line)}',
-      ),
+      [...lines]
+        ..[indexOf(id)] = line.withRaw('${parts.outer}${_contentOf(line)}'),
     );
   }
 
@@ -87,10 +83,7 @@ extension ListConversion on MarkdownDocument {
         AtMargin() => AtMargin(outline.marginOuterOf(line)),
         final place => place,
       };
-      final style = ItemStyle.of(
-        kind,
-        bullet: _bulletNear(index) ?? '-',
-      );
+      final style = ItemStyle.of(kind, bullet: _bulletNear(index) ?? '-');
       final raw = '${writer.itemPrefix(outline, place)}${style.marker}$content';
       return withLines([...lines]..[index] = line.withRaw(raw));
     }
@@ -103,14 +96,14 @@ extension ListConversion on MarkdownDocument {
       delimiter: item.marker.delimiter ?? '.',
     );
     final changed = withLines(
-      [...lines]..[indexOf(id)] = line.withRaw(
-        '${parts.outer}${parts.indent}${style.marker}$content',
-      ),
+      [...lines]
+        ..[indexOf(id)] = line.withRaw(
+          '${parts.outer}${parts.indent}${style.marker}$content',
+        ),
     );
     final now = changed.outline.itemOf(id);
     if (now == null) return changed;
-    final shift =
-        changed.outline.paddingOf(now) - outline.paddingOf(item);
+    final shift = changed.outline.paddingOf(now) - outline.paddingOf(item);
     final (:start, :end) = outline.subtree(item);
     final shifted = writer.shifted(
       outline,

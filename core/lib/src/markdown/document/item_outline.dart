@@ -61,7 +61,8 @@ final class ItemOutline {
   /// Every list item, in file order.
   late final List<ItemBlock> items = [
     for (final leaf in _document.leaves)
-      for (final item in leaf.ancestors.whereType<ItemBlock>().toList().reversed)
+      for (final item
+          in leaf.ancestors.whereType<ItemBlock>().toList().reversed)
         if (item.leaves.first == leaf) item,
   ];
 
@@ -100,8 +101,10 @@ final class ItemOutline {
   /// [item]'s lines: from its marker line to its last line that is not
   /// blank.
   LineSpan subtree(ItemBlock item) {
-    final last = item.leaves.lastWhere((leaf) => leaf is! BlankBlock,
-        orElse: () => item.leaves.first);
+    final last = item.leaves.lastWhere(
+      (leaf) => leaf is! BlankBlock,
+      orElse: () => item.leaves.first,
+    );
     return (
       start: _document.indexOf(item.markerLine),
       end: _document.indexOf(last.lines.last.id) + 1,
@@ -123,9 +126,8 @@ final class ItemOutline {
       if (item.isChecked) ..._idsIn(subtree(item)),
   };
 
-  Iterable<LineId> _idsIn(LineSpan span) => _document.lines
-      .sublist(span.start, span.end)
-      .map((line) => line.id);
+  Iterable<LineId> _idsIn(LineSpan span) =>
+      _document.lines.sublist(span.start, span.end).map((line) => line.id);
 
   /// [line], a line of [item]'s block, cut as [ItemLineParts] says.
   ItemLineParts partsOf(ItemBlock item, MarkdownLine line) {

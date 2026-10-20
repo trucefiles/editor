@@ -37,7 +37,15 @@ extension TextEdits on MarkdownDocument {
     };
     late final List<MarkdownLine> written;
     final document = edited((newLine) {
-      written = _written(view, newText.split('\n'), newLine);
+      written = _written(
+        view,
+        newText.split('\n'),
+        newLine,
+        firstEdited: _lineIndexAt(view.text, from.offset),
+        lastEdited: to.view == view
+            ? _lineIndexAt(view.text, to.offset)
+            : view.lines.length,
+      );
       final first = indexOf(view.id);
       final last = indexOf(view.lines.last.line.id);
       return [
@@ -51,29 +59,34 @@ extension TextEdits on MarkdownDocument {
     return (document, _caretIn(written, view, newText, from.offset + text.length));
   }
 
-  /// The lines [view] shows once its text has [contents] as its lines:
-  /// the same lines at the start and end stay; between them each old line
-  /// takes the next new content, in order; new contents left over become
-  /// new lines below them, made with [newLine]; old lines left over go. A
-  /// view's first line stays first unless the text before it is kept, so
-  /// its marker stays on the first line.
+  /// The lines [view] shows once its text has [contents] as its lines,
+  /// after an edit from its line [firstEdited] to its line [lastEdited]
+  /// (past its last line if the edit goes on in a later view): the same
+  /// lines at the start and end stay, as far as the edit leaves them;
+  /// between them each old line takes the next new content, in order;
+  /// new contents left over become new lines below them, made with
+  /// [newLine]; old lines left over go. A view's first line stays first
+  /// unless the text before it is kept, so its marker stays on the first
+  /// line.
   List<MarkdownLine> _written(
     EditView view,
     List<String> contents,
-    NewLine newLine,
-  ) {
+    NewLine newLine, {
+    required int firstEdited,
+    required int lastEdited,
+  }) {
     final olds = view.lines;
     String contentOf(ViewLine line) => line.line.raw.substring(line.start, line.end);
     final head = _sameCount(
       olds.map(contentOf),
       contents,
-      min(olds.length, contents.length),
+      min(min(olds.length, contents.length), firstEdited + 1),
     );
     final most = min(olds.length, contents.length) - head;
     final tail = _sameCount(
       olds.reversed.map(contentOf),
       contents.reversed,
-      head == 0 ? min(most, olds.length - 1) : most,
+      min(head == 0 ? most - 1 : most, olds.length - lastEdited),
     );
     final changedOld = olds.sublist(head, olds.length - tail);
     final changedNew = contents.sublist(head, contents.length - tail);
@@ -128,6 +141,10 @@ extension TextEdits on MarkdownDocument {
     final contentLength = text.split('\n')[index].length;
     return (line: line.id, offset: _contentEnd(line) - contentLength + inLine);
   }
+
+  /// The index of the line [offset] is on in [text].
+  static int _lineIndexAt(String text, int offset) =>
+      '\n'.allMatches(text.substring(0, offset)).length;
 
   /// Where a line's part ends: before a carriage return that ends it.
   static int _contentEnd(MarkdownLine line) =>

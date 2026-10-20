@@ -115,7 +115,9 @@ final class Arrangement {
       ? TableEntry(leaf.id)
       : LeafEntry(leaf.id);
 
-  /// The entries of [list], whose lines in [done] show as done.
+  /// The entries of [list], whose lines in [done] show as done; blank
+  /// lines that end it show after its "Done" section, before what
+  /// follows it.
   List<DisplayEntry> _list(
     MarkdownDocument document,
     ListBlock list,
@@ -128,7 +130,11 @@ final class Arrangement {
         if (item.ancestors.contains(list)) item,
     ];
     final openItems = items.where((item) => !done.contains(item.markerLine));
-    final checked = list.leaves.where(isDone).map(_entryOf).toList();
+    final blankEnd = list.children.reversed
+        .takeWhile((block) => block is BlankBlock)
+        .length;
+    final leaves = list.leaves.take(list.leaves.length - blankEnd);
+    final checked = leaves.where(isDone).map(_entryOf).toList();
     final isCollapsed = collapsed.contains(id);
     return [
       if (addItems == AddItemPlace.top)
@@ -137,7 +143,7 @@ final class Arrangement {
           (openItems.firstOrNull ?? items.first).markerLine,
           before: true,
         ),
-      ...list.leaves.where((leaf) => !isDone(leaf)).map(_entryOf),
+      ...leaves.where((leaf) => !isDone(leaf)).map(_entryOf),
       if (addItems == AddItemPlace.bottom)
         AddItemEntry(
           id,
@@ -152,6 +158,7 @@ final class Arrangement {
         ),
         if (!isCollapsed) ...checked,
       ],
+      ...list.leaves.skip(list.leaves.length - blankEnd).map(_entryOf),
     ];
   }
 }

@@ -2,11 +2,11 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'markup_text.dart';
-import 'shown_lines.dart';
+import 'shown_texts.dart';
 
-/// Styles each line node as [marks] show it, by the markup its line
-/// view reads from the node's text; the selected lines count as edited.
-/// Records how each line shows in [lines], for its component to map
+/// Styles each text node as [marks] show it, by the markup its view
+/// reads from the node's text; the selected nodes count as edited.
+/// Records how each node shows in [texts], for its component to map
 /// positions.
 ///
 /// It follows the selection until [close]. Not in [dispose]: super_editor
@@ -16,7 +16,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   MarksPhase({
     required this.marks,
     required this.viewOf,
-    required this.lines,
+    required this.texts,
     this._composer,
   }) {
     _composer?.selectionNotifier.addListener(markDirty);
@@ -24,10 +24,10 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
 
   final MarkStyle marks;
 
-  /// The view of the line a node shows; `null` for a node that is none.
-  final LineView? Function(String nodeId) viewOf;
+  /// The view a node shows; `null` for a node that shows none.
+  final EditView? Function(String nodeId) viewOf;
 
-  final ShownLines lines;
+  final ShownTexts texts;
   final DocumentComposer? _composer;
 
   /// Stops following the selection, once the editor is gone.
@@ -38,7 +38,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
     Document document,
     SingleColumnLayoutViewModel viewModel,
   ) {
-    lines.clear();
+    texts.clear();
     final selected = _selectedNodes(document);
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
@@ -58,12 +58,12 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
 
   SingleColumnLayoutComponentViewModel _styled(
     TextComponentViewModel component,
-    LineView view, {
+    EditView view, {
     required bool edited,
   }) {
     final source = component.text.toPlainText();
     final shown = marks.show(source, view.markupOf(source), edited: edited);
-    lines.set(component.nodeId, shown);
+    texts.set(component.nodeId, shown);
     return (component.copy() as TextComponentViewModel)
       ..text = markupText(shown.text, shown.markup);
   }

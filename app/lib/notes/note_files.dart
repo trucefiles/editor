@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -21,6 +23,14 @@ final class NoteFiles {
 
   /// The current version of [note]'s file.
   Future<Result<Note, StoreError>> reload(Note note) => open(note.path);
+
+  /// The bytes of the file at [path], e.g. an image a note shows; `null`
+  /// if it can't be read.
+  Future<Uint8List?> bytesOf(RelPath path) async =>
+      switch (await _store.read(path)) {
+        Ok(value: final content) => content.bytes,
+        Err() => null,
+      };
 
   /// The note in the file at [path].
   Future<Result<Note, StoreError>> open(RelPath path) async {

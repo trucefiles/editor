@@ -23,9 +23,21 @@ final class MarkupAttribution implements Attribution {
   int get hashCode => markup.hashCode;
 }
 
-/// [text] with [markup] as attributions.
+/// [text] with [markup] as attributions, and each image as a
+/// placeholder for its widget, in place of the character showing it.
 AttributedText markupText(String text, List<MarkupSpan> markup) {
-  final attributed = AttributedText(text);
+  final images = {
+    for (final span in markup)
+      if (span.markup case final ImageMarkup image) span.start: image,
+  };
+  final attributed = AttributedText(
+    String.fromCharCodes([
+      for (final (offset, unit) in text.codeUnits.indexed)
+        if (!images.containsKey(offset)) unit,
+    ]),
+    null,
+    images,
+  );
   for (final MarkupSpan(:markup, :start, :end) in markup) {
     if (end <= start) continue;
     attributed.addAttribution(
@@ -59,6 +71,7 @@ TextStyle markupStyle(
     if (attribution is! MarkupAttribution) continue;
     style = switch (attribution.markup) {
       SyntaxMarkup() || DimmedMarkup() => style.copyWith(color: dim),
+      ReplacedMarkup() => style,
       BoldMarkup() => style.copyWith(fontWeight: FontWeight.bold),
       ItalicMarkup() => style.copyWith(fontStyle: FontStyle.italic),
       StrikeMarkup() => style.copyWith(decoration: TextDecoration.lineThrough),

@@ -3,17 +3,19 @@ import 'package:truce_core/truce_core.dart';
 
 import '../text_format.dart';
 
-/// Buttons that format the selected text and turn the selected lines into
-/// a list of a kind.
+/// Buttons that format the selected text, turn the selected lines into a
+/// list of a kind, and break the line within its block.
 class FormatToolbar extends StatelessWidget {
   const FormatToolbar({
     required this.onFormat,
     required this.onList,
+    required this.onLineBreak,
     super.key,
   });
 
   final ValueChanged<TextFormat> onFormat;
   final ValueChanged<ListKind> onList;
+  final VoidCallback onLineBreak;
 
   static const _formats = [
     (TextFormat.bold, Icons.format_bold, 'Bold (Ctrl+B)'),
@@ -47,6 +49,11 @@ class FormatToolbar extends StatelessWidget {
               icon: Icon(icon),
               onPressed: () => onList(kind),
             ),
+          IconButton(
+            tooltip: 'Line break (Shift+Enter)',
+            icon: const Icon(Icons.keyboard_return),
+            onPressed: onLineBreak,
+          ),
         ],
       ),
     ),

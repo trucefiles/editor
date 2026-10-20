@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../lines/markdown_line.dart';
 import 'block_starts.dart';
 import 'blocks.dart';
@@ -51,8 +53,8 @@ sealed class _Box extends _Node {
 
   final children = <_Node>[];
 
-  /// Blank lines in it, each before the child at [at].
-  final blanks = <({int at, _Line line})>[];
+  /// Blank lines in it.
+  final blanks = <_Line>[];
 
   bool canContain(_Node child) => child is! _Item;
 }
@@ -648,9 +650,8 @@ final class _Reader {
       for (_Node? node = container; node != null; node = node.parent) node,
     ].reversed.whereType<_Box>().toList();
     final reached = chain.takeWhile(_reaches).last;
-    reached.blanks.add((
-      at: reached.children.length,
-      line: _Line(
+    reached.blanks.add(
+      _Line(
         _lineIndex,
         contentStart: _line.length,
         prefix: [
@@ -658,7 +659,7 @@ final class _Reader {
             if (chain.indexOf(segment.box) <= chain.indexOf(reached)) segment,
         ],
       ),
-    ));
+    );
   }
 
   /// Whether this line reaches into [box]: past a quote's `>`, or an
@@ -740,18 +741,16 @@ final class _Reader {
   /// blank lines after it are blank lines of its container.
   void _dropTrailingBlanks(_Code code) {
     final parent = code.parent!;
-    final at = parent.children.indexOf(code) + 1;
     while (code.lines.length > 1 &&
         isBlankText(_strip(_lines[code.lines.last.index].raw))) {
       final line = code.lines.removeLast();
-      parent.blanks.add((
-        at: at,
-        line: _Line(
+      parent.blanks.add(
+        _Line(
           line.index,
           contentStart: _lines[line.index].raw.length,
           prefix: line.prefix,
         ),
-      ));
+      );
     }
     code.lastLine = code.lines.last.index;
   }
@@ -862,7 +861,9 @@ final class _Freezer {
 
   RootBlock freeze(_Root root) => _container(root) as RootBlock;
 
-  ContainerBlock _container(_Box box) {
+  /// The block of [box], with the blank lines in it and [spanned]: blank
+  /// lines its parent took that lie between its own lines.
+  ContainerBlock _container(_Box box, [List<_Line> spanned = const []]) {
     final block = switch (box) {
       _Root() => RootBlock(),
       _Quote() => QuoteBlock(),
@@ -876,38 +877,57 @@ final class _Freezer {
       ),
     };
     _containers[box] = block;
-    final blanks = [...box.blanks]..sort((a, b) => a.line.index - b.line.index);
+    // Each blank line goes before the first child that ends after it, or
+    // into that child if it starts before it, so leaves stay in file order.
+    final byChild = groupBy(
+      [...box.blanks, ...spanned]..sort((a, b) => a.index - b.index),
+      (blank) => box.children.indexWhere((child) => _end(child) >= blank.index),
+    );
+    bool within(_Line blank, _Node child) =>
+        child is _Box && child.firstLine < blank.index;
     block.adopt([
       for (final (index, child) in box.children.indexed) ...[
-        for (final blank in blanks.where((blank) => blank.at == index))
-          BlankBlock([_leafLine(blank.line)]),
-        ..._blocks(child),
+        for (final blank in byChild[index] ?? const <_Line>[])
+          if (!within(blank, child)) BlankBlock([_leafLine(blank)]),
+        ..._blocks(child, [
+          for (final blank in byChild[index] ?? const <_Line>[])
+            if (within(blank, child)) blank,
+        ]),
       ],
-      for (final blank in blanks.where(
-        (blank) => blank.at >= box.children.length,
-      ))
-        BlankBlock([_leafLine(blank.line)]),
+      for (final blank in byChild[-1] ?? const <_Line>[])
+        BlankBlock([_leafLine(blank)]),
     ]);
     return block;
   }
 
-  List<MarkdownBlock> _blocks(_Node node) => switch (node) {
-    _Box() => [_container(node)],
-    _Paragraph() => _paragraph(node),
-    _Heading() => [_heading(node)],
-    _Code() => [
-      CodeBlock(
-        _leafLines(node.lines),
-        fenced: node.fenced,
-        closed: node.closed,
-        info: node.fenced ? _infoOf(node) : '',
-      ),
-    ],
-    _Html() => [HtmlBlock(_leafLines(node.lines))],
-    _Table() => [_table(node)],
-    _Rule() => [RuleBlock(_leafLines(node.lines))],
-    _FrontMatter() => [FrontMatterBlock(_leafLines(node.lines))],
+  /// The last line in [node], its blank lines included.
+  static int _end(_Node node) => switch (node) {
+    _Box(:final children, :final blanks) => [
+      node.lastLine,
+      ...blanks.map((blank) => blank.index),
+      ...children.map(_end),
+    ].max,
+    _Leaf() => node.lastLine,
   };
+
+  List<MarkdownBlock> _blocks(_Node node, List<_Line> spanned) =>
+      switch (node) {
+        _Box() => [_container(node, spanned)],
+        _Paragraph() => _paragraph(node),
+        _Heading() => [_heading(node)],
+        _Code() => [
+          CodeBlock(
+            _leafLines(node.lines),
+            fenced: node.fenced,
+            closed: node.closed,
+            info: node.fenced ? _infoOf(node) : '',
+          ),
+        ],
+        _Html() => [HtmlBlock(_leafLines(node.lines))],
+        _Table() => [_table(node)],
+        _Rule() => [RuleBlock(_leafLines(node.lines))],
+        _FrontMatter() => [FrontMatterBlock(_leafLines(node.lines))],
+      };
 
   List<MarkdownBlock> _paragraph(_Paragraph paragraph) {
     final lines = _leafLines(paragraph.lines);

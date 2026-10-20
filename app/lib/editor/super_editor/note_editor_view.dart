@@ -8,28 +8,29 @@ import '../text_format.dart';
 import '../ui/empty_note_hint.dart';
 import '../ui/format_toolbar.dart';
 import '../ui/link_dialog.dart';
+import '../ui/note_image.dart';
+import '../ui/note_read_view.dart';
 import 'apply_format.dart';
 import 'components/display_component_builder.dart';
-import 'components/list_line_builder.dart';
-import 'components/quote_line_builder.dart';
+import 'components/leaf_builder.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
-import 'marks/shown_lines.dart';
+import 'marks/shown_texts.dart';
 import 'note_editor_adapter.dart';
 import 'note_keyboard_actions.dart';
 import 'note_look.dart';
-import 'note_read_document.dart';
 
 /// The open [note] in its mode: editable in Visual and Markdown edit, with
 /// the format toolbar in Visual edit; read-only in Read. Links open with
-/// [onLink] (see [editingTapOpens] while editing). Built anew for each
-/// mode.
+/// [onLink] (see [editingTapOpens] while editing); images show as
+/// [images] finds them. Built anew for each mode.
 class NoteEditorView extends StatefulWidget {
   const NoteEditorView(
     this.note, {
     required this.onRemoved,
     required this.onLink,
+    required this.images,
     this.autofocus = false,
     super.key,
   });
@@ -39,6 +40,7 @@ class NoteEditorView extends StatefulWidget {
   /// The user removed items; [undo] brings them back.
   final void Function(String message, EditUndo undo) onRemoved;
   final void Function(String url) onLink;
+  final NoteImages images;
 
   /// Puts the caret into the note right away, e.g. a new one.
   final bool autofocus;
@@ -50,9 +52,8 @@ class NoteEditorView extends StatefulWidget {
 class _NoteEditorViewState extends State<NoteEditorView> {
   late final NoteMode _mode = widget.note.mode;
   final _focus = FocusNode();
-  final _shownLines = ShownLines();
+  final _shownTexts = ShownTexts();
   NoteEditorAdapter? _adapter;
-  NoteReadDocument? _read;
   MarksPhase? _marks;
 
   /// The look in the current theme. Kept between builds: super_editor
@@ -62,10 +63,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   @override
   void initState() {
     super.initState();
-    if (!_mode.edits) {
-      _read = NoteReadDocument(widget.note);
-      return;
-    }
+    if (!_mode.edits) return;
     final adapter = NoteEditorAdapter(
       widget.note,
       onRemoved: (message, undo) => widget.onRemoved(message, undo),
@@ -75,7 +73,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     _marks = MarksPhase(
       marks: _mode.marks,
       viewOf: adapter.viewOf,
-      lines: _shownLines,
+      texts: _shownTexts,
       composer: adapter.editor.composer,
     );
     if (widget.autofocus) adapter.placeCaretAtStart();
@@ -87,7 +85,11 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     final theme = Theme.of(context);
     if (theme != _lookTheme) {
       _lookTheme = theme;
-      _look = NoteLook(theme, monospace: _mode == NoteMode.markdown);
+      _look = NoteLook(
+        theme,
+        monospace: _mode == NoteMode.markdown,
+        images: widget.images,
+      );
     }
   }
 
@@ -96,7 +98,6 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   @override
   void dispose() {
     _adapter?.dispose();
-    _read?.dispose();
     _marks?.close();
     _focus.dispose();
     super.dispose();
@@ -127,24 +128,22 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     _focus.requestFocus();
   }
 
+  void _lineBreak() {
+    _adapter!.lineBreak();
+    _focus.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final look = _look;
-    if (_read case final read?) {
-      return SuperReader(
-        editor: read.editor,
-        stylesheet: look.stylesheet,
-        selectionStyle: look.selection,
-        componentBuilders: const [
-          ListLineBuilder(),
-          DisplayComponentBuilder(),
-          QuoteLineBuilder(),
-        ],
-        contentTapDelegateFactory: (context) =>
-            LinkTapHandler(linkAt: read.linkAt, onLink: widget.onLink),
+    final adapter = _adapter;
+    if (adapter == null) {
+      return NoteReadView(
+        widget.note,
+        onLink: widget.onLink,
+        images: widget.images,
       );
     }
-    final adapter = _adapter!;
+    final look = _look;
     final visual = _mode == NoteMode.visual;
     final editor = SuperEditor(
       editor: adapter.editor,
@@ -155,13 +154,14 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       documentOverlayBuilders: look.overlays,
       androidHandleColor: look.handleColor,
       customStylePhases: [_marks!],
-      componentBuilders: visual
-          ? _visualBuilders(adapter)
-          : const [ParagraphComponentBuilder()],
-      keyboardActions: noteKeyboardActions(
-        onFormat: _format,
-        lineActions: visual ? adapter : null,
-      ),
+      componentBuilders: [
+        MappedBuilder<LeafViewModel>(
+          LeafBuilder(actions: visual ? adapter : null),
+          _shownTexts,
+        ),
+        DisplayComponentBuilder(actions: adapter),
+      ],
+      keyboardActions: noteKeyboardActions(onFormat: _format, keys: adapter),
       contentTapDelegateFactories: [
         (_) => LinkTapHandler(
           linkAt: adapter.linkAt,
@@ -184,21 +184,12 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     return Column(
       children: [
         Expanded(child: hinted),
-        FormatToolbar(onFormat: _format, onList: _toList),
+        FormatToolbar(
+          onFormat: _format,
+          onList: _toList,
+          onLineBreak: _lineBreak,
+        ),
       ],
     );
-  }
-
-  List<ComponentBuilder> _visualBuilders(NoteEditorAdapter adapter) {
-    final lines = ListLineBuilder(editor: adapter.editor, actions: adapter);
-    return [
-      MappedBuilder<TaskComponentViewModel>(lines, _shownLines),
-      MappedBuilder<ListItemComponentViewModel>(lines, _shownLines),
-      DisplayComponentBuilder(actions: adapter),
-      MappedBuilder<ParagraphComponentViewModel>(
-        const QuoteLineBuilder(),
-        _shownLines,
-      ),
-    ];
   }
 }

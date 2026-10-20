@@ -75,8 +75,9 @@ extension ItemEdits on MarkdownDocument {
   /// it, at its level, so the items below never become its subitems; else
   /// after the item in no item it is in (or it itself) with its subitems,
   /// so it never takes subitems of another. It is written in the style of
-  /// the item it lands beside, so it stays in that item's list. Returns
-  /// the new document and the new line's id.
+  /// the item it lands beside, so it stays in that item's list: before
+  /// it, with the number it shows. Returns the new document and the new
+  /// line's id.
   (MarkdownDocument, LineId) addItem(
     ListKind kind, {
     required LineId anchor,
@@ -87,7 +88,9 @@ extension ItemEdits on MarkdownDocument {
     final at = before ? indexOf(anchor) : _endOf(beside);
     return insertItem(
       at,
-      ItemStyle.after(outline, beside, kind),
+      before
+          ? ItemStyle.before(outline, beside, kind)
+          : ItemStyle.after(outline, beside, kind),
       place: BesideItem(beside, outline.depthOf(beside)),
     );
   }
@@ -124,13 +127,12 @@ extension ItemEdits on MarkdownDocument {
 
   /// Moves the item [id] with its subitems to just before the line
   /// [beforeId], or to the end if [beforeId] is `null`. Levels are kept.
-  MarkdownDocument move(LineId id, {required LineId? beforeId}) =>
-      _moveSubtree(
-        id,
-        spot: (rest, moved) => beforeId == null
-            ? rest.textEnd
-            : _indexWithout(moved, indexOf(beforeId)),
-      );
+  MarkdownDocument move(LineId id, {required LineId? beforeId}) => _moveSubtree(
+    id,
+    spot: (rest, moved) => beforeId == null
+        ? rest.textEnd
+        : _indexWithout(moved, indexOf(beforeId)),
+  );
 
   /// Moves the item [id] with its subitems next to the line [target], as
   /// dropping it there: just above it, else [below] it. Below an item with
@@ -152,7 +154,7 @@ extension ItemEdits on MarkdownDocument {
         final index? => _spotNextTo(rest, index, below),
         null => null,
       },
-      level: _levelNextTo(at, below),
+      place: _atLevel(_levelNextTo(at, below)),
     );
   }
 
@@ -186,13 +188,14 @@ extension ItemEdits on MarkdownDocument {
   }
 
   /// Moves the item [id] with its subitems one level right, under the
-  /// item shown above it: the one the line shown above starts or is in. Lines in [hidden] (e.g. done items an editor
-  /// shows elsewhere) and blank lines are not shown; hidden lines in
-  /// between move below the item, so it lands under the line the user
-  /// saw.
+  /// item shown above it: the innermost one the line shown above starts
+  /// or is in. Lines in [hidden] (e.g. done items an editor shows
+  /// elsewhere) and blank lines are not shown; hidden lines in between
+  /// move below the item, so it lands under the line the user saw.
   ///
-  /// Does nothing if the line shown above is in no item, or if the item
-  /// is already one level deeper than that item.
+  /// Does nothing if the line shown above is in no item, if that item is
+  /// in other quotes than the item (it would leave or enter them), or if
+  /// the item is already one level deeper than that item.
   MarkdownDocument indent(LineId id, {Set<LineId> hidden = const {}}) {
     final item = outline.itemOf(id);
     final index = indexOf(id);
@@ -201,23 +204,39 @@ extension ItemEdits on MarkdownDocument {
         ? null
         : outline.itemsAt(lines[above].id).firstOrNull;
     if (item == null || aboveItem == null) return this;
+    if (!_sameQuotes(item, aboveItem)) return this;
     final depth = outline.depthOf(item);
     if (depth > outline.depthOf(aboveItem)) return this;
     // Right after the lines under the item above, unless among them.
     final spot = min(_endOf(aboveItem), index);
-    return _moveSubtree(id, spot: (_, _) => spot, level: depth + 1);
+    return _moveSubtree(id, spot: (_, _) => spot, place: _atLevel(depth + 1));
   }
 
   /// Moves the item [id] with its subitems one level left, beside the
-  /// item it was under. Does nothing in no item.
+  /// item it was under. Does nothing in no item, or if that item is in
+  /// other quotes than the item (it would leave them).
   MarkdownDocument outdent(LineId id) {
     final item = outline.itemOf(id);
     if (item == null) return this;
     final depth = outline.depthOf(item);
     if (depth == 0) return this;
+    final parent = item.ancestors.whereType<ItemBlock>().first;
+    if (!_sameQuotes(item, parent)) return this;
     final index = indexOf(id);
-    return _moveSubtree(id, spot: (_, _) => index, level: depth - 1);
+    return _moveSubtree(
+      id,
+      spot: (_, _) => index,
+      place: (rest, _) =>
+          BesideItem(rest.itemOf(parent.markerLine)!, depth - 1),
+    );
   }
+
+  /// Whether items [a] and [b] are in the same quotes.
+  static bool _sameQuotes(ItemBlock a, ItemBlock b) =>
+      const SetEquality<QuoteBlock>().equals(
+        a.ancestors.whereType<QuoteBlock>().toSet(),
+        b.ancestors.whereType<QuoteBlock>().toSet(),
+      );
 
   /// Index of the nearest line above [index] that is neither blank nor
   /// in [hidden]; `null` if there is none.
@@ -236,12 +255,13 @@ extension ItemEdits on MarkdownDocument {
   /// Takes the item [id] with its subitems out and puts them back where
   /// [spot] says: it gets the document of the remaining lines and the
   /// span taken, and returns the index in them, or `null` to leave the
-  /// document as it is. With [level], they are written at that level
-  /// there; else they stay as written.
+  /// document as it is. With [place], they are written at the place it
+  /// gives for that index among the remaining lines; else they stay as
+  /// written.
   MarkdownDocument _moveSubtree(
     LineId id, {
     required int? Function(MarkdownDocument rest, LineSpan moved) spot,
-    int? level,
+    LinePlace Function(ItemOutline rest, int at)? place,
   }) {
     final item = outline.itemOf(id)!;
     final span = outline.subtree(item);
@@ -249,22 +269,27 @@ extension ItemEdits on MarkdownDocument {
     final rest = withLines([...lines]..removeRange(span.start, span.end));
     final at = spot(rest, span);
     if (at == null) return this;
-    final placed = level == null
+    final placed = place == null
         ? moved
         : [
-            for (final (index, raw) in writer
-                .placed(
-                  outline,
-                  item,
-                  moved,
-                  rest.outline,
-                  rest.outline.placeAt(at, level),
-                )
-                .indexed)
+            for (final (index, raw)
+                in writer
+                    .placed(
+                      outline,
+                      item,
+                      moved,
+                      rest.outline,
+                      place(rest.outline, at),
+                    )
+                    .indexed)
               moved[index].withRaw(raw),
           ];
     return withLines([...rest.lines]..insertAll(at, placed));
   }
+
+  /// The place at [level] for an index (see [ItemOutline.placeAt]).
+  static LinePlace Function(ItemOutline rest, int at) _atLevel(int level) =>
+      (rest, at) => rest.placeAt(at, level);
 
   /// The index the line at [index] has once the lines of [span] are taken
   /// out; `null` if it is among them.
@@ -309,6 +334,19 @@ final class ItemStyle {
         number: (outline.numberOf(item) ?? 0) + 1,
         delimiter: item.marker.delimiter ?? '.',
       );
+
+  /// An item of [kind] in the style of the [item] it goes right before:
+  /// its bullet character, or the number it shows, which it takes over.
+  factory ItemStyle.before(
+    ItemOutline outline,
+    ItemBlock item,
+    ListKind kind,
+  ) => ItemStyle.of(
+    kind,
+    bullet: item.marker.bullet ?? '-',
+    number: outline.numberOf(item) ?? 1,
+    delimiter: item.marker.delimiter ?? '.',
+  );
 
   /// An item of [kind], unchecked.
   factory ItemStyle.of(

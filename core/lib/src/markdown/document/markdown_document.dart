@@ -1,11 +1,11 @@
 import 'package:collection/collection.dart';
 
+import '../edit/line_writer.dart';
 import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/block_reader.dart';
 import '../tree/blocks.dart';
 import '../tree/characters.dart';
-import '../edit/line_writer.dart';
 import 'item_outline.dart';
 
 /// A Markdown document: its lines as in the file, and the block tree
@@ -117,9 +117,7 @@ final class MarkdownDocument {
   /// The document with the lines [build] returns, in its writer's style.
   /// Lines [build] makes with the [NewLine] it gets have ids this
   /// document never handed out.
-  MarkdownDocument edited(
-    List<MarkdownLine> Function(NewLine newLine) build,
-  ) {
+  MarkdownDocument edited(List<MarkdownLine> Function(NewLine newLine) build) {
     final newLine = NewLine._(_nextId);
     final built = build(newLine);
     return MarkdownDocument._(List.unmodifiable(built), newLine._next, writer);

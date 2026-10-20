@@ -298,8 +298,9 @@ final class FrontMatterBlock extends LeafBlock {
 }
 
 /// A blank line, in the container whose content its own indent and
-/// marks reach: there, text typed into it would go. An item's marker
-/// line without content is one too.
+/// marks reach: there, text typed into it would go; but in a deeper
+/// container that goes on below it, so leaves stay in file order. An
+/// item's marker line without content is one too.
 final class BlankBlock extends LeafBlock {
   BlankBlock(super.lines);
 }

@@ -2,16 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:super_editor/super_editor.dart';
 
 import 'mapped_text_component.dart';
-import 'shown_lines.dart';
+import 'shown_texts.dart';
 
 /// Builds what [inner] builds for view models of type [T], wrapped in a
-/// [MappedTextComponent], for text nodes [lines] may show formatted.
+/// [MappedTextComponent], for text nodes [texts] may show formatted.
 class MappedBuilder<T extends TextComponentViewModel>
     implements ComponentBuilder {
-  const MappedBuilder(this.inner, this.lines);
+  const MappedBuilder(this.inner, this.texts);
 
   final ComponentBuilder inner;
-  final ShownLines lines;
+  final ShownTexts texts;
 
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(
@@ -28,7 +28,7 @@ class MappedBuilder<T extends TextComponentViewModel>
     return MappedTextComponent(
       key: componentContext.componentKey,
       nodeId: componentViewModel.nodeId,
-      lines: lines,
+      texts: texts,
       child: (key) => inner.createComponent(
         SingleColumnDocumentComponentContext(
           context: componentContext.context,

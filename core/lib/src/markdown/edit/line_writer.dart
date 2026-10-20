@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../document/item_outline.dart';
 import '../lines/markdown_line.dart';
+import '../tree/block_starts.dart';
 import '../tree/blocks.dart';
 import '../tree/characters.dart';
 
@@ -41,7 +42,9 @@ final class LineWriter {
   /// A line with [prefix] and then [content]. A marker that ends the
   /// prefix gets a space before content, as Markdown needs.
   static String withContent(String prefix, String content) =>
-      content.isEmpty || prefix.isEmpty || isSpaceOrTab(prefix[prefix.length - 1])
+      content.isEmpty ||
+          prefix.isEmpty ||
+          isSpaceOrTab(prefix[prefix.length - 1])
       ? '$prefix$content'
       : '$prefix $content';
 
@@ -53,7 +56,8 @@ final class LineWriter {
 
   /// [lines], the lines of [item]'s block in the document [source]
   /// knows, written at [place] among the lines [target] knows: the item
-  /// gets the indent of its place, and the lines in it follow it.
+  /// gets the indent of its place, and the lines in it follow it. Where
+  /// it starts a new list, a number there starts it at 1.
   List<String> placed(
     ItemOutline source,
     ItemBlock item,
@@ -64,19 +68,26 @@ final class LineWriter {
     final (:outer, :indent) = _placeAt(target, place);
     final [first, ...rest] = lines;
     final from = source.partsOf(item, first).indent;
+    final marked = source.partsOf(item, first).rest;
     return [
-      '$outer$indent${source.partsOf(item, first).rest}',
+      '$outer$indent${_opensList(item, place) ? _opening(marked) : marked}',
       for (final line in rest)
-        if (line.isBlank)
-          outer.trimRight()
-        else
-          _under(
-            source.partsOf(item, line),
+        switch (source.partsOf(item, line)) {
+          final parts when parts.rest.trim().isEmpty => _blank(
+            parts.outer,
+            line.raw,
+            outer: outer,
+          ),
+          final parts => _under(
+            source,
+            item,
+            line,
+            parts,
             outer: outer,
             from: from,
             to: indent,
-            padding: source.paddingOf(item),
           ),
+        },
     ];
   }
 
@@ -138,28 +149,64 @@ final class LineWriter {
     return width >= padding && width < padding + 4 ? _unit : ' ' * padding;
   }
 
-  /// A line in an item, once the item's indent changes from [from] to
-  /// [to] after [outer]. A line that does not reach the item's content
-  /// (text that continues it lazily) lands one level under it, so it
-  /// stays the item's wherever it goes. Any other keeps its indent
-  /// relative to the item: as written, else (indented with other
-  /// characters, e.g. a tab under spaces) as wide, in spaces.
+  /// [line] of [item]'s block, cut as [parts], once the item's indent
+  /// changes from [from] to [to] after [outer]: it keeps its indent
+  /// relative to the item, as written, else (indented with other
+  /// characters, e.g. a tab under spaces) as wide, in spaces. A line that
+  /// does not reach the item's content (text that continues the innermost
+  /// item it is in lazily) lands one level under that item, so it stays
+  /// its text wherever it goes; indented four columns or more, it keeps
+  /// that width there, in spaces, so it still reads as text.
   String _under(
-    ItemLineParts line, {
+    ItemOutline source,
+    ItemBlock item,
+    MarkdownLine line,
+    ItemLineParts parts, {
     required String outer,
     required String from,
     required String to,
-    required int padding,
   }) {
-    if (!line.reaches) return '$outer$to${_offsetUnder(padding)}${line.rest}';
-    final deeper = _width(line.outer, line.indent) - _width(line.outer, from);
-    final indent = line.indent.startsWith(from) &&
-            _width(outer + to, line.indent.substring(from.length)) ==
-                deeper
-        ? '$to${line.indent.substring(from.length)}'
+    if (!parts.reaches) {
+      final inner = source.itemsAt(line.id).first;
+      final under = _deeper(source.partsOf(item, inner.firstLine), from);
+      final width = _width(parts.outer, parts.indent);
+      return '$outer$to${' ' * under}${_offsetUnder(source.paddingOf(inner))}'
+          '${width >= 4 ? ' ' * width : ''}${parts.rest}';
+    }
+    final deeper = _deeper(parts, from);
+    final indent =
+        parts.indent.startsWith(from) &&
+            _width(outer + to, parts.indent.substring(from.length)) == deeper
+        ? '$to${parts.indent.substring(from.length)}'
         : '$to${' ' * deeper}';
-    return '$outer$indent${line.rest}';
+    return '$outer$indent${parts.rest}';
   }
+
+  /// How many columns further than [from] the indent of [line] reaches.
+  static int _deeper(ItemLineParts line, String from) =>
+      _width(line.outer, line.indent) - _width(line.outer, from);
+
+  /// Whether [item] put at [place] starts a list of its own: in no list
+  /// there, or beside an item of another list.
+  static bool _opensList(ItemBlock item, LinePlace place) => switch (place) {
+    BesideItem(item: final sibling) => !sibling.marker.sameListAs(item.marker),
+    AtMargin() || UnderItem() => true,
+  };
+
+  /// [rest], an item's line from its marker on, as the first item of a
+  /// new list: numbered from 1, as Markdown needs for a list that starts
+  /// right below text.
+  static String _opening(String rest) =>
+      switch (numberedMarker.matchAsPrefix(rest)) {
+        final match? => rest.replaceRange(0, match[1]!.length, '1'),
+        null => rest,
+      };
+
+  /// A line [raw] of a moved item that is blank after its quote marks
+  /// [from], once the item lands after [outer]: as it is if it stays in
+  /// the same quotes, else just their marks.
+  static String _blank(String from, String raw, {required String outer}) =>
+      from.trimRight() == outer.trimRight() ? raw : outer.trimRight();
 
   /// How many columns [text] takes after [before].
   static int _width(String before, String text) =>
