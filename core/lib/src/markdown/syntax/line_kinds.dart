@@ -76,21 +76,13 @@ List<String> _cells(String row) {
   if (text.endsWith('|') && !text.endsWith(r'\|')) {
     text = text.substring(0, text.length - 1);
   }
-  final cells = <String>[];
-  final cell = StringBuffer();
-  for (var i = 0; i < text.length; i++) {
-    if (text[i] == r'\' && i + 1 < text.length && text[i + 1] == '|') {
-      cell.write('|');
-      i++;
-    } else if (text[i] == '|') {
-      cells.add(cell.toString().trim());
-      cell.clear();
-    } else {
-      cell.write(text[i]);
-    }
-  }
-  return cells..add(cell.toString().trim());
+  return [
+    for (final cell in text.split(_unescapedPipe))
+      cell.replaceAll(r'\|', '|').trim(),
+  ];
 }
+
+final _unescapedPipe = RegExp(r'(?<!\\)\|');
 
 /// An image alone on its line: `![alt](url)`, optionally with a title.
 ({String alt, String url})? lineImage(String line) =>

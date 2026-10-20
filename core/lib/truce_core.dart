@@ -19,7 +19,8 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines]),
+/// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines])
+///     with their structure read once ([Outline]),
 ///     what an editor shows of them ([Arrangement]), the single mapping
 ///     from editor blocks back to lines ([ApplyBlockEdits]) and how their
 ///     Markdown shows (`syntax`: [lineMarkup], [VisualLine]).
@@ -66,6 +67,7 @@ export 'src/markdown/line_id.dart';
 export 'src/markdown/list_conversion.dart';
 export 'src/markdown/markdown_line.dart';
 export 'src/markdown/markdown_lines.dart';
+export 'src/markdown/outline.dart';
 export 'src/markdown/syntax/block_syntax.dart'
     show ListKind, headingMark, itemMark, quoteTextStart;
 export 'src/markdown/syntax/inline_markup.dart';
