@@ -22,6 +22,15 @@ Prefer the simpler option when in doubt.
 - Pure units: a unit knows only its own job; mappings and policies have exactly one owner.
 - Validate at the edge, with parse-only constructors.
 
+## Code style
+- Best design first: model the domain with the right entities and abstractions, then code it; never a quick version, or one shaped after old code, to clean up later.
+- Declarative over procedural: say what a value is (collection literals and comprehensions, `map`/`where`/`fold`, `switch` expressions with patterns, `package:collection` helpers), not how to build it step by step. No index loops, counters or flags where a declarative form reads as well.
+- Functional where possible: pure functions and immutable values; structure is derived once in an entity (e.g. a parsed tree) and questions are lookups on it, never rescans.
+- Object-oriented where state or identity is real: an entity owns its data and the rules on it; closed sets of cases are sealed classes, matched exhaustively.
+- Mutation only where it is the job (a session, an editor bridge), inside one owner. A loop with local state only where it is the clearest form (e.g. a single-pass parser).
+- One rule, one place: logic two operations share is one helper, never two variants.
+- Names in the domain's words; doc comments state the contract, not the steps.
+
 ## Robustness
 - No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
 - Expected failures are result values; exceptions are only for bugs.
