@@ -1,27 +1,33 @@
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'document_markup.dart';
 import 'markup_text.dart';
-import 'visual_lines.dart';
+import 'shown_lines.dart';
 
-/// Styles each line by its Markdown, its marks dimmed. With [visual]
-/// lines, it hides the marks of every line outside the selection and
-/// records how those lines show there; the selected lines keep every
-/// character, so typing never touches a hidden mark.
+/// Styles each line node as [marks] show it, by the markup its line
+/// view reads from the node's text; the selected lines count as edited.
+/// Records how each line shows in [lines], for its component to map
+/// positions.
 ///
 /// It follows the selection until [close]. Not in [dispose]: super_editor
 /// disposes the phases of a layout it rebuilds, e.g. for a new stylesheet,
 /// and goes on with the same phases in the new one.
 final class MarksPhase extends SingleColumnLayoutStylePhase {
-  MarksPhase({required this.kindOf, this.visual, this._composer}) {
+  MarksPhase({
+    required this.marks,
+    required this.viewOf,
+    required this.lines,
+    this._composer,
+  }) {
     _composer?.selectionNotifier.addListener(markDirty);
   }
 
-  /// The kind of the line a node shows.
-  final LineKind Function(String nodeId) kindOf;
+  final MarkStyle marks;
 
-  final VisualLines? visual;
+  /// The view of the line a node shows; `null` for a node that is none.
+  final LineView? Function(String nodeId) viewOf;
+
+  final ShownLines lines;
   final DocumentComposer? _composer;
 
   /// Stops following the selection, once the editor is gone.
@@ -32,18 +38,17 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
     Document document,
     SingleColumnLayoutViewModel viewModel,
   ) {
-    visual?.clear();
-    final markup = documentMarkup(document, kindOf);
+    lines.clear();
     final selected = _selectedNodes(document);
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
       componentViewModels: [
         for (final component in viewModel.componentViewModels)
-          switch ((component, markup[component.nodeId])) {
-            (final TextComponentViewModel text, final spans?) => _styled(
+          switch ((component, viewOf(component.nodeId))) {
+            (final TextComponentViewModel text, final view?) => _styled(
               text,
-              spans,
-              hide: visual != null && !selected.contains(component.nodeId),
+              view,
+              edited: selected.contains(component.nodeId),
             ),
             _ => component,
           },
@@ -53,19 +58,14 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
 
   SingleColumnLayoutComponentViewModel _styled(
     TextComponentViewModel component,
-    List<MarkupSpan> spans, {
-    required bool hide,
+    LineView view, {
+    required bool edited,
   }) {
-    final copy = component.copy() as TextComponentViewModel;
     final source = component.text.toPlainText();
-    if (!hide) {
-      copy.text = markupText(source, spans);
-      return copy;
-    }
-    final line = VisualLine.of(source, spans);
-    visual!.set(component.nodeId, line);
-    copy.text = markupText(line.text, line.markup);
-    return copy;
+    final shown = marks.show(source, view.markupOf(source), edited: edited);
+    lines.set(component.nodeId, shown);
+    return (component.copy() as TextComponentViewModel)
+      ..text = markupText(shown.text, shown.markup);
   }
 
   Set<String> _selectedNodes(Document document) {

@@ -6,17 +6,19 @@ import '../text_format.dart';
 /// Applies [format] to [selection] in [editor], as Markdown marks in the
 /// line's text; a [TextFormat.link] goes to [url]. Does nothing without a
 /// selection, for a selection across lines, in a code block or table (as
-/// [kindOf] tells a node's line), or a heading on a list item or quote.
+/// the view of a node's line tells, see [viewOf]), or a heading on a list
+/// item or quote.
 void applyFormat(
   Editor editor,
   TextFormat format, {
   required DocumentSelection? selection,
-  required LineKind Function(String nodeId) kindOf,
+  required LineView? Function(String nodeId) viewOf,
   String url = '',
 }) {
   if (selection == null ||
       selection.base.nodeId != selection.extent.nodeId ||
-      kindOf(selection.extent.nodeId) != LineKind.plain) {
+      (viewOf(selection.extent.nodeId)?.kind ?? LineKind.plain) !=
+          LineKind.plain) {
     return;
   }
   final node = editor.document.getNodeById(selection.extent.nodeId);

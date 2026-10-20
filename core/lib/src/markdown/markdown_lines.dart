@@ -7,6 +7,9 @@ import 'outline.dart';
 import 'syntax/block_syntax.dart';
 import 'syntax/line_kinds.dart';
 
+/// A place in a line: an offset in the line as in the file.
+typedef LineCaret = ({LineId line, int offset});
+
 /// A Markdown document seen as lines, e.g. list items, headings and text.
 ///
 /// Every edit is a plain line edit: lines that are not touched stay
@@ -107,6 +110,21 @@ final class MarkdownLines {
   bool isItem(MarkdownLine line) => _isItem(_indexOf(line.id));
 
   bool _isItem(int index) => outline.isItem(index);
+
+  /// Where the text of [line] starts after its list marker; 0 for a line
+  /// that is no item here.
+  int textStartOf(MarkdownLine line) =>
+      isItem(line) ? line.raw.length - line.text.length : 0;
+
+  /// [caret], an offset in its line here, at the same place in the text
+  /// after its list marker in [after], which may change the marker; `null`
+  /// if [after] has no such line.
+  LineCaret? caretIn(MarkdownLines after, LineCaret caret) {
+    final (before, now) = (lineOf(caret.line), after.lineOf(caret.line));
+    if (before == null || now == null) return null;
+    final inText = caret.offset - textStartOf(before);
+    return (line: now.id, offset: after.textStartOf(now) + max(0, inText));
+  }
 
   bool _isChecked(int index) => _isItem(index) && lines[index].isChecked;
 

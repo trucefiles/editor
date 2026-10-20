@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-import '../edit_nodes.dart';
+import '../note_nodes.dart';
 import 'line_actions.dart';
 import 'list_line_component.dart';
 

@@ -37,7 +37,7 @@ AttributedText markupText(String text, List<MarkupSpan> markup) {
 }
 
 /// The url of the link in [text] at [offset], if any.
-String? linkAt(AttributedText text, int offset) {
+String? attributedLinkAt(AttributedText text, int offset) {
   for (final attribution in text.getAllAttributionsAt(offset)) {
     if (attribution case MarkupAttribution(markup: LinkMarkup(:final url))) {
       return url;

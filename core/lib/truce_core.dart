@@ -22,7 +22,7 @@
 /// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines]),
 ///     what an editor shows of them ([Arrangement]), the single mapping
 ///     from editor blocks back to lines ([ApplyBlockEdits]) and how their
-///     Markdown shows (`syntax`: [lineMarkup], [VisualLine]).
+///     Markdown shows (`syntax`: [lineMarkup], [ShownLine]).
 /// 11. `marks`: colors of notes, synced inside the folder
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
@@ -72,7 +72,9 @@ export 'src/markdown/syntax/inline_markup.dart';
 export 'src/markdown/syntax/line_kinds.dart';
 export 'src/markdown/syntax/line_markup.dart';
 export 'src/markdown/syntax/markup.dart';
-export 'src/markdown/syntax/visual_line.dart';
+export 'src/markdown/syntax/shown_line.dart';
+export 'src/markdown/view/line_view.dart';
+export 'src/markdown/view/mark_style.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
 export 'src/reach/folder_reach.dart';

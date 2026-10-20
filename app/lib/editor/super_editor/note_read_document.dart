@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:super_editor/super_editor.dart';
 
 import '../note_document_controller.dart';
+import '../note_mode.dart';
+import 'marks/markup_text.dart';
 import 'read_nodes.dart';
 import 'sync_document.dart';
 
@@ -26,7 +28,21 @@ final class NoteReadDocument {
   bool _syncScheduled = false;
   bool _disposed = false;
 
-  List<DocumentNode> _nodes() => readNodes(note.entries, note.lines);
+  List<DocumentNode> _nodes() =>
+      readNodes(note.entries, note.lines, mode: NoteMode.read);
+
+  /// The url of the link at [position], as its text's attributions mark
+  /// it.
+  String? linkAt(DocumentPosition position) => switch ((
+    editor.document.getNodeById(position.nodeId),
+    position.nodePosition,
+  )) {
+    (final TextNode node, TextNodePosition(:final offset)) => attributedLinkAt(
+      node.text,
+      offset,
+    ),
+    _ => null,
+  };
 
   void _scheduleSync() {
     if (_syncScheduled) return;
