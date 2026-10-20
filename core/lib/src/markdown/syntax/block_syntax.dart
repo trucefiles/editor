@@ -192,16 +192,16 @@ int columnsOf(String text) => text.runes.fold(
 /// there sees it: without the leading whitespace up to that column; a tab
 /// that reaches past it leaves the rest of its width as spaces.
 String restFrom(String line, int column) {
-  var (index, at) = (0, 0);
-  while (at < column && index < line.length) {
-    final char = line[index];
-    if (char != ' ' && char != '\t') break;
-    at = columnsOf(line.substring(0, index + 1));
-    index++;
-  }
-  return '${' ' * max(0, at - column)}${line.substring(index)}';
+  final leading = _leadingSpace.firstMatch(line)!.end;
+  final end = Iterable.generate(leading + 1, (index) => index).firstWhere(
+    (index) =>
+        index == leading || columnsOf(line.substring(0, index)) >= column,
+  );
+  final reached = columnsOf(line.substring(0, end));
+  return '${' ' * max(0, reached - column)}${line.substring(end)}';
 }
 
+final _leadingSpace = RegExp(r'^[ \t]*');
 final _heading = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+|$)');
 final _quote = RegExp(r'^(?: {0,3}>[ \t]?)+');
 final _fence = RegExp(r'^ {0,3}(`{3,}|~{3,})');

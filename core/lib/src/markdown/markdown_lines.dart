@@ -97,10 +97,9 @@ final class MarkdownLines {
   /// Markdown keeps in the quote.
   bool isQuote(MarkdownLine line) => outline.isQuote(_indexOf(line.id));
 
-  /// The level of the heading whose text or underline [line] is, for a
-  /// heading written as text over `===` or `---`; `null` for any other
-  /// line.
-  int? underlinedHeadingOf(MarkdownLine line) =>
+  /// The line of a heading written as text over `===` or `---` that
+  /// [line] is; `null` for any other line.
+  UnderlinedHeadingLine? underlinedHeadingOf(MarkdownLine line) =>
       outline.underlinedHeadingAt(_indexOf(line.id));
 
   /// Whether the document has checkbox items.

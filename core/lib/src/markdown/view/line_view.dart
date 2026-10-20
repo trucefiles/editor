@@ -66,9 +66,9 @@ final class LineView {
   /// Whether it shows as a quote.
   final bool quote;
 
-  /// The level of the heading it is a line of, for a heading written as
-  /// text over `===` or `---`; `null` for any other line.
-  final int? underlined;
+  /// The line of a heading written as text over `===` or `---` it is;
+  /// `null` for any other line.
+  final UnderlinedHeadingLine? underlined;
 
   /// Whether it is an item shown as text only because the caret is in it
   /// (see [LineView.of]): it shows otherwise once the caret leaves.

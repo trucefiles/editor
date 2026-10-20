@@ -144,10 +144,10 @@ final class Outline {
   /// them, which Markdown keeps in the quote.
   bool isQuote(int index) => _reads[index].inQuote;
 
-  /// The level of the heading whose text or underline the line at [index]
-  /// is, for a heading written as text over `===` or `---`; `null` for any
-  /// other line.
-  int? underlinedHeadingAt(int index) => _reads[index].headingLevel;
+  /// The line of a heading written as text over `===` or `---` that the
+  /// line at [index] is; `null` for any other line.
+  UnderlinedHeadingLine? underlinedHeadingAt(int index) =>
+      _reads[index].heading;
 
   /// The document's top-level parts, in file order: lists, tables and
   /// the lines between them.

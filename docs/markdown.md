@@ -37,6 +37,7 @@ only the lines you edit, byte for byte.
   bullet character or the list kind changes (`-` to `*`, bullets to
   checkboxes). Truce keeps them as one list, so a mixed checklist keeps
   one "Done" section.
+- **No HTML blocks.** HTML shows as the text it is.
 - **No indented code blocks.** Only fenced code blocks show as code.
   Lines indented by four or more spaces stay text or list items.
 - **Lists start more easily.** An empty item (`-`, `1.`) starts a list

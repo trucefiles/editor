@@ -163,6 +163,8 @@ void main() {
       expect(depths(outlineOf('- a\n - b'), 2), [0, 0]);
       expect(depths(outlineOf('1. a\n   - b'), 2), [0, 1]);
       expect(outlineOf('-   a\n\n  b').subtree(0), (start: 0, end: 1));
+      expect(outlineOf('-\n\n  b').subtree(0), (start: 0, end: 1));
+      expect(outlineOf('-\n  b').subtree(0), (start: 0, end: 2));
       expect(outlineOf('-   a\n\n    b').subtree(0), (start: 0, end: 3));
     });
 
@@ -204,6 +206,25 @@ void main() {
       ]);
     });
 
+    test('a line that starts another block ends a table', () {
+      final outline = outlineOf('| a | b |\n|---|---|\n- x | y\n> q | r');
+      expect(outline.kinds.sublist(2), [LineKind.plain, LineKind.plain]);
+      expect(outline.isItem(2), isTrue);
+      expect(outline.isQuote(3), isTrue);
+    });
+
+    test('an item is no table header', () {
+      final outline = outlineOf('- a | b\n  --|--');
+      expect(outline.isItem(0), isTrue);
+      expect(outline.kinds.first, LineKind.plain);
+    });
+
+    test('a heading below lazy text is in the item, not text', () {
+      final outline = outlineOf('10. a\n    - b\n     # h');
+      expect(outline.depthAt(2), 1);
+      expect(outline.subtree(1), (start: 1, end: 2));
+    });
+
     test('text right below a quote in an item continues both', () {
       final outline = outlineOf('- a\n  > q\nlazy\n- b');
       expect(outline.isQuote(2), isTrue);
@@ -231,7 +252,7 @@ void main() {
     test('text over === or --- is a heading', () {
       final outline = outlineOf('Big\ntitle\n===\nSmall\n---\n\n---');
       expect(
-        [for (var i = 0; i < 7; i++) outline.underlinedHeadingAt(i)],
+        [for (var i = 0; i < 7; i++) outline.underlinedHeadingAt(i)?.level],
         [1, 1, 1, 2, 2, null, null],
       );
     });

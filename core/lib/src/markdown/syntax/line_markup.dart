@@ -7,14 +7,14 @@ import 'markup.dart';
 /// quote, list marker) and its inline markup. Code and table
 /// lines have no inline markup. A line [inQuote] without marks of its
 /// own (see `MarkdownLines.isQuote`) shows as quoted. A line of a heading
-/// of level [underlined], written as text over `===` or `---` (see
-/// `MarkdownLines.underlinedHeadingOf`), shows as the heading, or as its
+/// written as text over `===` or `---` ([underlined], see
+/// `MarkdownLines.underlinedHeadingOf`) shows as the heading, or as its
 /// underline's marks.
 List<MarkupSpan> lineMarkup(
   String line,
   LineKind kind, {
   bool inQuote = false,
-  int? underlined,
+  UnderlinedHeadingLine? underlined,
 }) => switch (kind) {
   LineKind.fence => [
     MarkupSpan(const CodeBlockMarkup(), 0, line.length),
@@ -22,18 +22,20 @@ List<MarkupSpan> lineMarkup(
   ],
   LineKind.code ||
   LineKind.table => [MarkupSpan(const CodeBlockMarkup(), 0, line.length)],
-  LineKind.plain when underlined != null =>
-    underlineLevel(line.trimLeft()) != null
-        ? [MarkupSpan(const SyntaxMarkup(), 0, line.length)]
-        : [
-            MarkupSpan(HeadingMarkup(underlined), 0, line.length),
-            ...inlineMarkup(line),
-          ],
-  LineKind.plain when inQuote && quoteTextStart(line) == null => [
-    MarkupSpan(const QuoteMarkup(), 0, line.length),
-    ...inlineMarkup(line),
-  ],
-  LineKind.plain => _plainMarkup(line),
+  LineKind.plain => switch (underlined) {
+    (level: _, isUnderline: true) => [
+      MarkupSpan(const SyntaxMarkup(), 0, line.length),
+    ],
+    (:final level, isUnderline: false) => [
+      MarkupSpan(HeadingMarkup(level), 0, line.length),
+      ...inlineMarkup(line),
+    ],
+    null when inQuote && quoteTextStart(line) == null => [
+      MarkupSpan(const QuoteMarkup(), 0, line.length),
+      ...inlineMarkup(line),
+    ],
+    null => _plainMarkup(line),
+  },
 };
 
 /// The markup of an item's text, the part after its box.

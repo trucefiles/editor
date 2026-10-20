@@ -58,22 +58,16 @@ bool _holds(int run, String mark) =>
     mark.length == 1 ? run.isOdd : run >= mark.length;
 
 /// How many [char]s [text] has right before [index].
-int _runBefore(String text, int index, String char) {
-  var at = index;
-  while (at > 0 && text[at - 1] == char) {
-    at--;
-  }
-  return index - at;
-}
+int _runBefore(String text, int index, String char) => text
+    .substring(0, index)
+    .split('')
+    .reversed
+    .takeWhile((c) => c == char)
+    .length;
 
 /// How many [char]s [text] has from [index] on.
-int _runAfter(String text, int index, String char) {
-  var at = index;
-  while (at < text.length && text[at] == char) {
-    at++;
-  }
-  return at - index;
-}
+int _runAfter(String text, int index, String char) =>
+    text.substring(index).split('').takeWhile((c) => c == char).length;
 
 /// [text] with the selection as a link to [url]; an empty selection gets
 /// the url as the link's text. The caret goes after the link.

@@ -14,6 +14,10 @@ enum LineKind {
   table,
 }
 
+/// A line of a heading written as text over a line of `===` or `---`:
+/// the heading's [level], and whether it [isUnderline] or the text.
+typedef UnderlinedHeadingLine = ({int level, bool isUnderline});
+
 /// Whether [header] and [delimiter], two lines one below the other,
 /// start a table: a header row with a pipe, then a delimiter row with as
 /// many cells.

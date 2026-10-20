@@ -70,7 +70,7 @@ export 'src/markdown/syntax/block_syntax.dart'
     show ListKind, headingMark, itemMark, quoteTextStart;
 export 'src/markdown/syntax/inline_markup.dart';
 export 'src/markdown/syntax/line_kinds.dart'
-    show LineKind, lineImage, tableCells;
+    show LineKind, UnderlinedHeadingLine, lineImage, tableCells;
 export 'src/markdown/syntax/line_markup.dart';
 export 'src/markdown/syntax/markup.dart';
 export 'src/markdown/syntax/shown_line.dart';

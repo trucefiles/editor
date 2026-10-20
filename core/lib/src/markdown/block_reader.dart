@@ -9,7 +9,7 @@ final class LineRead {
     this.parent,
     this.isItem = false,
     this.inQuote = false,
-    this.headingLevel,
+    this.heading,
   }) : isBlank = false;
 
   const LineRead._blank()
@@ -17,7 +17,7 @@ final class LineRead {
       parent = null,
       isItem = false,
       inQuote = false,
-      headingLevel = null,
+      heading = null,
       isBlank = true;
 
   /// A blank line outside code blocks: in no block, under no item.
@@ -36,18 +36,18 @@ final class LineRead {
   /// it continues the paragraph of a quote without them.
   final bool inQuote;
 
-  /// The level of the heading whose text or underline the line is
-  /// (`Title` over `===`); `null` for any other line.
-  final int? headingLevel;
+  /// The line of a heading written as text over an underline (`Title`
+  /// over `===`) the line is; `null` for any other line.
+  final UnderlinedHeadingLine? heading;
 
   final bool isBlank;
 
-  LineRead _asHeading(int level) => LineRead(
+  LineRead _asHeadingText(int level) => LineRead(
     kind,
     parent: parent,
     isItem: isItem,
     inQuote: inQuote,
-    headingLevel: level,
+    heading: (level: level, isUnderline: false),
   );
 }
 
@@ -115,7 +115,7 @@ final class _Reader {
 
   LineRead _readAt(int index) {
     final line = _lines[index];
-    if (line.isBlank) return _blank();
+    if (line.isBlank) return _blank(index);
     final width = columnsOf(line.indent);
     final matched = _open.takeWhile((item) => width >= item.column).length;
     final all = matched == _open.length;
@@ -124,7 +124,7 @@ final class _Reader {
     final quoted = quoteTextStart(rest) != null;
     if (_leaf case _Fence(:final fence) when all) return _inFence(fence, rest);
     if (all && _inQuote && quoted) return _quoteLine(index, rest);
-    if (_leaf is _Paragraph && (!all || _inQuote) && _isText(line.raw)) {
+    if (_leaf is _Paragraph && (!all || _inQuote) && _isText(rest)) {
       return LineRead(LineKind.plain, parent: _parent, inQuote: _inQuote);
     }
     _open.removeRange(matched, _open.length);
@@ -132,11 +132,17 @@ final class _Reader {
     return _blockAt(index, rest, column);
   }
 
-  /// A blank line: code in a code block; else it ends a paragraph, table
-  /// or quote, and leaves items open.
-  LineRead _blank() {
+  /// A blank line at [index]: code in a code block; else it ends a
+  /// paragraph, table or quote, and leaves items open, except an item
+  /// right above with no content yet: as in Markdown, an item starts with
+  /// at most one blank line, so it ends.
+  LineRead _blank(int index) {
     if (_leaf is _Fence) return LineRead(LineKind.code, parent: _parent);
     _endBlocks();
+    if (_open.lastOrNull case (index: final item, column: _)
+        when item == index - 1 && _lines[item].text.trim().isEmpty) {
+      _open.removeLast();
+    }
     return LineRead.blank;
   }
 
@@ -171,7 +177,9 @@ final class _Reader {
     final line = _lines[index];
     final parent = _parent;
     if (_leaf is _Table) {
-      if (isTableRow(rest)) return LineRead(LineKind.table, parent: parent);
+      if (isTableRow(rest) && !startsBlock(rest)) {
+        return LineRead(LineKind.table, parent: parent);
+      }
       _leaf = const _NoLeaf();
     }
     final paragraph = switch (_leaf) {
@@ -214,19 +222,25 @@ final class _Reader {
   /// paragraph from [start].
   LineRead _underline(int start, int index, int level) {
     for (var line = start; line < index; line++) {
-      _reads[line] = _reads[line]._asHeading(level);
+      _reads[line] = _reads[line]._asHeadingText(level);
     }
     _leaf = const _NoLeaf();
-    return LineRead(LineKind.plain, parent: _parent, headingLevel: level);
+    return LineRead(
+      LineKind.plain,
+      parent: _parent,
+      heading: (level: level, isUnderline: true),
+    );
   }
 
   /// Whether the line at [index], [rest] of it inside a container from
   /// [column], starts a table with the line below, which is in the same
-  /// container.
+  /// container. A line that starts another block (an item, a quote) does
+  /// not.
   bool _startsTable(int index, String rest, int column) {
     if (index + 1 >= _lines.length) return false;
     final below = _lines[index + 1];
-    return columnsOf(below.indent) >= column &&
+    return !startsBlock(rest) &&
+        columnsOf(below.indent) >= column &&
         startsTable(rest, restFrom(below.raw, column));
   }
 
