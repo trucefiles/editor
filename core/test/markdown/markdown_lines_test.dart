@@ -170,7 +170,7 @@ void main() {
 
     expect(
       list.remove(idOf(list, 'eggs')).text,
-      '# Shopping\n- [ ] milk\nnote\n',
+      '# Shopping\n- [ ] milk\n\nnote\n',
     );
   });
 
@@ -192,7 +192,7 @@ void main() {
   test('clearDone removes checked items and their subitems', () {
     expect(
       MarkdownLines.parse(doc).clearDone().text,
-      '# Shopping\n- [ ] milk\nnote\n',
+      '# Shopping\n- [ ] milk\n\nnote\n',
     );
   });
 

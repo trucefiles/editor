@@ -167,10 +167,13 @@ void main() {
       final sorted = list.toggleAndSort(item.id);
 
       expect(content(sorted), content(toggled), reason: 'case $i');
-      // Indented lines can belong to a moved item.
+      // Lines under a moved item move with it, blank lines among them.
       Iterable<String> marginText(MarkdownLines list) => [
         for (final line in list.lines)
-          if (!list.isItem(line) && line.indent.isEmpty) line.raw,
+          if (!list.isItem(line) &&
+              list.depthOf(line) == 0 &&
+              line.raw.trim().isNotEmpty)
+            line.raw,
       ];
       expect(
         marginText(sorted),

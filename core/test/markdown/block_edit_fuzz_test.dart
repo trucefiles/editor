@@ -129,8 +129,8 @@ String _above(MarkdownLines doc, LineId id) => [
     '${line.id}:${line.raw}',
 ].join('\n');
 
-/// The deepest an item can be at [line] in [doc], as Markdown reads it:
-/// one deeper than an item right above it, else as deep as the line
+/// The deepest an item put at [line] in [doc] can be, as Markdown reads
+/// it: one deeper than an item right above it, else as deep as the line
 /// right above it; 0 at the top.
 int _deepestAt(MarkdownLines doc, MarkdownLine line) {
   final index = doc.lines.indexWhere((l) => l.id == line.id);
@@ -242,15 +242,15 @@ final class _Step {
           expect(line.listKind, expected.listKind, reason: reason);
           expect(line.isChecked, expected.isChecked, reason: reason);
           expect(line.text, expected.text, reason: reason);
-          // As deep as asked, if Markdown lets it; edits above it in the
-          // same step may have changed what was above it then.
-          expect(
-            after.depthOf(line),
-            _above(before, id) == _above(after, id)
-                ? min(depth, _deepestAt(after, line))
-                : lessThanOrEqualTo(depth),
-            reason: reason,
-          );
+          // As deep as asked, if Markdown let it where it was; edits
+          // above it in the same step change where it lands.
+          if (_above(before, id) == _above(after, id)) {
+            expect(
+              after.depthOf(line),
+              min(depth, _deepestAt(before, line)),
+              reason: reason,
+            );
+          }
       }
     }
     expect(

@@ -160,7 +160,7 @@ void main() {
 
   test('bullets, numbered items and checkboxes make one list', () {
     final doc = MarkdownLines.parse(
-      '- [x] done\n- bullet\n1. first\n- [ ] open\nText\n- other',
+      '- [x] done\n- bullet\n1. first\n- [ ] open\n\nText\n- other',
     );
 
     expect(
@@ -178,6 +178,7 @@ void main() {
         '+after open',
         'Done 1',
         'done',
+        '',
         'Text',
         'other',
         '+after other',

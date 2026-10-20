@@ -130,7 +130,8 @@ final class Outline {
 
   /// Each line goes under the nearest item above it that is less
   /// indented; a line of a code block or table goes where the block's
-  /// first line went. An item joins the list of the item just before it
+  /// first line went, and a line that continues a paragraph goes where
+  /// the paragraph is. An item joins the list of the item just before it
   /// at its level, if any.
   List<_Node?> _readTree() {
     final nodes = List<_Node?>.filled(_lines.length, null);
@@ -138,9 +139,12 @@ final class Outline {
     final open = <_Node>[];
     for (var index = 0; index < _lines.length; index++) {
       if (_kinds[index] == LineKind.plain && _isBlank(index)) continue;
-      final parent = _continuesBlock(index)
-          ? nodes[index - 1]!.parent
-          : _popToParent(open, index);
+      final parent = switch (index == 0 ? null : nodes[index - 1]) {
+        final above? when _continuesBlock(index) => above.parent,
+        final above? when _continuesParagraph(index) =>
+          above.isItem ? above : above.parent,
+        _ => _popToParent(open, index),
+      };
       final siblings = parent?.children ?? roots;
       final node = _Node(
         index,
@@ -175,6 +179,22 @@ final class Outline {
         (LineKind.table, LineKind.table) => true,
         _ => false,
       };
+
+  /// Whether the line at [index] continues the paragraph of the line
+  /// above it: as in Markdown, a line of text right below text, also
+  /// lazily, without the indent of the item the paragraph is in.
+  bool _continuesParagraph(int index) {
+    if (index == 0 ||
+        _kinds[index] != LineKind.plain ||
+        _kinds[index - 1] != LineKind.plain ||
+        _isBlank(index) ||
+        startsBlock(_lines[index].raw)) {
+      return false;
+    }
+    final above = _lines[index - 1];
+    final text = _items[index - 1] ? above.text : above.raw;
+    return text.trim().isNotEmpty && !startsBlock(text);
+  }
 
   /// In file order, each numbered item counts on from the item just
   /// before it in its list if it may (see [MarkdownLine.countsOnFrom]),

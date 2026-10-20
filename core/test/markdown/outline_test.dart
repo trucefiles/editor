@@ -17,6 +17,13 @@ void main() {
     expect(outline.subtree(8), (start: 8, end: 9));
   });
 
+  test("a line right below an item's text continues the item", () {
+    final outline = outlineOf('- a\ntext\n- b\n# H\n- c');
+    expect(outline.subtree(0), (start: 0, end: 2));
+    expect(outline.listOf(2), [0, 2]);
+    expect(outline.listOf(4), [4]);
+  });
+
   test('only items hold lines; others are leaves', () {
     final outline = outlineOf('text\n  more\n- a');
     expect(outline.subtree(0), (start: 0, end: 1));
@@ -35,12 +42,12 @@ void main() {
   });
 
   test('a margin item is the top item a line is under', () {
-    final outline = outlineOf('- a\n  - b\n    - c\n- d\ntext\n  - e');
+    final outline = outlineOf('- a\n  - b\n    - c\n- d\n\ntext\n  - e');
     expect(
       [
-        for (final i in [0, 1, 2, 3, 5]) outline.marginItemOf(i),
+        for (final i in [0, 1, 2, 3, 6]) outline.marginItemOf(i),
       ],
-      [0, 0, 0, 3, 5],
+      [0, 0, 0, 3, 6],
     );
   });
 
@@ -53,13 +60,13 @@ void main() {
 
   test('a list is a run of items at one level', () {
     final outline = outlineOf(
-      '- a\n\n  text\n- b\n  - x\n  y\n  - z\n# H\n- c',
+      '- a\n\n  text\n- b\n  - x\n\n  y\n  - z\n# H\n- c',
     );
     expect(outline.listOf(0), [0, 3]);
     expect(outline.listOf(3), [0, 3]);
     expect(outline.listOf(4), [4]);
-    expect(outline.listOf(6), [6]);
-    expect(outline.listOf(8), [8]);
+    expect(outline.listOf(7), [7]);
+    expect(outline.listOf(9), [9]);
   });
 
   test('parts: lists without trailing blanks, tables, other lines', () {
