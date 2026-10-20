@@ -23,7 +23,7 @@ void main() {
     });
 
     test('a line at the margin ends the list', () {
-      expect(numbers('3. a\n\ntext\n6. b'), [3, null, null, 6]);
+      expect(numbers('3. a\n\ntext\n\n6. b'), [3, null, null, null, 6]);
     });
 
     test("a line right below an item's text continues the item", () {

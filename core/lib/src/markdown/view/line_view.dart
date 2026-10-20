@@ -19,6 +19,7 @@ final class LineView {
     this.kind,
     this.text, {
     required this.quote,
+    required this.underlined,
     required this.held,
   });
 
@@ -49,6 +50,7 @@ final class LineView {
       document.kindOf(line),
       line.raw.substring(asItem ? document.textStartOf(line) : 0),
       quote: blocks && !asItem && document.isQuote(line),
+      underlined: blocks && !asItem ? document.underlinedHeadingOf(line) : null,
       held: held,
     );
   }
@@ -64,6 +66,10 @@ final class LineView {
   /// Whether it shows as a quote.
   final bool quote;
 
+  /// The line of a heading written as text over `===` or `---` it is;
+  /// `null` for any other line.
+  final UnderlinedHeadingLine? underlined;
+
   /// Whether it is an item shown as text only because the caret is in it
   /// (see [LineView.of]): it shows otherwise once the caret leaves.
   final bool held;
@@ -77,7 +83,7 @@ final class LineView {
   /// e.g. while the user types into it before the document has it.
   List<MarkupSpan> markupOf(String shown) => item != null
       ? itemTextMarkup(shown)
-      : lineMarkup(shown, kind, inQuote: quote);
+      : lineMarkup(shown, kind, inQuote: quote, underlined: underlined);
 
   /// The url of the link at [offset] in [shown], by its [markupOf]; `null`
   /// if there is none.

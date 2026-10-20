@@ -36,6 +36,23 @@ void main() {
     expect(viewOf('- [x] done', 0).item?.checked, isTrue);
   });
 
+  test('text over an underline shows as a heading, in blocks only', () {
+    expect(viewOf('Title\n===', 0).underlined, (level: 1, isUnderline: false));
+    expect(viewOf('Title\n===', 1).underlined, (level: 1, isUnderline: true));
+    expect(viewOf('==\n===', 0).markupOf('=='), [
+      const MarkupSpan(HeadingMarkup(1), 0, 2),
+    ]);
+    expect(viewOf('Title\n===', 0, blocks: false).underlined, isNull);
+    expect(
+      viewOf('Title\n---', 0).markupOf('Title'),
+      lineMarkup(
+        'Title',
+        LineKind.plain,
+        underlined: (level: 2, isUnderline: false),
+      ),
+    );
+  });
+
   test('other lines show whole, a quote as one', () {
     final view = viewOf('> q\nlazy', 1);
 

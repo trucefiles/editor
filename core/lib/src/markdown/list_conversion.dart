@@ -36,7 +36,7 @@ extension ListConversion on MarkdownLines {
           : _addAtEnd(kind);
       return (added, id);
     }
-    final back = lines.every((line) => line.listKind == kind);
+    final back = lines.every((line) => isItem(line) && line.listKind == kind);
     var converted = this;
     for (final line in lines) {
       converted = converted.withBlock(

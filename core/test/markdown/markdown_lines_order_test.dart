@@ -266,13 +266,13 @@ void main() {
     });
 
     test('a subitem indented with other characters keeps its level', () {
-      final list = MarkdownLines.parse('- a\n- b\n   - y\n    - z\n\t- w');
+      final list = MarkdownLines.parse('- a\n- b\n   - y\n     - z\n\t - w');
 
       expect(
         list
             .moveNextTo(idOf(list, 'y'), target: idOf(list, 'a'), below: false)
             .text,
-        '- y\n - z\n - w\n- a\n- b',
+        '- y\n  - z\n  - w\n- a\n- b',
       );
     });
   });
@@ -453,13 +453,17 @@ void main() {
     test('outdent keeps the subitem\'s own indent after the new one', () {
       final list = MarkdownLines.parse('- p\n  - a\n  \t- b');
 
-      expect(list.outdent(idOf(list, 'a')).text, '- p\n- a\n\t- b');
+      // The tab ends at column 4, two past the item's content; written
+      // after the new indent it would end at 4 again, so spaces keep it.
+      expect(list.outdent(idOf(list, 'a')).text, '- p\n- a\n  - b');
     });
 
     test('indent puts the unit right after the item\'s own indent', () {
       final list = MarkdownLines.parse('- a\n  - x\n- b\n\t- c');
 
-      expect(list.indent(idOf(list, 'b')).text, '- a\n  - x\n  - b\n  \t- c');
+      // A tab after the new indent would end at the same tab stop, so
+      // spaces keep the subitem four columns past the item.
+      expect(list.indent(idOf(list, 'b')).text, '- a\n  - x\n  - b\n      - c');
     });
 
     test('text continued without indent lands one level under the item', () {

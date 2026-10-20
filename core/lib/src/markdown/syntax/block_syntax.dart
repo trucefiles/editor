@@ -2,6 +2,8 @@
 /// headings and quotes. The one owner of these rules.
 library;
 
+import 'dart:math';
+
 /// The kinds of list items.
 enum ListKind {
   /// `- [ ] text`, with a box to check.
@@ -147,17 +149,60 @@ final class ItemSyntax {
 int? quoteTextStart(String line) => _quote.firstMatch(line)?.end;
 
 /// Whether [line] starts a block of its own, which ends a paragraph above
-/// it: a heading, quote, list item or line (`---`). A line that does not
-/// continues that paragraph, also lazily, without the quote's `>`.
+/// it: a heading, quote, list item, line (`---`) or code fence. A line
+/// that does not continues that paragraph, also lazily, without the
+/// quote's `>` or the item's indent.
 bool startsBlock(String line) =>
     headingMark(line) != null ||
     quoteTextStart(line) != null ||
     ItemSyntax.of(line) != null ||
-    ItemSyntax._thematicBreak.hasMatch(line);
+    ItemSyntax._thematicBreak.hasMatch(line) ||
+    fenceOf(line) != null;
 
-/// Visual width of leading whitespace; a tab counts as four spaces.
-int indentWidth(String indent) =>
-    indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));
+/// The fence that opens a fenced code block on [line] (```` ``` ```` or
+/// `~~~`, three or more), after up to three spaces; `null` if none does.
+String? fenceOf(String line) => _fence.firstMatch(line)?.group(1);
 
+/// Whether [line] closes a code block opened with [fence]: a fence of the
+/// same character, at least as long, alone on its line.
+bool closesFence(String fence, String line) => switch (fenceOf(line)) {
+  final closing? =>
+    closing[0] == fence[0] &&
+        closing.length >= fence.length &&
+        line.trim() == closing,
+  null => false,
+};
+
+/// The level of the heading that [line] underlines when it is right below
+/// a paragraph's text: 1 for `===`, 2 for `---`; `null` if it is no such
+/// underline.
+int? underlineLevel(String line) => switch (_underline.firstMatch(line)) {
+  final match? => match[1]![0] == '=' ? 1 : 2,
+  null => null,
+};
+
+/// The column [text] ends at, from the start of its line: a tab goes on
+/// to the next multiple of four, as Markdown counts.
+int columnsOf(String text) => text.runes.fold(
+  0,
+  (column, rune) => rune == 0x09 ? column + 4 - column % 4 : column + 1,
+);
+
+/// [line] from [column] on, as a block inside a container that starts
+/// there sees it: without the leading whitespace up to that column; a tab
+/// that reaches past it leaves the rest of its width as spaces.
+String restFrom(String line, int column) {
+  final leading = _leadingSpace.firstMatch(line)!.end;
+  final end = Iterable.generate(leading + 1, (index) => index).firstWhere(
+    (index) =>
+        index == leading || columnsOf(line.substring(0, index)) >= column,
+  );
+  final reached = columnsOf(line.substring(0, end));
+  return '${' ' * max(0, reached - column)}${line.substring(end)}';
+}
+
+final _leadingSpace = RegExp(r'^[ \t]*');
 final _heading = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+|$)');
 final _quote = RegExp(r'^(?: {0,3}>[ \t]?)+');
+final _fence = RegExp(r'^ {0,3}(`{3,}|~{3,})');
+final _underline = RegExp(r'^ {0,3}(=+|-+)[ \t]*$');

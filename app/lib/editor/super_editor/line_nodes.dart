@@ -9,10 +9,13 @@ final class LineNodes {
   /// The id of the node showing [line]: the one it has, else a new one.
   String nodeOf(LineId line) {
     if (_nodeOfLine[line] case final node?) return node;
-    final node = 'line-$line';
+    final node = idFor(line);
     link(node, line);
     return node;
   }
+
+  /// The id a new node showing [line] gets: the one scheme of node ids.
+  static String idFor(LineId line) => 'line-$line';
 
   /// The line node [node] shows; `null` if it shows none.
   LineId? lineOf(String node) => _lineOfNode[node];

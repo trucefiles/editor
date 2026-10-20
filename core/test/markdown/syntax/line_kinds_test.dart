@@ -3,6 +3,9 @@ import 'package:truce_core/truce_core.dart';
 
 /// Code blocks, tables and images, which depend on more than one line.
 void main() {
+  List<LineKind> lineKinds(List<String> lines) =>
+      MarkdownLines.parse(lines.join('\n')).kinds;
+
   test('fenced code', () {
     expect(lineKinds(['a', '```dart', '# not a heading', '```', 'b']), [
       LineKind.plain,

@@ -219,8 +219,18 @@ final class _Step {
         if (!changed.containsKey(line.id) && !removed.contains(line.id)) line,
     ];
     final afterById = {for (final line in after.lines) line.id: line};
+    // Lines in a changed item whose content now starts further in (e.g. a
+    // bullet turned numbered) move as far in, to stay in it; which lines
+    // those are depends on the edits before it in the same step.
+    final itemChanged = changed.values.any((block) => block is ItemBlock);
     for (final line in untouched) {
-      expect(afterById[line.id]?.raw, line.raw, reason: reason);
+      final now = afterById[line.id]!;
+      if (itemChanged && now.raw != line.raw) {
+        expect(now.indent, startsWith(line.indent), reason: reason);
+        expect(now.raw.trimLeft(), line.raw.trimLeft(), reason: reason);
+      } else {
+        expect(now.raw, line.raw, reason: reason);
+      }
     }
     final order = [
       for (final line in after.lines)

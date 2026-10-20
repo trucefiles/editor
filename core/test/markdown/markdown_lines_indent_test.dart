@@ -23,10 +23,7 @@ void main() {
     /// items are indented by [unit].
     String offset(String item, [String unit = '  ']) {
       final parent = MarkdownLine.parse(const LineId(0), item);
-      final writer = LineWriter.of([
-        parent,
-        MarkdownLine.parse(const LineId(1), '$unit- x'),
-      ]);
+      final writer = LineWriter.of([parent.indent, unit]);
       final child = MarkdownLine.parse(const LineId(2), '- y');
       final written = writer.placed([child], UnderItem(parent, 1)).single;
       return written.indent.substring(parent.indent.length);
@@ -88,6 +85,13 @@ void main() {
         '- a\n    - b\n- c\n    - d',
       );
       expect(indented('- a\n- b\n- c\n\t- d', 'b'), '- a\n\t- b\n- c\n\t- d');
+    });
+
+    test("takes the file's unit only from items, not from code", () {
+      expect(
+        indented('- a\n  ```\n     - x\n  ```\n- b\n- c', 'c'),
+        '- a\n  ```\n     - x\n  ```\n- b\n  - c',
+      );
     });
 
     test('lines up with the items already under the item above', () {
@@ -209,6 +213,17 @@ void main() {
 
     test('lands under a bullet in the file\'s unit', () {
       expect(outdented('- a\n  - b\nmore', 'b'), '- a\n- b\n  more');
+    });
+
+    test('indented short of the item\'s text lands at its text', () {
+      final doc = MarkdownLines.parse('- x\n1. a\n  more');
+
+      expect(
+        doc
+            .moveNextTo(idOf(doc, 'a'), target: idOf(doc, 'x'), below: false)
+            .text,
+        '1. a\n   more\n- x',
+      );
     });
   });
 

@@ -30,10 +30,23 @@ void main() {
     expect([for (var i = 0; i < 3; i++) outline.depthAt(i)], [0, 0, 0]);
   });
 
-  test('a code block stays under its item, whatever its indent', () {
-    final outline = outlineOf('- a\n  ```\ncode\n  ```\n- b');
-    expect(outline.subtree(0), (start: 0, end: 4));
+  test('a code block stays under its item, whatever its lines hold', () {
+    final outline = outlineOf('- a\n  ```\n  - code\n\n  ```\n- b');
+    expect(outline.subtree(0), (start: 0, end: 5));
     expect(outline.depthAt(2), 1);
+    expect(outline.isItem(2), isFalse);
+  });
+
+  test('a code line not indented to the item ends the item and the code', () {
+    final outline = outlineOf('- a\n  ```\ncode\n- b');
+    expect(outline.subtree(0), (start: 0, end: 2));
+    expect(outline.kinds, [
+      LineKind.plain,
+      LineKind.fence,
+      LineKind.plain,
+      LineKind.plain,
+    ]);
+    expect(outline.isItem(3), isTrue);
   });
 
   test('depth is the number of items a line is under', () {
@@ -137,6 +150,117 @@ void main() {
 
     test('at the margin for a deeper level with no item above', () {
       expect(placed('text', 1, 1), 'margin');
+    });
+  });
+
+  group('lines meet the open items first, then are read inside them', () {
+    List<int> depths(Outline outline, int count) => [
+      for (var i = 0; i < count; i++) outline.depthAt(i),
+    ];
+
+    test("a line is in an item only if indented to the item's text", () {
+      expect(depths(outlineOf('1. a\n  - b'), 2), [0, 0]);
+      expect(depths(outlineOf('- a\n - b'), 2), [0, 0]);
+      expect(depths(outlineOf('1. a\n   - b'), 2), [0, 1]);
+      expect(outlineOf('-   a\n\n  b').subtree(0), (start: 0, end: 1));
+      expect(outlineOf('-\n\n  b').subtree(0), (start: 0, end: 1));
+      expect(outlineOf('-\n  b').subtree(0), (start: 0, end: 2));
+      expect(outlineOf('-   a\n\n    b').subtree(0), (start: 0, end: 3));
+    });
+
+    test('a tab counts to the next tab stop', () {
+      expect(depths(outlineOf('- a\n \t- b'), 2), [0, 1]);
+      expect(depths(outlineOf('1. a\n  \t- b'), 2), [0, 1]);
+    });
+
+    test('a code fence is read from the content of a nested item', () {
+      final outline = outlineOf('- a\n  - b\n    ```\n    - x\n    ```\n- c');
+      expect(outline.kinds.sublist(2, 5), [
+        LineKind.fence,
+        LineKind.code,
+        LineKind.fence,
+      ]);
+      expect(outline.isItem(3), isFalse);
+      expect(outline.depthAt(3), 2);
+      expect(outline.isItem(5), isTrue);
+    });
+
+    test('an unclosed fence in an item ends where the item ends', () {
+      final outline = outlineOf('- [ ] a\n  ```\n- [ ] b\n- [ ] c');
+      expect(outline.kinds, [
+        LineKind.plain,
+        LineKind.fence,
+        LineKind.plain,
+        LineKind.plain,
+      ]);
+      expect(outline.listOf(0), [0, 2, 3]);
+    });
+
+    test('a table in an item ends where the item ends', () {
+      final outline = outlineOf('- a\n  | x |\n  |---|\n| 1 |');
+      expect(outline.kinds, [
+        LineKind.plain,
+        LineKind.table,
+        LineKind.table,
+        LineKind.plain,
+      ]);
+    });
+
+    test('a line that starts another block ends a table', () {
+      final outline = outlineOf('| a | b |\n|---|---|\n- x | y\n> q | r');
+      expect(outline.kinds.sublist(2), [LineKind.plain, LineKind.plain]);
+      expect(outline.isItem(2), isTrue);
+      expect(outline.isQuote(3), isTrue);
+    });
+
+    test('an item is no table header', () {
+      final outline = outlineOf('- a | b\n  --|--');
+      expect(outline.isItem(0), isTrue);
+      expect(outline.kinds.first, LineKind.plain);
+    });
+
+    test('a heading below lazy text is in the item, not text', () {
+      final outline = outlineOf('10. a\n    - b\n     # h');
+      expect(outline.depthAt(2), 1);
+      expect(outline.subtree(1), (start: 1, end: 2));
+    });
+
+    test('text right below a quote in an item continues both', () {
+      final outline = outlineOf('- a\n  > q\nlazy\n- b');
+      expect(outline.isQuote(2), isTrue);
+      expect(outline.depthAt(2), 1);
+      expect(outline.listOf(0), [0, 3]);
+    });
+
+    test('only a list from 1 starts right below text', () {
+      expect(outlineOf('The year\n2024. was good').isItem(1), isFalse);
+      expect(outlineOf('Steps\n1. go').isItem(1), isTrue);
+      expect(outlineOf('Steps\n- go').isItem(1), isTrue);
+    });
+
+    test('unlike in Markdown, an empty item starts a list below text', () {
+      expect(outlineOf('Shopping\n- ').isItem(1), isTrue);
+      expect(outlineOf('Shopping\n-').underlinedHeadingAt(0), isNull);
+    });
+
+    test("unlike in Markdown, any item below an item's text is a subitem", () {
+      final outline = outlineOf('- a\n  2. b');
+      expect(outline.isItem(1), isTrue);
+      expect(outline.depthAt(1), 1);
+    });
+
+    test('text over === or --- is a heading', () {
+      final outline = outlineOf('Big\ntitle\n===\nSmall\n---\n\n---');
+      expect(
+        [for (var i = 0; i < 7; i++) outline.underlinedHeadingAt(i)?.level],
+        [1, 1, 1, 2, 2, null, null],
+      );
+    });
+
+    test('an underline under an item is no heading', () {
+      final outline = outlineOf('- a\n---');
+      expect(outline.underlinedHeadingAt(0), isNull);
+      expect(outline.subtree(0), (start: 0, end: 1));
     });
   });
 }

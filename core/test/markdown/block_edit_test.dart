@@ -232,6 +232,35 @@ void main() {
   });
 
   group('list kinds', () {
+    test('a kind whose text starts further in takes the lines in it', () {
+      final doc = MarkdownLines.parse(
+        '- a\n  - b\n    ```\n    code\n    ```\nlazy',
+      );
+
+      final changed = apply(doc, [
+        BlockChanged(
+          idOf(doc, 'a'),
+          const ItemBlock(kind: ListKind.numbered, depth: 0, text: 'a'),
+        ),
+      ]);
+
+      expect(changed.text, '1. a\n   - b\n     ```\n     code\n     ```\nlazy');
+      expect(changed.depthOf(changed.lineOf(idOf(doc, 'b'))!), 1);
+    });
+
+    test('a kind whose text starts as far in leaves the lines in it', () {
+      final doc = MarkdownLines.parse('- a\n  - b');
+
+      final changed = apply(doc, [
+        BlockChanged(
+          idOf(doc, 'a'),
+          const ItemBlock(kind: ListKind.checkbox, depth: 0, text: 'a'),
+        ),
+      ]);
+
+      expect(changed.text, '- [ ] a\n  - b');
+    });
+
     test('a bullet or numbered item keeps its marker style', () {
       final doc = MarkdownLines.parse('+   a\n7)  b');
 
