@@ -95,8 +95,7 @@ final class Arrangement {
   List<DisplayEntry> of(MarkdownLines document) {
     final done = doneSection ? document.doneIds : const <LineId>{};
     return [
-      for (final part in document.outline.parts)
-        ..._part(document, part, done),
+      for (final part in document.outline.parts) ..._part(document, part, done),
     ];
   }
 
