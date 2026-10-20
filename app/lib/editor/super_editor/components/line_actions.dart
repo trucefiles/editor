@@ -8,7 +8,13 @@ abstract interface class LineActions {
   /// Removes the item with its subitems.
   void delete(String nodeId);
 
-  /// Moves the item [nodeId] with its subitems next to the item [target]:
-  /// [below] it and its subitems, else above it.
-  void move(String nodeId, {required String target, required bool below});
+  /// Drops the item [nodeId] with its subitems next to the item [target]:
+  /// [below] it, else above it; [levels] deeper, or shallower if negative,
+  /// as far as the spot allows.
+  void move(
+    String nodeId, {
+    required String target,
+    required bool below,
+    required int levels,
+  });
 }

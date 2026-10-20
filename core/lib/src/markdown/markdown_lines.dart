@@ -406,44 +406,101 @@ final class MarkdownLines {
 
   /// Moves the item [id] with its subitems next to the line [target], as
   /// dropping it there: just above it, else [below] it. Below an item with
-  /// subitems, it becomes the first of them, at their level; else it goes
-  /// below the target's block, and levels are kept.
+  /// subitems, it goes right under the item, before them.
+  ///
+  /// It takes the level of the spot it lands on: the target's, or below
+  /// an item with subitems, theirs. [levels] moves it that many levels
+  /// deeper (shallower if negative), within the levels the spot allows:
+  /// at most a child of the item above, and never the parent of the item
+  /// below. Its subitems keep their levels under it.
   MarkdownLines moveNextTo(
     LineId id, {
     required LineId target,
     required bool below,
-  }) {
-    if (!below) return move(id, beforeId: target);
-    final index = _indexOf(target);
-    final end = _blockEnd(index);
-    if (index + 1 < end && _isItem(index + 1)) {
-      return _moveAsSubitem(id, firstSubitem: lines[index + 1]);
-    }
-    return move(id, beforeId: end < lines.length ? lines[end].id : null);
-  }
-
-  /// Moves the item [id] with its subitems just above [firstSubitem], at
-  /// its indent.
-  MarkdownLines _moveAsSubitem(
-    LineId id, {
-    required MarkdownLine firstSubitem,
+    int levels = 0,
   }) {
     final start = _indexOf(id);
     final end = _blockEnd(start);
     final block = lines.sublist(start, end);
-    if (block.any((line) => line.id == firstSubitem.id)) return this;
-    final own = lines[start].indent;
+    if (block.any((line) => line.id == target)) return this;
+    final rest = [...lines]..removeRange(start, end);
+    final spot = _spotNextTo(
+      rest,
+      rest.indexWhere((l) => l.id == target),
+      below,
+    );
+    final above = _itemAbove(rest, spot);
+    final next = _lineBelow(rest, spot);
+    final deepest = above == null ? 0 : depthOf(above) + 1;
+    final shallowest = next == null ? 0 : min(depthOf(next), deepest);
+    // Below an item with subitems, the spot is theirs; as the user sees
+    // them, also when the item is its own first subitem.
+    final at = _indexOf(target);
+    final landing = below && at + 1 < _blockEnd(at) && _isItem(at + 1)
+        ? lines[at + 1]
+        : lines[at];
+    final level = (depthOf(landing) + levels).clamp(shallowest, deepest);
+    final indent = _indentAt(level, [?above, ?next]);
+    final own = block.first.indent;
     // Lines of the block are deeper than the item; one indented with
     // other characters (a tab under spaces) stays one level deeper.
-    String moved(String indent) =>
-        firstSubitem.indent +
-        (indent.startsWith(own) ? indent.substring(own.length) : _indentUnit);
-    final rest = [...lines]..removeRange(start, end);
+    String moved(String lineIndent) =>
+        indent +
+        (lineIndent.startsWith(own)
+            ? lineIndent.substring(own.length)
+            : _indentUnit);
     return _with(
-      rest..insertAll(rest.indexWhere((line) => line.id == firstSubitem.id), [
+      rest..insertAll(spot, [
         for (final line in block) line.withIndent(moved(line.indent)),
       ]),
     );
+  }
+
+  /// Where in [rest] an item dropped on the line at [target] goes: before
+  /// it, or [below] it: before its first subitem, else after its block,
+  /// before a final line break.
+  int _spotNextTo(List<MarkdownLine> rest, int target, bool below) {
+    if (!below) return target;
+    final within = _with(rest);
+    final end = within._blockEnd(target);
+    if (target + 1 < end && within._isItem(target + 1)) return target + 1;
+    final finalBreak =
+        end == rest.length && rest.length > 1 && rest.last.raw.isEmpty;
+    return finalBreak ? end - 1 : end;
+  }
+
+  /// The nearest item above [spot] in [rest] within its list.
+  MarkdownLine? _itemAbove(List<MarkdownLine> rest, int spot) {
+    final within = _with(rest);
+    for (var i = spot - 1; i >= 0; i--) {
+      if (within._isItem(i)) return rest[i];
+      if (within._endsList(i)) return null;
+    }
+    return null;
+  }
+
+  /// The first line below [spot] in [rest] that a dropped item could
+  /// become the parent of: the next non-blank line, if it is indented or an
+  /// item.
+  MarkdownLine? _lineBelow(List<MarkdownLine> rest, int spot) {
+    final within = _with(rest);
+    for (var i = spot; i < rest.length; i++) {
+      if (rest[i].raw.trim().isEmpty) continue;
+      return within._endsList(i) ? null : rest[i];
+    }
+    return null;
+  }
+
+  /// The indent of [level]: as one of [near] has it at that level, or one
+  /// level deeper than one of them, else [level] indent units.
+  String _indentAt(int level, List<MarkdownLine> near) {
+    for (final line in near) {
+      if (depthOf(line) == level) return line.indent;
+    }
+    for (final line in near) {
+      if (depthOf(line) + 1 == level) return line.indent + _indentUnit;
+    }
+    return _indentUnit * level;
   }
 
   /// Moves the item [id] with its subitems one level right, under the

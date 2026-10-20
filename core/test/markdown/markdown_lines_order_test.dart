@@ -225,14 +225,68 @@ void main() {
       );
     });
 
-    test('below the last line goes to the end', () {
-      final list = MarkdownLines.parse('- a\n- b\n');
+    test('takes the level of the spot, never a parent of the items below', () {
+      final list = MarkdownLines.parse('- a\n  - x\n  - y\n- b\n');
 
       expect(
         list
-            .moveNextTo(idOf(list, 'a'), target: idOf(list, ''), below: true)
+            .moveNextTo(idOf(list, 'b'), target: idOf(list, 'x'), below: false)
             .text,
-        '- b\n- a\n',
+        '- a\n  - b\n  - x\n  - y\n',
+      );
+      expect(
+        list
+            .moveNextTo(idOf(list, 'b'), target: idOf(list, 'x'), below: true)
+            .text,
+        '- a\n  - x\n  - b\n  - y\n',
+      );
+    });
+
+    test('sideways, within the levels the spot allows', () {
+      final list = MarkdownLines.parse('- a\n  - x\n  - y\n- b\n');
+      String drop(int levels) => list
+          .moveNextTo(
+            idOf(list, 'b'),
+            target: idOf(list, 'x'),
+            below: true,
+            levels: levels,
+          )
+          .text;
+
+      expect(drop(1), '- a\n  - x\n    - b\n  - y\n');
+      expect(drop(3), '- a\n  - x\n    - b\n  - y\n');
+      expect(drop(-1), '- a\n  - x\n  - b\n  - y\n');
+    });
+
+    test('below the last subitem, can go back out to the margin', () {
+      final list = MarkdownLines.parse('- b\n- a\n  - x\n');
+
+      expect(
+        list
+            .moveNextTo(
+              idOf(list, 'b'),
+              target: idOf(list, 'x'),
+              below: true,
+              levels: -1,
+            )
+            .text,
+        '- a\n  - x\n- b\n',
+      );
+    });
+
+    test('at the top of a list, stays at the margin', () {
+      final list = MarkdownLines.parse('# T\n- a\n- b\n  - y\n');
+
+      expect(
+        list
+            .moveNextTo(
+              idOf(list, 'y'),
+              target: idOf(list, 'a'),
+              below: false,
+              levels: 2,
+            )
+            .text,
+        '# T\n- y\n- a\n- b\n',
       );
     });
   });

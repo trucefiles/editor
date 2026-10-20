@@ -277,6 +277,24 @@ void main() {
     expect(text.text, '- [ ] a\n  - [ ] b\n  - [ ] sub');
   });
 
+  testWidgets('dropped above a subitem, it lands as its sibling', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- [ ] a\n  - [ ] x\n  - [ ] y\n- [ ] b');
+    await pumpNoteEditor(tester, text);
+
+    final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(3));
+    final target = tester.getTopLeft(find.byIcon(Icons.drag_indicator).at(1));
+    final gesture = await tester.startGesture(handle);
+    await tester.pump();
+    await gesture.moveTo(Offset(handle.dx, target.dy + 2));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(text.text, '- [ ] a\n  - [ ] b\n  - [ ] x\n  - [ ] y');
+  });
+
   testWidgets('the menu indents an item', (tester) async {
     final text = FakeNoteText('- [ ] a\n- [ ] b');
     await pumpNoteEditor(tester, text);

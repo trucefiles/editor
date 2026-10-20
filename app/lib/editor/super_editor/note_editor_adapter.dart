@@ -291,10 +291,15 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   }
 
   @override
-  void move(String nodeId, {required String target, required bool below}) {
+  void move(
+    String nodeId, {
+    required String target,
+    required bool below,
+    required int levels,
+  }) {
     final (line, targetLine) = (_lineOfNode(nodeId), _lineOfNode(target));
     if (line == null || targetLine == null) return;
-    note.move(line, target: targetLine, below: below);
+    note.move(line, target: targetLine, below: below, levels: levels);
   }
 
   @override
