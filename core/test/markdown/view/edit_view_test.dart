@@ -152,6 +152,16 @@ void main() {
     });
   });
 
+  test('item: the innermost item a leaf is in, also while held', () {
+    final document = MarkdownDocument.parse('- a\n  -\n  > b');
+    final [a, held, _] = document.lines;
+
+    expect(leafViewAt(document, '  -').item, held.id);
+    expect(leafViewAt(document, '  > b').item, a.id);
+    expect(leafViewAt(document, '- a').item, a.id);
+    expect(leafViewAt(MarkdownDocument.parse('a'), 'a').item, isNull);
+  });
+
   group('caret mapping', () {
     final document = MarkdownDocument.parse('> - abc\n>   def\n\nx');
     final [first, second, blank, _] = document.lines;

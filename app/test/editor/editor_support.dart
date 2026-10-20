@@ -41,3 +41,12 @@ NoteDocumentController documentOf(
   checkedItems: checkedItems,
   addItems: addItems,
 );
+
+/// The line of [note] whose text (after its marks, e.g. an item's marker
+/// and box) is [content].
+LineId lineWith(NoteDocumentController note, String content) => note
+    .document
+    .leaves
+    .expand((leaf) => leaf.lines)
+    .firstWhere((line) => line.content == content)
+    .id;

@@ -23,7 +23,7 @@ extension ListConversion on MarkdownDocument {
   /// line, if any.
   (MarkdownDocument, LineId?) toList(List<LineId> ids, ListKind kind) {
     final converting = [
-      for (final id in ids)
+      for (final id in {...ids.map(_lineStandingFor)})
         if (lineOf(id) case final line? when _converts(line)) line,
     ];
     final filled = converting.where((line) => !line.isBlank).toList();
@@ -45,6 +45,18 @@ extension ListConversion on MarkdownDocument {
     );
   }
 
+  /// The line [id] turns with: an item's marker line for each line of the
+  /// item's text that is in the item, not lazily; else [id] itself.
+  LineId _lineStandingFor(LineId id) {
+    final leaf = leafOf(id);
+    final item = leaf.ancestors.whereType<ItemBlock>().firstOrNull;
+    final inItem =
+        item != null &&
+        item.leaves.first == leaf &&
+        leaf.lineOf(id).prefix.any((segment) => segment.container == item);
+    return inItem ? item.markerLine : id;
+  }
+
   /// Whether [line] is an item or a line of text.
   bool _converts(MarkdownLine line) =>
       outline.itemOf(line.id) != null ||
@@ -58,15 +70,15 @@ extension ListConversion on MarkdownDocument {
     _ => false,
   };
 
-  /// Line [id], an item, as a line of text: its content after the quote
-  /// marks it is in.
+  /// Line [id], an item, as a line of text: what it holds in the item,
+  /// after the quote marks the item is in.
   MarkdownDocument _toText(LineId id) {
     final item = outline.itemOf(id)!;
     final line = lineOf(id)!;
     final parts = outline.partsOf(item, line);
     return withLines(
       [...lines]
-        ..[indexOf(id)] = line.withRaw('${parts.outer}${_contentOf(line)}'),
+        ..[indexOf(id)] = line.withRaw('${parts.outer}${_inItem(item, line)}'),
     );
   }
 
@@ -98,7 +110,7 @@ extension ListConversion on MarkdownDocument {
     final changed = withLines(
       [...lines]
         ..[indexOf(id)] = line.withRaw(
-          '${parts.outer}${parts.indent}${style.marker}$content',
+          '${parts.outer}${parts.indent}${style.marker}${_inItem(item, line)}',
         ),
     );
     final now = changed.outline.itemOf(id);
@@ -127,6 +139,17 @@ extension ListConversion on MarkdownDocument {
       .lastOrNull
       ?.marker
       .bullet;
+
+  /// What [line] holds in [item]: all after the item's marker and box or
+  /// indent, e.g. the marks of a quote in the item.
+  String _inItem(ItemBlock item, MarkdownLine line) =>
+      switch (leafOf(line.id)
+          .lineOf(line.id)
+          .prefix
+          .lastWhereOrNull((segment) => segment.container == item)) {
+        final own? => line.raw.substring(own.end),
+        null => outline.partsOf(item, line).rest,
+      };
 
   /// What [line] holds after its prefix: an item's text after its marker
   /// and box, a line of text without its quote marks and indent.

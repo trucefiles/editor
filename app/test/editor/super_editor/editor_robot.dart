@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
+import 'package:truce_editor/editor/super_editor/note_nodes.dart';
 
 import '../editor_support.dart';
 
@@ -40,6 +42,7 @@ Future<void> showNoteEditor(
         note,
         onRemoved: onRemoved ?? (_, _) {},
         onLink: onLink ?? (_) {},
+        images: (_) => null,
       ),
     ),
   ),
@@ -48,6 +51,39 @@ Future<void> showNoteEditor(
 /// The id of the [index]th node of type [T] in the editor.
 String nodeOf<T extends DocumentNode>({int index = 0}) =>
     SuperEditorInspector.findDocument()!.whereType<T>().elementAt(index).id;
+
+/// The frames text node [node] shows inside, outermost first.
+List<Frame> framesIn(DocumentNode node) =>
+    node.getMetadataValue(framesKey) as List<Frame>? ?? const [];
+
+/// The item whose marker shows beside [node], if any.
+ItemFrame? markedItemOf(DocumentNode node) =>
+    switch (framesIn(node).whereType<ItemFrame>().lastOrNull) {
+      final item? when item.showsMarker => item,
+      _ => null,
+    };
+
+/// The id of the [index]th text node that starts a checkbox item.
+String checkboxNodeOf({int index = 0}) =>
+    _textNodeOf(index, (item) => item?.kind == ListKind.checkbox);
+
+/// The id of the [index]th text node that starts a bullet or numbered
+/// item.
+String listItemNodeOf({int index = 0}) => _textNodeOf(
+  index,
+  (item) => item != null && item.kind != ListKind.checkbox,
+);
+
+/// The id of the [index]th text node that starts no item.
+String paragraphNodeOf({int index = 0}) =>
+    _textNodeOf(index, (item) => item == null);
+
+String _textNodeOf(int index, bool Function(ItemFrame? item) test) =>
+    SuperEditorInspector.findDocument()!
+        .whereType<TextNode>()
+        .where((node) => test(markedItemOf(node)))
+        .elementAt(index)
+        .id;
 
 /// A user's taps in the note editor.
 extension NoteEditorRobot on WidgetTester {

@@ -1,8 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:super_editor/super_editor.dart';
-import 'package:super_editor/super_reader_test.dart';
 import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
 import 'package:truce_editor/markdown/markdown_links.dart';
@@ -29,6 +28,7 @@ void main() {
                 note,
                 onRemoved: (_, _) {},
                 onLink: (url) => openMarkdownLink(context, ref, url),
+                images: (_) => null,
               ),
             ),
           ),
@@ -38,39 +38,56 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  String shown() => SuperReaderInspector.findDocument()!
-      .whereType<TextNode>()
-      .map((node) => node.text.toPlainText())
+  Iterable<InlineSpan> spans(WidgetTester tester) => tester
+      .widgetList<SelectableText>(find.byType(SelectableText))
+      .expand((text) {
+        final spans = <InlineSpan>[];
+        text.textSpan!.visitChildren((span) {
+          spans.add(span);
+          return true;
+        });
+        return spans;
+      });
+
+  String shown(WidgetTester tester) => tester
+      .widgetList<SelectableText>(find.byType(SelectableText))
+      .map((text) => text.textSpan!.toPlainText())
       .join('\n');
 
-  /// Taps the middle of [text] where the note shows it.
+  /// Taps the link that shows [text].
   Future<void> tapLink(WidgetTester tester, String text) async {
-    final node = SuperReaderInspector.findDocument()!
-        .whereType<TextNode>()
-        .firstWhere((node) => node.text.toPlainText().contains(text));
-    final start = node.text.toPlainText().indexOf(text);
-    await SuperReaderRobot(tester).tapAtDocumentPosition(
-      DocumentPosition(
-        nodeId: node.id,
-        nodePosition: TextNodePosition(offset: start + text.length ~/ 2),
-      ),
-    );
+    final link = spans(tester)
+        .whereType<TextSpan>()
+        .firstWhere((span) => span.text == text && span.recognizer != null);
+    (link.recognizer! as TapGestureRecognizer).onTap!();
     await tester.pumpAndSettle();
   }
 
   testWidgets('shows Markdown without its markup', (tester) async {
     await show(tester, '# Title\n\nSome **bold** text.\n\n- [x] done');
 
-    expect(shown(), contains('Title'));
-    expect(shown(), contains('Some bold text.'));
-    expect(shown(), isNot(contains('#')));
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(shown(tester), contains('Title'));
+    expect(shown(tester), contains('Some bold text.'));
+    expect(shown(tester), isNot(contains('#')));
+    expect(find.byIcon(Icons.check_box), findsOne);
   });
 
-  testWidgets('keeps line breaks as typed', (tester) async {
+  testWidgets('joins lines without a blank line between them', (tester) async {
     await show(tester, 'one\ntwo');
 
-    expect(shown(), 'one\ntwo');
+    expect(shown(tester), 'one two');
+  });
+
+  testWidgets('shows checked items in their place', (tester) async {
+    await show(tester, '- [x] a\n- [ ] b');
+
+    expect(shown(tester), 'a\nb');
+  });
+
+  testWidgets('leaves front matter out', (tester) async {
+    await show(tester, '---\ntitle: x\n---\nbody');
+
+    expect(shown(tester), 'body');
   });
 
   testWidgets('opens a web link on tap', (tester) async {

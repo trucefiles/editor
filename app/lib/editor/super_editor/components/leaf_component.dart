@@ -68,13 +68,35 @@ class _LeafComponentState extends State<LeafComponent>
       highlightWhenEmpty: viewModel.highlightWhenEmpty,
       underlines: viewModel.createUnderlines(),
     );
-    return framed(_frames, text, row: _itemRow);
+    final framedText = framed(_frames, text, row: _itemRow);
+    final (item, actions) = (_markedItem, widget.actions);
+    if (item == null || actions == null) return framedText;
+    // Around the whole row, indent included: a drop or swipe anywhere
+    // on it counts.
+    return LineDropTarget(
+      item: item.item,
+      step: itemLevelIndent,
+      onDrop: (dragged, {required below, required levels}) =>
+          _drop(actions, item.item, dragged, below: below, levels: levels),
+      child: SwipeToIndent(
+        step: itemLevelIndent,
+        onIndent: () => actions.indent(item.item),
+        onOutdent: () => actions.outdent(item.item),
+        child: Opacity(opacity: _dragging ? 0.3 : 1, child: framedText),
+      ),
+    );
   }
+
+  /// The item whose marker shows beside the text, if any.
+  ItemFrame? get _markedItem => switch (_item) {
+    final item? when item.showsMarker => item,
+    _ => null,
+  };
 
   /// The row of [item] beside [text], the text that starts it.
   Widget _itemRow(ItemFrame item, Widget text) {
     final actions = widget.actions;
-    final row = Row(
+    return Row(
       key: _rowKey,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -96,19 +118,6 @@ class _LeafComponentState extends State<LeafComponent>
         Expanded(child: SwipeToIndent.keepMouseDrags(text)),
         if (actions != null) _menu(item, actions),
       ],
-    );
-    if (actions == null) return row;
-    return LineDropTarget(
-      item: item.item,
-      step: itemLevelIndent,
-      onDrop: (dragged, {required below, required levels}) =>
-          _drop(actions, item.item, dragged, below: below, levels: levels),
-      child: SwipeToIndent(
-        step: itemLevelIndent,
-        onIndent: () => actions.indent(item.item),
-        onOutdent: () => actions.outdent(item.item),
-        child: Opacity(opacity: _dragging ? 0.3 : 1, child: row),
-      ),
     );
   }
 

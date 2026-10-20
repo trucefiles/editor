@@ -69,8 +69,8 @@ final class NoteEditorAdapter
   /// (see [LeafView.held]); it shows as an item once the caret leaves it.
   LineId? _heldLine;
 
-  /// Where the caret goes once the editor shows the note again.
-  LineCaret? _nextCaret;
+  /// Where the selection goes once the editor shows the note again.
+  _LineSelection? _next;
 
   /// Whether the editor should take the keyboard then.
   bool _focusNext = false;
@@ -112,13 +112,10 @@ final class NoteEditorAdapter
   /// see [NoteDocumentController.toList]. The caret stays in its place in
   /// the text, or goes into an item added for want of text to turn.
   void toList(ListKind kind) {
-    final caret = _caretOf(_composer.selection?.extent);
-    final inContent = caret == null ? null : _inContent(caret);
-    final added = note.toList(_selectedLines(), kind);
-    if (added != null) {
-      _moveCaretTo((line: added, offset: 0), focus: true);
-    } else if (inContent != null) {
-      _nextCaret = _fromContent(inContent);
+    LineId? added;
+    _keepingSelection(() => added = note.toList(_selectedLines(), kind));
+    if (added case final line?) {
+      _moveCaretTo((line: line, offset: 0), focus: true);
     }
   }
 
@@ -140,7 +137,7 @@ final class NoteEditorAdapter
     if (caret == null) return;
     final view = _viewAt(caret);
     if (view == null) return;
-    _nextCaret = edit(view, view.offsetOf(caret)!);
+    _next = _collapsed(edit(view, view.offsetOf(caret)!));
   }
 
   @override
@@ -149,7 +146,7 @@ final class NoteEditorAdapter
     if (view == null) return;
     final fallback = _caretNear(nodeId);
     final joined = note.joinBackward(view, _textViewNextTo(nodeId, -1));
-    if (joined != null) _nextCaret = joined.caret ?? fallback;
+    if (joined != null) _next = _collapsed(joined.caret ?? fallback);
   }
 
   @override
@@ -158,23 +155,25 @@ final class NoteEditorAdapter
     if (view == null) return;
     final fallback = _caretNear(nodeId);
     final joined = note.joinForward(view, _textViewNextTo(nodeId, 1));
-    if (joined != null) _nextCaret = joined.caret ?? fallback;
+    if (joined != null) _next = _collapsed(joined.caret ?? fallback);
   }
 
   @override
   void paste(String text) {
     // Pasted Windows or old Mac line breaks are line breaks too: a `\r`
     // left in a line would end up in the file as a space.
-    _nextCaret = _replaceSelection(text.replaceAll(_breaks, '\n'));
+    _next = _collapsed(_replaceSelection(text.replaceAll(_breaks, '\n')));
   }
 
   @override
   void replaceText(String nodeId, int start, int end, String text) {
     if (_views[nodeId] case final view?) {
-      _nextCaret = note.replaceText(
-        (view: view, offset: start),
-        (view: view, offset: end),
-        text,
+      _next = _collapsed(
+        note.replaceText(
+          (view: view, offset: start),
+          (view: view, offset: end),
+          text,
+        ),
       );
     }
   }
@@ -182,11 +181,11 @@ final class NoteEditorAdapter
   @override
   bool indentAtCaret({required bool outdent}) {
     final item = switch (_views[_composer.selection?.extent.nodeId]) {
-      final LeafView view => view.frames.whereType<ItemFrame>().lastOrNull,
+      final LeafView view => view.item,
       _ => null,
     };
     if (item == null) return false;
-    outdent ? this.outdent(item.item) : indent(item.item);
+    outdent ? this.outdent(item) : indent(item);
     return true;
   }
 
@@ -196,17 +195,17 @@ final class NoteEditorAdapter
   void toggle(LineId item) => note.toggle(item);
 
   @override
-  void indent(LineId item) => _keepingCaret(() => note.indent(item));
+  void indent(LineId item) => _keepingSelection(() => note.indent(item));
 
   @override
-  void outdent(LineId item) => _keepingCaret(() => note.outdent(item));
+  void outdent(LineId item) => _keepingSelection(() => note.outdent(item));
 
   @override
   void delete(LineId item) => onRemoved('Item deleted', note.remove(item));
 
   @override
   void move(LineId item, {required LineId target, required bool below}) =>
-      _keepingCaret(() => note.move(item, target: target, below: below));
+      _keepingSelection(() => note.move(item, target: target, below: below));
 
   // Display.
 
@@ -234,10 +233,12 @@ final class NoteEditorAdapter
     );
     // A selection the edit left (e.g. formatted text) stays as it is in
     // the text.
-    if (_composer.selection?.isCollapsed ?? true) _nextCaret = caret;
+    if (_composer.selection?.isCollapsed ?? true) _next = _collapsed(caret);
     // The edit is in the views already, also before the editor shows the
     // note again: a next edit before then counts from it.
-    _views = _viewsOf(caretLine: _nextCaret?.line);
+    _views = _viewsOf(
+      caretLine: (_next?.extent ?? _caretOf(_composer.selection?.extent))?.line,
+    );
   }
 
   /// The selected text replaced by [text]; returns the caret after it.
@@ -314,21 +315,21 @@ final class NoteEditorAdapter
     };
   }
 
-  /// The lines the selection spans, in file order.
+  /// The lines the selection spans, as the editor shows them: lines
+  /// shown elsewhere (e.g. in the Done section) or not at all are not in
+  /// it.
   List<LineId> _selectedLines() {
     final selection = _composer.selection;
-    final carets = [
+    final shown = [
+      for (final view in _views.values)
+        for (final line in view.lines) line.line.id,
+    ];
+    final ends = [
       ?_caretOf(selection?.base),
       ?_caretOf(selection?.extent),
-    ].map((caret) => note.document.indexOf(caret.line)).toList()..sort();
-    if (carets.isEmpty) return const [];
-    return [
-      for (final line in note.document.lines.sublist(
-        carets.first,
-        carets.last + 1,
-      ))
-        line.id,
-    ];
+    ].map((caret) => shown.indexOf(caret.line)).toList()..sort();
+    if (ends.isEmpty || ends.first < 0) return const [];
+    return shown.sublist(ends.first, ends.last + 1);
   }
 
   /// [caret] as a place in its line's content, which stays while the
@@ -364,16 +365,27 @@ final class NoteEditorAdapter
         view,
   ].firstOrNull;
 
-  /// Runs [action], keeping the caret where it is in its line's content.
-  void _keepingCaret(void Function() action) {
-    final caret = _caretOf(_composer.selection?.extent);
-    final inContent = caret == null ? null : _inContent(caret);
+  /// Runs [action], keeping the selection where it is in its lines'
+  /// content.
+  void _keepingSelection(void Function() action) {
+    final selection = _composer.selection;
+    final ends = [
+      for (final end in [selection?.base, selection?.extent])
+        if (_caretOf(end) case final caret?) _inContent(caret),
+    ];
     action();
-    if (inContent != null) _nextCaret = _fromContent(inContent);
+    if (ends case [final base?, final extent?]) {
+      if ((_fromContent(base), _fromContent(extent)) case (
+        final base?,
+        final extent?,
+      )) {
+        _next = (base: base, extent: extent);
+      }
+    }
   }
 
   void _moveCaretTo(LineCaret caret, {required bool focus}) {
-    _nextCaret = caret;
+    _next = (base: caret, extent: caret);
     _focusNext = focus;
     _scheduleSync();
   }
@@ -445,8 +457,8 @@ final class NoteEditorAdapter
   void _sync() {
     _syncScheduled = false;
     if (_disposed) return;
-    final selection = switch ((_nextCaret, _composer.selection)) {
-      (final caret?, _) => (base: caret, extent: caret),
+    final selection = switch ((_next, _composer.selection)) {
+      (final next?, _) => next,
       (null, final current?) => switch ((
         _caretOf(current.base),
         _caretOf(current.extent),
@@ -457,7 +469,7 @@ final class NoteEditorAdapter
       _ => null,
     };
     final focus = _focusNext;
-    _nextCaret = null;
+    _next = null;
     _focusNext = false;
     final nodes = _targetNodes(caretLine: selection?.extent.line);
     final at = selection == null ? null : _selectionAt(selection, nodes);
@@ -499,3 +511,7 @@ final _breaks = RegExp('\r\n?');
 
 /// A selection as places in lines.
 typedef _LineSelection = ({LineCaret base, LineCaret extent});
+
+/// The selection of just [caret], if any.
+_LineSelection? _collapsed(LineCaret? caret) =>
+    caret == null ? null : (base: caret, extent: caret);

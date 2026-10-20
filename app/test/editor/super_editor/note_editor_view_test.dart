@@ -37,7 +37,7 @@ void main() {
     final text = FakeNoteText('# Shop\n- [ ] milk\n- [ ] eggs');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<TaskNode>(), 4);
+    await tester.caretIn(checkboxNodeOf(), 4);
     await tester.typeImeText(' oat');
 
     expect(text.text, '# Shop\n- [ ] milk oat\n- [ ] eggs');
@@ -49,10 +49,10 @@ void main() {
     final text = FakeNoteText('- [ ] milk\n1. one');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<TaskNode>(), 4);
+    await tester.caretIn(checkboxNodeOf(), 4);
     await tester.pressEnter();
     await tester.typeImeText('eggs');
-    await tester.caretIn(nodeOf<ListItemNode>(), 3);
+    await tester.caretIn(listItemNodeOf(), 3);
     await tester.pressEnter();
     await tester.typeImeText('two');
 
@@ -65,7 +65,7 @@ void main() {
     final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+    await tester.caretIn(checkboxNodeOf(index: 1), 0);
     await tester.pressBackspace();
 
     expect(text.text, '- [ ] milkeggs');
@@ -111,7 +111,7 @@ void main() {
     final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<TaskNode>(), 0);
+    await tester.caretIn(checkboxNodeOf(), 0);
     final menu = find.byTooltip('Item actions').hitTestable();
     expect(menu, findsOneWidget, reason: 'only the edited row has a menu');
     await tester.tap(menu);
@@ -131,7 +131,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      SuperEditorInspector.findDocument()!.whereType<TaskNode>(),
+      SuperEditorInspector.findDocument()!.where(
+        (node) => markedItemOf(node) != null,
+      ),
       hasLength(2),
     );
     expect(text.edits, isEmpty);
@@ -141,7 +143,7 @@ void main() {
     final text = FakeNoteText('buy milk');
     await pumpEditor(tester, text);
 
-    await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+    await tester.selectWordIn(paragraphNodeOf(), 5);
     await tester.tap(find.byTooltip('Bold (Ctrl+B)'));
     await tester.pumpAndSettle();
 
@@ -152,7 +154,7 @@ void main() {
     final text = FakeNoteText('```\nbuy milk\n```');
     await pumpEditor(tester, text);
 
-    await tester.selectWordIn(nodeOf<ParagraphNode>(index: 1), 5);
+    await tester.selectWordIn(paragraphNodeOf(), 9);
     await tester.tap(find.byTooltip('Bold (Ctrl+B)'));
     await tester.pumpAndSettle();
 
@@ -163,7 +165,7 @@ void main() {
     final text = FakeNoteText('> quote');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 4);
+    await tester.caretIn(paragraphNodeOf(), 4);
     await tester.tap(find.byTooltip('Heading'));
     await tester.pumpAndSettle();
 
@@ -181,7 +183,7 @@ void main() {
       final text = FakeNoteText('buy milk');
       await pumpEditor(tester, text);
 
-      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.selectWordIn(paragraphNodeOf(), 5);
       await tester.tap(find.byTooltip('Link (Ctrl+K)'));
       await tester.pumpAndSettle();
       await addLink(tester, 'https://x.org');
@@ -193,7 +195,7 @@ void main() {
       final text = FakeNoteText('buy milk');
       await pumpEditor(tester, text);
 
-      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.selectWordIn(paragraphNodeOf(), 5);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
@@ -207,7 +209,7 @@ void main() {
       final text = FakeNoteText('buy milk');
       await pumpEditor(tester, text);
 
-      await tester.selectWordIn(nodeOf<ParagraphNode>(), 5);
+      await tester.selectWordIn(paragraphNodeOf(), 5);
       await tester.tap(find.byTooltip('Link (Ctrl+K)'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
@@ -229,7 +231,7 @@ void main() {
       final text = FakeNoteText('milk\neggs');
       await pumpEditor(tester, text);
 
-      await tester.caretIn(nodeOf<ParagraphNode>(), 2);
+      await tester.caretIn(paragraphNodeOf(), 2);
       await press(tester, 'Checklist');
       await tester.typeImeText('X');
 
@@ -240,7 +242,7 @@ void main() {
       final text = FakeNoteText('- [ ] milk');
       await pumpEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(), 4);
+      await tester.caretIn(checkboxNodeOf(), 4);
       await press(tester, 'Numbered list');
       expect(text.text, '1. milk');
       await press(tester, 'Numbered list');
@@ -253,11 +255,24 @@ void main() {
       final text = FakeNoteText('a\nb\nc');
       await pumpEditor(tester, text);
 
-      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+      await tester.caretIn(paragraphNodeOf(), 0);
       await tester.pressShiftDownArrow();
       await press(tester, 'Bulleted list');
 
       expect(text.text, '- a\n- b\nc');
+    });
+
+    testWidgets('leave the items shown in the Done section as they are', (
+      tester,
+    ) async {
+      final text = FakeNoteText('- [ ] a\n- [x] d\n- [ ] b');
+      await pumpEditor(tester, text);
+
+      await tester.caretIn(checkboxNodeOf(), 0);
+      await tester.pressShiftDownArrow();
+      await press(tester, 'Checklist');
+
+      expect(text.text, 'a\n- [x] d\nb');
     });
 
     testWidgets('tapped again over blank lines, turn the list back', (
@@ -266,7 +281,7 @@ void main() {
       final text = FakeNoteText('a\n\nb');
       await pumpEditor(tester, text);
 
-      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+      await tester.caretIn(paragraphNodeOf(), 0);
       await tester.pressShiftDownArrow();
       await tester.pressShiftDownArrow();
       await press(tester, 'Bulleted list');
@@ -294,7 +309,7 @@ void main() {
     await pumpEditor(tester, text, mode: NoteMode.markdown);
     expect(find.byType(Checkbox), findsNothing);
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 4);
+    await tester.caretIn(paragraphNodeOf(), 4);
     await tester.typeImeText('x');
 
     expect(text.text, '- [ x] milk');
@@ -303,21 +318,21 @@ void main() {
   testWidgets('Visual edit formats lines but not code', (tester) async {
     await pumpEditor(tester, FakeNoteText('```\n**a**\n```\n**b**\n* * *'));
 
-    expect(find.text('**a**', findRichText: true), findsOneWidget);
+    expect(find.textContaining('**a**', findRichText: true), findsOneWidget);
     expect(find.text('b', findRichText: true), findsOneWidget);
     expect(find.text('* * *', findRichText: true), findsOneWidget);
   });
 
   group('links', () {
-    const note = 'see [docs](https://a.b) now\nother';
+    const note = 'see [docs](https://a.b) now\n\nother';
 
     testWidgets('a tap opens one in a line the caret is not in', (
       tester,
     ) async {
       await pumpEditor(tester, FakeNoteText(note));
-      await tester.caretIn(nodeOf<ParagraphNode>(index: 1), 0);
+      await tester.caretIn(paragraphNodeOf(index: 2), 0);
 
-      await tester.tapAt(tester.tapPointIn(nodeOf<ParagraphNode>(), 6));
+      await tester.tapAt(tester.tapPointIn(paragraphNodeOf(), 6));
       await tester.pumpAndSettle();
 
       expect(links, ['https://a.b']);
@@ -327,9 +342,9 @@ void main() {
       tester,
     ) async {
       await pumpEditor(tester, FakeNoteText(note));
-      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+      await tester.caretIn(paragraphNodeOf(), 0);
 
-      await tester.caretIn(nodeOf<ParagraphNode>(), 6);
+      await tester.caretIn(paragraphNodeOf(), 6);
 
       expect(links, isEmpty);
       expect(
@@ -338,18 +353,16 @@ void main() {
       );
     });
 
-    for (final (name, text, nodeType) in [
-      ('a list item', '- see [docs](https://a.b) now\nother', ListItemNode),
-      ('a quote', '> see [docs](https://a.b) now\n\nother', ParagraphNode),
+    for (final (name, text) in [
+      ('a list item', '- see [docs](https://a.b) now\n\nother'),
+      ('a quote', '> see [docs](https://a.b) now\n\nother'),
     ]) {
       testWidgets('a tap opens one in $name', (tester) async {
         await pumpEditor(tester, FakeNoteText(text));
         final document = SuperEditorInspector.findDocument()!;
         await tester.caretIn(document.last.id, 0);
 
-        final linked = document.firstWhere(
-          (node) => node.runtimeType == nodeType,
-        );
+        final linked = document.firstWhere((node) => framesIn(node).isNotEmpty);
         await tester.tapAt(tester.tapPointIn(linked.id, 6));
         await tester.pumpAndSettle();
 
@@ -361,7 +374,7 @@ void main() {
       tester,
     ) async {
       await pumpEditor(tester, FakeNoteText(note), mode: NoteMode.markdown);
-      final link = tester.tapPointIn(nodeOf<ParagraphNode>(), 6);
+      final link = tester.tapPointIn(paragraphNodeOf(), 6);
 
       await tester.tapAt(link);
       await tester.pump(kDoubleTapTimeout);
@@ -381,7 +394,7 @@ void main() {
     await pumpEditor(tester, text);
     expect(find.text('Untitled'), findsOneWidget);
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+    await tester.caretIn(paragraphNodeOf(), 0);
     await tester.typeImeText('Idea');
 
     expect(find.text('Untitled'), findsNothing);
@@ -404,7 +417,7 @@ void main() {
       ),
     );
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+    await tester.caretIn(paragraphNodeOf(), 0);
     await tester.pressCtlV();
     await tester.pumpAndSettle();
 
@@ -417,7 +430,7 @@ void main() {
     final text = FakeNoteText('buy milk');
     await pumpEditor(tester, text);
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 5);
+    await tester.caretIn(paragraphNodeOf(), 5);
     await tester.sendKeyEvent(LogicalKeyboardKey.numpad4);
     await tester.typeImeText('x');
     await tester.sendKeyEvent(LogicalKeyboardKey.numpad7);
@@ -432,7 +445,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.numLock);
     addTearDown(() => tester.sendKeyEvent(LogicalKeyboardKey.numLock));
 
-    await tester.caretIn(nodeOf<ParagraphNode>(), 5);
+    await tester.caretIn(paragraphNodeOf(), 5);
     await tester.sendKeyEvent(LogicalKeyboardKey.numpad4);
     await tester.typeImeText('x');
 

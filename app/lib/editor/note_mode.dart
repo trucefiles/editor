@@ -21,9 +21,6 @@ enum NoteMode {
   /// Whether the note's text can be edited in this mode.
   bool get edits => this != read;
 
-  /// Whether list items and quotes show as such, not as their lines.
-  bool get showsBlocks => this != markdown;
-
   /// How Markdown marks show in this mode while editing.
   MarkStyle get marks => this == markdown ? MarkStyle.shown : MarkStyle.mixed;
 }

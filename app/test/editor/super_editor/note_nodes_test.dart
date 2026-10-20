@@ -4,58 +4,55 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/editor/super_editor/display_nodes.dart';
 import 'package:truce_editor/editor/super_editor/note_nodes.dart';
 
-/// The editor nodes that show a note's lines and display entries.
+/// The editor nodes that show a note's display entries.
 void main() {
-  DocumentNode nodeOf(String text, {int index = 0}) {
-    final document = MarkdownLines.parse(text);
-    final view = LineView.of(document, document.lines[index], blocks: true);
-    return lineNode('n', view, AttributedText(view.text));
+  /// The node of the [index]th entry of [text] in Visual edit.
+  DocumentNode nodeAt(String text, {int index = 0}) {
+    final document = MarkdownDocument.parse(text);
+    final entry = const Arrangement.blocks().of(document)[index];
+    final view = switch (entry) {
+      LeafEntry(:final leaf) || TableEntry(:final leaf) => LeafView.of(
+        document,
+        document.leafById(leaf)!,
+      ),
+      _ => null,
+    };
+    return nodeOf(entry, view, document);
   }
 
-  test('an item shows as its kind of list node, at its level', () {
-    final task = nodeOf('- a\n  - [x] b', index: 1);
-    final numbered = nodeOf('3. c');
+  test('a block shows as a paragraph of its text, inside its frames', () {
+    final node = nodeAt('- a\n  - [x] b', index: 1) as ParagraphNode;
 
-    expect(task, isA<TaskNode>());
-    expect(((task as TaskNode).isComplete, task.indent), (true, 1));
-    expect(numbered, isA<ListItemNode>());
-    expect(numbered.getMetadataValue(listNumberKey), 3);
+    expect(node.text.toPlainText(), 'b');
+    expect(node.getMetadataValue(framesKey), [
+      isA<ItemFrame>(),
+      isA<ItemFrame>().having((frame) => frame.checked, 'checked', isTrue),
+    ]);
   });
 
-  test('other lines show as paragraphs, a quote as one', () {
-    final quote = nodeOf('> q') as ParagraphNode;
-
-    expect(
-      quote.getMetadataValue(NodeMetadata.blockType),
-      blockquoteAttribution,
+  test('a line as it is in the file shows inside no frames', () {
+    final document = MarkdownDocument.parse('> q');
+    final line = document.lines.single;
+    final node = nodeOf(
+      LineEntry(line.id),
+      RawLineView.of(document, line),
+      document,
     );
-    expect(
-      nodeOf('text').getMetadataValue(NodeMetadata.blockType),
-      paragraphAttribution,
-    );
+
+    expect((node as ParagraphNode).text.toPlainText(), '> q');
+    expect(node.getMetadataValue(framesKey), isEmpty);
   });
 
-  test('only list nodes show an item text after its marker', () {
-    expect(showsItemText(nodeOf('- a')), isTrue);
-    expect(showsItemText(nodeOf('- [ ] a')), isTrue);
-    expect(showsItemText(nodeOf('a')), isFalse);
+  test('a table shows drawn', () {
+    expect(nodeAt('| a |\n|---|'), isA<DrawnTableNode>());
   });
 
-  test('blockOf reads back what a line node shows', () {
-    expect(
-      blockOf(nodeOf('  - [x] b\n', index: 0)),
-      isA<ItemBlock>()
-          .having((block) => block.checked, 'checked', isTrue)
-          .having((block) => block.text, 'text', 'b'),
-    );
-    expect(blockOf(nodeOf('text')), isA<TextBlock>());
-  });
+  test('node ids stay with the first line of what they show', () {
+    final document = MarkdownDocument.parse('a\nb');
+    final again = document.reparse('a\nbc');
+    String idOf(MarkdownDocument document) =>
+        nodeIdOf(const Arrangement.blocks().of(document).single);
 
-  test('display entries show as their display nodes', () {
-    final document = MarkdownLines.parse('| a |\n|---|');
-    final byId = {for (final line in document.lines) line.id: line};
-    final table = TableEntry([for (final line in document.lines) line.id]);
-
-    expect(displayNode(table, byId), isA<DrawnTableNode>());
+    expect(idOf(again), idOf(document));
   });
 }

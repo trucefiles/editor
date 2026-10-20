@@ -195,6 +195,10 @@ final class LeafView extends EditView {
   @override
   LeafKind get kind => held ? LeafKind.paragraph : LeafKind.of(leaf);
 
+  /// The innermost item it is in, by its marker line, also while [held].
+  LineId? get item =>
+      leaf.ancestors.whereType<ItemBlock>().firstOrNull?.markerLine;
+
   /// Whether it is in a block quote.
   bool get quoted => frames.any((frame) => frame is QuoteFrame);
 

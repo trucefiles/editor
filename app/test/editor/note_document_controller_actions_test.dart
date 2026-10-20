@@ -1,11 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/note_mode.dart';
 
 import 'editor_support.dart';
 
-/// The view model's actions and how it arranges the lines per mode.
+/// The view model's actions and how it arranges the note per mode.
 void main() {
   late FakeNoteText text;
   late NoteDocumentController note;
@@ -16,17 +17,17 @@ void main() {
     addTearDown(note.dispose);
   }
 
+  /// The first lines of the text the editor shows.
   Set<LineId> shown() => {
     for (final entry in note.entries)
-      if (entry case LineEntry(:final id)) id,
+      if (entry case LeafEntry(leaf: final id) || LineEntry(line: final id)) id,
   };
 
-  LineId idOf(String lineText) =>
-      note.lines.lines.firstWhere((line) => line.text == lineText).id;
+  LineId idOf(String content) => lineWith(note, content);
 
   test('the add button adds an empty item of the kind next to it', () {
     open('* a\n- [ ] b');
-    final button = note.entries.whereType<AddItemEntry>().single;
+    final button = note.entries.whereType<AddItemEntry>().first;
 
     note.addItem(button);
 
@@ -39,7 +40,7 @@ void main() {
 
     final id = note.addItem(button);
 
-    expect(note.lines.lines.first.id, id);
+    expect(note.document.lines.first.id, id);
   });
 
   test('move puts an item below another', () {
@@ -88,7 +89,7 @@ void main() {
 
     note.showRaw(idOf('| a |'));
 
-    expect(note.entries, everyElement(isA<LineEntry>()));
+    expect(note.entries.single, isA<LeafEntry>());
   });
 
   test('Markdown edit shows every line as it is', () {
@@ -98,11 +99,28 @@ void main() {
     expect(shown(), hasLength(2));
   });
 
-  test('Read has the Done section but no add buttons', () {
-    open('- [ ] a\n- [x] b', mode: NoteMode.read);
+  test('Visual edit shows each block as its text', () {
+    open('- [ ] a\n  more\n\npara');
 
-    expect(note.entries.whereType<DoneHeadingEntry>(), hasLength(1));
-    expect(note.entries.whereType<AddItemEntry>(), isEmpty);
+    expect(note.entries.whereType<LeafEntry>(), hasLength(3));
+  });
+
+  test('Enter at the end of an item keeps its done subitems with it', () {
+    open('- [ ] a\n  - [x] a1\n- [ ] b');
+    final view = note.viewOf(note.entries.whereType<LeafEntry>().first)!;
+
+    note.enter(view, 1);
+
+    expect(text.text, '- [ ] a\n  - [x] a1\n- [ ] \n- [ ] b');
+  });
+
+  test('a toggle moves the item down when checked items go to the end', () {
+    open('- [ ] a\n- [ ] b');
+    note.setCheckedItems(CheckedItems.toEnd);
+
+    note.toggle(idOf('a'));
+
+    expect(text.text, '- [ ] b\n- [x] a');
   });
 
   test('a mode switch forgets tables shown as lines', () {

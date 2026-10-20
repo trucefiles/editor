@@ -34,7 +34,7 @@ void main() {
 
   test('notePreview keeps file order and shows items as boxes', () {
     expect(
-      notePreview('# T\nintro\n- [ ] a\n- [x] b\n  - [ ] c\nend'),
+      notePreview('# T\nintro\n- [ ] a\n- [x] b\n  - [ ] c\n\nend'),
       'intro\n☐ a\n☑ b\n  ☐ c\nend',
     );
   });

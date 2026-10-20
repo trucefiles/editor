@@ -119,6 +119,16 @@ void main() {
     expect(converted('> - a', ['a'], ListKind.bullet), '> a');
   });
 
+  test('keeps a quote in an item', () {
+    expect(converted('- > a', ['a'], ListKind.bullet), '> a');
+    expect(converted('- > a', ['a'], ListKind.checkbox), '- [ ] > a');
+  });
+
+  test("an item's text turns with its item, from any of its lines", () {
+    expect(converted('- a\\\n  b', ['b'], ListKind.bullet), 'a\\\n  b');
+    expect(converted('1. a\n   b', ['a', 'b'], ListKind.bullet), '- a\n   b');
+  });
+
   test('text in an item becomes an item in no item', () {
     expect(
       converted('- a\n\n  text', ['text'], ListKind.bullet),

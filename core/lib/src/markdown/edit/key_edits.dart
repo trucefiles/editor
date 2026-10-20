@@ -1,5 +1,6 @@
 import '../document/item_outline.dart';
 import '../document/markdown_document.dart';
+import '../inline/hard_break.dart';
 import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
@@ -103,10 +104,13 @@ extension KeyEdits on MarkdownDocument {
       };
 
   /// [lower]'s first line joined to [upper]'s last line, without a hard
-  /// break that ended it.
+  /// break being typed at the end of [upper]'s block. A plain text view
+  /// keeps every character.
   (MarkdownDocument, LineCaret) _joined(EditView upper, EditView lower) {
     final end = upper.text.length;
-    final from = upper.text.endsWith('\\') ? end - 1 : end;
+    final from = upper is LeafView && end > 0 && _breakEnds(upper.text)
+        ? end - 1
+        : end;
     return replaceText(
       (view: upper, offset: from),
       (view: lower, offset: 0),
@@ -238,11 +242,16 @@ extension KeyEdits on MarkdownDocument {
 /// Whether a hard line break (a backslash and the line break after it)
 /// ends at [offset] in [text]: Backspace there deletes it as one.
 bool hardBreakBefore(String text, int offset) =>
-    offset >= 2 && text[offset - 1] == '\n' && text[offset - 2] == '\\';
+    offset >= 2 && text[offset - 1] == '\n' && _breakAt(text, offset - 2);
 
 /// Whether a hard line break starts at [offset] in [text]: Delete there
 /// deletes it as one.
 bool hardBreakAfter(String text, int offset) =>
     offset + 1 < text.length &&
-    text[offset] == '\\' &&
-    text[offset + 1] == '\n';
+    text[offset + 1] == '\n' &&
+    _breakAt(text, offset);
+
+bool _breakAt(String text, int index) =>
+    text[index] == '\\' && breaksAt(text, index);
+
+bool _breakEnds(String text) => _breakAt(text, text.length - 1);

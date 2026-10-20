@@ -1,3 +1,4 @@
+import '../inline/hard_break.dart';
 import '../inline/inline_reader.dart';
 import '../inline/inlines.dart';
 import '../tree/block_starts.dart';
@@ -127,7 +128,8 @@ Iterable<MarkupSpan> _lineEndBackslashes(String text, int start, int end) => [
   for (final match in RegExp(
     r'\\(?=\n|$)',
   ).allMatches(text.substring(0, end), start))
-    MarkupSpan(const SyntaxMarkup(), match.start, match.end),
+    if (breaksAt(text, match.start))
+      MarkupSpan(const SyntaxMarkup(), match.start, match.end),
 ];
 
 int _lineEnd(String text, int from) => switch (text.indexOf('\n', from)) {

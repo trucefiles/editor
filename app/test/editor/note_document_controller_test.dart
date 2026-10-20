@@ -38,24 +38,10 @@ void main() {
     });
   });
 
-  LineId idOf(String text) =>
-      editor.lines.lines.firstWhere((line) => line.text == text).id;
+  LineId idOf(String content) => lineWith(editor, content);
 
-  /// Checks or unchecks the item [text] as the editor does.
-  void toggle(String text) {
-    final line = editor.lines.lines.firstWhere((line) => line.text == text);
-    editor.applyEdits([
-      BlockChanged(
-        line.id,
-        ItemBlock(
-          kind: ListKind.checkbox,
-          depth: 0,
-          text: text,
-          checked: !line.isChecked,
-        ),
-      ),
-    ]);
-  }
+  /// Checks or unchecks the item [content] as the editor does.
+  void toggle(String content) => editor.toggle(idOf(content));
 
   test('saves each action to the file', () async {
     toggle('a');
@@ -99,16 +85,11 @@ void main() {
 
   test('undo keeps an edit made after the action', () {
     final undo = editor.remove(idOf('b'));
-    editor.applyEdits([
-      BlockChanged(
-        idOf('a'),
-        const ItemBlock(kind: ListKind.checkbox, depth: 0, text: 'a2'),
-      ),
-    ]);
+    toggle('a');
 
     expect(editor.undo(undo), isFalse);
 
-    expect(session.text, '# list\n- [ ] a2\n');
+    expect(session.text, '# list\n- [x] a\n');
   });
 
   test('undo keeps a change from elsewhere made after the action', () {
@@ -124,6 +105,6 @@ void main() {
     session.edit('# list\n- [ ] c\n');
     session.edit('# list\n- [ ] cd\n');
 
-    expect(editor.lines.lines[1].text, 'cd');
+    expect(lineWith(editor, 'cd'), editor.document.lines[1].id);
   });
 }

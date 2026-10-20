@@ -209,6 +209,22 @@ void main() {
       expect(backspace('- a\\\n- b', '- b', '- a\\'), ('- ab', '- a|b'));
     });
 
+    test('an escaped backslash above stays', () {
+      expect(backspace('- a\\\\\n- b', '- b', '- a\\\\'), (
+        '- a\\\\b',
+        '- a\\\\|b',
+      ));
+    });
+
+    test('in Markdown edit, every character above stays', () {
+      final document = MarkdownDocument.parse('a\\\nb');
+      final [upper, lower] = [
+        for (final line in document.lines) RawLineView.of(document, line),
+      ];
+
+      expect(document.joinBackward(lower, upper)!.$1.text, 'a\\b');
+    });
+
     test('joins the last line of a view of several lines', () {
       expect(backspace('- a\\\n  b\n- c', '- c', '- a\\'), (
         '- a\\\n  bc',
@@ -269,6 +285,12 @@ void main() {
       expect(hardBreakBefore('a\\\nb', 2), isFalse);
       expect(hardBreakBefore('a\nb', 2), isFalse);
       expect(hardBreakBefore('\n', 1), isFalse);
+    });
+
+    test('an escaped backslash is no hard break', () {
+      expect(hardBreakBefore('a\\\\\nb', 4), isFalse);
+      expect(hardBreakAfter('a\\\\\nb', 2), isFalse);
+      expect(hardBreakBefore('a\\\\\\\nb', 5), isTrue);
     });
 
     test('hardBreakAfter: a backslash and line break start at the offset', () {
