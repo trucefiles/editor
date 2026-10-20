@@ -30,6 +30,7 @@ Prefer the simpler option when in doubt.
 - Mutation only where it is the job (a session, an editor bridge), inside one owner. A loop with local state only where it is the clearest form (e.g. a single-pass parser).
 - One rule, one place: logic two operations share is one helper, never two variants.
 - Names in the domain's words; doc comments state the contract, not the steps.
+- Best behavior, not legacy: existing behavior is no standard to keep. When a better or more correct behavior exists (for users, for the code, for efficiency), propose it with its user-visible impact and switch to it once agreed; compare with old code only to find the differences, never to copy its quirks.
 
 ## Robustness
 - No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
@@ -49,5 +50,5 @@ Prefer the simpler option when in doubt.
 - Unit tests for core and controllers; UI tests for user flows.
 - Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
 - Shared test doubles live in the test-only `test_support` package, never in a production `lib`.
-- Structural refactors change no behavior: the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
+- Structural refactors change no behavior unless a better one is agreed (see Best behavior): the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
 - Adversarial self-review of the diff before asking for review.
