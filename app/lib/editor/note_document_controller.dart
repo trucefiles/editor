@@ -147,14 +147,8 @@ final class NoteDocumentController extends ChangeNotifier {
   }
 
   /// See [MarkdownLines.moveNextTo].
-  void move(
-    LineId id, {
-    required LineId target,
-    required bool below,
-    int levels = 0,
-  }) => _apply(
-    _lines.moveNextTo(id, target: target, below: below, levels: levels),
-  );
+  void move(LineId id, {required LineId target, required bool below}) =>
+      _apply(_lines.moveNextTo(id, target: target, below: below));
 
   /// Indents the item [id] under the line shown above it.
   void indent(LineId id) => _apply(_lines.indent(id, hidden: _hiddenAbove(id)));

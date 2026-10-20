@@ -65,9 +65,9 @@ final class LineDrag {
 
 /// Takes items dropped on [child], the row of the item of node [nodeId]:
 /// a copy whose middle is over the row's upper half goes above it, else
-/// below it; shifted sideways by whole [step]s, it goes that many levels
-/// deeper or shallower. Meanwhile a gap opens there, as large as the
-/// dragged row.
+/// below it. Meanwhile a gap opens there, as large as the dragged row. A
+/// row's own copy, shifted sideways by whole [step]s, goes that many
+/// levels deeper or shallower.
 class LineDropTarget extends StatefulWidget {
   const LineDropTarget({
     required this.nodeId,
@@ -83,7 +83,7 @@ class LineDropTarget extends StatefulWidget {
   final double step;
 
   /// The dropped item's node, whether it goes below, and by how many
-  /// levels it goes deeper (shallower if negative).
+  /// levels it was shifted deeper (shallower if negative).
   final void Function(String nodeId, {required bool below, required int levels})
   onDrop;
   final Widget child;

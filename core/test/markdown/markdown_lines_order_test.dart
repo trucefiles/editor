@@ -242,51 +242,14 @@ void main() {
       );
     });
 
-    test('sideways, within the levels the spot allows', () {
-      final list = MarkdownLines.parse('- a\n  - x\n  - y\n- b\n');
-      String drop(int levels) => list
-          .moveNextTo(
-            idOf(list, 'b'),
-            target: idOf(list, 'x'),
-            below: true,
-            levels: levels,
-          )
-          .text;
-
-      expect(drop(1), '- a\n  - x\n    - b\n  - y\n');
-      expect(drop(3), '- a\n  - x\n    - b\n  - y\n');
-      expect(drop(-1), '- a\n  - x\n  - b\n  - y\n');
-    });
-
-    test('below the last subitem, can go back out to the margin', () {
-      final list = MarkdownLines.parse('- b\n- a\n  - x\n');
+    test('a subitem dropped by an item at the margin goes there', () {
+      final list = MarkdownLines.parse('- a\n- b\n  - y\n    - z\n');
 
       expect(
         list
-            .moveNextTo(
-              idOf(list, 'b'),
-              target: idOf(list, 'x'),
-              below: true,
-              levels: -1,
-            )
+            .moveNextTo(idOf(list, 'y'), target: idOf(list, 'a'), below: false)
             .text,
-        '- a\n  - x\n- b\n',
-      );
-    });
-
-    test('at the top of a list, stays at the margin', () {
-      final list = MarkdownLines.parse('# T\n- a\n- b\n  - y\n');
-
-      expect(
-        list
-            .moveNextTo(
-              idOf(list, 'y'),
-              target: idOf(list, 'a'),
-              below: false,
-              levels: 2,
-            )
-            .text,
-        '# T\n- y\n- a\n- b\n',
+        '- y\n  - z\n- a\n- b\n',
       );
     });
   });

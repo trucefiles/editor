@@ -146,9 +146,9 @@ class _ListLineComponentState extends State<ListLineComponent>
     ],
   );
 
-  /// The item [dragged] dropped on this one: next to it, and [levels]
-  /// deeper or, if negative, shallower. Dropped on itself, it indents or
-  /// outdents in place.
+  /// The item [dragged] dropped on this one: next to it, at the level of
+  /// the spot. Dropped on itself, it indents or outdents in place by
+  /// [levels], or shallower if negative.
   void _drop(
     LineActions actions,
     String dragged, {
@@ -156,7 +156,7 @@ class _ListLineComponentState extends State<ListLineComponent>
     required int levels,
   }) {
     if (dragged != _nodeId) {
-      actions.move(dragged, target: _nodeId, below: below, levels: levels);
+      actions.move(dragged, target: _nodeId, below: below);
       return;
     }
     for (var i = 0; i < levels.abs(); i++) {
