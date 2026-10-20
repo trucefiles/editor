@@ -48,10 +48,8 @@ final class ShownLine {
 
   /// [source] as is, with all its [markup], syntax included (shown
   /// dimmed); offsets are the same both ways.
-  factory ShownLine.asIs(String source, List<MarkupSpan> markup) {
-    final offsets = [for (var i = 0; i <= source.length; i++) i];
-    return ShownLine._(source, markup, offsets, offsets);
-  }
+  factory ShownLine.asIs(String source, List<MarkupSpan> markup) =>
+      ShownLine._(source, markup, null, null);
 
   /// What shows.
   final String text;
@@ -60,18 +58,24 @@ final class ShownLine {
   final List<MarkupSpan> markup;
 
   /// The source offset of each shown character, and the source length
-  /// last.
-  final List<int> _sourceOffsets;
+  /// last; `null` as is, where offsets are the same both ways.
+  final List<int>? _sourceOffsets;
 
-  /// For each source offset, how many shown characters come before it.
-  final List<int> _shownBefore;
+  /// For each source offset, how many shown characters come before it;
+  /// `null` as is.
+  final List<int>? _shownBefore;
 
   /// The source offset of the shown [offset]: the source offset of the
   /// character shown there, or the source's end past the last one.
-  int toSource(int offset) => _sourceOffsets[offset.clamp(0, text.length)];
+  int toSource(int offset) => switch (_sourceOffsets) {
+    final offsets? => offsets[offset.clamp(0, text.length)],
+    null => offset,
+  };
 
   /// The shown offset of the source [offset]; one inside hidden syntax
   /// goes to the next shown character.
-  int fromSource(int offset) =>
-      _shownBefore[offset.clamp(0, _shownBefore.length - 1)];
+  int fromSource(int offset) => switch (_shownBefore) {
+    final before? => before[offset.clamp(0, before.length - 1)],
+    null => offset,
+  };
 }

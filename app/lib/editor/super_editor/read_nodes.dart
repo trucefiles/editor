@@ -1,18 +1,20 @@
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../note_mode.dart';
 import 'marks/markup_text.dart';
 import 'note_look.dart';
 import 'note_nodes.dart';
 
-/// The nodes for [entries] of [document] to read: each line formatted,
-/// its Markdown syntax hidden; list items, quotes, "Done" headings and
-/// drawn tables and images as in Visual edit. A run of blank lines shows
-/// as one small gap, as between paragraphs.
+/// The nodes for [entries] of [document] to read in [mode]: each line as
+/// its marks and blocks show there, with "Done" headings and drawn tables
+/// and images. A run of blank lines shows as one small gap, as between
+/// paragraphs.
 List<DocumentNode> readNodes(
   List<DisplayEntry> entries,
-  MarkdownLines document,
-) {
+  MarkdownLines document, {
+  required NoteMode mode,
+}) {
   final byId = {for (final line in document.lines) line.id: line};
   bool blank(DisplayEntry? entry) =>
       entry is LineEntry &&
@@ -23,7 +25,8 @@ List<DocumentNode> readNodes(
       if (!(blank(entry) && index > 0 && blank(entries[index - 1])))
         switch (entry) {
           LineEntry(:final id) => _lineNode(
-            LineView.of(document, byId[id]!, blocks: true),
+            LineView.of(document, byId[id]!, blocks: mode.showsBlocks),
+            mode.marks,
             gap: blank(entry),
           ),
           _ => displayNode(entry, byId),
@@ -31,12 +34,8 @@ List<DocumentNode> readNodes(
   ];
 }
 
-DocumentNode _lineNode(LineView view, {required bool gap}) {
-  final shown = MarkStyle.hidden.show(
-    view.text,
-    view.markupOf(view.text),
-    edited: false,
-  );
+DocumentNode _lineNode(LineView view, MarkStyle marks, {required bool gap}) {
+  final shown = marks.show(view.text, view.markupOf(view.text), edited: false);
   return lineNode(
     'line-${view.id}',
     view,

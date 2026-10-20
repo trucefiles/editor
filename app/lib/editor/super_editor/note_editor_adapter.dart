@@ -62,11 +62,8 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   bool _syncScheduled = false;
   bool _disposed = false;
 
-  /// How each shown line shows, by line; see [LineView.of].
-  Map<LineId, LineView> _views = const {};
-
-  /// The item shown as text because the caret is in it (see
-  /// [LineView.of]); it shows as an item once the caret leaves it.
+  /// The item the editor shows as text because the caret was in it (see
+  /// [LineView.held]); it shows as an item once the caret leaves it.
   LineId? _heldLine;
 
   /// Where the caret goes once the editor shows the note again.
@@ -127,31 +124,20 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   List<DocumentNode> _targetNodes() {
     final lines = note.lines;
     _ids.retain({for (final line in lines.lines) line.id});
-    final caret = _line(caretLine);
     final byId = {for (final line in lines.lines) line.id: line};
-    _views = {
+    final views = {
       for (final entry in note.entries)
         if (entry case LineEntry(:final id))
-          id: LineView.of(
-            lines,
-            byId[id]!,
-            blocks: note.mode.showsBlocks,
-            caretLine: caret?.id,
-          ),
+          id: _viewOf(byId[id]!, caretLine: caretLine),
     };
-    _heldLine = switch ((caret, _views[caret?.id])) {
-      (final line?, LineView(item: null))
-          when note.mode.showsBlocks && lines.isItem(line) =>
-        line.id,
-      _ => null,
-    };
+    _heldLine = views.values.where((view) => view.held).firstOrNull?.id;
     return [
       for (final entry in note.entries)
         switch (entry) {
           LineEntry(:final id) => lineNode(
             _ids.nodeOf(id),
-            _views[id]!,
-            AttributedText(_views[id]!.text),
+            views[id]!,
+            AttributedText(views[id]!.text),
           ),
           _ => displayNode(entry, byId),
         },
@@ -206,10 +192,9 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     );
   }
 
-  /// Where the text [node] shows starts in its [line]: a paragraph shows
-  /// the whole line, an item the text after its marker.
+  /// Where the text [node] shows starts in its [line].
   int _textStart(DocumentNode node, MarkdownLine line) =>
-      node is ParagraphNode ? 0 : note.lines.textStartOf(line);
+      showsItemText(node) ? note.lines.textStartOf(line) : 0;
 
   /// Syncs once the current transaction and its listeners are done.
   void _scheduleSync() {
@@ -268,12 +253,21 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   MarkdownLine? _line(LineId? id) => id == null ? null : note.lines.lineOf(id);
 
-  /// How the line node [nodeId] shows its line; `null` for a node that
-  /// shows none, e.g. a heading or one not yet a line's.
-  LineView? viewOf(String nodeId) => switch (_ids.lineOf(nodeId)) {
-    final line? => _views[line],
+  /// How the line node [nodeId] shows its line, as the note has it now;
+  /// `null` for a node that shows none, e.g. a heading.
+  LineView? viewOf(String nodeId) => switch (_line(_ids.lineOf(nodeId))) {
+    final line? => _viewOf(line, caretLine: _heldLine),
     null => null,
   };
+
+  /// How [line] shows with the caret in [caretLine].
+  LineView _viewOf(MarkdownLine line, {required LineId? caretLine}) =>
+      LineView.of(
+        note.lines,
+        line,
+        blocks: note.mode.showsBlocks,
+        caretLine: caretLine,
+      );
 
   /// The url of the link at [position], by the markup of its line.
   String? linkAt(DocumentPosition position) {

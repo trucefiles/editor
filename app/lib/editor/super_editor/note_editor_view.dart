@@ -15,7 +15,6 @@ import 'components/quote_line_builder.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
-import 'marks/markup_text.dart';
 import 'marks/shown_lines.dart';
 import 'note_editor_adapter.dart';
 import 'note_keyboard_actions.dart';
@@ -76,7 +75,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     _marks = MarksPhase(
       marks: _mode.marks,
       viewOf: adapter.viewOf,
-      lines: _mode == NoteMode.visual ? _shownLines : null,
+      lines: _shownLines,
       composer: adapter.editor.composer,
     );
     if (widget.autofocus) adapter.placeCaretAtStart();
@@ -141,10 +140,8 @@ class _NoteEditorViewState extends State<NoteEditorView> {
           DisplayComponentBuilder(),
           QuoteLineBuilder(),
         ],
-        contentTapDelegateFactory: (context) => LinkTapHandler(
-          linkAt: (position) => _attributedLinkAt(context.document, position),
-          onLink: widget.onLink,
-        ),
+        contentTapDelegateFactory: (context) =>
+            LinkTapHandler(linkAt: read.linkAt, onLink: widget.onLink),
       );
     }
     final adapter = _adapter!;
@@ -205,14 +202,3 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     ];
   }
 }
-
-/// The url of the link at [position] in [document], as its text's
-/// attributions mark it.
-String? _attributedLinkAt(Document document, DocumentPosition position) =>
-    switch ((document.getNodeById(position.nodeId), position.nodePosition)) {
-      (final TextNode node, TextNodePosition(:final offset)) => linkAt(
-        node.text,
-        offset,
-      ),
-      _ => null,
-    };

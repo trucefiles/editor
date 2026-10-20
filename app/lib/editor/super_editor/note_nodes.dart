@@ -35,6 +35,11 @@ DocumentNode lineNode(
   ),
 };
 
+/// Whether [node], made by [lineNode], shows an item's text after its
+/// marker, not its whole line.
+bool showsItemText(DocumentNode node) =>
+    node is ListItemNode || node is TaskNode;
+
 /// The node of [entry], which is no line, whose lines [byId] holds.
 DisplayNode displayNode(DisplayEntry entry, Map<LineId, MarkdownLine> byId) =>
     switch (entry) {

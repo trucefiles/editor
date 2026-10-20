@@ -338,6 +338,25 @@ void main() {
       );
     });
 
+    for (final (name, text, nodeType) in [
+      ('a list item', '- see [docs](https://a.b) now\nother', ListItemNode),
+      ('a quote', '> see [docs](https://a.b) now\n\nother', ParagraphNode),
+    ]) {
+      testWidgets('a tap opens one in $name', (tester) async {
+        await pumpEditor(tester, FakeNoteText(text));
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.caretIn(document.last.id, 0);
+
+        final linked = document.firstWhere(
+          (node) => node.runtimeType == nodeType,
+        );
+        await tester.tapAt(tester.tapPointIn(linked.id, 6));
+        await tester.pumpAndSettle();
+
+        expect(links, ['https://a.b']);
+      });
+    }
+
     testWidgets('in Markdown edit, only Ctrl and a tap open one', (
       tester,
     ) async {

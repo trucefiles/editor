@@ -6,8 +6,8 @@ import 'shown_lines.dart';
 
 /// Styles each line node as [marks] show it, by the markup its line
 /// view reads from the node's text; the selected lines count as edited.
-/// Records how each line shows in [lines], if given, for its component to
-/// map positions.
+/// Records how each line shows in [lines], for its component to map
+/// positions.
 ///
 /// It follows the selection until [close]. Not in [dispose]: super_editor
 /// disposes the phases of a layout it rebuilds, e.g. for a new stylesheet,
@@ -16,7 +16,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   MarksPhase({
     required this.marks,
     required this.viewOf,
-    this.lines,
+    required this.lines,
     this._composer,
   }) {
     _composer?.selectionNotifier.addListener(markDirty);
@@ -27,7 +27,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   /// The view of the line a node shows; `null` for a node that is none.
   final LineView? Function(String nodeId) viewOf;
 
-  final ShownLines? lines;
+  final ShownLines lines;
   final DocumentComposer? _composer;
 
   /// Stops following the selection, once the editor is gone.
@@ -38,7 +38,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
     Document document,
     SingleColumnLayoutViewModel viewModel,
   ) {
-    lines?.clear();
+    lines.clear();
     final selected = _selectedNodes(document);
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
@@ -63,7 +63,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   }) {
     final source = component.text.toPlainText();
     final shown = marks.show(source, view.markupOf(source), edited: edited);
-    lines?.set(component.nodeId, shown);
+    lines.set(component.nodeId, shown);
     return (component.copy() as TextComponentViewModel)
       ..text = markupText(shown.text, shown.markup);
   }

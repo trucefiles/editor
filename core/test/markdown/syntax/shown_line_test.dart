@@ -48,5 +48,10 @@ void main() {
     expect(line.markup, markup);
     expect(line.toSource(4), 4);
     expect(line.fromSource(9), 9);
+    expect(
+      line.toSource(source.length + 3),
+      source.length + 3,
+      reason: 'text typed before it is styled again maps as is',
+    );
   });
 }
