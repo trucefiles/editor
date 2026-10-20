@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:truce_core/src/markdown/outline.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// The structure read once from a document's lines.
@@ -16,8 +17,17 @@ void main() {
   test('a margin item is the top of its run of items', () {
     final outline = outlineOf('- a\n  - b\n    - c\n- d\ntext\n  - e');
     expect(
-      [for (var i = 0; i < 6; i++) outline.marginItemOf(i)],
-      [0, 0, 0, 3, 4, 5],
+      [
+        for (final i in [0, 1, 2, 3, 5]) outline.marginItemOf(i),
+      ],
+      [0, 0, 0, 3, 5],
+    );
+  });
+
+  test('only an item has a margin item', () {
+    expect(
+      () => outlineOf('- a\n  text').marginItemOf(1),
+      throwsA(isA<AssertionError>()),
     );
   });
 
@@ -29,19 +39,19 @@ void main() {
     expect(outline.regionOf(5), (start: 5, end: 6));
   });
 
-  test('blocks: lists without trailing blanks, tables, other lines', () {
+  test('parts: lists without trailing blanks, tables, other lines', () {
     final outline = outlineOf('# H\n- a\n  - b\n\n| x |\n|---|\n| 1 |\ntext');
     expect(
       [
-        for (final block in outline.blocks)
-          (block.runtimeType, block.span.start, block.span.end),
+        for (final part in outline.parts)
+          (part.runtimeType, part.span.start, part.span.end),
       ],
       [
-        (LineBlock, 0, 1),
-        (ListBlock, 1, 3),
-        (LineBlock, 3, 4),
-        (TableBlock, 4, 7),
-        (LineBlock, 7, 8),
+        (LinePart, 0, 1),
+        (ListPart, 1, 3),
+        (LinePart, 3, 4),
+        (TablePart, 4, 7),
+        (LinePart, 7, 8),
       ],
     );
     expect(outline.lists, [(start: 1, end: 3)]);

@@ -78,7 +78,7 @@ final class MarkdownLines {
   ]);
 
   /// The structure of the lines, read once.
-  late final outline = Outline(lines, kinds, indentWidth(_indentUnit));
+  late final Outline outline = Outline(lines, kinds, indentWidth(_indentUnit));
 
   late final _indexById = {
     for (final (index, line) in lines.indexed) line.id: index,
@@ -156,7 +156,7 @@ final class MarkdownLines {
   /// The item [id] moved to where [toggleAndSort] puts it.
   MarkdownLines _sorted(LineId id) {
     final index = _indexOf(id);
-    if (lines[index].indent.isNotEmpty) return this;
+    if (!_isItem(index) || lines[index].indent.isNotEmpty) return this;
     final target = _sortTarget(index);
     if (target == null) return this;
     final end = _subtreeEnd(index);
@@ -194,8 +194,8 @@ final class MarkdownLines {
   /// it, at its level, so the items below never become its subitems; else
   /// at the left margin after it and its subitems, or for a subitem after
   /// the item at the margin it is under, so it never takes subitems of
-  /// another. It takes the anchor's bullet style. Returns the new
-  /// document and the new line's id.
+  /// another. It takes the anchor's bullet style. [anchor] must be an
+  /// item. Returns the new document and the new line's id.
   (MarkdownLines, LineId) addItem(
     ListKind kind, {
     required LineId anchor,
@@ -419,10 +419,14 @@ final class MarkdownLines {
 
   /// Index of the nearest line above [index] that is neither empty nor
   /// in [hidden]; `null` if there is none.
-  int? _shownAbove(int index, Set<LineId> hidden) => [
-    for (var i = 0; i < index; i++)
-      if (lines[i].raw.trim().isNotEmpty && !hidden.contains(lines[i].id)) i,
-  ].lastOrNull;
+  int? _shownAbove(int index, Set<LineId> hidden) {
+    if (index == 0) return null;
+    final above = lines.lastIndexWhere(
+      (line) => line.raw.trim().isNotEmpty && !hidden.contains(line.id),
+      index - 1,
+    );
+    return above < 0 ? null : above;
+  }
 
   /// Index just past the subtree of the line at [index].
   int _subtreeEnd(int index) => outline.subtree(index).end;

@@ -333,6 +333,15 @@ void main() {
       );
     });
 
+    test('a box that is no item, e.g. in a code block, stays put', () {
+      final list = MarkdownLines.parse(
+        '- [ ] a\n```\n- [ ] code\n```\n- [ ] b',
+      );
+      final code = list.lines[2].id;
+
+      expect(list.sortToggled(code).text, list.text);
+    });
+
     test('a subitem toggles in place', () {
       final list = MarkdownLines.parse(
         '- [ ] a\n  - [ ] sub\n  - [ ] two\n- [ ] b',

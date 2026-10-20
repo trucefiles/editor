@@ -95,27 +95,27 @@ final class Arrangement {
   List<DisplayEntry> of(MarkdownLines document) {
     final done = doneSection ? document.doneIds : const <LineId>{};
     return [
-      for (final block in document.outline.blocks)
-        ..._block(document, block, done),
+      for (final part in document.outline.parts)
+        ..._part(document, part, done),
     ];
   }
 
-  List<DisplayEntry> _block(
+  List<DisplayEntry> _part(
     MarkdownLines document,
-    OutlineBlock block,
+    OutlinePart part,
     Set<LineId> done,
   ) {
-    final (:start, :end) = block.span;
+    final (:start, :end) = part.span;
     final lines = document.lines.sublist(start, end);
     final kinds = document.kinds.sublist(start, end);
     final first = lines.first;
     final drawn = drawBlocks && !raw.contains(first.id);
-    return switch (block) {
-      ListBlock() => _list(document, lines, kinds, done),
-      TableBlock() when drawn => [
+    return switch (part) {
+      ListPart() => _list(document, lines, kinds, done),
+      TablePart() when drawn => [
         TableEntry([for (final line in lines) line.id]),
       ],
-      LineBlock() when drawn && kinds.first == LineKind.plain =>
+      LinePart() when drawn && kinds.first == LineKind.plain =>
         switch (lineImage(first.raw)) {
           final image? => [
             ImageEntry(first.id, url: image.url, alt: image.alt),

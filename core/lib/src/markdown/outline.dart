@@ -6,25 +6,25 @@ import 'syntax/line_kinds.dart';
 typedef LineSpan = ({int start, int end});
 
 /// One part of a document at its top level, in file order.
-sealed class OutlineBlock {
-  const OutlineBlock(this.span);
+sealed class OutlinePart {
+  const OutlinePart(this.span);
 
   final LineSpan span;
 }
 
 /// A list: from its first item to its last line that is not blank.
-final class ListBlock extends OutlineBlock {
-  const ListBlock(super.span);
+final class ListPart extends OutlinePart {
+  const ListPart(super.span);
 }
 
 /// A table: its header, delimiter row and rows.
-final class TableBlock extends OutlineBlock {
-  const TableBlock(super.span);
+final class TablePart extends OutlinePart {
+  const TablePart(super.span);
 }
 
 /// Any other line.
-final class LineBlock extends OutlineBlock {
-  const LineBlock(super.span);
+final class LinePart extends OutlinePart {
+  const LinePart(super.span);
 }
 
 /// The structure of a document's lines, read once from them: the tree of
@@ -67,8 +67,11 @@ final class Outline {
 
   /// The index of the item at the left margin that the item at [index] is
   /// under: the nearest less indented item above, up to the margin, within
-  /// its run of items; [index] itself at the margin.
-  int marginItemOf(int index) => _marginItems[index];
+  /// its run of items; [index] itself at the margin. Only for items.
+  int marginItemOf(int index) {
+    assert(_items[index], 'only an item has a margin item');
+    return _marginItems[index];
+  }
 
   /// The list region the line at [index] is in: up to the lines around it
   /// at the margin that are neither items nor blank.
@@ -86,12 +89,12 @@ final class Outline {
 
   /// The document's top-level parts, in file order: lists, tables and
   /// the lines between them.
-  late final List<OutlineBlock> blocks = _readBlocks();
+  late final List<OutlinePart> parts = _readParts();
 
   /// The lists, in file order.
   late final List<LineSpan> lists = [
-    for (final block in blocks)
-      if (block is ListBlock) block.span,
+    for (final part in parts)
+      if (part is ListPart) part.span,
   ];
 
   bool _isBlank(int index) => _lines[index].raw.trim().isEmpty;
@@ -200,21 +203,21 @@ final class Outline {
 
   /// Lists first, from their first item to their region's last line that
   /// is not blank; then tables among the other lines.
-  List<OutlineBlock> _readBlocks() {
+  List<OutlinePart> _readParts() {
     final tables = {for (final (start, end) in tableRanges(_kinds)) start: end};
-    final blocks = <OutlineBlock>[];
+    final parts = <OutlinePart>[];
     var index = 0;
     while (index < _lines.length) {
-      final block = _items[index]
-          ? ListBlock((start: index, end: _listEnd(index)))
+      final part = _items[index]
+          ? ListPart((start: index, end: _listEnd(index)))
           : switch (tables[index]) {
-              final end? => TableBlock((start: index, end: end)),
-              null => LineBlock((start: index, end: index + 1)),
+              final end? => TablePart((start: index, end: end)),
+              null => LinePart((start: index, end: index + 1)),
             };
-      blocks.add(block);
-      index = block.span.end;
+      parts.add(part);
+      index = part.span.end;
     }
-    return blocks;
+    return parts;
   }
 
   int _listEnd(int index) {
