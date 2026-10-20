@@ -81,8 +81,10 @@ final class Outline {
 
   /// Where an item put right after the lines before [index] lands at
   /// [depth], as deep as Markdown lets it there: beside the item at that
-  /// depth that the nearest line above is in or is, else [unit] deeper
-  /// than the deepest item that line is in or is; at the margin if none.
+  /// depth that the nearest line above is in or is, else one level under
+  /// the deepest item that line is in or is (see
+  /// [MarkdownLine.subitemOffset], with the file's [unit]); at the margin
+  /// if none. The one owner of where a line's level puts it.
   LinePlace placeAt(int index, int depth, String unit) {
     if (depth == 0) return (depth: 0, indent: '');
     final above = _nodes.take(index).nonNulls.lastOrNull;
@@ -97,7 +99,7 @@ final class Outline {
     return switch (chain.firstOrNull) {
       final parent? => (
         depth: parent.depth + 1,
-        indent: '${_lines[parent.index].indent}$unit',
+        indent: _lines[parent.index].indentUnder(unit),
       ),
       null => (depth: 0, indent: ''),
     };
@@ -303,7 +305,3 @@ final class _Node {
   /// The item at the top level it is under; itself at the top level.
   late final _Node top = parent?.top ?? this;
 }
-
-/// Visual width of leading whitespace; a tab counts as four spaces.
-int indentWidth(String indent) =>
-    indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));

@@ -389,27 +389,19 @@ final class MarkdownLines {
     if (depthOf(lines[index]) > depthOf(lines[above])) return this;
     // Right after the lines under the item above, unless among them.
     final spot = min(_subtreeEnd(above), index);
-    return _moveSubtree(
-      index,
-      spot: (_, _) => spot,
-      indent: '${lines[index].indent}$_indentUnit',
-    );
+    final place = outline.placeAt(spot, depthOf(lines[index]) + 1, _indentUnit);
+    return _moveSubtree(index, spot: (_, _) => spot, indent: place.indent);
   }
 
-  /// Moves the item [id] with its subitems one level left. Does nothing at
-  /// the left margin.
+  /// Moves the item [id] with its subitems one level left, beside the
+  /// item it was under; at the top level, to the margin. Does nothing at
+  /// the margin.
   MarkdownLines outdent(LineId id) {
     final index = _indexOf(id);
-    final indent = lines[index].indent;
-    if (indent.isEmpty) return this;
-    final cut = indent.endsWith(_indentUnit)
-        ? _indentUnit.length
-        : (indent.endsWith('\t') ? 1 : indent.length);
-    return _moveSubtree(
-      index,
-      spot: (_, _) => index,
-      indent: indent.substring(0, indent.length - cut),
-    );
+    if (lines[index].indent.isEmpty) return this;
+    final depth = max(0, depthOf(lines[index]) - 1);
+    final place = outline.placeAt(index, depth, _indentUnit);
+    return _moveSubtree(index, spot: (_, _) => index, indent: place.indent);
   }
 
   /// Removes all checked items, with their subitems.
@@ -469,28 +461,29 @@ final class MarkdownLines {
           ...under,
         ] else ...[
           item.withIndent(indent),
-          for (final line in under) _under(line, from: item.indent, to: indent),
+          for (final line in under) _under(line, item: item, to: indent),
         ],
       ]),
     );
   }
 
-  /// [line], under an item, once the item's indent changes [from] one [to]
-  /// another. A blank line needs no indent and stays as it is. A line no
-  /// deeper than the item (text that continues it without indent) lands
-  /// one level under it, so it stays the item's wherever it goes. Any
-  /// other keeps its indent relative to the item: as written, else
-  /// (indented with other characters, e.g. a tab under spaces) as wide, in
-  /// spaces.
+  /// [line], under [item], once the item's indent changes to [to]. A
+  /// blank line needs no indent and stays as it is. A line no deeper than
+  /// the item (text that continues it without indent) lands one level
+  /// under it (see [MarkdownLine.subitemOffset]), so it stays the item's
+  /// wherever it goes. Any other keeps its indent relative to the item:
+  /// as written, else (indented with other characters, e.g. a tab under
+  /// spaces) as wide, in spaces.
   MarkdownLine _under(
     MarkdownLine line, {
-    required String from,
+    required MarkdownLine item,
     required String to,
   }) {
     if (line.raw.trim().isEmpty) return line;
+    final from = item.indent;
     final deeper = indentWidth(line.indent) - indentWidth(from);
     return line.withIndent(switch (line.indent) {
-      _ when deeper <= 0 => '$to$_indentUnit',
+      _ when deeper <= 0 => '$to${item.subitemOffset(_indentUnit)}',
       final indent when indent.startsWith(from) =>
         '$to${indent.substring(from.length)}',
       _ => '$to${' ' * deeper}',
