@@ -450,6 +450,33 @@ void main() {
       expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n  - [ ] b');
     });
 
+    test('outdent keeps the subitem\'s own indent after the new one', () {
+      final list = MarkdownLines.parse('  - a\n  \t- b');
+
+      expect(list.outdent(idOf(list, 'a')).text, '- a\n\t- b');
+    });
+
+    test('indent puts the unit right after the item\'s own indent', () {
+      final list = MarkdownLines.parse('- a\n  - x\n- b\n\t- c');
+
+      expect(list.indent(idOf(list, 'b')).text, '- a\n  - x\n  - b\n  \t- c');
+    });
+
+    test('text continued without indent lands one level under the item', () {
+      final list = MarkdownLines.parse('- a\n  - b\nlazy');
+
+      expect(list.outdent(idOf(list, 'b')).text, '- a\n- b\n  lazy');
+    });
+
+    test('outdent leaves blank lines as they are', () {
+      final list = MarkdownLines.parse('- a\n  - b\n    - c\n    \n    - d');
+
+      expect(
+        list.outdent(idOf(list, 'b')).text,
+        '- a\n- b\n  - c\n    \n  - d',
+      );
+    });
+
     test('outdent at the margin does nothing', () {
       final list = MarkdownLines.parse(doc);
 

@@ -448,9 +448,10 @@ final class MarkdownLines {
       _linesIn(span).map((line) => line.id);
 
   /// Takes the item at [index] with its subitems out and puts them back
-  /// at the index [spot] picks in the remaining lines, given the [moved]
-  /// span they had; unchanged if it picks none. With [indent], the item
-  /// gets it, the lines under it as [_reindented] says.
+  /// where [spot] says: it gets the remaining lines and the span taken,
+  /// and returns the index in them, or `null` to leave the document as it
+  /// is. With [indent], the item gets it and the lines under it follow
+  /// (see [_under]).
   MarkdownLines _moveSubtree(
     int index, {
     required int? Function(List<MarkdownLine> rest, LineSpan moved) spot,
@@ -460,39 +461,40 @@ final class MarkdownLines {
     final rest = [...lines]..removeRange(span.start, span.end);
     final at = spot(rest, span);
     if (at == null) return this;
-    final subtree = _linesIn(span);
-    final from = subtree.first.indent;
+    final [item, ...under] = _linesIn(span);
     return _with(
       rest..insertAll(at, [
-        for (final line in subtree)
-          if (indent == null)
-            line
-          else
-            _reindented(line, from: from, to: indent),
+        if (indent == null) ...[
+          item,
+          ...under,
+        ] else ...[
+          item.withIndent(indent),
+          for (final line in under) _under(line, from: item.indent, to: indent),
+        ],
       ]),
     );
   }
 
-  /// [line], under an item or the item itself, once the item's indent
-  /// changes [from] one [to] another: it keeps its indent relative to the
-  /// item, as written, else (indented with other characters, e.g. a tab
-  /// under spaces) as wide, in spaces. A line no deeper than the item,
-  /// which continues its text, lands one level under it. A blank line
-  /// needs no indent and stays as it is.
-  MarkdownLine _reindented(
+  /// [line], under an item, once the item's indent changes [from] one [to]
+  /// another: it keeps its indent relative to the item, as written. One
+  /// indented with other characters (e.g. a tab under spaces) keeps it as
+  /// wide, in spaces, or if shallower than the item (text that continues
+  /// it without indent), lands one level under it. A blank line needs no
+  /// indent and stays as it is.
+  MarkdownLine _under(
     MarkdownLine line, {
     required String from,
     required String to,
-  }) => switch (line) {
-    _ when line.raw.trim().isEmpty => line,
-    _ when line.indent.startsWith(from) => line.withIndent(
-      '$to${line.indent.substring(from.length)}',
-    ),
-    _ => line.withIndent(switch (indentWidth(line.indent) - indentWidth(from)) {
-      final deeper when deeper > 0 => '$to${' ' * deeper}',
+  }) {
+    if (line.raw.trim().isEmpty) return line;
+    final deeper = indentWidth(line.indent) - indentWidth(from);
+    return line.withIndent(switch (line.indent) {
+      final indent when indent.startsWith(from) =>
+        '$to${indent.substring(from.length)}',
+      _ when deeper > 0 => '$to${' ' * deeper}',
       _ => '$to$_indentUnit',
-    }),
-  };
+    });
+  }
 
   /// The index the line at [index] has once the lines of [span] are taken
   /// out; `null` if it is among them.
