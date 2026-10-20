@@ -1,4 +1,6 @@
 import 'package:test/test.dart';
+import 'package:truce_core/src/markdown/line_writer.dart';
+import 'package:truce_core/src/markdown/outline.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'markdown_lines_support.dart';
@@ -16,9 +18,19 @@ void main() {
     return doc.outdent(idOf(doc, item)).text;
   }
 
-  group('a subitem offset', () {
-    String offset(String item, [String unit = '  ']) =>
-        MarkdownLine.parse(const LineId(0), item).subitemOffset(unit);
+  group('a line under an item', () {
+    /// What a line under [item] adds to its indent, in a file whose
+    /// items are indented by [unit].
+    String offset(String item, [String unit = '  ']) {
+      final parent = MarkdownLine.parse(const LineId(0), item);
+      final writer = LineWriter.of([
+        parent,
+        MarkdownLine.parse(const LineId(1), '$unit- x'),
+      ]);
+      final child = MarkdownLine.parse(const LineId(2), '- y');
+      final written = writer.placed([child], UnderItem(parent, 1)).single;
+      return written.indent.substring(parent.indent.length);
+    }
 
     test('reaches the content after the marker and its spaces', () {
       expect(offset('- a'), '  ');
@@ -106,8 +118,9 @@ void main() {
       expect(outdented('1. a\n   1. b\n      - c', 'b'), '1. a\n1. b\n   - c');
     });
 
-    test('an indented item at the top level goes to the margin', () {
-      expect(outdented('  - a\n  - b', 'b'), '  - a\n- b');
+    test('an item at the top level stays, also an indented one', () {
+      expect(outdented('- a\n- b', 'b'), '- a\n- b');
+      expect(outdented('  - a\n  - b\n  - c', 'b'), '  - a\n  - b\n  - c');
     });
 
     test('reverses indent', () {
@@ -116,6 +129,69 @@ void main() {
         final id = doc.lines[1].id;
         expect(doc.indent(id).outdent(id).text, text);
       }
+    });
+  });
+
+  group('drop', () {
+    String dropped(
+      String text,
+      String item,
+      String target, {
+      bool below = false,
+    }) {
+      final doc = MarkdownLines.parse(text);
+      return doc
+          .moveNextTo(idOf(doc, item), target: idOf(doc, target), below: below)
+          .text;
+    }
+
+    test('under a numbered item reaches its text', () {
+      expect(
+        dropped('1. a\n   - x\n- b', 'b', 'x', below: true),
+        '1. a\n   - x\n   - b',
+      );
+      expect(
+        dropped('- b\n10. a\n    1. x', 'b', 'x'),
+        '10. a\n    - b\n    1. x',
+      );
+    });
+
+    test('takes the subitems along, at their level under it', () {
+      expect(
+        dropped('1. a\n   - x\n- b\n  - c', 'b', 'x', below: true),
+        '1. a\n   - x\n   - b\n     - c',
+      );
+    });
+
+    test('beside an indented item at the top level lines up with it', () {
+      expect(dropped('  - a\n- b', 'b', 'a'), '  - b\n  - a');
+      expect(dropped('  - a\n- b', 'b', 'a', below: true), '  - a\n  - b');
+    });
+  });
+
+  group('a new item', () {
+    (String, String) added(String text, String anchor) {
+      final doc = MarkdownLines.parse(text);
+      String add({required bool before}) => doc
+          .addItem(ListKind.bullet, anchor: idOf(doc, anchor), before: before)
+          .$1
+          .text;
+      return (add(before: true), add(before: false));
+    }
+
+    test('before an item lines up with it', () {
+      expect(added('1. a\n   - b', 'b').$1, '1. a\n   - \n   - b');
+      expect(added('  - a', 'a').$1, '  - \n  - a');
+    });
+
+    test('after a subitem joins the list at the top, in its style', () {
+      expect(added('* a\n  - b', 'b').$2, '* a\n  - b\n* ');
+      expect(added('  * a\n    - b', 'b').$2, '  * a\n    - b\n  * ');
+    });
+
+    test('keeps the next item beside it, also past a blank line', () {
+      expect(added('    - a\n  - b', 'a').$2, '    - a\n  - \n  - b');
+      expect(added('    - a\n\n  - b', 'a').$2, '    - a\n  - \n\n  - b');
     });
   });
 
@@ -136,7 +212,7 @@ void main() {
     });
   });
 
-  group('a new item at a deeper level', () {
+  group('a new item from blocks', () {
     test('typed under a numbered item reaches its text', () {
       final doc = MarkdownLines.parse('1. a\nb');
       final b = idOf(doc, 'b');
@@ -152,6 +228,20 @@ void main() {
       );
 
       expect(changed.text, '1. a\n   - b');
+    });
+
+    test('added at the top level lines up with the list above', () {
+      final doc = MarkdownLines.parse('  - a\n# h');
+
+      final (added, _) = doc.insertBlocks(
+        const [
+          ItemBlock(kind: ListKind.bullet, checked: false, depth: 0, text: 'x'),
+        ],
+        after: idOf(doc, 'a'),
+        shownBelow: null,
+      );
+
+      expect(added.text, '  - a\n  - x\n# h');
     });
 
     test('added below a numbered item reaches its text', () {

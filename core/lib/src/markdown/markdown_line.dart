@@ -70,19 +70,13 @@ final class MarkdownLine {
   /// Leading whitespace.
   String get indent => raw.substring(0, raw.length - raw.trimLeft().length);
 
-  /// What a line one level under this item adds to the item's indent: the
-  /// file's [unit] if it reaches where the item's content starts, as
-  /// Markdown needs, and stays short of four columns past it, where
-  /// Markdown would read code; else spaces up to the content. Only for
-  /// items.
-  String subitemOffset(String unit) {
-    final content = _item!.contentStart - indent.length;
-    final width = indentWidth(unit);
-    return width >= content && width < content + 4 ? unit : ' ' * content;
-  }
+  /// Whether the line is empty or only whitespace.
+  bool get isBlank => raw.trim().isEmpty;
 
-  /// The indent of a line one level under this item; see [subitemOffset].
-  String indentUnder(String unit) => '$indent${subitemOffset(unit)}';
+  /// How far this item's content starts after its indent, in columns: past
+  /// its marker and the spaces after it, as Markdown counts them. Lines
+  /// under the item start at least this far in. Only for items.
+  int get contentOffset => _item!.contentStart - indent.length;
 
   /// The checkbox item with its box checked if it was not, else unchecked.
   MarkdownLine toggled() {

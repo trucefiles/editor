@@ -105,4 +105,38 @@ void main() {
     );
     expect([for (var i = 0; i < 5; i++) outline.depthAt(i)], [0, 1, 1, 1, 0]);
   });
+
+  group('a line put at a level lands', () {
+    String placed(String text, int index, int depth) =>
+        switch (outlineOf(text).placeAt(index, depth)) {
+          AtMargin() => 'margin',
+          BesideItem(:final item) => 'beside ${item.text}',
+          UnderItem(:final item, :final depth) => 'under ${item.text} $depth',
+        };
+
+    test('beside the item below at that level, past blank lines', () {
+      expect(placed('- a\n  - b', 1, 1), 'beside b');
+      expect(placed('- a\n\n- b', 1, 0), 'beside b');
+    });
+
+    test('beside an item at that level above', () {
+      expect(placed('- a\n  - b\n- c', 2, 1), 'beside b');
+      expect(placed('  - a\n  - b', 2, 0), 'beside b');
+    });
+
+    test('at the margin at the top level, with no list above', () {
+      expect(placed('text', 1, 0), 'margin');
+      expect(placed('', 0, 0), 'margin');
+    });
+
+    test('under the deepest item above, as deep as it lets', () {
+      expect(placed('- a', 1, 1), 'under a 1');
+      expect(placed('- a', 1, 3), 'under a 1');
+      expect(placed('- a\n  - b', 2, 3), 'under b 2');
+    });
+
+    test('at the margin for a deeper level with no item above', () {
+      expect(placed('text', 1, 1), 'margin');
+    });
+  });
 }

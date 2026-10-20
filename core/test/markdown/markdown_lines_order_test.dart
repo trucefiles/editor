@@ -445,15 +445,15 @@ void main() {
     });
 
     test('outdent keeps a tab-indented subitem under a space item', () {
-      final list = MarkdownLines.parse('  - [ ] a\n\t- [ ] b');
+      final list = MarkdownLines.parse('- p\n  - [ ] a\n\t- [ ] b');
 
-      expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n  - [ ] b');
+      expect(list.outdent(idOf(list, 'a')).text, '- p\n- [ ] a\n  - [ ] b');
     });
 
     test('outdent keeps the subitem\'s own indent after the new one', () {
-      final list = MarkdownLines.parse('  - a\n  \t- b');
+      final list = MarkdownLines.parse('- p\n  - a\n  \t- b');
 
-      expect(list.outdent(idOf(list, 'a')).text, '- a\n\t- b');
+      expect(list.outdent(idOf(list, 'a')).text, '- p\n- a\n\t- b');
     });
 
     test('indent puts the unit right after the item\'s own indent', () {
