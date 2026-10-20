@@ -14,10 +14,8 @@ final class ShownText {
   factory ShownText.of(String source, List<MarkupSpan> markup) {
     final replaced = {
       for (final span in markup)
-        if (span.markup case final ReplacedMarkup replaced) span.start: (
-          end: span.end,
-          text: replaced.text,
-        ),
+        if (span.markup case final ReplacedMarkup replaced)
+          span.start: (end: span.end, text: replaced.text),
     };
     final hidden = {
       for (final span in markup)

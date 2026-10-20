@@ -26,8 +26,7 @@ final class EntityMarkup extends ReplacedMarkup {
   final String text;
 
   @override
-  bool operator ==(Object other) =>
-      other is EntityMarkup && other.text == text;
+  bool operator ==(Object other) => other is EntityMarkup && other.text == text;
 
   @override
   int get hashCode => text.hashCode;

@@ -75,6 +75,7 @@ export 'src/markdown/view/edit_view.dart';
 export 'src/markdown/view/leaf_markup.dart' show LeafKind;
 export 'src/markdown/view/mark_style.dart';
 export 'src/markdown/view/markup.dart';
+export 'src/markdown/view/plain_text.dart';
 export 'src/markdown/view/shown_text.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';

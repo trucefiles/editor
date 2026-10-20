@@ -28,16 +28,16 @@ sealed class EditView {
       .join('\n');
 
   /// Where each line's part starts in [text].
-  late final List<int> _starts = lines
-      .take(lines.length - 1)
-      .fold([0], (starts, line) => [
-        ...starts,
-        starts.last + line.end - line.start + 1,
-      ]);
+  late final List<int> _starts = lines.take(lines.length - 1).fold([
+    0,
+  ], (starts, line) => [...starts, starts.last + line.end - line.start + 1]);
 
   /// What a new line in it starts with, below a line whose part starts
   /// after [prefix].
   String newLinePrefix(String prefix);
+
+  /// The kind of block its text reads as.
+  LeafKind get kind;
 
   /// The markup of [shown], read as this view reads its text. [shown] may
   /// differ from [text], e.g. while the user types into it before the
@@ -127,8 +127,8 @@ final class LeafView extends EditView {
     required this.leaf,
     required this.frames,
     required this.held,
-    required Map<String, LinkDefinition> definitions,
-  }) : _definitions = definitions;
+    required this._definitions,
+  });
 
   /// How [leaf] of [document] shows. An empty item whose marker ends its
   /// line shows as text while the caret is in it ([caretLine]), so `-5`
@@ -142,9 +142,7 @@ final class LeafView extends EditView {
     final outline = document.outline;
     final item = outline.itemOf(leaf.id);
     final first = leaf.lines.first;
-    final marker = item == null
-        ? null
-        : outline.partsOf(item, first.line).rest;
+    final marker = item == null ? null : outline.partsOf(item, first.line).rest;
     final held =
         leaf is BlankBlock &&
         marker != null &&
@@ -194,23 +192,26 @@ final class LeafView extends EditView {
 
   final Map<String, LinkDefinition> _definitions;
 
+  @override
   LeafKind get kind => held ? LeafKind.paragraph : LeafKind.of(leaf);
 
   /// Whether it is in a block quote.
   bool get quoted => frames.any((frame) => frame is QuoteFrame);
 
   /// The item whose marker shows beside it, if any: the innermost one.
-  ItemFrame? get markedItem => switch (frames.whereType<ItemFrame>().lastOrNull) {
-    final item? when item.showsMarker => item,
-    _ => null,
-  };
+  ItemFrame? get markedItem =>
+      switch (frames.whereType<ItemFrame>().lastOrNull) {
+        final item? when item.showsMarker => item,
+        _ => null,
+      };
 
   @override
   String newLinePrefix(String prefix) => LineWriter.continuation(prefix);
 
   @override
   List<MarkupSpan> markupOf(String shown) => [
-    if (quoted && shown.isNotEmpty) MarkupSpan(const QuoteMarkup(), 0, shown.length),
+    if (quoted && shown.isNotEmpty)
+      MarkupSpan(const QuoteMarkup(), 0, shown.length),
     ...leafMarkup(shown, kind, leaf: leaf, definitions: _definitions),
   ];
 }
@@ -230,6 +231,9 @@ final class RawLineView extends EditView {
 
   @override
   String newLinePrefix(String prefix) => '';
+
+  @override
+  LeafKind get kind => _leafView.kind;
 
   /// Its leaf's markup on its own part, its prefix as syntax. Once the
   /// user changed its prefix, its text reads as a line of text.

@@ -106,7 +106,15 @@ FormattedText cycleHeading(String text, int start, int end) {
 FormattedText _cycleSetext(String text, int start, int end, int underline) {
   final rule = text.substring(underline);
   if (rule.contains('=')) {
-    return (text: text.replaceRange(underline, text.length, rule.replaceAll('=', '-')), start: start, end: end);
+    return (
+      text: text.replaceRange(
+        underline,
+        text.length,
+        rule.replaceAll('=', '-'),
+      ),
+      start: start,
+      end: end,
+    );
   }
   final kept = text.substring(0, underline - 1);
   int clamp(int offset) => offset > kept.length ? kept.length : offset;

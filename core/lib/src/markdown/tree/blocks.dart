@@ -274,6 +274,16 @@ final class TableBlock extends LeafBlock {
   /// The cells of each line but the delimiter row (header first), as
   /// many as [alignments]; a missing cell is `null`.
   final List<List<TableCell?>> cells;
+
+  /// The text of each cell of [cells], row by row; a missing cell's is
+  /// empty.
+  late final List<List<String>> rows = [
+    for (final (index, line) in [lines.first, ...lines.skip(2)].indexed)
+      [
+        for (final cell in cells[index])
+          cell == null ? '' : line.content.substring(cell.start, cell.end),
+      ],
+  ];
 }
 
 /// A thematic break: `---`, `***` or `___`.

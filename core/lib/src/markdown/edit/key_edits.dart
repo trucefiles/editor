@@ -1,5 +1,6 @@
 import '../document/item_outline.dart';
 import '../document/markdown_document.dart';
+import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
 import '../view/edit_view.dart';
@@ -16,8 +17,19 @@ extension KeyEdits on MarkdownDocument {
   /// text after the caret (or, at the start of its first line, an empty
   /// one above it); in an empty item, out of the item: one level out, or
   /// out of the list; in an empty line of a quote or item, out of it;
-  /// anywhere else, a new line in the block, as a text editor does.
-  (MarkdownDocument, LineCaret) enter(LeafView view, int offset) {
+  /// anywhere else, and in an item [LeafView.held] as text, a new line in
+  /// the block, as a text editor does.
+  ///
+  /// [shownBelow] is the first line of the text the editor shows right
+  /// below [view], if any: at the end of an item's text, the new item
+  /// goes after the item's blocks the editor shows elsewhere (e.g. done
+  /// subitems), so they stay with their item.
+  (MarkdownDocument, LineCaret) enter(
+    LeafView view,
+    int offset, {
+    LineId? shownBelow,
+  }) {
+    if (view.held) return lineBreak(view, offset, hard: false);
     final leaf = view.leaf;
     final item = switch (leaf.parent) {
       final ItemBlock item => item,
@@ -29,7 +41,7 @@ extension KeyEdits on MarkdownDocument {
     if (item != null && leaf is ParagraphBlock) {
       return offset == 0 && item.leaves.first == leaf
           ? _itemAbove(item, view)
-          : _splitItem(item, view, offset);
+          : _splitItem(item, view, offset, shownBelow);
     }
     if (leaf is BlankBlock && _segmentOf(leaf) != null) {
       return _leaveContainer(leaf);
@@ -70,10 +82,7 @@ extension KeyEdits on MarkdownDocument {
       above,
       caret: (line: view.id, offset: view.lines.first.start),
     ),
-    _ when view.text.isEmpty => _without(
-      view,
-      caret: _endOf(above),
-    ),
+    _ when view.text.isEmpty => _without(view, caret: _endOf(above)),
     _ => _joined(above, view),
   };
 
@@ -81,19 +90,17 @@ extension KeyEdits on MarkdownDocument {
   /// right below it, if any: [view] empty goes, keeping the line below as
   /// it is (e.g. checked); an empty line below goes; else the line below
   /// joins [view]'s last line, as [joinBackward] does.
-  (MarkdownDocument, LineCaret?)? joinForward(
-    EditView view,
-    EditView? below,
-  ) => switch (below) {
-    null when view.text.isEmpty => _without(view, caret: null),
-    null => null,
-    _ when view.text.isEmpty => _without(
-      view,
-      caret: (line: below.id, offset: below.lines.first.start),
-    ),
-    _ when below.text.isEmpty => _without(below, caret: _endOf(view)),
-    _ => _joined(view, below),
-  };
+  (MarkdownDocument, LineCaret?)? joinForward(EditView view, EditView? below) =>
+      switch (below) {
+        null when view.text.isEmpty => _without(view, caret: null),
+        null => null,
+        _ when view.text.isEmpty => _without(
+          view,
+          caret: (line: below.id, offset: below.lines.first.start),
+        ),
+        _ when below.text.isEmpty => _without(below, caret: _endOf(view)),
+        _ => _joined(view, below),
+      };
 
   /// [lower]'s first line joined to [upper]'s last line, without a hard
   /// break that ended it.
@@ -150,16 +157,21 @@ extension KeyEdits on MarkdownDocument {
   }
 
   /// [item] split at [offset] in [view], one of its leaves: the rest of
-  /// the caret's line goes into a new item of its kind right below it,
-  /// unchecked, which takes the lines and blocks after it in [item] along
-  /// as they are.
+  /// the caret's line goes into a new item of its kind right below it
+  /// (at the end of the leaf, below the blocks of [item] shown elsewhere,
+  /// see [enter]), unchecked, which takes the lines and blocks after it
+  /// in [item] along as they are.
   (MarkdownDocument, LineCaret) _splitItem(
     ItemBlock item,
     LeafView view,
     int offset,
+    LineId? shownBelow,
   ) {
     final caret = view.caretAt(offset);
     final line = lineOf(caret.line)!;
+    final at = caret.line == view.lines.last.line.id
+        ? (_hiddenEnd(item, view.leaf, shownBelow) ?? indexOf(line.id) + 1)
+        : indexOf(line.id) + 1;
     final end = view.lines.firstWhere((part) => part.line.id == line.id).end;
     final prefix =
         writer.itemPrefix(outline, BesideItem(item, outline.depthOf(item))) +
@@ -174,9 +186,26 @@ extension KeyEdits on MarkdownDocument {
         ..[index] = line.withRaw(
           line.raw.substring(0, caret.offset) + line.raw.substring(end),
         )
-        ..insert(index + 1, added);
+        ..insert(at, added);
     });
     return (split, (line: added.id, offset: prefix.length));
+  }
+
+  /// The index past the last of [item]'s blocks after [leaf] that the
+  /// editor shows elsewhere: those before [shownBelow], or all of them
+  /// without it; `null` if there is none.
+  int? _hiddenEnd(ItemBlock item, LeafBlock leaf, LineId? shownBelow) {
+    final span = outline.subtree(item);
+    final below = shownBelow == null ? span.end : indexOf(shownBelow);
+    final hidden = item.leaves
+        .skipWhile((other) => other != leaf)
+        .skip(1)
+        .where((other) => other is! BlankBlock)
+        .takeWhile((other) => indexOf(other.id) < below);
+    return switch (hidden.lastOrNull) {
+      final last? => indexOf(last.lines.last.id) + 1,
+      null => null,
+    };
   }
 
   /// The blank [leaf]'s line out of the container it is in: without that
@@ -194,7 +223,8 @@ extension KeyEdits on MarkdownDocument {
   /// `null` if the line has none (it is in no quote or item, or only by
   /// being in its list).
   static PrefixSegment? _segmentOf(BlankBlock leaf) => switch (leaf.parent) {
-    final ContainerBlock container when container is QuoteBlock || container is ItemBlock =>
+    final ContainerBlock container
+        when container is QuoteBlock || container is ItemBlock =>
       leaf.lines.first.prefix
           .where((segment) => segment.container == container)
           .lastOrNull,
@@ -213,4 +243,6 @@ bool hardBreakBefore(String text, int offset) =>
 /// Whether a hard line break starts at [offset] in [text]: Delete there
 /// deletes it as one.
 bool hardBreakAfter(String text, int offset) =>
-    offset + 1 < text.length && text[offset] == '\\' && text[offset + 1] == '\n';
+    offset + 1 < text.length &&
+    text[offset] == '\\' &&
+    text[offset + 1] == '\n';

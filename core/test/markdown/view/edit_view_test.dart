@@ -257,4 +257,10 @@ void main() {
       expect(view.newLinePrefix('> - '), '');
     });
   });
+
+  test('a view reads its text as the kind of its block', () {
+    final document = MarkdownDocument.parse('# h\n```\ncode\n```');
+    expect(leafViewAt(document, '# h').kind, LeafKind.heading);
+    expect(rawViewAt(document, 'code').kind, LeafKind.code);
+  });
 }

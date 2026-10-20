@@ -54,7 +54,11 @@ List<MarkupSpan> leafMarkup(
   return switch (kind) {
     LeafKind.paragraph || LeafKind.blank => inlines(),
     LeafKind.heading => switch (leaf) {
-      HeadingBlock(setext: true, :final level) => _setextMarkup(text, level, inlines),
+      HeadingBlock(setext: true, :final level) => _setextMarkup(
+        text,
+        level,
+        inlines,
+      ),
       _ => _atxMarkup(text, inlines),
     },
     LeafKind.code => [
@@ -62,7 +66,11 @@ List<MarkupSpan> leafMarkup(
       if (leaf case CodeBlock(fenced: true, :final closed)) ...[
         MarkupSpan(const DimmedMarkup(), 0, _lineEnd(text, 0)),
         if (closed && text.contains('\n'))
-          MarkupSpan(const DimmedMarkup(), text.lastIndexOf('\n') + 1, text.length),
+          MarkupSpan(
+            const DimmedMarkup(),
+            text.lastIndexOf('\n') + 1,
+            text.length,
+          ),
       ],
     ],
     LeafKind.html || LeafKind.table => [whole(const CodeBlockMarkup())],
@@ -84,7 +92,8 @@ List<MarkupSpan> _atxMarkup(
   final open = atxHeading.matchAsPrefix(line, indent);
   if (open == null) return inlines();
   final level = open[0]!.trim().length;
-  final closing = RegExp(r'(?:^|[ \t]+)#+[ \t]*$').firstMatch(line.substring(open.end));
+  final closing = RegExp(r'(?:^|[ \t]+)#+[ \t]*$')
+      .firstMatch(line.substring(open.end));
   final end = closing == null ? line.length : open.end + closing.start;
   return [
     MarkupSpan(HeadingMarkup(level), 0, text.length),
@@ -101,7 +110,8 @@ List<MarkupSpan> _setextMarkup(
   List<MarkupSpan> Function([int start, int? end]) inlines,
 ) {
   final underline = text.lastIndexOf('\n') + 1;
-  if (underline == 0 || !setextUnderline.hasMatch(text.substring(underline).trimLeft())) {
+  if (underline == 0 ||
+      !setextUnderline.hasMatch(text.substring(underline).trimLeft())) {
     return inlines();
   }
   return [
@@ -114,7 +124,9 @@ List<MarkupSpan> _setextMarkup(
 /// A backslash at the end of a line: a hard break, or one being typed at
 /// a block's end. Hidden as syntax, so lines read as text.
 Iterable<MarkupSpan> _lineEndBackslashes(String text, int start, int end) => [
-  for (final match in RegExp(r'\\(?=\n|$)').allMatches(text.substring(0, end), start))
+  for (final match in RegExp(
+    r'\\(?=\n|$)',
+  ).allMatches(text.substring(0, end), start))
     MarkupSpan(const SyntaxMarkup(), match.start, match.end),
 ];
 
@@ -132,13 +144,11 @@ List<MarkupSpan> _markupOf(Inline inline) => switch (inline) {
   // A backslash escape: the backslash is syntax. A character reference
   // takes at least four characters.
   TextInline(:final start, :final end, :final literal)
-      when end - start == 2 && literal.length == 1 => [
-    MarkupSpan(const SyntaxMarkup(), start, start + 1),
-  ],
+      when end - start == 2 && literal.length == 1 =>
+    [MarkupSpan(const SyntaxMarkup(), start, start + 1)],
   TextInline(:final start, :final end, :final literal)
-      when end - start != literal.length => [
-    MarkupSpan(EntityMarkup(literal), start, end),
-  ],
+      when end - start != literal.length =>
+    [MarkupSpan(EntityMarkup(literal), start, end)],
   TextInline() || SoftBreakInline() || HardBreakInline() => const [],
   CodeInline(:final start, :final end, :final codeStart, :final codeEnd) => [
     MarkupSpan(const CodeMarkup(), start, end),
@@ -148,10 +158,11 @@ List<MarkupSpan> _markupOf(Inline inline) => switch (inline) {
   HtmlInline(:final start, :final end) => [
     MarkupSpan(const DimmedMarkup(), start, end),
   ],
-  ImageInline(:final start, :final end, :final destination, :final children) => [
-    MarkupSpan(ImageMarkup(destination, plainTextOf(children)), start, end),
-    ..._wrapped(inline, const DimmedMarkup()),
-  ],
+  ImageInline(:final start, :final end, :final destination, :final children) =>
+    [
+      MarkupSpan(ImageMarkup(destination, plainTextOf(children)), start, end),
+      ..._wrapped(inline, const DimmedMarkup()),
+    ],
   EmphasisInline() => _wrapped(inline, const ItalicMarkup()),
   StrongInline() => _wrapped(inline, const BoldMarkup()),
   StrikeInline() => _wrapped(inline, const StrikeMarkup()),

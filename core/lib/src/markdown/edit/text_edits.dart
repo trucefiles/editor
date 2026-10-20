@@ -56,7 +56,10 @@ extension TextEdits on MarkdownDocument {
           if (!gone.contains(line.id)) line,
       ];
     });
-    return (document, _caretIn(written, view, newText, from.offset + text.length));
+    return (
+      document,
+      _caretIn(written, view, newText, from.offset + text.length),
+    );
   }
 
   /// The lines [view] shows once its text has [contents] as its lines,
@@ -76,7 +79,8 @@ extension TextEdits on MarkdownDocument {
     required int lastEdited,
   }) {
     final olds = view.lines;
-    String contentOf(ViewLine line) => line.line.raw.substring(line.start, line.end);
+    String contentOf(ViewLine line) =>
+        line.line.raw.substring(line.start, line.end);
     final head = _sameCount(
       olds.map(contentOf),
       contents,
@@ -98,8 +102,12 @@ extension TextEdits on MarkdownDocument {
     final added = changedNew.skip(paired);
     // Below the last line kept or changed: there is one if any is added.
     String prefix() => paired > 0
-        ? view.newLinePrefix(pairedLines.last.raw.substring(0, changedOld[paired - 1].start))
-        : view.newLinePrefix(olds[head - 1].line.raw.substring(0, olds[head - 1].start));
+        ? view.newLinePrefix(
+            pairedLines.last.raw.substring(0, changedOld[paired - 1].start),
+          )
+        : view.newLinePrefix(
+            olds[head - 1].line.raw.substring(0, olds[head - 1].start),
+          );
     final newPrefix = added.isEmpty ? '' : prefix();
     return [
       for (final line in olds.take(head)) line.line,
@@ -153,4 +161,7 @@ extension TextEdits on MarkdownDocument {
 
 /// How many items [a] and [b] have equal at their start, at most [limit].
 int _sameCount(Iterable<String> a, Iterable<String> b, int limit) =>
-    IterableZip([a, b]).take(limit).takeWhile((pair) => pair[0] == pair[1]).length;
+    IterableZip([a, b])
+        .take(limit)
+        .takeWhile((pair) => pair[0] == pair[1])
+        .length;

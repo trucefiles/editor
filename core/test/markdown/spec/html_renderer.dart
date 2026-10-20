@@ -203,8 +203,9 @@ final class _Renderer {
         _spans(children);
         _tag('/a');
       case ImageInline(:final destination, :final title, :final children):
-        if (_inImage == 0)
+        if (_inImage == 0) {
           _lit('<img src="${_escape(_encodeUri(destination))}" alt="');
+        }
         _inImage++;
         _spans(children);
         _inImage--;

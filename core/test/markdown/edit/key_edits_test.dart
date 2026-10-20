@@ -43,6 +43,38 @@ void main() {
   );
 
   group('enter', () {
+    test('at the end of an item, the new item goes below its subitems '
+        'shown elsewhere', () {
+      final document = MarkdownDocument.parse('- [ ] a\n  - [x] a1\n- [ ] b');
+      final (shown, _) = document.enter(
+        leafViewAt(document, '- [ ] a'),
+        1,
+        shownBelow: lineAt(document, '- [ ] b').id,
+      );
+      expect(shown.text, '- [ ] a\n  - [x] a1\n- [ ] \n- [ ] b');
+      final (alone, _) = document.enter(leafViewAt(document, '- [ ] a'), 1);
+      expect(alone.text, shown.text);
+    });
+
+    test('at the end of an item, the new item goes above a subitem shown '
+        'below it', () {
+      final document = MarkdownDocument.parse('- a\n  - a1');
+      final (edited, _) = document.enter(
+        leafViewAt(document, '- a'),
+        1,
+        shownBelow: lineAt(document, '  - a1').id,
+      );
+      expect(edited.text, '- a\n- \n  - a1');
+    });
+
+    test('in an item held as text, a new line', () {
+      final document = MarkdownDocument.parse('-');
+      final view = leafViewAt(document, '-', caret: true);
+      expect(view.held, isTrue);
+      final (edited, caret) = document.enter(view, 1);
+      expect((edited.text, marked(edited, caret)), ('-\n', '|'));
+    });
+
     test('in an item, the rest of the line goes to a new unchecked item', () {
       expect(enter('- [x] abc\n- d', '- [x] abc', 2), (
         '- [x] ab\n- [ ] c\n- d',

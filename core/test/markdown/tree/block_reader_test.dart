@@ -203,6 +203,15 @@ void main() {
         ],
       );
     });
+
+    test('tell the text of their cells, a missing one empty', () {
+      final (table, _) = lineOf('| a | b |\n|---|---|\n|1|', '|1|');
+
+      expect((table as TableBlock).rows, [
+        ['a', 'b'],
+        ['1', ''],
+      ]);
+    });
   });
 
   group('front matter', () {
