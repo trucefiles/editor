@@ -30,7 +30,12 @@ void main() {
       LineKind.plain,
     ]);
     expect(lineKinds(['a | b', '---']), [LineKind.plain, LineKind.plain]);
-    expect(tableRanges(lineKinds(['x', 'a|b', '-|-', 'y'])), [(1, 3)]);
+    expect(lineKinds(['x', 'a|b', '-|-', 'y']), [
+      LineKind.plain,
+      LineKind.table,
+      LineKind.table,
+      LineKind.plain,
+    ]);
   });
 
   test('table cells without the delimiter row', () {

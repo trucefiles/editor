@@ -270,20 +270,15 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
       );
 
   /// The url of the link at [position], by the markup of its line.
-  String? linkAt(DocumentPosition position) {
-    final node = _document.getNodeById(position.nodeId);
-    final view = viewOf(position.nodeId);
-    if (node is! TextNode || view == null) return null;
-    if (position.nodePosition case TextNodePosition(:final offset)) {
-      for (final span in view.markupOf(node.text.toPlainText())) {
-        if (span.markup case LinkMarkup(:final url)
-            when span.start <= offset && offset < span.end) {
-          return url;
-        }
-      }
-    }
-    return null;
-  }
+  String? linkAt(DocumentPosition position) => switch ((
+    _document.getNodeById(position.nodeId),
+    viewOf(position.nodeId),
+    position.nodePosition,
+  )) {
+    (final TextNode node, final view?, TextNodePosition(:final offset)) =>
+      view.linkAt(node.text.toPlainText(), offset),
+    _ => null,
+  };
 
   @override
   void indent(String nodeId) {

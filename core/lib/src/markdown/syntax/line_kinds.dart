@@ -15,52 +15,54 @@ enum LineKind {
 }
 
 /// The [LineKind] of each of [lines], in order.
-List<LineKind> lineKinds(List<String> lines) {
-  final kinds = List.filled(lines.length, LineKind.plain);
-  String? fence;
-  for (var i = 0; i < lines.length; i++) {
-    final line = lines[i];
-    final opening = _fence.firstMatch(line)?.group(1);
-    if (fence != null) {
-      final closes =
-          opening != null &&
-          opening[0] == fence[0] &&
-          opening.length >= fence.length &&
-          line.trim() == opening;
-      kinds[i] = closes ? LineKind.fence : LineKind.code;
-      if (closes) fence = null;
-    } else if (opening != null) {
-      kinds[i] = LineKind.fence;
-      fence = opening;
-    } else if (_startsTable(lines, i)) {
-      var end = i + 2;
-      while (end < lines.length && _isRow(lines[end])) {
-        end++;
-      }
-      for (var j = i; j < end; j++) {
-        kinds[j] = LineKind.table;
-      }
-      i = end - 1;
-    }
+List<LineKind> lineKinds(List<String> lines) => [..._kindsOf(lines)];
+
+/// The kinds of [lines], read one run at a time: a code block, a table,
+/// or a plain line.
+Iterable<LineKind> _kindsOf(List<String> lines) sync* {
+  var start = 0;
+  while (start < lines.length) {
+    final run =
+        _codeBlockAt(lines, start) ??
+        _tableAt(lines, start) ??
+        const [LineKind.plain];
+    yield* run;
+    start += run.length;
   }
-  return kinds;
 }
 
-/// Runs of [LineKind.table] lines in [kinds]: each table's first index and
-/// the index past its last.
-List<(int, int)> tableRanges(List<LineKind> kinds) => [
-  for (var i = 0; i < kinds.length; i++)
-    if (kinds[i] == LineKind.table &&
-        (i == 0 || kinds[i - 1] != LineKind.table))
-      (i, _runEnd(kinds, i)),
-];
+/// The kinds of the fenced code block that opens at [start], up to its
+/// closing fence or the end; `null` if none opens there.
+List<LineKind>? _codeBlockAt(List<String> lines, int start) {
+  final fence = _fence.firstMatch(lines[start])?.group(1);
+  if (fence == null) return null;
+  final close = lines.indexWhere((line) => _closes(fence, line), start + 1);
+  final end = close < 0 ? lines.length : close;
+  return [
+    LineKind.fence,
+    ...List.filled(end - start - 1, LineKind.code),
+    if (close >= 0) LineKind.fence,
+  ];
+}
 
-int _runEnd(List<LineKind> kinds, int start) {
-  var end = start;
-  while (end < kinds.length && kinds[end] == LineKind.table) {
-    end++;
-  }
-  return end;
+/// Whether [line] closes a code block opened with [fence]: a fence of the
+/// same character, at least as long, alone on its line.
+bool _closes(String fence, String line) =>
+    switch (_fence.firstMatch(line)?.group(1)) {
+      final closing? =>
+        closing[0] == fence[0] &&
+            closing.length >= fence.length &&
+            line.trim() == closing,
+      null => false,
+    };
+
+/// The kinds of the table that starts at [start]: its header, delimiter
+/// row and the rows right below; `null` if none starts there.
+List<LineKind>? _tableAt(List<String> lines, int start) {
+  if (!_startsTable(lines, start)) return null;
+  final after = lines.indexWhere((line) => !_isRow(line), start + 2);
+  final end = after < 0 ? lines.length : after;
+  return List.filled(end - start, LineKind.table);
 }
 
 /// A table's cells: of its header and rows, without the delimiter row.

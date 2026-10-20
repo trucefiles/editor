@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
+
 import 'block.dart';
 import 'line_id.dart';
 import 'markdown_line.dart';
@@ -24,18 +26,9 @@ final class MarkdownLines {
   MarkdownLines._(this.lines, this._indentUnit, this._nextId);
 
   /// Parses [text] with `\n` line breaks.
-  factory MarkdownLines.parse(String text) => MarkdownLines._parseFrom(text, 0);
-
-  factory MarkdownLines._parseFrom(String text, int firstId) {
-    final lines = <MarkdownLine>[];
-    for (final raw in text.split('\n')) {
-      lines.add(MarkdownLine.parse(LineId(firstId + lines.length), raw));
-    }
-    return MarkdownLines._(
-      lines,
-      _detectIndentUnit(lines),
-      firstId + lines.length,
-    );
+  factory MarkdownLines.parse(String text) {
+    final lines = _parseLines(text.split('\n'), firstId: 0);
+    return MarkdownLines._(lines, _detectIndentUnit(lines), lines.length);
   }
 
   /// Parses [text] as a new version of this document, e.g. after it
@@ -44,26 +37,26 @@ final class MarkdownLines {
   /// document never used, so a UI cannot mistake a new line for an old one.
   MarkdownLines reparse(String text) {
     final raws = text.split('\n');
-    var head = 0;
-    while (head < raws.length &&
-        head < lines.length &&
-        raws[head] == lines[head].raw) {
-      head++;
-    }
-    var tail = 0;
-    while (tail < raws.length - head &&
-        tail < lines.length - head &&
-        raws[raws.length - 1 - tail] == lines[lines.length - 1 - tail].raw) {
-      tail++;
-    }
-    var nextId = _nextId;
+    final olds = [for (final line in lines) line.raw];
+    final head = _sameAtStart(raws, olds);
+    final tail = _sameAtStart(
+      raws.skip(head).toList().reversed,
+      olds.skip(head).toList().reversed,
+    );
+    final changed = _parseLines(
+      raws.sublist(head, raws.length - tail),
+      firstId: _nextId,
+    );
     final parsed = [
       ...lines.take(head),
-      for (final raw in raws.sublist(head, raws.length - tail))
-        MarkdownLine.parse(LineId(nextId++), raw),
+      ...changed,
       ...lines.skip(lines.length - tail),
     ];
-    return MarkdownLines._(parsed, _detectIndentUnit(parsed), nextId);
+    return MarkdownLines._(
+      parsed,
+      _detectIndentUnit(parsed),
+      _nextId + changed.length,
+    );
   }
 
   /// All lines, in file order.
@@ -332,17 +325,12 @@ final class MarkdownLines {
 
   /// Moves the item [id] with its subitems to just before the line
   /// [beforeId], or to the end if [beforeId] is `null`. Levels are kept.
-  MarkdownLines move(LineId id, {required LineId? beforeId}) {
-    final (:start, :end) = outline.subtree(_indexOf(id));
-    final block = lines.sublist(start, end);
-    if (block.any((line) => line.id == beforeId)) return this;
-    final rest = [...lines]..removeRange(start, end);
-    final trailingEmpty = rest.length > 1 && rest.last.raw.isEmpty;
-    final target = beforeId == null
-        ? (trailingEmpty ? rest.length - 1 : rest.length)
-        : rest.indexWhere((line) => line.id == beforeId);
-    return _with(rest..insertAll(target, block));
-  }
+  MarkdownLines move(LineId id, {required LineId? beforeId}) => _moveSubtree(
+    _indexOf(id),
+    spot: (rest, moved) => beforeId == null
+        ? _endOf(rest)
+        : _indexWithout(moved, _indexOf(beforeId)),
+  );
 
   /// Moves the item [id] with its subitems next to the line [target], as
   /// dropping it there: just above it, else [below] it. Below an item with
@@ -356,37 +344,25 @@ final class MarkdownLines {
     required LineId target,
     required bool below,
   }) {
-    final (:start, :end) = outline.subtree(_indexOf(id));
-    final block = lines.sublist(start, end);
-    if (block.any((line) => line.id == target)) return this;
-    final rest = [...lines]..removeRange(start, end);
-    final spot = _spotNextTo(
-      rest,
-      rest.indexWhere((l) => l.id == target),
-      below,
-    );
-    // Below an item with subitems, the spot is theirs; as the user sees
-    // them, also when the item is its own first subitem.
     final at = _indexOf(target);
-    final indent =
-        (below && at + 1 < _subtreeEnd(at) && _isItem(at + 1)
-                ? lines[at + 1]
-                : lines[at])
-            .indent;
-    final own = block.first.indent;
-    // Lines of the block are deeper than the item; one indented with
-    // other characters (a tab under spaces) stays one level deeper.
-    String moved(String lineIndent) =>
-        indent +
-        (lineIndent.startsWith(own)
-            ? lineIndent.substring(own.length)
-            : _indentUnit);
-    return _with(
-      rest..insertAll(spot, [
-        for (final line in block) line.withIndent(moved(line.indent)),
-      ]),
+    return _moveSubtree(
+      _indexOf(id),
+      spot: (rest, moved) => switch (_indexWithout(moved, at)) {
+        final index? => _spotNextTo(rest, index, below),
+        null => null,
+      },
+      indent: _indentNextTo(at, below),
     );
   }
+
+  /// The indent of the spot next to the line at [index]: its own, or
+  /// [below] an item with subitems, theirs; as the user sees them, also
+  /// when the item is its own first subitem.
+  String _indentNextTo(int index, bool below) =>
+      (below && index + 1 < _subtreeEnd(index) && _isItem(index + 1)
+              ? lines[index + 1]
+              : lines[index])
+          .indent;
 
   /// Where in [rest] an item dropped on the line at [target] goes: before
   /// it, or [below] it: before its first subitem, else after its block,
@@ -396,9 +372,7 @@ final class MarkdownLines {
     final within = _with(rest);
     final end = within._subtreeEnd(target);
     if (target + 1 < end && within._isItem(target + 1)) return target + 1;
-    final finalBreak =
-        end == rest.length && rest.length > 1 && rest.last.raw.isEmpty;
-    return finalBreak ? end - 1 : end;
+    return end == rest.length ? _endOf(rest) : end;
   }
 
   /// Moves the item [id] with its subitems one level right, under the
@@ -413,13 +387,12 @@ final class MarkdownLines {
     final above = _shownAbove(index, hidden);
     if (above == null || !_isItem(above)) return this;
     if (depthOf(lines[index]) > depthOf(lines[above])) return this;
-    final aboveEnd = _subtreeEnd(above);
-    final placed = aboveEnd < index
-        ? move(id, beforeId: lines[aboveEnd].id)
-        : this;
-    return placed._reindentBlock(
-      placed._indexOf(id),
-      (indent) => '$indent$_indentUnit',
+    // Right after the lines under the item above, unless among them.
+    final spot = min(_subtreeEnd(above), index);
+    return _moveSubtree(
+      index,
+      spot: (_, _) => spot,
+      indent: '${lines[index].indent}$_indentUnit',
     );
   }
 
@@ -432,11 +405,10 @@ final class MarkdownLines {
     final cut = indent.endsWith(_indentUnit)
         ? _indentUnit.length
         : (indent.endsWith('\t') ? 1 : indent.length);
-    // A subitem indented with other characters (a tab under spaces) may be
-    // shorter than the cut; it then moves to the margin.
-    return _reindentBlock(
+    return _moveSubtree(
       index,
-      (lineIndent) => lineIndent.substring(0, max(0, lineIndent.length - cut)),
+      spot: (_, _) => index,
+      indent: indent.substring(0, indent.length - cut),
     );
   }
 
@@ -464,10 +436,9 @@ final class MarkdownLines {
   /// it, stopping before [stop] if it is among them.
   int _endBefore(int index, LineId? stop) {
     final (start: _, :end) = outline.subtree(index);
-    for (var i = index + 1; i < end; i++) {
-      if (lines[i].id == stop) return i;
-    }
-    return end;
+    final under = _linesIn((start: index + 1, end: end));
+    final stopAt = under.indexWhere((line) => line.id == stop);
+    return stopAt < 0 ? end : index + 1 + stopAt;
   }
 
   List<MarkdownLine> _linesIn(LineSpan span) =>
@@ -476,13 +447,64 @@ final class MarkdownLines {
   Iterable<LineId> _idsIn(LineSpan span) =>
       _linesIn(span).map((line) => line.id);
 
-  MarkdownLines _reindentBlock(int index, String Function(String) change) {
-    final (:start, :end) = outline.subtree(index);
-    return _with([
-      for (final (i, line) in lines.indexed)
-        i >= start && i < end ? line.withIndent(change(line.indent)) : line,
-    ]);
+  /// Takes the item at [index] with its subitems out and puts them back
+  /// at the index [spot] picks in the remaining lines, given the [moved]
+  /// span they had; unchanged if it picks none. With [indent], the item
+  /// gets it, the lines under it as [_reindented] says.
+  MarkdownLines _moveSubtree(
+    int index, {
+    required int? Function(List<MarkdownLine> rest, LineSpan moved) spot,
+    String? indent,
+  }) {
+    final span = outline.subtree(index);
+    final rest = [...lines]..removeRange(span.start, span.end);
+    final at = spot(rest, span);
+    if (at == null) return this;
+    final subtree = _linesIn(span);
+    final from = subtree.first.indent;
+    return _with(
+      rest..insertAll(at, [
+        for (final line in subtree)
+          if (indent == null)
+            line
+          else
+            _reindented(line, from: from, to: indent),
+      ]),
+    );
   }
+
+  /// [line], under an item or the item itself, once the item's indent
+  /// changes [from] one [to] another: it keeps its indent relative to the
+  /// item, as written, else (indented with other characters, e.g. a tab
+  /// under spaces) as wide, in spaces. A line no deeper than the item,
+  /// which continues its text, lands one level under it. A blank line
+  /// needs no indent and stays as it is.
+  MarkdownLine _reindented(
+    MarkdownLine line, {
+    required String from,
+    required String to,
+  }) => switch (line) {
+    _ when line.raw.trim().isEmpty => line,
+    _ when line.indent.startsWith(from) => line.withIndent(
+      '$to${line.indent.substring(from.length)}',
+    ),
+    _ => line.withIndent(switch (indentWidth(line.indent) - indentWidth(from)) {
+      final deeper when deeper > 0 => '$to${' ' * deeper}',
+      _ => '$to$_indentUnit',
+    }),
+  };
+
+  /// The index the line at [index] has once the lines of [span] are taken
+  /// out; `null` if it is among them.
+  static int? _indexWithout(LineSpan span, int index) => index < span.start
+      ? index
+      : (index >= span.end ? index - (span.end - span.start) : null);
+
+  /// The end of [lines], before a final line break (an empty last line).
+  static int _endOf(List<MarkdownLine> lines) =>
+      lines.length > 1 && lines.last.raw.isEmpty
+      ? lines.length - 1
+      : lines.length;
 
   (MarkdownLines, LineId) _insert(int index, MarkdownLine line) => (
     MarkdownLines._([...lines]..insert(index, line), _indentUnit, _nextId + 1),
@@ -500,14 +522,25 @@ final class MarkdownLines {
   int _indexOf(LineId id) =>
       _indexById[id] ?? (throw ArgumentError.value(id, 'id', 'no such line'));
 
-  static String _detectIndentUnit(List<MarkdownLine> lines) {
-    String? unit;
-    for (final line in lines) {
-      if (!line.isListItem || line.indent.isEmpty) continue;
-      if (unit == null || indentWidth(line.indent) < indentWidth(unit)) {
-        unit = line.indent;
-      }
-    }
-    return unit ?? '  ';
-  }
+  /// The least indent of the indented items in [lines]; two spaces if
+  /// none is.
+  static String _detectIndentUnit(List<MarkdownLine> lines) =>
+      minBy([
+        for (final line in lines)
+          if (line.isListItem && line.indent.isNotEmpty) line.indent,
+      ], indentWidth) ??
+      '  ';
+
+  /// Lines parsed from [raws], with ids counting up from [firstId].
+  static List<MarkdownLine> _parseLines(
+    List<String> raws, {
+    required int firstId,
+  }) => [
+    for (final (offset, raw) in raws.indexed)
+      MarkdownLine.parse(LineId(firstId + offset), raw),
+  ];
 }
+
+/// How many items [a] and [b] have equal at their start.
+int _sameAtStart(Iterable<String> a, Iterable<String> b) =>
+    IterableZip([a, b]).takeWhile((pair) => pair[0] == pair[1]).length;

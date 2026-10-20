@@ -80,4 +80,12 @@ void main() {
 
     expect((view.kind, view.item), (LineKind.code, null));
   });
+
+  test('tells the link at an offset of what it shows', () {
+    final view = viewOf('- see [docs](https://example.org) now', 0);
+
+    expect(view.linkAt(view.text, 5), 'https://example.org');
+    expect(view.linkAt(view.text, 3), isNull);
+    expect(view.linkAt(view.text, view.text.indexOf(' now')), isNull);
+  });
 }

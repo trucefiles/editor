@@ -78,4 +78,13 @@ final class LineView {
   List<MarkupSpan> markupOf(String shown) => item != null
       ? itemTextMarkup(shown)
       : lineMarkup(shown, kind, inQuote: quote);
+
+  /// The url of the link at [offset] in [shown], by its [markupOf]; `null`
+  /// if there is none.
+  String? linkAt(String shown, int offset) => [
+    for (final span in markupOf(shown))
+      if (span.markup case LinkMarkup(:final url)
+          when span.start <= offset && offset < span.end)
+        url,
+  ].firstOrNull;
 }

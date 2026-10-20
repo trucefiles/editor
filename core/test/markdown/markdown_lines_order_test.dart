@@ -264,6 +264,17 @@ void main() {
         '- y\n  - z\n- a\n- b\n',
       );
     });
+
+    test('a subitem indented with other characters keeps its level', () {
+      final list = MarkdownLines.parse('- a\n- b\n   - y\n    - z\n\t- w');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'y'), target: idOf(list, 'a'), below: false)
+            .text,
+        '- y\n - z\n - w\n- a\n- b',
+      );
+    });
   });
 
   group('toggleAndSort', () {
@@ -383,6 +394,15 @@ void main() {
       expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b\n    note');
     });
 
+    test('leaves blank lines among the subitems as they are', () {
+      final list = MarkdownLines.parse('- a\n- b\n  - c\n\n  - d');
+
+      expect(
+        list.indent(idOf(list, 'b')).text,
+        '- a\n  - b\n    - c\n\n    - d',
+      );
+    });
+
     test('needs an item above', () {
       final list = MarkdownLines.parse('# T\n- [ ] a');
 
@@ -427,7 +447,7 @@ void main() {
     test('outdent keeps a tab-indented subitem under a space item', () {
       final list = MarkdownLines.parse('  - [ ] a\n\t- [ ] b');
 
-      expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n- [ ] b');
+      expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n  - [ ] b');
     });
 
     test('outdent at the margin does nothing', () {

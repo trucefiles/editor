@@ -187,13 +187,11 @@ final class Outline {
     if (index == 0 ||
         _kinds[index] != LineKind.plain ||
         _kinds[index - 1] != LineKind.plain ||
-        _isBlank(index) ||
-        startsBlock(_lines[index].raw)) {
+        !_isText(_lines[index].raw)) {
       return false;
     }
     final above = _lines[index - 1];
-    final text = _items[index - 1] ? above.text : above.raw;
-    return text.trim().isNotEmpty && !startsBlock(text);
+    return _isText(_items[index - 1] ? above.text : above.raw);
   }
 
   /// In file order, each numbered item counts on from the item just
@@ -213,47 +211,63 @@ final class Outline {
     return numbers;
   }
 
-  List<bool> _readQuotes() {
-    final quotes = List.filled(_lines.length, false);
-    // Whether the line above ends inside a quote's paragraph.
-    var inParagraph = false;
-    for (final (index, line) in _lines.indexed) {
-      final raw = line.raw;
-      final marked = quoteTextStart(raw);
-      final text = marked == null ? raw : raw.substring(marked);
-      quotes[index] =
-          _kinds[index] == LineKind.plain &&
-          (marked != null ||
-              (inParagraph && raw.trim().isNotEmpty && !startsBlock(raw)));
-      inParagraph =
-          quotes[index] && text.trim().isNotEmpty && !startsBlock(text);
-    }
-    return quotes;
-  }
+  /// A line shows in a quote if it has the quote's `>` marks, or if it is
+  /// text right below a quote's text, which continues its paragraph.
+  List<bool> _readQuotes() => _lines.indexed.fold([], (quotes, entry) {
+    final (index, line) = entry;
+    final continues =
+        (quotes.lastOrNull ?? false) &&
+        _isText(_quoteText(_lines[index - 1].raw)) &&
+        _isText(line.raw);
+    return quotes..add(
+      _kinds[index] == LineKind.plain &&
+          (quoteTextStart(line.raw) != null || continues),
+    );
+  });
 
   /// Lists from their first item to the last line under their last item;
   /// tables; every other line on its own.
   List<OutlinePart> _readParts() {
-    final tables = {for (final (start, end) in tableRanges(_kinds)) start: end};
     final parts = <OutlinePart>[];
     var index = 0;
     while (index < _lines.length) {
-      final part = switch (_nodes[index]) {
-        _Node(:final list?, parent: null) => ListPart((
-          start: index,
-          end: list.last.end,
-        )),
-        _ => switch (tables[index]) {
-          final end? => TablePart((start: index, end: end)),
-          null => LinePart((start: index, end: index + 1)),
-        },
-      };
+      final part = _partAt(index);
       parts.add(part);
       index = part.span.end;
     }
     return parts;
   }
+
+  /// The part that starts at [index].
+  OutlinePart _partAt(int index) => switch (_nodes[index]) {
+    _Node(:final list?, parent: null) => ListPart((
+      start: index,
+      end: list.last.end,
+    )),
+    _ when _kinds[index] == LineKind.table => TablePart((
+      start: index,
+      end: _endOfTable(index),
+    )),
+    _ => LinePart((start: index, end: index + 1)),
+  };
+
+  /// The index past the last line of the table the line at [index] is in.
+  int _endOfTable(int index) =>
+      switch (_kinds.indexWhere((kind) => kind != LineKind.table, index)) {
+        -1 => _lines.length,
+        final end => end,
+      };
 }
+
+/// Whether [text] is a paragraph's text: not blank, and starting no other
+/// block.
+bool _isText(String text) => text.trim().isNotEmpty && !startsBlock(text);
+
+/// [raw] without the `>` marks of a quote, if it has them.
+String _quoteText(String raw) => switch (quoteTextStart(raw)) {
+  final start? => raw.substring(start),
+  null => raw,
+};
 
 /// A line that is not blank, in the tree of its document. Built once by
 /// [Outline._readTree], which adds it to its lists.
