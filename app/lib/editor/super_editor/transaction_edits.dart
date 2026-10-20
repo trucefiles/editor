@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -21,58 +22,81 @@ TransactionEdits transactionEdits(
   Document document,
   LineNodes ids,
 ) {
-  final touched = <String>{};
-  final removedNodes = <String, DocumentNode>{};
-  for (final event in events) {
-    if (event case DocumentEdit(change: final NodeDocumentChange change)) {
-      touched.add(change.nodeId);
-      if (change case NodeRemovedEvent(:final removedNode)) {
-        removedNodes[change.nodeId] = removedNode;
-      }
-    }
-  }
-  if (touched.isEmpty) return (edits: const [], added: const []);
-  final edits = <BlockEdit>[
-    for (final id in touched)
-      if (document.getNodeById(id) == null)
-        ..._removed(id, removedNodes[id], ids),
+  final changes = [
+    for (final event in events)
+      if (event case DocumentEdit(change: final NodeDocumentChange change))
+        change,
   ];
-  final added = <String>[];
-  LineId? above;
-  var run = <(String, Block)>[];
-  void endRun() {
-    if (run.isEmpty) return;
-    edits.add(BlocksAdded([for (final (_, block) in run) block], after: above));
-    added.addAll([for (final (id, _) in run) id]);
-    run = [];
-  }
+  if (changes.isEmpty) return (edits: const [], added: const []);
+  final touched = {for (final change in changes) change.nodeId};
+  final removed = {
+    for (final change in changes)
+      if (change case NodeRemovedEvent(:final removedNode))
+        change.nodeId: removedNode,
+  };
+  final groups = [for (final node in document) ?_rowOf(node, ids, touched)]
+      .splitBefore((row) => row is _LineRow)
+      .toList();
+  return (
+    edits: [
+      for (final id in touched)
+        if (document.getNodeById(id) == null) ..._removed(id, removed[id], ids),
+      for (final group in groups) ..._editsOf(group),
+    ],
+    added: [
+      for (final group in groups)
+        for (final row in group.whereType<_NewRow>()) row.nodeId,
+    ],
+  );
+}
 
-  for (final node in document) {
+/// A node as the edits see it, if it counts: a line or a new node.
+sealed class _Row {}
+
+/// A node that shows a line: [changed] to its block if touched; a drawn
+/// table or image counts as its last line, never changed.
+final class _LineRow extends _Row {
+  _LineRow(this.line, this.changed);
+
+  final LineId line;
+  final Block? changed;
+}
+
+/// A node no line has yet, showing [block].
+final class _NewRow extends _Row {
+  _NewRow(this.nodeId, this.block);
+
+  final String nodeId;
+  final Block block;
+}
+
+/// The row of [node], whose line nodes [ids] knows; `null` for a node
+/// that is no line (headings, buttons) or shows no block.
+_Row? _rowOf(DocumentNode node, LineNodes ids, Set<String> touched) =>
     switch (node) {
-      case DrawnTableNode(:final lines):
-        endRun();
-        above = lines.last.id;
-      case DrawnImageNode(:final line):
-        endRun();
-        above = line.id;
-      case DisplayNode():
-        break;
-      default:
-        final line = ids.lineOf(node.id);
-        final block = blockOf(node);
-        if (line == null) {
-          if (block != null) run.add((node.id, block));
-          continue;
-        }
-        endRun();
-        above = line;
-        if (touched.contains(node.id) && block != null) {
-          edits.add(BlockChanged(line, block));
-        }
-    }
-  }
-  endRun();
-  return (edits: edits, added: added);
+      DrawnTableNode(:final lines) => _LineRow(lines.last.id, null),
+      DrawnImageNode(:final line) => _LineRow(line.id, null),
+      DisplayNode() => null,
+      _ => switch ((ids.lineOf(node.id), blockOf(node))) {
+        (final line?, final block) => _LineRow(
+          line,
+          touched.contains(node.id) ? block : null,
+        ),
+        (null, final block?) => _NewRow(node.id, block),
+        (null, null) => null,
+      },
+    };
+
+/// The edits of a line and the new nodes right below it, or of the new
+/// nodes at the top: its change, then the new lines after it.
+List<BlockEdit> _editsOf(List<_Row> group) {
+  final line = group.whereType<_LineRow>().firstOrNull;
+  final added = [for (final row in group.whereType<_NewRow>()) row.block];
+  return [
+    if (line case _LineRow(:final line, changed: final block?))
+      BlockChanged(line, block),
+    if (added.isNotEmpty) BlocksAdded(added, after: line?.line),
+  ];
 }
 
 /// The edits for node [id], which is gone; it was [node] if known.

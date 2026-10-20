@@ -26,7 +26,7 @@ extension ListConversion on MarkdownLines {
     ];
     final filled = [
       for (final line in converting)
-        if (line.raw.trim().isNotEmpty) line,
+        if (!line.isBlank) line,
     ];
     final lines = filled.isEmpty ? converting : filled;
     if (lines.isEmpty) {
@@ -77,12 +77,11 @@ extension ListConversion on MarkdownLines {
     if (text.isEmpty) {
       return (withBlock(lines.single.id, empty), lines.single.id);
     }
-    final finalBreak = lines.length > 1 && lines.last.raw.isEmpty;
-    final last = lines[lines.length - (finalBreak ? 2 : 1)];
+    final end = textEnd;
     final (added, ids) = insertBlocks(
       [empty],
-      after: last.id,
-      shownBelow: finalBreak ? lines.last.id : null,
+      after: lines[end - 1].id,
+      shownBelow: end < lines.length ? lines[end].id : null,
     );
     return (added, ids.single);
   }

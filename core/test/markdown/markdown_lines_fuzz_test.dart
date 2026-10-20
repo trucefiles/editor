@@ -157,6 +157,88 @@ void main() {
     }
   });
 
+  test('indent, outdent and drop give the level asked for', () {
+    for (var i = 0; i < cases; i++) {
+      final list = randomList();
+      final item = randomItem(list);
+      if (item == null) continue;
+      final depth = list.depthOf(item);
+      final target = list.lines[random.nextInt(list.lines.length)];
+      final below = random.nextBool();
+      final dropped = list.moveNextTo(item.id, target: target.id, below: below);
+      final indented = list.indent(item.id);
+
+      int depthIn(MarkdownLines changed) =>
+          changed.depthOf(changed.lineOf(item.id)!);
+      if (indented.text != list.text) {
+        expect(depthIn(indented), depth + 1, reason: 'indent $i');
+      }
+      if (depth > 0) {
+        expect(depthIn(list.outdent(item.id)), depth - 1, reason: 'out $i');
+      }
+      if (dropped.text != list.text && list.isItem(target)) {
+        final next = list.lines.indexOf(target) + 1;
+        final level =
+            below &&
+                next < list.lines.length &&
+                list.isItem(list.lines[next]) &&
+                list.depthOf(list.lines[next]) > list.depthOf(target)
+            ? list.depthOf(list.lines[next])
+            : list.depthOf(target);
+        expect(depthIn(dropped), level, reason: 'drop $i');
+      }
+    }
+  });
+
+  test('a moved item keeps its subitems at their levels under it', () {
+    for (var i = 0; i < cases; i++) {
+      final list = randomList();
+      final item = randomItem(list);
+      if (item == null) continue;
+      final target = list.lines[random.nextInt(list.lines.length)];
+      final under = [
+        for (final line in list.lines.skipWhile((l) => l.id != item.id)) line,
+      ].skip(1).takeWhile((l) => list.depthOf(l) > list.depthOf(item));
+
+      for (final changed in [
+        list.moveNextTo(item.id, target: target.id, below: random.nextBool()),
+        list.indent(item.id),
+        list.outdent(item.id),
+      ]) {
+        final shift =
+            changed.depthOf(changed.lineOf(item.id)!) - list.depthOf(item);
+        for (final line in under.where((l) => !l.isBlank)) {
+          expect(
+            changed.depthOf(changed.lineOf(line.id)!),
+            list.depthOf(line) + shift,
+            reason: 'case $i',
+          );
+        }
+      }
+    }
+  });
+
+  test('a new item leaves every other line at its level', () {
+    for (var i = 0; i < cases; i++) {
+      final list = randomList();
+      final item = randomItem(list);
+      if (item == null) continue;
+      final (added, _) = list.addItem(
+        ListKind.values[random.nextInt(ListKind.values.length)],
+        anchor: item.id,
+        before: random.nextBool(),
+      );
+
+      for (final line in list.lines.where((l) => !l.isBlank)) {
+        expect(
+          added.depthOf(added.lineOf(line.id)!),
+          list.depthOf(line),
+          reason: 'case $i',
+        );
+      }
+    }
+  });
+
   test('toggling and sorting changes only the mark and the order', () {
     for (var i = 0; i < cases; i++) {
       final list = randomList();

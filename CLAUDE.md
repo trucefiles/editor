@@ -22,6 +22,16 @@ Prefer the simpler option when in doubt.
 - Pure units: a unit knows only its own job; mappings and policies have exactly one owner.
 - Validate at the edge, with parse-only constructors.
 
+## Code style
+- Best design first: model the domain with the right entities and abstractions, then code it; never a quick version, or one shaped after old code, to clean up later.
+- Declarative over procedural: say what a value is (collection literals and comprehensions, `map`/`where`/`fold`, `switch` expressions with patterns, `package:collection` helpers), not how to build it step by step. No index loops, counters or flags where a declarative form reads as well.
+- Functional where possible: pure functions and immutable values; structure is derived once in an entity (e.g. a parsed tree) and questions are lookups on it, never rescans.
+- Object-oriented where state or identity is real: an entity owns its data and the rules on it; closed sets of cases are sealed classes, matched exhaustively.
+- Mutation only where it is the job (a session, an editor bridge), inside one owner. A loop with local state only where it is the clearest form (e.g. a single-pass parser).
+- One rule, one place: logic two operations share is one helper, never two variants.
+- Names in the domain's words; doc comments state the contract, not the steps.
+- Best behavior, not legacy: existing behavior is no standard to keep. When a better or more correct behavior exists (for users, for the code, for efficiency), propose it with its user-visible impact and switch to it once agreed; compare with old code only to find the differences, never to copy its quirks.
+
 ## Robustness
 - No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
 - Expected failures are result values; exceptions are only for bugs.
@@ -29,6 +39,7 @@ Prefer the simpler option when in doubt.
 - Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.
 - No automatic writes into synced folders; only user actions write there, so devices can't ping-pong. Finishing a user's own write later is allowed (pending edits written at the next start, the same bytes rewritten once so the sync tool sees them): it is never caused by a remote change.
 - Byte-exact edits: change only what the user touched; never parse-and-reprint user files.
+- Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per kind of line turns that into bytes, keeping each line's own style. New editing features (headings, quotes, tables) follow the same shape.
 - Concurrency: reads that follow a write must see that write.
 
 ## Quality
@@ -40,5 +51,5 @@ Prefer the simpler option when in doubt.
 - Unit tests for core and controllers; UI tests for user flows.
 - Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
 - Shared test doubles live in the test-only `test_support` package, never in a production `lib`.
-- Structural refactors change no behavior: the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
+- Structural refactors change no behavior unless a better one is agreed (see Best behavior): the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
 - Adversarial self-review of the diff before asking for review.

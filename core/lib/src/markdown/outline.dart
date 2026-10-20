@@ -5,8 +5,32 @@ import 'syntax/line_kinds.dart';
 /// The lines from [start] to [end] (exclusive) of a document, by index.
 typedef LineSpan = ({int start, int end});
 
-/// Where a line lands: its [depth], and the [indent] that puts it there.
-typedef LinePlace = ({int depth, String indent});
+/// Where a line put at a level lands, by the lines around it: [depth] is
+/// the level it gets.
+sealed class LinePlace {
+  const LinePlace(this.depth);
+
+  final int depth;
+}
+
+/// At the left margin, under no item.
+final class AtMargin extends LinePlace {
+  const AtMargin() : super(0);
+}
+
+/// Beside [item], at its level.
+final class BesideItem extends LinePlace {
+  const BesideItem(this.item, super.depth);
+
+  final MarkdownLine item;
+}
+
+/// One level under [item].
+final class UnderItem extends LinePlace {
+  const UnderItem(this.item, super.depth);
+
+  final MarkdownLine item;
+}
 
 /// One part of a document at its top level, in file order.
 sealed class OutlinePart {
@@ -79,27 +103,35 @@ final class Outline {
     return [for (final item in _nodes[index]!.list!) item.index];
   }
 
-  /// Where an item put right after the lines before [index] lands at
-  /// [depth], as deep as Markdown lets it there: beside the item at that
-  /// depth that the nearest line above is in or is, else [unit] deeper
-  /// than the deepest item that line is in or is; at the margin if none.
-  LinePlace placeAt(int index, int depth, String unit) {
-    if (depth == 0) return (depth: 0, indent: '');
+  /// Where a line put at [index], between the lines before it and the
+  /// line now there, lands at [depth], as deep as Markdown lets it there:
+  /// beside the first line from [index] on that is not blank, if it is an
+  /// item at that depth, so that item stays beside it; else beside the
+  /// item at that depth that the nearest line above is in or is; else at
+  /// the margin for the top level; else under the deepest item that line
+  /// is in or is; else at the margin. The one owner of where a level puts
+  /// a line.
+  LinePlace placeAt(int index, int depth) {
+    final below = _nodes.skip(index).nonNulls.firstOrNull;
+    if (below != null && below.isItem && below.depth == depth) {
+      return BesideItem(_lines[below.index], depth);
+    }
     final above = _nodes.take(index).nonNulls.lastOrNull;
     final chain = [
       for (var node = above; node != null; node = node.parent)
         if (node.isItem) node,
     ];
-    if (chain.where((node) => node.depth == depth).firstOrNull
-        case final sibling?) {
-      return (depth: depth, indent: _lines[sibling.index].indent);
-    }
-    return switch (chain.firstOrNull) {
-      final parent? => (
-        depth: parent.depth + 1,
-        indent: '${_lines[parent.index].indent}$unit',
+    return switch ((
+      chain.where((node) => node.depth == depth).firstOrNull,
+      chain.firstOrNull,
+    )) {
+      (final sibling?, _) => BesideItem(_lines[sibling.index], depth),
+      _ when depth == 0 => const AtMargin(),
+      (null, final parent?) => UnderItem(
+        _lines[parent.index],
+        parent.depth + 1,
       ),
-      null => (depth: 0, indent: ''),
+      _ => const AtMargin(),
     };
   }
 
@@ -124,8 +156,6 @@ final class Outline {
       if (part is ListPart) part.span,
   ];
 
-  bool _isBlank(int index) => _lines[index].raw.trim().isEmpty;
-
   int _widthAt(int index) => indentWidth(_lines[index].indent);
 
   /// Each line goes under the nearest item above it that is less
@@ -138,7 +168,7 @@ final class Outline {
     final roots = <_Node>[];
     final open = <_Node>[];
     for (var index = 0; index < _lines.length; index++) {
-      if (_kinds[index] == LineKind.plain && _isBlank(index)) continue;
+      if (_kinds[index] == LineKind.plain && _lines[index].isBlank) continue;
       final parent = switch (index == 0 ? null : nodes[index - 1]) {
         final above? when _continuesBlock(index) => above.parent,
         final above? when _continuesParagraph(index) =>
@@ -187,13 +217,11 @@ final class Outline {
     if (index == 0 ||
         _kinds[index] != LineKind.plain ||
         _kinds[index - 1] != LineKind.plain ||
-        _isBlank(index) ||
-        startsBlock(_lines[index].raw)) {
+        !_isText(_lines[index].raw)) {
       return false;
     }
     final above = _lines[index - 1];
-    final text = _items[index - 1] ? above.text : above.raw;
-    return text.trim().isNotEmpty && !startsBlock(text);
+    return _isText(_items[index - 1] ? above.text : above.raw);
   }
 
   /// In file order, each numbered item counts on from the item just
@@ -213,47 +241,63 @@ final class Outline {
     return numbers;
   }
 
-  List<bool> _readQuotes() {
-    final quotes = List.filled(_lines.length, false);
-    // Whether the line above ends inside a quote's paragraph.
-    var inParagraph = false;
-    for (final (index, line) in _lines.indexed) {
-      final raw = line.raw;
-      final marked = quoteTextStart(raw);
-      final text = marked == null ? raw : raw.substring(marked);
-      quotes[index] =
-          _kinds[index] == LineKind.plain &&
-          (marked != null ||
-              (inParagraph && raw.trim().isNotEmpty && !startsBlock(raw)));
-      inParagraph =
-          quotes[index] && text.trim().isNotEmpty && !startsBlock(text);
-    }
-    return quotes;
-  }
+  /// A line shows in a quote if it has the quote's `>` marks, or if it is
+  /// text right below a quote's text, which continues its paragraph.
+  List<bool> _readQuotes() => _lines.indexed.fold([], (quotes, entry) {
+    final (index, line) = entry;
+    final continues =
+        (quotes.lastOrNull ?? false) &&
+        _isText(_quoteText(_lines[index - 1].raw)) &&
+        _isText(line.raw);
+    return quotes..add(
+      _kinds[index] == LineKind.plain &&
+          (quoteTextStart(line.raw) != null || continues),
+    );
+  });
 
   /// Lists from their first item to the last line under their last item;
   /// tables; every other line on its own.
   List<OutlinePart> _readParts() {
-    final tables = {for (final (start, end) in tableRanges(_kinds)) start: end};
     final parts = <OutlinePart>[];
     var index = 0;
     while (index < _lines.length) {
-      final part = switch (_nodes[index]) {
-        _Node(:final list?, parent: null) => ListPart((
-          start: index,
-          end: list.last.end,
-        )),
-        _ => switch (tables[index]) {
-          final end? => TablePart((start: index, end: end)),
-          null => LinePart((start: index, end: index + 1)),
-        },
-      };
+      final part = _partAt(index);
       parts.add(part);
       index = part.span.end;
     }
     return parts;
   }
+
+  /// The part that starts at [index].
+  OutlinePart _partAt(int index) => switch (_nodes[index]) {
+    _Node(:final list?, parent: null) => ListPart((
+      start: index,
+      end: list.last.end,
+    )),
+    _ when _kinds[index] == LineKind.table => TablePart((
+      start: index,
+      end: _endOfTable(index),
+    )),
+    _ => LinePart((start: index, end: index + 1)),
+  };
+
+  /// The index past the last line of the table the line at [index] is in.
+  int _endOfTable(int index) =>
+      switch (_kinds.indexWhere((kind) => kind != LineKind.table, index)) {
+        -1 => _lines.length,
+        final end => end,
+      };
 }
+
+/// Whether [text] is a paragraph's text: not blank, and starting no other
+/// block.
+bool _isText(String text) => text.trim().isNotEmpty && !startsBlock(text);
+
+/// [raw] without the `>` marks of a quote, if it has them.
+String _quoteText(String raw) => switch (quoteTextStart(raw)) {
+  final start? => raw.substring(start),
+  null => raw,
+};
 
 /// A line that is not blank, in the tree of its document. Built once by
 /// [Outline._readTree], which adds it to its lists.
@@ -289,7 +333,3 @@ final class _Node {
   /// The item at the top level it is under; itself at the top level.
   late final _Node top = parent?.top ?? this;
 }
-
-/// Visual width of leading whitespace; a tab counts as four spaces.
-int indentWidth(String indent) =>
-    indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));

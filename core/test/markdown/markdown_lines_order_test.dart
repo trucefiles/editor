@@ -264,6 +264,17 @@ void main() {
         '- y\n  - z\n- a\n- b\n',
       );
     });
+
+    test('a subitem indented with other characters keeps its level', () {
+      final list = MarkdownLines.parse('- a\n- b\n   - y\n    - z\n\t- w');
+
+      expect(
+        list
+            .moveNextTo(idOf(list, 'y'), target: idOf(list, 'a'), below: false)
+            .text,
+        '- y\n - z\n - w\n- a\n- b',
+      );
+    });
   });
 
   group('toggleAndSort', () {
@@ -383,6 +394,15 @@ void main() {
       expect(list.indent(idOf(list, 'b')).text, '- [ ] a\n  - [ ] b\n    note');
     });
 
+    test('leaves blank lines among the subitems as they are', () {
+      final list = MarkdownLines.parse('- a\n- b\n  - c\n\n  - d');
+
+      expect(
+        list.indent(idOf(list, 'b')).text,
+        '- a\n  - b\n    - c\n\n    - d',
+      );
+    });
+
     test('needs an item above', () {
       final list = MarkdownLines.parse('# T\n- [ ] a');
 
@@ -425,9 +445,42 @@ void main() {
     });
 
     test('outdent keeps a tab-indented subitem under a space item', () {
-      final list = MarkdownLines.parse('  - [ ] a\n\t- [ ] b');
+      final list = MarkdownLines.parse('- p\n  - [ ] a\n\t- [ ] b');
 
-      expect(list.outdent(idOf(list, 'a')).text, '- [ ] a\n- [ ] b');
+      expect(list.outdent(idOf(list, 'a')).text, '- p\n- [ ] a\n  - [ ] b');
+    });
+
+    test('outdent keeps the subitem\'s own indent after the new one', () {
+      final list = MarkdownLines.parse('- p\n  - a\n  \t- b');
+
+      expect(list.outdent(idOf(list, 'a')).text, '- p\n- a\n\t- b');
+    });
+
+    test('indent puts the unit right after the item\'s own indent', () {
+      final list = MarkdownLines.parse('- a\n  - x\n- b\n\t- c');
+
+      expect(list.indent(idOf(list, 'b')).text, '- a\n  - x\n  - b\n  \t- c');
+    });
+
+    test('text continued without indent lands one level under the item', () {
+      final list = MarkdownLines.parse('- a\n  - b\nlazy');
+
+      expect(list.outdent(idOf(list, 'b')).text, '- a\n- b\n  lazy');
+    });
+
+    test('text continued at the item\'s own indent lands under it', () {
+      final list = MarkdownLines.parse('- a\n  - b\n  more');
+
+      expect(list.outdent(idOf(list, 'b')).text, '- a\n- b\n  more');
+    });
+
+    test('outdent leaves blank lines as they are', () {
+      final list = MarkdownLines.parse('- a\n  - b\n    - c\n    \n    - d');
+
+      expect(
+        list.outdent(idOf(list, 'b')).text,
+        '- a\n- b\n  - c\n    \n  - d',
+      );
     });
 
     test('outdent at the margin does nothing', () {

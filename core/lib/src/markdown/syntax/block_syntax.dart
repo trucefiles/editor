@@ -20,6 +20,7 @@ final class ItemSyntax {
   const ItemSyntax({
     required this.kind,
     required this.markStart,
+    required this.contentStart,
     required this.textStart,
     this.markIndex = -1,
     this.bullet,
@@ -31,33 +32,54 @@ final class ItemSyntax {
   static ItemSyntax? of(String raw) {
     if (_thematicBreak.hasMatch(raw)) return null;
     if (_checkbox.firstMatch(raw) case final match?) {
+      final markStart = match[1]!.length;
       return ItemSyntax(
         kind: ListKind.checkbox,
-        markStart: match[1]!.length,
+        markStart: markStart,
+        contentStart: _contentStart(
+          markStart + 1,
+          markStart + match[2]!.length,
+        ),
         textStart: raw.length - match[3]!.length,
         markIndex: match[1]!.length + match[2]!.length + 1,
         bullet: match[2]!.trim(),
       );
     }
     if (_bullet.firstMatch(raw) case final match?) {
+      final markStart = match[1]!.length;
+      final textStart = raw.length - match[3]!.length;
       return ItemSyntax(
         kind: ListKind.bullet,
-        markStart: match[1]!.length,
-        textStart: raw.length - match[3]!.length,
+        markStart: markStart,
+        contentStart: _contentStart(markStart + 1, textStart),
+        textStart: textStart,
         bullet: match[2],
       );
     }
     if (_numbered.firstMatch(raw) case final match?) {
+      final markStart = match[1]!.length;
+      final textStart = raw.length - match[4]!.length;
       return ItemSyntax(
         kind: ListKind.numbered,
-        markStart: match[1]!.length,
-        textStart: raw.length - match[4]!.length,
+        markStart: markStart,
+        contentStart: _contentStart(
+          markStart + match[2]!.length + 1,
+          textStart,
+        ),
+        textStart: textStart,
         number: int.parse(match[2]!),
         delimiter: match[3],
       );
     }
     return null;
   }
+
+  /// Where the content starts after a marker ending at [markEnd], with
+  /// the item's text or box at [next]; see [contentStart].
+  static int _contentStart(int markEnd, int next) => switch (next - markEnd) {
+    final spaces when spaces >= 1 && spaces <= 4 => next,
+    _ => markEnd + 1,
+  };
 
   /// `- [ ] text`, also with `*` or `+` bullets and `[x]` or `[X]`; as in
   /// GitHub Flavored Markdown, the box is followed by whitespace or the
@@ -79,6 +101,12 @@ final class ItemSyntax {
 
   /// Start of the marker (bullet, number), after the indent.
   final int markStart;
+
+  /// Where the item's content starts, as Markdown counts it: after the
+  /// marker and the one to four spaces after it, or one if there are none
+  /// or more (then the rest is the content's own). Lines under the item
+  /// are indented at least this far. A box is content.
+  final int contentStart;
 
   /// Start of the item text.
   final int textStart;
@@ -126,6 +154,10 @@ bool startsBlock(String line) =>
     quoteTextStart(line) != null ||
     ItemSyntax.of(line) != null ||
     ItemSyntax._thematicBreak.hasMatch(line);
+
+/// Visual width of leading whitespace; a tab counts as four spaces.
+int indentWidth(String indent) =>
+    indent.runes.fold(0, (sum, rune) => sum + (rune == 0x09 ? 4 : 1));
 
 final _heading = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+|$)');
 final _quote = RegExp(r'^(?: {0,3}>[ \t]?)+');

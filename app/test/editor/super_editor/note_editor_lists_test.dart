@@ -126,6 +126,22 @@ void main() {
       expect(text.text, '- [ ] a\n- [ ] b');
     });
 
+    testWidgets('Tab under a numbered item indents to its text', (
+      tester,
+    ) async {
+      final text = FakeNoteText('1. a\n2. b');
+      await pumpNoteEditor(tester, text);
+
+      await tester.caretIn(nodeOf<ListItemNode>(index: 1), 0);
+      await tester.pressTab();
+      expect(text.text, '1. a\n   2. b');
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pressTab();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      expect(text.text, '1. a\n2. b');
+    });
+
     testWidgets('Tab indents under the open item shown above', (tester) async {
       final text = FakeNoteText('- [ ] a\n- [x] done\n- [ ] b');
       await pumpNoteEditor(tester, text);

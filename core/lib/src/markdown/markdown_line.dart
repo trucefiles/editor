@@ -70,6 +70,14 @@ final class MarkdownLine {
   /// Leading whitespace.
   String get indent => raw.substring(0, raw.length - raw.trimLeft().length);
 
+  /// Whether the line is empty or only whitespace.
+  bool get isBlank => raw.trim().isEmpty;
+
+  /// How far this item's content starts after its indent, in columns: past
+  /// its marker and the spaces after it, as Markdown counts them. Lines
+  /// under the item start at least this far in. Only for items.
+  int get contentOffset => _item!.contentStart - indent.length;
+
   /// The checkbox item with its box checked if it was not, else unchecked.
   MarkdownLine toggled() {
     final item = _item!;
