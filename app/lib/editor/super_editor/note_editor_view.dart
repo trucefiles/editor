@@ -12,11 +12,11 @@ import 'apply_format.dart';
 import 'components/display_component_builder.dart';
 import 'components/list_line_builder.dart';
 import 'components/quote_line_builder.dart';
-import 'editor_link_tap_handler.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
-import 'marks/visual_lines.dart';
+import 'marks/markup_text.dart';
+import 'marks/shown_lines.dart';
 import 'note_editor_adapter.dart';
 import 'note_keyboard_actions.dart';
 import 'note_look.dart';
@@ -24,8 +24,8 @@ import 'note_read_document.dart';
 
 /// The open [note] in its mode: editable in Visual and Markdown edit, with
 /// the format toolbar in Visual edit; read-only in Read. Links open with
-/// [onLink] (see [EditorLinkTapHandler] while editing). Built anew for
-/// each mode.
+/// [onLink] (see [editingTapOpens] while editing). Built anew for each
+/// mode.
 class NoteEditorView extends StatefulWidget {
   const NoteEditorView(
     this.note, {
@@ -51,7 +51,7 @@ class NoteEditorView extends StatefulWidget {
 class _NoteEditorViewState extends State<NoteEditorView> {
   late final NoteMode _mode = widget.note.mode;
   final _focus = FocusNode();
-  final _visualLines = VisualLines();
+  final _shownLines = ShownLines();
   NoteEditorAdapter? _adapter;
   NoteReadDocument? _read;
   MarksPhase? _marks;
@@ -74,8 +74,9 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     _adapter = adapter;
     _marks = MarksPhase(
-      kindOf: adapter.kindOf,
-      visual: _mode == NoteMode.visual ? _visualLines : null,
+      marks: _mode.marks,
+      viewOf: adapter.viewOf,
+      lines: _mode == NoteMode.visual ? _shownLines : null,
       composer: adapter.editor.composer,
     );
     if (widget.autofocus) adapter.placeCaretAtStart();
@@ -116,7 +117,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       editor,
       format,
       selection: selection,
-      kindOf: _adapter!.kindOf,
+      viewOf: _adapter!.viewOf,
       url: url,
     );
     _focus.requestFocus();
@@ -140,8 +141,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
           DisplayComponentBuilder(),
           QuoteLineBuilder(),
         ],
-        contentTapDelegateFactory: (context) =>
-            LinkTapHandler(context.document, onLink: widget.onLink),
+        contentTapDelegateFactory: (context) => LinkTapHandler(
+          linkAt: (position) => _attributedLinkAt(context.document, position),
+          onLink: widget.onLink,
+        ),
       );
     }
     final adapter = _adapter!;
@@ -163,11 +166,14 @@ class _NoteEditorViewState extends State<NoteEditorView> {
         lineActions: visual ? adapter : null,
       ),
       contentTapDelegateFactories: [
-        (_) => EditorLinkTapHandler(
-          adapter.editor,
-          kindOf: adapter.kindOf,
-          tapOpens: visual,
+        (_) => LinkTapHandler(
+          linkAt: adapter.linkAt,
           onLink: widget.onLink,
+          opens: (position) => editingTapOpens(
+            position,
+            tapOpens: visual,
+            caretNode: adapter.editor.composer.selection?.extent.nodeId,
+          ),
         ),
       ],
     );
@@ -189,13 +195,24 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   List<ComponentBuilder> _visualBuilders(NoteEditorAdapter adapter) {
     final lines = ListLineBuilder(editor: adapter.editor, actions: adapter);
     return [
-      MappedBuilder<TaskComponentViewModel>(lines, _visualLines),
-      MappedBuilder<ListItemComponentViewModel>(lines, _visualLines),
+      MappedBuilder<TaskComponentViewModel>(lines, _shownLines),
+      MappedBuilder<ListItemComponentViewModel>(lines, _shownLines),
       DisplayComponentBuilder(actions: adapter),
       MappedBuilder<ParagraphComponentViewModel>(
         const QuoteLineBuilder(),
-        _visualLines,
+        _shownLines,
       ),
     ];
   }
 }
+
+/// The url of the link at [position] in [document], as its text's
+/// attributions mark it.
+String? _attributedLinkAt(Document document, DocumentPosition position) =>
+    switch ((document.getNodeById(position.nodeId), position.nodePosition)) {
+      (final TextNode node, TextNodePosition(:final offset)) => linkAt(
+        node.text,
+        offset,
+      ),
+      _ => null,
+    };

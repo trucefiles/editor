@@ -158,15 +158,13 @@ final class NoteDocumentController extends ChangeNotifier {
   /// Every line but those shown above [id] in its part of the display:
   /// the lines up to the nearest heading, button, table or image above.
   Set<LineId> _hiddenAbove(LineId id) {
-    final above = <LineId>{};
-    for (final entry in _entries) {
-      if (entry case LineEntry(id: final lineId)) {
-        if (lineId == id) break;
-        above.add(lineId);
-      } else {
-        above.clear();
-      }
-    }
+    final above = _entries
+        .takeWhile((entry) => !(entry is LineEntry && entry.id == id))
+        .toList()
+        .reversed
+        .takeWhile((entry) => entry is LineEntry)
+        .map((entry) => (entry as LineEntry).id)
+        .toSet();
     return {
       for (final line in _lines.lines)
         if (!above.contains(line.id)) line.id,

@@ -2,8 +2,8 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'display_nodes.dart';
-import 'edit_nodes.dart';
 import 'line_nodes.dart';
+import 'note_nodes.dart';
 
 /// What one editor transaction did to the note's lines: [edits] for the
 /// view model, and the ids of the nodes it added, in the order of the

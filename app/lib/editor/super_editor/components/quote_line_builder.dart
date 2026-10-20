@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../child_text.dart';
+
 /// Builds paragraphs as [ParagraphComponentBuilder] does, a quote with a
 /// bar on its left, so it stands apart from the text around it.
 class QuoteLineBuilder implements ComponentBuilder {
@@ -39,23 +41,17 @@ class _QuoteLine extends StatefulWidget {
 }
 
 class _QuoteLineState extends State<_QuoteLine>
-    with ProxyDocumentComponent<_QuoteLine>, ProxyTextComposable {
-  final _paragraphKey = GlobalKey();
-
-  @override
-  GlobalKey get childDocumentComponentKey => _paragraphKey;
-
-  @override
-  TextComposable get childTextComposable =>
-      _paragraphKey.currentState! as TextComposable;
-
+    with
+        ProxyDocumentComponent<_QuoteLine>,
+        ProxyTextComposable,
+        ChildText<_QuoteLine> {
   @override
   Widget build(BuildContext context) => Stack(
     children: [
       Padding(
         padding: const EdgeInsets.only(left: 12),
         child: ParagraphComponent(
-          key: _paragraphKey,
+          key: childTextKey,
           viewModel: widget.viewModel,
         ),
       ),

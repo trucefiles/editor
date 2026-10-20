@@ -1,12 +1,13 @@
 import 'markup.dart';
 
-/// A line shown formatted: its Markdown syntax hidden, with the offsets between the shown text and the
-/// source text.
-final class VisualLine {
-  VisualLine._(this.text, this.markup, this._sourceOffsets, this._shownBefore);
+/// A line as it shows: its text with its styles, and the offsets between
+/// the shown text and the source text. Either formatted, its Markdown
+/// syntax hidden, or as is, every character showing.
+final class ShownLine {
+  ShownLine._(this.text, this.markup, this._sourceOffsets, this._shownBefore);
 
-  /// [source] with its [markup] applied.
-  factory VisualLine.of(String source, List<MarkupSpan> markup) {
+  /// [source] with its [markup] applied, its syntax hidden.
+  factory ShownLine.of(String source, List<MarkupSpan> markup) {
     final hidden = List.filled(source.length, false);
     for (final span in markup) {
       switch (span.markup) {
@@ -27,7 +28,7 @@ final class VisualLine {
     }
     shownBefore.add(sourceOffsets.length);
     sourceOffsets.add(source.length);
-    return VisualLine._(
+    return ShownLine._(
       text.toString(),
       [
         for (final span in markup)
@@ -45,10 +46,17 @@ final class VisualLine {
     );
   }
 
+  /// [source] as is, with all its [markup], syntax included (shown
+  /// dimmed); offsets are the same both ways.
+  factory ShownLine.asIs(String source, List<MarkupSpan> markup) {
+    final offsets = [for (var i = 0; i <= source.length; i++) i];
+    return ShownLine._(source, markup, offsets, offsets);
+  }
+
   /// What shows.
   final String text;
 
-  /// The styles of [text], in its offsets; no syntax spans.
+  /// The styles of [text], in its offsets.
   final List<MarkupSpan> markup;
 
   /// The source offset of each shown character, and the source length

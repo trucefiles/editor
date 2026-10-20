@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../child_text.dart';
 import 'line_actions.dart';
 import 'line_drag.dart';
 import 'swipe_to_indent.dart';
@@ -45,19 +46,14 @@ class ListLineComponent extends StatefulWidget {
 enum _ItemAction { indent, outdent, delete }
 
 class _ListLineComponentState extends State<ListLineComponent>
-    with ProxyDocumentComponent<ListLineComponent>, ProxyTextComposable {
-  final _textKey = GlobalKey();
+    with
+        ProxyDocumentComponent<ListLineComponent>,
+        ProxyTextComposable,
+        ChildText<ListLineComponent> {
   final _rowKey = GlobalKey();
 
   /// Whether the user drags this item: it fades where it was.
   bool _dragging = false;
-
-  @override
-  GlobalKey get childDocumentComponentKey => _textKey;
-
-  @override
-  TextComposable get childTextComposable =>
-      _textKey.currentState! as TextComposable;
 
   String get _nodeId => widget.viewModel.nodeId;
 
@@ -98,7 +94,7 @@ class _ListLineComponentState extends State<ListLineComponent>
           Expanded(
             child: SwipeToIndent.keepMouseDrags(
               TextComponent(
-                key: _textKey,
+                key: childTextKey,
                 text: widget.viewModel.text,
                 textDirection: widget.viewModel.textDirection,
                 textAlign: widget.viewModel.textAlignment,

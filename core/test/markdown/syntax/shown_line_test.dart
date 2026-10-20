@@ -3,8 +3,8 @@ import 'package:truce_core/truce_core.dart';
 
 /// A line shown with its syntax hidden, and the offsets between the two.
 void main() {
-  VisualLine visual(String line) =>
-      VisualLine.of(line, lineMarkup(line, LineKind.plain));
+  ShownLine visual(String line) =>
+      ShownLine.of(line, lineMarkup(line, LineKind.plain));
 
   test('hides syntax and keeps styles in shown offsets', () {
     final line = visual('# A **b** [c](u)');
@@ -37,5 +37,16 @@ void main() {
     expect(line.text, 'plain');
     expect(line.toSource(3), 3);
     expect(line.fromSource(5), 5);
+  });
+
+  test('as is, every character shows with all markup', () {
+    const source = '# A **b**';
+    final markup = lineMarkup(source, LineKind.plain);
+    final line = ShownLine.asIs(source, markup);
+
+    expect(line.text, source);
+    expect(line.markup, markup);
+    expect(line.toSource(4), 4);
+    expect(line.fromSource(9), 9);
   });
 }

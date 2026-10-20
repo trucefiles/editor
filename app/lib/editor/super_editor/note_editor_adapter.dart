@@ -5,13 +5,12 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../note_document_controller.dart';
-import '../note_mode.dart';
 import 'components/display_actions.dart';
 import 'components/line_actions.dart';
-import 'edit_nodes.dart';
 import 'enter_at_item_start.dart';
 import 'join_lines.dart';
 import 'line_nodes.dart';
+import 'note_nodes.dart';
 import 'paste_lines.dart';
 import 'sync_document.dart';
 import 'transaction_edits.dart';
@@ -63,19 +62,20 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   bool _syncScheduled = false;
   bool _disposed = false;
 
-  /// The item shown as a paragraph because the caret was in it while its
-  /// marker ended it; see [editNodes].
+  /// How each shown line shows, by line; see [LineView.of].
+  Map<LineId, LineView> _views = const {};
+
+  /// The item shown as text because the caret is in it (see
+  /// [LineView.of]); it shows as an item once the caret leaves it.
   LineId? _heldLine;
 
   /// Where the caret goes once the editor shows the note again.
   DocumentPosition? _pendingCaret;
 
-  /// The caret after the user's last edit, as an offset in its line as in
-  /// the file: kept when the line shows in another kind of node, such as
-  /// a paragraph that became a list item.
-  ({LineId line, int offset})? _typedCaret;
-
-  bool get _visual => note.mode == NoteMode.visual;
+  /// The caret after the user's last edit, as a place in its line: kept
+  /// when the line shows in another kind of node, such as a paragraph that
+  /// became a list item.
+  LineCaret? _typedCaret;
 
   /// The line the caret is in, if any.
   LineId? get caretLine => switch (_composer.selection) {
@@ -87,11 +87,10 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   /// see [NoteDocumentController.toList]. The caret stays in its place in
   /// the text, or goes into an item added for want of lines to turn.
   void toList(ListKind kind) {
-    final selected = _selectedLines();
-    final caret = _caretInText();
-    final added = note.toList(selected, kind);
+    final (before, caret) = (note.lines, _caret());
+    final added = note.toList(_selectedLines(), kind);
     if (added != null) return _caretInto(added);
-    if (caret != null) _typedCaret = _caretAt(caret);
+    if (caret != null) _typedCaret = before.caretIn(note.lines, caret);
   }
 
   /// The lines the selection spans, in order.
@@ -106,26 +105,6 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
         ?_ids.lineOf(node.id),
     ];
   }
-
-  /// The collapsed caret as an offset in its line's text after any list
-  /// marker, which stays put when the marker changes.
-  ({LineId line, int offset})? _caretInText() {
-    final caret = _caretInLine();
-    final line = _line(caret?.line);
-    if (caret == null || line == null) return null;
-    return (line: line.id, offset: caret.offset - _markerLength(line));
-  }
-
-  /// [caret], an offset in its line's text, as an offset in the line.
-  ({LineId line, int offset})? _caretAt(({LineId line, int offset}) caret) {
-    final line = _line(caret.line);
-    if (line == null) return null;
-    final offset = caret.offset < 0 ? 0 : caret.offset;
-    return (line: line.id, offset: _markerLength(line) + offset);
-  }
-
-  int _markerLength(MarkdownLine line) =>
-      note.lines.isItem(line) ? line.raw.length - line.text.length : 0;
 
   /// Puts the caret at the start of the first line.
   void placeCaretAtStart() {
@@ -146,16 +125,37 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   }
 
   List<DocumentNode> _targetNodes() {
-    _ids.retain({for (final line in note.lines.lines) line.id});
+    final lines = note.lines;
+    _ids.retain({for (final line in lines.lines) line.id});
     final caret = _line(caretLine);
-    _heldLine = caret != null && caret.markEndsLine ? caret.id : null;
-    return editNodes(
-      note.entries,
-      note.lines,
-      _ids,
-      visual: _visual,
-      caretLine: caret?.id,
-    );
+    final byId = {for (final line in lines.lines) line.id: line};
+    _views = {
+      for (final entry in note.entries)
+        if (entry case LineEntry(:final id))
+          id: LineView.of(
+            lines,
+            byId[id]!,
+            blocks: note.mode.showsBlocks,
+            caretLine: caret?.id,
+          ),
+    };
+    _heldLine = switch ((caret, _views[caret?.id])) {
+      (final line?, LineView(item: null))
+          when note.mode.showsBlocks && lines.isItem(line) =>
+        line.id,
+      _ => null,
+    };
+    return [
+      for (final entry in note.entries)
+        switch (entry) {
+          LineEntry(:final id) => lineNode(
+            _ids.nodeOf(id),
+            _views[id]!,
+            AttributedText(_views[id]!.text),
+          ),
+          _ => displayNode(entry, byId),
+        },
+    ];
   }
 
   /// Shows a held line as the item it is once the caret leaves it.
@@ -171,10 +171,11 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     for (final (index, node) in added.indexed) {
       _ids.link(node, lines[index]);
     }
-    _typedCaret = _caretInLine();
+    _typedCaret = _caret();
   }
 
-  ({LineId line, int offset})? _caretInLine() {
+  /// The collapsed caret as a place in its line.
+  LineCaret? _caret() {
     final selection = _composer.selection;
     if (selection == null || !selection.isCollapsed) return null;
     final position = selection.extent;
@@ -182,32 +183,33 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     final node = _document.getNodeById(position.nodeId);
     if (line == null || node == null) return null;
     if (position.nodePosition case TextNodePosition(:final offset)) {
-      return (line: line.id, offset: textStartIn(node, line) + offset);
+      return (line: line.id, offset: _textStart(node, line) + offset);
     }
     return null;
   }
 
-  /// The caret at [caret]'s place in its line, in the node [nodes] show
-  /// the line in; `null` if that node is gone.
-  DocumentSelection? _caretIn(
-    List<DocumentNode> nodes,
-    ({LineId line, int offset}) caret,
-  ) {
+  /// The caret at [caret]'s place, in the node [nodes] show its line in;
+  /// `null` if that node is gone.
+  DocumentSelection? _selectionAt(List<DocumentNode> nodes, LineCaret caret) {
     final nodeId = _ids.nodeOf(caret.line);
     final line = _line(caret.line);
     final node = nodes.where((node) => node.id == nodeId).firstOrNull;
     if (line == null || node is! TextNode) return null;
-    final offset = (caret.offset - textStartIn(node, line)).clamp(
-      0,
-      node.text.length,
-    );
+    final offset = caret.offset - _textStart(node, line);
     return DocumentSelection.collapsed(
       position: DocumentPosition(
         nodeId: nodeId,
-        nodePosition: TextNodePosition(offset: offset),
+        nodePosition: TextNodePosition(
+          offset: offset.clamp(0, node.text.length),
+        ),
       ),
     );
   }
+
+  /// Where the text [node] shows starts in its [line]: a paragraph shows
+  /// the whole line, an item the text after its marker.
+  int _textStart(DocumentNode node, MarkdownLine line) =>
+      node is ParagraphNode ? 0 : note.lines.textStartOf(line);
 
   /// Syncs once the current transaction and its listeners are done.
   void _scheduleSync() {
@@ -227,7 +229,7 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
       syncDocument(
         editor,
         nodes,
-        selection: caret == null ? null : _caretIn(nodes, caret),
+        selection: caret == null ? null : _selectionAt(nodes, caret),
       );
     } finally {
       _syncing = false;
@@ -266,12 +268,28 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
 
   MarkdownLine? _line(LineId? id) => id == null ? null : note.lines.lineOf(id);
 
-  /// The kind of the line node [nodeId] shows, by its place in the note,
-  /// e.g. in a code block; a node not yet a line's is plain.
-  LineKind kindOf(String nodeId) => switch (_line(_ids.lineOf(nodeId))) {
-    final line? => note.lines.kindOf(line),
-    null => LineKind.plain,
+  /// How the line node [nodeId] shows its line; `null` for a node that
+  /// shows none, e.g. a heading or one not yet a line's.
+  LineView? viewOf(String nodeId) => switch (_ids.lineOf(nodeId)) {
+    final line? => _views[line],
+    null => null,
   };
+
+  /// The url of the link at [position], by the markup of its line.
+  String? linkAt(DocumentPosition position) {
+    final node = _document.getNodeById(position.nodeId);
+    final view = viewOf(position.nodeId);
+    if (node is! TextNode || view == null) return null;
+    if (position.nodePosition case TextNodePosition(:final offset)) {
+      for (final span in view.markupOf(node.text.toPlainText())) {
+        if (span.markup case LinkMarkup(:final url)
+            when span.start <= offset && offset < span.end) {
+          return url;
+        }
+      }
+    }
+    return null;
+  }
 
   @override
   void indent(String nodeId) {
