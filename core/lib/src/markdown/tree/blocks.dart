@@ -3,7 +3,7 @@ import '../lines/markdown_line.dart';
 
 /// One block of a Markdown document as CommonMark and GitHub Flavored
 /// Markdown read it: a container that holds blocks, or a leaf that holds
-/// lines. Read once by `MarkdownTree.read`; immutable once read.
+/// lines. Read once by `readBlocks`; immutable once read.
 sealed class MarkdownBlock {
   MarkdownBlock();
 

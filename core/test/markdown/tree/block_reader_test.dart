@@ -223,10 +223,17 @@ void main() {
       expect(shape('---\na: b\n...\nc'), 'front(---\na: b\n...), p(c)');
     });
 
-    test('anywhere else, or unclosed, they are no front matter', () {
-      expect(shape('\n---\na\n---'), 'blank, rule(---), h2(a\n---)');
-      expect(shape('---\na'), 'rule(---), p(a)');
-    });
+    test(
+      'anywhere else, unclosed or without a key, they are no front matter',
+      () {
+        expect(shape('\n---\na\n---'), 'blank, rule(---), h2(a\n---)');
+        expect(shape('---\na'), 'rule(---), p(a)');
+        expect(
+          shape('---\n- [ ] a\n\n---'),
+          'rule(---), list[item[p(a)], blank], rule(---)',
+        );
+      },
+    );
   });
 
   group('deliberate deviations, for typing', () {

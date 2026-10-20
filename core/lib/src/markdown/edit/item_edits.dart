@@ -328,12 +328,7 @@ final class ItemStyle {
   /// An item of [kind] in the style of the [item] it goes right after:
   /// its bullet character, or the number after its own.
   factory ItemStyle.after(ItemOutline outline, ItemBlock item, ListKind kind) =>
-      ItemStyle.of(
-        kind,
-        bullet: item.marker.bullet ?? '-',
-        number: (outline.numberOf(item) ?? 0) + 1,
-        delimiter: item.marker.delimiter ?? '.',
-      );
+      ItemStyle._like(item, kind, number: (outline.numberOf(item) ?? 0) + 1);
 
   /// An item of [kind] in the style of the [item] it goes right before:
   /// its bullet character, or the number it shows, which it takes over.
@@ -341,12 +336,26 @@ final class ItemStyle {
     ItemOutline outline,
     ItemBlock item,
     ListKind kind,
-  ) => ItemStyle.of(
-    kind,
-    bullet: item.marker.bullet ?? '-',
-    number: outline.numberOf(item) ?? 1,
-    delimiter: item.marker.delimiter ?? '.',
-  );
+  ) => ItemStyle._like(item, kind, number: outline.numberOf(item) ?? 1);
+
+  /// An item of [kind] with [item]'s marker: its bullet character, or
+  /// [number] and its delimiter, also before a box, so it stays in
+  /// [item]'s list.
+  factory ItemStyle._like(
+    ItemBlock item,
+    ListKind kind, {
+    required int number,
+  }) => switch ((kind, item.marker.bullet)) {
+    (ListKind.checkbox, null) => ItemStyle._(
+      '$number${item.marker.delimiter ?? '.'} [ ] ',
+    ),
+    _ => ItemStyle.of(
+      kind,
+      bullet: item.marker.bullet ?? '-',
+      number: number,
+      delimiter: item.marker.delimiter ?? '.',
+    ),
+  };
 
   /// An item of [kind], unchecked.
   factory ItemStyle.of(

@@ -21,7 +21,7 @@ List<SuperEditorKeyboardAction> noteKeyboardActions({
   final actions = [
     _backspaceToJoin,
     _deleteToJoin,
-    _hardBreakDeletes(keys),
+    _deleteHardBreak(keys),
     _shiftEnterToBreakLine(keys),
     _formatShortcuts(onFormat),
     _tabToIndent(keys),
@@ -155,25 +155,22 @@ SuperEditorKeyboardAction _shiftEnterToBreakLine(KeyActions keys) =>
       return ExecutionInstruction.haltExecution;
     };
 
-/// Backspace right after a hard line break, or Delete right before one,
-/// deletes it as one: its backslash and the line break.
-SuperEditorKeyboardAction _hardBreakDeletes(KeyActions keys) =>
+/// Delete right before a hard line break deletes it as one: its
+/// backslash and the line break. (A line break deleted alone takes its
+/// backslash along in the note, from any keyboard.)
+SuperEditorKeyboardAction _deleteHardBreak(KeyActions keys) =>
     ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
-      final key = keyEvent.logicalKey;
       if (!_isDown(keyEvent) ||
-          (key != LogicalKeyboardKey.backspace &&
-              key != LogicalKeyboardKey.delete) ||
+          keyEvent.logicalKey != LogicalKeyboardKey.delete ||
           _withModifier) {
         return ExecutionInstruction.continueExecution;
       }
       final caret = _caret(editContext);
       if (caret == null) return ExecutionInstruction.continueExecution;
       final (node, offset) = caret;
-      final text = node.text.toPlainText();
-      final range = key == LogicalKeyboardKey.backspace
-          ? (hardBreakBefore(text, offset) ? (offset - 2, offset) : null)
-          : (hardBreakAfter(text, offset) ? (offset, offset + 2) : null);
-      if (range == null) return ExecutionInstruction.continueExecution;
-      keys.replaceText(node.id, range.$1, range.$2, '');
+      if (!hardBreakAfter(node.text.toPlainText(), offset)) {
+        return ExecutionInstruction.continueExecution;
+      }
+      keys.replaceText(node.id, offset, offset + 2, '');
       return ExecutionInstruction.haltExecution;
     };

@@ -43,6 +43,10 @@ final frontMatterFence = RegExp(r'^---[ \t]*$');
 /// The closing line of front matter: `---` or `...`.
 final frontMatterEnd = RegExp(r'^(?:---|\.\.\.)[ \t]*$');
 
+/// The first line inside front matter: a YAML key, so a note that only
+/// starts with a rule is no front matter.
+final frontMatterKey = RegExp(r'^[A-Za-z0-9_-]+:(?:[ \t]|$)');
+
 /// HTML block start conditions 1 to 7, by their number; condition 7
 /// cannot interrupt a paragraph.
 final htmlBlockStarts = <int, RegExp>{

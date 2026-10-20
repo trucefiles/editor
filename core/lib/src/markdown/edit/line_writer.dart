@@ -33,11 +33,17 @@ final class LineWriter {
 
   /// The prefix a new line gets below a line with [prefix], to go on in
   /// the same blocks: quote marks stay, markers and boxes turn into
-  /// spaces, so the line lines up with the content after them.
-  static String continuation(String prefix) =>
-      prefix.replaceAll(_markerCharacter, ' ');
+  /// spaces, so the line lines up with the content after them. [afterBlank]
+  /// when a blank line is between them: a task box is the item's content,
+  /// so there the line starts where the box does, or it would be code.
+  static String continuation(String prefix, {bool afterBlank = false}) =>
+      (afterBlank ? prefix.replaceFirst(_trailingBox, '') : prefix).replaceAll(
+        _markerCharacter,
+        ' ',
+      );
 
   static final _markerCharacter = RegExp(r'[^>\s]');
+  static final _trailingBox = RegExp(r'\[[ xX]\][ \t]*$');
 
   /// A line with [prefix] and then [content]. A marker that ends the
   /// prefix gets a space before content, as Markdown needs.

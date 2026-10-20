@@ -33,8 +33,8 @@ sealed class EditView {
   ], (starts, line) => [...starts, starts.last + line.end - line.start + 1]);
 
   /// What a new line in it starts with, below a line whose part starts
-  /// after [prefix].
-  String newLinePrefix(String prefix);
+  /// after [prefix]; [afterBlank] when a blank line is between them.
+  String newLinePrefix(String prefix, {bool afterBlank = false});
 
   /// The kind of block its text reads as.
   LeafKind get kind;
@@ -210,7 +210,8 @@ final class LeafView extends EditView {
       };
 
   @override
-  String newLinePrefix(String prefix) => LineWriter.continuation(prefix);
+  String newLinePrefix(String prefix, {bool afterBlank = false}) =>
+      LineWriter.continuation(prefix, afterBlank: afterBlank);
 
   @override
   List<MarkupSpan> markupOf(String shown) => [
@@ -234,7 +235,7 @@ final class RawLineView extends EditView {
   final LeafView _leafView;
 
   @override
-  String newLinePrefix(String prefix) => '';
+  String newLinePrefix(String prefix, {bool afterBlank = false}) => '';
 
   @override
   LeafKind get kind => _leafView.kind;

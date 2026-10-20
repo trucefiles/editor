@@ -10,8 +10,6 @@ import 'spec_examples.dart';
 /// example number, with the reason.
 const _deviations = <String, Map<int, String>>{
   _commonMark: {
-    96: _frontMatter,
-    98: _frontMatter,
     285: _emptyItem,
     367: _emptyItem,
     608: _extendedAutolink,
@@ -21,7 +19,6 @@ const _deviations = <String, Map<int, String>>{
   _gfm: {},
 };
 
-const _frontMatter = '`---` lines at the very top enclose front matter';
 const _emptyItem = 'an empty list item interrupts a paragraph';
 const _extendedAutolink = 'GitHub links bare urls and email addresses';
 

@@ -146,6 +146,17 @@ final class _Edit {
   final String text;
   final List<EditView> removed;
 
+  /// Where the edit starts in effect: a line break deleted alone in a
+  /// structured view takes its hard break along.
+  ViewPlace get _from =>
+      from.view is LeafView &&
+          to.view == from.view &&
+          text.isEmpty &&
+          to.offset == from.offset + 1 &&
+          hardBreakBefore(from.view.text, to.offset)
+      ? (view: from.view, offset: from.offset - 1)
+      : from;
+
   /// Checks [after], with [caret], the document [before] with this edit;
   /// returns whether the edit was one whose file text this can tell.
   bool check(MarkdownDocument before, MarkdownDocument after, LineCaret caret) {
@@ -153,8 +164,8 @@ final class _Edit {
         'edit: $this\nbefore:\n${before.text}\nafter:\n${after.text}';
     final ids = [for (final line in after.lines) line.id];
     expect(ids.toSet(), hasLength(ids.length), reason: 'no duplicates');
-    final start = from.view.caretAt(from.offset);
-    final end = to.view == from.view
+    final start = _from.view.caretAt(_from.offset);
+    final end = to.view == _from.view
         ? to.view.caretAt(to.offset)
         : (line: to.view.lines.last.line.id, offset: -1);
     final firstIndex = before.indexOf(start.line);
@@ -175,7 +186,7 @@ final class _Edit {
       [for (final line in kept) line.id],
       reason: reason,
     );
-    if (!_uniform(from.view)) return false;
+    if (!_uniform(_from.view) || _blankBelowBox) return false;
     final (expected, caretAt) = _expected(before);
     expect(after.text, expected, reason: reason);
     expect(_offsetIn(after, caret), caretAt, reason: reason);
@@ -187,17 +198,23 @@ final class _Edit {
   /// the prefix its view gives it, the lines of the last view after the
   /// range going on in the first view's blocks.
   (String, int) _expected(MarkdownDocument before) {
-    final view = from.view;
-    final startCaret = view.caretAt(from.offset);
+    final view = _from.view;
+    final startCaret = view.caretAt(_from.offset);
     final startLine = view.lines.firstWhere(
       (line) => line.line.id == startCaret.line,
     );
-    final prefix = view.newLinePrefix(
-      startLine.line.raw.substring(0, startLine.start),
-    );
+    final above = startLine.line.raw.substring(0, startLine.start);
+    // Each new line with its prefix: after a blank new line, as the view
+    // gives it there.
+    String prefixed(String text) => [
+      for (final (index, line) in text.split('\n').indexed)
+        index == 0
+            ? line
+            : '${view.newLinePrefix(above, afterBlank: text.split('\n').sublist(1, index).any((line) => line.trim().isEmpty))}$line',
+    ].join('\n');
     final rest = to.view.text.substring(to.offset);
     final same = to.view == view;
-    final inserted = '$text${same ? '' : rest}'.replaceAll('\n', '\n$prefix');
+    final inserted = prefixed('$text${same ? '' : rest}');
     final spaced =
         startLine.start == startLine.end &&
         inserted.split('\n').first.isNotEmpty &&
@@ -210,7 +227,7 @@ final class _Edit {
             line: to.view.lines.last.line.id,
             offset: to.view.lines.last.end,
           ));
-    final caretText = text.replaceAll('\n', '\n$prefix');
+    final caretText = prefixed(text);
     return (
       before.text.replaceRange(
         startOffset,
@@ -219,6 +236,20 @@ final class _Edit {
       ),
       startOffset + (spaced ? 1 : 0) + caretText.length,
     );
+  }
+
+  /// Whether a blank line comes into a view whose lines after a blank
+  /// line start elsewhere than below text (a task box), so lines kept
+  /// below it no longer have the prefix new lines get.
+  bool get _blankBelowBox {
+    final first = _from.view.lines.first;
+    final prefix = first.line.raw.substring(0, first.start);
+    return _from.view.newLinePrefix(prefix) !=
+            _from.view.newLinePrefix(prefix, afterBlank: true) &&
+        '$text${to.view.text.substring(to.offset)}'
+            .split('\n')
+            .skip(1)
+            .any((line) => line.trim().isEmpty);
   }
 
   /// Whether the prefix of each line of [view] but the first is the one

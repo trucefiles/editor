@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import '../document/markdown_document.dart';
 import '../lines/markdown_line.dart';
 import '../view/edit_view.dart';
+import 'key_edits.dart';
 
 /// A place in a view's text.
 typedef ViewPlace = ({EditView view, int offset});
@@ -19,7 +20,9 @@ extension TextEdits on MarkdownDocument {
   /// The new text of [from]'s view maps back to lines by lines: lines it
   /// keeps stay byte-identical; a changed line keeps its own prefix (quote
   /// marks, indent, marker); a new line gets the prefix the view gives
-  /// it below the line before; lines no longer there go.
+  /// it below the line before; lines no longer there go. A line break
+  /// deleted alone in a structured view takes the hard break mark before
+  /// it along, as it shows as one break.
   (MarkdownDocument, LineCaret) replaceText(
     ViewPlace from,
     ViewPlace to,
@@ -27,6 +30,13 @@ extension TextEdits on MarkdownDocument {
     Iterable<EditView> removed = const [],
   }) {
     final view = from.view;
+    if (view is LeafView &&
+        to.view == view &&
+        text.isEmpty &&
+        to.offset == from.offset + 1 &&
+        hardBreakBefore(view.text, to.offset)) {
+      return replaceText((view: view, offset: from.offset - 1), to, text);
+    }
     final newText =
         view.text.substring(0, from.offset) +
         text +
@@ -96,23 +106,24 @@ extension TextEdits on MarkdownDocument {
     final changedNew = contents.sublist(head, contents.length - tail);
     final paired = min(changedOld.length, changedNew.length);
     final pairedLines = [
-      for (var index = 0; index < paired; index++)
-        _withContent(changedOld[index], changedNew[index]),
+      for (final (index, old) in changedOld.take(paired).indexed)
+        _withContent(old, changedNew[index]),
     ];
     final added = changedNew.skip(paired);
-    // Below the last line kept or changed: there is one if any is added.
-    String prefix() => paired > 0
-        ? view.newLinePrefix(
-            pairedLines.last.raw.substring(0, changedOld[paired - 1].start),
-          )
-        : view.newLinePrefix(
-            olds[head - 1].line.raw.substring(0, olds[head - 1].start),
-          );
-    final newPrefix = added.isEmpty ? '' : prefix();
+    // The prefix of the last line kept or changed: there is one if any is
+    // added.
+    String above() => paired > 0
+        ? pairedLines.last.raw.substring(0, changedOld[paired - 1].start)
+        : olds[head - 1].line.raw.substring(0, olds[head - 1].start);
+    final abovePrefix = added.isEmpty ? '' : above();
+    final firstAdded = head + paired;
     return [
       for (final line in olds.take(head)) line.line,
       ...pairedLines,
-      for (final content in added) newLine('$newPrefix$content'),
+      for (final (index, content) in added.indexed)
+        newLine(
+          '${view.newLinePrefix(abovePrefix, afterBlank: contents.sublist(firstAdded, firstAdded + index).any((line) => line.trim().isEmpty))}$content',
+        ),
       for (final line in olds.skip(olds.length - tail)) line.line,
     ];
   }

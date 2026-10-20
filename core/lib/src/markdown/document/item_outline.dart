@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
 import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
-import '../tree/characters.dart';
 import 'markdown_document.dart';
 
 /// The lines from [start] to [end] (exclusive) of a document, by index.
@@ -140,7 +139,7 @@ final class ItemOutline {
     final own = segments.where((segment) => segment.container == item);
     final raw = line.raw;
     final restStart = line.id == item.markerLine
-        ? _markerStart(raw, own.first.start)
+        ? _indentEnd(raw, own.first.start)
         : _indentEnd(raw, outerEnd);
     return (
       outer: raw.substring(0, outerEnd),
@@ -200,13 +199,12 @@ final class ItemOutline {
     return line.raw.substring(0, end);
   }
 
-  static int _markerStart(String raw, int from) => _indentEnd(raw, from);
+  /// Where the spaces and tabs in [raw] from [from] on end.
+  static int _indentEnd(String raw, int from) =>
+      switch (raw.indexOf(_notIndent, from)) {
+        -1 => raw.length,
+        final end => end,
+      };
 
-  static int _indentEnd(String raw, int from) {
-    var index = from;
-    while (index < raw.length && isSpaceOrTab(raw[index])) {
-      index++;
-    }
-    return index;
-  }
+  static final _notIndent = RegExp(r'[^ \t]');
 }

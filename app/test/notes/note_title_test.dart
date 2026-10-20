@@ -62,4 +62,10 @@ void main() {
     expect(noteTitleLine('* one'), 'one');
     expect(noteTitleLine(' \n'), '');
   });
+
+  test('titles and previews skip the syntax of blocks without words', () {
+    expect(noteTitleLine('---\ntitle: x\n---\nHello'), 'Hello');
+    expect(noteTitleLine('```\ncode\n```'), 'code');
+    expect(notePreview('# T\na\n\n---\n\nb'), 'a\nb');
+  });
 }

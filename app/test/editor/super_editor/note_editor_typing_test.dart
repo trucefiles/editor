@@ -130,6 +130,19 @@ void main() {
     });
   });
 
+  testWidgets('the soft keyboard deletes a line break as one too', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- a\\\n  b');
+    await pumpNoteEditor(tester, text);
+
+    await tester.caretIn(listItemNodeOf(), 4);
+    await tester.pressLeftArrow();
+    await tester.ime.backspace(getter: imeClientGetter);
+
+    expect(text.text, '- ab');
+  });
+
   testWidgets('Shift+Tab in an empty subitem being typed moves only it', (
     tester,
   ) async {

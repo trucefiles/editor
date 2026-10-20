@@ -64,6 +64,23 @@ void main() {
       }
     });
 
+    test('a line break deleted alone takes its hard break along', () {
+      final document = MarkdownDocument.parse('- a\\\n  b');
+      final view = leafViewAt(document, '- a\\');
+
+      expect(replace(document, view, 2, 3, '').$1.text, '- ab');
+    });
+
+    test('after a blank line, a new line starts where the box does', () {
+      final document = MarkdownDocument.parse('- [x] a');
+      final view = leafViewAt(document, '- [x] a');
+
+      final (changed, _) = replace(document, view, 1, 1, '\n\nnew');
+
+      expect(changed.text, '- [x] a\n      \n  new');
+      expect(changed.leaves.whereType<CodeBlock>(), isEmpty);
+    });
+
     test('a new line gets the prefix that goes on in its blocks', () {
       for (final (source, expected) in [
         ('> a\n> b\n\nc', '> a\n> new\n> b\n\nc'),

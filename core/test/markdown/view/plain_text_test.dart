@@ -17,4 +17,11 @@ void main() {
   test('drops images and decodes references', () {
     expect(plain('a ![pic](p.png) &amp; b'), 'a  & b');
   });
+
+  test('code without fences, tables by their cells, none for rules', () {
+    expect(plain('```dart\nx = 1\n```'), 'x = 1');
+    expect(plain('| a | b |\n|---|---|\n| 1 | 2 |'), 'a b\n1 2');
+    expect(plain('---'), '');
+    expect(plain('---\ntitle: x\n---'), '');
+  });
 }

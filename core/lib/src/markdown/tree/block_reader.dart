@@ -222,10 +222,13 @@ final class _Reader {
     return _Freezer(_lines).freeze(_root);
   }
 
-  /// Front matter at the very top: a `---` line and a closing `---` or
-  /// `...` line below it. Returns the index of the first line after it.
+  /// Front matter at the very top: a `---` line, a YAML key right below
+  /// it, and a closing `---` or `...` line further down. Returns the
+  /// index of the first line after it.
   int _readFrontMatter() {
-    if (_lines.isEmpty || !frontMatterFence.hasMatch(_strip(_lines[0].raw))) {
+    if (_lines.length < 2 ||
+        !frontMatterFence.hasMatch(_strip(_lines[0].raw)) ||
+        !frontMatterKey.hasMatch(_strip(_lines[1].raw))) {
       return 0;
     }
     final end = _lines.indexWhere(
@@ -879,9 +882,15 @@ final class _Freezer {
     _containers[box] = block;
     // Each blank line goes before the first child that ends after it, or
     // into that child if it starts before it, so leaves stay in file order.
+    // Children end in file order, so the first that ends after a blank
+    // line is found by binary search.
+    final ends = [for (final child in box.children) _end(child)];
     final byChild = groupBy(
       [...box.blanks, ...spanned]..sort((a, b) => a.index - b.index),
-      (blank) => box.children.indexWhere((child) => _end(child) >= blank.index),
+      (blank) => switch (lowerBound(ends, blank.index)) {
+        final index when index < ends.length => index,
+        _ => -1,
+      },
     );
     bool within(_Line blank, _Node child) =>
         child is _Box && child.firstLine < blank.index;

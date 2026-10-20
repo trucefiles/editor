@@ -16,8 +16,8 @@ only the lines you edit, byte for byte.
   shown only in the block being edited. Markdown edit shows every
   character of every line.
 - **Read** shows the note as a standard Markdown renderer draws it.
-- **Front matter** (`---` lines at the very top) shows dimmed in edit
-  and is left out in Read.
+- **Front matter** (`---` at the very top, a `key:` line, a closing
+  `---`) shows dimmed in edit and is left out in Read.
 - **Tables** are drawn; a tap edits one as its raw lines.
 - **Images** show inline, from the web or from the note's folder.
 

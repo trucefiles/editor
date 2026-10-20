@@ -82,6 +82,10 @@ void main() {
       ));
       expect(enter('1. ab', '1. ab', 1), ('1. a\n2. b', '2. |b'));
       expect(enter('* a', '* a', 1), ('* a\n* ', '* |'));
+      expect(enter('1. [x] ab', '1. [x] ab', 1), (
+        '1. [x] a\n2. [ ] b',
+        '2. [ ] |b',
+      ));
     });
 
     test("the item's later lines stay as they are", () {
