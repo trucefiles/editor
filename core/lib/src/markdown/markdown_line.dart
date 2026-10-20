@@ -36,6 +36,9 @@ final class MarkdownLine {
 
   bool get isCheckbox => listKind == ListKind.checkbox;
 
+  /// The number written on a numbered item; `null` on any other line.
+  int? get number => _item?.number;
+
   bool get isChecked => switch (_item) {
     ItemSyntax(kind: ListKind.checkbox, :final markIndex) =>
       raw[markIndex] != ' ',

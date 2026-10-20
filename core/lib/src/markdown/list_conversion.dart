@@ -11,16 +11,24 @@ extension ListConversion on MarkdownLines {
   /// of another kind keep their level and text. If all of them are items
   /// of [kind] already, they become text again. Only list items and text
   /// lines change; headings, quotes, code and tables stay as they are.
+  /// Blank lines among others stay blank, so tapping the button again
+  /// turns a list with gaps back into text; a blank line alone becomes an
+  /// empty item.
   ///
   /// With no line to change, it adds an empty item of [kind]: below the
   /// last of [ids] if that is a heading or quote, else at the end, keeping
   /// a final line break. Returns the new document and that added item's
   /// line, if any.
   (MarkdownLines, LineId?) toList(List<LineId> ids, ListKind kind) {
-    final lines = [
+    final converting = [
       for (final id in ids)
         if (lineOf(id) case final line? when _converts(line)) line,
     ];
+    final filled = [
+      for (final line in converting)
+        if (line.raw.trim().isNotEmpty) line,
+    ];
+    final lines = filled.isEmpty ? converting : filled;
     if (lines.isEmpty) {
       final below = ids.isEmpty ? null : lineOf(ids.last);
       final (added, id) = below != null && kindOf(below) == LineKind.plain

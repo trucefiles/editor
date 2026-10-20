@@ -156,7 +156,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('New notes go to'));
+    await tester.tapAndSettle(find.text('Default folder for new notes'));
     await tester.fillPlace(subfolder: 'inbox');
     await tester.waitFor(find.text('Notes/inbox'));
     await tester.pageBack();

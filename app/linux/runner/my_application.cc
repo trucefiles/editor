@@ -16,6 +16,16 @@ struct _MyApplication {
   gboolean hide_on_close;
 };
 
+// Starts the app in the background: the window stays hidden until Dart
+// shows it (lib/tray/start_in_background.dart, which reads it too).
+static const gchar* kBackgroundFlag = "--background";
+
+static gboolean has_background_flag(gchar** arguments) {
+  return arguments != nullptr &&
+         g_strv_contains(const_cast<const gchar* const*>(arguments),
+                         kBackgroundFlag);
+}
+
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
 // Called when first Flutter frame received.
@@ -114,10 +124,12 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Show the window when Flutter renders.
+  // Show the window when Flutter renders, unless started in the background.
   // Requires the view to be realized so we can start rendering.
-  g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb),
-                           self);
+  if (!has_background_flag(self->dart_entrypoint_arguments)) {
+    g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb),
+                             self);
+  }
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
@@ -150,7 +162,11 @@ static gboolean my_application_local_command_line(GApplication* application,
     return TRUE;
   }
 
-  g_application_activate(application);
+  // Started again in the background while running: nothing to show.
+  if (!(g_application_get_is_remote(application) &&
+        has_background_flag(self->dart_entrypoint_arguments))) {
+    g_application_activate(application);
+  }
   *exit_status = 0;
 
   return TRUE;

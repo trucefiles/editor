@@ -118,5 +118,14 @@ final class ItemSyntax {
 /// [line] is no quote.
 int? quoteTextStart(String line) => _quote.firstMatch(line)?.end;
 
+/// Whether [line] starts a block of its own, which ends a paragraph above
+/// it: a heading, quote, list item or line (`---`). A line that does not
+/// continues that paragraph, also lazily, without the quote's `>`.
+bool startsBlock(String line) =>
+    headingMark(line) != null ||
+    quoteTextStart(line) != null ||
+    ItemSyntax.of(line) != null ||
+    ItemSyntax._thematicBreak.hasMatch(line);
+
 final _heading = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+|$)');
 final _quote = RegExp(r'^(?: {0,3}>[ \t]?)+');

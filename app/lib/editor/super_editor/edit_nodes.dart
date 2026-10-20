@@ -26,7 +26,7 @@ List<DocumentNode> editNodes(
           document,
           ids.nodeOf(id),
           asItem: visual && _showsAsItem(byId[id]!, document, caretLine),
-          quote: visual && _isQuote(byId[id]!, document),
+          quote: visual && document.isQuote(byId[id]!),
         ),
         DoneHeadingEntry() => DoneHeadingNode(entry),
         AddItemEntry() => AddItemNode(entry),
@@ -44,9 +44,6 @@ bool _showsAsItem(
   LineId? caretLine,
 ) => document.isItem(line) && !(line.id == caretLine && line.markEndsLine);
 
-bool _isQuote(MarkdownLine line, MarkdownLines document) =>
-    document.kindOf(line) == LineKind.plain && quoteTextStart(line.raw) != null;
-
 DocumentNode _lineNode(
   MarkdownLine line,
   MarkdownLines document,
@@ -54,7 +51,7 @@ DocumentNode _lineNode(
   required bool asItem,
   required bool quote,
 }) => asItem
-    ? itemNode(id, line, AttributedText(line.text), document.depthOf(line))
+    ? itemNode(id, line, AttributedText(line.text), document)
     : lineParagraph(id, AttributedText(line.raw), quote: quote);
 
 /// The paragraph node [id] showing a line's [text]; a [quote] shows as
@@ -69,22 +66,39 @@ ParagraphNode lineParagraph(
   metadata: quote ? {NodeMetadata.blockType: blockquoteAttribution} : null,
 );
 
-/// The node [id] showing the list item [line] at [depth] with [text].
+/// The node [id] showing the list item [line] of [document] with [text],
+/// at its level; a numbered item with its number as [listNumberKey].
 DocumentNode itemNode(
   String id,
   MarkdownLine line,
   AttributedText text,
-  int depth,
-) => switch (line.listKind!) {
-  ListKind.checkbox => TaskNode(
-    id: id,
-    text: text,
-    isComplete: line.isChecked,
-    indent: depth,
-  ),
-  ListKind.bullet => ListItemNode.unordered(id: id, text: text, indent: depth),
-  ListKind.numbered => ListItemNode.ordered(id: id, text: text, indent: depth),
-};
+  MarkdownLines document,
+) {
+  final depth = document.depthOf(line);
+  return switch (line.listKind!) {
+    ListKind.checkbox => TaskNode(
+      id: id,
+      text: text,
+      isComplete: line.isChecked,
+      indent: depth,
+    ),
+    ListKind.bullet => ListItemNode.unordered(
+      id: id,
+      text: text,
+      indent: depth,
+    ),
+    ListKind.numbered => ListItemNode.ordered(
+      id: id,
+      text: text,
+      indent: depth,
+      metadata: {listNumberKey: document.numberOf(line)},
+    ),
+  };
+}
+
+/// The metadata key of the number a numbered item shows, as its file
+/// says (see [MarkdownLines.numberOf]).
+const listNumberKey = 'listNumber';
 
 /// Where [line]'s text starts in [node], which shows it: after the
 /// marker in an item, else at the line's start.

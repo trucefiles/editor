@@ -14,7 +14,7 @@ class RefreshSettingTile extends ConsumerWidget {
     final settings = ref.watch(refreshSettingsProvider).value;
     return ListTile(
       enabled: settings != null,
-      title: const Text('Refresh'),
+      title: const Text('Refresh changes in folders'),
       subtitle: Text(_modeName(settings?.mode)),
       onTap: () => _change(context, ref, settings!),
     );

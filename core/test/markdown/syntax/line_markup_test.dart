@@ -22,6 +22,19 @@ void main() {
     ]);
   });
 
+  test('a line in a quote without its own marks', () {
+    expect(lineMarkup('b *c*', LineKind.plain, inQuote: true), [
+      const MarkupSpan(QuoteMarkup(), 0, 5),
+      const MarkupSpan(syntax, 2, 3),
+      const MarkupSpan(ItalicMarkup(), 3, 4),
+      const MarkupSpan(syntax, 4, 5),
+    ]);
+    expect(lineMarkup('> q', LineKind.plain, inQuote: true), [
+      const MarkupSpan(QuoteMarkup(), 0, 3),
+      const MarkupSpan(syntax, 0, 2),
+    ]);
+  });
+
   test('a checkbox item as text: its box is syntax', () {
     expect(lineMarkup('  - [x] a', LineKind.plain), [
       const MarkupSpan(syntax, 2, 8),

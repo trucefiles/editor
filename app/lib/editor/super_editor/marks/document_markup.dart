@@ -13,8 +13,13 @@ Map<String, List<MarkupSpan>> documentMarkup(
 
 /// The markup of [node]: a list item's text after its marker, a
 /// paragraph's whole line as of its line's [kind] (e.g. inside a code
-/// block).
+/// block), quoted if it shows as a quote.
 List<MarkupSpan> nodeMarkup(TextNode node, LineKind kind) => switch (node) {
   TaskNode() || ListItemNode() => itemTextMarkup(node.text.toPlainText()),
-  _ => lineMarkup(node.text.toPlainText(), kind),
+  _ => lineMarkup(
+    node.text.toPlainText(),
+    kind,
+    inQuote:
+        node.getMetadataValue(NodeMetadata.blockType) == blockquoteAttribution,
+  ),
 };

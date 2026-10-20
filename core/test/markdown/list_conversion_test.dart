@@ -53,6 +53,24 @@ void main() {
     expect(added, isNull);
   });
 
+  test('blank lines among others stay blank', () {
+    final doc = MarkdownLines.parse('a\n\nb');
+
+    expect(
+      doc.toList([for (final l in doc.lines) l.id], ListKind.bullet).$1.text,
+      '- a\n\n- b',
+    );
+  });
+
+  test('a list with gaps goes back to text', () {
+    final doc = MarkdownLines.parse('- a\n\n- b');
+
+    expect(
+      doc.toList([for (final l in doc.lines) l.id], ListKind.bullet).$1.text,
+      'a\n\nb',
+    );
+  });
+
   test('below a heading or quote, adds an item, leaving them as they are', () {
     expect(converted('# a\nb', ['# a'], ListKind.bullet), '# a\n- \nb');
     expect(converted('> a', ['> a'], ListKind.bullet), '> a\n- ');

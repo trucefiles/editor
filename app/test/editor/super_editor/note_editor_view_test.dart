@@ -159,6 +159,17 @@ void main() {
     expect(text.text, '```\nbuy milk\n```');
   });
 
+  testWidgets('Heading leaves a quote as it is', (tester) async {
+    final text = FakeNoteText('> quote');
+    await pumpEditor(tester, text);
+
+    await tester.caretIn(nodeOf<ParagraphNode>(), 4);
+    await tester.tap(find.byTooltip('Heading'));
+    await tester.pumpAndSettle();
+
+    expect(text.text, '> quote');
+  });
+
   group('Link', () {
     Future<void> addLink(WidgetTester tester, String url) async {
       await tester.enterText(find.byType(TextField), url);
@@ -247,6 +258,22 @@ void main() {
       await press(tester, 'Bulleted list');
 
       expect(text.text, '- a\n- b\nc');
+    });
+
+    testWidgets('tapped again over blank lines, turn the list back', (
+      tester,
+    ) async {
+      final text = FakeNoteText('a\n\nb');
+      await pumpEditor(tester, text);
+
+      await tester.caretIn(nodeOf<ParagraphNode>(), 0);
+      await tester.pressShiftDownArrow();
+      await tester.pressShiftDownArrow();
+      await press(tester, 'Bulleted list');
+      expect(text.text, '- a\n\n- b');
+      await press(tester, 'Bulleted list');
+
+      expect(text.text, 'a\n\nb');
     });
 
     testWidgets('without a caret, add an item at the end for typing', (

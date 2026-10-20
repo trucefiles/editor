@@ -13,7 +13,7 @@ class AddItemPlaceTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final place = ref.watch(addItemPlaceProvider).value;
     return SwitchListTile(
-      title: const Text('Add buttons below lists'),
+      title: const Text('Show "Add item" below lists'),
       subtitle: const Text('Off: above each list'),
       value: place == AddItemPlace.bottom,
       onChanged: place == null

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../edit_nodes.dart';
 import 'line_actions.dart';
 import 'list_line_component.dart';
 
@@ -19,12 +20,28 @@ class ListLineBuilder implements ComponentBuilder {
     DocumentNode node,
   ) => switch (node) {
     TaskNode() => _taskViewModel(node),
-    ListItemNode() => const ListItemComponentBuilder().createViewModel(
-      document,
-      node,
-    ),
+    ListItemNode() => _listItemViewModel(document, node),
     _ => null,
   };
+
+  /// As the library builds it, numbered as the file says (see
+  /// [listNumberKey]) rather than counted from 1.
+  SingleColumnLayoutComponentViewModel? _listItemViewModel(
+    Document document,
+    ListItemNode node,
+  ) {
+    final viewModel = const ListItemComponentBuilder().createViewModel(
+      document,
+      node,
+    );
+    if ((viewModel, node.getMetadataValue(listNumberKey)) case (
+      final OrderedListItemComponentViewModel ordered,
+      final int number,
+    )) {
+      ordered.ordinalValue = number;
+    }
+    return viewModel;
+  }
 
   TaskComponentViewModel _taskViewModel(TaskNode node) {
     final editor = this.editor;
