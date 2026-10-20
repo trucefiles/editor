@@ -1,4 +1,4 @@
-/// How a range of a line's text shows, by its Markdown.
+/// How a range of a block's text shows, by its Markdown.
 sealed class Markup {
   const Markup();
 }
@@ -7,6 +7,50 @@ sealed class Markup {
 /// the text shows formatted, dimmed where every character shows.
 final class SyntaxMarkup extends Markup {
   const SyntaxMarkup();
+}
+
+/// Text that shows as [text] where the text shows formatted, e.g. a
+/// character reference (`&amp;` as `&`) or an image (as one object).
+sealed class ReplacedMarkup extends Markup {
+  const ReplacedMarkup();
+
+  /// What shows instead of the range.
+  String get text;
+}
+
+/// A character reference: shows as the [text] it stands for.
+final class EntityMarkup extends ReplacedMarkup {
+  const EntityMarkup(this.text);
+
+  @override
+  final String text;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EntityMarkup && other.text == text;
+
+  @override
+  int get hashCode => text.hashCode;
+}
+
+/// An image: shows as one object, the image at [url] described by [alt].
+final class ImageMarkup extends ReplacedMarkup {
+  const ImageMarkup(this.url, this.alt);
+
+  /// Where the image is, as written (unescaped).
+  final String url;
+  final String alt;
+
+  /// The object replacement character, where the image shows.
+  @override
+  String get text => '\uFFFC';
+
+  @override
+  bool operator ==(Object other) =>
+      other is ImageMarkup && other.url == url && other.alt == alt;
+
+  @override
+  int get hashCode => Object.hash(url, alt);
 }
 
 /// Shown dimmed wherever the text shows, e.g. a code fence.
@@ -31,7 +75,8 @@ final class CodeMarkup extends Markup {
   const CodeMarkup();
 }
 
-/// A line inside a fenced code block, or a fence.
+/// A code block's text, or other text shown as source (a table being
+/// edited, HTML).
 final class CodeBlockMarkup extends Markup {
   const CodeBlockMarkup();
 }
@@ -39,7 +84,7 @@ final class CodeBlockMarkup extends Markup {
 final class LinkMarkup extends Markup {
   const LinkMarkup(this.url);
 
-  /// The link target as written.
+  /// Where the link leads, as written (unescaped).
   final String url;
 
   @override

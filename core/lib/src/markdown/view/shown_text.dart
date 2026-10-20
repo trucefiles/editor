@@ -2,25 +2,46 @@ import 'package:collection/collection.dart';
 
 import 'markup.dart';
 
-/// A line as it shows: its text with its styles, and the offsets between
-/// the shown text and the source text. Either formatted, its Markdown
-/// syntax hidden, or as is, every character showing.
-final class ShownLine {
-  ShownLine._(this.text, this.markup, this._sourceOffsets);
+/// A block's text as it shows: its text with its styles, and the offsets
+/// between the shown text and the source text. Either formatted, its
+/// Markdown syntax hidden and references replaced, or as is, every
+/// character showing.
+final class ShownText {
+  ShownText._(this.text, this.markup, this._sourceOffsets);
 
-  /// [source] with its [markup] applied, its syntax hidden.
-  factory ShownLine.of(String source, List<MarkupSpan> markup) {
+  /// [source] with its [markup] applied: syntax hidden, replaced ranges
+  /// (see [ReplacedMarkup]) shown as what replaces them.
+  factory ShownText.of(String source, List<MarkupSpan> markup) {
+    final replaced = {
+      for (final span in markup)
+        if (span.markup case final ReplacedMarkup replaced) span.start: (
+          end: span.end,
+          text: replaced.text,
+        ),
+    };
     final hidden = {
       for (final span in markup)
         if (span.markup is SyntaxMarkup)
           for (var offset = span.start; offset < span.end; offset++) offset,
     };
-    final visible = [
-      for (var offset = 0; offset < source.length; offset++)
-        if (!hidden.contains(offset)) offset,
-    ];
-    final sourceOffsets = [...visible, source.length];
-    final shownMarkup = [
+    final shown = StringBuffer();
+    final sourceOffsets = <int>[];
+    var offset = 0;
+    while (offset < source.length) {
+      if (replaced[offset] case (:final end, :final text)) {
+        shown.write(text);
+        sourceOffsets.addAll(List.filled(text.length, offset));
+        offset = end;
+      } else {
+        if (!hidden.contains(offset)) {
+          shown.write(source[offset]);
+          sourceOffsets.add(offset);
+        }
+        offset++;
+      }
+    }
+    sourceOffsets.add(source.length);
+    return ShownText._(shown.toString(), [
       for (final span in markup)
         if (span.markup is! SyntaxMarkup)
           if (MarkupSpan(
@@ -30,18 +51,16 @@ final class ShownLine {
               )
               case final shown when shown.end > shown.start)
             shown,
-    ];
-    return ShownLine._(
-      visible.map((offset) => source[offset]).join(),
-      shownMarkup,
-      sourceOffsets,
-    );
+    ], sourceOffsets);
   }
 
-  /// [source] as is, with all its [markup], syntax included (shown
-  /// dimmed); offsets are the same both ways.
-  factory ShownLine.asIs(String source, List<MarkupSpan> markup) =>
-      ShownLine._(source, markup, null);
+  /// [source] as is, with its [markup], syntax included (shown dimmed);
+  /// nothing is replaced, so offsets are the same both ways.
+  factory ShownText.asIs(String source, List<MarkupSpan> markup) =>
+      ShownText._(source, [
+        for (final span in markup)
+          if (span.markup is! ReplacedMarkup) span,
+      ], null);
 
   /// What shows.
   final String text;

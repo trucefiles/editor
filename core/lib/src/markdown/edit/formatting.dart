@@ -1,7 +1,7 @@
-import 'syntax/block_syntax.dart';
+import '../tree/block_starts.dart';
 
-/// Text with a selection in it, e.g. one line as a format button changes
-/// it. Offsets into [text]; [start] <= [end].
+/// Text with a selection in it, e.g. a block's text as a format button
+/// changes it. Offsets into [text]; [start] <= [end].
 typedef FormattedText = ({String text, int start, int end});
 
 /// [text] with the selection from [start] to [end] wrapped in [mark] (e.g.
@@ -82,20 +82,53 @@ FormattedText insertLink(String text, int start, int end, String url) {
   );
 }
 
-/// [line] at the next heading level: none, `#`, `##`, `###`, none again.
-/// The selection from [start] to [end] stays on the same text. `null` for
-/// a quote, which takes no heading.
-FormattedText? cycleHeading(String line, int start, int end) {
-  if (quoteTextStart(line) != null) return null;
-  final heading = headingMark(line);
-  final prefix = line.substring(0, heading?.textStart ?? 0);
-  final level = heading?.level ?? 0;
+/// [text], a block's text, at the next heading level: none, `#`, `##`,
+/// `###`, none again; on the line the selection from [start] to [end]
+/// starts in, or for a heading over an underline (`===` or `---`), on its
+/// underline. The selection stays on the same text.
+FormattedText cycleHeading(String text, int start, int end) {
+  final underline = text.lastIndexOf('\n') + 1;
+  final last = text.substring(underline).trim();
+  if (underline > 0 && last.length > 1 && setextUnderline.hasMatch(last)) {
+    return _cycleSetext(text, start, end, underline);
+  }
+  final lineStart = start == 0 ? 0 : text.lastIndexOf('\n', start - 1) + 1;
+  final line = text.substring(lineStart);
+  final heading = atxHeading.matchAsPrefix(line);
+  final prefix = heading?[0] ?? '';
+  final level = prefix.trim().length;
   final next = level >= 3 ? '' : '${'#' * (level + 1)} ';
-  final shift = next.length - prefix.length;
-  int moved(int offset) =>
-      offset < prefix.length ? next.length : offset + shift;
+  return _replacePrefix(text, start, end, lineStart, prefix.length, next);
+}
+
+/// A heading over an underline at [underline]: level 1 turns to 2 (the
+/// underline in `-`), level 2 to `###` on its first line.
+FormattedText _cycleSetext(String text, int start, int end, int underline) {
+  final rule = text.substring(underline);
+  if (rule.contains('=')) {
+    return (text: text.replaceRange(underline, text.length, rule.replaceAll('=', '-')), start: start, end: end);
+  }
+  final kept = text.substring(0, underline - 1);
+  int clamp(int offset) => offset > kept.length ? kept.length : offset;
+  return _replacePrefix(kept, clamp(start), clamp(end), 0, 0, '### ');
+}
+
+/// [text] with the [length] characters at [at] replaced by [prefix]; the
+/// selection moves with the text after them.
+FormattedText _replacePrefix(
+  String text,
+  int start,
+  int end,
+  int at,
+  int length,
+  String prefix,
+) {
+  final shift = prefix.length - length;
+  int moved(int offset) => offset < at
+      ? offset
+      : (offset < at + length ? at + prefix.length : offset + shift);
   return (
-    text: next + line.substring(prefix.length),
+    text: text.replaceRange(at, at + length, prefix),
     start: moved(start),
     end: moved(end),
   );

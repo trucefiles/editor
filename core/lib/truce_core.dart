@@ -19,10 +19,12 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `markdown`: Markdown documents as line-level edits ([MarkdownLines]),
-///     what an editor shows of them ([Arrangement]), the single mapping
-///     from editor blocks back to lines ([ApplyBlockEdits]) and how their
-///     Markdown shows (`syntax`: [lineMarkup], [ShownLine]).
+/// 10. `markdown`: Markdown documents as lines with the CommonMark + GFM
+///     block tree read from them ([MarkdownDocument]), what an editor
+///     shows of them ([Arrangement], [EditView]), the single mapping from
+///     edits in views back to lines ([TextEdits]), structure edits
+///     ([ItemEdits], [KeyEdits]) and how their Markdown shows ([MarkupSpan],
+///     [ShownText]).
 /// 11. `marks`: colors of notes, synced inside the folder
 ///    ([NoteMarks]).
 /// 12. `changes`: changes to a folder's files as they happen
@@ -58,24 +60,22 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
-export 'src/markdown/block.dart';
-export 'src/markdown/block_edit.dart';
-export 'src/markdown/display_arrangement.dart';
-export 'src/markdown/formatting.dart';
-export 'src/markdown/line_id.dart';
-export 'src/markdown/list_conversion.dart';
-export 'src/markdown/markdown_line.dart';
-export 'src/markdown/markdown_lines.dart';
-export 'src/markdown/syntax/block_syntax.dart'
-    show ListKind, headingMark, itemMark, quoteTextStart;
-export 'src/markdown/syntax/inline_markup.dart';
-export 'src/markdown/syntax/line_kinds.dart'
-    show LineKind, UnderlinedHeadingLine, lineImage, tableCells;
-export 'src/markdown/syntax/line_markup.dart';
-export 'src/markdown/syntax/markup.dart';
-export 'src/markdown/syntax/shown_line.dart';
-export 'src/markdown/view/line_view.dart';
+export 'src/markdown/document/item_outline.dart' show ItemOutline, LineSpan;
+export 'src/markdown/document/markdown_document.dart';
+export 'src/markdown/edit/formatting.dart';
+export 'src/markdown/edit/item_edits.dart' show ItemEdits;
+export 'src/markdown/edit/key_edits.dart';
+export 'src/markdown/edit/list_conversion.dart';
+export 'src/markdown/edit/text_edits.dart';
+export 'src/markdown/lines/line_id.dart';
+export 'src/markdown/lines/markdown_line.dart';
+export 'src/markdown/tree/blocks.dart';
+export 'src/markdown/view/display_arrangement.dart';
+export 'src/markdown/view/edit_view.dart';
+export 'src/markdown/view/leaf_markup.dart' show LeafKind;
 export 'src/markdown/view/mark_style.dart';
+export 'src/markdown/view/markup.dart';
+export 'src/markdown/view/shown_text.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
 export 'src/reach/folder_reach.dart';

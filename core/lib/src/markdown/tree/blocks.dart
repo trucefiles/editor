@@ -10,6 +10,20 @@ sealed class MarkdownBlock {
   /// The container this block is in; `null` for the root.
   ContainerBlock? get parent => _parent;
   ContainerBlock? _parent;
+
+  /// The containers this block is in, innermost first.
+  Iterable<ContainerBlock> get ancestors sync* {
+    for (var block = parent; block != null; block = block.parent) {
+      yield block;
+    }
+  }
+
+  /// The leaves in it, in file order: itself for a leaf.
+  List<LeafBlock> get leaves;
+
+  /// Its first and last line.
+  MarkdownLine get firstLine => leaves.first.lines.first.line;
+  MarkdownLine get lastLine => leaves.last.lines.last.line;
 }
 
 /// A block that holds other blocks, in file order.
@@ -18,6 +32,11 @@ sealed class ContainerBlock extends MarkdownBlock {
 
   List<MarkdownBlock> get children => _children;
   List<MarkdownBlock> _children = const [];
+
+  @override
+  late final List<LeafBlock> leaves = [
+    for (final child in _children) ...child.leaves,
+  ];
 
   /// Sets the [children], once, as the reader built them.
   void adopt(List<MarkdownBlock> children) {
@@ -80,7 +99,7 @@ final class ListBlock extends ContainerBlock {
   /// Whether no blank line separates its items or their blocks.
   final bool tight;
 
-  List<ItemBlock> get items => children.whereType<ItemBlock>().toList();
+  late final List<ItemBlock> items = children.whereType<ItemBlock>().toList();
 }
 
 /// A list item: its marker line and the blocks in it.
@@ -166,6 +185,9 @@ sealed class LeafBlock extends MarkdownBlock {
   /// Its first line's id: stable while that line stays first.
   LineId get id => lines.first.id;
 
+  @override
+  List<LeafBlock> get leaves => [this];
+
   /// Its lines' contents, joined by line breaks.
   late final String text = lines.map((line) => line.content).join('\n');
 
@@ -173,6 +195,9 @@ sealed class LeafBlock extends MarkdownBlock {
   late final List<int> lineStarts = lines.take(lines.length - 1).fold([
     0,
   ], (starts, line) => [...starts, starts.last + line.content.length + 1]);
+
+  /// Its line [id]. Only for one of its lines.
+  LeafLine lineOf(LineId id) => lines.firstWhere((line) => line.id == id);
 
   /// The index of the line [offset] in [text] is on.
   int lineAt(int offset) => lineStarts
