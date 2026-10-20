@@ -18,7 +18,7 @@ void main() {
             )
             .$1
             .text,
-        '# Shopping\n- [ ] milk\n- [ ] \n- [x] eggs\n  - [ ] large\nnote\n',
+        '# Shopping\n- [ ] milk\n- [ ] \n- [x] eggs\n  - [ ] large\n\nnote\n',
       );
     });
 
@@ -37,7 +37,7 @@ void main() {
     });
 
     test('keeps the bullet style of the item, in the kind asked for', () {
-      final list = MarkdownLines.parse('* [x] a\ntext');
+      final list = MarkdownLines.parse('* [x] a\n\ntext');
       final a = idOf(list, 'a');
 
       expect(
@@ -45,7 +45,11 @@ void main() {
           for (final kind in ListKind.values)
             list.addItem(kind, anchor: a, before: false).$1.text,
         ],
-        ['* [x] a\n* [ ] \ntext', '* [x] a\n* \ntext', '* [x] a\n1. \ntext'],
+        [
+          '* [x] a\n* [ ] \n\ntext',
+          '* [x] a\n* \n\ntext',
+          '* [x] a\n1. \n\ntext',
+        ],
       );
     });
 
@@ -120,16 +124,24 @@ void main() {
 
       expect(
         moved.text,
-        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\n\nnote\n',
       );
     });
 
-    test('takes indented text lines along, up to an empty line', () {
-      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\n  stays');
+    test('takes the lines under it along, blank lines among them', () {
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\n  more');
 
       final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
 
-      expect(moved.text, '- [ ] b\n  note\n- [ ] a\n\n  stays');
+      expect(moved.text, '- [ ] b\n  note\n\n  more\n- [ ] a');
+    });
+
+    test('leaves blank lines after its last line in place', () {
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\ntext');
+
+      final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
+
+      expect(moved.text, '- [ ] b\n  note\n- [ ] a\n\ntext');
     });
 
     test('to the end stays before the final line break', () {
@@ -173,7 +185,7 @@ void main() {
               below: false,
             )
             .text,
-        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\nnote\n',
+        '# Shopping\n- [x] eggs\n  - [ ] large\n- [ ] milk\n\nnote\n',
       );
     });
 
@@ -188,7 +200,7 @@ void main() {
               below: true,
             )
             .text,
-        '# Shopping\n- [x] eggs\n  - [ ] milk\n  - [ ] large\nnote\n',
+        '# Shopping\n- [x] eggs\n  - [ ] milk\n  - [ ] large\n\nnote\n',
       );
     });
 
@@ -257,12 +269,12 @@ void main() {
   group('toggleAndSort', () {
     test('a checked item moves with its subitems below the last item', () {
       final list = MarkdownLines.parse(
-        '# T\n- [ ] a\n  - [ ] sub\n- [ ] b\n- [x] c\nnote\n',
+        '# T\n- [ ] a\n  - [ ] sub\n- [ ] b\n- [x] c\n\nnote\n',
       );
 
       expect(
         list.toggleAndSort(idOf(list, 'a')).text,
-        '# T\n- [ ] b\n- [x] c\n- [x] a\n  - [ ] sub\nnote\n',
+        '# T\n- [ ] b\n- [x] c\n- [x] a\n  - [ ] sub\n\nnote\n',
       );
     });
 
@@ -303,16 +315,16 @@ void main() {
 
     test('items stay in their own list, up to a heading or text', () {
       final list = MarkdownLines.parse(
-        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [ ] c\nnote\n- [x] d\n',
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [ ] c\n\nnote\n- [x] d\n',
       );
 
       expect(
         list.toggleAndSort(idOf(list, 'a')).text,
-        '# Today\n- [ ] b\n- [x] a\n# Later\n- [ ] c\nnote\n- [x] d\n',
+        '# Today\n- [ ] b\n- [x] a\n# Later\n- [ ] c\n\nnote\n- [x] d\n',
       );
       expect(
         list.toggleAndSort(idOf(list, 'c')).text,
-        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [x] c\nnote\n- [x] d\n',
+        '# Today\n- [ ] a\n- [ ] b\n# Later\n- [x] c\n\nnote\n- [x] d\n',
       );
     });
 
@@ -324,13 +336,22 @@ void main() {
 
     test('sortChecked moves all checked items below, in their order', () {
       final list = MarkdownLines.parse(
-        '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\nend',
+        '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n- [ ] d\n\nend',
       );
 
       expect(
         list.sortChecked().text,
-        '# T\n- [ ] b\n- [ ] d\n- [x] a\n  - [ ] sub\n- [x] c\nend',
+        '# T\n- [ ] b\n- [ ] d\n- [x] a\n  - [ ] sub\n- [x] c\n\nend',
       );
+    });
+
+    test('a box that is no item, e.g. in a code block, stays put', () {
+      final list = MarkdownLines.parse(
+        '- [ ] a\n```\n- [ ] code\n```\n- [ ] b',
+      );
+      final code = list.lines[2].id;
+
+      expect(list.sortToggled(code).text, list.text);
     });
 
     test('a subitem toggles in place', () {
@@ -399,7 +420,7 @@ void main() {
 
       expect(
         list.outdent(idOf(list, 'large')).text,
-        '# Shopping\n- [ ] milk\n- [x] eggs\n- [ ] large\nnote\n',
+        '# Shopping\n- [ ] milk\n- [x] eggs\n- [ ] large\n\nnote\n',
       );
     });
 

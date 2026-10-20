@@ -72,6 +72,11 @@ On Linux, `--background` starts Truce in the tray, e.g. at login, when
 flatpak run io.github.trucefiles.editor --background
 ```
 
+## Markdown support
+
+See [docs/markdown.md](docs/markdown.md) for what Truce follows from the
+Markdown standard and where it differs.
+
 ## Known limitations
 
 See [docs/known-limitations.md](docs/known-limitations.md).

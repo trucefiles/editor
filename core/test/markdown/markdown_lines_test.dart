@@ -170,7 +170,7 @@ void main() {
 
     expect(
       list.remove(idOf(list, 'eggs')).text,
-      '# Shopping\n- [ ] milk\nnote\n',
+      '# Shopping\n- [ ] milk\n\nnote\n',
     );
   });
 
@@ -192,7 +192,7 @@ void main() {
   test('clearDone removes checked items and their subitems', () {
     expect(
       MarkdownLines.parse(doc).clearDone().text,
-      '# Shopping\n- [ ] milk\nnote\n',
+      '# Shopping\n- [ ] milk\n\nnote\n',
     );
   });
 
@@ -202,9 +202,53 @@ void main() {
     expect(list.doneIds, {idOf(list, 'eggs'), idOf(list, 'large')});
   });
 
-  test('an empty line ends a block', () {
-    final list = MarkdownLines.parse('- [x] a\n\n  indented text');
+  test('lines under an item after an empty line are still its own', () {
+    final list = MarkdownLines.parse('- [x] a\n\n  indented text\n\ntext');
 
-    expect(list.clearDone().text, '\n  indented text');
+    expect(list.clearDone().text, '\ntext');
+  });
+
+  test('a line at the margin ends an item', () {
+    final list = MarkdownLines.parse('- [x] a\n\ntext');
+
+    expect(list.clearDone().text, '\ntext');
+  });
+
+  test('a deeper item lands beside the item above at its level', () {
+    final list = MarkdownLines.parse('- a\n  - x\n- b\n     - y\n- c');
+
+    final deeper = list.withBlock(
+      idOf(list, 'c'),
+      const ItemBlock(kind: ListKind.bullet, depth: 1, text: 'c'),
+    );
+
+    expect(deeper.text, '- a\n  - x\n- b\n     - y\n     - c');
+  });
+
+  test('an item goes at most one level below the item above', () {
+    final list = MarkdownLines.parse('- a\n  - x\n- b\n     - y\n- c');
+
+    final deeper = list.withBlock(
+      idOf(list, 'c'),
+      const ItemBlock(kind: ListKind.bullet, depth: 3, text: 'c'),
+    );
+
+    expect(deeper.text, '- a\n  - x\n- b\n     - y\n       - c');
+    expect(deeper.depthOf(deeper.lines[4]), 2);
+  });
+
+  test('added items nest under each other as asked', () {
+    final list = MarkdownLines.parse('- a');
+
+    final (added, _) = list.insertBlocks(
+      const [
+        ItemBlock(kind: ListKind.bullet, depth: 1, text: 'b'),
+        ItemBlock(kind: ListKind.bullet, depth: 2, text: 'c'),
+      ],
+      after: idOf(list, 'a'),
+      shownBelow: null,
+    );
+
+    expect(added.text, '- a\n  - b\n    - c');
   });
 }

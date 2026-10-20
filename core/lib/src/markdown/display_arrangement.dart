@@ -1,6 +1,7 @@
 import 'line_id.dart';
 import 'markdown_line.dart';
 import 'markdown_lines.dart';
+import 'outline.dart';
 import 'syntax/line_kinds.dart';
 
 /// One part of what an editor shows of a document, in display order.
@@ -92,31 +93,38 @@ final class Arrangement {
   /// except a collapsed "Done" section's; lines of a drawn table or image
   /// show as that.
   List<DisplayEntry> of(MarkdownLines document) {
-    final lines = document.lines;
-    final kinds = document.kinds;
-    final lists = {for (final list in document.lists) list.first.id: list};
-    final tables = {for (final (start, end) in tableRanges(kinds)) start: end};
     final done = doneSection ? document.doneIds : const <LineId>{};
-    final entries = <DisplayEntry>[];
-    for (var i = 0; i < lines.length;) {
-      final line = lines[i];
-      final drawn = drawBlocks && !raw.contains(line.id);
-      if (lists[line.id] case final list?) {
-        entries.addAll(_list(document, list, kinds.sublist(i), done));
-        i += list.length;
-      } else if (tables[i] case final end? when drawn) {
-        entries.add(TableEntry([for (final l in lines.sublist(i, end)) l.id]));
-        i = end;
-      } else if (lineImage(line.raw) case final image?
-          when drawn && kinds[i] == LineKind.plain) {
-        entries.add(ImageEntry(line.id, url: image.url, alt: image.alt));
-        i++;
-      } else {
-        entries.add(LineEntry(line.id, kinds[i]));
-        i++;
-      }
-    }
-    return entries;
+    return [
+      for (final part in document.outline.parts) ..._part(document, part, done),
+    ];
+  }
+
+  List<DisplayEntry> _part(
+    MarkdownLines document,
+    OutlinePart part,
+    Set<LineId> done,
+  ) {
+    final (:start, :end) = part.span;
+    final lines = document.lines.sublist(start, end);
+    final kinds = document.kinds.sublist(start, end);
+    final first = lines.first;
+    final drawn = drawBlocks && !raw.contains(first.id);
+    return switch (part) {
+      ListPart() => _list(document, lines, kinds, done),
+      TablePart() when drawn => [
+        TableEntry([for (final line in lines) line.id]),
+      ],
+      LinePart() when drawn && kinds.first == LineKind.plain =>
+        switch (lineImage(first.raw)) {
+          final image? => [
+            ImageEntry(first.id, url: image.url, alt: image.alt),
+          ],
+          null => [LineEntry(first.id, kinds.first)],
+        },
+      _ => [
+        for (final (i, line) in lines.indexed) LineEntry(line.id, kinds[i]),
+      ],
+    };
   }
 
   /// The entries of the list [list] of [document], whose lines have
@@ -168,23 +176,18 @@ final class Arrangement {
 /// For each line [entries] show, the line shown right below it, if a line
 /// is: none before a heading, a button or the end.
 Map<LineId, LineId> linesShownBelow(List<DisplayEntry> entries) {
-  final below = <LineId, LineId>{};
-  List<LineId> linesOf(DisplayEntry entry) => switch (entry) {
-    LineEntry(:final id) || ImageEntry(:final id) => [id],
-    TableEntry(:final ids) => ids,
-    DoneHeadingEntry() || AddItemEntry() => const [],
+  // The lines in display order, `null` where something else shows.
+  final shown = [
+    for (final entry in entries)
+      ...switch (entry) {
+        LineEntry(:final id) || ImageEntry(:final id) => [id],
+        TableEntry(:final ids) => ids,
+        DoneHeadingEntry() || AddItemEntry() => const [null],
+      },
+  ];
+  return {
+    for (var i = 0; i + 1 < shown.length; i++)
+      if ((shown[i], shown[i + 1]) case (final above?, final below?))
+        above: below,
   };
-  LineId? above;
-  for (final entry in entries) {
-    final lines = linesOf(entry);
-    if (lines.isEmpty) {
-      above = null;
-      continue;
-    }
-    for (final line in lines) {
-      if (above != null) below[above] = line;
-      above = line;
-    }
-  }
-  return below;
 }

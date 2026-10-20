@@ -47,7 +47,7 @@ void main() {
   });
 
   test('notePreview can leave out done items and count them', () {
-    const text = '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\nend';
+    const text = '# T\n- [x] a\n  - [ ] sub\n- [ ] b\n- [x] c\n\nend';
 
     expect(notePreview(text, hideDone: true), '☐ b\nend\n+ 2 done');
     expect(notePreview(text, maxLines: 2, hideDone: true), '☐ b\n+ 2 done');

@@ -39,6 +39,14 @@ final class MarkdownLine {
   /// The number written on a numbered item; `null` on any other line.
   int? get number => _item?.number;
 
+  /// Whether this numbered item counts on from the numbered item [above],
+  /// the item before it in its list: as in Markdown, only one written with
+  /// the same delimiter (`.` or `)`) does.
+  bool countsOnFrom(MarkdownLine above) =>
+      listKind == ListKind.numbered &&
+      above.listKind == ListKind.numbered &&
+      _item!.delimiter == above._item!.delimiter;
+
   bool get isChecked => switch (_item) {
     ItemSyntax(kind: ListKind.checkbox, :final markIndex) =>
       raw[markIndex] != ' ',
