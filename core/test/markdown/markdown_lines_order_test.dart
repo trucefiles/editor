@@ -468,6 +468,12 @@ void main() {
       expect(list.outdent(idOf(list, 'b')).text, '- a\n- b\n  lazy');
     });
 
+    test('text continued at the item\'s own indent lands under it', () {
+      final list = MarkdownLines.parse('- a\n  - b\n  more');
+
+      expect(list.outdent(idOf(list, 'b')).text, '- a\n- b\n  more');
+    });
+
     test('outdent leaves blank lines as they are', () {
       final list = MarkdownLines.parse('- a\n  - b\n    - c\n    \n    - d');
 

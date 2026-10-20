@@ -476,11 +476,12 @@ final class MarkdownLines {
   }
 
   /// [line], under an item, once the item's indent changes [from] one [to]
-  /// another: it keeps its indent relative to the item, as written. One
-  /// indented with other characters (e.g. a tab under spaces) keeps it as
-  /// wide, in spaces, or if shallower than the item (text that continues
-  /// it without indent), lands one level under it. A blank line needs no
-  /// indent and stays as it is.
+  /// another. A blank line needs no indent and stays as it is. A line no
+  /// deeper than the item (text that continues it without indent) lands
+  /// one level under it, so it stays the item's wherever it goes. Any
+  /// other keeps its indent relative to the item: as written, else
+  /// (indented with other characters, e.g. a tab under spaces) as wide, in
+  /// spaces.
   MarkdownLine _under(
     MarkdownLine line, {
     required String from,
@@ -489,10 +490,10 @@ final class MarkdownLines {
     if (line.raw.trim().isEmpty) return line;
     final deeper = indentWidth(line.indent) - indentWidth(from);
     return line.withIndent(switch (line.indent) {
+      _ when deeper <= 0 => '$to$_indentUnit',
       final indent when indent.startsWith(from) =>
         '$to${indent.substring(from.length)}',
-      _ when deeper > 0 => '$to${' ' * deeper}',
-      _ => '$to$_indentUnit',
+      _ => '$to${' ' * deeper}',
     });
   }
 
