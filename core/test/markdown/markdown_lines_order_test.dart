@@ -124,12 +124,20 @@ void main() {
       );
     });
 
-    test('takes indented text lines along, up to an empty line', () {
-      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\n  stays');
+    test('takes the lines under it along, blank lines among them', () {
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\n  more');
 
       final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
 
-      expect(moved.text, '- [ ] b\n  note\n- [ ] a\n\n  stays');
+      expect(moved.text, '- [ ] b\n  note\n\n  more\n- [ ] a');
+    });
+
+    test('leaves blank lines after its last line in place', () {
+      final list = MarkdownLines.parse('- [ ] a\n- [ ] b\n  note\n\ntext');
+
+      final moved = list.move(idOf(list, 'b'), beforeId: idOf(list, 'a'));
+
+      expect(moved.text, '- [ ] b\n  note\n- [ ] a\n\ntext');
     });
 
     test('to the end stays before the final line break', () {

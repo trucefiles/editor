@@ -78,7 +78,7 @@ final class MarkdownLines {
   ]);
 
   /// The structure of the lines, read once.
-  late final Outline outline = Outline(lines, kinds, indentWidth(_indentUnit));
+  late final Outline outline = Outline(lines, kinds);
 
   late final _indexById = {
     for (final (index, line) in lines.indexed) line.id: index,
@@ -124,7 +124,8 @@ final class MarkdownLines {
   /// whatever the others say. `null` for any other line.
   int? numberOf(MarkdownLine line) => outline.numberAt(_indexOf(line.id));
 
-  /// Nesting level of [line]: 0 at the left margin.
+  /// Nesting level of [line]: the number of items it is under; 0 at the
+  /// left margin.
   int depthOf(MarkdownLine line) => outline.depthAt(_indexOf(line.id));
 
   MarkdownLines toggle(LineId id) => _replaceLine(id, (line) => line.toggled());
@@ -150,13 +151,13 @@ final class MarkdownLines {
   /// does for one.
   MarkdownLines sortChecked() => [
     for (final (index, line) in lines.indexed)
-      if (_isChecked(index) && line.indent.isEmpty) line.id,
+      if (_isChecked(index) && outline.depthAt(index) == 0) line.id,
   ].fold(this, (list, id) => list._sorted(id));
 
   /// The item [id] moved to where [toggleAndSort] puts it.
   MarkdownLines _sorted(LineId id) {
     final index = _indexOf(id);
-    if (!_isItem(index) || lines[index].indent.isNotEmpty) return this;
+    if (!_isItem(index) || outline.depthAt(index) != 0) return this;
     final target = _sortTarget(index);
     if (target == null) return this;
     final end = _subtreeEnd(index);
@@ -171,21 +172,16 @@ final class MarkdownLines {
   /// the line to go before (the length for the end); `null` if its list
   /// has no other item to sort against.
   int? _sortTarget(int index) {
-    final end = _subtreeEnd(index);
-    final (start: first, end: last) = outline.regionOf(index);
-    final others = [
-      for (var i = first; i < last; i++)
-        if ((i < index || i >= end) && _isItem(i) && lines[i].indent.isEmpty) i,
-    ];
+    final others = [...outline.listOf(index)]..remove(index);
     if (others.isEmpty) return null;
     if (_isChecked(index)) return _subtreeEnd(others.last);
     final open = others.where((i) => !_isChecked(i));
     return open.isEmpty ? others.first : _subtreeEnd(open.last);
   }
 
-  /// The lists: runs of lines from an item to the last item or indented
-  /// line before a line at the margin that is neither an item nor blank,
-  /// e.g. a heading. Blank lines inside a run belong to it.
+  /// The lists at the left margin: runs of items there, each with the
+  /// lines under it; blank lines between them belong to the list. A line
+  /// at the margin that is no item, e.g. a heading, ends a list.
   List<List<MarkdownLine>> get lists => [
     for (final span in outline.lists) _linesIn(span),
   ];
@@ -222,7 +218,12 @@ final class MarkdownLines {
       line.raw == text
           ? line
           : MarkdownLine.parse(line.id, MarkdownLine.oneLine(text)),
-    ItemBlock() when !line.isListItem => _newItem(line.id, block, style: null),
+    ItemBlock() when !line.isListItem => _newItem(
+      line.id,
+      block,
+      at: _indexOf(line.id),
+      style: null,
+    ),
     ItemBlock() => _item(line, block),
   };
 
@@ -238,19 +239,25 @@ final class MarkdownLines {
     if (block.kind == ListKind.checkbox && item.isChecked != block.checked) {
       item = item.toggled();
     }
-    if (depthOf(item) != block.depth) {
-      item = item.withIndent(_indentUnit * block.depth);
-    }
+    final place = outline.placeAt(_indexOf(line.id), block.depth, _indentUnit);
+    if (depthOf(line) != place.depth) item = item.withIndent(place.indent);
     return item;
   }
 
-  /// A new item showing [block], with the bullet style of the item [style]
-  /// if any.
-  MarkdownLine _newItem(LineId id, ItemBlock block, {MarkdownLine? style}) {
+  /// A new item [id] showing [block] at index [at], placed there as
+  /// [Outline.placeAt] says, with the bullet style of the item [style] if
+  /// any.
+  MarkdownLine _newItem(
+    LineId id,
+    ItemBlock block, {
+    required int at,
+    required MarkdownLine? style,
+  }) {
     final unchecked = style == null
         ? MarkdownLine.newItem(id, block.kind, block.text)
         : style.newSibling(id, block.text, kind: block.kind);
-    final item = unchecked.withIndent(_indentUnit * block.depth);
+    final place = outline.placeAt(at, block.depth, _indentUnit);
+    final item = unchecked.withIndent(place.indent);
     return block.kind == ListKind.checkbox && block.checked
         ? item.toggled()
         : item;
@@ -268,25 +275,29 @@ final class MarkdownLines {
     required LineId? shownBelow,
   }) {
     final at = after == null ? 0 : _endBefore(_indexOf(after), shownBelow);
-    final itemAbove = [
-      for (var i = 0; i < at; i++)
-        if (_isItem(i)) lines[i],
-    ].lastOrNull;
-    var nextId = _nextId;
-    final added = [
-      for (final block in blocks)
-        switch (block) {
-          TextBlock(:final text) => MarkdownLine.parse(
-            LineId(nextId++),
-            MarkdownLine.oneLine(text),
-          ),
-          ItemBlock() => _newItem(LineId(nextId++), block, style: itemAbove),
-        },
-    ];
-    return (
-      MarkdownLines._([...lines]..insertAll(at, added), _indentUnit, nextId),
-      [for (final line in added) line.id],
-    );
+    return blocks.indexed.fold((this, const <LineId>[]), (done, entry) {
+      final (document, ids) = done;
+      final (offset, block) = entry;
+      final (next, id) = document._insertBlock(at + offset, block);
+      return (next, [...ids, id]);
+    });
+  }
+
+  /// Adds a line for [block] at index [at].
+  (MarkdownLines, LineId) _insertBlock(int at, Block block) {
+    final id = LineId(_nextId);
+    return _insert(at, switch (block) {
+      TextBlock(:final text) => MarkdownLine.parse(
+        id,
+        MarkdownLine.oneLine(text),
+      ),
+      ItemBlock() => _newItem(
+        id,
+        block,
+        at: at,
+        style: lines.take(at).where(isItem).lastOrNull,
+      ),
+    });
   }
 
   /// Removes only the line of [id]; lines below it (its subitems) stay

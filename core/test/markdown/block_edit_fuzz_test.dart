@@ -104,24 +104,46 @@ void main() {
   });
 }
 
-/// The lines right below [line] in [doc] that are deeper than it, up to
-/// [until].
+/// The lines right below [line] in [doc] that are under it, as deep as
+/// they are, up to [until]: blank lines between them count, ones after
+/// them do not. Only an item has any.
 List<LineId> _subitemsBefore(MarkdownLines doc, LineId line, LineId? until) {
   final index = doc.lines.indexWhere((l) => l.id == line);
-  final width = _width(doc.lines[index].indent);
-  final subitems = <LineId>[];
-  for (final below in doc.lines.skip(index + 1)) {
-    if (below.id == until ||
-        below.raw.trim().isEmpty ||
-        _width(below.indent) <= width) {
-      break;
-    }
-    subitems.add(below.id);
-  }
-  return subitems;
+  if (!doc.isItem(doc.lines[index])) return const [];
+  final depth = doc.depthOf(doc.lines[index]);
+  final run = doc.lines
+      .skip(index + 1)
+      .takeWhile(
+        (below) =>
+            below.id != until &&
+            (below.raw.trim().isEmpty || doc.depthOf(below) > depth),
+      )
+      .toList();
+  final last = run.lastIndexWhere((below) => below.raw.trim().isNotEmpty);
+  return [for (final below in run.take(last + 1)) below.id];
 }
 
-int _width(String indent) => indent.replaceAll('\t', '    ').length;
+/// The lines above the line [id] in [doc], as written.
+String _above(MarkdownLines doc, LineId id) => [
+  for (final line in doc.lines.takeWhile((line) => line.id != id))
+    '${line.id}:${line.raw}',
+].join('\n');
+
+/// The deepest an item can be at [line] in [doc], as Markdown reads it:
+/// one deeper than an item right above it, else as deep as the line
+/// right above it; 0 at the top.
+int _deepestAt(MarkdownLines doc, MarkdownLine line) {
+  final index = doc.lines.indexWhere((l) => l.id == line.id);
+  final above = doc.lines
+      .take(index)
+      .where((l) => l.raw.trim().isNotEmpty)
+      .lastOrNull;
+  return switch (above) {
+    null => 0,
+    _ when doc.isItem(above) => doc.depthOf(above) + 1,
+    _ => doc.depthOf(above),
+  };
+}
 
 /// One random editor transaction on the shown lines.
 final class _Step {
@@ -220,7 +242,15 @@ final class _Step {
           expect(line.listKind, expected.listKind, reason: reason);
           expect(line.isChecked, expected.isChecked, reason: reason);
           expect(line.text, expected.text, reason: reason);
-          expect(after.depthOf(line), depth, reason: reason);
+          // As deep as asked, if Markdown lets it; edits above it in the
+          // same step may have changed what was above it then.
+          expect(
+            after.depthOf(line),
+            _above(before, id) == _above(after, id)
+                ? min(depth, _deepestAt(after, line))
+                : lessThanOrEqualTo(depth),
+            reason: reason,
+          );
       }
     }
     expect(
