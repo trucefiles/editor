@@ -24,12 +24,12 @@ typedef LineCaret = ({LineId line, int offset});
 /// follow a line while its text changes. Ids are only unique within the
 /// documents derived from one [MarkdownLines.parse].
 final class MarkdownLines {
-  MarkdownLines._(this.lines, this._writer, this._nextId);
+  MarkdownLines._(this.lines, this._style, this._nextId);
 
   /// Parses [text] with `\n` line breaks.
   factory MarkdownLines.parse(String text) {
     final lines = _parseLines(text.split('\n'), firstId: 0);
-    return MarkdownLines._(lines, LineWriter.of(lines), lines.length);
+    return MarkdownLines._(lines, null, lines.length);
   }
 
   /// Parses [text] as a new version of this document, e.g. after it
@@ -53,28 +53,31 @@ final class MarkdownLines {
       ...changed,
       ...lines.skip(lines.length - tail),
     ];
-    return MarkdownLines._(
-      parsed,
-      LineWriter.of(parsed),
-      _nextId + changed.length,
-    );
+    return MarkdownLines._(parsed, null, _nextId + changed.length);
   }
 
   /// All lines, in file order.
   final List<MarkdownLine> lines;
 
-  /// Writes lines where edits put them, in this file's style.
-  final LineWriter _writer;
+  /// The writer of the document this one was edited from, if any.
+  final LineWriter? _style;
+
+  /// Writes lines where edits put them, in the style of the file as it
+  /// was read: edits keep it.
+  late final LineWriter _writer =
+      _style ??
+      LineWriter.of([
+        for (final (index, line) in lines.indexed)
+          if (_isItem(index)) line.indent,
+      ]);
 
   final int _nextId;
 
-  /// The kind of each line, by its place, e.g. inside a code block.
-  late final List<LineKind> kinds = lineKinds([
-    for (final line in lines) line.raw,
-  ]);
-
   /// The structure of the lines, read once.
-  late final Outline outline = Outline(lines, kinds);
+  late final Outline outline = Outline(lines);
+
+  /// The kind of each line, by its place, e.g. inside a code block.
+  List<LineKind> get kinds => outline.kinds;
 
   late final _indexById = {
     for (final (index, line) in lines.indexed) line.id: index,
@@ -93,6 +96,12 @@ final class MarkdownLines {
   /// continues the paragraph of a quote above it without them, which
   /// Markdown keeps in the quote.
   bool isQuote(MarkdownLine line) => outline.isQuote(_indexOf(line.id));
+
+  /// The level of the heading whose text or underline [line] is, for a
+  /// heading written as text over `===` or `---`; `null` for any other
+  /// line.
+  int? underlinedHeadingOf(MarkdownLine line) =>
+      outline.underlinedHeadingAt(_indexOf(line.id));
 
   /// Whether the document has checkbox items.
   bool get hasCheckboxes =>
@@ -173,9 +182,9 @@ final class MarkdownLines {
     if (target == null) return this;
     final end = _subtreeEnd(index);
     final between = target < index
-        ? lines.sublist(target, index)
-        : lines.sublist(end, max(end, target));
-    if (!between.any((line) => line.isListItem)) return this;
+        ? (start: target, end: index)
+        : (start: end, end: max(end, target));
+    if (!_indicesIn(between).any(_isItem)) return this;
     return move(id, beforeId: target < lines.length ? lines[target].id : null);
   }
 
@@ -218,40 +227,50 @@ final class MarkdownLines {
 
   /// Line [id] as it shows [block] now: unchanged if it shows it already;
   /// else only its own line changes, keeping its prefix style (bullet,
-  /// box, indent characters) where it can.
-  MarkdownLines withBlock(LineId id, Block block) =>
-      _replaceLine(id, (line) => _lineFor(line, block));
-
-  MarkdownLine _lineFor(MarkdownLine line, Block block) => switch (block) {
-    TextBlock(:final text) =>
-      line.raw == text
+  /// box, indent characters) where it can. A new level moves only this
+  /// line, as each line of an editor's change states its own level; moves
+  /// that take subitems along are [indent], [outdent] and [moveNextTo].
+  /// One exception keeps the lines in an item there: if its content now
+  /// starts further in (e.g. a bullet turned numbered), they move as far.
+  MarkdownLines withBlock(LineId id, Block block) => switch (block) {
+    TextBlock(:final text) => _replaceLine(
+      id,
+      (line) => line.raw == text
           ? line
           : MarkdownLine.parse(line.id, MarkdownLine.oneLine(text)),
-    ItemBlock() when !line.isListItem => _newItem(
-      line.id,
-      block,
-      at: _indexOf(line.id),
-      style: null,
     ),
-    ItemBlock() => _item(line, block),
+    ItemBlock() when !isItem(lineOf(id)!) => _replaceLine(
+      id,
+      (line) => _newItem(line.id, block, at: _indexOf(id), style: null),
+    ),
+    ItemBlock() => _withItem(id, block),
   };
 
-  MarkdownLine _item(MarkdownLine line, ItemBlock block) {
-    var item = switch (line) {
-      _ when line.listKind != block.kind => line.withKind(
-        block.kind,
-        block.text,
-      ),
-      _ when line.text != block.text => line.withText(block.text),
-      _ => line,
+  /// The item [id] showing [block]: its kind, text, box and level.
+  MarkdownLines _withItem(LineId id, ItemBlock block) {
+    final span = outline.subtree(_indexOf(id));
+    final was = lines[span.start];
+    var item = switch (was) {
+      _ when was.listKind != block.kind => was.withKind(block.kind, block.text),
+      _ when was.text != block.text => was.withText(block.text),
+      _ => was,
     };
     if (block.kind == ListKind.checkbox && item.isChecked != block.checked) {
       item = item.toggled();
     }
-    final place = outline.placeAt(_indexOf(line.id), block.depth);
-    return depthOf(line) == place.depth
-        ? item
-        : _writer.placed([item], place).single;
+    final place = outline.placeAt(span.start, block.depth);
+    if (depthOf(was) != place.depth) {
+      return _with(
+        [...lines]..[span.start] = _writer.placed([item], place).single,
+      );
+    }
+    if (item == was) return this;
+    final changed = [item, ..._linesIn((start: span.start + 1, end: span.end))];
+    return _with(
+      [
+        ...lines,
+      ]..replaceRange(span.start, span.end, _writer.inPlace(changed, was: was)),
+    );
   }
 
   /// A new item [id] showing [block] at index [at], at its level there,
@@ -437,6 +456,9 @@ final class MarkdownLines {
 
   Iterable<LineId> _idsIn(LineSpan span) =>
       _linesIn(span).map((line) => line.id);
+
+  Iterable<int> _indicesIn(LineSpan span) =>
+      Iterable.generate(span.end - span.start, (offset) => span.start + offset);
 
   /// Takes the item at [index] with its subitems out and puts them back
   /// where [spot] says: it gets the remaining lines and the span taken,

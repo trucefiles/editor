@@ -19,6 +19,13 @@ void main() {
     expect(converted('milk', ['milk'], ListKind.numbered), '1. milk');
   });
 
+  test('a numbered line that only continues text becomes an item', () {
+    expect(
+      converted('The year\n2024. was good', ['was good'], ListKind.numbered),
+      'The year\n1. 2024. was good',
+    );
+  });
+
   test('turns several lines at once', () {
     expect(converted('a\nb\nc', ['a', 'b'], ListKind.bullet), '- a\n- b\nc');
   });

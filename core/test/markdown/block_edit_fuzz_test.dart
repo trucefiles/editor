@@ -123,6 +123,13 @@ List<LineId> _subitemsBefore(MarkdownLines doc, LineId line, LineId? until) {
   return [for (final below in run.take(last + 1)) below.id];
 }
 
+/// The ids of the lines in the item [item] of [doc], below it.
+Set<LineId> _linesUnder(MarkdownLines doc, MarkdownLine item) {
+  final index = doc.lines.indexOf(item);
+  final (start: _, :end) = doc.outline.subtree(index);
+  return {for (final line in doc.lines.sublist(index + 1, end)) line.id};
+}
+
 /// The lines above the line [id] in [doc], as written.
 String _above(MarkdownLines doc, LineId id) => [
   for (final line in doc.lines.takeWhile((line) => line.id != id))
@@ -219,8 +226,21 @@ final class _Step {
         if (!changed.containsKey(line.id) && !removed.contains(line.id)) line,
     ];
     final afterById = {for (final line in after.lines) line.id: line};
+    // Lines in a changed item whose content now starts further in (e.g. a
+    // bullet turned numbered) move as far in, to stay in it.
+    final inChanged = {
+      for (final id in changed.keys)
+        if (before.lineOf(id) case final line? when before.isItem(line))
+          ..._linesUnder(before, line),
+    };
     for (final line in untouched) {
-      expect(afterById[line.id]?.raw, line.raw, reason: reason);
+      final now = afterById[line.id]!;
+      if (inChanged.contains(line.id)) {
+        expect(now.indent, startsWith(line.indent), reason: reason);
+        expect(now.raw.trimLeft(), line.raw.trimLeft(), reason: reason);
+      } else {
+        expect(now.raw, line.raw, reason: reason);
+      }
     }
     final order = [
       for (final line in after.lines)

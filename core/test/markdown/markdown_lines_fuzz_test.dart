@@ -250,12 +250,19 @@ void main() {
 
       expect(content(sorted), content(toggled), reason: 'case $i');
       // Lines under a moved item move with it, blank lines among them.
+      // Text at the margin is told by the toggled list: a numbered line
+      // that only starts a list where no text is right above it may turn
+      // into text once an item moves away.
+      final text = {
+        for (final line in toggled.lines)
+          if (!toggled.isItem(line) &&
+              toggled.depthOf(line) == 0 &&
+              line.raw.trim().isNotEmpty)
+            line.id,
+      };
       Iterable<String> marginText(MarkdownLines list) => [
         for (final line in list.lines)
-          if (!list.isItem(line) &&
-              list.depthOf(line) == 0 &&
-              line.raw.trim().isNotEmpty)
-            line.raw,
+          if (text.contains(line.id)) line.raw,
       ];
       expect(
         marginText(sorted),

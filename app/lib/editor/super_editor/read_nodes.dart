@@ -2,6 +2,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../note_mode.dart';
+import 'line_nodes.dart';
 import 'marks/markup_text.dart';
 import 'note_look.dart';
 import 'note_nodes.dart';
@@ -19,7 +20,7 @@ List<DocumentNode> readNodes(
   bool blank(DisplayEntry? entry) =>
       entry is LineEntry &&
       entry.kind == LineKind.plain &&
-      byId[entry.id]!.raw.trim().isEmpty;
+      byId[entry.id]!.isBlank;
   return [
     for (final (index, entry) in entries.indexed)
       if (!(blank(entry) && index > 0 && blank(entries[index - 1])))
@@ -37,7 +38,7 @@ List<DocumentNode> readNodes(
 DocumentNode _lineNode(LineView view, MarkStyle marks, {required bool gap}) {
   final shown = marks.show(view.text, view.markupOf(view.text), edited: false);
   return lineNode(
-    'line-${view.id}',
+    LineNodes.idFor(view.id),
     view,
     gap ? AttributedText() : markupText(shown.text, shown.markup),
     blockType: gap ? gapBlock : null,

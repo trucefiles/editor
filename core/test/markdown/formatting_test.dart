@@ -28,6 +28,32 @@ void main() {
       ));
     });
 
+    test('italic on bold text makes it bold italic, and back', () {
+      expect(toggleWrap('**a**', 2, 3, '*'), (
+        text: '***a***',
+        start: 3,
+        end: 4,
+      ));
+      expect(toggleWrap('***a***', 3, 4, '*'), (
+        text: '**a**',
+        start: 2,
+        end: 3,
+      ));
+      expect(toggleWrap('**a**', 0, 5, '*'), (
+        text: '***a***',
+        start: 1,
+        end: 6,
+      ));
+    });
+
+    test('bold on bold italic text leaves it italic', () {
+      expect(toggleWrap('***a***', 3, 4, '**'), (
+        text: '*a*',
+        start: 1,
+        end: 2,
+      ));
+    });
+
     test('an empty selection gets a pair to type into', () {
       expect(toggleWrap('ab', 1, 1, '*'), (text: 'a**b', start: 2, end: 2));
     });

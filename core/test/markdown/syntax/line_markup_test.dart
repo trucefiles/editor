@@ -15,6 +15,18 @@ void main() {
     ]);
   });
 
+  test('a heading written as text over an underline', () {
+    expect(lineMarkup('A *b*', LineKind.plain, underlined: 1), [
+      const MarkupSpan(HeadingMarkup(1), 0, 5),
+      const MarkupSpan(syntax, 2, 3),
+      const MarkupSpan(ItalicMarkup(), 3, 4),
+      const MarkupSpan(syntax, 4, 5),
+    ]);
+    expect(lineMarkup('===', LineKind.plain, underlined: 1), [
+      const MarkupSpan(syntax, 0, 3),
+    ]);
+  });
+
   test('a quote', () {
     expect(lineMarkup('> q', LineKind.plain), [
       const MarkupSpan(QuoteMarkup(), 0, 3),

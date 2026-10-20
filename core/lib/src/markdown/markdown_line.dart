@@ -32,7 +32,10 @@ final class MarkdownLine {
   /// The kind of list item this line is; `null` if it is none.
   ListKind? get listKind => _item?.kind;
 
-  bool get isListItem => _item != null;
+  /// Whether the line has a list item's syntax. Whether it is an item
+  /// depends on its place too (not in a code block, not continuing text);
+  /// that is the document's to say (`MarkdownLines.isItem`).
+  bool get hasItemSyntax => _item != null;
 
   bool get isCheckbox => listKind == ListKind.checkbox;
 
@@ -73,10 +76,19 @@ final class MarkdownLine {
   /// Whether the line is empty or only whitespace.
   bool get isBlank => raw.trim().isEmpty;
 
-  /// How far this item's content starts after its indent, in columns: past
-  /// its marker and the spaces after it, as Markdown counts them. Lines
-  /// under the item start at least this far in. Only for items.
-  int get contentOffset => _item!.contentStart - indent.length;
+  /// The column where this item's content starts: past its marker and the
+  /// spaces after it, as Markdown counts them. Lines under the item start
+  /// at least this far in. Only for items.
+  int get contentColumn {
+    final start = _item!.contentStart;
+    // Past the end of a line that ends at its marker.
+    if (start > raw.length) return columnsOf(raw) + start - raw.length;
+    return columnsOf(raw.substring(0, start));
+  }
+
+  /// How far this item's content starts after its indent, in columns (see
+  /// [contentColumn]). Only for items.
+  int get contentOffset => contentColumn - columnsOf(indent);
 
   /// The checkbox item with its box checked if it was not, else unchecked.
   MarkdownLine toggled() {
