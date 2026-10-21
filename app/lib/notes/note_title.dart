@@ -4,13 +4,15 @@ import 'note_file_name.dart';
 
 /// Displayed title: the first level-1 heading in no other block, as
 /// plain words, else the file name without its extension.
-String noteTitle(String text, RelPath path) {
-  final document = MarkdownDocument.parse(text);
-  return switch (_titleOf(document)) {
-    final title? => document.plainTextOf(title).trim(),
-    null => splitFileName(path.name).base,
-  };
-}
+String noteTitle(String text, RelPath path) =>
+    noteTitleIn(MarkdownDocument.parse(text), path);
+
+/// [noteTitle] of a parsed [document].
+String noteTitleIn(MarkdownDocument document, RelPath path) =>
+    switch (_titleOf(document)) {
+      final title? => document.plainTextOf(title).trim(),
+      null => splitFileName(path.name).base,
+    };
 
 /// The first level-1 heading with text in no other block, if any.
 HeadingBlock? _titleOf(MarkdownDocument document) => document.root.children
@@ -34,13 +36,16 @@ String noteTitleLine(String text) {
       '';
 }
 
-/// Up to [maxLines] non-empty lines after the title heading, for cards, in
-/// file order, as plain words: items at their level, checkbox items as
-/// `☐ text` or `☑ text`, bullet items as `• text`. With [hideDone],
-/// checked items and their subitems are left out and counted in a last
-/// line, e.g. `+ 3 done`.
-String notePreview(String text, {int maxLines = 6, bool hideDone = false}) {
-  final document = MarkdownDocument.parse(text);
+/// Up to [maxLines] non-empty lines of [document] after the title heading,
+/// for cards, in file order, as plain words: items at their level,
+/// checkbox items as `☐ text` or `☑ text`, bullet items as `• text`. With
+/// [hideDone], checked items and their subitems are left out and counted
+/// in a last line, e.g. `+ 3 done`.
+String notePreviewIn(
+  MarkdownDocument document, {
+  required int maxLines,
+  bool hideDone = false,
+}) {
   final outline = document.outline;
   final done = hideDone ? outline.doneIds : const <LineId>{};
   final title = _titleOf(document);

@@ -8,6 +8,7 @@ import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
 import 'package:truce_editor/notes/note_settings_pruning.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 
@@ -34,7 +35,7 @@ void main() {
   NoteKey key(String name) => (folderId: 'f1', path: path(name));
 
   test(
-    'forgets the settings of gone notes as the app comes into use',
+    'marks the settings of gone notes missing as the app comes into use',
     () async {
       final views = container.read(noteSettingsProvider.notifier);
       await views.edit(key('kept.md'), (s) => s.withMode(NoteMode.visual));
@@ -48,10 +49,29 @@ void main() {
       activity.set(active: true);
       await container.read(noteSettingsPruningProvider.future);
 
-      expect(views.settingsOf(key('gone.md')).mode, isNull);
-      expect(views.settingsOf(key('kept.md')).mode, NoteMode.visual);
+      // Forgotten once missing for a while (see the controller's tests).
+      final kept = container.read(noteSettingsProvider).value!;
+      expect(kept['f1/gone.md']!.missingSince, isNotNull);
+      expect(kept['f1/kept.md']!.missingSince, isNull);
+      expect(views.settingsOf(key('gone.md')).mode, NoteMode.markdown);
     },
   );
+
+  test('keeps the settings of a note written after the last scan', () async {
+    final activity = container.read(appActiveProvider.notifier) as _Activity
+      ..set(active: false);
+    container.listen(noteSettingsPruningProvider, (_, _) {});
+    await container.read(folderScansProvider.future);
+    // E.g. a note just moved here: no scan has seen it yet.
+    File('${dir.path}/moved.md').writeAsStringSync('# Moved\n');
+    final views = container.read(noteSettingsProvider.notifier);
+    await views.edit(key('moved.md'), (s) => s.withPinned(pinned: true));
+
+    activity.set(active: true);
+    await container.read(noteSettingsPruningProvider.future);
+
+    expect(views.settingsOf(key('moved.md')).pinned, isTrue);
+  });
 }
 
 class _Activity extends AppActivity {

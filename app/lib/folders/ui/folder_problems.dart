@@ -37,7 +37,7 @@ class FolderProblems extends ConsumerWidget {
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),
             subtitle: Text(
-              "Can't read ${_names(subfolders)}; its notes aren't shown.",
+              "${_names(subfolders)} can't be read, so the notes there aren't shown.",
             ),
           ),
     ],

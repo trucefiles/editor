@@ -1,9 +1,11 @@
-- New editor: Visual edit (marks only where you edit), Markdown edit, Read
-- Standard Markdown: quotes, lists, code and tables nest as in the file
-- Lists of checkboxes, bullets and numbers with Done section and "Add item"
-- Drag to move, sideways to indent; Shift+Enter adds a line in an item
+- New editor: Visual edit, Markdown edit, Read
+- Standard Markdown: blocks nest as in the file
+- Checkbox, bullet and number lists with Done section and "Add item"
+- Drag to move or indent; Shift+Enter adds a line in an item
 - Format bar with list buttons
 - Tables drawn, images inline
-- New notes open right away; tap the place chip to move or rename
-- Checked items: in place, Done section or at the end
+- New notes open at once; the place chip moves or renames
+- Checked items: in place, Done section or at end
 - Settings screen
+- Faster home and search
+- Pins and views kept 7 days while a note is missing

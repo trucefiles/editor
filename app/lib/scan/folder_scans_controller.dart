@@ -35,10 +35,14 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
 
   /// Rescans now, e.g. after a write, when a note opens, when the app
   /// comes back to the foreground, or when the user asks. The scan starts
-  /// after this call, so it sees every write made before. Does nothing
-  /// once this controller is disposed.
+  /// after this call, so it sees every write made before. Waits for the
+  /// folder list and the draft recovery of the build first, so it never
+  /// scans too few folders. Does nothing once this controller is disposed,
+  /// or if the build failed.
   Future<void> refresh() async {
     if (!ref.mounted) return;
+    final built = await future.then((_) => true, onError: (_) => false);
+    if (!built || !ref.mounted) return;
     final scans = await _scans.run();
     if (ref.mounted) state = AsyncData(scans);
   }

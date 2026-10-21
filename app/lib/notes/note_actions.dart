@@ -6,6 +6,7 @@ import '../folders/note_folder.dart';
 import '../reach/folder_reach_controller.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
+import 'delete_failure.dart';
 import 'move_failure.dart';
 import 'new_note_place/new_note_place.dart';
 import 'new_note_place/new_note_place_controller.dart';
@@ -89,10 +90,7 @@ final class NoteActions {
     NotePlace place, {
     String? title,
   }) async {
-    final scans = _ref.read(folderScansProvider).value;
-    if (scans?.conflicts.forNote(note.key) != null) {
-      return const Err(MoveBlockedByConflict());
-    }
+    if (_conflictWaits(note)) return const Err(MoveBlockedByConflict());
     final mark = markOf(note);
     final settings = _settings.settingsOf(note.key);
     final copied = await _ref
@@ -120,16 +118,21 @@ final class NoteActions {
   }
 
   /// Deletes [note] with its mark and settings, keeping them and its
-  /// [text] for [undoDelete]. Fails if the file changed since [note] was
-  /// read. No rescan: the open editor would take the note as deleted
-  /// elsewhere; it rescans as it closes.
-  Future<Result<DeletedNote, StoreError>> delete(Note note, String text) async {
+  /// [text] for [undoDelete]. Refused while a sync conflict of the note
+  /// waits. Fails if the file changed since [note] was read. No rescan:
+  /// the open editor would take the note as deleted elsewhere; it rescans
+  /// as it closes.
+  Future<Result<DeletedNote, DeleteFailure>> delete(
+    Note note,
+    String text,
+  ) async {
+    if (_conflictWaits(note)) return const Err(DeleteBlockedByConflict());
     final mark = markOf(note);
     final settings = _settings.settingsOf(note.key);
     final deleted = await _ref
         .read(noteFilesProvider(note.folder))
         .delete(note);
-    if (deleted case Err(:final error)) return Err(error);
+    if (deleted case Err(:final error)) return Err(DeleteNotDone(error));
     // Best effort: the next write of the marks drops it anyway.
     await _marksOf(note).remove(note.path);
     await _settings.forget(note.key);
@@ -154,6 +157,10 @@ final class NoteActions {
       Err(:final error) => Err(error),
     };
   }
+
+  /// Whether a sync conflict of [note] waits, as last scanned.
+  bool _conflictWaits(Note note) =>
+      _ref.read(folderScansProvider).value?.conflicts.forNote(note.key) != null;
 
   /// [note]'s color, as last scanned.
   NoteMark markOf(Note note) =>

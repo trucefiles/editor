@@ -4,8 +4,7 @@ import '../move_failure.dart';
 
 /// What to tell the user about [failure].
 String moveFailureText(MoveFailure failure) => switch (failure) {
-  MoveBlockedByConflict() =>
-    'Resolve the sync conflict of this note first, then move it.',
+  MoveBlockedByConflict() => 'This note has a sync conflict. Please resolve it first, then move the note.',
   MoveNotWritten(:final error) => "Couldn't move the note: ${error.text}",
   MoveLeftOriginal(:final copy, :final error) =>
     'Saved as ${placeName(copy.folder, copy.path.parent)}/${copy.path.name}, '

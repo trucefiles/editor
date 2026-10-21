@@ -6,7 +6,7 @@ import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_colors.dart';
-import '../note_title.dart';
+import '../note_summary.dart';
 
 /// A note in the grid: title, first lines, folder, last edit, pin and
 /// color.
@@ -21,9 +21,6 @@ class NoteCard extends StatelessWidget {
     this.hideDone = false,
     super.key,
   });
-
-  /// Most lines of the note a card shows.
-  static const previewLines = 10;
 
   final Note note;
   final NoteMark mark;
@@ -46,11 +43,7 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final preview = notePreview(
-      note.file.text,
-      maxLines: previewLines,
-      hideDone: hideDone,
-    );
+    final preview = note.preview(hideDone: hideDone);
     return Card(
       clipBehavior: Clip.antiAlias,
       color: noteTint(mark.color, theme.colorScheme),
@@ -81,7 +74,7 @@ class NoteCard extends StatelessWidget {
                 Text(
                   preview,
                   style: textTheme.bodySmall,
-                  maxLines: previewLines,
+                  maxLines: NoteSummary.previewLines,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

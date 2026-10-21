@@ -6,7 +6,7 @@ extension AddFolderErrorText on AddFolderError {
     AddFolderError.unsupportedLocation =>
       'Please pick a folder on the device storage.',
     AddFolderError.overlaps =>
-      'This folder is inside, or contains, a folder already added.',
+      'This folder overlaps with one you already added.',
     AddFolderError.syncToolInternal =>
       "This folder holds the sync tool's own files, such as old versions. "
           'Please pick the folder with your notes.',

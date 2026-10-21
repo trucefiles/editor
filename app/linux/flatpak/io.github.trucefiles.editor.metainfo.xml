@@ -31,6 +31,10 @@
           <li>Checked items per note: in place, in a Done section or moved to the end.</li>
           <li>Settings screen with clearer names.</li>
           <li>Linux: --background starts the app in the tray.</li>
+          <li>A note's pin, view and checked items choice stay for 7 days while the note is missing, e.g. while its folder can't be reached.</li>
+          <li>A note with a waiting sync conflict can't be deleted until the conflict is resolved, as with moving.</li>
+          <li>Home and search are faster with many notes.</li>
+          <li>Friendlier messages.</li>
         </ul>
       </description>
     </release>

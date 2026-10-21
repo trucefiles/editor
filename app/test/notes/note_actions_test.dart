@@ -8,6 +8,7 @@ import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/delete_failure.dart';
 import 'package:truce_editor/notes/move_failure.dart';
 import 'package:truce_editor/notes/new_note_place/new_note_place.dart';
 import 'package:truce_editor/notes/new_note_place/new_note_place_controller.dart';
@@ -230,6 +231,19 @@ void main() {
     });
   });
 
+  test('delete is refused while a sync conflict of the note waits', () async {
+    file(
+      work,
+      'plan.sync-conflict-20261003-134809-4I343AW.md',
+    ).writeAsStringSync('b');
+    final note = await noteIn(work, 'plan.md', 'a');
+
+    final deleted = await actions.delete(note, 'a');
+
+    expect(deleted.error, isA<DeleteBlockedByConflict>());
+    expect(file(work, 'plan.md').existsSync(), isTrue);
+  });
+
   test('delete removes the note; undo writes it back', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
 
@@ -299,7 +313,14 @@ void main() {
 
     final deleted = await actions.delete(note, '# Plan\n');
 
-    expect(deleted.error, StoreError.changedSinceRead);
+    expect(
+      deleted.error,
+      isA<DeleteNotDone>().having(
+        (failure) => failure.error,
+        'error',
+        StoreError.changedSinceRead,
+      ),
+    );
     expect(file(work, 'plan.md').existsSync(), isTrue);
   });
 

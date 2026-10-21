@@ -206,6 +206,22 @@ void main() {
       expect(text.text, 'buy [milk](https://x.org)');
     });
 
+    testWidgets('does nothing if the line changed meanwhile', (tester) async {
+      // The paragraph keeps its first line, so it stays the same node.
+      final text = FakeNoteText('buy milk\nand eggs');
+      await pumpEditor(tester, text);
+
+      await tester.selectWordIn(paragraphNodeOf(), 14);
+      await tester.tap(find.byTooltip('Link (Ctrl+K)'));
+      await tester.pumpAndSettle();
+      text.changeElsewhere('buy milk\nand');
+      await tester.pumpAndSettle();
+      await addLink(tester, 'https://x.org');
+
+      expect(text.text, 'buy milk\nand');
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('cancelled leaves the line as it is', (tester) async {
       final text = FakeNoteText('buy milk');
       await pumpEditor(tester, text);

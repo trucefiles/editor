@@ -6,6 +6,7 @@ import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/notes/kept_note_settings.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
@@ -30,8 +31,11 @@ void main() {
     views = container.read(noteSettingsProvider.notifier);
   });
 
-  Future<Map<String, NoteSettings>> saved() =>
-      container.read(noteSettingsStoreProvider).load();
+  Future<Map<String, NoteSettings>> saved() async => {
+    for (final MapEntry(:key, :value)
+        in (await container.read(noteSettingsStoreProvider).load()).entries)
+      key: value.settings,
+  };
 
   Future<void> remember(NoteKey note, NoteMode view) =>
       views.edit(note, (settings) => settings.withMode(view));
@@ -48,7 +52,10 @@ void main() {
       NoteSettingsStore.storeKey(a): NoteSettings(mode: NoteMode.markdown),
       NoteSettingsStore.storeKey(b): NoteSettings(mode: NoteMode.read),
     };
-    expect(container.read(noteSettingsProvider).value, expected);
+    expect(
+      container.read(noteSettingsProvider).value,
+      expected.map((key, value) => MapEntry(key, KeptNoteSettings(value))),
+    );
     expect(await saved(), expected);
   });
 
@@ -99,8 +106,17 @@ void main() {
       home = folderAt(tempFolder(), id: 'home');
     });
 
+    final now = DateTime.utc(2026, 10, 21, 9);
+    final graceLater = now.add(KeptNoteSettings.grace);
+
     Note noteAt(NoteFolder folder, String name) =>
         noteOf(folder, '', name: name);
+
+    /// Prunes by [found] now and again once the grace period is over.
+    Future<void> pruneAfterGrace(FolderScans found) async {
+      await views.prune(found, now: now);
+      await views.prune(found, now: graceLater);
+    }
 
     FolderScans scans(
       List<Note> notes, {
@@ -127,7 +143,7 @@ void main() {
         path: path('a.md'),
       ), NoteMode.markdown);
 
-      await views.prune(scans([kept]));
+      await pruneAfterGrace(scans([kept]));
 
       expect(await saved(), {
         NoteSettingsStore.storeKey(kept.key): NoteSettings(
@@ -136,11 +152,48 @@ void main() {
       });
     });
 
+    test('keeps the settings of a missing note for a while', () async {
+      final gone = noteAt(work, 'gone.md');
+      await views.edit(gone.key, (s) => s.withPinned(pinned: true));
+
+      await views.prune(scans([]), now: now);
+      await views.prune(
+        scans([]),
+        now: graceLater.subtract(const Duration(minutes: 1)),
+      );
+
+      expect(views.settingsOf(gone.key).pinned, isTrue);
+    });
+
+    test('a note found again starts its grace period anew', () async {
+      final back = noteAt(work, 'back.md');
+      await views.edit(back.key, (s) => s.withPinned(pinned: true));
+
+      await views.prune(scans([]), now: now);
+      await views.prune(scans([back]), now: now.add(const Duration(days: 1)));
+      await views.prune(scans([]), now: now.add(const Duration(days: 2)));
+      await views.prune(scans([]), now: graceLater);
+
+      expect(views.settingsOf(back.key).pinned, isTrue);
+    });
+
+    test('keeps the time a note went missing across restarts', () async {
+      final gone = noteAt(work, 'gone.md');
+      await views.edit(gone.key, (s) => s.withPinned(pinned: true));
+      await views.prune(scans([]), now: now);
+
+      container.invalidate(noteSettingsProvider);
+      views = container.read(noteSettingsProvider.notifier);
+      await views.prune(scans([]), now: graceLater);
+
+      expect(views.settingsOf(gone.key).pinned, isFalse);
+    });
+
     test('keeps views of folders that could not be scanned', () async {
       final unread = noteAt(home, 'a.md');
       await remember(unread.key, NoteMode.read);
 
-      await views.prune(scans([], failed: {home: StoreError.ioFailure}));
+      await pruneAfterGrace(scans([], failed: {home: StoreError.ioFailure}));
 
       expect(viewOf(unread.key), NoteMode.read);
     });
@@ -151,7 +204,7 @@ void main() {
       await remember(hidden.key, NoteMode.read);
       await remember(gone.key, NoteMode.markdown);
 
-      await views.prune(
+      await pruneAfterGrace(
         scans(
           [],
           unreadable: {
@@ -168,7 +221,7 @@ void main() {
       final unread = noteAt(work, 'a.md');
       await remember(unread.key, NoteMode.read);
 
-      await views.prune(scans([], unreadNotes: {unread.key}));
+      await pruneAfterGrace(scans([], unreadNotes: {unread.key}));
 
       expect(viewOf(unread.key), NoteMode.read);
     });

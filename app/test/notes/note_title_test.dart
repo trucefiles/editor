@@ -1,9 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/notes/note_title.dart';
 
 import '../support.dart';
 
 void main() {
+  String notePreview(String text, {int maxLines = 6, bool hideDone = false}) =>
+      notePreviewIn(
+        MarkdownDocument.parse(text),
+        maxLines: maxLines,
+        hideDone: hideDone,
+      );
+
   group('noteTitle', () {
     test('takes the first level-1 heading', () {
       expect(
