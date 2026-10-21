@@ -5,15 +5,18 @@ import 'package:truce_core/truce_core.dart';
 import '../editor/checked_items.dart';
 import '../editor/note_mode.dart';
 import '../storage/json_file.dart';
+import 'kept_note_settings.dart';
 import 'note.dart';
 import 'note_settings.dart';
 
-/// Keeps the [NoteSettings] of each note in a JSON file in app storage. Per
-/// device and never synced. A convenience: read and write failures are
+/// Keeps the [KeptNoteSettings] of each note in a JSON file in app storage.
+/// Per device and never synced. A convenience: read and write failures are
 /// ignored.
 ///
 /// ```json
-/// {"f1/todo.md": {"mode": "visual", "pinned": true, "checked": "toEnd"}}
+/// {"f1/todo.md": {"mode": "visual", "pinned": true, "checked": "toEnd"},
+///  "f1/old.md": {"pinned": true, "checked": "inPlace",
+///                "missingSince": "2026-10-21T09:00:00.000Z"}}
 /// ```
 ///
 /// Older app versions kept a view instead of the mode (`"view": "list"`),
@@ -27,16 +30,18 @@ final class NoteSettingsStore {
 
   /// The saved settings by [storeKey]; empty if none or unreadable. Skips
   /// entries it cannot read.
-  Future<Map<String, NoteSettings>> load() async => switch (await _file
+  Future<Map<String, KeptNoteSettings>> load() async => switch (await _file
       .read()) {
     Ok(value: final Map<String, Object?> json) => {
-      for (final MapEntry(:key, :value) in json.entries) key: ?_decode(value),
+      for (final MapEntry(:key, :value) in json.entries)
+        if (_decode(value) case final settings?)
+          key: KeptNoteSettings(settings, missingSince: _missingSince(value)),
     },
     _ => const {},
   };
 
   /// Replaces the saved settings; on failure the next save tries again.
-  Future<void> save(Map<String, NoteSettings> settings) => _file.write({
+  Future<void> save(Map<String, KeptNoteSettings> settings) => _file.write({
     for (final MapEntry(:key, :value) in settings.entries) key: _encode(value),
   });
 
@@ -47,10 +52,17 @@ final class NoteSettingsStore {
   /// How the keys of the notes in folder [folderId] start.
   static String folderPrefix(String folderId) => '$folderId/';
 
-  static Map<String, Object?> _encode(NoteSettings settings) => {
-    if (settings.mode case final mode?) 'mode': mode.name,
-    'pinned': settings.pinned,
-    'checked': settings.checkedItems.name,
+  static Map<String, Object?> _encode(KeptNoteSettings kept) => {
+    if (kept.settings.mode case final mode?) 'mode': mode.name,
+    'pinned': kept.settings.pinned,
+    'checked': kept.settings.checkedItems.name,
+    if (kept.missingSince case final since?)
+      'missingSince': since.toUtc().toIso8601String(),
+  };
+
+  static DateTime? _missingSince(Object? json) => switch (json) {
+    {'missingSince': final String since} => DateTime.tryParse(since),
+    _ => null,
   };
 
   static NoteSettings? _decode(Object? json) => switch (json) {

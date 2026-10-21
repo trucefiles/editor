@@ -38,6 +38,7 @@ import '../note_staging.dart';
 import '../note_title.dart';
 import '../open_note.dart';
 import 'checked_items_dialog.dart';
+import 'delete_failure_text.dart';
 import 'edit_state_banner.dart';
 import 'note_heading.dart';
 import 'note_mode_button.dart';
@@ -255,7 +256,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         _offerUndo(actions, value);
         Navigator.pop(context);
       case Err(:final error):
-        showSnack(context, error.text);
+        showSnack(context, deleteFailureText(error));
     }
   }
 

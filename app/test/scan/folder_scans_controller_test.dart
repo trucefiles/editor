@@ -66,6 +66,20 @@ void main() {
     await Future.wait(refreshes);
   });
 
+  test('a refresh while the folders load waits for them', () async {
+    final dir = tempFolder();
+    write(dir, 'plan.md', '# Plan');
+    await start([folderAt(dir)]);
+    container.listen(folderScansProvider, (_, _) {});
+
+    final refreshed = container.read(folderScansProvider.notifier).refresh();
+    final first = await scans();
+    await refreshed;
+
+    expect(first.notes.map((n) => n.title), ['Plan']);
+    expect((await scans()).notes.map((n) => n.title), ['Plan']);
+  });
+
   test('the first scan shows edits left by the last run', () async {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');

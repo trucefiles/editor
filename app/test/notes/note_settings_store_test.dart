@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_mode.dart';
+import 'package:truce_editor/notes/kept_note_settings.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
 
@@ -17,8 +18,14 @@ void main() {
     store = NoteSettingsStore(file);
   });
 
+  /// The settings loaded, without the times their notes went missing.
+  Future<Map<String, NoteSettings>> loaded() async => {
+    for (final MapEntry(:key, :value) in (await store.load()).entries)
+      key: value.settings,
+  };
+
   test('loads nothing before the first save', () async {
-    expect(await store.load(), isEmpty);
+    expect(await loaded(), isEmpty);
   });
 
   test('saves and loads settings', () async {
@@ -32,9 +39,23 @@ void main() {
       checkedItems: CheckedItems.toEnd,
     );
 
-    await store.save({key: settings, 'f1/b.md': const NoteSettings()});
+    await store.save({
+      key: const KeptNoteSettings(settings),
+      'f1/b.md': const KeptNoteSettings(NoteSettings()),
+    });
 
-    expect(await store.load(), {key: settings, 'f1/b.md': NoteSettings()});
+    expect(await loaded(), {key: settings, 'f1/b.md': NoteSettings()});
+  });
+
+  test('keeps the time a note went missing', () async {
+    final kept = KeptNoteSettings(
+      const NoteSettings(pinned: true),
+      missingSince: DateTime.utc(2026, 10, 21, 9),
+    );
+
+    await store.save({'f1/a.md': kept});
+
+    expect(await store.load(), {'f1/a.md': kept});
   });
 
   test('reads the views older versions saved, as their modes', () async {
@@ -43,7 +64,7 @@ void main() {
       '"f1/c.md": {"view": "rendered", "pinned": true, "checked": "inPlace"}}',
     );
 
-    expect(await store.load(), {
+    expect(await loaded(), {
       'f1/a.md': const NoteSettings(mode: NoteMode.visual),
       'f1/b.md': const NoteSettings(mode: NoteMode.markdown),
       'f1/c.md': const NoteSettings(
@@ -60,7 +81,7 @@ void main() {
       '"f1/b.md": {"pinned": false, "doneSection": true}}',
     );
 
-    expect(await store.load(), {
+    expect(await loaded(), {
       'f1/a.md': const NoteSettings(
         pinned: true,
         checkedItems: CheckedItems.inPlace,
@@ -75,12 +96,12 @@ void main() {
       '"f1/c.md": {"pinned": 1, "doneSection": true}, '
       '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
     );
-    expect(await store.load(), {
+    expect(await loaded(), {
       'f1/a.md': const NoteSettings(mode: NoteMode.visual),
       'f1/d.md': const NoteSettings(pinned: true),
     });
 
     file.writeAsStringSync('not json');
-    expect(await store.load(), isEmpty);
+    expect(await loaded(), isEmpty);
   });
 }

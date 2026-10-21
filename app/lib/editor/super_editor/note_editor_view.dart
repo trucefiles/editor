@@ -110,8 +110,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     final selection = editor.composer.selection;
     var url = '';
     if (format == TextFormat.link) {
+      final before = _textOf(selection);
       url = await askLinkUrl(context) ?? '';
-      if (url.isEmpty) return;
+      // Changed from elsewhere meanwhile: the selection may no longer fit.
+      if (url.isEmpty || _textOf(selection) != before) return;
     }
     applyFormat(
       editor,
@@ -122,6 +124,17 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     _focus.requestFocus();
   }
+
+  /// The text of the node [selection] ends in, if any.
+  String? _textOf(DocumentSelection? selection) => switch (selection) {
+    final selection? => switch (_adapter!.editor.document.getNodeById(
+      selection.extent.nodeId,
+    )) {
+      final TextNode node => node.text.toPlainText(),
+      _ => null,
+    },
+    null => null,
+  };
 
   void _toList(ListKind kind) {
     _adapter!.toList(kind);
