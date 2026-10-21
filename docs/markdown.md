@@ -24,8 +24,9 @@ only the lines you edit, byte for byte.
 ## Editing
 
 - **Enter** in an item starts the next item; in an empty item it goes
-  one level out, or out of the list. Leaving a list or a quote puts a
-  blank line above the new line, so text typed there stays out of it.
+  one level out, or out of the list. A line taken out of a list or a
+  quote (by Enter, or by a list button turning an item back into text)
+  gets a blank line above it when it would else join the text above.
   **Shift+Enter** (or the toolbar's line break button) adds a line
   inside the same item, written as a `\` line break.
 - **Paste** into an item's text makes each further pasted line an item

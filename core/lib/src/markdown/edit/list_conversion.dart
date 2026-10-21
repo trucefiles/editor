@@ -5,6 +5,7 @@ import '../document/markdown_document.dart';
 import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
+import 'container_exits.dart';
 import 'item_edits.dart';
 
 extension ListConversion on MarkdownDocument {
@@ -71,14 +72,14 @@ extension ListConversion on MarkdownDocument {
   };
 
   /// Line [id], an item, as a line of text: what it holds in the item,
-  /// after the quote marks the item is in.
+  /// after the quote marks the item is in, out of the list.
   MarkdownDocument _toText(LineId id) {
     final item = outline.itemOf(id)!;
     final line = lineOf(id)!;
-    final parts = outline.partsOf(item, line);
-    return withLines(
-      [...lines]
-        ..[indexOf(id)] = line.withRaw('${parts.outer}${_inItem(item, line)}'),
+    return outOfContainer(
+      id,
+      outer: outline.partsOf(item, line).outer,
+      content: _inItem(item, line),
     );
   }
 

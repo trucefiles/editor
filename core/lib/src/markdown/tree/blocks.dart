@@ -199,6 +199,14 @@ sealed class LeafBlock extends MarkdownBlock {
   /// Its line [id]. Only for one of its lines.
   LeafLine lineOf(LineId id) => lines.firstWhere((line) => line.id == id);
 
+  /// The item it is the text of: a paragraph right in an item, or the
+  /// marker line of an empty item; `null` for any other leaf.
+  ItemBlock? get textItem => switch ((this, parent)) {
+    (ParagraphBlock(), final ItemBlock item) => item,
+    (BlankBlock(), final ItemBlock item) when id == item.markerLine => item,
+    _ => null,
+  };
+
   /// The index of the line [offset] in [text] is on.
   int lineAt(int offset) => lineStarts
       .lastIndexWhere((start) => start <= offset)

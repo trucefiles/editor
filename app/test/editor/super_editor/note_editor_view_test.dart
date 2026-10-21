@@ -289,7 +289,8 @@ void main() {
       await tester.pressShiftDownArrow();
       await press(tester, 'Checklist');
 
-      expect(text.text, 'a\n- [x] d\nb');
+      // A blank line keeps b out of the item d above it.
+      expect(text.text, 'a\n- [x] d\n\nb');
     });
 
     testWidgets('tapped again over blank lines, turn the list back', (

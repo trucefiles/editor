@@ -5,6 +5,7 @@ import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
 import '../view/edit_view.dart';
+import 'container_exits.dart';
 import 'item_edits.dart';
 import 'line_writer.dart';
 import 'text_edits.dart';
@@ -32,22 +33,16 @@ extension KeyEdits on MarkdownDocument {
   }) {
     if (view.held) return lineBreak(view, offset, hard: false);
     final leaf = view.leaf;
-    final item = switch (leaf.parent) {
-      final ItemBlock item => item,
-      _ => null,
+    return switch ((leaf.textItem, leaf)) {
+      (final item?, BlankBlock()) => _leaveItem(item),
+      (final item?, _) =>
+        offset == 0 && item.leaves.first == leaf
+            ? _itemAbove(item, view)
+            : _splitItem(item, view, offset, shownBelow),
+      (null, final BlankBlock blank) when _segmentOf(blank) != null =>
+        _leaveContainer(blank),
+      _ => lineBreak(view, offset, hard: false),
     };
-    if (item != null && leaf is BlankBlock && leaf.id == item.markerLine) {
-      return _leaveItem(item);
-    }
-    if (item != null && leaf is ParagraphBlock) {
-      return offset == 0 && item.leaves.first == leaf
-          ? _itemAbove(item, view)
-          : _splitItem(item, view, offset, shownBelow);
-    }
-    if (leaf is BlankBlock && _segmentOf(leaf) != null) {
-      return _leaveContainer(leaf);
-    }
-    return lineBreak(view, offset, hard: false);
   }
 
   /// [text] pasted over the text from [from] to [to], with [removed]
@@ -61,7 +56,8 @@ extension KeyEdits on MarkdownDocument {
     String text, {
     Iterable<EditView> removed = const [],
   }) {
-    if (!_inItemText(from.view)) {
+    if (from.view
+        case LeafView(leaf: LeafBlock(textItem: null)) || RawLineView()) {
       return replaceText(from, to, text, removed: removed);
     }
     final [first, ...rest] = text.split('\n');
@@ -77,16 +73,6 @@ extension KeyEdits on MarkdownDocument {
       },
     );
   }
-
-  /// Whether [view] shows an item's text, or an empty item.
-  static bool _inItemText(EditView view) => switch (view) {
-    LeafView(:final leaf) => switch (leaf.parent) {
-      final ItemBlock item =>
-        leaf is ParagraphBlock || leaf.id == item.markerLine,
-      _ => false,
-    },
-    RawLineView() => false,
-  };
 
   /// The view of the leaf [caret] is in, as it shows with the caret.
   LeafView _viewAt(LineCaret caret) =>
@@ -180,15 +166,14 @@ extension KeyEdits on MarkdownDocument {
       (line: view.lines.last.line.id, offset: view.lines.last.end);
 
   /// An empty [item] left: one level out, or out of its list, its line
-  /// keeping only the quote marks it is in (see [_leftAs]).
+  /// keeping only the quote marks it is in.
   (MarkdownDocument, LineCaret) _leaveItem(ItemBlock item) {
     final id = item.markerLine;
     if (outline.depthOf(item) > 0) {
       final outdented = outdent(id);
       return (outdented, (line: id, offset: outdented.lineOf(id)!.raw.length));
     }
-    final line = lineOf(id)!;
-    return _leftAs(line, outline.partsOf(item, line).outer.trimRight());
+    return _leftOut(id, outer: outline.partsOf(item, lineOf(id)!).outer);
   }
 
   /// An empty item above [item], in its style; the caret stays.
@@ -258,31 +243,19 @@ extension KeyEdits on MarkdownDocument {
   (MarkdownDocument, LineCaret) _leaveContainer(BlankBlock leaf) {
     final segment = _segmentOf(leaf)!;
     final line = leaf.lines.first.line;
-    return _leftAs(
-      line,
-      (line.raw.substring(0, segment.start) + line.raw.substring(segment.end))
-          .trimRight(),
+    return _leftOut(
+      line.id,
+      outer:
+          line.raw.substring(0, segment.start) +
+          line.raw.substring(segment.end),
     );
   }
 
-  /// [line], left out of a container, as [raw], with the caret at its
-  /// end. A blank line goes above it unless one is there, so what is
-  /// typed on it starts a block of its own instead of going on with the
-  /// text above (as a lazy continuation line).
-  (MarkdownDocument, LineCaret) _leftAs(MarkdownLine line, String raw) {
-    final index = indexOf(line.id);
-    final apart = index == 0 || leafOf(lines[index - 1].id) is BlankBlock;
-    return (
-      edited(
-        (newLine) => [
-          ...lines.take(index),
-          if (!apart) newLine(raw),
-          line.withRaw(raw),
-          ...lines.skip(index + 1),
-        ],
-      ),
-      (line: line.id, offset: raw.length),
-    );
+  /// Line [id] out of its container, keeping the quote marks [outer]
+  /// (see [ContainerExits.outOfContainer]), with the caret at its end.
+  (MarkdownDocument, LineCaret) _leftOut(LineId id, {required String outer}) {
+    final left = outOfContainer(id, outer: outer);
+    return (left, (line: id, offset: left.lineOf(id)!.raw.length));
   }
 
   /// The marks of the container blank [leaf] is right in, on its line;
