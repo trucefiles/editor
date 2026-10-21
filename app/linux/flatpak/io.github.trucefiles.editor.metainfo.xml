@@ -32,6 +32,16 @@
         </ul>
       </description>
     </release>
+    <release version="0.7.0-beta.3" date="2026-10-21" type="development">
+      <description>
+        <ul>
+          <li>Visual edit follows standard Markdown fully: quotes, lists, code and tables nest as in the file; marks show on the whole paragraph you edit.</li>
+          <li>Shift+Enter or the line break button adds a line inside a list item.</li>
+          <li>Read shows notes as GitHub does; images show inline.</li>
+          <li>Tables are drawn; tap one to edit it.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.0-beta.2" date="2026-10-19" type="development">
       <description>
         <ul>

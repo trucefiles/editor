@@ -1,0 +1,4 @@
+- Visual edit follows standard Markdown fully: quotes, lists, code and tables nest as in the file
+- Shift+Enter or the line break button adds a line inside a list item
+- Read shows notes as GitHub does; images show inline
+- Tables are drawn; tap one to edit it
