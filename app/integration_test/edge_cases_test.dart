@@ -38,6 +38,7 @@ void main() {
 
     await tester.typeNewNote('Groceries\nnew\n');
     await tester.pageBack();
+    await tester.waitForNoteClosed();
 
     await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\nnew\n');
     expect(app.file('Groceries.md').readAsStringSync(), 'Groceries\nold\n');
