@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/note_folder.dart';
@@ -55,6 +56,8 @@ void main() {
     addTearDown(session.dispose);
   });
 
+  /// Lets the save timer fire, for what must not happen after it; what
+  /// must happen is waited for with [eventually].
   Future<void> settle() =>
       Future<void>.delayed(const Duration(milliseconds: 300));
 
@@ -62,6 +65,17 @@ void main() {
     for (final draft in await drafts[folderId]!.all(before: later))
       (draft.path.value, draft.base, draft.text),
   ];
+
+  /// Waits until the drafts in folder [folderId] are [expected].
+  Future<void> draftsBecome(
+    String folderId,
+    List<(String, String?, String)> expected,
+  ) => eventually(
+    () async => const ListEquality<(String, String?, String)>().equals(
+      await draftsIn(folderId),
+      expected,
+    ),
+  );
 
   test('an empty note is never written', () async {
     session
@@ -78,7 +92,7 @@ void main() {
   test('keeps the text on this device, named by its first line', () async {
     session.edit('# Milk\neggs\n');
     expect(session.state, EditState.unsaved);
-    await settle();
+    await eventually(() => session.state == EditState.savedOnDevice);
 
     expect(session.state, EditState.savedOnDevice);
     expect(session.path, path('Milk.md'));
@@ -103,21 +117,19 @@ void main() {
 
   test('a new place takes the draft along', () async {
     session.edit('Milk');
-    await settle();
+    await draftsBecome('work', [('Milk.md', null, 'Milk')]);
 
     session.moveTo((folder: home, subfolder: path('inbox')), title: '');
-    await settle();
-
-    expect(await draftsIn('work'), isEmpty);
-    expect(await draftsIn('home'), [('inbox/Milk.md', null, 'Milk')]);
+    await draftsBecome('home', [('inbox/Milk.md', null, 'Milk')]);
+    await draftsBecome('work', []);
   });
 
   test('write creates the file at its place and drops the draft', () async {
     session.edit('Milk\n');
-    await settle();
+    await draftsBecome('work', [('Milk.md', null, 'Milk\n')]);
 
     final note = (await session.write()).value!;
-    await settle();
+    await draftsBecome('work', []);
 
     expect(created.single.title, 'Milk');
     expect(created.single.place.folder, work);
@@ -150,13 +162,12 @@ void main() {
 
   test('discard drops the note', () async {
     session.edit('Milk');
-    await settle();
+    await draftsBecome('work', [('Milk.md', null, 'Milk')]);
 
     session.discard();
-    await settle();
+    await draftsBecome('work', []);
 
     expect(session.text, '');
     expect(session.state, EditState.saved);
-    expect(await draftsIn('work'), isEmpty);
   });
 }
