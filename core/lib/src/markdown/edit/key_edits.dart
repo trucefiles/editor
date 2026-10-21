@@ -203,13 +203,15 @@ extension KeyEdits on MarkdownDocument {
         ? (_hiddenEnd(item, view.leaf, shownBelow) ?? indexOf(line.id) + 1)
         : indexOf(line.id) + 1;
     final end = view.lines.firstWhere((part) => part.line.id == line.id).end;
-    final prefix =
-        writer.itemPrefix(outline, BesideItem(item, outline.depthOf(item))) +
-        ItemStyle.after(outline, item, item.kind).marker;
+    final moved = line.raw.substring(caret.offset, end);
     late final MarkdownLine added;
     final split = edited((newLine) {
       added = newLine(
-        LineWriter.withContent(prefix, line.raw.substring(caret.offset, end)),
+        LineWriter.itemLine(
+          writer.itemPrefix(outline, BesideItem(item, outline.depthOf(item))),
+          ItemStyle.after(outline, item, item.kind).marker,
+          moved,
+        ),
       );
       final index = indexOf(line.id);
       return [...lines]
@@ -218,7 +220,7 @@ extension KeyEdits on MarkdownDocument {
         )
         ..insert(at, added);
     });
-    return (split, (line: added.id, offset: prefix.length));
+    return (split, (line: added.id, offset: added.raw.length - moved.length));
   }
 
   /// The index past the last of [item]'s blocks after [leaf] that the

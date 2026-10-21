@@ -61,6 +61,11 @@ final class LineWriter {
     content.isEmpty ? outer.trimRight() : '$outer$content',
   ];
 
+  /// An item's line: [prefix] (its quote marks and indent), [marker] (as
+  /// [ItemStyle] writes it) and [content].
+  static String itemLine(String prefix, String marker, String content) =>
+      withContent('$prefix$marker', content);
+
   /// A line with [prefix] and then [content]. A marker that ends the
   /// prefix gets a space before content, as Markdown needs.
   static String withContent(String prefix, String content) =>

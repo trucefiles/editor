@@ -6,6 +6,7 @@ import '../document/markdown_document.dart';
 import '../lines/markdown_line.dart';
 import '../view/edit_view.dart';
 import 'key_edits.dart';
+import 'line_writer.dart';
 
 /// A place in a view's text.
 typedef ViewPlace = ({EditView view, int offset});
@@ -129,20 +130,15 @@ extension TextEdits on MarkdownDocument {
   }
 
   /// [line] with [content] as its part: its prefix and what follows its
-  /// part stay. A blank part gets a space before new content after a
-  /// marker or quote mark, as Markdown needs.
+  /// part stay. A blank part is written as new content after the prefix
+  /// (see [LineWriter.withContent]).
   static MarkdownLine _withContent(ViewLine line, String content) {
     final raw = line.line.raw;
     final prefix = raw.substring(0, line.start);
-    final spaced =
-        line.start == line.end &&
-        content.isNotEmpty &&
-        prefix.isNotEmpty &&
-        !prefix.endsWith(' ') &&
-        !prefix.endsWith('\t');
-    return line.line.withRaw(
-      '$prefix${spaced ? ' ' : ''}$content${raw.substring(line.end)}',
-    );
+    final head = line.start == line.end
+        ? LineWriter.withContent(prefix, content)
+        : '$prefix$content';
+    return line.line.withRaw('$head${raw.substring(line.end)}');
   }
 
   /// The caret at [offset] in [text], the new text of [view], which
