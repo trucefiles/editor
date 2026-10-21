@@ -1,41 +1,42 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' show TextAffinity;
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../note_document_controller.dart';
 import 'components/display_actions.dart';
-import 'components/line_actions.dart';
-import 'enter_at_item_start.dart';
-import 'join_lines.dart';
-import 'line_nodes.dart';
+import 'components/item_actions.dart';
+import 'key_actions.dart';
 import 'note_nodes.dart';
-import 'paste_lines.dart';
+import 'note_requests.dart';
 import 'sync_document.dart';
-import 'transaction_edits.dart';
+import 'text_changes.dart';
 
 /// Connects a super_editor [editor] to the [note] it edits. The editor
-/// only shows the note and takes input: each of its transactions goes to
-/// [note] as block edits, which change the file's lines; whenever [note]
-/// changes, the editor's document is made to show it again.
-final class NoteEditorAdapter implements LineActions, DisplayActions {
+/// only shows the note and takes input: each text edit it makes goes to
+/// [note] as a change of views' text (see [textChangeOf]), and the keys
+/// that change structure go to [note] as what they do (see
+/// [noteRequests]); whenever [note] changes, the editor's document is
+/// made to show it again, each node showing one view.
+final class NoteEditorAdapter
+    implements KeyActions, ItemActions, DisplayActions {
   NoteEditorAdapter(
     this.note, {
     required this.onRemoved,
     required this.onCaretPlaced,
   }) {
     _composer = MutableDocumentComposer();
-    _document = MutableDocument(nodes: _targetNodes());
+    _document = MutableDocument(nodes: _targetNodes(caretLine: null));
     editor = Editor(
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: [
-        joinLines,
-        enterAtItemStart,
-        pasteLines,
+        noteRequests(this),
         ...defaultRequestHandlers.cast<EditRequestHandler>(),
       ],
-      // No Markdown shortcuts: lines stay as typed.
+      // No Markdown shortcuts: text stays as typed.
       reactionPipeline: [],
     )..addListener(FunctionalEditListener(_onTransaction));
     note.addListener(_scheduleSync);
@@ -47,14 +48,16 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   /// The user removed items; [undo] brings them back.
   final void Function(String message, EditUndo undo) onRemoved;
 
-  /// The caret went into a line the user added with a button: the editor
-  /// should take the keyboard.
+  /// The caret went into an item the user added with a button: the
+  /// editor should take the keyboard.
   final VoidCallback onCaretPlaced;
 
   late final Editor editor;
   late final MutableDocument _document;
   late final MutableDocumentComposer _composer;
-  final _ids = LineNodes();
+
+  /// The view each node shows, by node id, in display order.
+  Map<String, EditView> _views = const {};
 
   /// Whether the editor is being made to show the note: its transactions
   /// are not the user's.
@@ -62,48 +65,32 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   bool _syncScheduled = false;
   bool _disposed = false;
 
-  /// The item the editor shows as text because the caret was in it (see
-  /// [LineView.held]); it shows as an item once the caret leaves it.
+  /// The empty item the editor shows as text because the caret was in it
+  /// (see [LeafView.held]); it shows as an item once the caret leaves it.
   LineId? _heldLine;
 
-  /// Where the caret goes once the editor shows the note again.
-  DocumentPosition? _pendingCaret;
+  /// Where the selection goes once the editor shows the note again.
+  _LineSelection? _next;
 
-  /// The caret after the user's last edit, as a place in its line: kept
-  /// when the line shows in another kind of node, such as a paragraph that
-  /// became a list item.
-  LineCaret? _typedCaret;
+  /// Whether the editor should take the keyboard then.
+  bool _focusNext = false;
 
-  /// The line the caret is in, if any.
-  LineId? get caretLine => switch (_composer.selection) {
-    final selection? => _ids.lineOf(selection.extent.nodeId),
-    null => null,
+  /// The view node [nodeId] shows, as the note had it when last shown;
+  /// `null` for a node that shows none, e.g. a "Done" heading.
+  EditView? viewOf(String nodeId) => _views[nodeId];
+
+  /// The url of the link at [position], by the markup of its view.
+  String? linkAt(DocumentPosition position) => switch ((
+    _document.getNodeById(position.nodeId),
+    viewOf(position.nodeId),
+    position.nodePosition,
+  )) {
+    (final TextNode node, final view?, TextNodePosition(:final offset)) =>
+      view.linkAt(node.text.toPlainText(), offset),
+    _ => null,
   };
 
-  /// Turns the selected lines into items of [kind], or back into text;
-  /// see [NoteDocumentController.toList]. The caret stays in its place in
-  /// the text, or goes into an item added for want of lines to turn.
-  void toList(ListKind kind) {
-    final (before, caret) = (note.lines, _caret());
-    final added = note.toList(_selectedLines(), kind);
-    if (added != null) return _caretInto(added);
-    if (caret != null) _typedCaret = before.caretIn(note.lines, caret);
-  }
-
-  /// The lines the selection spans, in order.
-  List<LineId> _selectedLines() {
-    final selection = _composer.selection;
-    if (selection == null) return const [];
-    return [
-      for (final node in _document.getNodesInside(
-        selection.base,
-        selection.extent,
-      ))
-        ?_ids.lineOf(node.id),
-    ];
-  }
-
-  /// Puts the caret at the start of the first line.
+  /// Puts the caret at the start of the note.
   void placeCaretAtStart() {
     final first = _document.firstOrNull;
     if (first == null) return;
@@ -121,80 +108,351 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     ]);
   }
 
-  List<DocumentNode> _targetNodes() {
-    final lines = note.lines;
-    _ids.retain({for (final line in lines.lines) line.id});
-    final byId = {for (final line in lines.lines) line.id: line};
-    final views = {
-      for (final entry in note.entries)
-        if (entry case LineEntry(:final id))
-          id: _viewOf(byId[id]!, caretLine: caretLine),
-    };
-    _heldLine = views.values.where((view) => view.held).firstOrNull?.id;
-    return [
-      for (final entry in note.entries)
-        switch (entry) {
-          LineEntry(:final id) => lineNode(
-            _ids.nodeOf(id),
-            views[id]!,
-            AttributedText(views[id]!.text),
-          ),
-          _ => displayNode(entry, byId),
-        },
-    ];
+  /// Turns the selected text into items of [kind], or back into text;
+  /// see [NoteDocumentController.toList]. The caret stays in its place in
+  /// the text, or goes into an item added for want of text to turn.
+  void toList(ListKind kind) {
+    LineId? added;
+    _keepingSelection(() => added = note.toList(_selectedLines(), kind));
+    if (added case final line?) {
+      _moveCaretTo((line: line, offset: 0), focus: true);
+    }
   }
 
-  /// Shows a held line as the item it is once the caret leaves it.
-  void _onSelection() {
-    if (_heldLine != null && caretLine != _heldLine) _scheduleSync();
+  // Keys.
+
+  @override
+  void enter() => _atSelection(note.enter);
+
+  @override
+  void lineBreak() => _atSelection(note.lineBreak);
+
+  /// The text edit [edit] at the selection: once it is collapsed.
+  void _atSelection(LineCaret Function(EditView view, int offset) edit) {
+    final selection = _composer.selection;
+    if (selection == null) return;
+    final caret = selection.isCollapsed
+        ? _caretOf(selection.extent)
+        : _replaceSelection('');
+    if (caret == null) return;
+    final view = _viewAt(caret);
+    if (view == null) return;
+    _next = _collapsed(edit(view, view.offsetOf(caret)!));
   }
+
+  @override
+  void joinBackward(String nodeId) {
+    final view = _views[nodeId];
+    if (view == null) return;
+    final fallback = _caretNear(nodeId);
+    final joined = note.joinBackward(view, _textViewNextTo(nodeId, -1));
+    if (joined != null) _next = _collapsed(joined.caret ?? fallback);
+  }
+
+  @override
+  void joinForward(String nodeId) {
+    final view = _views[nodeId];
+    if (view == null) return;
+    final fallback = _caretNear(nodeId);
+    final joined = note.joinForward(view, _textViewNextTo(nodeId, 1));
+    if (joined != null) _next = _collapsed(joined.caret ?? fallback);
+  }
+
+  @override
+  void paste(String text) {
+    // Pasted Windows or old Mac line breaks are line breaks too: a `\r`
+    // left in a line would end up in the file as a space.
+    _next = _collapsed(_replaceSelection(text.replaceAll(_breaks, '\n')));
+  }
+
+  @override
+  void replaceText(String nodeId, int start, int end, String text) {
+    if (_views[nodeId] case final view?) {
+      _next = _collapsed(
+        note.replaceText(
+          (view: view, offset: start),
+          (view: view, offset: end),
+          text,
+        ),
+      );
+    }
+  }
+
+  @override
+  bool indentAtCaret({required bool outdent}) {
+    final item = switch (_views[_composer.selection?.extent.nodeId]) {
+      final LeafView view => view.item,
+      _ => null,
+    };
+    if (item == null) return false;
+    outdent ? this.outdent(item) : indent(item);
+    return true;
+  }
+
+  // Items.
+
+  @override
+  void toggle(LineId item) => note.toggle(item);
+
+  @override
+  void indent(LineId item) => _keepingSelection(() => note.indent(item));
+
+  @override
+  void outdent(LineId item) => _keepingSelection(() => note.outdent(item));
+
+  @override
+  void delete(LineId item) => onRemoved('Item deleted', note.remove(item));
+
+  @override
+  void move(LineId item, {required LineId target, required bool below}) =>
+      _keepingSelection(() => note.move(item, target: target, below: below));
+
+  // Display.
+
+  @override
+  void toggleDone(LineId list) => note.toggleCollapsed(list);
+
+  @override
+  void addItem(AddItemEntry button) =>
+      _moveCaretTo((line: note.addItem(button), offset: 0), focus: true);
+
+  @override
+  void showRaw(LineId table) {
+    note.rawTable = table;
+    _moveCaretTo((line: table, offset: 0), focus: true);
+  }
+
+  // Edits.
 
   void _onTransaction(List<EditEvent> events) {
-    if (_syncing) return;
-    final (:edits, :added) = transactionEdits(events, _document, _ids);
-    if (edits.isEmpty) return;
-    final lines = note.applyEdits(edits);
-    for (final (index, node) in added.indexed) {
-      _ids.link(node, lines[index]);
-    }
-    _typedCaret = _caret();
-  }
-
-  /// The collapsed caret as a place in its line.
-  LineCaret? _caret() {
-    final selection = _composer.selection;
-    if (selection == null || !selection.isCollapsed) return null;
-    final position = selection.extent;
-    final line = _line(_ids.lineOf(position.nodeId));
-    final node = _document.getNodeById(position.nodeId);
-    if (line == null || node == null) return null;
-    if (position.nodePosition case TextNodePosition(:final offset)) {
-      return (line: line.id, offset: _textStart(node, line) + offset);
-    }
-    return null;
-  }
-
-  /// The caret at [caret]'s place, in the node [nodes] show its line in;
-  /// `null` if that node is gone.
-  DocumentSelection? _selectionAt(List<DocumentNode> nodes, LineCaret caret) {
-    final nodeId = _ids.nodeOf(caret.line);
-    final line = _line(caret.line);
-    final node = nodes.where((node) => node.id == nodeId).firstOrNull;
-    if (line == null || node is! TextNode) return null;
-    final offset = caret.offset - _textStart(node, line);
-    return DocumentSelection.collapsed(
-      position: DocumentPosition(
-        nodeId: nodeId,
-        nodePosition: TextNodePosition(
-          offset: offset.clamp(0, node.text.length),
-        ),
-      ),
+    if (_syncing || !events.any((event) => event is DocumentEdit)) return;
+    final change = textChangeOf(_document, _views);
+    if (change == null) return;
+    final caret = note.replaceText(
+      change.from,
+      change.to,
+      change.text,
+      removed: change.removed,
+    );
+    // A selection the edit left (e.g. formatted text) stays as it is in
+    // the text.
+    if (_composer.selection?.isCollapsed ?? true) _next = _collapsed(caret);
+    // The edit is in the views already, also before the editor shows the
+    // note again: a next edit before then counts from it.
+    _views = _viewsOf(
+      caretLine: (_next?.extent ?? _caretOf(_composer.selection?.extent))?.line,
     );
   }
 
-  /// Where the text [node] shows starts in its [line].
-  int _textStart(DocumentNode node, MarkdownLine line) =>
-      showsItemText(node) ? note.lines.textStartOf(line) : 0;
+  /// The selected text replaced by [text]; returns the caret after it.
+  LineCaret? _replaceSelection(String text) {
+    final selection = _composer.selection;
+    if (selection == null) return null;
+    final range = selection.normalize(_document);
+    final (from, to) = (_placeOf(range.start), _placeOf(range.end));
+    if (from == null || to == null) return null;
+    final ids = _views.keys.toList();
+    final first = ids.indexOf(range.start.nodeId) + 1;
+    final last = ids.indexOf(range.end.nodeId);
+    return note.replaceText(
+      from,
+      to,
+      text,
+      removed: [
+        for (final id in ids.sublist(first, max(first, last))) _views[id]!,
+      ],
+    );
+  }
+
+  /// [position] as a place in the view its node shows; one at a drawn
+  /// table's edge is at the start or end of its text.
+  ViewPlace? _placeOf(DocumentPosition position) {
+    final view = _views[position.nodeId];
+    if (view == null) return null;
+    return switch (position.nodePosition) {
+      TextNodePosition(:final offset) => (view: view, offset: offset),
+      UpstreamDownstreamNodePosition(:final affinity) => (
+        view: view,
+        offset: affinity == TextAffinity.upstream ? 0 : view.text.length,
+      ),
+      _ => null,
+    };
+  }
+
+  /// [position] as a place in its line; `null` if it is in no text.
+  LineCaret? _caretOf(DocumentPosition? position) =>
+      switch ((position, _views[position?.nodeId])) {
+        (
+          DocumentPosition(nodePosition: TextNodePosition(:final offset)),
+          final view?,
+        ) =>
+          view.caretAt(offset),
+        _ => null,
+      };
+
+  /// The view of the text node [step] nodes away from node [nodeId], if
+  /// that one is text: the text shown right above or below it.
+  EditView? _textViewNextTo(String nodeId, int step) {
+    final node = step < 0
+        ? _document.getNodeBeforeById(nodeId)
+        : _document.getNodeAfterById(nodeId);
+    return node is TextNode ? _views[node.id] : null;
+  }
+
+  /// Where the caret goes if node [nodeId] goes: the start of the next
+  /// text, else the end of the text before.
+  LineCaret? _caretNear(String nodeId) {
+    final ids = [
+      for (final node in _document)
+        if (node is TextNode && _views.containsKey(node.id)) node.id,
+    ];
+    final index = ids.indexOf(nodeId);
+    final next = ids.elementAtOrNull(index + 1);
+    final previous = index > 0 ? ids[index - 1] : null;
+    return switch ((next, previous)) {
+      (final next?, _) => _views[next]!.caretAt(0),
+      (_, final previous?) => _views[previous]!.caretAt(
+        _views[previous]!.text.length,
+      ),
+      _ => null,
+    };
+  }
+
+  /// The lines the selection spans, as the editor shows them: lines
+  /// shown elsewhere (e.g. in the Done section) or not at all are not in
+  /// it.
+  List<LineId> _selectedLines() {
+    final selection = _composer.selection;
+    final shown = [
+      for (final view in _views.values)
+        for (final line in view.lines) line.line.id,
+    ];
+    final ends = [
+      ?_caretOf(selection?.base),
+      ?_caretOf(selection?.extent),
+    ].map((caret) => shown.indexOf(caret.line)).toList()..sort();
+    if (ends.isEmpty || ends.first < 0) return const [];
+    return shown.sublist(ends.first, ends.last + 1);
+  }
+
+  /// [caret] as a place in its line's content, which stays while the
+  /// line's prefix changes.
+  ({LineId line, int offset})? _inContent(LineCaret caret) =>
+      switch (_viewAt(caret)) {
+        final view? => (
+          line: caret.line,
+          offset:
+              caret.offset -
+              view.lines.firstWhere((line) => line.line.id == caret.line).start,
+        ),
+        null => null,
+      };
+
+  LineCaret? _fromContent(({LineId line, int offset}) place) => switch (_viewAt(
+    (line: place.line, offset: 0),
+  )) {
+    final view? => (
+      line: place.line,
+      offset:
+          view.lines.firstWhere((line) => line.line.id == place.line).start +
+          place.offset,
+    ),
+    null => null,
+  };
+
+  /// The view of the note as it is now that shows [caret]'s line.
+  EditView? _viewAt(LineCaret caret) => [
+    for (final entry in note.entries)
+      if (note.viewOf(entry, caretLine: caret.line) case final view?
+          when view.lines.any((line) => line.line.id == caret.line))
+        view,
+  ].firstOrNull;
+
+  /// Runs [action], keeping the selection where it is in its lines'
+  /// content.
+  void _keepingSelection(void Function() action) {
+    final selection = _composer.selection;
+    final ends = [
+      for (final end in [selection?.base, selection?.extent])
+        if (_caretOf(end) case final caret?) _inContent(caret),
+    ];
+    action();
+    if (ends case [final base?, final extent?]) {
+      if ((_fromContent(base), _fromContent(extent)) case (
+        final base?,
+        final extent?,
+      )) {
+        _next = (base: base, extent: extent);
+      }
+    }
+  }
+
+  void _moveCaretTo(LineCaret caret, {required bool focus}) {
+    _next = (base: caret, extent: caret);
+    _focusNext = focus;
+    _scheduleSync();
+  }
+
+  // Showing the note.
+
+  Map<String, EditView> _viewsOf({required LineId? caretLine}) => {
+    for (final entry in note.entries)
+      nodeIdOf(entry): ?note.viewOf(entry, caretLine: caretLine),
+  };
+
+  List<DocumentNode> _targetNodes({required LineId? caretLine}) {
+    _views = _viewsOf(caretLine: caretLine);
+    _heldLine = [
+      for (final view in _views.values)
+        if (view case LeafView(held: true)) view.id,
+    ].firstOrNull;
+    return [
+      for (final entry in note.entries)
+        nodeOf(entry, _views[nodeIdOf(entry)], note.document),
+    ];
+  }
+
+  /// [selection] in [nodes]; `null` unless both its ends are in text
+  /// they show.
+  DocumentSelection? _selectionAt(
+    _LineSelection selection,
+    List<DocumentNode> nodes,
+  ) => switch ((
+    _positionAt(selection.base, nodes),
+    _positionAt(selection.extent, nodes),
+  )) {
+    (final base?, final extent?) => DocumentSelection(
+      base: base,
+      extent: extent,
+    ),
+    _ => null,
+  };
+
+  /// [caret] in the one of [nodes] that shows its line as text; `null` if
+  /// none does.
+  DocumentPosition? _positionAt(LineCaret caret, List<DocumentNode> nodes) => [
+    for (final node in nodes)
+      if ((node, _views[node.id]?.offsetOf(caret)) case (
+        TextNode(),
+        final offset?,
+      ))
+        DocumentPosition(
+          nodeId: node.id,
+          nodePosition: TextNodePosition(offset: offset),
+        ),
+  ].firstOrNull;
+
+  /// Shows a held item as the item it is, and a table shown as its text
+  /// drawn again, once the caret leaves it.
+  void _onSelection() {
+    if (_syncing) return;
+    final line = _caretOf(_composer.selection?.extent)?.line;
+    if (_heldLine != null && line != _heldLine) _scheduleSync();
+    if ((note.rawTable, line) case (final table?, final line?)
+        when note.document.leafOf(line).id != table) {
+      note.rawTable = null;
+    }
+  }
 
   /// Syncs once the current transaction and its listeners are done.
   void _scheduleSync() {
@@ -206,112 +464,47 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
   void _sync() {
     _syncScheduled = false;
     if (_disposed) return;
+    final selection = switch ((_next, _composer.selection)) {
+      (final next?, _) => next,
+      (null, final current?) => switch ((
+        _caretOf(current.base),
+        _caretOf(current.extent),
+      )) {
+        (final base?, final extent?) => (base: base, extent: extent),
+        _ => null,
+      },
+      _ => null,
+    };
+    final focus = _focusNext;
+    _next = null;
+    _focusNext = false;
+    final nodes = _targetNodes(caretLine: selection?.extent.line);
+    final at = selection == null ? null : _selectionAt(selection, nodes);
     _syncing = true;
     try {
-      final nodes = _targetNodes();
-      final caret = _typedCaret;
-      _typedCaret = null;
-      syncDocument(
-        editor,
-        nodes,
-        selection: caret == null ? null : _selectionAt(nodes, caret),
-      );
+      syncDocument(editor, nodes, selection: focus ? null : at);
     } finally {
       _syncing = false;
     }
-    if (_pendingCaret case final caret?) {
-      _pendingCaret = null;
-      // Once the new line is laid out: super_editor draws the caret of a
-      // fresh selection before laying out a line added in the same frame.
-      SchedulerBinding.instance
-        ..addPostFrameCallback((_) => _placeCaret(caret))
-        ..scheduleFrame();
-    }
+    if (at == null || !focus) return;
+    // Once the new line is laid out: super_editor draws the caret of a
+    // fresh selection before laying out a line added in the same frame.
+    SchedulerBinding.instance
+      ..addPostFrameCallback((_) {
+        if (_disposed || _document.getNodeById(at.extent.nodeId) == null) {
+          return;
+        }
+        editor.execute([
+          ChangeSelectionRequest(
+            at,
+            SelectionChangeType.placeCaret,
+            SelectionReason.userInteraction,
+          ),
+        ]);
+        onCaretPlaced();
+      })
+      ..scheduleFrame();
   }
-
-  void _placeCaret(DocumentPosition caret) {
-    if (_disposed || _document.getNodeById(caret.nodeId) == null) return;
-    editor.execute([
-      ChangeSelectionRequest(
-        DocumentSelection.collapsed(position: caret),
-        SelectionChangeType.placeCaret,
-        SelectionReason.userInteraction,
-      ),
-    ]);
-    onCaretPlaced();
-  }
-
-  void _caretInto(LineId line) {
-    _pendingCaret = DocumentPosition(
-      nodeId: _ids.nodeOf(line),
-      nodePosition: const TextNodePosition(offset: 0),
-    );
-    _scheduleSync();
-  }
-
-  LineId? _lineOfNode(String nodeId) => _ids.lineOf(nodeId);
-
-  MarkdownLine? _line(LineId? id) => id == null ? null : note.lines.lineOf(id);
-
-  /// How the line node [nodeId] shows its line, as the note has it now;
-  /// `null` for a node that shows none, e.g. a heading.
-  LineView? viewOf(String nodeId) => switch (_line(_ids.lineOf(nodeId))) {
-    final line? => _viewOf(line, caretLine: _heldLine),
-    null => null,
-  };
-
-  /// How [line] shows with the caret in [caretLine].
-  LineView _viewOf(MarkdownLine line, {required LineId? caretLine}) =>
-      LineView.of(
-        note.lines,
-        line,
-        blocks: note.mode.showsBlocks,
-        caretLine: caretLine,
-      );
-
-  /// The url of the link at [position], by the markup of its line.
-  String? linkAt(DocumentPosition position) => switch ((
-    _document.getNodeById(position.nodeId),
-    viewOf(position.nodeId),
-    position.nodePosition,
-  )) {
-    (final TextNode node, final view?, TextNodePosition(:final offset)) =>
-      view.linkAt(node.text.toPlainText(), offset),
-    _ => null,
-  };
-
-  @override
-  void indent(String nodeId) {
-    if (_lineOfNode(nodeId) case final line?) note.indent(line);
-  }
-
-  @override
-  void outdent(String nodeId) {
-    if (_lineOfNode(nodeId) case final line?) note.outdent(line);
-  }
-
-  @override
-  void delete(String nodeId) {
-    if (_lineOfNode(nodeId) case final line?) {
-      onRemoved('Item deleted', note.remove(line));
-    }
-  }
-
-  @override
-  void move(String nodeId, {required String target, required bool below}) {
-    final (line, targetLine) = (_lineOfNode(nodeId), _lineOfNode(target));
-    if (line == null || targetLine == null) return;
-    note.move(line, target: targetLine, below: below);
-  }
-
-  @override
-  void toggleDone(LineId list) => note.toggleCollapsed(list);
-
-  @override
-  void addItem(AddItemEntry button) => _caretInto(note.addItem(button));
-
-  @override
-  void showRaw(LineId first) => note.showRaw(first);
 
   void dispose() {
     _disposed = true;
@@ -320,3 +513,12 @@ final class NoteEditorAdapter implements LineActions, DisplayActions {
     editor.dispose();
   }
 }
+
+final _breaks = RegExp('\r\n?');
+
+/// A selection as places in lines.
+typedef _LineSelection = ({LineCaret base, LineCaret extent});
+
+/// The selection of just [caret], if any.
+_LineSelection? _collapsed(LineCaret? caret) =>
+    caret == null ? null : (base: caret, extent: caret);

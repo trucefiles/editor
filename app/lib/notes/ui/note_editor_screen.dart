@@ -30,6 +30,7 @@ import '../note_drafts.dart';
 import '../note_edit_session.dart';
 import '../note_editor_controller.dart';
 import '../note_files.dart';
+import '../note_images.dart';
 import '../note_place.dart';
 import '../note_settings.dart';
 import '../note_settings_controller.dart';
@@ -96,7 +97,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late NoteMode _mode =
       _settingsNow.mode ??
       NoteMode.first(
-        hasCheckboxes: MarkdownLines.parse(_open.text).hasCheckboxes,
+        hasCheckboxes: MarkdownDocument.parse(_open.text).hasCheckboxes,
         typing: widget.note == null,
       );
 
@@ -301,7 +302,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          if (_note.lines.hasCheckboxes) ...[
+          if (_note.document.hasCheckboxes) ...[
             PopupMenuItem(
               value: _clearDone,
               child: const Text('Clear checked items'),
@@ -501,6 +502,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 key: ValueKey(_note.mode),
                 onRemoved: _offerUndoOf,
                 onLink: (url) => openMarkdownLink(context, ref, url),
+                images: noteImages(
+                  _container.read(noteFilesProvider(_open.folder)),
+                  folder: _open.folder,
+                  note: _open.path,
+                ),
                 // A new note is for typing right away.
                 autofocus: widget.note == null,
               ),

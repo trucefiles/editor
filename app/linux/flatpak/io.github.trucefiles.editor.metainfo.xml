@@ -19,16 +19,28 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.7.0" date="2026-10-19">
+    <release version="0.7.0" date="2026-10-21">
       <description>
         <ul>
-          <li>New editor: Visual edit shows a note as it reads, with the Markdown marks only on the line you edit; Markdown edit and Read too.</li>
-          <li>Lists of checkboxes, bullets and numbers, each with a Done section and an "Add item" button; drag to move, sideways to indent.</li>
-          <li>Format bar: bold, italic, link, heading, and list buttons that turn lines into a list and back.</li>
+          <li>New editor: Visual edit shows a note as it reads, with the Markdown marks only on the paragraph you edit; Markdown edit and Read too.</li>
+          <li>Visual edit follows standard Markdown: quotes, lists, code and tables nest as in the file.</li>
+          <li>Lists of checkboxes, bullets and numbers, each with a Done section and an "Add item" button; drag to move, sideways to indent; Shift+Enter or the line break button adds a line inside an item.</li>
+          <li>Format bar: bold, italic, link, heading, line break, and list buttons that turn lines into a list and back.</li>
+          <li>Tables are drawn, tap one to edit it; images show inline; Read shows notes as GitHub does.</li>
           <li>New notes open right away to type; tap the place chip to move or rename a note.</li>
           <li>Checked items per note: in place, in a Done section or moved to the end.</li>
           <li>Settings screen with clearer names.</li>
           <li>Linux: --background starts the app in the tray.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.7.0-beta.3" date="2026-10-21" type="development">
+      <description>
+        <ul>
+          <li>Visual edit follows standard Markdown fully: quotes, lists, code and tables nest as in the file; marks show on the whole paragraph you edit.</li>
+          <li>Shift+Enter or the line break button adds a line inside a list item.</li>
+          <li>Read shows notes as GitHub does; images show inline.</li>
+          <li>Tables are drawn; tap one to edit it.</li>
         </ul>
       </description>
     </release>

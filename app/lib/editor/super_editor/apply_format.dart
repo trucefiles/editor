@@ -2,23 +2,25 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../text_format.dart';
+import 'note_nodes.dart';
 
 /// Applies [format] to [selection] in [editor], as Markdown marks in the
-/// line's text; a [TextFormat.link] goes to [url]. Does nothing without a
-/// selection, for a selection across lines, in a code block or table (as
-/// the view of a node's line tells, see [viewOf]), or a heading on a list
-/// item or quote.
+/// node's text; a [TextFormat.link] goes to [url]. Does nothing without a
+/// selection, for a selection across nodes, in text without inline
+/// formatting (code, a table being edited; as the view of a node tells,
+/// see [viewOf]), or a heading in a list item or quote.
 void applyFormat(
   Editor editor,
   TextFormat format, {
   required DocumentSelection? selection,
-  required LineView? Function(String nodeId) viewOf,
+  required EditView? Function(String nodeId) viewOf,
   String url = '',
 }) {
+  final view = selection == null ? null : viewOf(selection.extent.nodeId);
   if (selection == null ||
+      view == null ||
       selection.base.nodeId != selection.extent.nodeId ||
-      (viewOf(selection.extent.nodeId)?.kind ?? LineKind.plain) !=
-          LineKind.plain) {
+      !view.kind.hasInlines) {
     return;
   }
   final node = editor.document.getNodeById(selection.extent.nodeId);
@@ -39,7 +41,7 @@ void applyFormat(
     TextFormat.bold => toggleWrap(text, start, end, '**'),
     TextFormat.italic => toggleWrap(text, start, end, '*'),
     TextFormat.link => insertLink(text, start, end, url),
-    TextFormat.heading when node is ParagraphNode => cycleHeading(
+    TextFormat.heading when framesOf(view).isEmpty => cycleHeading(
       text,
       start,
       end,

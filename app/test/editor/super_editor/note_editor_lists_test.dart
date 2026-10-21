@@ -39,7 +39,7 @@ void main() {
     ) async {
       final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
       await pumpNoteEditor(tester, text);
-      final milk = nodeOf<TaskNode>();
+      final milk = checkboxNodeOf();
 
       await tester.caretIn(milk, 4);
       await tester.pressDelete();
@@ -52,7 +52,7 @@ void main() {
       final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.ime.backspace(getter: imeClientGetter);
 
       expect(text.text, '- [ ] milkeggs');
@@ -62,15 +62,15 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [ ] \n- [ ] \n- [x] b');
       await pumpNoteEditor(tester, text, checkedItems: CheckedItems.inPlace);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressBackspace();
       expect(text.text, '- [ ] a\n- [ ] \n- [x] b');
-      expect(caret(), at(nodeOf<TaskNode>(), 1));
+      expect(caret(), at(checkboxNodeOf(), 1));
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressDelete();
       expect(text.text, '- [ ] a\n- [x] b', reason: 'b keeps its box');
-      expect(caret(), at(nodeOf<TaskNode>(index: 1), 0));
+      expect(caret(), at(checkboxNodeOf(index: 1), 0));
     });
 
     testWidgets('an empty item by a heading or buttons just goes away', (
@@ -79,18 +79,18 @@ void main() {
       final text = FakeNoteText('# T\n- [ ] \n- [ ] a');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(), 0);
+      await tester.caretIn(checkboxNodeOf(), 0);
       await tester.pressBackspace();
 
       expect(text.text, '# T\n- [ ] a');
-      expect(caret(), at(nodeOf<TaskNode>(), 0));
+      expect(caret(), at(checkboxNodeOf(), 0));
     });
 
     testWidgets('keys inside the text edit it as usual', (tester) async {
       final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 2);
+      await tester.caretIn(checkboxNodeOf(index: 1), 2);
       await tester.pressBackspace();
 
       expect(text.text, '- [ ] milk\n- [ ] egs');
@@ -100,9 +100,9 @@ void main() {
       final text = FakeNoteText('- [ ] a\n# Later\n- [ ] b');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressBackspace();
-      await tester.caretIn(nodeOf<TaskNode>(), 0);
+      await tester.caretIn(checkboxNodeOf(), 0);
       await tester.pressBackspace();
 
       expect(text.text, '- [ ] a\n# Later\n- [ ] b');
@@ -116,7 +116,7 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [ ] b');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressTab();
       expect(text.text, '- [ ] a\n  - [ ] b');
 
@@ -132,21 +132,22 @@ void main() {
       final text = FakeNoteText('1. a\n2. b');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<ListItemNode>(index: 1), 0);
+      await tester.caretIn(listItemNodeOf(index: 1), 0);
       await tester.pressTab();
-      expect(text.text, '1. a\n   2. b');
+      // A list of its own under the item, so it starts from 1.
+      expect(text.text, '1. a\n   1. b');
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       await tester.pressTab();
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-      expect(text.text, '1. a\n2. b');
+      expect(text.text, '1. a\n1. b');
     });
 
     testWidgets('Tab indents under the open item shown above', (tester) async {
       final text = FakeNoteText('- [ ] a\n- [x] done\n- [ ] b');
       await pumpNoteEditor(tester, text);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressTab();
 
       expect(text.text, '- [ ] a\n  - [ ] b\n- [x] done');
@@ -158,7 +159,7 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [x] done\n- [ ] b');
       await pumpNoteEditor(tester, text, checkedItems: CheckedItems.inPlace);
 
-      await tester.caretIn(nodeOf<TaskNode>(index: 2), 0);
+      await tester.caretIn(checkboxNodeOf(index: 2), 0);
       await tester.pressTab();
 
       expect(text.text, '- [ ] a\n- [x] done\n  - [ ] b');
@@ -168,23 +169,23 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [ ] b');
       await pumpNoteEditor(tester, text);
 
-      await swipe(tester, nodeOf<TaskNode>(index: 1), const Offset(100, 0));
+      await swipe(tester, checkboxNodeOf(index: 1), const Offset(100, 0));
       expect(text.text, '- [ ] a\n  - [ ] b');
 
-      await swipe(tester, nodeOf<TaskNode>(index: 1), const Offset(-100, 0));
+      await swipe(tester, checkboxNodeOf(index: 1), const Offset(-100, 0));
       expect(text.text, '- [ ] a\n- [ ] b');
     });
 
     testWidgets('any list row swipes, bullets and numbered items too', (
       tester,
     ) async {
-      final text = FakeNoteText('- a\n- b\n1. c');
+      final text = FakeNoteText('- a\n- b\n\n1. c\n2. d');
       await pumpNoteEditor(tester, text);
 
-      await swipe(tester, nodeOf<ListItemNode>(index: 1), const Offset(100, 0));
-      await swipe(tester, nodeOf<ListItemNode>(index: 2), const Offset(100, 0));
+      await swipe(tester, listItemNodeOf(index: 1), const Offset(100, 0));
+      await swipe(tester, listItemNodeOf(index: 3), const Offset(100, 0));
 
-      expect(text.text, '- a\n  - b\n  1. c');
+      expect(text.text, '- a\n  - b\n\n1. c\n   1. d');
     });
 
     testWidgets('a long press that moves, to select text, does not indent', (
@@ -194,7 +195,7 @@ void main() {
       await pumpNoteEditor(tester, text);
 
       final gesture = await tester.startGesture(
-        tester.tapPointIn(nodeOf<TaskNode>(index: 1), 0),
+        tester.tapPointIn(checkboxNodeOf(index: 1), 0),
       );
       // A finger holding still still jitters a little.
       await gesture.moveBy(
@@ -217,7 +218,7 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [ ] $long');
       await pumpNoteEditor(tester, text);
 
-      await swipe(tester, nodeOf<TaskNode>(index: 1), const Offset(100, 0));
+      await swipe(tester, checkboxNodeOf(index: 1), const Offset(100, 0));
 
       expect(text.text, '- [ ] a\n  - [ ] $long');
     });
@@ -226,7 +227,7 @@ void main() {
       final text = FakeNoteText('- [ ] a\n- [ ] b');
       await pumpNoteEditor(tester, text);
 
-      await swipe(tester, nodeOf<TaskNode>(index: 1), const Offset(20, 0));
+      await swipe(tester, checkboxNodeOf(index: 1), const Offset(20, 0));
 
       expect(text.edits, isEmpty);
     });
@@ -239,7 +240,7 @@ void main() {
 
       await swipe(
         tester,
-        nodeOf<TaskNode>(index: 1),
+        checkboxNodeOf(index: 1),
         const Offset(100, 0),
         kind: PointerDeviceKind.mouse,
       );
@@ -315,7 +316,7 @@ void main() {
     final text = FakeNoteText('- [ ] a\n- [ ] b');
     await pumpNoteEditor(tester, text);
 
-    await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+    await tester.caretIn(checkboxNodeOf(index: 1), 0);
     await tester.tap(find.byTooltip('Item actions').hitTestable());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Indent'));
@@ -333,7 +334,7 @@ void main() {
       onRemoved: (_, undo) => removed = undo,
     );
 
-    await tester.caretIn(nodeOf<TaskNode>(index: 1), 0);
+    await tester.caretIn(checkboxNodeOf(index: 1), 0);
     await tester.tap(find.byTooltip('Item actions').hitTestable());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
@@ -345,9 +346,10 @@ void main() {
 
     expect(text.text, '- [ ] a\n- [ ] x\n- [ ] b');
     expect(
-      SuperEditorInspector.findDocument()!.whereType<TaskNode>().map(
-        (node) => node.text.toPlainText(),
-      ),
+      SuperEditorInspector.findDocument()!
+          .whereType<TextNode>()
+          .where((node) => markedItemOf(node) != null)
+          .map((node) => node.text.toPlainText()),
       ['a', 'x', 'b'],
     );
   });

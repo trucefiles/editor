@@ -5,11 +5,11 @@ import '../display_nodes.dart';
 import 'add_item_button.dart';
 import 'display_actions.dart';
 import 'done_heading.dart';
-import 'drawn_image.dart';
 import 'drawn_table.dart';
+import 'frames.dart';
 
 /// Builds the components of [DisplayNode]s: "Done" headings, add buttons
-/// and drawn tables and images. With no [actions] they are only shown.
+/// and drawn tables. With no [actions] they are only shown.
 class DisplayComponentBuilder implements ComponentBuilder {
   const DisplayComponentBuilder({this.actions});
 
@@ -29,9 +29,10 @@ class DisplayComponentBuilder implements ComponentBuilder {
     if (componentViewModel is! DisplayViewModel) return null;
     final actions = this.actions;
     final node = componentViewModel.node;
+    final context = componentContext.context;
     return BoxComponent(
       key: componentContext.componentKey,
-      isVisuallySelectable: node is DrawnTableNode || node is DrawnImageNode,
+      isVisuallySelectable: node is DrawnTableNode,
       child: switch (node) {
         DoneHeadingNode(:final entry) => DoneHeading(
           entry,
@@ -40,13 +41,20 @@ class DisplayComponentBuilder implements ComponentBuilder {
         AddItemNode(:final entry) => AddItemButton(
           onAdd: () => actions?.addItem(entry),
         ),
-        DrawnTableNode(:final rows, :final lines) => DrawnTable(
-          rows,
-          onTap: actions == null ? null : () => actions.showRaw(lines.first.id),
-        ),
-        DrawnImageNode(:final entry) => DrawnImage(
-          entry,
-          onTap: actions == null ? null : () => actions.showRaw(entry.id),
+        DrawnTableNode(:final table, :final frames) => framed(
+          frames,
+          DrawnTable(
+            table,
+            onTap: actions == null ? null : () => actions.showRaw(table.id),
+          ),
+          row: (item, child) => Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(width: itemHandleWidth),
+              MarkerView(item, style: DefaultTextStyle.of(context).style),
+              Expanded(child: child),
+            ],
+          ),
         ),
       },
     );

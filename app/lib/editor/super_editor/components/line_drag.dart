@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:truce_core/truce_core.dart';
 
-/// The handle that drags the item of node [nodeId], whose row is
+/// The handle that drags [item], whose row is
 /// [row]: a copy of the row, [preview], follows the pointer meanwhile, as
 /// if the row itself moved.
 class LineDragHandle extends StatelessWidget {
   const LineDragHandle({
-    required this.nodeId,
+    required this.item,
     required this.row,
     required this.preview,
     this.onDragging,
     super.key,
   });
 
-  final String nodeId;
+  final LineId item;
   final GlobalKey row;
   final Widget preview;
 
@@ -23,7 +24,7 @@ class LineDragHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Draggable<LineDrag>(
-    data: LineDrag(nodeId, row),
+    data: LineDrag(item, row),
     // The copy starts right over the row, where the pointer took it.
     dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
     feedbackOffset: Offset.zero,
@@ -46,12 +47,12 @@ class LineDragHandle extends StatelessWidget {
   );
 }
 
-/// The item of node [nodeId], being dragged; its row is [row].
+/// The item [item], by its marker line, being dragged; its row is [row].
 @immutable
 final class LineDrag {
-  const LineDrag(this.nodeId, this.row);
+  const LineDrag(this.item, this.row);
 
-  final String nodeId;
+  final LineId item;
   final GlobalKey row;
 
   RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
@@ -63,28 +64,28 @@ final class LineDrag {
       offset.dx - _rowBox.localToGlobal(Offset.zero).dx;
 }
 
-/// Takes items dropped on [child], the row of the item of node [nodeId]:
+/// Takes items dropped on [child], the row of [item]:
 /// a copy whose middle is over the row's upper half goes above it, else
 /// below it. Meanwhile a gap opens there, as large as the dragged row. A
 /// row's own copy, shifted sideways by whole [step]s, goes that many
 /// levels deeper or shallower.
 class LineDropTarget extends StatefulWidget {
   const LineDropTarget({
-    required this.nodeId,
+    required this.item,
     required this.step,
     required this.onDrop,
     required this.child,
     super.key,
   });
 
-  final String nodeId;
+  final LineId item;
 
   /// Width of one level.
   final double step;
 
-  /// The dropped item's node, whether it goes below, and by how many
+  /// The dropped item, whether it goes below, and by how many
   /// levels it was shifted deeper (shallower if negative).
-  final void Function(String nodeId, {required bool below, required int levels})
+  final void Function(LineId item, {required bool below, required int levels})
   onDrop;
   final Widget child;
 
@@ -108,7 +109,7 @@ class _LineDropTargetState extends State<LineDropTarget> {
     return target.globalToLocal(Offset(0, middle)).dy > content.size.height / 2;
   }
 
-  bool _isSelf(LineDrag drag) => drag.nodeId == widget.nodeId;
+  bool _isSelf(LineDrag drag) => drag.item == widget.item;
 
   void _hover(DragTargetDetails<LineDrag> details) {
     final gap = _isSelf(details.data)
@@ -126,7 +127,7 @@ class _LineDropTargetState extends State<LineDropTarget> {
       onAcceptWithDetails: (details) {
         final drag = details.data;
         widget.onDrop(
-          drag.nodeId,
+          drag.item,
           below: _isBelow(details),
           levels: (drag.shiftAt(details.offset) / widget.step).truncate(),
         );

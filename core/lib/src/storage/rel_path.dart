@@ -34,4 +34,29 @@ extension type const RelPath._(String value) {
     if (name.contains('/')) return null;
     return parse(value.substring(0, value.lastIndexOf('/') + 1) + name);
   }
+
+  /// The file a relative link [reference] in this file leads to, e.g.
+  /// `img/a.png` for `notes/b.md` and `../img/a.png`; `null` for a link
+  /// with a scheme or host, one from the root, or one that leaves the
+  /// root.
+  RelPath? linked(String reference) {
+    final uri = Uri.tryParse(reference);
+    if (uri == null ||
+        uri.path.isEmpty ||
+        uri.hasScheme ||
+        uri.hasAuthority ||
+        uri.hasAbsolutePath) {
+      return null;
+    }
+    final segments = uri.pathSegments.fold<List<String>?>(
+      parent?.value.split('/') ?? [],
+      (folder, segment) => switch (segment) {
+        _ when folder == null => null,
+        '' || '.' => folder,
+        '..' => folder.isEmpty ? null : folder.sublist(0, folder.length - 1),
+        _ => [...folder, segment],
+      },
+    );
+    return segments == null ? null : parse(segments.join('/'));
+  }
 }

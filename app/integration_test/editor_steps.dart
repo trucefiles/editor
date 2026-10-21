@@ -7,12 +7,23 @@ import 'package:super_editor/super_editor_test.dart';
 /// What a user does and sees in an open note's editor, with the mouse
 /// and keyboard of a desktop.
 extension EditorSteps on WidgetTester {
-  /// The id of the line node whose text, as the editor holds it, is
-  /// [text].
-  String lineNode(String text) => SuperEditorInspector.findDocument()!
-      .whereType<TextNode>()
-      .firstWhere((node) => node.text.toPlainText() == text)
-      .id;
+  /// The id of the node that holds a line reading [text], as the editor
+  /// holds it.
+  String lineNode(String text) => _lineAt(text).node;
+
+  /// The node holding the line [text], and where that line starts in it.
+  ({String node, int start}) _lineAt(String text) => [
+    for (final node
+        in SuperEditorInspector.findDocument()!.whereType<TextNode>())
+      if (node.text.toPlainText().split('\n') case final lines
+          when lines.contains(text))
+        (
+          node: node.id,
+          start: lines
+              .take(lines.indexOf(text))
+              .fold(0, (start, line) => start + line.length + 1),
+        ),
+  ].first;
 
   /// Where the line node [nodeId] shows the character at [offset].
   Offset pointIn(String nodeId, int offset) {
@@ -28,7 +39,8 @@ extension EditorSteps on WidgetTester {
 
   /// Clicks the line holding [text] at [offset] in it.
   Future<void> clickLine(String text, int offset) async {
-    await tapAt(pointIn(lineNode(text), offset), kind: PointerDeviceKind.mouse);
+    final (:node, :start) = _lineAt(text);
+    await tapAt(pointIn(node, start + offset), kind: PointerDeviceKind.mouse);
     await pumpAndSettle();
   }
 

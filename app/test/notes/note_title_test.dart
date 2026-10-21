@@ -34,7 +34,7 @@ void main() {
 
   test('notePreview keeps file order and shows items as boxes', () {
     expect(
-      notePreview('# T\nintro\n- [ ] a\n- [x] b\n  - [ ] c\nend'),
+      notePreview('# T\nintro\n- [ ] a\n- [x] b\n  - [ ] c\n\nend'),
       'intro\n☐ a\n☑ b\n  ☐ c\nend',
     );
   });
@@ -61,5 +61,11 @@ void main() {
     expect(noteTitleLine('> - quoted'), 'quoted');
     expect(noteTitleLine('* one'), 'one');
     expect(noteTitleLine(' \n'), '');
+  });
+
+  test('titles and previews skip the syntax of blocks without words', () {
+    expect(noteTitleLine('---\ntitle: x\n---\nHello'), 'Hello');
+    expect(noteTitleLine('```\ncode\n```'), 'code');
+    expect(notePreview('# T\na\n\n---\n\nb'), 'a\nb');
   });
 }

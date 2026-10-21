@@ -2,10 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../child_text.dart';
-import 'shown_lines.dart';
+import 'shown_texts.dart';
 
 /// Wraps the component of a text node that may show formatted (see
-/// [ShownLines]): turns the positions its child reports into positions
+/// [ShownTexts]): turns the positions its child reports into positions
 /// in the node's text, so taps and caret moves land on the right
 /// character. While the node shows its own text, it passes everything on.
 ///
@@ -14,13 +14,13 @@ import 'shown_lines.dart';
 class MappedTextComponent extends StatefulWidget {
   const MappedTextComponent({
     required this.nodeId,
-    required this.lines,
+    required this.texts,
     required this.child,
     super.key,
   });
 
   final String nodeId;
-  final ShownLines lines;
+  final ShownTexts texts;
 
   /// Builds the child component with the given key.
   final Widget Function(GlobalKey key) child;
@@ -35,7 +35,7 @@ class _MappedTextComponentState extends State<MappedTextComponent>
         ProxyTextComposable,
         ChildText<MappedTextComponent> {
   NodePosition _out(NodePosition position) =>
-      switch ((widget.lines.of(widget.nodeId), position)) {
+      switch ((widget.texts.of(widget.nodeId), position)) {
         (final line?, TextNodePosition(:final offset, :final affinity)) =>
           TextNodePosition(offset: line.toSource(offset), affinity: affinity),
         _ => position,
@@ -80,7 +80,7 @@ class _MappedTextComponentState extends State<MappedTextComponent>
   );
 
   int _offsetOut(int offset) =>
-      widget.lines.of(widget.nodeId)?.toSource(offset) ?? offset;
+      widget.texts.of(widget.nodeId)?.toSource(offset) ?? offset;
 
   @override
   Widget build(BuildContext context) => widget.child(childTextKey);

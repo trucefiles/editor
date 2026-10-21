@@ -1,25 +1,30 @@
 import 'package:flutter/services.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../text_format.dart';
-import 'components/line_actions.dart';
+import 'key_actions.dart';
 import 'keypad_keys.dart';
 
 /// The editor's key handling: the library's defaults for IME input,
 /// without its own Markdown-unaware formatting, indenting and Backspace
-/// rules. Instead, Backspace at the start and Delete at the end of a line
-/// join lines (see `joinLines`), Ctrl+B, I and K [onFormat] the selection,
-/// and with [lineActions], Tab and Shift+Tab indent and outdent list items.
-/// The keypad's navigation keys work as the keys they stand for.
+/// rules. Instead, Backspace at the start and Delete at the end of a node
+/// join it with the text next to it, and over a hard line break delete it
+/// as one; Shift+Enter breaks the line; Tab and Shift+Tab indent and
+/// outdent the item the caret is in (all through [keys]); Ctrl+B, I and
+/// K [onFormat] the selection. The keypad's navigation keys work as the
+/// keys they stand for.
 List<SuperEditorKeyboardAction> noteKeyboardActions({
   required void Function(TextFormat format) onFormat,
-  LineActions? lineActions,
+  required KeyActions keys,
 }) {
   final actions = [
-    _backspaceToJoinLines,
-    _deleteToJoinLines,
+    _backspaceToJoin,
+    _deleteToJoin,
+    _deleteHardBreak(keys),
+    _shiftEnterToBreakLine(keys),
     _formatShortcuts(onFormat),
-    if (lineActions != null) _tabToIndent(lineActions),
+    _tabToIndent(keys),
     for (final action in defaultImeKeyboardActions)
       if (!_replaced.contains(action)) action,
   ];
@@ -49,6 +54,14 @@ final _replaced = <SuperEditorKeyboardAction>{
 bool _isDown(KeyEvent event) =>
     event is KeyDownEvent || event is KeyRepeatEvent;
 
+/// Whether Control, Alt or Meta is held: the key means something else.
+bool get _withModifier {
+  final keyboard = HardwareKeyboard.instance;
+  return keyboard.isControlPressed ||
+      keyboard.isAltPressed ||
+      keyboard.isMetaPressed;
+}
+
 /// The text node the collapsed caret is in, with the caret's offset.
 (TextNode, int)? _caret(SuperEditorContext context) {
   final selection = context.composer.selection;
@@ -59,15 +72,13 @@ bool _isDown(KeyEvent event) =>
   return (node, position.offset);
 }
 
-ExecutionInstruction _backspaceToJoinLines({
+ExecutionInstruction _backspaceToJoin({
   required SuperEditorContext editContext,
   required KeyEvent keyEvent,
 }) {
   if (!_isDown(keyEvent) ||
       keyEvent.logicalKey != LogicalKeyboardKey.backspace ||
-      HardwareKeyboard.instance.isControlPressed ||
-      HardwareKeyboard.instance.isAltPressed ||
-      HardwareKeyboard.instance.isMetaPressed) {
+      _withModifier) {
     return ExecutionInstruction.continueExecution;
   }
   if (_caret(editContext) case (final node, 0)) {
@@ -77,15 +88,13 @@ ExecutionInstruction _backspaceToJoinLines({
   return ExecutionInstruction.continueExecution;
 }
 
-ExecutionInstruction _deleteToJoinLines({
+ExecutionInstruction _deleteToJoin({
   required SuperEditorContext editContext,
   required KeyEvent keyEvent,
 }) {
   if (!_isDown(keyEvent) ||
       keyEvent.logicalKey != LogicalKeyboardKey.delete ||
-      HardwareKeyboard.instance.isControlPressed ||
-      HardwareKeyboard.instance.isAltPressed ||
-      HardwareKeyboard.instance.isMetaPressed) {
+      _withModifier) {
     return ExecutionInstruction.continueExecution;
   }
   final caret = _caret(editContext);
@@ -121,22 +130,47 @@ SuperEditorKeyboardAction _formatShortcuts(
   return ExecutionInstruction.haltExecution;
 };
 
-SuperEditorKeyboardAction _tabToIndent(LineActions actions) =>
+SuperEditorKeyboardAction _tabToIndent(KeyActions keys) =>
     ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
       if (!_isDown(keyEvent) || keyEvent.logicalKey != LogicalKeyboardKey.tab) {
         return ExecutionInstruction.continueExecution;
       }
-      final selection = editContext.composer.selection;
-      final node = selection == null
-          ? null
-          : editContext.document.getNodeById(selection.extent.nodeId);
-      if (node is! TaskNode && node is! ListItemNode) {
+      final outdent = HardwareKeyboard.instance.isShiftPressed;
+      return keys.indentAtCaret(outdent: outdent)
+          ? ExecutionInstruction.haltExecution
+          : ExecutionInstruction.continueExecution;
+    };
+
+SuperEditorKeyboardAction _shiftEnterToBreakLine(KeyActions keys) =>
+    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+      final keyboard = HardwareKeyboard.instance;
+      if (!_isDown(keyEvent) ||
+          (keyEvent.logicalKey != LogicalKeyboardKey.enter &&
+              keyEvent.logicalKey != LogicalKeyboardKey.numpadEnter) ||
+          !keyboard.isShiftPressed ||
+          _withModifier) {
         return ExecutionInstruction.continueExecution;
       }
-      if (HardwareKeyboard.instance.isShiftPressed) {
-        actions.outdent(node!.id);
-      } else {
-        actions.indent(node!.id);
+      keys.lineBreak();
+      return ExecutionInstruction.haltExecution;
+    };
+
+/// Delete right before a hard line break deletes it as one: its
+/// backslash and the line break. (A line break deleted alone takes its
+/// backslash along in the note, from any keyboard.)
+SuperEditorKeyboardAction _deleteHardBreak(KeyActions keys) =>
+    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+      if (!_isDown(keyEvent) ||
+          keyEvent.logicalKey != LogicalKeyboardKey.delete ||
+          _withModifier) {
+        return ExecutionInstruction.continueExecution;
       }
+      final caret = _caret(editContext);
+      if (caret == null) return ExecutionInstruction.continueExecution;
+      final (node, offset) = caret;
+      if (!hardBreakAfter(node.text.toPlainText(), offset)) {
+        return ExecutionInstruction.continueExecution;
+      }
+      keys.replaceText(node.id, offset, offset + 2, '');
       return ExecutionInstruction.haltExecution;
     };

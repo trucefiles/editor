@@ -16,7 +16,7 @@ class EmptyNoteHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: note,
-    builder: (context, _) => note.lines.text.isEmpty
+    builder: (context, _) => note.document.text.isEmpty
         ? IgnorePointer(
             child: Padding(
               padding: padding,

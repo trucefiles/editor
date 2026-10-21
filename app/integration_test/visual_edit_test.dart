@@ -48,7 +48,7 @@ void main() {
   testApp('the clicked line shows its marks, the others hide them', (
     tester,
   ) async {
-    await openVisual(tester, 'Title', '# Title\n**bold** one\nplain *it*\n');
+    await openVisual(tester, 'Title', '# Title\n**bold** one\n\nplain *it*\n');
     expect(tester.showsLine('bold one'), isTrue);
 
     await tester.clickLine('**bold** one', 2);
@@ -61,14 +61,16 @@ void main() {
   });
 
   testApp('the marks follow the caret moved by arrow keys', (tester) async {
-    await openVisual(tester, 'Title', '# Title\n**bold** one\nplain *it*\n');
+    await openVisual(tester, 'Title', '# Title\n**bold** one\n\nplain *it*\n');
     await tester.clickLine('**bold** one', 2);
 
+    await tester.pressDownArrow();
     await tester.pressDownArrow();
     await tester.pumpAndSettle();
     expect(tester.showsLine('plain *it*'), isTrue);
     expect(tester.showsLine('bold one'), isTrue);
 
+    await tester.pressUpArrow();
     await tester.pressUpArrow();
     await tester.pumpAndSettle();
     expect(tester.showsLine('**bold** one'), isTrue);
@@ -77,14 +79,14 @@ void main() {
   testApp('the marks still follow the caret after an edit is saved', (
     tester,
   ) async {
-    await openVisual(tester, 'Title', '# Title\n**bold** one\nplain *it*\n');
+    await openVisual(tester, 'Title', '# Title\n**bold** one\n\nplain *it*\n');
     await tester.clickLine('plain *it*', 10);
     await tester.typeImeText('!');
     await tester.waitFor(find.byTooltip(savedOnDevice));
     await tester.tap(find.byTooltip(savedOnDevice));
     await tester.waitForFile(
       app.file('note.md'),
-      '# Title\n**bold** one\nplain *it*!\n',
+      '# Title\n**bold** one\n\nplain *it*!\n',
     );
 
     await tester.clickLine('**bold** one', 2);
@@ -258,7 +260,7 @@ void main() {
 
   testApp('typing in a quote keeps it a quote', (tester) async {
     await openVisual(tester, 'Quote', '# Quote\n> said\n');
-    await tester.clickLine('> said', 4);
+    await tester.clickLine('said', 4);
     await tester.pressEnd();
 
     await tester.typeImeText(' so');
@@ -312,15 +314,15 @@ void main() {
     tester,
   ) async {
     await app.useRefresh(RefreshMode.manual);
-    await openVisual(tester, 'Plan', '# Plan\n**a** first\nsecond\n');
+    await openVisual(tester, 'Plan', '# Plan\n**a** first\n\nsecond\n');
     await tester.clickLine('**a** first', 11);
 
-    app.write('note.md', '# Plan\n**a** first\nsecond\nthird\n');
+    app.write('note.md', '# Plan\n**a** first\n\nsecond\n\nthird\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
     await tester.waitFor(find.text('third', findRichText: true));
     expect(tester.showsLine('**a** first'), isTrue);
     await tester.typeImeText('!');
 
-    await leaveExpecting(tester, '# Plan\n**a** first!\nsecond\nthird\n');
+    await leaveExpecting(tester, '# Plan\n**a** first!\n\nsecond\n\nthird\n');
   });
 }

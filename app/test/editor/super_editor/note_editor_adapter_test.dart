@@ -5,9 +5,9 @@ import 'package:truce_editor/editor/super_editor/note_editor_adapter.dart';
 
 import '../editor_support.dart';
 
-/// How the adapter tells the editor's phases how its nodes show.
+/// How the adapter keeps the editor's nodes showing the note.
 void main() {
-  test('a line node shows its line as the note has it now', () {
+  test('each node shows the view of the note as it is now', () async {
     final note = documentOf(FakeNoteText('a'));
     addTearDown(note.dispose);
     final adapter = NoteEditorAdapter(
@@ -17,11 +17,15 @@ void main() {
     );
     addTearDown(adapter.dispose);
     final node = adapter.editor.document.first.id;
-    expect(adapter.viewOf(node)?.item, isNull);
+    expect(adapter.viewOf(node), isA<LeafView>());
+    expect((adapter.viewOf(node)! as LeafView).frames, isEmpty);
 
-    note.toList([note.lines.lines.first.id], ListKind.bullet);
+    note.toList([note.document.lines.first.id], ListKind.bullet);
+    await Future<void>.delayed(Duration.zero);
 
-    // Before the editor shows the change: styling must not lag behind.
-    expect(adapter.viewOf(node)?.item?.kind, ListKind.bullet);
+    final frames = (adapter.viewOf(node)! as LeafView).frames;
+    expect(frames.single, isA<ItemFrame>());
+    final shown = adapter.editor.document.getNodeById(node)! as TextNode;
+    expect(shown.text.toPlainText(), 'a');
   });
 }

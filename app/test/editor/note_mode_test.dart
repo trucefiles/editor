@@ -30,16 +30,8 @@ void main() {
     });
   });
 
-  test('each mode shows marks in its style', () {
+  test('each edit mode shows marks in its style', () {
     expect(NoteMode.visual.marks, MarkStyle.mixed);
     expect(NoteMode.markdown.marks, MarkStyle.shown);
-    expect(NoteMode.read.marks, MarkStyle.hidden);
-  });
-
-  test('only Markdown edit shows list items and quotes as their lines', () {
-    expect(
-      [for (final mode in NoteMode.values) mode.showsBlocks],
-      [true, false, true],
-    );
   });
 }
