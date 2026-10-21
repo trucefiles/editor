@@ -162,7 +162,9 @@ final class NoteEditorAdapter
   void paste(String text) {
     // Pasted Windows or old Mac line breaks are line breaks too: a `\r`
     // left in a line would end up in the file as a space.
-    _next = _collapsed(_replaceSelection(text.replaceAll(_breaks, '\n')));
+    _next = _collapsed(
+      _replaceSelection(text.replaceAll(_breaks, '\n'), by: note.paste),
+    );
   }
 
   @override
@@ -244,8 +246,9 @@ final class NoteEditorAdapter
     );
   }
 
-  /// The selected text replaced by [text]; returns the caret after it.
-  LineCaret? _replaceSelection(String text) {
+  /// The selected text replaced by [text], [by] a text edit of the note;
+  /// returns the caret after it.
+  LineCaret? _replaceSelection(String text, {_TextEdit? by}) {
     final selection = _composer.selection;
     if (selection == null) return null;
     final range = selection.normalize(_document);
@@ -254,7 +257,7 @@ final class NoteEditorAdapter
     final ids = _views.keys.toList();
     final first = ids.indexOf(range.start.nodeId) + 1;
     final last = ids.indexOf(range.end.nodeId);
-    return note.replaceText(
+    return (by ?? note.replaceText)(
       from,
       to,
       text,
@@ -515,6 +518,15 @@ final class NoteEditorAdapter
 }
 
 final _breaks = RegExp('\r\n?');
+
+/// A text edit of the note from one place to another, e.g.
+/// [NoteDocumentController.replaceText]; returns the caret after it.
+typedef _TextEdit = LineCaret Function(
+  ViewPlace from,
+  ViewPlace to,
+  String text, {
+  Iterable<EditView> removed,
+});
 
 /// A selection as places in lines.
 typedef _LineSelection = ({LineCaret base, LineCaret extent});

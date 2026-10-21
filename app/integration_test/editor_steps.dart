@@ -4,6 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
+import 'app_steps.dart';
+import 'test_app.dart';
+import 'ui_driver.dart';
+
 /// What a user does and sees in an open note's editor, with the mouse
 /// and keyboard of a desktop.
 extension EditorSteps on WidgetTester {
@@ -71,5 +75,22 @@ extension EditorSteps on WidgetTester {
   Future<void> pressTool(String label) async {
     await tap(find.byTooltip(label));
     await pumpAndSettle();
+  }
+
+  /// Writes [text] as `note.md` in [app], adds its folder and opens the
+  /// note [title] in Visual edit.
+  Future<void> openVisual(TestApp app, String title, String text) async {
+    app.write('note.md', text);
+    await addFolder(app);
+    await openNote(title);
+    if (find.byTooltip('Mode: Visual edit').evaluate().isEmpty) {
+      await chooseMode('Visual edit');
+    }
+  }
+
+  /// Leaves the note and waits for `note.md` in [app] to hold [text].
+  Future<void> leaveExpecting(TestApp app, String text) async {
+    await pageBack();
+    await waitForFile(app.file('note.md'), text);
   }
 }

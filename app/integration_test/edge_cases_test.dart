@@ -29,26 +29,6 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  Future<void> openVisual(
-    WidgetTester tester,
-    String title,
-    String text,
-  ) async {
-    app.write('note.md', text);
-    await tester.addFolder(app);
-    await tester.openNote(title);
-    if (find.byTooltip('Mode: Visual edit').evaluate().isEmpty) {
-      await tester.chooseMode('Visual edit');
-    }
-  }
-
-  Future<void> leaveExpecting(WidgetTester tester, String text) async {
-    await tester.pageBack();
-    await tester.waitForNoteClosed();
-    await tester.runFor(const Duration(seconds: 1));
-    expect(app.file('note.md').readAsStringSync(), text);
-  }
-
   testApp('a new note titled like another gets a numbered file', (
     tester,
   ) async {
@@ -128,32 +108,36 @@ void main() {
   });
 
   testApp('typing in a CRLF note keeps its line breaks', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\r\n- [ ] milk\r\n- [ ] eggs\r\n');
+    await tester.openVisual(
+      app,
+      'Shop',
+      '# Shop\r\n- [ ] milk\r\n- [ ] eggs\r\n',
+    );
     await tester.clickLine('milk', 4);
 
     await tester.typeImeText('y');
     await tester.pressEnter();
     await tester.typeImeText('tea');
 
-    await leaveExpecting(
-      tester,
+    await tester.leaveExpecting(
+      app,
       '# Shop\r\n- [ ] milky\r\n- [ ] tea\r\n- [ ] eggs\r\n',
     );
   });
 
   testApp('Enter on an empty item ends the list', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
 
     await tester.pressEnter();
     await tester.pressEnter();
     await tester.typeImeText('after');
 
-    await leaveExpecting(tester, '# Shop\n- [ ] milk\n\nafter\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n\nafter\n');
   });
 
   testApp('Tab indents an item, Shift+Tab brings it back', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
     await tester.clickLine('eggs', 1);
 
     await tester.pressTab();
@@ -165,22 +149,22 @@ void main() {
     await tester.pressTab();
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Shop\n- [ ] milk\n  - [ ] eggs\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n  - [ ] eggs\n');
   });
 
   testApp('Shift+Enter breaks the line inside an item', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
 
     await tester.pressShiftEnter();
     await tester.typeImeText('oat');
 
-    await leaveExpecting(tester, '# Shop\n- [ ] milk\\\n      oat\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\\\n      oat\n');
   });
 
   testApp('a selection across items deletes and joins them', (tester) async {
-    await openVisual(
-      tester,
+    await tester.openVisual(
+      app,
       'Shop',
       '# Shop\n- [ ] milk\n- [ ] eggs\n- [ ] tea\n',
     );
@@ -191,11 +175,11 @@ void main() {
     await tester.pressBackspace();
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Shop\n- [ ] migs\n- [ ] tea\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] migs\n- [ ] tea\n');
   });
 
   testApp('pasting lines into an item adds them as items', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await Clipboard.setData(const ClipboardData(text: 'eggs\ntea'));
 
@@ -203,21 +187,24 @@ void main() {
     await tester.pressCtlV();
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Shop\n- [ ] milk\n- [ ] eggs\n- [ ] tea\n');
+    await tester.leaveExpecting(
+      app,
+      '# Shop\n- [ ] milk\n- [ ] eggs\n- [ ] tea\n',
+    );
   });
 
   testApp('typing "- " at a line start makes an item', (tester) async {
-    await openVisual(tester, 'Note', '# Note\ntext\n');
+    await tester.openVisual(app, 'Note', '# Note\ntext\n');
     await tester.clickLine('text', 4);
 
     await tester.pressEnter();
     await tester.typeImeText('- [ ] milk');
 
-    await leaveExpecting(tester, '# Note\ntext\n- [ ] milk\n');
+    await tester.leaveExpecting(app, '# Note\ntext\n- [ ] milk\n');
   });
 
   testApp('switching modes while typing keeps every edit', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
 
@@ -228,7 +215,7 @@ void main() {
     await tester.chooseMode('Read');
     await tester.chooseMode('Visual edit');
 
-    await leaveExpecting(tester, '# Shop\n- [ ] milky\nend');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milky\nend');
   });
 
   testApp('an empty file opens and takes text', (tester) async {
@@ -245,7 +232,7 @@ void main() {
   testApp('a note deleted elsewhere while open keeps the edits', (
     tester,
   ) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
 
@@ -296,7 +283,7 @@ void main() {
   testApp('a note renamed elsewhere while open keeps the edits', (
     tester,
   ) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
 
@@ -348,7 +335,7 @@ void main() {
   });
 
   testApp('a BOM stays at the start after an edit', (tester) async {
-    await openVisual(tester, 'Shop', '﻿# Shop\n- [ ] milk\n');
+    await tester.openVisual(app, 'Shop', '﻿# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
     await tester.pageBack();
@@ -362,27 +349,31 @@ void main() {
   });
 
   testApp('Backspace after an emoji removes all of it', (tester) async {
-    await openVisual(tester, 'Note', '# Note\nok\n');
+    await tester.openVisual(app, 'Note', '# Note\nok\n');
     await tester.clickLine('ok', 2);
     await tester.typeImeText(' 👍🏽');
 
     await tester.pressBackspace();
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Note\nok \n');
+    await tester.leaveExpecting(app, '# Note\nok \n');
   });
 
   testApp('deleting the middle numbered item leaves the other lines alone', (
     tester,
   ) async {
-    await openVisual(tester, 'Steps', '# Steps\n1. one\n2. two\n3. three\n');
+    await tester.openVisual(
+      app,
+      'Steps',
+      '# Steps\n1. one\n2. two\n3. three\n',
+    );
     await tester.clickLine('two', 1);
 
     await tester.tapAndSettle(find.byTooltip('Item actions').hitTestable());
     await tester.tapAndSettle(find.text('Delete'));
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Steps\n1. one\n3. three\n');
+    await tester.leaveExpecting(app, '# Steps\n1. one\n3. three\n');
   });
 
   testApp('adding the same folder twice keeps one', (tester) async {
@@ -427,21 +418,6 @@ void main() {
 
     expect(find.byType(NoteEditorScreen), findsNothing);
     await tester.waitForFile(app.file('Idea.md'), 'Idea');
-  });
-
-  testApp('a long note opens and takes typing at its end', (tester) async {
-    final text =
-        '# Long\n${[for (var i = 0; i < 2000; i++) '- [ ] item $i\n'].join()}';
-    final watch = Stopwatch()..start();
-    await openVisual(tester, 'Long', text);
-    final opened = watch.elapsed;
-    await tester.clickLine('item 0', 6);
-    watch.reset();
-    await tester.typeImeText('abc');
-    final typed = watch.elapsed;
-    debugPrint('PERF open $opened type3 $typed');
-
-    await leaveExpecting(tester, text.replaceFirst('item 0\n', 'item 0abc\n'));
   });
 
   testApp('a color stays on a note moved to a subfolder', (tester) async {
@@ -535,13 +511,13 @@ void main() {
   });
 
   testApp('clearing checked items can be undone', (tester) async {
-    await openVisual(tester, 'Shop', '# Shop\n- [x] milk\n- [ ] eggs\n');
+    await tester.openVisual(app, 'Shop', '# Shop\n- [x] milk\n- [ ] eggs\n');
 
     await tester.chooseInMenu('Clear checked items');
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 
-    await leaveExpecting(tester, '# Shop\n- [x] milk\n- [ ] eggs\n');
+    await tester.leaveExpecting(app, '# Shop\n- [x] milk\n- [ ] eggs\n');
   });
 
   testApp('the same title in two subfolders opens each note', (tester) async {

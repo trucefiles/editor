@@ -296,7 +296,8 @@ void main() {
     },
   );
 
-  test('a failed undo brings back no mark', () async {
+  test('undo onto a taken path brings the mark to the note, not the other '
+      'file', () async {
     final note = await noteIn(work, 'plan.md', '# Plan\n');
     await actions.setMark(note, const NoteMark(color: 'teal'));
     final deleted = (await actions.delete(note, '# Plan\n')).value;
@@ -304,7 +305,12 @@ void main() {
 
     await actions.undoDelete(deleted);
 
-    expect((await scans()).markOf(note.key), NoteMark.none);
+    final scan = await scans();
+    final back = scan.notes.singleWhere(
+      (note) => note.path.value == 'plan 2.md',
+    );
+    expect(scan.markOf(note.key), NoteMark.none);
+    expect(scan.markOf(back.key), const NoteMark(color: 'teal'));
   });
 
   test('delete fails if the note changed since it was read', () async {
@@ -324,15 +330,29 @@ void main() {
     expect(file(work, 'plan.md').existsSync(), isTrue);
   });
 
-  test('undo keeps a file created at the same path meanwhile', () async {
-    final note = await noteIn(work, 'plan.md', '# Plan\n');
-    final deleted = (await actions.delete(note, '# Plan\n')).value;
-    file(work, 'plan.md').writeAsStringSync('# Plan\nnew\n');
+  test(
+    'undo onto a path taken meanwhile keeps both, under a free name',
+    () async {
+      final note = await noteIn(work, 'plan.md', '# Plan\n');
+      final deleted = (await actions.delete(note, '# Plan\nmine\n')).value;
+      file(work, 'plan.md').writeAsStringSync('# Plan\nnew\n');
 
-    final undone = await actions.undoDelete(deleted);
+      final undone = await actions.undoDelete(deleted);
 
-    expect(undone.error, StoreError.alreadyExists);
-    expect(file(work, 'plan.md').readAsStringSync(), '# Plan\nnew\n');
+      expect(undone, isA<Ok<void, StoreError>>());
+      expect(file(work, 'plan.md').readAsStringSync(), '# Plan\nnew\n');
+      expect(file(work, 'plan 2.md').readAsStringSync(), '# Plan\nmine\n');
+    },
+  );
+
+  test('undo in a subfolder onto a taken path stays in it', () async {
+    final note = await noteIn(work, 'a/plan.md', '# Plan\n');
+    final deleted = (await actions.delete(note, '# Plan\nmine\n')).value;
+    file(work, 'a/plan.md').writeAsStringSync('# Plan\nnew\n');
+
+    await actions.undoDelete(deleted);
+
+    expect(file(work, 'a/plan 2.md').readAsStringSync(), '# Plan\nmine\n');
   });
 
   test('setMark saves the mark and rescans', () async {

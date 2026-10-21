@@ -50,6 +50,48 @@ extension KeyEdits on MarkdownDocument {
     return lineBreak(view, offset, hard: false);
   }
 
+  /// [text] pasted over the text from [from] to [to], with [removed]
+  /// between them (see [TextEdits.replaceText]). Pasted into an item's
+  /// text, each further line starts an item of its own, as Enter does
+  /// there; blank lines after the first go. Anywhere else, the lines go
+  /// in as they are.
+  (MarkdownDocument, LineCaret) paste(
+    ViewPlace from,
+    ViewPlace to,
+    String text, {
+    Iterable<EditView> removed = const [],
+  }) {
+    if (!_inItemText(from.view)) {
+      return replaceText(from, to, text, removed: removed);
+    }
+    final [first, ...rest] = text.split('\n');
+    return rest.where((line) => line.trim().isNotEmpty).fold(
+      replaceText(from, to, first, removed: removed),
+      (pasted, line) {
+        final (document, caret) = pasted;
+        final view = document._viewAt(caret);
+        final (entered, start) = document.enter(view, view.offsetOf(caret)!);
+        final next = entered._viewAt(start);
+        final place = (view: next, offset: next.offsetOf(start)!);
+        return entered.replaceText(place, place, line);
+      },
+    );
+  }
+
+  /// Whether [view] shows an item's text, or an empty item.
+  static bool _inItemText(EditView view) => switch (view) {
+    LeafView(:final leaf) => switch (leaf.parent) {
+      final ItemBlock item =>
+        leaf is ParagraphBlock || leaf.id == item.markerLine,
+      _ => false,
+    },
+    RawLineView() => false,
+  };
+
+  /// The view of the leaf [caret] is in, as it shows with the caret.
+  LeafView _viewAt(LineCaret caret) =>
+      LeafView.of(this, leafOf(caret.line), caretLine: caret.line);
+
   /// A new line at [offset] in [view], in the same block: with [hard], a
   /// hard line break (a backslash at the end of the line before), as
   /// every Markdown app shows it, but only in an item's text, where a
@@ -138,7 +180,7 @@ extension KeyEdits on MarkdownDocument {
       (line: view.lines.last.line.id, offset: view.lines.last.end);
 
   /// An empty [item] left: one level out, or out of its list, its line
-  /// keeping only the quote marks it is in.
+  /// keeping only the quote marks it is in (see [_leftAs]).
   (MarkdownDocument, LineCaret) _leaveItem(ItemBlock item) {
     final id = item.markerLine;
     if (outline.depthOf(item) > 0) {
@@ -146,8 +188,7 @@ extension KeyEdits on MarkdownDocument {
       return (outdented, (line: id, offset: outdented.lineOf(id)!.raw.length));
     }
     final line = lineOf(id)!;
-    final raw = outline.partsOf(item, line).outer.trimRight();
-    return (_withRaw(line, raw), (line: id, offset: raw.length));
+    return _leftAs(line, outline.partsOf(item, line).outer.trimRight());
   }
 
   /// An empty item above [item], in its style; the caret stays.
@@ -217,10 +258,31 @@ extension KeyEdits on MarkdownDocument {
   (MarkdownDocument, LineCaret) _leaveContainer(BlankBlock leaf) {
     final segment = _segmentOf(leaf)!;
     final line = leaf.lines.first.line;
-    final raw =
-        (line.raw.substring(0, segment.start) + line.raw.substring(segment.end))
-            .trimRight();
-    return (_withRaw(line, raw), (line: line.id, offset: raw.length));
+    return _leftAs(
+      line,
+      (line.raw.substring(0, segment.start) + line.raw.substring(segment.end))
+          .trimRight(),
+    );
+  }
+
+  /// [line], left out of a container, as [raw], with the caret at its
+  /// end. A blank line goes above it unless one is there, so what is
+  /// typed on it starts a block of its own instead of going on with the
+  /// text above (as a lazy continuation line).
+  (MarkdownDocument, LineCaret) _leftAs(MarkdownLine line, String raw) {
+    final index = indexOf(line.id);
+    final apart = index == 0 || leafOf(lines[index - 1].id) is BlankBlock;
+    return (
+      edited(
+        (newLine) => [
+          ...lines.take(index),
+          if (!apart) newLine(raw),
+          line.withRaw(raw),
+          ...lines.skip(index + 1),
+        ],
+      ),
+      (line: line.id, offset: raw.length),
+    );
   }
 
   /// The marks of the container blank [leaf] is right in, on its line;
@@ -234,9 +296,6 @@ extension KeyEdits on MarkdownDocument {
           .lastOrNull,
     _ => null,
   };
-
-  MarkdownDocument _withRaw(MarkdownLine line, String raw) =>
-      withLines([...lines]..[indexOf(line.id)] = line.withRaw(raw));
 }
 
 /// Whether a hard line break (a backslash and the line break after it)
