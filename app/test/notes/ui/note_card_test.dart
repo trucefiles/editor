@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note.dart';
+import 'package:truce_editor/notes/note_summary.dart';
 import 'package:truce_editor/notes/ui/note_card.dart';
 
 import '../../support.dart';
@@ -40,8 +41,8 @@ void main() {
 
   testWidgets('grows with the note up to the preview limit', (tester) async {
     final short = await heightWith(tester, 1);
-    final full = await heightWith(tester, NoteCard.previewLines);
-    final long = await heightWith(tester, NoteCard.previewLines * 4);
+    final full = await heightWith(tester, NoteSummary.previewLines);
+    final long = await heightWith(tester, NoteSummary.previewLines * 4);
 
     expect(short, lessThan(full));
     expect(long, full);

@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/note_folder.dart';
-import 'note_title.dart';
+import 'note_summary.dart';
 
 /// One note file, as last read.
 @immutable
 final class Note {
-  const Note({
+  Note({
     required this.folder,
     required this.path,
     required this.file,
@@ -27,7 +27,14 @@ final class Note {
 
   NoteKey get key => (folderId: folder.id, path: path);
 
-  String get title => noteTitle(file.text, path);
+  /// Worked out once, on first use, from [file].
+  late final NoteSummary _summary = NoteSummary.of(file.text, path);
+
+  String get title => _summary.title;
+
+  /// The preview of the note's text for its card; see [NoteSummary].
+  String preview({required bool hideDone}) =>
+      _summary.previewOf(hideDone: hideDone);
 
   /// This note with [folder]'s current name and color; itself if they are
   /// unchanged.
