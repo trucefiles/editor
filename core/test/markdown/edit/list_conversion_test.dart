@@ -98,8 +98,9 @@ void main() {
     );
   });
 
-  test('a numbered item takes the number it shows; others start at 1', () {
-    expect(converted('3. a\n7. b', ['b'], ListKind.checkbox), '3. a\n- [ ] b');
+  test('a numbered item keeps the number it shows, also with a box; '
+      'others start at 1', () {
+    expect(converted('3. a\n7. b', ['b'], ListKind.checkbox), '3. a\n4. [ ] b');
     expect(converted('3. a\n7. [ ] b', ['b'], ListKind.numbered), '3. a\n4. b');
     expect(converted('3. a\n- b', ['b'], ListKind.numbered), '3. a\n1. b');
   });

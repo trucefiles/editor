@@ -120,7 +120,7 @@ void main() {
         .toggle(id);
 
     expect(edited.lines[1].id, id);
-    expect(edited.text, doc.replaceFirst('- [ ] milk', '- [x] milk'));
+    expect(edited.text, doc.replaceFirst('- [ ] milk', '1. [x] milk'));
   });
 
   test('leafOf and leafById find the leaf of a line', () {

@@ -101,12 +101,7 @@ extension ListConversion on MarkdownDocument {
     }
     if (item.kind == kind) return this;
     final parts = outline.partsOf(item, line);
-    final style = ItemStyle.of(
-      kind,
-      bullet: item.marker.bullet ?? '-',
-      number: outline.numberOf(item) ?? 1,
-      delimiter: item.marker.delimiter ?? '.',
-    );
+    final style = ItemStyle.before(outline, item, kind);
     final changed = withLines(
       [...lines]
         ..[indexOf(id)] = line.withRaw(
