@@ -8,6 +8,7 @@ import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/block_starts.dart';
 import '../tree/blocks.dart';
+import 'line_writer.dart';
 
 /// Edits on a document's list items. Lines other than the items moved
 /// stay byte-identical and in place.
@@ -106,7 +107,7 @@ extension ItemEdits on MarkdownDocument {
     late final LineId id;
     final prefix = writer.itemPrefix(outline, place);
     final document = edited((newLine) {
-      final line = newLine('$prefix${style.marker}$text');
+      final line = newLine(LineWriter.itemLine(prefix, style.marker, text));
       id = line.id;
       return [...lines]..insert(at, line);
     });

@@ -121,22 +121,27 @@ void main() {
       expect(enter('- a\n  - [ ] ', '  - [ ] ', 0), ('- a\n- [ ] ', '- [ ] |'));
     });
 
-    test('in an empty item at the top, leaves the list', () {
-      expect(enter('- a\n-', '-', 0), ('- a\n', '|'));
-      expect(enter('- a\n- [ ] ', '- [ ] ', 0), ('- a\n', '|'));
+    test('in an empty item at the top, leaves the list below a blank line', () {
+      expect(enter('- a\n-', '-', 0), ('- a\n\n', '|'));
+      expect(enter('- a\n- [ ] ', '- [ ] ', 0), ('- a\n\n', '|'));
+    });
+
+    test('leaving needs no second blank line, nor one at the top', () {
+      expect(enter('- a\n\n-', '-', 0), ('- a\n\n', '|'));
+      expect(enter('-\n- a', '-', 0), ('\n- a', '|'));
     });
 
     test('leaving the list keeps the quote marks', () {
-      expect(enter('> - a\n> -', '> -', 0), ('> - a\n>', '>|'));
+      expect(enter('> - a\n> -', '> -', 0), ('> - a\n>\n>', '>|'));
     });
 
     test('on a blank line in a quote, leaves the quote', () {
-      expect(enter('> a\n> ', '> ', 0), ('> a\n', '|'));
-      expect(enter('> > a\n> >', '> >', 0), ('> > a\n>', '>|'));
+      expect(enter('> a\n> ', '> ', 0), ('> a\n\n', '|'));
+      expect(enter('> > a\n> >', '> >', 0), ('> > a\n>\n>', '>|'));
     });
 
     test("on a blank line in an item's blocks, leaves the item", () {
-      expect(enter('- a\n  ', '  ', 0), ('- a\n', '|'));
+      expect(enter('- a\n  ', '  ', 0), ('- a\n\n', '|'));
     });
 
     test('in a paragraph, a new line in it', () {
@@ -148,6 +153,46 @@ void main() {
       expect(enter('# h', '# h', 3), ('# h\n', '|'));
       expect(enter('```\ncode\n```', '```', 8), ('```\ncode\n\n```', '|'));
       expect(enter('', '', 0), ('\n', '|'));
+    });
+  });
+
+  group('paste', () {
+    (String, String) paste(String source, String raw, int offset, String text) {
+      final document = MarkdownDocument.parse(source);
+      final view = leafViewAt(document, raw, caret: true);
+      final place = (view: view, offset: offset);
+      final (edited, caret) = document.paste(place, place, text);
+      return (edited.text, marked(edited, caret));
+    }
+
+    test("into an item's text, each further line is an item", () {
+      expect(paste('- [ ] milk', '- [ ] milk', 4, ' oat\ntea\ncake'), (
+        '- [ ] milk oat\n- [ ] tea\n- [ ] cake',
+        '- [ ] cake|',
+      ));
+      expect(paste('1. a', '1. a', 1, '\nb'), ('1. a\n2. b', '2. b|'));
+    });
+
+    test('into an empty item, its kind goes on', () {
+      expect(paste('- [ ] ', '- [ ] ', 0, 'eggs\ntea'), (
+        '- [ ] eggs\n- [ ] tea',
+        '- [ ] tea|',
+      ));
+    });
+
+    test('in the middle of an item, the rest goes to the last line', () {
+      expect(paste('- ab', '- ab', 1, 'x\ny'), ('- ax\n- yb', '- y|b'));
+    });
+
+    test('blank lines after the first go', () {
+      expect(paste('- a', '- a', 1, '\n\nb\n'), ('- a\n- b', '- b|'));
+      expect(paste('- a', '- a', 0, '\nb'), ('- \n- ba', '- b|a'));
+      expect(paste('- a', '- a', 1, '\n\n'), ('- a', '- a|'));
+    });
+
+    test('anywhere else, the lines go in as they are', () {
+      expect(paste('text', 'text', 4, '\nmore'), ('text\nmore', 'more|'));
+      expect(paste('> a', '> a', 1, '\nb'), ('> a\n> b', '> b|'));
     });
   });
 
@@ -175,7 +220,7 @@ void main() {
     test('anywhere else, as Enter', () {
       expect(lineBreak('a', 'a', 1), ('a\n', '|'));
       expect(lineBreak('> a', '> a', 1), ('> a\n> ', '> |'));
-      expect(lineBreak('- a\n-', '-', 0), ('- a\n', '|'));
+      expect(lineBreak('- a\n-', '-', 0), ('- a\n\n', '|'));
     });
   });
 

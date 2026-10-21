@@ -24,9 +24,13 @@ only the lines you edit, byte for byte.
 ## Editing
 
 - **Enter** in an item starts the next item; in an empty item it goes
-  one level out, or out of the list. **Shift+Enter** (or the toolbar's
-  line break button) adds a line inside the same item, written as a `\`
-  line break.
+  one level out, or out of the list. A line taken out of a list or a
+  quote (by Enter, or by a list button turning an item back into text)
+  gets a blank line above it when it would else join the text above.
+  **Shift+Enter** (or the toolbar's line break button) adds a line
+  inside the same item, written as a `\` line break.
+- **Paste** into an item's text makes each further pasted line an item
+  of its own, as Enter would; blank lines between them go.
 - **Lists and numbering.** Numbered items count on from the first number
   of their list. A new numbered sublist starts at 1.
 - **Lazy lines.** A line of text right below an item's or a quote's text

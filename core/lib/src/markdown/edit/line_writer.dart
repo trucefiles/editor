@@ -45,6 +45,27 @@ final class LineWriter {
   static final _markerCharacter = RegExp(r'[^>\s]');
   static final _trailingBox = RegExp(r'\[[ xX]\][ \t]*$');
 
+  /// The lines that write [content] after the quote marks [outer], a line
+  /// an edit took out of a list or a quote, right below the leaf [above]
+  /// (none at the top). Below the text of an item or a quote, Markdown
+  /// would read the line as more of that text, so a blank line with the
+  /// same quote marks goes first.
+  static List<String> outOfContainer(
+    String outer,
+    String content, {
+    required LeafBlock? above,
+  }) => [
+    if (above is ParagraphBlock &&
+        (above.parent is ItemBlock || above.parent is QuoteBlock))
+      outer.trimRight(),
+    content.isEmpty ? outer.trimRight() : '$outer$content',
+  ];
+
+  /// An item's line: [prefix] (its quote marks and indent), [marker] (as
+  /// [ItemStyle] writes it) and [content].
+  static String itemLine(String prefix, String marker, String content) =>
+      withContent('$prefix$marker', content);
+
   /// A line with [prefix] and then [content]. A marker that ends the
   /// prefix gets a space before content, as Markdown needs.
   static String withContent(String prefix, String content) =>

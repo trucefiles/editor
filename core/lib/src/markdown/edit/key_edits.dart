@@ -5,6 +5,7 @@ import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
 import '../view/edit_view.dart';
+import 'container_exits.dart';
 import 'item_edits.dart';
 import 'line_writer.dart';
 import 'text_edits.dart';
@@ -32,23 +33,50 @@ extension KeyEdits on MarkdownDocument {
   }) {
     if (view.held) return lineBreak(view, offset, hard: false);
     final leaf = view.leaf;
-    final item = switch (leaf.parent) {
-      final ItemBlock item => item,
-      _ => null,
+    return switch ((leaf.textItem, leaf)) {
+      (final item?, BlankBlock()) => _leaveItem(item),
+      (final item?, _) =>
+        offset == 0 && item.leaves.first == leaf
+            ? _itemAbove(item, view)
+            : _splitItem(item, view, offset, shownBelow),
+      (null, final BlankBlock blank) when _segmentOf(blank) != null =>
+        _leaveContainer(blank),
+      _ => lineBreak(view, offset, hard: false),
     };
-    if (item != null && leaf is BlankBlock && leaf.id == item.markerLine) {
-      return _leaveItem(item);
-    }
-    if (item != null && leaf is ParagraphBlock) {
-      return offset == 0 && item.leaves.first == leaf
-          ? _itemAbove(item, view)
-          : _splitItem(item, view, offset, shownBelow);
-    }
-    if (leaf is BlankBlock && _segmentOf(leaf) != null) {
-      return _leaveContainer(leaf);
-    }
-    return lineBreak(view, offset, hard: false);
   }
+
+  /// [text] pasted over the text from [from] to [to], with [removed]
+  /// between them (see [TextEdits.replaceText]). Pasted into an item's
+  /// text, each further line starts an item of its own, as Enter does
+  /// there; blank lines after the first go. Anywhere else, the lines go
+  /// in as they are.
+  (MarkdownDocument, LineCaret) paste(
+    ViewPlace from,
+    ViewPlace to,
+    String text, {
+    Iterable<EditView> removed = const [],
+  }) {
+    if (from.view
+        case LeafView(leaf: LeafBlock(textItem: null)) || RawLineView()) {
+      return replaceText(from, to, text, removed: removed);
+    }
+    final [first, ...rest] = text.split('\n');
+    return rest.where((line) => line.trim().isNotEmpty).fold(
+      replaceText(from, to, first, removed: removed),
+      (pasted, line) {
+        final (document, caret) = pasted;
+        final view = document._viewAt(caret);
+        final (entered, start) = document.enter(view, view.offsetOf(caret)!);
+        final next = entered._viewAt(start);
+        final place = (view: next, offset: next.offsetOf(start)!);
+        return entered.replaceText(place, place, line);
+      },
+    );
+  }
+
+  /// The view of the leaf [caret] is in, as it shows with the caret.
+  LeafView _viewAt(LineCaret caret) =>
+      LeafView.of(this, leafOf(caret.line), caretLine: caret.line);
 
   /// A new line at [offset] in [view], in the same block: with [hard], a
   /// hard line break (a backslash at the end of the line before), as
@@ -145,9 +173,7 @@ extension KeyEdits on MarkdownDocument {
       final outdented = outdent(id);
       return (outdented, (line: id, offset: outdented.lineOf(id)!.raw.length));
     }
-    final line = lineOf(id)!;
-    final raw = outline.partsOf(item, line).outer.trimRight();
-    return (_withRaw(line, raw), (line: id, offset: raw.length));
+    return _leftOut(id, outer: outline.partsOf(item, lineOf(id)!).outer);
   }
 
   /// An empty item above [item], in its style; the caret stays.
@@ -177,13 +203,15 @@ extension KeyEdits on MarkdownDocument {
         ? (_hiddenEnd(item, view.leaf, shownBelow) ?? indexOf(line.id) + 1)
         : indexOf(line.id) + 1;
     final end = view.lines.firstWhere((part) => part.line.id == line.id).end;
-    final prefix =
-        writer.itemPrefix(outline, BesideItem(item, outline.depthOf(item))) +
-        ItemStyle.after(outline, item, item.kind).marker;
+    final moved = line.raw.substring(caret.offset, end);
     late final MarkdownLine added;
     final split = edited((newLine) {
       added = newLine(
-        LineWriter.withContent(prefix, line.raw.substring(caret.offset, end)),
+        LineWriter.itemLine(
+          writer.itemPrefix(outline, BesideItem(item, outline.depthOf(item))),
+          ItemStyle.after(outline, item, item.kind).marker,
+          moved,
+        ),
       );
       final index = indexOf(line.id);
       return [...lines]
@@ -192,7 +220,7 @@ extension KeyEdits on MarkdownDocument {
         )
         ..insert(at, added);
     });
-    return (split, (line: added.id, offset: prefix.length));
+    return (split, (line: added.id, offset: added.raw.length - moved.length));
   }
 
   /// The index past the last of [item]'s blocks after [leaf] that the
@@ -217,10 +245,19 @@ extension KeyEdits on MarkdownDocument {
   (MarkdownDocument, LineCaret) _leaveContainer(BlankBlock leaf) {
     final segment = _segmentOf(leaf)!;
     final line = leaf.lines.first.line;
-    final raw =
-        (line.raw.substring(0, segment.start) + line.raw.substring(segment.end))
-            .trimRight();
-    return (_withRaw(line, raw), (line: line.id, offset: raw.length));
+    return _leftOut(
+      line.id,
+      outer:
+          line.raw.substring(0, segment.start) +
+          line.raw.substring(segment.end),
+    );
+  }
+
+  /// Line [id] out of its container, keeping the quote marks [outer]
+  /// (see [ContainerExits.outOfContainer]), with the caret at its end.
+  (MarkdownDocument, LineCaret) _leftOut(LineId id, {required String outer}) {
+    final left = outOfContainer(id, outer: outer);
+    return (left, (line: id, offset: left.lineOf(id)!.raw.length));
   }
 
   /// The marks of the container blank [leaf] is right in, on its line;
@@ -234,9 +271,6 @@ extension KeyEdits on MarkdownDocument {
           .lastOrNull,
     _ => null,
   };
-
-  MarkdownDocument _withRaw(MarkdownLine line, String raw) =>
-      withLines([...lines]..[indexOf(line.id)] = line.withRaw(raw));
 }
 
 /// Whether a hard line break (a backslash and the line break after it)

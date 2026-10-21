@@ -5,7 +5,9 @@ import '../document/markdown_document.dart';
 import '../lines/line_id.dart';
 import '../lines/markdown_line.dart';
 import '../tree/blocks.dart';
+import 'container_exits.dart';
 import 'item_edits.dart';
+import 'line_writer.dart';
 
 extension ListConversion on MarkdownDocument {
   /// Turns the lines [ids] into items of [kind], as a list button in a
@@ -71,14 +73,14 @@ extension ListConversion on MarkdownDocument {
   };
 
   /// Line [id], an item, as a line of text: what it holds in the item,
-  /// after the quote marks the item is in.
+  /// after the quote marks the item is in, out of the list.
   MarkdownDocument _toText(LineId id) {
     final item = outline.itemOf(id)!;
     final line = lineOf(id)!;
-    final parts = outline.partsOf(item, line);
-    return withLines(
-      [...lines]
-        ..[indexOf(id)] = line.withRaw('${parts.outer}${_inItem(item, line)}'),
+    return outOfContainer(
+      id,
+      outer: outline.partsOf(item, line).outer,
+      content: _inItem(item, line),
     );
   }
 
@@ -96,7 +98,11 @@ extension ListConversion on MarkdownDocument {
         final place => place,
       };
       final style = ItemStyle.of(kind, bullet: _bulletNear(index) ?? '-');
-      final raw = '${writer.itemPrefix(outline, place)}${style.marker}$content';
+      final raw = LineWriter.itemLine(
+        writer.itemPrefix(outline, place),
+        style.marker,
+        content,
+      );
       return withLines([...lines]..[index] = line.withRaw(raw));
     }
     if (item.kind == kind) return this;
@@ -105,7 +111,11 @@ extension ListConversion on MarkdownDocument {
     final changed = withLines(
       [...lines]
         ..[indexOf(id)] = line.withRaw(
-          '${parts.outer}${parts.indent}${style.marker}${_inItem(item, line)}',
+          LineWriter.itemLine(
+            '${parts.outer}${parts.indent}',
+            style.marker,
+            _inItem(item, line),
+          ),
         ),
     );
     final now = changed.outline.itemOf(id);
@@ -172,7 +182,12 @@ extension ListConversion on MarkdownDocument {
     final style = ItemStyle.of(kind);
     if (text.isEmpty) {
       final only = lines.single;
-      return (withLines([only.withRaw(style.marker)]), only.id);
+      final raw = LineWriter.itemLine(
+        writer.itemPrefix(outline, outline.placeAt(0, 0)),
+        style.marker,
+        '',
+      );
+      return (withLines([only.withRaw(raw)]), only.id);
     }
     final at = textEnd;
     return insertItem(at, style, place: outline.placeAt(at, 0));

@@ -106,6 +106,14 @@ final class NoteDocumentController extends ChangeNotifier {
     Iterable<EditView> removed = const [],
   }) => _applyAt(_document.replaceText(from, to, text, removed: removed));
 
+  /// See [KeyEdits.paste].
+  LineCaret paste(
+    ViewPlace from,
+    ViewPlace to,
+    String text, {
+    Iterable<EditView> removed = const [],
+  }) => _applyAt(_document.paste(from, to, text, removed: removed));
+
   /// Enter at [offset] in [view]: see [KeyEdits.enter]; in a line as it
   /// is in the file, a new line.
   LineCaret enter(EditView view, int offset) => _applyAt(switch (view) {

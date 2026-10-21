@@ -140,16 +140,23 @@ final class NoteActions {
   }
 
   /// Writes [deleted] back with its mark and settings, and rescans. Never
-  /// overwrites a file that was created at its path meanwhile.
+  /// overwrites: if a file was created at its path meanwhile, the note
+  /// comes back beside it, under the next free numbered name.
   Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async {
     final DeletedNote(:note, :text, :mark, :settings) = deleted;
-    final restored = await _ref
-        .read(noteFilesProvider(note.folder))
-        .restore(note, text);
-    if (restored is Ok) {
+    final files = _ref.read(noteFilesProvider(note.folder));
+    final restored = switch (await files.restore(note, text)) {
+      Err(error: StoreError.alreadyExists) => await files.copyIn(
+        note,
+        text,
+        subfolder: note.path.parent,
+      ),
+      final restored => restored,
+    };
+    if (restored case Ok(value: final back)) {
       // Even no mark: else an older mark from another device would win.
-      await _marksOf(note).set(note.path, mark);
-      await _settings.edit(note.key, (_) => settings);
+      await _marksOf(back).set(back.path, mark);
+      await _settings.edit(back.key, (_) => settings);
     }
     await _scans.refresh();
     return switch (restored) {

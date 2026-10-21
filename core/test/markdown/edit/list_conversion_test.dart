@@ -46,6 +46,12 @@ void main() {
     expect(converted('  1. a', ['a'], ListKind.numbered), 'a');
   });
 
+  test('an item turned back into text below an item stays out of it', () {
+    expect(converted('- a\n- b', ['b'], ListKind.bullet), '- a\n\nb');
+    expect(converted('- a\n- b\n- c', ['b'], ListKind.bullet), '- a\n\nb\n- c');
+    expect(converted('> - a\n> - b', ['b'], ListKind.bullet), '> - a\n>\n> b');
+  });
+
   test('mixed lines all become the kind', () {
     expect(
       converted('- [ ] a\nb', ['a', 'b'], ListKind.checkbox),
