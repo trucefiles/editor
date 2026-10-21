@@ -372,7 +372,7 @@ void main() {
     await leaveExpecting(tester, '# Note\nok \n');
   });
 
-  testApp('deleting the middle numbered item renumbers the rest', (
+  testApp('deleting the middle numbered item leaves the other lines alone', (
     tester,
   ) async {
     await openVisual(tester, 'Steps', '# Steps\n1. one\n2. two\n3. three\n');
@@ -382,7 +382,7 @@ void main() {
     await tester.tapAndSettle(find.text('Delete'));
     await tester.pumpAndSettle();
 
-    await leaveExpecting(tester, '# Steps\n1. one\n2. three\n');
+    await leaveExpecting(tester, '# Steps\n1. one\n3. three\n');
   });
 
   testApp('adding the same folder twice keeps one', (tester) async {
