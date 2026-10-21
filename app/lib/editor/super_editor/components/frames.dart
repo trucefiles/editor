@@ -40,9 +40,14 @@ Widget framed(
   );
 }
 
+/// Space between a marker and its item's text.
+const _markerGap = 8.0;
+
 /// The marker of [item]: its box, which [onToggle] checks or unchecks,
-/// its bullet, or its number, in [style]. Centered on the item's first
-/// line of text, also where it is higher than the line.
+/// its bullet, or its number, in [style]. Every kind ends the same gap
+/// before the text, as lists are drawn on the web, so numbers line up on
+/// their dot; centered on the item's first line of text, also where it is
+/// higher than the line.
 class MarkerView extends StatelessWidget {
   const MarkerView(this.item, {required this.style, this.onToggle, super.key});
 
@@ -51,11 +56,15 @@ class MarkerView extends StatelessWidget {
   final VoidCallback? onToggle;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) => Container(
     width: itemMarkerWidth,
     height: _lineHeight(context),
+    padding: const EdgeInsetsDirectional.only(end: _markerGap),
     child: OverflowBox(
+      minWidth: 0,
+      maxWidth: double.infinity,
       maxHeight: double.infinity,
+      alignment: AlignmentDirectional.centerEnd,
       child: switch (item.kind) {
         ListKind.checkbox => Checkbox(
           value: item.checked,

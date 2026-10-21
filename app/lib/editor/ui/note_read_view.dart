@@ -26,16 +26,19 @@ class NoteReadView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: note,
-    builder: (context, _) => Markdown(
-      data: _withoutFrontMatter(note.document),
-      selectable: true,
-      extensionSet: md.ExtensionSet.gitHubWeb,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-      onTapLink: (_, href, _) {
-        if (href != null) onLink(href);
-      },
-      imageBuilder: (uri, _, alt) =>
-          NoteImage(uri.toString(), alt: alt ?? '', images: images),
+    // Selectable as a whole: text selectable block by block would make
+    // each block a scroll view of its own, which takes the page's drags.
+    builder: (context, _) => SelectionArea(
+      child: Markdown(
+        data: _withoutFrontMatter(note.document),
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+        onTapLink: (_, href, _) {
+          if (href != null) onLink(href);
+        },
+        imageBuilder: (uri, _, alt) =>
+            NoteImage(uri.toString(), alt: alt ?? '', images: images),
+      ),
     ),
   );
 }

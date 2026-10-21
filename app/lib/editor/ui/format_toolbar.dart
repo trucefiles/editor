@@ -4,7 +4,9 @@ import 'package:truce_core/truce_core.dart';
 import '../text_format.dart';
 
 /// Buttons that format the selected text, turn the selected lines into a
-/// list of a kind, and break the line within its block.
+/// list of a kind, and break the line within its block. A bar at the
+/// bottom of the screen: its buttons stay clear of the system's bottom
+/// edge (e.g. Android's gesture line), its color goes under it.
 class FormatToolbar extends StatelessWidget {
   const FormatToolbar({
     required this.onFormat,
@@ -33,28 +35,31 @@ class FormatToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surfaceContainer,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final (format, icon, label) in _formats)
+    child: SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final (format, icon, label) in _formats)
+              IconButton(
+                tooltip: label,
+                icon: Icon(icon),
+                onPressed: () => onFormat(format),
+              ),
+            for (final (kind, icon, label) in _lists)
+              IconButton(
+                tooltip: label,
+                icon: Icon(icon),
+                onPressed: () => onList(kind),
+              ),
             IconButton(
-              tooltip: label,
-              icon: Icon(icon),
-              onPressed: () => onFormat(format),
+              tooltip: 'Line break (Shift+Enter)',
+              icon: const Icon(Icons.keyboard_return),
+              onPressed: onLineBreak,
             ),
-          for (final (kind, icon, label) in _lists)
-            IconButton(
-              tooltip: label,
-              icon: Icon(icon),
-              onPressed: () => onList(kind),
-            ),
-          IconButton(
-            tooltip: 'Line break (Shift+Enter)',
-            icon: const Icon(Icons.keyboard_return),
-            onPressed: onLineBreak,
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );

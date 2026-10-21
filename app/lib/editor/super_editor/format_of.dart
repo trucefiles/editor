@@ -4,13 +4,14 @@ import 'package:truce_core/truce_core.dart';
 import '../text_format.dart';
 import 'note_nodes.dart';
 
-/// Applies [format] to [selection] in [editor], as Markdown marks in the
-/// node's text; a [TextFormat.link] goes to [url]. Does nothing without a
-/// selection, for a selection across nodes, in text without inline
-/// formatting (code, a table being edited; as the view of a node tells,
-/// see [viewOf]), or a heading in a list item or quote.
-void applyFormat(
-  Editor editor,
+/// [format] applied to [selection] in [document], as Markdown marks in
+/// the node's text: the node and its text with the selection after it.
+/// A [TextFormat.link] goes to [url]. `null` without a selection, for a
+/// selection across nodes, in text without inline formatting (code, a
+/// table being edited; as the view of a node tells, see [viewOf]), or a
+/// heading in a list item or quote.
+({String nodeId, FormattedText formatted})? formatOf(
+  Document document,
   TextFormat format, {
   required DocumentSelection? selection,
   required EditView? Function(String nodeId) viewOf,
@@ -21,9 +22,9 @@ void applyFormat(
       view == null ||
       selection.base.nodeId != selection.extent.nodeId ||
       !view.kind.hasInlines) {
-    return;
+    return null;
   }
-  final node = editor.document.getNodeById(selection.extent.nodeId);
+  final node = document.getNodeById(selection.extent.nodeId);
   final (base, extent) = (
     selection.base.nodePosition,
     selection.extent.nodePosition,
@@ -31,7 +32,7 @@ void applyFormat(
   if (node is! TextNode ||
       base is! TextNodePosition ||
       extent is! TextNodePosition) {
-    return;
+    return null;
   }
   final text = node.text.toPlainText();
   final (start, end) = base.offset <= extent.offset
@@ -48,20 +49,5 @@ void applyFormat(
     ),
     TextFormat.heading => null,
   };
-  if (formatted == null) return;
-  DocumentPosition at(int offset) => DocumentPosition(
-    nodeId: node.id,
-    nodePosition: TextNodePosition(offset: offset),
-  );
-  editor.execute([
-    ReplaceNodeRequest(
-      existingNodeId: node.id,
-      newNode: node.copyTextNodeWith(text: AttributedText(formatted.text)),
-    ),
-    ChangeSelectionRequest(
-      DocumentSelection(base: at(formatted.start), extent: at(formatted.end)),
-      SelectionChangeType.alteredContent,
-      SelectionReason.userInteraction,
-    ),
-  ]);
+  return formatted == null ? null : (nodeId: node.id, formatted: formatted);
 }

@@ -38,21 +38,29 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Iterable<InlineSpan> spans(WidgetTester tester) => tester
-      .widgetList<SelectableText>(find.byType(SelectableText))
-      .expand((text) {
+  /// The texts shown, as the page shows them; icons (boxes) left out.
+  Iterable<InlineSpan> texts(WidgetTester tester) => tester
+      .elementList(
+        find.descendant(
+          of: find.byType(SelectionArea),
+          matching: find.byType(RichText),
+        ),
+      )
+      .where((text) => text.findAncestorWidgetOfExactType<Icon>() == null)
+      .map((text) => (text.widget as RichText).text);
+
+  Iterable<InlineSpan> spans(WidgetTester tester) =>
+      texts(tester).expand((text) {
         final spans = <InlineSpan>[];
-        text.textSpan!.visitChildren((span) {
+        text.visitChildren((span) {
           spans.add(span);
           return true;
         });
         return spans;
       });
 
-  String shown(WidgetTester tester) => tester
-      .widgetList<SelectableText>(find.byType(SelectableText))
-      .map((text) => text.textSpan!.toPlainText())
-      .join('\n');
+  String shown(WidgetTester tester) =>
+      texts(tester).map((text) => text.toPlainText()).join('\n');
 
   /// Taps the link that shows [text].
   Future<void> tapLink(WidgetTester tester, String text) async {

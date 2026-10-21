@@ -38,17 +38,13 @@ TextChange? textChangeOf(Document document, Map<String, EditView> views) {
     for (final row in rows)
       if (row.anchor >= first && row.anchor <= last) row.text,
   ].join('\n');
-  final head = _sameCount(before.codeUnits, after.codeUnits);
-  final tail = _sameCount(
-    before.substring(head).codeUnits.reversed,
-    after.substring(head).codeUnits.reversed,
-  );
-  final from = _placeAt(shown, head);
-  final to = _placeAt(shown, before.length - tail);
+  final difference = textDifference(before, after);
+  final from = _placeAt(shown, difference.start);
+  final to = _placeAt(shown, difference.end);
   return (
     from: (view: shown[from.index], offset: from.offset),
     to: (view: shown[to.index], offset: to.offset),
-    text: after.substring(head, after.length - tail),
+    text: difference.text,
     removed: shown.sublist(from.index + 1, max(from.index + 1, to.index)),
   );
 }
@@ -97,6 +93,24 @@ String? _textOf(DocumentNode? node, EditView view) => switch (node) {
   ], (starts, view) => [...starts, starts.last + view.text.length + 1]);
   final index = starts.lastIndexWhere((start) => start <= offset);
   return (index: index, offset: offset - starts[index]);
+}
+
+/// What makes [after] of [before]: the part of [before] from [start] to
+/// [end] replaced by [text], the smallest such part.
+({int start, int end, String text}) textDifference(
+  String before,
+  String after,
+) {
+  final head = _sameCount(before.codeUnits, after.codeUnits);
+  final tail = _sameCount(
+    before.substring(head).codeUnits.reversed,
+    after.substring(head).codeUnits.reversed,
+  );
+  return (
+    start: head,
+    end: before.length - tail,
+    text: after.substring(head, after.length - tail),
+  );
 }
 
 /// How many items [a] and [b] have equal at their start.

@@ -180,6 +180,26 @@ final class NoteEditorAdapter
     }
   }
 
+  /// The text of node [nodeId] replaced by [formatted], its selection
+  /// then where [formatted] puts it.
+  void replaceNodeText(String nodeId, FormattedText formatted) {
+    final view = _views[nodeId];
+    if (view == null) return;
+    final change = textDifference(view.text, formatted.text);
+    final caret = note.replaceText(
+      (view: view, offset: change.start),
+      (view: view, offset: change.end),
+      change.text,
+    );
+    final shown = _viewAt((line: view.id, offset: 0));
+    _next = shown == null
+        ? _collapsed(caret)
+        : (
+            base: shown.caretAt(formatted.start),
+            extent: shown.caretAt(formatted.end),
+          );
+  }
+
   @override
   bool indentAtCaret({required bool outdent}) {
     final item = switch (_views[_composer.selection?.extent.nodeId]) {
@@ -236,8 +256,7 @@ final class NoteEditorAdapter
       change.text,
       removed: change.removed,
     );
-    // A selection the edit left (e.g. formatted text) stays as it is in
-    // the text.
+    // A selection the edit left stays as it is in the text.
     if (_composer.selection?.isCollapsed ?? true) _next = _collapsed(caret);
     // The edit is in the views already, also before the editor shows the
     // note again: a next edit before then counts from it.

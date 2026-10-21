@@ -10,9 +10,9 @@ import '../ui/format_toolbar.dart';
 import '../ui/link_dialog.dart';
 import '../ui/note_image.dart';
 import '../ui/note_read_view.dart';
-import 'apply_format.dart';
 import 'components/display_component_builder.dart';
 import 'components/leaf_builder.dart';
+import 'format_of.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
@@ -60,6 +60,9 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   /// lays the whole note out anew for each new stylesheet.
   late NoteLook _look;
 
+  /// The caret and handles on touch Android, in the look's color.
+  SuperEditorAndroidControlsController? _androidControls;
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +93,14 @@ class _NoteEditorViewState extends State<NoteEditorView> {
         monospace: _mode == NoteMode.markdown,
         images: widget.images,
       );
+      final old = _androidControls;
+      _androidControls = SuperEditorAndroidControlsController(
+        controlsColor: _look.handleColor,
+      );
+      // Once the editor has let go of it.
+      if (old != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+      }
     }
   }
 
@@ -98,6 +109,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   @override
   void dispose() {
     _adapter?.dispose();
+    _androidControls?.dispose();
     _marks?.close();
     _focus.dispose();
     super.dispose();
@@ -115,13 +127,16 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       // Changed from elsewhere meanwhile: the selection may no longer fit.
       if (url.isEmpty || _textOf(selection) != before) return;
     }
-    applyFormat(
-      editor,
-      format,
-      selection: selection,
-      viewOf: _adapter!.viewOf,
-      url: url,
-    );
+    if (formatOf(
+          editor.document,
+          format,
+          selection: selection,
+          viewOf: _adapter!.viewOf,
+          url: url,
+        )
+        case (:final nodeId, :final formatted)) {
+      _adapter!.replaceNodeText(nodeId, formatted);
+    }
     _focus.requestFocus();
   }
 
@@ -165,7 +180,6 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       stylesheet: look.stylesheet,
       selectionStyle: look.selection,
       documentOverlayBuilders: look.overlays,
-      androidHandleColor: look.handleColor,
       customStylePhases: [_marks!],
       componentBuilders: [
         MappedBuilder<LeafViewModel>(
@@ -189,7 +203,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     final hinted = Stack(
       children: [
-        editor,
+        SuperEditorAndroidControlsScope(
+          controller: _androidControls!,
+          child: editor,
+        ),
         EmptyNoteHint(widget.note, padding: noteFirstLinePadding),
       ],
     );

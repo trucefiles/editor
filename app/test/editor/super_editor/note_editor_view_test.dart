@@ -173,6 +173,49 @@ void main() {
     expect(text.text, '> quote');
   });
 
+  group('a format keeps the caret where it puts it', () {
+    Future<void> press(WidgetTester tester, String tooltip, int times) async {
+      for (final _ in Iterable<void>.generate(times)) {
+        await tester.tap(find.byTooltip(tooltip));
+        await tester.pumpAndSettle();
+      }
+    }
+
+    for (final (start, presses, typed) in [
+      ('', 1, '# x'),
+      ('', 2, '## x'),
+      ('', 3, '### x'),
+      ('Title', 1, '# Titlex'),
+      ('Title', 2, '## Titlex'),
+    ]) {
+      testWidgets('Heading $presses times on "$start", then typing', (
+        tester,
+      ) async {
+        final text = FakeNoteText(start);
+        await pumpEditor(tester, text);
+
+        await tester.caretIn(paragraphNodeOf(), start.length);
+        await press(tester, 'Heading', presses);
+        await tester.typeImeText('x');
+
+        expect(text.text, typed);
+      });
+    }
+
+    testWidgets('Bold with no selection types between its marks', (
+      tester,
+    ) async {
+      final text = FakeNoteText('buy ');
+      await pumpEditor(tester, text);
+
+      await tester.caretIn(paragraphNodeOf(), 4);
+      await press(tester, 'Bold (Ctrl+B)', 1);
+      await tester.typeImeText('milk');
+
+      expect(text.text, 'buy **milk**');
+    });
+  });
+
   group('Link', () {
     Future<void> addLink(WidgetTester tester, String url) async {
       await tester.enterText(find.byType(TextField), url);

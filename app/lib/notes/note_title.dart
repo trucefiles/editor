@@ -62,7 +62,8 @@ String notePreviewIn(
 }
 
 /// The non-empty lines of [leaf] for a preview: indented by the items it
-/// is in, the item's marker before the first line of the item.
+/// is in, the item's marker before the first line of the item; a
+/// horizontal line drawn as [_rule], so lines that separate show.
 Iterable<String> _previewLines(MarkdownDocument document, LeafBlock leaf) {
   final item = document.outline.itemOf(leaf.id);
   final depth = item == null ? 0 : document.outline.depthOf(item);
@@ -73,12 +74,16 @@ Iterable<String> _previewLines(MarkdownDocument document, LeafBlock leaf) {
           ListKind.numbered => '${document.outline.numberOf(item)}. ',
         }
       : null;
-  final lines = document
-      .plainTextOf(leaf)
-      .split('\n')
-      .where((line) => line.trim().isNotEmpty);
+  final text = switch (leaf) {
+    RuleBlock() => _rule,
+    _ => document.plainTextOf(leaf),
+  };
+  final lines = text.split('\n').where((line) => line.trim().isNotEmpty);
   return [
     for (final (index, line) in lines.indexed)
       '${'  ' * depth}${index == 0 ? marker ?? '' : ''}${line.trim()}',
   ];
 }
+
+/// A horizontal line in a preview.
+const _rule = '─────';
