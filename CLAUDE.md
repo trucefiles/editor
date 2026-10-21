@@ -34,6 +34,7 @@ Prefer the simpler option when in doubt.
 
 ## Robustness
 - No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
+- No compromises: when an abstraction (our own or a library's) only allows a shortcut, change or improve the abstraction instead. Code is never temporary; structure and design stay healthy with every change.
 - Expected failures are result values; exceptions are only for bugs.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
 - Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.

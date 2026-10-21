@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -181,26 +183,44 @@ void main() {
       }
     }
 
-    for (final (start, presses, typed) in [
-      ('', 1, '# x'),
-      ('', 2, '## x'),
-      ('', 3, '### x'),
-      ('Title', 1, '# Titlex'),
-      ('Title', 2, '## Titlex'),
+    // The caret at the end of the line it is on, then a few presses.
+    for (final (start, caret, presses, typed) in [
+      ('', 0, 1, '# x'),
+      ('', 0, 2, '## x'),
+      ('', 0, 3, '### x'),
+      ('Title', 5, 1, '# Titlex'),
+      ('Title', 5, 2, '## Titlex'),
+      ('Title', 5, 4, 'Titlex'),
+      ('a\nb', 3, 1, 'a\n# bx'),
+      ('a\nb', 3, 2, 'a\n## bx'),
+      ('a\nb\nc', 3, 1, 'a\n# bx\nc'),
+      ('a\nb\nc', 5, 1, 'a\nb\n# cx'),
+      ('Title\n===', 5, 1, 'Titlex\n---'),
+      ('Title\n---', 5, 1, '### Titlex'),
     ]) {
-      testWidgets('Heading $presses times on "$start", then typing', (
-        tester,
-      ) async {
+      testWidgets('Heading $presses times at $caret in ${jsonEncode(start)}, '
+          'then typing', (tester) async {
         final text = FakeNoteText(start);
         await pumpEditor(tester, text);
 
-        await tester.caretIn(paragraphNodeOf(), start.length);
+        await tester.caretIn(paragraphNodeOf(), caret);
         await press(tester, 'Heading', presses);
         await tester.typeImeText('x');
 
         expect(text.text, typed);
       });
     }
+
+    testWidgets('Bold keeps the selected word selected', (tester) async {
+      final text = FakeNoteText('a\nbuy milk');
+      await pumpEditor(tester, text);
+
+      await tester.selectWordIn(paragraphNodeOf(), 7);
+      await press(tester, 'Bold (Ctrl+B)', 1);
+      await tester.typeImeText('eggs');
+
+      expect(text.text, 'a\nbuy **eggs**');
+    });
 
     testWidgets('Bold with no selection types between its marks', (
       tester,

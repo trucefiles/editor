@@ -137,4 +137,37 @@ void main() {
 
     expect(refreshes, 0);
   });
+
+  testWidgets('a scroll view inside the page scrolls as anywhere else', (
+    tester,
+  ) async {
+    refreshes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PullToRefresh(
+            onRefresh: () async => refreshes++,
+            child: ListView(
+              children: [
+                for (var i = 0; i < 40; i++)
+                  // Text that scrolls in itself, like selectable text,
+                  // but fits: it takes no drags.
+                  SizedBox(
+                    height: 50,
+                    child: SingleChildScrollView(child: Text('line $i')),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.drag(find.text('line 5'), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(find.text('line 0'), findsNothing, reason: 'the page scrolled');
+
+    await tester.drag(find.text('line 12'), const Offset(0, 100));
+    await tester.pumpAndSettle();
+    expect(refreshes, 0);
+  });
 }

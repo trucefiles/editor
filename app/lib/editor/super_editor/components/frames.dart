@@ -45,9 +45,9 @@ const _markerGap = 8.0;
 
 /// The marker of [item]: its box, which [onToggle] checks or unchecks,
 /// its bullet, or its number, in [style]. Every kind ends the same gap
-/// before the text, as lists are drawn on the web, so numbers line up on
-/// their dot; centered on the item's first line of text, also where it is
-/// higher than the line.
+/// before the text (a box where it is drawn), as lists are drawn on the
+/// web, so numbers line up on their dot; centered on the item's first
+/// line of text, also where it is higher than the line.
 class MarkerView extends StatelessWidget {
   const MarkerView(this.item, {required this.style, this.onToggle, super.key});
 
@@ -56,15 +56,15 @@ class MarkerView extends StatelessWidget {
   final VoidCallback? onToggle;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => SizedBox(
     width: itemMarkerWidth,
     height: _lineHeight(context),
-    padding: const EdgeInsetsDirectional.only(end: _markerGap),
-    child: OverflowBox(
-      minWidth: 0,
-      maxWidth: double.infinity,
-      maxHeight: double.infinity,
-      alignment: AlignmentDirectional.centerEnd,
+    child: CustomSingleChildLayout(
+      delegate: _MarkerLayout(
+        Directionality.of(context),
+        // A checkbox draws its box in the middle of its tap area.
+        drawnWidth: item.kind == ListKind.checkbox ? Checkbox.width : null,
+      ),
       child: switch (item.kind) {
         ListKind.checkbox => Checkbox(
           value: item.checked,
@@ -94,6 +94,35 @@ class MarkerView extends StatelessWidget {
     painter.dispose();
     return height;
   }
+}
+
+/// A marker as large as it wants, placed so that what it draws, the
+/// [drawnWidth] in its middle (all of it if `null`), ends [_markerGap]
+/// before the end of its slot; centered in the slot's height.
+class _MarkerLayout extends SingleChildLayoutDelegate {
+  const _MarkerLayout(this.direction, {this.drawnWidth});
+
+  final TextDirection direction;
+  final double? drawnWidth;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      const BoxConstraints();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final margin = (childSize.width - (drawnWidth ?? childSize.width)) / 2;
+    final fromEnd = _markerGap - margin;
+    return Offset(switch (direction) {
+      TextDirection.ltr => size.width - fromEnd - childSize.width,
+      TextDirection.rtl => fromEnd,
+    }, (size.height - childSize.height) / 2);
+  }
+
+  @override
+  bool shouldRelayout(_MarkerLayout oldDelegate) =>
+      oldDelegate.direction != direction ||
+      oldDelegate.drawnWidth != drawnWidth;
 }
 
 /// [child] in a quote: a bar on its left, so it stands apart from the

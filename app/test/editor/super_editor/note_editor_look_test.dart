@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,12 +89,14 @@ void main() {
       });
 
       testWidgets('line, made by Enter at its end', (tester) async {
-        await pumpNoteEditor(tester, FakeNoteText('**a** one'));
+        final text = FakeNoteText('**a** one');
+        await pumpNoteEditor(tester, text);
         await tester.caretIn(paragraphNodeOf(), 9);
 
         await tester.pressEnter();
         await tester.pumpAndSettle();
 
+        expect(text.text, '**a** one\n');
         expect(shows('**a** one'), isTrue);
       });
 
@@ -252,19 +255,29 @@ void main() {
     }
   });
 
-  testWidgets('the handles on Android take the theme color', (tester) async {
-    final document = await pumpNoteEditor(tester, FakeNoteText('a'));
+  testWidgets(
+    'the touch handles take the theme color',
+    (tester) async {
+      final document = await pumpNoteEditor(tester, FakeNoteText('a'));
 
-    for (final theme in [ThemeData.light(), ThemeData.dark()]) {
-      await showNoteEditor(tester, document, theme: theme);
-      await tester.pumpAndSettle();
-      final context = tester.element(find.byType(SuperEditor));
-      expect(
-        SuperEditorAndroidControlsScope.rootOf(context).controlsColor,
-        theme.colorScheme.primary,
-      );
-    }
-  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+      for (final theme in [ThemeData.light(), ThemeData.dark()]) {
+        await showNoteEditor(tester, document, theme: theme);
+        await tester.pumpAndSettle();
+        final context = tester.element(find.byType(SuperEditor));
+        final color = switch (defaultTargetPlatform) {
+          TargetPlatform.iOS => SuperEditorIosControlsScope.rootOf(
+            context,
+          ).handleColor,
+          _ => SuperEditorAndroidControlsScope.rootOf(context).controlsColor,
+        };
+        expect(color, theme.colorScheme.primary);
+      }
+    },
+    variant: const TargetPlatformVariant({
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+    }),
+  );
 
   Finder quoteBars() => find.byWidgetPredicate(
     (widget) => widget is Positioned && widget.width == 3,
@@ -362,13 +375,14 @@ void main() {
     await pumpNoteEditor(tester, FakeNoteText('- [ ] a\n- b\n\n9. c\n10. d'));
     await tester.pumpAndSettle();
 
+    // The box is drawn in the middle of the checkbox's tap area.
+    final checkbox = find.byType(Checkbox);
+    final boxEnd =
+        tester.getTopRight(checkbox).dx -
+        (tester.getSize(checkbox).width - Checkbox.width) / 2;
     final ends = [
-      for (final marker in [
-        find.byType(Checkbox),
-        find.text('•'),
-        find.text('9.'),
-        find.text('10.'),
-      ])
+      boxEnd,
+      for (final marker in [find.text('•'), find.text('9.'), find.text('10.')])
         tester.getTopRight(marker).dx,
     ];
     for (final end in ends) {

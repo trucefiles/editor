@@ -95,12 +95,11 @@ String? _textOf(DocumentNode? node, EditView view) => switch (node) {
   return (index: index, offset: offset - starts[index]);
 }
 
-/// What makes [after] of [before]: the part of [before] from [start] to
-/// [end] replaced by [text], the smallest such part.
-({int start, int end, String text}) textDifference(
-  String before,
-  String after,
-) {
+/// The part of a text from [start] to [end] replaced by [text].
+typedef TextDifference = ({int start, int end, String text});
+
+/// What makes [after] of [before]: the smallest [TextDifference].
+TextDifference textDifference(String before, String after) {
   final head = _sameCount(before.codeUnits, after.codeUnits);
   final tail = _sameCount(
     before.substring(head).codeUnits.reversed,
