@@ -19,6 +19,18 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.1" date="2026-10-21">
+      <description>
+        <ul>
+          <li>List bullets, numbers and checkboxes line up.</li>
+          <li>Heading and Bold leave the caret ready to type.</li>
+          <li>Marks stay shown on a paragraph after Enter or a line break below it.</li>
+          <li>Previews show horizontal lines, also as list items.</li>
+          <li>Android: the format bar stays above the gesture line; caret handles are visible in dark mode.</li>
+          <li>Read: scrolling no longer starts a refresh; text is selectable across paragraphs.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.0" date="2026-10-21">
       <description>
         <ul>

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
@@ -67,6 +69,169 @@ void main() {
       expect(shows('plain *it*'), isTrue);
     });
 
+    group('stay on the block edited last while the caret is on a blank', () {
+      Future<void> pressShiftEnter(WidgetTester tester) async {
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pressEnter();
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('line, made by a line break at its end', (tester) async {
+        final text = FakeNoteText('**a** one');
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(paragraphNodeOf(), 9);
+
+        await pressShiftEnter(tester);
+
+        expect(text.text, '**a** one\n');
+        expect(shows('**a** one'), isTrue);
+      });
+
+      testWidgets('line, made by Enter at its end', (tester) async {
+        final text = FakeNoteText('**a** one');
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(paragraphNodeOf(), 9);
+
+        await tester.pressEnter();
+        await tester.pumpAndSettle();
+
+        expect(text.text, '**a** one\n');
+        expect(shows('**a** one'), isTrue);
+      });
+
+      testWidgets('line, then typing on it, still in the block', (
+        tester,
+      ) async {
+        final text = FakeNoteText('**a** one');
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(paragraphNodeOf(), 9);
+
+        await pressShiftEnter(tester);
+        await tester.typeImeText('x');
+
+        expect(text.text, '**a** one\nx');
+        expect(shows('**a** one\nx'), isTrue);
+      });
+
+      testWidgets('line, tapped', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText(note));
+        await tester.caretIn(paragraphNodeOf(), 2);
+
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        expect(shows('**bold** one'), isTrue);
+        expect(shows('plain it'), isTrue);
+      });
+
+      testWidgets('until the caret goes into another block', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText(note));
+        await tester.caretIn(paragraphNodeOf(), 2);
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        await tester.caretIn(paragraphNodeOf(index: 2), 2);
+
+        expect(shows('bold one'), isTrue);
+        expect(shows('plain *it*'), isTrue);
+      });
+
+      testWidgets('line, reached by the arrow keys', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText(note));
+        await tester.caretIn(paragraphNodeOf(), 2);
+
+        await tester.pressDownArrow();
+        await tester.pumpAndSettle();
+
+        expect(shows('**bold** one'), isTrue);
+      });
+
+      testWidgets('line, one of several', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText('**a** x\n\n\n\nc'));
+        await tester.caretIn(paragraphNodeOf(), 2);
+
+        await tester.caretIn(paragraphNodeOf(index: 2), 0);
+
+        expect(shows('**a** x'), isTrue);
+      });
+
+      testWidgets('line in a quote', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText('> **a** x\n>\n> *b*'));
+        await tester.caretIn(paragraphNodeOf(), 2);
+
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        expect(shows('**a** x'), isTrue);
+        expect(shows('b'), isTrue);
+      });
+
+      testWidgets('line, but none before it was edited', (tester) async {
+        await pumpNoteEditor(tester, FakeNoteText(note));
+
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        expect(shows('bold one'), isTrue);
+        expect(shows('plain it'), isTrue);
+      });
+
+      testWidgets('line, with the selection going on into a block', (
+        tester,
+      ) async {
+        await pumpNoteEditor(tester, FakeNoteText(note));
+        await tester.caretIn(paragraphNodeOf(), 2);
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pressDownArrow();
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pumpAndSettle();
+
+        expect(shows('bold one'), isTrue);
+        expect(shows('plain *it*'), isTrue);
+      });
+
+      testWidgets('line, but not a block changed on another device', (
+        tester,
+      ) async {
+        final text = FakeNoteText(note);
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(paragraphNodeOf(), 2);
+        await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+        text.changeElsewhere('**bold** two\n\nplain *it*');
+        await tester.pumpAndSettle();
+
+        expect(shows('bold two'), isTrue);
+        expect(shows('plain it'), isTrue);
+      });
+
+      testWidgets('line, after Enter on an empty item left the list', (
+        tester,
+      ) async {
+        final text = FakeNoteText('- [ ] **a** x');
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(checkboxNodeOf(), 7);
+
+        await tester.pressEnter();
+        await tester.pressEnter();
+        await tester.pumpAndSettle();
+
+        expect(text.text, '- [ ] **a** x\n\n');
+        expect(shows('a x'), isTrue);
+      });
+
+      testWidgets('but a new empty item is a block of its own', (tester) async {
+        final text = FakeNoteText('- [ ] **a** x');
+        await pumpNoteEditor(tester, text);
+        await tester.caretIn(checkboxNodeOf(), 7);
+
+        await tester.pressEnter();
+        await tester.pumpAndSettle();
+
+        expect(text.text, '- [ ] **a** x\n- [ ] ');
+        expect(shows('a x'), isTrue);
+      });
+    });
+
     testWidgets('show in an item being edited', (tester) async {
       await pumpNoteEditor(tester, FakeNoteText('- [ ] **a** x\n- [ ] b'));
 
@@ -89,6 +254,30 @@ void main() {
       expect(caret.caretStyle.color, theme.colorScheme.primary);
     }
   });
+
+  testWidgets(
+    'the touch handles take the theme color',
+    (tester) async {
+      final document = await pumpNoteEditor(tester, FakeNoteText('a'));
+
+      for (final theme in [ThemeData.light(), ThemeData.dark()]) {
+        await showNoteEditor(tester, document, theme: theme);
+        await tester.pumpAndSettle();
+        final context = tester.element(find.byType(SuperEditor));
+        final color = switch (defaultTargetPlatform) {
+          TargetPlatform.iOS => SuperEditorIosControlsScope.rootOf(
+            context,
+          ).handleColor,
+          _ => SuperEditorAndroidControlsScope.rootOf(context).controlsColor,
+        };
+        expect(color, theme.colorScheme.primary);
+      }
+    },
+    variant: const TargetPlatformVariant({
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+    }),
+  );
 
   Finder quoteBars() => find.byWidgetPredicate(
     (widget) => widget is Positioned && widget.width == 3,
@@ -180,6 +369,44 @@ void main() {
         reason: text,
       );
     }
+  });
+
+  testWidgets('markers end the same gap before their text', (tester) async {
+    await pumpNoteEditor(tester, FakeNoteText('- [ ] a\n- b\n\n9. c\n10. d'));
+    await tester.pumpAndSettle();
+
+    // The box is drawn in the middle of the checkbox's tap area.
+    final checkbox = find.byType(Checkbox);
+    final boxEnd =
+        tester.getTopRight(checkbox).dx -
+        (tester.getSize(checkbox).width - Checkbox.width) / 2;
+    final ends = [
+      boxEnd,
+      for (final marker in [find.text('•'), find.text('9.'), find.text('10.')])
+        tester.getTopRight(marker).dx,
+    ];
+    for (final end in ends) {
+      expect(end, moreOrLessEquals(ends.first, epsilon: 1));
+    }
+    final text = tester.getTopLeft(find.text('a', findRichText: true)).dx;
+    expect(text - ends.first, moreOrLessEquals(8, epsilon: 1));
+  });
+
+  testWidgets('the format bar keeps clear of the bottom system edge', (
+    tester,
+  ) async {
+    tester.view.padding = const FakeViewPadding(bottom: 48);
+    addTearDown(tester.view.resetPadding);
+    await pumpNoteEditor(tester, FakeNoteText('a'));
+    await tester.pumpAndSettle();
+
+    final screen =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final inset = 48 / tester.view.devicePixelRatio;
+    expect(
+      tester.getBottomLeft(find.byTooltip('Bold (Ctrl+B)')).dy,
+      lessThanOrEqualTo(screen - inset),
+    );
   });
 
   testWidgets('Read has no drag handles or menus', (tester) async {

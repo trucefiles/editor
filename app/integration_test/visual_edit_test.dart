@@ -64,6 +64,23 @@ void main() {
     expect(tester.showsLine('**bold** one'), isTrue);
   });
 
+  testApp('a new line below a paragraph keeps its marks until typed on', (
+    tester,
+  ) async {
+    await tester.openVisual(app, 'Title', '# Title\n**bold** one\n');
+    await tester.clickLine('**bold** one', 12);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pressEnter();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+    expect(tester.showsLine('**bold** one'), isTrue);
+
+    await tester.typeImeText('two');
+    await tester.pumpAndSettle();
+    expect(tester.showsLine('**bold** one\ntwo'), isTrue);
+  });
+
   testApp('the marks still follow the caret after an edit is saved', (
     tester,
   ) async {

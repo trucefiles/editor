@@ -1,11 +1,15 @@
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../note_nodes.dart';
 import 'markup_text.dart';
 import 'shown_texts.dart';
 
 /// Styles each text node as [marks] show it, by the markup its view
-/// reads from the node's text; the selected nodes count as edited.
+/// reads from the node's text; the selected nodes count as edited, but
+/// a caret on a blank line keeps the nodes edited before it, so a new
+/// line below a block (Enter, a line break) or a tap on a blank line
+/// leaves that block as it shows while edited.
 /// Records how each node shows in [texts], for its component to map
 /// positions.
 ///
@@ -30,6 +34,9 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   final ShownTexts texts;
   final DocumentComposer? _composer;
 
+  /// The nodes that count as edited.
+  Set<String> _edited = const {};
+
   /// Stops following the selection, once the editor is gone.
   void close() => _composer?.selectionNotifier.removeListener(markDirty);
 
@@ -40,6 +47,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
   ) {
     texts.clear();
     final selected = _selectedNodes(document);
+    if (selected.isEmpty || !selected.every(_isBlankLine)) _edited = selected;
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
       componentViewModels: [
@@ -48,7 +56,7 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
             (final TextComponentViewModel text, final view?) => _styled(
               text,
               view,
-              edited: selected.contains(component.nodeId),
+              edited: _edited.contains(component.nodeId),
             ),
             _ => component,
           },
@@ -67,6 +75,14 @@ final class MarksPhase extends SingleColumnLayoutStylePhase {
     return (component.copy() as TextComponentViewModel)
       ..text = markupText(shown.text, shown.markup);
   }
+
+  /// Whether node [nodeId] shows a blank line, not an empty item.
+  bool _isBlankLine(String nodeId) => switch (viewOf(nodeId)) {
+    final view? =>
+      view.kind == LeafKind.blank &&
+          !framesOf(view).any((frame) => frame is ItemFrame),
+    null => false,
+  };
 
   Set<String> _selectedNodes(Document document) {
     final selection = _composer?.selection;

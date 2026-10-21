@@ -74,6 +74,14 @@ void main() {
   test('titles and previews skip the syntax of blocks without words', () {
     expect(noteTitleLine('---\ntitle: x\n---\nHello'), 'Hello');
     expect(noteTitleLine('```\ncode\n```'), 'code');
-    expect(notePreview('# T\na\n\n---\n\nb'), 'a\nb');
+    expect(noteTitleLine('***\n\nHello'), 'Hello');
+  });
+
+  test('notePreview draws horizontal lines, also as items', () {
+    expect(notePreview('# T\na\n\n---\n\nb'), 'a\n─────\nb');
+    expect(
+      notePreview('# T\n- [ ] a\n- [ ] -----\n- [x] ***\n- b'),
+      '☐ a\n☐ ─────\n☑ ─────\n• b',
+    );
   });
 }

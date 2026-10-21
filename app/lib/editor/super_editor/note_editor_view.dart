@@ -10,9 +10,9 @@ import '../ui/format_toolbar.dart';
 import '../ui/link_dialog.dart';
 import '../ui/note_image.dart';
 import '../ui/note_read_view.dart';
-import 'apply_format.dart';
 import 'components/display_component_builder.dart';
 import 'components/leaf_builder.dart';
+import 'format_of.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
 import 'marks/marks_phase.dart';
@@ -20,6 +20,7 @@ import 'marks/shown_texts.dart';
 import 'note_editor_adapter.dart';
 import 'note_keyboard_actions.dart';
 import 'note_look.dart';
+import 'touch_controls.dart';
 
 /// The open [note] in its mode: editable in Visual and Markdown edit, with
 /// the format toolbar in Visual edit; read-only in Read. Links open with
@@ -115,12 +116,9 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       // Changed from elsewhere meanwhile: the selection may no longer fit.
       if (url.isEmpty || _textOf(selection) != before) return;
     }
-    applyFormat(
-      editor,
-      format,
-      selection: selection,
-      viewOf: _adapter!.viewOf,
-      url: url,
+    _adapter!.format(
+      selection,
+      (view, start, end) => formatOf(view, format, start, end, url: url),
     );
     _focus.requestFocus();
   }
@@ -165,7 +163,6 @@ class _NoteEditorViewState extends State<NoteEditorView> {
       stylesheet: look.stylesheet,
       selectionStyle: look.selection,
       documentOverlayBuilders: look.overlays,
-      androidHandleColor: look.handleColor,
       customStylePhases: [_marks!],
       componentBuilders: [
         MappedBuilder<LeafViewModel>(
@@ -189,7 +186,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     final hinted = Stack(
       children: [
-        editor,
+        TouchControls(color: look.handleColor, child: editor),
         EmptyNoteHint(widget.note, padding: noteFirstLinePadding),
       ],
     );

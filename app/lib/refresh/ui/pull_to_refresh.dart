@@ -1,14 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'pull_hold.dart';
 
 /// Refreshes when the user pulls [child] down past its top, by touch
 /// only: scrolling up with a mouse wheel or trackpad on desktop just
-/// scrolls. Only vertical scrolling pulls, so a view that scrolls
-/// sideways inside (wide tables) never does. Taking a pull back moves only
-/// the indicator, and a refresh shows for at least [_minShown], so it is
-/// told apart from a pull let go too early.
+/// scrolls. Only the vertical scrolling of [child]'s own scroll view
+/// pulls, never a view that scrolls inside it (wide tables, text that
+/// scrolls in itself), which scrolls as it would anywhere else. Taking a
+/// pull back moves only the indicator, and a refresh shows for at least
+/// [_minShown], so it is told apart from a pull let go too early.
 class PullToRefresh extends StatefulWidget {
   const PullToRefresh({
     required this.onRefresh,
@@ -37,9 +39,11 @@ class _PullToRefreshState extends State<PullToRefresh> {
     PointerDeviceKind.invertedStylus,
   };
 
-  /// A pull starts with a scroll that a drag started; only such a start
-  /// matters, the rest of the scroll follows it.
+  /// A pull starts with a scroll of the page, not of a view inside it,
+  /// that a drag started; only such a start matters, the rest of the
+  /// scroll follows it.
   static bool _pulls(ScrollNotification notification) =>
+      notification.depth == 0 &&
       notification.metrics.axis == Axis.vertical &&
       switch (notification) {
         ScrollStartNotification(:final dragDetails?) => _pulling.contains(
@@ -54,10 +58,12 @@ class _PullToRefreshState extends State<PullToRefresh> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final ambient = ScrollConfiguration.of(context);
-    _scrolling = ambient.copyWith(
+    _scrolling = _PullBehavior(
+      this,
+      ambient,
       // Pulls down even when the content fits, e.g. a short note in a
       // scroll view the child builds itself.
-      physics: PullHoldPhysics(
+      pulling: PullHoldPhysics(
         _hold,
         parent: AlwaysScrollableScrollPhysics(
           parent: ambient.getScrollPhysics(context),
@@ -65,6 +71,15 @@ class _PullToRefreshState extends State<PullToRefresh> {
       ),
     );
   }
+
+  /// Whether the scroll view of [scrollable] is [PullToRefresh.child]'s
+  /// own: in no other scroll view inside it.
+  bool _owns(BuildContext scrollable) =>
+      scrollable
+          .findAncestorStateOfType<ScrollableState>()
+          ?.context
+          .findAncestorStateOfType<_PullToRefreshState>() !=
+      this;
 
   Future<void> _refresh() async {
     await Future.wait([
@@ -98,4 +113,63 @@ class _PullToRefreshState extends State<PullToRefresh> {
       ),
     ),
   );
+}
+
+/// [ambient] with the [pulling] physics for the child's own scroll view
+/// of [state] (see [_PullToRefreshState._owns]); views that scroll inside
+/// it keep the ambient physics.
+final class _PullBehavior extends ScrollBehavior {
+  const _PullBehavior(this.state, this.ambient, {required this.pulling});
+
+  final _PullToRefreshState state;
+  final ScrollBehavior ambient;
+  final ScrollPhysics pulling;
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      state._owns(context) ? pulling : ambient.getScrollPhysics(context);
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => ambient.dragDevices;
+
+  @override
+  Set<LogicalKeyboardKey> get pointerAxisModifiers =>
+      ambient.pointerAxisModifiers;
+
+  @override
+  MultitouchDragStrategy getMultitouchDragStrategy(BuildContext context) =>
+      ambient.getMultitouchDragStrategy(context);
+
+  @override
+  TargetPlatform getPlatform(BuildContext context) =>
+      ambient.getPlatform(context);
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => ambient.buildScrollbar(context, child, details);
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => ambient.buildOverscrollIndicator(context, child, details);
+
+  @override
+  GestureVelocityTrackerBuilder velocityTrackerBuilder(BuildContext context) =>
+      ambient.velocityTrackerBuilder(context);
+
+  @override
+  ScrollViewKeyboardDismissBehavior getKeyboardDismissBehavior(
+    BuildContext context,
+  ) => ambient.getKeyboardDismissBehavior(context);
+
+  @override
+  bool shouldNotify(_PullBehavior oldDelegate) =>
+      oldDelegate.ambient != ambient ||
+      oldDelegate.pulling != pulling ||
+      ambient.shouldNotify(oldDelegate.ambient);
 }

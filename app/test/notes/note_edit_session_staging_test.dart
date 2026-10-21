@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -26,17 +27,17 @@ void main() {
       for (final draft in await drafts.all(before: fx.later)) draft.text,
     ];
 
-    /// Lets the save timer fire and the draft be written or removed.
-    Future<void> settle() =>
-        Future<void>.delayed(const Duration(milliseconds: 50));
+    /// Waits until the drafts on the device hold [texts]: they are
+    /// written and removed after a timer.
+    Future<void> draftsBecome(List<String> texts) => eventually(
+      () async =>
+          const ListEquality<String>().equals(await draftTexts(), texts),
+    );
 
-    /// Edits the staged note and waits until its draft is written; a busy
-    /// test machine can take longer than [settle].
+    /// Edits the staged note and waits until its draft is written.
     Future<void> stageMine() async {
       staged.edit('# a\nmine');
-      for (var i = 0; i < 100 && staged.state != EditState.savedOnDevice; i++) {
-        await settle();
-      }
+      await eventually(() => staged.state == EditState.savedOnDevice);
     }
 
     test('keeps edits on the device, not yet in the file', () async {
@@ -57,15 +58,10 @@ void main() {
       );
       soon.edit('# a\nmine');
 
-      // Waits for the write, not a fixed time: a busy test machine can
-      // take longer than the delay.
-      for (var i = 0; i < 100 && soon.state != EditState.saved; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-      }
+      await eventually(() => soon.state == EditState.saved);
+      await draftsBecome([]);
 
       expect(fx.onDisk(), '# a\nmine');
-      expect(soon.state, EditState.saved);
-      expect(await draftTexts(), isEmpty);
     });
 
     test('secure writes the file and drops the draft', () async {
@@ -75,7 +71,7 @@ void main() {
 
       expect(fx.onDisk(), '# a\nmine');
       expect(staged.state, EditState.saved);
-      expect(await draftTexts(), isEmpty);
+      await draftsBecome([]);
     });
 
     test('a change elsewhere keeps the draft and asks', () async {
@@ -93,16 +89,14 @@ void main() {
       staged.rescanNow(await fx.editElsewhere('# a\ntheirs'));
 
       staged.edit('# a\nmine, more');
-      await settle();
-      expect(await draftTexts(), ['# a\nmine, more']);
+      await draftsBecome(['# a\nmine, more']);
 
       fx.file().deleteSync();
       staged.rescanNow(null);
       staged.edit('# a\nmine, even more');
-      await settle();
+      await draftsBecome(['# a\nmine, even more']);
 
       expect(staged.state, EditState.deletedElsewhere);
-      expect(await draftTexts(), ['# a\nmine, even more']);
       expect(fx.file().existsSync(), isFalse);
     });
 
@@ -113,9 +107,8 @@ void main() {
       staged.rescanNow(null);
 
       staged.edit('# a\n');
-      await settle();
 
-      expect(await draftTexts(), isEmpty);
+      await draftsBecome([]);
     });
 
     test('load theirs drops the draft', () async {
@@ -123,20 +116,18 @@ void main() {
       staged.rescanNow(await fx.editElsewhere('# a\ntheirs'));
 
       await staged.loadTheirs(staged.theirs!);
-      await settle();
 
-      expect(await draftTexts(), isEmpty);
+      await draftsBecome([]);
     });
 
     test('discard drops the edits and the draft', () async {
       await stageMine();
 
       staged.discard();
-      await settle();
+      await draftsBecome([]);
 
       expect(staged.text, '# a\n');
       expect(staged.state, EditState.saved);
-      expect(await draftTexts(), isEmpty);
       expect(await staged.secure(), isTrue);
       expect(fx.onDisk(), '# a\n');
     });
@@ -150,11 +141,7 @@ void main() {
 
       broken.edit('# a\nmine');
 
-      // Waits for the write, not a fixed time: a busy test machine can
-      // take longer.
-      for (var i = 0; i < 100 && broken.state != EditState.saved; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-      }
+      await eventually(() => broken.state == EditState.saved);
 
       expect(fx.onDisk(), '# a\nmine');
       expect(broken.state, EditState.saved);

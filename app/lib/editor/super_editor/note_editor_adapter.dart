@@ -170,14 +170,73 @@ final class NoteEditorAdapter
   @override
   void replaceText(String nodeId, int start, int end, String text) {
     if (_views[nodeId] case final view?) {
-      _next = _collapsed(
-        note.replaceText(
-          (view: view, offset: start),
-          (view: view, offset: end),
-          text,
-        ),
-      );
+      _next = _collapsed(_replaceIn(view, start, end, text));
     }
+  }
+
+  /// The text of [view] from [start] to [end] replaced by [text]; returns
+  /// the caret after it.
+  LineCaret _replaceIn(EditView view, int start, int end, String text) =>
+      note.replaceText(
+        (view: view, offset: start),
+        (view: view, offset: end),
+        text,
+      );
+
+  /// The text of the node [selection] is in replaced by what [format]
+  /// makes of it, given the node's view and the selected part of its
+  /// text; the selection then where [format] puts it. Does nothing for a
+  /// selection across nodes or a [format] that gives `null`.
+  void format(
+    DocumentSelection? selection,
+    FormattedText? Function(EditView view, int start, int end) format,
+  ) {
+    final view = _views[selection?.extent.nodeId];
+    if ((selection?.base.nodePosition, selection?.extent.nodePosition, view)
+        case (
+          TextNodePosition(offset: final base),
+          TextNodePosition(offset: final extent),
+          final view?,
+        )
+        when selection!.base.nodeId == selection.extent.nodeId) {
+      final formatted = format(view, min(base, extent), max(base, extent));
+      if (formatted == null) return;
+      final change = textDifference(view.text, formatted.text);
+      final caret = _replaceIn(view, change.start, change.end, change.text);
+      LineCaret at(int offset) =>
+          _placeAfter(view, change, formatted.text, offset, caret: caret);
+      _next = (base: at(formatted.start), extent: at(formatted.end));
+    }
+  }
+
+  /// Where [offset] in [after] is in the note, now that [change] made
+  /// [after] of the text of [view] and put the [caret] after the text it
+  /// inserted: before the change where it was in [view]; on a line after
+  /// the inserted text where it was there; else on the caret's line, as
+  /// far from the caret as in [after].
+  static LineCaret _placeAfter(
+    EditView view,
+    TextDifference change,
+    String after,
+    int offset, {
+    required LineCaret caret,
+  }) {
+    if (offset <= change.start) return view.caretAt(offset);
+    final inserted = change.start + change.text.length;
+    final (from, to) = offset < inserted
+        ? (offset, inserted)
+        : (inserted, offset);
+    return switch ((
+      after.substring(from, to).contains('\n'),
+      offset > inserted,
+    )) {
+      (false, _) => (
+        line: caret.line,
+        offset: caret.offset + offset - inserted,
+      ),
+      (true, true) => view.caretAt(offset - inserted + change.end),
+      (true, false) => caret,
+    };
   }
 
   @override
@@ -236,8 +295,7 @@ final class NoteEditorAdapter
       change.text,
       removed: change.removed,
     );
-    // A selection the edit left (e.g. formatted text) stays as it is in
-    // the text.
+    // A selection the edit left stays as it is in the text.
     if (_composer.selection?.isCollapsed ?? true) _next = _collapsed(caret);
     // The edit is in the views already, also before the editor shows the
     // note again: a next edit before then counts from it.

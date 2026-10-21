@@ -1,0 +1,7 @@
+- List bullets, numbers and boxes line up
+- Heading and Bold leave the caret ready to type
+- Marks stay shown after Enter below a paragraph
+- Previews show horizontal lines
+- Format bar above the gesture line
+- Caret handles visible in dark mode
+- Read: scrolling no longer refreshes; select across paragraphs

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/painting.dart';
@@ -17,6 +18,20 @@ import 'package:truce_test_support/truce_test_support.dart' show path;
 
 export 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, WriteCreatingFolders, bytesOf, path;
+
+/// Waits until [holds], for work whose end the test cannot see (files
+/// written after a timer); fails once [timeout] has passed. Fixed waits
+/// fail on a busy machine.
+Future<void> eventually(
+  FutureOr<bool> Function() holds, {
+  Duration timeout = const Duration(seconds: 10),
+}) async {
+  final end = DateTime.now().add(timeout);
+  while (!await holds()) {
+    if (DateTime.now().isAfter(end)) fail('Not reached within $timeout');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}
 
 /// A fresh temp folder, deleted after the test.
 Directory tempFolder() {
