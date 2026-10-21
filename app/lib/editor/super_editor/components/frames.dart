@@ -41,7 +41,8 @@ Widget framed(
 }
 
 /// The marker of [item]: its box, which [onToggle] checks or unchecks,
-/// its bullet, or its number, in [style].
+/// its bullet, or its number, in [style]. Centered on the item's first
+/// line of text, also where it is higher than the line.
 class MarkerView extends StatelessWidget {
   const MarkerView(this.item, {required this.style, this.onToggle, super.key});
 
@@ -52,7 +53,9 @@ class MarkerView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     width: itemMarkerWidth,
-    child: Center(
+    height: _lineHeight(context),
+    child: OverflowBox(
+      maxHeight: double.infinity,
       child: switch (item.kind) {
         ListKind.checkbox => Checkbox(
           value: item.checked,
@@ -69,6 +72,19 @@ class MarkerView extends StatelessWidget {
       },
     ),
   );
+
+  /// The height of a line of text in [style], as the text beside lays it
+  /// out.
+  double _lineHeight(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: ' ', style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final height = painter.height;
+    painter.dispose();
+    return height;
+  }
 }
 
 /// [child] in a quote: a bar on its left, so it stands apart from the

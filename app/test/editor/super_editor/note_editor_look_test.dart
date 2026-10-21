@@ -160,6 +160,28 @@ void main() {
     expect(rowsTop, lessThan(40), reason: 'rows close together');
   });
 
+  testWidgets('markers sit in the middle of their line of text', (
+    tester,
+  ) async {
+    await pumpNoteEditor(tester, FakeNoteText('- [ ] a\n- b\n\n1. c'));
+    await tester.pumpAndSettle();
+
+    for (final (marker, text) in [
+      (find.byType(Checkbox), 'a'),
+      (find.text('•'), 'b'),
+      (find.text('1.'), 'c'),
+    ]) {
+      expect(
+        tester.getCenter(marker).dy,
+        moreOrLessEquals(
+          tester.getCenter(find.text(text, findRichText: true)).dy,
+          epsilon: 1,
+        ),
+        reason: text,
+      );
+    }
+  });
+
   testWidgets('Read has no drag handles or menus', (tester) async {
     await pumpNoteEditor(
       tester,

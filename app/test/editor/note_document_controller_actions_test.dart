@@ -83,13 +83,15 @@ void main() {
     expect(shown(), isNot(contains(idOf('b'))));
   });
 
-  test('a table drawn in Visual edit shows its lines on request', () {
+  test('a table drawn in Visual edit shows its lines while edited', () {
     open('| a |\n|---|\n| 1 |');
     expect(note.entries.single, isA<TableEntry>());
 
-    note.showRaw(idOf('| a |'));
-
+    note.rawTable = idOf('| a |');
     expect(note.entries.single, isA<LeafEntry>());
+
+    note.rawTable = null;
+    expect(note.entries.single, isA<TableEntry>());
   });
 
   test('Markdown edit shows every line as it is', () {
@@ -126,7 +128,7 @@ void main() {
   test('a mode switch forgets tables shown as lines', () {
     open('| a |\n|---|\n| 1 |');
     note
-      ..showRaw(idOf('| a |'))
+      ..rawTable = idOf('| a |')
       ..mode = NoteMode.read
       ..mode = NoteMode.visual;
 

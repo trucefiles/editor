@@ -217,7 +217,10 @@ final class NoteEditorAdapter
       _moveCaretTo((line: note.addItem(button), offset: 0), focus: true);
 
   @override
-  void showRaw(LineId table) => note.showRaw(table);
+  void showRaw(LineId table) {
+    note.rawTable = table;
+    _moveCaretTo((line: table, offset: 0), focus: true);
+  }
 
   // Edits.
 
@@ -439,11 +442,15 @@ final class NoteEditorAdapter
         ),
   ].firstOrNull;
 
-  /// Shows a held item as the item it is once the caret leaves it.
+  /// Shows a held item as the item it is, and a table shown as its text
+  /// drawn again, once the caret leaves it.
   void _onSelection() {
-    if (_heldLine != null &&
-        _caretOf(_composer.selection?.extent)?.line != _heldLine) {
-      _scheduleSync();
+    if (_syncing) return;
+    final line = _caretOf(_composer.selection?.extent)?.line;
+    if (_heldLine != null && line != _heldLine) _scheduleSync();
+    if ((note.rawTable, line) case (final table?, final line?)
+        when note.document.leafOf(line).id != table) {
+      note.rawTable = null;
     }
   }
 

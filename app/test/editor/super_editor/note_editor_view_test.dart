@@ -7,6 +7,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/note_mode.dart';
+import 'package:truce_editor/editor/super_editor/components/drawn_table.dart';
 
 import '../editor_support.dart';
 import 'editor_robot.dart';
@@ -399,6 +400,22 @@ void main() {
 
     expect(find.text('Untitled'), findsNothing);
     expect(text.text, 'Idea');
+  });
+
+  testWidgets('a tapped table shows its text with the caret in it, and is '
+      'drawn again once the caret leaves', (tester) async {
+    final text = FakeNoteText('| a |\n|---|\n\nafter');
+    await pumpEditor(tester, text);
+
+    await tester.tap(find.byType(DrawnTable));
+    await tester.pumpAndSettle();
+    expect(find.byType(DrawnTable), findsNothing);
+    final caret = SuperEditorInspector.findDocumentSelection()!.extent;
+    final node = SuperEditorInspector.findDocument()!.getNodeById(caret.nodeId);
+    expect((node! as TextNode).text.toPlainText(), '| a |\n|---|');
+
+    await tester.caretIn(paragraphNodeOf(index: 2), 0);
+    expect(find.byType(DrawnTable), findsOneWidget);
   });
 
   testWidgets('pasted Windows line breaks make lines', (tester) async {

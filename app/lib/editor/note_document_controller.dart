@@ -34,8 +34,9 @@ final class NoteDocumentController extends ChangeNotifier {
   /// Lists, by their first line, whose "Done" section is collapsed.
   final _collapsed = <LineId>{};
 
-  /// Tables, by their first line, shown as their text.
-  final _raw = <LineId>{};
+  /// The table, by its first line, shown as its text: the one being
+  /// edited.
+  LineId? _rawTable;
 
   MarkdownDocument get document => _document;
 
@@ -51,7 +52,7 @@ final class NoteDocumentController extends ChangeNotifier {
       doneSection: _checkedItems.shownApart,
       collapsed: _collapsed,
       addItems: _addItems,
-      raw: _raw,
+      raw: {?_rawTable},
     ),
     NoteMode.markdown || NoteMode.read => const Arrangement.lines(),
   };
@@ -59,7 +60,7 @@ final class NoteDocumentController extends ChangeNotifier {
   set mode(NoteMode mode) {
     if (mode == _mode) return;
     _mode = mode;
-    _raw.clear();
+    _rawTable = null;
     _rearrange();
   }
 
@@ -158,9 +159,13 @@ final class NoteDocumentController extends ChangeNotifier {
     _rearrange();
   }
 
-  /// Shows the table whose first line is [leaf] as its text.
-  void showRaw(LineId leaf) {
-    _raw.add(leaf);
+  /// The table, by its first line, shown as its text; the others are
+  /// drawn.
+  LineId? get rawTable => _rawTable;
+
+  set rawTable(LineId? table) {
+    if (table == _rawTable) return;
+    _rawTable = table;
     _rearrange();
   }
 
