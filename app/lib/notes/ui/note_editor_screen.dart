@@ -272,10 +272,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       case final note?:
         await action(note);
       case null when _open.state == EditState.saved:
-        showSnack(
-          context,
-          'Write something first: an empty note is not saved.',
-        );
+        showSnack(context, "Write something first. An empty note isn't saved.");
       case null:
         // Not created: the banner tells why.
         break;

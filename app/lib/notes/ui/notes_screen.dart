@@ -111,7 +111,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         AsyncError(error: FolderSettingsException(:final error)) => Center(
           child: Text(error.text),
         ),
-        AsyncError() => const Center(child: Text('Something went wrong.')),
+        AsyncError() => const Center(
+          child: Text("Your notes couldn't be loaded."),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );

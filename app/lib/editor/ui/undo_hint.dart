@@ -15,7 +15,7 @@ void showUndoHint(
   actionLabel: 'Undo',
   onAction: () {
     if (!note.undo(undo)) {
-      messenger.showHint("Can't undo: the note changed since.");
+      messenger.showHint("Can't undo, because the note has changed since.");
     }
   },
 );

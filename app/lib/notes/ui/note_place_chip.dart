@@ -71,7 +71,10 @@ class NotePlaceChip extends ConsumerWidget {
     await note.flush();
     if (!context.mounted) return;
     if (note.state != EditState.saved) {
-      return showSnack(context, 'The note must be saved in its folder first.');
+      return showSnack(
+        context,
+        'Please wait until the note is saved in its folder.',
+      );
     }
     // Read after the dialog and the flush, so no edit is left behind.
     final current = note.note!;

@@ -73,9 +73,15 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       case null || PickResult.done:
         break;
       case PickResult.noBackup:
-        showSnack(context, 'No backup could be made, so nothing changed.');
+        showSnack(
+          context,
+          "A backup couldn't be made, so nothing was changed.",
+        );
       case PickResult.newerVersion:
-        showSnack(context, 'It changed again meanwhile. Please choose again.');
+        showSnack(
+          context,
+          'The note changed again in the meantime. Please choose again.',
+        );
     }
   }
 
