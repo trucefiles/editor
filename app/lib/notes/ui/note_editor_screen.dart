@@ -16,6 +16,10 @@ import '../../editor/checked_items.dart';
 import '../../editor/note_document_controller.dart';
 import '../../editor/note_editor.dart';
 import '../../editor/note_mode.dart';
+import '../../editor/text_size/note_text_size.dart';
+import '../../editor/text_size/note_text_size_controller.dart';
+import '../../editor/text_size/ui/note_text_scale.dart';
+import '../../editor/text_size/ui/pinch_to_zoom.dart';
 import '../../editor/ui/undo_hint.dart';
 import '../../markdown/markdown_links.dart';
 import '../../reach/folder_reach_controller.dart';
@@ -392,7 +396,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   /// Esc leaves the note, as the back arrow does; Ctrl+1, 2, 3 pick the
-  /// modes in the mode menu's order.
+  /// modes in the mode menu's order; Ctrl+=, Ctrl+- and Ctrl+0 make notes'
+  /// text larger, smaller or its base size again.
   late final Map<SingleActivator, VoidCallback> _keys = {
     const SingleActivator(LogicalKeyboardKey.escape): () =>
         unawaited(Navigator.maybePop(context)),
@@ -400,7 +405,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       SingleActivator(_digits[index], control: true): () {
         if (!_isReadOnly && mode != _mode) _showMode(mode);
       },
+    for (final (keys, size) in [
+      (_larger, (NoteTextSize size) => size.larger),
+      (_smaller, (NoteTextSize size) => size.smaller),
+      (_normal, (NoteTextSize _) => NoteTextSize.normal),
+    ])
+      for (final key in keys)
+        SingleActivator(key, control: true): () =>
+            unawaited(ref.read(noteTextSizeProvider.notifier).change(size)),
   };
+
+  static const _larger = [
+    LogicalKeyboardKey.equal,
+    LogicalKeyboardKey.numpadAdd,
+  ];
+  static const _smaller = [
+    LogicalKeyboardKey.minus,
+    LogicalKeyboardKey.numpadSubtract,
+  ];
+  static const _normal = [
+    LogicalKeyboardKey.digit0,
+    LogicalKeyboardKey.numpad0,
+  ];
 
   static const _digits = [
     LogicalKeyboardKey.digit1,
@@ -495,18 +521,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             // The editor scrolls inside.
             child: PullToRefresh(
               onRefresh: _scans.refresh,
-              child: NoteEditorView(
-                _note,
-                key: ValueKey(_note.mode),
-                onRemoved: _offerUndoOf,
-                onLink: (url) => openMarkdownLink(context, ref, url),
-                images: noteImages(
-                  _container.read(noteFilesProvider(_open.folder)),
-                  folder: _open.folder,
-                  note: _open.path,
+              child: PinchToZoom(
+                child: NoteTextScale(
+                  child: NoteEditorView(
+                    _note,
+                    key: ValueKey(_note.mode),
+                    onRemoved: _offerUndoOf,
+                    onLink: (url) => openMarkdownLink(context, ref, url),
+                    images: noteImages(
+                      _container.read(noteFilesProvider(_open.folder)),
+                      folder: _open.folder,
+                      note: _open.path,
+                    ),
+                    // A new note is for typing right away.
+                    autofocus: widget.note == null,
+                  ),
                 ),
-                // A new note is for typing right away.
-                autofocus: widget.note == null,
               ),
             ),
           ),

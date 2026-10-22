@@ -1,53 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// Indent of an item's text under the items it is in, per level.
-const itemLevelIndent = 28.0;
+import '../../note_metrics.dart';
 
-/// Width before an item's marker, where its drag handle sits.
-const itemHandleWidth = 24.0;
-
-/// Width of an item's box, bullet or number.
-const itemMarkerWidth = 36.0;
-
-/// Indent of a quote's text, right of its bar.
-const _quoteIndent = 12.0;
-
-/// [child] inside [frames], outermost first: a bar beside it per quote,
-/// indented under the items it is in, as far as the text of the item it
-/// is right in. If it starts that item, [row] puts the item's row beside
-/// it.
+/// [child] inside [frames], outermost first, spaced by [metrics]: a bar
+/// beside it per quote, indented under the items it is in, as far as the
+/// text of the item it is right in. If it starts that item, [row] puts
+/// the item's row beside it.
 Widget framed(
   List<Frame> frames,
   Widget child, {
+  required NoteMetrics metrics,
   required Widget Function(ItemFrame item, Widget child) row,
 }) {
   final item = frames.whereType<ItemFrame>().lastOrNull;
   return frames.reversed.fold(
     child,
     (child, frame) => switch (frame) {
-      QuoteFrame() => _QuoteBar(child),
+      QuoteFrame() => _QuoteBar(child, indent: metrics.quoteIndent),
       ItemFrame() when frame != item => Padding(
-        padding: const EdgeInsets.only(left: itemLevelIndent),
+        padding: EdgeInsets.only(left: metrics.levelIndent),
         child: child,
       ),
       ItemFrame(showsMarker: true) => row(frame, child),
       ItemFrame() => Padding(
-        padding: const EdgeInsets.only(left: itemHandleWidth + itemMarkerWidth),
+        padding: EdgeInsets.only(
+          left: metrics.handleWidth + metrics.markerWidth,
+        ),
         child: child,
       ),
     },
   );
 }
 
-/// Space between a marker and its item's text.
-const _markerGap = 8.0;
-
 /// The marker of [item]: its box, which [onToggle] checks or unchecks,
 /// its bullet, or its number, in [style]. Every kind ends the same gap
 /// before the text (a box where it is drawn), as lists are drawn on the
 /// web, so numbers line up on their dot; centered on the item's first
-/// line of text, also where it is higher than the line.
+/// line of text, also where it is higher than the line. Sized by the
+/// [NoteMetrics] of its context.
 class MarkerView extends StatelessWidget {
   const MarkerView(this.item, {required this.style, this.onToggle, super.key});
 
@@ -56,31 +47,35 @@ class MarkerView extends StatelessWidget {
   final VoidCallback? onToggle;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: itemMarkerWidth,
-    height: _lineHeight(context),
-    child: CustomSingleChildLayout(
-      delegate: _MarkerLayout(
-        Directionality.of(context),
-        // A checkbox draws its box in the middle of its tap area.
-        drawnWidth: item.kind == ListKind.checkbox ? Checkbox.width : null,
-      ),
-      child: switch (item.kind) {
-        ListKind.checkbox => Checkbox(
-          value: item.checked,
-          // As high as a line of text, so lists stay compact.
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-          onChanged: switch (onToggle) {
-            final toggle? => (_) => toggle(),
-            null => null,
-          },
+  Widget build(BuildContext context) {
+    final metrics = NoteMetrics.of(context);
+    return SizedBox(
+      width: metrics.markerWidth,
+      height: _lineHeight(context),
+      child: CustomSingleChildLayout(
+        delegate: _MarkerLayout(
+          Directionality.of(context),
+          gap: metrics.markerGap,
+          // A checkbox draws its box in the middle of its tap area.
+          drawnWidth: item.kind == ListKind.checkbox ? Checkbox.width : null,
         ),
-        ListKind.bullet => Text('•', style: style),
-        ListKind.numbered => Text('${item.number ?? 1}.', style: style),
-      },
-    ),
-  );
+        child: switch (item.kind) {
+          ListKind.checkbox => Checkbox(
+            value: item.checked,
+            // As high as a line of text, so lists stay compact.
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            onChanged: switch (onToggle) {
+              final toggle? => (_) => toggle(),
+              null => null,
+            },
+          ),
+          ListKind.bullet => Text('•', style: style),
+          ListKind.numbered => Text('${item.number ?? 1}.', style: style),
+        },
+      ),
+    );
+  }
 
   /// The height of a line of text in [style], as the text beside lays it
   /// out.
@@ -97,12 +92,13 @@ class MarkerView extends StatelessWidget {
 }
 
 /// A marker as large as it wants, placed so that what it draws, the
-/// [drawnWidth] in its middle (all of it if `null`), ends [_markerGap]
-/// before the end of its slot; centered in the slot's height.
+/// [drawnWidth] in its middle (all of it if `null`), ends [gap] before
+/// the end of its slot; centered in the slot's height.
 class _MarkerLayout extends SingleChildLayoutDelegate {
-  const _MarkerLayout(this.direction, {this.drawnWidth});
+  const _MarkerLayout(this.direction, {required this.gap, this.drawnWidth});
 
   final TextDirection direction;
+  final double gap;
   final double? drawnWidth;
 
   @override
@@ -112,7 +108,7 @@ class _MarkerLayout extends SingleChildLayoutDelegate {
   @override
   Offset getPositionForChild(Size size, Size childSize) {
     final margin = (childSize.width - (drawnWidth ?? childSize.width)) / 2;
-    final fromEnd = _markerGap - margin;
+    final fromEnd = gap - margin;
     return Offset(switch (direction) {
       TextDirection.ltr => size.width - fromEnd - childSize.width,
       TextDirection.rtl => fromEnd,
@@ -122,21 +118,23 @@ class _MarkerLayout extends SingleChildLayoutDelegate {
   @override
   bool shouldRelayout(_MarkerLayout oldDelegate) =>
       oldDelegate.direction != direction ||
+      oldDelegate.gap != gap ||
       oldDelegate.drawnWidth != drawnWidth;
 }
 
 /// [child] in a quote: a bar on its left, so it stands apart from the
-/// text around it.
+/// text around it; the text [indent] right of it.
 class _QuoteBar extends StatelessWidget {
-  const _QuoteBar(this.child);
+  const _QuoteBar(this.child, {required this.indent});
 
   final Widget child;
+  final double indent;
 
   @override
   Widget build(BuildContext context) => Stack(
     children: [
       Padding(
-        padding: const EdgeInsets.only(left: _quoteIndent),
+        padding: EdgeInsets.only(left: indent),
         child: child,
       ),
       // Takes no hits: anything hit over the text keeps super_editor from

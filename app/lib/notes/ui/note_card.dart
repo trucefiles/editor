@@ -3,13 +3,14 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/edited_time.dart';
 import '../../conflicts/ui/conflict_label.dart';
+import '../../editor/text_size/ui/note_text_scale.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_colors.dart';
 import '../note_summary.dart';
 
-/// A note in the grid: title, first lines, folder, last edit, pin and
-/// color.
+/// A note in the grid: title and first lines at notes' text size,
+/// folder, last edit, pin and color.
 class NoteCard extends StatelessWidget {
   const NoteCard(
     this.note, {
@@ -63,21 +64,28 @@ class NoteCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                note.title,
-                style: textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (preview.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  preview,
-                  style: textTheme.bodySmall,
-                  maxLines: NoteSummary.previewLines,
-                  overflow: TextOverflow.ellipsis,
+              NoteTextScale(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      note.title,
+                      style: textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (preview.isNotEmpty)
+                      Text(
+                        preview,
+                        style: textTheme.bodySmall,
+                        maxLines: NoteSummary.previewLines,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
-              ],
+              ),
               const SizedBox(height: 8),
               Row(
                 spacing: 6,

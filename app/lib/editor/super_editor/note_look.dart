@@ -3,20 +3,33 @@ import 'package:super_editor/super_editor.dart';
 
 import 'package:truce_core/truce_core.dart';
 
+import '../note_metrics.dart';
+import '../note_text_styles.dart';
 import '../ui/note_image.dart';
 import 'marks/markup_text.dart';
+import 'note_nodes.dart';
 
 /// The look of a note in the editor, in [theme]: lines close together like
-/// a notes app's, Markdown styled by its markup; [monospace] where every
-/// character shows, so the syntax lines up as in a code editor. Caret and
-/// selection in the theme's colors. Images show inline, as [images] finds
-/// them.
+/// a notes app's, spaced by [metrics], Markdown styled by its markup;
+/// [monospace] where every character shows, so the syntax lines up as in
+/// a code editor. Caret and selection in the theme's colors. Images show
+/// inline, as [images] finds them.
 final class NoteLook {
   NoteLook(
     ThemeData theme, {
+    required NoteMetrics metrics,
     required bool monospace,
     required NoteImages images,
-  }) : stylesheet = _stylesheet(theme, monospace: monospace, images: images),
+  }) : stylesheet = _stylesheet(
+         theme,
+         metrics: metrics,
+         monospace: monospace,
+         images: images,
+       ),
+       firstLinePadding = EdgeInsets.only(
+         left: _lineInset,
+         top: _documentPadding.top + metrics.lineGap,
+       ),
        selection = SelectionStyles(
          selectionColor: theme.colorScheme.primary.withValues(alpha: 0.3),
        ),
@@ -24,6 +37,10 @@ final class NoteLook {
        overlays = _overlays(theme.colorScheme.primary);
 
   final Stylesheet stylesheet;
+
+  /// Where the text of a note's first line starts.
+  final EdgeInsets firstLinePadding;
+
   final SelectionStyles selection;
   final Color handleColor;
 
@@ -31,31 +48,23 @@ final class NoteLook {
   final List<SuperEditorLayerBuilder> overlays;
 }
 
-/// Where the text of a note's first line starts.
-final noteFirstLinePadding = EdgeInsets.only(
-  left: _lineInset,
-  top: _documentPadding.top + _lineGap,
-);
-
 Stylesheet _stylesheet(
   ThemeData theme, {
+  required NoteMetrics metrics,
   required bool monospace,
   required NoteImages images,
 }) {
-  final base = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-    color: theme.colorScheme.onSurface,
-    height: 1.4,
-    fontFamily: monospace ? 'monospace' : null,
-  );
+  final base = NoteTextStyles.body(theme)
+      .copyWith(fontFamily: monospace ? 'monospace' : null);
   return Stylesheet(
     documentPadding: _documentPadding,
     rules: [
       StyleRule(
         BlockSelector.all,
         (document, node) => {
-          Styles.padding: const CascadingPadding.symmetric(
+          Styles.padding: CascadingPadding.symmetric(
             horizontal: _lineInset,
-            vertical: _lineGap,
+            vertical: _isInItem(node) ? metrics.itemGap : metrics.lineGap,
           ),
           Styles.textStyle: base,
           Styles.inlineWidgetBuilders: <InlineWidgetBuilder>[
@@ -77,6 +86,9 @@ Stylesheet _stylesheet(
   );
 }
 
+bool _isInItem(DocumentNode node) =>
+    framesIn(node).any((frame) => frame is ItemFrame);
+
 List<SuperEditorLayerBuilder> _overlays(Color caret) => [
   const SuperEditorIosToolbarFocalPointDocumentLayerBuilder(),
   const SuperEditorIosHandlesDocumentLayerBuilder(),
@@ -87,4 +99,3 @@ List<SuperEditorLayerBuilder> _overlays(Color caret) => [
 
 const _documentPadding = EdgeInsets.fromLTRB(0, 8, 0, 88);
 const _lineInset = 16.0;
-const _lineGap = 2.0;

@@ -47,3 +47,9 @@ List<Frame> framesOf(EditView view) => switch (view) {
 /// The metadata key of the frames a text node shows inside (see
 /// [framesOf]).
 const framesKey = 'frames';
+
+/// The frames [node] shows inside, outermost first.
+List<Frame> framesIn(DocumentNode node) => switch (node) {
+  DrawnTableNode(:final frames) => frames,
+  _ => node.getMetadataValue(framesKey) as List<Frame>? ?? const [],
+};

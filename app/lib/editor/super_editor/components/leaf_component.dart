@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../note_metrics.dart';
 import '../child_text.dart';
 import 'frames.dart';
 import 'item_actions.dart';
@@ -68,18 +69,24 @@ class _LeafComponentState extends State<LeafComponent>
       highlightWhenEmpty: viewModel.highlightWhenEmpty,
       underlines: viewModel.createUnderlines(),
     );
-    final framedText = framed(_frames, text, row: _itemRow);
+    final metrics = NoteMetrics.of(context);
+    final framedText = framed(
+      _frames,
+      text,
+      metrics: metrics,
+      row: (item, text) => _itemRow(item, text, metrics),
+    );
     final (item, actions) = (_markedItem, widget.actions);
     if (item == null || actions == null) return framedText;
     // Around the whole row, indent included: a drop or swipe anywhere
     // on it counts.
     return LineDropTarget(
       item: item.item,
-      step: itemLevelIndent,
+      step: metrics.levelIndent,
       onDrop: (dragged, {required below, required levels}) =>
           _drop(actions, item.item, dragged, below: below, levels: levels),
       child: SwipeToIndent(
-        step: itemLevelIndent,
+        step: metrics.levelIndent,
         onIndent: () => actions.indent(item.item),
         onOutdent: () => actions.outdent(item.item),
         child: Opacity(opacity: _dragging ? 0.3 : 1, child: framedText),
@@ -93,22 +100,24 @@ class _LeafComponentState extends State<LeafComponent>
     _ => null,
   };
 
-  /// The row of [item] beside [text], the text that starts it.
-  Widget _itemRow(ItemFrame item, Widget text) {
+  /// The row of [item] beside [text], the text that starts it, spaced by
+  /// [metrics].
+  Widget _itemRow(ItemFrame item, Widget text, NoteMetrics metrics) {
     final actions = widget.actions;
     return Row(
       key: _rowKey,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: itemHandleWidth,
+          width: metrics.handleWidth,
           child: actions == null
               ? null
               : SwipeToIndent.keepMouseDrags(
                   LineDragHandle(
                     item: item.item,
                     row: _rowKey,
-                    preview: _preview(item),
+                    preview: _preview(item, metrics),
+                    icon: _handleIcon(metrics),
                     onDragging: (dragging) =>
                         setState(() => _dragging = dragging),
                   ),
@@ -131,15 +140,18 @@ class _LeafComponentState extends State<LeafComponent>
   );
 
   /// How the row looks while dragged: its marker and text.
-  Widget _preview(ItemFrame item) => Row(
+  Widget _preview(ItemFrame item, NoteMetrics metrics) => Row(
     children: [
-      const SizedBox(width: itemHandleWidth, child: Icon(Icons.drag_indicator)),
+      SizedBox(width: metrics.handleWidth, child: _handleIcon(metrics)),
       _marker(item),
       Expanded(
         child: Text(widget.viewModel.text.toPlainText(), style: _style({})),
       ),
     ],
   );
+
+  static Widget _handleIcon(NoteMetrics metrics) =>
+      Icon(Icons.drag_indicator, size: metrics.handleIconSize);
 
   /// The item [dragged] dropped on [item]: next to it, at the level of
   /// the spot. Dropped on itself, it indents or outdents in place by

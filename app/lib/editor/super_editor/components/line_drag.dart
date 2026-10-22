@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// The handle that drags [item], whose row is
-/// [row]: a copy of the row, [preview], follows the pointer meanwhile, as
-/// if the row itself moved.
+/// The handle that drags [item], whose row is [row]: a copy of the row,
+/// [preview], follows the pointer meanwhile, as if the row itself moved.
+/// It takes drags all over the space it is given, its [icon] drawn in the
+/// middle.
 class LineDragHandle extends StatelessWidget {
   const LineDragHandle({
     required this.item,
     required this.row,
     required this.preview,
+    required this.icon,
     this.onDragging,
     super.key,
   });
@@ -16,6 +18,7 @@ class LineDragHandle extends StatelessWidget {
   final LineId item;
   final GlobalKey row;
   final Widget preview;
+  final Widget icon;
 
   /// The drag started (`true`) or ended (`false`).
   final ValueChanged<bool>? onDragging;
@@ -25,6 +28,7 @@ class LineDragHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Draggable<LineDrag>(
     data: LineDrag(item, row),
+    hitTestBehavior: HitTestBehavior.opaque,
     // The copy starts right over the row, where the pointer took it.
     dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
     feedbackOffset: Offset.zero,
@@ -40,9 +44,9 @@ class LineDragHandle extends StatelessWidget {
         ),
       ),
     ),
-    child: const MouseRegion(
+    child: MouseRegion(
       cursor: SystemMouseCursors.grab,
-      child: Icon(Icons.drag_indicator),
+      child: Center(child: icon),
     ),
   );
 }

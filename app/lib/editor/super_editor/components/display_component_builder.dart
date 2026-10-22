@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../../note_metrics.dart';
 import '../display_nodes.dart';
 import 'add_item_button.dart';
 import 'display_actions.dart';
@@ -30,6 +31,7 @@ class DisplayComponentBuilder implements ComponentBuilder {
     final actions = this.actions;
     final node = componentViewModel.node;
     final context = componentContext.context;
+    final metrics = NoteMetrics.of(context);
     return BoxComponent(
       key: componentContext.componentKey,
       isVisuallySelectable: node is DrawnTableNode,
@@ -39,6 +41,7 @@ class DisplayComponentBuilder implements ComponentBuilder {
           onTap: actions == null ? null : () => actions.toggleDone(entry.list),
         ),
         AddItemNode(:final entry) => AddItemButton(
+          indent: metrics.handleWidth,
           onAdd: () => actions?.addItem(entry),
         ),
         DrawnTableNode(:final table, :final frames) => framed(
@@ -47,10 +50,11 @@ class DisplayComponentBuilder implements ComponentBuilder {
             table,
             onTap: actions == null ? null : () => actions.showRaw(table.id),
           ),
+          metrics: metrics,
           row: (item, child) => Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(width: itemHandleWidth),
+              SizedBox(width: metrics.handleWidth),
               MarkerView(item, style: DefaultTextStyle.of(context).style),
               Expanded(child: child),
             ],
