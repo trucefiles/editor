@@ -67,3 +67,6 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A drive that stops responding is not detected.** A folder whose file
   system hangs instead of failing (e.g. a network share that is gone) is
   not marked unreachable; what reads it waits.
+- **On Linux, the language sets the 12 or 24 hour clock.** Linux tells
+  apps no separate clock setting, so times show as the system language
+  writes them.

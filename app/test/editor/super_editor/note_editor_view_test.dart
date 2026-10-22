@@ -10,6 +10,7 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/editor/super_editor/components/drawn_table.dart';
+import 'package:truce_editor/editor/super_editor/note_nodes.dart';
 
 import '../editor_support.dart';
 import 'editor_robot.dart';

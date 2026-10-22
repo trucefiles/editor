@@ -5,8 +5,8 @@ import 'note_text_styles.dart';
 /// The sizes around a note's text: gaps between lines, indents, the slots
 /// of an item's row. They grow with the note's text, so the layout keeps
 /// its proportions at any text size. Where the theme pads tap targets for
-/// touch, items stand further apart and their drag handles are wider, so
-/// a finger hits the one it means.
+/// touch, item rows are taller and their drag handles wider, so a finger
+/// hits the one it means.
 @immutable
 final class NoteMetrics {
   const NoteMetrics({this.scale = 1, this.touch = false});
@@ -15,7 +15,7 @@ final class NoteMetrics {
   /// scaler shows body text.
   factory NoteMetrics.of(BuildContext context) {
     final theme = Theme.of(context);
-    final body = NoteTextStyles.body(theme).fontSize ?? 14;
+    final body = NoteTextStyles.sizeOf(NoteTextStyles.body(theme));
     return NoteMetrics(
       scale: MediaQuery.textScalerOf(context).scale(body) / body,
       touch: theme.materialTapTargetSize == MaterialTapTargetSize.padded,
@@ -31,8 +31,9 @@ final class NoteMetrics {
   /// Space above and below a line of text.
   double get lineGap => 2 * scale;
 
-  /// Space above and below a line of an item.
-  double get itemGap => (touch ? 8 : 2) * scale;
+  /// Space an item's row adds above and below its first line, inside the
+  /// row, so its drag handle reaches over it.
+  double get itemRowInset => (touch ? 6 : 0) * scale;
 
   /// Indent of an item's text under the items it is in, per level.
   double get levelIndent => 28 * scale;

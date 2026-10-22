@@ -83,8 +83,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
             // Only while there are notes to show, with the pull's indicator.
-            onPressed: switch (folders.value) {
-              final list? when list.isNotEmpty =>
+            onPressed: switch (folders) {
+              AsyncData(value: final list) when list.isNotEmpty =>
                 () => _pull.currentState!.refresh(),
               _ => null,
             },

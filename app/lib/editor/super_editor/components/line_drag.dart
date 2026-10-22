@@ -3,8 +3,8 @@ import 'package:truce_core/truce_core.dart';
 
 /// The handle that drags [item], whose row is [row]: a copy of the row,
 /// [preview], follows the pointer meanwhile, as if the row itself moved.
-/// It takes drags all over the space it is given, its [icon] drawn in the
-/// middle.
+/// It takes drags all over the space it is given, its [icon] drawn at the
+/// top, in the middle of its width.
 class LineDragHandle extends StatelessWidget {
   const LineDragHandle({
     required this.item,
@@ -46,7 +46,7 @@ class LineDragHandle extends StatelessWidget {
     ),
     child: MouseRegion(
       cursor: SystemMouseCursors.grab,
-      child: Center(child: icon),
+      child: Align(alignment: Alignment.topCenter, child: icon),
     ),
   );
 }

@@ -34,10 +34,11 @@ class PullToRefreshState extends State<PullToRefresh> {
   final _hold = PullHold();
   final _indicator = GlobalKey<RefreshIndicatorState>();
 
+  late ScrollBehavior _scrolling;
+
   /// Refreshes as a pull does, with its indicator; done once the refresh
   /// is.
   Future<void> refresh() => _indicator.currentState!.show();
-  late ScrollBehavior _scrolling;
 
   /// Pointers that pull: fingers and pens on a touchscreen.
   static const _pulling = {

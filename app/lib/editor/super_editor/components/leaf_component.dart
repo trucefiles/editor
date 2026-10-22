@@ -101,31 +101,47 @@ class _LeafComponentState extends State<LeafComponent>
   };
 
   /// The row of [item] beside [text], the text that starts it, spaced by
-  /// [metrics].
+  /// [metrics]; its drag handle reaches over the whole row's height.
   Widget _itemRow(ItemFrame item, Widget text, NoteMetrics metrics) {
     final actions = widget.actions;
-    return Row(
+    final inset = metrics.itemRowInset;
+    return Stack(
       key: _rowKey,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: metrics.handleWidth,
-          child: actions == null
-              ? null
-              : SwipeToIndent.keepMouseDrags(
-                  LineDragHandle(
-                    item: item.item,
-                    row: _rowKey,
-                    preview: _preview(item, metrics),
-                    icon: _handleIcon(metrics),
-                    onDragging: (dragging) =>
-                        setState(() => _dragging = dragging),
-                  ),
-                ),
+        Padding(
+          padding: EdgeInsets.only(
+            left: metrics.handleWidth,
+            top: inset,
+            bottom: inset,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _marker(item),
+              Expanded(child: SwipeToIndent.keepMouseDrags(text)),
+              if (actions != null) _menu(item, actions),
+            ],
+          ),
         ),
-        _marker(item),
-        Expanded(child: SwipeToIndent.keepMouseDrags(text)),
-        if (actions != null) _menu(item, actions),
+        if (actions != null)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: metrics.handleWidth,
+            child: SwipeToIndent.keepMouseDrags(
+              LineDragHandle(
+                item: item.item,
+                row: _rowKey,
+                preview: _preview(item, metrics),
+                icon: Padding(
+                  padding: EdgeInsets.only(top: inset),
+                  child: _handleIcon(metrics),
+                ),
+                onDragging: (dragging) => setState(() => _dragging = dragging),
+              ),
+            ),
+          ),
       ],
     );
   }

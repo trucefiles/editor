@@ -50,7 +50,7 @@ void main() {
     expect(touch.touch, isTrue);
     expect(touch.handleWidth, kMinInteractiveDimension);
     expect(touch.handleIconSize, mouse.handleIconSize);
-    expect(touch.itemGap, greaterThan(mouse.itemGap));
+    expect(touch.itemRowInset, greaterThan(mouse.itemRowInset));
     expect(touch.lineGap, mouse.lineGap);
   });
 }

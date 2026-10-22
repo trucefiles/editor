@@ -149,7 +149,7 @@ void main() {
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 
-  testApp('Ctrl+=, Ctrl+- and Ctrl+0 change the size of notes text', (
+  testApp('Ctrl with + or =, - and 0 change the size of notes text', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
@@ -162,9 +162,16 @@ void main() {
             .scale(10);
     final base = scaled();
 
-    Future<void> pressCtrl(LogicalKeyboardKey key) async {
+    Future<void> pressCtrl(
+      LogicalKeyboardKey key, {
+      bool shift = false,
+      PhysicalKeyboardKey? physical,
+      String? platform,
+    }) async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await tester.sendKeyEvent(key);
+      if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(key, physicalKey: physical, platform: platform);
+      if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pumpAndSettle();
     }
@@ -183,5 +190,19 @@ void main() {
 
     await pressCtrl(LogicalKeyboardKey.digit0);
     expect(scaled(), closeTo(base, 0.01));
+
+    // + with Shift on US layouts, its own key on German ones, the numpad.
+    await pressCtrl(LogicalKeyboardKey.equal, shift: true);
+    // A German layout's + key; Linux key codes in tests know none.
+    Future<void> pressPlus({bool shift = false}) => pressCtrl(
+      LogicalKeyboardKey.add,
+      shift: shift,
+      physical: PhysicalKeyboardKey.bracketRight,
+      platform: 'android',
+    );
+    await pressPlus();
+    await pressPlus(shift: true);
+    await pressCtrl(LogicalKeyboardKey.numpadAdd);
+    expect(scaled(), closeTo(base * 1.4, 0.01));
   });
 }

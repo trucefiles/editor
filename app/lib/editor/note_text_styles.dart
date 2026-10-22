@@ -14,13 +14,13 @@ abstract final class NoteTextStyles {
   /// [style] as a heading of [level], 1 the largest.
   static TextStyle heading(TextStyle style, int level) => style.copyWith(
     fontWeight: FontWeight.bold,
-    fontSize: _sizeOf(style) * _headingScale(level),
+    fontSize: sizeOf(style) * _headingScale(level),
   );
 
   /// [style] as code: monospace and a little smaller than the text it is
   /// in, as GitHub draws it.
   static TextStyle code(TextStyle style) =>
-      style.copyWith(fontFamily: 'monospace', fontSize: _sizeOf(style) * 0.85);
+      style.copyWith(fontFamily: 'monospace', fontSize: sizeOf(style) * 0.85);
 
   static double _headingScale(int level) => switch (level) {
     1 => 1.5,
@@ -29,6 +29,6 @@ abstract final class NoteTextStyles {
     _ => 1.0,
   };
 
-  /// Flutter's size for text that sets none.
-  static double _sizeOf(TextStyle style) => style.fontSize ?? 14;
+  /// The font size of [style]; Flutter's own for a style that sets none.
+  static double sizeOf(TextStyle style) => style.fontSize ?? 14;
 }

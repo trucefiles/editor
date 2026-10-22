@@ -406,27 +406,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       SingleActivator(_digits[index], control: true): () {
         if (!_isReadOnly && mode != _mode) _showMode(mode);
       },
-    for (final (keys, size) in [
+    for (final (keys, next) in [
       (_larger, (NoteTextSize size) => size.larger),
       (_smaller, (NoteTextSize size) => size.smaller),
       (_normal, (NoteTextSize _) => NoteTextSize.normal),
     ])
       for (final key in keys)
-        SingleActivator(key, control: true): () =>
-            unawaited(ref.read(noteTextSizeProvider.notifier).change(size)),
+        key: () =>
+            unawaited(ref.read(noteTextSizeProvider.notifier).change(next)),
   };
 
+  /// Ctrl with + or =, as layouts put + with or without Shift.
   static const _larger = [
-    LogicalKeyboardKey.equal,
-    LogicalKeyboardKey.numpadAdd,
+    SingleActivator(LogicalKeyboardKey.equal, control: true),
+    SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true),
+    SingleActivator(LogicalKeyboardKey.add, control: true),
+    SingleActivator(LogicalKeyboardKey.add, control: true, shift: true),
+    SingleActivator(LogicalKeyboardKey.numpadAdd, control: true),
   ];
   static const _smaller = [
-    LogicalKeyboardKey.minus,
-    LogicalKeyboardKey.numpadSubtract,
+    SingleActivator(LogicalKeyboardKey.minus, control: true),
+    SingleActivator(LogicalKeyboardKey.numpadSubtract, control: true),
   ];
   static const _normal = [
-    LogicalKeyboardKey.digit0,
-    LogicalKeyboardKey.numpad0,
+    SingleActivator(LogicalKeyboardKey.digit0, control: true),
+    SingleActivator(LogicalKeyboardKey.numpad0, control: true),
   ];
 
   static const _digits = [

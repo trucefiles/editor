@@ -298,6 +298,27 @@ void main() {
     expect(text.text, '- [ ] b\n- [ ] a');
   });
 
+  testWidgets('on touch, the handle takes drags in the gap above its icon', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- [ ] a\n- [ ] b');
+    await pumpNoteEditor(tester, text);
+
+    final slot = tester.getRect(find.byType(LineDragHandle).at(0));
+    final icon = tester.getRect(find.byIcon(Icons.drag_indicator).at(0));
+    final gap = Offset(icon.center.dx, slot.top + 1);
+    expect(gap.dy, lessThan(icon.top), reason: 'the row is taller on touch');
+    final below = tester.getBottomLeft(find.byIcon(Icons.drag_indicator).at(1));
+    final gesture = await tester.startGesture(gap);
+    await tester.pump();
+    await gesture.moveTo(Offset(gap.dx, below.dy));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(text.text, '- [ ] b\n- [ ] a');
+  });
+
   testWidgets('dropped below an item with subitems, it lands right under it', (
     tester,
   ) async {

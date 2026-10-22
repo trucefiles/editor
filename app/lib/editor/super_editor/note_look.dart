@@ -7,7 +7,6 @@ import '../note_metrics.dart';
 import '../note_text_styles.dart';
 import '../ui/note_image.dart';
 import 'marks/markup_text.dart';
-import 'note_nodes.dart';
 
 /// The look of a note in the editor, in [theme]: lines close together like
 /// a notes app's, spaced by [metrics], Markdown styled by its markup;
@@ -64,7 +63,7 @@ Stylesheet _stylesheet(
         (document, node) => {
           Styles.padding: CascadingPadding.symmetric(
             horizontal: _lineInset,
-            vertical: _isInItem(node) ? metrics.itemGap : metrics.lineGap,
+            vertical: metrics.lineGap,
           ),
           Styles.textStyle: base,
           Styles.inlineWidgetBuilders: <InlineWidgetBuilder>[
@@ -85,9 +84,6 @@ Stylesheet _stylesheet(
     selectedTextColorStrategy: defaultSelectedTextColorStrategy,
   );
 }
-
-bool _isInItem(DocumentNode node) =>
-    framesIn(node).any((frame) => frame is ItemFrame);
 
 List<SuperEditorLayerBuilder> _overlays(Color caret) => [
   const SuperEditorIosToolbarFocalPointDocumentLayerBuilder(),
