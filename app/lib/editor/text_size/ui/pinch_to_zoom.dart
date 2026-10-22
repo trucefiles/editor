@@ -1,25 +1,29 @@
-import 'dart:async';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../note_text_size.dart';
-import '../note_text_size_controller.dart';
 
-/// Pinching [child] with two fingers makes notes' text larger or smaller
-/// as the fingers spread or close, step by step while they move. Every
-/// touch still reaches [child] as well, so it scrolls and edits as before.
-class PinchToZoom extends ConsumerStatefulWidget {
-  const PinchToZoom({required this.child, super.key});
+/// Pinching [child] with two fingers asks for notes' text larger or
+/// smaller than [size] as the fingers spread or close ([onSize]), step by
+/// step while they move. Every touch still reaches [child] as well, so it
+/// scrolls and edits as before.
+class PinchToZoom extends StatefulWidget {
+  const PinchToZoom({
+    required this.size,
+    required this.onSize,
+    required this.child,
+    super.key,
+  });
 
+  final NoteTextSize size;
+  final ValueChanged<NoteTextSize> onSize;
   final Widget child;
 
   @override
-  ConsumerState<PinchToZoom> createState() => _PinchToZoomState();
+  State<PinchToZoom> createState() => _PinchToZoomState();
 }
 
-class _PinchToZoomState extends ConsumerState<PinchToZoom> {
+class _PinchToZoomState extends State<PinchToZoom> {
   /// Where each finger on [PinchToZoom.child] is.
   final _fingers = <int, Offset>{};
 
@@ -35,9 +39,8 @@ class _PinchToZoomState extends ConsumerState<PinchToZoom> {
   void _down(PointerDownEvent event) {
     if (event.kind != PointerDeviceKind.touch) return;
     _fingers[event.pointer] = event.position;
-    final size = ref.read(noteTextSizeProvider).value;
-    _pinch = _fingers.length == 2 && size != null && _span > 0
-        ? (size: size, span: _span)
+    _pinch = _fingers.length == 2 && _span > 0
+        ? (size: widget.size, span: _span)
         : null;
   }
 
@@ -45,11 +48,8 @@ class _PinchToZoomState extends ConsumerState<PinchToZoom> {
     if (!_fingers.containsKey(event.pointer)) return;
     _fingers[event.pointer] = event.position;
     if (_pinch case (:final size, :final span)?) {
-      unawaited(
-        ref
-            .read(noteTextSizeProvider.notifier)
-            .set(NoteTextSize.closestTo(size.percent * _span / span)),
-      );
+      final next = NoteTextSize.closestTo(size.percent * _span / span);
+      if (next != widget.size) widget.onSize(next);
     }
   }
 

@@ -1,26 +1,22 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../note_text_size.dart';
-import '../note_text_size_controller.dart';
 
-/// [child], notes' text, as large as chosen on this device: on top of the
-/// system's own text scaling.
-class NoteTextScale extends ConsumerWidget {
-  const NoteTextScale({required this.child, super.key});
+/// [child], notes' text, at [size]: on top of the system's own text
+/// scaling.
+class NoteTextScale extends StatelessWidget {
+  const NoteTextScale({required this.size, required this.child, super.key});
 
+  final NoteTextSize size;
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final size = ref.watch(noteTextSizeProvider).value ?? NoteTextSize.normal;
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: _TimesScaler(MediaQuery.textScalerOf(context), size.factor),
-      ),
-      child: child,
-    );
-  }
+  Widget build(BuildContext context) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(
+      textScaler: _TimesScaler(MediaQuery.textScalerOf(context), size.factor),
+    ),
+    child: child,
+  );
 }
 
 /// [base] scaling, then [factor] times as large.

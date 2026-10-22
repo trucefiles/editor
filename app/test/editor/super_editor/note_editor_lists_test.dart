@@ -8,6 +8,8 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_document_controller.dart';
 
+import 'package:truce_editor/editor/super_editor/components/line_drag.dart';
+
 import '../editor_support.dart';
 import 'editor_robot.dart';
 
@@ -272,6 +274,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(text.text, '- [ ] b\n  - [ ] sub\n- [ ] a');
+  });
+
+  testWidgets('on touch, the handle takes drags beside its icon too', (
+    tester,
+  ) async {
+    final text = FakeNoteText('- [ ] a\n- [ ] b');
+    await pumpNoteEditor(tester, text);
+
+    final slot = tester.getRect(find.byType(LineDragHandle).at(1));
+    final icon = tester.getRect(find.byIcon(Icons.drag_indicator).at(1));
+    expect(slot.width, kMinInteractiveDimension);
+    final beside = Offset(slot.left + 2, icon.center.dy);
+    expect(icon.contains(beside), isFalse);
+    final above = tester.getTopLeft(find.byIcon(Icons.drag_indicator).at(0));
+    final gesture = await tester.startGesture(beside);
+    await tester.pump();
+    await gesture.moveTo(Offset(beside.dx, above.dy + 2));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(text.text, '- [ ] b\n- [ ] a');
   });
 
   testWidgets('dropped below an item with subitems, it lands right under it', (

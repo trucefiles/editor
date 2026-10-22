@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +83,26 @@ void main() {
     expect(find.byType(RefreshProgressIndicator), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  testWidgets('a Refresh button refreshes as a pull does, shown a while', (
+    tester,
+  ) async {
+    await show(tester);
+    final pull = tester.state<PullToRefreshState>(find.byType(PullToRefresh));
+
+    var done = false;
+    unawaited(pull.refresh().then((_) => done = true));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(refreshes, 1);
+    expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+    expect(done, isFalse);
+    await tester.pumpAndSettle();
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
+    expect(done, isTrue);
   });
 
   testWidgets('taking a pull back first hides the indicator, then scrolls', (

@@ -148,4 +148,40 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.digit1);
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
+
+  testApp('Ctrl+=, Ctrl+- and Ctrl+0 change the size of notes text', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\n- [ ] Call\n');
+    await tester.addFolder(app);
+    await tester.openNote('Todo');
+
+    /// How large the note shows text of 10 px.
+    double scaled() =>
+        MediaQuery.textScalerOf(tester.element(find.byType(SuperEditor)))
+            .scale(10);
+    final base = scaled();
+
+    Future<void> pressCtrl(LogicalKeyboardKey key) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(key);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+    }
+
+    await pressCtrl(LogicalKeyboardKey.equal);
+    await pressCtrl(LogicalKeyboardKey.equal);
+    expect(scaled(), closeTo(base * 1.2, 0.01));
+    expect(
+      find.textContaining('=', findRichText: true),
+      findsNothing,
+      reason: 'nothing typed',
+    );
+
+    await pressCtrl(LogicalKeyboardKey.minus);
+    expect(scaled(), closeTo(base * 1.1, 0.01));
+
+    await pressCtrl(LogicalKeyboardKey.digit0);
+    expect(scaled(), closeTo(base, 0.01));
+  });
 }

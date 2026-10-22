@@ -461,6 +461,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final unreachable = _isUnreachable;
     final readOnly = _isReadOnly;
     final scans = ref.watch(folderScansProvider).value;
+    final textSize =
+        ref.watch(noteTextSizeProvider).value ?? NoteTextSize.normal;
     final key = _open.note?.key;
     final mark = key == null
         ? NoteMark.none
@@ -524,7 +526,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               key: _pull,
               onRefresh: _scans.refresh,
               child: PinchToZoom(
+                size: textSize,
+                onSize: ref.read(noteTextSizeProvider.notifier).set,
                 child: NoteTextScale(
+                  size: textSize,
                   child: NoteEditorView(
                     _note,
                     key: ValueKey(_note.mode),
