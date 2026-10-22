@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/check
 
-  ui-test:
+  ui-test-part:
     name: UI tests (Linux, part ${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -82,3 +82,17 @@ jobs:
           dbus-run-session -- \
             xvfb-run --auto-servernum flutter test integration_test/all_test.dart -d linux \
               --total-shards 2 --shard-index ${{ matrix.shard }}
+
+  # One stable check over all parts, so the required check needs no change
+  # when the parts do.
+  ui-test:
+    name: UI tests (Linux)
+    needs: ui-test-part
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check that every part passed
+        env:
+          RESULT: ${{ needs.ui-test-part.result }}
+        run: test "$RESULT" = success
