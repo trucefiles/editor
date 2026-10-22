@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
@@ -30,17 +31,21 @@ final class TestApp {
   final Directory notes;
   final AppStorage _storage;
 
-  Future<void> launch(WidgetTester tester) => tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        appStorageProvider.overrideWithValue(_storage),
-        deviceIdProvider.overrideWithValue('0123456789abcdef'),
-        systemTrayProvider.overrideWithValue(null),
-        folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
-      ],
-      child: const TruceApp(),
-    ),
-  );
+  /// Starts the app, with the locale data that `main` loads.
+  Future<void> launch(WidgetTester tester) async {
+    await initializeDateFormatting();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appStorageProvider.overrideWithValue(_storage),
+          deviceIdProvider.overrideWithValue('0123456789abcdef'),
+          systemTrayProvider.overrideWithValue(null),
+          folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
+        ],
+        child: const TruceApp(),
+      ),
+    );
+  }
 
   /// Starts the app with [mode] as the refresh setting, e.g. manual for
   /// tests of what refreshes without live updates.
