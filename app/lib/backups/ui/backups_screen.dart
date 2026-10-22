@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/empty_state.dart';
-import '../../common/full_time.dart';
+import '../../common/time_texts.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../all_backups.dart';
@@ -52,14 +52,15 @@ class _BackupTile extends ConsumerWidget {
       folderId: folder.id,
       path: shown.filePath,
     ));
-    final local = MaterialLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.history),
       title: Text(note?.title ?? shown.filePath.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${shown.kind.text}, ${fullTime(local, shown.savedAt)}'),
+          Text(
+            '${shown.kind.text}, ${TimeTexts.of(context).full(shown.savedAt)}',
+          ),
           FolderBadge(folder, file: shown.filePath),
         ],
       ),

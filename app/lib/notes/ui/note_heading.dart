@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/edited_time.dart';
+import '../../common/time_texts.dart';
 
 /// The editor's title: the note's title and its last edit, if it has a
 /// file yet.
@@ -19,7 +19,7 @@ class NoteHeading extends StatelessWidget {
         Text(title, overflow: TextOverflow.ellipsis),
         if (edited != null)
           Text(
-            'Edited ${editedTime(MaterialLocalizations.of(context), edited, now: DateTime.now())}',
+            'Edited ${TimeTexts.of(context).edited(edited, now: DateTime.now())}',
             style: Theme.of(context).textTheme.labelSmall,
           ),
       ],

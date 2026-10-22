@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../common/edited_time.dart';
+import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../editor/text_size/ui/note_text_scale.dart';
 import '../../folders/ui/folder_badge.dart';
@@ -92,11 +92,8 @@ class NoteCard extends StatelessWidget {
                 children: [
                   Expanded(child: FolderBadge(note.folder, file: note.path)),
                   Text(
-                    editedTime(
-                      MaterialLocalizations.of(context),
-                      note.modified,
-                      now: DateTime.now(),
-                    ),
+                    TimeTexts.of(context)
+                        .edited(note.modified, now: DateTime.now()),
                     style: textTheme.labelSmall,
                   ),
                   if (pinned)
