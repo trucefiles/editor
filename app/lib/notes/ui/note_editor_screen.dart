@@ -97,6 +97,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final NoteSettingsController _settings;
   late final NoteDocumentController _note;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
+  final _pull = GlobalKey<PullToRefreshState>();
 
   /// The note's last mode on this device, else its first one.
   late NoteMode _mode =
@@ -487,7 +488,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
-            onPressed: _scans.refresh,
+            onPressed: () => _pull.currentState!.refresh(),
           ),
           if (!readOnly) ...[
             NoteModeButton(mode: _mode, onChanged: _showMode),
@@ -520,6 +521,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           Expanded(
             // The editor scrolls inside.
             child: PullToRefresh(
+              key: _pull,
               onRefresh: _scans.refresh,
               child: PinchToZoom(
                 child: NoteTextScale(
