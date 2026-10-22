@@ -51,6 +51,15 @@ void main() {
       expect(code, greaterThan(body * 0.8), reason: '$mode');
     }
   });
+
+  testWidgets('in Markdown edit, code is as large, so columns line up', (
+    tester,
+  ) async {
+    expect(
+      await sizeOf(tester, 'code', mode: NoteMode.markdown),
+      await sizeOf(tester, 'plain words with ', mode: NoteMode.markdown),
+    );
+  });
 }
 
 /// Each piece of plain text under [span] with its font size, styles

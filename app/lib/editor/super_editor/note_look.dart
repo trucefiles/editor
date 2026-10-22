@@ -53,8 +53,8 @@ Stylesheet _stylesheet(
   required bool monospace,
   required NoteImages images,
 }) {
-  final base = NoteTextStyles.body(theme)
-      .copyWith(fontFamily: monospace ? 'monospace' : null);
+  final body = NoteTextStyles.body(theme);
+  final base = monospace ? NoteTextStyles.monospace(body) : body;
   return Stylesheet(
     documentPadding: _documentPadding,
     rules: [

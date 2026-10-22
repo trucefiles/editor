@@ -17,10 +17,15 @@ abstract final class NoteTextStyles {
     fontSize: sizeOf(style) * _headingScale(level),
   );
 
-  /// [style] as code: monospace and a little smaller than the text it is
-  /// in, as GitHub draws it.
-  static TextStyle code(TextStyle style) =>
-      style.copyWith(fontFamily: 'monospace', fontSize: sizeOf(style) * 0.85);
+  /// [style] with every character as wide as the next.
+  static TextStyle monospace(TextStyle style) =>
+      style.copyWith(fontFamily: _monospace);
+
+  /// [style] as code: monospace and, in text that isn't, a little smaller,
+  /// as GitHub draws it; in monospace text as large, so columns line up.
+  static TextStyle code(TextStyle style) => style.fontFamily == _monospace
+      ? style
+      : monospace(style).copyWith(fontSize: sizeOf(style) * 0.85);
 
   static double _headingScale(int level) => switch (level) {
     1 => 1.5,
@@ -28,6 +33,8 @@ abstract final class NoteTextStyles {
     3 => 1.15,
     _ => 1.0,
   };
+
+  static const _monospace = 'monospace';
 
   /// The font size of [style]; Flutter's own for a style that sets none.
   static double sizeOf(TextStyle style) => style.fontSize ?? 14;
