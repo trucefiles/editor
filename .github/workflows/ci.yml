@@ -26,9 +26,14 @@ jobs:
       - uses: ./.github/actions/check
 
   ui-test:
-    name: UI tests (Linux)
+    name: UI tests (Linux, part ${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # Flutter splits the tests over the parts.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -75,4 +80,5 @@ jobs:
         # The tray test needs a session bus.
         run: |
           dbus-run-session -- \
-            xvfb-run --auto-servernum flutter test integration_test/all_test.dart -d linux
+            xvfb-run --auto-servernum flutter test integration_test/all_test.dart -d linux \
+              --total-shards 2 --shard-index ${{ matrix.shard }}
