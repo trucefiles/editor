@@ -1,0 +1,6 @@
+- Text size setting for notes; pinch or Ctrl +/- to zoom
+- Read shows text as large as the editors
+- Larger list drag handles on touch
+- Dates and times follow the system's language and clock
+- Refresh button shows the spinner
+- Home list scrolls past pinned notes again

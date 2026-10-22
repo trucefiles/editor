@@ -19,6 +19,18 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.2" date="2026-10-23">
+      <description>
+        <ul>
+          <li>Text size for notes: a setting, pinch to zoom, and Ctrl with +, - and 0.</li>
+          <li>Read shows a note's text as large as Visual and Markdown edit.</li>
+          <li>Touch: larger drag handles and list rows.</li>
+          <li>Dates and times follow the system's language and 12 or 24 hour clock.</li>
+          <li>The Refresh button shows the same spinner as pulling down.</li>
+          <li>The home list scrolls past pinned notes again.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.1" date="2026-10-21">
       <description>
         <ul>
