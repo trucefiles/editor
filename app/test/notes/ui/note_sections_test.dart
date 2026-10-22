@@ -66,4 +66,33 @@ void main() {
     expect(tester.getSize(find.byType(SizedBox).at(0)).height, 50);
     expect(tester.getSize(find.byType(SizedBox).at(1)).height, 300);
   });
+
+  testWidgets('scrolls past the pinned cards to the end', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Widget card(String name, double height) =>
+        SizedBox(height: height, child: Text(name));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NoteSections(
+            pinned: [
+              for (var i = 0; i < 8; i++) card('pinned $i', 150.0 + i % 3 * 40),
+            ],
+            others: [
+              for (var i = 0; i < 60; i++) card('other $i', 120.0 + i % 4 * 30),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    for (var i = 0; i < 40; i++) {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -200));
+      await tester.pump();
+    }
+
+    expect(find.text('other 59'), findsOne);
+  });
 }
