@@ -46,6 +46,3 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
-
-# Generated in CI from the UI test files
-/integration_test/all_test.dart
