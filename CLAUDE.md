@@ -50,6 +50,7 @@ Prefer the simpler option when in doubt.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.
 - Unit tests for core and controllers; UI tests for user flows.
+- Changes that affect how the UI looks (layout, theme, visuals; not animations or behavior) are also checked with a few screenshots, at least locally (e.g. a UI test on Linux saving the view's layer as PNG), on desktop and touch looks and at a larger text size where it matters.
 - Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
 - Shared test doubles live in the test-only `test_support` package, never in a production `lib`.
 - Structural refactors change no behavior unless a better one is agreed (see Best behavior): the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
