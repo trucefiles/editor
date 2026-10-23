@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../common/time_texts.dart';
 import '../../text_zoom/ui/note_text_zoom.dart';
-import '../changed_lines.dart';
+import '../compared_lines.dart';
+import 'diff_colors.dart';
 
-/// One side of a conflict: its text, at the note text zoom, with lines
-/// the other side lacks highlighted, and a button to keep it.
+/// One side of a conflict: its text, at the note text zoom, compared
+/// with the other side's as a line diff (lines only this side has as
+/// added, lines only the other side has as removed), and a button to
+/// keep it.
 class VersionPane extends StatelessWidget {
   const VersionPane({
     required this.label,
@@ -69,20 +72,25 @@ class _HighlightedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = text.split('\n');
-    final changed = changedLines(lines, compareTo.split('\n'));
-    final highlight = Theme.of(context).colorScheme.tertiaryContainer;
+    final lines = compareLines(text.split('\n'), compareTo.split('\n'));
+    final colors = DiffColors.of(Theme.of(context).brightness);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SelectableText.rich(
         TextSpan(
           children: [
-            for (var i = 0; i < lines.length; i++)
+            for (final (index, line) in lines.indexed)
               TextSpan(
-                text: i < lines.length - 1 ? '${lines[i]}\n' : lines[i],
-                style: changed.contains(i)
-                    ? TextStyle(backgroundColor: highlight)
-                    : null,
+                text: index < lines.length - 1 ? '${line.text}\n' : line.text,
+                style: switch (line.origin) {
+                  LineOrigin.both => null,
+                  LineOrigin.shownOnly => TextStyle(
+                    backgroundColor: colors.added,
+                  ),
+                  LineOrigin.otherOnly => TextStyle(
+                    backgroundColor: colors.removed,
+                  ),
+                },
               ),
           ],
         ),
