@@ -189,7 +189,7 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.equal);
     expect(scaled(), closeTo(base * 1.2, 0.01));
     expect(appText(), closeTo(base, 0.01), reason: 'app text stays');
-    expect(find.text('Note text zoom'), findsOne, reason: 'toast');
+    expect(find.text('Note text size'), findsOne, reason: 'toast');
     expect(find.text('120 %'), findsOne);
     expect(
       find.textContaining('=', findRichText: true),
