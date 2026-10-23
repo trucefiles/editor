@@ -18,9 +18,11 @@ class SelectableLines extends StatefulWidget {
   State<SelectableLines> createState() => _SelectableLinesState();
 }
 
-/// Stands in for a blank line, which would otherwise not select: it
-/// takes no space and copies as nothing.
-const _blank = '​';
+/// Stands in for a blank line: Flutter registers no selectable for an
+/// empty `Text`, so a blank line would be skipped by a selection and
+/// copy without its line break. A zero-width space takes no room and is
+/// removed again from the copied text.
+const _blank = '\u200B';
 
 class _SelectableLinesState extends State<SelectableLines> {
   final _selection = _LinesSelection();

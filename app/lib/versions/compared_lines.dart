@@ -14,7 +14,9 @@ typedef ComparedLine = ({String text, LineOrigin origin});
 List<ComparedLine> compareLines(List<String> shown, List<String> other) {
   // diffutil's edit script runs from the end of [other] to its start, so
   // every position is one in [other]: one pass builds the lines from
-  // the end, in reverse.
+  // the end, in reverse. Its docs only promise that the script applies
+  // in order; this order is its code's, guarded by
+  // `test/versions/diffutil_order_test.dart`.
   final reversed = <ComparedLine>[];
   // Removed lines of the change at hand: they go before its added lines.
   final removed = <ComparedLine>[];

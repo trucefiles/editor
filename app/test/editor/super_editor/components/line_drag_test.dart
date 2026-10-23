@@ -206,4 +206,55 @@ void main() {
 
     expect(drops, [(const LineId(0), const LineId(1), true)]);
   });
+
+  testWidgets('scrolling during a drag keeps the drop places', (tester) async {
+    final drops = <(LineId, bool)>[];
+    final scroll = ScrollController();
+    final rows = [for (final _ in Iterable<int>.generate(20)) GlobalKey()];
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (_, child) => LineDropZone(child: child!),
+        home: Scaffold(
+          body: ListView(
+            controller: scroll,
+            children: [
+              for (final (index, row) in rows.indexed)
+                LineDropTarget(
+                  item: LineId(index),
+                  step: 24,
+                  onDrop: (_, {required below, required levels}) =>
+                      drops.add((LineId(index), below)),
+                  child: Row(
+                    key: row,
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: LineDragHandle(
+                          item: LineId(index),
+                          row: row,
+                          preview: Text('copy $index'),
+                          icon: const Icon(Icons.drag_indicator),
+                        ),
+                      ),
+                      Text('item $index'),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.4));
+    // The rows move up one row under the copy, e.g. by the mouse wheel.
+    scroll.jumpTo(48);
+    await gesture.moveBy(const Offset(0, 1));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(drops, [(const LineId(2), true)]);
+  });
 }

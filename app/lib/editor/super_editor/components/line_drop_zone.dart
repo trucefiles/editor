@@ -12,8 +12,16 @@ typedef LineGap = ({LineId item, bool below, double height});
 /// [child] goes. It takes the dragged copy's middle against the rows'
 /// places as they were when the drag began, before any gap opened, so a
 /// gap opening never moves what decides it; exactly one gap is open.
-/// A row and where it was, top to bottom on screen.
-typedef _PlacedRow = ({_LineDropTargetState row, double top, double bottom});
+/// The places are in the note, so scrolling during the drag keeps them.
+/// A row and where it was, top to bottom in its scroll view's content
+/// (on screen, plus how far [scroll] had scrolled), so the place holds
+/// while the view scrolls.
+typedef _PlacedRow = ({
+  _LineDropTargetState row,
+  ScrollPosition? scroll,
+  double top,
+  double bottom,
+});
 
 class LineDropZone extends StatefulWidget {
   const LineDropZone({required this.child, super.key});
@@ -44,33 +52,50 @@ class LineDropZoneState extends State<LineDropZone> {
   List<_PlacedRow> _measure() => <_PlacedRow>[
     for (final row in _targets)
       if (row._contentBox case final box?)
-        (
-          row: row,
-          top: box.localToGlobal(Offset.zero).dy,
-          bottom: box.localToGlobal(Offset(0, box.size.height)).dy,
+        _place(
+          row,
+          Scrollable.maybeOf(row.context, axis: Axis.vertical)?.position,
+          box,
         ),
   ].sortedBy<num>((row) => row.top);
 
+  static _PlacedRow _place(
+    _LineDropTargetState row,
+    ScrollPosition? scroll,
+    RenderBox box,
+  ) {
+    final scrolled = scroll?.pixels ?? 0;
+    return (
+      row: row,
+      scroll: scroll,
+      top: box.localToGlobal(Offset.zero).dy + scrolled,
+      bottom: box.localToGlobal(Offset(0, box.size.height)).dy + scrolled,
+    );
+  }
+
+  /// [middle], on screen, where [row] was measured: in its scroll view's
+  /// content.
+  static double _inRow(_PlacedRow row, double middle) =>
+      middle + (row.scroll?.pixels ?? 0);
+
   /// The row the copy's middle at [middle] is over, or the nearest.
-  _PlacedRow? _rowAt(double middle) => minBy(
-    _rows ??= _measure(),
-    (row) => middle < row.top
-        ? row.top - middle
-        : middle > row.bottom
-        ? middle - row.bottom
-        : 0.0,
-  );
+  _PlacedRow? _rowAt(double middle) => minBy(_rows ??= _measure(), (row) {
+    final at = _inRow(row, middle);
+    return at < row.top
+        ? row.top - at
+        : at > row.bottom
+        ? at - row.bottom
+        : 0.0;
+  });
 
   void _hover(DragTargetDetails<LineDrag> details) {
     final middle = details.data.middleAt(details.offset);
     _gap.value = switch (_rowAt(middle)) {
-      (:final row, :final top, :final bottom)
-          when row.widget.item != details.data.item =>
-        (
-          item: row.widget.item,
-          below: middle > (top + bottom) / 2,
-          height: details.data.height,
-        ),
+      final placed? when placed.row.widget.item != details.data.item => (
+        item: placed.row.widget.item,
+        below: _inRow(placed, middle) > (placed.top + placed.bottom) / 2,
+        height: details.data.height,
+      ),
       _ => null,
     };
   }
