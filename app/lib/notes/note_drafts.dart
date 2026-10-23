@@ -1,17 +1,21 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../storage/app_storage.dart';
+import '../storage/json_file.dart';
 import 'note_draft.dart';
 
 /// The drafts of one folder's notes, one JSON file each in app storage.
 /// Per device and never synced.
 final class NoteDrafts {
-  const NoteDrafts(this._folder);
+  NoteDrafts(this._folder);
 
   final Directory _folder;
+
+  /// One per draft, so writes of the same draft run one at a time.
+  final Map<String, JsonFile> _files = {};
 
   static const _extension = '.json';
 
@@ -25,7 +29,7 @@ final class NoteDrafts {
         if (entity is! File || !name.endsWith(_extension)) continue;
         if (!(await entity.lastModified()).isBefore(before)) continue;
         final id = name.substring(0, name.length - _extension.length);
-        if (await _read(id, entity) case final draft?) drafts.add(draft);
+        if (await _read(id) case final draft?) drafts.add(draft);
       }
     } on FileSystemException {
       // No drafts yet, or none readable.
@@ -33,20 +37,10 @@ final class NoteDrafts {
     return drafts;
   }
 
-  /// Writes [draft] over any earlier one with its id, atomically via a
-  /// temp file. Returns `false` if it could not be written.
-  Future<bool> keep(NoteDraft draft) async {
-    final file = _file(draft.id);
-    final temp = File('${file.path}.tmp');
-    try {
-      await _folder.create(recursive: true);
-      await temp.writeAsString(jsonEncode(draft.toJson()), flush: true);
-      await temp.rename(file.path);
-      return true;
-    } on FileSystemException {
-      return false;
-    }
-  }
+  /// Writes [draft] over any earlier one with its id, atomically. Returns
+  /// `false` if it could not be written.
+  Future<bool> keep(NoteDraft draft) async =>
+      await _json(draft.id).write(draft.toJson()) is Ok;
 
   /// Deletes the draft [id], once its edits are kept elsewhere. A draft
   /// that stays by failure is only tried again later.
@@ -69,15 +63,13 @@ final class NoteDrafts {
 
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
-  static Future<NoteDraft?> _read(String id, File file) async {
-    try {
-      return NoteDraft.fromJson(id, jsonDecode(await file.readAsString()));
-    } on FileSystemException {
-      return null;
-    } on FormatException {
-      return null;
-    }
-  }
+  JsonFile _json(String id) =>
+      _files.putIfAbsent(id, () => JsonFile(_file(id)));
+
+  Future<NoteDraft?> _read(String id) async => switch (await _json(id).read()) {
+    Ok(:final value) => NoteDraft.fromJson(id, value),
+    Err() => null,
+  };
 }
 
 /// The drafts of the folder with this id.

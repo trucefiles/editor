@@ -33,6 +33,17 @@ void main() {
     expect(await drafts.all(before: later), isEmpty);
   });
 
+  test('keeps the last of two drafts written at once', () async {
+    final both = await Future.wait([
+      drafts.keep(draft('1', 'one')),
+      drafts.keep(draft('1', 'two')),
+    ]);
+
+    expect(both, [true, true]);
+    final [kept] = await drafts.all(before: later);
+    expect(kept.text, 'two');
+  });
+
   test("keeps a new note's draft, without a base", () async {
     await drafts.keep(NoteDraft(id: '1', path: path('Milk.md'), text: 'Milk'));
 
