@@ -21,7 +21,7 @@ class LeafBuilder implements ComponentBuilder {
     final text = node.text.toPlainText();
     return LeafViewModel(
       nodeId: node.id,
-      frames: node.getMetadataValue(framesKey) as List<Frame>? ?? const [],
+      frames: framesIn(node),
       text: node.text,
       textDirection: getParagraphDirection(text),
       textStyleBuilder: noStyleBuilder,

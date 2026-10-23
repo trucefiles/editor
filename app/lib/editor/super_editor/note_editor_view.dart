@@ -3,6 +3,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../note_document_controller.dart';
+import '../note_metrics.dart';
 import '../note_mode.dart';
 import '../text_format.dart';
 import '../ui/empty_note_hint.dart';
@@ -57,8 +58,8 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   NoteEditorAdapter? _adapter;
   MarksPhase? _marks;
 
-  /// The look in the current theme. Kept between builds: super_editor
-  /// lays the whole note out anew for each new stylesheet.
+  /// The look in the current theme and metrics. Kept between builds:
+  /// super_editor lays the whole note out anew for each new stylesheet.
   late NoteLook _look;
 
   @override
@@ -84,10 +85,13 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final theme = Theme.of(context);
-    if (theme != _lookTheme) {
+    final metrics = NoteMetrics.of(context);
+    if (theme != _lookTheme || metrics != _lookMetrics) {
       _lookTheme = theme;
+      _lookMetrics = metrics;
       _look = NoteLook(
         theme,
+        metrics: metrics,
         monospace: _mode == NoteMode.markdown,
         images: widget.images,
       );
@@ -95,6 +99,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   }
 
   ThemeData? _lookTheme;
+  NoteMetrics? _lookMetrics;
 
   @override
   void dispose() {
@@ -187,7 +192,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     final hinted = Stack(
       children: [
         TouchControls(color: look.handleColor, child: editor),
-        EmptyNoteHint(widget.note, padding: noteFirstLinePadding),
+        EmptyNoteHint(widget.note, padding: look.firstLinePadding),
       ],
     );
     if (!visual) return hinted;

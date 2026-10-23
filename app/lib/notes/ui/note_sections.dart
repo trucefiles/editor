@@ -27,10 +27,12 @@ class NoteSections extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
           sliver: SliverMainAxisGroup(
             slivers: [
-              noteGrid(leading),
+              // At once: a lazy grid that something follows breaks
+              // scrolling (see noteGrid).
+              noteGridAtOnce(leading),
               if (pinned.isNotEmpty) ...[
                 const _Heading('Pinned'),
-                noteGrid(pinned),
+                noteGridAtOnce(pinned),
                 if (others.isNotEmpty) const _Heading('Others'),
               ],
               noteGrid(others),

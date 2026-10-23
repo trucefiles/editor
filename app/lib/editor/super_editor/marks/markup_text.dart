@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../note_text_styles.dart';
+
 /// [Markup] as an attribution of editor text.
 @immutable
 final class MarkupAttribution implements Attribution {
@@ -75,19 +77,15 @@ TextStyle markupStyle(
       BoldMarkup() => style.copyWith(fontWeight: FontWeight.bold),
       ItalicMarkup() => style.copyWith(fontStyle: FontStyle.italic),
       StrikeMarkup() => style.copyWith(decoration: TextDecoration.lineThrough),
-      CodeMarkup() => style.copyWith(
-        fontFamily: 'monospace',
-        backgroundColor: colors.surfaceContainerHighest,
-      ),
-      CodeBlockMarkup() => style.copyWith(fontFamily: 'monospace'),
+      CodeMarkup() => NoteTextStyles.code(
+        style,
+      ).copyWith(backgroundColor: colors.surfaceContainerHighest),
+      CodeBlockMarkup() => NoteTextStyles.code(style),
       LinkMarkup() => style.copyWith(
         color: colors.primary,
         decoration: TextDecoration.underline,
       ),
-      HeadingMarkup(:final level) => style.copyWith(
-        fontWeight: FontWeight.bold,
-        fontSize: (base.fontSize ?? 16) * _headingScale(level),
-      ),
+      HeadingMarkup(:final level) => NoteTextStyles.heading(style, level),
       QuoteMarkup() => style.copyWith(
         fontStyle: FontStyle.italic,
         color: colors.onSurfaceVariant,
@@ -96,10 +94,3 @@ TextStyle markupStyle(
   }
   return style;
 }
-
-double _headingScale(int level) => switch (level) {
-  1 => 1.5,
-  2 => 1.3,
-  3 => 1.15,
-  _ => 1.0,
-};

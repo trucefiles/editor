@@ -148,4 +148,61 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.digit1);
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
+
+  testApp('Ctrl with + or =, - and 0 change the size of notes text', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\n- [ ] Call\n');
+    await tester.addFolder(app);
+    await tester.openNote('Todo');
+
+    /// How large the note shows text of 10 px.
+    double scaled() =>
+        MediaQuery.textScalerOf(tester.element(find.byType(SuperEditor)))
+            .scale(10);
+    final base = scaled();
+
+    Future<void> pressCtrl(
+      LogicalKeyboardKey key, {
+      bool shift = false,
+      PhysicalKeyboardKey? physical,
+      String? platform,
+    }) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(key, physicalKey: physical, platform: platform);
+      if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+    }
+
+    await pressCtrl(LogicalKeyboardKey.equal);
+    await pressCtrl(LogicalKeyboardKey.equal);
+    expect(scaled(), closeTo(base * 1.2, 0.01));
+    expect(
+      find.textContaining('=', findRichText: true),
+      findsNothing,
+      reason: 'nothing typed',
+    );
+
+    await pressCtrl(LogicalKeyboardKey.minus);
+    expect(scaled(), closeTo(base * 1.1, 0.01));
+
+    await pressCtrl(LogicalKeyboardKey.digit0);
+    expect(scaled(), closeTo(base, 0.01));
+
+    // + with Shift on US layouts, its own key on German ones, the numpad.
+    await pressCtrl(LogicalKeyboardKey.equal, shift: true);
+    // A German layout's + key; Linux key codes in tests know none.
+    Future<void> pressPlus({bool shift = false}) => pressCtrl(
+      LogicalKeyboardKey.add,
+      shift: shift,
+      physical: PhysicalKeyboardKey.bracketRight,
+      platform: 'android',
+    );
+    await pressPlus();
+    await pressPlus(shift: true);
+    await pressCtrl(LogicalKeyboardKey.numpadAdd);
+    expect(scaled(), closeTo(base * 1.4, 0.01));
+  });
 }

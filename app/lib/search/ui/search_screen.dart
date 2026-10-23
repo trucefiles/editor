@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/empty_state.dart';
+import '../../editor/text_size/note_text_size.dart';
+import '../../editor/text_size/note_text_size_controller.dart';
 import '../../notes/note.dart';
 import '../../notes/note_settings_controller.dart';
 import '../../notes/ui/note_card.dart';
@@ -34,6 +36,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final notes = scans?.notes ?? const <Note>[];
     ref.watch(noteSettingsProvider);
     final settings = ref.read(noteSettingsProvider.notifier);
+    final textSize =
+        ref.watch(noteTextSizeProvider).value ?? NoteTextSize.normal;
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -66,6 +70,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       note,
                       mark: scans?.markOf(note.key) ?? NoteMark.none,
                       pinned: settings.settingsOf(note.key).pinned,
+                      textSize: textSize,
                       onTap: () => openNote(context, note),
                       onMark: () => editPinOrColor(context, ref, note),
                     ),

@@ -335,18 +335,42 @@ void main() {
     );
   });
 
-  testWidgets('list rows are about a text line high', (tester) async {
-    await pumpNoteEditor(tester, FakeNoteText('- [ ] a\n- b\n1. c\nd'));
+  /// The distance between the tops of the first two list rows, shown
+  /// with [tapTargets] as the theme's tap target size.
+  Future<double> rowPitch(
+    WidgetTester tester,
+    MaterialTapTargetSize tapTargets,
+  ) async {
+    final note = documentOf(FakeNoteText('- [ ] a\n- b\n1. c\nd'));
+    addTearDown(note.dispose);
+    await showNoteEditor(
+      tester,
+      note,
+      theme: ThemeData(materialTapTargetSize: tapTargets),
+    );
     await tester.pumpAndSettle();
     final text = tester.getSize(find.byType(TextComponent).last).height;
     for (final row in find.byType(TextComponent).evaluate().take(3)) {
       final height = tester.getSize(find.byWidget(row.widget)).height;
       expect(height, lessThanOrEqualTo(text + 1));
     }
-    final rowsTop =
-        tester.getTopLeft(find.byType(TextComponent).at(1)).dy -
+    return tester.getTopLeft(find.byType(TextComponent).at(1)).dy -
         tester.getTopLeft(find.byType(TextComponent).at(0)).dy;
-    expect(rowsTop, lessThan(40), reason: 'rows close together');
+  }
+
+  testWidgets('list rows are about a text line high', (tester) async {
+    expect(
+      await rowPitch(tester, MaterialTapTargetSize.shrinkWrap),
+      lessThan(40),
+      reason: 'rows close together',
+    );
+  });
+
+  testWidgets('on touch, list rows are a touch target apart', (tester) async {
+    expect(
+      await rowPitch(tester, MaterialTapTargetSize.padded),
+      greaterThanOrEqualTo(kMinInteractiveDimension),
+    );
   });
 
   testWidgets('markers sit in the middle of their line of text', (

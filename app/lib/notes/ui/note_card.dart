@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../common/edited_time.dart';
+import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
+import '../../editor/text_size/note_text_size.dart';
+import '../../editor/text_size/ui/note_text_scale.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../note.dart';
 import '../note_colors.dart';
 import '../note_summary.dart';
 
-/// A note in the grid: title, first lines, folder, last edit, pin and
-/// color.
+/// A note in the grid: title and first lines at notes' text size,
+/// folder, last edit, pin and color.
 class NoteCard extends StatelessWidget {
   const NoteCard(
     this.note, {
@@ -19,6 +21,7 @@ class NoteCard extends StatelessWidget {
     this.pinned = false,
     this.hasConflict = false,
     this.hideDone = false,
+    this.textSize = NoteTextSize.normal,
     super.key,
   });
 
@@ -33,6 +36,9 @@ class NoteCard extends StatelessWidget {
 
   /// Leaves checked items out of the preview, counting them instead.
   final bool hideDone;
+
+  /// The size of notes' text, for the title and first lines.
+  final NoteTextSize textSize;
 
   final VoidCallback onTap;
 
@@ -63,32 +69,37 @@ class NoteCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                note.title,
-                style: textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (preview.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  preview,
-                  style: textTheme.bodySmall,
-                  maxLines: NoteSummary.previewLines,
-                  overflow: TextOverflow.ellipsis,
+              NoteTextScale(
+                size: textSize,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      note.title,
+                      style: textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (preview.isNotEmpty)
+                      Text(
+                        preview,
+                        style: textTheme.bodySmall,
+                        maxLines: NoteSummary.previewLines,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
-              ],
+              ),
               const SizedBox(height: 8),
               Row(
                 spacing: 6,
                 children: [
                   Expanded(child: FolderBadge(note.folder, file: note.path)),
                   Text(
-                    editedTime(
-                      MaterialLocalizations.of(context),
-                      note.modified,
-                      now: DateTime.now(),
-                    ),
+                    TimeTexts.of(context)
+                        .edited(note.modified, now: DateTime.now()),
                     style: textTheme.labelSmall,
                   ),
                   if (pinned)

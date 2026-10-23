@@ -52,10 +52,6 @@ Future<void> showNoteEditor(
 String nodeOf<T extends DocumentNode>({int index = 0}) =>
     SuperEditorInspector.findDocument()!.whereType<T>().elementAt(index).id;
 
-/// The frames text node [node] shows inside, outermost first.
-List<Frame> framesIn(DocumentNode node) =>
-    node.getMetadataValue(framesKey) as List<Frame>? ?? const [];
-
 /// The item whose marker shows beside [node], if any.
 ItemFrame? markedItemOf(DocumentNode node) =>
     switch (framesIn(node).whereType<ItemFrame>().lastOrNull) {

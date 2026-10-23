@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
@@ -155,5 +156,22 @@ void main() {
       '# Todo\n- [x] milk\n- [ ] eggs\n- [ ] tea\n',
       find.textContaining('tea', findRichText: true),
     );
+  });
+
+  testApp('the Refresh button shows the refresh going on', (tester) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Plan'));
+
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(RefreshProgressIndicator), findsOne);
+
+    await tester.openNote('Plan');
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(RefreshProgressIndicator), findsOne);
+    await tester.pumpAndSettle();
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
 }

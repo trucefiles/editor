@@ -10,7 +10,9 @@ import 'pull_hold.dart';
 /// pulls, never a view that scrolls inside it (wide tables, text that
 /// scrolls in itself), which scrolls as it would anywhere else. Taking a
 /// pull back moves only the indicator, and a refresh shows for at least
-/// [_minShown], so it is told apart from a pull let go too early.
+/// [_minShown], so it is told apart from a pull let go too early. A
+/// Refresh button runs the same refresh, shown the same way, through
+/// [PullToRefreshState.refresh].
 class PullToRefresh extends StatefulWidget {
   const PullToRefresh({
     required this.onRefresh,
@@ -25,12 +27,18 @@ class PullToRefresh extends StatefulWidget {
   static const _minShown = Duration(milliseconds: 800);
 
   @override
-  State<PullToRefresh> createState() => _PullToRefreshState();
+  State<PullToRefresh> createState() => PullToRefreshState();
 }
 
-class _PullToRefreshState extends State<PullToRefresh> {
+class PullToRefreshState extends State<PullToRefresh> {
   final _hold = PullHold();
+  final _indicator = GlobalKey<RefreshIndicatorState>();
+
   late ScrollBehavior _scrolling;
+
+  /// Refreshes as a pull does, with its indicator; done once the refresh
+  /// is.
+  Future<void> refresh() => _indicator.currentState!.show();
 
   /// Pointers that pull: fingers and pens on a touchscreen.
   static const _pulling = {
@@ -78,7 +86,7 @@ class _PullToRefreshState extends State<PullToRefresh> {
       scrollable
           .findAncestorStateOfType<ScrollableState>()
           ?.context
-          .findAncestorStateOfType<_PullToRefreshState>() !=
+          .findAncestorStateOfType<PullToRefreshState>() !=
       this;
 
   Future<void> _refresh() async {
@@ -103,6 +111,7 @@ class _PullToRefreshState extends State<PullToRefresh> {
 
   @override
   Widget build(BuildContext context) => RefreshIndicator(
+    key: _indicator,
     onRefresh: _refresh,
     notificationPredicate: _pulls,
     child: NotificationListener<ScrollNotification>(
@@ -116,12 +125,12 @@ class _PullToRefreshState extends State<PullToRefresh> {
 }
 
 /// [ambient] with the [pulling] physics for the child's own scroll view
-/// of [state] (see [_PullToRefreshState._owns]); views that scroll inside
+/// of [state] (see [PullToRefreshState._owns]); views that scroll inside
 /// it keep the ambient physics.
 final class _PullBehavior extends ScrollBehavior {
   const _PullBehavior(this.state, this.ambient, {required this.pulling});
 
-  final _PullToRefreshState state;
+  final PullToRefreshState state;
   final ScrollBehavior ambient;
   final ScrollPhysics pulling;
 

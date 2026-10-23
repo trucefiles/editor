@@ -6,11 +6,14 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
+import '../../common/filled_scroll_view.dart';
 import '../../common/snack.dart';
 import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
+import '../../editor/text_size/note_text_size.dart';
+import '../../editor/text_size/note_text_size_controller.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
@@ -44,6 +47,7 @@ class NotesScreen extends ConsumerStatefulWidget {
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
   late final AppLifecycleListener _lifecycle;
+  final _pull = GlobalKey<PullToRefreshState>();
 
   @override
   void initState() {
@@ -78,7 +82,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
-            onPressed: _refresh,
+            // Only while there are notes to show, with the pull's indicator.
+            onPressed: switch (folders) {
+              AsyncData(value: final list) when list.isNotEmpty =>
+                () => _pull.currentState!.refresh(),
+              _ => null,
+            },
           ),
           const _ConflictsButton(),
           IconButton(
@@ -107,7 +116,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       },
       body: switch (folders) {
         AsyncData(value: final list) when list.isEmpty => const _NoFolders(),
-        AsyncData(value: final list) => _NotesBody(list),
+        AsyncData(value: final list) => _NotesBody(list, pull: _pull),
         AsyncError(error: FolderSettingsException(:final error)) => Center(
           child: Text(error.text),
         ),
@@ -136,9 +145,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 }
 
 class _NotesBody extends ConsumerWidget {
-  const _NotesBody(this.folders);
+  const _NotesBody(this.folders, {required this.pull});
 
   final List<NoteFolder> folders;
+
+  /// The key of the notes' [PullToRefresh].
+  final GlobalKey<PullToRefreshState> pull;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -154,12 +166,15 @@ class _NotesBody extends ConsumerWidget {
     ref.watch(noteSettingsProvider);
     final settings = ref.read(noteSettingsProvider.notifier);
     bool pinned(Note note) => settings.settingsOf(note.key).pinned;
+    final textSize =
+        ref.watch(noteTextSizeProvider).value ?? NoteTextSize.normal;
     Widget card(Note note) => NoteCard(
       note,
       mark: markOf(note),
       pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
       hideDone: settings.settingsOf(note.key).checkedItems.shownApart,
+      textSize: textSize,
       onTap: () => openNote(context, note),
       onMark: () => editPinOrColor(context, ref, note),
     );
@@ -176,16 +191,19 @@ class _NotesBody extends ConsumerWidget {
         ),
         if (scans != null) FolderProblems(scans, folders: folders),
         Expanded(
-          child: scans == null
-              ? const Center(child: CircularProgressIndicator())
-              : notes.isEmpty && orphans.isEmpty
-              ? const EmptyState(
-                  icon: Icons.sticky_note_2_outlined,
-                  text: 'No notes yet.',
-                )
-              : PullToRefresh(
-                  onRefresh: ref.read(folderScansProvider.notifier).refresh,
-                  child: NoteSections(
+          child: PullToRefresh(
+            key: pull,
+            onRefresh: ref.read(folderScansProvider.notifier).refresh,
+            child: scans == null
+                ? const FilledScrollView(child: CircularProgressIndicator())
+                : notes.isEmpty && orphans.isEmpty
+                ? const FilledScrollView(
+                    child: EmptyState(
+                      icon: Icons.sticky_note_2_outlined,
+                      text: 'No notes yet.',
+                    ),
+                  )
+                : NoteSections(
                     leading: [
                       for (final orphan in orphans)
                         OrphanCard(
@@ -202,7 +220,7 @@ class _NotesBody extends ConsumerWidget {
                         if (!pinned(note)) card(note),
                     ],
                   ),
-                ),
+          ),
         ),
       ],
     );

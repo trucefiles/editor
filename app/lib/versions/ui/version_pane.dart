@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/full_time.dart';
+import '../../common/time_texts.dart';
 import '../changed_lines.dart';
 
 /// One side of a conflict: its text with lines the other side lacks
@@ -37,9 +37,7 @@ class VersionPane extends StatelessWidget {
         ListTile(
           title: Text(label),
           subtitle: switch (modified) {
-            final time? => Text(
-              fullTime(MaterialLocalizations.of(context), time),
-            ),
+            final time? => Text(TimeTexts.of(context).full(time)),
             null => null,
           },
           trailing: FilledButton(onPressed: onKeep, child: Text(keepLabel)),
