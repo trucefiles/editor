@@ -34,13 +34,18 @@ class LineDragHandle extends StatelessWidget {
     feedbackOffset: Offset.zero,
     onDragStarted: () => onDragging?.call(true),
     onDragEnd: (_) => onDragging?.call(false),
-    feedback: Builder(
-      builder: (context) => SizedBox(
-        width: _rowBox.size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(4),
-          child: preview,
+    // The copy shows in the app's overlay; it keeps the row's media
+    // settings, e.g. its text zoom, so it looks like the row.
+    feedback: MediaQuery(
+      data: MediaQuery.of(context),
+      child: Builder(
+        builder: (context) => SizedBox(
+          width: _rowBox.size.width,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(4),
+            child: preview,
+          ),
         ),
       ),
     ),

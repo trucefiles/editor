@@ -1,3 +1,7 @@
-/// The zoom setting's name, wherever it shows: it zooms all text in the
-/// app, not only the screen it is changed on.
-const textZoomTitle = 'Global text zoom';
+import '../text_zoom_target.dart';
+
+/// The name of the zoom of [target], wherever it shows.
+String textZoomTitle(TextZoomTarget target) => switch (target) {
+  TextZoomTarget.notes => 'Note text zoom',
+  TextZoomTarget.app => 'App text size',
+};

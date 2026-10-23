@@ -37,4 +37,26 @@ void main() {
   testWidgets("scales on top of the system's own scaling", (tester) async {
     expect(await scaled(tester, percent: 150, system: 2), 30);
   });
+
+  testWidgets('a zoom inside another replaces it', (tester) async {
+    late double size;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+        child: TextZoomScale(
+          zoom: TextZoom.closestTo(150),
+          child: TextZoomScale(
+            zoom: TextZoom.closestTo(80),
+            child: Builder(
+              builder: (context) {
+                size = MediaQuery.textScalerOf(context).scale(10);
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(size, 16);
+  });
 }

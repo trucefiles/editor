@@ -5,6 +5,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 
 import 'package:truce_editor/notes/ui/note_card.dart';
+import 'package:truce_editor/text_zoom/text_zoom.dart';
+import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 
 import 'app_steps.dart';
 import 'test_app.dart';
@@ -151,7 +153,7 @@ void main() {
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 
-  testApp('Ctrl with + or =, - and 0 zoom all text, on every screen', (
+  testApp('Ctrl with + or =, - and 0 zoom note text, on every screen', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
@@ -163,6 +165,11 @@ void main() {
         MediaQuery.textScalerOf(tester.element(find.byType(SuperEditor)))
             .scale(10);
     final base = scaled();
+
+    /// How large the app's own text (the app bar) shows text of 10 px.
+    double appText() =>
+        MediaQuery.textScalerOf(tester.element(find.byType(AppBar).first))
+            .scale(10);
 
     Future<void> pressCtrl(
       LogicalKeyboardKey key, {
@@ -181,7 +188,8 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.equal);
     await pressCtrl(LogicalKeyboardKey.equal);
     expect(scaled(), closeTo(base * 1.2, 0.01));
-    expect(find.text('Global text zoom'), findsOne, reason: 'toast');
+    expect(appText(), closeTo(base, 0.01), reason: 'app text stays');
+    expect(find.text('Note text zoom'), findsOne, reason: 'toast');
     expect(find.text('120 %'), findsOne);
     expect(
       find.textContaining('=', findRichText: true),
@@ -209,7 +217,7 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.numpadAdd);
     expect(scaled(), closeTo(base * 1.4, 0.01));
 
-    // The home screen shows the same zoom, and zooms by the same keys.
+    // The home screen's cards show the same zoom, and zoom by the same keys.
     await tester.pageBack();
     await tester.waitForNoteClosed();
     double home() => MediaQuery.textScalerOf(
@@ -220,5 +228,35 @@ void main() {
     expect(home(), closeTo(base * 1.4, 0.01));
     await pressCtrl(LogicalKeyboardKey.minus);
     expect(home(), closeTo(base * 1.3, 0.01));
+  });
+
+  testApp('starts at the saved zooms, notes and the app each at its own', (
+    tester,
+  ) async {
+    app.write('todo.md', '# Todo\n- [ ] Call\n');
+    await app.useTextZoom(TextZoomTarget.notes, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.app, TextZoom.closestTo(130));
+    await app.launch(tester);
+
+    double scaled(Finder text) =>
+        MediaQuery.textScalerOf(tester.element(text)).scale(10);
+    final title = find.descendant(
+      of: find.byType(AppBar),
+      matching: find.text('Folders'),
+    );
+
+    // The first frame already: nothing jumps once the settings load.
+    expect(scaled(title), closeTo(13, 0.01));
+
+    await tester.waitFor(find.text('Add folder'));
+    await tester.tapAndSettle(find.text('Add folder'));
+    await tester.waitFor(find.text('Todo'));
+    expect(
+      scaled(
+        find.descendant(of: find.byType(NoteCard), matching: find.text('Todo')),
+      ),
+      closeTo(15, 0.01),
+    );
+    expect(scaled(title), closeTo(13, 0.01));
   });
 }

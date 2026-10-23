@@ -4,11 +4,12 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
+import '../../text_zoom/ui/note_text_zoom.dart';
 import '../note.dart';
 import '../note_colors.dart';
 import '../note_summary.dart';
 
-/// A note in the grid: title and first lines at notes' text size,
+/// A note in the grid: title and first lines at the note text zoom;
 /// folder, last edit, pin and color.
 class NoteCard extends StatelessWidget {
   const NoteCard(
@@ -63,25 +64,27 @@ class NoteCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 6,
-                children: [
-                  Text(
-                    note.title,
-                    style: textTheme.titleMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (preview.isNotEmpty)
+              NoteTextZoom(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 6,
+                  children: [
                     Text(
-                      preview,
-                      style: textTheme.bodySmall,
-                      maxLines: NoteSummary.previewLines,
+                      note.title,
+                      style: textTheme.titleMedium,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                ],
+                    if (preview.isNotEmpty)
+                      Text(
+                        preview,
+                        style: textTheme.bodySmall,
+                        maxLines: NoteSummary.previewLines,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               Row(

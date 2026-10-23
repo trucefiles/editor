@@ -22,7 +22,10 @@
     <release version="0.8.0" date="2026-10-23">
       <description>
         <ul>
-          <li>Global text zoom: zooms all text on every screen, with pinch, Ctrl with the mouse wheel, or Ctrl with +, - and 0; a slider shows while zooming.</li>
+          <li>Note text zoom on every screen (open note, cards, compare view): pinch, Ctrl with the mouse wheel, or Ctrl with +, - and 0; the zoom shows while it changes.</li>
+          <li>App text size: a setting of its own for the rest of the app's text.</li>
+          <li>Text shows at its zoom from the start, without a jump.</li>
+          <li>Long titles no longer cut an emoji in half when naming a new note's file.</li>
           <li>Checkboxes, list spacing and the dragged item grow with the zoom; Read and Visual edit space lists alike.</li>
           <li>Read: checkboxes in the app's colors.</li>
           <li>Pinching no longer starts a refresh or moves list items.</li>

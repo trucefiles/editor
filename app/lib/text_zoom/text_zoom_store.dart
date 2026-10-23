@@ -5,7 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../storage/json_file.dart';
 import 'text_zoom.dart';
 
-/// Keeps how large the app's text shows in a JSON file in app storage. Per
+/// Keeps one text zoom in a JSON file in app storage. Per
 /// device. [TextZoom.normal] unless the user chose another; read and
 /// write failures fall back to that.
 final class TextZoomStore {
