@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import '../note_document_controller.dart';
 import '../note_metrics.dart';
 import '../note_text_styles.dart';
+import 'list_marker.dart';
 import 'note_image.dart';
 
 /// The open [note] to read, formatted by a standard CommonMark + GitHub
@@ -35,6 +36,22 @@ class NoteReadView extends StatelessWidget {
         data: _withoutFrontMatter(note.document),
         extensionSet: md.ExtensionSet.gitHubWeb,
         styleSheet: _styleSheet(Theme.of(context), NoteMetrics.of(context)),
+        // Items as the editors draw them: the same markers, in the same
+        // slot, by the item's first line.
+        listItemCrossAxisAlignment: MarkdownListItemCrossAxisAlignment.start,
+        bulletBuilder: (bullet) => ListMarker(
+          switch (bullet.style) {
+            BulletStyle.unorderedList => ListKind.bullet,
+            BulletStyle.orderedList => ListKind.numbered,
+          },
+          number: bullet.index + 1,
+          style: NoteTextStyles.body(Theme.of(context)),
+        ),
+        checkboxBuilder: (checked) => ListMarker(
+          ListKind.checkbox,
+          checked: checked,
+          style: NoteTextStyles.body(Theme.of(context)),
+        ),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
         onTapLink: (_, href, _) {
           if (href != null) onLink(href);
@@ -49,7 +66,7 @@ class NoteReadView extends StatelessWidget {
 /// The renderer's own sheet for [theme] (its colors), with the sizes of a
 /// note's text: its body text wherever the renderer uses body text, code
 /// and headings as the editor draws them; spaced by [metrics], so lines
-/// stand about as close as in the editors.
+/// stand as close as in the editors, list markers in the same slot.
 MarkdownStyleSheet _styleSheet(ThemeData theme, NoteMetrics metrics) {
   final body = NoteTextStyles.body(theme);
   final sheet = MarkdownStyleSheet.fromTheme(
@@ -65,6 +82,8 @@ MarkdownStyleSheet _styleSheet(ThemeData theme, NoteMetrics metrics) {
     h5: NoteTextStyles.heading(body, 5),
     h6: NoteTextStyles.heading(body, 6),
     blockSpacing: metrics.blockGap,
+    listIndent: metrics.markerWidth,
+    listBulletPadding: EdgeInsets.zero,
     pPadding: below,
     h1Padding: below,
     h2Padding: below,

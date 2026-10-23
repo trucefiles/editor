@@ -10,7 +10,8 @@ import 'package:flutter/material.dart';
 /// swipe that starts on the item's text field still counts. A mouse drag
 /// that starts inside [SwipeToIndent.keepMouseDrags] is left alone, e.g.
 /// to select text, and so is a long press that then moves (touch text
-/// selection).
+/// selection). A swipe is one finger: a second one on the row ends it,
+/// e.g. a pinch.
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
     required this.step,
@@ -58,6 +59,8 @@ class _KeepMouseDrags extends StatelessWidget {
 }
 
 class _SwipeToIndentState extends State<SwipeToIndent> {
+  /// The pointer that may swipe, if one is down.
+  int? _pointer;
   Offset? _start;
   Duration _downAt = Duration.zero;
 
@@ -70,15 +73,20 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   int? _kept;
 
   void _onDown(PointerDownEvent event) {
+    if (_pointer != null) {
+      _reset();
+      return;
+    }
     final kept = event.pointer == _kept;
     _kept = null;
+    _pointer = event.pointer;
     _start = kept ? null : event.position;
     _downAt = event.timeStamp;
   }
 
   void _onMove(PointerMoveEvent event) {
     final start = _start;
-    if (start == null) return;
+    if (start == null || event.pointer != _pointer) return;
     final delta = event.position - start;
     if (!_swiping) {
       // Decided once, when the pointer first moves beyond the slop: held
@@ -98,12 +106,21 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
     setState(() => _dx = delta.dx);
   }
 
-  void _onUp(PointerUpEvent _) {
+  void _onUp(PointerUpEvent event) {
+    if (event.pointer != _pointer) return;
+    _pointer = null;
     if (_dx >= widget.step) widget.onIndent();
     if (_dx <= -widget.step) widget.onOutdent();
     _reset();
   }
 
+  void _onCancel(PointerCancelEvent event) {
+    if (event.pointer != _pointer) return;
+    _pointer = null;
+    _reset();
+  }
+
+  /// Ends the swipe; the row slides back.
   void _reset() {
     _start = null;
     _swiping = false;
@@ -118,7 +135,7 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
       onPointerDown: _onDown,
       onPointerMove: _onMove,
       onPointerUp: _onUp,
-      onPointerCancel: (_) => _reset(),
+      onPointerCancel: _onCancel,
       child: AnimatedContainer(
         // Follows the pointer at once; slides back after release.
         duration: _dx == 0 ? const Duration(milliseconds: 150) : Duration.zero,

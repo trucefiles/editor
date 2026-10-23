@@ -119,7 +119,7 @@ class _LeafComponentState extends State<LeafComponent>
             children: [
               _marker(item),
               Expanded(child: SwipeToIndent.keepMouseDrags(text)),
-              if (actions != null) _menu(item, actions),
+              if (actions != null) _menu(item, actions, metrics),
             ],
           ),
         ),
@@ -190,31 +190,33 @@ class _LeafComponentState extends State<LeafComponent>
   }
 
   /// Shown only while the caret is in this text; kept in the tree while
-  /// hidden, so the row's layout stays put.
-  Widget _menu(ItemFrame item, ItemActions actions) => Visibility(
-    visible: widget.viewModel.selection != null,
-    maintainState: true,
-    maintainAnimation: true,
-    maintainSize: true,
-    child: PopupMenuButton<_ItemAction>(
-      tooltip: 'Item actions',
-      // As high as a line of text, so the menu leaves the rows compact.
-      padding: EdgeInsets.zero,
-      iconSize: 20,
-      style: const ButtonStyle(
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-      ),
-      onSelected: (action) => switch (action) {
-        _ItemAction.indent => actions.indent(item.item),
-        _ItemAction.outdent => actions.outdent(item.item),
-        _ItemAction.delete => actions.delete(item.item),
-      },
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: _ItemAction.indent, child: Text('Indent')),
-        PopupMenuItem(value: _ItemAction.outdent, child: Text('Outdent')),
-        PopupMenuItem(value: _ItemAction.delete, child: Text('Delete')),
-      ],
-    ),
-  );
+  /// hidden, so the row's layout stays put. As large as the drag handle:
+  /// never higher than the line, so rows stand apart by [metrics] only.
+  Widget _menu(ItemFrame item, ItemActions actions, NoteMetrics metrics) =>
+      Visibility(
+        visible: widget.viewModel.selection != null,
+        maintainState: true,
+        maintainAnimation: true,
+        maintainSize: true,
+        child: PopupMenuButton<_ItemAction>(
+          tooltip: 'Item actions',
+          padding: EdgeInsets.zero,
+          iconSize: metrics.handleIconSize,
+          style: const ButtonStyle(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            minimumSize: WidgetStatePropertyAll(Size.zero),
+            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+          ),
+          onSelected: (action) => switch (action) {
+            _ItemAction.indent => actions.indent(item.item),
+            _ItemAction.outdent => actions.outdent(item.item),
+            _ItemAction.delete => actions.delete(item.item),
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: _ItemAction.indent, child: Text('Indent')),
+            PopupMenuItem(value: _ItemAction.outdent, child: Text('Outdent')),
+            PopupMenuItem(value: _ItemAction.delete, child: Text('Delete')),
+          ],
+        ),
+      );
 }

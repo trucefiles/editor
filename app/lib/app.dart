@@ -5,13 +5,14 @@ import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'notes/ui/notes_screen.dart';
 import 'reach/ui/reach_overlay.dart';
+import 'text_zoom/ui/text_zoom_scope.dart';
 import 'theme/app_theme.dart';
 import 'tray/close_to_tray_controller.dart';
 import 'tray/start_in_background.dart';
 
-/// Root widget: app-wide theme, the first screen, the tray (also at a
-/// start in the background), and the overlay while a folder is being
-/// reached again.
+/// Root widget: app-wide theme and text zoom, the first screen, the tray
+/// (also at a start in the background), and the overlay while a folder
+/// is being reached again.
 class TruceApp extends ConsumerStatefulWidget {
   const TruceApp({super.key});
 
@@ -35,10 +36,12 @@ class _TruceAppState extends ConsumerState<TruceApp> {
       navigatorKey: _navigator,
       theme: appTheme(Brightness.light),
       darkTheme: appTheme(Brightness.dark),
-      builder: (context, child) => ReachOverlay(
-        child: MouseBackNavigation(
-          navigator: _navigator,
-          child: KeypadNavigation(child: child!),
+      builder: (context, child) => TextZoomScope(
+        child: ReachOverlay(
+          child: MouseBackNavigation(
+            navigator: _navigator,
+            child: KeypadNavigation(child: child!),
+          ),
         ),
       ),
       home: const NotesScreen(),

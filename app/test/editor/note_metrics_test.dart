@@ -36,6 +36,8 @@ void main() {
     expect(double.levelIndent, base.levelIndent * 2);
     expect(double.markerWidth, base.markerWidth * 2);
     expect(double.lineGap, base.lineGap * 2);
+    expect(double.itemGap, base.itemGap * 2);
+    expect(double.lineHeight, closeTo(base.lineHeight * 2, 1));
   });
 
   testWidgets('on touch, handles are a touch target wide and items apart', (
@@ -51,6 +53,20 @@ void main() {
     expect(touch.handleWidth, kMinInteractiveDimension);
     expect(touch.handleIconSize, mouse.handleIconSize);
     expect(touch.itemRowInset, greaterThan(mouse.itemRowInset));
+    expect(touch.lineHeight + touch.itemGap, kMinInteractiveDimension);
     expect(touch.lineGap, mouse.lineGap);
+  });
+
+  testWidgets('on touch, large text spaces items as with a mouse', (
+    tester,
+  ) async {
+    final mouse = await metricsIn(tester, textScale: 3);
+    final touch = await metricsIn(
+      tester,
+      textScale: 3,
+      tapTargets: MaterialTapTargetSize.padded,
+    );
+
+    expect(touch.itemGap, mouse.itemGap);
   });
 }

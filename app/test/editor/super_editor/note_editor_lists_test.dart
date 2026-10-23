@@ -225,6 +225,24 @@ void main() {
       expect(text.text, '- [ ] a\n  - [ ] $long');
     });
 
+    testWidgets('a second finger ends a swipe, e.g. a pinch', (tester) async {
+      final text = FakeNoteText('- [ ] a\n- [ ] b');
+      await pumpNoteEditor(tester, text);
+
+      final start = tester.tapPointIn(checkboxNodeOf(index: 1), 0);
+      final first = await tester.startGesture(start);
+      final second = await tester.startGesture(start + const Offset(0, 4));
+      for (final _ in Iterable<void>.generate(10)) {
+        await first.moveBy(const Offset(10, 0));
+        await tester.pump();
+      }
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
+
+      expect(text.edits, isEmpty);
+    });
+
     testWidgets('a short swipe does nothing', (tester) async {
       final text = FakeNoteText('- [ ] a\n- [ ] b');
       await pumpNoteEditor(tester, text);

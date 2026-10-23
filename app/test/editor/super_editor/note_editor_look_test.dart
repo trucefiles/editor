@@ -413,7 +413,7 @@ void main() {
       expect(end, moreOrLessEquals(ends.first, epsilon: 1));
     }
     final text = tester.getTopLeft(find.text('a', findRichText: true)).dx;
-    expect(text - ends.first, moreOrLessEquals(8, epsilon: 1));
+    expect(text - ends.first, moreOrLessEquals(12, epsilon: 1));
   });
 
   testWidgets('the format bar keeps clear of the bottom system edge', (
