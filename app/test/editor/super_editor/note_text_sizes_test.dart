@@ -18,6 +18,8 @@ void main() {
   }) async {
     final document = documentOf(FakeNoteText(note), mode: mode);
     addTearDown(document.dispose);
+    // A fresh view: one kept from before would show its own note.
+    await tester.pumpWidget(const SizedBox());
     await showNoteEditor(tester, document);
     await tester.pumpAndSettle();
     final sizes = [
@@ -59,6 +61,42 @@ void main() {
       await sizeOf(tester, 'code', mode: NoteMode.markdown),
       await sizeOf(tester, 'plain words with ', mode: NoteMode.markdown),
     );
+  });
+
+  testWidgets('lines stand about as far apart in Read as in Visual edit', (
+    tester,
+  ) async {
+    /// How far below 'a' the line 'b' of [text] starts, in [mode].
+    Future<double> pitch(String text, NoteMode mode) async {
+      final document = documentOf(FakeNoteText(text), mode: mode);
+      addTearDown(document.dispose);
+      // A fresh view: one kept from before would show its own note.
+      await tester.pumpWidget(const SizedBox());
+      // A fresh view: one kept from before would show its own note.
+      await tester.pumpWidget(const SizedBox());
+      await showNoteEditor(
+        tester,
+        document,
+        // Desktop: on touch, item rows are taller in the editors only, to
+        // be hit by a finger.
+        theme: ThemeData(
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      );
+      await tester.pumpAndSettle();
+      double top(String text) =>
+          tester.getTopLeft(find.text(text, findRichText: true)).dy;
+      return top('b') - top('a');
+    }
+
+    for (final text in ['- a\n- b', 'a\n\nb', '# a\n\nb']) {
+      final visual = await pitch(text, NoteMode.visual);
+      expect(
+        await pitch(text, NoteMode.read),
+        closeTo(visual, visual * 0.15),
+        reason: text,
+      );
+    }
   });
 }
 

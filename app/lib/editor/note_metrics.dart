@@ -35,6 +35,14 @@ final class NoteMetrics {
   /// row, so its drag handle reaches over it.
   double get itemRowInset => (touch ? 6 : 0) * scale;
 
+  /// Space between blocks, and between items, where a renderer lays them
+  /// out (Read): about what an item's row adds in the editors.
+  double get blockGap => 12 * scale;
+
+  /// Space a paragraph or heading adds below it there, so blocks stand
+  /// about a blank line apart, as in the editors.
+  double get paragraphGap => 12 * scale;
+
   /// Indent of an item's text under the items it is in, per level.
   double get levelIndent => 28 * scale;
 

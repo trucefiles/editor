@@ -4,6 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:truce_core/truce_core.dart';
 
 import '../note_document_controller.dart';
+import '../note_metrics.dart';
 import '../note_text_styles.dart';
 import 'note_image.dart';
 
@@ -33,7 +34,7 @@ class NoteReadView extends StatelessWidget {
       child: Markdown(
         data: _withoutFrontMatter(note.document),
         extensionSet: md.ExtensionSet.gitHubWeb,
-        styleSheet: _styleSheet(Theme.of(context)),
+        styleSheet: _styleSheet(Theme.of(context), NoteMetrics.of(context)),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
         onTapLink: (_, href, _) {
           if (href != null) onLink(href);
@@ -45,14 +46,16 @@ class NoteReadView extends StatelessWidget {
   );
 }
 
-/// The renderer's own sheet for [theme] (its colors and spacing), with
-/// the sizes of a note's text: its body text wherever the renderer uses
-/// body text, code and headings as the editor draws them.
-MarkdownStyleSheet _styleSheet(ThemeData theme) {
+/// The renderer's own sheet for [theme] (its colors), with the sizes of a
+/// note's text: its body text wherever the renderer uses body text, code
+/// and headings as the editor draws them; spaced by [metrics], so lines
+/// stand about as close as in the editors.
+MarkdownStyleSheet _styleSheet(ThemeData theme, NoteMetrics metrics) {
   final body = NoteTextStyles.body(theme);
   final sheet = MarkdownStyleSheet.fromTheme(
     theme.copyWith(textTheme: theme.textTheme.copyWith(bodyMedium: body)),
   );
+  final below = EdgeInsets.only(bottom: metrics.paragraphGap);
   return sheet.copyWith(
     code: sheet.code?.merge(NoteTextStyles.code(body)),
     h1: NoteTextStyles.heading(body, 1),
@@ -61,6 +64,14 @@ MarkdownStyleSheet _styleSheet(ThemeData theme) {
     h4: NoteTextStyles.heading(body, 4),
     h5: NoteTextStyles.heading(body, 5),
     h6: NoteTextStyles.heading(body, 6),
+    blockSpacing: metrics.blockGap,
+    pPadding: below,
+    h1Padding: below,
+    h2Padding: below,
+    h3Padding: below,
+    h4Padding: below,
+    h5Padding: below,
+    h6Padding: below,
   );
 }
 
