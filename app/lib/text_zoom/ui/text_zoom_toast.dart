@@ -15,39 +15,43 @@ class TextZoomToast extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return IgnorePointer(
-      child: Material(
-        color: colors.inverseSurface,
-        elevation: 6,
-        borderRadius: BorderRadius.circular(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: DefaultTextStyle(
-              style: theme.textTheme.titleSmall!.copyWith(
-                color: colors.onInverseSurface,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: 12,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [const Text(textZoomTitle), Text('$zoom')],
-                  ),
-                  LinearProgressIndicator(
-                    value:
-                        (zoom.percent - TextZoom.min) /
-                        (TextZoom.max - TextZoom.min),
-                    color: colors.inversePrimary,
-                    backgroundColor: colors.onInverseSurface.withValues(
-                      alpha: 0.3,
+    // Read out when it shows or changes.
+    return Semantics(
+      liveRegion: true,
+      child: IgnorePointer(
+        child: Material(
+          color: colors.inverseSurface,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: DefaultTextStyle(
+                style: theme.textTheme.titleSmall!.copyWith(
+                  color: colors.onInverseSurface,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [const Text(textZoomTitle), Text('$zoom')],
                     ),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ],
+                    LinearProgressIndicator(
+                      value:
+                          (zoom.percent - TextZoom.min) /
+                          (TextZoom.max - TextZoom.min),
+                      color: colors.inversePrimary,
+                      backgroundColor: colors.onInverseSurface.withValues(
+                        alpha: 0.3,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

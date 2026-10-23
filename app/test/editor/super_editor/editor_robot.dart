@@ -19,24 +19,36 @@ Future<NoteDocumentController> pumpNoteEditor(
   CheckedItems checkedItems = CheckedItems.doneSection,
   void Function(String message, EditUndo undo)? onRemoved,
   void Function(String url)? onLink,
+  ThemeData? theme,
+  TransitionBuilder? around,
 }) async {
   final note = documentOf(text, mode: mode, checkedItems: checkedItems);
   addTearDown(note.dispose);
-  await showNoteEditor(tester, note, onRemoved: onRemoved, onLink: onLink);
+  await showNoteEditor(
+    tester,
+    note,
+    onRemoved: onRemoved,
+    onLink: onLink,
+    theme: theme,
+    around: around,
+  );
   return note;
 }
 
-/// Shows [note] in a [NoteEditorView] in [theme]; shown again, the same
-/// view takes the new [theme].
+/// Shows [note] in a [NoteEditorView] in [theme], in what [around] puts
+/// around the app's screens; shown again, the same view takes the new
+/// [theme].
 Future<void> showNoteEditor(
   WidgetTester tester,
   NoteDocumentController note, {
   ThemeData? theme,
+  TransitionBuilder? around,
   void Function(String message, EditUndo undo)? onRemoved,
   void Function(String url)? onLink,
 }) => tester.pumpWidget(
   MaterialApp(
     theme: theme,
+    builder: around,
     home: Scaffold(
       body: NoteEditorView(
         note,

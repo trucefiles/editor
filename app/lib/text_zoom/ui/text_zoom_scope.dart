@@ -9,55 +9,42 @@ import '../text_zoom_controller.dart';
 import 'pinch_to_zoom.dart';
 import 'text_zoom_keys.dart';
 import 'text_zoom_scale.dart';
-import 'text_zoom_toast.dart';
+import 'text_zoom_toast_host.dart';
 import 'wheel_to_zoom.dart';
 
 /// [child], the whole app, with its text at the zoom setting. On every
 /// screen, the zoom keys ([textZoomKeys]), Ctrl with the mouse wheel and
-/// pinching change it; each such change shows a [TextZoomToast] for a
-/// moment.
+/// pinching change it; each such change shows the zoom for a moment
+/// ([TextZoomToastHost]).
 class TextZoomScope extends ConsumerStatefulWidget {
   const TextZoomScope({required this.child, super.key});
 
   final Widget child;
-
-  /// How long the toast stays after the last change.
-  static const toastTime = Duration(seconds: 2);
 
   @override
   ConsumerState<TextZoomScope> createState() => _TextZoomScopeState();
 }
 
 class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
-  bool _toastShown = false;
-  Timer? _hideToast;
+  /// Counts the zoom gestures, so the toast shows after each.
+  final _gestures = ValueNotifier(0);
 
   TextZoomController get _zoom => ref.read(textZoomProvider.notifier);
 
   @override
   void dispose() {
-    _hideToast?.cancel();
+    _gestures.dispose();
     super.dispose();
   }
 
   void _zoomTo(TextZoom zoom) {
     unawaited(_zoom.set(zoom));
-    _showToast();
+    _gestures.value++;
   }
 
   void _zoomBy(TextZoom Function(TextZoom zoom) next) {
     unawaited(_zoom.change(next));
-    _showToast();
-  }
-
-  /// Shows the toast, and hides it [TextZoomScope.toastTime] after the
-  /// last change.
-  void _showToast() {
-    _hideToast?.cancel();
-    _hideToast = Timer(TextZoomScope.toastTime, () {
-      if (mounted) setState(() => _toastShown = false);
-    });
-    if (!_toastShown) setState(() => _toastShown = true);
+    _gestures.value++;
   }
 
   @override
@@ -74,21 +61,11 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
         child: PinchToZoom(
           zoom: zoom,
           onZoom: _zoomTo,
-          child: Stack(
-            children: [
-              TextZoomScale(zoom: zoom, child: widget.child),
-              // Outside the zoom, so it is the same size at any zoom.
-              if (_toastShown)
-                SafeArea(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
-                      child: TextZoomToast(zoom: zoom),
-                    ),
-                  ),
-                ),
-            ],
+          // The toast outside the zoom: the same size at any zoom.
+          child: TextZoomToastHost(
+            zoom: zoom,
+            shows: _gestures,
+            child: TextZoomScale(zoom: zoom, child: widget.child),
           ),
         ),
       ),

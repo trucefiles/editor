@@ -84,7 +84,7 @@ void main() {
     expect(toast, findsOne);
     expect(find.text('110 %'), findsOne);
 
-    await tester.pump(TextZoomScope.toastTime);
+    await tester.pump(const Duration(seconds: 2));
     expect(toast, findsNothing);
   });
 

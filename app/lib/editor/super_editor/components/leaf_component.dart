@@ -101,7 +101,8 @@ class _LeafComponentState extends State<LeafComponent>
   };
 
   /// The row of [item] beside [text], the text that starts it, spaced by
-  /// [metrics]; its drag handle reaches over the whole row's height.
+  /// [metrics]; its drag handle and menu take the whole row's height, so
+  /// a finger hits them anywhere beside the row.
   Widget _itemRow(ItemFrame item, Widget text, NoteMetrics metrics) {
     final actions = widget.actions;
     final inset = metrics.itemRowInset;
@@ -111,6 +112,7 @@ class _LeafComponentState extends State<LeafComponent>
         Padding(
           padding: EdgeInsets.only(
             left: metrics.handleWidth,
+            right: actions == null ? 0 : metrics.handleWidth,
             top: inset,
             bottom: inset,
           ),
@@ -119,10 +121,17 @@ class _LeafComponentState extends State<LeafComponent>
             children: [
               _marker(item),
               Expanded(child: SwipeToIndent.keepMouseDrags(text)),
-              if (actions != null) _menu(item, actions, metrics),
             ],
           ),
         ),
+        if (actions != null)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: metrics.handleWidth,
+            child: _menu(item, actions, metrics),
+          ),
         if (actions != null)
           Positioned(
             left: 0,
@@ -134,10 +143,7 @@ class _LeafComponentState extends State<LeafComponent>
                 item: item.item,
                 row: _rowKey,
                 preview: _preview(item, metrics),
-                icon: Padding(
-                  padding: EdgeInsets.only(top: inset),
-                  child: _handleIcon(metrics),
-                ),
+                icon: _slotIcon(Icons.drag_indicator, metrics),
                 onDragging: (dragging) => setState(() => _dragging = dragging),
               ),
             ),
@@ -189,9 +195,16 @@ class _LeafComponentState extends State<LeafComponent>
     }
   }
 
+  /// The icon of a slot beside the row (handle, menu), by the row's first
+  /// line: drawn at line size, whatever the slot's size.
+  static Widget _slotIcon(IconData icon, NoteMetrics metrics) => Padding(
+    padding: EdgeInsets.only(top: metrics.itemRowInset),
+    child: Icon(icon, size: metrics.handleIconSize),
+  );
+
   /// Shown only while the caret is in this text; kept in the tree while
-  /// hidden, so the row's layout stays put. As large as the drag handle:
-  /// never higher than the line, so rows stand apart by [metrics] only.
+  /// hidden, so the row's layout stays put. Fills its slot, as the drag
+  /// handle does.
   Widget _menu(ItemFrame item, ItemActions actions, NoteMetrics metrics) =>
       Visibility(
         visible: widget.viewModel.selection != null,
@@ -200,12 +213,9 @@ class _LeafComponentState extends State<LeafComponent>
         maintainSize: true,
         child: PopupMenuButton<_ItemAction>(
           tooltip: 'Item actions',
-          padding: EdgeInsets.zero,
-          iconSize: metrics.handleIconSize,
-          style: const ButtonStyle(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            minimumSize: WidgetStatePropertyAll(Size.zero),
-            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: _slotIcon(Icons.more_vert, metrics),
           ),
           onSelected: (action) => switch (action) {
             _ItemAction.indent => actions.indent(item.item),

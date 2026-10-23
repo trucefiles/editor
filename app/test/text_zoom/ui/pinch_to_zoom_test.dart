@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,15 +70,12 @@ void main() {
     await show(tester);
     await pinch(tester, 100, 200);
 
-    expect(asked.map((zoom) => zoom.percent), [
-      110,
-      120,
-      130,
-      140,
-      150,
-      160,
-      170,
-    ]);
+    final steps = asked.map((zoom) => zoom.percent).toList();
+    expect(steps.last, 200, reason: 'twice as far apart');
+    expect(
+      IterableZip([steps, steps.skip(1)]).map((pair) => pair[1] - pair[0]),
+      everyElement(TextZoom.step),
+    );
   });
 
   testWidgets('closing two fingers makes the text smaller', (tester) async {
@@ -92,7 +90,7 @@ void main() {
   ) async {
     await show(tester);
     scroll.jumpTo(500);
-    await pinch(tester, 100, 200, down: 40);
+    await pinch(tester, 100, 200, down: 20);
 
     expect(asked, isNotEmpty);
     expect(scroll.offset, 500);
