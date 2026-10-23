@@ -38,13 +38,13 @@ final class TestApp {
   /// loads.
   Future<void> launch(WidgetTester tester) async {
     await initializeDateFormatting();
-    final textZooms = await loadTextZooms(_storage);
+    final textZooms = await SavedTextZooms.load(_storage);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appStorageProvider.overrideWithValue(_storage),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
-          loadedTextZoomsProvider.overrideWithValue(textZooms),
+          savedTextZoomsProvider.overrideWithValue(textZooms),
           systemTrayProvider.overrideWithValue(null),
           folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
         ],

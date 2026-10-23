@@ -77,8 +77,8 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           appStorageProvider.overrideWithValue(storage),
-          loadedTextZoomsProvider.overrideWithValue(
-            await loadTextZooms(storage),
+          savedTextZoomsProvider.overrideWithValue(
+            await SavedTextZooms.load(storage),
           ),
         ],
       );

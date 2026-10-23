@@ -39,9 +39,13 @@ void main() {
       tester,
     ) async {
       final storage = AppStorage(tempFolder().path);
+      final zooms = (await tester.runAsync(() => savedTextZoomsIn(storage)))!;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [appStorageProvider.overrideWithValue(storage)],
+          overrides: [
+            appStorageProvider.overrideWithValue(storage),
+            savedTextZoomsProvider.overrideWithValue(zooms),
+          ],
           child: MaterialApp(
             home: Scaffold(
               body: Column(

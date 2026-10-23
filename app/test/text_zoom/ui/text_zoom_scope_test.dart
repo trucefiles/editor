@@ -33,14 +33,17 @@ void main() {
   Future<void> show(WidgetTester tester) async {
     taps = 0;
     final storage = AppStorage(tempFolder().path);
+    final zooms = (await tester.runAsync(
+      () => savedTextZoomsIn(storage, {
+        TextZoomTarget.app: TextZoom.closestTo(150),
+      }),
+    ))!;
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
           overrides: [
             appStorageProvider.overrideWithValue(storage),
-            loadedTextZoomsProvider.overrideWithValue({
-              TextZoomTarget.app: TextZoom.closestTo(150),
-            }),
+            savedTextZoomsProvider.overrideWithValue(zooms),
           ],
           child: MaterialApp(
             builder: (context, child) => TextZoomScope(child: child!),

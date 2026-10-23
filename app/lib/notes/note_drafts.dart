@@ -45,6 +45,7 @@ final class NoteDrafts {
   /// Deletes the draft [id], once its edits are kept elsewhere. A draft
   /// that stays by failure is only tried again later.
   Future<void> remove(String id) async {
+    _files.remove(id);
     try {
       await _file(id).delete();
     } on FileSystemException {
@@ -54,6 +55,7 @@ final class NoteDrafts {
 
   /// Deletes every draft, once their folder is removed from the app.
   Future<void> clear() async {
+    _files.clear();
     try {
       await _folder.delete(recursive: true);
     } on FileSystemException {

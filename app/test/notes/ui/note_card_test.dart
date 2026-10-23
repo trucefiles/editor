@@ -1,14 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_summary.dart';
 import 'package:truce_editor/notes/ui/note_card.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
-import 'package:truce_editor/text_zoom/text_zoom_target.dart';
+import 'package:truce_editor/text_zoom/ui/note_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 
 import '../../support.dart';
@@ -25,18 +23,16 @@ void main() {
   Future<double> heightWith(WidgetTester tester, int lines) async {
     final text = ['# Title', for (var i = 1; i <= lines; i++) 'line $i'];
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: 240,
-                child: NoteCard(
-                  note(text.join('\n')),
-                  onTap: () {},
-                  onMark: () {},
-                ),
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: 240,
+              child: NoteCard(
+                note(text.join('\n')),
+                onTap: () {},
+                onMark: () {},
               ),
             ),
           ),
@@ -61,15 +57,13 @@ void main() {
 
   testWidgets('labels a note with a sync conflict', (tester) async {
     Future<void> show({required bool hasConflict}) => tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: NoteCard(
-              note('# Title'),
-              hasConflict: hasConflict,
-              onTap: () {},
-              onMark: () {},
-            ),
+      MaterialApp(
+        home: Scaffold(
+          body: NoteCard(
+            note('# Title'),
+            hasConflict: hasConflict,
+            onTap: () {},
+            onMark: () {},
           ),
         ),
       ),
@@ -82,18 +76,14 @@ void main() {
     expect(find.text('Conflict'), findsOne);
   });
 
-  testWidgets('shows the note at the note text zoom, the rest at the app\'s', (
+  testWidgets("shows the note at the note text zoom, the rest at the app's", (
     tester,
   ) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          loadedTextZoomsProvider.overrideWithValue({
-            TextZoomTarget.notes: TextZoom.closestTo(150),
-          }),
-        ],
-        child: MaterialApp(
-          home: TextZoomScale(
+      MaterialApp(
+        home: NoteTextZoomScope(
+          zoom: TextZoom.closestTo(150),
+          child: TextZoomScale(
             zoom: TextZoom.closestTo(120),
             child: Scaffold(
               body: NoteCard(

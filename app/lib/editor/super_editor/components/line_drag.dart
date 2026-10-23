@@ -26,34 +26,37 @@ class LineDragHandle extends StatelessWidget {
   RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
 
   @override
-  Widget build(BuildContext context) => Draggable<LineDrag>(
-    data: LineDrag(item, row),
-    hitTestBehavior: HitTestBehavior.opaque,
-    // The copy starts right over the row, where the pointer took it.
-    dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
-    feedbackOffset: Offset.zero,
-    onDragStarted: () => onDragging?.call(true),
-    onDragEnd: (_) => onDragging?.call(false),
-    // The copy shows in the app's overlay; it keeps the row's media
-    // settings, e.g. its text zoom, so it looks like the row.
-    feedback: MediaQuery(
-      data: MediaQuery.of(context),
-      child: Builder(
-        builder: (context) => SizedBox(
-          width: _rowBox.size.width,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(4),
-            child: preview,
+  Widget build(BuildContext context) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    return Draggable<LineDrag>(
+      data: LineDrag(item, row),
+      hitTestBehavior: HitTestBehavior.opaque,
+      // The copy starts right over the row, where the pointer took it.
+      dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
+      feedbackOffset: Offset.zero,
+      onDragStarted: () => onDragging?.call(true),
+      onDragEnd: (_) => onDragging?.call(false),
+      // The copy shows in the app's overlay; it keeps the row's text
+      // scaling, e.g. its text zoom, so it looks like the row.
+      feedback: Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: SizedBox(
+            width: _rowBox.size.width,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(4),
+              child: preview,
+            ),
           ),
         ),
       ),
-    ),
-    child: MouseRegion(
-      cursor: SystemMouseCursors.grab,
-      child: Align(alignment: Alignment.topCenter, child: icon),
-    ),
-  );
+      child: MouseRegion(
+        cursor: SystemMouseCursors.grab,
+        child: Align(alignment: Alignment.topCenter, child: icon),
+      ),
+    );
+  }
 }
 
 /// The item [item], by its marker line, being dragged; its row is [row].

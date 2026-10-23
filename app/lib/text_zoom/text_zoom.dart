@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// How large all text in the app shows on this device, on top of the
-/// system's own text scaling, in percent of its base size: a step of
+/// How large text shows on this device, on top of the system's own text
+/// scaling, in percent of its base size: a step of
 /// [step] from [min] to [max].
 @immutable
 final class TextZoom {

@@ -18,14 +18,14 @@ Future<void> main(List<String> args) async {
   final storage = await AppStorage.resolve();
   final (deviceId, textZooms) = await (
     loadDeviceId(storage),
-    loadTextZooms(storage),
+    SavedTextZooms.load(storage),
   ).wait;
   runApp(
     ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
         deviceIdProvider.overrideWithValue(deviceId),
-        loadedTextZoomsProvider.overrideWithValue(textZooms),
+        savedTextZoomsProvider.overrideWithValue(textZooms),
         startInBackgroundProvider.overrideWithValue(
           args.contains(backgroundFlag),
         ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_edit_session.dart';
@@ -40,15 +39,13 @@ void main() {
 
   Future<void> pumpBanner(WidgetTester tester) async {
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: ListenableBuilder(
-              listenable: session,
-              builder: (_, _) => EditStateBanner(
-                OpenNote(session, sessionOf: (_) => throw UnimplementedError()),
-                onClose: () {},
-              ),
+      MaterialApp(
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: session,
+            builder: (_, _) => EditStateBanner(
+              OpenNote(session, sessionOf: (_) => throw UnimplementedError()),
+              onClose: () {},
             ),
           ),
         ),
