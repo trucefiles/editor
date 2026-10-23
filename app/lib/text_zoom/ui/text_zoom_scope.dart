@@ -15,7 +15,7 @@ import 'wheel_to_zoom.dart';
 /// [child], the whole app, with its text at the zoom setting. On every
 /// screen, the zoom keys ([textZoomKeys]), Ctrl with the mouse wheel and
 /// pinching change it; each such change shows a [TextZoomToast] for a
-/// moment, which stays while its slider is held.
+/// moment.
 class TextZoomScope extends ConsumerStatefulWidget {
   const TextZoomScope({required this.child, super.key});
 
@@ -31,9 +31,6 @@ class TextZoomScope extends ConsumerStatefulWidget {
 class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
   bool _toastShown = false;
   Timer? _hideToast;
-
-  /// Whether the toast's slider is held.
-  bool _sliding = false;
 
   TextZoomController get _zoom => ref.read(textZoomProvider.notifier);
 
@@ -53,20 +50,13 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
     _showToast();
   }
 
-  void _slide(bool sliding) {
-    _sliding = sliding;
-    _showToast();
-  }
-
   /// Shows the toast, and hides it [TextZoomScope.toastTime] after the
-  /// last change, once its slider isn't held.
+  /// last change.
   void _showToast() {
     _hideToast?.cancel();
-    _hideToast = _sliding
-        ? null
-        : Timer(TextZoomScope.toastTime, () {
-            if (mounted) setState(() => _toastShown = false);
-          });
+    _hideToast = Timer(TextZoomScope.toastTime, () {
+      if (mounted) setState(() => _toastShown = false);
+    });
     if (!_toastShown) setState(() => _toastShown = true);
   }
 
@@ -87,24 +77,14 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
           child: Stack(
             children: [
               TextZoomScale(zoom: zoom, child: widget.child),
-              // Outside the zoom: it stays put under a finger on it. In an
-              // overlay of its own, which its slider needs: the app's are
-              // all inside [child].
+              // Outside the zoom, so it is the same size at any zoom.
               if (_toastShown)
-                Positioned.fill(
-                  child: Overlay.wrap(
-                    child: SafeArea(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
-                          child: TextZoomToast(
-                            zoom: zoom,
-                            onZoom: _zoomTo,
-                            onSliding: _slide,
-                          ),
-                        ),
-                      ),
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
+                      child: TextZoomToast(zoom: zoom),
                     ),
                   ),
                 ),

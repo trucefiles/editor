@@ -6,7 +6,7 @@ import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scope.dart';
-import 'package:truce_editor/text_zoom/ui/text_zoom_slider.dart';
+import 'package:truce_editor/text_zoom/ui/text_zoom_title.dart';
 
 import '../../support.dart';
 
@@ -84,24 +84,6 @@ void main() {
     expect(toast, findsOne);
     expect(find.text('110 %'), findsOne);
 
-    await tester.pump(TextZoomScope.toastTime);
-    expect(toast, findsNothing);
-  });
-
-  testWidgets("the toast's slider zooms, and the toast stays while held", (
-    tester,
-  ) async {
-    await show(tester);
-    await pressCtrlPlus(tester);
-
-    final slider = find.byType(TextZoomSlider);
-    final held = await tester.startGesture(tester.getCenter(slider));
-    await held.moveBy(Offset(tester.getSize(slider).width / 3, 0));
-    await tester.pump(TextZoomScope.toastTime * 2);
-    expect(toast, findsOne);
-    expect(zoom(tester)!.percent, greaterThan(150));
-
-    await held.up();
     await tester.pump(TextZoomScope.toastTime);
     expect(toast, findsNothing);
   });
