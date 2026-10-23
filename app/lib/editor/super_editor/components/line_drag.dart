@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'line_drop_zone.dart';
-
 /// The handle that drags [item], whose row is [row]: a copy of the row,
 /// [preview], on the surface the row lies on, follows the pointer
 /// meanwhile, as if the row itself moved.
@@ -26,7 +24,9 @@ class LineDragHandle extends StatelessWidget {
   /// The drag started (`true`) or ended (`false`).
   final ValueChanged<bool>? onDragging;
 
-  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
+  /// The row, while it is shown.
+  RenderBox? get _rowBox =>
+      row.currentContext?.findRenderObject() as RenderBox?;
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +36,10 @@ class LineDragHandle extends StatelessWidget {
       data: LineDrag(item, row),
       hitTestBehavior: HitTestBehavior.opaque,
       // The copy starts right over the row, where the pointer took it.
-      dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
+      dragAnchorStrategy: (_, _, position) => _rowBox!.globalToLocal(position),
       feedbackOffset: Offset.zero,
-      onDragStarted: () {
-        LineDropZone.of(context).begin();
-        onDragging?.call(true);
-      },
-      onDragEnd: (_) {
-        LineDropZone.of(context).end();
-        onDragging?.call(false);
-      },
+      onDragStarted: () => onDragging?.call(true),
+      onDragEnd: (_) => onDragging?.call(false),
       // The copy shows in the app's overlay; it keeps the row's text
       // scaling, e.g. its text zoom, and the surface it lies on, e.g. the
       // note's color, so it looks like the row lifted.
@@ -53,7 +47,7 @@ class LineDragHandle extends StatelessWidget {
         builder: (context) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
           child: SizedBox(
-            width: _rowBox.size.width,
+            width: _rowBox?.size.width,
             child: Material(
               color: surface,
               elevation: 4,
@@ -79,14 +73,21 @@ final class LineDrag {
   final LineId item;
   final GlobalKey row;
 
-  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
+  /// The row, while it is shown; a change from elsewhere can take it
+  /// away during the drag.
+  RenderBox? get _rowBox =>
+      row.currentContext?.findRenderObject() as RenderBox?;
 
-  double get height => _rowBox.size.height;
-
-  /// The middle of the dragged copy at [offset], from top to bottom.
-  double middleAt(Offset offset) => offset.dy + height / 2;
-
-  /// How far right of its row the dragged copy at [offset] is.
-  double shiftAt(Offset offset) =>
-      offset.dx - _rowBox.localToGlobal(Offset.zero).dx;
+  /// The dragged copy at [offset], measured on its row: its height, its
+  /// middle from top to bottom, and how far right of the row it is;
+  /// `null` once the row is gone.
+  ({double height, double middle, double shift})? at(Offset offset) =>
+      switch (_rowBox) {
+        final box? => (
+          height: box.size.height,
+          middle: offset.dy + box.size.height / 2,
+          shift: offset.dx - box.localToGlobal(Offset.zero).dx,
+        ),
+        null => null,
+      };
 }
