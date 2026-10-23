@@ -19,6 +19,16 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.8.1" date="2026-10-23">
+      <description>
+        <ul>
+          <li>Pinch zoom in notes works reliably: two fingers no longer scroll, indent items or refresh.</li>
+          <li>Backup and conflict compare: a real line by line diff, added lines in green and removed lines in red where they were.</li>
+          <li>Dragging a list item: the gap no longer closes for a moment near the next item.</li>
+          <li>The dragged item shows in the note's color.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.8.0" date="2026-10-23">
       <description>
         <ul>
