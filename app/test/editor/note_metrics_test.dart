@@ -36,6 +36,7 @@ void main() {
     expect(double.levelIndent, base.levelIndent * 2);
     expect(double.markerWidth, base.markerWidth * 2);
     expect(double.lineGap, base.lineGap * 2);
+    expect(double.itemGap, base.itemGap * 2);
   });
 
   testWidgets('on touch, handles are a touch target wide and items apart', (
@@ -52,5 +53,29 @@ void main() {
     expect(touch.handleIconSize, mouse.handleIconSize);
     expect(touch.itemRowInset, greaterThan(mouse.itemRowInset));
     expect(touch.lineGap, mouse.lineGap);
+  });
+
+  testWidgets('on touch, items never stand closer as the text grows', (
+    tester,
+  ) async {
+    Future<double> gapAt(double textScale) async => (await metricsIn(
+      tester,
+      textScale: textScale,
+      tapTargets: MaterialTapTargetSize.padded,
+    )).itemGap;
+
+    expect(await gapAt(1.5), greaterThan(await gapAt(1)));
+  });
+
+  testWidgets('paragraphs never take back space, even when small', (
+    tester,
+  ) async {
+    final touch = await metricsIn(
+      tester,
+      textScale: 0.8,
+      tapTargets: MaterialTapTargetSize.padded,
+    );
+
+    expect(touch.paragraphGap, greaterThanOrEqualTo(0));
   });
 }

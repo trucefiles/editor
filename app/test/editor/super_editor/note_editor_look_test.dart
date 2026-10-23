@@ -373,6 +373,29 @@ void main() {
     );
   });
 
+  testWidgets("on touch, an item's menu is a touch target, as its handle", (
+    tester,
+  ) async {
+    await pumpNoteEditor(
+      tester,
+      FakeNoteText('- [ ] a\n- [ ] b'),
+      theme: ThemeData(materialTapTargetSize: MaterialTapTargetSize.padded),
+    );
+    await tester.caretIn(checkboxNodeOf(), 0);
+
+    final menu = tester.getSize(find.byTooltip('Item actions').first);
+    final handle = tester.getSize(
+      find
+          .ancestor(
+            of: find.byIcon(Icons.drag_indicator).first,
+            matching: find.byType(MouseRegion),
+          )
+          .first,
+    );
+    expect(menu.width, greaterThanOrEqualTo(kMinInteractiveDimension));
+    expect(menu.height, handle.height);
+  });
+
   testWidgets('markers sit in the middle of their line of text', (
     tester,
   ) async {
@@ -413,7 +436,7 @@ void main() {
       expect(end, moreOrLessEquals(ends.first, epsilon: 1));
     }
     final text = tester.getTopLeft(find.text('a', findRichText: true)).dx;
-    expect(text - ends.first, moreOrLessEquals(8, epsilon: 1));
+    expect(text - ends.first, moreOrLessEquals(12, epsilon: 1));
   });
 
   testWidgets('the format bar keeps clear of the bottom system edge', (

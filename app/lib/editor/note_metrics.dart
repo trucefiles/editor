@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'note_text_styles.dart';
@@ -5,11 +7,11 @@ import 'note_text_styles.dart';
 /// The sizes around a note's text: gaps between lines, indents, the slots
 /// of an item's row. They grow with the note's text, so the layout keeps
 /// its proportions at any text size. Where the theme pads tap targets for
-/// touch, item rows are taller and their drag handles wider, so a finger
-/// hits the one it means.
+/// touch, items stand further apart and their drag handles are wider, so
+/// a finger hits the one it means.
 @immutable
 final class NoteMetrics {
-  const NoteMetrics({this.scale = 1, this.touch = false});
+  const NoteMetrics({required this.scale, required this.touch});
 
   /// The metrics for the note text in [context]: as large as its text
   /// scaler shows body text.
@@ -31,17 +33,27 @@ final class NoteMetrics {
   /// Space above and below a line of text.
   double get lineGap => 2 * scale;
 
+  /// Space between the lines of two items in a list, the same in every
+  /// mode. For fingers, a fixed extra on top, so a row with one line of
+  /// base size text is a touch target high; it never shrinks as the text
+  /// grows.
+  double get itemGap => 8 * scale + (touch ? _touchExtra : 0);
+
+  static const _touchExtra = 18.0;
+
   /// Space an item's row adds above and below its first line, inside the
-  /// row, so its drag handle reaches over it.
-  double get itemRowInset => (touch ? 6 : 0) * scale;
+  /// row, so its drag handle reaches over it: with the gaps of its line,
+  /// items stand [itemGap] apart.
+  double get itemRowInset => itemGap / 2 - lineGap;
 
-  /// Space between blocks, and between items, where a renderer lays them
-  /// out (Read): about what an item's row adds in the editors.
-  double get blockGap => 12 * scale;
+  /// Space between blocks, and so between items, where a renderer lays
+  /// them out (Read).
+  double get blockGap => itemGap;
 
-  /// Space a paragraph or heading adds below it there, so blocks stand
-  /// about a blank line apart, as in the editors.
-  double get paragraphGap => 12 * scale;
+  /// Space a paragraph or heading adds below it there, so blocks stand at
+  /// least about a blank line apart, as in the editors; items stand
+  /// [blockGap] apart, which may be more.
+  double get paragraphGap => math.max(0, 28 * scale - blockGap);
 
   /// Indent of an item's text under the items it is in, per level.
   double get levelIndent => 28 * scale;
@@ -51,13 +63,13 @@ final class NoteMetrics {
 
   /// Size of an item's drag handle icon, drawn in the middle of its
   /// width.
-  double get handleIconSize => 24 * scale;
+  double get handleIconSize => 20 * scale;
 
   /// Width of an item's box, bullet or number.
   double get markerWidth => 36 * scale;
 
   /// Space between a marker and its item's text.
-  double get markerGap => 8 * scale;
+  double get markerGap => 12 * scale;
 
   /// Indent of a quote's text, right of its bar.
   double get quoteIndent => 12 * scale;

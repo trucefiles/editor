@@ -10,6 +10,9 @@ import 'package:truce_editor/editor/note_document_controller.dart';
 
 import 'package:truce_editor/editor/super_editor/components/line_drag.dart';
 
+import 'package:truce_editor/text_zoom/text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
+
 import '../editor_support.dart';
 import 'editor_robot.dart';
 
@@ -223,6 +226,38 @@ void main() {
       await swipe(tester, checkboxNodeOf(index: 1), const Offset(100, 0));
 
       expect(text.text, '- [ ] a\n  - [ ] $long');
+    });
+
+    testWidgets('a pinch over two rows swipes neither', (tester) async {
+      final text = FakeNoteText('- [ ] a\n- [ ] b\n- [ ] c');
+      var zoom = TextZoom.normal;
+      await pumpNoteEditor(
+        tester,
+        text,
+        around: (context, child) => StatefulBuilder(
+          builder: (context, setState) => PinchToZoom(
+            zoom: zoom,
+            onZoom: (next) => setState(() => zoom = next),
+            child: child!,
+          ),
+        ),
+      );
+
+      final upper = tester.tapPointIn(checkboxNodeOf(), 0);
+      final lower = tester.tapPointIn(checkboxNodeOf(index: 2), 0);
+      final first = await tester.startGesture(upper);
+      final second = await tester.startGesture(lower);
+      for (final _ in Iterable<void>.generate(10)) {
+        await first.moveBy(const Offset(-6, -6));
+        await second.moveBy(const Offset(6, 6));
+        await tester.pump();
+      }
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
+
+      expect(zoom.percent, greaterThan(100));
+      expect(text.edits, isEmpty);
     });
 
     testWidgets('a short swipe does nothing', (tester) async {

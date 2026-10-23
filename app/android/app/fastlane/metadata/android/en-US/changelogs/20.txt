@@ -1,0 +1,5 @@
+- Global text zoom on every screen: pinch, Ctrl + wheel or Ctrl +/-/0, with a slider while zooming
+- Checkboxes, list spacing and dragged items grow with the zoom
+- Read: checkboxes in the app's colors
+- Pinching no longer refreshes or moves list items
+- Menus open below their button

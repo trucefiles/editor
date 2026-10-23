@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 /// Runs [bindings] for keys pressed while this screen is on top, wherever
 /// the keyboard focus is, even when nothing has it (e.g. rendered text).
+/// Outside any screen (above the app's navigator), always.
 class ScreenShortcuts extends StatefulWidget {
   const ScreenShortcuts({
     required this.bindings,

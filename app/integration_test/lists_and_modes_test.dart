@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 
+import 'package:truce_editor/notes/ui/note_card.dart';
+
 import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -149,7 +151,7 @@ void main() {
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 
-  testApp('Ctrl with + or =, - and 0 change the size of notes text', (
+  testApp('Ctrl with + or =, - and 0 zoom all text, on every screen', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
@@ -179,6 +181,8 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.equal);
     await pressCtrl(LogicalKeyboardKey.equal);
     expect(scaled(), closeTo(base * 1.2, 0.01));
+    expect(find.text('Global text zoom'), findsOne, reason: 'toast');
+    expect(find.text('120 %'), findsOne);
     expect(
       find.textContaining('=', findRichText: true),
       findsNothing,
@@ -204,5 +208,17 @@ void main() {
     await pressPlus(shift: true);
     await pressCtrl(LogicalKeyboardKey.numpadAdd);
     expect(scaled(), closeTo(base * 1.4, 0.01));
+
+    // The home screen shows the same zoom, and zooms by the same keys.
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+    double home() => MediaQuery.textScalerOf(
+      tester.element(
+        find.descendant(of: find.byType(NoteCard), matching: find.text('Todo')),
+      ),
+    ).scale(10);
+    expect(home(), closeTo(base * 1.4, 0.01));
+    await pressCtrl(LogicalKeyboardKey.minus);
+    expect(home(), closeTo(base * 1.3, 0.01));
   });
 }

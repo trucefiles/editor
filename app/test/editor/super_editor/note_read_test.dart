@@ -8,6 +8,7 @@ import 'package:truce_editor/markdown/markdown_links.dart';
 import 'package:truce_editor/platform/link_opener.dart';
 
 import '../editor_support.dart';
+import 'editor_robot.dart';
 
 /// A note in Read: formatted, and its links open.
 void main() {
@@ -77,7 +78,30 @@ void main() {
     expect(shown(tester), contains('Title'));
     expect(shown(tester), contains('Some bold text.'));
     expect(shown(tester), isNot(contains('#')));
-    expect(find.byIcon(Icons.check_box), findsOne);
+    expect(
+      find.byWidgetPredicate((widget) => widget is Checkbox && widget.value!),
+      findsOne,
+    );
+  });
+
+  testWidgets('lays out small text on touch, items wider apart', (
+    tester,
+  ) async {
+    await pumpNoteEditor(
+      tester,
+      FakeNoteText('Para\n\nPara\n\n- [ ] a\n- [x] b'),
+      mode: NoteMode.read,
+      theme: ThemeData(materialTapTargetSize: MaterialTapTargetSize.padded),
+      around: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(0.8)),
+        child: child!,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Para', findRichText: true), findsNWidgets(2));
   });
 
   testWidgets('joins lines without a blank line between them', (tester) async {

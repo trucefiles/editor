@@ -12,8 +12,6 @@ import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
-import '../../editor/text_size/note_text_size.dart';
-import '../../editor/text_size/note_text_size_controller.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
@@ -166,15 +164,12 @@ class _NotesBody extends ConsumerWidget {
     ref.watch(noteSettingsProvider);
     final settings = ref.read(noteSettingsProvider.notifier);
     bool pinned(Note note) => settings.settingsOf(note.key).pinned;
-    final textSize =
-        ref.watch(noteTextSizeProvider).value ?? NoteTextSize.normal;
     Widget card(Note note) => NoteCard(
       note,
       mark: markOf(note),
       pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
       hideDone: settings.settingsOf(note.key).checkedItems.shownApart,
-      textSize: textSize,
       onTap: () => openNote(context, note),
       onMark: () => editPinOrColor(context, ref, note),
     );

@@ -1,19 +1,19 @@
 import 'package:flutter/widgets.dart';
 
-import '../note_text_size.dart';
+import '../text_zoom.dart';
 
-/// [child], notes' text, at [size]: on top of the system's own text
+/// [child] with its text at [zoom]: on top of the system's own text
 /// scaling.
-class NoteTextScale extends StatelessWidget {
-  const NoteTextScale({required this.size, required this.child, super.key});
+class TextZoomScale extends StatelessWidget {
+  const TextZoomScale({required this.zoom, required this.child, super.key});
 
-  final NoteTextSize size;
+  final TextZoom zoom;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => MediaQuery(
     data: MediaQuery.of(context).copyWith(
-      textScaler: _TimesScaler(MediaQuery.textScalerOf(context), size.factor),
+      textScaler: _TimesScaler(MediaQuery.textScalerOf(context), zoom.factor),
     ),
     child: child,
   );

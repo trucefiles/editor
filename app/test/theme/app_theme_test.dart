@@ -20,6 +20,10 @@ void main() {
         expect(theme.appBarTheme.surfaceTintColor, Colors.transparent);
         expect(theme.appBarTheme.scrolledUnderElevation, greaterThan(0));
       });
+
+      test('opens menus below their button', () {
+        expect(theme.popupMenuTheme.position, PopupMenuPosition.under);
+      });
     });
   }
 }
