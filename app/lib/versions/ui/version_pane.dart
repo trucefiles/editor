@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../common/time_texts.dart';
 import '../../text_zoom/ui/note_text_zoom.dart';
-import '../changed_lines.dart';
+import '../compared_lines.dart';
+import 'diff_colors.dart';
+import 'selectable_lines.dart';
 
-/// One side of a conflict: its text, at the note text zoom, with lines
-/// the other side lacks highlighted, and a button to keep it.
+/// One side of a conflict: its text, at the note text zoom, compared
+/// with the other side's as a line diff (lines only this side has as
+/// added, lines only the other side has as removed), and a button to
+/// keep it.
 class VersionPane extends StatelessWidget {
   const VersionPane({
     required this.label,
@@ -61,6 +65,9 @@ class VersionPane extends StatelessWidget {
   }
 }
 
+/// [text] compared with [compareTo], one line per row; changed rows
+/// are tinted across the whole width, as git hosts show a diff. Only
+/// [text]'s own lines select, so a copy is this version's text.
 class _HighlightedText extends StatelessWidget {
   const _HighlightedText(this.text, this.compareTo);
 
@@ -69,22 +76,30 @@ class _HighlightedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = text.split('\n');
-    final changed = changedLines(lines, compareTo.split('\n'));
-    final highlight = Theme.of(context).colorScheme.tertiaryContainer;
+    final colors = DiffColors.of(Theme.of(context).brightness);
+    final lines = compareLines(text.split('\n'), compareTo.split('\n'));
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: SelectableText.rich(
-        TextSpan(
-          children: [
-            for (var i = 0; i < lines.length; i++)
-              TextSpan(
-                text: i < lines.length - 1 ? '${lines[i]}\n' : lines[i],
-                style: changed.contains(i)
-                    ? TextStyle(backgroundColor: highlight)
-                    : null,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: SelectionArea(
+        child: SelectableLines(
+          lines: [
+            for (final line in lines)
+              (
+                text: line.text,
+                selectable: line.origin != LineOrigin.otherOnly,
               ),
           ],
+          row: (index, text) => ColoredBox(
+            color: switch (lines[index].origin) {
+              LineOrigin.both => Colors.transparent,
+              LineOrigin.shownOnly => colors.added,
+              LineOrigin.otherOnly => colors.removed,
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: text,
+            ),
+          ),
         ),
       ),
     );

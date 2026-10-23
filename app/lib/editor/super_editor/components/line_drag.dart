@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// The handle that drags [item], whose row is [row]: a copy of the row,
-/// [preview], follows the pointer meanwhile, as if the row itself moved.
+/// [preview], on the surface the row lies on, follows the pointer
+/// meanwhile, as if the row itself moved.
 /// It takes drags all over the space it is given, its [icon] drawn at the
 /// top, in the middle of its width.
 class LineDragHandle extends StatelessWidget {
@@ -23,27 +24,32 @@ class LineDragHandle extends StatelessWidget {
   /// The drag started (`true`) or ended (`false`).
   final ValueChanged<bool>? onDragging;
 
-  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
+  /// The row, while it is shown.
+  RenderBox? get _rowBox =>
+      row.currentContext?.findRenderObject() as RenderBox?;
 
   @override
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
+    final surface = Material.maybeOf(context)?.color;
     return Draggable<LineDrag>(
       data: LineDrag(item, row),
       hitTestBehavior: HitTestBehavior.opaque,
       // The copy starts right over the row, where the pointer took it.
-      dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
+      dragAnchorStrategy: (_, _, position) => _rowBox!.globalToLocal(position),
       feedbackOffset: Offset.zero,
       onDragStarted: () => onDragging?.call(true),
       onDragEnd: (_) => onDragging?.call(false),
       // The copy shows in the app's overlay; it keeps the row's text
-      // scaling, e.g. its text zoom, so it looks like the row.
+      // scaling, e.g. its text zoom, and the surface it lies on, e.g. the
+      // note's color, so it looks like the row lifted.
       feedback: Builder(
         builder: (context) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
           child: SizedBox(
-            width: _rowBox.size.width,
+            width: _rowBox?.size.width,
             child: Material(
+              color: surface,
               elevation: 4,
               borderRadius: BorderRadius.circular(4),
               child: preview,
@@ -67,92 +73,21 @@ final class LineDrag {
   final LineId item;
   final GlobalKey row;
 
-  RenderBox get _rowBox => row.currentContext!.findRenderObject()! as RenderBox;
+  /// The row, while it is shown; a change from elsewhere can take it
+  /// away during the drag.
+  RenderBox? get _rowBox =>
+      row.currentContext?.findRenderObject() as RenderBox?;
 
-  double get height => _rowBox.size.height;
-
-  /// How far right of its row the dragged copy at [offset] is.
-  double shiftAt(Offset offset) =>
-      offset.dx - _rowBox.localToGlobal(Offset.zero).dx;
-}
-
-/// Takes items dropped on [child], the row of [item]:
-/// a copy whose middle is over the row's upper half goes above it, else
-/// below it. Meanwhile a gap opens there, as large as the dragged row. A
-/// row's own copy, shifted sideways by whole [step]s, goes that many
-/// levels deeper or shallower.
-class LineDropTarget extends StatefulWidget {
-  const LineDropTarget({
-    required this.item,
-    required this.step,
-    required this.onDrop,
-    required this.child,
-    super.key,
-  });
-
-  final LineId item;
-
-  /// Width of one level.
-  final double step;
-
-  /// The dropped item, whether it goes below, and by how many
-  /// levels it was shifted deeper (shallower if negative).
-  final void Function(LineId item, {required bool below, required int levels})
-  onDrop;
-  final Widget child;
-
-  @override
-  State<LineDropTarget> createState() => _LineDropTargetState();
-}
-
-class _LineDropTargetState extends State<LineDropTarget> {
-  final _content = GlobalKey();
-
-  /// Where a dragged item hovering here would go, and the gap it takes;
-  /// `null` while none hovers.
-  ({bool below, double height})? _gap;
-
-  /// Whether the dragged copy's middle is below this row's: measured from
-  /// the row's top as without the gap, which moves the row as it opens.
-  bool _isBelow(DragTargetDetails<LineDrag> details) {
-    final target = context.findRenderObject()! as RenderBox;
-    final content = _content.currentContext!.findRenderObject()! as RenderBox;
-    final middle = details.offset.dy + details.data.height / 2;
-    return target.globalToLocal(Offset(0, middle)).dy > content.size.height / 2;
-  }
-
-  bool _isSelf(LineDrag drag) => drag.item == widget.item;
-
-  void _hover(DragTargetDetails<LineDrag> details) {
-    final gap = _isSelf(details.data)
-        ? null
-        : (below: _isBelow(details), height: details.data.height);
-    if (gap != _gap) setState(() => _gap = gap);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gap = _gap;
-    return DragTarget<LineDrag>(
-      onMove: _hover,
-      onLeave: (_) => setState(() => _gap = null),
-      onAcceptWithDetails: (details) {
-        final drag = details.data;
-        widget.onDrop(
-          drag.item,
-          below: _isBelow(details),
-          levels: (drag.shiftAt(details.offset) / widget.step).truncate(),
-        );
-        setState(() => _gap = null);
-      },
-      builder: (context, _, _) => AnimatedPadding(
-        duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.only(
-          top: gap != null && !gap.below ? gap.height : 0,
-          bottom: gap != null && gap.below ? gap.height : 0,
+  /// The dragged copy at [offset], measured on its row: its height, its
+  /// middle from top to bottom, and how far right of the row it is;
+  /// `null` once the row is gone.
+  ({double height, double middle, double shift})? at(Offset offset) =>
+      switch (_rowBox) {
+        final box? => (
+          height: box.size.height,
+          middle: offset.dy + box.size.height / 2,
+          shift: offset.dx - box.localToGlobal(Offset.zero).dx,
         ),
-        child: KeyedSubtree(key: _content, child: widget.child),
-      ),
-    );
-  }
+        null => null,
+      };
 }

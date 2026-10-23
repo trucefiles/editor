@@ -13,6 +13,7 @@ import '../ui/note_image.dart';
 import '../ui/note_read_view.dart';
 import 'components/display_component_builder.dart';
 import 'components/leaf_builder.dart';
+import 'components/line_drop_zone.dart';
 import 'format_of.dart';
 import 'link_tap_handler.dart';
 import 'marks/mapped_builder.dart';
@@ -191,7 +192,10 @@ class _NoteEditorViewState extends State<NoteEditorView> {
     );
     final hinted = Stack(
       children: [
-        TouchControls(color: look.handleColor, child: editor),
+        TouchControls(
+          color: look.handleColor,
+          child: LineDropZone(child: editor),
+        ),
         EmptyNoteHint(widget.note, padding: look.firstLinePadding),
       ],
     );

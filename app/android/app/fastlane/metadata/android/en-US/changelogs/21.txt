@@ -1,0 +1,4 @@
+- Pinch zoom in notes works reliably: no more scrolling, indenting or refreshing
+- Backup and conflict compare: real line diff, added in green, removed in red
+- Dragging a list item: the gap no longer closes near the next item
+- The dragged item shows in the note's color
