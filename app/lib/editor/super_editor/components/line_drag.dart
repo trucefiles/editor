@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
+import 'line_drop_zone.dart';
+
 /// The handle that drags [item], whose row is [row]: a copy of the row,
 /// [preview], on the surface the row lies on, follows the pointer
 /// meanwhile, as if the row itself moved.
@@ -37,7 +39,10 @@ class LineDragHandle extends StatelessWidget {
       dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
       feedbackOffset: Offset.zero,
       onDragStarted: () => onDragging?.call(true),
-      onDragEnd: (_) => onDragging?.call(false),
+      onDragEnd: (_) {
+        LineDropZone.of(context).end();
+        onDragging?.call(false);
+      },
       // The copy shows in the app's overlay; it keeps the row's text
       // scaling, e.g. its text zoom, and the surface it lies on, e.g. the
       // note's color, so it looks like the row lifted.
@@ -75,90 +80,10 @@ final class LineDrag {
 
   double get height => _rowBox.size.height;
 
+  /// The middle of the dragged copy at [offset], from top to bottom.
+  double middleAt(Offset offset) => offset.dy + height / 2;
+
   /// How far right of its row the dragged copy at [offset] is.
   double shiftAt(Offset offset) =>
       offset.dx - _rowBox.localToGlobal(Offset.zero).dx;
-}
-
-/// Takes items dropped on [child], the row of [item]:
-/// a copy whose middle is over the row's upper half goes above it, else
-/// below it. Meanwhile a gap opens there, as large as the dragged row. A
-/// row's own copy, shifted sideways by whole [step]s, goes that many
-/// levels deeper or shallower.
-class LineDropTarget extends StatefulWidget {
-  const LineDropTarget({
-    required this.item,
-    required this.step,
-    required this.onDrop,
-    required this.child,
-    super.key,
-  });
-
-  final LineId item;
-
-  /// Width of one level.
-  final double step;
-
-  /// The dropped item, whether it goes below, and by how many
-  /// levels it was shifted deeper (shallower if negative).
-  final void Function(LineId item, {required bool below, required int levels})
-  onDrop;
-  final Widget child;
-
-  @override
-  State<LineDropTarget> createState() => _LineDropTargetState();
-}
-
-class _LineDropTargetState extends State<LineDropTarget> {
-  final _content = GlobalKey();
-
-  /// Where a dragged item hovering here would go, and the gap it takes;
-  /// `null` while none hovers.
-  ({bool below, double height})? _gap;
-
-  /// Whether the dragged copy's middle is below this row's, measured on
-  /// the row itself, not the gap: a gap opening above moves the row away
-  /// from the copy, one opening below keeps it in place, so the answer
-  /// stays while the gap opens.
-  bool _isBelow(DragTargetDetails<LineDrag> details) {
-    final content = _content.currentContext!.findRenderObject()! as RenderBox;
-    final middle = details.offset.dy + details.data.height / 2;
-    return content.globalToLocal(Offset(0, middle)).dy >
-        content.size.height / 2;
-  }
-
-  bool _isSelf(LineDrag drag) => drag.item == widget.item;
-
-  void _hover(DragTargetDetails<LineDrag> details) {
-    final gap = _isSelf(details.data)
-        ? null
-        : (below: _isBelow(details), height: details.data.height);
-    if (gap != _gap) setState(() => _gap = gap);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gap = _gap;
-    return DragTarget<LineDrag>(
-      onMove: _hover,
-      onLeave: (_) => setState(() => _gap = null),
-      onAcceptWithDetails: (details) {
-        final drag = details.data;
-        widget.onDrop(
-          drag.item,
-          below: _isBelow(details),
-          levels: (drag.shiftAt(details.offset) / widget.step).truncate(),
-        );
-        setState(() => _gap = null);
-      },
-      builder: (context, _, _) => AnimatedPadding(
-        duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.only(
-          top: gap != null && !gap.below ? gap.height : 0,
-          bottom: gap != null && gap.below ? gap.height : 0,
-        ),
-        child: KeyedSubtree(key: _content, child: widget.child),
-      ),
-    );
-  }
 }

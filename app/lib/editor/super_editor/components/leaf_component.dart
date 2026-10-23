@@ -8,6 +8,7 @@ import 'frames.dart';
 import 'item_actions.dart';
 import 'leaf_builder.dart';
 import 'line_drag.dart';
+import 'line_drop_zone.dart';
 import 'swipe_to_indent.dart';
 
 /// One text node inside its frames (see [framed]). Beside the text that
