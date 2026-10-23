@@ -96,6 +96,44 @@ void main() {
     expect(scroll.offset, 500);
   });
 
+  testWidgets('a pinch that moves more than it spreads never scrolls', (
+    tester,
+  ) async {
+    await show(tester);
+    scroll.jumpTo(500);
+    await pinch(tester, 100, 140, down: 60);
+
+    expect(asked, isNotEmpty);
+    expect(scroll.offset, 500);
+  });
+
+  testWidgets('a pinch with one finger still never swipes', (tester) async {
+    var swiped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PinchToZoom(
+          zoom: TextZoom.normal,
+          onZoom: (_) {},
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (_) => swiped = true,
+          ),
+        ),
+      ),
+    );
+    final middle = tester.getCenter(find.byType(PinchToZoom));
+    final still = await tester.startGesture(middle);
+    final moving = await tester.startGesture(middle + const Offset(50, 0));
+    for (final _ in Iterable<int>.generate(10)) {
+      await moving.moveBy(const Offset(5, 0));
+      await tester.pump();
+    }
+    await still.up();
+    await moving.up();
+
+    expect(swiped, isFalse);
+  });
+
   testWidgets('one finger still scrolls and taps the child', (tester) async {
     await show(tester);
     await tester.tap(find.byType(PinchToZoom));

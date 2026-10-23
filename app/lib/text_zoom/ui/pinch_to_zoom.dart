@@ -5,10 +5,10 @@ import '../text_zoom.dart';
 
 /// Pinching [child] with two fingers, or on a touchpad, asks for text
 /// larger or smaller than [zoom] as the fingers spread or close
-/// ([onZoom]), step by step while they move. A pinch is a gesture of its
-/// own: once the fingers spread or close, it takes them from what else
-/// they started (scrolling, a pull to refresh, swiping an item); until
-/// then every touch reaches [child] as before.
+/// ([onZoom]), step by step while they move. Two fingers on the screen
+/// are a pinch: the second finger takes both from what the first started
+/// (scrolling, a pull to refresh, swiping an item); one finger reaches
+/// [child] as before.
 class PinchToZoom extends StatefulWidget {
   const PinchToZoom({
     required this.zoom,
@@ -43,19 +43,47 @@ class _PinchToZoomState extends State<PinchToZoom> {
   @override
   Widget build(BuildContext context) => RawGestureDetector(
     gestures: {
-      ScaleGestureRecognizer:
-          GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-            () => ScaleGestureRecognizer(
-              supportedDevices: {
-                PointerDeviceKind.touch,
-                PointerDeviceKind.trackpad,
-              },
-            ),
-            (recognizer) => recognizer
-              ..onStart = _begin
-              ..onUpdate = _update,
-          ),
+      _PinchRecognizer: GestureRecognizerFactoryWithHandlers<_PinchRecognizer>(
+        () => _PinchRecognizer(
+          supportedDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.trackpad,
+          },
+        ),
+        (recognizer) => recognizer
+          ..onStart = _begin
+          ..onUpdate = _update,
+      ),
     },
     child: widget.child,
   );
+}
+
+/// A [ScaleGestureRecognizer] that wins as soon as a second finger
+/// touches. The built-in one waits until the fingers spread or close by
+/// a touch slop, while a scroll or a swipe wins once one finger moves by
+/// it, so most pinches started a drag instead.
+class _PinchRecognizer extends ScaleGestureRecognizer {
+  _PinchRecognizer({super.supportedDevices});
+
+  /// The fingers on the screen this recognizer follows.
+  final _fingers = <int>{};
+
+  @override
+  void handleEvent(PointerEvent event) {
+    super.handleEvent(event);
+    switch (event) {
+      case PointerDownEvent():
+        _fingers.add(event.pointer);
+        if (_fingers.length > 1) resolve(GestureDisposition.accepted);
+      case PointerUpEvent() || PointerCancelEvent():
+        _fingers.remove(event.pointer);
+    }
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    _fingers.remove(pointer);
+    super.rejectGesture(pointer);
+  }
 }
