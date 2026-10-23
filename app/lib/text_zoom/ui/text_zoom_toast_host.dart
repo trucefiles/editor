@@ -5,10 +5,11 @@ import 'package:flutter/widgets.dart';
 import '../text_zoom.dart';
 import 'text_zoom_toast.dart';
 
-/// [child] with a [TextZoomToast] at [zoom] over it, at the bottom, for
-/// [time] after each time [shows] notifies.
+/// [child] with a [TextZoomToast] of [title] at [zoom] over it, at the
+/// bottom, for [time] after each time [shows] notifies.
 class TextZoomToastHost extends StatefulWidget {
   const TextZoomToastHost({
+    required this.title,
     required this.zoom,
     required this.shows,
     required this.child,
@@ -16,6 +17,7 @@ class TextZoomToastHost extends StatefulWidget {
     super.key,
   });
 
+  final String title;
   final TextZoom zoom;
   final Listenable shows;
   final Duration time;
@@ -68,7 +70,7 @@ class _TextZoomToastHostState extends State<TextZoomToastHost> {
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
-              child: TextZoomToast(zoom: widget.zoom),
+              child: TextZoomToast(title: widget.title, zoom: widget.zoom),
             ),
           ),
         ),

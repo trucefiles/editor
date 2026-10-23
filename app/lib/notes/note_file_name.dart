@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:characters/characters.dart';
+
 /// Characters not allowed in file names on at least one platform.
 final _unsafe = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 
@@ -29,16 +31,17 @@ String noteFileName(String title, {int attempt = 1, String extension = '.md'}) {
 }
 
 /// [text] cut to [_maxBaseLength] characters and [_maxBaseBytes] UTF-8
-/// bytes, without splitting a character.
+/// bytes, without splitting a character as the user sees it (e.g. an
+/// emoji made of several code points).
 String _cut(String text) {
-  final kept = <int>[];
+  final kept = StringBuffer();
   var bytes = 0;
-  for (final rune in text.runes.take(_maxBaseLength)) {
-    bytes += utf8.encode(String.fromCharCode(rune)).length;
+  for (final character in text.characters.take(_maxBaseLength)) {
+    bytes += utf8.encode(character).length;
     if (bytes > _maxBaseBytes) break;
-    kept.add(rune);
+    kept.write(character);
   }
-  return String.fromCharCodes(kept);
+  return kept.toString();
 }
 
 /// [name] split before its extension's dot, e.g. `todo` and `.md`; a name

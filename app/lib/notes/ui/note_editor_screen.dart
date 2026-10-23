@@ -22,6 +22,7 @@ import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
+import '../../text_zoom/ui/note_text_zoom.dart';
 import '../new_note_session.dart';
 import '../note.dart';
 import '../note_actions.dart';
@@ -497,18 +498,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             child: PullToRefresh(
               key: _pull,
               onRefresh: _scans.refresh,
-              child: NoteEditorView(
-                _note,
-                key: ValueKey(_note.mode),
-                onRemoved: _offerUndoOf,
-                onLink: (url) => openMarkdownLink(context, ref, url),
-                images: noteImages(
-                  _container.read(noteFilesProvider(_open.folder)),
-                  folder: _open.folder,
-                  note: _open.path,
+              child: NoteTextZoom(
+                child: NoteEditorView(
+                  _note,
+                  key: ValueKey(_note.mode),
+                  onRemoved: _offerUndoOf,
+                  onLink: (url) => openMarkdownLink(context, ref, url),
+                  images: noteImages(
+                    _container.read(noteFilesProvider(_open.folder)),
+                    folder: _open.folder,
+                    note: _open.path,
+                  ),
+                  // A new note is for typing right away.
+                  autofocus: widget.note == null,
                 ),
-                // A new note is for typing right away.
-                autofocus: widget.note == null,
               ),
             ),
           ),

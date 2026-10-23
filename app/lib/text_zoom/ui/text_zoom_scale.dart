@@ -2,8 +2,9 @@ import 'package:flutter/widgets.dart';
 
 import '../text_zoom.dart';
 
-/// [child] with its text at [zoom]: on top of the system's own text
-/// scaling.
+/// [child] with its text at [zoom], on top of the system's own text
+/// scaling. Another [TextZoomScale] inside it replaces this zoom instead
+/// of adding to it, e.g. note text inside the app's text.
 class TextZoomScale extends StatelessWidget {
   const TextZoomScale({required this.zoom, required this.child, super.key});
 
@@ -11,12 +12,30 @@ class TextZoomScale extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => MediaQuery(
-    data: MediaQuery.of(context).copyWith(
-      textScaler: _TimesScaler(MediaQuery.textScalerOf(context), zoom.factor),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final system =
+        context.dependOnInheritedWidgetOfExactType<_SystemScaler>()?.scaler ??
+        MediaQuery.textScalerOf(context);
+    return _SystemScaler(
+      system,
+      child: MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: _TimesScaler(system, zoom.factor)),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// The system's text scaling, for zooms inside the outermost one.
+class _SystemScaler extends InheritedWidget {
+  const _SystemScaler(this.scaler, {required super.child});
+
+  final TextScaler scaler;
+
+  @override
+  bool updateShouldNotify(_SystemScaler oldWidget) =>
+      oldWidget.scaler != scaler;
 }
 
 /// [base] scaling, then [factor] times as large.

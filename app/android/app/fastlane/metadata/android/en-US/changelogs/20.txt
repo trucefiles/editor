@@ -1,4 +1,7 @@
-- Global text zoom on every screen: pinch, Ctrl + wheel or Ctrl +/-/0, with a slider while zooming
+- Note text size on every screen: pinch, Ctrl + wheel or Ctrl +/-/0
+- App text size: its own setting for the rest of the app
+- Text shows at its size from the start
+- Long titles no longer cut an emoji in half in file names
 - Checkboxes, list spacing and dragged items grow with the zoom
 - Read: checkboxes in the app's colors
 - Pinching no longer refreshes or moves list items

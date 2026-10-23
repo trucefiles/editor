@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/ui/settings_screen.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/tray/close_to_tray_controller.dart';
 
 import '../../support.dart';
@@ -37,11 +38,13 @@ void main() {
 
   Future<void> pumpSettings(WidgetTester tester, {bool withTray = true}) async {
     final storage = AppStorage(tempFolder().path);
+    final zooms = (await tester.runAsync(() => savedTextZoomsIn(storage)))!;
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
           overrides: [
             appStorageProvider.overrideWithValue(storage),
+            savedTextZoomsProvider.overrideWithValue(zooms),
             systemTrayProvider.overrideWithValue(withTray ? tray : null),
             appWindowProvider.overrideWithValue(window),
           ],

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../text_zoom.dart';
-import 'text_zoom_title.dart';
 
-/// A small panel naming the zoom ([textZoomTitle]) with [zoom] as percent
+/// A small panel naming the zoom ([title]) with [zoom] as percent
 /// and as a bar from the smallest zoom to the largest, so a zoom by a
 /// gesture or keys tells what it changed. Only shows: it takes no taps.
 class TextZoomToast extends StatelessWidget {
-  const TextZoomToast({required this.zoom, super.key});
+  const TextZoomToast({required this.title, required this.zoom, super.key});
 
+  final String title;
   final TextZoom zoom;
 
   @override
@@ -38,7 +38,7 @@ class TextZoomToast extends StatelessWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [const Text(textZoomTitle), Text('$zoom')],
+                      children: [Text(title), Text('$zoom')],
                     ),
                     LinearProgressIndicator(
                       value:

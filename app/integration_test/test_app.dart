@@ -12,6 +12,9 @@ import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_store.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_editor/text_zoom/text_zoom.dart';
+import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
+import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
@@ -31,14 +34,17 @@ final class TestApp {
   final Directory notes;
   final AppStorage _storage;
 
-  /// Starts the app, with the locale data that `main` loads.
+  /// Starts the app, with the locale data and text zooms that `main`
+  /// loads.
   Future<void> launch(WidgetTester tester) async {
     await initializeDateFormatting();
+    final textZooms = await SavedTextZooms.load(_storage);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appStorageProvider.overrideWithValue(_storage),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
+          savedTextZoomsProvider.overrideWithValue(textZooms),
           systemTrayProvider.overrideWithValue(null),
           folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
         ],
@@ -52,6 +58,10 @@ final class TestApp {
   Future<void> useRefresh(RefreshMode mode) =>
       RefreshSettingsStore(File('${_storage.settingsPath}/refresh.json'))
           .save(RefreshSettings.standard.copyWith(mode: mode));
+
+  /// Starts the app with [zoom] saved for [target].
+  Future<void> useTextZoom(TextZoomTarget target, TextZoom zoom) =>
+      textZoomStoreIn(_storage, target).save(zoom);
 
   /// [name] may lead through subfolders; [write] creates them.
   File file(String name) => File('${notes.path}/$name');

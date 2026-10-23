@@ -6,6 +6,7 @@ import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_store.dart';
+import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 
 import '../support.dart';
 
@@ -66,23 +67,66 @@ void main() {
     });
   });
 
-  test('remembers the size across starts', () async {
-    final storage = AppStorage(tempFolder().path);
-    ProviderContainer container() {
+  group('settings', () {
+    late AppStorage storage;
+
+    setUp(() => storage = AppStorage(tempFolder().path));
+
+    /// The app as `main` starts it on [storage]: the zooms loaded first.
+    Future<ProviderContainer> start() async {
       final container = ProviderContainer(
-        overrides: [appStorageProvider.overrideWithValue(storage)],
+        overrides: [
+          appStorageProvider.overrideWithValue(storage),
+          savedTextZoomsProvider.overrideWithValue(
+            await SavedTextZooms.load(storage),
+          ),
+        ],
       );
       addTearDown(container.dispose);
       return container;
     }
 
-    final first = container();
-    await first.read(textZoomProvider.notifier).change((size) => size.larger);
-    expect(first.read(textZoomProvider).value?.percent, 110);
+    TextZoom zoomOf(ProviderContainer app, TextZoomTarget target) =>
+        app.read(textZoomProvider(target));
 
-    expect(
-      await container().read(textZoomProvider.future),
-      TextZoom.closestTo(110),
-    );
+    test('start at the base size', () async {
+      final app = await start();
+      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.normal);
+      expect(zoomOf(app, TextZoomTarget.app), TextZoom.normal);
+    });
+
+    test('are there from the start, as saved', () async {
+      final first = await start();
+      await first
+          .read(textZoomProvider(TextZoomTarget.notes).notifier)
+          .change((zoom) => zoom.larger);
+      await first
+          .read(textZoomProvider(TextZoomTarget.app).notifier)
+          .set(TextZoom.closestTo(150));
+
+      final next = await start();
+      expect(zoomOf(next, TextZoomTarget.notes), TextZoom.closestTo(110));
+      expect(zoomOf(next, TextZoomTarget.app), TextZoom.closestTo(150));
+    });
+
+    test('change one at a time', () async {
+      final app = await start();
+      await app
+          .read(textZoomProvider(TextZoomTarget.app).notifier)
+          .set(TextZoom.closestTo(120));
+
+      expect(zoomOf(app, TextZoomTarget.app), TextZoom.closestTo(120));
+      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.normal);
+    });
+
+    test('keep the note zoom saved by earlier versions', () async {
+      File('${storage.settingsPath}/note_text_size.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{"percent": 130}');
+
+      final app = await start();
+      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.closestTo(130));
+      expect(zoomOf(app, TextZoomTarget.app), TextZoom.normal);
+    });
   });
 }

@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_summary.dart';
 import 'package:truce_editor/notes/ui/note_card.dart';
+import 'package:truce_editor/text_zoom/text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/note_text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 
 import '../../support.dart';
 
@@ -71,5 +74,33 @@ void main() {
 
     await show(hasConflict: true);
     expect(find.text('Conflict'), findsOne);
+  });
+
+  testWidgets("shows the note at the note text zoom, the rest at the app's", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteTextZoomScope(
+          zoom: TextZoom.closestTo(150),
+          child: TextZoomScale(
+            zoom: TextZoom.closestTo(120),
+            child: Scaffold(
+              body: NoteCard(
+                note('# Title\nline'),
+                onTap: () {},
+                onMark: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    double scaled(Finder text) =>
+        MediaQuery.textScalerOf(tester.element(text)).scale(10);
+
+    expect(scaled(find.text('Title')), 15);
+    expect(scaled(find.text('line')), 15);
+    expect(scaled(find.textContaining('Oct 14')), 12);
   });
 }

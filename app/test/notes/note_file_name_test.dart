@@ -31,6 +31,19 @@ void main() {
     expect(noteFileName('😀' * 100), '${'😀' * 50}.md');
   });
 
+  test('never cuts a character made of several code points', () {
+    // A family emoji: 7 code points, 25 bytes. After 5 bytes of `a`, 7
+    // fit in 200 bytes; cut by code points, part of an 8th would stay.
+    const family = '👨‍👩‍👧‍👦';
+    expect(noteFileName('aaaaa${family * 10}'), 'aaaaa${family * 7}.md');
+  });
+
+  test('counts a character made of several code points as one', () {
+    // e with a combining accent: 2 code points, 3 bytes; 66 fit in 200.
+    const accented = 'e\u0301';
+    expect(noteFileName(accented * 100), '${accented * 66}.md');
+  });
+
   test('ends in the extension given', () {
     expect(noteFileName('plan', extension: '.MD'), 'plan.MD');
     expect(noteFileName('plan', attempt: 2, extension: ''), 'plan 2');

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../common/time_texts.dart';
+import '../../text_zoom/ui/note_text_zoom.dart';
 import '../changed_lines.dart';
 
-/// One side of a conflict: its text with lines the other side lacks
-/// highlighted, and a button to keep it.
+/// One side of a conflict: its text, at the note text zoom, with lines
+/// the other side lacks highlighted, and a button to keep it.
 class VersionPane extends StatelessWidget {
   const VersionPane({
     required this.label,
@@ -50,7 +51,9 @@ class VersionPane extends StatelessWidget {
                 style: theme.textTheme.bodyLarge,
               ),
             ),
-            final text => _HighlightedText(text, compareTo),
+            final text => NoteTextZoom(
+              child: _HighlightedText(text, compareTo),
+            ),
           },
         ),
       ],

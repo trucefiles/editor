@@ -3,29 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../text_zoom.dart';
 import '../text_zoom_controller.dart';
+import '../text_zoom_target.dart';
 import 'text_zoom_title.dart';
 
-/// Settings row with how large all text in the app shows: a slider over
+/// Settings row with how large the text of [target] shows: a slider over
 /// the zooms there are.
 class TextZoomTile extends ConsumerWidget {
-  const TextZoomTile({super.key});
+  const TextZoomTile(this.target, {super.key});
+
+  final TextZoomTarget target;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zoom = ref.watch(textZoomProvider).value;
+    final zoom = ref.watch(textZoomProvider(target));
     return ListTile(
-      title: const Text(textZoomTitle),
-      trailing: Text(zoom?.toString() ?? ''),
+      title: Text(textZoomTitle(target)),
+      trailing: Text('$zoom'),
       subtitle: Slider(
-        value: (zoom ?? TextZoom.normal).percent.toDouble(),
+        value: zoom.percent.toDouble(),
         min: TextZoom.min.toDouble(),
         max: TextZoom.max.toDouble(),
         divisions: (TextZoom.max - TextZoom.min) ~/ TextZoom.step,
-        onChanged: zoom == null
-            ? null
-            : (percent) => ref
-                  .read(textZoomProvider.notifier)
-                  .set(TextZoom.closestTo(percent)),
+        onChanged: (percent) => ref
+            .read(textZoomProvider(target).notifier)
+            .set(TextZoom.closestTo(percent)),
       ),
     );
   }
