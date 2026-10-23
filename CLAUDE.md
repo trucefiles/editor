@@ -33,8 +33,7 @@ Prefer the simpler option when in doubt.
 - Best behavior, not legacy: existing behavior is no standard to keep. When a better or more correct behavior exists (for users, for the code, for efficiency), propose it with its user-visible impact and switch to it once agreed; compare with old code only to find the differences, never to copy its quirks.
 
 ## Robustness
-- No dirty fixes, workarounds or caches to hide a design problem; if something doesn't fit, rethink the design.
-- No compromises: when an abstraction (our own or a library's) only allows a shortcut, change or improve the abstraction instead. Code is never temporary; structure and design stay healthy with every change.
+- Restructure, never bolt on: when something doesn't fit (a new requirement, an abstraction of our own or a library's that only allows a shortcut), change or improve the design in the same change, even if that makes it larger. No dirty fixes, workarounds or caches to hide a design problem. Name the restructure in the plan, so its size is agreed up front. Structure and design stay healthy with every change.
 - Expected failures are result values; exceptions are only for bugs.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
 - Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.
