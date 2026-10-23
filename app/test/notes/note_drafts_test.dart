@@ -44,6 +44,12 @@ void main() {
     expect(kept.text, 'two');
   });
 
+  test('removes a draft after its write still running', () async {
+    await Future.wait([drafts.keep(draft('1', 'one')), drafts.remove('1')]);
+
+    expect(await drafts.all(before: later), isEmpty);
+  });
+
   test("keeps a new note's draft, without a base", () async {
     await drafts.keep(NoteDraft(id: '1', path: path('Milk.md'), text: 'Milk'));
 

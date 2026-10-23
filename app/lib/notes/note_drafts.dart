@@ -14,8 +14,8 @@ final class NoteDrafts {
 
   final Directory _folder;
 
-  /// One per draft, so writes of the same draft run one at a time.
-  final Map<String, JsonFile> _files = {};
+  /// Work on one draft's file runs one at a time.
+  final _turns = KeyedTaskQueue<String>();
 
   static const _extension = '.json';
 
@@ -37,25 +37,25 @@ final class NoteDrafts {
     return drafts;
   }
 
-  /// Writes [draft] over any earlier one with its id, atomically. Returns
-  /// `false` if it could not be written.
-  Future<bool> keep(NoteDraft draft) async =>
-      await _json(draft.id).write(draft.toJson()) is Ok;
+  /// Writes [draft] over any earlier one with its id, atomically, after
+  /// every earlier write of it. Returns `false` if it could not be written.
+  Future<bool> keep(NoteDraft draft) async => await _turns.run(
+    draft.id,
+    () => writeJsonAtomically(_file(draft.id), draft.toJson()),
+  ) is Ok;
 
   /// Deletes the draft [id], once its edits are kept elsewhere. A draft
   /// that stays by failure is only tried again later.
-  Future<void> remove(String id) async {
-    _files.remove(id);
+  Future<void> remove(String id) => _turns.run(id, () async {
     try {
       await _file(id).delete();
     } on FileSystemException {
       // Already gone, or tried again with the next recovery.
     }
-  }
+  });
 
   /// Deletes every draft, once their folder is removed from the app.
   Future<void> clear() async {
-    _files.clear();
     try {
       await _folder.delete(recursive: true);
     } on FileSystemException {
@@ -65,13 +65,11 @@ final class NoteDrafts {
 
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
-  JsonFile _json(String id) =>
-      _files.putIfAbsent(id, () => JsonFile(_file(id)));
-
-  Future<NoteDraft?> _read(String id) async => switch (await _json(id).read()) {
-    Ok(:final value) => NoteDraft.fromJson(id, value),
-    Err() => null,
-  };
+  Future<NoteDraft?> _read(String id) async =>
+      switch (await _turns.run(id, () => readJson(_file(id)))) {
+        Ok(:final value) => NoteDraft.fromJson(id, value),
+        Err() => null,
+      };
 }
 
 /// The drafts of the folder with this id.
