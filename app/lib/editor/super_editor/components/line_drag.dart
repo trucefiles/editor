@@ -38,7 +38,10 @@ class LineDragHandle extends StatelessWidget {
       // The copy starts right over the row, where the pointer took it.
       dragAnchorStrategy: (_, _, position) => _rowBox.globalToLocal(position),
       feedbackOffset: Offset.zero,
-      onDragStarted: () => onDragging?.call(true),
+      onDragStarted: () {
+        LineDropZone.of(context).begin();
+        onDragging?.call(true);
+      },
       onDragEnd: (_) {
         LineDropZone.of(context).end();
         onDragging?.call(false);

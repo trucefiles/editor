@@ -91,6 +91,10 @@ class LineDropZoneState extends State<LineDropZone> {
     );
   }
 
+  /// A drag began: the rows are measured at its first move, even if the
+  /// last drag's end went unseen (its row was gone by then).
+  void begin() => end();
+
   /// The drag ended: no gap, and the next drag measures the rows again.
   void end() {
     _rows = null;
