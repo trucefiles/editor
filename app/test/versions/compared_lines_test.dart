@@ -57,6 +57,20 @@ void main() {
     );
   });
 
+  test('changes in several places, each in order', () {
+    expect(compared('a\nB\nc\nd\nE\nf\ng', 'a\nb\nc\nd\ne\nf'), [
+      ('a', both),
+      ('b', other),
+      ('B', shown),
+      ('c', both),
+      ('d', both),
+      ('e', other),
+      ('E', shown),
+      ('f', both),
+      ('g', shown),
+    ]);
+  });
+
   test('compares with an empty version', () {
     expect(compared('a', ''), [('', other), ('a', shown)]);
   });

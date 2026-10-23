@@ -94,61 +94,66 @@ void main() {
     await gesture.up();
   });
 
-  testWidgets('dragging down past items keeps the gap open', (tester) async {
-    final rows = [for (final _ in Iterable<int>.generate(4)) GlobalKey()];
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Column(
-            children: [
-              for (final (index, row) in rows.indexed)
-                LineDropTarget(
-                  item: LineId(index),
-                  step: 24,
-                  onDrop: (_, {required below, required levels}) {},
-                  child: Row(
-                    key: row,
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: LineDragHandle(
-                          item: LineId(index),
-                          row: row,
-                          preview: Text('copy $index'),
-                          icon: const Icon(Icons.drag_indicator),
+  for (final (direction, from, step) in [('down', 0, 2.0), ('up', 3, -2.0)]) {
+    testWidgets('dragging $direction past items keeps the gap open', (
+      tester,
+    ) async {
+      final rows = [for (final _ in Iterable<int>.generate(4)) GlobalKey()];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                for (final (index, row) in rows.indexed)
+                  LineDropTarget(
+                    item: LineId(index),
+                    step: 24,
+                    onDrop: (_, {required below, required levels}) {},
+                    child: Row(
+                      key: row,
+                      children: [
+                        SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: LineDragHandle(
+                            item: LineId(index),
+                            row: row,
+                            preview: Text('copy $index'),
+                            icon: const Icon(Icons.drag_indicator),
+                          ),
                         ),
-                      ),
-                      Text('item $index'),
-                    ],
+                        Text('item $index'),
+                      ],
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
-    double gaps() =>
-        tester
-            .widgetList<AnimatedPadding>(find.byType(AnimatedPadding))
-            .map((padding) => tester.getSize(find.byWidget(padding)).height)
-            .sum -
-        rows.length * 48;
+      );
+      double gaps() =>
+          tester
+              .widgetList<AnimatedPadding>(find.byType(AnimatedPadding))
+              .map((padding) => tester.getSize(find.byWidget(padding)).height)
+              .sum -
+          rows.length * 48;
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(LineDragHandle).first),
-    );
-    await tester.pump();
-    final seen = <double>[];
-    for (final _ in Iterable<int>.generate(100)) {
-      await gesture.moveBy(const Offset(0, 2));
-      await tester.pump(const Duration(milliseconds: 16));
-      seen.add(gaps());
-    }
-    await gesture.up();
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(LineDragHandle).at(from)),
+      );
+      await tester.pump();
+      final seen = <double>[];
+      // From the middle of the first or last row to that of the other.
+      for (final _ in Iterable<int>.generate(72)) {
+        await gesture.moveBy(Offset(0, step));
+        await tester.pump(const Duration(milliseconds: 16));
+        seen.add(gaps());
+      }
+      await gesture.up();
 
-    final open = seen.skipWhile((gap) => gap < 48).toList();
-    expect(open, isNotEmpty);
-    expect(open, everyElement(closeTo(48, 0.01)), reason: 'gap: $seen');
-  });
+      final open = seen.skipWhile((gap) => gap < 48).toList();
+      expect(open, isNotEmpty);
+      expect(open, everyElement(closeTo(48, 0.01)), reason: 'gap: $seen');
+    });
+  }
 }

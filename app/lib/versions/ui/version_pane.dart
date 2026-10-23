@@ -4,6 +4,7 @@ import '../../common/time_texts.dart';
 import '../../text_zoom/ui/note_text_zoom.dart';
 import '../compared_lines.dart';
 import 'diff_colors.dart';
+import 'selectable_lines.dart';
 
 /// One side of a conflict: its text, at the note text zoom, compared
 /// with the other side's as a line diff (lines only this side has as
@@ -65,8 +66,8 @@ class VersionPane extends StatelessWidget {
 }
 
 /// [text] compared with [compareTo], one line per row; changed rows
-/// are tinted across the whole width, as git hosts show a diff. Text
-/// selects across rows.
+/// are tinted across the whole width, as git hosts show a diff. Only
+/// [text]'s own lines select, so a copy is this version's text.
 class _HighlightedText extends StatelessWidget {
   const _HighlightedText(this.text, this.compareTo);
 
@@ -76,28 +77,29 @@ class _HighlightedText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = DiffColors.of(Theme.of(context).brightness);
+    final lines = compareLines(text.split('\n'), compareTo.split('\n'));
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: SelectionArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final line in compareLines(
-              text.split('\n'),
-              compareTo.split('\n'),
-            ))
-              ColoredBox(
-                color: switch (line.origin) {
-                  LineOrigin.both => Colors.transparent,
-                  LineOrigin.shownOnly => colors.added,
-                  LineOrigin.otherOnly => colors.removed,
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(line.text),
-                ),
+        child: SelectableLines(
+          lines: [
+            for (final line in lines)
+              (
+                text: line.text,
+                selectable: line.origin != LineOrigin.otherOnly,
               ),
           ],
+          row: (index, text) => ColoredBox(
+            color: switch (lines[index].origin) {
+              LineOrigin.both => Colors.transparent,
+              LineOrigin.shownOnly => colors.added,
+              LineOrigin.otherOnly => colors.removed,
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: text,
+            ),
+          ),
         ),
       ),
     );

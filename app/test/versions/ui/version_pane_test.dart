@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/note_text_zoom.dart';
@@ -35,6 +36,7 @@ void main() {
     expect(scaled(find.textContaining('note text', findRichText: true)), 15);
     expect(scaled(find.text('Mine')), 12);
   });
+
   testWidgets('shows lines only this version has as added and lines only '
       'the other has as removed, where they were', (tester) async {
     await tester.pumpWidget(
@@ -77,5 +79,43 @@ void main() {
         ('c', Colors.transparent),
       ],
     );
+  });
+
+  testWidgets('copies exactly this version\'s text, line by line', (
+    tester,
+  ) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: VersionPane(
+            label: 'Mine',
+            modified: null,
+            text: 'a\n\nmine\nc',
+            compareTo: 'a\n\ntheirs\nc',
+            keepLabel: 'Keep',
+            onKeep: null,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('a'));
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(copied, 'a\n\nmine\nc');
   });
 }

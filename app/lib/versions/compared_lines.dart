@@ -12,34 +12,48 @@ typedef ComparedLine = ({String text, LineOrigin origin});
 /// changed into another, the [other] line comes first. A moved line is
 /// removed in one place and added in the other.
 List<ComparedLine> compareLines(List<String> shown, List<String> other) {
-  final lines = <ComparedLine>[
-    for (final text in other) (text: text, origin: LineOrigin.both),
-  ];
+  // diffutil's edit script runs from the end of [other] to its start, so
+  // every position is one in [other]: one pass builds the lines from
+  // the end, in reverse.
+  final reversed = <ComparedLine>[];
+  // Removed lines of the change at hand: they go before its added lines.
+  final removed = <ComparedLine>[];
+  var end = other.length;
 
-  /// Where in [lines] the line at [position] of the text being edited
-  /// from [other] into [shown] is, or its end.
-  int at(int position) {
-    final present = lines.indexed
-        .where((entry) => entry.$2.origin != LineOrigin.otherOnly)
-        .map((entry) => entry.$1)
-        .skip(position);
-    return present.isEmpty ? lines.length : present.first;
+  /// Ends the change at hand; the lines of [other] from [start] to [end]
+  /// are in both.
+  void keepFrom(int start) {
+    if (start >= end) return;
+    reversed
+      ..addAll(removed)
+      ..addAll([
+        for (final text in other.sublist(start, end).reversed)
+          (text: text, origin: LineOrigin.both),
+      ]);
+    removed.clear();
+    end = start;
   }
 
-  // An edit script from [other] to [shown], applied in order.
-  for (final update in calculateListDiff(
+  final script = calculateListDiff(
     other,
     shown,
     detectMoves: false,
-  ).getUpdatesWithData()) {
+  ).getUpdatesWithData();
+  for (final update in script) {
     switch (update) {
-      case DataInsert(:final position, :final data):
-        lines.insert(at(position), (text: data, origin: LineOrigin.shownOnly));
       case DataRemove(:final position, :final data):
-        lines[at(position)] = (text: data, origin: LineOrigin.otherOnly);
+        keepFrom(position + 1);
+        removed.add((text: data, origin: LineOrigin.otherOnly));
+        end = position;
+      case DataInsert(:final position, :final data):
+        keepFrom(position);
+        reversed.add((text: data, origin: LineOrigin.shownOnly));
       case DataChange() || DataMove():
         throw StateError('A list diff without moves has no changes or moves');
     }
   }
-  return lines;
+  reversed.addAll(removed);
+  removed.clear();
+  keepFrom(0);
+  return reversed.reversed.toList();
 }
