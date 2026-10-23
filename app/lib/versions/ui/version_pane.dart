@@ -64,6 +64,9 @@ class VersionPane extends StatelessWidget {
   }
 }
 
+/// [text] compared with [compareTo], one line per row; changed rows
+/// are tinted across the whole width, as git hosts show a diff. Text
+/// selects across rows.
 class _HighlightedText extends StatelessWidget {
   const _HighlightedText(this.text, this.compareTo);
 
@@ -72,25 +75,27 @@ class _HighlightedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = compareLines(text.split('\n'), compareTo.split('\n'));
     final colors = DiffColors.of(Theme.of(context).brightness);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: SelectableText.rich(
-        TextSpan(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: SelectionArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final (index, line) in lines.indexed)
-              TextSpan(
-                text: index < lines.length - 1 ? '${line.text}\n' : line.text,
-                style: switch (line.origin) {
-                  LineOrigin.both => null,
-                  LineOrigin.shownOnly => TextStyle(
-                    backgroundColor: colors.added,
-                  ),
-                  LineOrigin.otherOnly => TextStyle(
-                    backgroundColor: colors.removed,
-                  ),
+            for (final line in compareLines(
+              text.split('\n'),
+              compareTo.split('\n'),
+            ))
+              ColoredBox(
+                color: switch (line.origin) {
+                  LineOrigin.both => Colors.transparent,
+                  LineOrigin.shownOnly => colors.added,
+                  LineOrigin.otherOnly => colors.removed,
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(line.text),
+                ),
               ),
           ],
         ),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// The handle that drags [item], whose row is [row]: a copy of the row,
-/// [preview], follows the pointer meanwhile, as if the row itself moved.
+/// [preview], on the surface the row lies on, follows the pointer
+/// meanwhile, as if the row itself moved.
 /// It takes drags all over the space it is given, its [icon] drawn at the
 /// top, in the middle of its width.
 class LineDragHandle extends StatelessWidget {
@@ -28,6 +29,7 @@ class LineDragHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
+    final surface = Material.maybeOf(context)?.color;
     return Draggable<LineDrag>(
       data: LineDrag(item, row),
       hitTestBehavior: HitTestBehavior.opaque,
@@ -37,13 +39,15 @@ class LineDragHandle extends StatelessWidget {
       onDragStarted: () => onDragging?.call(true),
       onDragEnd: (_) => onDragging?.call(false),
       // The copy shows in the app's overlay; it keeps the row's text
-      // scaling, e.g. its text zoom, so it looks like the row.
+      // scaling, e.g. its text zoom, and the surface it lies on, e.g. the
+      // note's color, so it looks like the row lifted.
       feedback: Builder(
         builder: (context) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
           child: SizedBox(
             width: _rowBox.size.width,
             child: Material(
+              color: surface,
               elevation: 4,
               borderRadius: BorderRadius.circular(4),
               child: preview,
@@ -112,13 +116,15 @@ class _LineDropTargetState extends State<LineDropTarget> {
   /// `null` while none hovers.
   ({bool below, double height})? _gap;
 
-  /// Whether the dragged copy's middle is below this row's: measured from
-  /// the row's top as without the gap, which moves the row as it opens.
+  /// Whether the dragged copy's middle is below this row's, measured on
+  /// the row itself, not the gap: a gap opening above moves the row away
+  /// from the copy, one opening below keeps it in place, so the answer
+  /// stays while the gap opens.
   bool _isBelow(DragTargetDetails<LineDrag> details) {
-    final target = context.findRenderObject()! as RenderBox;
     final content = _content.currentContext!.findRenderObject()! as RenderBox;
     final middle = details.offset.dy + details.data.height / 2;
-    return target.globalToLocal(Offset(0, middle)).dy > content.size.height / 2;
+    return content.globalToLocal(Offset(0, middle)).dy >
+        content.size.height / 2;
   }
 
   bool _isSelf(LineDrag drag) => drag.item == widget.item;

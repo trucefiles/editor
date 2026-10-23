@@ -51,17 +51,30 @@ void main() {
         ),
       ),
     );
-    final text = tester.widget<SelectableText>(find.byType(SelectableText));
-    final lines = text.textSpan!.children!.cast<TextSpan>();
     final colors = DiffColors.of(Brightness.light);
+    Color? tintOf(String line) => tester
+        .widget<ColoredBox>(
+          find
+              .ancestor(of: find.text(line), matching: find.byType(ColoredBox))
+              .first,
+        )
+        .color;
 
     expect(
-      [for (final line in lines) (line.text, line.style?.backgroundColor)],
       [
-        ('a\n', null),
-        ('theirs\n', colors.removed),
-        ('mine\n', colors.added),
-        ('c', null),
+        for (final line in tester.widgetList<Text>(
+          find.descendant(
+            of: find.byType(SelectionArea),
+            matching: find.byType(Text),
+          ),
+        ))
+          (line.data, tintOf(line.data!)),
+      ],
+      [
+        ('a', Colors.transparent),
+        ('theirs', colors.removed),
+        ('mine', colors.added),
+        ('c', Colors.transparent),
       ],
     );
   });
