@@ -21,7 +21,7 @@ Prefer the simpler option when in doubt.
 - One type, one meaning; prefer opaque ids and values over raw paths or mixed data.
 - Pure units: a unit knows only its own job; mappings and policies have exactly one owner.
 - Validate at the edge, with parse-only constructors.
-- Owners: each domain's state has one owner that takes all its events one at a time and decides its new state. Its inputs, outputs and state are public in one small contract (sealed types); how it handles them stays internal.
+- Owners: each domain's state has one owner. Events reach it from any source at any time, without waiting; it handles them in order, one at a time, and decides its new state. Its inputs, outputs and state are public in one small contract (sealed types); how it handles them stays internal.
 
 ## Code style
 - Best design first: model the domain with the right entities and abstractions, then code it; never a quick version, or one shaped after old code, to clean up later.
