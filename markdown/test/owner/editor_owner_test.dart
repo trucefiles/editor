@@ -162,6 +162,14 @@ void main() {
       expect(run.text, '- [ ] b\n- [x] a');
     });
 
+    test('move once the user types in another item', () {
+      final run = _Run('- [ ] a\n- [ ] b')
+        ..caret(1, 1)
+        ..toggle(0)
+        ..type('x');
+      expect(run.text, '- [ ] bx\n- [x] a');
+    });
+
     test('toggled back wait for nothing', () {
       final run = _Run('- [ ] a\n- [ ] b')
         ..toggle(0)

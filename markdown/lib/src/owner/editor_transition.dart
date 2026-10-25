@@ -132,8 +132,9 @@ final class _Step {
   }
 
   void _typed(String text) {
+    // Typing elsewhere settles the toggles.
+    if (!_caretInHeldItem) _settle();
     if (state.selection case final TextSelection range) {
-      if (!_inHeldItem(range.extent.slot)) _settle();
       final at = range.extent;
       final style = state.typingStyle ?? typingStyleAt(document, at);
       _run(switch (range) {
