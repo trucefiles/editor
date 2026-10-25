@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 
 import '../document_tree.dart';
@@ -103,8 +105,11 @@ Edited commit(ShownDocument document, Edit edit) {
   );
 }
 
-/// [selection], or past the block its text became where that block
-/// shows no text (a paragraph Markdown now reads as an HTML block).
+/// [selection] on what [document] shows: past the block its text became
+/// where that block shows no text (a paragraph Markdown now reads as an
+/// HTML block); at the end of the last text where the end gap went; each
+/// place within its text, which the file may have held shorter (code in
+/// an item).
 TextSelection _shownSelection(ShownDocument document, TextSelection selection) {
   final blocks = {
     for (final place in [selection.base, selection.extent])
@@ -112,11 +117,25 @@ TextSelection _shownSelection(ShownDocument document, TextSelection selection) {
           when document.blockRowOf(leaf) != null)
         leaf,
   };
-  return blocks.isEmpty
-      ? selection
-      : document.caretPast(
-          (row) => row is BlockRow && blocks.contains(row.leaf.id),
-        );
+  if (blocks.isNotEmpty) {
+    return document.caretPast(
+      (row) => row is BlockRow && blocks.contains(row.leaf.id),
+    );
+  }
+  Place shown(Place place) => switch (document.rowOf(place.slot)) {
+    null when place.slot == const GapSlot(GapId.end) => switch (document.rows
+        .whereType<TextRow>()
+        .lastOrNull) {
+      TextRow(:final slot) => Place(slot, document.textOf(slot).length),
+      null => place,
+    },
+    null => place,
+    _ => Place(
+      place.slot,
+      min(place.offset, document.textOf(place.slot).length),
+    ),
+  };
+  return TextSelection(shown(selection.base), shown(selection.extent));
 }
 
 /// One pass over a draft that makes its text writable.

@@ -114,6 +114,16 @@ void main() {
     );
   });
 
+  test('a reference link next to another stays one', () {
+    final document = _document('[r]: u\n\nSee [r] and [other][r].');
+    final slot = _slot(document, 1);
+    final edited = run(
+      document,
+      DeleteRange(TextSelection(Place(slot, 5), Place(slot, 13))),
+    );
+    expect(edited.document.tree.text, '[r]: u\n\nSee [r][][er][r].');
+  });
+
   test('text left reading as an HTML block becomes one', () {
     final document = _document('<strong>a\n\nb');
     final slot = _slot(document, 0);

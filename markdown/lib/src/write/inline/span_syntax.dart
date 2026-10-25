@@ -83,12 +83,15 @@ final _backtickRuns = RegExp('`+');
 /// The marks of a link whose text is now written as [textSource]: those
 /// of the link it was [read] as where they still fit, else an inline
 /// link to [destination] with [title]. A bare link is its text alone.
+/// A [standalone] shortcut reference is written collapsed (`[a][]`), so
+/// no bracket after it can make it another link.
 Marks linkMarks({
   required LinkInline? read,
   required String textSource,
   required String destination,
   required String title,
   required LinkStyle style,
+  bool standalone = false,
 }) {
   if (style == LinkStyle.extendedAutolink) return (open: '', close: '');
   if (read != null) {
@@ -99,6 +102,8 @@ Marks linkMarks({
         return (open: read.open, close: read.close);
       case LinkStyle.autolink when sameText:
         return (open: read.open, close: read.close);
+      case LinkStyle.reference when standalone && read.close == ']':
+        return (open: read.open, close: '][]');
       case LinkStyle.reference
           when sameText ||
               (read.close != ']' && read.close != '][]') ||

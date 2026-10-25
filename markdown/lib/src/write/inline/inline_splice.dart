@@ -28,6 +28,7 @@ List<Token> spliceInlines(
   DocumentStyle style, {
   int? keptLevels,
   bool whole = false,
+  bool anew = false,
 }) {
   if (whole) {
     final splice = _Splice(oldText, text, style, from: 0, to: oldText.length);
@@ -52,6 +53,7 @@ List<Token> spliceInlines(
     style,
     from: prefix,
     to: oldText.length - suffix,
+    anew: anew,
   ).nodes(old, start: 0, context: Formatting.plain, levels: keptLevels);
 }
 
@@ -91,6 +93,7 @@ final class _Splice {
     this.style, {
     required this.from,
     required this.to,
+    this.anew = false,
   }) : delta = text.length - oldText.length;
 
   final VisibleText oldText;
@@ -99,6 +102,10 @@ final class _Splice {
   final int from;
   final int to;
   final int delta;
+
+  /// Whether all is written anew: links take spellings that read the
+  /// same whatever follows them.
+  final bool anew;
 
   /// Where the new characters of the change end in the new text.
   int get _changeEnd => to + delta;
@@ -457,6 +464,7 @@ final class _Region {
           destination: link.destination,
           title: link.title,
           style: link.style,
+          standalone: splice.anew,
         );
         return [FixedToken(marks.open), ...children, FixedToken(marks.close)];
       case final TextFormat format:

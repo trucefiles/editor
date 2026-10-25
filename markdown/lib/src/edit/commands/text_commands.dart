@@ -6,6 +6,7 @@ import '../shown/rows.dart';
 import '../shown/selection.dart';
 import '../shown/shown_document.dart';
 import '../shown/slot.dart';
+import '../shown/typing_style.dart';
 import 'delete_across.dart';
 import 'text_places.dart';
 
@@ -78,22 +79,18 @@ Slot _textRow(ShownDocument document, int index) =>
       final row => throw ArgumentError.value(row, 'row', 'no text place'),
     };
 
-/// A line break put in at [at], in the formatting before it; code
-/// holds no line break, so it ends there and goes on after it.
-Edit lineBreak(ShownDocument document, Place at) {
-  final shown = document.textOf(at.slot);
-  final before = at.offset > 0
-      ? shown.formattingAt(at.offset - 1)
-      : Formatting.plain;
-  return typed(
-    document,
-    at,
-    at.offset,
-    VisibleText([
-      HardBreakPiece(before.withFormat(TextFormat.code, on: false)),
-    ]),
-  );
-}
+/// A line break put in at [at], in the typing style there; code holds
+/// no line break, so it ends there and goes on after it.
+Edit lineBreak(ShownDocument document, Place at) => typed(
+  document,
+  at,
+  at.offset,
+  VisibleText([
+    HardBreakPiece(
+      typingStyleAt(document, at).withFormat(TextFormat.code, on: false),
+    ),
+  ]),
+);
 
 /// The text from [from] to [to] in its text place replaced by [insert],
 /// the caret after it.

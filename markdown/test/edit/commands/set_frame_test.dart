@@ -72,6 +72,26 @@ void main() {
       expect(at.offset, 1);
     });
 
+    test('keeps the caret within code an item holds shorter', () {
+      final document = ShownDocument(DocumentTree.read('```\n \n```'));
+      final caret = TextSelection.caret(
+        Place((document.rows.first as TextRow).slot, 1),
+      );
+      final edited = run(document, SetFrame(caret, FrameKind.bullet));
+      expect((edited.selection as TextSelection).extent.offset, 0);
+    });
+
+    test('moves a caret in the end gap to the last text once it goes', () {
+      final document = ShownDocument(DocumentTree.read('```\nab\n```'));
+      final range = TextSelection(
+        const Place(GapSlot(GapId.end), 0),
+        Place((document.rows.first as TextRow).slot, 0),
+      );
+      final edited = run(document, SetFrame(range, FrameKind.bullet));
+      expect(edited.document.tree.text, '- ```\n  ab\n  ```');
+      expect((edited.selection as TextSelection).base.offset, 2);
+    });
+
     test('makes text items, joining a list of its kind', () {
       expect(_framed('a', FrameKind.bullet), '- a');
       expect(_framed('- a\n\nb', FrameKind.bullet, 1), '- a\n- b');
