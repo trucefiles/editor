@@ -14,6 +14,7 @@ import 'items.dart';
 import 'remove_frame.dart';
 import 'set_frame.dart';
 import 'split_block.dart';
+import 'styles.dart';
 import 'text_commands.dart';
 
 export 'set_frame.dart' show FrameKind;
@@ -185,6 +186,15 @@ final class SetFrame extends Command {
   final FrameKind kind;
 }
 
+/// A style button or shortcut: [format] toggled over [selection] (see
+/// `toggleStyle`).
+final class ToggleStyle extends Command {
+  const ToggleStyle(this.selection, this.format);
+
+  final TextSelection selection;
+  final TextFormat format;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -205,6 +215,11 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   Outdent(:final selection) => outdent(note, selection),
   SetHeading(:final at, :final level) => setHeading(note, at, level),
   SetFrame(:final selection, :final kind) => setFrame(note, selection, kind),
+  ToggleStyle(:final selection, :final format) => toggleStyle(
+    note,
+    selection,
+    format,
+  ),
   Toggle(:final item, :final selection) => toggle(
     note,
     _item(note, item),
