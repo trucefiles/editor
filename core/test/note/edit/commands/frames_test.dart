@@ -102,6 +102,15 @@ void main() {
       expect(_shown(edited.note), ['a', '']);
     });
 
+    test('leaving a quote\'s only list keeps the caret in the quote', () {
+      final note = _note('> -');
+      final edited = run(note, LeaveList(_slot(note, 0)));
+      expect(_shown(edited.note), ['']);
+      final at = (edited.selection as TextSelection).extent;
+      expect(edited.note.rowOf(at.slot), 0);
+      expect(edited.note.rows.single.path.single, isA<QuoteBlock>());
+    });
+
     test('outdent at the top takes an item out of its list', () {
       expect(
         _after('1. a\n2. b\n3. c', (n) => Outdent(_caret(n, 1))),

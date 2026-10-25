@@ -30,10 +30,21 @@ Edit removeFrame(ShownNote note, Slot slot) {
 
 /// Enter in [slot], the place of an empty item at a list's top level:
 /// the item goes, and an empty paragraph shows where it was, between
-/// the list's two parts (the file keeps one list until it gets text).
+/// the list's two parts (the file keeps one list until it gets text);
+/// in place of the list if it was its only item.
 Edit leaveList(ShownNote note, Slot slot) {
   final item = note.tree.blockOf((slot as ItemSlot).item)! as ItemBlock;
   final list = note.tree.parentOf(item)! as ListBlock;
+  if (list.items.length == 1) {
+    // As a paragraph, so the list's container stays with it.
+    final id = note.tree.freshBlockIds.first;
+    return Edit(
+      replaced: {
+        list.id: [TextDraft(id, VisibleText.empty)],
+      },
+      selection: TextSelection.caret(Place(LeafSlot(id), 0)),
+    );
+  }
   final outer = note.tree.parentOf(list)!;
   final index = list.items.indexOf(item);
   final gap = switch (index) {
