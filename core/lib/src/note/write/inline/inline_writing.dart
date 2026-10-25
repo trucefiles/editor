@@ -12,7 +12,7 @@ export 'escaping.dart' show TextLines;
 /// in [style]. Where the spliced change cannot read as [text] (old spans
 /// around it clash with it), fewer spans around it are kept, down to
 /// writing all of [old] anew with its characters' spelling, then all of
-/// [text]. Its lines are written after [leads], by line. `null` if [text] cannot be written at all (see [canWrite]).
+/// [text] anew, line breaks too. Its lines are written after [leads], by line. `null` if [text] cannot be written at all (see [canWrite]).
 String? inlineSource({
   required List<Inline> old,
   required VisibleText oldText,
@@ -26,7 +26,12 @@ String? inlineSource({
           for (final levels in [null, ..._fewerLevels])
             () => spliceInlines(old, oldText, text, style, keptLevels: levels),
           () => spliceInlines(old, oldText, text, style, whole: true),
-          () => spliceInlines(const [], VisibleText.empty, text, style),
+          () => spliceInlines(
+            const [],
+            VisibleText.empty,
+            _withNewBreaks(text),
+            style,
+          ),
         ]
         .map(
           (tokens) => escapedSource(
@@ -39,6 +44,16 @@ String? inlineSource({
         )
         .nonNulls
         .firstOrNull;
+
+/// [text] with its hard breaks new, so they take the new spelling (a
+/// kept trailing-spaces break cannot start a line).
+VisibleText _withNewBreaks(VisibleText text) => VisibleText([
+  for (final piece in text.pieces)
+    switch (piece) {
+      HardBreakPiece(:final formatting) => HardBreakPiece(formatting),
+      _ => piece,
+    },
+]);
 
 /// How many spans around a change a splice keeps when keeping all fails:
 /// deep nesting is rare, so a few levels cover it.

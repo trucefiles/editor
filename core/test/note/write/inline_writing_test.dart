@@ -94,6 +94,11 @@ void main() {
         '`a`[`u`](v)`d`',
         reason: 'code ends where a link starts or ends',
       );
+      expect(
+        _written('a  \nb', _delete(0, 1)),
+        '\\\nb',
+        reason: 'a break of trailing spaces cannot start a line',
+      );
     });
 
     test('splits and joins spans', () {
