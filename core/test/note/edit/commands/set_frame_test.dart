@@ -42,6 +42,17 @@ void main() {
       );
     });
 
+    test('of the list\'s own kind leaves an empty item\'s place', () {
+      final note = ShownNote(NoteTree.read('1. a\n2.\n3. b'));
+      final caret = TextSelection.caret(
+        Place((note.rows[1] as TextRow).slot, 0),
+      );
+      final edited = run(note, SetFrame(caret, FrameKind.numbered));
+      expect(edited.note.tree.text, '1. a\n\n3) b');
+      final at = (edited.selection as TextSelection).extent;
+      expect(edited.note.rowOf(at.slot), 1);
+    });
+
     test('makes text items, joining a list of its kind', () {
       expect(_framed('a', FrameKind.bullet), '- a');
       expect(_framed('- a\n\nb', FrameKind.bullet, 1), '- a\n- b');

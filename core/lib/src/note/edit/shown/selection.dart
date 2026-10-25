@@ -36,6 +36,12 @@ final class TextSelection extends Selection {
 
   bool get isCaret => base == extent;
 
+  /// This selection with the slots [moved] maps moved there.
+  TextSelection movedBy(Map<Slot, Slot> moved) => TextSelection(
+    Place(moved[base.slot] ?? base.slot, base.offset),
+    Place(moved[extent.slot] ?? extent.slot, extent.offset),
+  );
+
   @override
   bool operator ==(Object other) =>
       other is TextSelection && other.base == base && other.extent == extent;

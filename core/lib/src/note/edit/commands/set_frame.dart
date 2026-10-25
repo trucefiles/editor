@@ -22,13 +22,13 @@ enum FrameKind { checkbox, bullet, numbered, quote }
 Edit setFrame(ShownNote note, TextSelection selection, FrameKind kind) {
   final rows = _selectedRows(note, selection);
   final fresh = note.tree.freshBlockIds.iterator;
-  final replaced = switch (kind) {
-    FrameKind.quote => _quote(note, rows, fresh),
-    FrameKind.checkbox => _boxes(note, rows, fresh),
+  final (:replaced, :moved) = switch (kind) {
+    FrameKind.quote => (replaced: _quote(note, rows, fresh), moved: _none),
+    FrameKind.checkbox => (replaced: _boxes(note, rows, fresh), moved: _none),
     FrameKind.bullet => _listKind(note, rows, ListKind.bullet, fresh),
     FrameKind.numbered => _listKind(note, rows, ListKind.numbered, fresh),
   };
-  return Edit(replaced: replaced, selection: selection);
+  return Edit(replaced: replaced, selection: selection.movedBy(moved));
 }
 
 /// The text rows [selection] covers, in order.
@@ -84,7 +84,16 @@ Map<BlockId, List<Draft>> _boxes(
   };
 }
 
-Map<BlockId, List<Draft>> _listKind(
+const _none = <Slot, Slot>{};
+
+/// What [_listKind] changes: the blocks [replaced], and the text places
+/// [moved] where lifted items' places became paragraphs.
+typedef _KindChange = ({
+  Map<BlockId, List<Draft>> replaced,
+  Map<Slot, Slot> moved,
+});
+
+_KindChange _listKind(
   ShownNote note,
   List<TextRow> rows,
   ListKind kind,
@@ -97,9 +106,17 @@ Map<BlockId, List<Draft>> _listKind(
   };
   if (free.isEmpty && lists.every((list) => list.kind == kind)) {
     final lifted = {for (final item in items) item.id};
-    return {for (final list in lists) list.id: liftedOut(list, lifted, fresh)};
+    final changes = {
+      for (final list in lists) list.id: liftedOut(list, lifted, fresh),
+    };
+    return (
+      replaced: {
+        for (final MapEntry(:key, :value) in changes.entries) key: value.drafts,
+      },
+      moved: {for (final change in changes.values) ...change.moved},
+    );
   }
-  return {
+  final replaced = {
     for (final list in lists)
       if (list.kind != kind)
         list.id: [
@@ -113,6 +130,7 @@ Map<BlockId, List<Draft>> _listKind(
         ],
     ..._newLists(note, free, kind, fresh),
   };
+  return (replaced: replaced, moved: _none);
 }
 
 /// [leaves] as items of new lists of [kind], one per run of neighbors in

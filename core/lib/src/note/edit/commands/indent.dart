@@ -71,11 +71,12 @@ Edit outdent(ShownNote note, TextSelection selection) {
   final parent = note.tree.parentOf(list);
   if (parent is! ItemBlock) {
     if (item.isEmpty) return leaveList(note, selection.extent.slot);
+    final (:drafts, :moved) = liftedOut(list, {
+      item.id,
+    }, note.tree.freshBlockIds.iterator);
     return Edit(
-      replaced: {
-        list.id: liftedOut(list, {item.id}, note.tree.freshBlockIds.iterator),
-      },
-      selection: selection,
+      replaced: {list.id: drafts},
+      selection: selection.movedBy(moved),
     );
   }
   final index = list.items.indexOf(item);
