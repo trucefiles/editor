@@ -93,10 +93,12 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with five packages:
+A Dart pub workspace with six packages:
 
 - `core`: files, sync-tool interfaces and conflict handling. Pure Dart, no
   UI, nothing specific to one sync tool.
+- `markdown`: Markdown documents, read, edited and written byte-exact.
+  Pure Dart, no UI; core knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `app`: the Flutter app (Android, Linux). Uses only `core` and, in its
   sync-tool wiring, `syncthing`.
@@ -111,6 +113,7 @@ flutter pub get --enforce-lockfile
 dart format .
 flutter analyze --fatal-infos
 (cd core && dart test)
+(cd markdown && dart test)
 (cd syncthing && dart test)
 (cd app && flutter test)
 ```

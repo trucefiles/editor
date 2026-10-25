@@ -1,0 +1,16 @@
+name: truce_markdown
+description: Markdown documents for Truce, read, edited and written byte-exact. Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  characters: ^1.4.1
+  collection: ^1.19.1
+  html: ^0.15.7
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any
