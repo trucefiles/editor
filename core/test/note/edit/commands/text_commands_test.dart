@@ -104,6 +104,15 @@ void main() {
     expect(_type(note, 2, 0, 'x').note.tree.text, '1. a\n2. b\n\nx\n\n3. c');
   });
 
+  test('a line break in code ends the code and goes on after it', () {
+    final note = _note('`ab`');
+    final broken = run(
+      note,
+      LineBreak(TextSelection.caret(Place(_slot(note, 0), 1))),
+    ).note;
+    expect(broken.tree.text, '`a`\\\n`b`');
+  });
+
   test('a line break at the end shows until text follows it', () {
     final note = _note('a');
     final broken = run(

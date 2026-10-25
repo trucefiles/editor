@@ -73,17 +73,19 @@ Slot _textRow(ShownNote note, int index) => switch (note.rows[index]) {
   final row => throw ArgumentError.value(row, 'row', 'no text place'),
 };
 
-/// A line break put in at [at].
+/// A line break put in at [at], in the formatting before it; code
+/// holds no line break, so it ends there and goes on after it.
 Edit lineBreak(ShownNote note, Place at) {
   final shown = note.textOf(at.slot);
+  final before = at.offset > 0
+      ? shown.formattingAt(at.offset - 1)
+      : Formatting.plain;
   return typed(
     note,
     at,
     at.offset,
     VisibleText([
-      HardBreakPiece(
-        at.offset > 0 ? shown.formattingAt(at.offset - 1) : Formatting.plain,
-      ),
+      HardBreakPiece(before.withFormat(TextFormat.code, on: false)),
     ]),
   );
 }
