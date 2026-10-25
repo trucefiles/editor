@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_core/src/note/lines/line.dart';
+import 'package:truce_core/src/note/edit/redraft.dart';
 import 'package:truce_core/src/note/note_tree.dart';
 import 'package:truce_core/src/note/tree/blocks.dart';
 import 'package:truce_core/src/note/visible/formatting.dart';
@@ -77,6 +78,22 @@ void main() {
         ]),
       );
       expect(after.text, '# Title\n\ntext');
+    });
+
+    test('a block written as it was under a new id takes that id', () {
+      for (final note in ['a\n\nb', 'b\n\na', '- b\n- a', '- a\n- b']) {
+        final tree = NoteTree.read(note);
+        final b = tree.leaves.firstWhere(
+          (leaf) => visibleTextOf((leaf as TextLeaf).text).text == 'b',
+        );
+        final id = tree.freshBlockIds.first;
+        final draft = redrafted(tree, {
+          b.id: [TextDraft(id, _plain('b'), from: [b as TextLeaf])],
+        });
+        final after = written(tree, draft);
+        expect(after.text, note);
+        expect(after.blockOf(id), isA<ParagraphBlock>(), reason: note);
+      }
     });
 
     test('text in an empty heading goes after a space', () {

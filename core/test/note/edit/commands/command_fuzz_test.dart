@@ -46,7 +46,8 @@ void main() {
             break;
           }
           fail(
-            'from:\n${note.tree.text}\n---\nafter ${steps.join(', ')}\n'
+            'from:\n${note.tree.text}\n---\nshowing:\n${_rows(note)}\n---\n'
+            'after ${steps.join(', ')}\n'
             'seed $_seed, note $index\n$error\n$trace',
           );
         }
@@ -172,5 +173,23 @@ String _describe(Command command) => switch (command) {
   Outdent(:final selection) => 'Outdent($selection)',
   MoveItem(:final item, :final target, :final below) =>
     'MoveItem($item, $target, below: $below)',
+  JoinWithPrevious(:final slot) => 'JoinWithPrevious($slot)',
+  JoinWithNext(:final slot) => 'JoinWithNext($slot)',
+  RemoveFrame(:final slot) => 'RemoveFrame($slot)',
+  LeaveList(:final slot) => 'LeaveList($slot)',
+  RemoveLink(:final at) => 'RemoveLink($at)',
+  Toggle(:final item) => 'Toggle($item)',
+  DeleteItem(:final item) => 'DeleteItem($item)',
+  AddItem(:final list) => 'AddItem($list)',
   _ => command.runtimeType.toString(),
 };
+
+/// What [note] shows, row by row.
+String _rows(ShownNote note) => [
+  for (final row in note.rows)
+    switch (row) {
+      TextRow(:final slot, :final done) =>
+        '$slot${done ? ' done' : ''}: "${note.textOf(slot).text}"',
+      BlockRow(:final leaf) => '${leaf.runtimeType}',
+    },
+].join('\n');
