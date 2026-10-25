@@ -70,7 +70,7 @@ Edit outdent(ShownNote note, TextSelection selection) {
   final list = note.tree.parentOf(item)! as ListBlock;
   final parent = note.tree.parentOf(list);
   if (parent is! ItemBlock) {
-    if (item.isEmpty) return leaveList(note, selection.extent.slot);
+    if (item.isEmpty) return leaveList(note, ItemSlot(item.id));
     final (:drafts, :moved) = liftedOut(list, {
       item.id,
     }, note.tree.freshBlockIds.iterator);

@@ -5,6 +5,7 @@ import 'package:truce_core/src/note/edit/shown/selection.dart';
 import 'package:truce_core/src/note/edit/shown/shown_note.dart';
 import 'package:truce_core/src/note/edit/shown/slot.dart';
 import 'package:truce_core/src/note/note_tree.dart';
+import 'package:truce_core/src/note/tree/blocks.dart';
 
 ShownNote _note(String text) => ShownNote(NoteTree.read(text));
 
@@ -86,6 +87,19 @@ void main() {
         _after('- a\n  - b\n  - c', (n) => Outdent(_caret(n, 1))),
         '- a\n- b\n  - c',
       );
+    });
+
+    test('outdent from an empty paragraph in an empty item ends the list', () {
+      final tree = NoteTree.read('- a\n-');
+      final empty = tree.root.children.single as ListBlock;
+      final note = ShownNote(
+        tree,
+        gaps: [Gap(GapId.first, container: empty.items.last.id, after: null)],
+      );
+      final gap = TextSelection.caret(const Place(GapSlot(GapId.first), 0));
+      final edited = run(note, Outdent(gap));
+      expect(edited.note.tree.text, '- a');
+      expect(_shown(edited.note), ['a', '']);
     });
 
     test('outdent at the top takes an item out of its list', () {
