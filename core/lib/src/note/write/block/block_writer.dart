@@ -350,7 +350,10 @@ final class _BlockWriter {
     final (end, start) = (oldEndOf(before), oldStartOf(next));
     if (old == null || end == null || start == null) return null;
     final index = old.children.indexWhere((child) => child.id == end.id);
-    if (old.children.elementAtOrNull(index + 1)?.id != start.id) return null;
+    if (index < 0 ||
+        old.children.elementAtOrNull(index + 1)?.id != start.id) {
+      return null;
+    }
     return tree.lines.sublist(
       tree.indexOf(lineSpanOf(end).last) + 1,
       tree.indexOf(lineSpanOf(start).first),

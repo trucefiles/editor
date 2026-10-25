@@ -8,7 +8,8 @@ import '../write/draft.dart';
 /// is its children; containers with such a block in them are drafted
 /// anew around it; all else is kept. A kept block among an entry's
 /// drafts takes its own entry, if it has one, except the very block the
-/// entry is for (which a draft may wrap).
+/// entry is for (which a draft may wrap): so a block that moves is
+/// left out by its old container's entry, never removed by its own.
 RootDraft redrafted(NoteTree tree, Map<BlockId, List<Draft>> replaced) {
   final redraft = _Redraft(tree, replaced);
   return RootDraft(tree.root, [

@@ -7,6 +7,8 @@ import '../commit.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
 import '../shown/slot.dart';
+import 'indent.dart';
+import 'remove_frame.dart';
 import 'split_block.dart';
 import 'text_commands.dart';
 
@@ -71,6 +73,36 @@ final class JoinWithNext extends Command {
   final Slot slot;
 }
 
+/// Backspace at the start of [slot], the first text of its innermost
+/// item or quote: that frame goes (see `removeFrame`).
+final class RemoveFrame extends Command {
+  const RemoveFrame(this.slot);
+
+  final Slot slot;
+}
+
+/// Enter in [slot], an empty item's place at a list's top level: the
+/// list ends there (see `leaveList`).
+final class LeaveList extends Command {
+  const LeaveList(this.slot);
+
+  final Slot slot;
+}
+
+/// Tab in an item: it becomes a subitem of the item above.
+final class Indent extends Command {
+  const Indent(this.selection);
+
+  final TextSelection selection;
+}
+
+/// Shift+Tab in an item: it goes one level out.
+final class Outdent extends Command {
+  const Outdent(this.selection);
+
+  final TextSelection selection;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -85,4 +117,8 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   SplitBlock(:final at) => splitBlock(note, at),
   JoinWithPrevious(:final slot) => joinWithPrevious(note, slot),
   JoinWithNext(:final slot) => joinWithNext(note, slot),
+  RemoveFrame(:final slot) => removeFrame(note, slot),
+  LeaveList(:final slot) => leaveList(note, slot),
+  Indent(:final selection) => indent(note, selection),
+  Outdent(:final selection) => outdent(note, selection),
 });
