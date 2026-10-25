@@ -184,6 +184,12 @@ void main() {
     test('is a tab in code, and nothing elsewhere', () {
       expect(_pressed('```\nab\n```', 0, 1, EditKey.tab), '```\na\tb\n```');
       expect(_action('a', 0, 0, EditKey.tab), isA<Consumed>());
+      final note = _note('a\n\n```\nb\n```');
+      final across = TextSelection(
+        _caret(note, 0, 0).base,
+        _caret(note, 1, 1).base,
+      );
+      expect(keyAction(note, across, EditKey.tab), isA<Consumed>());
     });
   });
 

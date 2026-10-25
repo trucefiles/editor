@@ -68,6 +68,21 @@ void main() {
     );
   });
 
+  test('an item of two paragraphs keeps them apart in a tight list', () {
+    expect(
+      _after('- a\n  - s\n\n  - b\n\n    c', (n) {
+        final items = _items(n);
+        return MoveItem(
+          items[2].id,
+          items[0].id,
+          below: true,
+          selection: _caret(n, 0),
+        );
+      }),
+      '- a\n  - s\n- b\n\n  c',
+    );
+  });
+
   test('checked items move to the end of their lists', () {
     expect(
       _after(

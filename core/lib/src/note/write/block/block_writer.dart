@@ -300,16 +300,17 @@ final class _BlockWriter {
     required Spacing spacing,
   }) {
     final kept = _oldGap(before, next, old);
+    final blank = blankNeeded(
+      before,
+      nextLines.first.textFrom(_depth),
+      spacing: spacing,
+    );
+    // Where the old lines between them stay, so may their reading.
     final needed =
-        blankNeeded(
-          before,
-          nextLines.first.textFrom(_depth),
-          spacing: spacing,
-        ) &&
-        !(kept != null && _sameEdges(before, next, nextLines));
+        blank && !(kept != null && _sameEdges(before, next, nextLines));
     final count = switch (spacing) {
       Spacing.tightItems => 0,
-      Spacing.tightInItem => needed ? 1 : 0,
+      Spacing.tightInItem => blank ? 1 : 0,
       _ when kept != null && (kept.isNotEmpty || !needed) => kept.length,
       Spacing.looseItems => 1,
       Spacing.blocks ||

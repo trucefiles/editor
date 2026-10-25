@@ -88,7 +88,9 @@ void main() {
         );
         final id = tree.freshBlockIds.first;
         final draft = redrafted(tree, {
-          b.id: [TextDraft(id, _plain('b'), from: [b as TextLeaf])],
+          b.id: [
+            TextDraft(id, _plain('b'), from: [b as TextLeaf]),
+          ],
         });
         final after = written(tree, draft);
         expect(after.text, note);

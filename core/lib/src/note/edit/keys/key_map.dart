@@ -126,7 +126,9 @@ final class _Keys {
     EditKey.delete when !range.isCaret => RunCommand(DeleteRange(range)),
     EditKey.backspace => _backspace(),
     EditKey.delete => _delete(),
-    EditKey.tab when _inCode => RunCommand(ReplaceText(range, '\t')),
+    EditKey.tab when _inCode && range.base.slot == at.slot => RunCommand(
+      ReplaceText(range, '\t'),
+    ),
     EditKey.tab when canIndent(note, at.slot) => RunCommand(Indent(range)),
     EditKey.shiftTab when canOutdent(note, at.slot) => RunCommand(
       Outdent(range),
