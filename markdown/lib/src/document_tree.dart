@@ -71,6 +71,17 @@ final class DocumentTree implements EarlierReading {
       change.lines.isNotEmpty || change.end - change.start < lines.length,
       'a change leaves a document without lines',
     );
+    assert(() {
+      final kept = change.lines.map((line) => line.id).nonNulls.toList();
+      final others = {
+        for (final line in [
+          ...lines.take(change.start),
+          ...lines.skip(change.end),
+        ])
+          line.id,
+      };
+      return kept.toSet().length == kept.length && !kept.any(others.contains);
+    }(), 'line ids stay unique');
     var nextLineId = _nextLineId;
     final added = [
       for (final line in change.lines)

@@ -239,6 +239,18 @@ void main() {
     });
   });
 
+  test('a one-line raw region grows into new lines', () {
+    final run = _Run('a\n\n<!-- c -->\n\nb')..caret(2, 0);
+    run.press(EditKey.backspace);
+    run.owner.send(
+      EditRaw('<!-- c -->\n', base: 11, extent: 11, revision: run.revision),
+    );
+    run.owner.send(
+      EditRaw('<!-- c -->\nx', base: 12, extent: 12, revision: run.revision),
+    );
+    expect(run.text, 'a\n\n<!-- c -->\nx\n\nb');
+  });
+
   test('a raw region edits the lines of a block without text', () {
     final run = _Run('a\n\n<div>\nx\n</div>\n\nb')..caret(2, 0);
     run.press(EditKey.backspace);

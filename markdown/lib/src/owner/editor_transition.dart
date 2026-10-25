@@ -312,29 +312,29 @@ final class _Step {
   void _editRaw(String text, int base, int extent) {
     final raw = state.raw;
     if (raw == null) return;
-    final tree = document.tree;
+    final start = document.tree.indexOf(raw.first);
     final lines = text.split('\n');
-    final change = LineChange(
-      tree.indexOf(raw.first),
-      tree.indexOf(raw.last) + 1,
-      [
+    // The region's first and last lines keep their ids; a last line only
+    // where the region had one of its own.
+    final last = lines.length > 1 && raw.last != raw.first ? raw.last : null;
+    _changeTree(
+      LineChange(start, document.tree.indexOf(raw.last) + 1, [
         for (final (index, line) in lines.indexed)
           (
             id: switch (index) {
               0 => raw.first,
-              _ when index == lines.length - 1 => raw.last,
+              _ when index == lines.length - 1 => last,
               _ => null,
             },
             text: line,
           ),
-      ],
+      ]),
     );
-    _changeTree(change);
     _set(
       state.copyWith(
         raw: RawRegion(
           raw.first,
-          lines.length == 1 ? raw.first : raw.last,
+          document.tree.lines[start + lines.length - 1].id,
           base: base,
           extent: extent,
         ),
