@@ -37,6 +37,15 @@ final class ShownDocument {
   /// The id the next new gap takes.
   final GapId nextGap;
 
+  /// This document with its checked items shown as [done] says.
+  ShownDocument withDone(DoneSections? done) => ShownDocument(
+    tree,
+    gaps: gaps,
+    tails: tails,
+    done: done,
+    nextGap: nextGap,
+  );
+
   /// Every gap that shows: [gaps], and where the last row would show no
   /// text to type a paragraph in (none, a block without text, or code)
   /// the [GapId.end] gap after the last block; none after an HTML block

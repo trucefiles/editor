@@ -95,10 +95,12 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 A Dart pub workspace with six packages:
 
-- `core`: files, sync-tool interfaces and conflict handling. Pure Dart, no
-  UI, nothing specific to one sync tool.
-- `markdown`: Markdown documents, read, edited and written byte-exact.
-  Pure Dart, no UI; core knows nothing of it.
+- `core`: files, sync-tool interfaces, conflict handling and an open
+  document's file owner. Pure Dart, no UI, nothing specific to one sync
+  tool or document type.
+- `markdown`: Markdown documents, read, edited and written byte-exact,
+  with the editor's owner. Pure Dart, no UI; uses core, which knows
+  nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `app`: the Flutter app (Android, Linux). Uses only `core` and, in its
   sync-tool wiring, `syncthing`.
