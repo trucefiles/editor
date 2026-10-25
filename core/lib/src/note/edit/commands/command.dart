@@ -12,6 +12,7 @@ import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
 import 'links.dart';
+import 'paste.dart';
 import 'remove_frame.dart';
 import 'set_frame.dart';
 import 'split_block.dart';
@@ -25,8 +26,23 @@ sealed class Command {
   const Command();
 }
 
+/// A command that is one edit of the shown note.
+sealed class EditCommand extends Command {
+  const EditCommand();
+}
+
+/// Paste of plain [text] over [range], in [formatting] (the typing
+/// style); see `paste`.
+final class Paste extends Command {
+  const Paste(this.range, this.text, this.formatting);
+
+  final TextSelection range;
+  final String text;
+  final Formatting formatting;
+}
+
 /// Types [text], literal, at [at] in [formatting] (the typing style).
-final class InsertText extends Command {
+final class InsertText extends EditCommand {
   const InsertText(this.at, this.text, this.formatting);
 
   final Place at;
@@ -39,7 +55,7 @@ final class InsertText extends Command {
 /// typing over a selection does: the text both share at their start and
 /// end keeps its formatting; what changed takes the formatting of the
 /// first character it replaced.
-final class ReplaceText extends Command {
+final class ReplaceText extends EditCommand {
   const ReplaceText(this.range, this.text);
 
   final TextSelection range;
@@ -47,35 +63,35 @@ final class ReplaceText extends Command {
 }
 
 /// Removes the text in [range].
-final class DeleteRange extends Command {
+final class DeleteRange extends EditCommand {
   const DeleteRange(this.range);
 
   final TextSelection range;
 }
 
 /// Puts a line break inside the text at [at].
-final class LineBreak extends Command {
+final class LineBreak extends EditCommand {
   const LineBreak(this.at);
 
   final Place at;
 }
 
 /// Enter at [at]: splits the block there (see `splitBlock`).
-final class SplitBlock extends Command {
+final class SplitBlock extends EditCommand {
   const SplitBlock(this.at);
 
   final Place at;
 }
 
 /// Backspace at [slot]'s start: its text joins the text place above.
-final class JoinWithPrevious extends Command {
+final class JoinWithPrevious extends EditCommand {
   const JoinWithPrevious(this.slot);
 
   final Slot slot;
 }
 
 /// Delete at [slot]'s end: the text place below joins it.
-final class JoinWithNext extends Command {
+final class JoinWithNext extends EditCommand {
   const JoinWithNext(this.slot);
 
   final Slot slot;
@@ -83,7 +99,7 @@ final class JoinWithNext extends Command {
 
 /// Backspace at the start of [slot], the first text of its innermost
 /// item or quote: that frame goes (see `removeFrame`).
-final class RemoveFrame extends Command {
+final class RemoveFrame extends EditCommand {
   const RemoveFrame(this.slot);
 
   final Slot slot;
@@ -91,21 +107,21 @@ final class RemoveFrame extends Command {
 
 /// Enter in [slot], an empty item's place at a list's top level: the
 /// list ends there (see `leaveList`).
-final class LeaveList extends Command {
+final class LeaveList extends EditCommand {
   const LeaveList(this.slot);
 
   final Slot slot;
 }
 
 /// Tab in an item: it becomes a subitem of the item above.
-final class Indent extends Command {
+final class Indent extends EditCommand {
   const Indent(this.selection);
 
   final TextSelection selection;
 }
 
 /// Shift+Tab in an item: it goes one level out.
-final class Outdent extends Command {
+final class Outdent extends EditCommand {
   const Outdent(this.selection);
 
   final TextSelection selection;
@@ -113,7 +129,7 @@ final class Outdent extends Command {
 
 /// The heading button or shortcut at [at]: its text a heading of
 /// [level], or a paragraph if `null`.
-final class SetHeading extends Command {
+final class SetHeading extends EditCommand {
   const SetHeading(this.at, this.level);
 
   final Place at;
@@ -121,7 +137,7 @@ final class SetHeading extends Command {
 }
 
 /// A tap on [item]'s box; [selection] stays.
-final class Toggle extends Command {
+final class Toggle extends EditCommand {
   const Toggle(this.item, this.selection);
 
   final BlockId item;
@@ -129,14 +145,14 @@ final class Toggle extends Command {
 }
 
 /// The row delete button on [item]: it goes with its subitems.
-final class DeleteItem extends Command {
+final class DeleteItem extends EditCommand {
   const DeleteItem(this.item);
 
   final BlockId item;
 }
 
 /// The Add item button of [list]: a new empty item, last unless [first].
-final class AddItem extends Command {
+final class AddItem extends EditCommand {
   const AddItem(this.list, {this.first = false});
 
   final BlockId list;
@@ -145,7 +161,7 @@ final class AddItem extends Command {
 
 /// A drop: [item] with its subitems right before [target], or after it
 /// if [below]; [selection] stays.
-final class MoveItem extends Command {
+final class MoveItem extends EditCommand {
   const MoveItem(
     this.item,
     this.target, {
@@ -161,7 +177,7 @@ final class MoveItem extends Command {
 
 /// "Clear checked items now": the checked items at the top level of
 /// [list]'s level, or of every list if `null`, go with their subitems.
-final class ClearChecked extends Command {
+final class ClearChecked extends EditCommand {
   const ClearChecked(this.selection, {this.list});
 
   final Selection selection;
@@ -171,7 +187,7 @@ final class ClearChecked extends Command {
 /// "Move checked items to end now", or checks settling: [items] (by
 /// default every checked item at a list's top level) move to the end of
 /// their lists; [selection] stays.
-final class MoveToEnd extends Command {
+final class MoveToEnd extends EditCommand {
   const MoveToEnd(this.selection, {this.items});
 
   final Selection selection;
@@ -180,7 +196,7 @@ final class MoveToEnd extends Command {
 
 /// A frame button or shortcut: [kind] set on what [selection] covers,
 /// or taken off where all of it has it (see `setFrame`).
-final class SetFrame extends Command {
+final class SetFrame extends EditCommand {
   const SetFrame(this.selection, this.kind);
 
   final TextSelection selection;
@@ -189,7 +205,7 @@ final class SetFrame extends Command {
 
 /// A style button or shortcut: [format] toggled over [selection] (see
 /// `toggleStyle`).
-final class ToggleStyle extends Command {
+final class ToggleStyle extends EditCommand {
   const ToggleStyle(this.selection, this.format);
 
   final TextSelection selection;
@@ -198,7 +214,7 @@ final class ToggleStyle extends Command {
 
 /// The link dialog's OK: [range] showing [text] as a link to [url] (see
 /// `setLink`).
-final class SetLink extends Command {
+final class SetLink extends EditCommand {
   const SetLink(this.range, this.text, this.url);
 
   final TextSelection range;
@@ -207,14 +223,24 @@ final class SetLink extends Command {
 }
 
 /// The link dialog's Remove: the link at [at] goes, its text stays.
-final class RemoveLink extends Command {
+final class RemoveLink extends EditCommand {
   const RemoveLink(this.at);
 
   final Place at;
 }
 
 /// [note] after [command], with the selection after it.
-Edited run(ShownNote note, Command command) => commit(note, switch (command) {
+Edited run(ShownNote note, Command command) => switch (command) {
+  Paste(:final range, :final text, :final formatting) => paste(
+    note,
+    range,
+    text,
+    formatting,
+  ),
+  final EditCommand command => commit(note, _edit(note, command)),
+};
+
+Edit _edit(ShownNote note, EditCommand command) => switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
     note,
     at,
@@ -279,7 +305,7 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
     null => checkedItems(note),
     final ids => [for (final id in ids) _item(note, id)],
   }, selection),
-});
+};
 
 ItemBlock _item(ShownNote note, BlockId id) =>
     note.tree.blockOf(id)! as ItemBlock;
