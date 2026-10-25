@@ -11,6 +11,7 @@ import '../shown/slot.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
+import 'links.dart';
 import 'remove_frame.dart';
 import 'set_frame.dart';
 import 'split_block.dart';
@@ -195,6 +196,23 @@ final class ToggleStyle extends Command {
   final TextFormat format;
 }
 
+/// The link dialog's OK: [range] showing [text] as a link to [url] (see
+/// `setLink`).
+final class SetLink extends Command {
+  const SetLink(this.range, this.text, this.url);
+
+  final TextSelection range;
+  final String text;
+  final String url;
+}
+
+/// The link dialog's Remove: the link at [at] goes, its text stays.
+final class RemoveLink extends Command {
+  const RemoveLink(this.at);
+
+  final Place at;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -215,6 +233,13 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   Outdent(:final selection) => outdent(note, selection),
   SetHeading(:final at, :final level) => setHeading(note, at, level),
   SetFrame(:final selection, :final kind) => setFrame(note, selection, kind),
+  SetLink(:final range, :final text, :final url) => setLink(
+    note,
+    range,
+    text,
+    url,
+  ),
+  RemoveLink(:final at) => removeLink(note, at),
   ToggleStyle(:final selection, :final format) => toggleStyle(
     note,
     selection,

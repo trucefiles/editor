@@ -11,7 +11,7 @@ import 'text_places.dart';
 
 /// [text] typed at [at] in [formatting].
 Edit insertText(ShownNote note, Place at, String text, Formatting formatting) =>
-    _typed(note, at, at.offset, VisibleText([TextPiece(text, formatting)]));
+    typed(note, at, at.offset, VisibleText([TextPiece(text, formatting)]));
 
 /// The text in [range] replaced by [text], keeping the formatting of
 /// what stays.
@@ -28,7 +28,7 @@ Edit replaceText(ShownNote note, TextSelection range, String text) {
     (false, true) => shown.formattingAt(from - 1),
     (false, false) => Formatting.plain,
   };
-  return _typed(
+  return typed(
     note,
     Place(start.slot, from),
     to,
@@ -42,7 +42,7 @@ Edit replaceText(ShownNote note, TextSelection range, String text) {
 Edit deleteRange(ShownNote note, TextSelection range) {
   final (start, end) = ordered(note, range);
   return start.slot == end.slot
-      ? _typed(note, start, end.offset, VisibleText.empty)
+      ? typed(note, start, end.offset, VisibleText.empty)
       : deleteAcross(note, start, end);
 }
 
@@ -76,7 +76,7 @@ Slot _textRow(ShownNote note, int index) => switch (note.rows[index]) {
 /// A line break put in at [at].
 Edit lineBreak(ShownNote note, Place at) {
   final shown = note.textOf(at.slot);
-  return _typed(
+  return typed(
     note,
     at,
     at.offset,
@@ -90,7 +90,7 @@ Edit lineBreak(ShownNote note, Place at) {
 
 /// The text from [from] to [to] in its text place replaced by [insert],
 /// the caret after it.
-Edit _typed(ShownNote note, Place from, int to, VisibleText insert) {
+Edit typed(ShownNote note, Place from, int to, VisibleText insert) {
   final text = note.textOf(from.slot).replaced(from.offset, to, insert);
   final change = withText(
     note,
