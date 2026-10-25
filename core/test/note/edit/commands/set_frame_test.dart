@@ -4,6 +4,9 @@ import 'package:truce_core/src/note/edit/shown/rows.dart';
 import 'package:truce_core/src/note/edit/shown/selection.dart';
 import 'package:truce_core/src/note/edit/shown/shown_note.dart';
 import 'package:truce_core/src/note/note_tree.dart';
+import 'package:truce_core/src/note/visible/visible_text.dart';
+import 'package:truce_core/src/note/tree/blocks.dart';
+import 'package:truce_core/src/note/edit/shown/slot.dart';
 
 /// [text] after [kind] is set on its rows [from] to [to].
 String _framed(String text, FrameKind kind, [int from = 0, int? to]) {
@@ -51,6 +54,22 @@ void main() {
       expect(edited.note.tree.text, '1. a\n\n3) b');
       final at = (edited.selection as TextSelection).extent;
       expect(edited.note.rowOf(at.slot), 1);
+    });
+
+    test('of the list\'s own kind keeps what an item\'s place shows', () {
+      final tree = NoteTree.read('1. a\n2.');
+      final item = (tree.root.children.single as ListBlock).items.last;
+      final note = ShownNote(
+        tree,
+        tails: {
+          ItemSlot(item.id): VisibleText([TextPiece(' ')]),
+        },
+      );
+      final caret = TextSelection.caret(Place(ItemSlot(item.id), 1));
+      final edited = run(note, SetFrame(caret, FrameKind.numbered));
+      final at = (edited.selection as TextSelection).extent;
+      expect(edited.note.textOf(at.slot).text, ' ');
+      expect(at.offset, 1);
     });
 
     test('makes text items, joining a list of its kind', () {

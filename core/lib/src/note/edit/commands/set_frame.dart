@@ -107,7 +107,7 @@ _KindChange _listKind(
   if (free.isEmpty && lists.every((list) => list.kind == kind)) {
     final lifted = {for (final item in items) item.id};
     final changes = {
-      for (final list in lists) list.id: liftedOut(list, lifted, fresh),
+      for (final list in lists) list.id: liftedOut(note, list, lifted, fresh),
     };
     return (
       replaced: {

@@ -1,18 +1,19 @@
 import 'package:collection/collection.dart';
 
 import '../../tree/blocks.dart';
-import '../../visible/visible_text.dart';
 import '../../write/draft.dart';
 import '../shown/rows.dart';
+import '../shown/shown_note.dart';
 import '../shown/slot.dart';
 import 'outline.dart';
 
 /// The drafts [list] becomes with its [lifted] items out of it: their
 /// blocks in the list's place, between the parts of the list around
-/// them; an item's own text place an empty paragraph there, which
-/// [moved] maps it to. The first part keeps the list's id; later ones
+/// them; an item's own text place a paragraph there with the text it
+/// shows in [note], which [moved] maps it to. The first part keeps the list's id; later ones
 /// take ids from [fresh] and go on counting.
 ({List<Draft> drafts, Map<Slot, Slot> moved}) liftedOut(
+  ShownNote note,
   ListBlock list,
   Set<BlockId> lifted,
   Iterator<BlockId> fresh,
@@ -30,7 +31,7 @@ import 'outline.dart';
     for (final (index, run) in runs.indexed)
       if (lifted.contains(run.first.id)) ...[
         if (places[run.single.id] case final id?)
-          TextDraft(id, VisibleText.empty),
+          TextDraft(id, note.textOf(ItemSlot(run.single.id))),
         ...kept(run.single.children),
       ] else
         ListDraft(
