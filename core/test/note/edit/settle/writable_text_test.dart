@@ -1,12 +1,12 @@
 import 'dart:math';
 
 import 'package:test/test.dart';
+import 'package:truce_core/src/note/edit/settle/writable_text.dart';
 import 'package:truce_core/src/note/read/inline_reader.dart';
 import 'package:truce_core/src/note/tree/inlines.dart';
 import 'package:truce_core/src/note/tree/note_style.dart';
 import 'package:truce_core/src/note/visible/formatting.dart';
 import 'package:truce_core/src/note/visible/visible_text.dart';
-import 'package:truce_core/src/note/edit/settle/writable_text.dart';
 import 'package:truce_core/src/note/write/inline/inline_writing.dart';
 
 const _paragraph = ParagraphShape(

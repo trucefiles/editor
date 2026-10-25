@@ -138,15 +138,7 @@ RootDraft? _randomEdit(Random random, NoteTree tree) {
   final fresh = tree.freshBlockIds.take(3).toList();
   final children = switch (container) {
     ListBlock(:final items) => _itemEdit(random, items, container, fresh),
-    _ => _blockEdit(
-      random,
-      container.children,
-      fresh,
-      tight: switch (tree.parentOf(container)) {
-        ListBlock(loose: false) => true,
-        _ => false,
-      },
-    ),
+    _ => _blockEdit(random, container.children, fresh),
   };
   if (children == null) return null;
   return RootDraft(tree.root, [
@@ -177,14 +169,12 @@ Draft _rebuilt(Block block, ContainerBlock target, List<Draft> children) {
 }
 
 /// [blocks] after one edit: one moved, deleted, quoted or unquoted,
-/// typed in, split, made a heading or a paragraph, or one added; fewer
-/// edits for those of an item of a [tight] list.
+/// typed in, split, made a heading or a paragraph, or one added.
 List<Draft>? _blockEdit(
   Random random,
   List<Block> blocks,
-  List<BlockId> fresh, {
-  required bool tight,
-}) {
+  List<BlockId> fresh,
+) {
   if (blocks.isEmpty) return [TextDraft(fresh.first, _plain('new text'))];
   final at = random.nextInt(blocks.length);
   final kept = blocks.map(KeptDraft.new).toList();
@@ -194,10 +184,8 @@ List<Draft>? _blockEdit(
     ...kept.skip(at + 1),
   ];
   final block = blocks[at];
-  // In a tight list's item, only typing: other edits may need a blank
-  // line between its blocks, which would make the list loose. No edit
-  // leaves a container empty.
-  final edit = tight ? 4 : random.nextInt(8);
+  // No edit leaves a container empty.
+  final edit = random.nextInt(8);
   return switch ((edit, block)) {
     (0, _) => [
       ...kept.take(at),
@@ -277,26 +265,14 @@ List<Draft>? _itemEdit(
       ),
       ...kept.skip(at + 1),
     ],
-    // An empty item cannot follow text in a tight list.
-    // A sublist after an open HTML block, or one whose item starts on a
-    // later line, needs a blank line, which makes a tight list loose.
-    3
-        when at > 0 &&
-            item.leaves.firstOrNull?.lines.first.id == item.markerLine &&
-            items[at - 1].leaves.lastOrNull is! HtmlBlock =>
-      [
-        ...kept.take(at - 1),
-        ItemDraft.of(items[at - 1], [
-          ...items[at - 1].children.map(KeptDraft.new),
-          ListDraft(
-            fresh.first,
-            [kept[at]],
-            kind: list.kind,
-            loose: list.loose,
-          ),
-        ]),
-        ...kept.skip(at + 1),
-      ],
+    3 when at > 0 => [
+      ...kept.take(at - 1),
+      ItemDraft.of(items[at - 1], [
+        ...items[at - 1].children.map(KeptDraft.new),
+        ListDraft(fresh.first, [kept[at]], kind: list.kind, loose: list.loose),
+      ]),
+      ...kept.skip(at + 1),
+    ],
     _ => [
       ...kept.take(at + 1),
       ItemDraft(fresh.first, [

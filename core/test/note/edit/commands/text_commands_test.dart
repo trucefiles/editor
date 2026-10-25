@@ -6,6 +6,7 @@ import 'package:truce_core/src/note/edit/shown/selection.dart';
 import 'package:truce_core/src/note/edit/shown/shown_note.dart';
 import 'package:truce_core/src/note/edit/shown/slot.dart';
 import 'package:truce_core/src/note/note_tree.dart';
+import 'package:truce_core/src/note/tree/blocks.dart';
 import 'package:truce_core/src/note/visible/formatting.dart';
 
 ShownNote _note(String text) => ShownNote(NoteTree.read(text));
@@ -94,16 +95,10 @@ void main() {
 
   test('a gap in a list splits it once it gets text', () {
     final tree = NoteTree.read('1. a\n2. b\n3. c');
-    final list = tree.root.children.single;
+    final list = tree.root.children.single as ListBlock;
     final note = ShownNote(
       tree,
-      gaps: [
-        Gap(
-          GapId.first,
-          container: list.id,
-          after: (list as dynamic).items[1].id,
-        ),
-      ],
+      gaps: [Gap(GapId.first, container: list.id, after: list.items[1].id)],
     );
     expect(_shown(note), ['a', 'b', '', 'c']);
     expect(_type(note, 2, 0, 'x').note.tree.text, '1. a\n2. b\n\nx\n\n3. c');

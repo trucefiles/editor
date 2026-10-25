@@ -25,7 +25,7 @@ NoteTree written(NoteTree tree, RootDraft draft) {
     ),
     planned: planned,
   );
-  assert(holdsDraft(result.root, draft), 'the lines written read as drafted');
+  assert(holdsDraft(result, draft), 'the lines written read as drafted');
   return result;
 }
 
