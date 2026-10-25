@@ -202,6 +202,25 @@ void main() {
   });
 
   group('lists', () {
+    test('code in an item holds no spaces on an empty line', () {
+      final tree = NoteTree.read('```\n \nx\n```');
+      final code = tree.root.children.single;
+      final after = written(
+        tree,
+        RootDraft(tree.root, [
+          ListDraft(
+            tree.freshBlockIds.first,
+            [
+              ItemDraft(tree.freshBlockIds.skip(1).first, [KeptDraft(code)]),
+            ],
+            kind: ListKind.bullet,
+            loose: false,
+          ),
+        ]),
+      );
+      expect((after.leaves.single as CodeBlock).code, '\nx');
+    });
+
     test('a new item takes the style of the item above', () {
       final tree = NoteTree.read('*   a\n*   b');
       final list = tree.root.children.single as ListBlock;

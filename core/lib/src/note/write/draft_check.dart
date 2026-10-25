@@ -24,6 +24,8 @@ final class _Check {
   bool _matches(Draft draft, Block block) =>
       draft.id == block.id &&
       switch ((draft, block)) {
+        (KeptDraft(block: final CodeBlock old), CodeBlock(:final code)) =>
+          _heldCode(old.code, block) == code,
         (KeptDraft(block: final LeafBlock old), final LeafBlock leaf) =>
           _sameLeaf(old, leaf),
         (KeptDraft(block: final ContainerBlock old), _) => _matches(
@@ -40,7 +42,8 @@ final class _Check {
           HeadingBlock(level: final readLevel, text: final read),
         ) =>
           level == readLevel && visibleTextOf(read).looksLike(text),
-        (CodeDraft(:final code), CodeBlock(code: final read)) => code == read,
+        (CodeDraft(:final code), CodeBlock(code: final read)) =>
+          _heldCode(code, block) == read,
         (QuoteDraft(:final children), QuoteBlock(children: final read)) =>
           allMatch(children, read),
         (ListDraft(), final ListBlock list) => _sameList(
@@ -54,6 +57,17 @@ final class _Check {
           checked == readChecked && allMatch(children, read),
         _ => false,
       };
+
+  /// [code] as [block], a code block, can hold it: in an item, a line of
+  /// only whitespace reads as an empty one (a blank line in an item keeps
+  /// no indent).
+  String _heldCode(String code, Block block) =>
+      _tree.placeOf(block.id)!.path.any((container) => container is ItemBlock)
+      ? code
+            .split('\n')
+            .map((line) => line.trim().isEmpty ? '' : line)
+            .join('\n')
+      : code;
 
   bool _sameList(ListDraft draft, ListBlock list) =>
       draft.kind == list.kind &&
