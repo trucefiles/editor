@@ -12,8 +12,11 @@ import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
 import 'remove_frame.dart';
+import 'set_frame.dart';
 import 'split_block.dart';
 import 'text_commands.dart';
+
+export 'set_frame.dart' show FrameKind;
 
 /// One user action, with the places it acts on.
 sealed class Command {
@@ -173,6 +176,15 @@ final class MoveToEnd extends Command {
   final List<BlockId>? items;
 }
 
+/// A frame button or shortcut: [kind] set on what [selection] covers,
+/// or taken off where all of it has it (see `setFrame`).
+final class SetFrame extends Command {
+  const SetFrame(this.selection, this.kind);
+
+  final TextSelection selection;
+  final FrameKind kind;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -192,6 +204,7 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   Indent(:final selection) => indent(note, selection),
   Outdent(:final selection) => outdent(note, selection),
   SetHeading(:final at, :final level) => setHeading(note, at, level),
+  SetFrame(:final selection, :final kind) => setFrame(note, selection, kind),
   Toggle(:final item, :final selection) => toggle(
     note,
     _item(note, item),

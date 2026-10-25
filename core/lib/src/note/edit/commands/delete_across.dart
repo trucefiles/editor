@@ -65,7 +65,12 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
           ranges[container.id]!.$1 > first)
         container,
   ];
-  final moved = [for (final item in dissolved) ...kept(item.children)];
+  final gone = removedWith(inRange);
+  final moved = [
+    for (final item in dissolved)
+      for (final child in item.children)
+        if (!gone.containsKey(child.id)) KeptDraft(child),
+  ];
   final startPath = rows[first].path;
   final under = startPath.lastWhereOrNull((block) => block is ItemBlock);
   final startLeaf = _leafOf(rows[first]);
@@ -78,10 +83,7 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
       under != null && startParent != null && startParent.id != under.id
       ? startPath[startPath.indexOf(under) + 1]
       : null;
-  final gone = {
-    ...removedWith(inRange).keys,
-    ...dissolved.map((item) => item.id),
-  };
+  final goneOrMoved = {...gone.keys, ...dissolved.map((item) => item.id)};
   // The block that what moves goes after, in its container.
   final (point, parent) = switch (start.slot) {
     _ when outer != null => (outer, under),
@@ -92,8 +94,8 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
   final next = parent?.children
       .skipWhile((child) => point != null && child.id != point.id)
       .skip(point == null ? 0 : 1)
-      .firstWhereOrNull((child) => !gone.contains(child.id));
-  final merged = _mergedWithNext(moved, next);
+      .firstWhereOrNull((child) => !goneOrMoved.contains(child.id));
+  final merged = _mergedWithNext(moved, next, goneOrMoved);
   final endLeaf = switch (end.slot) {
     LeafSlot(:final leaf) => tree.blockOf(leaf),
     _ => null,
@@ -108,7 +110,7 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
   );
   return Edit(
     replaced: {
-      ...removedWith(inRange),
+      ...gone,
       for (final item in dissolved) item.id: const [],
       if (outer != null) outer.id: [KeptDraft(outer), ...merged],
       if (merged != moved) next!.id: const [],
@@ -122,16 +124,23 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
 
 /// [moved] with its last list joined by [next], a list of its kind
 /// right after it, so they stay one list; [moved] itself otherwise.
-List<Draft> _mergedWithNext(List<Draft> moved, Block? next) =>
-    switch ((moved.lastOrNull, next)) {
-      (KeptDraft(block: final ListBlock last), final ListBlock next)
-          when last.kind == next.kind =>
-        [
-          ...moved.take(moved.length - 1),
-          ListDraft.of(last, [...kept(last.items), ...kept(next.items)]),
-        ],
-      _ => moved,
-    };
+/// [next]'s items in [gone] go or moved elsewhere.
+List<Draft> _mergedWithNext(
+  List<Draft> moved,
+  Block? next,
+  Set<BlockId> gone,
+) => switch ((moved.lastOrNull, next)) {
+  (KeptDraft(block: final ListBlock last), final ListBlock next)
+      when last.kind == next.kind =>
+    [
+      ...moved.take(moved.length - 1),
+      ListDraft.of(last, [
+        ...kept(last.items),
+        ...kept(next.items.where((item) => !gone.contains(item.id))),
+      ]),
+    ],
+  _ => moved,
+};
 
 /// The leaf [row] shows; `null` for an item's own place or a gap.
 BlockId? _leafOf(Row row) => switch (row) {

@@ -1,0 +1,254 @@
+import 'package:collection/collection.dart';
+
+import '../../tree/blocks.dart';
+import '../../write/draft.dart';
+import '../commit.dart';
+import '../shown/rows.dart';
+import '../shown/selection.dart';
+import '../shown/shown_note.dart';
+import '../shown/slot.dart';
+import 'lifted_items.dart';
+import 'outline.dart';
+import 'text_commands.dart';
+
+/// The frames the toolbar and shortcuts set.
+enum FrameKind { checkbox, bullet, numbered, quote }
+
+/// [kind] set on what [selection] covers, or taken off where all of it
+/// has it already. A box is per item; bullet or numbered is per list,
+/// the whole list changing kind; text not in a list becomes items of a
+/// new list (joining a list of that kind right before or after it); a
+/// quote wraps the blocks, in a list the items' text.
+Edit setFrame(ShownNote note, TextSelection selection, FrameKind kind) {
+  final rows = _selectedRows(note, selection);
+  final fresh = note.tree.freshBlockIds.iterator;
+  final replaced = switch (kind) {
+    FrameKind.quote => _quote(note, rows, fresh),
+    FrameKind.checkbox => _boxes(note, rows, fresh),
+    FrameKind.bullet => _listKind(note, rows, ListKind.bullet, fresh),
+    FrameKind.numbered => _listKind(note, rows, ListKind.numbered, fresh),
+  };
+  return Edit(replaced: replaced, selection: selection);
+}
+
+/// The text rows [selection] covers, in order.
+List<TextRow> _selectedRows(ShownNote note, TextSelection selection) {
+  final (start, end) = ordered(note, selection);
+  return note.rows
+      .sublist(note.rowOf(start.slot)!, note.rowOf(end.slot)! + 1)
+      .whereType<TextRow>()
+      .toList();
+}
+
+/// The item [row] is the text of; `null` if it is none's.
+ItemBlock? _itemOf(Row row) => switch (row.path.lastOrNull) {
+  final ItemBlock item => item,
+  _ => null,
+};
+
+/// The leaf [row] shows; `null` for an item's place or a gap.
+LeafBlock? _leafOf(ShownNote note, TextRow row) => switch (row.slot) {
+  LeafSlot(:final leaf) => note.tree.blockOf(leaf) as LeafBlock?,
+  _ => null,
+};
+
+/// The leaves of [rows] in no item: text that becomes items.
+List<LeafBlock> _freeLeaves(ShownNote note, List<TextRow> rows) => [
+  for (final row in rows)
+    if (_itemOf(row) == null) ?_leafOf(note, row),
+];
+
+List<ItemBlock> _items(List<TextRow> rows) =>
+    {for (final row in rows) ?_itemOf(row)}.toList();
+
+Map<BlockId, List<Draft>> _boxes(
+  ShownNote note,
+  List<TextRow> rows,
+  Iterator<BlockId> fresh,
+) {
+  final items = _items(rows);
+  final free = _freeLeaves(note, rows);
+  final off = free.isEmpty && items.every((item) => item.hasBox);
+  return {
+    for (final item in items)
+      if (off || !item.hasBox)
+        item.id: [
+          ItemDraft(
+            item.id,
+            kept(item.children),
+            checked: off ? null : false,
+            from: item,
+          ),
+        ],
+    ..._newLists(note, free, ListKind.bullet, fresh, checked: false),
+  };
+}
+
+Map<BlockId, List<Draft>> _listKind(
+  ShownNote note,
+  List<TextRow> rows,
+  ListKind kind,
+  Iterator<BlockId> fresh,
+) {
+  final items = _items(rows);
+  final free = _freeLeaves(note, rows);
+  final lists = {
+    for (final item in items) note.tree.parentOf(item)! as ListBlock,
+  };
+  if (free.isEmpty && lists.every((list) => list.kind == kind)) {
+    final lifted = {for (final item in items) item.id};
+    return {for (final list in lists) list.id: liftedOut(list, lifted, fresh)};
+  }
+  return {
+    for (final list in lists)
+      if (list.kind != kind)
+        list.id: [
+          ListDraft(
+            list.id,
+            kept(list.items),
+            kind: kind,
+            loose: list.loose,
+            from: list,
+          ),
+        ],
+    ..._newLists(note, free, kind, fresh),
+  };
+}
+
+/// [leaves] as items of new lists of [kind], one per run of neighbors in
+/// a container, each joining a list of that kind right before or after
+/// it; the items' boxes [checked] if given.
+Map<BlockId, List<Draft>> _newLists(
+  ShownNote note,
+  List<LeafBlock> leaves,
+  ListKind kind,
+  Iterator<BlockId> fresh, {
+  bool? checked,
+}) {
+  final tree = note.tree;
+  final runs = leaves.splitBetween(
+    (a, b) =>
+        tree.parentOf(a) != tree.parentOf(b) ||
+        blockBefore(tree.parentOf(b)!, b)?.id != a.id,
+  );
+  return {
+    for (final run in runs)
+      ..._newList(note, run, kind, fresh, checked: checked),
+  };
+}
+
+Map<BlockId, List<Draft>> _newList(
+  ShownNote note,
+  List<LeafBlock> run,
+  ListKind kind,
+  Iterator<BlockId> fresh, {
+  required bool? checked,
+}) {
+  final container = note.tree.parentOf(run.first)!;
+  final children = container.children;
+  final index = children.indexOf(run.first);
+  final before = index > 0 ? children[index - 1] : null;
+  final after = children.elementAtOrNull(index + run.length);
+  final items = [
+    for (final leaf in run)
+      ItemDraft((fresh..moveNext()).current, [
+        KeptDraft(leaf),
+      ], checked: checked),
+  ];
+  return switch ((before, after)) {
+    (final ListBlock list, _) when list.kind == kind => {
+      list.id: [
+        ListDraft.of(list, [...kept(list.items), ...items]),
+      ],
+      for (final leaf in run) leaf.id: const [],
+    },
+    (_, final ListBlock list) when list.kind == kind => {
+      list.id: [
+        ListDraft.of(list, [...items, ...kept(list.items)]),
+      ],
+      for (final leaf in run) leaf.id: const [],
+    },
+    _ => {
+      run.first.id: [
+        ListDraft((fresh..moveNext()).current, items, kind: kind, loose: false),
+      ],
+      for (final leaf in run.skip(1)) leaf.id: const [],
+    },
+  };
+}
+
+Map<BlockId, List<Draft>> _quote(
+  ShownNote note,
+  List<TextRow> rows,
+  Iterator<BlockId> fresh,
+) {
+  final tree = note.tree;
+  final quoted = rows.where(
+    (row) =>
+        row.path.whereNot((block) => block is ListBlock).lastOrNull
+            is QuoteBlock,
+  );
+  if (rows.isNotEmpty && quoted.length == rows.length) {
+    // Each row's block goes one level out of its innermost quote.
+    final byQuote = groupBy(
+      rows,
+      (row) => row.path.lastWhere((block) => block is QuoteBlock) as QuoteBlock,
+    );
+    return {
+      for (final MapEntry(key: quote, value: rows) in byQuote.entries)
+        quote.id: _outOf(quote, {
+          for (final row in rows) ?_childOn(note, quote, row),
+        }, fresh),
+    };
+  }
+  final items = _items(rows);
+  final free = _freeLeaves(note, rows);
+  final runs = free.splitBetween(
+    (a, b) =>
+        tree.parentOf(a) != tree.parentOf(b) ||
+        blockBefore(tree.parentOf(b)!, b)?.id != a.id,
+  );
+  return {
+    for (final item in items)
+      item.id: [
+        ItemDraft.of(item, [
+          QuoteDraft(
+            (fresh..moveNext()).current,
+            kept(item.children.takeWhile((child) => child is! ListBlock)),
+          ),
+          ...kept(item.children.skipWhile((child) => child is! ListBlock)),
+        ]),
+      ],
+    for (final run in runs) ...{
+      run.first.id: [QuoteDraft((fresh..moveNext()).current, kept(run))],
+      for (final leaf in run.skip(1)) leaf.id: const [],
+    },
+  };
+}
+
+/// [quote]'s blocks with the [lifted] ones out of it, between the parts
+/// of the quote around them; the first part keeps the quote's id.
+List<Draft> _outOf(
+  QuoteBlock quote,
+  Set<BlockId> lifted,
+  Iterator<BlockId> fresh,
+) {
+  final runs = quote.children
+      .splitBetween((a, b) => lifted.contains(a.id) || lifted.contains(b.id))
+      .toList();
+  final keeping = runs.indexWhere((run) => !lifted.contains(run.first.id));
+  return [
+    for (final (index, run) in runs.indexed)
+      if (lifted.contains(run.first.id))
+        ...kept(run)
+      else if (index == keeping)
+        QuoteDraft.of(quote, kept(run))
+      else
+        QuoteDraft((fresh..moveNext()).current, kept(run)),
+  ];
+}
+
+/// The child of [quote] that [row] shows in; `null` for a gap.
+BlockId? _childOn(ShownNote note, QuoteBlock quote, TextRow row) =>
+    row.path.skipWhile((block) => block != quote).skip(1).firstOrNull?.id ??
+    _leafOf(note, row)?.id;
