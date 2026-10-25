@@ -135,7 +135,8 @@ _KindChange _listKind(
 
 /// [leaves] as items of new lists of [kind], one per run of neighbors in
 /// a container, each joining a list of that kind right before or after
-/// it; the items' boxes [checked] if given.
+/// it (a list may take runs on both sides); the items' boxes [checked]
+/// if given.
 Map<BlockId, List<Draft>> _newLists(
   ShownNote note,
   List<LeafBlock> leaves,
@@ -144,55 +145,81 @@ Map<BlockId, List<Draft>> _newLists(
   bool? checked,
 }) {
   final tree = note.tree;
-  final runs = leaves.splitBetween(
-    (a, b) =>
-        tree.parentOf(a) != tree.parentOf(b) ||
-        blockBefore(tree.parentOf(b)!, b)?.id != a.id,
+  final runs = leaves
+      .splitBetween(
+        (a, b) =>
+            tree.parentOf(a) != tree.parentOf(b) ||
+            blockBefore(tree.parentOf(b)!, b)?.id != a.id,
+      )
+      .map((run) => _runOf(note, run, kind, fresh, checked: checked))
+      .toList();
+  final joined = groupBy(
+    runs.where((run) => run.joins != null),
+    (run) => run.joins!,
   );
   return {
-    for (final run in runs)
-      ..._newList(note, run, kind, fresh, checked: checked),
+    for (final run in runs) ...{
+      for (final leaf in run.leaves) leaf.id: const [],
+      if (run.joins == null)
+        run.leaves.first.id: [
+          ListDraft(
+            (fresh..moveNext()).current,
+            run.items,
+            kind: kind,
+            loose: false,
+          ),
+        ],
+    },
+    for (final MapEntry(key: list, value: runs) in joined.entries)
+      list.id: [
+        ListDraft.of(list, [
+          for (final run in runs)
+            if (run.first) ...run.items,
+          ...kept(list.items),
+          for (final run in runs)
+            if (!run.first) ...run.items,
+        ]),
+      ],
   };
 }
 
-Map<BlockId, List<Draft>> _newList(
+/// A run of neighbor [leaves] becoming [items]: of the list of their
+/// kind it [joins], [first] if right before it; `null` for a new list.
+typedef _Run = ({
+  List<LeafBlock> leaves,
+  List<ItemDraft> items,
+  ListBlock? joins,
+  bool first,
+});
+
+_Run _runOf(
   ShownNote note,
-  List<LeafBlock> run,
+  List<LeafBlock> leaves,
   ListKind kind,
   Iterator<BlockId> fresh, {
   required bool? checked,
 }) {
-  final container = note.tree.parentOf(run.first)!;
-  final children = container.children;
-  final index = children.indexOf(run.first);
-  final before = index > 0 ? children[index - 1] : null;
-  final after = children.elementAtOrNull(index + run.length);
-  final items = [
-    for (final leaf in run)
-      ItemDraft((fresh..moveNext()).current, [
-        KeptDraft(leaf),
-      ], checked: checked),
-  ];
-  return switch ((before, after)) {
-    (final ListBlock list, _) when list.kind == kind => {
-      list.id: [
-        ListDraft.of(list, [...kept(list.items), ...items]),
-      ],
-      for (final leaf in run) leaf.id: const [],
-    },
-    (_, final ListBlock list) when list.kind == kind => {
-      list.id: [
-        ListDraft.of(list, [...items, ...kept(list.items)]),
-      ],
-      for (final leaf in run) leaf.id: const [],
-    },
-    _ => {
-      run.first.id: [
-        ListDraft((fresh..moveNext()).current, items, kind: kind, loose: false),
-      ],
-      for (final leaf in run.skip(1)) leaf.id: const [],
-    },
+  final children = note.tree.parentOf(leaves.first)!.children;
+  final index = children.indexOf(leaves.first);
+  final (joins, first) = switch ((
+    index > 0 ? children[index - 1] : null,
+    children.elementAtOrNull(index + leaves.length),
+  )) {
+    (final ListBlock list, _) when list.kind == kind => (list, false),
+    (_, final ListBlock list) when list.kind == kind => (list, true),
+    _ => (null, false),
   };
+  return (
+    leaves: leaves,
+    items: [
+      for (final leaf in leaves)
+        ItemDraft((fresh..moveNext()).current, [
+          KeptDraft(leaf),
+        ], checked: checked),
+    ],
+    joins: joins,
+    first: first,
+  );
 }
 
 Map<BlockId, List<Draft>> _quote(

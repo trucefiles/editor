@@ -56,6 +56,11 @@ void main() {
     test('makes text items, joining a list of its kind', () {
       expect(_framed('a', FrameKind.bullet), '- a');
       expect(_framed('- a\n\nb', FrameKind.bullet, 1), '- a\n- b');
+      expect(
+        _framed('a\n\n- b\n\nc', FrameKind.bullet, 0, 2),
+        '- a\n- b\n- c',
+        reason: 'a list takes text on both sides',
+      );
     });
   });
 
