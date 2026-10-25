@@ -3,6 +3,7 @@
 library;
 
 import '../../tree/blocks.dart';
+import 'block_starts.dart';
 
 /// One cell of a table row: its [text] without pipes and surrounding
 /// spaces, from [start] to [end] in the row.
@@ -52,3 +53,10 @@ CellAlignment alignmentOf(String cell) =>
       (false, true) => CellAlignment.right,
       (false, false) => CellAlignment.none,
     };
+
+/// Whether [row] is a table's delimiter row under [header], a paragraph's
+/// last line (both without indent), which it makes the table's header.
+bool startsTable(String header, String row) =>
+    tableDelimiterRow.hasMatch(row) &&
+    (header.contains('|') || row.contains('|')) &&
+    splitTableRow(header).length == splitTableRow(row).length;

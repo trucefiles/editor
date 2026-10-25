@@ -2,8 +2,10 @@ import 'package:collection/collection.dart';
 
 import 'lines/line.dart';
 import 'lines/line_change.dart';
+import 'read/block_freezer.dart';
 import 'read/note_reading.dart';
 import 'tree/blocks.dart';
+import 'tree/note_style.dart';
 
 /// A note: its lines as in the file, and the block tree read from them.
 ///
@@ -46,8 +48,25 @@ final class NoteTree implements EarlierReading {
 
   String get text => lines.map((line) => line.text).join('\n');
 
+  /// How the note writes what it holds, for new content.
+  late final NoteStyle style = NoteStyle.of(root);
+
+  /// Ids no block of this note or the notes it was changed from has, in
+  /// the order new blocks take them.
+  Iterable<BlockId> get freshBlockIds sync* {
+    for (var id = _nextBlockId; ; id++) {
+      yield BlockId(id);
+    }
+  }
+
   /// This note with [change] made; a note keeps at least one line.
-  NoteTree changed(LineChange change) {
+  /// Blocks read anew from its lines take their [planned] ids, by kind
+  /// and line (index among the changed note's lines): ids of its blocks,
+  /// or the first of its [freshBlockIds].
+  NoteTree changed(
+    LineChange change, {
+    Map<(BlockKind, int), List<BlockId>> planned = const {},
+  }) {
     assert(
       change.lines.isNotEmpty || change.end - change.start < lines.length,
       'a change leaves a note without lines',
@@ -70,10 +89,29 @@ final class NoteTree implements EarlierReading {
         start: change.start,
         end: change.end,
         count: added.length,
-        nextBlockId: _nextBlockId,
+        nextBlockId: _nextBlockId + _freshTaken(planned),
+        planned: {
+          for (final MapEntry(key: (kind, index), :value) in planned.entries)
+            (kind, newLines[index].id): value,
+        },
       ),
       nextLineId,
     );
+  }
+
+  /// How many of the [freshBlockIds] [planned] takes.
+  int _freshTaken(Map<(BlockKind, int), List<BlockId>> planned) {
+    final ids = planned.values.flattened.toSet();
+    final taken =
+        freshBlockIds.take(ids.length).toList().lastIndexWhere(ids.contains) +
+        1;
+    assert(
+      ids.every(
+        (id) => blockOf(id) != null || freshBlockIds.take(taken).contains(id),
+      ),
+      'planned ids are the note\'s or fresh ones',
+    );
+    return taken;
   }
 
   /// This note with [text] instead, e.g. after it changed elsewhere: the
@@ -135,6 +173,9 @@ final class NoteTree implements EarlierReading {
 
   @override
   List<PlacedBlock> startsAt(LineId id) => _places.starts[id] ?? const [];
+
+  @override
+  List<Block> firstAt(LineId id) => _places.firsts[id] ?? const [];
 }
 
 /// Where every block of a tree is, found in one walk.
@@ -146,11 +187,16 @@ final class _Places {
   final int Function(LineId id) _indexOf;
   final byId = <BlockId, PlacedBlock>{};
   final starts = <LineId, List<PlacedBlock>>{};
+  final firsts = <LineId, List<Block>>{};
 
   void _walk(Block block, List<ContainerBlock> path, {required bool starts}) {
     final placed = (block: block, path: path);
     byId[block.id] = placed;
-    if (starts) (this.starts[lineSpanOf(block).first] ??= []).add(placed);
+    if (block is! RootBlock) {
+      final first = lineSpanOf(block).first;
+      if (starts) (this.starts[first] ??= []).add(placed);
+      (firsts[first] ??= []).add(block);
+    }
     if (block is ContainerBlock) {
       final inner = [...path, block];
       for (final (index, child) in block.children.indexed) {

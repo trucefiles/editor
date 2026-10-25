@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:truce_core/src/note/lines/line_change.dart';
 import 'package:truce_core/src/note/note_tree.dart';
+import 'package:truce_core/src/note/read/block_freezer.dart';
 import 'package:truce_core/src/note/tree/blocks.dart';
 
 import '../spec/spec_examples.dart';
@@ -52,6 +53,26 @@ void main() {
       expect(items.skip(11), list.items.skip(11));
       expect(items.take(9), list.items.take(9));
       expect(items[10].id, list.items[10].id);
+    });
+
+    test('keeps the id of text read after link definitions', () {
+      final tree = NoteTree.read('[a]: /url\nbar\n');
+      final paragraph = tree.root.children.last;
+      final changed = tree.changed(LineChange(2, 3, [(id: null, text: 'x')]));
+      expect(changed.root.children[1].id, paragraph.id);
+    });
+
+    test('takes planned ids for blocks read anew', () {
+      final tree = NoteTree.read('a');
+      final fresh = tree.freshBlockIds.first;
+      final changed = tree.changed(
+        LineChange(0, 1, [(id: tree.lines.first.id, text: '# a')]),
+        planned: {
+          (BlockKind.heading, 0): [fresh],
+        },
+      );
+      expect(changed.root.children.single.id, fresh);
+      expect(changed.freshBlockIds.first, isNot(fresh));
     });
 
     test('keeps the ids of the lines it keeps', () {

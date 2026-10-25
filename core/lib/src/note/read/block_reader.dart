@@ -486,14 +486,12 @@ final class _Reader {
   /// A table's delimiter row below the last line of [paragraph], whose
   /// cells it matches: that line becomes the table's header.
   bool _startsTable(OpenParagraph paragraph, String rest) {
-    if (!tableDelimiterRow.hasMatch(rest)) return false;
     final headerLine = paragraph.lines.last;
     final header = _lines[headerLine.index].text.substring(
       headerLine.contentStart,
     );
+    if (!startsTable(header, rest)) return false;
     final delimiters = splitTableRow(rest);
-    if (!header.contains('|') && !rest.contains('|')) return false;
-    if (splitTableRow(header).length != delimiters.length) return false;
     _closeUnmatched();
     paragraph.lines.removeLast();
     final parent = paragraph.parent!;
@@ -684,7 +682,11 @@ final class _Reader {
   /// An indented code block ends at its last line that is not blank.
   void _dropTrailingBlanks(OpenCode code) {
     while (code.lines.length > 1 &&
-        isBlankText(_lines[code.lines.last.index].text)) {
+        isBlankText(
+          _lines[code.lines.last.index].text.substring(
+            code.lines.last.contentStart,
+          ),
+        )) {
       code.lines.removeLast();
     }
   }

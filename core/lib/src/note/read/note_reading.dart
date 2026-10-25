@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../lines/line.dart';
 import '../tree/blocks.dart';
 import 'block_freezer.dart';
@@ -23,6 +25,10 @@ abstract interface class EarlierReading {
   /// before it (text after link definitions, a table after text) starts
   /// at none.
   List<PlacedBlock> startsAt(LineId id);
+
+  /// Every block whose first line is [id], outermost first, those read
+  /// from the same paragraph as the block before them too.
+  List<Block> firstAt(LineId id);
 }
 
 /// A reading of lines: the [root] read and the link [definitions] by
@@ -32,6 +38,10 @@ typedef NoteReading = ({
   Map<String, LinkDefinition> definitions,
   int nextBlockId,
 });
+
+/// Ids that blocks read anew take, by kind and first line, outermost
+/// first where blocks of one kind start at one line.
+typedef PlannedIds = Map<(BlockKind, LineId), List<BlockId>>;
 
 /// Reads all of [lines]; new blocks get ids from [nextBlockId] on.
 NoteReading readNote(List<Line> lines, {int nextBlockId = 0}) {
@@ -58,9 +68,9 @@ NoteReading readNote(List<Line> lines, {int nextBlockId = 0}) {
 /// Reads [lines], which are [old]'s lines with those from [start] to
 /// [end] replaced by [count] lines, by reading only from the block before
 /// the change until the reading lines up with the earlier one again; the
-/// rest is kept. Blocks read anew take the ids of the earlier blocks
-/// they replace, by kind and first line; others get ids from
-/// [nextBlockId] on. Reads as [readNote] would.
+/// rest is kept. Blocks read anew take their [planned] ids, else the ids
+/// of the earlier blocks they replace, by kind and first line; others get
+/// ids from [nextBlockId] on. Reads as [readNote] would.
 NoteReading rereadNote(
   EarlierReading old,
   List<Line> lines, {
@@ -68,10 +78,11 @@ NoteReading rereadNote(
   required int end,
   required int count,
   required int nextBlockId,
+  PlannedIds planned = const {},
 }) {
   final shift = start + count - end;
   if (_frontMatterMayChange(old, lines, start, start + count)) {
-    return _readAnew(old, lines, nextBlockId);
+    return _readAnew(old, lines, nextBlockId, planned);
   }
   final resume = _resumePoint(old, start);
   int lineIndex(LineId id) {
@@ -87,8 +98,10 @@ NoteReading rereadNote(
   );
   final stopOld = stoppedAt == null ? old.lines.length : stoppedAt - shift;
   final ids = _Ids(nextBlockId);
-  final inherited = <BlockId>{};
+  final plan = _Plan(planned);
+  final inherited = plan.ids;
   BlockId newId(BlockKind kind, LineId firstLine) {
+    if (plan.take(kind, firstLine) case final id?) return id;
     final earlier = _earlierBlock(
       old,
       kind,
@@ -117,14 +130,20 @@ NoteReading rereadNote(
   if (_sameDefinitions(definitions, old.definitions)) {
     return (root: frozen, definitions: definitions, nextBlockId: ids.next);
   }
-  return _readAnew(old, lines, ids.next);
+  return _readAnew(old, lines, ids.next, planned);
 }
 
-/// A whole read of [lines] whose blocks take the ids of [old]'s blocks
-/// by kind and first line.
-NoteReading _readAnew(EarlierReading old, List<Line> lines, int nextBlockId) {
+/// A whole read of [lines] whose blocks take their [planned] ids, else
+/// the ids of [old]'s blocks by kind and first line.
+NoteReading _readAnew(
+  EarlierReading old,
+  List<Line> lines,
+  int nextBlockId,
+  PlannedIds planned,
+) {
   final ids = _Ids(nextBlockId);
-  final taken = <BlockId>{};
+  final plan = _Plan(planned);
+  final taken = plan.ids;
   final indexes = {for (final (index, line) in lines.indexed) line.id: index};
   final (:root, stoppedAt: _) = readOpenBlocks(
     lines,
@@ -132,6 +151,7 @@ NoteReading _readAnew(EarlierReading old, List<Line> lines, int nextBlockId) {
   );
   final definitions = _byLabel(definitionsRead(root));
   BlockId newId(BlockKind kind, LineId firstLine) {
+    if (plan.take(kind, firstLine) case final id?) return id;
     final earlier = _earlierBlock(
       old,
       kind,
@@ -260,16 +280,15 @@ BlockId? _earlierBlock(
   required int to,
   required Set<BlockId> taken,
 }) {
-  final starts = old.startsAt(firstLine);
-  if (starts.isEmpty) return null;
+  final blocks = old.firstAt(firstLine);
+  if (blocks.isEmpty) return null;
   final index = old.indexOf(firstLine);
   if (index < from || index >= to) return null;
-  for (final (:block, path: _) in starts) {
-    if (BlockKind.of(block) == kind && !taken.contains(block.id)) {
-      return block.id;
-    }
-  }
-  return null;
+  return blocks
+      .firstWhereOrNull(
+        (block) => BlockKind.of(block) == kind && !taken.contains(block.id),
+      )
+      ?.id;
 }
 
 /// Whether [old] has link definitions starting between lines [from] and
@@ -308,6 +327,25 @@ bool _sameDefinitions(
 ) =>
     a.length == b.length &&
     a.entries.every((entry) => b[entry.key] == entry.value);
+
+/// Hands out planned ids in order; [ids] are all of them, which no
+/// other block may take.
+final class _Plan {
+  _Plan(PlannedIds planned)
+    : _left = {
+        for (final MapEntry(:key, :value) in planned.entries) key: [...value],
+      },
+      ids = {for (final ids in planned.values) ...ids};
+
+  final Map<(BlockKind, LineId), List<BlockId>> _left;
+  final Set<BlockId> ids;
+
+  BlockId? take(BlockKind kind, LineId firstLine) =>
+      switch (_left[(kind, firstLine)]) {
+        final left? when left.isNotEmpty => left.removeAt(0),
+        _ => null,
+      };
+}
 
 /// Hands out fresh block ids.
 final class _Ids {

@@ -16,8 +16,16 @@ enum TextLines {
   atxHeading,
 }
 
+/// How a line of text is written after its containers' parts: its own
+/// [indent], and whether it is [lazy], lacking some containers' marks,
+/// where only a block that interrupts a paragraph would end it.
+typedef LineLead = ({String indent, bool lazy});
+
+const _noLead = (indent: '', lazy: false);
+
 /// The source of [tokens] with the escapes that make it read as [text]
-/// (with [definitions]): the one escaping rule. `null` if no escapes do,
+/// (with [definitions]), its lines written after [leads]: the one
+/// escaping rule. `null` if no escapes do,
 /// which only text whose spans cannot be written comes to.
 ///
 /// A character is escaped only where it would otherwise change meaning:
@@ -32,6 +40,7 @@ String? escapedSource(
   VisibleText text, {
   required TextLines lines,
   required Map<String, LinkDefinition> definitions,
+  List<LineLead> leads = const [],
 }) {
   bool readsRight(String source) =>
       visibleTextOf(readInlineText(source, definitions: definitions))
@@ -39,7 +48,7 @@ String? escapedSource(
 
   var current = _leadingSpaceKept(tokens);
   for (var round = 0; round < _rounds; round++) {
-    current = _lineStartsEscaped(current, lines);
+    current = _lineStartsEscaped(current, lines, leads);
     final source = sourceOf(current);
     if (readsRight(source)) return source;
     final misread = _misread(
@@ -63,6 +72,7 @@ String? escapedSource(
             index,
       }),
       lines,
+      leads,
     );
     final source = sourceOf(escaped);
     if (readsRight(source)) return source;
@@ -83,21 +93,25 @@ List<Token> _leadingSpaceKept(List<Token> tokens) => switch (tokens) {
   _ => tokens,
 };
 
-/// [tokens] with the line starts escaped that would start a block, and
-/// for a heading the end that would read as closing marks.
-List<Token> _lineStartsEscaped(List<Token> tokens, TextLines lines) {
+/// [tokens] with the line starts escaped that would start a block after
+/// their [leads], and for a heading the end that would read as closing
+/// marks.
+List<Token> _lineStartsEscaped(
+  List<Token> tokens,
+  TextLines lines,
+  List<LineLead> leads,
+) {
   final starts = _startsOf(tokens);
   final source = sourceOf(tokens);
   final escapes = switch (lines) {
     TextLines.atxHeading => [?headingEndEscapeAt(source)],
     TextLines.paragraph => [
-      for (final lineStart in _lineStarts(source))
-        if (lineStartEscapeAt(
-              source.substring(lineStart, _lineEnd(source, lineStart)),
-              first: lineStart == 0,
-            )
-            case final at?)
-          lineStart + at,
+      for (final (index, lineStart) in _lineStarts(source).indexed)
+        ?_lineEscapeAt(
+          source,
+          lineStart,
+          leads.elementAtOrNull(index) ?? _noLead,
+        ),
     ],
   };
   return _escaped(tokens, {
@@ -107,6 +121,25 @@ List<Token> _lineStartsEscaped(List<Token> tokens, TextLines lines) {
         index,
   });
 }
+
+/// The offset in [source] of the escape that the line at [start] needs
+/// after [lead]; `null` if it needs none.
+int? _lineEscapeAt(String source, int start, LineLead lead) =>
+    switch (lineStartEscapeAt(
+      '${lead.indent}${source.substring(start, _lineEnd(source, start))}',
+      first: start == 0,
+      lazy: lead.lazy,
+      previous: start == 0
+          ? null
+          : source.substring(_lineStart(source, start - 1), start - 1),
+    )) {
+      final at? => start + at - lead.indent.length,
+      null => null,
+    };
+
+/// Where the line holding [offset] starts in [source].
+int _lineStart(String source, int offset) =>
+    offset == 0 ? 0 : source.lastIndexOf('\n', offset - 1) + 1;
 
 Iterable<int> _lineStarts(String source) => [
   0,

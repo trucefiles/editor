@@ -92,6 +92,12 @@ void main() {
       expect(tree.indexOf(quote.lastLine), 1);
     });
 
+    test('indented code without the blank `>` lines after it', () {
+      final tree = NoteTree.read('>     code\n>\n> text');
+      final code = tree.leaves.first as CodeBlock;
+      expect([for (final line in code.lines) line.text], ['>     code']);
+    });
+
     test('numbering', () {
       ListBlock list(String text) =>
           NoteTree.read(text).root.children.single as ListBlock;
