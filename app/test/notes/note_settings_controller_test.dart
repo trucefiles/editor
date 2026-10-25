@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/common/moment.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/editor/checked_items.dart';
 import 'package:truce_editor/editor/note_mode.dart';

@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../common/busy_guard.dart';
-import '../common/moment.dart';
 import '../editor/note_text.dart';
 import 'note.dart';
 import 'note_drafts.dart';
