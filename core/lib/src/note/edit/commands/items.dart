@@ -1,9 +1,6 @@
-import 'package:collection/collection.dart';
-
 import '../../tree/blocks.dart';
 import '../../write/draft.dart';
 import '../commit.dart';
-import '../shown/rows.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
 import '../shown/slot.dart';
@@ -27,24 +24,9 @@ Edit toggle(ShownNote note, ItemBlock item, Selection selection) => Edit(
 /// text shown, else at the end of the one above.
 Edit deleteItem(ShownNote note, ItemBlock item) {
   final list = note.tree.parentOf(item)! as ListBlock;
-  final rows = note.rows;
-  final inside = {for (final id in idsIn(item)) id};
-  bool shown(Row row) =>
-      row is TextRow && !row.path.any((block) => inside.contains(block.id));
-  final first = rows.indexWhere(
-    (row) => row.path.any((block) => block.id == item.id),
-  );
-  final after = rows.skip(first).firstWhereOrNull(shown);
-  final before = rows.take(first).lastWhereOrNull(shown);
   return Edit(
     replaced: {list.id: listWith(list, itemsWithout(list, item))},
-    selection: switch ((after, before)) {
-      (TextRow(:final slot), _) => TextSelection.caret(Place(slot, 0)),
-      (_, TextRow(:final slot)) => TextSelection.caret(
-        Place(slot, note.textOf(slot).length),
-      ),
-      _ => const TextSelection.caret(Place(GapSlot(GapId.end), 0)),
-    },
+    selection: caretOnceGone(note, {...idsIn(item)}),
   );
 }
 

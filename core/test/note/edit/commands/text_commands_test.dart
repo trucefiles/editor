@@ -106,7 +106,10 @@ void main() {
 
   test('a line break at the end shows until text follows it', () {
     final note = _note('a');
-    final broken = run(note, LineBreak(Place(_slot(note, 0), 1))).note;
+    final broken = run(
+      note,
+      LineBreak(TextSelection.caret(Place(_slot(note, 0), 1))),
+    ).note;
     expect(broken.tree.text, 'a');
     expect(_shown(broken), ['a\n']);
     expect(_type(broken, 0, 2, 'b').note.tree.text, 'a\\\nb');

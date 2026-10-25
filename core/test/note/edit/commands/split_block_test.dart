@@ -25,7 +25,8 @@ List<String> _shown(ShownNote note) => [
   ShownNote note,
   int row,
   int offset,
-) => run(note, SplitBlock(Place(_slot(note, row), offset)));
+) =>
+    run(note, SplitBlock(TextSelection.caret(Place(_slot(note, row), offset))));
 
 void main() {
   test('Enter in a paragraph starts a new one with the text after it', () {
@@ -55,10 +56,7 @@ void main() {
 
   test('Enter twice shows two empty paragraphs in order', () {
     final once = _enter(_note('a'), 0, 1);
-    final twice = run(
-      once.note,
-      SplitBlock((once.selection as TextSelection).extent),
-    );
+    final twice = run(once.note, SplitBlock(once.selection as TextSelection));
     expect(_shown(twice.note), ['a', '', '']);
     expect(
       twice.selection,
@@ -107,5 +105,27 @@ void main() {
       _enter(_note('```\nab\n```'), 0, 1).note.tree.text,
       '```\na\nb\n```',
     );
+  });
+
+  test('Enter over a selection splits where its text was', () {
+    final note = _note('abcd');
+    final edited = run(
+      note,
+      SplitBlock(
+        TextSelection(Place(_slot(note, 0), 1), Place(_slot(note, 0), 3)),
+      ),
+    );
+    expect(edited.note.tree.text, 'a\n\nd');
+  });
+
+  test('Shift+Enter over a selection puts a line break for its text', () {
+    final note = _note('abcd');
+    final edited = run(
+      note,
+      LineBreak(
+        TextSelection(Place(_slot(note, 0), 1), Place(_slot(note, 0), 3)),
+      ),
+    );
+    expect(edited.note.tree.text, 'a\\\nd');
   });
 }

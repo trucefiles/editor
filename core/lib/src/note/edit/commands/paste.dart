@@ -2,6 +2,7 @@ import '../../visible/formatting.dart';
 import '../commit.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
+import 'over_range.dart';
 import 'split_block.dart';
 import 'text_commands.dart';
 
@@ -14,22 +15,17 @@ Edited paste(
   String text,
   Formatting formatting,
 ) {
-  final cleared = range.isCaret
-      ? (note: note, selection: range)
-      : commit(note, deleteRange(note, range));
   final lines = text.split(RegExp(r'\r\n?|\n'));
-  return lines.indexed.fold(cleared, (edited, entry) {
+  return lines.indexed.fold(cleared(note, range), (edited, entry) {
     final (index, line) = entry;
     final split = index == 0
         ? edited
-        : commit(edited.note, splitBlock(edited.note, _caret(edited)));
+        : commit(edited.note, splitBlock(edited.note, caretOf(edited)));
     return line.isEmpty
         ? split
         : commit(
             split.note,
-            insertText(split.note, _caret(split), line, formatting),
+            insertText(split.note, caretOf(split), line, formatting),
           );
   });
 }
-
-Place _caret(Edited edited) => (edited.selection as TextSelection).extent;

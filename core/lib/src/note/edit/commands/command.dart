@@ -12,7 +12,9 @@ import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
 import 'links.dart';
+import 'over_range.dart';
 import 'paste.dart';
+import 'remove_block.dart';
 import 'remove_frame.dart';
 import 'set_frame.dart';
 import 'split_block.dart';
@@ -69,18 +71,19 @@ final class DeleteRange extends EditCommand {
   final TextSelection range;
 }
 
-/// Puts a line break inside the text at [at].
-final class LineBreak extends EditCommand {
-  const LineBreak(this.at);
+/// Shift+Enter over [range]: its text replaced by a line break.
+final class LineBreak extends Command {
+  const LineBreak(this.range);
 
-  final Place at;
+  final TextSelection range;
 }
 
-/// Enter at [at]: splits the block there (see `splitBlock`).
-final class SplitBlock extends EditCommand {
-  const SplitBlock(this.at);
+/// Enter over [range]: its text removed, then the block split at the
+/// caret (see `splitBlock`).
+final class SplitBlock extends Command {
+  const SplitBlock(this.range);
 
-  final Place at;
+  final TextSelection range;
 }
 
 /// Backspace at [slot]'s start: its text joins the text place above.
@@ -149,6 +152,13 @@ final class DeleteItem extends EditCommand {
   const DeleteItem(this.item);
 
   final BlockId item;
+}
+
+/// Backspace or Delete on [block], a selected rule: it goes.
+final class RemoveBlock extends EditCommand {
+  const RemoveBlock(this.block);
+
+  final BlockId block;
 }
 
 /// The Add item button of [list]: a new empty item, last unless [first].
@@ -237,6 +247,8 @@ Edited run(ShownNote note, Command command) => switch (command) {
     text,
     formatting,
   ),
+  LineBreak(:final range) => overRange(note, range, lineBreak),
+  SplitBlock(:final range) => overRange(note, range, splitBlock),
   final EditCommand command => commit(note, _edit(note, command)),
 };
 
@@ -249,8 +261,6 @@ Edit _edit(ShownNote note, EditCommand command) => switch (command) {
   ),
   ReplaceText(:final range, :final text) => replaceText(note, range, text),
   DeleteRange(:final range) => deleteRange(note, range),
-  LineBreak(:final at) => lineBreak(note, at),
-  SplitBlock(:final at) => splitBlock(note, at),
   JoinWithPrevious(:final slot) => joinWithPrevious(note, slot),
   JoinWithNext(:final slot) => joinWithNext(note, slot),
   RemoveFrame(:final slot) => removeFrame(note, slot),
@@ -277,6 +287,10 @@ Edit _edit(ShownNote note, EditCommand command) => switch (command) {
     selection,
   ),
   DeleteItem(:final item) => deleteItem(note, _item(note, item)),
+  RemoveBlock(:final block) => removeBlock(
+    note,
+    note.tree.blockOf(block)! as LeafBlock,
+  ),
   AddItem(:final list, :final first) => addItem(
     note,
     note.tree.blockOf(list)! as ListBlock,
