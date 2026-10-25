@@ -29,6 +29,14 @@ List<OwnLine> keptLines(LeafBlock leaf) => [
     (old: line, own: line.text.substring(prefixEndOf(line)), newParts: false),
 ];
 
+/// Whether a heading of [level] whose text comes [from] leaves keeps
+/// their setext style: one setext heading of level 1 or 2 (an empty one
+/// is written ATX, as a setext heading cannot be empty).
+bool keepsSetext(int? level, List<TextLeaf> from) => switch ((level, from)) {
+  (1 || 2, [HeadingBlock(style: HeadingStyle.setext)]) => true,
+  _ => false,
+};
+
 /// The lines that write [draft] in [tree]: its text in place of its old
 /// leaves' text, as a paragraph, an ATX heading, or a setext heading if
 /// it was one at level 1 or 2. Its lines rewrite its old leaves' lines
@@ -43,10 +51,7 @@ List<OwnLine> textLines(
 }) {
   final from = draft.from;
   final level = draft.level;
-  final setext = switch ((level, from)) {
-    (1 || 2, [HeadingBlock(style: HeadingStyle.setext)]) => true,
-    _ => false,
-  };
+  final setext = keepsSetext(level, from) && draft.text.text.isNotEmpty;
   final atx = level != null && !setext;
   final olds = [for (final leaf in from) ...leaf.lines];
   final textOlds = setext ? olds.sublist(0, olds.length - 1) : olds;
@@ -216,11 +221,19 @@ List<OwnLine> codeLines(
   ];
 }
 
+/// Whether an indented code block can hold [code]: blank lines at its
+/// start or end, or none at all, would not read as its code.
+bool indentedCanHold(String code) {
+  final lines = code.split('\n');
+  return !isBlankText(lines.first) && !isBlankText(lines.last);
+}
+
 /// The lines that write [code] of [block], an indented code block, as a
-/// fenced one: as right after a block that would take it in.
+/// fenced one: as right after a block that would take it in, or where an
+/// indented one cannot hold it.
 /// Its code lines keep their old lines' ids.
 List<OwnLine> fencedCodeLines(CodeBlock block, String code) {
-  final lines = code.split('\n');
+  final lines = code.isEmpty ? const <String>[] : code.split('\n');
   final longest = lines
       .where((line) => line.length - line.trimLeft().length <= 3)
       .map((line) => RegExp('^`*').firstMatch(line.trimLeft())![0]!.length)

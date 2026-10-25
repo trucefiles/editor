@@ -79,6 +79,21 @@ void main() {
       expect(after.text, '# Title\n\ntext');
     });
 
+    test('a note without blocks gets its first at its first line', () {
+      for (final (note, expected) in [('', 'x'), ('\n', 'x\n')]) {
+        final tree = NoteTree.read(note);
+        expect(
+          written(
+            tree,
+            RootDraft(tree.root, [
+              TextDraft(tree.freshBlockIds.first, _plain('x')),
+            ]),
+          ).text,
+          expected,
+        );
+      }
+    });
+
     test('old blank lines between blocks stay', () {
       final tree = NoteTree.read('a\n\n\nb');
       final paragraph = tree.leaves.first as ParagraphBlock;
@@ -224,6 +239,26 @@ void main() {
       expect(_ids(after), _ids(tree));
     });
 
+    test('text in an empty item goes on its marker line', () {
+      final tree = NoteTree.read('- a\n-');
+      final list = tree.root.children.single as ListBlock;
+      final [first, empty] = list.items;
+      expect(
+        written(
+          tree,
+          RootDraft(tree.root, [
+            ListDraft.of(list, [
+              KeptDraft(first),
+              ItemDraft.of(empty, [
+                TextDraft(tree.freshBlockIds.first, _plain('b')),
+              ]),
+            ]),
+          ]),
+        ).text,
+        '- a\n- b',
+      );
+    });
+
     test('a new empty item keeps its box with a space', () {
       final tree = NoteTree.read('- [ ] a');
       final list = tree.root.children.single as ListBlock;
@@ -355,6 +390,20 @@ void main() {
         ).text,
         '- a\n```\ncode\n```',
       );
+    });
+
+    test('code an indented block cannot hold is fenced', () {
+      final tree = NoteTree.read('    code\n\na');
+      final [code, paragraph] = tree.root.children;
+      String rewritten(String text) => written(
+        tree,
+        RootDraft(tree.root, [
+          CodeDraft(code as CodeBlock, text),
+          KeptDraft(paragraph),
+        ]),
+      ).text;
+      expect(rewritten(''), '```\n```\n\na');
+      expect(rewritten('\nx'), '```\n\nx\n```\n\na');
     });
 
     test('an open fence moved above a block is closed', () {

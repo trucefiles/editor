@@ -83,15 +83,17 @@ String? escapedSource(
 
 const _rounds = 3;
 
-/// [tokens] with a leading space or tab, which the reader would take off,
-/// written as a character reference.
-List<Token> _leadingSpaceKept(List<Token> tokens) => switch (tokens) {
-  [CharToken(char: final char && (' ' || '\t')), ...final rest] => [
-    FixedToken(char == ' ' ? '&#32;' : '&#9;'),
-    ...rest,
-  ],
-  _ => tokens,
-};
+/// [tokens] with a space or tab at a line's start, which the reader
+/// would take off, written as a character reference.
+List<Token> _leadingSpaceKept(List<Token> tokens) => [
+  for (final (index, token) in tokens.indexed)
+    switch (token) {
+      CharToken(char: final char && (' ' || '\t'))
+          when index == 0 || tokens[index - 1].source.endsWith('\n') =>
+        FixedToken(char == ' ' ? '&#32;' : '&#9;'),
+      _ => token,
+    },
+];
 
 /// [tokens] with the line starts escaped that would start a block after
 /// their [leads], and for a heading the end that would read as closing

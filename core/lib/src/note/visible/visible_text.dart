@@ -158,8 +158,11 @@ final class VisibleText {
   int _pieceAt(int offset) =>
       (lowerBound(_starts, offset + 1) - 1).clamp(0, pieces.length - 1);
 
+  /// The piece the character at [offset] is in.
+  VisiblePiece pieceAt(int offset) => pieces[_pieceAt(offset)];
+
   /// The formatting of the character at [offset].
-  Formatting formattingAt(int offset) => pieces[_pieceAt(offset)].formatting;
+  Formatting formattingAt(int offset) => pieceAt(offset).formatting;
 
   /// The characters from [from] to [to].
   VisibleText slice(int from, int to) {

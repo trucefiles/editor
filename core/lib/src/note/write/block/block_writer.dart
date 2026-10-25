@@ -58,9 +58,18 @@ final class _BlockWriter {
 
   WrittenLines write(RootDraft draft) {
     final root = draft.root;
-    _edgeLines(root, leading: true);
-    _children(draft.children, old: root, spacing: Spacing.blocks);
-    _edgeLines(root, leading: false);
+    if (root.children.isEmpty && draft.children.isNotEmpty) {
+      // A note without blocks gets its first one at its first line; its
+      // other lines (a final line break) stay after it.
+      _children(draft.children, old: root, spacing: Spacing.blocks);
+      for (final line in tree.lines.skip(1)) {
+        _layoutLine(line, root);
+      }
+    } else {
+      _edgeLines(root, leading: true);
+      _children(draft.children, old: root, spacing: Spacing.blocks);
+      _edgeLines(root, leading: false);
+    }
     if (_lines.isEmpty) {
       _lines.add(_Line(_reuse(tree.lines.first.id), const [], ''));
     }
@@ -402,7 +411,7 @@ final class _BlockWriter {
         CodeDraft(:final from) => _ownLines(
           draft.id,
           BlockKind.code,
-          _joins(from, after)
+          _joins(from, after) || !from.fenced && !indentedCanHold(draft.code)
               ? fencedCodeLines(from, draft.code)
               : codeLines(draft, inPlace: _samePath(from), closed: !last),
         ),
@@ -591,9 +600,13 @@ final class _BlockWriter {
     );
     _plan(BlockKind.item, draft.id);
     _frames.add(frame);
-    final startsAsBefore = switch (draft.children.firstOrNull) {
-      final first? => oldStartOf(first)?.id == old?.children.firstOrNull?.id,
-      null => true,
+    final startsAsBefore = switch ((
+      draft.children.firstOrNull,
+      old?.children.firstOrNull,
+    )) {
+      (final first?, final oldFirst?) => oldStartOf(first)?.id == oldFirst.id,
+      (null, _) => true,
+      (_, null) => false,
     };
     if (old != null && startsAsBefore) {
       _edgeLines(old, leading: true);

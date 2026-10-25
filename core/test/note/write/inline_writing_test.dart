@@ -107,6 +107,14 @@ void main() {
       expect(_typed('# x'), r'\# x');
       expect(_typed('1. x'), r'1\. x');
       expect(_typed(' x'), '&#32;x');
+      expect(
+        _written(
+          'x',
+          (_) =>
+              VisibleText([TextPiece('a'), HardBreakPiece(), TextPiece(' b')]),
+        ),
+        'a\\\n&#32;b',
+      );
       expect(_typed('[a](b)'), r'\[a\]\(b\)');
     });
   });
