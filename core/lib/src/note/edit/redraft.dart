@@ -63,8 +63,11 @@ final class _Redraft {
 }
 
 /// [draft], a container's, with [children] instead; none for a list
-/// left without items.
+/// left without items or a quote left without blocks.
 List<Draft> _withChildren(Draft draft, List<Draft> children) => switch (draft) {
+  QuoteDraft(children: final before)
+      when children.isEmpty && before.isNotEmpty =>
+    const [],
   QuoteDraft(:final id, :final from) => [QuoteDraft(id, children, from: from)],
   ItemDraft(:final id, :final checked, :final from) => [
     ItemDraft(id, children, checked: checked, from: from),

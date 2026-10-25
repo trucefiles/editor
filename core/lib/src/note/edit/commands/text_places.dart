@@ -19,8 +19,10 @@ typedef TextChange = ({
 /// drafts right after it: a leaf takes the text (spelled as it or the
 /// leaves [joined] to it were); an item's own place or a gap writes a
 /// new paragraph once its text is one a leaf can hold (or once blocks
-/// follow it), taking an id from [fresh]; a gap in a list then splits
-/// the list around it. Until then they only show it.
+/// follow it, or it is a heading), taking an id from [fresh]; a gap in
+/// a list then splits the list around it. Until then they only show it.
+/// The text is a heading of [heading]'s level if given (`null` for a
+/// paragraph), else of the leaf's.
 TextChange withText(
   ShownNote note,
   Slot slot,
@@ -28,10 +30,13 @@ TextChange withText(
   Iterator<BlockId> fresh, {
   List<Draft> following = const [],
   List<TextLeaf> joined = const [],
+  ({int? level})? heading,
 }) {
   final tree = note.tree;
+  final level = heading?.level;
   if (slot is! LeafSlot &&
       following.isEmpty &&
+      level == null &&
       withoutTail(text).text.isEmpty) {
     return (replaced: const {}, gaps: null, tails: {slot: text}, slot: slot);
   }
@@ -45,7 +50,9 @@ TextChange withText(
               final TextLeaf old => TextDraft(
                 leaf,
                 text,
-                level: old is HeadingBlock ? old.level : null,
+                level: heading == null
+                    ? (old is HeadingBlock ? old.level : null)
+                    : level,
                 from: [old, ...joined],
               ),
               final CodeBlock old => CodeDraft(old, text.text),
@@ -69,7 +76,7 @@ TextChange withText(
         replaced: {
           item: [
             ItemDraft.of(block, [
-              TextDraft(id, text, from: joined),
+              TextDraft(id, text, level: level, from: joined),
               ...following,
               ...block.children.map(KeptDraft.new),
             ]),
@@ -83,7 +90,7 @@ TextChange withText(
       final id = next();
       return (
         replaced: _inserted(note, note.gapOf(gap)!, [
-          TextDraft(id, text, from: joined),
+          TextDraft(id, text, level: level, from: joined),
           ...following,
         ], fresh),
         gaps: [

@@ -39,12 +39,7 @@ Edit indent(ShownNote note, TextSelection selection) {
   final above = list.items[list.items.indexOf(item) - 1];
   return Edit(
     replaced: {
-      list.id: [
-        ListDraft.of(list, [
-          for (final other in list.items)
-            if (other.id != item.id) KeptDraft(other),
-        ]),
-      ],
+      list.id: listWith(list, itemsWithout(list, item)),
       above.id: [
         ItemDraft.of(above, switch (above.children.lastOrNull) {
           final ListBlock sublist => [
@@ -104,9 +99,7 @@ Edit outdent(ShownNote note, TextSelection selection) {
   };
   return Edit(
     replaced: {
-      list.id: [
-        if (index > 0) ListDraft.of(list, kept(list.items.take(index))),
-      ],
+      list.id: listWith(list, kept(list.items.take(index))),
       parent.id: [KeptDraft(parent), ItemDraft.of(item, children)],
     },
     selection: selection,

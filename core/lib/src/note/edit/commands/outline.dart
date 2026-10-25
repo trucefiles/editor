@@ -30,3 +30,14 @@ Row rowOfSlot(ShownNote note, Slot slot) => note.rows[note.rowOf(slot)!];
 
 /// The kept drafts of [blocks].
 List<Draft> kept(Iterable<Block> blocks) => [...blocks.map(KeptDraft.new)];
+
+/// [list] holding [items] instead: none if it holds none, so it goes.
+List<Draft> listWith(ListBlock list, List<Draft> items) => [
+  if (items.isNotEmpty) ListDraft.of(list, items),
+];
+
+/// [list]'s items but [item], kept.
+List<Draft> itemsWithout(ListBlock list, ItemBlock item) => [
+  for (final other in list.items)
+    if (other.id != item.id) KeptDraft(other),
+];

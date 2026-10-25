@@ -2,12 +2,15 @@
 /// Each is a pure function of the shown note; [run] runs one.
 library;
 
+import '../../tree/blocks.dart';
 import '../../visible/formatting.dart';
 import '../commit.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
 import '../shown/slot.dart';
+import 'heading.dart';
 import 'indent.dart';
+import 'items.dart';
 import 'remove_frame.dart';
 import 'split_block.dart';
 import 'text_commands.dart';
@@ -103,6 +106,73 @@ final class Outdent extends Command {
   final TextSelection selection;
 }
 
+/// The heading button or shortcut at [at]: its text a heading of
+/// [level], or a paragraph if `null`.
+final class SetHeading extends Command {
+  const SetHeading(this.at, this.level);
+
+  final Place at;
+  final int? level;
+}
+
+/// A tap on [item]'s box; [selection] stays.
+final class Toggle extends Command {
+  const Toggle(this.item, this.selection);
+
+  final BlockId item;
+  final Selection selection;
+}
+
+/// The row delete button on [item]: it goes with its subitems.
+final class DeleteItem extends Command {
+  const DeleteItem(this.item);
+
+  final BlockId item;
+}
+
+/// The Add item button of [list]: a new empty item, last unless [first].
+final class AddItem extends Command {
+  const AddItem(this.list, {this.first = false});
+
+  final BlockId list;
+  final bool first;
+}
+
+/// A drop: [item] with its subitems right before [target], or after it
+/// if [below]; [selection] stays.
+final class MoveItem extends Command {
+  const MoveItem(
+    this.item,
+    this.target, {
+    required this.below,
+    required this.selection,
+  });
+
+  final BlockId item;
+  final BlockId target;
+  final bool below;
+  final Selection selection;
+}
+
+/// "Clear checked items now": the checked items at the top level of
+/// [list]'s level, or of every list if `null`, go with their subitems.
+final class ClearChecked extends Command {
+  const ClearChecked(this.selection, {this.list});
+
+  final Selection selection;
+  final BlockId? list;
+}
+
+/// "Move checked items to end now", or checks settling: [items] (by
+/// default every checked item at a list's top level) move to the end of
+/// their lists; [selection] stays.
+final class MoveToEnd extends Command {
+  const MoveToEnd(this.selection, {this.items});
+
+  final Selection selection;
+  final List<BlockId>? items;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -121,4 +191,42 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   LeaveList(:final slot) => leaveList(note, slot),
   Indent(:final selection) => indent(note, selection),
   Outdent(:final selection) => outdent(note, selection),
+  SetHeading(:final at, :final level) => setHeading(note, at, level),
+  Toggle(:final item, :final selection) => toggle(
+    note,
+    _item(note, item),
+    selection,
+  ),
+  DeleteItem(:final item) => deleteItem(note, _item(note, item)),
+  AddItem(:final list, :final first) => addItem(
+    note,
+    note.tree.blockOf(list)! as ListBlock,
+    first: first,
+  ),
+  MoveItem(:final item, :final target, :final below, :final selection) =>
+    moveItem(
+      note,
+      _item(note, item),
+      _item(note, target),
+      below: below,
+      selection: selection,
+    ),
+  ClearChecked(:final selection, :final list) => clearItems(
+    note,
+    checkedItems(
+      note,
+      list: switch (list) {
+        null => null,
+        final id => note.tree.blockOf(id)! as ListBlock,
+      },
+    ),
+    selection,
+  ),
+  MoveToEnd(:final selection, :final items) => moveToEnd(note, switch (items) {
+    null => checkedItems(note),
+    final ids => [for (final id in ids) _item(note, id)],
+  }, selection),
 });
+
+ItemBlock _item(ShownNote note, BlockId id) =>
+    note.tree.blockOf(id)! as ItemBlock;
