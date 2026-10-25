@@ -12,7 +12,8 @@ import 'text_places.dart';
 
 /// The text from [start] to [end], in two text places in that order,
 /// removed: what lies between goes whole; the two places join (code
-/// never joins: each keeps its rest); what was nested under the end's
+/// never joins: each keeps its rest, and code at the end that the range
+/// covers to its end goes whole); what was nested under the end's
 /// items (later blocks, subitems) moves right after the start's text,
 /// under its item.
 Edit deleteAcross(ShownNote note, Place start, Place end) {
@@ -43,16 +44,22 @@ Edit deleteAcross(ShownNote note, Place start, Place end) {
         gap,
   ];
   if (_isCode(note, start.slot) || _isCode(note, end.slot)) {
-    final kept = withText(note, start.slot, head, fresh);
-    final cut = withText(note, end.slot, restAfter, fresh);
-    final between = inRange.take(inRange.length - 1).toList();
+    final codeGoes = _isCode(note, end.slot) && restAfter.length == 0;
+    final changes = [
+      withText(note, start.slot, head, fresh),
+      if (!codeGoes) withText(note, end.slot, restAfter, fresh),
+    ];
+    final kept = changes.first;
+    final between = codeGoes
+        ? inRange
+        : inRange.take(inRange.length - 1).toList();
     return Edit(
       replaced: {
         ...removedWith(between),
-        for (final change in [kept, cut]) ...change.replaced,
+        for (final change in changes) ...change.replaced,
       },
       gaps: gapsWithout(between),
-      tails: {...kept.tails, ...cut.tails},
+      tails: {for (final change in changes) ...change.tails},
       selection: TextSelection.caret(Place(kept.slot, start.offset)),
     );
   }
