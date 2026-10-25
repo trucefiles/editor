@@ -113,7 +113,7 @@ Edited commit(ShownDocument document, Edit edit) {
 /// Markdown now reads as HTML blocks, where it is on one or on text one
 /// took in; each place within its text, which the file may have held shorter (code in
 /// an item).
-TextSelection _shownSelection(
+Selection _shownSelection(
   ShownDocument document,
   Set<BlockId> raw,
   TextSelection selection,

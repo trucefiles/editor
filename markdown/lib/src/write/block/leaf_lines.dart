@@ -102,8 +102,12 @@ List<OwnLine> textLines(
       final old? => '$old ',
       null => '${'#' * level} ',
     };
-    final own =
-        '${leads.firstOrNull?.indent ?? ''}$before$source${heading?.after ?? ''}';
+    // An empty heading's closing marks may touch its opener's spaces.
+    final after = switch (heading?.after) {
+      final old? when source.isNotEmpty && old.startsWith('#') => ' $old',
+      final old => old ?? '',
+    };
+    final own = '${leads.firstOrNull?.indent ?? ''}$before$source$after';
     return [
       (
         old: olds.firstOrNull,

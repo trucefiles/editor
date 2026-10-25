@@ -65,7 +65,7 @@ Selection selectionOnceGone(
 
 /// Where the caret goes once the [gone] blocks are (see
 /// [ShownDocument.caretPast]).
-TextSelection caretOnceGone(ShownDocument document, Set<BlockId> gone) =>
+Selection caretOnceGone(ShownDocument document, Set<BlockId> gone) =>
     document.caretPast((row) => _goes(row, gone));
 
 /// Whether [row] goes with the [gone] blocks.

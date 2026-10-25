@@ -14,10 +14,17 @@ Edited overRange(
   ShownDocument document,
   TextSelection range,
   Edit Function(ShownDocument document, Place at) edit,
-) {
-  final clear = cleared(document, range);
-  return commit(clear.document, edit(clear.document, caretOf(clear)));
-}
+) => atCaret(cleared(document, range), edit);
 
-/// The caret [edited] leaves.
-Place caretOf(Edited edited) => (edited.selection as TextSelection).extent;
+/// [edit] made at the caret [edited] leaves; [edited] as is when it
+/// leaves no text caret (the text became a raw block).
+Edited atCaret(
+  Edited edited,
+  Edit Function(ShownDocument document, Place at) edit,
+) => switch (edited.selection) {
+  TextSelection(:final extent) => commit(
+    edited.document,
+    edit(edited.document, extent),
+  ),
+  _ => edited,
+};

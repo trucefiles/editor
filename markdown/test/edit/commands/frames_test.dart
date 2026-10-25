@@ -50,6 +50,20 @@ void main() {
       );
     });
 
+    test('keeps a first item\'s empty place above its frame', () {
+      final tree = DocumentTree.read('- > a\n- b');
+      final item = (tree.root.children.single as ListBlock).items.first;
+      final document = ShownDocument(
+        tree,
+        gaps: [Gap(GapId.first, container: item.id, after: null)],
+        nextGap: GapId.first.next,
+      );
+      final edited = run(document, RemoveFrame(_slot(document, 0)));
+      expect(edited.document.tree.text, '> a\n- b');
+      expect(_shown(edited.document), ['', 'a', 'b']);
+      expect(edited.selection, _caret(edited.document, 0));
+    });
+
     test('makes another item a line of the item above', () {
       expect(
         _after('- a\n- b\n- c', (n) => RemoveFrame(_slot(n, 1))),

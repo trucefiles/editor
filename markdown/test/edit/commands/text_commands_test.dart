@@ -138,6 +138,17 @@ void main() {
     expect(caret.offset, 0);
   });
 
+  test('a key over text left reading as an HTML block does no more', () {
+    final document = _document('a<style>');
+    final slot = _slot(document, 0);
+    final edited = run(
+      document,
+      LineBreak(TextSelection(Place(slot, 0), Place(slot, 1))),
+    );
+    expect(edited.document.tree.text, '<style>');
+    expect(edited.selection, isA<BlockSelection>());
+  });
+
   test('a line break in code ends the code and goes on after it', () {
     final document = _document('`ab`');
     final broken = run(

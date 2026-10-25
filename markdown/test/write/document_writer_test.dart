@@ -98,8 +98,13 @@ void main() {
       }
     });
 
-    test('text in an empty heading goes after a space', () {
-      for (final (document, expected) in [('##', '## x'), ('## ', '## x')]) {
+    test('text in an empty heading goes between spaces', () {
+      for (final (document, expected) in [
+        ('##', '## x'),
+        ('## ', '## x'),
+        ('## ##', '## x ##'),
+        ('##  ##  ', '##  x ##  '),
+      ]) {
         final tree = DocumentTree.read(document);
         final heading = tree.leaves.first as HeadingBlock;
         expect(

@@ -18,14 +18,12 @@ Edited paste(
   final lines = text.split(RegExp(r'\r\n?|\n'));
   return lines.indexed.fold(cleared(document, range), (edited, entry) {
     final (index, line) = entry;
-    final split = index == 0
-        ? edited
-        : commit(edited.document, splitBlock(edited.document, caretOf(edited)));
+    final split = index == 0 ? edited : atCaret(edited, splitBlock);
     return line.isEmpty
         ? split
-        : commit(
-            split.document,
-            insertText(split.document, caretOf(split), line, formatting),
+        : atCaret(
+            split,
+            (document, at) => insertText(document, at, line, formatting),
           );
   });
 }

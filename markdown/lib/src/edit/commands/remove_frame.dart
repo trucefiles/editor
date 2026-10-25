@@ -145,6 +145,12 @@ Edit _aboveList(ShownDocument document, ListBlock list, ItemBlock item) {
     ),
     _ => (children, rest),
   };
+  // An item's own place, empty or before a frame, shows above it.
+  final first = switch (children.firstOrNull) {
+    final TextLeaf leaf => LeafSlot(leaf.id),
+    final CodeBlock code => LeafSlot(code.id),
+    _ => null,
+  };
   final gap = Gap(
     document.nextGap,
     container: outer.id,
@@ -157,20 +163,9 @@ Edit _aboveList(ShownDocument document, ListBlock list, ItemBlock item) {
         if (joins.isNotEmpty) ListDraft.of(list, kept(joins)),
       ],
     },
-    gaps: children.isEmpty ? withGap(document.gaps, gap, first: false) : null,
-    nextGap: children.isEmpty ? document.nextGap.next : null,
-    selection: TextSelection.caret(
-      Place(
-        children.isEmpty
-            ? GapSlot(gap.id)
-            : switch (children.first) {
-                final TextLeaf leaf => LeafSlot(leaf.id),
-                final CodeBlock code => LeafSlot(code.id),
-                _ => ItemSlot(item.id),
-              },
-        0,
-      ),
-    ),
+    gaps: first == null ? withGap(document.gaps, gap, first: false) : null,
+    nextGap: first == null ? document.nextGap.next : null,
+    selection: TextSelection.caret(Place(first ?? GapSlot(gap.id), 0)),
   );
 }
 
