@@ -54,10 +54,13 @@ void main() {
 
   test('a list or quote left without blocks goes', () {
     expect(
-      _redrafted(
-        '- a\n\n> b\n\nc',
-        (tree) => {for (final leaf in tree.leaves.take(2)) leaf.id: const []},
-      ),
+      _redrafted('- a\n\n> b\n\nc', (tree) {
+        final [list as ListBlock, quote as QuoteBlock, _] = tree.root.children;
+        return {
+          list.items.single.id: const [],
+          quote.children.single.id: const [],
+        };
+      }),
       'c',
     );
   });
