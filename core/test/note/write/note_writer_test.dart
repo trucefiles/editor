@@ -79,6 +79,22 @@ void main() {
       expect(after.text, '# Title\n\ntext');
     });
 
+    test('text in an empty heading goes after a space', () {
+      for (final (note, expected) in [('##', '## x'), ('## ', '## x')]) {
+        final tree = NoteTree.read(note);
+        final heading = tree.leaves.first as HeadingBlock;
+        expect(
+          written(
+            tree,
+            RootDraft(tree.root, [
+              TextDraft(heading.id, _plain('x'), level: 2, from: [heading]),
+            ]),
+          ).text,
+          expected,
+        );
+      }
+    });
+
     test('a note without blocks gets its first at its first line', () {
       for (final (note, expected) in [('', 'x'), ('\n', 'x\n')]) {
         final tree = NoteTree.read(note);

@@ -49,6 +49,12 @@ void main() {
     expect(_styled('**one** two', TextFormat.code, 0, 3), '`one` two');
   });
 
+  test('code goes on text only, a soft break in it the space it shows', () {
+    expect(_styled('ab\ncd', TextFormat.code, 1, 4), 'a`b c`d');
+    expect(_styled('ab\\\ncd', TextFormat.code, 1, 4), 'a`b`\\\n`c`d');
+    expect(_styled('a`b`\\\n`c`d', TextFormat.code, 1, 4), 'ab\\\ncd');
+  });
+
   test('a bare link takes it whole', () {
     expect(
       _styled('see www.example.com', TextFormat.strong, 6, 9),

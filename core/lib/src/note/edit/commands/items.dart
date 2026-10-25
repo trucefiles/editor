@@ -93,7 +93,8 @@ List<ItemBlock> checkedItems(ShownNote note, {ListBlock? list}) => [
     ...top.items.where((item) => item.checked ?? false),
 ];
 
-/// [items] with their subitems gone: "Clear checked items".
+/// [items] with their subitems gone: "Clear checked items"; the
+/// selection kept if its text stays, else as for [deleteItem].
 Edit clearItems(ShownNote note, List<ItemBlock> items, Selection selection) {
   final gone = {for (final item in items) item.id};
   return Edit(
@@ -107,7 +108,9 @@ Edit clearItems(ShownNote note, List<ItemBlock> items, Selection selection) {
             ]),
         ],
     },
-    selection: selection,
+    selection: selectionOnceGone(note, selection, {
+      for (final item in items) ...idsIn(item),
+    }),
   );
 }
 

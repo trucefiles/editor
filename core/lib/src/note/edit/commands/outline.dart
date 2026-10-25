@@ -43,21 +43,35 @@ List<Draft> itemsWithout(ListBlock list, ItemBlock item) => [
     if (other.id != item.id) KeptDraft(other),
 ];
 
+/// [selection] once the [gone] blocks are: kept where all it is on
+/// stays, else as [caretOnceGone].
+Selection selectionOnceGone(
+  ShownNote note,
+  Selection selection,
+  Set<BlockId> gone,
+) {
+  final rows = switch (selection) {
+    TextSelection(:final base, :final extent) => [
+      note.rowOf(base.slot),
+      note.rowOf(extent.slot),
+    ],
+    BlockSelection(:final block) => [note.blockRowOf(block)],
+  };
+  return rows.any((row) => row == null || _goes(note.rows[row], gone))
+      ? caretOnceGone(note, gone)
+      : selection;
+}
+
 /// Where the caret goes once the [gone] blocks are: at the start of the
 /// next text shown after the first of them, else at the end of the text
 /// above (the end gap only if there is neither, as it may go with them).
 TextSelection caretOnceGone(ShownNote note, Set<BlockId> gone) {
-  bool goes(Row row) =>
-      row.path.any((block) => gone.contains(block.id)) ||
-      switch (row) {
-        TextRow(slot: LeafSlot(:final leaf)) => gone.contains(leaf),
-        BlockRow(:final leaf) => gone.contains(leaf.id),
-        TextRow() => false,
-      };
   bool stays(Row row) =>
-      row is TextRow && row.slot != const GapSlot(GapId.end) && !goes(row);
+      row is TextRow &&
+      row.slot != const GapSlot(GapId.end) &&
+      !_goes(row, gone);
   final rows = note.rows;
-  final first = rows.indexWhere(goes);
+  final first = rows.indexWhere((row) => _goes(row, gone));
   return switch ((
     rows.skip(first).firstWhereOrNull(stays),
     rows.take(first).lastWhereOrNull(stays),
@@ -69,3 +83,12 @@ TextSelection caretOnceGone(ShownNote note, Set<BlockId> gone) {
     _ => const TextSelection.caret(Place(GapSlot(GapId.end), 0)),
   };
 }
+
+/// Whether [row] goes with the [gone] blocks.
+bool _goes(Row row, Set<BlockId> gone) =>
+    row.path.any((block) => gone.contains(block.id)) ||
+    switch (row) {
+      TextRow(slot: LeafSlot(:final leaf)) => gone.contains(leaf),
+      BlockRow(:final leaf) => gone.contains(leaf.id),
+      TextRow() => false,
+    };

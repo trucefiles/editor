@@ -94,7 +94,14 @@ List<OwnLine> textLines(
         text,
       _ => null,
     };
-    final before = heading?.before ?? '${'#' * level} ';
+    // An empty heading's opener may lack the space text needs after it.
+    final before = switch (heading?.before) {
+      final old?
+          when source.isEmpty || old.endsWith(' ') || old.endsWith('\t') =>
+        old,
+      final old? => '$old ',
+      null => '${'#' * level} ',
+    };
     final own =
         '${leads.firstOrNull?.indent ?? ''}$before$source${heading?.after ?? ''}';
     return [

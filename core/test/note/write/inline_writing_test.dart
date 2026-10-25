@@ -89,6 +89,11 @@ void main() {
       expect(_written('abc', _format(1, 2, TextFormat.strong)), 'a**b**c');
       expect(_written('a b c', _format(2, 3, TextFormat.emphasis)), 'a *b* c');
       expect(_written('abc', _format(0, 3, TextFormat.code)), '`abc`');
+      expect(
+        _written('a[u](v)d', _format(0, 3, TextFormat.code)),
+        '`a`[`u`](v)`d`',
+        reason: 'code ends where a link starts or ends',
+      );
     });
 
     test('splits and joins spans', () {

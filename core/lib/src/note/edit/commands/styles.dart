@@ -14,19 +14,40 @@ import 'text_places.dart';
 
 /// [format] toggled over [selection], per text leaf: taken off where
 /// every character has it, else put on all of it. A bare link takes it
-/// whole; code takes the other formats off its text. Spans delimiters
-/// cannot write snap to edges that can.
+/// whole. Code takes the other formats off its text, and goes on text
+/// only: a line break inside stays one (a soft break turns into the
+/// space it shows as). Spans delimiters cannot write snap to edges that
+/// can.
 Edit toggleStyle(ShownNote note, TextSelection selection, TextFormat format) {
   final ranges = _ranges(note, selection);
   final off = ranges.every(
-    (range) => Iterable<int>.generate(range.end - range.start).every(
-      (index) => range.text.formattingAt(range.start + index).has(format),
-    ),
+    (range) => range.text
+        .slice(range.start, range.end)
+        .pieces
+        .whereType<TextPiece>()
+        .every((piece) => piece.formatting.has(format)),
   );
   final fresh = note.tree.freshBlockIds.iterator;
-  Formatting changed(Formatting formatting) => switch ((format, off)) {
-    (TextFormat.code, false) => Formatting({TextFormat.code}, formatting.link),
-    _ => formatting.withFormat(format, on: !off),
+  VisibleText changed(VisibleText text) => switch ((format, off)) {
+    (TextFormat.code, false) => VisibleText([
+      for (final piece in text.pieces)
+        switch (piece) {
+          TextPiece(:final text, :final formatting) => TextPiece(
+            text,
+            Formatting({TextFormat.code}, formatting.link),
+          ),
+          SoftBreakPiece(:final formatting) => TextPiece(
+            ' ',
+            Formatting({TextFormat.code}, formatting.link),
+          ),
+          _ => piece,
+        },
+    ]),
+    _ => text.reformatted(
+      0,
+      text.length,
+      (formatting) => formatting.withFormat(format, on: !off),
+    ),
   };
   final changes = [
     for (final range in ranges)
@@ -34,7 +55,7 @@ Edit toggleStyle(ShownNote note, TextSelection selection, TextFormat format) {
         withText(
           note,
           range.slot,
-          range.text.reformatted(from, to, changed),
+          range.text.replaced(from, to, changed(range.text.slice(from, to))),
           fresh,
         ),
   ];

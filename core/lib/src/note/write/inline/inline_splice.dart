@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
+
 import '../../tree/inlines.dart';
 import '../../tree/note_style.dart';
 import '../../visible/formatting.dart';
@@ -355,8 +357,17 @@ final class _Region {
   /// Where the span of [mark] from [index] ends: where its run ends,
   /// unless that splits a span that overlaps its end at a place no
   /// delimiter fits; then where that span starts, so that it holds the
-  /// rest of this one instead.
+  /// rest of this one instead. Code holds no other span, so it ends
+  /// where any other mark opens or closes.
   int _spanEnd(List<_Unit> units, int index, Object mark, Set<Object> active) {
+    if (mark == TextFormat.code) {
+      final marks = units[index].marks;
+      final end = units.indexWhere(
+        (unit) => !const SetEquality<Object>().equals(unit.marks, marks),
+        index,
+      );
+      return end < 0 ? units.length : end;
+    }
     final end = _runEnd(units, index, mark);
     if (end == units.length) return end;
     final crossing = units[end - 1].marks
