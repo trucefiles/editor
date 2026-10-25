@@ -129,6 +129,20 @@ void main() {
       expect(edited.document.rows.single.path.single, isA<QuoteBlock>());
     });
 
+    test('a gap in an item taken out of its list goes along', () {
+      final tree = DocumentTree.read('- a\n- b');
+      final item = (tree.root.children.single as ListBlock).items.first;
+      final document = ShownDocument(
+        tree,
+        gaps: [Gap(GapId.first, container: item.id, after: null)],
+        nextGap: GapId.first.next,
+      );
+      final edited = run(document, Outdent(_caret(document, 0)));
+      expect(edited.document.tree.text, 'a\n- b');
+      expect(_shown(edited.document), ['', 'a', 'b']);
+      expect(edited.selection, _caret(edited.document, 0));
+    });
+
     test('outdent at the top takes an item out of its list', () {
       expect(
         _after('1. a\n2. b\n3. c', (n) => Outdent(_caret(n, 1))),

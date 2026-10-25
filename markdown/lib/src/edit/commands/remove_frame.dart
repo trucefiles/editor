@@ -26,6 +26,7 @@ Edit removeFrame(ShownDocument document, Slot slot) {
         document,
         list,
         item,
+        slot,
       ),
       final list => _intoItemAbove(document, list, item, slot),
     },
@@ -132,10 +133,15 @@ Edit _outOfQuote(ShownDocument document, QuoteBlock quote, Slot slot) {
   );
 }
 
-/// [item], its list's first, gone: its blocks above [list], subitems
-/// going on in the list where they are of its kind.
-Edit _aboveList(ShownDocument document, ListBlock list, ItemBlock item) {
-  final outer = document.tree.parentOf(list)!;
+/// [item], its list's first, gone: its own place a paragraph and its
+/// blocks above [list], subitems going on in the list where they are
+/// of its kind; the caret stays at [slot], where it goes.
+Edit _aboveList(
+  ShownDocument document,
+  ListBlock list,
+  ItemBlock item,
+  Slot slot,
+) {
   final rest = list.items.skip(1).toList();
   final children = item.children;
   final (lifted, joins) = switch (children.lastOrNull) {
@@ -145,27 +151,19 @@ Edit _aboveList(ShownDocument document, ListBlock list, ItemBlock item) {
     ),
     _ => (children, rest),
   };
-  // An item's own place, empty or before a frame, shows above it.
-  final first = switch (children.firstOrNull) {
-    final TextLeaf leaf => LeafSlot(leaf.id),
-    final CodeBlock code => LeafSlot(code.id),
-    _ => null,
-  };
-  final gap = Gap(
-    document.nextGap,
-    container: outer.id,
-    after: blockBefore(outer, list)?.id,
-  );
+  // The item's own place, if it has one, a paragraph with its text.
+  final place = ownsSlot(item) ? document.tree.freshBlockIds.first : null;
   return Edit(
     replaced: {
       list.id: [
+        if (place != null) TextDraft(place, document.textOf(ItemSlot(item.id))),
         ...kept(lifted),
         if (joins.isNotEmpty) ListDraft.of(list, kept(joins)),
       ],
     },
-    gaps: first == null ? withGap(document.gaps, gap, first: false) : null,
-    nextGap: first == null ? document.nextGap.next : null,
-    selection: TextSelection.caret(Place(first ?? GapSlot(gap.id), 0)),
+    selection: TextSelection.caret(
+      Place(place == null ? slot : LeafSlot(place), 0),
+    ),
   );
 }
 

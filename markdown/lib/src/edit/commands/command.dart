@@ -4,6 +4,7 @@ library;
 
 import '../../tree/blocks.dart';
 import '../../visible/formatting.dart';
+import '../../visible/visible_text.dart';
 import '../commit.dart';
 import '../shown/selection.dart';
 import '../shown/shown_document.dart';
@@ -33,14 +34,13 @@ sealed class EditCommand extends Command {
   const EditCommand();
 }
 
-/// Paste of plain [text] over [range], in [formatting] (the typing
-/// style); see `paste`.
+/// Paste of [lines] over [range] (see `plainLines`, `copiedLines`);
+/// see `paste`.
 final class Paste extends Command {
-  const Paste(this.range, this.text, this.formatting);
+  const Paste(this.range, this.lines);
 
   final TextSelection range;
-  final String text;
-  final Formatting formatting;
+  final List<VisibleText> lines;
 }
 
 /// Types [text], literal, at [at] in [formatting] (the typing style).
@@ -241,12 +241,7 @@ final class RemoveLink extends EditCommand {
 
 /// [document] after [command], with the selection after it.
 Edited run(ShownDocument document, Command command) => switch (command) {
-  Paste(:final range, :final text, :final formatting) => paste(
-    document,
-    range,
-    text,
-    formatting,
-  ),
+  Paste(:final range, :final lines) => paste(document, range, lines),
   LineBreak(:final range) => overRange(document, range, lineBreak),
   SplitBlock(:final range) => overRange(document, range, splitBlock),
   final EditCommand command => commit(document, _edit(document, command)),

@@ -6,9 +6,12 @@
 library;
 
 export 'src/document_tree.dart' show DocumentTree;
+export 'src/edit/clipboard/clipboard_lines.dart';
 export 'src/edit/commands/command.dart';
 export 'src/edit/keys/key_map.dart';
 export 'src/edit/shown/selection.dart';
 export 'src/edit/shown/shown_document.dart' show ShownDocument;
 export 'src/edit/shown/slot.dart';
 export 'src/edit/shown/typing_style.dart';
+export 'src/visible/formatting.dart' show Formatting, TextFormat;
+export 'src/visible/visible_text.dart' show VisibleText;

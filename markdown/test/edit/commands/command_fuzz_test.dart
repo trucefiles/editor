@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
+import 'package:truce_markdown/src/edit/clipboard/clipboard_lines.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/commands/links.dart';
 import 'package:truce_markdown/src/edit/keys/key_map.dart';
@@ -117,7 +118,12 @@ Command? _randomCommand(Random random, ShownDocument document) {
       first == second ? range : caret,
       pick(_words),
     ),
-    4 => Paste(range, 'x\ny', Formatting.plain),
+    4 => Paste(
+      range,
+      random.nextBool()
+          ? plainLines('x\ny', Formatting.plain)
+          : copiedLines(document, range),
+    ),
     5 when items.isNotEmpty => switch (random.nextInt(4)) {
       0 => Toggle(pick(items).id, caret),
       1 => DeleteItem(pick(items).id),

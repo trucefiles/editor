@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
+import 'package:truce_markdown/src/edit/clipboard/clipboard_lines.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/shown/rows.dart';
 import 'package:truce_markdown/src/edit/shown/selection.dart';
@@ -13,7 +14,10 @@ import 'package:truce_markdown/src/visible/formatting.dart';
   Place place(int offset) => Place((shown.rows.first as TextRow).slot, offset);
   final edited = run(
     shown,
-    Paste(TextSelection(place(from), place(to)), pasted, Formatting.plain),
+    Paste(
+      TextSelection(place(from), place(to)),
+      plainLines(pasted, Formatting.plain),
+    ),
   );
   return (edited.document.tree.text, edited.selection);
 }
@@ -38,5 +42,36 @@ void main() {
   test('leaves the caret after the text', () {
     final (_, selection) = _pasted('ab', 1, 1, 'x\nyz');
     expect((selection as TextSelection).extent.offset, 2);
+  });
+
+  test('keeps the styles of copied lines, not their frames', () {
+    final source = ShownDocument(DocumentTree.read('- **a** b\n\n> *c*'));
+    Place place(int row, int offset) =>
+        Place((source.rows[row] as TextRow).slot, offset);
+    final lines = copiedLines(source, TextSelection(place(0, 0), place(1, 1)));
+    final target = ShownDocument(DocumentTree.read('x'));
+    final at = TextSelection.caret(
+      Place((target.rows.first as TextRow).slot, 1),
+    );
+    expect(run(target, Paste(at, lines)).document.tree.text, 'x**a** b\n\n*c*');
+  });
+
+  test('makes copied links new inline links', () {
+    final source = ShownDocument(
+      DocumentTree.read('[a][r] www.x.io\n\n[r]: /u'),
+    );
+    final slot = (source.rows.first as TextRow).slot;
+    final lines = copiedLines(
+      source,
+      TextSelection(Place(slot, 0), Place(slot, 10)),
+    );
+    final target = ShownDocument(DocumentTree.read('x'));
+    final at = TextSelection.caret(
+      Place((target.rows.first as TextRow).slot, 0),
+    );
+    expect(
+      run(target, Paste(at, lines)).document.tree.text,
+      '[a](/u) www.x.iox',
+    );
   });
 }

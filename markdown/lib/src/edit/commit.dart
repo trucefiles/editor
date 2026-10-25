@@ -327,10 +327,12 @@ List<Gap> _gapsAfter(
   ];
 }
 
-/// [gap] as it shows in [after]; `null` if its container went.
+/// [gap] as it shows in [after]; a gap whose container went goes with
+/// the block it was after (before its container's first block if it
+/// was first), `null` if that went too.
 Gap? _anchored(Gap gap, DocumentTree before, DocumentTree after) {
   final container = after.blockOf(gap.container);
-  if (container is! ContainerBlock) return null;
+  if (container is! ContainerBlock) return _withNeighbor(gap, before, after);
   final children = {for (final child in container.children) child.id};
   if (gap.after == null || children.contains(gap.after)) return gap;
   final old = before.blockOf(gap.container);
@@ -341,5 +343,29 @@ Gap? _anchored(Gap gap, DocumentTree before, DocumentTree after) {
         .take(index < 0 ? 0 : index)
         .lastWhereOrNull((child) => children.contains(child.id))
         ?.id,
+  );
+}
+
+/// [gap], whose container went, in the container its neighbor block is
+/// in now; `null` if that went too.
+Gap? _withNeighbor(Gap gap, DocumentTree before, DocumentTree after) {
+  final old = before.blockOf(gap.container);
+  final neighbor = switch (gap.after) {
+    final id? => after.blockOf(id),
+    null when old is ContainerBlock => switch (old.children.firstOrNull) {
+      final first? => after.blockOf(first.id),
+      null => null,
+    },
+    null => null,
+  };
+  final parent = neighbor == null ? null : after.parentOf(neighbor);
+  if (neighbor == null || parent == null) return null;
+  final siblings = parent.children;
+  return Gap(
+    gap.id,
+    container: parent.id,
+    after: gap.after == null
+        ? siblings.take(siblings.indexOf(neighbor)).lastOrNull?.id
+        : neighbor.id,
   );
 }
