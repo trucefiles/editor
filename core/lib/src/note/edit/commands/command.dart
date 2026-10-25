@@ -6,6 +6,8 @@ import '../../visible/formatting.dart';
 import '../commit.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
+import '../shown/slot.dart';
+import 'split_block.dart';
 import 'text_commands.dart';
 
 /// One user action, with the places it acts on.
@@ -48,6 +50,27 @@ final class LineBreak extends Command {
   final Place at;
 }
 
+/// Enter at [at]: splits the block there (see `splitBlock`).
+final class SplitBlock extends Command {
+  const SplitBlock(this.at);
+
+  final Place at;
+}
+
+/// Backspace at [slot]'s start: its text joins the text place above.
+final class JoinWithPrevious extends Command {
+  const JoinWithPrevious(this.slot);
+
+  final Slot slot;
+}
+
+/// Delete at [slot]'s end: the text place below joins it.
+final class JoinWithNext extends Command {
+  const JoinWithNext(this.slot);
+
+  final Slot slot;
+}
+
 /// [note] after [command], with the selection after it.
 Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   InsertText(:final at, :final text, :final formatting) => insertText(
@@ -59,4 +82,7 @@ Edited run(ShownNote note, Command command) => commit(note, switch (command) {
   ReplaceText(:final range, :final text) => replaceText(note, range, text),
   DeleteRange(:final range) => deleteRange(note, range),
   LineBreak(:final at) => lineBreak(note, at),
+  SplitBlock(:final at) => splitBlock(note, at),
+  JoinWithPrevious(:final slot) => joinWithPrevious(note, slot),
+  JoinWithNext(:final slot) => joinWithNext(note, slot),
 });

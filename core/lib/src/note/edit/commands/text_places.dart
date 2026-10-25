@@ -15,20 +15,27 @@ typedef TextChange = ({
   Slot slot,
 });
 
-/// The change that makes [slot] of [note] show [text]: a leaf takes it;
-/// an item's own place or a gap writes a new paragraph once its text is
-/// one a leaf can hold, taking an id from [fresh]; a gap in a list then
-/// splits the list around it. Until then they only show it.
+/// The change that makes [slot] of [note] show [text], with [following]
+/// drafts right after it: a leaf takes the text (spelled as it or the
+/// leaves [joined] to it were); an item's own place or a gap writes a
+/// new paragraph once its text is one a leaf can hold (or once blocks
+/// follow it), taking an id from [fresh]; a gap in a list then splits
+/// the list around it. Until then they only show it.
 TextChange withText(
   ShownNote note,
   Slot slot,
   VisibleText text,
-  Iterator<BlockId> fresh,
-) {
+  Iterator<BlockId> fresh, {
+  List<Draft> following = const [],
+  List<TextLeaf> joined = const [],
+}) {
   final tree = note.tree;
-  if (slot is! LeafSlot && withoutTail(text).text.isEmpty) {
+  if (slot is! LeafSlot &&
+      following.isEmpty &&
+      withoutTail(text).text.isEmpty) {
     return (replaced: const {}, gaps: null, tails: {slot: text}, slot: slot);
   }
+  BlockId next() => (fresh..moveNext()).current;
   switch (slot) {
     case LeafSlot(:final leaf):
       return (
@@ -39,7 +46,7 @@ TextChange withText(
                 leaf,
                 text,
                 level: old is HeadingBlock ? old.level : null,
-                from: [old],
+                from: [old, ...joined],
               ),
               final CodeBlock old => CodeDraft(old, text.text),
               final block => throw ArgumentError.value(
@@ -48,6 +55,7 @@ TextChange withText(
                 'no text',
               ),
             },
+            ...following,
           ],
         },
         gaps: null,
@@ -56,12 +64,13 @@ TextChange withText(
       );
     case ItemSlot(:final item):
       final block = tree.blockOf(item)! as ItemBlock;
-      final id = (fresh..moveNext()).current;
+      final id = next();
       return (
         replaced: {
           item: [
             ItemDraft.of(block, [
-              TextDraft(id, text),
+              TextDraft(id, text, from: joined),
+              ...following,
               ...block.children.map(KeptDraft.new),
             ]),
           ],
@@ -71,11 +80,12 @@ TextChange withText(
         slot: LeafSlot(id),
       );
     case GapSlot(:final gap):
-      final place = note.gapOf(gap)!;
-      final id = (fresh..moveNext()).current;
-      final paragraph = TextDraft(id, text);
+      final id = next();
       return (
-        replaced: _inserted(note, place, paragraph, fresh),
+        replaced: _inserted(note, note.gapOf(gap)!, [
+          TextDraft(id, text, from: joined),
+          ...following,
+        ], fresh),
         gaps: [
           for (final other in note.gaps)
             if (other.id != gap) other,
@@ -86,13 +96,13 @@ TextChange withText(
   }
 }
 
-/// The blocks that put [draft] where [gap] shows: in its container after
-/// its block; in a list, between the two lists it splits the list into,
-/// the second one taking an id from [fresh] and going on counting.
+/// The blocks that put [drafts] where [gap] shows: in its container
+/// after its block; in a list, between the two lists it splits the list
+/// into, the second one taking an id from [fresh] and going on counting.
 Map<BlockId, List<Draft>> _inserted(
   ShownNote note,
   Gap gap,
-  Draft draft,
+  List<Draft> drafts,
   Iterator<BlockId> fresh,
 ) {
   final container = note.tree.blockOf(gap.container)! as ContainerBlock;
@@ -107,7 +117,7 @@ Map<BlockId, List<Draft>> _inserted(
     container.id: switch (container) {
       final ListBlock list => [
         if (before.isNotEmpty) ListDraft.of(list, before),
-        draft,
+        ...drafts,
         if (after.isNotEmpty)
           ListDraft(
             (fresh..moveNext()).current,
@@ -122,12 +132,12 @@ Map<BlockId, List<Draft>> _inserted(
             },
           ),
       ],
-      RootBlock() => [...before, draft, ...after],
+      RootBlock() => [...before, ...drafts, ...after],
       final QuoteBlock quote => [
-        QuoteDraft.of(quote, [...before, draft, ...after]),
+        QuoteDraft.of(quote, [...before, ...drafts, ...after]),
       ],
       final ItemBlock item => [
-        ItemDraft.of(item, [...before, draft, ...after]),
+        ItemDraft.of(item, [...before, ...drafts, ...after]),
       ],
     },
   };

@@ -2,8 +2,11 @@ import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
 import '../commit.dart';
 import '../common_ends.dart';
+import '../shown/rows.dart';
 import '../shown/selection.dart';
 import '../shown/shown_note.dart';
+import '../shown/slot.dart';
+import 'delete_across.dart';
 import 'text_places.dart';
 
 /// [text] typed at [at] in [formatting].
@@ -35,12 +38,40 @@ Edit replaceText(ShownNote note, TextSelection range, String text) {
   );
 }
 
-/// The text in [range] removed.
+/// The text in [range] removed; across text places, see [deleteAcross].
 Edit deleteRange(ShownNote note, TextSelection range) {
   final (start, end) = ordered(note, range);
-  assert(start.slot == end.slot, 'a delete within one text place');
-  return _typed(note, start, end.offset, VisibleText.empty);
+  return start.slot == end.slot
+      ? _typed(note, start, end.offset, VisibleText.empty)
+      : deleteAcross(note, start, end);
 }
+
+/// [slot]'s text joined to the text shown in the row above (a text
+/// place): the text of the two places from [slot]'s start back to the
+/// end of the one above removed.
+Edit joinWithPrevious(ShownNote note, Slot slot) {
+  final above = _textRow(note, note.rowOf(slot)! - 1);
+  return deleteAcross(
+    note,
+    Place(above, note.textOf(above).length),
+    Place(slot, 0),
+  );
+}
+
+/// The text shown in the row below (a text place) joined to [slot]'s.
+Edit joinWithNext(ShownNote note, Slot slot) {
+  final below = _textRow(note, note.rowOf(slot)! + 1);
+  return deleteAcross(
+    note,
+    Place(slot, note.textOf(slot).length),
+    Place(below, 0),
+  );
+}
+
+Slot _textRow(ShownNote note, int index) => switch (note.rows[index]) {
+  TextRow(:final slot) => slot,
+  final row => throw ArgumentError.value(row, 'row', 'no text place'),
+};
 
 /// A line break put in at [at].
 Edit lineBreak(ShownNote note, Place at) {

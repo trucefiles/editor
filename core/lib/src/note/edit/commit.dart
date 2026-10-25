@@ -22,6 +22,7 @@ final class Edit {
   Edit({
     this.replaced = const {},
     this.gaps,
+    this.nextGap,
     this.tails = const {},
     required this.selection,
     this.done,
@@ -29,6 +30,9 @@ final class Edit {
 
   final Map<BlockId, List<Draft>> replaced;
   final List<Gap>? gaps;
+
+  /// The id the next new gap takes, if [gaps] took ids.
+  final GapId? nextGap;
 
   /// What text places that write nothing now show.
   final Map<Slot, VisibleText> tails;
@@ -46,7 +50,7 @@ typedef Edited = ({ShownNote note, Selection selection});
 /// or as its item's own place where it starts one; gaps moved after the
 /// block before them where theirs went; the drafts written.
 Edited commit(ShownNote note, Edit edit) {
-  final settle = _Settle(note);
+  final settle = _Settle(note, edit.nextGap ?? note.nextGap);
   final draft = redrafted(note.tree, edit.replaced);
   final settled = RootDraft(
     draft.root,
@@ -97,7 +101,7 @@ Edited commit(ShownNote note, Edit edit) {
 
 /// One pass over a draft that makes its text writable.
 final class _Settle {
-  _Settle(this._note) : nextGap = _note.nextGap;
+  _Settle(this._note, this.nextGap);
 
   final ShownNote _note;
   GapId nextGap;
@@ -235,8 +239,9 @@ int _itemWidth(ItemDraft item, ListDraft list) =>
 
 /// [gaps] of [before] as they show in [after], with [added] gaps that
 /// emptied paragraphs became, each where its paragraph was (gaps after
-/// the paragraph then follow it): a gap whose block went shows after the
-/// nearest block before it that stayed; one whose container went is gone.
+/// the paragraph then follow it; a new paragraph was right after the
+/// block before it): a gap whose block went shows after the nearest
+/// block before it that stayed; one whose container went is gone.
 List<Gap> _gapsAfter(
   NoteTree before,
   NoteTree after,
@@ -247,16 +252,21 @@ List<Gap> _gapsAfter(
     final (gap, was) = entry;
     bool at(Gap other, BlockId? block) =>
         other.container == gap.container && other.after == block;
-    final first = gaps.indexWhere((other) => at(other, was));
-    final index = first >= 0
-        ? first
+    final following = gaps.indexWhere((other) => at(other, was));
+    final peers = before.blockOf(was) == null
+        ? gaps.indexWhere((other) => at(other, gap.after))
         : gaps.lastIndexWhere((other) => at(other, gap.after)) + 1;
-    Gap following(Gap other) =>
+    final index = following >= 0
+        ? following
+        : peers >= 0
+        ? peers
+        : gaps.length;
+    Gap moved(Gap other) =>
         at(other, was) ? other.movedAfter(gap.after) : other;
     return [
-      ...gaps.take(index).map(following),
+      ...gaps.take(index).map(moved),
       gap,
-      ...gaps.skip(index).map(following),
+      ...gaps.skip(index).map(moved),
     ];
   });
   final addedIds = {for (final (gap, _) in added) gap.id};
