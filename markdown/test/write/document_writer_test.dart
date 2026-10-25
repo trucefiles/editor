@@ -202,6 +202,18 @@ void main() {
   });
 
   group('lists', () {
+    test('a new tab after a quote mark gets the mark\'s space before it', () {
+      final tree = DocumentTree.read('> ```\n>\n> ```');
+      final code = tree.leaves.single as CodeBlock;
+      final after = written(
+        tree,
+        redrafted(tree, {
+          code.id: [CodeDraft(code, '\t')],
+        }),
+      );
+      expect(after.text, '> ```\n> \t\n> ```');
+    });
+
     test('code in an item holds no spaces on an empty line', () {
       final tree = DocumentTree.read('```\n \nx\n```');
       final code = tree.root.children.single;

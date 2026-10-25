@@ -155,17 +155,26 @@ final class _BlockWriter {
     return _quotesSpaced(
       !blank || (last >= 0 && opens[last]) ? parts : _trimmedEnd(parts),
       own,
+      ownIsNew: old == null || old.text.substring(prefixEndOf(old)) != own,
     );
   }
 
   /// [parts], and [own] after them, with a space after each quote's `>`
-  /// that is right before a space, which the quote would take as its own.
-  /// (A tab after it is old bytes, which the quote took part of before.)
-  List<String> _quotesSpaced(List<String> parts, String own) => [
+  /// that is right before a space, which the quote would take as its own,
+  /// or right before a tab of an [ownIsNew] part, which it would take a
+  /// column of. (A tab in old bytes the quote took part of before.)
+  List<String> _quotesSpaced(
+    List<String> parts,
+    String own, {
+    required bool ownIsNew,
+  }) => [
     for (final (index, part) in parts.indexed)
       _frames[index] is QuoteFrame &&
               part.endsWith('>') &&
-              '${parts.skip(index + 1).join()}$own'.startsWith(' ')
+              switch ('${parts.skip(index + 1).join()}$own') {
+                final rest =>
+                  rest.startsWith(' ') || (ownIsNew && rest.startsWith('\t')),
+              }
           ? '$part '
           : part,
   ];

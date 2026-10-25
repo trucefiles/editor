@@ -16,10 +16,18 @@ final class _Check {
 
   final DocumentTree _tree;
 
-  bool allMatch(List<Draft> drafts, List<Block> blocks) =>
-      drafts.length == blocks.length &&
-      IterableZip([drafts, blocks])
-          .every((pair) => _matches(pair[0] as Draft, pair[1] as Block));
+  /// Whether [blocks] hold [drafts]; up to text read as an HTML block,
+  /// which may hold the rest of its container (until its end condition).
+  bool allMatch(List<Draft> drafts, List<Block> blocks) {
+    final pairs = IterableZip([drafts, blocks]).toList();
+    final raw = pairs.indexWhere(
+      (pair) => pair[0] is TextDraft && pair[1] is HtmlBlock,
+    );
+    return (raw >= 0 || drafts.length == blocks.length) &&
+        pairs
+            .take(raw >= 0 ? raw + 1 : pairs.length)
+            .every((pair) => _matches(pair[0] as Draft, pair[1] as Block));
+  }
 
   bool _matches(Draft draft, Block block) =>
       draft.id == block.id &&

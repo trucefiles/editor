@@ -95,6 +95,10 @@ Edited commit(ShownDocument document, Edit edit) {
     selection: switch (edit.selection) {
       TextSelection(:final base, :final extent) => _shownSelection(
         after,
+        {
+          for (final id in _textIds(settled.children))
+            if (tree.blockOf(id) is HtmlBlock) id,
+        },
         TextSelection(
           Place(moved(base.slot), base.offset),
           Place(moved(extent.slot), extent.offset),
@@ -105,30 +109,27 @@ Edited commit(ShownDocument document, Edit edit) {
   );
 }
 
-/// [selection] on what [document] shows: past the block its text became
-/// where that block shows no text (a paragraph Markdown now reads as an
-/// HTML block); at the end of the last text where the end gap went; each
-/// place within its text, which the file may have held shorter (code in
+/// [selection] on what [document] shows: past the [raw] blocks, text
+/// Markdown now reads as HTML blocks, where it is on one or on text one
+/// took in; each place within its text, which the file may have held shorter (code in
 /// an item).
-TextSelection _shownSelection(ShownDocument document, TextSelection selection) {
-  final blocks = {
-    for (final place in [selection.base, selection.extent])
-      if (place.slot case LeafSlot(:final leaf)
-          when document.blockRowOf(leaf) != null)
-        leaf,
-  };
-  if (blocks.isNotEmpty) {
+TextSelection _shownSelection(
+  ShownDocument document,
+  Set<BlockId> raw,
+  TextSelection selection,
+) {
+  final places = [selection.base, selection.extent];
+  if (raw.isNotEmpty &&
+      places.any(
+        (place) =>
+            document.rowOf(place.slot) == null &&
+            place.slot != const GapSlot(GapId.end),
+      )) {
     return document.caretPast(
-      (row) => row is BlockRow && blocks.contains(row.leaf.id),
+      (row) => row is BlockRow && raw.contains(row.leaf.id),
     );
   }
   Place shown(Place place) => switch (document.rowOf(place.slot)) {
-    null when place.slot == const GapSlot(GapId.end) => switch (document.rows
-        .whereType<TextRow>()
-        .lastOrNull) {
-      TextRow(:final slot) => Place(slot, document.textOf(slot).length),
-      null => place,
-    },
     null => place,
     _ => Place(
       place.slot,
@@ -137,6 +138,17 @@ TextSelection _shownSelection(ShownDocument document, TextSelection selection) {
   };
   return TextSelection(shown(selection.base), shown(selection.extent));
 }
+
+/// The ids of the text drafts in [drafts], at any depth.
+Iterable<BlockId> _textIds(List<Draft> drafts) => drafts.expand(
+  (draft) => switch (draft) {
+    TextDraft(:final id) => [id],
+    QuoteDraft(:final children) ||
+    ItemDraft(:final children) => _textIds(children),
+    ListDraft(:final items) => _textIds(items),
+    _ => const <BlockId>[],
+  },
+);
 
 /// One pass over a draft that makes its text writable.
 final class _Settle {

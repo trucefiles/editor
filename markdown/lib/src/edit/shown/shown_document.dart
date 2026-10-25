@@ -36,20 +36,22 @@ final class ShownDocument {
   /// The id the next new gap takes.
   final GapId nextGap;
 
-  /// Every gap that shows: [gaps], and after a last block without text
-  /// (or in an empty document) the [GapId.end] gap.
-  late final List<Gap> shownGaps = [...gaps, ?_endGap];
-
-  Gap? get _endGap {
-    final last = tree.root.children.lastOrNull;
-    final hasText = last is TextLeaf || last is ContainerBlock;
-    final gapAfter = gaps.any(
-      (gap) => gap.container == tree.root.id && gap.after == last?.id,
-    );
-    return hasText || gapAfter
-        ? null
-        : Gap(GapId.end, container: tree.root.id, after: last?.id);
-  }
+  /// Every gap that shows: [gaps], and where the last row would show no
+  /// text to type a paragraph in (none, a block without text, or code)
+  /// the [GapId.end] gap after the last block.
+  late final List<Gap> shownGaps = [
+    ...gaps,
+    if (!switch (rowsOf(tree.root, gaps, done).lastOrNull) {
+      TextRow(slot: LeafSlot(:final leaf)) => tree.blockOf(leaf) is! CodeBlock,
+      TextRow() => true,
+      BlockRow() || null => false,
+    })
+      Gap(
+        GapId.end,
+        container: tree.root.id,
+        after: tree.root.children.lastOrNull?.id,
+      ),
+  ];
 
   /// The rows, in the order they show.
   late final List<Row> rows = rowsOf(tree.root, shownGaps, done);
