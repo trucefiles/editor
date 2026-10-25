@@ -21,6 +21,20 @@ sealed class VisiblePiece {
 
   /// Whether it shows the same as [other], formatting included.
   bool sameAs(VisiblePiece other);
+
+  /// Whether it shows as [other] does, also if its link or object is
+  /// another node of the same look.
+  bool looksLike(VisiblePiece other) =>
+      formatting.looksLike(other.formatting) &&
+      switch ((this, other)) {
+        (TextPiece(:final text), TextPiece(text: final otherText)) =>
+          text == otherText,
+        (SoftBreakPiece(), SoftBreakPiece()) => true,
+        (HardBreakPiece(), HardBreakPiece()) => true,
+        (ObjectPiece(:final inline), ObjectPiece(inline: final otherInline)) =>
+          inline.source == otherInline.source,
+        _ => false,
+      };
 }
 
 /// Text, as it reads: no marks, no escapes.
@@ -145,8 +159,7 @@ final class VisibleText {
       (lowerBound(_starts, offset + 1) - 1).clamp(0, pieces.length - 1);
 
   /// The formatting of the character at [offset].
-  Formatting formattingAt(int offset) =>
-      pieces[_pieceAt(offset)].formatting;
+  Formatting formattingAt(int offset) => pieces[_pieceAt(offset)].formatting;
 
   /// The characters from [from] to [to].
   VisibleText slice(int from, int to) {
@@ -196,10 +209,9 @@ final class VisibleText {
   );
 
   /// The pieces with the offsets they start at.
-  Iterable<(int, VisiblePiece)> get placedPieces => IterableZip([
-    _starts,
-    pieces,
-  ]).map((pair) => (pair[0] as int, pair[1] as VisiblePiece));
+  Iterable<(int, VisiblePiece)> get placedPieces =>
+      IterableZip([_starts, pieces])
+          .map((pair) => (pair[0] as int, pair[1] as VisiblePiece));
 
   /// Whether the character at [offset] shows the same as [other]'s at
   /// [otherOffset], formatting included.
@@ -214,14 +226,19 @@ final class VisibleText {
     };
   }
 
+  /// Whether it shows as [other] does, also where its links and objects
+  /// are other nodes of the same kind: e.g. a text read again.
+  bool looksLike(VisibleText other) =>
+      other.pieces.length == pieces.length &&
+      IterableZip([pieces, other.pieces])
+          .every((pair) => pair[0].looksLike(pair[1]));
+
   @override
   bool operator ==(Object other) =>
       other is VisibleText &&
       other.pieces.length == pieces.length &&
-      IterableZip([
-        pieces,
-        other.pieces,
-      ]).every((pair) => pair[0].sameAs(pair[1]));
+      IterableZip([pieces, other.pieces])
+          .every((pair) => pair[0].sameAs(pair[1]));
 
   @override
   int get hashCode => text.hashCode;
@@ -249,9 +266,12 @@ final class VisibleText {
   }
 }
 
-/// What [text] shows: its inline content as visible text.
+/// What [text] shows: its inline content as visible text. Derived once
+/// per [text], so links keep their marks across calls.
 VisibleText visibleTextOf(InlineText text) =>
-    VisibleText(_pieces(text.inlines, Formatting.plain));
+    _visible[text] ??= VisibleText(_pieces(text.inlines, Formatting.plain));
+
+final _visible = Expando<VisibleText>();
 
 Iterable<VisiblePiece> _pieces(List<Inline> inlines, Formatting formatting) =>
     inlines.expand(

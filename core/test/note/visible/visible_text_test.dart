@@ -4,9 +4,8 @@ import 'package:truce_core/src/note/tree/blocks.dart';
 import 'package:truce_core/src/note/visible/formatting.dart';
 import 'package:truce_core/src/note/visible/visible_text.dart';
 
-VisibleText _visible(String markdown) => visibleTextOf(
-  (NoteTree.read(markdown).leaves.single as TextLeaf).text,
-);
+VisibleText _visible(String markdown) =>
+    visibleTextOf((NoteTree.read(markdown).leaves.single as TextLeaf).text);
 
 void main() {
   group('visible text', () {

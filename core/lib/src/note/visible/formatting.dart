@@ -29,6 +29,12 @@ final class LinkMark {
   /// a new link.
   final LinkInline? read;
 
+  /// Whether it leads where [other] does, written the same way.
+  bool looksLike(LinkMark other) =>
+      other.destination == destination &&
+      other.title == title &&
+      other.style == style;
+
   @override
   String toString() => 'LinkMark($destination, ${style.name})';
 }
@@ -52,6 +58,16 @@ final class Formatting {
   );
 
   Formatting withLink(LinkMark? link) => Formatting(formats, link);
+
+  /// Whether it formats as [other] does, also if its link is another one
+  /// of the same look.
+  bool looksLike(Formatting other) =>
+      const SetEquality<TextFormat>().equals(other.formats, formats) &&
+      switch ((link, other.link)) {
+        (null, null) => true,
+        (final LinkMark a?, final LinkMark b?) => a.looksLike(b),
+        _ => false,
+      };
 
   @override
   bool operator ==(Object other) =>
