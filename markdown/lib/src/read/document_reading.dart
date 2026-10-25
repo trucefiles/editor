@@ -340,7 +340,13 @@ final class _Plan {
   final Map<(BlockKind, LineId), List<BlockId>> _left;
   final Set<BlockId> ids;
 
+  /// The id planned for a block of [kind] starting at [firstLine]; an
+  /// HTML block takes a paragraph's, which an edit left reading as one.
   BlockId? take(BlockKind kind, LineId firstLine) =>
+      _take(kind, firstLine) ??
+      (kind == BlockKind.html ? _take(BlockKind.paragraph, firstLine) : null);
+
+  BlockId? _take(BlockKind kind, LineId firstLine) =>
       switch (_left[(kind, firstLine)]) {
         final left? when left.isNotEmpty => left.removeAt(0),
         _ => null,

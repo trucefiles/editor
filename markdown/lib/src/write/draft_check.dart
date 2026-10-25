@@ -37,6 +37,8 @@ final class _Check {
           ParagraphBlock(text: final read),
         ) =>
           visibleTextOf(read).looksLike(text),
+        // Text Markdown reads as an HTML block, as it is written.
+        (TextDraft(level: null), HtmlBlock()) => true,
         (
           TextDraft(:final level?, :final text),
           HeadingBlock(level: final readLevel, text: final read),

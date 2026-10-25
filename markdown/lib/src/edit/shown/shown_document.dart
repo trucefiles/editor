@@ -4,6 +4,7 @@ import '../../document_tree.dart';
 import '../../tree/blocks.dart';
 import '../../visible/visible_text.dart';
 import 'rows.dart';
+import 'selection.dart';
 import 'slot.dart';
 
 /// What Visual edit shows of a document: its tree, with the parts that are
@@ -89,4 +90,24 @@ final class ShownDocument {
   /// The text [slot] shows: its written text and its tail.
   VisibleText textOf(Slot slot) =>
       writtenTextOf(slot) + (tails[slot] ?? VisibleText.empty);
+
+  /// Where the caret goes for the rows that [gone] says no longer show:
+  /// at the start of the next text after the first of them, else at the
+  /// end of the text above (the end gap only if there is neither, as it
+  /// may go with them).
+  TextSelection caretPast(bool Function(Row row) gone) {
+    bool stays(Row row) =>
+        row is TextRow && row.slot != const GapSlot(GapId.end) && !gone(row);
+    final first = rows.indexWhere(gone);
+    return switch ((
+      rows.skip(first).firstWhereOrNull(stays),
+      rows.take(first).lastWhereOrNull(stays),
+    )) {
+      (TextRow(:final slot), _) => TextSelection.caret(Place(slot, 0)),
+      (_, TextRow(:final slot)) => TextSelection.caret(
+        Place(slot, textOf(slot).length),
+      ),
+      _ => const TextSelection.caret(Place(GapSlot(GapId.end), 0)),
+    };
+  }
 }

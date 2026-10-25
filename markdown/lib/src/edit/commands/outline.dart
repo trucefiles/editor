@@ -63,27 +63,10 @@ Selection selectionOnceGone(
       : selection;
 }
 
-/// Where the caret goes once the [gone] blocks are: at the start of the
-/// next text shown after the first of them, else at the end of the text
-/// above (the end gap only if there is neither, as it may go with them).
-TextSelection caretOnceGone(ShownDocument document, Set<BlockId> gone) {
-  bool stays(Row row) =>
-      row is TextRow &&
-      row.slot != const GapSlot(GapId.end) &&
-      !_goes(row, gone);
-  final rows = document.rows;
-  final first = rows.indexWhere((row) => _goes(row, gone));
-  return switch ((
-    rows.skip(first).firstWhereOrNull(stays),
-    rows.take(first).lastWhereOrNull(stays),
-  )) {
-    (TextRow(:final slot), _) => TextSelection.caret(Place(slot, 0)),
-    (_, TextRow(:final slot)) => TextSelection.caret(
-      Place(slot, document.textOf(slot).length),
-    ),
-    _ => const TextSelection.caret(Place(GapSlot(GapId.end), 0)),
-  };
-}
+/// Where the caret goes once the [gone] blocks are (see
+/// [ShownDocument.caretPast]).
+TextSelection caretOnceGone(ShownDocument document, Set<BlockId> gone) =>
+    document.caretPast((row) => _goes(row, gone));
 
 /// Whether [row] goes with the [gone] blocks.
 bool _goes(Row row, Set<BlockId> gone) =>

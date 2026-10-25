@@ -114,6 +114,20 @@ void main() {
     );
   });
 
+  test('text left reading as an HTML block becomes one', () {
+    final document = _document('<strong>a\n\nb');
+    final slot = _slot(document, 0);
+    final edited = run(
+      document,
+      DeleteRange(TextSelection(Place(slot, 1), Place(slot, 2))),
+    );
+    expect(edited.document.tree.text, '<strong>\n\nb');
+    expect(edited.document.tree.root.children.first, isA<HtmlBlock>());
+    final caret = (edited.selection as TextSelection).extent;
+    expect(edited.document.textOf(caret.slot).text, 'b');
+    expect(caret.offset, 0);
+  });
+
   test('a line break in code ends the code and goes on after it', () {
     final document = _document('`ab`');
     final broken = run(

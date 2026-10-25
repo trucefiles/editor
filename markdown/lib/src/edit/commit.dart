@@ -78,25 +78,45 @@ Edited commit(ShownDocument document, Edit edit) {
     }.entries)
       if (!tail.isEmpty && !settle.moves.containsKey(slot)) slot: tail,
   };
+  final after = ShownDocument(
+    tree,
+    gaps: gaps,
+    tails: {
+      for (final MapEntry(key: slot, value: tail) in tails.entries)
+        if (shown.rowOf(slot) != null) slot: tail,
+    },
+    done: shown.done,
+    nextGap: settle.nextGap,
+  );
   return (
-    document: ShownDocument(
-      tree,
-      gaps: gaps,
-      tails: {
-        for (final MapEntry(key: slot, value: tail) in tails.entries)
-          if (shown.rowOf(slot) != null) slot: tail,
-      },
-      done: shown.done,
-      nextGap: settle.nextGap,
-    ),
+    document: after,
     selection: switch (edit.selection) {
-      TextSelection(:final base, :final extent) => TextSelection(
-        Place(moved(base.slot), base.offset),
-        Place(moved(extent.slot), extent.offset),
+      TextSelection(:final base, :final extent) => _shownSelection(
+        after,
+        TextSelection(
+          Place(moved(base.slot), base.offset),
+          Place(moved(extent.slot), extent.offset),
+        ),
       ),
       final selection => selection,
     },
   );
+}
+
+/// [selection], or past the block its text became where that block
+/// shows no text (a paragraph Markdown now reads as an HTML block).
+TextSelection _shownSelection(ShownDocument document, TextSelection selection) {
+  final blocks = {
+    for (final place in [selection.base, selection.extent])
+      if (place.slot case LeafSlot(:final leaf)
+          when document.blockRowOf(leaf) != null)
+        leaf,
+  };
+  return blocks.isEmpty
+      ? selection
+      : document.caretPast(
+          (row) => row is BlockRow && blocks.contains(row.leaf.id),
+        );
 }
 
 /// One pass over a draft that makes its text writable.
