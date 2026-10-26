@@ -18,6 +18,7 @@ export 'src/edit/typing_style.dart';
 export 'src/lines/line.dart';
 export 'src/lines/line_change.dart';
 export 'src/owner/editor_owner.dart';
+export 'src/summary/document_summary.dart';
 export 'src/tree/blocks.dart';
 export 'src/view/rows.dart';
 export 'src/visible/formatting.dart';
