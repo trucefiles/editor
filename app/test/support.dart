@@ -5,12 +5,13 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
-import 'package:truce_editor/notes/note_edit_session.dart';
 import 'package:truce_editor/platform/platform_facts.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
@@ -92,7 +93,21 @@ PlatformFacts hostFacts() =>
 /// Drafts in their own temp folder.
 NoteDrafts tempDrafts() => NoteDrafts(tempFolder());
 
-extension RescanNow on NoteEditSession {
-  /// Hands the session a rescan that starts now; see [onRescan].
-  bool rescanNow(Note? latest) => onRescan(latest, scannedAt: Moment.now());
-}
+/// A scan that starts now and finds [notes]; it could not read the
+/// files of [unread], the subfolders [unreadable] or the folders
+/// [failed].
+FolderScans scanFinding(
+  List<Note> notes, {
+  Set<NoteKey> unread = const {},
+  Map<String, List<RelPath>> unreadable = const {},
+  Map<NoteFolder, StoreError> failed = const {},
+}) => FolderScans(
+  notes: notes,
+  marks: const {},
+  subfolders: const {},
+  conflicts: FolderConflicts(const []),
+  failedFolders: failed,
+  unreadable: unreadable,
+  startedAt: Moment.now(),
+  unreadNotes: unread,
+);

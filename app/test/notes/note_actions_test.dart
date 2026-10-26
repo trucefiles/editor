@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/editor/checked_items.dart';
-import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/note_folder.dart';
@@ -21,6 +19,7 @@ import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../support.dart';
 
@@ -151,7 +150,7 @@ void main() {
       await noteIn(home, 'inbox/other.md', 'x');
       final settings = container.read(noteSettingsProvider.notifier);
       const mark = NoteMark(color: 'teal');
-      const mine = NoteSettings(mode: NoteMode.visual, pinned: true);
+      const mine = NoteSettings(mode: EditMode.visual, pinned: true);
       await actions.setMark(note, mark);
       await settings.edit(note.key, (_) => mine);
 
@@ -260,7 +259,7 @@ void main() {
     final settings = container.read(noteSettingsProvider.notifier);
     const mark = NoteMark(color: 'teal');
     const mine = NoteSettings(
-      mode: NoteMode.read,
+      mode: EditMode.read,
       pinned: true,
       checkedItems: CheckedItems.inPlace,
     );

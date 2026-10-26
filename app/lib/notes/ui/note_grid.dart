@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
+import '../../documents/ui/document_screen.dart';
 import '../note.dart';
-import 'note_editor_screen.dart';
 
 /// [cards] in columns up to 240 wide, each card as tall as its content:
 /// the layout shared by every note grid. Only cards near the screen are
@@ -45,5 +45,5 @@ const _spacing = 8.0;
 /// Opens [note] in the editor.
 Future<void> openNote(BuildContext context, Note note) => Navigator.push(
   context,
-  MaterialPageRoute<void>(builder: (_) => NoteEditorScreen(note)),
+  MaterialPageRoute<void>(builder: (_) => DocumentScreen(note)),
 );

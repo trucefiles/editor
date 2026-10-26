@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../editor/checked_items.dart';
-import '../editor/note_mode.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
+
 import '../storage/json_file.dart';
 import 'kept_note_settings.dart';
 import 'note.dart';
@@ -14,14 +14,15 @@ import 'note_settings.dart';
 /// ignored.
 ///
 /// ```json
-/// {"f1/todo.md": {"mode": "visual", "pinned": true, "checked": "toEnd"},
+/// {"f1/todo.md": {"mode": "visual", "pinned": true, "checked": "moveToEnd"},
 ///  "f1/old.md": {"pinned": true, "checked": "inPlace",
 ///                "missingSince": "2026-10-21T09:00:00.000Z"}}
 /// ```
 ///
 /// Older app versions kept a view instead of the mode (`"view": "list"`),
 /// first only that, as a string (`"f1/a.md": "list"`); those still read,
-/// as the mode the view became, as do entries with `"doneSection": true`
+/// as the mode the view became, as do entries with `"checked": "toEnd"`
+/// (now `moveToEnd`) or with `"doneSection": true`
 /// or `false` instead of `checked`.
 final class NoteSettingsStore {
   NoteSettingsStore(File file) : _file = JsonFile(file);
@@ -83,23 +84,24 @@ final class NoteSettingsStore {
 
   static CheckedItems? _checkedItems(Map<Object?, Object?> json) =>
       switch (json) {
+        {'checked': 'toEnd'} => CheckedItems.moveToEnd,
         {'checked': final Object name} => CheckedItems.values.asNameMap()[name],
         {'doneSection': final bool on} =>
           on ? CheckedItems.doneSection : CheckedItems.inPlace,
         _ => null,
       };
 
-  static NoteMode? _mode(Map<Object?, Object?> json) => switch (json) {
-    {'mode': final Object name} => NoteMode.values.asNameMap()[name],
+  static EditMode? _mode(Map<Object?, Object?> json) => switch (json) {
+    {'mode': final Object name} => EditMode.values.asNameMap()[name],
     {'view': final Object name} => _oldView(name),
     _ => null,
   };
 
   /// The mode that replaced the view named [name].
-  static NoteMode? _oldView(Object? name) => switch (name) {
-    'list' => NoteMode.visual,
-    'text' => NoteMode.markdown,
-    'rendered' => NoteMode.read,
+  static EditMode? _oldView(Object? name) => switch (name) {
+    'list' => EditMode.visual,
+    'text' => EditMode.markdown,
+    'rendered' => EditMode.read,
     _ => null,
   };
 }

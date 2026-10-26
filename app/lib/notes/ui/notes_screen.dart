@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
@@ -12,6 +13,7 @@ import '../../conflicts/folder_conflicts.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
+import '../../documents/ui/document_screen.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/note_folder.dart';
@@ -30,7 +32,6 @@ import '../note_settings_controller.dart';
 import '../note_settings_pruning.dart';
 import 'home_menu.dart';
 import 'note_card.dart';
-import 'note_editor_screen.dart';
 import 'note_grid.dart';
 import 'note_sections.dart';
 import 'pin_or_color_sheet.dart';
@@ -137,7 +138,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final place = actions.newNotePlace(folders);
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (_) => NoteEditorScreen.fresh(place)),
+      MaterialPageRoute<void>(builder: (_) => DocumentScreen.fresh(place)),
     );
   }
 }
@@ -169,7 +170,8 @@ class _NotesBody extends ConsumerWidget {
       mark: markOf(note),
       pinned: pinned(note),
       hasConflict: conflicts?.forNote(note.key) != null,
-      hideDone: settings.settingsOf(note.key).checkedItems.shownApart,
+      hideDone:
+          settings.settingsOf(note.key).checkedItems != CheckedItems.inPlace,
       onTap: () => openNote(context, note),
       onMark: () => editPinOrColor(context, ref, note),
     );

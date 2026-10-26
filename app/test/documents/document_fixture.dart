@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/documents/document_file.dart';
 import 'package:truce_editor/documents/document_session.dart';
 import 'package:truce_editor/documents/file_effects.dart';
@@ -11,7 +9,6 @@ import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_draft.dart';
 import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/notes/note_files.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../support.dart';
@@ -81,20 +78,6 @@ final class DocumentFixture {
     File('${dirs[0].path}/a.md').writeAsStringSync(text);
     return (await files['f1']!.reload(note)).value;
   }
-
-  /// A scan that starts now and finds [notes]; it could not read the
-  /// files of [unread].
-  FolderScans scanFinding(List<Note> notes, {Set<NoteKey> unread = const {}}) =>
-      FolderScans(
-        notes: notes,
-        marks: const {},
-        subfolders: const {},
-        conflicts: FolderConflicts(const []),
-        failedFolders: const {},
-        unreadable: const {},
-        startedAt: Moment.now(),
-        unreadNotes: unread,
-      );
 }
 
 extension Typing on DocumentSession {

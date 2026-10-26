@@ -5,6 +5,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditKey;
 
 import '../../library/keypad_keys.dart';
+import '../../library/rich_text_keys.dart';
 import 'visual_adapter.dart';
 
 /// Visual edit's key handling: the keys that edit go to the owner as what
@@ -19,29 +20,10 @@ List<SuperEditorKeyboardAction> visualKeyboardActions(VisualAdapter adapter) {
     _editKeys(adapter),
     _tabInRaw(adapter),
     for (final action in defaultImeKeyboardActions)
-      if (!_replaced.contains(action)) action,
+      if (!richTextKeys.contains(action)) action,
   ];
   return [keypadKeys(actions), ...actions];
 }
-
-/// Library actions that edit in their own way.
-final _replaced = <SuperEditorKeyboardAction>{
-  cmdBToToggleBold,
-  cmdIToToggleItalics,
-  backspaceToUnIndentListItem,
-  backspaceToUnIndentParagraph,
-  backspaceToUnIndentTask,
-  backspaceToConvertTaskToParagraph,
-  backspaceToClearParagraphBlockType,
-  tabToIndentTask,
-  shiftTabToUnIndentTask,
-  tabToIndentParagraph,
-  shiftTabToUnIndentParagraph,
-  tabToIndentListItem,
-  shiftTabToUnIndentListItem,
-  enterToUnIndentParagraph,
-  shiftEnterToInsertNewlineInBlock,
-};
 
 bool _isDown(KeyEvent event) =>
     event is KeyDownEvent || event is KeyRepeatEvent;

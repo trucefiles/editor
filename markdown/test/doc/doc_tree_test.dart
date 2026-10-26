@@ -9,4 +9,10 @@ void main() {
     expect(loadMarkdown('- ').doc.isEmpty, isFalse);
     expect(loadMarkdown('---').doc.isEmpty, isFalse);
   });
+
+  test('a document has checkboxes with a checklist item anywhere', () {
+    expect(loadMarkdown('- a\n  - [ ] b').doc.hasCheckboxes, isTrue);
+    expect(loadMarkdown('> - [x] a').doc.hasCheckboxes, isTrue);
+    expect(loadMarkdown('- a\n1. b').doc.hasCheckboxes, isFalse);
+  });
 }

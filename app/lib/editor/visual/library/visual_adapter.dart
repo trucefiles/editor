@@ -3,8 +3,8 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../../editor_gate.dart';
+import '../../library/document_patch.dart';
 import '../row_looks.dart';
-import 'document_patch.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
 import 'positions.dart';
@@ -350,9 +350,7 @@ final class VisualAdapter {
       folded: _folded,
     ).looks;
     _applySplit(looks, shown);
-    final nodes = [
-      for (final look in looks) (id: _ids.of(look.key), look: look),
-    ];
+    final nodes = [for (final look in looks) _target(_ids.of(look.key), look)];
     _ids.keepOnly({for (final look in looks) look.key});
     final selection = _positions.toLibrary(shown.selection, raw: shown.raw);
     switch (_executor) {
@@ -362,6 +360,13 @@ final class VisualAdapter {
         editor.execute([_PatchRequest(nodes, selection: selection)]);
     }
   }
+
+  /// The node [id] showing [look].
+  static TargetNode _target(String id, RowLook look) => (
+    id: id,
+    shows: (node) => lookOf(node) == look,
+    build: () => libraryNodeOf(id, look),
+  );
 
   /// After an Enter, the row above the caret shows in the node the caret
   /// was in, and the caret's row in the node the library made for it.

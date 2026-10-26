@@ -15,6 +15,9 @@ final class DocumentSummary {
 
   final DocTree _doc;
 
+  /// Whether it has a checklist item anywhere.
+  bool get hasCheckboxes => _doc.hasCheckboxes;
+
   /// The most lines a preview holds.
   final int maxLines;
 

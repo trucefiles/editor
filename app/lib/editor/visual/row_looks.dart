@@ -2,12 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
+import '../add_item_place/add_item_place.dart';
 import '../marker.dart';
 
+export '../add_item_place/add_item_place.dart';
 export '../marker.dart';
-
-/// Where the Add item button of each list shows.
-enum AddItemPlace { top, bottom }
 
 /// A block a row is in, outermost first.
 sealed class Frame {

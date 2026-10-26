@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../../editor/checked_items.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 /// Lets the user pick where a checklist's checked items go; the choice,
 /// or `null` if cancelled.
@@ -32,8 +31,8 @@ Future<CheckedItems?> showCheckedItemsDialog(
               ),
             ),
             RadioListTile(
-              value: CheckedItems.toEnd,
-              title: Text(checkedItemsName(CheckedItems.toEnd)),
+              value: CheckedItems.moveToEnd,
+              title: Text(checkedItemsName(CheckedItems.moveToEnd)),
               subtitle: const Text(
                 'Checking moves an item to the end of the list in the file, '
                 'unchecking moves it back below the open items.',
@@ -50,5 +49,5 @@ Future<CheckedItems?> showCheckedItemsDialog(
 String checkedItemsName(CheckedItems choice) => switch (choice) {
   CheckedItems.inPlace => 'Stay in place',
   CheckedItems.doneSection => 'Show at end',
-  CheckedItems.toEnd => 'Move to end',
+  CheckedItems.moveToEnd => 'Move to end',
 };

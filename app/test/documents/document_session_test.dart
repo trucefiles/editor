@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/documents/document_file.dart';
 import 'package:truce_editor/documents/document_session.dart';
 import 'package:truce_editor/documents/note_version.dart';
 import 'package:truce_editor/documents/save_state.dart';
@@ -53,7 +54,7 @@ void main() {
     session.fileNotices.listen(notices.add);
     final theirs = await fixture.editElsewhere('two\n');
 
-    session.observe(fixture.scanFinding([theirs]));
+    session.observe(scanFinding([theirs]));
 
     expect(notices.single, isA<Replaced>());
     expect(session.text, 'two\n');
@@ -63,9 +64,48 @@ void main() {
   test('a scan that cannot see the file says nothing of it', () async {
     final session = fixture.session();
 
-    session.observe(fixture.scanFinding(const [], unread: {fixture.note.key}));
+    session.observe(scanFinding(const [], unread: {fixture.note.key}));
 
     expect(session.status, isA<InStep>());
+  });
+
+  test('a scan in which the folder failed says nothing of the file', () {
+    final session = fixture.session();
+
+    session.observe(
+      scanFinding(const [], failed: {fixture.folders[0]: .ioFailure}),
+    );
+
+    expect(session.status, isA<InStep>());
+  });
+
+  test('a scan that could not read a subfolder above the file says nothing '
+      'of it', () async {
+    Directory('${fixture.dirs[0].path}/sub').createSync();
+    final inSub = (await fixture.files['f1']!.create(
+      'b',
+      subfolder: path('sub'),
+    )).value;
+    final session = fixture.session(ExistingFile(inSub));
+
+    session.observe(
+      scanFinding(
+        const [],
+        unreadable: {
+          'f1': [path('sub')],
+        },
+      ),
+    );
+
+    expect(session.status, isA<InStep>());
+  });
+
+  test('a new document has nothing to find in scans', () {
+    final session = fixture.session(fixture.newFile);
+
+    session.observe(scanFinding(const []));
+
+    expect(session.status, isA<Unwritten>());
   });
 
   group('changed elsewhere during edits', () {

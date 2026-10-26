@@ -9,7 +9,11 @@ const _delay = Duration(milliseconds: 700);
 final class _Gate {
   _Gate(String text, {CheckedItems checkedItems = CheckedItems.inPlace})
     : gate = EditorGate(
-        editorOwner(text, version: const Version(1), checkedItems: checkedItems),
+        editorOwner(
+          text,
+          version: const Version(1),
+          checkedItems: checkedItems,
+        ),
       ) {
     gate
       ..outputs.listen(outputs.add)
@@ -78,9 +82,7 @@ void main() {
     expect(run.checked, [false]);
   });
 
-  testWidgets('quick taps wait for the last and move together', (
-    tester,
-  ) async {
+  testWidgets('quick taps wait for the last and move together', (tester) async {
     final run = _Gate(
       '- [ ] a\n- [ ] b\n- [ ] c',
       checkedItems: CheckedItems.moveToEnd,
