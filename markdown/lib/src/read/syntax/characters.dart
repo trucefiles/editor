@@ -23,6 +23,29 @@ bool isUnicodePunctuation(String char) => _punctuation.hasMatch(char);
 bool isAsciiPunctuation(String char) =>
     char.length == 1 && _asciiPunctuation.contains(char);
 
+/// The character (a whole code point) of [text] that starts at [index].
+String codePointAt(String text, int index) {
+  final pair =
+      index + 1 < text.length &&
+      _isHighSurrogate(text.codeUnitAt(index)) &&
+      _isLowSurrogate(text.codeUnitAt(index + 1));
+  return text.substring(index, pair ? index + 2 : index + 1);
+}
+
+/// The character (a whole code point) of [text] that ends at [index].
+String codePointBefore(String text, int index) {
+  final low = text.codeUnitAt(index - 1);
+  final pair =
+      index >= 2 &&
+      _isLowSurrogate(low) &&
+      _isHighSurrogate(text.codeUnitAt(index - 2));
+  return text.substring(pair ? index - 2 : index - 1, index);
+}
+
+bool _isHighSurrogate(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
+
+bool _isLowSurrogate(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
+
 /// The column [text] ends at, from column [from]: a tab goes on to the
 /// next multiple of four.
 int columnsOf(String text, [int from = 0]) => text.runes.fold(

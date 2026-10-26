@@ -1,73 +1,81 @@
 import 'package:truce_core/truce_core.dart' show Version;
 
-import '../edit/shown/selection.dart';
-import '../edit/shown/shown_document.dart';
-import '../tree/blocks.dart';
+import '../doc/doc_tree.dart';
+import '../doc/origin.dart';
+import '../edit/selection.dart';
+import '../print/printer.dart';
+import 'save_clock.dart';
 
 /// The editor owner's own bookkeeping, which its users never read.
 final class EditorWork {
   const EditorWork({
+    required this.origin,
     required this.lineage,
     this.rev = 0,
+    this.sentRev = 0,
     this.picks = 0,
-    this.holds = const Holds(),
+    this.clock = const SaveClock(),
     this.undo,
-    this.nextId = 0,
+    this.nextUndo = 0,
+    this.left,
   });
+
+  /// Where the doc tree was read from.
+  final Origin origin;
 
   /// The file version the text descends from; `null` for a new document.
   /// Moves only with a change elsewhere or a pick taken.
   final Version? lineage;
 
-  /// Counts the text changes commands made, going on from a pick's.
+  /// Counts the text changes, going on from a pick's.
   final int rev;
+
+  /// The rev of the text last sent to the file owner.
+  final int sentRev;
 
   /// Counts the picks taken.
   final int picks;
 
-  /// Toggled items whose move waits for the toggle to settle.
-  final Holds holds;
+  final SaveClock clock;
 
   /// The undo of the last removal, while it can be made.
   final Removal? undo;
 
-  final int nextId;
+  final int nextUndo;
+
+  /// Visual edit as Markdown edit left it: its print and selection, which
+  /// the caret goes back by.
+  final Left? left;
 
   EditorWork copyWith({
+    Origin? origin,
     Object? lineage = _same,
     int? rev,
+    int? sentRev,
     int? picks,
-    Holds? holds,
+    SaveClock? clock,
     Object? undo = _same,
-    int? nextId,
+    int? nextUndo,
+    Object? left = _same,
   }) => EditorWork(
+    origin: origin ?? this.origin,
     lineage: identical(lineage, _same) ? this.lineage : lineage as Version?,
     rev: rev ?? this.rev,
+    sentRev: sentRev ?? this.sentRev,
     picks: picks ?? this.picks,
-    holds: holds ?? this.holds,
+    clock: clock ?? this.clock,
     undo: identical(undo, _same) ? this.undo : undo as Removal?,
-    nextId: nextId ?? this.nextId,
+    nextUndo: nextUndo ?? this.nextUndo,
+    left: identical(left, _same) ? this.left : left as Left?,
   );
 }
 
 /// Marks an [EditorWork.copyWith] field left as it is.
 const _same = Object();
 
-/// Toggled items waiting to settle, each with the box it had before;
-/// [timer] the settle timer running, `null` once it fired.
-final class Holds {
-  const Holds({this.items = const {}, this.timer});
-
-  final Map<BlockId, bool> items;
-  final int? timer;
-
-  bool get isEmpty => items.isEmpty;
-}
-
 /// How to undo removal [id]: the document before it, valid at [rev].
-typedef Removal = ({
-  int id,
-  ShownDocument before,
-  Selection selection,
-  int rev,
-});
+typedef Removal = ({int id, DocTree before, Selection selection, int rev});
+
+/// Visual edit when Markdown edit took over: its [printed] text and its
+/// [selection].
+typedef Left = ({PrintedMarkdown printed, Selection selection});

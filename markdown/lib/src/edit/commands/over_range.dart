@@ -1,30 +1,33 @@
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
+/// Keys pressed over a selection: its text goes first.
+library;
+
+import '../../view/rows.dart';
+import '../change.dart';
+import '../selection.dart';
 import 'text_commands.dart';
 
-/// [document] with the text in [range] removed, the caret where it was.
-Edited cleared(ShownDocument document, TextSelection range) => range.isCaret
-    ? (document: document, selection: range)
-    : commit(document, deleteRange(document, range));
+/// [view]'s document with the text in [range] removed, the caret where it
+/// was.
+Edited cleared(ViewRows view, TextSelection range) => range.isCaret
+    ? (doc: view.doc, selection: range)
+    : settled(deleteRange(view, range));
 
-/// [edit] made at the caret once the text in [range] is removed: a key
-/// pressed over a selection.
+/// [edit] made at the caret once the text in [range] is removed.
 Edited overRange(
-  ShownDocument document,
+  ViewRows view,
   TextSelection range,
-  Edit Function(ShownDocument document, Place at) edit,
-) => atCaret(cleared(document, range), edit);
+  Change Function(ViewRows view, Place at) edit,
+) => atCaret(view, cleared(view, range), edit);
 
-/// [edit] made at the caret [edited] leaves; [edited] as is when it
-/// leaves no text caret (the text became a raw block).
+/// [edit] made at the caret [edited] leaves, shown as [view] shows its
+/// document; [edited] as is when it leaves no text caret.
 Edited atCaret(
+  ViewRows view,
   Edited edited,
-  Edit Function(ShownDocument document, Place at) edit,
+  Change Function(ViewRows view, Place at) edit,
 ) => switch (edited.selection) {
-  TextSelection(:final extent) => commit(
-    edited.document,
-    edit(edited.document, extent),
+  TextSelection(:final extent) => settled(
+    edit(ViewRows(edited.doc, done: view.done), extent),
   ),
   _ => edited,
 };

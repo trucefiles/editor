@@ -4,25 +4,98 @@ import '../../common/moment.dart';
 import '../version.dart';
 import 'file_contract.dart';
 
-/// What a write in flight does.
-enum WriteKind { write, create, restore, conflict }
+/// The one I/O under way; the owner starts the next only once it ended.
+sealed class Io {
+  const Io(this.id);
 
-/// A write in flight: [text] going out by [kind]; [before] the status to
-/// go back to if a conflict copy fails.
-typedef Writing = ({
-  EffectId id,
-  String text,
-  WriteKind kind,
-  FileStatus before,
-});
+  final EffectId id;
+}
 
-/// A [Secure] being answered: [tried] once a write was tried for it,
-/// [deviceRefused] once the device could not keep a draft for it.
-typedef Securing = ({SecureReason reason, bool tried, bool deviceRefused});
+/// Keeping [text] on the device as the draft.
+final class KeepingDraft extends Io {
+  const KeepingDraft(super.id, this.text);
 
-/// A pick waiting for its backup: of [choice] between the edits at [rev]
-/// and [theirs].
-typedef PendingPick = ({EffectId id, PickChoice choice, Seen theirs, int rev});
+  final String text;
+}
+
+/// How a write reaches the file.
+enum WriteKind {
+  /// Over the version expected.
+  write,
+
+  /// Over the version expected again, after a write found it only
+  /// restamped: one more find is a change elsewhere, so a file that keeps
+  /// changing cannot loop.
+  rewrite,
+
+  /// The new document's file.
+  create,
+
+  /// The file again, after it was deleted elsewhere.
+  restore,
+}
+
+/// Writing [text], the editor's at [rev], into the file by [kind].
+final class WritingFile extends Io {
+  const WritingFile(
+    super.id,
+    this.text, {
+    required this.rev,
+    required this.kind,
+  });
+
+  final String text;
+  final int rev;
+  final WriteKind kind;
+}
+
+/// Backing up both versions for [pick].
+final class BackingUp extends Io {
+  const BackingUp(super.id, this.pick);
+
+  final Pick pick;
+}
+
+/// Keeping the edits as a conflict copy; [before] the status to go back
+/// to if it fails.
+final class KeepingConflict extends Io {
+  const KeepingConflict(super.id, {required this.before});
+
+  final FileStatus before;
+}
+
+/// What the device holds of the edits.
+sealed class Draft {
+  const Draft(this.text);
+
+  final String text;
+}
+
+/// The device keeps [text].
+final class KeptDraft extends Draft {
+  const KeptDraft(super.text);
+}
+
+/// The device could not keep [text].
+final class RefusedDraft extends Draft {
+  const RefusedDraft(super.text);
+}
+
+/// How far keeping the edits for a [Secure] went: each rung is tried
+/// once, then the next.
+enum SecureRung {
+  /// Into the file.
+  file,
+
+  /// Onto the device (not for a close of a document that has a file).
+  device,
+
+  /// As a conflict copy next to the file.
+  conflict,
+}
+
+/// The [Secure]s waiting for one answer, and how far keeping went.
+typedef Securing = ({List<SecureReason> reasons, SecureRung rung});
 
 /// The file owner's bookkeeping behind its status.
 final class FileWork {
@@ -30,19 +103,15 @@ final class FileWork {
     required this.expected,
     required this.offered,
     this.editsOver,
-    this.nextId = 0,
     this.picks = 0,
+    this.nextId = 0,
+    this.io,
     this.draft,
-    this.keptRev,
-    this.keepTimer,
-    this.publishTimer,
-    this.writing,
-    this.retried = false,
+    this.folderRev,
+    this.pick,
+    this.securing,
     this.lastWriteEnd,
     this.backedUp,
-    this.pick,
-    this.wanted = false,
-    this.securing,
     this.moved,
   });
 
@@ -62,38 +131,32 @@ final class FileWork {
   /// it: a change elsewhere the editor did not take.
   final Seen? editsOver;
 
-  final int nextId;
-
   /// How many [Picked] were sent: an [Edited] made before the last one
   /// names fewer.
   final int picks;
 
-  /// The draft being kept: its effect and the rev it holds.
-  final ({EffectId id, int rev})? draft;
+  final int nextId;
 
-  /// The rev the draft kept on the device holds; `null` while none is.
-  final int? keptRev;
+  /// The I/O under way; `null` while none is.
+  final Io? io;
 
-  final EffectId? keepTimer;
-  final EffectId? publishTimer;
-  final Writing? writing;
+  /// What the device holds of the edits; `null` while it holds none.
+  final Draft? draft;
 
-  /// Whether the write in flight follows one that found the file only
-  /// restamped, so a version that keeps changing cannot loop.
-  final bool retried;
+  /// The editor's rev the file is asked to hold; `null` while no write
+  /// is asked.
+  final int? folderRev;
+
+  /// A pick waiting for the I/O under way.
+  final Pick? pick;
+
+  final Securing? securing;
 
   /// When our last write ended; scans that started before are ignored.
   final Moment? lastWriteEnd;
 
   /// File text that needs no backup before a write over it.
   final String? backedUp;
-
-  final PendingPick? pick;
-
-  /// Whether a write is wanted once the one in flight ends.
-  final bool wanted;
-
-  final Securing? securing;
 
   /// The copy a move left while a write was under way.
   final Seen? moved;
@@ -102,52 +165,36 @@ final class FileWork {
     Object? expected = _same,
     Object? offered = _same,
     Object? editsOver = _same,
-    Object? nextId = _same,
     Object? picks = _same,
+    Object? nextId = _same,
+    Object? io = _same,
     Object? draft = _same,
-    Object? keptRev = _same,
-    Object? keepTimer = _same,
-    Object? publishTimer = _same,
-    Object? writing = _same,
-    Object? retried = _same,
+    Object? folderRev = _same,
+    Object? pick = _same,
+    Object? securing = _same,
     Object? lastWriteEnd = _same,
     Object? backedUp = _same,
-    Object? pick = _same,
-    Object? wanted = _same,
-    Object? securing = _same,
     Object? moved = _same,
   }) => FileWork(
-    expected: identical(expected, _same) ? this.expected : expected as Seen?,
-    offered: identical(offered, _same) ? this.offered : offered as List<Seen>,
-    editsOver: identical(editsOver, _same)
-        ? this.editsOver
-        : editsOver as Seen?,
-    nextId: identical(nextId, _same) ? this.nextId : nextId as int,
-    picks: identical(picks, _same) ? this.picks : picks as int,
-    draft: identical(draft, _same)
-        ? this.draft
-        : draft as ({EffectId id, int rev})?,
-    keptRev: identical(keptRev, _same) ? this.keptRev : keptRev as int?,
-    keepTimer: identical(keepTimer, _same)
-        ? this.keepTimer
-        : keepTimer as EffectId?,
-    publishTimer: identical(publishTimer, _same)
-        ? this.publishTimer
-        : publishTimer as EffectId?,
-    writing: identical(writing, _same) ? this.writing : writing as Writing?,
-    retried: identical(retried, _same) ? this.retried : retried as bool,
-    lastWriteEnd: identical(lastWriteEnd, _same)
-        ? this.lastWriteEnd
-        : lastWriteEnd as Moment?,
-    backedUp: identical(backedUp, _same) ? this.backedUp : backedUp as String?,
-    pick: identical(pick, _same) ? this.pick : pick as PendingPick?,
-    wanted: identical(wanted, _same) ? this.wanted : wanted as bool,
-    securing: identical(securing, _same)
-        ? this.securing
-        : securing as Securing?,
-    moved: identical(moved, _same) ? this.moved : moved as Seen?,
+    expected: _or(expected, this.expected),
+    offered: _or(offered, this.offered),
+    editsOver: _or(editsOver, this.editsOver),
+    picks: _or(picks, this.picks),
+    nextId: _or(nextId, this.nextId),
+    io: _or(io, this.io),
+    draft: _or(draft, this.draft),
+    folderRev: _or(folderRev, this.folderRev),
+    pick: _or(pick, this.pick),
+    securing: _or(securing, this.securing),
+    lastWriteEnd: _or(lastWriteEnd, this.lastWriteEnd),
+    backedUp: _or(backedUp, this.backedUp),
+    moved: _or(moved, this.moved),
   );
 }
 
 /// Marks a [FileWork.copyWith] field left as it is.
 const _same = Object();
+
+/// [given], or [current] where it was left as it is.
+T _or<T>(Object? given, T current) =>
+    identical(given, _same) ? current : given as T;

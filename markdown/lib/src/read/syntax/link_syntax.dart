@@ -4,6 +4,7 @@
 library;
 
 import '../../tree/blocks.dart';
+import '../../tree/inlines.dart';
 import 'characters.dart';
 
 /// The autolink (`<...>`, a URI or an email address) at [start] of
@@ -149,3 +150,9 @@ final _title = RegExp(
 );
 final _spaceNewline = RegExp(r'[ \t]*(?:\n[ \t]*)?');
 final _spaceAtLineEnd = RegExp(r'[ \t]*(?:\n|$)');
+
+/// The label a reference link or image [read] refers by.
+String referenceLabel(ContainerInline read) => switch (read.close) {
+  ']' || '][]' => read.children.map((child) => child.source).join(),
+  final close => close.substring(close.indexOf('[') + 1, close.length - 1),
+};

@@ -21,6 +21,33 @@ Accepted behavior that is not planned to change, grouped by topic.
   Backups screen lists the note's earlier backups under its old folder
   and name.
 
+## Editing Markdown
+
+- **Edited blocks may change escapes and references.** A block you edit
+  is written anew in its own style, so its escapes and character
+  references can change (`*` becomes `\*`, `&copy;` becomes `©`); what
+  it shows stays the same.
+- **What Markdown can't write isn't saved.** An empty paragraph (for
+  example one added below a table to type into) and spaces at a line's
+  end show while you edit but are not in the file. Pick mine and the
+  compare view show the saved text, so they can differ from the screen
+  there.
+- **Inline HTML moved to a line's start can become text.** When an edit
+  puts a tag at the start of a line, where Markdown would read it as the
+  start of an HTML block, it is written as text.
+- **An HTML block typed open takes in what follows only once read
+  again.** Editing an HTML block's raw lines so that it no longer ends
+  (for example `<!--` without `-->`) shows the blocks after it as before
+  until the document is read again (reopened, or changed elsewhere);
+  then they belong to the HTML block, as the standard reads it.
+- **Front matter only at the very top.** Lines between `---` lines count
+  as front matter only at the start of a document; anywhere else they
+  read as the standard reads them (a rule, text, a heading).
+- **A check tapped just before a change elsewhere flips back.** A check
+  waits about 0.7 s before it counts; a change from another device
+  arriving in that time (or the app ending abruptly) loses it, so the
+  item shows unchecked again.
+
 ## Colors, pins and views
 
 - **A note renamed or moved outside the app loses its color and

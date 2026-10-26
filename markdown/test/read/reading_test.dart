@@ -6,6 +6,7 @@ import 'package:truce_markdown/src/visible/visible_text.dart';
 
 import '../spec/spec_examples.dart';
 import '../support/document_corpus.dart';
+import '../support/tree_dump.dart';
 
 void main() {
   final texts = [
@@ -20,6 +21,37 @@ void main() {
       for (final text in texts) {
         expect(DocumentTree.read(text).text, text);
       }
+    });
+
+    test('reads `\\r\\n` and `\\r` line endings as `\\n`, each line keeping its own', () {
+      for (final text in texts) {
+        final lf = dumpTree(DocumentTree.read(text));
+        for (final ending in ['\r\n', '\r']) {
+          final other = text.replaceAll('\n', ending);
+          final tree = DocumentTree.read(other);
+          expect(dumpTree(tree), lf, reason: text);
+          expect(tree.text, other);
+        }
+      }
+      final mixed = DocumentTree.read('# A\r\n\r\n- [ ] b\r---\nc');
+      expect(
+        [for (final line in mixed.lines) line.ending],
+        ['\r\n', '\r\n', '\r', '\n', ''],
+      );
+      expect(mixed.root.children.map((block) => block.runtimeType), [
+        HeadingBlock,
+        ListBlock,
+        RuleBlock,
+        ParagraphBlock,
+      ]);
+      expect(mixed.lineEnding, '\r\n');
+    });
+
+    test('keeps a byte order mark apart from the first line', () {
+      final tree = DocumentTree.read('\uFEFF---\na: b\n---\ntext');
+      expect(tree.byteOrderMark, isTrue);
+      expect(tree.root.children.first, isA<FrontMatterBlock>());
+      expect(tree.text, '\uFEFF---\na: b\n---\ntext');
     });
 
     test('gives each text leaf inline text whose source is its content', () {

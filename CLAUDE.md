@@ -40,8 +40,8 @@ Prefer the simpler option when in doubt.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
 - Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.
 - No automatic writes into synced folders; only user actions write there, so devices can't ping-pong. Finishing a user's own write later is allowed (pending edits written at the next start, the same bytes rewritten once so the sync tool sees them): it is never caused by a remote change.
-- Byte-exact edits: change only what the user touched; never parse-and-reprint user files.
-- Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per kind of line turns that into bytes, keeping each line's own style. New editing features (headings, quotes, tables) follow the same shape.
+- Block-exact edits: blocks the user didn't touch keep their bytes; an edited block is rewritten in its own style where possible; never reprint the whole file.
+- Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per file format turns the doc tree into text, keeping each block's own style. New editing features (headings, quotes, tables) follow the same shape.
 - Concurrency: reads that follow a write must see that write.
 
 ## Quality

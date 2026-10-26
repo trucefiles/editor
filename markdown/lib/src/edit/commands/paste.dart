@@ -1,34 +1,24 @@
 import '../../tree/inlines.dart';
+import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
+import '../change.dart';
+import '../selection.dart';
 import 'over_range.dart';
 import 'split_block.dart';
-import 'text_commands.dart';
 
-/// [lines] pasted over [range], each after an Enter in the place the
-/// text has reached (new items in an item, paragraphs elsewhere, lines
-/// in code); the caret after them. Their links are new links.
-Edited paste(
-  ShownDocument document,
-  TextSelection range,
-  List<VisibleText> lines,
-) => _withNewLinks(lines).indexed.fold(cleared(document, range), (
-  edited,
-  entry,
-) {
-  final (index, line) = entry;
-  final split = index == 0 ? edited : atCaret(edited, splitBlock);
-  return line.isEmpty
-      ? split
-      : atCaret(split, (document, at) => typed(document, at, at.offset, line));
-});
+/// [lines] pasted over [range] (see `splitWith`); their links are new
+/// links.
+Edited paste(ViewRows view, TextSelection range, List<VisibleText> lines) =>
+    overRange(
+      view,
+      range,
+      (view, at) => splitWith(view, at, _withNewLinks(lines)),
+    );
 
 /// [lines] with a new mark for each link they show, written inline; a
-/// bare link's text as plain text, which reads as a link again where
-/// it lands as one.
+/// bare link's text as plain text, which reads as a link again where it
+/// lands as one.
 List<VisibleText> _withNewLinks(List<VisibleText> lines) {
   final marks = lines
       .expand((line) => line.pieces)

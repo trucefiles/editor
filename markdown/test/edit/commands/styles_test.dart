@@ -1,10 +1,9 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
+
+import '../support/shown.dart';
 
 /// [text] after [format] is toggled from offset [from] of its row
 /// [fromRow] to offset [to] of row [toRow] (by default the same row).
@@ -16,16 +15,19 @@ String _styled(
   int fromRow = 0,
   int? toRow,
 }) {
-  final document = ShownDocument(DocumentTree.read(text));
-  Place place(int row, int offset) =>
-      Place((document.rows[row] as TextRow).slot, offset);
-  return run(
-    document,
-    ToggleStyle(
-      TextSelection(place(fromRow, from), place(toRow ?? fromRow, to)),
-      format,
-    ),
-  ).document.tree.text;
+  final document = Shown.read(text);
+  return document
+      .run(
+        ToggleStyle(
+          TextSelection(
+            document.place(fromRow, from),
+            document.place(toRow ?? fromRow, to),
+          ),
+          format,
+        ),
+      )
+      .document
+      .text;
 }
 
 void main() {
@@ -38,7 +40,7 @@ void main() {
     expect(_styled('**one** two', TextFormat.strong, 0, 7), '**one two**');
   });
 
-  test('acts on each text leaf the selection covers', () {
+  test('acts on each text the selection covers', () {
     expect(
       _styled('one\n\ntwo', TextFormat.emphasis, 2, 1, toRow: 1),
       'on*e*\n\n*t*wo',
@@ -62,7 +64,7 @@ void main() {
     );
   });
 
-  test('a stretch delimiters cannot write snaps to one that can', () {
+  test('a stretch delimiters cannot write is written as one that they can', () {
     expect(_styled('one two', TextFormat.strong, 3, 7), 'one **two**');
   });
 }

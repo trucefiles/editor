@@ -1,20 +1,20 @@
-/// The commands of Visual edit: every user action that changes a document.
-/// Each is a pure function of the shown document; [run] runs one.
+/// The commands of Visual edit: every user action that changes a
+/// document. Each is a pure function of what shows; [run] runs one.
 library;
 
-import '../../tree/blocks.dart';
+import '../../doc/doc_nodes.dart';
+import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
+import '../change.dart';
+import '../selection.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
 import 'links.dart';
 import 'over_range.dart';
 import 'paste.dart';
+import 'raw_blocks.dart';
 import 'remove_block.dart';
 import 'remove_frame.dart';
 import 'set_frame.dart';
@@ -29,46 +29,18 @@ sealed class Command {
   const Command();
 }
 
-/// A command that is one edit of the shown document.
+/// A command that is one change of the document.
 sealed class EditCommand extends Command {
   const EditCommand();
 }
 
-/// Paste of [lines] over [range] (see `plainLines`, `copiedLines`);
-/// see `paste`.
+/// Paste of [lines] over [range] (see `plainLines`, `copiedLines`); see
+/// `paste`.
 final class Paste extends Command {
   const Paste(this.range, this.lines);
 
   final TextSelection range;
   final List<VisibleText> lines;
-}
-
-/// Types [text], literal, at [at] in [formatting] (the typing style).
-final class InsertText extends EditCommand {
-  const InsertText(this.at, this.text, this.formatting);
-
-  final Place at;
-  final String text;
-  final Formatting formatting;
-}
-
-/// Replaces the text in [range], within one text place, by [text], as an
-/// input method does (autocorrect, a suggestion, a composing word) and as
-/// typing over a selection does: the text both share at their start and
-/// end keeps its formatting; what changed takes the formatting of the
-/// first character it replaced.
-final class ReplaceText extends EditCommand {
-  const ReplaceText(this.range, this.text);
-
-  final TextSelection range;
-  final String text;
-}
-
-/// Removes the text in [range].
-final class DeleteRange extends EditCommand {
-  const DeleteRange(this.range);
-
-  final TextSelection range;
 }
 
 /// Shift+Enter over [range]: its text replaced by a line break.
@@ -86,34 +58,53 @@ final class SplitBlock extends Command {
   final TextSelection range;
 }
 
-/// Backspace at [slot]'s start: its text joins the text place above.
+/// Types [text], literal, at [at] in [formatting] (the typing style).
+final class InsertText extends EditCommand {
+  const InsertText(this.at, this.text, this.formatting);
+
+  final Place at;
+  final String text;
+  final Formatting formatting;
+}
+
+/// Replaces the text in [range], within one text place, by [text], as an
+/// input method does (autocorrect, a suggestion, a composing word) and as
+/// typing over a selection does (see `replaceText`).
+final class ReplaceText extends EditCommand {
+  const ReplaceText(this.range, this.text);
+
+  final TextSelection range;
+  final String text;
+}
+
+/// Removes the text in [range].
+final class DeleteRange extends EditCommand {
+  const DeleteRange(this.range);
+
+  final TextSelection range;
+}
+
+/// Backspace at [at], a text place's start: its text joins the text
+/// place above.
 final class JoinWithPrevious extends EditCommand {
-  const JoinWithPrevious(this.slot);
+  const JoinWithPrevious(this.at);
 
-  final Slot slot;
+  final Place at;
 }
 
-/// Delete at [slot]'s end: the text place below joins it.
+/// Delete at [at], a text place's end: the text place below joins it.
 final class JoinWithNext extends EditCommand {
-  const JoinWithNext(this.slot);
+  const JoinWithNext(this.at);
 
-  final Slot slot;
+  final Place at;
 }
 
-/// Backspace at the start of [slot], the first text of its innermost
+/// Backspace at the start of [leaf], the first text of its innermost
 /// item or quote: that frame goes (see `removeFrame`).
 final class RemoveFrame extends EditCommand {
-  const RemoveFrame(this.slot);
+  const RemoveFrame(this.leaf);
 
-  final Slot slot;
-}
-
-/// Enter in [slot], an empty item's place at a list's top level: the
-/// list ends there (see `leaveList`).
-final class LeaveList extends EditCommand {
-  const LeaveList(this.slot);
-
-  final Slot slot;
+  final NodeId leaf;
 }
 
 /// Tab in an item: it becomes a subitem of the item above.
@@ -130,8 +121,8 @@ final class Outdent extends EditCommand {
   final TextSelection selection;
 }
 
-/// The heading button or shortcut at [at]: its text a heading of
-/// [level], or a paragraph if `null`.
+/// The heading button or shortcut at [at]: its text a heading of [level],
+/// or a paragraph if `null`.
 final class SetHeading extends EditCommand {
   const SetHeading(this.at, this.level);
 
@@ -139,11 +130,12 @@ final class SetHeading extends EditCommand {
   final int? level;
 }
 
-/// A tap on [item]'s box; [selection] stays.
+/// A checked item's wait ended, or a box toggled at once: [item]'s box
+/// toggled; [selection] stays.
 final class Toggle extends EditCommand {
   const Toggle(this.item, this.selection);
 
-  final BlockId item;
+  final NodeId item;
   final Selection selection;
 }
 
@@ -151,21 +143,21 @@ final class Toggle extends EditCommand {
 final class DeleteItem extends EditCommand {
   const DeleteItem(this.item);
 
-  final BlockId item;
+  final NodeId item;
 }
 
-/// Backspace or Delete on [block], a selected rule: it goes.
+/// Backspace or Delete on [block], a selected divider: it goes.
 final class RemoveBlock extends EditCommand {
   const RemoveBlock(this.block);
 
-  final BlockId block;
+  final NodeId block;
 }
 
 /// The Add item button of [list]: a new empty item, last unless [first].
 final class AddItem extends EditCommand {
   const AddItem(this.list, {this.first = false});
 
-  final BlockId list;
+  final NodeId list;
   final bool first;
 }
 
@@ -179,33 +171,33 @@ final class MoveItem extends EditCommand {
     required this.selection,
   });
 
-  final BlockId item;
-  final BlockId target;
+  final NodeId item;
+  final NodeId target;
   final bool below;
   final Selection selection;
 }
 
 /// "Clear checked items now": the checked items at the top level of
-/// [list]'s level, or of every list if `null`, go with their subitems.
+/// [list], or of every list if `null`, go with their subitems.
 final class ClearChecked extends EditCommand {
   const ClearChecked(this.selection, {this.list});
 
   final Selection selection;
-  final BlockId? list;
+  final NodeId? list;
 }
 
-/// "Move checked items to end now", or checks settling: [items] (by
-/// default every checked item at a list's top level) move to the end of
-/// their lists; [selection] stays.
+/// "Move checked items to end now", or a checked item's wait ending:
+/// [items] (by default every checked item at a list's top level) move to
+/// the end of their lists; [selection] stays.
 final class MoveToEnd extends EditCommand {
   const MoveToEnd(this.selection, {this.items});
 
   final Selection selection;
-  final List<BlockId>? items;
+  final List<NodeId>? items;
 }
 
-/// A frame button or shortcut: [kind] set on what [selection] covers,
-/// or taken off where all of it has it (see `setFrame`).
+/// A frame button or shortcut: [kind] set on what [selection] covers, or
+/// taken off where all of it has it (see `setFrame`).
 final class SetFrame extends EditCommand {
   const SetFrame(this.selection, this.kind);
 
@@ -239,90 +231,98 @@ final class RemoveLink extends EditCommand {
   final Place at;
 }
 
-/// [document] after [command], with the selection after it.
-Edited run(ShownDocument document, Command command) => switch (command) {
-  Paste(:final range, :final lines) => paste(document, range, lines),
-  LineBreak(:final range) => overRange(document, range, lineBreak),
-  SplitBlock(:final range) => overRange(document, range, splitBlock),
-  final EditCommand command => commit(document, _edit(document, command)),
+/// A raw block closed (the caret left it) with [raw] typed in it (see
+/// `closeRaw`); [selection] stays where its text stays.
+final class CloseRaw extends EditCommand {
+  const CloseRaw(this.block, this.raw, this.selection);
+
+  final NodeId block;
+  final String raw;
+  final Selection selection;
+}
+
+/// What [view] shows after [command], with the selection after it.
+Edited run(ViewRows view, Command command) => switch (command) {
+  Paste(:final range, :final lines) => paste(view, range, lines),
+  LineBreak(:final range) => overRange(view, range, lineBreak),
+  SplitBlock(:final range) => overRange(view, range, splitBlock),
+  final EditCommand command => settled(_change(view, command)),
 };
 
-Edit _edit(ShownDocument document, EditCommand command) => switch (command) {
-  InsertText(:final at, :final text, :final formatting) => insertText(
-    document,
-    at,
-    text,
-    formatting,
-  ),
-  ReplaceText(:final range, :final text) => replaceText(document, range, text),
-  DeleteRange(:final range) => deleteRange(document, range),
-  JoinWithPrevious(:final slot) => joinWithPrevious(document, slot),
-  JoinWithNext(:final slot) => joinWithNext(document, slot),
-  RemoveFrame(:final slot) => removeFrame(document, slot),
-  LeaveList(:final slot) => leaveList(document, slot),
-  Indent(:final selection) => indent(document, selection),
-  Outdent(:final selection) => outdent(document, selection),
-  SetHeading(:final at, :final level) => setHeading(document, at, level),
-  SetFrame(:final selection, :final kind) => setFrame(
-    document,
-    selection,
-    kind,
-  ),
-  SetLink(:final range, :final text, :final url) => setLink(
-    document,
-    range,
-    text,
-    url,
-  ),
-  RemoveLink(:final at) => removeLink(document, at),
-  ToggleStyle(:final selection, :final format) => toggleStyle(
-    document,
-    selection,
-    format,
-  ),
-  Toggle(:final item, :final selection) => toggle(
-    document,
-    _item(document, item),
-    selection,
-  ),
-  DeleteItem(:final item) => deleteItem(document, _item(document, item)),
-  RemoveBlock(:final block) => removeBlock(
-    document,
-    document.tree.blockOf(block)! as LeafBlock,
-  ),
-  AddItem(:final list, :final first) => addItem(
-    document,
-    document.tree.blockOf(list)! as ListBlock,
-    first: first,
-  ),
-  MoveItem(:final item, :final target, :final below, :final selection) =>
-    moveItem(
-      document,
-      _item(document, item),
-      _item(document, target),
-      below: below,
-      selection: selection,
+Change _change(ViewRows view, EditCommand command) {
+  T node<T extends DocBlock>(NodeId id) => view.doc.nodeOf(id)! as T;
+  return switch (command) {
+    InsertText(:final at, :final text, :final formatting) => insertText(
+      view,
+      at,
+      text,
+      formatting,
     ),
-  ClearChecked(:final selection, :final list) => clearItems(
-    document,
-    checkedItems(
-      document,
-      list: switch (list) {
-        null => null,
-        final id => document.tree.blockOf(id)! as ListBlock,
+    ReplaceText(:final range, :final text) => replaceText(view, range, text),
+    DeleteRange(:final range) => deleteRange(view, range),
+    JoinWithPrevious(:final at) => joinWithPrevious(view, at),
+    JoinWithNext(:final at) => joinWithNext(view, at),
+    RemoveFrame(:final leaf) => removeFrame(view, leaf),
+    Indent(:final selection) => indent(view, selection),
+    Outdent(:final selection) => outdent(view, selection),
+    SetHeading(:final at, :final level) => setHeading(view, at, level),
+    SetFrame(:final selection, :final kind) => setFrame(view, selection, kind),
+    SetLink(:final range, :final text, :final url) => setLink(
+      view,
+      range,
+      text,
+      url,
+    ),
+    RemoveLink(:final at) => removeLink(view, at),
+    ToggleStyle(:final selection, :final format) => toggleStyle(
+      view,
+      selection,
+      format,
+    ),
+    Toggle(:final item, :final selection) => toggle(
+      view,
+      node(item),
+      selection,
+    ),
+    DeleteItem(:final item) => deleteItem(view, node(item)),
+    RemoveBlock(:final block) => removeBlock(view, block),
+    AddItem(:final list, :final first) => addItem(
+      view,
+      node(list),
+      first: first,
+    ),
+    MoveItem(:final item, :final target, :final below, :final selection) =>
+      moveItem(
+        view,
+        node(item),
+        node(target),
+        below: below,
+        selection: selection,
+      ),
+    ClearChecked(:final selection, :final list) => clearItems(
+      view,
+      checkedItems(
+        view.doc,
+        list: switch (list) {
+          null => null,
+          final id => node(id),
+        },
+      ),
+      selection,
+    ),
+    MoveToEnd(:final selection, :final items) => moveToEnd(
+      view,
+      switch (items) {
+        null => checkedItems(view.doc),
+        final ids => [for (final id in ids) node<ItemNode>(id)],
       },
+      selection,
     ),
-    selection,
-  ),
-  MoveToEnd(:final selection, :final items) => moveToEnd(
-    document,
-    switch (items) {
-      null => checkedItems(document),
-      final ids => [for (final id in ids) _item(document, id)],
-    },
-    selection,
-  ),
-};
-
-ItemBlock _item(ShownDocument document, BlockId id) =>
-    document.tree.blockOf(id)! as ItemBlock;
+    CloseRaw(:final block, :final raw, :final selection) => closeRaw(
+      view,
+      block,
+      raw,
+      selection,
+    ),
+  };
+}

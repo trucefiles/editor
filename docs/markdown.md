@@ -2,8 +2,9 @@
 
 Notes are plain Markdown files. Truce reads them as standard Markdown
 ([CommonMark](https://commonmark.org) with GitHub's task lists and
-tables), so any other Markdown app shows them the same way. It changes
-only the lines you edit, byte for byte.
+tables), so any other Markdown app shows them the same way. It rewrites
+only the blocks you edit, in their own style where it can; all other
+lines stay byte for byte.
 
 ## How notes show
 

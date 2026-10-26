@@ -1,16 +1,15 @@
 import 'package:truce_core/truce_core.dart'
     show Owner, TransitionOwner, Version;
 
-import '../document_tree.dart';
-import '../edit/shown/rows.dart';
-import '../edit/shown/shown_document.dart';
+import '../edit/change.dart';
+import '../view/rows.dart';
 import 'editor_contract.dart';
-import 'editor_state.dart';
 import 'editor_transition.dart';
 import 'editor_work.dart';
+import 'reload.dart';
 
 export 'editor_contract.dart';
-export 'editor_state.dart' show EditorState, RawRegion;
+export 'save_clock.dart' show SaveTimer;
 
 /// The owner of what one open Markdown document's editor shows (see
 /// `editor_contract.dart`).
@@ -24,15 +23,22 @@ EditorOwner editorOwner(
   EditMode mode = EditMode.visual,
   CheckedItems checkedItems = CheckedItems.moveToEnd,
 }) {
-  final document = ShownDocument(
-    DocumentTree.read(text),
+  final document = loaded(text);
+  final view = ViewRows(
+    document.doc,
     done: checkedItems == CheckedItems.doneSection ? DoneSections() : null,
   );
-  final state = EditorState(
-    document: document,
-    selection: document.firstCaret,
-    mode: mode,
-    checkedItems: checkedItems,
+  return TransitionOwner(
+    EditorState(
+      content: mode == EditMode.markdown
+          ? MarkdownContent(text)
+          : FormattedContent(view: view, selection: startOf(view)),
+      mode: mode,
+      checkedItems: checkedItems,
+      revision: 0,
+      unsent: false,
+    ),
+    EditorWork(origin: document.origin, lineage: version),
+    editorStep,
   );
-  return TransitionOwner(state, EditorWork(lineage: version), editorStep);
 }

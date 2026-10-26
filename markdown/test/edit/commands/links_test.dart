@@ -1,18 +1,12 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/commands/links.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
 
-ShownDocument _document(String text) => ShownDocument(DocumentTree.read(text));
-
-Place _at(ShownDocument document, int offset) =>
-    Place((document.rows.first as TextRow).slot, offset);
+import '../support/shown.dart';
 
 /// [text] after the link dialog sets [shows] linking [url] over [from]
-/// to [to] of its first row; with the caret after.
+/// to [to] of its first row; with the selection after.
 (String, Selection) _linked(
   String text,
   int from,
@@ -20,17 +14,20 @@ Place _at(ShownDocument document, int offset) =>
   String shows,
   String url,
 ) {
-  final document = _document(text);
-  final edited = run(
-    document,
-    SetLink(TextSelection(_at(document, from), _at(document, to)), shows, url),
+  final document = Shown.read(text);
+  final edited = document.run(
+    SetLink(
+      TextSelection(document.place(0, from), document.place(0, to)),
+      shows,
+      url,
+    ),
   );
-  return (edited.document.tree.text, edited.selection);
+  return (edited.document.text, edited.selection);
 }
 
 String _unlinked(String text, int offset) {
-  final document = _document(text);
-  return run(document, RemoveLink(_at(document, offset))).document.tree.text;
+  final document = Shown.read(text);
+  return document.run(RemoveLink(document.place(0, offset))).document.text;
 }
 
 void main() {
@@ -65,10 +62,10 @@ void main() {
     });
 
     test('is possible on a link, not on text GFM reads as one', () {
-      final document = _document('[a](u) www.example.com');
-      expect(canRemoveLink(document, _at(document, 0)), isTrue);
-      expect(canRemoveLink(document, _at(document, 3)), isFalse);
-      expect(canRemoveLink(document, _at(document, 8)), isFalse);
+      final document = Shown.read('[a](u) www.example.com');
+      expect(canRemoveLink(document.view, document.place(0, 0)), isTrue);
+      expect(canRemoveLink(document.view, document.place(0, 3)), isFalse);
+      expect(canRemoveLink(document.view, document.place(0, 8)), isFalse);
     });
   });
 }

@@ -1,21 +1,22 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
-import 'package:truce_markdown/src/edit/shown/slot.dart';
-import 'package:truce_markdown/src/tree/blocks.dart';
-import 'package:truce_markdown/src/visible/visible_text.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/visible/formatting.dart';
+
+import '../support/shown.dart';
 
 /// [text] after [kind] is set on its rows [from] to [to].
 String _framed(String text, FrameKind kind, [int from = 0, int? to]) {
-  final document = ShownDocument(DocumentTree.read(text));
-  Place place(int row) => Place((document.rows[row] as TextRow).slot, 0);
-  return run(
-    document,
-    SetFrame(TextSelection(place(from), place(to ?? from)), kind),
-  ).document.tree.text;
+  final document = Shown.read(text);
+  return document
+      .run(
+        SetFrame(
+          TextSelection(document.place(from, 0), document.place(to ?? from, 0)),
+          kind,
+        ),
+      )
+      .document
+      .text;
 }
 
 void main() {
@@ -45,40 +46,27 @@ void main() {
       );
     });
 
-    test('of the list\'s own kind leaves an empty item\'s place', () {
-      final document = ShownDocument(DocumentTree.read('1. a\n2.\n3. b'));
-      final caret = TextSelection.caret(
-        Place((document.rows[1] as TextRow).slot, 0),
+    test('of the list\'s own kind leaves an empty item\'s place, the file '
+        'one list until it gets text', () {
+      final document = Shown.read('1. a\n2.\n3. b');
+      final edited = document.run(
+        SetFrame(document.caret(1, 0), FrameKind.numbered),
       );
-      final edited = run(document, SetFrame(caret, FrameKind.numbered));
-      expect(edited.document.tree.text, '1. a\n\n3) b');
-      final at = (edited.selection as TextSelection).extent;
-      expect(edited.document.rowOf(at.slot), 1);
+      expect(edited.document.text, '1. a\n2. b');
+      expect(edited.document.rows, ['a', '', 'b']);
+      expect(edited.selection, edited.document.caret(1, 0));
     });
 
-    test('of the list\'s own kind keeps what an item\'s place shows', () {
-      final tree = DocumentTree.read('1. a\n2.');
-      final item = (tree.root.children.single as ListBlock).items.last;
-      final document = ShownDocument(
-        tree,
-        tails: {
-          ItemSlot(item.id): VisibleText([TextPiece(' ')]),
-        },
+    test('of the list\'s own kind keeps what an item shows', () {
+      final document = Shown.read('1. a\n2.');
+      final spaced = document
+          .run(InsertText(document.place(1, 0), ' ', Formatting.plain))
+          .document;
+      final edited = spaced.run(
+        SetFrame(spaced.caret(1, 1), FrameKind.numbered),
       );
-      final caret = TextSelection.caret(Place(ItemSlot(item.id), 1));
-      final edited = run(document, SetFrame(caret, FrameKind.numbered));
-      final at = (edited.selection as TextSelection).extent;
-      expect(edited.document.textOf(at.slot).text, ' ');
-      expect(at.offset, 1);
-    });
-
-    test('keeps the caret within code an item holds shorter', () {
-      final document = ShownDocument(DocumentTree.read('```\n \n```'));
-      final caret = TextSelection.caret(
-        Place((document.rows.first as TextRow).slot, 1),
-      );
-      final edited = run(document, SetFrame(caret, FrameKind.bullet));
-      expect((edited.selection as TextSelection).extent.offset, 0);
+      expect(edited.document.rows, ['a', ' ']);
+      expect(edited.selection, edited.document.caret(1, 1));
     });
 
     test('makes text items, joining a list of its kind', () {

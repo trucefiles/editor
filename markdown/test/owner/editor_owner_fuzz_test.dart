@@ -7,9 +7,9 @@ import 'package:truce_markdown/truce_markdown.dart';
 
 import '../support/document_corpus.dart';
 
-/// Random user inputs, settle timers and changes from the file owner on
-/// an editor owner; after each, the file owner has the text it shows,
-/// the tree reads as a whole read would, and the selection shows.
+/// Random user inputs, save timers and changes from the file owner on an
+/// editor owner; after each, the selection shows, and once nothing is
+/// unsent, the file owner has the text Markdown edit would show.
 void main() {
   test('random inputs keep the file owner in step and the state sound', () {
     for (var seed = 0; seed < 20; seed++) {
@@ -22,15 +22,15 @@ void main() {
         );
         var fileText = text;
         var rev = 0;
-        int? timer;
+        final timers = <int>[];
         var versions = 0;
         owner.outputs.listen((output) {
           switch (output) {
             case ToFile(input: Edited(:final text, rev: final edited)):
               fileText = text;
               rev = edited;
-            case StartSettleTimer(:final id):
-              timer = id;
+            case StartSaveTimer(:final id):
+              timers.add(id);
             case _:
           }
         });
@@ -48,19 +48,22 @@ void main() {
 
         final steps = <String>[];
         for (var step = 0; step < 30; step++) {
-          final input = _randomInput(random, owner.state, timer);
+          final input = _randomInput(random, owner.state, timers);
           steps.add('$input');
           try {
-            if (input == null) {
-              fromFile('${owner.state.document.tree.text}\nz');
-            } else {
-              owner.send(input);
+            switch (input) {
+              case null when !owner.state.unsent:
+                fromFile('$fileText\n\nz');
+              case null:
+                break;
+              case final input:
+                owner.send(input);
             }
             _expectSound(owner.state, fileText);
           } on Object catch (error) {
             fail(
               'seed $seed, document $index: $error\n'
-              'after ${steps.join(', ')}\n${owner.state.document.tree.text}',
+              'after ${steps.join(', ')}\nfrom: $text',
             );
           }
         }
@@ -70,100 +73,93 @@ void main() {
 }
 
 void _expectSound(EditorState state, String fileText) {
-  final tree = state.document.tree;
-  expect(tree.text, fileText, reason: 'the file owner has what shows');
-  final reread = DocumentTree.read(tree.text);
-  expect(
-    [for (final leaf in tree.root.leaves) leaf.runtimeType],
-    [for (final leaf in reread.root.leaves) leaf.runtimeType],
-    reason: 'reads as a whole read would',
-  );
-  if (state.mode != EditMode.visual) return;
-  switch (state.selection) {
-    case TextSelection(:final base, :final extent):
-      for (final place in [base, extent]) {
-        expect(
-          state.document.rowOf(place.slot),
-          isNotNull,
-          reason: '$place shows',
-        );
-        expect(
-          place.offset,
-          inInclusiveRange(0, state.document.textOf(place.slot).length),
-        );
+  switch (state.content) {
+    case MarkdownContent(:final text) when !state.unsent:
+      expect(text, fileText, reason: 'the file owner has what shows');
+    case MarkdownContent():
+      break;
+    case FormattedContent(:final view, :final selection):
+      switch (selection) {
+        case TextSelection(:final base, :final extent):
+          for (final place in [base, extent]) {
+            final row = view.row(place.leaf);
+            expect(row, isA<TextRow>(), reason: '$place shows');
+            expect(place.offset, inInclusiveRange(0, textOf(row!.leaf).length));
+          }
+        case BlockSelection(:final block):
+          expect(view.row(block), isA<BlockRow>(), reason: '$block shows');
       }
-    case BlockSelection(:final block):
-      expect(state.document.blockRowOf(block), isNotNull);
   }
 }
 
-/// A random input on [state]; `null` for a change from the file owner.
-/// A random input on [state]; [timer] is the settle timer started last.
-EditorInput? _randomInput(Random random, EditorState state, int? timer) {
-  final document = state.document;
+/// A random input on [state], [timers] the save timers started so far;
+/// `null` for a change from the file owner.
+EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
   final revision = state.revision;
-  final texts = [
-    for (final row in document.rows)
-      if (row case TextRow(:final slot)) slot,
-  ];
+  T pick<T>(List<T> from) => from[random.nextInt(from.length)];
+  final visual = switch (state.content) {
+    final FormattedContent shown when state.mode == EditMode.visual => shown,
+    _ => null,
+  };
+  final texts = [...?visual?.view.rows.whereType<TextRow>()];
   final items = [
-    for (final leaf in document.tree.root.leaves)
-      if (document.tree.parentOf(leaf) case final ItemBlock item
-          when item.checked != null)
-        item.id,
+    if (visual != null)
+      for (final node in nodesIn(visual.view.doc.root))
+        if (node case ItemNode(checked: _?, :final id)) id,
   ];
-  if (state.raw != null) {
+  final raws = [
+    ...?visual?.view.rows.whereType<BlockRow>().where(
+      (row) => row.leaf is RawLeaf,
+    ),
+  ];
+  final markdown = switch (state.content) {
+    MarkdownContent(:final text) => text,
+    FormattedContent() => null,
+  };
+  if (visual?.raw != null) {
     return random.nextBool()
         ? EditRaw(
-            '<p>\nraw ${random.nextInt(9)}',
+            pick(['<p>', '# raw', '']),
             base: 0,
             extent: 0,
             revision: revision,
           )
         : CaretMoved(
-            TextSelection.caret(Place(texts.first, 0)),
+            TextSelection.caret(Place(texts.first.leaf.id, 0)),
             revision: revision,
           );
   }
-  return switch (random.nextInt(12)) {
-    0 || 1 when state.mode == EditMode.visual => Typed(
-      ['a', ' ', 'b c', '*'][random.nextInt(4)],
+  return switch (random.nextInt(14)) {
+    0 || 1 when visual != null => Typed(
+      pick(['a', ' ', 'b c', '*']),
       revision: revision,
     ),
-    2 || 3 when state.mode == EditMode.visual => Pressed(
-      EditKey.values[random.nextInt(EditKey.values.length)],
-      revision: revision,
-    ),
-    4 when state.mode == EditMode.visual && texts.isNotEmpty => () {
-      final slot = texts[random.nextInt(texts.length)];
+    2 ||
+    3 when visual != null => Pressed(pick(EditKey.values), revision: revision),
+    4 when texts.isNotEmpty => () {
+      final row = pick(texts);
       return CaretMoved(
         TextSelection.caret(
-          Place(slot, random.nextInt(document.textOf(slot).length + 1)),
+          Place(row.leaf.id, random.nextInt(textOf(row.leaf).length + 1)),
         ),
         revision: revision,
       );
     }(),
-    5 when state.mode == EditMode.visual && items.isNotEmpty => ToggleItem(
-      items[random.nextInt(items.length)],
+    5 when items.isNotEmpty => ToggleItem(pick(items), revision: revision),
+    6 when timers.isNotEmpty => SaveTimerFired(pick(timers)),
+    7 => null,
+    8 => SetMode(pick(EditMode.values)),
+    9 when markdown != null => EditText(
+      '$markdown${pick(['\n- [ ] x', '\n', '\n> q', ' text'])}',
       revision: revision,
     ),
-    6 when timer != null => SettleTimerFired(timer),
-    7 => null,
-    8 => SetMode(
-      state.mode == EditMode.visual ? EditMode.markdown : EditMode.visual,
+    10 => SetCheckedItems(pick(CheckedItems.values)),
+    11 => SecureEditor(pick(SecureReason.values)),
+    12 when raws.isNotEmpty => OpenRawBlock(
+      pick(raws).leaf.id,
+      atEnd: random.nextBool(),
+      revision: revision,
     ),
-    9 when state.mode == EditMode.markdown => () {
-      final lines = document.tree.lines.length;
-      final start = random.nextInt(lines);
-      return EditLines(
-        LineChange(start, start + random.nextInt(min(2, lines - start) + 1), [
-          (id: null, text: ['- [ ] x', '', '> q', 'text'][random.nextInt(4)]),
-        ]),
-        revision: revision,
-      );
-    }(),
-    10 => SetCheckedItems(CheckedItems.values[random.nextInt(3)]),
-    11 => SecureEditor(SecureReason.values[random.nextInt(3)]),
     _ => SetMode(EditMode.visual),
   };
 }

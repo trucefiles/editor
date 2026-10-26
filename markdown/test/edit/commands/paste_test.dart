@@ -1,25 +1,22 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
-import 'package:truce_markdown/src/edit/clipboard/clipboard_lines.dart';
+import 'package:truce_markdown/src/edit/clipboard_lines.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 
-/// [document] after [pasted] over [from] to [to] of its first row; with the
+import '../support/shown.dart';
+
+/// [text] after [pasted] over [from] to [to] of its first row; with the
 /// selection after.
-(String, Selection) _pasted(String document, int from, int to, String pasted) {
-  final shown = ShownDocument(DocumentTree.read(document));
-  Place place(int offset) => Place((shown.rows.first as TextRow).slot, offset);
-  final edited = run(
-    shown,
+(String, Selection) _pasted(String text, int from, int to, String pasted) {
+  final document = Shown.read(text);
+  final edited = document.run(
     Paste(
-      TextSelection(place(from), place(to)),
+      TextSelection(document.place(0, from), document.place(0, to)),
       plainLines(pasted, Formatting.plain),
     ),
   );
-  return (edited.document.tree.text, edited.selection);
+  return (edited.document.text, edited.selection);
 }
 
 void main() {
@@ -45,32 +42,27 @@ void main() {
   });
 
   test('keeps the styles of copied lines, not their frames', () {
-    final source = ShownDocument(DocumentTree.read('- **a** b\n\n> *c*'));
-    Place place(int row, int offset) =>
-        Place((source.rows[row] as TextRow).slot, offset);
-    final lines = copiedLines(source, TextSelection(place(0, 0), place(1, 1)));
-    final target = ShownDocument(DocumentTree.read('x'));
-    final at = TextSelection.caret(
-      Place((target.rows.first as TextRow).slot, 1),
+    final source = Shown.read('- **a** b\n\n> *c*');
+    final lines = copiedLines(
+      source.view,
+      TextSelection(source.place(0, 0), source.place(1, 1)),
     );
-    expect(run(target, Paste(at, lines)).document.tree.text, 'x**a** b\n\n*c*');
+    final target = Shown.read('x');
+    expect(
+      target.run(Paste(target.caret(0, 1), lines)).document.text,
+      'x**a** b\n\n*c*',
+    );
   });
 
   test('makes copied links new inline links', () {
-    final source = ShownDocument(
-      DocumentTree.read('[a][r] www.x.io\n\n[r]: /u'),
-    );
-    final slot = (source.rows.first as TextRow).slot;
+    final source = Shown.read('[a][r] www.x.io\n\n[r]: /u');
     final lines = copiedLines(
-      source,
-      TextSelection(Place(slot, 0), Place(slot, 10)),
+      source.view,
+      TextSelection(source.place(0, 0), source.place(0, 10)),
     );
-    final target = ShownDocument(DocumentTree.read('x'));
-    final at = TextSelection.caret(
-      Place((target.rows.first as TextRow).slot, 0),
-    );
+    final target = Shown.read('x');
     expect(
-      run(target, Paste(at, lines)).document.tree.text,
+      target.run(Paste(target.caret(0, 0), lines)).document.text,
       '[a](/u) www.x.iox',
     );
   });

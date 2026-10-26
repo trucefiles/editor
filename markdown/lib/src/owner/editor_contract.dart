@@ -1,24 +1,26 @@
 /// The editor owner's contract: what reaches it, what it decides, what it
 /// leads to. One editor owner per open Markdown document; it holds what
-/// the editor shows (the tree, the selection, the view state), runs the
-/// commands and tells the file owner of every text change.
+/// the editor shows (the doc tree, the selection, the view state), runs
+/// the commands, and sends the printed text to the file owner as the
+/// save timing says (see `save_clock.dart`).
 library;
 
 import 'package:truce_core/truce_core.dart'
     show FileInput, SecureReason, ToEditor;
 
+import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';
 import '../edit/keys/key_map.dart';
-import '../edit/shown/selection.dart';
-import '../lines/line_change.dart';
-import '../tree/blocks.dart';
+import '../edit/selection.dart';
+import '../view/rows.dart';
+import '../visible/formatting.dart';
 
 /// How the document shows.
 enum EditMode {
   /// Formatted, edited by commands.
   visual,
 
-  /// Every character, edited as plain lines.
+  /// Every character, edited as plain text.
   markdown,
 
   /// Formatted, not editable.
@@ -33,7 +35,7 @@ enum CheckedItems {
   /// After the open items of their list, in a Done section; view only.
   doneSection,
 
-  /// Moved to the end of their list once a toggle settles.
+  /// Moved to the end of their list once checked.
   moveToEnd,
 }
 
@@ -43,7 +45,7 @@ sealed class EditorInput {
   const EditorInput();
 }
 
-/// An input from what the library shows at [revision]; refused if the
+/// An input from what the editor shows at [revision]; refused if the
 /// state moved on since.
 sealed class ShownInput extends EditorInput {
   const ShownInput({required this.revision});
@@ -66,37 +68,44 @@ final class Typed extends ShownInput {
 }
 
 /// [command] from the input method, a gesture, the toolbar or a menu;
-/// never a [Toggle], which takes the owner's rules as a [ToggleItem]. A
-/// [MoveToEnd] first settles the toggles that wait.
+/// never a [Toggle], which is a [ToggleItem].
 final class Run extends ShownInput {
   const Run(this.command, {required super.revision});
 
   final Command command;
 }
 
-/// The user moved the caret or the selection to [selection].
+/// The user moved the caret or the selection to [selection]; an open raw
+/// block closes.
 final class CaretMoved extends ShownInput {
   const CaretMoved(this.selection, {required super.revision});
 
   final Selection selection;
 }
 
-/// A tap on [item]'s box.
+/// [item]'s box toggled, once the view's wait after a tap ended (see the
+/// plan's "checked items wait"); with "Move to end" a checked item moves.
 final class ToggleItem extends ShownInput {
   const ToggleItem(this.item, {required super.revision});
 
-  final BlockId item;
+  final NodeId item;
 }
 
-/// Markdown edit changed the lines.
-final class EditLines extends ShownInput {
-  const EditLines(this.change, {required super.revision});
+/// A tap or the caret on [block], a raw block: it opens as its raw text,
+/// the caret at its end if [atEnd], else at its start.
+final class OpenRawBlock extends ShownInput {
+  const OpenRawBlock(
+    this.block, {
+    required this.atEnd,
+    required super.revision,
+  });
 
-  final LineChange change;
+  final NodeId block;
+  final bool atEnd;
 }
 
-/// The open raw region now reads [text], its caret from [base] to
-/// [extent] in it.
+/// The open raw block now reads [text], its caret from [base] to [extent]
+/// in it.
 final class EditRaw extends ShownInput {
   const EditRaw(
     this.text, {
@@ -110,7 +119,7 @@ final class EditRaw extends ShownInput {
   final int extent;
 }
 
-/// The caret moved within the open raw region.
+/// The caret moved within the open raw block.
 final class RawCaretMoved extends ShownInput {
   const RawCaretMoved({
     required this.base,
@@ -122,12 +131,11 @@ final class RawCaretMoved extends ShownInput {
   final int extent;
 }
 
-/// A drag of [item] started: it no longer waits for its toggle to
-/// settle.
-final class DragStarted extends EditorInput {
-  const DragStarted(this.item);
+/// Markdown edit's text is now [text].
+final class EditText extends ShownInput {
+  const EditText(this.text, {required super.revision});
 
-  final BlockId item;
+  final String text;
 }
 
 final class SetMode extends EditorInput {
@@ -147,7 +155,7 @@ final class SetCheckedItems extends EditorInput {
 final class SetCollapsed extends EditorInput {
   const SetCollapsed(this.list, {required this.collapsed});
 
-  final BlockId list;
+  final NodeId list;
   final bool collapsed;
 }
 
@@ -158,8 +166,9 @@ final class UndoRemoval extends EditorInput {
   final int id;
 }
 
-final class SettleTimerFired extends EditorInput {
-  const SettleTimerFired(this.id);
+/// The save timer [StartSaveTimer] started with [id] fired.
+final class SaveTimerFired extends EditorInput {
+  const SaveTimerFired(this.id);
 
   final int id;
 }
@@ -171,8 +180,8 @@ final class FromFile extends EditorInput {
   final ToEditor message;
 }
 
-/// Keep the edits somewhere lasting now: the editor settles, then the
-/// file owner keeps them.
+/// Keep the edits somewhere lasting now (the user leaves, hides or
+/// closes): the editor sends its text, then the file owner keeps it.
 final class SecureEditor extends EditorInput {
   const SecureEditor(this.reason);
 
@@ -192,9 +201,9 @@ final class ToFile extends EditorOutput {
   final FileInput input;
 }
 
-/// Send [SettleTimerFired] with [id] after [delay].
-final class StartSettleTimer extends EditorOutput {
-  const StartSettleTimer(this.id, this.delay);
+/// Send [SaveTimerFired] with [id] after [delay].
+final class StartSaveTimer extends EditorOutput {
+  const StartSaveTimer(this.id, this.delay);
 
   final int id;
   final Duration delay;
@@ -220,4 +229,75 @@ final class UndoRefused extends EditorOutput {
   const UndoRefused(this.id);
 
   final int id;
+}
+
+// State.
+
+/// What the editor shows and how: the editor owner's state.
+final class EditorState {
+  const EditorState({
+    required this.content,
+    required this.mode,
+    required this.checkedItems,
+    required this.revision,
+    required this.unsent,
+  });
+
+  /// What shows: [MarkdownContent] in Markdown edit, else
+  /// [FormattedContent].
+  final EditorContent content;
+
+  final EditMode mode;
+  final CheckedItems checkedItems;
+
+  /// Counts the changes to what shows; inputs name the one they saw.
+  final int revision;
+
+  /// Whether there are edits only in memory, not yet sent to be kept.
+  final bool unsent;
+}
+
+/// What shows: the doc tree, or the text Markdown edit edits.
+sealed class EditorContent {
+  const EditorContent();
+}
+
+/// The document formatted: its [view] rows, the [selection] in them, the
+/// typing style the user set at the caret (`null` while it follows the
+/// text there), and the raw block open, if one is.
+final class FormattedContent extends EditorContent {
+  const FormattedContent({
+    required this.view,
+    required this.selection,
+    this.typingStyle,
+    this.raw,
+  });
+
+  final ViewRows view;
+  final Selection selection;
+  final Formatting? typingStyle;
+  final RawRegion? raw;
+}
+
+/// The document as the text Markdown edit edits.
+final class MarkdownContent extends EditorContent {
+  const MarkdownContent(this.text);
+
+  final String text;
+}
+
+/// The raw block [block] open as its raw [text], as typed so far, the
+/// caret from [base] to [extent] in it.
+final class RawRegion {
+  const RawRegion(
+    this.block,
+    this.text, {
+    required this.base,
+    required this.extent,
+  });
+
+  final NodeId block;
+  final String text;
+  final int base;
+  final int extent;
 }

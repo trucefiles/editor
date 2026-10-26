@@ -1,159 +1,119 @@
-import '../../tree/blocks.dart';
-import '../../write/draft.dart';
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
-import 'outline.dart';
+/// Commands on list items as a whole: their boxes, adding, moving and
+/// removing them.
+library;
 
-/// [item]'s box checked or unchecked; the selection stays.
-Edit toggle(ShownDocument document, ItemBlock item, Selection selection) =>
-    Edit(
-      replaced: {
-        item.id: [
-          ItemDraft.of(
-            item,
-            kept(item.children),
-            checked: !(item.checked ?? false),
-          ),
-        ],
-      },
-      selection: selection,
-    );
+import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
+import '../../doc/normalized.dart';
+import '../../view/rows.dart';
+import '../change.dart';
+import '../selection.dart';
+
+/// [item]'s box checked or unchecked; [selection] stays.
+Change toggle(ViewRows view, ItemNode item, Selection selection) => (
+  doc: view.doc.withNode(item.withBox(!(item.checked ?? false))),
+  selection: selection,
+);
 
 /// [item] gone with its subitems; the caret at the start of the next
 /// text shown, else at the end of the one above.
-Edit deleteItem(ShownDocument document, ItemBlock item) {
-  final list = document.tree.parentOf(item)! as ListBlock;
-  return Edit(
-    replaced: {list.id: listWith(list, itemsWithout(list, item))},
-    selection: caretOnceGone(document, {...idsIn(item)}),
-  );
-}
+Change deleteItem(ViewRows view, ItemNode item) => (
+  doc: view.doc.edited({item.id: const []}),
+  selection: caretOnceGone(view, {item.id}),
+);
 
 /// A new empty item in [list], last unless [first]: with an open box
 /// where the list's items have boxes.
-Edit addItem(ShownDocument document, ListBlock list, {bool first = false}) {
-  final id = document.tree.freshBlockIds.first;
-  final item = ItemDraft(
-    id,
-    const [],
-    checked: list.items.any((item) => item.hasBox) ? false : null,
-  );
-  return Edit(
-    replaced: {
+Change addItem(ViewRows view, ListNode list, {bool first = false}) {
+  final fresh = view.doc.freshIds;
+  final text = emptyParagraph(fresh);
+  final item = ItemNode(fresh.take(), [
+    text,
+  ], checked: list.items.any((item) => item.hasBox) ? false : null);
+  return (
+    doc: view.doc.edited({
       list.id: [
-        ListDraft.of(list, [
-          if (first) item,
-          ...kept(list.items),
-          if (!first) item,
-        ]),
+        list.withChildren([if (first) item, ...list.items, if (!first) item]),
       ],
-    },
-    selection: TextSelection.caret(Place(ItemSlot(id), 0)),
+    }, fresh: fresh),
+    selection: TextSelection.caret(Place(text.id, 0)),
   );
 }
 
 /// [item] with its subitems moved right before [target], or after it if
-/// [below], in [target]'s list, taking that list's kind; the selection
+/// [below], in [target]'s list, taking that list's kind; [selection]
 /// stays.
-Edit moveItem(
-  ShownDocument document,
-  ItemBlock item,
-  ItemBlock target, {
+Change moveItem(
+  ViewRows view,
+  ItemNode item,
+  ItemNode target, {
   required bool below,
   required Selection selection,
 }) {
-  final tree = document.tree;
-  final from = tree.parentOf(item)! as ListBlock;
-  final to = tree.parentOf(target)! as ListBlock;
-  assert(!idsIn(item).contains(target.id), 'an item moves outside itself');
-  final moved = [
-    for (final other in itemsWithout(to, item))
-      if (other.id == target.id) ...[
-        if (!below) KeptDraft(item),
-        other,
-        if (below) KeptDraft(item),
-      ] else
-        other,
-  ];
-  return Edit(
-    replaced: {
-      if (from.id != to.id) from.id: listWith(from, itemsWithout(from, item)),
-      to.id: [ListDraft.of(to, moved)],
-    },
+  final doc = view.doc;
+  assert(
+    !nodesIn(item).any((node) => node.id == target.id),
+    'an item moves outside itself',
+  );
+  // The target may hold the item (a subitem moved out of it).
+  final removed = {item.id: const <DocBlock>[]};
+  final staying = editedIn(target, removed).single;
+  return (
+    doc: doc.edited({
+      ...removed,
+      target.id: [if (!below) item, staying, if (below) item],
+    }),
     selection: selection,
   );
 }
 
-/// The checked items at the top level of the document's lists (or only of
+/// The checked items at the top level of [doc]'s lists (or only of
 /// [list]): those the Done sections show, and the checked-items actions
 /// act on.
-List<ItemBlock> checkedItems(ShownDocument document, {ListBlock? list}) => [
-  for (final top in list == null ? _topLists(document.tree.root) : [list])
+List<ItemNode> checkedItems(DocTree doc, {ListNode? list}) => [
+  for (final top in list == null ? _topLists(doc.root) : [list])
     ...top.items.where((item) => item.checked ?? false),
 ];
 
-/// [items] with their subitems gone: "Clear checked items"; the
-/// selection kept if its text stays, else as for [deleteItem].
-Edit clearItems(
-  ShownDocument document,
-  List<ItemBlock> items,
-  Selection selection,
-) {
+/// [items] gone with their subitems: "Clear checked items"; [selection]
+/// kept if its text stays, else as for [deleteItem].
+Change clearItems(ViewRows view, List<ItemNode> items, Selection selection) {
   final gone = {for (final item in items) item.id};
-  return Edit(
-    replaced: {
-      for (final list in _listsOf(document, items))
-        list.id: [
-          if (list.items.any((item) => !gone.contains(item.id)))
-            ListDraft.of(list, [
-              for (final item in list.items)
-                if (!gone.contains(item.id)) KeptDraft(item),
-            ]),
-        ],
-    },
-    selection: selectionOnceGone(document, selection, {
-      for (final item in items) ...idsIn(item),
-    }),
+  return (
+    doc: view.doc.edited({for (final id in gone) id: const []}),
+    selection: selectionOnceGone(view, selection, gone),
   );
 }
 
 /// [items] moved, with their subitems, to the end of their lists in
-/// their order: "Move checked items to end", and checks settling.
-Edit moveToEnd(
-  ShownDocument document,
-  List<ItemBlock> items,
-  Selection selection,
-) {
+/// their order: "Move checked items to end", and a checked item's wait
+/// ending; [selection] stays.
+Change moveToEnd(ViewRows view, List<ItemNode> items, Selection selection) {
   final moving = {for (final item in items) item.id};
-  return Edit(
-    replaced: {
-      for (final list in _listsOf(document, items))
-        list.id: [
-          ListDraft.of(list, [
-            for (final item in list.items)
-              if (!moving.contains(item.id)) KeptDraft(item),
-            for (final item in list.items)
-              if (moving.contains(item.id)) KeptDraft(item),
-          ]),
-        ],
-    },
+  final lists = {for (final item in items) view.doc.parentOf(item.id)!.id};
+  // One list at a time: one may hold another.
+  return (
+    doc: lists.fold(view.doc, (doc, id) {
+      final list = doc.nodeOf(id)! as ListNode;
+      return doc.withNode(
+        list.withChildren([
+          for (final item in list.items)
+            if (!moving.contains(item.id)) item,
+          for (final item in list.items)
+            if (moving.contains(item.id)) item,
+        ]),
+      );
+    }),
     selection: selection,
   );
 }
 
-/// The lists [items] are in.
-Iterable<ListBlock> _listsOf(ShownDocument document, List<ItemBlock> items) => {
-  for (final item in items) document.tree.parentOf(item)! as ListBlock,
-};
-
 /// The lists in [container] that are in no item.
-Iterable<ListBlock> _topLists(ContainerBlock container) =>
+Iterable<ListNode> _topLists(DocContainer container) =>
     container.children.expand(
       (child) => switch (child) {
-        final ListBlock list => [list],
-        final QuoteBlock quote => _topLists(quote),
-        _ => const <ListBlock>[],
+        final ListNode list => [list],
+        final QuoteNode quote => _topLists(quote),
+        _ => const <ListNode>[],
       },
     );

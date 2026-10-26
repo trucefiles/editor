@@ -1,110 +1,120 @@
-import '../../tree/blocks.dart';
-import '../../write/draft.dart';
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
+/// Tab and Shift+Tab in an item: one level in or out.
+library;
+
+import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
+import '../../view/rows.dart';
+import '../change.dart';
+import '../selection.dart';
 import 'lifted_items.dart';
-import 'outline.dart';
 import 'remove_frame.dart';
 
-/// The item [slot] is in, as an item, outside a Done section: what
-/// indent and outdent act on; `null` if there is none.
-ItemBlock? itemAt(ShownDocument document, Slot slot) {
-  final row = rowOfSlot(document, slot);
-  if (row.done) return null;
-  return switch (row.path.lastOrNull) {
-    final ItemBlock item => item,
+/// The item whose text [leaf] is, outside a Done section: what indent
+/// and outdent act on; `null` if there is none.
+ItemNode? itemAt(ViewRows view, NodeId leaf) {
+  if (view.row(leaf)?.done ?? true) return null;
+  return switch (view.doc.parentOf(leaf)) {
+    final ItemNode item => item,
     _ => null,
   };
 }
 
-/// Whether the item at [slot] can be indented: it has an item above it
+/// Whether the item at [leaf] can be indented: it has an item above it
 /// in its list.
-bool canIndent(ShownDocument document, Slot slot) =>
-    switch (itemAt(document, slot)) {
-      final item? =>
-        (document.tree.parentOf(item)! as ListBlock).items.first.id != item.id,
-      null => false,
-    };
+bool canIndent(ViewRows view, NodeId leaf) => switch (itemAt(view, leaf)) {
+  final item? =>
+    (view.doc.parentOf(item.id)! as ListNode).items.first.id != item.id,
+  null => false,
+};
 
-/// Whether the item at [slot] can be outdented: it is in an item.
-bool canOutdent(ShownDocument document, Slot slot) =>
-    itemAt(document, slot) != null;
+/// Whether the item at [leaf] can be outdented: it is in an item.
+bool canOutdent(ViewRows view, NodeId leaf) => itemAt(view, leaf) != null;
 
 /// The item at [selection]'s caret made the last child of the item above
-/// it, its own children coming along; it joins that item's sublist if
-/// it ends with one, taking its kind, else starts one.
-Edit indent(ShownDocument document, TextSelection selection) {
-  final item = itemAt(document, selection.extent.slot)!;
-  final list = document.tree.parentOf(item)! as ListBlock;
+/// it, its own children coming along; it joins that item's sublist if it
+/// ends with one, else starts one of its list's kind.
+Change indent(ViewRows view, TextSelection selection) {
+  final doc = view.doc;
+  final item = itemAt(view, selection.extent.leaf)!;
+  final list = doc.parentOf(item.id)! as ListNode;
   final above = list.items[list.items.indexOf(item) - 1];
-  return Edit(
-    replaced: {
-      list.id: listWith(list, itemsWithout(list, item)),
-      above.id: [
-        ItemDraft.of(above, switch (above.children.lastOrNull) {
-          final ListBlock sublist => [
-            ...kept(above.children.take(above.children.length - 1)),
-            ListDraft.of(sublist, [...kept(sublist.items), KeptDraft(item)]),
-          ],
-          _ => [
-            ...kept(above.children),
-            ListDraft(
-              document.tree.freshBlockIds.first,
-              [KeptDraft(item)],
-              kind: list.kind,
-              loose: list.loose,
-            ),
-          ],
-        }),
+  final fresh = doc.freshIds;
+  final into = above.withChildren(switch (above.children.last) {
+    final ListNode sublist => [
+      ...above.children.take(above.children.length - 1),
+      sublist.withChildren([...sublist.items, item]),
+    ],
+    _ => [
+      ...above.children,
+      ListNode(fresh.take(), [item], kind: list.kind),
+    ],
+  });
+  return (
+    doc: doc.edited({
+      list.id: [
+        list.withChildren([
+          for (final other in list.items)
+            if (other == above) into else if (other != item) other,
+        ]),
       ],
-    },
+    }, fresh: fresh),
     selection: selection,
   );
 }
 
 /// The item at [selection]'s caret one level out, right after the item
 /// it is in, the items after it in its list becoming its subitems; at a
-/// list's top level, its blocks out of the list, which splits around it.
-Edit outdent(ShownDocument document, TextSelection selection) {
-  final item = itemAt(document, selection.extent.slot)!;
-  final list = document.tree.parentOf(item)! as ListBlock;
-  final parent = document.tree.parentOf(list);
-  if (parent is! ItemBlock) {
-    if (item.isEmpty) return leaveList(document, ItemSlot(item.id));
-    final (:drafts, :moved) = liftedOut(document, list, {
-      item.id,
-    }, document.tree.freshBlockIds.iterator);
-    return Edit(
-      replaced: {list.id: drafts},
-      selection: selection.movedBy(moved),
+/// list's top level, its blocks out of the list, which splits around it
+/// (an empty item leaves the list, see [leaveList]).
+Change outdent(ViewRows view, TextSelection selection) {
+  final doc = view.doc;
+  final item = itemAt(view, selection.extent.leaf)!;
+  final list = doc.parentOf(item.id)! as ListNode;
+  final fresh = doc.freshIds;
+  final parent = doc.parentOf(list.id);
+  if (parent is! ItemNode) {
+    if (isEmptyItem(item)) return leaveList(view, item);
+    return (
+      doc: doc.edited({
+        list.id: liftedOut(list, {item.id}, fresh),
+      }, fresh: fresh),
+      selection: selection,
     );
   }
   final index = list.items.indexOf(item);
   final following = list.items.skip(index + 1).toList();
-  final children = switch ((item.children.lastOrNull, following)) {
-    (_, []) => kept(item.children),
-    (final ListBlock sublist, _) when sublist.kind == list.kind => [
-      ...kept(item.children.take(item.children.length - 1)),
-      ListDraft.of(sublist, [...kept(sublist.items), ...kept(following)]),
+  final children = switch ((item.children.last, following)) {
+    (_, []) => item.children,
+    (final ListNode sublist, _) when sublist.kind == list.kind => [
+      ...item.children.take(item.children.length - 1),
+      sublist.withChildren([...sublist.items, ...following]),
     ],
     _ => [
-      ...kept(item.children),
-      ListDraft(
-        document.tree.freshBlockIds.first,
-        kept(following),
+      ...item.children,
+      ListNode(
+        fresh.take(),
+        following,
         kind: list.kind,
-        loose: list.loose,
         numbering: list.numbering,
+        source: list.source,
       ),
     ],
   };
-  return Edit(
-    replaced: {
-      list.id: listWith(list, kept(list.items.take(index))),
-      parent.id: [KeptDraft(parent), ItemDraft.of(item, children)],
-    },
+  final staying = list.items.take(index).toList();
+  final outer = editedIn(parent, {
+    list.id: [if (staying.isNotEmpty) list.withChildren(staying)],
+  }).single;
+  return (
+    doc: doc.edited({
+      parent.id: [outer, item.withChildren(children)],
+    }, fresh: fresh),
     selection: selection,
   );
 }
+
+/// Whether [item] shows no text and holds nothing else: only an empty
+/// paragraph.
+bool isEmptyItem(ItemNode item) => switch (item.children) {
+  [ParagraphNode(:final text)] => text.isEmpty,
+  _ => false,
+};

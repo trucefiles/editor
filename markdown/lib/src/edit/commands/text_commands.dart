@@ -1,31 +1,36 @@
+/// Commands that change the text of text places: typing, replacing,
+/// deleting, joining, line breaks.
+library;
+
+import 'package:characters/characters.dart';
+
+import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
-import '../commit.dart';
-import '../common_ends.dart';
-import '../shown/rows.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
-import '../shown/typing_style.dart';
+import '../change.dart';
+import '../selection.dart';
+import '../text_places.dart';
+import '../typing_style.dart';
 import 'delete_across.dart';
-import 'text_places.dart';
 
 /// [text] typed at [at] in [formatting].
-Edit insertText(
-  ShownDocument document,
+Change insertText(
+  ViewRows view,
   Place at,
   String text,
   Formatting formatting,
-) => typed(document, at, at.offset, VisibleText([TextPiece(text, formatting)]));
+) => typed(view, at, at.offset, VisibleText([TextPiece(text, formatting)]));
 
-/// The text in [range] replaced by [text], keeping the formatting of
-/// what stays.
-Edit replaceText(ShownDocument document, TextSelection range, String text) {
-  final (start, end) = ordered(document, range);
-  assert(start.slot == end.slot, 'a replacement within one text place');
-  final shown = document.textOf(start.slot);
+/// The text in [range], within one text place, replaced by [text], as an
+/// input method does: the text both share at their start and end keeps
+/// its formatting; what changed takes the formatting of the first
+/// character it replaced (else of the one before).
+Change replaceText(ViewRows view, TextSelection range, String text) {
+  final (start, end) = ordered(view, range);
+  assert(start.leaf == end.leaf, 'a replacement within one text place');
+  final shown = textAt(view.doc, start.leaf);
   final old = shown.text.substring(start.offset, end.offset);
-  final (:head, :tail) = commonEnds(old, text);
+  final (:head, :tail) = _commonEnds(old, text);
   final from = start.offset + head;
   final to = end.offset - tail;
   final formatting = switch ((from < to, from > 0)) {
@@ -34,8 +39,8 @@ Edit replaceText(ShownDocument document, TextSelection range, String text) {
     (false, false) => Formatting.plain,
   };
   return typed(
-    document,
-    Place(start.slot, from),
+    view,
+    Place(start.leaf, from),
     to,
     VisibleText([
       TextPiece(text.substring(head, text.length - tail), formatting),
@@ -44,51 +49,49 @@ Edit replaceText(ShownDocument document, TextSelection range, String text) {
 }
 
 /// The text in [range] removed; across text places, see [deleteAcross].
-Edit deleteRange(ShownDocument document, TextSelection range) {
-  final (start, end) = ordered(document, range);
-  return start.slot == end.slot
-      ? typed(document, start, end.offset, VisibleText.empty)
-      : deleteAcross(document, start, end);
+Change deleteRange(ViewRows view, TextSelection range) {
+  final (start, end) = ordered(view, range);
+  return start.leaf == end.leaf
+      ? typed(view, start, end.offset, VisibleText.empty)
+      : deleteAcross(view, start, end);
 }
 
-/// [slot]'s text joined to the text shown in the row above (a text
-/// place): the text of the two places from [slot]'s start back to the
-/// end of the one above removed.
-Edit joinWithPrevious(ShownDocument document, Slot slot) {
-  final above = _textRow(document, document.rowOf(slot)! - 1);
+/// Backspace at the start of [at]'s text place: the text place shown in
+/// the row above joins it (see [deleteAcross]).
+Change joinWithPrevious(ViewRows view, Place at) {
+  final above = _textRow(view, view.rowOf(at.leaf)! - 1);
   return deleteAcross(
-    document,
-    Place(above, document.textOf(above).length),
-    Place(slot, 0),
+    view,
+    Place(above.leaf.id, textOf(above.leaf).length),
+    Place(at.leaf, 0),
   );
 }
 
-/// The text shown in the row below (a text place) joined to [slot]'s.
-Edit joinWithNext(ShownDocument document, Slot slot) {
-  final below = _textRow(document, document.rowOf(slot)! + 1);
+/// Delete at the end of [at]'s text place: the text place shown in the
+/// row below joins it.
+Change joinWithNext(ViewRows view, Place at) {
+  final below = _textRow(view, view.rowOf(at.leaf)! + 1);
   return deleteAcross(
-    document,
-    Place(slot, document.textOf(slot).length),
-    Place(below, 0),
+    view,
+    Place(at.leaf, textAt(view.doc, at.leaf).length),
+    Place(below.leaf.id, 0),
   );
 }
 
-Slot _textRow(ShownDocument document, int index) =>
-    switch (document.rows[index]) {
-      TextRow(:final slot) => slot,
-      final row => throw ArgumentError.value(row, 'row', 'no text place'),
-    };
+TextRow _textRow(ViewRows view, int index) => switch (view.rows[index]) {
+  final TextRow row => row,
+  final row => throw ArgumentError.value(row, 'row', 'no text place'),
+};
 
 /// A line break put in at [at], in the typing style there, dropping the
-/// spaces after it (see [newLineStart]); code holds no line break, so it
-/// ends there and goes on after it.
-Edit lineBreak(ShownDocument document, Place at) => typed(
-  document,
+/// spaces after it (see [newLineStart]).
+Change lineBreak(ViewRows view, Place at) => typed(
+  view,
   at,
-  newLineStart(document.textOf(at.slot), at.offset),
+  newLineStart(textAt(view.doc, at.leaf), at.offset),
   VisibleText([
     HardBreakPiece(
-      typingStyleAt(document, at).withFormat(TextFormat.code, on: false),
+      typingStyleAt(view.doc, at).withFormat(TextFormat.code, on: false),
     ),
   ]),
 );
@@ -108,33 +111,45 @@ int newLineStart(VisibleText text, int at) =>
 
 /// The text from [from] to [to] in its text place replaced by [insert],
 /// the caret after it.
-Edit typed(ShownDocument document, Place from, int to, VisibleText insert) {
-  final text = document.textOf(from.slot).replaced(from.offset, to, insert);
-  final change = withText(
-    document,
-    from.slot,
-    text,
-    document.tree.freshBlockIds.iterator,
-  );
-  return Edit(
-    replaced: change.replaced,
-    gaps: change.gaps,
-    tails: change.tails,
-    selection: TextSelection.caret(
-      Place(change.slot, from.offset + insert.length),
-    ),
-  );
-}
+Change typed(ViewRows view, Place from, int to, VisibleText insert) => (
+  doc: withTextAt(
+    view.doc,
+    from.leaf,
+    textAt(view.doc, from.leaf).replaced(from.offset, to, insert),
+  ),
+  selection: TextSelection.caret(Place(from.leaf, from.offset + insert.length)),
+);
 
-/// [range]'s places, first in shown order first.
-(Place, Place) ordered(ShownDocument document, TextSelection range) {
+/// [range]'s places, the first shown first.
+(Place, Place) ordered(ViewRows view, TextSelection range) {
   final (base, extent) = (range.base, range.extent);
-  final order = switch ((
-    document.rowOf(base.slot),
-    document.rowOf(extent.slot),
-  )) {
+  final order = switch ((view.rowOf(base.leaf), view.rowOf(extent.leaf))) {
     (final a?, final b?) when a != b => a.compareTo(b),
     _ => base.offset.compareTo(extent.offset),
   };
   return order <= 0 ? (base, extent) : (extent, base);
+}
+
+/// The offset of the character before [offset] in [text], as the user
+/// sees characters.
+int graphemeBefore(String text, int offset) =>
+    offset - text.substring(0, offset).characters.last.length;
+
+/// The offset after the character at [offset] in [text].
+int graphemeAfter(String text, int offset) =>
+    offset + text.substring(offset).characters.first.length;
+
+/// How many characters [a] and [b] share at their start ([head]) and,
+/// after that, at their end ([tail]).
+({int head, int tail}) _commonEnds(String a, String b) {
+  int same(String a, String b) =>
+      Iterable<int>.generate(a.length < b.length ? a.length : b.length)
+          .takeWhile((index) => a[index] == b[index])
+          .length;
+  String reversed(String text) => text.split('').reversed.join();
+  final head = same(a, b);
+  return (
+    head: head,
+    tail: same(reversed(a.substring(head)), reversed(b.substring(head))),
+  );
 }

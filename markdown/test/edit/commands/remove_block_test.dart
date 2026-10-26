@@ -1,32 +1,40 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/view/rows.dart';
+
+import '../support/shown.dart';
 
 /// [text] after its first block row goes, with the caret after.
 (String, TextSelection) _removed(String text) {
-  final document = ShownDocument(DocumentTree.read(text));
-  final rule = document.rows.whereType<BlockRow>().first.leaf;
-  final edited = run(document, RemoveBlock(rule.id));
-  return (edited.document.tree.text, edited.selection as TextSelection);
+  final document = Shown.read(text);
+  final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+  final edited = document.run(RemoveBlock(divider.id));
+  return (edited.document.text, edited.selection as TextSelection);
 }
 
 void main() {
-  test('a rule goes, the caret at the start of the text after', () {
+  test('a divider goes, the caret at the start of the text after', () {
     final (text, caret) = _removed('a\n\n---\n\nb');
     expect(text, 'a\n\nb');
     expect(caret.extent.offset, 0);
   });
 
-  test('a last rule leaves the caret at the end of the text above', () {
+  test('a last divider leaves the caret in the empty text after it', () {
     final (text, caret) = _removed('ab\n\n---');
     expect(text, 'ab');
-    expect(caret.extent.offset, 2);
+    expect(caret.extent.offset, 0);
   });
 
-  test('a rule alone in a quote takes the quote with it', () {
+  test('a divider with no text after it leaves the caret at the end of the '
+      'text above', () {
+    final document = Shown.read('ab\n\n---\n\n<!--');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(RemoveBlock(divider.id));
+    expect(edited.selection, edited.document.caret(0, 2));
+  });
+
+  test('a divider alone in a quote takes the quote with it', () {
     expect(_removed('a\n\n> ---').$1, 'a');
   });
 }

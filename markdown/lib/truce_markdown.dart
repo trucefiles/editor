@@ -1,23 +1,24 @@
-/// Markdown documents for Truce: read into a CommonMark + GFM block
-/// tree, edited by commands in Visual edit, and written back byte-exact.
+/// Markdown documents for Truce: read into a doc tree, edited by
+/// commands in Visual edit, and printed back block-exact (blocks the user
+/// didn't touch keep their bytes).
 ///
 /// Pure Dart, no UI; `core` knows nothing of it. What the app uses is
-/// exported here: the editor's owner ([EditorOwner]) and what its inputs
-/// name.
+/// exported here: the editor's owner ([EditorOwner]), what its inputs
+/// name and its state shows, and the Markdown tree Markdown edit
+/// highlights by.
 library;
 
+export 'src/doc/doc_nodes.dart';
 export 'src/document_tree.dart' show DocumentTree;
-export 'src/edit/clipboard/clipboard_lines.dart';
+export 'src/edit/clipboard_lines.dart';
 export 'src/edit/commands/command.dart';
 export 'src/edit/keys/key_map.dart';
-export 'src/edit/shown/rows.dart';
-export 'src/edit/shown/selection.dart';
-export 'src/edit/shown/shown_document.dart' show ShownDocument;
-export 'src/edit/shown/slot.dart';
-export 'src/edit/shown/typing_style.dart';
+export 'src/edit/selection.dart';
+export 'src/edit/typing_style.dart';
 export 'src/lines/line.dart';
 export 'src/lines/line_change.dart';
 export 'src/owner/editor_owner.dart';
 export 'src/tree/blocks.dart';
-export 'src/visible/formatting.dart' show Formatting, TextFormat;
-export 'src/visible/visible_text.dart' show VisibleText;
+export 'src/view/rows.dart';
+export 'src/visible/formatting.dart';
+export 'src/visible/visible_text.dart';

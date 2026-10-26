@@ -1,222 +1,160 @@
-import 'package:collection/collection.dart';
+/// Taking a text out of its innermost item or quote.
+library;
 
-import '../../tree/blocks.dart';
+import '../../doc/doc_nodes.dart';
+import '../../view/rows.dart';
 import '../../visible/visible_text.dart';
-import '../../write/draft.dart';
-import '../commit.dart';
-import '../shown/rows.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
-import 'outline.dart';
-import 'text_places.dart';
+import '../change.dart';
+import '../selection.dart';
+import '../text_places.dart';
+import 'lifted_items.dart';
 
-/// Backspace at the start of [slot], the first text of its innermost
-/// item or quote: that frame goes. Out of a quote, the block (or gap)
-/// goes one level out, the quote split around it. A first item's blocks
-/// go above its list; another item's text becomes a line of the item
-/// above, after a line break, its other blocks following there.
-Edit removeFrame(ShownDocument document, Slot slot) {
-  final caret = TextSelection.caret(Place(slot, 0));
-  return switch (rowOfSlot(document, slot).path.lastOrNull) {
-    final QuoteBlock quote => _outOfQuote(document, quote, slot),
-    final ItemBlock item => switch (document.tree.parentOf(item)!
-        as ListBlock) {
+/// Backspace at the start of [leaf], the first text of its innermost item
+/// or quote: that frame goes. Out of a quote, the leaf goes one level
+/// out, the quote split around it. A first item's blocks go above its
+/// list; another item's text becomes a line of the item above, after a
+/// line break, its other blocks following there.
+Change removeFrame(ViewRows view, NodeId leaf) {
+  final doc = view.doc;
+  final caret = TextSelection.caret(Place(leaf, 0));
+  return switch (doc.parentOf(leaf)) {
+    final QuoteNode quote => _outOfQuote(view, quote, leaf),
+    final ItemNode item => switch (doc.parentOf(item.id)! as ListNode) {
       final list when list.items.first == item => _aboveList(
-        document,
+        view,
         list,
         item,
-        slot,
+        caret,
       ),
-      final list => _intoItemAbove(document, list, item, slot),
+      final list => _intoItemAbove(view, list, item, caret),
     },
-    _ => Edit(selection: caret),
+    _ => (doc: doc, selection: caret),
   };
 }
 
-/// Enter in [slot], the place of an empty item at a list's top level:
-/// the item goes, and an empty paragraph shows where it was, between
-/// the list's two parts (the file keeps one list until it gets text);
-/// in place of the list if it was its only item.
-Edit leaveList(ShownDocument document, Slot slot) {
-  final item = document.tree.blockOf((slot as ItemSlot).item)! as ItemBlock;
-  final list = document.tree.parentOf(item)! as ListBlock;
-  if (list.items.length == 1) {
-    // As a paragraph, so the list's container stays with it.
-    final id = document.tree.freshBlockIds.first;
-    return Edit(
-      replaced: {
-        list.id: [TextDraft(id, VisibleText.empty)],
-      },
-      selection: TextSelection.caret(Place(LeafSlot(id), 0)),
-    );
-  }
-  final outer = document.tree.parentOf(list)!;
+/// Enter in [item], an empty item at a list's top level: it leaves the
+/// list, its empty paragraph showing where it was, between the list's
+/// two parts (the file keeps one list until it gets text); in place of
+/// the list if it was its only item.
+Change leaveList(ViewRows view, ItemNode item) {
+  final doc = view.doc;
+  final list = doc.parentOf(item.id)! as ListNode;
+  final paragraph = item.children.single;
   final index = list.items.indexOf(item);
-  final gap = switch (index) {
-    0 => Gap(
-      document.nextGap,
-      container: outer.id,
-      after: blockBefore(outer, list)?.id,
-    ),
-    _ when index == list.items.length - 1 => Gap(
-      document.nextGap,
-      container: outer.id,
-      after: list.id,
-    ),
-    _ => Gap(
-      document.nextGap,
-      container: list.id,
-      after: list.items[index - 1].id,
-    ),
-  };
-  return Edit(
-    replaced: {item.id: const []},
-    gaps: withGap(document.gaps, gap, first: gap.after == list.id),
-    nextGap: document.nextGap.next,
-    selection: TextSelection.caret(Place(GapSlot(gap.id), 0)),
-  );
-}
-
-/// [slot]'s block or gap one level out of [quote], which splits around
-/// it: its first part keeps its id.
-Edit _outOfQuote(ShownDocument document, QuoteBlock quote, Slot slot) {
-  final tree = document.tree;
-  final outer = tree.parentOf(quote)!;
-  final children = quote.children;
-  final (index, block, gap) = switch (slot) {
-    LeafSlot(:final leaf) => (
-      children.indexWhere((child) => child.id == leaf),
-      tree.blockOf(leaf),
-      null,
-    ),
-    GapSlot(gap: final id) => switch (document.gapOf(id)!) {
-      final gap => (
-        switch (gap.after) {
-          null => 0,
-          final after => children.indexWhere((child) => child.id == after) + 1,
-        },
-        null,
-        gap,
-      ),
-    },
-    ItemSlot() => throw ArgumentError.value(slot, 'slot', 'not in a quote'),
-  };
-  final before = children.take(index).toList();
-  final after = children.skip(block == null ? index : index + 1).toList();
-  // The first part keeps the quote's id and marks.
-  final parts = [
-    if (before.isNotEmpty) QuoteDraft.of(quote, kept(before)),
-    ?block == null ? null : KeptDraft(block),
-    if (after.isNotEmpty)
-      before.isEmpty
-          ? QuoteDraft.of(quote, kept(after))
-          : QuoteDraft(tree.freshBlockIds.first, kept(after)),
-  ];
-  return Edit(
-    replaced: {quote.id: parts},
-    gaps: switch (gap) {
-      null => null,
-      final gap => [
-        for (final other in document.gaps)
-          if (other.id == gap.id)
-            Gap(
-              gap.id,
-              container: outer.id,
-              after: before.isEmpty ? blockBefore(outer, quote)?.id : quote.id,
-            )
-          else
-            other,
+  final fresh = doc.freshIds;
+  final before = list.items.take(index).toList();
+  final after = list.items.skip(index + 1).toList();
+  return (
+    doc: doc.edited({
+      list.id: [
+        if (before.isNotEmpty) list.withChildren(before),
+        paragraph,
+        if (after.isNotEmpty)
+          before.isEmpty
+              ? list.withChildren(after)
+              : listPart(
+                  list.withChildren([...before, ...after]),
+                  after,
+                  fresh,
+                ),
       ],
-    },
-    selection: TextSelection.caret(Place(slot, 0)),
+    }, fresh: fresh),
+    selection: TextSelection.caret(Place(paragraph.id, 0)),
   );
 }
 
-/// [item], its list's first, gone: its own place a paragraph and its
-/// blocks above [list], subitems going on in the list where they are
-/// of its kind; the caret stays at [slot], where it goes.
-Edit _aboveList(
-  ShownDocument document,
-  ListBlock list,
-  ItemBlock item,
-  Slot slot,
+/// [leaf] one level out of [quote], which splits around it: its first
+/// part keeps its id.
+Change _outOfQuote(ViewRows view, QuoteNode quote, NodeId leaf) {
+  final doc = view.doc;
+  final fresh = doc.freshIds;
+  final index = quote.children.indexWhere((child) => child.id == leaf);
+  final before = quote.children.take(index).toList();
+  final after = quote.children.skip(index + 1).toList();
+  return (
+    doc: doc.edited({
+      quote.id: [
+        if (before.isNotEmpty) quote.withChildren(before),
+        quote.children[index],
+        if (after.isNotEmpty)
+          before.isEmpty
+              ? quote.withChildren(after)
+              : QuoteNode(fresh.take(), after),
+      ],
+    }, fresh: fresh),
+    selection: TextSelection.caret(Place(leaf, 0)),
+  );
+}
+
+/// [item], its list's first, gone: its blocks above [list], subitems
+/// going on in the list where they are of its kind; the caret stays.
+Change _aboveList(
+  ViewRows view,
+  ListNode list,
+  ItemNode item,
+  TextSelection caret,
 ) {
   final rest = list.items.skip(1).toList();
   final children = item.children;
-  final (lifted, joins) = switch (children.lastOrNull) {
-    final ListBlock last when last.kind == list.kind && rest.isNotEmpty => (
+  final (lifted, joins) = switch (children.last) {
+    final ListNode last when last.kind == list.kind && rest.isNotEmpty => (
       children.take(children.length - 1).toList(),
       [...last.items, ...rest],
     ),
     _ => (children, rest),
   };
-  // The item's own place, if it has one, a paragraph with its text.
-  final place = ownsSlot(item) ? document.tree.freshBlockIds.first : null;
-  return Edit(
-    replaced: {
-      list.id: [
-        if (place != null) TextDraft(place, document.textOf(ItemSlot(item.id))),
-        ...kept(lifted),
-        if (joins.isNotEmpty) ListDraft.of(list, kept(joins)),
-      ],
-    },
-    selection: TextSelection.caret(
-      Place(place == null ? slot : LeafSlot(place), 0),
-    ),
+  return (
+    doc: view.doc.edited({
+      list.id: [...lifted, if (joins.isNotEmpty) list.withChildren(joins)],
+    }),
+    selection: caret,
   );
 }
 
 /// [item]'s text a line of the item above it in [list], after a line
-/// break at the end of that item's last paragraph (a paragraph of its
-/// own where the item ends otherwise); its other blocks follow there.
-Edit _intoItemAbove(
-  ShownDocument document,
-  ListBlock list,
-  ItemBlock item,
-  Slot slot,
+/// break at the end of that item's last paragraph (where the item ends
+/// otherwise, the item's blocks follow there whole); its other blocks
+/// follow there.
+Change _intoItemAbove(
+  ViewRows view,
+  ListNode list,
+  ItemNode item,
+  TextSelection caret,
 ) {
+  final doc = view.doc;
   final above = list.items[list.items.indexOf(item) - 1];
-  final text = document.textOf(slot);
-  final first = item.children.firstOrNull;
-  final (moved, rest) = switch (first) {
-    final ParagraphBlock paragraph => (paragraph, item.children.skip(1)),
-    _ => (null, item.children),
-  };
-  final last = above.children.lastOrNull;
-  if (last is ParagraphBlock && (moved != null || first == null)) {
-    final shown = document.textOf(LeafSlot(last.id));
-    final joined = withText(
-      document,
-      LeafSlot(last.id),
+  final first = item.children.first;
+  final last = above.children.last;
+  if (first is ParagraphNode && last is ParagraphNode) {
+    final shown = last.text;
+    final text = first.text;
+    final joined = withLeafText(
+      last,
       text.isEmpty ? shown : shown + VisibleText([HardBreakPiece()]) + text,
-      document.tree.freshBlockIds.iterator,
-      following: kept(rest),
-      joined: [?moved],
     );
-    return Edit(
-      replaced: {item.id: const [], ...joined.replaced},
+    return (
+      doc: doc.edited({
+        item.id: const [],
+        above.id: [
+          above.withChildren([
+            ...above.children.take(above.children.length - 1),
+            joined,
+            ...item.children.skip(1),
+          ]),
+        ],
+      }),
       selection: TextSelection.caret(
-        Place(joined.slot, text.isEmpty ? shown.length : shown.length + 1),
+        Place(last.id, text.isEmpty ? shown.length : shown.length + 1),
       ),
     );
   }
-  final rowAbove = document.rows[document.rowOf(slot)! - 1];
-  return Edit(
-    replaced: {
+  return (
+    doc: doc.edited({
       item.id: const [],
       above.id: [
-        ItemDraft.of(above, [...kept(above.children), ...kept(item.children)]),
+        above.withChildren([...above.children, ...item.children]),
       ],
-    },
-    selection: TextSelection.caret(switch ((first, rowAbove)) {
-      (final TextLeaf leaf, _) => Place(LeafSlot(leaf.id), 0),
-      (final CodeBlock code, _) => Place(LeafSlot(code.id), 0),
-      (_, TextRow(slot: final above)) => Place(
-        above,
-        document.textOf(above).length,
-      ),
-      _ => Place(slot, 0),
     }),
+    selection: caret,
   );
 }

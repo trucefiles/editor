@@ -39,10 +39,6 @@ typedef DocumentReading = ({
   int nextBlockId,
 });
 
-/// Ids that blocks read anew take, by kind and first line, outermost
-/// first where blocks of one kind start at one line.
-typedef PlannedIds = Map<(BlockKind, LineId), List<BlockId>>;
-
 /// Reads all of [lines]; new blocks get ids from [nextBlockId] on.
 DocumentReading readDocument(List<Line> lines, {int nextBlockId = 0}) {
   final ids = _Ids(nextBlockId);
@@ -68,9 +64,9 @@ DocumentReading readDocument(List<Line> lines, {int nextBlockId = 0}) {
 /// Reads [lines], which are [old]'s lines with those from [start] to
 /// [end] replaced by [count] lines, by reading only from the block before
 /// the change until the reading lines up with the earlier one again; the
-/// rest is kept. Blocks read anew take their [planned] ids, else the ids
-/// of the earlier blocks they replace, by kind and first line; others get
-/// ids from [nextBlockId] on. Reads as [readDocument] would.
+/// rest is kept. Blocks read anew take the ids of the earlier blocks they
+/// replace, by kind and first line; others get ids from [nextBlockId]
+/// on. Reads as [readDocument] would.
 DocumentReading rereadDocument(
   EarlierReading old,
   List<Line> lines, {
@@ -78,11 +74,10 @@ DocumentReading rereadDocument(
   required int end,
   required int count,
   required int nextBlockId,
-  PlannedIds planned = const {},
 }) {
   final shift = start + count - end;
   if (_frontMatterMayChange(old, lines, start, start + count)) {
-    return _readAnew(old, lines, nextBlockId, planned);
+    return _readAnew(old, lines, nextBlockId);
   }
   final resume = _resumePoint(old, start);
   int lineIndex(LineId id) {
@@ -98,10 +93,8 @@ DocumentReading rereadDocument(
   );
   final stopOld = stoppedAt == null ? old.lines.length : stoppedAt - shift;
   final ids = _Ids(nextBlockId);
-  final plan = _Plan(planned);
-  final inherited = plan.ids;
+  final inherited = <BlockId>{};
   BlockId newId(BlockKind kind, LineId firstLine) {
-    if (plan.take(kind, firstLine) case final id?) return id;
     final earlier = _earlierBlock(
       old,
       kind,
@@ -130,20 +123,18 @@ DocumentReading rereadDocument(
   if (_sameDefinitions(definitions, old.definitions)) {
     return (root: frozen, definitions: definitions, nextBlockId: ids.next);
   }
-  return _readAnew(old, lines, ids.next, planned);
+  return _readAnew(old, lines, ids.next);
 }
 
-/// A whole read of [lines] whose blocks take their [planned] ids, else
-/// the ids of [old]'s blocks by kind and first line.
+/// A whole read of [lines] whose blocks take the ids of [old]'s blocks by
+/// kind and first line.
 DocumentReading _readAnew(
   EarlierReading old,
   List<Line> lines,
   int nextBlockId,
-  PlannedIds planned,
 ) {
   final ids = _Ids(nextBlockId);
-  final plan = _Plan(planned);
-  final taken = plan.ids;
+  final taken = <BlockId>{};
   final indexes = {for (final (index, line) in lines.indexed) line.id: index};
   final (:root, stoppedAt: _) = readOpenBlocks(
     lines,
@@ -151,7 +142,6 @@ DocumentReading _readAnew(
   );
   final definitions = definitionsByLabel(definitionsRead(root));
   BlockId newId(BlockKind kind, LineId firstLine) {
-    if (plan.take(kind, firstLine) case final id?) return id;
     final earlier = _earlierBlock(
       old,
       kind,
@@ -329,31 +319,6 @@ bool _sameDefinitions(
 ) =>
     a.length == b.length &&
     a.entries.every((entry) => b[entry.key] == entry.value);
-
-/// Hands out planned ids in order; [ids] are all of them, which no
-/// other block may take.
-final class _Plan {
-  _Plan(PlannedIds planned)
-    : _left = {
-        for (final MapEntry(:key, :value) in planned.entries) key: [...value],
-      },
-      ids = {for (final ids in planned.values) ...ids};
-
-  final Map<(BlockKind, LineId), List<BlockId>> _left;
-  final Set<BlockId> ids;
-
-  /// The id planned for a block of [kind] starting at [firstLine]; an
-  /// HTML block takes a paragraph's, which an edit left reading as one.
-  BlockId? take(BlockKind kind, LineId firstLine) =>
-      _take(kind, firstLine) ??
-      (kind == BlockKind.html ? _take(BlockKind.paragraph, firstLine) : null);
-
-  BlockId? _take(BlockKind kind, LineId firstLine) =>
-      switch (_left[(kind, firstLine)]) {
-        final left? when left.isNotEmpty => left.removeAt(0),
-        _ => null,
-      };
-}
 
 /// Hands out fresh block ids.
 final class _Ids {

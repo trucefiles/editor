@@ -1,19 +1,18 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/commit.dart';
 import 'package:truce_markdown/src/edit/keys/key_map.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/view/rows.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 
-ShownDocument _document(String text, {DoneSections? done}) =>
-    ShownDocument(DocumentTree.read(text), done: done);
+import '../support/shown.dart';
 
-/// The caret at [offset] in text row [row] of [document].
-TextSelection _caret(ShownDocument document, int row, int offset) =>
-    TextSelection.caret(Place((document.rows[row] as TextRow).slot, offset));
+Shown _document(String text, {DoneSections? done}) =>
+    Shown.read(text, done: done);
+
+/// The caret at [offset] in row [row] of [document].
+TextSelection _caret(Shown document, int row, int offset) =>
+    document.caret(row, offset);
 
 KeyAction _action(
   String text,
@@ -23,14 +22,14 @@ KeyAction _action(
   DoneSections? done,
 }) {
   final document = _document(text, done: done);
-  return keyAction(document, _caret(document, row, offset), key);
+  return keyAction(document.view, _caret(document, row, offset), key);
 }
 
 /// [text] after [key] at [offset] in its row [row].
 String _pressed(String text, int row, int offset, EditKey key) {
   final document = _document(text);
-  final action = keyAction(document, _caret(document, row, offset), key);
-  return run(document, (action as RunCommand).command).document.tree.text;
+  final action = keyAction(document.view, _caret(document, row, offset), key);
+  return document.run((action as RunCommand).command).document.text;
 }
 
 Command _command(KeyAction action) => (action as RunCommand).command;
@@ -44,9 +43,9 @@ void main() {
 
     test('in an empty item goes one level out', () {
       final document = _document('- a\n  - b');
-      final split = run(document, SplitBlock(_caret(document, 1, 1))).document;
+      final split = document.run(SplitBlock(_caret(document, 1, 1))).document;
       expect(
-        _command(keyAction(split, _caret(split, 2, 0), EditKey.enter)),
+        _command(keyAction(split.view, _caret(split, 2, 0), EditKey.enter)),
         isA<Outdent>(),
       );
       expect(_pressed('-\n- a', 0, 0, EditKey.enter), '- a');
@@ -54,9 +53,9 @@ void main() {
 
     test('in an empty paragraph in a quote goes out of it', () {
       final document = _document('> a');
-      final split = run(document, SplitBlock(_caret(document, 0, 1))).document;
+      final split = document.run(SplitBlock(_caret(document, 0, 1))).document;
       expect(
-        _command(keyAction(split, _caret(split, 1, 0), EditKey.enter)),
+        _command(keyAction(split.view, _caret(split, 1, 0), EditKey.enter)),
         isA<RemoveFrame>(),
       );
     });
@@ -96,11 +95,11 @@ void main() {
     test('after a rule selects it; after a table opens it', () {
       final rule = _document('---\n\na');
       expect(
-        keyAction(rule, _caret(rule, 1, 0), EditKey.backspace),
+        keyAction(rule.view, _caret(rule, 1, 0), EditKey.backspace),
         isA<SelectBlock>().having(
           (it) => it.block,
           'block',
-          rule.tree.root.children.first.id,
+          rule.doc.root.children.first.id,
         ),
       );
       expect(
@@ -139,19 +138,24 @@ void main() {
       final done = DoneSections();
       final text = '- [ ] c\n- [x] ab';
       final document = _document(text, done: done);
-      Edited press(ShownDocument document, Selection at, EditKey key) =>
-          run(document, _command(keyAction(document, at, key)));
+      ({Shown document, Selection selection}) press(
+        Shown document,
+        Selection at,
+        EditKey key,
+      ) => document.run(_command(keyAction(document.view, at, key)));
       final split = press(document, _caret(document, 1, 1), EditKey.enter);
-      expect(split.document.tree.text, '- [ ] c\n- [x] a\n- [x] b');
+      expect(split.document.text, '- [ ] c\n- [x] a\n- [x] b');
       final joined = press(split.document, split.selection, EditKey.backspace);
-      expect(joined.document.tree.text, text);
+      expect(joined.document.text, text);
     });
 
     test('on a selected rule removes it', () {
       final document = _document('a\n\n---');
-      final rule = document.tree.root.children.last.id;
+      final rule = document.doc.root.children.last.id;
       expect(
-        _command(keyAction(document, BlockSelection(rule), EditKey.backspace)),
+        _command(
+          keyAction(document.view, BlockSelection(rule), EditKey.backspace),
+        ),
         isA<RemoveBlock>(),
       );
     });
@@ -163,7 +167,7 @@ void main() {
         _caret(document, 0, 2).base,
       );
       expect(
-        _command(keyAction(document, range, EditKey.backspace)),
+        _command(keyAction(document.view, range, EditKey.backspace)),
         isA<DeleteRange>(),
       );
     });
@@ -202,7 +206,7 @@ void main() {
         _caret(document, 0, 0).base,
         _caret(document, 1, 1).base,
       );
-      expect(keyAction(document, across, EditKey.tab), isA<Consumed>());
+      expect(keyAction(document.view, across, EditKey.tab), isA<Consumed>());
     });
   });
 
@@ -214,7 +218,7 @@ void main() {
         _caret(document, 0, 2).base,
       );
       expect(
-        _command(keyAction(document, range, EditKey.bold)),
+        _command(keyAction(document.view, range, EditKey.bold)),
         isA<ToggleStyle>(),
       );
       expect(

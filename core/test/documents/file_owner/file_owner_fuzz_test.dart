@@ -3,11 +3,9 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
-const _timing = FileTiming();
-
 /// A folder, a device and an editor around one file owner, driven by
 /// random events: typing, changes elsewhere, scans, effects finishing,
-/// timers, picks and secures. A [delayed] editor gets the owner's
+/// picks and secures. A [delayed] editor gets the owner's
 /// messages some steps later, typing on in between.
 final class _World {
   _World(
@@ -18,8 +16,8 @@ final class _World {
   }) {
     if (!isNew) file = Seen('a', _version());
     owner = switch (file) {
-      final opened? => openedFileOwner(opened, timing: _timing),
-      null => newFileOwner(timing: _timing),
+      final opened? => openedFileOwner(opened),
+      null => newFileOwner(),
     };
     text = owner.state.text;
     lineage = file?.version;
@@ -61,10 +59,15 @@ final class _World {
   final versionTexts = <Version, String>{};
 
   String? draft;
+
+  /// The text the device last could not keep.
+  String? refused;
+
+  /// How many [Secure]s were sent.
+  var secures = 0;
   String? deletedText;
   final conflicts = <String>[];
   final effects = <FileEffect>[];
-  final timers = <EffectId>[];
   final scans = <(Moment, Observation)>[];
   final answers = <Answer>[];
   var restoreAsked = false;
@@ -86,8 +89,6 @@ final class _World {
         toEditor.add(output);
       case Replaced() || Picked():
         _toEditor(output);
-      case StartTimer(:final id):
-        timers.add(id);
       case DropDraft():
         draft = null;
       case final FileEffect effect:
@@ -115,6 +116,24 @@ final class _World {
               },
           isTrue,
           reason: 'no write while a change elsewhere waits for a pick',
+        );
+        expect(effects, isEmpty, reason: 'one I/O at a time');
+        expect(
+          switch (effect) {
+            Write(:final text) ||
+            Create(:final text) => text == draft || text == refused,
+            _ => true,
+          },
+          isTrue,
+          reason: 'writes from the draft kept',
+        );
+        expect(
+          switch (effect) {
+            Write(:final text, :final over) => text != over.text,
+            _ => true,
+          },
+          isTrue,
+          reason: 'no write the file holds already',
         );
         expect(
           effect is! Create || isNew,
@@ -183,8 +202,8 @@ final class _World {
         owner.send(Observed(observation, startedAt: startedAt));
       case 7 || 8 when effects.isNotEmpty:
         _finish(effects.removeAt(0));
-      case 9 when timers.isNotEmpty:
-        owner.send(TimerFired(timers.removeAt(random.nextInt(timers.length))));
+      case 9 when !_readOnly:
+        owner.send(const SaveNow());
       case 10:
         switch (owner.state.status) {
           case ChangedElsewhere(:final theirs):
@@ -199,6 +218,7 @@ final class _World {
             owner.send(const SaveNow());
         }
       case 11:
+        secures++;
         owner.send(
           Secure(
             SecureReason.values[random.nextInt(SecureReason.values.length)],
@@ -235,7 +255,11 @@ final class _World {
     switch (effect) {
       case KeepDraft(:final id, :final text):
         final kept = random.nextInt(6) > 0;
-        if (kept) draft = text;
+        if (kept) {
+          draft = text;
+        } else {
+          refused = text;
+        }
         owner.send(DraftKept(id, kept: kept));
       case Write(:final id, :final text, :final over):
         final outcome = switch (file) {
@@ -264,7 +288,7 @@ final class _World {
         final ok = random.nextInt(5) > 0;
         if (ok) conflicts.add(text);
         owner.send(ConflictKept(id, ok: ok));
-      case DropDraft() || StartTimer():
+      case DropDraft():
         break;
     }
   }
@@ -284,6 +308,7 @@ final class _World {
   /// editor getting what is on its way before and after.
   void close() {
     _deliver();
+    secures++;
     owner.send(const Secure(SecureReason.close));
     while (effects.isNotEmpty) {
       _finish(effects.removeAt(0));
@@ -333,6 +358,11 @@ void main() {
             }
           }
           world.close();
+          expect(
+            world.answers,
+            hasLength(world.secures),
+            reason: 'every secure is answered, seed $seed',
+          );
           final answer = world.answers.last;
           final kept = {
             ...world.fileTexts,

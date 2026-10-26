@@ -1,11 +1,10 @@
-import '../../tree/blocks.dart';
-import '../commit.dart';
-import '../shown/shown_document.dart';
-import 'outline.dart';
+import '../../doc/doc_nodes.dart';
+import '../../view/rows.dart';
+import '../change.dart';
 
-/// [block], one without text (a selected rule), gone; the caret at the
+/// [block], one without text (a selected divider), gone; the caret at the
 /// start of the next text shown, else at the end of the one above.
-Edit removeBlock(ShownDocument document, LeafBlock block) => Edit(
-  replaced: {block.id: const []},
-  selection: caretOnceGone(document, {block.id}),
+Change removeBlock(ViewRows view, NodeId block) => (
+  doc: view.doc.edited({block: const []}),
+  selection: caretOnceGone(view, {block}),
 );

@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/lines/line_change.dart';
-import 'package:truce_markdown/src/read/block_freezer.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
 
 import '../spec/spec_examples.dart';
@@ -24,9 +23,9 @@ void main() {
       final random = Random(index + 1000 * _seed);
       var tree = DocumentTree.read(text);
       for (var step = 0; step < 30; step++) {
-        final change = _randomChange(random, tree);
-        final changed = tree.changed(change);
-        final reason = 'text: ${_show(tree.text)}\nchange: $change';
+        final edited = _randomEdit(random, tree);
+        final changed = tree.withText(edited);
+        final reason = 'text: ${_show(tree.text)}\nedited: ${_show(edited)}';
         expect(
           dumpTree(changed),
           dumpTree(DocumentTree.read(changed.text)),
@@ -46,7 +45,9 @@ void main() {
       );
       final list = tree.root.children.single as ListBlock;
       final changed = tree.changed(
-        LineChange(10, 11, [(id: tree.lines[10].id, text: '- item ten')]),
+        LineChange(10, 11, [
+          (id: tree.lines[10].id, text: '- item ten', ending: '\n'),
+        ]),
       );
       final items = (changed.root.children.single as ListBlock).items;
       expect(changed.root.children.single.id, list.id);
@@ -58,37 +59,10 @@ void main() {
     test('keeps the id of text read after link definitions', () {
       final tree = DocumentTree.read('[a]: /url\nbar\n');
       final paragraph = tree.root.children.last;
-      final changed = tree.changed(LineChange(2, 3, [(id: null, text: 'x')]));
+      final changed = tree.changed(
+        LineChange(2, 3, [(id: null, text: 'x', ending: '')]),
+      );
       expect(changed.root.children[1].id, paragraph.id);
-    });
-
-    test('takes planned ids for blocks read anew', () {
-      final tree = DocumentTree.read('a');
-      final fresh = tree.freshBlockIds.first;
-      final changed = tree.changed(
-        LineChange(0, 1, [(id: tree.lines.first.id, text: '# a')]),
-        planned: {
-          (BlockKind.heading, 0): [fresh],
-        },
-      );
-      expect(changed.root.children.single.id, fresh);
-      expect(changed.freshBlockIds.first, isNot(fresh));
-    });
-
-    test('reverted to an earlier tree hands out no id again', () {
-      final tree = DocumentTree.read('a');
-      final changed = tree.changed(
-        LineChange(0, 1, [(id: null, text: '# a')]),
-        planned: {
-          (BlockKind.heading, 0): [tree.freshBlockIds.first],
-        },
-      );
-      final reverted = changed.reverted(tree);
-      expect(reverted.text, 'a');
-      expect(reverted.root.children.single.id, tree.root.children.single.id);
-      expect(reverted.freshBlockIds.first, changed.freshBlockIds.first);
-      final again = reverted.changed(LineChange(1, 1, [(id: null, text: 'b')]));
-      expect(again.lines.last.id, isNot(changed.lines.single.id));
     });
 
     test('keeps the ids of the lines it keeps', () {
@@ -99,16 +73,28 @@ void main() {
       expect(changed.lines[1].id, isNot(tree.lines[1].id));
     });
 
+    test('keeps each line\'s ending, and a byte order mark', () {
+      final tree = DocumentTree.read('\uFEFFa\r\nb\nc');
+      final changed = tree.withText('\uFEFFa\r\nB\nc');
+      expect(changed.text, '\uFEFFa\r\nB\nc');
+      expect(changed.lines.first.id, tree.lines.first.id);
+      expect(tree.withText('a\nb').text, 'a\nb');
+    });
+
     test('reads front matter that a change closes', () {
       final tree = DocumentTree.read('---\na: b\ntext');
-      final changed = tree.changed(LineChange(2, 2, [(id: null, text: '---')]));
+      final changed = tree.changed(
+        LineChange(2, 2, [(id: null, text: '---', ending: '\n')]),
+      );
       expect(changed.root.children.first, isA<FrontMatterBlock>());
     });
 
     test('re-parses text when link definitions change', () {
       final tree = DocumentTree.read('[x]\n\nmore\n\n[y]: /url');
       final changed = tree.changed(
-        LineChange(4, 5, [(id: tree.lines[4].id, text: '[x]: /url')]),
+        LineChange(4, 5, [
+          (id: tree.lines[4].id, text: '[x]: /url', ending: ''),
+        ]),
       );
       expect(dumpTree(changed), dumpTree(DocumentTree.read(changed.text)));
     });
@@ -163,39 +149,47 @@ const _fragments = [
 
 const _characters = r'-*_>#`[]()! 1.x|<\';
 
-LineChange _randomChange(Random random, DocumentTree tree) {
-  final count = tree.lines.length;
+/// [tree]'s text with a random change to its lines: one replaced,
+/// put in, removed, or edited by a character, or a few replaced.
+String _randomEdit(Random random, DocumentTree tree) {
+  final lines = [for (final line in tree.lines) line.text];
+  final count = lines.length;
   final at = random.nextInt(count + 1);
   String fragment() => _fragments[random.nextInt(_fragments.length)];
   switch (random.nextInt(5)) {
     case 0 when at < count:
-      return LineChange(at, at + 1, [
-        (id: tree.lines[at].id, text: fragment()),
-      ]);
+      lines[at] = fragment();
     case 1:
-      return LineChange(at, at, [(id: null, text: fragment())]);
+      lines.insert(at, fragment());
     case 2 when at < count && count > 1:
-      return LineChange(at, at + 1, const []);
+      lines.removeAt(at);
     case 3 when at < count:
-      final line = tree.lines[at];
-      final offset = random.nextInt(line.text.length + 1);
+      final line = lines[at];
+      final offset = random.nextInt(line.length + 1);
       final char = _characters[random.nextInt(_characters.length)];
-      final text = random.nextBool() || line.text.isEmpty
-          ? line.text.replaceRange(offset, offset, char)
-          : line.text.replaceRange(
-              offset.clamp(0, line.text.length - 1),
-              offset.clamp(0, line.text.length - 1) + 1,
+      lines[at] = random.nextBool() || line.isEmpty
+          ? line.replaceRange(offset, offset, char)
+          : line.replaceRange(
+              offset.clamp(0, line.length - 1),
+              offset.clamp(0, line.length - 1) + 1,
               '',
             );
-      return LineChange(at, at + 1, [(id: line.id, text: text)]);
     default:
       final end = (at + random.nextInt(3)).clamp(at, count);
       final added = random.nextInt(3) + (end - at == count ? 1 : 0);
-      return LineChange(at, end, [
-        for (var index = added; index > 0; index--)
-          (id: null, text: fragment()),
+      lines.replaceRange(at, end, [
+        for (var index = added; index > 0; index--) fragment(),
       ]);
   }
+  return [
+    for (final (index, line) in lines.indexed) ...[
+      line,
+      if (index < lines.length - 1) _ending(random),
+    ],
+  ].join();
 }
 
-String _show(String text) => text.replaceAll('\n', r'\n');
+String _ending(Random random) => const ['\n', '\r\n', '\r'][random.nextInt(3)];
+
+String _show(String text) =>
+    text.replaceAll('\r', r'\r').replaceAll('\n', r'\n');

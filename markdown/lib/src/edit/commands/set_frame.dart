@@ -1,287 +1,207 @@
+/// The frame buttons and shortcuts: boxes, bullet and numbered lists,
+/// quotes.
+library;
+
 import 'package:collection/collection.dart';
 
+import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
 import '../../tree/blocks.dart';
-import '../../write/draft.dart';
-import '../commit.dart';
-import '../shown/rows.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
+import '../../view/rows.dart';
+import '../change.dart';
+import '../selection.dart';
 import 'lifted_items.dart';
-import 'outline.dart';
 import 'text_commands.dart';
 
 /// The frames the toolbar and shortcuts set.
 enum FrameKind { checkbox, bullet, numbered, quote }
 
+/// One change of a frame, on the tree as earlier changes left it.
+typedef _Step = DocTree Function(DocTree doc, FreshIds fresh);
+
 /// [kind] set on what [selection] covers, or taken off where all of it
 /// has it already. A box is per item; bullet or numbered is per list,
 /// the whole list changing kind; text not in a list becomes items of a
 /// new list (joining a list of that kind right before or after it); a
-/// quote wraps the blocks, in a list the items' text.
-Edit setFrame(ShownDocument document, TextSelection selection, FrameKind kind) {
-  final rows = _selectedRows(document, selection);
-  final fresh = document.tree.freshBlockIds.iterator;
-  final (:replaced, :moved) = switch (kind) {
-    FrameKind.quote => (replaced: _quote(document, rows, fresh), moved: _none),
-    FrameKind.checkbox => (
-      replaced: _boxes(document, rows, fresh),
-      moved: _none,
-    ),
-    FrameKind.bullet => _listKind(document, rows, ListKind.bullet, fresh),
-    FrameKind.numbered => _listKind(document, rows, ListKind.numbered, fresh),
+/// quote wraps the blocks, in a list the items' text. The selection
+/// stays.
+Change setFrame(ViewRows view, TextSelection selection, FrameKind kind) {
+  final rows = _selectedRows(view, selection);
+  final steps = switch (kind) {
+    FrameKind.quote => _quote(view, rows),
+    FrameKind.checkbox => _boxes(view, rows),
+    FrameKind.bullet => _listKind(view, rows, ListKind.bullet),
+    FrameKind.numbered => _listKind(view, rows, ListKind.numbered),
   };
-  return Edit(replaced: replaced, selection: selection.movedBy(moved));
+  final fresh = view.doc.freshIds;
+  final doc = steps.fold(view.doc, (doc, step) => step(doc, fresh));
+  return (doc: DocTree(doc.root, nextId: fresh.next), selection: selection);
 }
 
 /// The text rows [selection] covers, in order.
-List<TextRow> _selectedRows(ShownDocument document, TextSelection selection) {
-  final (start, end) = ordered(document, selection);
-  return document.rows
-      .sublist(document.rowOf(start.slot)!, document.rowOf(end.slot)! + 1)
+List<TextRow> _selectedRows(ViewRows view, TextSelection selection) {
+  final (start, end) = ordered(view, selection);
+  return view.rows
+      .sublist(view.rowOf(start.leaf)!, view.rowOf(end.leaf)! + 1)
       .whereType<TextRow>()
       .toList();
 }
 
 /// The item [row] is the text of; `null` if it is none's.
-ItemBlock? _itemOf(Row row) => switch (row.path.lastOrNull) {
-  final ItemBlock item => item,
-  _ => null,
-};
-
-/// The leaf [row] shows; `null` for an item's place or a gap.
-LeafBlock? _leafOf(ShownDocument document, TextRow row) => switch (row.slot) {
-  LeafSlot(:final leaf) => document.tree.blockOf(leaf) as LeafBlock?,
+ItemNode? _itemOf(DocTree doc, Row row) => switch (doc.parentOf(row.leaf.id)) {
+  final ItemNode item => item,
   _ => null,
 };
 
 /// The leaves of [rows] in no item: text that becomes items.
-List<LeafBlock> _freeLeaves(ShownDocument document, List<TextRow> rows) => [
+List<DocLeaf> _freeLeaves(DocTree doc, List<TextRow> rows) => [
   for (final row in rows)
-    if (_itemOf(row) == null) ?_leafOf(document, row),
+    if (_itemOf(doc, row) == null) row.leaf,
 ];
 
-List<ItemBlock> _items(List<TextRow> rows) =>
-    {for (final row in rows) ?_itemOf(row)}.toList();
+List<ItemNode> _items(DocTree doc, List<TextRow> rows) =>
+    {for (final row in rows) ?_itemOf(doc, row)}.toList();
 
-Map<BlockId, List<Draft>> _boxes(
-  ShownDocument document,
-  List<TextRow> rows,
-  Iterator<BlockId> fresh,
-) {
-  final items = _items(rows);
-  final free = _freeLeaves(document, rows);
+List<_Step> _boxes(ViewRows view, List<TextRow> rows) {
+  final doc = view.doc;
+  final items = _items(doc, rows);
+  final free = _freeLeaves(doc, rows);
   final off = free.isEmpty && items.every((item) => item.hasBox);
-  return {
+  return [
     for (final item in items)
       if (off || !item.hasBox)
-        item.id: [
-          ItemDraft(
-            item.id,
-            kept(item.children),
-            checked: off ? null : false,
-            from: item,
-          ),
-        ],
-    ..._newLists(document, free, ListKind.bullet, fresh, checked: false),
-  };
+        (doc, _) => doc.withNode(
+          (doc.nodeOf(item.id)! as ItemNode).withBox(off ? null : false),
+        ),
+    ..._newLists(doc, free, ListKind.bullet, checked: false),
+  ];
 }
 
-const _none = <Slot, Slot>{};
-
-/// What [_listKind] changes: the blocks [replaced], and the text places
-/// [moved] where lifted items' places became paragraphs.
-typedef _KindChange = ({
-  Map<BlockId, List<Draft>> replaced,
-  Map<Slot, Slot> moved,
-});
-
-_KindChange _listKind(
-  ShownDocument document,
-  List<TextRow> rows,
-  ListKind kind,
-  Iterator<BlockId> fresh,
-) {
-  final items = _items(rows);
-  final free = _freeLeaves(document, rows);
-  final lists = {
-    for (final item in items) document.tree.parentOf(item)! as ListBlock,
-  };
+List<_Step> _listKind(ViewRows view, List<TextRow> rows, ListKind kind) {
+  final doc = view.doc;
+  final items = _items(doc, rows);
+  final free = _freeLeaves(doc, rows);
+  final lists = {for (final item in items) doc.parentOf(item.id)! as ListNode};
   if (free.isEmpty && lists.every((list) => list.kind == kind)) {
     final lifted = {for (final item in items) item.id};
-    final changes = {
+    return [
       for (final list in lists)
-        list.id: liftedOut(document, list, lifted, fresh),
-    };
-    return (
-      replaced: {
-        for (final MapEntry(:key, :value) in changes.entries) key: value.drafts,
-      },
-      moved: {for (final change in changes.values) ...change.moved},
-    );
+        (doc, fresh) => doc.edited({
+          list.id: liftedOut(doc.nodeOf(list.id)! as ListNode, lifted, fresh),
+        }),
+    ];
   }
-  final replaced = {
+  return [
     for (final list in lists)
       if (list.kind != kind)
-        list.id: [
-          ListDraft(
-            list.id,
-            kept(list.items),
-            kind: kind,
-            loose: list.loose,
-            from: list,
-          ),
-        ],
-    ..._newLists(document, free, kind, fresh),
-  };
-  return (replaced: replaced, moved: _none);
+        (doc, _) =>
+            doc.withNode((doc.nodeOf(list.id)! as ListNode).withKind(kind)),
+    ..._newLists(doc, free, kind),
+  ];
 }
 
 /// [leaves] as items of new lists of [kind], one per run of neighbors in
 /// a container, each joining a list of that kind right before or after
 /// it (a list may take runs on both sides); the items' boxes [checked]
 /// if given.
-Map<BlockId, List<Draft>> _newLists(
-  ShownDocument document,
-  List<LeafBlock> leaves,
-  ListKind kind,
-  Iterator<BlockId> fresh, {
+List<_Step> _newLists(
+  DocTree doc,
+  List<DocLeaf> leaves,
+  ListKind kind, {
   bool? checked,
-}) {
-  final tree = document.tree;
-  final runs = leaves
-      .splitBetween(
-        (a, b) =>
-            tree.parentOf(a) != tree.parentOf(b) ||
-            blockBefore(tree.parentOf(b)!, b)?.id != a.id,
-      )
-      .map((run) => _runOf(document, run, kind, fresh, checked: checked))
-      .toList();
-  final joined = groupBy(
-    runs.where((run) => run.joins != null),
-    (run) => run.joins!,
-  );
-  return {
-    for (final run in runs) ...{
-      for (final leaf in run.leaves) leaf.id: const [],
-      if (run.joins == null)
-        run.leaves.first.id: [
-          ListDraft(
-            (fresh..moveNext()).current,
-            run.items,
-            kind: kind,
-            loose: false,
-          ),
-        ],
+}) => [
+  for (final run in _runs(doc, leaves))
+    (doc, fresh) {
+      final ids = [for (final leaf in run) leaf.id];
+      final children = doc.parentOf(ids.first)!.children;
+      final index = children.indexWhere((child) => child.id == ids.first);
+      final items = [
+        for (final id in ids)
+          ItemNode(fresh.take(), [doc.nodeOf(id)!], checked: checked),
+      ];
+      final gone = {for (final id in ids) id: const <DocBlock>[]};
+      return switch ((
+        index > 0 ? children[index - 1] : null,
+        children.elementAtOrNull(index + ids.length),
+      )) {
+        (final ListNode list, _) when list.kind == kind => doc.edited({
+          ...gone,
+          list.id: [
+            list.withChildren([...list.items, ...items]),
+          ],
+        }),
+        (_, final ListNode list) when list.kind == kind => doc.edited({
+          ...gone,
+          list.id: [
+            list.withChildren([...items, ...list.items]),
+          ],
+        }),
+        _ => doc.edited({
+          ...gone,
+          ids.first: [ListNode(fresh.take(), items, kind: kind)],
+        }),
+      };
     },
-    for (final MapEntry(key: list, value: runs) in joined.entries)
-      list.id: [
-        ListDraft.of(list, [
-          for (final run in runs)
-            if (run.first) ...run.items,
-          ...kept(list.items),
-          for (final run in runs)
-            if (!run.first) ...run.items,
-        ]),
-      ],
+];
+
+/// [leaves] in runs of neighbors in one container.
+List<List<DocLeaf>> _runs(DocTree doc, List<DocLeaf> leaves) =>
+    leaves.splitBetween((a, b) {
+      final place = doc.placeOf(b.id)!;
+      return doc.parentOf(a.id) != place.parent ||
+          place.index == 0 ||
+          place.parent!.children[place.index - 1].id != a.id;
+    }).toList();
+
+List<_Step> _quote(ViewRows view, List<TextRow> rows) {
+  final doc = view.doc;
+  QuoteNode? innermostQuote(Row row) => switch (doc
+      .pathOf(row.leaf.id)
+      .whereNot((node) => node is ListNode)
+      .lastOrNull) {
+    final QuoteNode quote => quote,
+    _ => null,
   };
-}
-
-/// A run of neighbor [leaves] becoming [items]: of the list of their
-/// kind it [joins], [first] if right before it; `null` for a new list.
-typedef _Run = ({
-  List<LeafBlock> leaves,
-  List<ItemDraft> items,
-  ListBlock? joins,
-  bool first,
-});
-
-_Run _runOf(
-  ShownDocument document,
-  List<LeafBlock> leaves,
-  ListKind kind,
-  Iterator<BlockId> fresh, {
-  required bool? checked,
-}) {
-  final children = document.tree.parentOf(leaves.first)!.children;
-  final index = children.indexOf(leaves.first);
-  final (joins, first) = switch ((
-    index > 0 ? children[index - 1] : null,
-    children.elementAtOrNull(index + leaves.length),
-  )) {
-    (final ListBlock list, _) when list.kind == kind => (list, false),
-    (_, final ListBlock list) when list.kind == kind => (list, true),
-    _ => (null, false),
-  };
-  return (
-    leaves: leaves,
-    items: [
-      for (final leaf in leaves)
-        ItemDraft((fresh..moveNext()).current, [
-          KeptDraft(leaf),
-        ], checked: checked),
-    ],
-    joins: joins,
-    first: first,
-  );
-}
-
-Map<BlockId, List<Draft>> _quote(
-  ShownDocument document,
-  List<TextRow> rows,
-  Iterator<BlockId> fresh,
-) {
-  final tree = document.tree;
-  final quoted = rows.where(
-    (row) =>
-        row.path.whereNot((block) => block is ListBlock).lastOrNull
-            is QuoteBlock,
-  );
-  if (rows.isNotEmpty && quoted.length == rows.length) {
+  if (rows.isNotEmpty && rows.every((row) => innermostQuote(row) != null)) {
     // Each row's block goes one level out of its innermost quote.
-    final byQuote = groupBy(
-      rows,
-      (row) => row.path.lastWhere((block) => block is QuoteBlock) as QuoteBlock,
-    );
-    return {
+    final byQuote = groupBy(rows, (row) => innermostQuote(row)!.id);
+    return [
       for (final MapEntry(key: quote, value: rows) in byQuote.entries)
-        quote.id: _outOf(quote, {
-          for (final row in rows) ?_childOn(document, quote, row),
-        }, fresh),
-    };
+        (doc, fresh) => doc.edited({
+          quote: _outOf(doc.nodeOf(quote)! as QuoteNode, {
+            for (final row in rows) _childOn(doc, quote, row),
+          }, fresh),
+        }),
+    ];
   }
-  final items = _items(rows);
-  final free = _freeLeaves(document, rows);
-  final runs = free.splitBetween(
-    (a, b) =>
-        tree.parentOf(a) != tree.parentOf(b) ||
-        blockBefore(tree.parentOf(b)!, b)?.id != a.id,
-  );
-  return {
-    for (final item in items)
-      item.id: [
-        ItemDraft.of(item, [
-          QuoteDraft(
-            (fresh..moveNext()).current,
-            kept(item.children.takeWhile((child) => child is! ListBlock)),
-          ),
-          ...kept(item.children.skipWhile((child) => child is! ListBlock)),
-        ]),
-      ],
-    for (final run in runs) ...{
-      run.first.id: [QuoteDraft((fresh..moveNext()).current, kept(run))],
-      for (final leaf in run.skip(1)) leaf.id: const [],
-    },
-  };
+  final free = _freeLeaves(doc, rows);
+  return [
+    for (final item in _items(doc, rows))
+      (doc, fresh) {
+        final children = (doc.nodeOf(item.id)! as ItemNode).children;
+        final text = children.takeWhile((child) => child is! ListNode);
+        return doc.withNode(
+          (doc.nodeOf(item.id)! as ItemNode).withChildren([
+            QuoteNode(fresh.take(), text.toList()),
+            ...children.skip(text.length),
+          ]),
+        );
+      },
+    for (final run in _runs(doc, free))
+      (doc, fresh) => doc.edited({
+        run.first.id: [
+          QuoteNode(fresh.take(), [
+            for (final leaf in run) doc.nodeOf(leaf.id)!,
+          ]),
+        ],
+        for (final leaf in run.skip(1)) leaf.id: const [],
+      }),
+  ];
 }
 
 /// [quote]'s blocks with the [lifted] ones out of it, between the parts
 /// of the quote around them; the first part keeps the quote's id.
-List<Draft> _outOf(
-  QuoteBlock quote,
-  Set<BlockId> lifted,
-  Iterator<BlockId> fresh,
-) {
+List<DocBlock> _outOf(QuoteNode quote, Set<NodeId> lifted, FreshIds fresh) {
   final runs = quote.children
       .splitBetween((a, b) => lifted.contains(a.id) || lifted.contains(b.id))
       .toList();
@@ -289,15 +209,16 @@ List<Draft> _outOf(
   return [
     for (final (index, run) in runs.indexed)
       if (lifted.contains(run.first.id))
-        ...kept(run)
+        ...run
       else if (index == keeping)
-        QuoteDraft.of(quote, kept(run))
+        quote.withChildren(run)
       else
-        QuoteDraft((fresh..moveNext()).current, kept(run)),
+        QuoteNode(fresh.take(), run),
   ];
 }
 
-/// The child of [quote] that [row] shows in; `null` for a gap.
-BlockId? _childOn(ShownDocument document, QuoteBlock quote, TextRow row) =>
-    row.path.skipWhile((block) => block != quote).skip(1).firstOrNull?.id ??
-    _leafOf(document, row)?.id;
+/// The child of [quote] that [row] shows in.
+NodeId _childOn(DocTree doc, NodeId quote, Row row) => [
+  ...doc.pathOf(row.leaf.id),
+  row.leaf,
+].skipWhile((node) => node.id != quote).skip(1).first.id;

@@ -1,8 +1,8 @@
 import 'line.dart';
 
 /// A line a change puts in: one that keeps an existing [id], or a new one
-/// (`id` `null`) that gets a fresh id.
-typedef NewLine = ({LineId? id, String text});
+/// (`id` `null`) that gets a fresh id; with its line ending.
+typedef NewLine = ({LineId? id, String text, String ending});
 
 /// A change to a document's lines: the lines from [start] to [end] (indexes
 /// before the change) replaced by [lines].

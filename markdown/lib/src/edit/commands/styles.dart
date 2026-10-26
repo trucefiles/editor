@@ -1,29 +1,22 @@
 import 'package:collection/collection.dart';
 
-import '../../tree/blocks.dart';
+import '../../doc/doc_nodes.dart';
 import '../../tree/inlines.dart';
+import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
-import '../commit.dart';
-import '../shown/rows.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
+import '../change.dart';
+import '../selection.dart';
+import '../text_places.dart';
 import 'text_commands.dart';
-import 'text_places.dart';
 
-/// [format] toggled over [selection], per text leaf: taken off where
+/// [format] toggled over [selection], per text node: taken off where
 /// every character has it, else put on all of it. A bare link takes it
 /// whole. Code takes the other formats off its text, and goes on text
-/// only: a line break inside stays one (a soft break turns into the
-/// space it shows as). Spans delimiters cannot write snap to edges that
-/// can.
-Edit toggleStyle(
-  ShownDocument document,
-  TextSelection selection,
-  TextFormat format,
-) {
-  final ranges = _ranges(document, selection);
+/// only: a line break inside stays one (a soft break turns into the space
+/// it shows as). The selection stays.
+Change toggleStyle(ViewRows view, TextSelection selection, TextFormat format) {
+  final ranges = _ranges(view, selection);
   final off = ranges.every(
     (range) => range.text
         .slice(range.start, range.end)
@@ -31,7 +24,6 @@ Edit toggleStyle(
         .whereType<TextPiece>()
         .every((piece) => piece.formatting.has(format)),
   );
-  final fresh = document.tree.freshBlockIds.iterator;
   VisibleText changed(VisibleText text) => switch ((format, off)) {
     (TextFormat.code, false) => VisibleText([
       for (final piece in text.pieces)
@@ -53,41 +45,34 @@ Edit toggleStyle(
       (formatting) => formatting.withFormat(format, on: !off),
     ),
   };
-  final changes = [
-    for (final range in ranges)
-      if (_withBareLinks(range) case (:final from, :final to))
-        withText(
-          document,
-          range.slot,
-          range.text.replaced(from, to, changed(range.text.slice(from, to))),
-          fresh,
-        ),
-  ];
-  return Edit(
-    replaced: {for (final change in changes) ...change.replaced},
+  return (
+    doc: ranges.fold(view.doc, (doc, range) {
+      final (:from, :to) = _withBareLinks(range);
+      return withTextAt(
+        doc,
+        range.leaf.id,
+        range.text.replaced(from, to, changed(range.text.slice(from, to))),
+      );
+    }),
     selection: selection,
   );
 }
 
-typedef _Range = ({Slot slot, VisibleText text, int start, int end});
+typedef _Range = ({TextNode leaf, VisibleText text, int start, int end});
 
-/// The stretch of each text leaf's text [selection] covers, if any.
-List<_Range> _ranges(ShownDocument document, TextSelection selection) {
-  final (start, end) = ordered(document, selection);
-  final (first, last) = (
-    document.rowOf(start.slot)!,
-    document.rowOf(end.slot)!,
-  );
+/// The stretch of each text node's text [selection] covers, if any.
+List<_Range> _ranges(ViewRows view, TextSelection selection) {
+  final (start, end) = ordered(view, selection);
+  final (first, last) = (view.rowOf(start.leaf)!, view.rowOf(end.leaf)!);
   return [
     for (final (index, row)
-        in document.rows.indexed.skip(first).take(last - first + 1))
-      if (row case TextRow(slot: final LeafSlot slot)
-          when document.tree.blockOf(slot.leaf) is TextLeaf)
+        in view.rows.indexed.skip(first).take(last - first + 1))
+      if (row case TextRow(leaf: final TextNode leaf))
         (
-          slot: slot,
-          text: document.textOf(slot),
+          leaf: leaf,
+          text: leaf.text,
           start: index == first ? start.offset : 0,
-          end: index == last ? end.offset : document.textOf(slot).length,
+          end: index == last ? end.offset : leaf.text.length,
         ),
   ].where((range) => range.start < range.end).toList();
 }

@@ -2,21 +2,19 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/document_tree.dart';
-import 'package:truce_markdown/src/edit/clipboard/clipboard_lines.dart';
+import 'package:truce_markdown/src/doc/doc_nodes.dart';
+import 'package:truce_markdown/src/edit/clipboard_lines.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/commands/links.dart';
 import 'package:truce_markdown/src/edit/keys/key_map.dart';
-import 'package:truce_markdown/src/edit/shown/rows.dart';
-import 'package:truce_markdown/src/edit/shown/selection.dart';
-import 'package:truce_markdown/src/edit/shown/shown_document.dart';
-import 'package:truce_markdown/src/edit/shown/slot.dart';
-import 'package:truce_markdown/src/edit/shown/typing_style.dart';
-import 'package:truce_markdown/src/tree/blocks.dart';
+import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/edit/typing_style.dart';
+import 'package:truce_markdown/src/view/rows.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 
 import '../../spec/spec_examples.dart';
 import '../../support/document_corpus.dart';
+import '../support/shown.dart';
 
 void main() {
   final documents = [
@@ -28,8 +26,8 @@ void main() {
   test('random user actions keep the document and the selection sound', () {
     for (final (index, text) in documents.indexed) {
       final random = Random(index + 1000 * _seed);
-      var document = ShownDocument(
-        DocumentTree.read(text),
+      var document = Shown.read(
+        text,
         done: random.nextBool() ? DoneSections() : null,
       );
       final steps = <String>[];
@@ -38,8 +36,8 @@ void main() {
         if (command == null) continue;
         steps.add(_describe(command));
         try {
-          final edited = run(document, command);
-          _expectSound(edited.document, edited.selection);
+          final edited = document.run(command);
+          _expectShows(edited.document, edited.selection);
           document = edited.document;
         } on Object catch (error, trace) {
           if (Platform.environment['FUZZ_ALL'] != null) {
@@ -47,8 +45,8 @@ void main() {
             break;
           }
           fail(
-            'from:\n${document.tree.text}\n---\nshowing:\n${_rows(document)}\n---\n'
-            'after ${steps.join(', ')}\n'
+            'from:\n${document.text}\n---\nshowing:\n${_rows(document)}\n'
+            '---\nafter ${steps.join(', ')}\n'
             'seed $_seed, document $index\n$error\n$trace',
           );
         }
@@ -59,69 +57,53 @@ void main() {
 
 final _seed = int.parse(Platform.environment['FUZZ_SEED'] ?? '0');
 
-/// The document reads as a whole read of its text would, and [selection]
-/// is on what it shows.
-void _expectSound(ShownDocument document, Selection selection) {
-  final reread = ShownDocument(DocumentTree.read(document.tree.text));
-  expect(
-    _outline(document.tree.root),
-    _outline(reread.tree.root),
-    reason: 'reads as a whole read would',
-  );
+/// Expects [selection] on what [document] shows.
+void _expectShows(Shown document, Selection selection) {
   switch (selection) {
     case TextSelection(:final base, :final extent):
       for (final place in [base, extent]) {
-        expect(document.rowOf(place.slot), isNotNull, reason: '$place shows');
+        final row = document.view.row(place.leaf);
+        expect(row, isA<TextRow>(), reason: '$place shows');
         expect(
           place.offset,
-          inInclusiveRange(0, document.textOf(place.slot).length),
+          inInclusiveRange(0, textOf(row!.leaf).length),
           reason: '$place is in its text',
         );
       }
     case BlockSelection(:final block):
-      expect(document.blockRowOf(block), isNotNull, reason: '$block shows');
+      expect(document.view.row(block), isA<BlockRow>(), reason: '$block');
   }
 }
 
-/// [block]'s kind and those of its blocks, nested.
-Object _outline(Block block) => switch (block) {
-  ContainerBlock(:final children) => [
-    block.runtimeType,
-    children.map(_outline).toList(),
-  ],
-  _ => block.runtimeType,
-};
-
 const _words = ['a', 'b c', '*', ' ', 'www.x.io', '`', '# ', '- ', '1.', r'\'];
 
-Command? _randomCommand(Random random, ShownDocument document) {
-  final texts = [
-    for (final row in document.rows)
-      if (row case TextRow(:final slot)) (slot: slot, done: row.done),
-  ];
-  final items = [
-    for (final leaf in document.tree.leaves)
-      if (document.tree.parentOf(leaf) case final ItemBlock item) item,
-  ];
+// HTML left open (`<!--`) takes in what follows only once read again:
+// see docs/known-limitations.md.
+const _raws = ['<div>', '[x]: /u', '| a |\n|---|', 'text', ''];
+
+Command? _randomCommand(Random random, Shown document) {
+  final view = document.view;
+  final texts = view.rows.whereType<TextRow>().toList();
+  final raws = view.rows
+      .whereType<BlockRow>()
+      .where((row) => row.leaf is RawLeaf)
+      .toList();
+  final items = nodesIn(view.doc.root).whereType<ItemNode>().toList();
   if (texts.isEmpty) return null;
-  Place place(({Slot slot, bool done}) text) =>
-      Place(text.slot, random.nextInt(document.textOf(text.slot).length + 1));
-  final first = texts[random.nextInt(texts.length)];
+  T pick<T>(List<T> from) => from[random.nextInt(from.length)];
+  Place place(TextRow row) =>
+      Place(row.leaf.id, random.nextInt(textOf(row.leaf).length + 1));
+  final first = pick(texts);
   final second = random.nextInt(3) == 0
-      ? texts
-            .where((text) => text.done == first.done)
-            .elementAt(
-              random.nextInt(texts.where((t) => t.done == first.done).length),
-            )
+      ? pick(texts.where((text) => text.done == first.done).toList())
       : first;
   final range = TextSelection(place(first), place(second));
   final caret = TextSelection.caret(range.base);
-  T pick<T>(List<T> from) => from[random.nextInt(from.length)];
-  return switch (random.nextInt(12)) {
+  return switch (random.nextInt(13)) {
     0 || 1 || 2 => InsertText(
       caret.base,
       pick(_words),
-      typingStyleAt(document, caret.base),
+      typingStyleAt(view.doc, caret.base),
     ),
     3 when !range.isCaret => ReplaceText(
       first == second ? range : caret,
@@ -131,39 +113,34 @@ Command? _randomCommand(Random random, ShownDocument document) {
       range,
       random.nextBool()
           ? plainLines('x\ny', Formatting.plain)
-          : copiedLines(document, range),
+          : copiedLines(view, range),
     ),
     5 when items.isNotEmpty => switch (random.nextInt(4)) {
       0 => Toggle(pick(items).id, caret),
       1 => DeleteItem(pick(items).id),
-      2 => AddItem(document.tree.parentOf(pick(items))!.id),
-      _ => _move(random, document, items, caret),
+      2 => AddItem(view.doc.parentOf(pick(items).id)!.id),
+      _ => _move(random, items, caret),
     },
     6 => SetHeading(caret.base, pick([null, 1, 2, 3])),
     7 => ToggleStyle(range, pick(TextFormat.values)),
     8 => switch (random.nextBool()) {
-      true when canRemoveLink(document, caret.base) => RemoveLink(caret.base),
+      true when canRemoveLink(view, caret.base) => RemoveLink(caret.base),
       _ when first == second => SetLink(range, pick(['', 'site']), 'u'),
       _ => null,
     },
     9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
-    _ => switch (keyAction(document, range, pick(EditKey.values))) {
+    10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
+    _ => switch (keyAction(view, range, pick(EditKey.values))) {
       RunCommand(:final command) => command,
       _ => null,
     },
   };
 }
 
-Command? _move(
-  Random random,
-  ShownDocument document,
-  List<ItemBlock> items,
-  Selection selection,
-) {
+Command? _move(Random random, List<ItemNode> items, Selection selection) {
   final item = items[random.nextInt(items.length)];
-  final targets = items
-      .where((target) => !idsIn(item).contains(target.id))
-      .toList();
+  final inside = nodesIn(item).map((node) => node.id).toSet();
+  final targets = items.where((target) => !inside.contains(target.id)).toList();
   if (targets.isEmpty) return null;
   return MoveItem(
     item.id,
@@ -190,23 +167,23 @@ String _describe(Command command) => switch (command) {
   Outdent(:final selection) => 'Outdent($selection)',
   MoveItem(:final item, :final target, :final below) =>
     'MoveItem($item, $target, below: $below)',
-  JoinWithPrevious(:final slot) => 'JoinWithPrevious($slot)',
-  JoinWithNext(:final slot) => 'JoinWithNext($slot)',
-  RemoveFrame(:final slot) => 'RemoveFrame($slot)',
-  LeaveList(:final slot) => 'LeaveList($slot)',
+  JoinWithPrevious(:final at) => 'JoinWithPrevious($at)',
+  JoinWithNext(:final at) => 'JoinWithNext($at)',
+  RemoveFrame(:final leaf) => 'RemoveFrame($leaf)',
   RemoveLink(:final at) => 'RemoveLink($at)',
   Toggle(:final item) => 'Toggle($item)',
   DeleteItem(:final item) => 'DeleteItem($item)',
   AddItem(:final list) => 'AddItem($list)',
+  CloseRaw(:final block, :final raw) => 'CloseRaw($block, "$raw")',
   _ => command.runtimeType.toString(),
 };
 
 /// What [document] shows, row by row.
-String _rows(ShownDocument document) => [
-  for (final row in document.rows)
+String _rows(Shown document) => [
+  for (final row in document.view.rows)
     switch (row) {
-      TextRow(:final slot, :final done) =>
-        '$slot${done ? ' done' : ''}: "${document.textOf(slot).text}"',
-      BlockRow(:final leaf) => '${leaf.runtimeType}',
+      TextRow(:final leaf, :final done) =>
+        '${leaf.id}${done ? ' done' : ''}: "${textOf(leaf).text}"',
+      BlockRow(:final leaf) => '${leaf.id} ${leaf.runtimeType}',
     },
 ].join('\n');

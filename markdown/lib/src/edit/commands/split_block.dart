@@ -1,149 +1,123 @@
-import '../../tree/blocks.dart';
-import '../../visible/formatting.dart';
+import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
+import '../../view/rows.dart';
 import '../../visible/visible_text.dart';
-import '../../write/draft.dart';
-import '../commit.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
-import 'outline.dart';
+import '../change.dart';
+import '../selection.dart';
+import '../text_places.dart';
 import 'text_commands.dart';
 
-/// Enter at [at]: in an item's text, a new item after it with the text
-/// after the caret (without the spaces it starts with, see
-/// [newLineStart]) and what followed in the item (at its very start, an
-/// empty item above instead); in other text, a new paragraph (likewise; at
-/// the very start, an empty one above instead); in code, a line break; in a
-/// gap, another gap after it.
-Edit splitBlock(ShownDocument document, Place at) {
-  final tree = document.tree;
-  final fresh = tree.freshBlockIds.iterator;
-  BlockId next() => (fresh..moveNext()).current;
-  switch (at.slot) {
-    case LeafSlot(:final leaf):
-      final block = tree.blockOf(leaf)!;
-      if (block is CodeBlock) {
-        return insertText(document, at, '\n', Formatting.plain);
-      }
-      final text = document.textOf(at.slot);
-      final container = tree.parentOf(block)!;
-      final atStart = at.offset == 0 && !text.isEmpty;
-      return switch (container) {
-        final ItemBlock item when atStart && item.children.first == block =>
-          _itemAbove(document, item, next(), at),
-        final ItemBlock item => _itemSplit(
-          document,
-          item,
-          block as TextLeaf,
-          at,
-          text,
-          next(),
-          next(),
-        ),
-        _ when atStart => Edit(
-          gaps: withGap(
-            document.gaps,
-            Gap(
-              document.nextGap,
-              container: container.id,
-              after: blockBefore(container, block)?.id,
-            ),
-            first: false,
-          ),
-          nextGap: document.nextGap.next,
-          selection: TextSelection.caret(at),
-        ),
-        _ => _paragraphSplit(block as TextLeaf, at, text, next()),
-      };
-    case ItemSlot(:final item):
-      return _itemAbove(document, tree.blockOf(item)! as ItemBlock, next(), at);
-    case GapSlot(:final gap):
-      final shown = document.gapOf(gap)!;
-      final added = Gap(
-        document.nextGap,
-        container: shown.container,
-        after: shown.after,
-      );
-      final index = document.gaps.indexWhere((other) => other.id == gap);
-      return Edit(
-        gaps: [
-          ...document.gaps.take(index + 1),
-          added,
-          ...document.gaps.skip(index + 1),
-        ],
-        nextGap: document.nextGap.next,
-        selection: TextSelection.caret(Place(GapSlot(added.id), 0)),
-      );
+/// Enter at [at]: the text place split there (see [splitWith]).
+Change splitBlock(ViewRows view, Place at) =>
+    splitWith(view, at, [VisibleText.empty, VisibleText.empty]);
+
+/// [lines] typed at [at] with an Enter between each two, as a paste
+/// does: in code, line breaks. In other text, the text place splits
+/// into one part per line: the first holds the text before the caret
+/// and the first line, the last holds the last line and the text after
+/// the caret (without the spaces it starts with, see [newLineStart]).
+/// In an item each part is an item (the last with what followed the
+/// text in the item), elsewhere each new part is a paragraph. The text
+/// place itself stays the first part, or the last where it splits at
+/// its very start before an empty first line (for an item, its first
+/// text; elsewhere, text that is not empty): the parts above it are new.
+/// The caret goes after the last line.
+Change splitWith(ViewRows view, Place at, List<VisibleText> lines) {
+  final doc = view.doc;
+  final leaf = doc.nodeOf(at.leaf)! as DocLeaf;
+  if (leaf is! TextNode) {
+    return typed(view, at, at.offset, _joinedLines(lines));
   }
-}
-
-/// A new paragraph after [leaf] with its text after [at].
-Edit _paragraphSplit(TextLeaf leaf, Place at, VisibleText text, BlockId id) =>
-    Edit(
-      replaced: {
-        leaf.id: [
-          TextDraft(
-            leaf.id,
-            text.slice(0, at.offset),
-            level: leaf is HeadingBlock ? leaf.level : null,
-            from: [leaf],
-          ),
-          TextDraft(id, text.slice(newLineStart(text, at.offset), text.length)),
-        ],
-      },
-      selection: TextSelection.caret(Place(LeafSlot(id), 0)),
-    );
-
-/// A new item after [item] holding the text of [leaf] after [at] and
-/// the blocks after [leaf]; open, or checked in a Done section.
-Edit _itemSplit(
-  ShownDocument document,
-  ItemBlock item,
-  TextLeaf leaf,
-  Place at,
-  VisibleText text,
-  BlockId itemId,
-  BlockId textId,
-) {
-  final index = item.children.indexOf(leaf);
-  return Edit(
-    replaced: {
-      item.id: [
-        ItemDraft.of(item, [
-          ...kept(item.children.take(index)),
-          TextDraft(
-            leaf.id,
-            text.slice(0, at.offset),
-            level: leaf is HeadingBlock ? leaf.level : null,
-            from: [leaf],
-          ),
+  if (lines.length < 2) return typed(view, at, at.offset, lines.single);
+  final fresh = doc.freshIds;
+  final parent = doc.parentOf(leaf.id)!;
+  final keptLast =
+      at.offset == 0 &&
+      lines.first.isEmpty &&
+      switch (parent) {
+        ItemNode(:final children) => children.first == leaf,
+        _ => !leaf.text.isEmpty,
+      };
+  final kept = keptLast ? lines.length - 1 : 0;
+  final leaves = [
+    for (final (index, line) in lines.indexed)
+      withLeafText(
+        index == kept ? leaf : ParagraphNode(fresh.take(), VisibleText.empty),
+        _joined([
+          if (index == 0) leaf.text.slice(0, at.offset),
+          line,
+          if (index == lines.length - 1) _after(leaf, at, keptLast),
         ]),
-        ItemDraft(itemId, [
-          TextDraft(
-            textId,
-            text.slice(newLineStart(text, at.offset), text.length),
-          ),
-          ...kept(item.children.skip(index + 1)),
-        ], checked: _newBox(document, item, at.slot)),
-      ],
+      ),
+  ];
+  return (
+    doc: switch (parent) {
+      final ItemNode item => _splitItem(
+        view,
+        item,
+        leaf,
+        leaves,
+        at,
+        fresh,
+        kept,
+      ),
+      _ => doc.edited({leaf.id: leaves}, fresh: fresh),
     },
-    selection: TextSelection.caret(Place(LeafSlot(textId), 0)),
+    selection: TextSelection.caret(Place(leaves.last.id, lines.last.length)),
   );
 }
 
-/// An empty item above [item]; the caret stays.
-Edit _itemAbove(ShownDocument document, ItemBlock item, BlockId id, Place at) =>
-    Edit(
-      replaced: {
-        item.id: [
-          ItemDraft(id, const [], checked: _newBox(document, item, at.slot)),
-          KeptDraft(item),
-        ],
-      },
-      selection: TextSelection.caret(at),
-    );
+/// [leaf]'s text after [at] for the last part: as it is where [leaf]
+/// stays the last part, else without the spaces it starts with.
+VisibleText _after(TextNode leaf, Place at, bool keptLast) => keptLast
+    ? leaf.text
+    : leaf.text.slice(newLineStart(leaf.text, at.offset), leaf.text.length);
 
-/// The box of an item made from [item]'s row at [slot]: none if it has
+/// [item] split into one item per leaf of [leaves], the parts of [leaf]:
+/// the first item with what came before [leaf], the last with what came
+/// after it; [item] itself is item [kept].
+DocTree _splitItem(
+  ViewRows view,
+  ItemNode item,
+  TextNode leaf,
+  List<DocLeaf> leaves,
+  Place at,
+  FreshIds fresh,
+  int kept,
+) {
+  final index = item.children.indexOf(leaf);
+  final box = _newBox(view, item, at);
+  final items = [
+    for (final (part, text) in leaves.indexed)
+      [
+        if (part == 0) ...item.children.take(index),
+        text,
+        if (part == leaves.length - 1) ...item.children.skip(index + 1),
+      ],
+  ];
+  return view.doc.edited({
+    item.id: [
+      for (final (part, children) in items.indexed)
+        part == kept
+            ? item.withChildren(children)
+            : ItemNode(fresh.take(), children, checked: box),
+    ],
+  }, fresh: fresh);
+}
+
+/// [lines] as one text, a line break between each two.
+VisibleText _joinedLines(List<VisibleText> lines) => _joined([
+  for (final (index, line) in lines.indexed) ...[
+    if (index > 0) VisibleText([TextPiece('\n')]),
+    line,
+  ],
+]);
+
+/// [texts] one after another.
+VisibleText _joined(List<VisibleText> texts) =>
+    VisibleText([for (final text in texts) ...text.pieces]);
+
+/// The box of an item made from [item]'s row at [at]: none if it has
 /// none; checked in a Done section, else open.
-bool? _newBox(ShownDocument document, ItemBlock item, Slot slot) =>
-    item.hasBox ? rowOfSlot(document, slot).done : null;
+bool? _newBox(ViewRows view, ItemNode item, Place at) =>
+    item.hasBox ? view.row(at.leaf)!.done : null;

@@ -42,12 +42,14 @@ final class Edited extends FileInput {
   final int picks;
 }
 
-/// The user asked to write the edits into the file now.
+/// Write the edits into the file once the device keeps them. A new
+/// document's file is created only when it is secured.
 final class SaveNow extends FileInput {
   const SaveNow();
 }
 
-/// Keep the edits somewhere lasting now; answered by [Answer].
+/// Keep the edits somewhere lasting now; answered by [Answer]. A
+/// [Secure] that comes while another waits is answered with it.
 final class Secure extends FileInput {
   const Secure(this.reason);
 
@@ -113,12 +115,6 @@ final class Moved extends FileInput {
   final Seen copy;
 }
 
-final class TimerFired extends FileInput {
-  const TimerFired(this.id);
-
-  final EffectId id;
-}
-
 /// Whether [KeepDraft] kept the draft.
 final class DraftKept extends FileInput {
   const DraftKept(this.id, {required this.kept});
@@ -154,7 +150,7 @@ final class Changed extends WriteOutcome {
   final Seen theirs;
 }
 
-/// A file is where [Create] or [Restore] would put one; it holds [there].
+/// A file is where [Restore] would put one; it holds [there].
 final class Taken extends WriteOutcome {
   const Taken(this.there);
 
@@ -260,7 +256,8 @@ final class Write extends FileEffect {
 }
 
 /// Create the new document's file holding [text], never over an existing
-/// one; answered by [Wrote]: [Written], [Taken] or [WriteFailed].
+/// one: a name already taken gets the next free one (" 2"). Answered by
+/// [Wrote]: [Written] or [WriteFailed].
 final class Create extends FileEffect {
   const Create(this.id, this.text);
 
@@ -297,14 +294,6 @@ final class KeepAsConflict extends FileEffect {
   final String text;
 }
 
-/// Send [TimerFired] with [id] after [delay].
-final class StartTimer extends FileEffect {
-  const StartTimer(this.id, this.delay);
-
-  final EffectId id;
-  final Duration delay;
-}
-
 /// The answer to [Secure]: whether the edits are kept somewhere lasting.
 final class Answer extends FileOutput {
   const Answer(this.reason, {required this.kept});
@@ -337,7 +326,8 @@ final class InStep extends FileStatus {
   const InStep();
 }
 
-/// There are edits the file does not hold yet.
+/// There are edits the file does not hold yet; [phase] says where the
+/// latest are.
 final class Editing extends FileStatus {
   const Editing(this.phase);
 
@@ -345,10 +335,10 @@ final class Editing extends FileStatus {
 }
 
 enum EditPhase {
-  /// Waiting to be kept on this device.
-  typing,
+  /// Only here: being kept on this device next.
+  inMemory,
 
-  /// Kept on this device; written into the file when due.
+  /// Kept on this device; written into the file when asked.
   onDevice,
 
   /// Being written into the file.
@@ -363,13 +353,14 @@ final class ChangedElsewhere extends FileStatus {
   final Seen theirs;
 }
 
-/// The file was deleted elsewhere; edits go on into the draft until the
-/// user restores the file or closes the document.
+/// The file was deleted elsewhere; edits (if any) go on into the draft
+/// until the user restores the file, discards them or closes the
+/// document.
 final class DeletedElsewhere extends FileStatus {
   const DeletedElsewhere();
 }
 
-/// Writing failed for another reason; the edits are kept.
+/// Writing failed for another reason; the edits are kept on the device.
 final class SaveFailed extends FileStatus {
   const SaveFailed();
 }

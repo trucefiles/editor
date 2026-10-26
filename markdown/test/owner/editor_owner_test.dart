@@ -3,17 +3,17 @@ import 'package:truce_core/truce_core.dart'
     show
         Edited,
         FileOutput,
-        FileTiming,
         Found,
+        Moment,
         Observed,
         Picked,
         Replaced,
+        SaveNow,
         Secure,
         SecureReason,
         Seen,
         ToEditor,
         Version,
-        Moment,
         openedFileOwner;
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -39,23 +39,33 @@ final class _Run {
   final outputs = <EditorOutput>[];
 
   EditorState get state => owner.state;
-  String get text => state.document.tree.text;
   int get revision => state.revision;
+
+  FormattedContent get shown => state.content as FormattedContent;
+
+  /// What the rows show.
+  List<String> get rows => [
+    for (final row in shown.view.rows)
+      switch (row) {
+        TextRow(:final leaf) => textOf(leaf).text,
+        BlockRow(:final leaf) => '[${leaf.runtimeType}]',
+      },
+  ];
 
   List<Edited> get edits => [
     for (final output in outputs)
       if (output case ToFile(input: final Edited edited)) edited,
   ];
 
-  /// The text place of the [index]th row.
-  Slot slot(int index) => switch (state.document.rows[index]) {
-    TextRow(:final slot) => slot,
-    _ => throw StateError('no text in row $index'),
-  };
+  /// The text last sent to the file owner.
+  String get sent => edits.last.text;
+
+  /// The leaf of row [index].
+  NodeId leaf(int index) => shown.view.rows[index].leaf.id;
 
   void caret(int row, int offset) => owner.send(
     CaretMoved(
-      TextSelection.caret(Place(slot(row), offset)),
+      TextSelection.caret(Place(leaf(row), offset)),
       revision: revision,
     ),
   );
@@ -67,27 +77,63 @@ final class _Run {
   void runCommand(Command command) =>
       owner.send(Run(command, revision: revision));
 
-  BlockId item(int index) =>
-      (state.document.tree.root.children.first as ListBlock).items[index].id;
+  NodeId item(int index) =>
+      (shown.view.doc.root.children.first as ListNode).items[index].id;
 
   void toggle(int index) =>
       owner.send(ToggleItem(item(index), revision: revision));
 
-  void fireSettle() => owner.send(
-    SettleTimerFired(outputs.whereType<StartSettleTimer>().last.id),
+  /// The save timer [timer] last started fires.
+  void fire(SaveTimer timer) => owner.send(
+    SaveTimerFired(
+      outputs
+          .whereType<StartSaveTimer>()
+          .lastWhere((start) => start.delay == timer.delay)
+          .id,
+    ),
   );
+
+  /// The edits are sent: a pause's draft.
+  void pause() => fire(SaveTimer.pause);
 }
 
 void main() {
   group('typing', () {
-    test('sends each text change to the file owner', () {
+    test('changes what shows at once, and sends the text at a pause', () {
       final run = _Run('ab')
         ..caret(0, 1)
         ..type('x');
-      expect(run.text, 'axb');
-      expect(run.edits.single.text, 'axb');
-      expect(run.edits.single.rev, 1);
-      expect(run.edits.single.lineage, _v1);
+      expect(run.rows, ['axb']);
+      expect(run.edits, isEmpty);
+      expect(run.state.unsent, isTrue);
+      run.pause();
+      expect(
+        (run.sent, run.edits.single.rev, run.edits.single.lineage),
+        ('axb', 1, _v1),
+      );
+      expect(run.state.unsent, isFalse);
+    });
+
+    test('sends at most every 30 s while it goes on', () {
+      final run = _Run('ab')
+        ..type('x')
+        ..type('y');
+      run.fire(SaveTimer.long);
+      expect(run.sent, 'xyab');
+      run.type('z');
+      run.pause();
+      expect(run.edits.map((edit) => edit.rev), [2, 3]);
+    });
+
+    test('writes into the folder 30 s after a pause', () {
+      final run = _Run('ab')
+        ..type('x')
+        ..pause();
+      run.fire(SaveTimer.folder);
+      expect(
+        run.outputs.last,
+        isA<ToFile>().having((out) => out.input, 'input', isA<SaveNow>()),
+      );
     });
 
     test('takes the typing style set at the caret, until the caret moves', () {
@@ -95,11 +141,13 @@ void main() {
         ..caret(0, 1)
         ..press(EditKey.bold)
         ..type('x');
-      expect(run.text, 'a**x**b');
+      run.pause();
+      expect(run.sent, 'a**x**b');
       run
         ..caret(0, 0)
-        ..type('y');
-      expect(run.text, 'ya**x**b');
+        ..type('y')
+        ..pause();
+      expect(run.sent, 'ya**x**b');
     });
 
     test('refuses an input on what no longer shows', () {
@@ -110,16 +158,48 @@ void main() {
       );
     });
 
-    test('Markdown edit changes lines', () {
-      final run = _Run('a\nb', mode: EditMode.markdown);
-      run.owner.send(
-        EditLines(
-          LineChange(1, 2, [(id: null, text: '- b')]),
-          revision: run.revision,
+    test('a timer firing leaves what shows as it was', () {
+      final run = _Run('ab')..type('x');
+      final revision = run.revision;
+      run.pause();
+      expect(run.revision, revision);
+    });
+
+    test('a change printing the same text is still sent, with its rev', () {
+      final run = _Run('ab')
+        ..caret(0, 2)
+        ..type(' ')
+        ..pause();
+      expect((run.sent, run.edits.single.rev), ('ab', 1));
+    });
+  });
+
+  group('Markdown edit', () {
+    test('edits the printed text, sent by the same timing', () {
+      final run = _Run('a\n\nb', mode: EditMode.markdown);
+      run.owner.send(EditText('a\n\n- b', revision: run.revision));
+      run.pause();
+      expect(run.sent, 'a\n\n- b');
+    });
+
+    test('takes over Visual edit\'s text, and gives it back read anew', () {
+      final run = _Run('a\n\nb')
+        ..caret(1, 1)
+        ..type('c');
+      run.owner.send(const SetMode(EditMode.markdown));
+      expect(
+        run.state.content,
+        isA<MarkdownContent>().having(
+          (content) => content.text,
+          'text',
+          'a\n\nbc',
         ),
       );
-      expect(run.text, 'a\n- b');
-      expect(run.edits.single.text, 'a\n- b');
+      run.owner
+        ..send(EditText('a\n\nbc\n\nd', revision: run.revision))
+        ..send(const SetMode(EditMode.visual));
+      expect(run.rows, ['a', 'bc', 'd']);
+      expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 2)));
     });
   });
 
@@ -129,40 +209,41 @@ void main() {
       run.owner.send(
         const FromFile(Replaced('ab\n\ncd!', version: _v2, ackRev: 0)),
       );
-      expect(run.text, 'ab\n\ncd!');
+      expect(run.rows, ['ab', 'cd!']);
       // Its line changed: the caret goes to the kept line before it.
-      expect(run.state.selection, TextSelection.caret(Place(run.slot(0), 1)));
+      expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
       expect(run.edits, isEmpty);
-      run.type('x');
+      run
+        ..type('x')
+        ..pause();
       expect(run.edits.single.lineage, _v2);
     });
 
-    test('a change elsewhere after an edit not seen there is ignored', () {
-      final run = _Run('ab')..type('x');
-      run.owner.send(const FromFile(Replaced('z', version: _v2, ackRev: 0)));
-      expect(run.text, 'xab');
-      run.type('y');
-      expect(run.edits.last.lineage, _v1);
+    test('a caret on a kept line stays there', () {
+      final run = _Run('ab\n\ncd\n\nef')..caret(2, 1);
+      run.owner.send(
+        const FromFile(Replaced('ab\n\nef', version: _v2, ackRev: 0)),
+      );
+      expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 1)));
     });
 
-    test('a change elsewhere drops a view-only tail', () {
-      // The typed space is not in the file yet: a change read anew from
-      // the file has no place for it (accepted, plan §2.4).
-      final run = _Run('ab')
-        ..caret(0, 2)
-        ..type(' ');
-      expect(run.state.document.textOf(run.slot(0)).text, 'ab ');
-      expect(run.edits, isEmpty);
-      run.owner.send(const FromFile(Replaced('ab!', version: _v2, ackRev: 0)));
-      expect(run.state.document.textOf(run.slot(0)).text, 'ab!');
+    test('a change elsewhere after an edit not sent there is ignored', () {
+      final run = _Run('ab')..type('x');
+      run.owner.send(const FromFile(Replaced('z', version: _v2, ackRev: 0)));
+      expect(run.rows, ['xab']);
+      run.pause();
+      expect(run.edits.last.lineage, _v1);
     });
 
     test('a pick always shows, and later edits descend from it', () {
       final run = _Run('ab')..type('x');
       // The file owner never got the edit at rev 1: revs go on from 0.
       run.owner.send(const FromFile(Picked('z', version: _v2, rev: 0)));
-      expect(run.text, 'z');
-      run.type('y');
+      expect(run.rows, ['z']);
+      expect(run.state.unsent, isFalse);
+      run
+        ..type('y')
+        ..pause();
       expect(
         (run.edits.last.lineage, run.edits.last.rev, run.edits.last.picks),
         (_v2, 1, 1),
@@ -171,84 +252,35 @@ void main() {
   });
 
   group('checked items', () {
-    test('with "Move to end" move once the toggle settles', () {
+    test('with "Move to end" a checked item moves', () {
       final run = _Run('- [ ] a\n- [ ] b')
         ..caret(1, 0)
-        ..toggle(0);
-      expect(run.text, '- [x] a\n- [ ] b');
-      run.fireSettle();
-      expect(run.text, '- [ ] b\n- [x] a');
+        ..toggle(0)
+        ..pause();
+      expect(run.sent, '- [ ] b\n- [x] a');
     });
 
-    test('move once the user types in another item', () {
-      final run = _Run('- [ ] a\n- [ ] b')
-        ..caret(1, 1)
+    test('in place stay where they are', () {
+      final run = _Run('- [ ] a\n- [ ] b', checkedItems: CheckedItems.inPlace)
         ..toggle(0)
-        ..type('x');
-      expect(run.text, '- [ ] bx\n- [x] a');
+        ..pause();
+      expect(run.sent, '- [x] a\n- [ ] b');
     });
 
-    test('toggled back wait for nothing', () {
-      final run = _Run('- [ ] a\n- [ ] b')
-        ..toggle(0)
-        ..toggle(0)
-        ..fireSettle();
-      expect(run.text, '- [ ] a\n- [ ] b');
-    });
-
-    test('wait while the caret is in a toggled item', () {
-      final run = _Run('- [ ] a\n- [ ] b')
-        ..caret(0, 1)
-        ..toggle(0)
-        ..fireSettle();
-      expect(run.text, '- [x] a\n- [ ] b');
-      run.caret(1, 0);
-      expect(run.text, '- [ ] b\n- [x] a');
-    });
-
-    test('in a Done section show in place until the toggle settles', () {
+    test('in a Done section show there, the file in place', () {
       final run =
           _Run('- [ ] a\n- [ ] b', checkedItems: CheckedItems.doneSection)
-            ..caret(1, 0)
-            ..toggle(0);
-      expect(run.state.document.rows.first.done, isFalse);
-      run.fireSettle();
-      expect(run.state.document.rows.last.done, isTrue);
-      expect(run.text, '- [x] a\n- [ ] b');
-    });
-
-    test('choosing how they show moves none', () {
-      final run = _Run('- [ ] a\n- [ ] b')..toggle(0);
-      run.owner
-        ..send(const SetCheckedItems(CheckedItems.inPlace))
-        ..send(const SetCheckedItems(CheckedItems.moveToEnd));
-      run.fireSettle();
-      expect(run.text, '- [x] a\n- [ ] b');
-    });
-
-    test('"Move to end now" moves waiting ones too, once', () {
-      final run = _Run('- [ ] a\n- [x] b\n- [ ] c')..toggle(0);
-      run.runCommand(MoveToEnd(run.state.selection));
-      expect(run.text, '- [ ] c\n- [x] b\n- [x] a');
-      run.fireSettle();
-      expect(run.text, '- [ ] c\n- [x] b\n- [x] a');
+            ..toggle(0)
+            ..pause();
+      expect(run.shown.view.rows.last.done, isTrue);
+      expect(run.sent, '- [x] a\n- [ ] b');
     });
 
     test('are toggled by a box tap only, never a Toggle command', () {
       final run = _Run('- [ ] a');
       expect(
-        () => run.runCommand(Toggle(run.item(0), run.state.selection)),
+        () => run.runCommand(Toggle(run.item(0), run.shown.selection)),
         throwsA(isA<AssertionError>()),
-      );
-    });
-
-    test('settle before the document is secured', () {
-      final run = _Run('- [ ] a\n- [ ] b')..toggle(0);
-      run.owner.send(const SecureEditor(SecureReason.hide));
-      expect(run.text, '- [ ] b\n- [x] a');
-      expect(
-        run.outputs.last,
-        isA<ToFile>().having((out) => out.input, 'input', isA<Secure>()),
       );
     });
   });
@@ -258,24 +290,23 @@ void main() {
       final run = _Run('- a\n- b');
       run.runCommand(DeleteItem(run.item(0)));
       final removed = run.outputs.whereType<ItemsRemoved>().single;
-      final next = run.state.document.tree.freshBlockIds.first;
       run.owner.send(UndoRemoval(removed.id));
-      expect(run.text, '- a\n- b');
-      expect(run.state.document.tree.freshBlockIds.first, next);
+      run.pause();
+      expect(run.sent, '- a\n- b');
     });
 
     test('of one code block are offered, of an emptied one not', () {
       final run = _Run('a\n\n```\nx\n```\n\nb');
       run.runCommand(
         DeleteRange(
-          TextSelection(Place(run.slot(0), 1), Place(run.slot(1), 1)),
+          TextSelection(Place(run.leaf(0), 1), Place(run.leaf(1), 1)),
         ),
       );
-      expect(run.text, 'a\n\nb');
+      expect(run.rows, ['a', 'b']);
       expect(run.outputs.whereType<ItemsRemoved>(), hasLength(1));
       final emptied = _Run('a\n\n```\n```\n\nb');
-      emptied.runCommand(JoinWithPrevious(emptied.slot(1)));
-      expect(emptied.text, 'a\n\nb');
+      emptied.runCommand(JoinWithPrevious(Place(emptied.leaf(1), 0)));
+      expect(emptied.rows, ['a', 'b']);
       expect(emptied.outputs.whereType<ItemsRemoved>(), isEmpty);
     });
 
@@ -288,41 +319,62 @@ void main() {
         ..type('x')
         ..owner.send(UndoRemoval(removed.id));
       expect(run.outputs.last, isA<UndoRefused>());
-      expect(run.text, '- xb');
+      expect(run.rows, ['xb']);
     });
   });
 
-  test('a one-line raw region grows into new lines', () {
-    final run = _Run('a\n\n<!-- c -->\n\nb')..caret(2, 0);
-    run.press(EditKey.backspace);
-    run.owner.send(
-      EditRaw('<!-- c -->\n', base: 11, extent: 11, revision: run.revision),
-    );
-    run.owner.send(
-      EditRaw('<!-- c -->\nx', base: 12, extent: 12, revision: run.revision),
-    );
-    expect(run.text, 'a\n\n<!-- c -->\nx\n\nb');
+  group('a raw block', () {
+    test('opens on a tap, edits as text, and reads anew once left', () {
+      final run = _Run('a\n\n<div>\nx\n</div>\n\nb');
+      run.owner.send(
+        OpenRawBlock(run.leaf(1), atEnd: false, revision: run.revision),
+      );
+      run.owner.send(
+        EditRaw('# T', base: 3, extent: 3, revision: run.revision),
+      );
+      run.pause();
+      expect(run.sent, 'a\n\n# T\n\nb');
+      expect(run.rows, ['a', '[RawNode]', 'b']);
+      run.caret(0, 0);
+      expect(run.shown.raw, isNull);
+      expect(run.rows, ['a', 'T', 'b']);
+    });
+
+    test('opens by Backspace after it', () {
+      final run = _Run('a\n\n<!-- c -->\n\nb')..caret(2, 0);
+      run.press(EditKey.backspace);
+      expect(run.shown.raw?.text, '<!-- c -->');
+    });
+
+    test('stays open through a change elsewhere that keeps its text', () {
+      final run = _Run('a\n\n<div>\n\nb');
+      run.owner.send(
+        OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision),
+      );
+      run.owner.send(
+        const FromFile(Replaced('a!\n\n<div>\n\nb', version: _v2, ackRev: 0)),
+      );
+      expect(run.shown.raw?.text, '<div>');
+      run.owner.send(
+        const FromFile(Replaced('a!\n\n<p>\n\nb', version: _v2, ackRev: 0)),
+      );
+      expect(run.shown.raw, isNull);
+    });
   });
 
-  test('a raw region edits the lines of a block without text', () {
-    final run = _Run('a\n\n<div>\nx\n</div>\n\nb')..caret(2, 0);
-    run.press(EditKey.backspace);
-    expect(run.state.raw, isNotNull);
-    run.owner.send(
-      EditRaw('<div>\ny\n</div>', base: 7, extent: 7, revision: run.revision),
+  test('securing sends the text first', () {
+    final run = _Run('ab')..type('x');
+    run.owner.send(const SecureEditor(SecureReason.hide));
+    expect(
+      run.outputs.whereType<ToFile>().map((out) => out.input.runtimeType),
+      [Edited, Secure],
     );
-    expect(run.text, 'a\n\n<div>\ny\n</div>\n\nb');
-    expect(run.edits.last.text, run.text);
-    run.caret(0, 0);
-    expect(run.state.raw, isNull);
+    expect(run.sent, 'xab');
   });
 
   test('with a file owner, a change elsewhere after a save shows', () {
     final editor = _Run('a');
-    final file = openedFileOwner(
-      const Seen('a', _v1),
-      timing: const FileTiming(),
-    );
+    final file = openedFileOwner(const Seen('a', _v1));
     editor.owner.outputs.listen((output) {
       if (output case ToFile(:final input)) file.send(input);
     });
@@ -333,14 +385,17 @@ void main() {
     });
     editor
       ..caret(0, 1)
-      ..type('b');
+      ..type('b')
+      ..pause();
     file.send(Observed(const Found(Seen('ab', _v2)), startedAt: Moment.now()));
     file.send(
       Observed(const Found(Seen('abc', Version(3))), startedAt: Moment.now()),
     );
-    expect(editor.text, 'abc');
+    expect(editor.rows, ['abc']);
     expect(file.state.text, 'abc');
-    editor.type('d');
+    editor
+      ..type('d')
+      ..pause();
     expect(editor.edits.last.lineage, const Version(3));
   });
 }

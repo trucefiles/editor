@@ -378,8 +378,8 @@ final class _InlineReader {
     final (canOpen, canClose) = delimiterRunFlanks(
       char,
       count,
-      before: start == _start ? '\n' : _text[start - 1],
-      after: _pos >= _end ? '\n' : _text[_pos],
+      before: start == _start ? '\n' : codePointBefore(_text, start),
+      after: _pos >= _end ? '\n' : codePointAt(_text, _pos),
     );
     final node = _Node(_Kind.text, start, _pos, literal: char * count)
       ..plain = true;

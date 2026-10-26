@@ -1,14 +1,12 @@
-import 'package:characters/characters.dart';
 import 'package:collection/collection.dart';
 
-import '../../tree/blocks.dart';
+import '../../doc/doc_nodes.dart';
+import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../commands/command.dart';
 import '../commands/indent.dart';
-import '../shown/rows.dart';
-import '../shown/selection.dart';
-import '../shown/shown_document.dart';
-import '../shown/slot.dart';
+import '../commands/text_commands.dart';
+import '../selection.dart';
 
 /// The keys Visual edit acts on; the platform maps physical keys and the
 /// input method's requests to these.
@@ -39,19 +37,19 @@ final class RunCommand extends KeyAction {
   final Command command;
 }
 
-/// The key selects [block], a rule, whole.
+/// The key selects [block], a divider, whole.
 final class SelectBlock extends KeyAction {
   const SelectBlock(this.block);
 
-  final BlockId block;
+  final NodeId block;
 }
 
-/// The key opens [block], one without text, as its raw text, the caret
-/// at its end if [atEnd], else at its start.
+/// The key opens [block], a raw block, as its raw text, the caret at its
+/// end if [atEnd], else at its start.
 final class OpenRaw extends KeyAction {
   const OpenRaw(this.block, {required this.atEnd});
 
-  final BlockId block;
+  final NodeId block;
   final bool atEnd;
 }
 
@@ -72,9 +70,9 @@ final class Consumed extends KeyAction {
   const Consumed();
 }
 
-/// What [key] does with [selection] in [document]: the key map, its rules in
-/// priority order.
-KeyAction keyAction(ShownDocument document, Selection selection, EditKey key) =>
+/// What [key] does with [selection] in what [view] shows: the key map,
+/// its rules in priority order.
+KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
     switch ((selection, key)) {
       (_, EditKey.link) => const OpenLinkDialog(),
       (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
@@ -88,7 +86,7 @@ KeyAction keyAction(ShownDocument document, Selection selection, EditKey key) =>
       (BlockSelection(:final block), EditKey.backspace || EditKey.delete) =>
         RunCommand(RemoveBlock(block)),
       (BlockSelection(), _) => const Consumed(),
-      (final TextSelection range, _) => _Keys(document, range).action(key),
+      (final TextSelection range, _) => _Keys(view, range).action(key),
     };
 
 KeyAction _frame(TextSelection range, FrameKind kind) =>
@@ -100,22 +98,26 @@ KeyAction _style(TextSelection range, TextFormat format) => range.isCaret
 
 /// The editing keys at a text selection.
 final class _Keys {
-  _Keys(this.document, this.range)
+  _Keys(this.view, this.range)
     : at = range.extent,
-      row = document.rowOf(range.extent.slot)!;
+      index = view.rowOf(range.extent.leaf)!;
 
-  final ShownDocument document;
+  final ViewRows view;
   final TextSelection range;
   final Place at;
 
   /// The index of the row the caret is in.
-  final int row;
+  final int index;
 
-  late final String _text = document.textOf(at.slot).text;
-  late final bool _inCode = switch (at.slot) {
-    LeafSlot(:final leaf) => document.tree.blockOf(leaf) is CodeBlock,
-    _ => false,
-  };
+  Row get _row => view.rows[index];
+  Row? get _rowAbove => index > 0 ? view.rows[index - 1] : null;
+  Row? get _rowBelow => view.rows.elementAtOrNull(index + 1);
+
+  late final String _text = textOf(_row.leaf).text;
+  late final bool _inCode = _row.leaf is CodeNode;
+
+  /// The container the caret's text is in.
+  late final DocContainer _frame = view.doc.parentOf(at.leaf)!;
 
   KeyAction action(EditKey key) => switch (key) {
     EditKey.enter => RunCommand(_enter()),
@@ -126,11 +128,11 @@ final class _Keys {
     EditKey.delete when !range.isCaret => RunCommand(DeleteRange(range)),
     EditKey.backspace => _backspace(),
     EditKey.delete => _delete(),
-    EditKey.tab when _inCode && range.base.slot == at.slot => RunCommand(
+    EditKey.tab when _inCode && range.base.leaf == at.leaf => RunCommand(
       ReplaceText(range, '\t'),
     ),
-    EditKey.tab when canIndent(document, at.slot) => RunCommand(Indent(range)),
-    EditKey.shiftTab when canOutdent(document, at.slot) => RunCommand(
+    EditKey.tab when canIndent(view, at.leaf) => RunCommand(Indent(range)),
+    EditKey.shiftTab when canOutdent(view, at.leaf) => RunCommand(
       Outdent(range),
     ),
     EditKey.tab || EditKey.shiftTab => const Consumed(),
@@ -142,40 +144,51 @@ final class _Keys {
     EditKey.checklist => throw ArgumentError.value(key, 'key', 'no edit key'),
   };
 
-  Command _enter() => switch (at.slot) {
-    _ when !range.isCaret || _row.done => SplitBlock(range),
-    ItemSlot() when _text.isEmpty => Outdent(range),
-    GapSlot() when _row.path.lastOrNull is QuoteBlock => RemoveFrame(at.slot),
+  Command _enter() => switch (_frame) {
+    _ when !range.isCaret || _row.done || _text.isNotEmpty => SplitBlock(range),
+    final ItemNode item when _isOwnPlace(item) => Outdent(range),
+    QuoteNode() => RemoveFrame(at.leaf),
     _ => SplitBlock(range),
   };
 
+  /// Whether the caret's text is [item]'s own place: the empty paragraph
+  /// an empty item, or one that starts with a list, shows.
+  bool _isOwnPlace(ItemNode item) => switch (item.children) {
+    [final first, ...final rest] =>
+      first.id == at.leaf && (rest.isEmpty || rest.first is ListNode),
+    _ => false,
+  };
+
   KeyAction _backspace() => switch (_rowAbove) {
-    _ when at.offset > 0 => _deleteTo(_graphemeBefore),
-    _ when _row.done => _joinInSection(_rowAbove, JoinWithPrevious(at.slot)),
-    _ when _firstOfFrame => RunCommand(RemoveFrame(at.slot)),
+    _ when at.offset > 0 => _deleteTo(graphemeBefore(_text, at.offset)),
+    _ when _row.done => _joinInSection(_rowAbove, JoinWithPrevious(at)),
+    _ when _firstOfFrame => RunCommand(RemoveFrame(at.leaf)),
     final BlockRow above => _into(above, atEnd: true),
     _ when _inCode && _text.isNotEmpty => const Consumed(),
     null => const Consumed(),
-    TextRow() => RunCommand(JoinWithPrevious(at.slot)),
+    TextRow() => RunCommand(JoinWithPrevious(at)),
   };
 
   KeyAction _delete() => switch (_rowBelow) {
-    _ when at.offset < _text.length => _deleteTo(_graphemeAfter),
+    _ when at.offset < _text.length => _deleteTo(
+      graphemeAfter(_text, at.offset),
+    ),
     final BlockRow below => _into(below, atEnd: false),
     null => const Consumed(),
-    final TextRow below => _joinInSection(below, JoinWithNext(at.slot)),
+    final TextRow below => _joinInSection(below, JoinWithNext(at)),
   };
 
-  Row get _row => document.rows[row];
-  Row? get _rowAbove => row > 0 ? document.rows[row - 1] : null;
-  Row? get _rowBelow => document.rows.elementAtOrNull(row + 1);
-
-  /// Whether the caret's text is the first of its innermost item or
-  /// quote.
-  bool get _firstOfFrame => switch (_row.path.lastOrNull) {
-    final ContainerBlock frame =>
-      document.rows.indexWhere((other) => other.path.contains(frame)) == row,
-    null => false,
+  /// Whether the caret's text is the first that its innermost item or
+  /// quote shows.
+  bool get _firstOfFrame => switch (_frame) {
+    DocRoot() => false,
+    final frame =>
+      view.rows.indexWhere(
+            (row) => view.doc
+                .pathOf(row.leaf.id)
+                .any((container) => container.id == frame.id),
+          ) ==
+          index,
   };
 
   /// [join] with [neighbor] if it shows in the same Done section or
@@ -186,16 +199,10 @@ final class _Keys {
       : const Consumed();
 
   KeyAction _into(BlockRow row, {required bool atEnd}) => switch (row.leaf) {
-    RuleBlock(:final id) => SelectBlock(id),
+    DividerNode(:final id) => SelectBlock(id),
     final leaf => OpenRaw(leaf.id, atEnd: atEnd),
   };
 
   KeyAction _deleteTo(int offset) =>
-      RunCommand(DeleteRange(TextSelection(at, Place(at.slot, offset))));
-
-  int get _graphemeBefore =>
-      at.offset - _text.substring(0, at.offset).characters.last.length;
-
-  int get _graphemeAfter =>
-      at.offset + _text.substring(at.offset).characters.first.length;
+      RunCommand(DeleteRange(TextSelection(at, Place(at.leaf, offset))));
 }
