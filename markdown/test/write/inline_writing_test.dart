@@ -129,6 +129,20 @@ void main() {
       expect(_typed('[a](b)'), r'\[a\]\(b\)');
     });
 
+    test('writes a line start\'s escape plain once text comes before it', () {
+      expect(_written(r'\# a', _insert(0, 'x')), 'x# a');
+      expect(_written(r'1\. a', _insert(0, 'x')), 'x1. a');
+      expect(_written('a\\\n&#32;b', _delete(1, 2)), 'a b');
+      expect(_written('a\n\\# b', _delete(1, 2)), 'a# b');
+    });
+
+    test('keeps escapes where they stay needed or were not for a line', () {
+      expect(_written(r'\# a', _insert(3, 'x')), r'\# ax');
+      expect(_written(r'1\. a', _insert(0, '2')), r'21\. a');
+      expect(_written(r'a \# b', _insert(0, 'x')), r'xa \# b');
+      expect(_written(r'cost 5\*3 now', _insert(12, '!')), r'cost 5\*3 now!');
+    });
+
     test('ends a new link\'s destination after its backslash', () {
       final link = LinkMark(destination: r'a\', style: LinkStyle.inline);
       expect(

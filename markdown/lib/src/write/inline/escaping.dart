@@ -48,7 +48,7 @@ String? escapedSource(
           .looksLike(text);
 
   var current = _leadingSpaceKept(
-    _lineEndsAsReferences(_shortcutsKept(tokens)),
+    _lineStartSpellingsPlaced(_lineEndsAsReferences(_shortcutsKept(tokens))),
   );
   for (var round = 0; round < _rounds; round++) {
     current = _lineStartsEscaped(current, lines, leads, bullet);
@@ -112,6 +112,29 @@ List<Token> _lineEndsAsReferences(List<Token> tokens) => [
       _ => token,
     },
 ];
+
+/// [tokens] with each character spelled for a line start kept so where
+/// it still is at one, and plain elsewhere, where its spelling is no
+/// longer needed (escaping escapes it again if it must).
+List<Token> _lineStartSpellingsPlaced(List<Token> tokens) {
+  final written = sourceOf(tokens);
+  final starts = _startsOf(tokens);
+  return [
+    for (final (index, token) in tokens.indexed)
+      switch (token) {
+        LineStartToken(:final source)
+            when isLineStartSpot(
+              written.substring(
+                _lineStart(written, starts[index]),
+                starts[index],
+              ),
+            ) =>
+          FixedToken(source),
+        LineStartToken(:final char) => CharToken(char, changed: false),
+        _ => token,
+      },
+  ];
+}
 
 /// [tokens] with a space or tab at a line's start, which the reader
 /// would take off, written as a character reference.

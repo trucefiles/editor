@@ -150,6 +150,25 @@ void main() {
     expect(edited.selection, isA<BlockSelection>());
   });
 
+  test('a line break between words drops the space after it', () {
+    final document = _document('Hello world');
+    final edited = run(
+      document,
+      LineBreak(TextSelection.caret(Place(_slot(document, 0), 5))),
+    );
+    expect(edited.document.tree.text, 'Hello\\\nworld');
+    expect(edited.selection, TextSelection.caret(Place(_slot(document, 0), 6)));
+  });
+
+  test('a line break keeps the spaces of code after it', () {
+    final document = _document('`a  b`');
+    final broken = run(
+      document,
+      LineBreak(TextSelection.caret(Place(_slot(document, 0), 1))),
+    ).document;
+    expect(_shown(broken), ['a\n  b']);
+  });
+
   test('a line break in code ends the code and goes on after it', () {
     final document = _document('`ab`');
     final broken = run(

@@ -38,6 +38,13 @@ void main() {
     expect(selection, TextSelection.caret(Place(_slot(document, 1), 0)));
   });
 
+  test('Enter between words drops the space the new line starts with', () {
+    final (:document, :selection) = _enter(_document('Hello  world'), 0, 5);
+    expect(document.tree.text, 'Hello\n\nworld');
+    expect(selection, TextSelection.caret(Place(_slot(document, 1), 0)));
+    expect(_enter(_document('- a b'), 0, 1).document.tree.text, '- a\n- b');
+  });
+
   test('Enter at a paragraph\'s end shows an empty one below', () {
     final (:document, :selection) = _enter(_document('a\n\nb'), 0, 1);
     expect(document.tree.text, 'a\n\nb');

@@ -184,6 +184,6 @@ void main() {
 
   test('a line break that would make a link definition is escaped', () {
     final edited = _run('[\n `]:www.b ci', (d) => LineBreak(_caret(d, 0, 10)));
-    expect(edited.document.tree.text, '\\[\n `]:www.b\\\n&#32;ci');
+    expect(edited.document.tree.text, '\\[\n `]:www.b\\\nci');
   });
 }

@@ -79,18 +79,32 @@ Slot _textRow(ShownDocument document, int index) =>
       final row => throw ArgumentError.value(row, 'row', 'no text place'),
     };
 
-/// A line break put in at [at], in the typing style there; code holds
-/// no line break, so it ends there and goes on after it.
+/// A line break put in at [at], in the typing style there, dropping the
+/// spaces after it (see [newLineStart]); code holds no line break, so it
+/// ends there and goes on after it.
 Edit lineBreak(ShownDocument document, Place at) => typed(
   document,
   at,
-  at.offset,
+  newLineStart(document.textOf(at.slot), at.offset),
   VisibleText([
     HardBreakPiece(
       typingStyleAt(document, at).withFormat(TextFormat.code, on: false),
     ),
   ]),
 );
+
+/// Where a new line that [text] breaks into at [at] starts: past the
+/// spaces there, which it drops, as a line does not start with them.
+/// Spaces in code are code, so they stay.
+int newLineStart(VisibleText text, int at) =>
+    at +
+    Iterable<int>.generate(text.length - at, (index) => at + index)
+        .takeWhile(
+          (offset) =>
+              const [' ', '\t'].contains(text.text[offset]) &&
+              !text.formattingAt(offset).has(TextFormat.code),
+        )
+        .length;
 
 /// The text from [from] to [to] in its text place replaced by [insert],
 /// the caret after it.

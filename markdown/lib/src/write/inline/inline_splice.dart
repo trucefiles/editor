@@ -20,7 +20,8 @@ import 'tokens.dart';
 /// of the spans they replace, else the document's [style]. Nothing is
 /// escaped here (see `escapedSource`). At most [keptLevels] spans
 /// around the change are kept, if given; with [whole], all of [old] is
-/// written anew, still with the kept characters' spelling.
+/// written anew, still with the kept characters' spelling. Characters
+/// [old] spelled for a line start come as [LineStartToken]s.
 List<Token> spliceInlines(
   List<Inline> old,
   VisibleText oldText,
@@ -30,8 +31,16 @@ List<Token> spliceInlines(
   bool whole = false,
   bool anew = false,
 }) {
+  final lineStarts = lineStartSpellings(old);
   if (whole) {
-    final splice = _Splice(oldText, text, style, from: 0, to: oldText.length);
+    final splice = _Splice(
+      oldText,
+      text,
+      style,
+      lineStarts,
+      from: 0,
+      to: oldText.length,
+    );
     return _Region(
       splice,
       _place(old, 0),
@@ -45,12 +54,13 @@ List<Token> spliceInlines(
     max: min(oldText.length, text.length) - prefix,
   );
   if (prefix == oldText.length && prefix == text.length) {
-    return [...old.expand(tokensOf)];
+    return [...old.expand((node) => tokensOf(node, lineStarts: lineStarts))];
   }
   return _Splice(
     oldText,
     text,
     style,
+    lineStarts,
     from: prefix,
     to: oldText.length - suffix,
     anew: anew,
@@ -90,7 +100,8 @@ final class _Splice {
   _Splice(
     this.oldText,
     this.text,
-    this.style, {
+    this.style,
+    this.lineStarts, {
     required this.from,
     required this.to,
     this.anew = false,
@@ -99,6 +110,10 @@ final class _Splice {
   final VisibleText oldText;
   final VisibleText text;
   final DocumentStyle style;
+
+  /// The old nodes that spell a character for its line start.
+  final Set<Inline> lineStarts;
+
   final int from;
   final int to;
   final int delta;
@@ -168,8 +183,10 @@ final class _Splice {
       last++;
     }
     final region = placed.sublist(first, last + 1);
-    final before = placed.take(first).expand((node) => tokensOf(node.node));
-    final after = placed.skip(last + 1).expand((node) => tokensOf(node.node));
+    Iterable<Token> kept(_Placed node) =>
+        tokensOf(node.node, lineStarts: lineStarts);
+    final before = placed.take(first).expand(kept);
+    final after = placed.skip(last + 1).expand(kept);
     if (region case [final only]
         when (levels == null || levels > 0) && _keepsSpan(only)) {
       final span = only.node as ContainerInline;
@@ -292,7 +309,9 @@ Set<Object> _marksBeyond(Formatting formatting, Formatting context) => {
 final class _Region {
   _Region(this.splice, List<_Placed> nodes, this.context)
     : _oldStart = nodes.isEmpty ? splice.from : nodes.first.start,
-      _oldTokens = [for (final node in nodes) ..._charTokens(node.node)],
+      _oldTokens = [
+        for (final node in nodes) ..._charTokens(node.node, splice.lineStarts),
+      ],
       _spans = [for (final node in nodes) ..._spansIn(node.node, node.start)];
 
   final _Splice splice;
@@ -531,7 +550,7 @@ final class _Region {
             changed: false,
             inAutolink: inAutolink,
           ),
-          final FixedToken token => token,
+          final Token token && (FixedToken() || LineStartToken()) => token,
           ShortcutToken() ||
           null => CharToken(unit.char, changed: true, inAutolink: inAutolink),
         },
@@ -557,17 +576,23 @@ TextFormat? _formatOf(Inline node) => switch (node) {
 };
 
 /// One per visible character of [node]: the token that spelled it as
-/// text; `null` for code, breaks and objects.
-List<Token?> _charTokens(Inline node) => switch (node) {
+/// text (see [tokensOf] for [lineStarts]); `null` for code, breaks and
+/// objects.
+List<Token?> _charTokens(Inline node, Set<Inline> lineStarts) => switch (node) {
   TextInline(isPlain: true, :final literal) => [
     for (final char in literal.split('')) CharToken(char, changed: false),
+  ],
+  TextInline(:final literal, :final source) when lineStarts.contains(node) => [
+    LineStartToken(source, literal),
   ],
   TextInline(:final literal, :final source) => [
     FixedToken(source),
     for (var index = 1; index < literal.length; index++) const FixedToken(''),
   ],
   ImageInline() => [null],
-  ContainerInline(:final children) => [...children.expand(_charTokens)],
+  ContainerInline(:final children) => [
+    ...children.expand((child) => _charTokens(child, lineStarts)),
+  ],
   CodeInline(:final literal) => List.filled(literal.length, null),
   SoftBreakInline() || HardBreakInline() || HtmlInline() => [null],
 };

@@ -10,9 +10,10 @@ import 'outline.dart';
 import 'text_commands.dart';
 
 /// Enter at [at]: in an item's text, a new item after it with the text
-/// after the caret and what followed in the item (at its very start, an
-/// empty item above instead); in other text, a new paragraph (at the
-/// very start, an empty one above instead); in code, a line break; in a
+/// after the caret (without the spaces it starts with, see
+/// [newLineStart]) and what followed in the item (at its very start, an
+/// empty item above instead); in other text, a new paragraph (likewise; at
+/// the very start, an empty one above instead); in code, a line break; in a
 /// gap, another gap after it.
 Edit splitBlock(ShownDocument document, Place at) {
   final tree = document.tree;
@@ -87,7 +88,7 @@ Edit _paragraphSplit(TextLeaf leaf, Place at, VisibleText text, BlockId id) =>
             level: leaf is HeadingBlock ? leaf.level : null,
             from: [leaf],
           ),
-          TextDraft(id, text.slice(at.offset, text.length)),
+          TextDraft(id, text.slice(newLineStart(text, at.offset), text.length)),
         ],
       },
       selection: TextSelection.caret(Place(LeafSlot(id), 0)),
@@ -118,7 +119,10 @@ Edit _itemSplit(
           ),
         ]),
         ItemDraft(itemId, [
-          TextDraft(textId, text.slice(at.offset, text.length)),
+          TextDraft(
+            textId,
+            text.slice(newLineStart(text, at.offset), text.length),
+          ),
           ...kept(item.children.skip(index + 1)),
         ], checked: _newBox(document, item, at.slot)),
       ],
