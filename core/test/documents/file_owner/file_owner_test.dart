@@ -242,8 +242,7 @@ void main() {
       final backUp = run.last<BackUpBoth>();
       expect((backUp.theirs.text, backUp.mine), ('x', 'ab'));
       backedUp(run);
-      final picked = run.last<Picked>();
-      expect((picked.text, picked.version), ('ab', _v2));
+      expect(run.all<Picked>(), isEmpty);
       final write = run.last<Write>();
       expect(
         (write.text, write.over.version, write.backUpFirst),
@@ -260,6 +259,44 @@ void main() {
       expect(run.status, isA<InStep>());
     });
 
+    group('after a change elsewhere the editor did not take', () {
+      // The editor typed on v1 before the Replaced to v2 reached it.
+      _Run ignored() => _Run.opened('a')
+        ..found(const Seen('x', _v2))
+        ..edit('ab', 1)
+        ..edit('abc', 2);
+
+      test('keeps the edits on the device over the version they came from', () {
+        final run = ignored();
+        expect((run.status as ChangedElsewhere).theirs.version, _v2);
+        run.fire(_timing.keep);
+        expect(run.last<KeepDraft>().base, 'a');
+      });
+
+      test('mine goes on with typing on the editor\'s version', () {
+        final run = ignored()
+          ..send(const Pick(PickChoice.mine, seen: _v2, rev: 2));
+        backedUp(run);
+        expect(run.all<Picked>(), isEmpty);
+        run
+          ..wrote(const Written(Seen('abc', _v3)))
+          ..edit('abcd', 3)
+          ..fire(_timing.keep);
+        expect(run.status, isA<Editing>());
+        expect(run.last<KeepDraft>().base, 'abc');
+      });
+    });
+
+    test('theirs changes nothing once the edits changed since', () {
+      final run = changed()
+        ..send(const Pick(PickChoice.theirs, seen: _v2, rev: 1))
+        ..edit('abc', 2);
+      backedUp(run);
+      expect(run.all<PickNotKept>(), hasLength(1));
+      expect(run.owner.state.text, 'abc');
+      expect(run.status, isA<ChangedElsewhere>());
+    });
+
     test('without a backup change nothing', () {
       final run = changed()
         ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1));
@@ -267,22 +304,6 @@ void main() {
       expect(run.all<PickNotKept>(), hasLength(1));
       expect(run.status, isA<ChangedElsewhere>());
     });
-
-    test(
-      'edits on a version the editor did not take lead to one, then go on',
-      () {
-        final run = _Run.opened('a')..found(const Seen('x', _v2));
-        // The editor had typed before the replace reached it.
-        run.edit('ab', 1);
-        expect((run.status as ChangedElsewhere).theirs.version, _v2);
-        run.send(const Pick(PickChoice.mine, seen: _v2, rev: 1));
-        backedUp(run);
-        run
-          ..wrote(const Written(Seen('ab', _v3)))
-          ..edit('abc', 2, lineage: _v2);
-        expect(run.status, isA<Editing>());
-      },
-    );
 
     test('discard takes the file\'s text', () {
       final run = changed()..send(const Discard());

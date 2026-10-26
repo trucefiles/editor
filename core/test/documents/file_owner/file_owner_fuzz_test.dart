@@ -7,15 +7,22 @@ const _timing = FileTiming();
 
 /// A folder, a device and an editor around one file owner, driven by
 /// random events: typing, changes elsewhere, scans, effects finishing,
-/// timers, picks and secures.
+/// timers, picks and secures. A [delayed] editor gets the owner's
+/// messages some steps later, typing on in between.
 final class _World {
-  _World(this.random, {required this.isNew, required this.elsewhere}) {
+  _World(
+    this.random, {
+    required this.isNew,
+    required this.elsewhere,
+    this.delayed = false,
+  }) {
     owner = isNew
         ? newFileOwner(timing: _timing)
         : openedFileOwner(Seen('a', _version()), timing: _timing);
     if (!isNew) file = owner.state.work.expected;
     text = owner.state.text;
     lineage = file?.version;
+    taken.add(text);
     owner.outputs.listen(_output);
   }
 
@@ -24,6 +31,15 @@ final class _World {
 
   /// Whether the file may change elsewhere.
   final bool elsewhere;
+
+  final bool delayed;
+
+  /// Messages for the editor not yet delivered.
+  final toEditor = <FileOutput>[];
+
+  /// Texts a draft's base may be: those the editor took, and those the
+  /// owner wrote, which the edits after them build on.
+  final taken = <String>{};
 
   late final FileOwner owner;
   Seen? _file;
@@ -34,8 +50,14 @@ final class _World {
   Seen? get file => _file;
   set file(Seen? seen) {
     _file = seen;
-    if (seen != null) fileTexts.add(seen.text);
+    if (seen != null) {
+      fileTexts.add(seen.text);
+      versionTexts[seen.version] = seen.text;
+    }
   }
+
+  /// The text of each version the file had.
+  final versionTexts = <Version, String>{};
 
   String? draft;
   String? deletedText;
@@ -58,20 +80,23 @@ final class _World {
 
   void _output(FileOutput output) {
     switch (output) {
-      case Replaced(:final text, :final version, :final ackRev)
-          when ackRev == rev:
-        this.text = text;
-        lineage = version;
-      case Replaced():
-        break;
-      case Picked(:final text, :final version):
-        this.text = text;
-        lineage = version;
+      case Replaced() || Picked() when delayed:
+        toEditor.add(output);
+      case Replaced() || Picked():
+        _toEditor(output);
       case StartTimer(:final id):
         timers.add(id);
       case DropDraft():
         draft = null;
       case final FileEffect effect:
+        expect(
+          switch (effect) {
+            KeepDraft(:final base?) => taken.contains(base),
+            _ => true,
+          },
+          isTrue,
+          reason: 'a draft\'s base is a text its edits build on',
+        );
         expect(
           effect is! Create || isNew,
           isTrue,
@@ -95,7 +120,29 @@ final class _World {
     }
   }
 
+  /// The editor takes a change from the owner: a change elsewhere only
+  /// if it has no edits the owner had not seen.
+  void _toEditor(FileOutput output) {
+    switch (output) {
+      case Replaced(:final text, :final version, :final ackRev)
+          when ackRev == rev:
+        this.text = text;
+        lineage = version;
+        taken.add(text);
+      case Picked(:final text, :final version):
+        this.text = text;
+        lineage = version;
+        // Picked edits build on the version picked.
+        taken.addAll([text, ?versionTexts[version]]);
+      case _:
+        break;
+    }
+  }
+
   void step() {
+    if (toEditor.isNotEmpty && random.nextInt(3) == 0) {
+      return _toEditor(toEditor.removeAt(0));
+    }
     switch (random.nextInt(12)) {
       case 0 || 1 || 2 when !_readOnly:
         text = '$text${String.fromCharCode(98 + random.nextInt(3))}';
@@ -120,13 +167,10 @@ final class _World {
       case 10:
         switch (owner.state.status) {
           case ChangedElsewhere(:final theirs):
-            owner.send(
-              Pick(
-                PickChoice.values[random.nextInt(2)],
-                seen: theirs.version,
-                rev: rev,
-              ),
-            );
+            final choice = PickChoice.values[random.nextInt(2)];
+            // Edits picked over their version build on it.
+            if (choice == PickChoice.mine) taken.add(theirs.text);
+            owner.send(Pick(choice, seen: theirs.version, rev: rev));
           case DeletedElsewhere():
             restoreAsked = true;
             owner.send(const RestoreMine());
@@ -163,8 +207,10 @@ final class _World {
           _ when random.nextInt(8) == 0 => _failed(),
           _ => Written(file = Seen(text, _version())),
         };
+        if (outcome is Written) taken.add(text);
         owner.send(Wrote(id, outcome, endedAt: endedAt));
       case Create(:final id, :final text):
+        taken.add(text);
         owner.send(
           Wrote(id, Written(file = Seen(text, _version())), endedAt: endedAt),
         );
@@ -173,6 +219,7 @@ final class _World {
           final there? => Taken(there),
           null => Written(file = Seen(text, _version())),
         };
+        if (outcome is Written) taken.add(text);
         owner.send(Wrote(id, outcome, endedAt: endedAt));
       case BackUpBoth(:final id):
         owner.send(BackedUp(id, ok: random.nextInt(5) > 0));
@@ -196,29 +243,45 @@ final class _World {
       'owner text: ${owner.state.text}\nanswers: '
       '${answers.map((answer) => answer.kept)}';
 
-  /// Leaves the document: secures it and lets every effect finish.
+  /// Leaves the document: secures it and lets every effect finish, the
+  /// editor getting what is on its way before and after.
   void close() {
+    _deliver();
     owner.send(const Secure(SecureReason.close));
     while (effects.isNotEmpty) {
       _finish(effects.removeAt(0));
+    }
+    _deliver();
+  }
+
+  void _deliver() {
+    while (toEditor.isNotEmpty) {
+      _toEditor(toEditor.removeAt(0));
     }
   }
 }
 
 void main() {
-  for (final isNew in [false, true]) {
-    for (final elsewhere in [false, true]) {
+  for (final (isNew, elsewhere, delayed) in [
+    for (final isNew in [false, true])
+      for (final elsewhere in [false, true]) (isNew, elsewhere, false),
+    (false, true, true),
+  ]) {
+    {
       test('random events never lose an edit '
           '(${isNew ? 'new' : 'opened'}, '
-          '${elsewhere ? 'with' : 'without'} changes elsewhere)', () {
+          '${elsewhere ? 'with' : 'without'} changes elsewhere'
+          '${delayed ? ', editor delayed' : ''})', () {
         for (var seed = 0; seed < 300; seed++) {
           final world = _World(
             Random(seed),
             isNew: isNew,
             elsewhere: elsewhere,
+            delayed: delayed,
           );
           for (var step = 0; step < 80; step++) {
             world.step();
+            if (world.toEditor.isNotEmpty) continue;
             expect(
               world.owner.state.text,
               world.text,

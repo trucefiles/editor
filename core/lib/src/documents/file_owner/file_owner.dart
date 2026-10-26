@@ -21,7 +21,7 @@ FileOwner openedFileOwner(
     status: const InStep(),
     text: opened.text,
     rev: 0,
-    work: FileWork(expected: opened, sent: opened),
+    work: FileWork(expected: opened, offered: [opened]),
   ),
   timing,
 );
@@ -32,7 +32,7 @@ FileOwner newFileOwner({FileTiming timing = const FileTiming()}) => _owner(
     status: Unwritten(),
     text: '',
     rev: 0,
-    work: FileWork(expected: null, sent: null),
+    work: FileWork(expected: null, offered: []),
   ),
   timing,
 );

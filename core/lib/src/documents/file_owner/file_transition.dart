@@ -71,8 +71,15 @@ final class _Step {
   void _edited(Edited edited) {
     if (_done) return;
     final sent = work.sent;
+    final over = work.offered.indexWhere(
+      (seen) => seen.version == edited.lineage,
+    );
+    // Made before a pick the editor shows instead.
+    if (sent != null && over < 0) return;
+    if (over >= 0) _work(work.copyWith(offered: work.offered.sublist(over)));
     if (sent != null && edited.lineage != sent.version) {
       // Made on a version the editor did not take: the user picks.
+      if (over >= 0) _work(work.copyWith(editsOver: work.offered.first));
       _set(
         text: edited.text,
         rev: edited.rev,
@@ -132,7 +139,13 @@ final class _Step {
   void _keepDraft() {
     final id = _id();
     _work(work.copyWith(draft: (id: id, rev: state.rev)));
-    outputs.add(KeepDraft(id, base: work.expected?.text, text: state.text));
+    outputs.add(
+      KeepDraft(
+        id,
+        base: (work.editsOver ?? work.expected)?.text,
+        text: state.text,
+      ),
+    );
   }
 
   void _draftKept(EffectId id, {required bool kept}) {
@@ -185,7 +198,7 @@ final class _Step {
   /// No edits are pending any more: in the file, in a conflict copy, or
   /// dropped.
   void _settle(FileStatus settled) {
-    _work(work.copyWith(keepTimer: null, publishTimer: null));
+    _work(work.copyWith(keepTimer: null, publishTimer: null, editsOver: null));
     _dropDraft();
     _set(status: settled);
   }
@@ -324,7 +337,7 @@ final class _Step {
 
   /// The editor shows [latest], unless it has edits not seen here.
   void _replaced(Seen latest) {
-    _work(work.copyWith(expected: latest, sent: latest));
+    _work(work.copyWith(expected: latest, offered: [...work.offered, latest]));
     _set(text: latest.text, status: const InStep());
     outputs.add(
       Replaced(latest.text, version: latest.version, ackRev: state.rev),
@@ -353,7 +366,11 @@ final class _Step {
             pick.rev == state.rev &&
             work.pick == null) {
       final id = _id();
-      _work(work.copyWith(pick: (id: id, choice: pick.choice, theirs: theirs)));
+      _work(
+        work.copyWith(
+          pick: (id: id, choice: pick.choice, theirs: theirs, rev: pick.rev),
+        ),
+      );
       outputs.add(BackUpBoth(id, theirs: theirs, mine: state.text));
     }
   }
@@ -363,19 +380,22 @@ final class _Step {
     if (pick == null || pick.id != id) return;
     _work(work.copyWith(pick: null));
     final theirs = pick.theirs;
-    if (!ok) {
+    // Theirs would drop edits made since the pick.
+    if (!ok || (pick.choice == PickChoice.theirs && pick.rev != state.rev)) {
       outputs.add(const PickNotKept());
     } else if (status case ChangedElsewhere(theirs: Seen(:final version))
         when version == theirs.version) {
       _work(
-        work.copyWith(expected: theirs, sent: theirs, backedUp: theirs.text),
+        work.copyWith(expected: theirs, editsOver: null, backedUp: theirs.text),
       );
       switch (pick.choice) {
         case PickChoice.mine:
-          outputs.add(Picked(state.text, version: theirs.version));
+          // The editor shows mine already and goes on on its version.
+          _work(work.copyWith(offered: work.offered.take(1).toList()));
           _set(status: const Editing(EditPhase.typing));
           _save();
         case PickChoice.theirs:
+          _work(work.copyWith(offered: [theirs]));
           _set(text: theirs.text);
           outputs.add(Picked(theirs.text, version: theirs.version));
           _settle(const InStep());
@@ -387,7 +407,7 @@ final class _Step {
   void _discard() {
     if (_done) return;
     final expected = work.expected;
-    _work(work.copyWith(sent: expected));
+    _work(work.copyWith(offered: [?expected]));
     _set(text: expected?.text ?? '');
     outputs.add(Picked(state.text, version: expected?.version));
     _settle(expected == null ? const Unwritten() : const InStep());

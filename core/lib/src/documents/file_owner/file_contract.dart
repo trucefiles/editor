@@ -200,7 +200,10 @@ final class Replaced extends ToEditor {
   final int ackRev;
 }
 
-/// The user picked [text], now descending from [version]; always shown.
+/// [text] to show, descending from [version]: the version from elsewhere
+/// the user picked, or the file's after the edits were discarded. Always
+/// shown; edits the editor made before it are dropped. (Picking the
+/// edits changes nothing the editor shows.)
 final class Picked extends ToEditor {
   const Picked(this.text, {required this.version});
 
@@ -299,7 +302,8 @@ final class Answer extends FileOutput {
   final bool kept;
 }
 
-/// A pick changed nothing: no backup could be made.
+/// A pick changed nothing: no backup could be made, or theirs was
+/// picked and the edits changed since.
 final class PickNotKept extends FileOutput {
   const PickNotKept();
 }

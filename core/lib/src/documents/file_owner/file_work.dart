@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../../common/moment.dart';
 import '../version.dart';
 import 'file_contract.dart';
@@ -18,11 +20,16 @@ typedef Writing = ({
 /// [deviceRefused] once the device could not keep a draft for it.
 typedef Securing = ({SecureReason reason, bool tried, bool deviceRefused});
 
+/// A pick waiting for its backup: of [choice] between the edits at [rev]
+/// and [theirs].
+typedef PendingPick = ({EffectId id, PickChoice choice, Seen theirs, int rev});
+
 /// The file owner's bookkeeping behind its status.
 final class FileWork {
   const FileWork({
     required this.expected,
-    required this.sent,
+    required this.offered,
+    this.editsOver,
     this.nextId = 0,
     this.draft,
     this.keptRev,
@@ -41,9 +48,17 @@ final class FileWork {
   /// version the user picked; `null` while the document has no file.
   final Seen? expected;
 
+  /// The versions the editor may show: the last one it surely took, then
+  /// each [Replaced] sent since.
+  final List<Seen> offered;
+
   /// The version of the last [Replaced] or [Picked] sent: the lineage an
   /// [Edited] must carry.
-  final Seen? sent;
+  Seen? get sent => offered.lastOrNull;
+
+  /// The version the edits were made over, where [expected] moved past
+  /// it: a change elsewhere the editor did not take.
+  final Seen? editsOver;
 
   final int nextId;
 
@@ -67,8 +82,7 @@ final class FileWork {
   /// File text that needs no backup before a write over it.
   final String? backedUp;
 
-  /// A pick waiting for its backup.
-  final ({EffectId id, PickChoice choice, Seen theirs})? pick;
+  final PendingPick? pick;
 
   /// Whether a write is wanted once the one in flight ends.
   final bool wanted;
@@ -77,7 +91,8 @@ final class FileWork {
 
   FileWork copyWith({
     Object? expected = _same,
-    Object? sent = _same,
+    Object? offered = _same,
+    Object? editsOver = _same,
     Object? nextId = _same,
     Object? draft = _same,
     Object? keptRev = _same,
@@ -92,7 +107,10 @@ final class FileWork {
     Object? securing = _same,
   }) => FileWork(
     expected: identical(expected, _same) ? this.expected : expected as Seen?,
-    sent: identical(sent, _same) ? this.sent : sent as Seen?,
+    offered: identical(offered, _same) ? this.offered : offered as List<Seen>,
+    editsOver: identical(editsOver, _same)
+        ? this.editsOver
+        : editsOver as Seen?,
     nextId: identical(nextId, _same) ? this.nextId : nextId as int,
     draft: identical(draft, _same)
         ? this.draft
@@ -110,9 +128,7 @@ final class FileWork {
         ? this.lastWriteEnd
         : lastWriteEnd as Moment?,
     backedUp: identical(backedUp, _same) ? this.backedUp : backedUp as String?,
-    pick: identical(pick, _same)
-        ? this.pick
-        : pick as ({EffectId id, PickChoice choice, Seen theirs})?,
+    pick: identical(pick, _same) ? this.pick : pick as PendingPick?,
     wanted: identical(wanted, _same) ? this.wanted : wanted as bool,
     securing: identical(securing, _same)
         ? this.securing
