@@ -184,8 +184,8 @@ final class _Step {
   }
 
   /// Whether [command] removed what an undo is offered for: items by the
-  /// delete button or the menu, a block without text, or more than one
-  /// leaf.
+  /// delete button or the menu, a block without text, code, or more than
+  /// one leaf. An emptied code block goes like an emptied paragraph.
   bool _removes(Command command, ShownDocument before, ShownDocument after) {
     if (command is DeleteItem || command is ClearChecked) return true;
     final kept = {for (final leaf in after.tree.root.leaves) leaf.id};
@@ -193,7 +193,13 @@ final class _Step {
       (leaf) => !kept.contains(leaf.id),
     );
     return removed.length > 1 ||
-        removed.any((leaf) => leaf is! TextLeaf && leaf is! CodeBlock);
+        removed.any(
+          (leaf) => switch (leaf) {
+            TextLeaf() => false,
+            CodeBlock(:final code) => code.isNotEmpty,
+            _ => true,
+          },
+        );
   }
 
   void _undo(int id) {

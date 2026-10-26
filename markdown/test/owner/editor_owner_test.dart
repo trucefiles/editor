@@ -143,6 +143,18 @@ void main() {
       expect(run.state.lineage, _v1);
     });
 
+    test('a change elsewhere drops a view-only tail', () {
+      // The typed space is not in the file yet: a change read anew from
+      // the file has no place for it (accepted, plan §2.4).
+      final run = _Run('ab')
+        ..caret(0, 2)
+        ..type(' ');
+      expect(run.state.document.textOf(run.slot(0)).text, 'ab ');
+      expect(run.edits, isEmpty);
+      run.owner.send(const FromFile(Replaced('ab!', version: _v2, ackRev: 0)));
+      expect(run.state.document.textOf(run.slot(0)).text, 'ab!');
+    });
+
     test('a pick always shows, and later edits descend from it', () {
       final run = _Run('ab')..type('x');
       run.owner.send(const FromFile(Picked('z', version: _v2)));
@@ -226,6 +238,21 @@ void main() {
       run.owner.send(UndoRemoval(removed.id));
       expect(run.text, '- a\n- b');
       expect(run.state.document.tree.freshBlockIds.first, next);
+    });
+
+    test('of one code block are offered, of an emptied one not', () {
+      final run = _Run('a\n\n```\nx\n```\n\nb');
+      run.runCommand(
+        DeleteRange(
+          TextSelection(Place(run.slot(0), 1), Place(run.slot(1), 1)),
+        ),
+      );
+      expect(run.text, 'a\n\nb');
+      expect(run.outputs.whereType<ItemsRemoved>(), hasLength(1));
+      final emptied = _Run('a\n\n```\n```\n\nb');
+      emptied.runCommand(JoinWithPrevious(emptied.slot(1)));
+      expect(emptied.text, 'a\n\nb');
+      expect(emptied.outputs.whereType<ItemsRemoved>(), isEmpty);
     });
 
     test('cannot be undone after another edit', () {
