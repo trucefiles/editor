@@ -63,6 +63,16 @@ void main() {
     expect(_delete('ab\n\n```\ncd\n```', (0, 1), (1, 1)), 'a\n\n```\nd\n```');
   });
 
+  test('Backspace after code and Delete before it move the caret in', () {
+    final document = Shown.read('a\n\n```\ncd\n```\n\nb');
+    final back = document.run(JoinWithPrevious(document.place(2, 0)));
+    expect(back.document.text, document.text);
+    expect(back.selection, back.document.caret(1, 2));
+    final forward = document.run(JoinWithNext(document.place(0, 1)));
+    expect(forward.document.text, document.text);
+    expect(forward.selection, forward.document.caret(1, 0));
+  });
+
   test('a join into an empty paragraph puts the text there', () {
     final document = Shown.read('a\n\nb');
     final gap = document.run(SplitBlock(document.caret(0, 1))).document;

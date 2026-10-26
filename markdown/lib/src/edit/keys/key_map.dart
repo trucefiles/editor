@@ -60,7 +60,7 @@ final class ToggleTypingStyle extends KeyAction {
   final TextFormat format;
 }
 
-/// The link dialog opens.
+/// The link dialog opens, for a selection in one text place.
 final class OpenLinkDialog extends KeyAction {
   const OpenLinkDialog();
 }
@@ -74,7 +74,10 @@ final class Consumed extends KeyAction {
 /// its rules in priority order.
 KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
     switch ((selection, key)) {
-      (_, EditKey.link) => const OpenLinkDialog(),
+      (final TextSelection range, EditKey.link)
+          when range.base.leaf == range.extent.leaf =>
+        const OpenLinkDialog(),
+      (_, EditKey.link) => const Consumed(),
       (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
       (final TextSelection range, EditKey.bullet) => _frame(range, .bullet),
       (final TextSelection range, EditKey.checklist) => _frame(

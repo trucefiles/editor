@@ -88,6 +88,7 @@ Command? _randomCommand(Random random, Shown document) {
       .whereType<BlockRow>()
       .where((row) => row.leaf is RawLeaf)
       .toList();
+  final dividers = view.rows.where((row) => row.leaf is DividerNode).toList();
   final items = nodesIn(view.doc.root).whereType<ItemNode>().toList();
   if (texts.isEmpty) return null;
   T pick<T>(List<T> from) => from[random.nextInt(from.length)];
@@ -99,7 +100,7 @@ Command? _randomCommand(Random random, Shown document) {
       : first;
   final range = TextSelection(place(first), place(second));
   final caret = TextSelection.caret(range.base);
-  return switch (random.nextInt(13)) {
+  return switch (random.nextInt(14)) {
     0 || 1 || 2 => InsertText(
       caret.base,
       pick(_words),
@@ -130,6 +131,13 @@ Command? _randomCommand(Random random, Shown document) {
     },
     9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
     10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
+    11 when dividers.isNotEmpty => switch (pick(dividers).leaf.id) {
+      final divider when random.nextBool() => RemoveBlock(divider),
+      final divider => TypeOverBlock(
+        divider,
+        plainLines(pick(['x', 'x\ny', '- x']), Formatting.plain),
+      ),
+    },
     _ => switch (keyAction(view, range, pick(EditKey.values))) {
       RunCommand(:final command) => command,
       _ => null,

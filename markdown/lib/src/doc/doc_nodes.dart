@@ -1,9 +1,10 @@
-/// The document tree Visual edit works on: what a document holds, in no
-/// file format's terms. Commands change only this tree; a printer turns
+/// The document tree Visual edit works on: what a document holds, in a
+/// format-neutral shape. Commands change only this tree; a printer turns
 /// it into a format's text. Immutable values without parent links, so an
 /// edit rebuilds only the path to what it changed; `DocTree` answers
-/// where a node is. Each node keeps the Markdown block it was read from,
-/// whose style a printer keeps.
+/// where a node is. Nodes keep the Markdown they were read from (a
+/// block's source, a link's or an object's inline) for the printer; a
+/// second format would bring its own sources.
 library;
 
 import '../tree/blocks.dart';

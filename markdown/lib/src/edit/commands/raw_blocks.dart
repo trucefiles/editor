@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import '../../doc/definitions.dart';
 import '../../doc/doc_nodes.dart';
 import '../../doc/load.dart';
+import '../../tree/blocks.dart';
 import '../../view/rows.dart';
 import '../change.dart';
 import '../references.dart';
@@ -21,7 +22,7 @@ Change closeRaw(ViewRows view, NodeId block, String raw, Selection selection) {
   final fresh = doc.freshIds;
   final read = doc.edited({block: newBlocksOf(raw, fresh)}, fresh: fresh);
   final definitions = definitionsOf(read.root);
-  final changed = !const MapEquality<Object?, Object?>().equals(
+  final changed = !const MapEquality<String, LinkDefinition>().equals(
     definitionsOf(doc.root),
     definitions,
   );

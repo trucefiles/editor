@@ -1,5 +1,4 @@
-import 'package:collection/collection.dart';
-
+import '../common/most_used.dart';
 import 'blocks.dart';
 import 'inlines.dart';
 
@@ -17,18 +16,17 @@ final class DocumentStyle {
   factory DocumentStyle.of(RootBlock root) {
     final inlines = root.leaves
         .whereType<TextLeaf>()
-        .expand((leaf) => _withInner(leaf.text.inlines))
+        .expand((leaf) => inlinesWithin(leaf.text.inlines))
         .toList();
-    String mostUsed<T extends ContainerInline>(String fallback) =>
-        _mostUsed(inlines.whereType<T>().map((node) => node.open), fallback);
+    String used<T extends ContainerInline>(String fallback) =>
+        mostUsed(inlines.whereType<T>().map((node) => node.open)) ?? fallback;
     return DocumentStyle(
-      emphasis: mostUsed<EmphasisInline>('*'),
-      strong: mostUsed<StrongInline>('**'),
-      strike: mostUsed<StrikeInline>('~~'),
-      bullet: _mostUsed(
-        _items(root).map((item) => item.marker.bullet).nonNulls,
-        '-',
-      ),
+      emphasis: used<EmphasisInline>('*'),
+      strong: used<StrongInline>('**'),
+      strike: used<StrikeInline>('~~'),
+      bullet:
+          mostUsed(_items(root).map((item) => item.marker.bullet).nonNulls) ??
+          '-',
     );
   }
 
@@ -45,22 +43,8 @@ final class DocumentStyle {
   final String bullet;
 }
 
-Iterable<Inline> _withInner(List<Inline> inlines) => inlines.expand(
-  (inline) => [
-    inline,
-    if (inline is ContainerInline) ..._withInner(inline.children),
-  ],
-);
-
 Iterable<ItemBlock> _items(Block block) => switch (block) {
   ItemBlock(:final children) => [block, ...children.expand(_items)],
   ContainerBlock(:final children) => children.expand(_items),
   LeafBlock() => const [],
 };
-
-String _mostUsed(Iterable<String> used, String fallback) =>
-    maxBy(
-      groupBy(used, (value) => value).entries,
-      (entry) => entry.value.length,
-    )?.key ??
-    fallback;

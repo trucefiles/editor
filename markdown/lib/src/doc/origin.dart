@@ -16,11 +16,6 @@ final class Origin {
   /// its source lines say.
   bool isLoaded(DocBlock node) => _loaded.contains(node);
 
-  /// This origin with [nodes] taken as read too: they hold what their
-  /// source lines say.
-  Origin withLoaded(Iterable<DocBlock> nodes) =>
-      Origin(markdown, [..._loaded, ...nodes]);
-
   /// The Markdown block [block] and the containers it is in, the root
   /// first; `null` for a block of other Markdown.
   PlacedBlock? placeOf(Block block) => switch (markdown.placeOf(block.id)) {

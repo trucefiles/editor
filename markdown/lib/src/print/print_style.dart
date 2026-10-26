@@ -2,8 +2,7 @@
 /// else the document's, else the standard style.
 library;
 
-import 'package:collection/collection.dart';
-
+import '../common/most_used.dart';
 import '../doc/doc_nodes.dart';
 import '../tree/blocks.dart';
 import '../tree/document_style.dart';
@@ -14,11 +13,11 @@ import 'spans.dart';
 /// writes its spans with, in a document of [document] style.
 SpanStyle spanStyleOf(Block? source, DocumentStyle document) {
   final inlines = switch (source) {
-    TextLeaf(:final text) => _withInner(text.inlines).toList(),
+    TextLeaf(:final text) => inlinesWithin(text.inlines).toList(),
     _ => const <Inline>[],
   };
   String used<T extends ContainerInline>(String fallback) =>
-      _mostUsed(inlines.whereType<T>().map((node) => node.open)) ?? fallback;
+      mostUsed(inlines.whereType<T>().map((node) => node.open)) ?? fallback;
   return (
     emphasis: used<EmphasisInline>(document.emphasis),
     strong: used<StrongInline>(document.strong),
@@ -29,8 +28,8 @@ SpanStyle spanStyleOf(Block? source, DocumentStyle document) {
 /// How a new hard break in a text read from [source] is written: as its
 /// hard breaks most are, else `\`.
 String hardBreakOf(Block? source) => switch (source) {
-  TextLeaf(:final text) => switch (_mostUsed(
-    _withInner(text.inlines)
+  TextLeaf(:final text) => switch (mostUsed(
+    inlinesWithin(text.inlines)
         .whereType<HardBreakInline>()
         .map((node) => node.style.name),
   )) {
@@ -53,15 +52,3 @@ String delimiterOf(ListNode list) => switch (list.source) {
   ListBlock(:final items) => items.first.marker.delimiter ?? '.',
   _ => '.',
 };
-
-Iterable<Inline> _withInner(List<Inline> inlines) => inlines.expand(
-  (inline) => [
-    inline,
-    if (inline is ContainerInline) ..._withInner(inline.children),
-  ],
-);
-
-String? _mostUsed(Iterable<String> used) => maxBy(
-  groupBy(used, (value) => value).entries,
-  (entry) => entry.value.length,
-)?.key;

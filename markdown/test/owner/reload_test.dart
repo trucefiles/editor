@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/edit/selection.dart';
 import 'package:truce_markdown/src/owner/reload.dart';
 import 'package:truce_markdown/src/view/rows.dart';
@@ -9,12 +10,10 @@ int _mappedRow(String before, String after, int row) {
   final oldView = ViewRows(old.doc);
   final next = loaded(after);
   final view = ViewRows(next.doc);
-  final mapped = mappedSelection(
-    TextSelection.caret(Place(oldView.rows[row].leaf.id, 0)),
+  final mapped = ReloadMap(
     old.printed,
     next,
-    view,
-  );
+  ).selection(TextSelection.caret(Place(oldView.rows[row].leaf.id, 0)), view);
   return view.rowOf((mapped as TextSelection).extent.leaf)!;
 }
 
@@ -40,4 +39,37 @@ void main() {
       }
     });
   }
+
+  group('lists follow their first line', () {
+    /// The first lines of [before]'s lists in [after], by their first
+    /// item's text.
+    List<String> mappedLists(String before, String after) {
+      final old = loaded(before);
+      final next = loaded(after);
+      final lists = {
+        for (final list in nodesIn(old.doc.root).whereType<ListNode>()) list.id,
+      };
+      return [
+        for (final id in ReloadMap(old.printed, next).lists(lists, old.doc))
+          textOf(leavesIn(next.doc.nodeOf(id)!).first).text,
+      ];
+    }
+
+    test('through lines added above', () {
+      expect(mappedLists('- a\n\nx\n\n- b', 'new\n\n- a\n\nx\n\n- b'), [
+        'a',
+        'b',
+      ]);
+    });
+
+    test('not when their first line is gone', () {
+      expect(mappedLists('- a\n- c\n\nx\n\n- b', '- z\n- c\n\nx\n\n- b'), [
+        'b',
+      ]);
+    });
+
+    test('not when no list starts there any more', () {
+      expect(mappedLists('- a', '```\n- a\n```'), isEmpty);
+    });
+  });
 }

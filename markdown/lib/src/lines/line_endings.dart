@@ -1,4 +1,4 @@
-import 'package:collection/collection.dart';
+import '../common/most_used.dart';
 
 /// A line's text and the line ending after it.
 typedef TextLine = ({String text, String ending});
@@ -24,10 +24,6 @@ List<TextLine> splitLines(String text) {
 
 /// The ending most of [endings] are, else [standardEnding].
 String dominantEnding(Iterable<String> endings) =>
-    maxBy(
-      groupBy(endings.where((ending) => ending.isNotEmpty), (e) => e).entries,
-      (entry) => entry.value.length,
-    )?.key ??
-    standardEnding;
+    mostUsed(endings.where((ending) => ending.isNotEmpty)) ?? standardEnding;
 
 final _lineEnd = RegExp(r'\r\n?|\n');

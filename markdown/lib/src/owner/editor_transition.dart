@@ -36,9 +36,10 @@ final class _Step {
   final outputs = <EditorOutput>[];
 
   void handle(EditorInput input) {
+    // An input on what no longer shows (e.g. a box tap whose wait ended
+    // after a change elsewhere) is dropped.
     if (input case ShownInput(:final revision)
         when revision != state.revision) {
-      assert(false, 'an input on what no longer shows');
       return;
     }
     switch ((input, state.content)) {
@@ -115,12 +116,12 @@ final class _Step {
           ),
         );
       case (CaretMoved(:final selection), _):
-        _show(
-          FormattedContent(view: _closedRaw(selection), selection: selection),
-        );
+        _show(_closedRaw(selection));
       case (_, _?):
-        // Other edits wait until the raw block closes.
-        break;
+        // Any other input closes the raw block first.
+        final closed = _closedRaw(shown.selection);
+        _show(closed);
+        _visual(input, closed);
       case (Pressed(:final key), null):
         _pressed(shown, key);
       case (Typed(:final text), null):
@@ -166,14 +167,28 @@ final class _Step {
   }
 
   void _typed(FormattedContent shown, String text) {
-    if (shown.selection case final TextSelection range) {
-      final at = range.extent;
-      final style = shown.typingStyle ?? typingStyleAt(shown.view.doc, at);
-      _run(switch (range) {
-        _ when range.isCaret => InsertText(at, text, style),
-        _ when range.base.leaf == range.extent.leaf => ReplaceText(range, text),
-        _ => Paste(range, plainLines(text, style)),
-      });
+    switch (shown.selection) {
+      case final TextSelection range:
+        final at = range.extent;
+        final style = shown.typingStyle ?? typingStyleAt(shown.view.doc, at);
+        _run(switch (range) {
+          _ when range.isCaret => InsertText(at, text, style),
+          _ when range.base.leaf == range.extent.leaf => ReplaceText(
+            range,
+            text,
+          ),
+          _ => Paste(range, plainLines(text, style)),
+        });
+      case BlockSelection(:final block)
+          when shown.view.doc.nodeOf(block) is DividerNode:
+        _run(
+          TypeOverBlock(
+            block,
+            plainLines(text, shown.typingStyle ?? Formatting.plain),
+          ),
+        );
+      case BlockSelection():
+        break;
     }
   }
 
@@ -267,38 +282,34 @@ final class _Step {
   /// What shows once the open raw block, if one is, takes what was typed
   /// in it (which the text sent holds already), [selection] where it
   /// stays.
-  ViewRows _closedRaw(Selection selection) {
+  FormattedContent _closedRaw(Selection selection) {
     final shown = state.content as FormattedContent;
-    return switch (shown.raw) {
-      final raw? => ViewRows(
-        _closed(shown.view, raw, selection),
-        done: shown.view.done,
-      ),
-      null => shown.view,
+    final closed = switch (shown.raw) {
+      final raw? => run(shown.view, CloseRaw(raw.block, raw.text, selection)),
+      null => (doc: shown.view.doc, selection: selection),
     };
+    return FormattedContent(
+      view: ViewRows(closed.doc, done: shown.view.done),
+      selection: closed.selection,
+    );
   }
-
-  /// [view]'s document with [raw] closed, [selection] where it stays.
-  DocTree _closed(ViewRows view, RawRegion raw, Selection selection) =>
-      run(view, CloseRaw(raw.block, raw.text, selection)).doc;
 
   // View state.
 
   void _setMode(EditMode mode) {
     switch ((state.content, mode)) {
-      case (FormattedContent(:final selection), EditMode.markdown):
+      case (FormattedContent(:final view, :final selection), EditMode.markdown):
         final printed = _printed();
-        work = work.copyWith(left: (printed: printed, selection: selection));
+        work = work.copyWith(
+          left: (view: view, selection: selection, printed: printed),
+        );
         _show(MarkdownContent(printed.text), mode: mode);
       case (MarkdownContent(:final text), EditMode.visual || EditMode.read):
         _show(state.content, mode: mode);
         _reload(text);
         work = work.copyWith(left: null);
       case (FormattedContent(:final selection), _):
-        _show(
-          FormattedContent(view: _closedRaw(selection), selection: selection),
-          mode: mode,
-        );
+        _show(_closedRaw(selection), mode: mode);
       case (MarkdownContent(), _):
         break;
     }
@@ -306,14 +317,18 @@ final class _Step {
 
   /// Checked items show as [checkedItems] says; nothing moves.
   void _setCheckedItems(CheckedItems checkedItems) {
-    final content = switch (state.content) {
-      FormattedContent(:final selection, :final view) => FormattedContent(
-        view: _rows(_closedRaw(selection).doc, view.done, checkedItems),
-        selection: selection,
-      ),
-      final content => content,
-    };
-    state = _state(content: content, checkedItems: checkedItems);
+    if (state.content case FormattedContent(:final selection, :final view)) {
+      final closed = _closedRaw(selection);
+      state = _state(
+        content: FormattedContent(
+          view: _rows(closed.view.doc, view.done, checkedItems),
+          selection: closed.selection,
+        ),
+        checkedItems: checkedItems,
+      );
+    } else {
+      state = _state(checkedItems: checkedItems);
+    }
   }
 
   // Saving.
@@ -367,59 +382,72 @@ final class _Step {
   /// What the file says once the text is sent: the document printed,
   /// with the open raw block as typed.
   PrintedMarkdown _printed() => switch (state.content) {
-    FormattedContent(:final view, :final raw, :final selection) =>
-      printMarkdown(switch (raw) {
-        final raw? => _closed(view, raw, selection),
-        null => view.doc,
-      }, work.origin),
+    FormattedContent(:final selection) => printMarkdown(
+      _closedRaw(selection).view.doc,
+      work.origin,
+    ),
     MarkdownContent(:final text) => (text: text, lines: const {}),
   };
 
   // Changes from the file owner.
 
-  /// [text] shows instead, read anew: the selection follows its lines,
-  /// and an open raw block whose text the change kept stays open.
+  /// [text] shows instead, read anew: the selection and collapsed Done
+  /// sections follow their lines, and an open raw block whose text the
+  /// change kept stays open.
   void _reload(String text) {
     if (state.mode == EditMode.markdown) return _show(MarkdownContent(text));
-    final (before, raw, done) = switch (state.content) {
-      FormattedContent(:final selection, :final raw, :final view) => (
-        (printed: _printed(), selection: selection),
-        raw,
-        view.done,
-      ),
-      MarkdownContent() => (work.left, null, null),
-    };
     final next = loaded(text);
-    final view = _rows(next.doc, done, state.checkedItems);
-    Selection mapped(Selection selection) => switch (before) {
-      final before? => mappedSelection(selection, before.printed, next, view),
-      null => startOf(view),
-    };
-    final selection = switch (before) {
-      final before? => mapped(before.selection),
-      null => startOf(view),
-    };
-    final reopened = switch (raw) {
-      final raw? => _reopened(raw, mapped(BlockSelection(raw.block)), view),
-      null => null,
+    final content = switch (state.content) {
+      FormattedContent(:final view, :final selection, :final raw) => _mapped(
+        (view: view, selection: selection, printed: _printed()),
+        raw,
+        next,
+      ),
+      MarkdownContent() => switch (work.left) {
+        final left? => _mapped(left, null, next),
+        null => _fresh(next.doc),
+      },
     };
     work = work.copyWith(origin: next.origin);
-    _show(FormattedContent(view: view, selection: selection, raw: reopened));
+    _show(content);
   }
 
-  /// [raw] open again on the block [at] in [view], if that holds its text.
-  RawRegion? _reopened(RawRegion raw, Selection at, ViewRows view) =>
-      switch (at) {
-        BlockSelection(:final block) => switch (view.doc.nodeOf(block)) {
-          RawLeaf(raw: final now) when now == raw.text => RawRegion(
-            block,
-            raw.text,
-            base: raw.base,
-            extent: raw.extent,
-          ),
-          _ => null,
-        },
-        TextSelection() => null,
+  /// What showed [before], with [raw] open, as it falls in [next].
+  FormattedContent _mapped(Left before, RawRegion? raw, Loaded next) {
+    final map = ReloadMap(before.printed, next);
+    final done = switch (before.view.done) {
+      final done? => DoneSections(
+        collapsed: map.lists(done.collapsed, before.view.doc),
+      ),
+      null => null,
+    };
+    final view = _rows(next.doc, done, state.checkedItems);
+    return FormattedContent(
+      view: view,
+      selection: map.selection(before.selection, view),
+      raw: switch (raw) {
+        final raw? => _reopened(raw, map.leafOf(raw.block, view), view),
+        null => null,
+      },
+    );
+  }
+
+  /// [doc] shown from its start.
+  FormattedContent _fresh(DocTree doc) {
+    final view = _rows(doc, null, state.checkedItems);
+    return FormattedContent(view: view, selection: startOf(view));
+  }
+
+  /// [raw] open again on [block] in [view], if that holds its text.
+  RawRegion? _reopened(RawRegion raw, NodeId? block, ViewRows view) =>
+      switch (block == null ? null : view.doc.nodeOf(block)) {
+        RawLeaf(raw: final now, :final id) when now == raw.text => RawRegion(
+          id,
+          raw.text,
+          base: raw.base,
+          extent: raw.extent,
+        ),
+        _ => null,
       };
 
   // State.

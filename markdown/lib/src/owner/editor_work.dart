@@ -4,6 +4,7 @@ import '../doc/doc_tree.dart';
 import '../doc/origin.dart';
 import '../edit/selection.dart';
 import '../print/printer.dart';
+import '../view/rows.dart';
 import 'save_clock.dart';
 
 /// The editor owner's own bookkeeping, which its users never read.
@@ -43,8 +44,8 @@ final class EditorWork {
 
   final int nextUndo;
 
-  /// Visual edit as Markdown edit left it: its print and selection, which
-  /// the caret goes back by.
+  /// Visual edit as Markdown edit left it: what showed, its print and
+  /// selection, which Visual edit comes back by.
   final Left? left;
 
   EditorWork copyWith({
@@ -76,6 +77,6 @@ const _same = Object();
 /// How to undo removal [id]: the document before it, valid at [rev].
 typedef Removal = ({int id, DocTree before, Selection selection, int rev});
 
-/// Visual edit when Markdown edit took over: its [printed] text and its
-/// [selection].
-typedef Left = ({PrintedMarkdown printed, Selection selection});
+/// What Visual edit showed, as [view] with [selection], printed as
+/// [printed]: before a reload, or when Markdown edit took over.
+typedef Left = ({ViewRows view, Selection selection, PrintedMarkdown printed});

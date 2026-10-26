@@ -150,12 +150,36 @@ void main() {
       expect(run.sent, 'ya**x**b');
     });
 
-    test('refuses an input on what no longer shows', () {
-      final run = _Run('ab');
-      expect(
-        () => run.owner.send(Typed('x', revision: run.revision - 1)),
-        throwsA(isA<AssertionError>()),
+    test('typing with a divider selected replaces it', () {
+      final run = _Run('a\n\n---\n\nb')
+        ..caret(2, 0)
+        ..press(EditKey.backspace)
+        ..type('x')
+        ..pause();
+      expect(run.rows, ['a', 'x', 'b']);
+      expect(run.sent, 'a\n\nx\n\nb');
+    });
+
+    test('a selected divider stays selected through a change elsewhere', () {
+      final run = _Run('a\n\n---\n\nb')
+        ..caret(2, 0)
+        ..press(EditKey.backspace);
+      run.owner.send(
+        const FromFile(Replaced('x\n\na\n\n---\n\nb', version: _v2, ackRev: 0)),
       );
+      expect(run.shown.selection, BlockSelection(run.leaf(2)));
+    });
+
+    test('drops an input on what no longer shows', () {
+      final run = _Run('- [ ] a\n- [ ] b');
+      final tapped = run.revision;
+      run.owner.send(
+        const FromFile(Replaced('- [ ] a\n- [ ] c', version: _v2, ackRev: 0)),
+      );
+      final shown = run.state;
+      run.owner.send(ToggleItem(run.item(0), revision: tapped));
+      expect(run.state, same(shown));
+      expect(run.edits, isEmpty);
     });
 
     test('a timer firing leaves what shows as it was', () {
@@ -276,6 +300,28 @@ void main() {
       expect(run.sent, '- [x] a\n- [ ] b');
     });
 
+    test('collapsed in a Done section stay so through a change elsewhere '
+        'and Markdown edit', () {
+      final run = _Run(
+        '- [ ] a\n- [x] b',
+        checkedItems: CheckedItems.doneSection,
+      );
+      final list = run.shown.view.doc.root.children.first.id;
+      run.owner.send(SetCollapsed(list, collapsed: true));
+      expect(run.rows, ['a']);
+      run.owner.send(
+        const FromFile(
+          Replaced('x\n\n- [ ] a\n- [x] b', version: _v2, ackRev: 0),
+        ),
+      );
+      expect(run.rows, ['x', 'a']);
+      run.owner
+        ..send(const SetMode(EditMode.markdown))
+        ..send(EditText('y\n\n- [ ] a\n- [x] b', revision: run.revision))
+        ..send(const SetMode(EditMode.visual));
+      expect(run.rows, ['y', 'a']);
+    });
+
     test('are toggled by a box tap only, never a Toggle command', () {
       final run = _Run('- [ ] a');
       expect(
@@ -344,6 +390,38 @@ void main() {
       final run = _Run('a\n\n<!-- c -->\n\nb')..caret(2, 0);
       run.press(EditKey.backspace);
       expect(run.shown.raw?.text, '<!-- c -->');
+    });
+
+    test('closes before a box tap, which then toggles', () {
+      final run = _Run('- [ ] a\n\n<div>\n\nb');
+      run.owner
+        ..send(OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision))
+        ..send(EditRaw('<p>', base: 3, extent: 3, revision: run.revision));
+      run.toggle(0);
+      expect(run.shown.raw, isNull);
+      run.pause();
+      expect(run.sent, '- [x] a\n\n<p>\n\nb');
+    });
+
+    test('closes before typing, which then goes where the caret was', () {
+      final run = _Run('ab\n\n<div>')..caret(0, 2);
+      run.owner.send(
+        OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision),
+      );
+      run.type('c');
+      expect(run.shown.raw, isNull);
+      expect(run.rows, ['abc', '[RawNode]', '']);
+    });
+
+    test('closes before another raw block opens', () {
+      final run = _Run('<div>\n\na\n\n<p>');
+      run.owner
+        ..send(OpenRawBlock(run.leaf(0), atEnd: true, revision: run.revision))
+        ..send(EditRaw('<nav>', base: 5, extent: 5, revision: run.revision))
+        ..send(OpenRawBlock(run.leaf(2), atEnd: true, revision: run.revision));
+      expect(run.shown.raw?.text, '<p>');
+      run.pause();
+      expect(run.sent, '<nav>\n\na\n\n<p>');
     });
 
     test('stays open through a change elsewhere that keeps its text', () {

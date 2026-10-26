@@ -4,6 +4,7 @@ library;
 
 import 'package:characters/characters.dart';
 
+import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
@@ -68,9 +69,16 @@ Change joinWithPrevious(ViewRows view, Place at) {
 }
 
 /// Delete at the end of [at]'s text place: the text place shown in the
-/// row below joins it.
+/// row below joins it; code that holds any keeps its place, and the caret
+/// goes to its start (as Backspace after code goes to its end).
 Change joinWithNext(ViewRows view, Place at) {
   final below = _textRow(view, view.rowOf(at.leaf)! + 1);
+  if (below.leaf case CodeNode(:final code) when code.isNotEmpty) {
+    return (
+      doc: view.doc,
+      selection: TextSelection.caret(Place(below.leaf.id, 0)),
+    );
+  }
   return deleteAcross(
     view,
     Place(at.leaf, textAt(view.doc, at.leaf).length),

@@ -120,7 +120,10 @@ DocumentReading rereadDocument(
     return (root: frozen, definitions: old.definitions, nextBlockId: ids.next);
   }
   final definitions = definitionsByLabel(definitionsIn(frozen));
-  if (_sameDefinitions(definitions, old.definitions)) {
+  if (const MapEquality<String, LinkDefinition>().equals(
+    definitions,
+    old.definitions,
+  )) {
     return (root: frozen, definitions: definitions, nextBlockId: ids.next);
   }
   return _readAnew(old, lines, ids.next);
@@ -312,13 +315,6 @@ Map<String, LinkDefinition> definitionsByLabel(
   }
   return byLabel;
 }
-
-bool _sameDefinitions(
-  Map<String, LinkDefinition> a,
-  Map<String, LinkDefinition> b,
-) =>
-    a.length == b.length &&
-    a.entries.every((entry) => b[entry.key] == entry.value);
 
 /// Hands out fresh block ids.
 final class _Ids {

@@ -238,3 +238,11 @@ String spacedLineEnds(String text) => text.replaceAll(lineEnd, ' ');
 
 /// A line end in source text.
 final lineEnd = RegExp(r'\r\n?|\n');
+
+/// [inlines] and every inline within them, outermost first.
+Iterable<Inline> inlinesWithin(List<Inline> inlines) => inlines.expand(
+  (inline) => [
+    inline,
+    if (inline is ContainerInline) ...inlinesWithin(inline.children),
+  ],
+);

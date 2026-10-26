@@ -34,6 +34,9 @@ lines stay byte for byte.
   of its own, as Enter would; blank lines between them go.
 - **Lists and numbering.** Numbered items count on from the first number
   of their list. A new numbered sublist starts at 1.
+- **Empty checklist items** are written `- [ ] `, with a space after
+  the box, so other apps read them as checklist items too: the one place
+  Truce writes a trailing space.
 - **Lazy lines.** A line of text right below an item's or a quote's text
   belongs to it, even without indent or `>`, as the standard says.
 

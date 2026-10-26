@@ -10,17 +10,12 @@ import '../doc/doc_tree.dart';
 import '../doc/origin.dart';
 import '../document_tree.dart';
 import '../lines/line_endings.dart';
-import '../read/document_reading.dart';
 import '../tree/blocks.dart';
-import '../tree/inlines.dart';
-import '../visible/visible_text.dart';
-import 'escaping.dart';
+import 'as_read.dart';
 import 'frames.dart';
-import 'inline_printer.dart';
-import 'links.dart';
+import 'leaf_lines.dart';
 import 'print_style.dart';
 import 'text_layouts.dart';
-import 'wrapping.dart';
 import 'writable.dart';
 
 /// The lines a block printed to, first and last.
@@ -48,14 +43,15 @@ PrintedMarkdown printMarkdown(DocTree doc, Origin origin) {
   return _Printer(
     origin,
     layouts,
-    definitionsChanged: !_sameDefinitions(
+    definitionsChanged: !const MapEquality<String, LinkDefinition>().equals(
       definitions,
       origin.markdown.definitions,
     ),
   ).print(writable.root);
 }
 
-/// What [doc] reads back as once printed: see `writableOf`.
+/// What [doc] reads back as once printed (see `writableOf`): the seam
+/// the round-trip tests compare by.
 DocTree writableMarkdown(DocTree doc, Origin origin) => writableOf(
   doc,
   origin,
@@ -64,13 +60,6 @@ DocTree writableMarkdown(DocTree doc, Origin origin) => writableOf(
     style: origin.markdown.style,
   ),
 );
-
-bool _sameDefinitions(
-  Map<String, LinkDefinition> a,
-  Map<String, LinkDefinition> b,
-) =>
-    a.length == b.length &&
-    a.entries.every((entry) => b[entry.key] == entry.value);
 
 /// A printed line and the line ending after it; an empty ending is the
 /// document's.
@@ -261,8 +250,8 @@ final class _Printer {
   };
 
   bool _readTogether(DocBlock previous, DocBlock next) =>
-      _kindKept(previous) &&
-      _kindKept(next) &&
+      kindKept(previous) &&
+      kindKept(next) &&
       _origin.areNeighbors(previous.source!, next.source!);
 
   /// Whether a blank line must go between [previous] and [next] so that
@@ -287,7 +276,7 @@ final class _Printer {
 
   /// Whether [node] starts a block that ends a paragraph before it.
   bool _interrupts(DocBlock node) => switch (node) {
-    final HeadingNode heading => !_setext(heading),
+    final HeadingNode heading => !isSetext(heading),
     final CodeNode code => !_indented(code, null),
     QuoteNode() => true,
     ListNode(:final items, :final kind) =>
@@ -308,7 +297,8 @@ final class _Printer {
     return _origin.isLoaded(node) &&
         source != null &&
         !_forced(node, previous, last: last) &&
-        !_stale(node) &&
+        !(definitionsChanged &&
+            hasStaleReference(node, _layouts.definitions)) &&
         _inPlace(source) &&
         _frames.whereType<ItemFrame>().every(
           (frame) =>
@@ -336,26 +326,14 @@ final class _Printer {
     if (!_origin.isLoaded(leaf) ||
         source is! LeafBlock ||
         _forced(leaf, previous, last: last) ||
-        _stale(leaf)) {
+        (definitionsChanged && hasStaleReference(leaf, _layouts.definitions))) {
       return false;
     }
-    final tabbed = source.lines.any(
-      (line) =>
-          line.tabColumns > 0 ||
-          line.text
-              .substring(0, line.text.length - line.text.trimLeft().length)
-              .contains('\t'),
+    return linesTakeNewMarks(
+      source,
+      _markdown,
+      startsItem: _frames.any((frame) => frame is ItemFrame && frame.pending),
     );
-    final marker = _markdown
-        .startsAt(source.lines.first.id)
-        .any((PlacedBlock placed) => placed.block is ItemBlock);
-    final pending = _frames.any((frame) => frame is ItemFrame && frame.pending);
-    // A lazy line, missing its containers' marks, could read otherwise
-    // with them (as a heading's underline).
-    final lazy = source.lines.any(
-      (line) => line.prefix.length < source.lines.first.prefix.length,
-    );
-    return !tabbed && !lazy && marker == pending;
   }
 
   /// Whether [node], as read, must be printed anew where it is now:
@@ -366,68 +344,15 @@ final class _Printer {
       switch (node.source) {
         CodeBlock(fenced: true, closed: false) => !last,
         final source? =>
-          _joinsIndented(previous) &&
-              (source is CodeBlock || _indentedAsRead(source)) &&
+          joinsIndented(previous) &&
+              (source is CodeBlock || indentedAsRead(source, _origin)) &&
               !_readAfter(previous!, node),
         null => false,
       };
 
-  /// Whether [source]'s first line is indented in its container.
-  bool _indentedAsRead(Block source) {
-    final leaf = source.leaves.firstOrNull;
-    final line = leaf?.lines.first;
-    if (line == null || line.id != lineSpanOf(source).first) return false;
-    final ancestors = {
-      for (final container in _origin.placeOf(source)?.path ?? <Block>[])
-        container.id,
-    };
-    final start = line.prefix
-        .where((part) => ancestors.contains(part.container))
-        .map((part) => part.end)
-        .fold(0, (end, next) => next > end ? next : end);
-    return line.text.startsWith(' ', start) ||
-        line.text.startsWith('\t', start);
-  }
-
-  /// Whether [node] has a reference link whose definition is gone or
-  /// changed.
-  bool _stale(DocBlock node) =>
-      definitionsChanged &&
-      leavesIn(node).whereType<TextNode>().any(
-        (leaf) => leaf.text.pieces.any(
-          (piece) =>
-              switch (piece) {
-                ObjectPiece(inline: final ImageInline image) => !imageResolves(
-                  image,
-                  _layouts.definitions,
-                ),
-                _ => false,
-              } ||
-              switch (piece.formatting.link) {
-                final link? => !linkResolves(link, _layouts.definitions),
-                null => false,
-              },
-        ),
-      );
-
   /// Whether [node] is read right after [previous], both as read.
   bool _readAfter(DocBlock previous, DocBlock node) =>
       _origin.isLoaded(previous) && _readTogether(previous, node);
-
-  bool _kindKept(DocBlock node) => switch ((node, node.source)) {
-    (ParagraphNode(), ParagraphBlock()) ||
-    (HeadingNode(), HeadingBlock()) ||
-    (CodeNode(), CodeBlock()) ||
-    (DividerNode(), RuleBlock()) ||
-    (TableNode(), TableBlock()) ||
-    (RawNode(kind: RawKind.html), HtmlBlock()) ||
-    (RawNode(kind: RawKind.definitions), DefinitionsBlock()) ||
-    (RawNode(kind: RawKind.frontMatter), FrontMatterBlock()) ||
-    (QuoteNode(), QuoteBlock()) ||
-    (ListNode(), ListBlock()) ||
-    (ItemNode(), ItemBlock()) => true,
-    _ => false,
-  };
 
   void _copy(DocBlock node) {
     final span = lineSpanOf(node.source!);
@@ -491,14 +416,13 @@ final class _Printer {
     switch (leaf) {
       case ParagraphNode():
         _textLines(leaf).forEach(emit);
-      case HeadingNode() when _setext(leaf):
+      case HeadingNode() when isSetext(leaf):
         _textLines(leaf).forEach(emit);
-        emit(_underline(leaf));
-      case HeadingNode(:final level):
-        final content = headingEndEscaped(_oneLine(leaf));
-        emit('${'#' * level}${content.isEmpty ? '' : ' $content'}');
+        emit(underlineOf(leaf));
+      case HeadingNode():
+        emit(atxHeading(leaf, _layouts));
       case CodeNode():
-        _codeLines(leaf, previous).forEach(emit);
+        codeLines(leaf, indented: _indented(leaf, previous)).forEach(emit);
       case DividerNode():
         emit(_divider());
       case RawLeaf(:final raw):
@@ -507,25 +431,20 @@ final class _Printer {
     _ranges[leaf.id] = (first: start, last: _out.length - 1);
   }
 
-  /// [node]'s text in lines, wrapped as its source was.
-  List<String> _textLines(TextNode node) {
-    final source = switch (node.source) {
-      HeadingBlock(:final lines) => lines.sublist(0, lines.length - 1),
-      ParagraphBlock(:final lines) => lines,
-      _ => null,
-    };
-    return wrappedLines(
-      printInline(_layouts.of(node), hardBreak: hardBreakOf(node.source)),
-      firstPrefix: _prefixWidth(first: true),
-      restPrefix: _prefixWidth(first: false),
-      source: source == null
-          ? null
-          : (
-              contents: [for (final line in source) line.content],
-              widths: [for (final line in source) line.text.length],
-            ),
-    );
-  }
+  /// Whether [code] prints indented after [previous] here.
+  bool _indented(CodeNode code, DocBlock? previous) => printsIndented(
+    code,
+    previous,
+    firstInItem: previous == null && _path.last is ItemNode,
+  );
+
+  /// [node]'s text in lines after the containers' marks.
+  List<String> _textLines(TextNode node) => textLines(
+    node,
+    _layouts,
+    firstPrefix: _prefixWidth(first: true),
+    restPrefix: _prefixWidth(first: false),
+  );
 
   int _prefixWidth({required bool first}) => _frames
       .map(
@@ -534,78 +453,6 @@ final class _Printer {
             .length,
       )
       .sum;
-
-  /// [node]'s text in one line.
-  String _oneLine(TextNode node) =>
-      printInline(_layouts.of(node), hardBreak: r'\')
-          .map(
-            (token) => switch (token) {
-              WordToken(:final source) => source,
-              _ => ' ',
-            },
-          )
-          .join();
-
-  bool _setext(HeadingNode heading) =>
-      heading.level <= 2 &&
-      !heading.text.isEmpty &&
-      heading.source is HeadingBlock &&
-      (heading.source! as HeadingBlock).style == HeadingStyle.setext;
-
-  String _underline(HeadingNode heading) {
-    final source = heading.source! as HeadingBlock;
-    final underline = source.lines.last.content.trimRight();
-    if (source.level == heading.level) return underline;
-    return (heading.level == 1 ? '=' : '-') *
-        (underline.length < 3 ? 3 : underline.length);
-  }
-
-  List<String> _codeLines(CodeNode code, DocBlock? previous) {
-    final lines = code.code.isEmpty ? <String>[] : code.code.split('\n');
-    if (_indented(code, previous)) {
-      return [for (final line in lines) line.isEmpty ? '' : '    $line'];
-    }
-    final read = switch (code.source) {
-      CodeBlock(:final fence?) => fence,
-      _ => '```',
-    };
-    final char = read[0] == '`' && code.info.contains('`') ? '~' : read[0];
-    final runs = lines.map(
-      (line) =>
-          RegExp('^ {0,3}(${RegExp.escape(char)}+)')
-              .firstMatch(line)?[1]!
-              .length ??
-          0,
-    );
-    final length = [
-      3,
-      if (read[0] == char) read.length,
-      runs.fold(0, (a, b) => a > b ? a : b) + 1,
-    ].max;
-    final fence = char * length;
-    return ['$fence${infoEscaped(code.info)}', ...lines, fence];
-  }
-
-  /// Whether [code] prints indented: it was read so, has text on its
-  /// first and last line, is not first in an item, and would not join
-  /// [previous].
-  bool _indented(CodeNode code, DocBlock? previous) {
-    final lines = code.code.split('\n');
-    return code.source is CodeBlock &&
-        !(code.source! as CodeBlock).fenced &&
-        lines.first.trim().isNotEmpty &&
-        lines.last.trim().isNotEmpty &&
-        !_joinsIndented(previous) &&
-        !(previous == null && _path.last is ItemNode);
-  }
-
-  /// Whether indented code after [previous] would join it: a list, or
-  /// code read as indented.
-  bool _joinsIndented(DocBlock? previous) => switch (previous) {
-    ListNode() => true,
-    CodeNode(source: CodeBlock(fenced: false)) => true,
-    _ => false,
-  };
 
   /// A divider that doesn't read as an item's marker before it.
   String _divider() =>

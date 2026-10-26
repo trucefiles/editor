@@ -45,8 +45,9 @@ sealed class EditorInput {
   const EditorInput();
 }
 
-/// An input from what the editor shows at [revision]; refused if the
-/// state moved on since.
+/// An input from what the editor shows at [revision]; dropped if the
+/// state moved on since. In Visual edit, any but [EditRaw] and
+/// [RawCaretMoved] closes an open raw block first.
 sealed class ShownInput extends EditorInput {
   const ShownInput({required this.revision});
 
@@ -75,8 +76,7 @@ final class Run extends ShownInput {
   final Command command;
 }
 
-/// The user moved the caret or the selection to [selection]; an open raw
-/// block closes.
+/// The user moved the caret or the selection to [selection].
 final class CaretMoved extends ShownInput {
   const CaretMoved(this.selection, {required super.revision});
 

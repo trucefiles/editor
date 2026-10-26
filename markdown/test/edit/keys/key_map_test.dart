@@ -238,5 +238,11 @@ void main() {
       );
       expect(_action('a', 0, 0, EditKey.link), isA<OpenLinkDialog>());
     });
+
+    test('open no link dialog over several text places', () {
+      final document = _document('ab\n\ncd');
+      final range = TextSelection(document.place(0, 1), document.place(1, 1));
+      expect(keyAction(document.view, range, EditKey.link), isA<Consumed>());
+    });
   });
 }

@@ -153,6 +153,15 @@ final class RemoveBlock extends EditCommand {
   final NodeId block;
 }
 
+/// Typing with [block], a divider, selected: [lines] (see `plainLines`)
+/// take its place as paragraphs.
+final class TypeOverBlock extends EditCommand {
+  const TypeOverBlock(this.block, this.lines);
+
+  final NodeId block;
+  final List<VisibleText> lines;
+}
+
 /// The Add item button of [list]: a new empty item, last unless [first].
 final class AddItem extends EditCommand {
   const AddItem(this.list, {this.first = false});
@@ -286,6 +295,11 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
     RemoveBlock(:final block) => removeBlock(view, block),
+    TypeOverBlock(:final block, :final lines) => typedOverBlock(
+      view,
+      block,
+      lines,
+    ),
     AddItem(:final list, :final first) => addItem(
       view,
       node(list),

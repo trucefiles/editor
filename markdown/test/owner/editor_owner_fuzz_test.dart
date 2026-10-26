@@ -116,18 +116,14 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
     MarkdownContent(:final text) => text,
     FormattedContent() => null,
   };
-  if (visual?.raw != null) {
-    return random.nextBool()
-        ? EditRaw(
-            pick(['<p>', '# raw', '']),
-            base: 0,
-            extent: 0,
-            revision: revision,
-          )
-        : CaretMoved(
-            TextSelection.caret(Place(texts.first.leaf.id, 0)),
-            revision: revision,
-          );
+  // Any input may come while a raw block is open; it closes first.
+  if (visual?.raw != null && random.nextBool()) {
+    return EditRaw(
+      pick(['<p>', '# raw', '']),
+      base: 0,
+      extent: 0,
+      revision: revision,
+    );
   }
   return switch (random.nextInt(14)) {
     0 || 1 when visual != null => Typed(
