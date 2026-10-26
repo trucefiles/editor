@@ -7,6 +7,7 @@ environment:
 workspace:
   - app
   - core
+  - markdown
   - syncthing
   - test_support
   - lints

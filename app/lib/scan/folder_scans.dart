@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../common/moment.dart';
 import '../conflicts/folder_conflicts.dart';
 import '../folders/note_folder.dart';
 import '../notes/note.dart';

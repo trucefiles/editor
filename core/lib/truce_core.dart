@@ -32,6 +32,11 @@
 /// 13. `reach`: whether a folder can be reached, from how accesses to its
 ///    files go ([FolderReach]).
 ///
+/// 14. `documents`: an open document's file, kept on the device and in
+///     the folder in step with changes elsewhere, by its owner
+///     ([FileOwner]); any document type, any sync tool.
+///
+/// `owners` holds how an owner of a domain's state runs ([Owner]).
 /// `versions` holds what conflicts and restore share: the user's choice
 /// between two versions of a file ([Resolution]) and why keeping it failed
 /// ([ResolveError]).
@@ -48,12 +53,15 @@ export 'src/changes/folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';
 export 'src/common/keyed_task_queue.dart';
+export 'src/common/moment.dart';
 export 'src/common/result.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/default_conflict_service.dart';
+export 'src/documents/file_owner/file_owner.dart';
+export 'src/documents/version.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -79,6 +87,7 @@ export 'src/markdown/view/plain_text.dart';
 export 'src/markdown/view/shown_text.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
+export 'src/owners/owner.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';

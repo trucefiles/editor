@@ -26,9 +26,11 @@
   note at once, Truce notices, shows both versions side by side and lets
   you choose. Nothing is overwritten behind your back, and backups
   of the last 7 days let you go back.
-- **Plain files you own.** Notes are ordinary Markdown files in your own
-  folders. Truce changes only what you edit, byte for byte, so they stay
-  readable by any other app.
+- **Plain files you own.** Documents are ordinary Markdown files in your
+  own folders. Truce rewrites only the block you edit (a paragraph, a
+  heading, a list item), in the document's own style where it can;
+  everything else stays exactly as it was, byte for byte, so documents
+  stay readable by any other app.
 - **Built on a trusted sync tool.** Syncthing does the syncing; Truce
   focuses on editing and conflicts. Support for other sync tools can follow.
 
@@ -93,10 +95,14 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with five packages:
+A Dart pub workspace with six packages:
 
-- `core`: files, sync-tool interfaces and conflict handling. Pure Dart, no
-  UI, nothing specific to one sync tool.
+- `core`: files, sync-tool interfaces, conflict handling and an open
+  document's file owner. Pure Dart, no UI, nothing specific to one sync
+  tool or document type.
+- `markdown`: Markdown documents, read into a doc tree, edited and
+  written back block-exact, with the editor's owner. Pure Dart, no UI;
+  uses core, which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `app`: the Flutter app (Android, Linux). Uses only `core` and, in its
   sync-tool wiring, `syncthing`.
@@ -111,6 +117,7 @@ flutter pub get --enforce-lockfile
 dart format .
 flutter analyze --fatal-infos
 (cd core && dart test)
+(cd markdown && dart test)
 (cd syncthing && dart test)
 (cd app && flutter test)
 ```

@@ -4,9 +4,14 @@ Clean layered design, KISS, Single Responsibility, standard practice.
 Clean separation between layers and responsibilities is the biggest concern.
 Prefer the simpler option when in doubt.
 
+## Language
+- Plain, simple language everywhere: code names and comments, docs, commit and PR text.
+- Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
+
 ## Architecture
 - `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
 - Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`); `core` never knows one, and in the app only the sync-tool wiring imports it.
+- Each document type's support (reading, editing, writing) lives in a pure-Dart package of its own (`markdown`); `core` never knows one.
 - Lower layers never know upper ones; they receive what they need from above.
 - Each concern lives in the layer that owns it; app-wide concerns stay in the app.
 - App follows MVVM (Flutter's official architecture guide): widgets render state and forward events; controllers / view models own UI flows; services and repositories do the I/O. Riverpod is thin glue, no codegen. Feature folders.
@@ -39,8 +44,8 @@ Prefer the simpler option when in doubt.
 - Never lose user data: if a save can't land, keep the content (e.g. as a conflict copy).
 - Never silently recreate deleted files or folders. Accepted exceptions are listed in `docs/known-limitations.md`.
 - No automatic writes into synced folders; only user actions write there, so devices can't ping-pong. Finishing a user's own write later is allowed (pending edits written at the next start, the same bytes rewritten once so the sync tool sees them): it is never caused by a remote change.
-- Byte-exact edits: change only what the user touched; never parse-and-reprint user files.
-- Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per kind of line turns that into bytes, keeping each line's own style. New editing features (headings, quotes, tables) follow the same shape.
+- Block-exact edits: blocks the user didn't touch keep their bytes; an edited block is rewritten in its own style where possible; never reprint the whole file.
+- Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per file format turns the doc tree into text, keeping each block's own style. New editing features (headings, quotes, tables) follow the same shape.
 - Concurrency: reads that follow a write must see that write.
 
 ## Quality
