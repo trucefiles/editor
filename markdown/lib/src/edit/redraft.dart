@@ -1,6 +1,6 @@
 import '../document_tree.dart';
 import '../tree/blocks.dart';
-import '../write/block/block_writer.dart';
+import '../write/block/draft_ends.dart';
 import '../write/draft.dart';
 
 /// The draft of [tree]'s document with [replaced] blocks: each block with an

@@ -5,11 +5,12 @@ import '../../lines/line.dart';
 import '../../lines/line_change.dart';
 import '../../read/block_freezer.dart';
 import '../../tree/blocks.dart';
-import '../../visible/visible_text.dart';
 import '../draft.dart';
+import 'draft_ends.dart';
 import 'frames.dart';
 import 'gaps.dart';
 import 'leaf_lines.dart';
+import 'list_markers.dart';
 
 /// The lines a draft writes, and the ids its blocks take, by kind and
 /// first line (index among the lines), outermost first.
@@ -342,8 +343,8 @@ final class _BlockWriter {
   /// and started their old blocks: then they still read as they did next
   /// to each other.
   bool _sameEdges(Draft before, Draft next, List<_Line> nextLines) {
-    final end = _lastOldLeaf(before);
-    final start = _firstOldLeaf(next);
+    final end = lastOldLeaf(before);
+    final start = firstOldLeaf(next);
     bool same(SourceLine old, Iterable<_Line> lines) => lines.any(
       (line) =>
           line.id == old.id && line.own == old.text.substring(prefixEndOf(old)),
@@ -406,7 +407,7 @@ final class _BlockWriter {
         KeptDraft(block: final TextLeaf leaf)
             when _goesOnInList(leaf, after) ||
                 !_inPlace(leaf, leaf.lines.first.id) =>
-          _draft(_restated(leaf), after: after, last: last),
+          _draft(restated(leaf), after: after, last: last),
         KeptDraft(block: final LeafBlock leaf) => _keptLeaf(
           leaf,
           last: last,
@@ -482,7 +483,7 @@ final class _BlockWriter {
   /// its first line would go on in.
   bool _joins(CodeBlock from, String code, Draft? after) =>
       !from.fenced &&
-      (_isIndentedCode(after) ||
+      (isIndentedCode(after) ||
           _reachesInto(4 + _columnsOf(code.split('\n').first), after));
 
   /// Writes [leaf] as it is, its first line without its own indent if
@@ -568,12 +569,12 @@ final class _BlockWriter {
           _ => throw ArgumentError.value(item, 'item', 'no item'),
         },
     ];
-    final usual = _markerFamily(draft, items);
+    final usual = markerFamily(draft, items, bullet: tree.style.bullet);
     // A list right after one of its kind and family would read as part of
     // it: it takes the other family.
     final family = switch (_families[after?.id]) {
       (final kind, final family) when kind == draft.kind && family == usual =>
-        _otherFamily(usual),
+        otherFamily(usual),
       _ => usual,
     };
     _families[draft.id] = (draft.kind, family);
@@ -600,19 +601,6 @@ final class _BlockWriter {
     }
   }
 
-  /// The bullet character or number delimiter of [draft]'s markers: its
-  /// first old item's of its kind, else the document's.
-  String _markerFamily(ListDraft draft, List<ItemDraft> items) {
-    final marker = [
-      ...items.map((item) => item.from?.marker),
-      ...?draft.from?.items.map((item) => item.marker),
-    ].nonNulls.where((marker) => marker.kind == draft.kind).firstOrNull;
-    return switch (draft.kind) {
-      ListKind.bullet => marker?.bullet ?? tree.style.bullet,
-      ListKind.numbered => marker?.delimiter ?? '.',
-    };
-  }
-
   /// Writes [draft], item [index] of [list], below an item written in
   /// the style [above] if any, else below a list whose last item's
   /// content starts at [reach] if any; returns its own style.
@@ -635,7 +623,7 @@ final class _BlockWriter {
     };
     final template = old != null
         ? MarkerStyle.of(old)
-        : above ?? _neighborStyle(list) ?? MarkerStyle(marker: marker);
+        : above ?? neighborStyle(list) ?? MarkerStyle(marker: marker);
     // A marker as far in as the content above would go on in that item
     // (of this list, or of the list right before it);
     // indented code first in an item starts one space after its marker.
@@ -646,7 +634,7 @@ final class _BlockWriter {
         final reach? when template.indent.length >= reach => ' ' * (reach - 1),
         _ => template.indent,
       },
-      padding: _startsWithIndentedCode(draft) ? ' ' : template.padding,
+      padding: startsWithIndentedCode(draft) ? ' ' : template.padding,
     );
     final keepsIndent =
         old != null && style.continuation.length == old.contentColumn;
@@ -686,59 +674,7 @@ final class _BlockWriter {
     _frames.removeLast();
     return style;
   }
-
-  /// The marker style of a new first item in [list]: its old first
-  /// item's.
-  MarkerStyle? _neighborStyle(ListDraft list) =>
-      switch (list.from?.items.firstOrNull) {
-        final item? => MarkerStyle.of(item),
-        null => null,
-      };
 }
-
-/// [leaf] as a draft that says its text anew.
-TextDraft _restated(TextLeaf leaf) => TextDraft(
-  leaf.id,
-  visibleTextOf(leaf.text),
-  level: leaf is HeadingBlock ? leaf.level : null,
-  from: [leaf],
-);
-
-/// Whether [item] starts with an indented code block.
-bool _startsWithIndentedCode(ItemDraft item) =>
-    switch (item.children.firstOrNull) {
-      CodeDraft(from: CodeBlock(fenced: false)) ||
-      KeptDraft(block: CodeBlock(fenced: false)) => true,
-      _ => false,
-    };
-
-/// The old leaf [draft] ends with, if it ends with one.
-LeafBlock? _lastOldLeaf(Draft draft) => switch (draft) {
-  KeptDraft(:final block) => block.leaves.lastOrNull,
-  TextDraft(:final from) => from.lastOrNull,
-  CodeDraft(:final from) => from,
-  ListDraft(:final items) => _lastOldLeaf(items.last),
-  ItemDraft(:final children) || QuoteDraft(:final children) =>
-    children.isEmpty ? null : _lastOldLeaf(children.last),
-};
-
-/// The old leaf [draft] starts with, if it starts with one.
-LeafBlock? _firstOldLeaf(Draft draft) => switch (draft) {
-  KeptDraft(:final block) => block.leaves.firstOrNull,
-  TextDraft(:final from) => from.firstOrNull,
-  CodeDraft(:final from) => from,
-  ListDraft(:final items) => _firstOldLeaf(items.first),
-  ItemDraft(:final children) || QuoteDraft(:final children) =>
-    children.isEmpty ? null : _firstOldLeaf(children.first),
-};
-
-/// Whether [draft] is an indented code block, which another right after
-/// it would join.
-bool _isIndentedCode(Draft? draft) => switch (draft) {
-  CodeDraft(from: CodeBlock(fenced: false)) ||
-  KeptDraft(block: CodeBlock(fenced: false)) => true,
-  _ => false,
-};
 
 /// How many columns [line]'s own part is indented.
 int _ownIndentOf(SourceLine line) =>
@@ -749,14 +685,6 @@ int _columnsOf(String text) => text
     .substring(0, text.length - text.trimLeft().length)
     .replaceAll('\t', '    ')
     .length;
-
-/// The marker family that starts another list next to one of [family].
-String _otherFamily(String family) => switch (family) {
-  '-' => '*',
-  '*' || '+' => '-',
-  '.' => ')',
-  _ => '.',
-};
 
 final _startsWithSpace = RegExp(r'^[ \t]');
 
@@ -771,33 +699,3 @@ List<String> _trimmedEnd(List<String> parts) {
       index < last ? part : (index == last ? part.trimRight() : ''),
   ];
 }
-
-/// [block] as a draft that keeps it and all in it.
-Draft asDraft(Block block) => switch (block) {
-  QuoteBlock() => QuoteDraft.of(block, [
-    for (final child in block.children) KeptDraft(child),
-  ]),
-  ListBlock() => ListDraft.of(block, [
-    for (final item in block.items) KeptDraft(item),
-  ]),
-  ItemBlock() => ItemDraft.of(block, [
-    for (final child in block.children) KeptDraft(child),
-  ]),
-  RootBlock() || LeafBlock() => KeptDraft(block),
-};
-
-/// The old block whose end [draft]'s end is.
-Block? oldEndOf(Draft draft) => switch (draft) {
-  KeptDraft(:final block) => block,
-  TextDraft(:final from) => from.lastOrNull,
-  CodeDraft(:final from) => from,
-  ListDraft(:final from) => from,
-  ItemDraft(:final from) => from,
-  QuoteDraft(:final from) => from,
-};
-
-/// The old block whose start [draft]'s start is.
-Block? oldStartOf(Draft draft) => switch (draft) {
-  TextDraft(:final from) => from.firstOrNull,
-  _ => oldEndOf(draft),
-};

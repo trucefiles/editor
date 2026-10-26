@@ -3,7 +3,7 @@ import 'package:collection/collection.dart';
 import '../document_tree.dart';
 import '../tree/blocks.dart';
 import '../visible/visible_text.dart';
-import 'block/block_writer.dart';
+import 'block/draft_ends.dart';
 import 'draft.dart';
 
 /// Whether [tree], read from the lines a draft wrote, holds what the

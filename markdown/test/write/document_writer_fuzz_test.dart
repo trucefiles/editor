@@ -7,6 +7,7 @@ import 'package:truce_markdown/src/tree/blocks.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 import 'package:truce_markdown/src/visible/visible_text.dart';
 import 'package:truce_markdown/src/write/block/block_writer.dart';
+import 'package:truce_markdown/src/write/block/draft_ends.dart';
 import 'package:truce_markdown/src/write/block/gaps.dart';
 import 'package:truce_markdown/src/write/document_writer.dart';
 import 'package:truce_markdown/src/write/draft.dart';
