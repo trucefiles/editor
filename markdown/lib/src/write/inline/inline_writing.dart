@@ -12,7 +12,10 @@ export 'escaping.dart' show TextLines;
 /// in [style]. Where the spliced change cannot read as [text] (old spans
 /// around it clash with it), fewer spans around it are kept, down to
 /// writing all of [old] anew with its characters' spelling, then all of
-/// [text] anew, line breaks and shortcut references too. Its lines are written after [leads], by line. `null` if [text] cannot be written at all (see [canWrite]).
+/// [text] anew, line breaks and shortcut references too. Its lines are
+/// written after [leads], by line, the first right after a [bullet]
+/// marker if given. `null` if [text] cannot be written at all (see
+/// [canWrite]).
 String? inlineSource({
   required List<Inline> old,
   required VisibleText oldText,
@@ -21,6 +24,7 @@ String? inlineSource({
   required DocumentStyle style,
   required Map<String, LinkDefinition> definitions,
   List<LineLead> leads = const [],
+  String? bullet,
 }) =>
     [
           for (final levels in [null, ..._fewerLevels])
@@ -41,6 +45,7 @@ String? inlineSource({
             lines: lines,
             definitions: definitions,
             leads: leads,
+            bullet: bullet,
           ),
         )
         .nonNulls

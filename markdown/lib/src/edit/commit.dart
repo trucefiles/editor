@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 
 import '../document_tree.dart';
+import '../read/document_reading.dart';
 import '../tree/blocks.dart';
 import '../visible/visible_text.dart';
 import '../write/block/leaf_lines.dart';
@@ -52,8 +53,11 @@ typedef Edited = ({ShownDocument document, Selection selection});
 /// or as its item's own place where it starts one; gaps moved after the
 /// block before them where theirs went; the drafts written.
 Edited commit(ShownDocument document, Edit edit) {
-  final settle = _Settle(document, edit.nextGap ?? document.nextGap);
   final draft = redrafted(document.tree, edit.replaced);
+  final settle = _Settle(
+    edit.nextGap ?? document.nextGap,
+    definitions: definitionsByLabel(draft.children.expand(_definitionsIn)),
+  );
   final settled = RootDraft(
     draft.root,
     settle.children(draft.children, container: draft.root.id, prefix: 0),
@@ -111,8 +115,8 @@ Edited commit(ShownDocument document, Edit edit) {
 
 /// [selection] on what [document] shows: past the [raw] blocks, text
 /// Markdown now reads as HTML blocks, where it is on one or on text one
-/// took in; each place within its text, which the file may have held shorter (code in
-/// an item).
+/// took in; each place within its text, which the file may have held
+/// shorter (code in an item); a place that no longer shows given up.
 Selection _shownSelection(
   ShownDocument document,
   Set<BlockId> raw,
@@ -129,14 +133,19 @@ Selection _shownSelection(
       (row) => row is BlockRow && raw.contains(row.leaf.id),
     );
   }
-  Place shown(Place place) => switch (document.rowOf(place.slot)) {
-    null => place,
+  Place? shown(Place place) => switch (document.rowOf(place.slot)) {
+    null => null,
     _ => Place(
       place.slot,
       min(place.offset, document.textOf(place.slot).length),
     ),
   };
-  return TextSelection(shown(selection.base), shown(selection.extent));
+  // A gap the edit left may be gone with its container.
+  return switch ((shown(selection.base), shown(selection.extent))) {
+    (final base?, final extent?) => TextSelection(base, extent),
+    (final place?, null) || (null, final place?) => TextSelection.caret(place),
+    (null, null) => document.firstCaret,
+  };
 }
 
 /// The ids of the text drafts in [drafts], at any depth.
@@ -150,11 +159,22 @@ Iterable<BlockId> _textIds(List<Draft> drafts) => drafts.expand(
   },
 );
 
+/// The link definitions [draft] holds, in file order.
+Iterable<LinkDefinition> _definitionsIn(Draft draft) => switch (draft) {
+  KeptDraft(:final block) => definitionsIn(block),
+  ListDraft(:final items) => items.expand(_definitionsIn),
+  ItemDraft(:final children) ||
+  QuoteDraft(:final children) => children.expand(_definitionsIn),
+  TextDraft() || CodeDraft() => const [],
+};
+
 /// One pass over a draft that makes its text writable.
 final class _Settle {
-  _Settle(this._document, this.nextGap);
+  _Settle(this.nextGap, {required this.definitions});
 
-  final ShownDocument _document;
+  /// The link definitions the document holds once the draft is written.
+  final Map<String, LinkDefinition> definitions;
+
   GapId nextGap;
 
   /// The tails of the text places written anew, by their slot.
@@ -165,8 +185,6 @@ final class _Settle {
 
   /// The gaps emptied paragraphs became, with the block they were.
   final newGaps = <(Gap, BlockId)>[];
-
-  DocumentTree get _tree => _document.tree;
 
   /// [drafts], children of [container] whose lines start after [prefix]
   /// columns of marks, settled.
@@ -183,7 +201,7 @@ final class _Settle {
           final (:text, :tail) = writableText(
             draft.text,
             shape: _shapeOf(draft, prefix),
-            definitions: _tree.definitions,
+            definitions: definitions,
           );
           if (text.isEmpty && draft.level == null) {
             final slot =

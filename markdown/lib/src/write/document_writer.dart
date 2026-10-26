@@ -39,7 +39,10 @@ DocumentTree written(DocumentTree tree, RootDraft draft) {
     ),
     planned: planned,
   );
-  assert(holdsDraft(result, draft), 'the lines written read as drafted');
+  assert(
+    holdsDraft(result, draft),
+    'the lines written read as drafted:\n${result.text}',
+  );
   return result;
 }
 

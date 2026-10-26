@@ -3,6 +3,7 @@ import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/read/inline_reader.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
 import 'package:truce_markdown/src/tree/document_style.dart';
+import 'package:truce_markdown/src/tree/inlines.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 import 'package:truce_markdown/src/visible/visible_text.dart';
 import 'package:truce_markdown/src/write/inline/inline_writing.dart';
@@ -126,6 +127,34 @@ void main() {
         'a\\\n&#32;b',
       );
       expect(_typed('[a](b)'), r'\[a\]\(b\)');
+    });
+
+    test('ends a new link\'s destination after its backslash', () {
+      final link = LinkMark(destination: r'a\', style: LinkStyle.inline);
+      expect(
+        _written(
+          'x',
+          (_) => VisibleText([TextPiece('b', Formatting(const {}, link))]),
+        ),
+        r'[b](a\\)',
+      );
+    });
+
+    test('never escapes inside an autolink', () {
+      final link = LinkMark(
+        destination: 'https://a.org',
+        style: LinkStyle.autolink,
+      );
+      expect(
+        _written(
+          'x',
+          (_) => VisibleText([
+            TextPiece('www.x.io'),
+            TextPiece('https://a.org', Formatting(const {}, link)),
+          ]),
+        ),
+        r'www\.x\.io<https://a.org>',
+      );
     });
   });
 }

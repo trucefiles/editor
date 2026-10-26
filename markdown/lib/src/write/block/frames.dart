@@ -15,17 +15,12 @@ sealed class Frame {
   /// up at the line's end.
   String partOf(SourceLine? old, {required bool blank, required bool lazy});
 
+  /// A line with its part was written.
+  void lineWritten() {}
+
   /// Its old part of [line], if the line has one.
   String? oldPartOf(SourceLine? line) => oldPartIn(line, id);
 }
-
-/// [line]'s containers' parts from [container]'s on, if it has one.
-String? oldPartsFrom(SourceLine? line, BlockId container) => switch (line
-    ?.prefix
-    .firstWhereOrNull((part) => part.container == container)) {
-  final part? => line!.text.substring(part.start, line.prefix.last.end),
-  null => null,
-};
 
 /// [container]'s old part of [line], if the line has one.
 String? oldPartIn(SourceLine? line, BlockId container) => switch (line?.prefix
@@ -80,12 +75,14 @@ final class ItemFrame extends Frame {
   /// Whether its first line is still to come.
   bool markerPending = true;
 
+  /// Its bullet, if its marker is one with nothing after it.
+  String? get bullet => _bulletOnly.firstMatch(marker)?[1];
+
   @override
   String partOf(SourceLine? old, {required bool blank, required bool lazy}) {
     final oldPart = oldPartOf(old);
     final onOldMarkerLine = old != null && old.id == oldMarkerLine;
     if (markerPending) {
-      markerPending = false;
       return onOldMarkerLine && keepsMarker
           ? oldPart!
           : (blank ? emptyMarker : marker);
@@ -100,6 +97,9 @@ final class ItemFrame extends Frame {
     }
     return oldPart == null && lazy && old != null ? '' : indent;
   }
+
+  @override
+  void lineWritten() => markerPending = false;
 }
 
 /// How an item's marker is written: [indent] before it, the [marker],
@@ -167,3 +167,5 @@ final class MarkerStyle {
 /// Whether [line] holds nothing after its containers' parts.
 bool _ownBlank(SourceLine line) =>
     line.text.substring(line.prefix.lastOrNull?.end ?? 0).trim().isEmpty;
+
+final _bulletOnly = RegExp(r'^ *([-*+]) *$');

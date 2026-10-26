@@ -406,11 +406,11 @@ Selection _kept(Selection selection, ShownDocument from, ShownDocument to) =>
         _keptPlace(extent, from, to),
       )) {
         (final base?, final extent?) => TextSelection(base, extent),
-        _ => firstCaret(to),
+        _ => to.firstCaret,
       },
       BlockSelection(:final block) when to.blockRowOf(block) != null =>
         selection,
-      BlockSelection() => firstCaret(to),
+      BlockSelection() => to.firstCaret,
     };
 
 Place? _keptPlace(Place place, ShownDocument from, ShownDocument to) {
@@ -434,10 +434,3 @@ Place? _keptPlace(Place place, ShownDocument from, ShownDocument to) {
       .map(clamped)
       .firstOrNull;
 }
-
-/// The caret at the start of [document]'s first text.
-Selection firstCaret(ShownDocument document) =>
-    switch (document.rows.whereType<TextRow>().firstOrNull) {
-      TextRow(:final slot) => TextSelection.caret(Place(slot, 0)),
-      null => document.caretPast((_) => true),
-    };

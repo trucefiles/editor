@@ -185,3 +185,56 @@ String plainTextOf(List<Inline> inlines) => inlines
       },
     )
     .join();
+
+/// [inline] as written in one line: its line ends as spaces, its line
+/// breaks as space text; the same node if it is in one line.
+Inline inOneLine(Inline inline) {
+  List<Inline> children(ContainerInline container) =>
+      container.children.map(inOneLine).toList();
+  return switch (inline) {
+    _ when !inline.source.contains(lineEnd) => inline,
+    SoftBreakInline() || HardBreakInline() => const TextInline(' '),
+    TextInline() => inline,
+    CodeInline(:final source, :final literal) => CodeInline(
+      spacedLineEnds(source),
+      literal,
+    ),
+    HtmlInline(:final source) => HtmlInline(spacedLineEnds(source)),
+    EmphasisInline(:final open, :final close) => EmphasisInline(
+      open,
+      children(inline),
+      close,
+    ),
+    StrongInline(:final open, :final close) => StrongInline(
+      open,
+      children(inline),
+      close,
+    ),
+    StrikeInline(:final open, :final close) => StrikeInline(
+      open,
+      children(inline),
+      close,
+    ),
+    LinkInline(:final open, :final close) => LinkInline(
+      open,
+      children(inline),
+      spacedLineEnds(close),
+      destination: inline.destination,
+      style: inline.style,
+      title: spacedLineEnds(inline.title),
+    ),
+    ImageInline(:final open, :final close) => ImageInline(
+      open,
+      children(inline),
+      spacedLineEnds(close),
+      destination: inline.destination,
+      title: spacedLineEnds(inline.title),
+    ),
+  };
+}
+
+/// [text] with its line ends as spaces.
+String spacedLineEnds(String text) => text.replaceAll(lineEnd, ' ');
+
+/// A line end in source text.
+final lineEnd = RegExp(r'\r\n?|\n');

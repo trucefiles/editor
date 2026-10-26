@@ -29,7 +29,7 @@ EditorOwner editorOwner(
   );
   final state = EditorState(
     document: document,
-    selection: firstCaret(document),
+    selection: document.firstCaret,
     lineage: version,
     mode: mode,
     checkedItems: checkedItems,

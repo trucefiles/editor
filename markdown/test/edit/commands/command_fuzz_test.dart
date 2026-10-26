@@ -64,8 +64,8 @@ final _seed = int.parse(Platform.environment['FUZZ_SEED'] ?? '0');
 void _expectSound(ShownDocument document, Selection selection) {
   final reread = ShownDocument(DocumentTree.read(document.tree.text));
   expect(
-    [for (final leaf in document.tree.leaves) leaf.runtimeType],
-    [for (final leaf in reread.tree.leaves) leaf.runtimeType],
+    _outline(document.tree.root),
+    _outline(reread.tree.root),
     reason: 'reads as a whole read would',
   );
   switch (selection) {
@@ -82,6 +82,15 @@ void _expectSound(ShownDocument document, Selection selection) {
       expect(document.blockRowOf(block), isNotNull, reason: '$block shows');
   }
 }
+
+/// [block]'s kind and those of its blocks, nested.
+Object _outline(Block block) => switch (block) {
+  ContainerBlock(:final children) => [
+    block.runtimeType,
+    children.map(_outline).toList(),
+  ],
+  _ => block.runtimeType,
+};
 
 const _words = ['a', 'b c', '*', ' ', 'www.x.io', '`', '# ', '- ', '1.', r'\'];
 

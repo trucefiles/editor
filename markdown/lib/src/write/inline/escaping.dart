@@ -24,8 +24,8 @@ typedef LineLead = ({String indent, bool lazy});
 const _noLead = (indent: '', lazy: false);
 
 /// The source of [tokens] with the escapes that make it read as [text]
-/// (with [definitions]), its lines written after [leads]: the one
-/// escaping rule. `null` if no escapes do,
+/// (with [definitions]), its lines written after [leads], the first
+/// right after a [bullet] marker if given: the one escaping rule. `null` if no escapes do,
 /// which only text whose spans cannot be written comes to.
 ///
 /// A character is escaped only where it would otherwise change meaning:
@@ -41,6 +41,7 @@ String? escapedSource(
   required TextLines lines,
   required Map<String, LinkDefinition> definitions,
   List<LineLead> leads = const [],
+  String? bullet,
 }) {
   bool readsRight(String source) =>
       visibleTextOf(readInlineText(source, definitions: definitions))
@@ -50,7 +51,7 @@ String? escapedSource(
     _lineEndsAsReferences(_shortcutsKept(tokens)),
   );
   for (var round = 0; round < _rounds; round++) {
-    current = _lineStartsEscaped(current, lines, leads);
+    current = _lineStartsEscaped(current, lines, leads, bullet);
     final source = sourceOf(current);
     if (readsRight(source)) return source;
     final misread = _misread(
@@ -75,6 +76,7 @@ String? escapedSource(
       }),
       lines,
       leads,
+      bullet,
     );
     final source = sourceOf(escaped);
     if (readsRight(source)) return source;
@@ -124,12 +126,13 @@ List<Token> _leadingSpaceKept(List<Token> tokens) => [
 ];
 
 /// [tokens] with the line starts escaped that would start a block after
-/// their [leads], and for a heading the end that would read as closing
+/// their [leads] (the first after [bullet]), and for a heading the end that would read as closing
 /// marks.
 List<Token> _lineStartsEscaped(
   List<Token> tokens,
   TextLines lines,
   List<LineLead> leads,
+  String? bullet,
 ) {
   final starts = _startsOf(tokens);
   final source = sourceOf(tokens);
@@ -141,6 +144,7 @@ List<Token> _lineStartsEscaped(
           source,
           lineStart,
           leads.elementAtOrNull(index) ?? _noLead,
+          bullet: bullet,
         ),
     ],
   };
@@ -153,12 +157,14 @@ List<Token> _lineStartsEscaped(
 }
 
 /// The offset in [source] of the escape that the line at [start] needs
-/// after [lead]; `null` if it needs none.
-int? _lineEscapeAt(String source, int start, LineLead lead) =>
+/// after [lead] (and [bullet] for the first); `null` if it needs none.
+int? _lineEscapeAt(String source, int start, LineLead lead, {String? bullet}) =>
     switch (lineStartEscapeAt(
       '${lead.indent}${source.substring(start, _lineEnd(source, start))}',
       first: start == 0,
       lazy: lead.lazy,
+      bullet: bullet,
+      after: start == 0 ? source.substring(_lineEnd(source, start)) : '',
       previous: start == 0
           ? null
           : source.substring(_lineStart(source, start - 1), start - 1),

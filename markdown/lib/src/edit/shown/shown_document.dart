@@ -118,6 +118,13 @@ final class ShownDocument {
   VisibleText textOf(Slot slot) =>
       writtenTextOf(slot) + (tails[slot] ?? VisibleText.empty);
 
+  /// A caret at the start of the first text, else as [caretPast] puts
+  /// it when nothing shows.
+  Selection get firstCaret => switch (rows.whereType<TextRow>().firstOrNull) {
+    TextRow(:final slot) => TextSelection.caret(Place(slot, 0)),
+    null => caretPast((_) => true),
+  };
+
   /// Where the caret goes for the rows that [gone] says no longer show:
   /// at the start of the next text after the first of them, else at the
   /// end of the text above, else in the end gap; where none shows (after

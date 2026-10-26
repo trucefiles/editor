@@ -132,24 +132,29 @@ final class _BlockWriter {
     final opens = [
       for (final frame in _frames) frame is ItemFrame && frame.markerPending,
     ];
-    final parts = <String>[];
-    // A tab spans as many columns only behind the same bytes: behind a
-    // part that is not the old one, the old parts are written anew from
-    // the first whose bytes up to the leaf's part hold a tab.
-    var moved = false;
-    var anew = false;
+    // Only the innermost part ends a blank line; others have marks after.
+    List<String> partsOn(SourceLine? line) => [
+      for (final frame in _frames)
+        frame.partOf(
+          line,
+          blank: blank && frame == _frames.last,
+          lazy: line != null && lazy,
+        ),
+    ];
+    // A tab spans as many columns only behind the same bytes, and its
+    // columns may count for several parts: once a part is not the old
+    // one, all are written anew.
+    final kept = partsOn(old);
+    final tabbed =
+        old != null && old.text.substring(0, prefixEndOf(old)).contains('\t');
+    final parts =
+        tabbed &&
+            IterableZip([kept, _frames.map((frame) => frame.oldPartOf(old))])
+                .any((pair) => pair[0] != pair[1])
+        ? partsOn(null)
+        : kept;
     for (final frame in _frames) {
-      final oldPart = frame.oldPartOf(old);
-      // Only the innermost part ends a blank line; others have marks after.
-      final ends = blank && frame == _frames.last;
-      anew =
-          anew ||
-          (moved && (oldPartsFrom(old, frame.id)?.contains('\t') ?? false));
-      final part = anew
-          ? frame.partOf(null, blank: ends, lazy: false)
-          : frame.partOf(old, blank: ends, lazy: lazy);
-      parts.add(part);
-      moved = moved || part != oldPart;
+      frame.lineWritten();
     }
     final last = parts.lastIndexWhere((part) => part.trim().isNotEmpty);
     return _quotesSpaced(
@@ -398,13 +403,18 @@ final class _BlockWriter {
   /// the [last] block of its container or not.
   void _draft(Draft draft, {required Draft? after, required bool last}) =>
       switch (draft) {
-        KeptDraft(block: final CodeBlock code) when _joins(code, after) =>
+        KeptDraft(block: final CodeBlock code)
+            when _joins(code, code.code, after) =>
           _draft(CodeDraft(code, code.code), after: after, last: last),
         KeptDraft(block: final TextLeaf leaf)
             when _goesOnInList(leaf, after) ||
                 !_inPlace(leaf, leaf.lines.first.id) =>
           _draft(_restated(leaf), after: after, last: last),
-        KeptDraft(block: final LeafBlock leaf) => _keptLeaf(leaf, last: last),
+        KeptDraft(block: final LeafBlock leaf) => _keptLeaf(
+          leaf,
+          last: last,
+          outdented: _goesOnInList(leaf, after),
+        ),
         KeptDraft(:final block) => _draft(
           asDraft(block),
           after: after,
@@ -417,15 +427,27 @@ final class _BlockWriter {
             draft,
             tree,
             inPlace: _samePlace(from),
-            indentFirst: !from.any((leaf) => _goesOnInList(leaf, after)),
+            indentFirst:
+                !from.any((leaf) => _goesOnInList(leaf, after)) &&
+                !_followsNewMarker(from.firstOrNull?.lines.first),
+            bullet: switch (_frames.lastOrNull) {
+              final ItemFrame frame when frame.markerPending => frame.bullet,
+              _ => null,
+            },
           ),
         ),
         CodeDraft(:final from) => _ownLines(
           draft.id,
           BlockKind.code,
-          _joins(from, after) || !from.fenced && !indentedCanHold(draft.code)
+          _joins(from, draft.code, after) ||
+                  !from.fenced && !indentedCanHold(draft.code)
               ? fencedCodeLines(from, draft.code)
-              : codeLines(draft, inPlace: _samePath(from), closed: !last),
+              : codeLines(
+                  draft,
+                  inPlace: _samePlace([from]),
+                  closed: !last,
+                  outdented: _followsNewMarker(from.lines.first),
+                ),
         ),
         QuoteDraft() => _quote(draft),
         ListDraft() => _list(draft, after: after),
@@ -439,30 +461,53 @@ final class _BlockWriter {
   /// Whether [leaf]'s first line, written with its own indent right
   /// [after] a list, would go on in the list's last item.
   bool _goesOnInList(LeafBlock leaf, Draft? after) =>
+      _reachesInto(_ownIndentOf(leaf.lines.first), after);
+
+  /// Whether a line indented [columns] right [after] a list would go on
+  /// in the list's last item.
+  bool _reachesInto(int columns, Draft? after) =>
       switch (_lastItemIndents[after?.id]) {
-        final width? => _ownIndentOf(leaf.lines.first) >= width,
+        final width? => columns >= width,
         null => false,
       };
 
-  /// Whether [code], written indented right [after] a block, would join
-  /// it: an indented code block, or a list whose last item it would go
-  /// on in.
-  bool _joins(CodeBlock code, Draft? after) =>
-      !code.fenced && (_isIndentedCode(after) || _goesOnInList(code, after));
+  /// Whether [line], first in its item, comes right after a marker
+  /// written anew, whose padding then sets where the item's content
+  /// starts: an indent of its own would move it past the other lines.
+  bool _followsNewMarker(SourceLine? line) => switch (_frames.lastOrNull) {
+    final ItemFrame frame when frame.markerPending =>
+      !(frame.keepsMarker && frame.oldMarkerLine == line?.id),
+    _ => false,
+  };
 
-  void _keptLeaf(LeafBlock leaf, {required bool last}) {
+  /// Whether [code] of [from], written indented right [after] a block,
+  /// would join it: an indented code block, or a list whose last item
+  /// its first line would go on in.
+  bool _joins(CodeBlock from, String code, Draft? after) =>
+      !from.fenced &&
+      (_isIndentedCode(after) ||
+          _reachesInto(4 + _columnsOf(code.split('\n').first), after));
+
+  /// Writes [leaf] as it is, its first line without its own indent if
+  /// [outdented], so that it does not go on in a list above.
+  void _keptLeaf(
+    LeafBlock leaf, {
+    required bool last,
+    required bool outdented,
+  }) {
     final opensOn = switch (leaf) {
       CodeBlock(fenced: true, closed: false) => !last,
       _ => false,
     };
-    if (opensOn || !_inPlace(leaf, leaf.lines.first.id)) {
+    if (opensOn || outdented || !_inPlace(leaf, leaf.lines.first.id)) {
       _ownLines(leaf.id, BlockKind.of(leaf), switch (leaf) {
         CodeBlock(:final code) => codeLines(
           CodeDraft(leaf, code),
-          inPlace: _samePath(leaf),
+          inPlace: _samePlace([leaf]),
           closed: !last,
+          outdented: _followsNewMarker(leaf.lines.first),
         ),
-        _ => keptLines(leaf),
+        _ => keptLines(leaf, indentFirst: !outdented),
       });
       return;
     }
@@ -541,7 +586,14 @@ final class _BlockWriter {
       old: draft.from,
       spacing: draft.loose ? Spacing.looseItems : Spacing.tightItems,
       write: (item, index) {
-        above = _item(item, draft, family, index, above: above);
+        above = _item(
+          item,
+          draft,
+          family,
+          index,
+          above: above,
+          reach: above == null ? _lastItemIndents[after?.id] : null,
+        );
       },
     );
     // An empty last item ends at the next line; others go on in lines
@@ -565,13 +617,15 @@ final class _BlockWriter {
   }
 
   /// Writes [draft], item [index] of [list], below an item written in
-  /// the style [above] if any; returns its own style.
+  /// the style [above] if any, else below a list whose last item's
+  /// content starts at [reach] if any; returns its own style.
   MarkerStyle _item(
     ItemDraft draft,
     ListDraft list,
     String family,
     int index, {
     required MarkerStyle? above,
+    int? reach,
   }) {
     final old = draft.from;
     final marker = switch (list.kind) {
@@ -585,12 +639,13 @@ final class _BlockWriter {
     final template = old != null
         ? MarkerStyle.of(old)
         : above ?? _neighborStyle(list) ?? MarkerStyle(marker: marker);
-    // A marker as far in as the content above would go on in that item;
+    // A marker as far in as the content above would go on in that item
+    // (of this list, or of the list right before it);
     // indented code first in an item starts one space after its marker.
     final style = template.withMarker(
       marker,
       checked: draft.checked,
-      indent: switch (above?.continuation.length) {
+      indent: switch (above?.continuation.length ?? reach) {
         final reach? when template.indent.length >= reach => ' ' * (reach - 1),
         _ => template.indent,
       },
@@ -688,14 +743,15 @@ bool _isIndentedCode(Draft? draft) => switch (draft) {
   _ => false,
 };
 
-/// How many columns [line]'s own part is indented, a tab counted as four.
-int _ownIndentOf(SourceLine line) {
-  final own = line.text.substring(prefixEndOf(line));
-  return own
-      .substring(0, own.length - own.trimLeft().length)
-      .replaceAll('\t', '    ')
-      .length;
-}
+/// How many columns [line]'s own part is indented.
+int _ownIndentOf(SourceLine line) =>
+    _columnsOf(line.text.substring(prefixEndOf(line)));
+
+/// How many columns [text] is indented, a tab counted as four.
+int _columnsOf(String text) => text
+    .substring(0, text.length - text.trimLeft().length)
+    .replaceAll('\t', '    ')
+    .length;
 
 /// The marker family that starts another list next to one of [family].
 String _otherFamily(String family) => switch (family) {

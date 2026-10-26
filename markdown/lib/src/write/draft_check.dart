@@ -100,7 +100,8 @@ final class _Check {
 
 /// Whether [leaf] says what [old] said, which a draft kept: the same
 /// content, which may now read otherwise (a reference whose definition
-/// moved), or text written anew that shows the same.
+/// moved), or text written anew that shows the same; its first line
+/// maybe outdented, so that it does not go on in a list above.
 bool _sameLeaf(LeafBlock old, LeafBlock leaf) =>
     old.runtimeType == leaf.runtimeType &&
     switch ((old, leaf)) {
@@ -109,7 +110,13 @@ bool _sameLeaf(LeafBlock old, LeafBlock leaf) =>
         true,
       (CodeBlock(code: final a), CodeBlock(code: final b)) => a == b,
       _ => const ListEquality<String>().equals(
-        [for (final line in old.lines) line.content],
-        [for (final line in leaf.lines) line.content],
+        _contentOf(old.lines),
+        _contentOf(leaf.lines),
       ),
     };
+
+/// The content of [lines], the first one's indent left out.
+List<String> _contentOf(List<SourceLine> lines) => [
+  for (final (index, line) in lines.indexed)
+    index == 0 ? line.content.trimLeft() : line.content,
+];

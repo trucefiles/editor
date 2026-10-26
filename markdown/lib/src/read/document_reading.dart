@@ -51,7 +51,7 @@ DocumentReading readDocument(List<Line> lines, {int nextBlockId = 0}) {
     lines,
     lineIndex: (id) => indexes[id]!,
   );
-  final definitions = _byLabel(definitionsRead(root));
+  final definitions = definitionsByLabel(definitionsRead(root));
   return (
     root: freezeBlocks(
       root,
@@ -126,7 +126,7 @@ DocumentReading rereadDocument(
   if (!replaced && read.isEmpty) {
     return (root: frozen, definitions: old.definitions, nextBlockId: ids.next);
   }
-  final definitions = _byLabel(definitionsIn(frozen));
+  final definitions = definitionsByLabel(definitionsIn(frozen));
   if (_sameDefinitions(definitions, old.definitions)) {
     return (root: frozen, definitions: definitions, nextBlockId: ids.next);
   }
@@ -149,7 +149,7 @@ DocumentReading _readAnew(
     lines,
     lineIndex: (id) => indexes[id]!,
   );
-  final definitions = _byLabel(definitionsRead(root));
+  final definitions = definitionsByLabel(definitionsRead(root));
   BlockId newId(BlockKind kind, LineId firstLine) {
     if (plan.take(kind, firstLine) case final id?) return id;
     final earlier = _earlierBlock(
@@ -313,7 +313,9 @@ Iterable<LinkDefinition> definitionsIn(Block block) => switch (block) {
 };
 
 /// [definitions] by normalized label; the first of a label counts.
-Map<String, LinkDefinition> _byLabel(Iterable<LinkDefinition> definitions) {
+Map<String, LinkDefinition> definitionsByLabel(
+  Iterable<LinkDefinition> definitions,
+) {
   final byLabel = <String, LinkDefinition>{};
   for (final definition in definitions) {
     byLabel.putIfAbsent(normalizeLabel(definition.label), () => definition);

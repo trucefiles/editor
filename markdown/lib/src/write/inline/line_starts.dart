@@ -10,26 +10,38 @@ import '../../read/syntax/table_rows.dart';
 
 /// The offset in [line], a line of a paragraph's text, of the character
 /// to escape so it does not start a block; `null` if it starts none.
-/// A [first] line must start no block at all; a later one only none that
-/// ends the paragraph: what interrupts a paragraph, and unless [lazy] a
-/// setext underline or a table's delimiter row (under [previous], the
-/// line before, if known).
+/// A [first] line must start no block at all (nor a link definition
+/// with the lines [after] it), nor a thematic break with the [bullet]
+/// marker right before it, if any; a later one only none
+/// that ends the paragraph: what interrupts a paragraph, and unless
+/// [lazy] a setext underline or a table's delimiter row (under
+/// [previous], the line before, if known).
 int? lineStartEscapeAt(
   String line, {
   required bool first,
   bool lazy = false,
   String? previous,
+  String? bullet,
+  String after = '',
 }) =>
-    _blockStartAt(line, first: first) ??
+    _blockStartAt(line, first: first, after: after) ??
+    (first && bullet != null && _breaksWith(bullet, line)
+        ? _indentOf(line)
+        : null) ??
     (!first && !lazy && _takenByParagraph(line, previous: previous)
         ? _indentOf(line)
         : null);
 
+/// Whether [line] after a [bullet] marker reads as a thematic break.
+bool _breaksWith(String bullet, String line) =>
+    thematicBreak.matchAsPrefix('$bullet ${line.trimLeft()}') != null;
+
 int _indentOf(String line) => line.length - line.trimLeft().length;
 
 /// The offset in [line] of the start of a block it starts, for a [first]
-/// line any block, else one that interrupts a paragraph; `null` if none.
-int? _blockStartAt(String line, {required bool first}) {
+/// line any block (with the lines [after] it), else one that interrupts
+/// a paragraph; `null` if none.
+int? _blockStartAt(String line, {required bool first, String after = ''}) {
   final indent = _indentOf(line);
   if (indent > 3) return null;
   final rest = line.substring(indent);
@@ -53,7 +65,9 @@ int? _blockStartAt(String line, {required bool first}) {
       when first || (int.parse(marker[1]!) == 1 && contentAfter(marker.end))) {
     return indent + marker[1]!.length;
   }
-  if (first && rest.startsWith('[') && readLinkDefinition(rest, 0) != null) {
+  if (first &&
+      rest.startsWith('[') &&
+      readLinkDefinition('$rest$after', 0) != null) {
     return indent;
   }
   return null;

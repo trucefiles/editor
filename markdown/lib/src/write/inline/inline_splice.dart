@@ -319,7 +319,7 @@ final class _Region {
     return _write(
       units,
       const {},
-      inAutolink: context.link?.style == LinkStyle.extendedAutolink,
+      inAutolink: _isAutolink(context.link?.style),
     );
   }
 
@@ -456,11 +456,11 @@ final class _Region {
         final children = _write(
           run,
           inner,
-          inAutolink: link.style == LinkStyle.extendedAutolink,
+          inAutolink: _isAutolink(link.style),
         );
         final marks = linkMarks(
           read: link.read,
-          textSource: sourceOf(children),
+          sameText: _sameSource(children, link.read),
           destination: link.destination,
           title: link.title,
           style: link.style,
@@ -586,3 +586,17 @@ List<_Placed> _spansIn(Inline node, int start) => switch (node) {
   ],
   _ => const [],
 };
+
+/// Whether a link of [style] is written as its text, where no escape
+/// can go.
+bool _isAutolink(LinkStyle? style) =>
+    style == LinkStyle.autolink || style == LinkStyle.extendedAutolink;
+
+/// Whether [tokens] write [link]'s text as it was read: its source, with
+/// no character put in anew that escaping may still change.
+bool _sameSource(List<Token> tokens, LinkInline? link) =>
+    link != null &&
+    !tokens.any(
+      (token) => token is CharToken && token.changed && token.escapable,
+    ) &&
+    sourceOf(tokens) == link.children.map((child) => child.source).join();

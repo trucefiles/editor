@@ -56,7 +56,7 @@ final class CharToken extends Token {
 
   final bool escaped;
 
-  /// Whether it is part of a bare link's text, which is never escaped.
+  /// Whether it is part of an autolink's text, which is never escaped.
   final bool inAutolink;
 
   @override
@@ -73,7 +73,7 @@ final class CharToken extends Token {
 }
 
 /// The tokens that write [inline] as it was read: plain text as
-/// untouched characters, all else fixed. A bare link's text stays as
+/// untouched characters, all else fixed. An autolink's text stays as
 /// written.
 Iterable<Token> tokensOf(Inline inline, {bool inAutolink = false}) =>
     switch (inline) {
@@ -82,7 +82,7 @@ Iterable<Token> tokensOf(Inline inline, {bool inAutolink = false}) =>
           CharToken(char, changed: false, inAutolink: inAutolink),
       ],
       LinkInline(
-        style: LinkStyle.extendedAutolink,
+        style: LinkStyle.extendedAutolink || LinkStyle.autolink,
         :final open,
         :final children,
         :final close,

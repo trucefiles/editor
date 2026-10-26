@@ -2,7 +2,6 @@
 /// delimiters, code spans, links. Each says what reads back as the span.
 library;
 
-import '../../read/syntax/characters.dart';
 import '../../read/syntax/delimiter_runs.dart';
 import '../../tree/inlines.dart';
 import '../../visible/formatting.dart';
@@ -80,14 +79,15 @@ String codeSpanSource(String code, {int? ticks}) {
 
 final _backtickRuns = RegExp('`+');
 
-/// The marks of a link whose text is now written as [textSource]: those
-/// of the link it was [read] as where they still fit, else an inline
-/// link to [destination] with [title]. A bare link is its text alone.
+/// The marks of a link whose text is written as it was [read] if
+/// [sameText]: those of the link it was read as where they still fit,
+/// else an inline link to [destination] with [title]. A bare link is its
+/// text alone.
 /// A [standalone] shortcut reference is written collapsed (`[a][]`), so
 /// no bracket after it can make it another link.
 Marks linkMarks({
   required LinkInline? read,
-  required String textSource,
+  required bool sameText,
   required String destination,
   required String title,
   required LinkStyle style,
@@ -95,23 +95,18 @@ Marks linkMarks({
 }) {
   if (style == LinkStyle.extendedAutolink) return (open: '', close: '');
   // An autolink's text is its destination (see `withAngleAutolinks`).
-  if (style == LinkStyle.autolink && read == null) {
-    return (open: '<', close: '>');
-  }
+  if (style == LinkStyle.autolink) return (open: '<', close: '>');
   if (read != null) {
     final oldText = read.children.map((child) => child.source).join();
-    final sameText = oldText == textSource;
     switch (read.style) {
       case LinkStyle.inline || LinkStyle.extendedAutolink:
         return (open: read.open, close: read.close);
-      case LinkStyle.autolink when sameText:
-        return (open: read.open, close: read.close);
       case LinkStyle.reference when standalone && read.close == ']':
         return (open: read.open, close: '][]');
+      // A shortcut or collapsed reference's text is its label: once it
+      // changed, the old label follows it.
       case LinkStyle.reference
-          when sameText ||
-              (read.close != ']' && read.close != '][]') ||
-              normalizeLabel(oldText) == normalizeLabel(textSource):
+          when sameText || (read.close != ']' && read.close != '][]'):
         return (open: read.open, close: read.close);
       case LinkStyle.reference:
         return (open: read.open, close: '][$oldText]');
@@ -149,10 +144,10 @@ String titleSource(String title) {
   return ' "${escaped.replaceAll('"', r'\"')}"';
 }
 
-/// A backslash before punctuation and an `&` would read as escapes and
-/// references.
+/// A backslash before punctuation, or at the end (before the closing
+/// mark), and an `&` would read as escapes and references.
 final _escapeNeeded = RegExp(
-  r'''\\(?=[!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])|&''',
+  r'''\\(?=[!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~]|$)|&''',
 );
 
 final _plainDestination = RegExp(r'^[^\x00-\x20\x7f<>]+$');

@@ -6,6 +6,7 @@ import '../../document_tree.dart';
 import '../../read/syntax/block_starts.dart';
 import '../../read/syntax/characters.dart';
 import '../../tree/blocks.dart';
+import '../../tree/inlines.dart';
 import '../../visible/visible_text.dart';
 import '../draft.dart';
 import '../inline/inline_writing.dart';
@@ -23,10 +24,18 @@ bool isLazy(SourceLine line, LeafBlock leaf) =>
 /// Where [line]'s containers' parts end.
 int prefixEndOf(SourceLine line) => line.prefix.lastOrNull?.end ?? 0;
 
-/// The lines of [leaf] as they are.
-List<OwnLine> keptLines(LeafBlock leaf) => [
-  for (final line in leaf.lines)
-    (old: line, own: line.text.substring(prefixEndOf(line)), newParts: false),
+/// The lines of [leaf] as they are, the first one's indent only if
+/// [indentFirst].
+List<OwnLine> keptLines(LeafBlock leaf, {bool indentFirst = true}) => [
+  for (final (index, line) in leaf.lines.indexed)
+    (
+      old: line,
+      own: switch (line.text.substring(prefixEndOf(line))) {
+        final own when index == 0 && !indentFirst => own.trimLeft(),
+        final own => own,
+      },
+      newParts: false,
+    ),
 ];
 
 /// Whether a heading of [level] whose text comes [from] leaves keeps
@@ -42,12 +51,14 @@ bool keepsSetext(int? level, List<TextLeaf> from) => switch ((level, from)) {
 /// it was one at level 1 or 2. Its lines rewrite its old leaves' lines
 /// in order, keeping their indents: a first line's only if [indentFirst],
 /// and its tab only [inPlace], in the same containers, where it still
-/// spans as many columns.
+/// spans as many columns. Its first line comes right after a [bullet]
+/// marker if given.
 List<OwnLine> textLines(
   TextDraft draft,
   DocumentTree tree, {
   required bool inPlace,
   bool indentFirst = true,
+  String? bullet,
 }) {
   final from = draft.from;
   final level = draft.level;
@@ -75,7 +86,11 @@ List<OwnLine> textLines(
   ];
   final source =
       inlineSource(
-        old: [for (final leaf in from) ...leaf.text.inlines],
+        old: [
+          for (final leaf in from)
+            for (final inline in leaf.text.inlines)
+              atx ? _inOneLine(inline) : inline,
+        ],
         oldText: from.fold(
           VisibleText.empty,
           (text, leaf) => text + visibleTextOf(leaf.text),
@@ -85,6 +100,7 @@ List<OwnLine> textLines(
         style: tree.style,
         definitions: tree.definitions,
         leads: leads,
+        bullet: bullet,
       ) ??
       _unwritable(draft.text);
   if (atx) {
@@ -147,6 +163,14 @@ List<OwnLine> textLines(
   ];
 }
 
+/// [inline] in one line, as an ATX heading holds it; objects as they
+/// are, which the text names by identity (the settled text has them in
+/// one line).
+Inline _inOneLine(Inline inline) => switch (inline) {
+  HtmlInline() || ImageInline() => inline,
+  _ => inOneLine(inline),
+};
+
 /// Text a command should never hand over: written plain, every
 /// punctuation character escaped, so no text is lost.
 String _unwritable(VisibleText text) {
@@ -163,11 +187,13 @@ final _tabLead = RegExp(r'^ *\t');
 
 /// The lines that write [draft]: its fences kept (grown where the code
 /// holds a line that would close them, and a closing one added where it
-/// must be [closed] and was not), unchanged code lines kept.
+/// must be [closed] and was not), unchanged code lines kept; if
+/// [outdented], fences without their indent and their code lines anew.
 List<OwnLine> codeLines(
   CodeDraft draft, {
   required bool inPlace,
   required bool closed,
+  bool outdented = false,
 }) {
   final block = draft.from;
   final olds = block.codeLines;
@@ -176,12 +202,15 @@ List<OwnLine> codeLines(
       : draft.code.split('\n');
   String oldCode(SourceLine line) => '${' ' * line.tabColumns}${line.content}';
   String oldOwn(SourceLine line) => line.text.substring(prefixEndOf(line));
-  final indent = block.fenced
-      ? RegExp(r'^ *').firstMatch(oldOwn(block.lines.first))![0]!
-      : '    ';
+  final indent = switch (block.fenced) {
+    true when outdented => '',
+    true => RegExp(r'^ *').firstMatch(oldOwn(block.lines.first))![0]!,
+    false => '    ',
+  };
   OwnLine codeLine(SourceLine? old, String line) => switch (old) {
     final old?
         when oldCode(old) == line &&
+            !(outdented && block.fenced) &&
             (inPlace || !_tabLead.hasMatch(oldOwn(old))) =>
       (old: old, own: oldOwn(old), newParts: false),
     _ => (
@@ -210,14 +239,17 @@ List<OwnLine> codeLines(
                 .length,
       )
       .maxOrNull;
-  OwnLine fenceLine(SourceLine line) => (
-    old: line,
-    newParts: false,
-    own: longest == null
-        ? oldOwn(line)
-        : oldOwn(line)
-              .replaceFirst(fence[0] * fence.length, fence[0] * (longest + 1)),
-  );
+  OwnLine fenceLine(SourceLine line) {
+    final own = outdented ? oldOwn(line).trimLeft() : oldOwn(line);
+    return (
+      old: line,
+      newParts: false,
+      own: longest == null
+          ? own
+          : own.replaceFirst(fence[0] * fence.length, fence[0] * (longest + 1)),
+    );
+  }
+
   return [
     fenceLine(block.lines.first),
     ...lines,
