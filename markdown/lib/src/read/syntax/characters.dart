@@ -36,7 +36,10 @@ String? decodeEntity(String reference) {
   if (!_entity.hasMatch(reference)) return null;
   if (reference.startsWith('&#')) return _numeric(reference);
   final decoded = html.parseFragment(reference).text;
-  return decoded == null || decoded == reference ? null : decoded;
+  // HTML5 also takes a known name's prefix (`&ampx;` as `&x;`), which
+  // leaves the name's end and the `;`; CommonMark needs the whole name.
+  final unread = reference.substring(reference.length - 2);
+  return decoded == null || decoded.endsWith(unread) ? null : decoded;
 }
 
 String _numeric(String reference) {

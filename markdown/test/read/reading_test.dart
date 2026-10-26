@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
+import 'package:truce_markdown/src/visible/visible_text.dart';
 
 import '../spec/spec_examples.dart';
 import '../support/document_corpus.dart';
@@ -71,6 +72,15 @@ void main() {
         DocumentTree.read('---\na: b\ntext').root.children.first,
         isA<RuleBlock>(),
       );
+    });
+
+    test('character references only by their whole name', () {
+      final leaf =
+          DocumentTree.read('&ampx; &copycat; &amp; &semi; &copy;')
+                  .leaves
+                  .single
+              as TextLeaf;
+      expect(visibleTextOf(leaf.text).text, '&ampx; &copycat; & ; ©');
     });
 
     test('a box at the line end as a box', () {
