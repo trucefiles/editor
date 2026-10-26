@@ -4,6 +4,10 @@ Clean layered design, KISS, Single Responsibility, standard practice.
 Clean separation between layers and responsibilities is the biggest concern.
 Prefer the simpler option when in doubt.
 
+## Language
+- Plain, simple language everywhere: code names and comments, docs, commit and PR text, and every message to the user.
+- Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
+
 ## Architecture
 - `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
 - Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`); `core` never knows one, and in the app only the sync-tool wiring imports it.
