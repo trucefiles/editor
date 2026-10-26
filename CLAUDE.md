@@ -5,7 +5,7 @@ Clean separation between layers and responsibilities is the biggest concern.
 Prefer the simpler option when in doubt.
 
 ## Language
-- Plain, simple language everywhere: code names and comments, docs, commit and PR text, and every message to the user.
+- Plain, simple language everywhere: code names and comments, docs, commit and PR text.
 - Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
 
 ## Architecture
