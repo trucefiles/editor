@@ -91,8 +91,9 @@ final class RestoreMine extends FileInput {
   const RestoreMine();
 }
 
-/// Drop the edits that could be kept nowhere; the text goes back to the
-/// file's.
+/// Drop the edits that could be kept nowhere (a failed write, a change
+/// or deletion elsewhere), while no write or pick is under way; the text
+/// goes back to the file's.
 final class Discard extends FileInput {
   const Discard();
 }
@@ -146,7 +147,7 @@ final class Changed extends WriteOutcome {
   final Seen theirs;
 }
 
-/// A file is where [Restore] would put one; it holds [there].
+/// A file is where [Create] or [Restore] would put one; it holds [there].
 final class Taken extends WriteOutcome {
   const Taken(this.there);
 
@@ -234,7 +235,7 @@ final class DropDraft extends FileEffect {
 
 /// Write [text] into the file, only over [over]; back the file up first
 /// if [backUpFirst] (a failed backup never stops the write). Answered by
-/// [Wrote].
+/// [Wrote]: [Written], [Changed], [WriteGone] or [WriteFailed].
 final class Write extends FileEffect {
   const Write(
     this.id,
@@ -250,7 +251,7 @@ final class Write extends FileEffect {
 }
 
 /// Create the new document's file holding [text], never over an existing
-/// one; answered by [Wrote].
+/// one; answered by [Wrote]: [Written], [Taken] or [WriteFailed].
 final class Create extends FileEffect {
   const Create(this.id, this.text);
 
@@ -259,7 +260,8 @@ final class Create extends FileEffect {
 }
 
 /// Write [text] as the file again where it was deleted, never over an
-/// existing one; answered by [Wrote].
+/// existing one; answered by [Wrote]: [Written], [Taken] or
+/// [WriteFailed].
 final class Restore extends FileEffect {
   const Restore(this.id, this.text);
 
@@ -302,8 +304,9 @@ final class Answer extends FileOutput {
   final bool kept;
 }
 
-/// A pick changed nothing: no backup could be made, or theirs was
-/// picked and the edits changed since.
+/// A pick changed nothing: no backup could be made, the version from
+/// elsewhere changed again, or theirs was picked and the edits changed
+/// since.
 final class PickNotKept extends FileOutput {
   const PickNotKept();
 }

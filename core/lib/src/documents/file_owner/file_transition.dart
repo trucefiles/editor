@@ -249,6 +249,9 @@ final class _Step {
         _inStep(theirs);
       case Changed(:final theirs):
         _set(status: ChangedElsewhere(theirs));
+      // A file came where the new one would go: the user picks.
+      case Taken(:final there) when work.expected == null:
+        _set(status: ChangedElsewhere(there));
       case Taken(:final there):
         _cameBack(there);
       case WriteGone():
@@ -256,6 +259,7 @@ final class _Step {
       case WriteFailed():
         _set(status: const SaveFailed());
     }
+    _takeMove();
     if (work.securing != null) return _continueSecure();
     if (work.wanted) _save();
   }
@@ -300,6 +304,12 @@ final class _Step {
     switch (status) {
       case DeletedElsewhere():
         _cameBack(latest);
+      case ChangedElsewhere()
+          when work.editsOver == null &&
+              (latest.version == expected.version ||
+                  latest.text == expected.text):
+        _work(work.copyWith(expected: latest));
+        _editingAgain();
       case _ when latest.version == expected.version:
         break;
       case _ when latest.text == expected.text:
@@ -324,14 +334,20 @@ final class _Step {
       _settle(const InStep());
       _replaced(latest);
     } else if (latest.version == expected.version) {
-      _set(status: const Editing(EditPhase.typing));
-      if (work.keptRev == state.rev) {
-        _waitOnDevice();
-      } else {
-        _restartKeep();
-      }
+      _editingAgain();
     } else {
       _set(status: ChangedElsewhere(latest));
+    }
+  }
+
+  /// The file is the one the edits were made over again: they wait to be
+  /// written as before.
+  void _editingAgain() {
+    _set(status: const Editing(EditPhase.typing));
+    if (work.keptRev == state.rev) {
+      _waitOnDevice();
+    } else {
+      _restartKeep();
     }
   }
 
@@ -355,7 +371,25 @@ final class _Step {
   }
 
   void _moved(Seen copy) {
-    if (work.expected != null) _work(work.copyWith(expected: copy));
+    if (work.expected == null) return;
+    // A write under way answers for the file before the move.
+    _work(
+      work.writing == null
+          ? work.copyWith(expected: copy)
+          : work.copyWith(moved: copy),
+    );
+  }
+
+  /// The copy a move left while a write was under way, now that it ended:
+  /// what writes go over, and written again where it lacks the edits.
+  void _takeMove() {
+    final copy = work.moved;
+    if (copy == null) return;
+    _work(work.copyWith(moved: null, expected: copy));
+    if (status is InStep && copy.text != state.text) {
+      _set(status: const Editing(EditPhase.typing));
+      _work(work.copyWith(wanted: true));
+    }
   }
 
   // Picks.
@@ -400,12 +434,19 @@ final class _Step {
           outputs.add(Picked(theirs.text, version: theirs.version));
           _settle(const InStep());
       }
+    } else {
+      // Their version changed again, or the conflict is gone.
+      outputs.add(const PickNotKept());
     }
     if (work.securing != null) _continueSecure();
   }
 
   void _discard() {
-    if (_done) return;
+    final keptNowhere =
+        status is SaveFailed ||
+        status is ChangedElsewhere ||
+        status is DeletedElsewhere;
+    if (!keptNowhere || work.writing != null || work.pick != null) return;
     final expected = work.expected;
     _work(work.copyWith(offered: [?expected]));
     _set(text: expected?.text ?? '');
@@ -492,6 +533,7 @@ final class _Step {
     final writing = work.writing;
     if (writing == null || writing.id != id) return;
     _work(work.copyWith(writing: null));
+    _takeMove();
     if (ok) {
       _settle(const KeptAsConflict());
     } else {

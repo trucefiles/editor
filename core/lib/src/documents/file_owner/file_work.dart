@@ -42,6 +42,7 @@ final class FileWork {
     this.pick,
     this.wanted = false,
     this.securing,
+    this.moved,
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -89,6 +90,9 @@ final class FileWork {
 
   final Securing? securing;
 
+  /// The copy a move left while a write was under way.
+  final Seen? moved;
+
   FileWork copyWith({
     Object? expected = _same,
     Object? offered = _same,
@@ -105,6 +109,7 @@ final class FileWork {
     Object? pick = _same,
     Object? wanted = _same,
     Object? securing = _same,
+    Object? moved = _same,
   }) => FileWork(
     expected: identical(expected, _same) ? this.expected : expected as Seen?,
     offered: identical(offered, _same) ? this.offered : offered as List<Seen>,
@@ -133,6 +138,7 @@ final class FileWork {
     securing: identical(securing, _same)
         ? this.securing
         : securing as Securing?,
+    moved: identical(moved, _same) ? this.moved : moved as Seen?,
   );
 }
 

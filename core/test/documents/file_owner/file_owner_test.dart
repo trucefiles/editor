@@ -93,6 +93,17 @@ void main() {
       expect(run.all<DropDraft>(), hasLength(1));
     });
 
+    test('a move during a write goes on with the copy, written again', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..send(const SaveNow())
+        ..send(const Moved(copy))
+        ..wrote(const Written(Seen('ab', _v2)));
+      final write = run.last<Write>();
+      expect((write.text, write.over), ('ab', copy));
+    });
+
     test('writes edits made during a write after it, without a backup', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)
@@ -220,6 +231,16 @@ void main() {
       expect(run.last<Write>().text, 'ab');
     });
 
+    test('a file changed back to the version edited is written again', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..found(const Seen('x', _v2))
+        ..found(const Seen('a', _v1));
+      expect(run.status, isA<Editing>());
+      run.fire(_timing.keep);
+      expect(run.last<KeepDraft>().text, 'ab');
+    });
+
     test('an unknown scan changes nothing', () {
       final run = _Run.opened('a')
         ..send(Observed(const Unknown(), startedAt: Moment.now()));
@@ -297,12 +318,30 @@ void main() {
       expect(run.status, isA<ChangedElsewhere>());
     });
 
+    test('change nothing once their version changed again', () {
+      final run = changed()
+        ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1))
+        ..found(const Seen('y', _v3));
+      backedUp(run);
+      expect(run.all<PickNotKept>(), hasLength(1));
+      expect((run.status as ChangedElsewhere).theirs.version, _v3);
+    });
+
     test('without a backup change nothing', () {
       final run = changed()
         ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1));
       backedUp(run, ok: false);
       expect(run.all<PickNotKept>(), hasLength(1));
       expect(run.status, isA<ChangedElsewhere>());
+    });
+
+    test('discard does nothing while the edits can still be written', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..send(const SaveNow())
+        ..send(const Discard());
+      expect(run.owner.state.text, 'ab');
+      expect(run.all<Picked>(), isEmpty);
     });
 
     test('discard takes the file\'s text', () {
@@ -448,6 +487,18 @@ void main() {
       expect(run.last<Answer>().kept, isTrue);
       run.edit('ab', 2, lineage: null);
       expect(run.status, isA<Editing>());
+    });
+
+    test('a file in its place leads to a pick', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..send(const SaveNow())
+        ..wrote(const Taken(Seen('x', _v1)));
+      expect((run.status as ChangedElsewhere).theirs.text, 'x');
+      run.send(const Pick(PickChoice.mine, seen: _v1, rev: 1));
+      run.send(BackedUp(run.last<BackUpBoth>().id, ok: true));
+      final write = run.last<Write>();
+      expect((write.text, write.over.version), ('a', _v1));
     });
 
     test('kept on the device when it cannot be created', () {
