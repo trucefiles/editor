@@ -219,6 +219,16 @@ void main() {
       expect(run.sent, 'a\n\n- b');
     });
 
+    test('switching to Read sends the edits, so they are what shows', () {
+      final run = _Run('a');
+      run.type('x');
+      expect(run.edits, isEmpty);
+
+      run.owner.send(const SetMode(EditMode.read));
+
+      expect(run.sent, 'xa');
+    });
+
     test('takes over Visual edit\'s text, and gives it back read anew', () {
       final run = _Run('a\n\nb')
         ..caret(1, 1)

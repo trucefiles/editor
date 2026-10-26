@@ -1,29 +1,27 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart';
 
-import '../note_nodes.dart';
-import 'item_actions.dart';
-import 'leaf_component.dart';
+import '../library/library_nodes.dart';
+import '../row_looks.dart';
+import '../visual_actions.dart';
+import 'row_component.dart';
 
-/// Builds a [LeafComponent] for each text node: its text inside the
-/// frames it shows in (see [framesKey]). With [actions], the rows of
-/// items offer them.
-class LeafBuilder implements ComponentBuilder {
-  const LeafBuilder({this.actions});
+/// Builds a [RowComponent] for each row with text: its text inside the
+/// frames its look shows it in; the rows of items offer [actions].
+class RowBuilder implements ComponentBuilder {
+  const RowBuilder(this.actions);
 
-  final ItemActions? actions;
+  final VisualActions actions;
 
   @override
-  LeafViewModel? createViewModel(Document document, DocumentNode node) {
+  RowViewModel? createViewModel(Document document, DocumentNode node) {
     if (node is! ParagraphNode) return null;
-    final text = node.text.toPlainText();
-    return LeafViewModel(
+    return RowViewModel(
       nodeId: node.id,
-      frames: framesIn(node),
+      look: lookOf(node),
       text: node.text,
-      textDirection: getParagraphDirection(text),
+      textDirection: getParagraphDirection(node.text.toPlainText()),
       textStyleBuilder: noStyleBuilder,
       selectionColor: const Color(0x00000000),
     );
@@ -34,22 +32,21 @@ class LeafBuilder implements ComponentBuilder {
     SingleColumnDocumentComponentContext componentContext,
     SingleColumnLayoutComponentViewModel componentViewModel,
   ) => switch (componentViewModel) {
-    final LeafViewModel leaf => LeafComponent(
+    final RowViewModel row => RowComponent(
       key: componentContext.componentKey,
-      viewModel: leaf,
+      viewModel: row,
       actions: actions,
     ),
     _ => null,
   };
 }
 
-/// The view model of a [LeafComponent]: its text and the [frames] it
-/// shows inside, outermost first.
-class LeafViewModel extends SingleColumnLayoutComponentViewModel
+/// The view model of a [RowComponent]: its text and [look].
+class RowViewModel extends SingleColumnLayoutComponentViewModel
     with TextComponentViewModel {
-  LeafViewModel({
+  RowViewModel({
     required super.nodeId,
-    required this.frames,
+    required this.look,
     required this.text,
     required this.textStyleBuilder,
     required this.selectionColor,
@@ -57,7 +54,17 @@ class LeafViewModel extends SingleColumnLayoutComponentViewModel
     this.textDirection = TextDirection.ltr,
   }) : super(createdAt: null);
 
-  final List<Frame> frames;
+  /// A [TextLook] or [RawTextLook].
+  final RowLook look;
+
+  /// The blocks the row is in, outermost first.
+  List<Frame> get frames => switch (look) {
+    TextLook(:final frames) || RawTextLook(:final frames) => frames,
+    _ => const [],
+  };
+
+  /// The item the row's text is right in, if any.
+  ItemFrame? get item => frames.whereType<ItemFrame>().lastOrNull;
 
   @override
   AttributedText text;
@@ -81,27 +88,24 @@ class LeafViewModel extends SingleColumnLayoutComponentViewModel
   bool highlightWhenEmpty = false;
 
   @override
-  LeafViewModel copy() => internalCopy(
-    LeafViewModel(
+  RowViewModel copy() => internalCopy(
+    RowViewModel(
       nodeId: nodeId,
-      frames: frames,
+      look: look,
       text: text,
       textStyleBuilder: textStyleBuilder,
       selectionColor: selectionColor,
     ),
-  ) as LeafViewModel;
+  ) as RowViewModel;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       super == other &&
-          other is LeafViewModel &&
+          other is RowViewModel &&
           textViewModelEquals(other) &&
-          _frames.equals(other.frames, frames);
+          other.look == look;
 
   @override
-  int get hashCode =>
-      super.hashCode ^ textViewModelHashCode ^ _frames.hash(frames);
+  int get hashCode => super.hashCode ^ textViewModelHashCode ^ look.hashCode;
 }
-
-const _frames = ListEquality<Frame>();

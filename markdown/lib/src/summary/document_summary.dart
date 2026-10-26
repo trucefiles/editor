@@ -157,9 +157,7 @@ String _textOf(DocLeaf leaf) => switch (leaf) {
 String _plain(VisibleText text) => text.pieces
     .map(
       (piece) => switch (piece) {
-        ObjectPiece(inline: final ImageInline image) => plainTextOf(
-          image.children,
-        ),
+        ObjectPiece(inline: final ImageInline image) => image.description,
         ObjectPiece() => '',
         SoftBreakPiece() => '\n',
         _ => piece.shown,

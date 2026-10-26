@@ -68,6 +68,18 @@ final class DocumentTree implements EarlierReading {
     for (final line in lines) ...[line.text, line.ending],
   ].join();
 
+  /// The text after its front matter, for readers that don't know front
+  /// matter; the whole text if it has none.
+  late final String textAfterFrontMatter = switch (root.children.firstOrNull) {
+    final FrontMatterBlock front => [
+      for (final line in lines.skip(front.lines.length)) ...[
+        line.text,
+        line.ending,
+      ],
+    ].join(),
+    _ => text,
+  };
+
   /// The ending most of its lines have, for lines it gets.
   late final String lineEnding = dominantEnding(
     lines.map((line) => line.ending),

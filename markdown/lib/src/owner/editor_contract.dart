@@ -144,6 +144,8 @@ final class EditText extends ShownInput {
   final String text;
 }
 
+/// The document shows in [mode]; for Read, the text is sent first, so
+/// the file owner's text is what shows.
 final class SetMode extends EditorInput {
   const SetMode(this.mode);
 

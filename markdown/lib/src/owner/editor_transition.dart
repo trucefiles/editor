@@ -304,8 +304,11 @@ final class _Step {
         _show(state.content, mode: mode);
         _reload(text);
         work = work.copyWith(left: null);
+        if (mode == EditMode.read) _send();
       case (FormattedContent(:final selection), _):
         _show(_closedRaw(selection), mode: mode);
+        // Read shows the text as sent.
+        if (mode == EditMode.read) _send();
       case (MarkdownContent(), _):
         break;
     }

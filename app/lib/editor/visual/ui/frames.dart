@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../../note_metrics.dart';
 import '../../ui/list_marker.dart';
+import '../row_looks.dart';
 
 /// [child] inside [frames], outermost first, spaced by [metrics]: a bar
 /// beside it per quote, indented under the items it is in, as far as the
@@ -23,7 +23,7 @@ Widget framed(
         padding: EdgeInsets.only(left: metrics.levelIndent),
         child: child,
       ),
-      ItemFrame(showsMarker: true) => row(frame, child),
+      ItemFrame(starts: true) => row(frame, child),
       ItemFrame() => Padding(
         padding: EdgeInsets.only(
           left: metrics.handleWidth + metrics.markerWidth,
@@ -44,13 +44,8 @@ class MarkerView extends StatelessWidget {
   final VoidCallback? onToggle;
 
   @override
-  Widget build(BuildContext context) => ListMarker(
-    item.kind,
-    checked: item.checked,
-    number: item.number ?? 1,
-    style: style,
-    onToggle: onToggle,
-  );
+  Widget build(BuildContext context) =>
+      ListMarker(item.marker, style: style, onToggle: onToggle);
 }
 
 /// [child] in a quote: a bar on its left, so it stands apart from the

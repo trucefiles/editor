@@ -52,9 +52,7 @@ final class EditorGate extends ChangeNotifier {
     if (_waiting.isEmpty) _tappedAt = _owner.state.revision;
     if (!_waiting.remove(item)) _waiting.add(item);
     _timer?.cancel();
-    _timer = _waiting.isEmpty
-        ? null
-        : Timer(checkDelay, () => _change(_flush));
+    _timer = _waiting.isEmpty ? null : Timer(checkDelay, () => _change(_flush));
   });
 
   /// An input not from the user (the file owner's message, a save timer):

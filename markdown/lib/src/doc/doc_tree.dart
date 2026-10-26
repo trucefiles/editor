@@ -27,6 +27,13 @@ final class DocTree {
   /// The first id no node has.
   final int nextId;
 
+  /// Whether it shows nothing: no block, or one empty paragraph.
+  late final bool isEmpty = switch (root.children) {
+    [] => true,
+    [ParagraphNode(:final text)] => text.isEmpty,
+    _ => false,
+  };
+
   /// Ids for new nodes of an edit of this tree.
   FreshIds get freshIds => FreshIds(nextId);
 
