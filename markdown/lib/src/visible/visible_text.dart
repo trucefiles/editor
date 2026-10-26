@@ -32,10 +32,20 @@ sealed class VisiblePiece {
         (SoftBreakPiece(), SoftBreakPiece()) => true,
         (HardBreakPiece(), HardBreakPiece()) => true,
         (ObjectPiece(:final inline), ObjectPiece(inline: final otherInline)) =>
-          inline.source == otherInline.source,
+          _looksAlike(inline, otherInline),
         _ => false,
       };
 }
+
+/// Whether two objects show the same: an image the same picture and
+/// description however it is spelled, raw HTML the same source.
+bool _looksAlike(Inline a, Inline b) => switch ((a, b)) {
+  (final ImageInline a, final ImageInline b) =>
+    a.destination == b.destination &&
+        a.title == b.title &&
+        plainTextOf(a.children) == plainTextOf(b.children),
+  _ => a.source == b.source,
+};
 
 /// Text, as it reads: no marks, no escapes.
 final class TextPiece extends VisiblePiece {

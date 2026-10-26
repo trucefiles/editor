@@ -639,16 +639,13 @@ final class _InlineReader {
     return (destination: definition.destination, title: definition.title);
   }
 
-  bool _readAutolink() {
-    final rest = _text.substring(_pos, _end);
-    if (_emailAutolink.matchAsPrefix(rest) case final match?) {
-      return _addAutolink(match[0]!.length, 'mailto:${match[1]}');
-    }
-    if (_uriAutolink.matchAsPrefix(rest) case final match?) {
-      return _addAutolink(match[0]!.length, match[1]!);
-    }
-    return false;
-  }
+  bool _readAutolink() => switch (readAutolink(_text, _pos)) {
+    (:final value, :final end) when end <= _end => _addAutolink(
+      end - _pos,
+      value,
+    ),
+    _ => false,
+  };
 
   bool _addAutolink(int length, String destination) {
     final start = _pos;
@@ -696,12 +693,6 @@ final _labelAt = RegExp(r'\[(?:[^\\\[\]]|\\.){0,1000}\]', dotAll: true);
 final _main = RegExp(r'[^\n`\[\]\\!<&*_~]+');
 final _entityHere = RegExp(
   r'&(?:#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[A-Za-z][A-Za-z0-9]{1,31});',
-);
-final _emailAutolink = RegExp(
-  r"<([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>",
-);
-final _uriAutolink = RegExp(
-  r'<([A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*)>',
 );
 final _htmlTag = RegExp(
   '(?:$htmlOpenTag|$htmlClosingTag|<!-->|<!--->|<!--[\\s\\S]*?-->|'

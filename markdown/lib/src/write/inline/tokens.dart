@@ -26,6 +26,19 @@ final class FixedToken extends Token {
   String toString() => 'Fixed($source)';
 }
 
+/// A shortcut reference (`![a]`) written as it is, unless a bracket or
+/// parenthesis follows: then collapsed (`![a][]`), so that it stays
+/// itself.
+final class ShortcutToken extends Token {
+  const ShortcutToken(this.source);
+
+  @override
+  final String source;
+
+  @override
+  String toString() => 'Shortcut($source)';
+}
+
 /// One literal character of text, written as itself unless [escaped].
 final class CharToken extends Token {
   const CharToken(

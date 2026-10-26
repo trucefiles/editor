@@ -532,10 +532,13 @@ final class _Region {
             inAutolink: inAutolink,
           ),
           final FixedToken token => token,
+          ShortcutToken() ||
           null => CharToken(unit.char, changed: true, inAutolink: inAutolink),
         },
         SoftBreakPiece(:final read) => FixedToken(read?.source ?? '\n'),
         HardBreakPiece(:final read) => FixedToken(read?.source ?? '\\\n'),
+        ObjectPiece(inline: final ImageInline image) when image.close == ']' =>
+          ShortcutToken(image.source),
         ObjectPiece(:final inline) => FixedToken(inline.source),
       };
 

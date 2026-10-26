@@ -94,6 +94,10 @@ Marks linkMarks({
   bool standalone = false,
 }) {
   if (style == LinkStyle.extendedAutolink) return (open: '', close: '');
+  // An autolink's text is its destination (see `withAngleAutolinks`).
+  if (style == LinkStyle.autolink && read == null) {
+    return (open: '<', close: '>');
+  }
   if (read != null) {
     final oldText = read.children.map((child) => child.source).join();
     final sameText = oldText == textSource;

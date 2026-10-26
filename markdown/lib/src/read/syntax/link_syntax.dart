@@ -6,6 +6,33 @@ library;
 import '../../tree/blocks.dart';
 import 'characters.dart';
 
+/// The autolink (`<...>`, a URI or an email address) at [start] of
+/// [text]: its destination.
+Read<String>? readAutolink(String text, int start) {
+  if (_emailAutolink.matchAsPrefix(text, start) case final match?) {
+    return (value: 'mailto:${match[1]}', end: match.end);
+  }
+  if (_uriAutolink.matchAsPrefix(text, start) case final match?) {
+    return (value: match[1]!, end: match.end);
+  }
+  return null;
+}
+
+/// The destination of an autolink whose text is [text]; `null` if no
+/// autolink shows it.
+String? autolinkDestination(String text) =>
+    switch (readAutolink('<$text>', 0)) {
+      (:final value, :final end) when end == text.length + 2 => value,
+      _ => null,
+    };
+
+final _emailAutolink = RegExp(
+  r"<([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>",
+);
+final _uriAutolink = RegExp(
+  r'<([A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*)>',
+);
+
 /// A value read from text, and the index right after it.
 typedef Read<T> = ({T value, int end});
 

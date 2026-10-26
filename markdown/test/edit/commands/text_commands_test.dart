@@ -6,6 +6,7 @@ import 'package:truce_markdown/src/edit/shown/rows.dart';
 import 'package:truce_markdown/src/edit/shown/selection.dart';
 import 'package:truce_markdown/src/edit/shown/shown_document.dart';
 import 'package:truce_markdown/src/edit/shown/slot.dart';
+import 'package:truce_markdown/src/edit/shown/typing_style.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 
@@ -182,6 +183,46 @@ void main() {
       ),
     );
     expect(edited.document.tree.text, '**hello** you');
+  });
+
+  test('typing in an autolink changes where it leads', () {
+    String typed(String text, int at, String insert) {
+      final document = _document(text);
+      final place = Place(_slot(document, 0), at);
+      return run(
+        document,
+        InsertText(place, insert, typingStyleAt(document, place)),
+      ).document.tree.text;
+    }
+
+    expect(
+      typed('see <https://a.org/x> now', 12, 'y'),
+      'see <https://ya.org/x> now',
+    );
+    expect(typed('<me@a.org>', 2, 'y'), '<mey@a.org>');
+    expect(typed('<https://a.org>', 8, ' '), 'https:// a.org');
+  });
+
+  test('a line ending a reference showed stays a reference', () {
+    final document = _document('foo&#10;bar');
+    final slot = _slot(document, 0);
+    final styled = run(
+      document,
+      ToggleStyle(
+        TextSelection(Place(slot, 0), Place(slot, 3)),
+        TextFormat.strong,
+      ),
+    ).document.tree.text;
+    expect(styled, '**foo**&#10;bar');
+  });
+
+  test('a shortcut image stays one with a link after it', () {
+    final document = _document('![foo]\n\n[foo]: /x');
+    final linked = run(
+      document,
+      SetLink(TextSelection.caret(Place(_slot(document, 0), 1)), '', 'u'),
+    ).document.tree.text;
+    expect(linked, '![foo][][u](u)\n\n[foo]: /x');
   });
 
   test('typing a web address makes it a link', () {

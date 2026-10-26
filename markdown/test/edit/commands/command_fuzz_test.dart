@@ -21,8 +21,8 @@ import '../../support/document_corpus.dart';
 void main() {
   final documents = [
     ...documentCorpus,
-    for (final example in specExamples('gfm-0.29-extensions.txt'))
-      example.markdown,
+    for (final spec in ['commonmark-0.31.2.txt', 'gfm-0.29-extensions.txt'])
+      for (final example in specExamples(spec)) example.markdown,
   ];
 
   test('random user actions keep the document and the selection sound', () {

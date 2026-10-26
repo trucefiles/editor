@@ -46,7 +46,9 @@ String? escapedSource(
       visibleTextOf(readInlineText(source, definitions: definitions))
           .looksLike(text);
 
-  var current = _leadingSpaceKept(tokens);
+  var current = _leadingSpaceKept(
+    _lineEndsAsReferences(_shortcutsKept(tokens)),
+  );
   for (var round = 0; round < _rounds; round++) {
     current = _lineStartsEscaped(current, lines, leads);
     final source = sourceOf(current);
@@ -82,6 +84,32 @@ String? escapedSource(
 }
 
 const _rounds = 3;
+
+/// [tokens] with each shortcut reference collapsed where a bracket or
+/// parenthesis follows it, which would make it another reference or an
+/// inline link.
+List<Token> _shortcutsKept(List<Token> tokens) => [
+  for (final (index, token) in tokens.indexed)
+    switch ((token, tokens.elementAtOrNull(index + 1)?.source)) {
+      (ShortcutToken(:final source), final String next)
+          when next.startsWith('[') || next.startsWith('(') =>
+        FixedToken('$source[]'),
+      (ShortcutToken(:final source), _) => FixedToken(source),
+      _ => token,
+    },
+];
+
+/// [tokens] with a line ending character of the text (one a character
+/// reference showed) written as a character reference again, as the
+/// file's line endings break lines.
+List<Token> _lineEndsAsReferences(List<Token> tokens) => [
+  for (final token in tokens)
+    switch (token) {
+      CharToken(char: '\n') => const FixedToken('&#10;'),
+      CharToken(char: '\r') => const FixedToken('&#13;'),
+      _ => token,
+    },
+];
 
 /// [tokens] with a space or tab at a line's start, which the reader
 /// would take off, written as a character reference.

@@ -35,7 +35,8 @@ final class HeadingShape extends TextShape {
 /// What a text leaf writes of the text it [shown]s, and the [tail] it
 /// shows after that, which Markdown would drop at the leaf's end. The
 /// text reads back as written: whitespace only where Markdown keeps it,
-/// spans that delimiters can write, bare links where GitHub Flavored
+/// spans that delimiters can write, autolinks leading where their text
+/// says, bare links where GitHub Flavored
 /// Markdown reads them, edited paragraph lines wrapped. Its characters
 /// are those shown, except that a heading in one line shows its breaks
 /// as spaces.
@@ -53,7 +54,9 @@ final class HeadingShape extends TextShape {
     _ => shown,
   });
   final spans = representableSpans(
-    withoutAutolinks(spanEdgesTrimmed(softBreaksBetweenWords(text))),
+    withoutAutolinks(
+      withAngleAutolinks(spanEdgesTrimmed(softBreaksBetweenWords(text))),
+    ),
     lines: lines,
     definitions: definitions,
   );

@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../../read/syntax/extended_autolinks.dart';
+import '../../read/syntax/link_syntax.dart';
 import '../../tree/inlines.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
@@ -10,7 +11,7 @@ import '../../visible/visible_text.dart';
 /// links are links, and nothing else is a bare link. A link found where
 /// one was in [was], which shows the same characters, keeps its mark.
 VisibleText withAutolinks(VisibleText text, {VisibleText? was}) {
-  final old = _bareLinks(was ?? text);
+  final old = _linksOf(was ?? text, LinkStyle.extendedAutolink);
   final bare = withoutAutolinks(text);
   return _runs(bare)
       .expand((run) => _foundIn(bare.text, run))
@@ -36,24 +37,48 @@ VisibleText withAutolinks(VisibleText text, {VisibleText? was}) {
       });
 }
 
+/// [text] with each autolink (`<...>`) as its text reads: the text of
+/// one is its destination, so an edit of the text changes where it
+/// leads; text that no autolink shows, or that holds other formats, is
+/// plain text.
+VisibleText withAngleAutolinks(VisibleText text) =>
+    _linksOf(text, LinkStyle.autolink).fold(text, (text, link) {
+      final shown = text.slice(link.start, link.end);
+      final destination =
+          shown.pieces.map((p) => p.formatting.formats).toSet().length == 1
+          ? autolinkDestination(shown.text)
+          : null;
+      final mark = switch (destination) {
+        null => null,
+        _ when destination == link.mark.destination => link.mark,
+        _ => LinkMark(destination: destination, style: LinkStyle.autolink),
+      };
+      return text.reformatted(
+        link.start,
+        link.end,
+        (formatting) => formatting.withLink(mark),
+      );
+    });
+
 /// [text] with no bare links: their text is plain text.
-VisibleText withoutAutolinks(VisibleText text) => _bareLinks(text).fold(
-  text,
-  (text, link) => text.reformatted(
-    link.start,
-    link.end,
-    (formatting) => formatting.withLink(null),
-  ),
-);
+VisibleText withoutAutolinks(VisibleText text) =>
+    _linksOf(text, LinkStyle.extendedAutolink).fold(
+      text,
+      (text, link) => text.reformatted(
+        link.start,
+        link.end,
+        (formatting) => formatting.withLink(null),
+      ),
+    );
 
 typedef _Link = ({int start, int end, LinkMark mark});
 
-/// The bare links [text] holds, in order.
-List<_Link> _bareLinks(VisibleText text) {
+/// The links of [style] [text] holds, in order.
+List<_Link> _linksOf(VisibleText text, LinkStyle style) {
   final links = <_Link>[];
   for (final (offset, piece) in text.placedPieces) {
     final mark = piece.formatting.link;
-    if (mark == null || mark.style != LinkStyle.extendedAutolink) continue;
+    if (mark == null || mark.style != style) continue;
     final last = links.lastOrNull;
     if (last != null && identical(last.mark, mark) && last.end == offset) {
       links.last = (start: last.start, end: offset + piece.length, mark: mark);
