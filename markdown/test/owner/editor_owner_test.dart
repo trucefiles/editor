@@ -130,17 +130,19 @@ void main() {
         const FromFile(Replaced('ab\n\ncd!', version: _v2, ackRev: 0)),
       );
       expect(run.text, 'ab\n\ncd!');
-      expect(run.state.lineage, _v2);
       // Its line changed: the caret goes to the kept line before it.
       expect(run.state.selection, TextSelection.caret(Place(run.slot(0), 1)));
       expect(run.edits, isEmpty);
+      run.type('x');
+      expect(run.edits.single.lineage, _v2);
     });
 
     test('a change elsewhere after an edit not seen there is ignored', () {
       final run = _Run('ab')..type('x');
       run.owner.send(const FromFile(Replaced('z', version: _v2, ackRev: 0)));
       expect(run.text, 'xab');
-      expect(run.state.lineage, _v1);
+      run.type('y');
+      expect(run.edits.last.lineage, _v1);
     });
 
     test('a change elsewhere drops a view-only tail', () {
@@ -185,8 +187,8 @@ void main() {
     test('toggled back wait for nothing', () {
       final run = _Run('- [ ] a\n- [ ] b')
         ..toggle(0)
-        ..toggle(0);
-      expect(run.state.holds.isEmpty, isTrue);
+        ..toggle(0)
+        ..fireSettle();
       expect(run.text, '- [ ] a\n- [ ] b');
     });
 
@@ -213,9 +215,27 @@ void main() {
 
     test('choosing how they show moves none', () {
       final run = _Run('- [ ] a\n- [ ] b')..toggle(0);
-      run.owner.send(const SetCheckedItems(CheckedItems.inPlace));
-      expect(run.state.holds.isEmpty, isTrue);
+      run.owner
+        ..send(const SetCheckedItems(CheckedItems.inPlace))
+        ..send(const SetCheckedItems(CheckedItems.moveToEnd));
+      run.fireSettle();
       expect(run.text, '- [x] a\n- [ ] b');
+    });
+
+    test('"Move to end now" moves waiting ones too, once', () {
+      final run = _Run('- [ ] a\n- [x] b\n- [ ] c')..toggle(0);
+      run.runCommand(MoveToEnd(run.state.selection));
+      expect(run.text, '- [ ] c\n- [x] b\n- [x] a');
+      run.fireSettle();
+      expect(run.text, '- [ ] c\n- [x] b\n- [x] a');
+    });
+
+    test('are toggled by a box tap only, never a Toggle command', () {
+      final run = _Run('- [ ] a');
+      expect(
+        () => run.runCommand(Toggle(run.item(0), run.state.selection)),
+        throwsA(isA<AssertionError>()),
+      );
     });
 
     test('settle before the document is secured', () {
@@ -315,7 +335,8 @@ void main() {
       Observed(const Found(Seen('abc', Version(3))), startedAt: Moment.now()),
     );
     expect(editor.text, 'abc');
-    expect(editor.state.lineage, const Version(3));
     expect(file.state.text, 'abc');
+    editor.type('d');
+    expect(editor.edits.last.lineage, const Version(3));
   });
 }

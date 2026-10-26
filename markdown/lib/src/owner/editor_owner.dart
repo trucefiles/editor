@@ -7,9 +7,10 @@ import '../edit/shown/shown_document.dart';
 import 'editor_contract.dart';
 import 'editor_state.dart';
 import 'editor_transition.dart';
+import 'editor_work.dart';
 
 export 'editor_contract.dart';
-export 'editor_state.dart' show EditorState, Holds, RawRegion;
+export 'editor_state.dart' show EditorState, RawRegion;
 
 /// The owner of what one open Markdown document's editor shows (see
 /// `editor_contract.dart`).
@@ -30,9 +31,8 @@ EditorOwner editorOwner(
   final state = EditorState(
     document: document,
     selection: document.firstCaret,
-    lineage: version,
     mode: mode,
     checkedItems: checkedItems,
   );
-  return TransitionOwner(state, editorStep);
+  return TransitionOwner(state, EditorWork(lineage: version), editorStep);
 }

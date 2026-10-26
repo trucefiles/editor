@@ -17,25 +17,21 @@ FileOwner openedFileOwner(
   Seen opened, {
   FileTiming timing = const FileTiming(),
 }) => _owner(
-  FileState(
-    status: const InStep(),
-    text: opened.text,
-    rev: 0,
-    work: FileWork(expected: opened, offered: [opened]),
-  ),
+  FileState(status: const InStep(), text: opened.text, rev: 0),
+  FileWork(expected: opened, offered: [opened]),
   timing,
 );
 
 /// The file owner of a new document, which has no file yet.
 FileOwner newFileOwner({FileTiming timing = const FileTiming()}) => _owner(
-  const FileState(
-    status: Unwritten(),
-    text: '',
-    rev: 0,
-    work: FileWork(expected: null, offered: []),
-  ),
+  const FileState(status: Unwritten(), text: '', rev: 0),
+  const FileWork(expected: null, offered: []),
   timing,
 );
 
-FileOwner _owner(FileState state, FileTiming timing) =>
-    TransitionOwner(state, (state, input) => fileStep(state, input, timing));
+FileOwner _owner(FileState state, FileWork work, FileTiming timing) =>
+    TransitionOwner(
+      state,
+      work,
+      (state, work, input) => fileStep(state, work, input, timing),
+    );

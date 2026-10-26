@@ -16,17 +16,22 @@ abstract interface class Owner<In, State, Out> {
   Stream<Out> get outputs;
 }
 
-/// What handling one input gives: the owner's new state and its outputs.
-typedef Step<State, Out> = ({State state, List<Out> outputs});
+/// What handling one input gives: the owner's new state, its new work
+/// (the bookkeeping it keeps to itself) and its outputs.
+typedef Step<State, Work, Out> = ({State state, Work work, List<Out> outputs});
 
-/// An [Owner] that decides by a pure [transition].
-final class TransitionOwner<In, State, Out> implements Owner<In, State, Out> {
-  TransitionOwner(this._state, this._transition);
+/// An [Owner] that decides by a pure [transition]; only its state is
+/// public, its work stays its own.
+final class TransitionOwner<In, State, Work, Out>
+    implements Owner<In, State, Out> {
+  TransitionOwner(this._state, this._work, this._transition);
 
-  final Step<State, Out> Function(State state, In input) _transition;
+  final Step<State, Work, Out> Function(State state, Work work, In input)
+  _transition;
   final _inputs = Queue<In>();
   final _outputs = StreamController<Out>.broadcast(sync: true);
   State _state;
+  Work _work;
   bool _handling = false;
 
   @override
@@ -42,8 +47,9 @@ final class TransitionOwner<In, State, Out> implements Owner<In, State, Out> {
     _handling = true;
     try {
       while (_inputs.isNotEmpty) {
-        final step = _transition(_state, _inputs.removeFirst());
+        final step = _transition(_state, _work, _inputs.removeFirst());
         _state = step.state;
+        _work = step.work;
         step.outputs.forEach(_outputs.add);
       }
     } finally {

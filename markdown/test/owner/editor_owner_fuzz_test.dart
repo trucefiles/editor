@@ -21,9 +21,18 @@ void main() {
           checkedItems: CheckedItems.values[random.nextInt(3)],
         );
         var fileText = text;
+        var rev = 0;
+        int? timer;
         var versions = 0;
         owner.outputs.listen((output) {
-          if (output case ToFile(input: Edited(:final text))) fileText = text;
+          switch (output) {
+            case ToFile(input: Edited(:final text, rev: final edited)):
+              fileText = text;
+              rev = edited;
+            case StartSettleTimer(:final id):
+              timer = id;
+            case _:
+          }
         });
         void fromFile(String text) {
           fileText = text;
@@ -31,7 +40,7 @@ void main() {
           owner.send(
             FromFile(
               random.nextBool()
-                  ? Replaced(text, version: version, ackRev: owner.state.rev)
+                  ? Replaced(text, version: version, ackRev: rev)
                   : Picked(text, version: version),
             ),
           );
@@ -39,7 +48,7 @@ void main() {
 
         final steps = <String>[];
         for (var step = 0; step < 30; step++) {
-          final input = _randomInput(random, owner.state);
+          final input = _randomInput(random, owner.state, timer);
           steps.add('$input');
           try {
             if (input == null) {
@@ -89,7 +98,8 @@ void _expectSound(EditorState state, String fileText) {
 }
 
 /// A random input on [state]; `null` for a change from the file owner.
-EditorInput? _randomInput(Random random, EditorState state) {
+/// A random input on [state]; [timer] is the settle timer started last.
+EditorInput? _randomInput(Random random, EditorState state, int? timer) {
   final document = state.document;
   final revision = state.revision;
   final texts = [
@@ -137,7 +147,7 @@ EditorInput? _randomInput(Random random, EditorState state) {
       items[random.nextInt(items.length)],
       revision: revision,
     ),
-    6 when state.holds.timer != null => SettleTimerFired(state.holds.timer!),
+    6 when timer != null => SettleTimerFired(timer),
     7 => null,
     8 => SetMode(
       state.mode == EditMode.visual ? EditMode.markdown : EditMode.visual,

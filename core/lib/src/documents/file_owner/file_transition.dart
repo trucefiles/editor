@@ -20,25 +20,25 @@ final class FileTiming {
   final Duration publish;
 }
 
-/// The file owner's decision on [input] in [state].
-Step<FileState, FileOutput> fileStep(
+/// The file owner's decision on [input] in [state], with its [work].
+Step<FileState, FileWork, FileOutput> fileStep(
   FileState state,
+  FileWork work,
   FileInput input,
   FileTiming timing,
 ) {
-  final step = _Step(state, timing)..handle(input);
-  return (state: step.state, outputs: step.outputs);
+  final step = _Step(state, work, timing)..handle(input);
+  return (state: step.state, work: step.work, outputs: step.outputs);
 }
 
 /// One input's handling: the state as it changes and what it leads to.
 final class _Step {
-  _Step(this.state, this.timing);
+  _Step(this.state, this.work, this.timing);
 
   FileState state;
+  FileWork work;
   final FileTiming timing;
   final outputs = <FileOutput>[];
-
-  FileWork get work => state.work;
   FileStatus get status => state.status;
 
   bool get _done => status is KeptAsConflict || status is Closed;
@@ -559,7 +559,7 @@ final class _Step {
     return id;
   }
 
-  void _work(FileWork work) => state = state.copyWith(work: work);
+  void _work(FileWork next) => work = next;
 
   void _set({FileStatus? status, String? text, int? rev}) =>
       state = state.copyWith(status: status, text: text, rev: rev);

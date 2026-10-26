@@ -16,10 +16,11 @@ final class _World {
     required this.elsewhere,
     this.delayed = false,
   }) {
-    owner = isNew
-        ? newFileOwner(timing: _timing)
-        : openedFileOwner(Seen('a', _version()), timing: _timing);
-    if (!isNew) file = owner.state.work.expected;
+    if (!isNew) file = Seen('a', _version());
+    owner = switch (file) {
+      final opened? => openedFileOwner(opened, timing: _timing),
+      null => newFileOwner(timing: _timing),
+    };
     text = owner.state.text;
     lineage = file?.version;
     taken.add(text);

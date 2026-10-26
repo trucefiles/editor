@@ -2,15 +2,34 @@ import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// Counts its inputs; outputs each count.
-TransitionOwner<int, int, int> _counter() => TransitionOwner(
+TransitionOwner<int, int, (), int> _counter() => TransitionOwner(
   0,
-  (state, input) => (state: state + input, outputs: [state + input]),
+  (),
+  (state, work, input) =>
+      (state: state + input, work: work, outputs: [state + input]),
 );
 
 void main() {
   test('handles an input before send returns', () {
     final owner = _counter()..send(2);
     expect(owner.state, 2);
+  });
+
+  test('keeps its work to itself, from one input to the next', () {
+    // Shows the sum of its inputs; works with the last one.
+    final owner = TransitionOwner<int, int, int, int>(
+      0,
+      0,
+      (state, last, input) =>
+          (state: state + input, work: input, outputs: [last]),
+    );
+    final lasts = <int>[];
+    owner.outputs.listen(lasts.add);
+    owner
+      ..send(2)
+      ..send(5);
+    expect(owner.state, 7);
+    expect(lasts, [0, 2]);
   });
 
   test('outputs follow their input, after its state is set', () {

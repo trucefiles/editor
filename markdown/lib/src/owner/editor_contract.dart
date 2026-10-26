@@ -65,7 +65,9 @@ final class Typed extends ShownInput {
   final String text;
 }
 
-/// [command] from the input method, a gesture, the toolbar or a menu.
+/// [command] from the input method, a gesture, the toolbar or a menu;
+/// never a [Toggle], which takes the owner's rules as a [ToggleItem]. A
+/// [MoveToEnd] first settles the toggles that wait.
 final class Run extends ShownInput {
   const Run(this.command, {required super.revision});
 

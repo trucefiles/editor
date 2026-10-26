@@ -14,24 +14,27 @@ import '../lines/line_change.dart';
 import '../tree/blocks.dart';
 import 'editor_contract.dart';
 import 'editor_state.dart';
+import 'editor_work.dart';
 
 /// How long a toggled item waits before it moves.
 const settleDelay = Duration(milliseconds: 700);
 
-/// The editor owner's decision on [input] in [state].
-Step<EditorState, EditorOutput> editorStep(
+/// The editor owner's decision on [input] in [state], with its [work].
+Step<EditorState, EditorWork, EditorOutput> editorStep(
   EditorState state,
+  EditorWork work,
   EditorInput input,
 ) {
-  final step = _Step(state)..handle(input);
-  return (state: step.state, outputs: step.outputs);
+  final step = _Step(state, work)..handle(input);
+  return (state: step.state, work: step.work, outputs: step.outputs);
 }
 
 /// One input's handling: the state as it changes and what it leads to.
 final class _Step {
-  _Step(this.state);
+  _Step(this.state, this.work);
 
   EditorState state;
+  EditorWork work;
   final outputs = <EditorOutput>[];
 
   ShownDocument get document => state.document;
@@ -47,6 +50,12 @@ final class _Step {
         _pressed(key);
       case Typed(:final text) when _editsVisually:
         _typed(text);
+      case Run(command: Toggle()):
+        assert(false, 'a box tap is a ToggleItem');
+      case Run(command: final MoveToEnd command) when _editsVisually:
+        // "Now" moves the toggles still waiting too.
+        _settle();
+        _run(command);
       case Run(:final command) when _editsVisually:
         _run(command);
       case CaretMoved(:final selection) when state.mode == EditMode.visual:
@@ -68,8 +77,8 @@ final class _Step {
       case DragStarted(:final item):
         _setHolds(
           Holds(
-            items: {...state.holds.items}..remove(item),
-            timer: state.holds.timer,
+            items: {...work.holds.items}..remove(item),
+            timer: work.holds.timer,
           ),
         );
       case SetMode(:final mode):
@@ -83,13 +92,13 @@ final class _Step {
         _setCollapsed(list, collapsed: collapsed);
       case UndoRemoval(:final id):
         _undo(id);
-      case SettleTimerFired(:final id) when id == state.holds.timer:
-        state = state.copyWith(holds: Holds(items: state.holds.items));
+      case SettleTimerFired(:final id) when id == work.holds.timer:
+        work = work.copyWith(holds: Holds(items: work.holds.items));
         if (!_caretInHeldItem) _settle();
       case FromFile(
             message: Replaced(:final text, :final version, :final ackRev),
           )
-          when ackRev == state.rev:
+          when ackRev == work.rev:
         _takeText(text, version);
       case FromFile(message: Picked(:final text, :final version)):
         _takeText(text, version);
@@ -147,7 +156,7 @@ final class _Step {
 
   void _caretMoved(Selection selection) {
     _set(state.copyWith(selection: selection, typingStyle: null, raw: null));
-    if (state.holds.timer == null && !_caretInHeldItem) _settle();
+    if (work.holds.timer == null && !_caretInHeldItem) _settle();
   }
 
   /// [command] run on the document; a text change reaches the file owner.
@@ -164,14 +173,14 @@ final class _Step {
     if (text == before.document.tree.text) return;
     _textChanged(text);
     if (_removes(command, before.document, document)) {
-      final id = state.nextId;
-      state = state.copyWith(
+      final id = work.nextId;
+      work = work.copyWith(
         nextId: id + 1,
         undo: (
           id: id,
           before: before.document,
           selection: before.selection,
-          rev: state.rev,
+          rev: work.rev,
         ),
       );
       outputs.add(ItemsRemoved(id));
@@ -179,8 +188,8 @@ final class _Step {
   }
 
   void _textChanged(String text) {
-    state = state.copyWith(rev: state.rev + 1);
-    outputs.add(ToFile(Edited(text, rev: state.rev, lineage: state.lineage)));
+    work = work.copyWith(rev: work.rev + 1);
+    outputs.add(ToFile(Edited(text, rev: work.rev, lineage: work.lineage)));
   }
 
   /// Whether [command] removed what an undo is offered for: items by the
@@ -203,8 +212,8 @@ final class _Step {
   }
 
   void _undo(int id) {
-    final undo = state.undo;
-    if (undo == null || undo.id != id || undo.rev != state.rev) {
+    final undo = work.undo;
+    if (undo == null || undo.id != id || undo.rev != work.rev) {
       outputs.add(UndoRefused(id));
       return;
     }
@@ -212,9 +221,9 @@ final class _Step {
       state.copyWith(
         document: _withView(document.reverted(undo.before)),
         selection: undo.selection,
-        undo: null,
       ),
     );
+    work = work.copyWith(undo: null);
     _textChanged(document.tree.text);
   }
 
@@ -224,11 +233,11 @@ final class _Step {
     final checked = (document.tree.blockOf(item) as ItemBlock?)?.checked;
     _run(Toggle(item, state.selection));
     if (state.checkedItems == CheckedItems.inPlace || checked == null) return;
-    final items = {...state.holds.items};
+    final items = {...work.holds.items};
     // Toggled back: nothing waits.
     if (items.remove(item) == null) items[item] = checked;
-    final timer = state.nextId;
-    state = state.copyWith(nextId: timer + 1);
+    final timer = work.nextId;
+    work = work.copyWith(nextId: timer + 1);
     _setHolds(Holds(items: items, timer: timer));
     outputs.add(StartSettleTimer(timer, settleDelay));
   }
@@ -236,9 +245,9 @@ final class _Step {
   /// The held toggles take effect: with "Move to end", the items still
   /// checked move.
   void _settle() {
-    if (state.holds.isEmpty) return;
+    if (work.holds.isEmpty) return;
     final moved = [
-      for (final MapEntry(key: id, value: was) in state.holds.items.entries)
+      for (final MapEntry(key: id, value: was) in work.holds.items.entries)
         if (_checked(id) case final now? when now != was && now) id,
     ];
     _setHolds(const Holds());
@@ -257,13 +266,13 @@ final class _Step {
 
   bool _inHeldItem(Slot slot) => switch (document.rowOf(slot)) {
     final row? => document.rows[row].path.any(
-      (block) => state.holds.items.containsKey(block.id),
+      (block) => work.holds.items.containsKey(block.id),
     ),
     null => false,
   };
 
   void _setHolds(Holds holds) {
-    state = state.copyWith(holds: holds);
+    work = work.copyWith(holds: holds);
     _set(state.copyWith(document: _withView(document)));
   }
 
@@ -289,7 +298,7 @@ final class _Step {
       switch (state.checkedItems) {
         CheckedItems.doneSection => document.withDone(
           DoneSections(
-            held: state.holds.items.keys.toSet(),
+            held: work.holds.items.keys.toSet(),
             collapsed: document.done?.collapsed ?? const {},
           ),
         ),
@@ -367,15 +376,17 @@ final class _Step {
   void _takeText(String text, Version? version) {
     final taken = ShownDocument(document.tree.withText(text));
     final holds = {
-      for (final MapEntry(key: id, value: was) in state.holds.items.entries)
+      for (final MapEntry(key: id, value: was) in work.holds.items.entries)
         // Gone or changed there: nothing waits.
         if (_checkedIn(taken, id) case final now? when now != was) id: was,
     };
-    state = state.copyWith(
-      holds: Holds(items: holds, timer: state.holds.timer),
+    work = work.copyWith(
+      holds: Holds(items: holds, timer: work.holds.timer),
       lineage: version,
-      typingStyle: null,
       undo: null,
+    );
+    state = state.copyWith(
+      typingStyle: null,
       raw: switch (state.raw) {
         final raw?
             when taken.tree.lineOf(raw.first) != null &&
