@@ -110,6 +110,19 @@ final class DocumentTree implements EarlierReading {
     );
   }
 
+  /// [earlier]'s content, as an undo brings it back: its lines and blocks
+  /// with their ids, and this tree's next ids, so that none handed out
+  /// since is handed out again.
+  DocumentTree reverted(DocumentTree earlier) => DocumentTree._(
+    earlier.lines,
+    (
+      root: earlier.root,
+      definitions: earlier.definitions,
+      nextBlockId: _nextBlockId,
+    ),
+    _nextLineId,
+  );
+
   /// How many of the [freshBlockIds] [planned] takes.
   int _freshTaken(Map<(BlockKind, int), List<BlockId>> planned) {
     final ids = planned.values.flattened.toSet();

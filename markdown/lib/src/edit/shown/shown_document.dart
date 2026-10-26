@@ -46,6 +46,16 @@ final class ShownDocument {
     nextGap: nextGap,
   );
 
+  /// [earlier] as an undo brings it back, with this document's next ids
+  /// (see [DocumentTree.reverted]).
+  ShownDocument reverted(ShownDocument earlier) => ShownDocument(
+    tree.reverted(earlier.tree),
+    gaps: earlier.gaps,
+    tails: earlier.tails,
+    done: earlier.done,
+    nextGap: nextGap,
+  );
+
   /// Every gap that shows: [gaps], and where the last row would show no
   /// text to type a paragraph in (none, a block without text, or code)
   /// the [GapId.end] gap after the last block; none after an HTML block

@@ -204,7 +204,7 @@ final class _Step {
     }
     _set(
       state.copyWith(
-        document: _withView(undo.before),
+        document: _withView(document.reverted(undo.before)),
         selection: undo.selection,
         undo: null,
       ),

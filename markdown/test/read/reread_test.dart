@@ -75,6 +75,22 @@ void main() {
       expect(changed.freshBlockIds.first, isNot(fresh));
     });
 
+    test('reverted to an earlier tree hands out no id again', () {
+      final tree = DocumentTree.read('a');
+      final changed = tree.changed(
+        LineChange(0, 1, [(id: null, text: '# a')]),
+        planned: {
+          (BlockKind.heading, 0): [tree.freshBlockIds.first],
+        },
+      );
+      final reverted = changed.reverted(tree);
+      expect(reverted.text, 'a');
+      expect(reverted.root.children.single.id, tree.root.children.single.id);
+      expect(reverted.freshBlockIds.first, changed.freshBlockIds.first);
+      final again = reverted.changed(LineChange(1, 1, [(id: null, text: 'b')]));
+      expect(again.lines.last.id, isNot(changed.lines.single.id));
+    });
+
     test('keeps the ids of the lines it keeps', () {
       final tree = DocumentTree.read('a\nb\nc');
       final changed = tree.withText('a\nB\nc');

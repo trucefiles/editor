@@ -222,8 +222,10 @@ void main() {
       final run = _Run('- a\n- b');
       run.runCommand(DeleteItem(run.item(0)));
       final removed = run.outputs.whereType<ItemsRemoved>().single;
+      final next = run.state.document.tree.freshBlockIds.first;
       run.owner.send(UndoRemoval(removed.id));
       expect(run.text, '- a\n- b');
+      expect(run.state.document.tree.freshBlockIds.first, next);
     });
 
     test('cannot be undone after another edit', () {
