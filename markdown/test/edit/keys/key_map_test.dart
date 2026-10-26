@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
+import 'package:truce_markdown/src/edit/commit.dart';
 import 'package:truce_markdown/src/edit/keys/key_map.dart';
 import 'package:truce_markdown/src/edit/shown/rows.dart';
 import 'package:truce_markdown/src/edit/shown/selection.dart';
@@ -132,6 +133,18 @@ void main() {
         ),
         isA<JoinWithPrevious>(),
       );
+    });
+
+    test('right after Enter in a Done section joins the split back', () {
+      final done = DoneSections();
+      final text = '- [ ] c\n- [x] ab';
+      final document = _document(text, done: done);
+      Edited press(ShownDocument document, Selection at, EditKey key) =>
+          run(document, _command(keyAction(document, at, key)));
+      final split = press(document, _caret(document, 1, 1), EditKey.enter);
+      expect(split.document.tree.text, '- [ ] c\n- [x] a\n- [x] b');
+      final joined = press(split.document, split.selection, EditKey.backspace);
+      expect(joined.document.tree.text, text);
     });
 
     test('on a selected rule removes it', () {
