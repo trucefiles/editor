@@ -1,0 +1,37 @@
+name: Install Linux packages
+description: >
+  Installs Ubuntu packages and keeps the downloaded files in a cache shared by
+  all jobs, so a slow Ubuntu mirror costs time only for new versions.
+
+inputs:
+  packages:
+    description: The packages to install, separated by spaces.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Each run starts from the files the last run downloaded and saves its
+    # own. One cache for every job, so each run on main keeps all of them.
+    - name: Restore downloaded Linux packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/apt-archives
+        key: apt-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: apt-${{ runner.os }}-
+
+    - name: Install the packages
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        archives="$RUNNER_TEMP/apt-archives"
+        mkdir -p "$archives/partial"
+        sudo apt-get update
+        read -ra packages <<< "$PACKAGES"
+        sudo apt-get install --yes --no-install-recommends \
+          -o Dir::Cache::Archives="$archives" "${packages[@]}"
+        # Drops versions the mirror no longer has, so the cache stays small.
+        sudo apt-get autoclean -o Dir::Cache::Archives="$archives"
+        # apt leaves root-owned files; the cache saves as the runner user.
+        sudo chown -R "$USER" "$archives"
