@@ -41,7 +41,7 @@ void main() {
             FromFile(
               random.nextBool()
                   ? Replaced(text, version: version, ackRev: rev)
-                  : Picked(text, version: version),
+                  : Picked(text, version: version, rev: rev),
             ),
           );
         }

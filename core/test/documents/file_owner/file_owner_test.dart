@@ -32,9 +32,16 @@ final class _Run {
 
   void send(FileInput input) => owner.send(input);
 
-  /// The editor's text at [rev], on [lineage].
-  void edit(String text, int rev, {Version? lineage = _v1}) =>
-      send(Edited(text, rev: rev, lineage: lineage));
+  /// The editor's text at [rev], on [lineage], after [picks] picks (by
+  /// default all sent so far).
+  void edit(String text, int rev, {Version? lineage = _v1, int? picks}) => send(
+    Edited(
+      text,
+      rev: rev,
+      lineage: lineage,
+      picks: picks ?? all<Picked>().length,
+    ),
+  );
 
   void fire(Duration delay) => send(
     TimerFired(
@@ -349,6 +356,18 @@ void main() {
       expect(run.last<Picked>().text, 'a');
       expect(run.status, isA<InStep>());
     });
+
+    test('edits made before a discard is shown are dropped', () {
+      final run = changed()..send(const Discard());
+      final picked = run.last<Picked>();
+      // Typed on the same version before the editor took the pick.
+      run.edit('abz', picked.rev + 1, picks: 0);
+      expect(run.owner.state.text, 'a');
+      expect(run.status, isA<InStep>());
+      // The editor goes on from the pick's rev, so a change takes.
+      run.found(const Seen('a!', _v3));
+      expect(run.last<Replaced>().ackRev, picked.rev);
+    });
   });
 
   group('securing', () {
@@ -527,5 +546,16 @@ void main() {
       ..edit('ab', 1)
       ..send(const SaveNow());
     expect(run.last<Write>().over.version, _v2);
+  });
+
+  test('a copy that changed before the move is a change elsewhere', () {
+    final run = _Run.opened('a')
+      ..edit('ab', 1)
+      ..send(const Moved(Seen('x', _v2)))
+      ..send(const SaveNow());
+    // The write goes over what the edits were made on, and finds the change.
+    expect(run.last<Write>().over.version, _v1);
+    run.wrote(const Changed(Seen('x', _v2)));
+    expect(run.status, isA<ChangedElsewhere>());
   });
 }

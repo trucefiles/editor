@@ -159,10 +159,14 @@ void main() {
 
     test('a pick always shows, and later edits descend from it', () {
       final run = _Run('ab')..type('x');
-      run.owner.send(const FromFile(Picked('z', version: _v2)));
+      // The file owner never got the edit at rev 1: revs go on from 0.
+      run.owner.send(const FromFile(Picked('z', version: _v2, rev: 0)));
       expect(run.text, 'z');
       run.type('y');
-      expect(run.edits.last.lineage, _v2);
+      expect(
+        (run.edits.last.lineage, run.edits.last.rev, run.edits.last.picks),
+        (_v2, 1, 1),
+      );
     });
   });
 

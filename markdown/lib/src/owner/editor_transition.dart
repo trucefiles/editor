@@ -100,7 +100,8 @@ final class _Step {
           )
           when ackRev == work.rev:
         _takeText(text, version);
-      case FromFile(message: Picked(:final text, :final version)):
+      case FromFile(message: Picked(:final text, :final version, :final rev)):
+        work = work.copyWith(rev: rev, picks: work.picks + 1);
         _takeText(text, version);
       case SecureEditor(:final reason):
         _settle();
@@ -189,7 +190,11 @@ final class _Step {
 
   void _textChanged(String text) {
     work = work.copyWith(rev: work.rev + 1);
-    outputs.add(ToFile(Edited(text, rev: work.rev, lineage: work.lineage)));
+    outputs.add(
+      ToFile(
+        Edited(text, rev: work.rev, lineage: work.lineage, picks: work.picks),
+      ),
+    );
   }
 
   /// Whether [command] removed what an undo is offered for: items by the

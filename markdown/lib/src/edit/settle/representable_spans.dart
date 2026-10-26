@@ -88,16 +88,17 @@ Iterable<({int start, int end})> _nearEdges(
       );
 }
 
-VisibleText _lineEndsOutOfCode(VisibleText text) => [
-  for (final (index, char) in text.text.split('').indexed)
-    if ((char == '\n' || char == '\r') &&
-        text.formattingAt(index).has(TextFormat.code))
-      index,
-].fold(
-  text,
-  (text, index) => text.reformatted(
-    index,
-    index + 1,
-    (formatting) => formatting.withFormat(TextFormat.code, on: false),
-  ),
-);
+VisibleText _lineEndsOutOfCode(VisibleText text) =>
+    [
+      for (final (index, char) in text.text.split('').indexed)
+        if ((char == '\n' || char == '\r') &&
+            text.formattingAt(index).has(TextFormat.code))
+          index,
+    ].fold(
+      text,
+      (text, index) => text.reformatted(
+        index,
+        index + 1,
+        (formatting) => formatting.withFormat(TextFormat.code, on: false),
+      ),
+    );

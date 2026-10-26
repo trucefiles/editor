@@ -9,6 +9,7 @@ final class EditorWork {
   const EditorWork({
     required this.lineage,
     this.rev = 0,
+    this.picks = 0,
     this.holds = const Holds(),
     this.undo,
     this.nextId = 0,
@@ -18,8 +19,11 @@ final class EditorWork {
   /// Moves only with a change elsewhere or a pick taken.
   final Version? lineage;
 
-  /// Counts the text changes commands made.
+  /// Counts the text changes commands made, going on from a pick's.
   final int rev;
+
+  /// Counts the picks taken.
+  final int picks;
 
   /// Toggled items whose move waits for the toggle to settle.
   final Holds holds;
@@ -32,12 +36,14 @@ final class EditorWork {
   EditorWork copyWith({
     Object? lineage = _same,
     int? rev,
+    int? picks,
     Holds? holds,
     Object? undo = _same,
     int? nextId,
   }) => EditorWork(
     lineage: identical(lineage, _same) ? this.lineage : lineage as Version?,
     rev: rev ?? this.rev,
+    picks: picks ?? this.picks,
     holds: holds ?? this.holds,
     undo: identical(undo, _same) ? this.undo : undo as Removal?,
     nextId: nextId ?? this.nextId,

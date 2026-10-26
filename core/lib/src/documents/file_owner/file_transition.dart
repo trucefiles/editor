@@ -69,13 +69,12 @@ final class _Step {
   // Edits.
 
   void _edited(Edited edited) {
-    if (_done) return;
+    // Made before a pick the editor shows instead.
+    if (_done || edited.picks < work.picks) return;
     final sent = work.sent;
     final over = work.offered.indexWhere(
       (seen) => seen.version == edited.lineage,
     );
-    // Made before a pick the editor shows instead.
-    if (sent != null && over < 0) return;
     if (over >= 0) _work(work.copyWith(offered: work.offered.sublist(over)));
     if (sent != null && edited.lineage != sent.version) {
       // Made on a version the editor did not take: the user picks.
@@ -371,7 +370,9 @@ final class _Step {
   }
 
   void _moved(Seen copy) {
-    if (work.expected == null) return;
+    // A copy that differs changed before the move: writes stay over the
+    // version expected, so they find that change, as a scan does.
+    if (copy.text != work.expected?.text) return;
     // A write under way answers for the file before the move.
     _work(
       work.writing == null
@@ -431,7 +432,7 @@ final class _Step {
         case PickChoice.theirs:
           _work(work.copyWith(offered: [theirs]));
           _set(text: theirs.text);
-          outputs.add(Picked(theirs.text, version: theirs.version));
+          _picked(theirs.text, theirs.version);
           _settle(const InStep());
       }
     } else {
@@ -450,7 +451,7 @@ final class _Step {
     final expected = work.expected;
     _work(work.copyWith(offered: [?expected]));
     _set(text: expected?.text ?? '');
-    outputs.add(Picked(state.text, version: expected?.version));
+    _picked(state.text, expected?.version);
     _settle(expected == null ? const Unwritten() : const InStep());
   }
 
@@ -549,6 +550,11 @@ final class _Step {
     _work(work.copyWith(securing: null));
     outputs.add(Answer(reason, kept: kept));
     if (reason == SecureReason.close && kept) _set(status: const Closed());
+  }
+
+  void _picked(String text, Version? version) {
+    _work(work.copyWith(picks: work.picks + 1));
+    outputs.add(Picked(text, version: version, rev: state.rev));
   }
 
   // State.

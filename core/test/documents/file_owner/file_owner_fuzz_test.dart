@@ -75,6 +75,7 @@ final class _World {
   // The editor.
   late String text;
   var rev = 0;
+  var picks = 0;
   Version? lineage;
 
   Version _version() => Version(++_versions);
@@ -97,6 +98,23 @@ final class _World {
           },
           isTrue,
           reason: 'a draft\'s base is a text its edits build on',
+        );
+        expect(
+          switch (effect) {
+            Write(:final over) => versionTexts[over.version] == over.text,
+            _ => true,
+          },
+          isTrue,
+          reason: 'writes only over a version the file had',
+        );
+        expect(
+          effect is! Write ||
+              switch (owner.state.status) {
+                ChangedElsewhere() || DeletedElsewhere() => false,
+                _ => true,
+              },
+          isTrue,
+          reason: 'no write while a change elsewhere waits for a pick',
         );
         expect(
           effect is! Create || isNew,
@@ -130,9 +148,11 @@ final class _World {
         this.text = text;
         lineage = version;
         taken.add(text);
-      case Picked(:final text, :final version):
+      case Picked(:final text, :final version, rev: final picked):
         this.text = text;
         lineage = version;
+        rev = picked;
+        picks++;
         // Picked edits build on the version picked.
         taken.addAll([text, ?versionTexts[version]]);
       case _:
@@ -144,11 +164,11 @@ final class _World {
     if (toEditor.isNotEmpty && random.nextInt(3) == 0) {
       return _toEditor(toEditor.removeAt(0));
     }
-    switch (random.nextInt(12)) {
+    switch (random.nextInt(14)) {
       case 0 || 1 || 2 when !_readOnly:
         text = '$text${String.fromCharCode(98 + random.nextInt(3))}';
         rev++;
-        owner.send(Edited(text, rev: rev, lineage: lineage));
+        owner.send(Edited(text, rev: rev, lineage: lineage, picks: picks));
       case 3 when elsewhere && file != null && random.nextInt(3) == 0:
         file = Seen('${file!.text}!', _version());
         changedElsewhere = true;
@@ -180,12 +200,28 @@ final class _World {
         }
       case 11:
         owner.send(
-          Secure(random.nextBool() ? SecureReason.hide : SecureReason.exit),
+          Secure(
+            SecureReason.values[random.nextInt(SecureReason.values.length)],
+          ),
         );
+      case 12
+          when switch (owner.state.status) {
+            SaveFailed() || ChangedElsewhere() || DeletedElsewhere() => true,
+            _ => false,
+          }:
+        owner.send(const Discard());
+      case 13 when file != null && !effects.any(_writesTheFile):
+        // The app moves the file; scans follow it to its new place.
+        file = Seen(file!.text, _version());
+        scans.clear();
+        owner.send(Moved(file!));
       case _:
         break;
     }
   }
+
+  static bool _writesTheFile(FileEffect effect) =>
+      effect is Write || effect is Create || effect is Restore;
 
   /// The editor shows the document read-only once its edits are kept as
   /// a conflict copy.

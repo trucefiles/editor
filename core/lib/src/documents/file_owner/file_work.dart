@@ -31,6 +31,7 @@ final class FileWork {
     required this.offered,
     this.editsOver,
     this.nextId = 0,
+    this.picks = 0,
     this.draft,
     this.keptRev,
     this.keepTimer,
@@ -62,6 +63,10 @@ final class FileWork {
   final Seen? editsOver;
 
   final int nextId;
+
+  /// How many [Picked] were sent: an [Edited] made before the last one
+  /// names fewer.
+  final int picks;
 
   /// The draft being kept: its effect and the rev it holds.
   final ({EffectId id, int rev})? draft;
@@ -98,6 +103,7 @@ final class FileWork {
     Object? offered = _same,
     Object? editsOver = _same,
     Object? nextId = _same,
+    Object? picks = _same,
     Object? draft = _same,
     Object? keptRev = _same,
     Object? keepTimer = _same,
@@ -117,6 +123,7 @@ final class FileWork {
         ? this.editsOver
         : editsOver as Seen?,
     nextId: identical(nextId, _same) ? this.nextId : nextId as int,
+    picks: identical(picks, _same) ? this.picks : picks as int,
     draft: identical(draft, _same)
         ? this.draft
         : draft as ({EffectId id, int rev})?,

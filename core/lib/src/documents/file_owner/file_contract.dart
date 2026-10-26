@@ -26,13 +26,20 @@ sealed class FileInput {
 
 /// The editor's text after a command changed it: its [rev] counts text
 /// changes; [lineage] is the version it descends from (`null` for a new
-/// document), which moves only with a [Replaced] or [Picked] applied.
+/// document), which moves only with a [Replaced] or [Picked] applied;
+/// [picks] counts the [Picked] applied.
 final class Edited extends FileInput {
-  const Edited(this.text, {required this.rev, required this.lineage});
+  const Edited(
+    this.text, {
+    required this.rev,
+    required this.lineage,
+    required this.picks,
+  });
 
   final String text;
   final int rev;
   final Version? lineage;
+  final int picks;
 }
 
 /// The user asked to write the edits into the file now.
@@ -203,13 +210,15 @@ final class Replaced extends ToEditor {
 
 /// [text] to show, descending from [version]: the version from elsewhere
 /// the user picked, or the file's after the edits were discarded. Always
-/// shown; edits the editor made before it are dropped. (Picking the
-/// edits changes nothing the editor shows.)
+/// shown, the editor's rev going on from [rev]; edits the editor made
+/// before it are dropped. (Picking the edits changes nothing the editor
+/// shows.)
 final class Picked extends ToEditor {
-  const Picked(this.text, {required this.version});
+  const Picked(this.text, {required this.version, required this.rev});
 
   final String text;
   final Version? version;
+  final int rev;
 }
 
 /// What the app does for the owner; results come back as inputs.
