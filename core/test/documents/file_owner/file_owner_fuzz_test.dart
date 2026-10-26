@@ -26,7 +26,17 @@ final class _World {
   final bool elsewhere;
 
   late final FileOwner owner;
-  Seen? file;
+  Seen? _file;
+
+  /// Every text the file had: a change elsewhere may replace one the
+  /// owner wrote or showed after it was kept.
+  final fileTexts = <String>{};
+  Seen? get file => _file;
+  set file(Seen? seen) {
+    _file = seen;
+    if (seen != null) fileTexts.add(seen.text);
+  }
+
   String? draft;
   String? deletedText;
   final conflicts = <String>[];
@@ -225,7 +235,7 @@ void main() {
           world.close();
           final answer = world.answers.last;
           final kept = {
-            ?world.file?.text,
+            ...world.fileTexts,
             ...world.conflicts,
             ?world.draft,
             ?world.deletedText,
@@ -243,7 +253,7 @@ void main() {
           if (answer.kept && world.owner.state.status is Closed) {
             expect(
               {
-                    ?world.file?.text,
+                    ...world.fileTexts,
                     ...world.conflicts,
                     ?world.deletedText,
                   }.contains(world.text) ||

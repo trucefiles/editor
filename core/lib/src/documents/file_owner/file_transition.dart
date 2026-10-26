@@ -122,7 +122,7 @@ final class _Step {
           when state.text == work.expected?.text:
         _dropDraft();
       case Editing() || ChangedElsewhere() || DeletedElsewhere() || SaveFailed()
-          when !(work.draftKept && work.draft?.rev == state.rev):
+          when work.draft?.rev != state.rev:
         _keepDraft();
       case _:
         break;
@@ -139,14 +139,32 @@ final class _Step {
     final draft = work.draft;
     if (draft?.id != id) return;
     if (!kept) {
-      // The device cannot keep them: into the file now.
       _work(work.copyWith(draft: null));
+      if (work.securing case final securing?) {
+        _work(
+          work.copyWith(
+            securing: (
+              reason: securing.reason,
+              tried: securing.tried,
+              deviceRefused: true,
+            ),
+          ),
+        );
+        return _continueSecure();
+      }
+      // The device cannot keep them: into the file now.
       if (work.expected != null) _save();
       return;
     }
-    _work(work.copyWith(draftKept: true));
+    _work(work.copyWith(keptRev: draft!.rev));
+    _waitOnDevice();
+    if (work.securing != null) _continueSecure();
+  }
+
+  /// The draft is kept: edits it holds wait on the device to be written.
+  void _waitOnDevice() {
     if (status case Editing(phase: EditPhase.typing)
-        when draft!.rev == state.rev) {
+        when work.keptRev == state.rev) {
       _set(status: const Editing(EditPhase.onDevice));
     }
     if (status is Editing &&
@@ -159,8 +177,8 @@ final class _Step {
   }
 
   void _dropDraft() {
-    if (!work.draftKept && work.draft == null) return;
-    _work(work.copyWith(draft: null, draftKept: false));
+    if (work.keptRev == null && work.draft == null) return;
+    _work(work.copyWith(draft: null, keptRev: null));
     outputs.add(const DropDraft());
   }
 
@@ -294,7 +312,11 @@ final class _Step {
       _replaced(latest);
     } else if (latest.version == expected.version) {
       _set(status: const Editing(EditPhase.typing));
-      _restartKeep();
+      if (work.keptRev == state.rev) {
+        _waitOnDevice();
+      } else {
+        _restartKeep();
+      }
     } else {
       _set(status: ChangedElsewhere(latest));
     }
@@ -374,7 +396,11 @@ final class _Step {
   // Securing.
 
   void _secure(SecureReason reason) {
-    _work(work.copyWith(securing: (reason: reason, tried: false)));
+    _work(
+      work.copyWith(
+        securing: (reason: reason, tried: false, deviceRefused: false),
+      ),
+    );
     _continueSecure();
   }
 
@@ -390,21 +416,39 @@ final class _Step {
         _tryWrite(securing);
       case SaveFailed() when !securing.tried:
         _tryWrite(securing);
-      case SaveFailed() when work.expected == null:
-        // A new document has no file to keep a copy next to.
-        _keepDraft();
-        _answer(kept: false);
       case DeletedElsewhere() when state.text == work.expected?.text:
         _settle(const DeletedElsewhere());
         _answer(kept: true);
+      case ChangedElsewhere() || DeletedElsewhere() || SaveFailed()
+          when securing.reason != SecureReason.close && !securing.deviceRefused:
+        _keepOnDevice();
+      case SaveFailed() when work.expected == null:
+        // A new document has no file to keep a copy next to.
+        if (!securing.deviceRefused) _keepDraft();
+        _answer(kept: false);
       case ChangedElsewhere() || DeletedElsewhere() || SaveFailed():
         _keepAsConflict();
     }
   }
 
-  void _tryWrite(({SecureReason reason, bool tried}) securing) {
-    _work(work.copyWith(securing: (reason: securing.reason, tried: true)));
+  void _tryWrite(Securing securing) {
+    _work(
+      work.copyWith(
+        securing: (
+          reason: securing.reason,
+          tried: true,
+          deviceRefused: securing.deviceRefused,
+        ),
+      ),
+    );
     _save();
+  }
+
+  /// Hidden or left, not closed: the edits wait on the device for the
+  /// user to pick or write them, and editing goes on.
+  void _keepOnDevice() {
+    if (work.keptRev == state.rev) return _answer(kept: true);
+    if (work.draft?.rev != state.rev) _keepDraft();
   }
 
   void _keepAsConflict() {

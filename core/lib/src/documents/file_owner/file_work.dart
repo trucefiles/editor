@@ -14,6 +14,10 @@ typedef Writing = ({
   FileStatus before,
 });
 
+/// A [Secure] being answered: [tried] once a write was tried for it,
+/// [deviceRefused] once the device could not keep a draft for it.
+typedef Securing = ({SecureReason reason, bool tried, bool deviceRefused});
+
 /// The file owner's bookkeeping behind its status.
 final class FileWork {
   const FileWork({
@@ -21,7 +25,7 @@ final class FileWork {
     required this.sent,
     this.nextId = 0,
     this.draft,
-    this.draftKept = false,
+    this.keptRev,
     this.keepTimer,
     this.publishTimer,
     this.writing,
@@ -46,8 +50,8 @@ final class FileWork {
   /// The draft being kept: its effect and the rev it holds.
   final ({EffectId id, int rev})? draft;
 
-  /// Whether a draft is kept on the device.
-  final bool draftKept;
+  /// The rev the draft kept on the device holds; `null` while none is.
+  final int? keptRev;
 
   final EffectId? keepTimer;
   final EffectId? publishTimer;
@@ -69,15 +73,14 @@ final class FileWork {
   /// Whether a write is wanted once the one in flight ends.
   final bool wanted;
 
-  /// A [Secure] being answered; [tried] once a write was tried for it.
-  final ({SecureReason reason, bool tried})? securing;
+  final Securing? securing;
 
   FileWork copyWith({
     Object? expected = _same,
     Object? sent = _same,
     Object? nextId = _same,
     Object? draft = _same,
-    Object? draftKept = _same,
+    Object? keptRev = _same,
     Object? keepTimer = _same,
     Object? publishTimer = _same,
     Object? writing = _same,
@@ -94,7 +97,7 @@ final class FileWork {
     draft: identical(draft, _same)
         ? this.draft
         : draft as ({EffectId id, int rev})?,
-    draftKept: identical(draftKept, _same) ? this.draftKept : draftKept as bool,
+    keptRev: identical(keptRev, _same) ? this.keptRev : keptRev as int?,
     keepTimer: identical(keepTimer, _same)
         ? this.keepTimer
         : keepTimer as EffectId?,
@@ -113,7 +116,7 @@ final class FileWork {
     wanted: identical(wanted, _same) ? this.wanted : wanted as bool,
     securing: identical(securing, _same)
         ? this.securing
-        : securing as ({SecureReason reason, bool tried})?,
+        : securing as Securing?,
   );
 }
 

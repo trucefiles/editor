@@ -209,6 +209,17 @@ void main() {
       expect(run.status, isA<Editing>());
     });
 
+    test('a file back as the version edited is written when due', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..keep()
+        ..send(Observed(const Gone(), startedAt: Moment.now()))
+        ..found(const Seen('a', _v1));
+      expect((run.status as Editing).phase, EditPhase.onDevice);
+      run.fire(_timing.publish);
+      expect(run.last<Write>().text, 'ab');
+    });
+
     test('an unknown scan changes nothing', () {
       final run = _Run.opened('a')
         ..send(Observed(const Unknown(), startedAt: Moment.now()));
@@ -315,7 +326,7 @@ void main() {
       final run = _Run.opened('a')
         ..edit('ab', 1)
         ..found(const Seen('x', _v2))
-        ..send(const Secure(SecureReason.hide));
+        ..send(const Secure(SecureReason.close));
       run.send(ConflictKept(run.last<KeepAsConflict>().id, ok: false));
       expect(run.last<Answer>().kept, isFalse);
       expect(run.last<KeepDraft>().text, 'ab');
@@ -327,11 +338,61 @@ void main() {
         ..edit('ab', 1)
         ..send(const SaveNow())
         ..wrote(const WriteFailed())
-        ..send(const Secure(SecureReason.exit));
+        ..send(const Secure(SecureReason.close));
       expect(run.all<Write>(), hasLength(2));
       run.wrote(const WriteFailed());
       expect(run.last<KeepAsConflict>().text, 'ab');
     });
+
+    for (final reason in [SecureReason.hide, SecureReason.exit]) {
+      group('on ${reason.name}', () {
+        test('keeps edits that cannot go into the file on the device', () {
+          final run = _Run.opened('a')
+            ..edit('ab', 1)
+            ..found(const Seen('x', _v2))
+            ..send(Secure(reason));
+          expect(run.all<Answer>(), isEmpty);
+          run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
+          expect(run.last<Answer>().kept, isTrue);
+          expect(run.all<KeepAsConflict>(), isEmpty);
+          run.edit('abc', 2);
+          expect(run.status, isA<ChangedElsewhere>());
+          expect(run.owner.state.text, 'abc');
+        });
+
+        test('answers at once when the device holds the edits', () {
+          final run = _Run.opened('a')
+            ..edit('ab', 1)
+            ..keep()
+            ..send(Observed(const Gone(), startedAt: Moment.now()))
+            ..send(Secure(reason));
+          expect(run.last<Answer>().kept, isTrue);
+          expect(run.all<KeepDraft>(), hasLength(1));
+        });
+
+        test('tries a failed write once more, then keeps the edits on '
+            'the device', () {
+          final run = _Run.opened('a')
+            ..edit('ab', 1)
+            ..send(const SaveNow())
+            ..wrote(const WriteFailed())
+            ..send(Secure(reason))
+            ..wrote(const WriteFailed());
+          run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
+          expect(run.last<Answer>().kept, isTrue);
+          expect(run.status, isA<SaveFailed>());
+        });
+
+        test('keeps a conflict copy when the device cannot keep them', () {
+          final run = _Run.opened('a')
+            ..edit('ab', 1)
+            ..found(const Seen('x', _v2))
+            ..send(Secure(reason));
+          run.send(DraftKept(run.last<KeepDraft>().id, kept: false));
+          expect(run.last<KeepAsConflict>().text, 'ab');
+        });
+      });
+    }
 
     test('drops a deleted file\'s draft when there are no edits', () {
       final run = _Run.opened('a')
@@ -372,6 +433,16 @@ void main() {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
         ..send(const Secure(SecureReason.hide))
+        ..wrote(const WriteFailed());
+      expect(run.last<KeepDraft>().text, 'a');
+      run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
+    test('closed, it says it is only on the device', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..send(const Secure(SecureReason.close))
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
       expect(run.last<KeepDraft>().text, 'a');
