@@ -97,6 +97,24 @@ void main() {
     expect(edited.document.tree.text, ' - foob\n   - a\n   - - baz');
   });
 
+  test('a deletion that takes a tab\'s item writes the parts anew', () {
+    final edited = _run(
+      ' - foo\n   - bar\n\t - baz',
+      (d) => DeleteRange(
+        TextSelection(Place(_text(d, 0), 3), Place(_text(d, 1), 2)),
+      ),
+    );
+    expect(edited.document.tree.text, ' - foor\n   - baz');
+  });
+
+  test('a line end character leaves code', () {
+    final edited = _run(
+      'foo&#10;bar',
+      (d) => ToggleStyle(_range(d, 0, 1, 6), TextFormat.code),
+    );
+    expect(edited.document.tree.text, 'f`oo`&#10;`ba`r');
+  });
+
   test('a deletion that takes the caret\'s gap leaves it on what shows', () {
     final split = _run(
       '# x\n## a\n[foo]: /bar\n###',

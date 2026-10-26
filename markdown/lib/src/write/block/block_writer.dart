@@ -142,15 +142,12 @@ final class _BlockWriter {
         ),
     ];
     // A tab spans as many columns only behind the same bytes, and its
-    // columns may count for several parts: once a part is not the old
-    // one, all are written anew.
+    // columns may count for several parts: once the parts are not the
+    // old ones, all are written anew.
     final kept = partsOn(old);
-    final tabbed =
-        old != null && old.text.substring(0, prefixEndOf(old)).contains('\t');
+    final oldPrefix = old?.text.substring(0, prefixEndOf(old));
     final parts =
-        tabbed &&
-            IterableZip([kept, _frames.map((frame) => frame.oldPartOf(old))])
-                .any((pair) => pair[0] != pair[1])
+        (oldPrefix?.contains('\t') ?? false) && kept.join() != oldPrefix
         ? partsOn(null)
         : kept;
     for (final frame in _frames) {

@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../../tree/blocks.dart';
+import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
 import '../../write/inline/inline_writing.dart';
 import 'whitespace.dart';
@@ -8,11 +9,14 @@ import 'whitespace.dart';
 /// [text] with each delimited span that no delimiters can write (e.g.
 /// bold on `"bar"` inside `foo"bar"baz`) snapped to the nearest edges
 /// that can, or dropped where none can: the one check is [canWrite].
+/// A line end character (one a reference showed) is never code, which
+/// no code span can hold.
 VisibleText representableSpans(
-  VisibleText text, {
+  VisibleText shown, {
   TextLines lines = TextLines.paragraph,
   Map<String, LinkDefinition> definitions = const {},
 }) {
+  final text = _lineEndsOutOfCode(shown);
   bool writes(VisibleText text) =>
       canWrite(text, lines: lines, definitions: definitions);
   if (writes(text)) return text;
@@ -83,3 +87,17 @@ Iterable<({int start, int end})> _nearEdges(
             word(edges.end - 1),
       );
 }
+
+VisibleText _lineEndsOutOfCode(VisibleText text) => [
+  for (final (index, char) in text.text.split('').indexed)
+    if ((char == '\n' || char == '\r') &&
+        text.formattingAt(index).has(TextFormat.code))
+      index,
+].fold(
+  text,
+  (text, index) => text.reformatted(
+    index,
+    index + 1,
+    (formatting) => formatting.withFormat(TextFormat.code, on: false),
+  ),
+);
