@@ -4,7 +4,6 @@ import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../commands/command.dart';
-import '../commands/indent.dart';
 import '../commands/text_commands.dart';
 import '../selection.dart';
 

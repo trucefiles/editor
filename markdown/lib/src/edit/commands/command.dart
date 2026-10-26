@@ -22,6 +22,8 @@ import 'split_block.dart';
 import 'styles.dart';
 import 'text_commands.dart';
 
+export 'heading.dart' show nextHeadingLevel;
+export 'indent.dart' show canIndent, canOutdent;
 export 'set_frame.dart' show FrameKind;
 
 /// One user action, with the places it acts on.
@@ -151,15 +153,6 @@ final class RemoveBlock extends EditCommand {
   const RemoveBlock(this.block);
 
   final NodeId block;
-}
-
-/// Typing with [block], a divider, selected: [lines] (see `plainLines`)
-/// take its place as paragraphs.
-final class TypeOverBlock extends EditCommand {
-  const TypeOverBlock(this.block, this.lines);
-
-  final NodeId block;
-  final List<VisibleText> lines;
 }
 
 /// The Add item button of [list]: a new empty item, last unless [first].
@@ -295,11 +288,6 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
     RemoveBlock(:final block) => removeBlock(view, block),
-    TypeOverBlock(:final block, :final lines) => typedOverBlock(
-      view,
-      block,
-      lines,
-    ),
     AddItem(:final list, :final first) => addItem(
       view,
       node(list),

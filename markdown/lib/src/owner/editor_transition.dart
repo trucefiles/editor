@@ -124,14 +124,14 @@ final class _Step {
         _visual(input, closed);
       case (Pressed(:final key), null):
         _pressed(shown, key);
-      case (Typed(:final text), null):
-        _typed(shown, text);
+      case (Typed(:final text, :final over), null):
+        _typed(shown, text, over);
       case (Run(command: Toggle()), null):
         assert(false, 'a box tap is a ToggleItem');
       case (Run(:final command), null):
         _run(command);
-      case (ToggleItem(:final item), null):
-        _toggle(item);
+      case (ToggleItems(:final items), null):
+        _toggle(items);
       case (OpenRawBlock(:final block, :final atEnd), null):
         _openRaw(shown, block, atEnd: atEnd);
       case _:
@@ -166,30 +166,20 @@ final class _Step {
     }
   }
 
-  void _typed(FormattedContent shown, String text) {
-    switch (shown.selection) {
-      case final TextSelection range:
-        final at = range.extent;
-        final style = shown.typingStyle ?? typingStyleAt(shown.view.doc, at);
-        _run(switch (range) {
-          _ when range.isCaret => InsertText(at, text, style),
-          _ when range.base.leaf == range.extent.leaf => ReplaceText(
-            range,
-            text,
-          ),
-          _ => Paste(range, plainLines(text, style)),
-        });
-      case BlockSelection(:final block)
-          when shown.view.doc.nodeOf(block) is DividerNode:
-        _run(
-          TypeOverBlock(
-            block,
-            plainLines(text, shown.typingStyle ?? Formatting.plain),
-          ),
-        );
-      case BlockSelection():
-        break;
-    }
+  /// [text] typed over [range]: the typing style holds only at the
+  /// shown caret.
+  void _typed(FormattedContent shown, String text, TextSelection range) {
+    final at = range.extent;
+    final style =
+        (range == shown.selection ? shown.typingStyle : null) ??
+        typingStyleAt(shown.view.doc, at);
+    final lines = plainLines(text, style);
+    _run(switch (range) {
+      _ when lines.length > 1 => Paste(range, lines),
+      _ when range.isCaret => InsertText(at, text, style),
+      _ when range.base.leaf == range.extent.leaf => ReplaceText(range, text),
+      _ => Paste(range, lines),
+    });
   }
 
   /// [command] run on what shows; a changed document is a text change.
@@ -255,14 +245,20 @@ final class _Step {
     }
   }
 
-  /// [item]'s box toggled; with "Move to end", once checked, it moves.
-  void _toggle(NodeId item) {
-    final shown = state.content as FormattedContent;
-    _run(Toggle(item, shown.selection));
+  /// [items]' boxes toggled in order; with "Move to end", the checked
+  /// ones move together.
+  void _toggle(List<NodeId> items) {
+    for (final item in items) {
+      _run(Toggle(item, (state.content as FormattedContent).selection));
+    }
     if (state.checkedItems != CheckedItems.moveToEnd) return;
     final after = state.content as FormattedContent;
-    if (after.view.doc.nodeOf(item) case ItemNode(checked: true)) {
-      _run(MoveToEnd(after.selection, items: [item]));
+    final checked = [
+      for (final item in items)
+        if (after.view.doc.nodeOf(item) case ItemNode(checked: true)) item,
+    ];
+    if (checked.isNotEmpty) {
+      _run(MoveToEnd(after.selection, items: checked));
     }
   }
 

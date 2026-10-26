@@ -125,9 +125,14 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
       revision: revision,
     );
   }
+  final over = switch (visual?.selection) {
+    final TextSelection selection => selection,
+    _ => null,
+  };
   return switch (random.nextInt(14)) {
-    0 || 1 when visual != null => Typed(
-      pick(['a', ' ', 'b c', '*']),
+    0 || 1 when over != null => Typed(
+      pick(['a', ' ', 'b c', '*', 'x\ny']),
+      over: over,
       revision: revision,
     ),
     2 ||
@@ -141,7 +146,10 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
         revision: revision,
       );
     }(),
-    5 when items.isNotEmpty => ToggleItem(pick(items), revision: revision),
+    5 when items.isNotEmpty => ToggleItems([
+      pick(items),
+      if (random.nextBool()) pick(items),
+    ], revision: revision),
     6 when timers.isNotEmpty => SaveTimerFired(pick(timers)),
     7 => null,
     8 => SetMode(pick(EditMode.values)),

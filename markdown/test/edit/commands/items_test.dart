@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/commands/heading.dart';
 
 import '../support/shown.dart';
 

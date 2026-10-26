@@ -61,15 +61,19 @@ final class Pressed extends ShownInput {
   final EditKey key;
 }
 
-/// [text] typed over the selection, in the typing style.
+/// [text] typed over [over], the selection the input method or the
+/// keyboard typed at: at the shown caret in the typing style, elsewhere
+/// in the style of the text there. Text with line breaks goes in as a
+/// paste of plain lines.
 final class Typed extends ShownInput {
-  const Typed(this.text, {required super.revision});
+  const Typed(this.text, {required this.over, required super.revision});
 
   final String text;
+  final TextSelection over;
 }
 
 /// [command] from the input method, a gesture, the toolbar or a menu;
-/// never a [Toggle], which is a [ToggleItem].
+/// never a [Toggle], which is a [ToggleItems].
 final class Run extends ShownInput {
   const Run(this.command, {required super.revision});
 
@@ -83,12 +87,14 @@ final class CaretMoved extends ShownInput {
   final Selection selection;
 }
 
-/// [item]'s box toggled, once the view's wait after a tap ended (see the
-/// plan's "checked items wait"); with "Move to end" a checked item moves.
-final class ToggleItem extends ShownInput {
-  const ToggleItem(this.item, {required super.revision});
+/// [items]' boxes toggled, in the order tapped, once the view's wait
+/// after the taps ended (see the plan's "checked items wait"); with "Move
+/// to end" the checked ones move, together.
+final class ToggleItems extends ShownInput {
+  ToggleItems(List<NodeId> items, {required super.revision})
+    : items = List.unmodifiable(items);
 
-  final NodeId item;
+  final List<NodeId> items;
 }
 
 /// A tap or the caret on [block], a raw block: it opens as its raw text,
