@@ -6,43 +6,42 @@ import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late MemoryFileStore store;
+  late ManualTimers clock;
   late FolderReach reach;
   late List<Reach> seen;
 
-  /// Waits of [FolderReach.retryEvery], ended by [tick].
-  late List<Completer<void>> waits;
-
   setUp(() {
     store = MemoryFileStore()..put('a.md', 'a');
-    waits = [];
-    reach = FolderReach(
-      store,
-      retries: 2,
-      wait: (_) {
-        final wait = Completer<void>();
-        waits.add(wait);
-        return wait.future;
-      },
-    );
+    clock = ManualTimers();
+    reach = folderReach(store, retries: 2, startTimer: clock.start);
     seen = [];
     reach.changes.listen(seen.add);
   });
 
-  tearDown(() => reach.dispose());
+  tearDown(() => reach.close());
 
-  /// Lets every pending check and wait run.
+  void saw(Result<Object?, StoreError> outcome) =>
+      reach.send(Accessed(accessOf(outcome)));
+
+  /// Lets every pending check run.
   Future<void> settle() => pumpEventQueue();
 
   /// Ends the pending wait, then lets the next check run.
   Future<void> tick() async {
-    waits.removeAt(0).complete();
+    clock.fireAll();
     await settle();
   }
+
+  Future<Reach?> settled() => ask<ReachInput, Settled>(
+    reach.send,
+    reach.events,
+    Settle.new,
+  ).then((settled) => settled?.reach);
 
   test(
     'a failed access to a folder that can be read changes nothing',
     () async {
-      reach.saw(const Err(StoreError.notFound));
+      saw(const Err(StoreError.notFound));
       await settle();
 
       expect(reach.state, Reach.reachable);
@@ -52,7 +51,7 @@ void main() {
 
   test('retries a folder that cannot be read, then gives up', () async {
     store.failWith = StoreError.ioFailure;
-    reach.saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
     await settle();
     expect(reach.state, Reach.retrying);
 
@@ -66,7 +65,7 @@ void main() {
 
   test('is reachable again once a retry can read the folder', () async {
     store.failWith = StoreError.accessDenied;
-    reach.saw(const Err(StoreError.accessDenied));
+    saw(const Err(StoreError.accessDenied));
     await settle();
 
     store.failWith = null;
@@ -77,28 +76,27 @@ void main() {
 
   test('any access that works ends retrying and unreachable', () async {
     store.failWith = StoreError.notFound;
-    reach.saw(const Err(StoreError.notFound));
+    saw(const Err(StoreError.notFound));
     await settle();
-    reach.saw(const Ok(null));
+    saw(const Ok(null));
     expect(reach.state, Reach.reachable);
     await tick();
     expect(reach.state, Reach.reachable);
 
-    reach.saw(const Err(StoreError.notFound));
+    saw(const Err(StoreError.notFound));
     await settle();
     await tick();
     await tick();
     expect(reach.state, Reach.unreachable);
-    reach.saw(const Ok(null));
+    saw(const Ok(null));
 
     expect(reach.state, Reach.reachable);
   });
 
   test('failures that say nothing about reach start no check', () async {
     store.failWith = StoreError.ioFailure;
-    reach
-      ..saw(const Err(StoreError.changedSinceRead))
-      ..saw(const Err(StoreError.alreadyExists));
+    saw(const Err(StoreError.changedSinceRead));
+    saw(const Err(StoreError.alreadyExists));
     await settle();
 
     expect(reach.state, Reach.reachable);
@@ -107,64 +105,61 @@ void main() {
 
   test('more failures while checking start no second check', () async {
     store.failWith = StoreError.ioFailure;
-    reach
-      ..saw(const Err(StoreError.ioFailure))
-      ..saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
     await settle();
 
     expect(store.listCount, 1);
-    expect(waits, hasLength(1));
+    expect(clock.pending, hasLength(1));
   });
 
   test('failures while unreachable start no check', () async {
     store.failWith = StoreError.ioFailure;
-    reach.saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
     await settle();
     await tick();
     await tick();
     final lists = store.listCount;
 
-    reach.saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
     await settle();
 
     expect(store.listCount, lists);
   });
 
   test('a check that hangs counts as failed', () async {
-    final hanging = FolderReach(
+    final hanging = folderReach(
       _HangingStore(),
       retries: 0,
       checkTimeout: const Duration(milliseconds: 1),
     );
-    addTearDown(hanging.dispose);
+    addTearDown(hanging.close);
 
-    hanging.saw(const Err(StoreError.ioFailure));
+    hanging.send(const Accessed(Access.mayBeGone));
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(hanging.state, Reach.unreachable);
   });
 
-  test('a check that ends after dispose tells nothing', () async {
+  test('closing ends the retries', () async {
     store.failWith = StoreError.ioFailure;
-    reach.saw(const Err(StoreError.ioFailure));
+    saw(const Err(StoreError.ioFailure));
     await settle();
-    await reach.dispose();
 
-    await tick();
+    await reach.close();
 
+    expect(clock.pending, isEmpty);
     expect(seen, [Reach.retrying]);
   });
 
   test('an access that works during the first check ends it', () async {
     final listing = Completer<void>();
-    final slow = FolderReach(
-      _SlowStore(listing.future),
-      wait: (_) => Completer<void>().future,
-    );
-    addTearDown(slow.dispose);
+    final slow = folderReach(_SlowStore(listing.future));
+    addTearDown(slow.close);
 
-    slow.saw(const Err(StoreError.ioFailure));
-    slow.saw(const Ok(null));
+    slow
+      ..send(const Accessed(Access.mayBeGone))
+      ..send(const Accessed(Access.worked));
     listing.complete();
     await settle();
 
@@ -173,14 +168,28 @@ void main() {
 
   test('settled waits for the check and its retries', () async {
     store.failWith = StoreError.ioFailure;
-    reach.saw(const Err(StoreError.ioFailure));
-    final settled = reach.settled();
+    saw(const Err(StoreError.ioFailure));
+    final first = settled();
     await settle();
     await tick();
     await tick();
 
-    expect(await settled, Reach.unreachable);
-    expect(await reach.settled(), Reach.unreachable);
+    expect(await first, Reach.unreachable);
+    expect(await settled(), Reach.unreachable);
+  });
+
+  test('settled answers between two retries only once they end', () async {
+    store.failWith = StoreError.ioFailure;
+    saw(const Err(StoreError.ioFailure));
+    await settle();
+    Reach? answer;
+    unawaited(settled().then((reach) => answer = reach));
+    await settle();
+    expect(answer, isNull);
+
+    store.failWith = null;
+    await tick();
+    expect(answer, Reach.reachable);
   });
 
   test('the reporting store tells how each access went', () async {

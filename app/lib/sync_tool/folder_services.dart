@@ -57,7 +57,7 @@ final folderServicesProvider = Provider.family<FolderServices, FolderLocation>((
     deviceId: ref.watch(deviceIdProvider),
     platform: ref.watch(platformFactsProvider),
   );
-  ref.onDispose(() => unawaited(services.reach.dispose()));
+  ref.onDispose(() => unawaited(services.reach.close()));
   return services;
 });
 
