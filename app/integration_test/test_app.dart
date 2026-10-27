@@ -100,15 +100,21 @@ final class _FixedPicker implements FolderPicker {
   Future<Result<String?, PickError>> pick() async => Ok(_path);
 }
 
-/// A test of the app, [body]; then lets a closed document finish its
-/// last steps (its file written, its draft dropped), takes the app down
-/// and runs one more frame, for the work widgets schedule as they go (the
-/// editor lets go of the keyboard a frame later), before Flutter checks
-/// that none is left.
+/// A test of the app, [body]; then closes the screens still open, as the
+/// user would, and lets a closed document finish its last steps (its
+/// file written, its draft dropped) before the app goes. One more frame
+/// runs for the work widgets schedule as they go (the editor lets go of
+/// the keyboard a frame later), before Flutter checks that none is left.
 void testApp(String description, WidgetTesterCallback body) =>
     testWidgets(description, (tester) async {
       await body(tester);
-      await tester.runFor(const Duration(milliseconds: 500));
+      final navigator = find.byType(Navigator);
+      if (navigator.evaluate().isNotEmpty) {
+        tester
+            .state<NavigatorState>(navigator.first)
+            .popUntil((route) => route.isFirst);
+      }
+      await tester.runFor(const Duration(seconds: 1));
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     });

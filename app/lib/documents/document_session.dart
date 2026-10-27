@@ -15,7 +15,8 @@ import 'save_state.dart';
 /// One open document: its editor owner (what shows, behind its [gate])
 /// and its file owner (where the edits are kept), connected; their
 /// effects and timers run here. No UI. Listeners hear of every change of
-/// where the edits are; the [gate] tells of changes to what shows.
+/// where the edits are ([status], [saveState]); the [gate] tells of
+/// changes to what shows.
 final class DocumentSession extends ChangeNotifier {
   /// The document whose file [effects] reads and writes; it opens in
   /// [mode], its checked items shown as [checkedItems].
@@ -43,6 +44,7 @@ final class DocumentSession extends ChangeNotifier {
       gate.outputs.listen(_onEditorOutput),
       _file.outputs.listen(_onFileOutput),
     ];
+    gate.addListener(_onEditorChanged);
   }
 
   final FileEffects _effects;
@@ -57,6 +59,9 @@ final class DocumentSession extends ChangeNotifier {
   final _editorNotices = StreamController<EditorOutput>.broadcast(sync: true);
   final _fileNotices = StreamController<FileOutput>.broadcast(sync: true);
   bool _disposed = false;
+
+  /// Whether the editor held edits not yet sent, as listeners last heard.
+  bool _unsent = false;
 
   /// Where the file is.
   DocumentFile get file => _effects.file;
@@ -143,6 +148,15 @@ final class DocumentSession extends ChangeNotifier {
     AskLink() || ItemsRemoved() || UndoRefused() => _editorNotices.add(output),
   };
 
+  /// Edits held in the editor change where the edits are, before they
+  /// reach the file owner.
+  void _onEditorChanged() {
+    final unsent = gate.state.unsent;
+    if (unsent == _unsent) return;
+    _unsent = unsent;
+    notifyListeners();
+  }
+
   void _onFileOutput(FileOutput output) {
     switch (output) {
       case ToEditor():
@@ -193,7 +207,9 @@ final class DocumentSession extends ChangeNotifier {
     }
     unawaited(_editorNotices.close());
     unawaited(_fileNotices.close());
-    gate.dispose();
+    gate
+      ..removeListener(_onEditorChanged)
+      ..dispose();
     super.dispose();
   }
 }

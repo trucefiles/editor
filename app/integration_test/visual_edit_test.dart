@@ -61,11 +61,11 @@ void main() {
     await tester.clickLine('milk', 0);
     await tester.pressShiftDownArrow();
 
-    await tester.pressTool('Checklist');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
     expect(find.byType(Checkbox), findsNWidgets(2));
-    await tester.pressTool('Bulleted list');
+    await tester.pressTool('Bulleted list (Ctrl+Shift+8)');
     expect(find.byType(Checkbox), findsNothing);
-    await tester.pressTool('Numbered list');
+    await tester.pressTool('Numbered list (Ctrl+Shift+7)');
 
     await tester.leaveExpecting(app, '# Shop\n\n1. milk\n2. eggs\n');
   });
@@ -74,8 +74,8 @@ void main() {
     await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
     await tester.clickLine('milk', 4);
 
-    await tester.pressTool('Checklist');
-    await tester.pressTool('Checklist');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
     await tester.typeImeText('s');
 
     await tester.leaveExpecting(app, '# Shop\n\n- milks\n');
@@ -85,7 +85,7 @@ void main() {
     await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
     await tester.clickLine('Shop', 4);
 
-    await tester.pressTool('Checklist');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
     await tester.typeImeText('!');
 
     await tester.leaveExpecting(app, '- [ ] # Shop!\n\nmilk\n');

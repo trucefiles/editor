@@ -37,6 +37,16 @@ void main() {
     expect(session.note?.path, path('Milk.md'));
   });
 
+  test('typing tells listeners the edits are being edited, at once', () {
+    final session = fixture.session(fixture.newFile);
+    final states = <SaveState>[];
+    session.addListener(() => states.add(session.saveState));
+
+    session.type('x');
+
+    expect(states, [SaveState.editing]);
+  });
+
   test('an empty new document is never written', () async {
     final session = fixture.session(fixture.newFile);
 

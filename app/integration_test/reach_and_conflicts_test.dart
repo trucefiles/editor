@@ -103,21 +103,22 @@ void main() {
     await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
   });
 
-  testApp('hiding the app keeps clashing edits, menus stay put', (
-    tester,
-  ) async {
+  testApp('hiding the app keeps clashing edits here to compare, menus stay '
+      'put', (tester) async {
     await clashInPlan(tester);
     await tester.tapAndSettle(find.byTooltip('Show menu'));
 
     tester.hideAndComeBack();
 
-    await tester.waitFor(find.textContaining('kept as a conflict copy'));
+    await tester.waitFor(find.textContaining('changed on another device'));
     expect(find.text('Delete note'), findsOneWidget);
-    expect(find.byType(SuperEditor), findsNothing);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
-    await tester.tapAndSettle(find.text('Close'));
-    await tester.waitFor(find.byTooltip('New note'));
+    expect(find.byType(SuperEditor), findsOneWidget);
+    expect(
+      app.file('plan.md').readAsStringSync(),
+      '# Plan\nv2 from elsewhere\n',
+    );
   });
 
   testApp('restores the version from before editing', (tester) async {
