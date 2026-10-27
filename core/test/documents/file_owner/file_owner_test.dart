@@ -129,6 +129,20 @@ void main() {
       expect((write.text, write.over), ('ab', copy));
     });
 
+    test('a write that finds the file gone after a move goes on with the '
+        'copy, written again', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..send(const Moved(copy))
+        ..wrote(const WriteGone());
+      expect(run.status, const Editing(EditPhase.writing).matcher);
+      final write = run.last<Write>();
+      expect((write.text, write.over), ('ab', copy));
+      run.wrote(const Written(Seen('ab', _v2)));
+      expect(run.status, isA<InStep>());
+    });
+
     test('edits made during a write are kept after it, then written when '
         'asked, without a backup', () {
       final run = _Run.opened('a')

@@ -388,14 +388,20 @@ final class _Step {
   }
 
   /// The copy a move left while a write was under way, now that it ended:
-  /// what writes go over, and written again where it lacks the edits.
+  /// what writes go over, and written again where it lacks the edits. A
+  /// write that found the file gone found the move, not a delete.
   void _takeMove() {
     final copy = work.moved;
     if (copy == null) return;
     _work(work.copyWith(moved: null, expected: copy));
-    if (status is InStep && copy.text != state.text) {
-      _set(status: const Editing(EditPhase.inMemory));
-      _askFolder();
+    switch (status) {
+      case InStep() || DeletedElsewhere() when copy.text != state.text:
+        _set(status: const Editing(EditPhase.inMemory));
+        _askFolder();
+      case DeletedElsewhere():
+        _inStep(copy);
+      case _:
+        break;
     }
   }
 
