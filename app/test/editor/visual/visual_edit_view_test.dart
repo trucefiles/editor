@@ -9,7 +9,7 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/visual/ui/drawn_table.dart';
 import 'package:truce_markdown/truce_markdown.dart'
-    show CheckedItems, ItemsRemoved, UndoRemoval;
+    show CheckedItems, EditMode, ItemsRemoved, SetMode, UndoRemoval;
 
 import '../editor_robot.dart';
 
@@ -264,6 +264,22 @@ void main() {
       await addLink(tester, 'https://x.org');
 
       expect(document.text, 'buy [milk](https://x.org)');
+    });
+
+    testWidgets('answered after Visual edit went (e.g. to Read) does '
+        'nothing', (tester) async {
+      final document = TestDocument('buy milk');
+      await pumpDocument(tester, document);
+
+      await tester.selectWordIn(paragraphNodeOf(), 5);
+      await tester.tap(find.byTooltip('Link (Ctrl+K)'));
+      await tester.pumpAndSettle();
+      document.gate.send((_) => const SetMode(EditMode.read));
+      await tester.pumpAndSettle();
+      await addLink(tester, 'https://x.org');
+
+      expect(tester.takeException(), isNull);
+      expect(document.text, 'buy milk');
     });
 
     testWidgets('does nothing if the line changed meanwhile', (tester) async {

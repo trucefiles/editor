@@ -100,10 +100,12 @@ class _VisualEditViewState extends State<VisualEditView> {
   }
 
   /// Asks for the address [range] links to; the state it was asked on
-  /// decides, so a change meanwhile drops the answer.
+  /// decides, so a change meanwhile drops the answer, as does leaving
+  /// Visual edit.
   Future<void> _askLink(md.TextSelection range) async {
     final revision = widget.gate.state.revision;
     final url = await askLinkUrl(context);
+    if (!mounted) return;
     if (url != null) _actions.setLink(range, url, revision: revision);
     _focus.requestFocus();
   }
