@@ -168,17 +168,27 @@ final class MarkdownAdapter {
   // Text from elsewhere.
 
   /// Shows the owner's text when it is not what was sent: the lines that
-  /// stayed keep their nodes, and the caret stays on its line.
+  /// stayed keep their nodes; the caret goes where the owner says (after
+  /// an undo, to the change), else it stays on its line.
   void _onOwnerChanged() {
-    final text = switch (_gate.state.content) {
-      md.MarkdownContent(:final text) => text,
-      md.FormattedContent() => null,
+    final (text, offset) = switch (_gate.state.content) {
+      md.MarkdownContent(:final text, :final caret) => (text, caret),
+      md.FormattedContent() => (null, null),
     };
     if (text == null || identical(text, _sent) || text == _tree.text) return;
-    final caret = _caretOf(composer.selection);
+    final caret = switch (offset) {
+      final offset? => _caretAtOffset(text, offset),
+      null => _caretOf(composer.selection),
+    };
     _tree = _tree.withText(text);
     _show(caret);
     _treeChanged.changed();
+  }
+
+  /// The line and offset of the caret at [offset] in [text].
+  static _Caret _caretAtOffset(String text, int offset) {
+    final lines = md.splitLines(text.substring(0, offset));
+    return (line: lines.length - 1, offset: lines.last.text.length);
   }
 
   // Showing the lines.

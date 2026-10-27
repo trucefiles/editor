@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,14 @@ extension UiDriver on WidgetTester {
 
   Future<void> tapAndSettle(Finder finder) async {
     await tap(finder);
+    await pumpAndSettle();
+  }
+
+  /// Presses Ctrl with [key], e.g. Ctrl+Z.
+  Future<void> pressCtrl(LogicalKeyboardKey key) async {
+    await sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await sendKeyEvent(key);
+    await sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await pumpAndSettle();
   }
 }

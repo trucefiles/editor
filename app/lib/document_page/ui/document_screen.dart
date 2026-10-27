@@ -32,6 +32,7 @@ import '../../editor/document_editor.dart';
 import '../../editor/editor_gate.dart';
 import '../../editor/first_mode.dart';
 import '../../editor/run_command.dart';
+import '../../editor/ui/history_buttons.dart';
 import '../../folders/document_folder.dart';
 import '../../markdown/markdown_links.dart';
 import '../../reach/folder_reach_controller.dart';
@@ -39,12 +40,15 @@ import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../theme/touch.dart';
 import '../document_controller.dart';
 import '../document_file.dart';
 import '../document_session.dart';
 import '../file_effects.dart';
+import 'document_backups.dart';
 import 'document_place_chip.dart';
 import 'edit_state_banner.dart';
+import 'history_end_text.dart';
 import 'save_indicator.dart';
 
 /// Editor for one document, in Visual edit, Markdown edit or Read. Saves
@@ -139,6 +143,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       _session,
       reachSettled: () =>
           ref.read(folderReachProvider(_folder.location).notifier).settled(),
+      backUp: _backUp,
+      canEdit: () => !_isReadOnly,
     );
     _session.addListener(_onSessionChanged);
     _notices = [
@@ -172,6 +178,16 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     super.dispose();
   }
 
+  /// Backs up [text], the document's text now.
+  Future<Result<void, StoreError>> _backUp(String text) async =>
+      switch (_session.document) {
+        final document? =>
+          await _container
+              .read(documentFilesProvider(document.folder))
+              .backUpCurrent(document, text),
+        null => const Err(StoreError.notFound),
+      };
+
   /// Follows the session: Read once it takes no more edits, and the
   /// mode picked before the document had a file, remembered once it has.
   void _onSessionChanged() {
@@ -194,15 +210,27 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final messenger = _messenger.currentState;
     if (messenger == null) return;
     switch (notice) {
-      case ItemsRemoved(:final id):
+      case UndoOffered(:final id, :final what):
         messenger.showHint(
-          'Removed',
+          switch (what) {
+            OfferedUndo.removal => 'Removed',
+            OfferedUndo.restore => 'Backup restored',
+          },
           actionLabel: 'Undo',
-          onAction: () => _gate.send((_) => UndoRemoval(id)),
+          onAction: () => _gate.send((_) => UndoStep(id)),
         );
       case UndoRefused():
         messenger.showHint(
           "Can't undo, because the document has changed since.",
+        );
+      case HistoryEnd(:final start):
+        final context = _messenger.currentContext;
+        messenger.showHint(
+          '${start.text} Older versions are in Backups.',
+          actionLabel: 'Backups',
+          onAction: context == null || _session.document == null
+              ? null
+              : () => unawaited(_openBackups(context)),
         );
       case _:
         break;
@@ -389,12 +417,37 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             ),
             child: const Text('Pin or color'),
           ),
+          if (_session.document != null)
+            PopupMenuItem(
+              value: () => unawaited(_openBackups(context)),
+              child: const Text('Backups'),
+            ),
+          if (usesTouch(Theme.of(context)))
+            PopupMenuItem(value: _refresh, child: const Text('Refresh')),
           PopupMenuItem(
             value: () => _delete(context),
             child: const Text('Delete document'),
           ),
         ],
       );
+
+  void _refresh() => unawaited(_pull.currentState!.refresh());
+
+  /// Opens this document's backups; [context] is below this screen's
+  /// messenger.
+  Future<void> _openBackups(BuildContext context) async {
+    final document = _session.document;
+    final messenger = _messenger.currentState;
+    if (document == null || messenger == null) return;
+    final text = _session.text;
+    await openDocumentBackups(
+      context,
+      document: document,
+      title: documentTitle(text, _session.file.pathFor(text)),
+      controller: _controller,
+      messenger: messenger,
+    );
+  }
 
   /// Asks how [document]'s checked items show, on this device; nothing moves.
   Future<void> _pickCheckedItems(
@@ -453,10 +506,24 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   }
 
   /// Esc leaves the document, as the back arrow does; Ctrl+1, 2, 3 pick
-  /// the modes in the mode menu's order.
+  /// the modes in the mode menu's order; Ctrl+Z undoes, Ctrl+Shift+Z and
+  /// Ctrl+Y redo while the document is edited.
   late final Map<SingleActivator, VoidCallback> _keys = {
     const SingleActivator(LogicalKeyboardKey.escape): () =>
         unawaited(Navigator.maybePop(context)),
+    const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
+      if (_isEdited) undo(_gate);
+    },
+    const SingleActivator(
+      LogicalKeyboardKey.keyZ,
+      control: true,
+      shift: true,
+    ): () {
+      if (_isEdited) redo(_gate);
+    },
+    const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
+      if (_isEdited) redo(_gate);
+    },
     for (final (index, mode) in EditMode.values.indexed)
       SingleActivator(_digits[index], control: true): () {
         if (!_isReadOnly && mode != _mode) _showMode(mode);
@@ -482,6 +549,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   /// Only shown in Read: no mode to pick.
   bool get _isReadOnly => _isDone || _isUnreachable;
+
+  /// Open for editing: undo and redo work.
+  bool get _isEdited => !_isReadOnly && _gate.state.mode != EditMode.read;
 
   /// The edits were kept as a conflict copy; nothing more to edit here.
   bool get _isDone => _session.status is KeptAsConflict;
@@ -517,11 +587,14 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),
-          IconButton(
-            tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _pull.currentState!.refresh(),
-          ),
+          if (_isEdited) HistoryButtons(_gate),
+          // On touch, pulling down refreshes, and the menu has it.
+          if (readOnly || !usesTouch(Theme.of(context)))
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh),
+              onPressed: _refresh,
+            ),
           if (!readOnly) ...[
             EditModeButton(mode: _mode, onChanged: _showMode),
             _menu(context, settings),

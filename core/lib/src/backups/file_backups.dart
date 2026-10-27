@@ -69,11 +69,75 @@ final class FileBackups {
     }
   }
 
+  /// The backups of the file at [filePath], newest first.
+  Future<Result<List<Backup>, StoreError>> listOf(RelPath filePath) async =>
+      switch (await list()) {
+        Ok(:final value) => Ok([
+          for (final backup in value)
+            if (backup.filePath == filePath) backup,
+        ]),
+        Err(:final error) => Err(error),
+      };
+
   Future<Result<Uint8List, StoreError>> read(Backup backup) async =>
       switch (await _store.read(backup.storePath)) {
         Ok(:final value) => Ok(value.bytes),
         Err(:final error) => Err(error),
       };
+
+  /// Deletes [backup]; the user asked for it.
+  Future<Result<void, StoreError>> delete(Backup backup) async =>
+      switch (await _store.read(backup.storePath)) {
+        Ok(:final value) => await _store.delete(
+          backup.storePath,
+          ifUnchanged: value.version,
+        ),
+        Err(:final error) => Err(error),
+      };
+
+  /// Moves the backups of [from] to [into] (this store or another
+  /// folder's), as backups of [to], each keeping its time and kind: the
+  /// document moved or was renamed. Each one is saved there before it is
+  /// deleted here, so a failure leaves it in one place or both, never in
+  /// none. Stops at the first failure.
+  Future<Result<void, StoreError>> moveAll({
+    required RelPath from,
+    required RelPath to,
+    required FileBackups into,
+  }) async {
+    final List<Backup> moving;
+    switch (await listOf(from)) {
+      case Ok(:final value):
+        moving = value;
+      case Err(:final error):
+        return Err(error);
+    }
+    for (final backup in moving) {
+      final moved = await _moveOne(backup, to, into);
+      if (moved is Err) return moved;
+    }
+    return const Ok(null);
+  }
+
+  Future<Result<void, StoreError>> _moveOne(
+    Backup backup,
+    RelPath to,
+    FileBackups into,
+  ) async {
+    final FileContent content;
+    switch (await _store.read(backup.storePath)) {
+      case Ok(:final value):
+        content = value;
+      case Err(:final error):
+        return Err(error);
+    }
+    final saved = await into._save(
+      Backup.of(to, at: backup.savedAt, kind: backup.kind),
+      content.bytes,
+    );
+    if (saved is Err) return saved;
+    return _store.delete(backup.storePath, ifUnchanged: content.version);
+  }
 
   /// Deletes backups saved before [olderThan]. Stops at the first failure.
   Future<Result<void, StoreError>> prune({required DateTime olderThan}) async {
@@ -98,11 +162,21 @@ final class FileBackups {
     return const Ok(null);
   }
 
+  /// Saves [backup]; where one of the same file and kind was saved in the
+  /// same microsecond, at the next free one, so neither is lost.
   Future<Result<void, StoreError>> _save(
     Backup backup,
     Uint8List bytes,
   ) async => switch (await _store.create(backup.storePath, bytes)) {
     Ok() => const Ok(null),
+    Err(error: StoreError.alreadyExists) => _save(
+      Backup.of(
+        backup.filePath,
+        at: backup.savedAt.add(const Duration(microseconds: 1)),
+        kind: backup.kind,
+      ),
+      bytes,
+    ),
     Err(:final error) => Err(error),
   };
 }

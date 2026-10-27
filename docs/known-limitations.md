@@ -17,9 +17,14 @@ Accepted behavior that is not planned to change, grouped by topic.
   rename as a delete and a new file. If another device edits the document
   before it learns of the change, the edited document shows up again in its
   old place, next to the moved one.
-- **Backups stay with a document's old place.** After a move or rename, the
-  Backups screen lists the document's earlier backups under its old folder
-  and name.
+- **Backups stay behind after a move outside the app.** Backups follow a
+  document moved or renamed in Truce. When it is moved or renamed in another
+  app or on another device, Truce sees a deleted document and a new one, so
+  its earlier backups stay under the old folder and name in Backups.
+- **Undo stops at a change from elsewhere.** Undo takes back your own edits
+  of this editing session, up to 100 steps. It stops where the document
+  changed on another device or a version was chosen in a conflict; older
+  versions are in the document's Backups.
 
 ## Editing Markdown
 

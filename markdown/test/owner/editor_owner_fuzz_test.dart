@@ -129,7 +129,7 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
     final TextSelection selection => selection,
     _ => null,
   };
-  return switch (random.nextInt(14)) {
+  return switch (random.nextInt(16)) {
     0 || 1 when over != null => Typed(
       pick(['a', ' ', 'b c', '*', 'x\ny']),
       over: over,
@@ -164,6 +164,8 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
       atEnd: random.nextBool(),
       revision: revision,
     ),
+    13 => Undo(revision: revision),
+    14 => Redo(revision: revision),
     _ => SetMode(EditMode.visual),
   };
 }

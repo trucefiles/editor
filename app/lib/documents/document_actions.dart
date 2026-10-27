@@ -36,6 +36,15 @@ final class DocumentActions {
   DocumentMarks _marksOf(Document document) =>
       _ref.read(folderServicesProvider(document.folder.location)).marks;
 
+  FileBackups _backupsOf(Document document) =>
+      _ref.read(folderServicesProvider(document.folder.location)).backups;
+
+  /// [from]'s backups become [to]'s: the document moved there. Best
+  /// effort, as its color: a backup left behind still shows in Backups.
+  Future<void> _moveBackups(Document from, Document to) =>
+      _backupsOf(from)
+          .moveAll(from: from.path, to: to.path, into: _backupsOf(to));
+
   /// Where a new document goes without a place set for new documents: the one of
   /// [folders] the grid is filtered to, else the first. [folders] must not
   /// be empty.
@@ -80,7 +89,7 @@ final class DocumentActions {
   /// Moves [document], holding [text], to [place], renamed after [title] if
   /// given: writes it there under that name (with a number if taken), in
   /// its byte style, with its color and settings, then removes the old
-  /// file. Refused while a sync conflict of
+  /// file; its backups follow once the old file is gone. Refused while a sync conflict of
   /// the document waits. If the old file can't be removed, e.g. as it changed
   /// since [document] was read, both stay: never lose data. No rescan, as for
   /// [delete].
@@ -114,6 +123,7 @@ final class DocumentActions {
     }
     await _marksOf(document).remove(document.path);
     await _settings.forget(document.key);
+    await _moveBackups(document, copy);
     return Ok(copy);
   }
 
@@ -141,7 +151,8 @@ final class DocumentActions {
 
   /// Writes [deleted] back with its mark and settings, and rescans. Never
   /// overwrites: if a file was created at its path meanwhile, the document
-  /// comes back beside it, under the next free numbered name.
+  /// comes back beside it, under the next free numbered name, and its
+  /// backups go with it.
   Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async {
     final DeletedNote(:document, :text, :mark, :settings) = deleted;
     final files = _ref.read(documentFilesProvider(document.folder));
@@ -157,6 +168,7 @@ final class DocumentActions {
       // Even no mark: else an older mark from another device would win.
       await _marksOf(back).set(back.path, mark);
       await _settings.edit(back.key, (_) => settings);
+      if (back.path != document.path) await _moveBackups(document, back);
     }
     await _scans.refresh();
     return switch (restored) {

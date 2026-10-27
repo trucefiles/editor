@@ -41,6 +41,8 @@
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
+- Undo and redo while editing, and backups of each document from the last
+  7 days, to compare and restore.
 - Android and Linux (Flatpak).
 
 ## What's coming
@@ -74,6 +76,11 @@ On Linux, `--background` starts Truce in the tray, e.g. at login, when
 ```sh
 flatpak run io.github.trucefiles.editor --background
 ```
+
+## Features in pictures
+
+See [docs/features.md](docs/features.md): screenshots of the main screens
+and of each new feature.
 
 ## Markdown support
 
