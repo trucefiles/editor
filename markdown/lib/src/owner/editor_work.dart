@@ -1,10 +1,10 @@
 import 'package:truce_core/truce_core.dart' show Version;
 
-import '../doc/doc_tree.dart';
 import '../doc/origin.dart';
 import '../edit/selection.dart';
 import '../print/printer.dart';
 import '../view/rows.dart';
+import 'history/edit_history.dart';
 import 'save_clock.dart';
 
 /// The editor owner's own bookkeeping, which its users never read.
@@ -16,8 +16,7 @@ final class EditorWork {
     this.sentRev = 0,
     this.picks = 0,
     this.clock = const SaveClock(),
-    this.undo,
-    this.nextUndo = 0,
+    this.history = const EditHistory(),
     this.left,
   });
 
@@ -39,10 +38,8 @@ final class EditorWork {
 
   final SaveClock clock;
 
-  /// The undo of the last removal, while it can be made.
-  final Removal? undo;
-
-  final int nextUndo;
+  /// The undo and redo steps of this editing session.
+  final EditHistory history;
 
   /// Visual edit as Markdown edit left it: what showed, its print and
   /// selection, which Visual edit comes back by.
@@ -55,8 +52,7 @@ final class EditorWork {
     int? sentRev,
     int? picks,
     SaveClock? clock,
-    Object? undo = _same,
-    int? nextUndo,
+    EditHistory? history,
     Object? left = _same,
   }) => EditorWork(
     origin: origin ?? this.origin,
@@ -65,17 +61,13 @@ final class EditorWork {
     sentRev: sentRev ?? this.sentRev,
     picks: picks ?? this.picks,
     clock: clock ?? this.clock,
-    undo: identical(undo, _same) ? this.undo : undo as Removal?,
-    nextUndo: nextUndo ?? this.nextUndo,
+    history: history ?? this.history,
     left: identical(left, _same) ? this.left : left as Left?,
   );
 }
 
 /// Marks an [EditorWork.copyWith] field left as it is.
 const _same = Object();
-
-/// How to undo removal [id]: the document before it, valid at [rev].
-typedef Removal = ({int id, DocTree before, Selection selection, int rev});
 
 /// What Visual edit showed, as [view] with [selection], printed as
 /// [printed]: before a reload, or when Markdown edit took over.

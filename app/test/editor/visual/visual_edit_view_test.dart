@@ -9,7 +9,7 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/visual/ui/drawn_table.dart';
 import 'package:truce_markdown/truce_markdown.dart'
-    show CheckedItems, EditMode, ItemsRemoved, SetMode, UndoRemoval;
+    show CheckedItems, EditMode, ItemsRemoved, SetMode, UndoStep;
 
 import '../editor_robot.dart';
 
@@ -118,7 +118,7 @@ void main() {
 
     expect(document.text, '- [ ] eggs');
     final removed = document.notices.whereType<ItemsRemoved>().single;
-    document.gate.send((_) => UndoRemoval(removed.id));
+    document.gate.send((_) => UndoStep(removed.id));
     await tester.pumpAndSettle();
     expect(document.text, '- [ ] milk\n- [ ] eggs');
   });

@@ -198,7 +198,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         messenger.showHint(
           'Removed',
           actionLabel: 'Undo',
-          onAction: () => _gate.send((_) => UndoRemoval(id)),
+          onAction: () => _gate.send((_) => UndoStep(id)),
         );
       case UndoRefused():
         messenger.showHint(

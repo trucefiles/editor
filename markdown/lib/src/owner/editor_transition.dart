@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart'
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
+import '../doc/origin.dart';
 import '../edit/change.dart' show startOf;
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
@@ -16,6 +17,10 @@ import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
 import 'editor_work.dart';
+import 'history/snapshot.dart';
+import 'history/text_change.dart';
+import 'history/typing.dart';
+import 'raw_closed.dart';
 import 'reload.dart';
 import 'save_clock.dart';
 
@@ -44,7 +49,22 @@ final class _Step {
         when revision != state.revision) {
       return;
     }
+    final (before, origin, rev) = (state, work.origin, work.rev);
+    _handle(input);
+    if (input is ShownInput && input is! Undo && input is! Redo) {
+      if (work.rev != rev) _record(input, before, origin);
+    }
+    _settleFlags();
+  }
+
+  void _handle(EditorInput input) {
     switch ((input, state.content)) {
+      case (Undo(), _):
+        _undo();
+      case (Redo(), _):
+        _redo();
+      case (ReplaceAll(:final text), _):
+        _replaceAll(text);
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
@@ -77,8 +97,8 @@ final class _Step {
             ),
           ),
         );
-      case (UndoRemoval(:final id), _):
-        _undo(id);
+      case (UndoStep(:final id), _):
+        _undoStep(id);
       case (SaveTimerFired(:final id), _):
         _tick(work.clock.fired(id));
       case (
@@ -88,7 +108,10 @@ final class _Step {
             _,
           )
           when ackRev == work.rev:
-        work = work.copyWith(lineage: version, undo: null);
+        work = work.copyWith(
+          lineage: version,
+          history: work.history.cleared(HistoryStart.changedElsewhere),
+        );
         _reload(text);
       case (
         FromFile(message: Picked(:final text, :final version, :final rev)),
@@ -99,7 +122,7 @@ final class _Step {
           rev: rev,
           sentRev: rev,
           picks: work.picks + 1,
-          undo: null,
+          history: work.history.cleared(HistoryStart.replacedHere),
         );
         _reload(text);
       case (SecureEditor(:final reason), _):
@@ -225,18 +248,9 @@ final class _Step {
     );
     if (identical(edited.doc, before)) return;
     _textChanged();
+    // The input's step gets the next id.
     if (_removes(command, before, edited.doc)) {
-      final id = work.nextUndo;
-      work = work.copyWith(
-        nextUndo: id + 1,
-        undo: (
-          id: id,
-          before: before,
-          selection: shown.selection,
-          rev: work.rev,
-        ),
-      );
-      outputs.add(ItemsRemoved(id));
+      outputs.add(ItemsRemoved(work.history.nextId));
     }
   }
 
@@ -258,21 +272,104 @@ final class _Step {
         );
   }
 
-  void _undo(int id) {
-    switch ((work.undo, state.content)) {
-      case (final undo?, final FormattedContent shown)
-          when undo.id == id && undo.rev == work.rev:
-        work = work.copyWith(undo: null);
+  // Undo and redo.
+
+  /// The text change [input] made from [before], read from [origin], as
+  /// an undo step, or as part of the latest one where it goes on typing.
+  void _record(ShownInput input, EditorState before, Origin origin) {
+    work = work.copyWith(
+      history: work.history.recorded(
+        snapshotOf(before.content, origin),
+        typingOf(input, before, state),
+      ),
+    );
+  }
+
+  void _undo() {
+    final history = work.history;
+    switch (history.undone(_snapshot())) {
+      case (history: final next, :final back):
+        work = work.copyWith(history: next);
+        _restore(back);
+        if (!next.canUndo) outputs.add(HistoryEnd(next.start));
+      case null:
+        outputs.add(HistoryEnd(history.start));
+    }
+  }
+
+  void _redo() {
+    if (work.history.redone(_snapshot()) case (
+      history: final next,
+      :final back,
+    )) {
+      work = work.copyWith(history: next);
+      _restore(back);
+    }
+  }
+
+  /// Undoes step [id] if it is the latest.
+  void _undoStep(int id) {
+    if (work.history.latestId == id) {
+      _undo();
+    } else {
+      outputs.add(UndoRefused(id));
+    }
+  }
+
+  /// What shows now, to come back to.
+  Snapshot _snapshot() => snapshotOf(state.content, work.origin);
+
+  /// [back] shows again, as a text change.
+  void _restore(Snapshot back) {
+    switch ((back, state.content)) {
+      case (_, MarkdownContent(text: final now)):
+        if (back case TreeSnapshot(
+          :final doc,
+          :final selection,
+          :final printed,
+        )) {
+          work = work.copyWith(
+            left: (view: ViewRows(doc), selection: selection, printed: printed),
+          );
+        }
+        final change = textChange(now, back.text);
+        _show(
+          MarkdownContent(back.text, caret: change.start + change.added.length),
+        );
+      case (
+        TreeSnapshot(:final doc, :final origin, :final selection),
+        FormattedContent(:final view),
+      ):
+        work = work.copyWith(origin: origin);
         _show(
           FormattedContent(
-            view: ViewRows(undo.before, done: shown.view.done),
-            selection: undo.selection,
+            view: _rows(doc, view.done, state.checkedItems),
+            selection: selection,
           ),
         );
-        _textChanged();
-      case _:
-        outputs.add(UndoRefused(id));
+      case (TextSnapshot(:final text), FormattedContent()):
+        _reload(text);
     }
+    _changedByHistory();
+  }
+
+  /// The document reads [text] instead, from its start.
+  void _replaceAll(String text) {
+    if (state.mode == EditMode.markdown) {
+      _show(MarkdownContent(text, caret: 0));
+    } else {
+      final next = loaded(text);
+      work = work.copyWith(origin: next.origin);
+      _show(_fresh(next.doc));
+    }
+    _changedByHistory();
+  }
+
+  /// A text change not typed: saved as typing is; Read shows the text
+  /// kept, so it is sent at once.
+  void _changedByHistory() {
+    _textChanged();
+    if (state.mode == EditMode.read) _send();
   }
 
   /// [items]' boxes toggled in order; with "Move to end", the checked
@@ -310,10 +407,7 @@ final class _Step {
   /// stays.
   FormattedContent _closedRaw(Selection selection) {
     final shown = state.content as FormattedContent;
-    final closed = switch (shown.raw) {
-      final raw? => run(shown.view, CloseRaw(raw.block, raw.text, selection)),
-      null => (doc: shown.view.doc, selection: selection),
-    };
+    final closed = rawClosed(shown, selection);
     return FormattedContent(
       view: ViewRows(closed.doc, done: shown.view.done),
       selection: closed.selection,
@@ -382,7 +476,7 @@ final class _Step {
       case null:
         break;
     }
-    _markUnsent();
+    _settleFlags();
   }
 
   /// The text, printed, to the file owner, unless it has it.
@@ -405,7 +499,7 @@ final class _Step {
     _send();
     work = work.copyWith(clock: work.clock.left);
     outputs.add(ToFile(Secure(reason)));
-    _markUnsent();
+    _settleFlags();
   }
 
   /// What the file says once the text is sent: the document printed,
@@ -522,15 +616,19 @@ final class _Step {
     checkedItems: checkedItems ?? state.checkedItems,
     revision: state.revision + 1,
     unsent: work.sentRev != work.rev,
+    canUndo: work.history.canUndo,
+    canRedo: work.history.canRedo,
   );
 
-  /// The state telling whether edits are only in memory; what shows is
-  /// the same.
-  void _markUnsent() => state = EditorState(
+  /// The state telling whether edits are only in memory and what undo
+  /// and redo can do; what shows is the same.
+  void _settleFlags() => state = EditorState(
     content: state.content,
     mode: state.mode,
     checkedItems: state.checkedItems,
     revision: state.revision,
     unsent: work.sentRev != work.rev,
+    canUndo: work.history.canUndo,
+    canRedo: work.history.canRedo,
   );
 }

@@ -123,4 +123,118 @@ void main() {
       'not-a-backup.txt',
     });
   });
+
+  test('keeps two backups of one file and kind saved in the same µs', () async {
+    for (final text in ['first', 'second']) {
+      await backups.saveBeforeEdit(
+        at: at,
+        filePath: path('todo.md'),
+        bytes: bytesOf(text),
+      );
+    }
+
+    expect(store.textOf('$atMicros.edit/todo.md'), 'first');
+    expect(store.textOf('${atMicros + 1}.edit/todo.md'), 'second');
+  });
+
+  test('lists the backups of one file', () async {
+    await backups.saveBeforeEdit(
+      at: at,
+      filePath: path('a.md'),
+      bytes: bytesOf('a'),
+    );
+    await backups.saveBeforeEdit(
+      at: at,
+      filePath: path('b.md'),
+      bytes: bytesOf('b'),
+    );
+
+    final listed = (await backups.listOf(path('a.md'))).value;
+
+    expect(listed.map((b) => b.filePath), [path('a.md')]);
+  });
+
+  test('deletes one backup', () async {
+    await backups.saveBoth(
+      at: at,
+      filePath: path('todo.md'),
+      current: bytesOf('current'),
+      other: bytesOf('other'),
+    );
+    final other = (await backups.list()).value.firstWhere(
+      (b) => b.kind == BackupKind.other,
+    );
+
+    await backups.delete(other);
+
+    expect(store.files.keys.map((p) => p.value), ['$atMicros.current/todo.md']);
+  });
+
+  group('moveAll', () {
+    test(
+      'moves a file\'s backups to its new path, keeping time and kind',
+      () async {
+        await backups.saveBoth(
+          at: at,
+          filePath: path('old.md'),
+          current: bytesOf('current'),
+          other: bytesOf('other'),
+        );
+        await backups.saveBeforeEdit(
+          at: at,
+          filePath: path('else.md'),
+          bytes: bytesOf('else'),
+        );
+
+        await backups.moveAll(
+          from: path('old.md'),
+          to: path('sub/new.md'),
+          into: backups,
+        );
+
+        expect(store.files.keys.map((p) => p.value).toSet(), {
+          '$atMicros.current/sub/new.md',
+          '$atMicros.other/sub/new.md',
+          '$atMicros.edit/else.md',
+        });
+        expect(store.textOf('$atMicros.other/sub/new.md'), 'other');
+      },
+    );
+
+    test('moves them into another folder\'s backups', () async {
+      final otherStore = MemoryFileStore();
+      await backups.saveBeforeEdit(
+        at: at,
+        filePath: path('old.md'),
+        bytes: bytesOf('before'),
+      );
+
+      await backups.moveAll(
+        from: path('old.md'),
+        to: path('new.md'),
+        into: FileBackups(otherStore),
+      );
+
+      expect(store.files, isEmpty);
+      expect(otherStore.textOf('$atMicros.edit/new.md'), 'before');
+    });
+
+    test('keeps a backup here if it cannot be saved there', () async {
+      final otherStore = MemoryFileStore()..failWith = StoreError.ioFailure;
+      await backups.saveBeforeEdit(
+        at: at,
+        filePath: path('old.md'),
+        bytes: bytesOf('before'),
+      );
+
+      final moved = await backups.moveAll(
+        from: path('old.md'),
+        to: path('new.md'),
+        into: FileBackups(otherStore),
+      );
+
+      expect(moved.error, StoreError.ioFailure);
+      expect(store.textOf('$atMicros.edit/old.md'), 'before');
+    });
+  });
 }

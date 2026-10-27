@@ -144,6 +144,24 @@ final class EditText extends ShownInput {
   final String text;
 }
 
+/// Undo the latest step of this editing session.
+final class Undo extends ShownInput {
+  const Undo({required super.revision});
+}
+
+/// Redo the step undone last.
+final class Redo extends ShownInput {
+  const Redo({required super.revision});
+}
+
+/// The document now reads [text] (a backup the user restored): one step,
+/// which undo takes back.
+final class ReplaceAll extends ShownInput {
+  const ReplaceAll(this.text, {required super.revision});
+
+  final String text;
+}
+
 /// The document shows in [mode]; for Read, the text is sent first, so
 /// the file owner's text is what shows.
 final class SetMode extends EditorInput {
@@ -167,9 +185,10 @@ final class SetCollapsed extends EditorInput {
   final bool collapsed;
 }
 
-/// The undo of the removal [ItemsRemoved] told of.
-final class UndoRemoval extends EditorInput {
-  const UndoRemoval(this.id);
+/// Undo step [id], the removal [ItemsRemoved] told of, if it is still
+/// the latest.
+final class UndoStep extends EditorInput {
+  const UndoStep(this.id);
 
   final int id;
 }
@@ -224,19 +243,40 @@ final class AskLink extends EditorOutput {
   final TextSelection range;
 }
 
-/// A command removed items or blocks without text; [id] undoes it while
-/// the text did not change since.
+/// A command removed items or blocks without text, as undo step [id].
 final class ItemsRemoved extends EditorOutput {
   const ItemsRemoved(this.id);
 
   final int id;
 }
 
-/// The undo [id] could not be made: the text changed since.
+/// Undo step [id] could not be undone: the text changed since.
 final class UndoRefused extends EditorOutput {
   const UndoRefused(this.id);
 
   final int id;
+}
+
+/// Undo reached the start of the history, which is there for [start].
+final class HistoryEnd extends EditorOutput {
+  const HistoryEnd(this.start);
+
+  final HistoryStart start;
+}
+
+/// Why the undo history starts where it does.
+enum HistoryStart {
+  /// The document was opened there.
+  opened,
+
+  /// The document changed on another device (or elsewhere) there.
+  changedElsewhere,
+
+  /// A version was picked, or edits discarded, there.
+  replacedHere,
+
+  /// Older steps are not kept.
+  limit,
 }
 
 // State.
@@ -249,6 +289,8 @@ final class EditorState {
     required this.checkedItems,
     required this.revision,
     required this.unsent,
+    this.canUndo = false,
+    this.canRedo = false,
   });
 
   /// What shows: [MarkdownContent] in Markdown edit, else
@@ -263,6 +305,10 @@ final class EditorState {
 
   /// Whether there are edits only in memory, not yet sent to be kept.
   final bool unsent;
+
+  /// Whether [Undo] and [Redo] have a step to take.
+  final bool canUndo;
+  final bool canRedo;
 }
 
 /// What shows: the doc tree, or the text Markdown edit edits.
@@ -287,11 +333,14 @@ final class FormattedContent extends EditorContent {
   final RawRegion? raw;
 }
 
-/// The document as the text Markdown edit edits.
+/// The document as the text Markdown edit edits; after an undo or redo,
+/// the [caret] goes to the offset in [text] where it changed (`null`:
+/// the caret stays where it is).
 final class MarkdownContent extends EditorContent {
-  const MarkdownContent(this.text);
+  const MarkdownContent(this.text, {this.caret});
 
   final String text;
+  final int? caret;
 }
 
 /// The raw block [block] open as its raw [text], as typed so far, the
