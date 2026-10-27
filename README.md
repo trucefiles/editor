@@ -5,12 +5,12 @@
 <h1 align="center">Truce Editor</h1>
 
 <p align="center">
-  Your notes and checklists, shared between your devices and people,<br>
+  Your documents, shared between your devices and people,<br>
   with no server in the middle.
 </p>
 
 <p align="center">
-  <img src="docs/images/screenshot.png" width="720" alt="Truce Editor showing a grid of notes and checklists">
+  <img src="docs/images/screenshot.png" width="720" alt="Truce Editor showing a grid of documents">
 </p>
 
 ## Why Truce
@@ -36,8 +36,8 @@
 
 ## What it does today
 
-- Notes and checklists, edited visually (lists, styles, drag and drop),
-  as raw Markdown, or read rendered.
+- Markdown documents and checklists, edited visually (lists, styles,
+  drag and drop), as raw Markdown, or read rendered.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -47,7 +47,7 @@
 
 - Assisted merge: Truce suggests a merged version of a conflict for you to
   accept.
-- More kinds of files beyond notes and checklists.
+- More kinds of files beyond Markdown.
 - Windows, macOS and iOS.
 
 Truce is in early development (0.x), so expect changes between versions.

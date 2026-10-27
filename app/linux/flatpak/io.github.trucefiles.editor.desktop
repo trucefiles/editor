@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Truce Editor
-Comment=Notes and checklists that sync with Syncthing
+Comment=Documents that sync without a server
 Exec=truce_editor
 Icon=io.github.trucefiles.editor
 Categories=Utility;TextEditor;
