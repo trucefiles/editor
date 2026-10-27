@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pool/pool.dart';
 
 import '../storage/app_storage.dart';
 import 'text_zoom.dart';
@@ -63,19 +62,16 @@ class TextZoomController extends Notifier<TextZoom> {
   TextZoomController(this.target);
 
   final TextZoomTarget target;
-  final _changes = Pool(1);
 
   @override
   TextZoom build() => ref.read(savedTextZoomsProvider).atStart(target);
 
-  /// Takes [zoom] at once, so screens show it; saves it after every
-  /// earlier change. The same zoom again changes nothing.
+  /// Takes [zoom] at once, so screens show it, and saves it; saves land
+  /// in the order made. The same zoom again changes nothing.
   Future<void> set(TextZoom zoom) async {
     if (zoom == state) return;
     state = zoom;
-    await _changes.withResource(
-      () => ref.read(savedTextZoomsProvider).storeOf(target).save(zoom),
-    );
+    await ref.read(savedTextZoomsProvider).storeOf(target).save(zoom);
   }
 
   /// The zoom [next] makes of the current one.

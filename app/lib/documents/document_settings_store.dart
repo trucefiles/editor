@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../storage/json_file.dart';
+import '../storage/setting_store.dart';
 import 'document.dart';
 import 'document_settings.dart';
 import 'kept_document_settings.dart';
@@ -23,13 +24,15 @@ import 'kept_document_settings.dart';
 /// as the mode the view became, as do entries with `"checked": "toEnd"`
 /// (now `moveToEnd`) or with `"doneSection": true`
 /// or `false` instead of `checked`.
-final class DocumentSettingsStore {
+final class DocumentSettingsStore
+    implements SettingStore<Map<String, KeptNoteSettings>> {
   DocumentSettingsStore(File file) : _file = JsonFile(file);
 
   final JsonFile _file;
 
   /// The saved settings by [storeKey]; empty if none or unreadable. Skips
   /// entries it cannot read.
+  @override
   Future<Map<String, KeptNoteSettings>> load() async => switch (await _file
       .read()) {
     Ok(value: final Map<String, Object?> json) => {
@@ -41,6 +44,7 @@ final class DocumentSettingsStore {
   };
 
   /// Replaces the saved settings; on failure the next save tries again.
+  @override
   Future<void> save(Map<String, KeptNoteSettings> settings) => _file.write({
     for (final MapEntry(:key, :value) in settings.entries) key: _encode(value),
   });

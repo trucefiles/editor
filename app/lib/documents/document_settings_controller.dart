@@ -1,23 +1,23 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pool/pool.dart';
 import 'package:truce_core/truce_core.dart' show Gone;
 
 import '../scan/folder_scans.dart';
+import '../settings/setting_controller.dart';
 import '../storage/app_storage.dart';
 import 'document.dart';
 import 'document_settings.dart';
 import 'document_settings_store.dart';
 import 'kept_document_settings.dart';
 
-final documentSettingsStoreProvider = Provider<DocumentSettingsStore>(
-  (ref) => DocumentSettingsStore(
-    // Named for what it first held: the views.
-    File('${ref.watch(appStorageProvider).settingsPath}/note_views.json'),
-  ),
-);
+final documentSettingsStoreProvider =
+    Provider<SettingStore<Map<String, KeptNoteSettings>>>(
+      (ref) => DocumentSettingsStore(
+        // Named for what it first held: the views.
+        File('${ref.watch(appStorageProvider).settingsPath}/note_views.json'),
+      ),
+    );
 
 final documentSettingsProvider =
     AsyncNotifierProvider<
@@ -27,20 +27,18 @@ final documentSettingsProvider =
 
 /// How this device shows each document: last view, pin, "Done" section.
 class DocumentSettingsController
-    extends AsyncNotifier<Map<String, KeptNoteSettings>> {
-  final _changes = Pool(1);
-
+    extends SettingController<Map<String, KeptNoteSettings>> {
   @override
-  Future<Map<String, KeptNoteSettings>> build() =>
-      ref.watch(documentSettingsStoreProvider).load();
+  Provider<SettingStore<Map<String, KeptNoteSettings>>> get store =>
+      documentSettingsStoreProvider;
 
   /// The settings of [document]; the defaults if none or not loaded yet.
   DocumentSettings settingsOf(DocumentKey document) =>
       state.value?[DocumentSettingsStore.storeKey(document)]?.settings ??
       DocumentSettings.defaults;
 
-  /// Changes the settings of [document] with [change]. Runs after every earlier
-  /// change, so each starts from the settings the one before saved.
+  /// Changes the settings of [document] with [change], starting from the
+  /// settings the change before left.
   Future<void> edit(
     DocumentKey document,
     DocumentSettings Function(DocumentSettings settings) change,
@@ -79,15 +77,12 @@ class DocumentSettingsController
       ..addAll(pruned);
   });
 
-  /// Applies [apply] to the settings; saves them if it changed any.
+  /// Applies [apply] to a copy of the settings (see [change]).
   Future<void> _change(
     void Function(Map<String, KeptNoteSettings> all) apply,
-  ) => _changes.withResource(() async {
-    final before = await future;
+  ) => change((before) {
     final all = {...before};
     apply(all);
-    if (mapEquals(before, all)) return;
-    state = AsyncData(all);
-    await ref.read(documentSettingsStoreProvider).save(all);
+    return all;
   });
 }

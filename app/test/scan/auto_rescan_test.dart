@@ -159,7 +159,7 @@ void main() {
   test('tells the scans once when the refresh setting changes', () async {
     await start();
 
-    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).change(
+    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).show(
       RefreshSettings.standard.copyWith(mode: RefreshMode.periodic),
     );
     await container.read(autoRescanProvider.future);
@@ -197,7 +197,7 @@ class _FixedSettings extends RefreshSettingsController {
   @override
   Future<RefreshSettings> build() async => RefreshSettings.standard;
 
-  void change(RefreshSettings settings) => state = AsyncData(settings);
+  void show(RefreshSettings settings) => state = AsyncData(settings);
 }
 
 class _FixedActivity extends AppActivity {

@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pool/pool.dart';
 
+import '../../settings/setting_controller.dart';
 import '../../storage/app_storage.dart';
 import 'add_item_place.dart';
 import 'add_item_place_store.dart';
 
-final addItemPlaceStoreProvider = Provider<AddItemPlaceStore>(
+final addItemPlaceStoreProvider = Provider<SettingStore<AddItemPlace>>(
   (ref) => AddItemPlaceStore(
     File('${ref.watch(appStorageProvider).settingsPath}/add_items.json'),
   ),
@@ -19,19 +19,7 @@ final addItemPlaceProvider =
     );
 
 /// The setting of where a list's add buttons sit on this device.
-class AddItemPlaceController extends AsyncNotifier<AddItemPlace> {
-  final _changes = Pool(1);
-
+class AddItemPlaceController extends SettingController<AddItemPlace> {
   @override
-  Future<AddItemPlace> build() => ref.watch(addItemPlaceStoreProvider).load();
-
-  /// Takes [place] once the setting is loaded, so screens show it; saves
-  /// it after every earlier change.
-  Future<void> set(AddItemPlace place) async {
-    await future;
-    state = AsyncData(place);
-    await _changes.withResource(
-      () => ref.read(addItemPlaceStoreProvider).save(place),
-    );
-  }
+  Provider<SettingStore<AddItemPlace>> get store => addItemPlaceStoreProvider;
 }
