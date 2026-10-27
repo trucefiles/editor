@@ -211,6 +211,13 @@ final class RowLooks {
     (row) => _topList(row.leaf.id)?.id,
   );
 
+  /// How many items each item holds, itself included: each item counts
+  /// for itself and every item it is in.
+  late final Map<NodeId, int> _itemsIn = nodesIn(_doc.root)
+      .whereType<ItemNode>()
+      .expand((item) => [item, ..._doc.pathOf(item.id).whereType<ItemNode>()])
+      .groupFoldBy((item) => item.id, (int? count, _) => (count ?? 0) + 1);
+
   ListNode? _topList(NodeId leaf) =>
       _doc.pathOf(leaf).whereType<ListNode>().firstOrNull;
 
@@ -279,7 +286,7 @@ final class RowLooks {
               item.id,
               marker: _markerOf(item, path[index - 1] as ListNode),
               starts: leavesIn(item).first.id == leaf,
-              subitems: nodesIn(item).whereType<ItemNode>().length - 1,
+              subitems: _itemsIn[item.id]! - 1,
             ),
           ],
           _ => const <Frame>[],
@@ -289,7 +296,7 @@ final class RowLooks {
 
   Marker _markerOf(ItemNode item, ListNode list) => switch (item.checked) {
     bool() => BoxMarker(checked: showsChecked(item)),
-    null => switch (list.numberAt(list.items.indexOf(item))) {
+    null => switch (list.numberAt(_doc.placeOf(item.id)!.index)) {
       final number? => NumberMarker(number),
       null => const BulletMarker(),
     },
