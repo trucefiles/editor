@@ -332,12 +332,17 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     );
   }
 
-  /// Whether Visual edit shows a document with checklist items.
-  bool get _showsCheckboxes => switch (_gate.state.content) {
-    FormattedContent(:final view) =>
-      _gate.state.mode == EditMode.visual && view.doc.hasCheckboxes,
-    MarkdownContent() => false,
+  /// Whether the document has checklist items. Read when the menu
+  /// opens; in Markdown edit it reads the text.
+  bool get _hasCheckboxes => switch (_gate.state.content) {
+    FormattedContent(:final view) => view.doc.hasCheckboxes,
+    MarkdownContent() => DocumentSummary.of(_session.text).hasCheckboxes,
   };
+
+  /// Whether the menu's commands on checked items run: in Visual edit and
+  /// Read, while the document takes edits.
+  bool get _runsCheckedCommands =>
+      _gate.state.mode != EditMode.markdown && !_isReadOnly;
 
   /// [context] is this screen's, below its own messenger; [settings] are
   /// the document's.
@@ -345,15 +350,17 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          if (_showsCheckboxes) ...[
-            PopupMenuItem(
-              value: () => _gate.run(MoveToEnd.new),
-              child: const Text('Move checked items to end now'),
-            ),
-            PopupMenuItem(
-              value: () => _gate.run(ClearChecked.new),
-              child: const Text('Clear checked items now'),
-            ),
+          if (_hasCheckboxes) ...[
+            if (_runsCheckedCommands) ...[
+              PopupMenuItem(
+                value: () => _gate.run(MoveToEnd.new),
+                child: const Text('Move checked items to end now'),
+              ),
+              PopupMenuItem(
+                value: () => _gate.run(ClearChecked.new),
+                child: const Text('Clear checked items now'),
+              ),
+            ],
             PopupMenuItem(
               value: () => _withFile(
                 context,

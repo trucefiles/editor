@@ -112,6 +112,31 @@ void main() {
     await tester.waitForFile(app.file('list.md'), '# List\n- [ ] b\n- [x] a\n');
   });
 
+  testApp('in Read, the menu moves checked items to the end and shows it; '
+      'in Markdown edit it offers only the setting', (tester) async {
+    app.write('list.md', '# List\n- [x] a\n- [ ] b\n');
+    await tester.addFolder(app);
+    await tester.openNote('List');
+    await tester.chooseMode('Read');
+
+    await tester.chooseInMenu('Move checked items to end now');
+    expect(
+      tester.getTopLeft(find.text('b')).dy,
+      lessThan(tester.getTopLeft(find.text('a')).dy),
+    );
+
+    await tester.chooseMode('Markdown edit');
+    await tester.tapAndSettle(find.byTooltip('Show menu'));
+    expect(find.text('Checked items: Move to end'), findsOneWidget);
+    expect(find.text('Clear checked items now'), findsNothing);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('list.md'), '# List\n- [ ] b\n- [x] a\n');
+    expect(app.conflictCopies(), isEmpty);
+  });
+
   testApp('reopens a note in the mode it was left in', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
