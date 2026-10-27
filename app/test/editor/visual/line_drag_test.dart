@@ -2,13 +2,38 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/editor/super_editor/components/line_drag.dart';
-import 'package:truce_editor/editor/super_editor/components/line_drop_zone.dart';
+import 'package:truce_editor/editor/visual/ui/line_drag.dart';
+import 'package:truce_editor/editor/visual/ui/line_drop_zone.dart';
+import 'package:truce_markdown/truce_markdown.dart' show NodeId;
 
 /// A drop: the dropped item, the row it went next to, whether below it,
 /// and by how many levels it was shifted.
-typedef Drop = (LineId item, LineId target, bool below, int levels);
+typedef Drop = (NodeId item, NodeId target, bool below, int levels);
+
+/// [child] in a drop zone a level 24 wide; drops go to [onDrop].
+Widget _zone(Widget child, {void Function(Drop drop)? onDrop}) => LineDropZone(
+  step: 24,
+  onLift: (_) {},
+  onDrop: (drag, {required target, required below, required levels}) =>
+      onDrop?.call((drag.item, target, below, levels)),
+  onSettled: () {},
+  child: child,
+);
+
+/// The handle of item [index], whose row is [row]; its copy shows [copy].
+Widget _handle(int index, GlobalKey row, {String? copy}) => SizedBox(
+  width: 48,
+  height: 48,
+  child: LineDragHandle(
+    LineDrag(
+      NodeId(index),
+      leaf: NodeId(100 + index),
+      row: row,
+      look: Text(copy ?? 'copy $index'),
+    ),
+    icon: const Icon(Icons.drag_indicator),
+  ),
+);
 
 void main() {
   testWidgets('the dragged copy shows its text as the row does', (
@@ -17,7 +42,7 @@ void main() {
     final row = GlobalKey();
     await tester.pumpWidget(
       MaterialApp(
-        builder: (_, child) => LineDropZone(child: child!),
+        builder: (_, child) => _zone(child!),
         home: Scaffold(
           body: MediaQuery(
             // Zoomed, like note text inside the app.
@@ -25,16 +50,7 @@ void main() {
             child: Row(
               key: row,
               children: [
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: LineDragHandle(
-                    item: const LineId(1),
-                    row: row,
-                    preview: const Text('copy'),
-                    icon: const Icon(Icons.drag_indicator),
-                  ),
-                ),
+                _handle(1, row, copy: 'copy'),
                 const Text('item'),
               ],
             ),
@@ -64,23 +80,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(brightness: Brightness.dark),
-        builder: (_, child) => LineDropZone(child: child!),
+        builder: (_, child) => _zone(child!),
         home: Scaffold(
           backgroundColor: Colors.orange,
           body: Row(
             key: row,
-            children: [
-              SizedBox(
-                width: 48,
-                height: 48,
-                child: LineDragHandle(
-                  item: const LineId(1),
-                  row: row,
-                  preview: const Text('copy'),
-                  icon: const Icon(Icons.drag_indicator),
-                ),
-              ),
-            ],
+            children: [_handle(1, row, copy: 'copy')],
           ),
         ),
       ),
@@ -113,39 +118,28 @@ void main() {
     final rows = [for (final _ in Iterable<int>.generate(4)) GlobalKey()];
     await tester.pumpWidget(
       MaterialApp(
-        builder: (_, child) => LineDropZone(child: child!),
         home: Scaffold(
-          body: ValueListenableBuilder(
-            valueListenable: count ?? ValueNotifier(rows.length),
-            builder: (context, count, _) => Column(
-              children: [
-                for (final (index, row) in rows.take(count).indexed)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: spacing),
-                    child: LineDropTarget(
-                      item: LineId(index),
-                      step: 24,
-                      onDrop: (item, {required below, required levels}) =>
-                          onDrop?.call((item, LineId(index), below, levels)),
-                      child: Row(
-                        key: row,
-                        children: [
-                          SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: LineDragHandle(
-                              item: LineId(index),
-                              row: row,
-                              preview: Text('copy $index'),
-                              icon: const Icon(Icons.drag_indicator),
-                            ),
-                          ),
-                          Text('item $index'),
-                        ],
+          // Inside the app's overlay, as in the editor, so a dropped
+          // copy glides there.
+          body: _zone(
+            onDrop: onDrop,
+            ValueListenableBuilder(
+              valueListenable: count ?? ValueNotifier(rows.length),
+              builder: (context, count, _) => Column(
+                children: [
+                  for (final (index, row) in rows.take(count).indexed)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: spacing),
+                      child: LineDropTarget(
+                        item: NodeId(index),
+                        child: Row(
+                          key: row,
+                          children: [_handle(index, row), Text('item $index')],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -215,41 +209,58 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const LineId(0), const LineId(1), true, 0)]);
+    expect(drops, [(const NodeId(0), const NodeId(1), true, 0)]);
+  });
+
+  testWidgets('a dropped copy glides into the gap before the drop lands', (
+    tester,
+  ) async {
+    final drops = <Drop>[];
+    await showRows(tester, onDrop: drops.add);
+    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.4));
+    await gesture.up();
+    await tester.pump();
+
+    expect(find.text('copy 0'), findsOne, reason: 'gliding');
+    expect(drops, isEmpty);
+
+    await tester.pumpAndSettle();
+    expect(find.text('copy 0'), findsNothing);
+    expect(drops, hasLength(1));
+  });
+
+  testWidgets('a copy dropped right where it was lifted settles at once', (
+    tester,
+  ) async {
+    final drops = <Drop>[];
+    await showRows(tester, onDrop: drops.add);
+    final gesture = await drag(tester, 1, const Offset(0, 20), steps: 4);
+    await gesture.moveBy(const Offset(0, -20));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('copy 1'), findsNothing);
+    expect(drops, [(const NodeId(1), const NodeId(1), false, 0)]);
   });
 
   testWidgets('scrolling during a drag keeps the drop places', (tester) async {
-    final drops = <(LineId, bool)>[];
+    final drops = <(NodeId, bool)>[];
     final scroll = ScrollController();
     final rows = [for (final _ in Iterable<int>.generate(20)) GlobalKey()];
     await tester.pumpWidget(
       MaterialApp(
-        builder: (_, child) => LineDropZone(child: child!),
+        builder: (_, child) =>
+            _zone(child!, onDrop: (drop) => drops.add((drop.$2, drop.$3))),
         home: Scaffold(
           body: ListView(
             controller: scroll,
             children: [
               for (final (index, row) in rows.indexed)
                 LineDropTarget(
-                  item: LineId(index),
-                  step: 24,
-                  onDrop: (_, {required below, required levels}) =>
-                      drops.add((LineId(index), below)),
+                  item: NodeId(index),
                   child: Row(
                     key: row,
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: LineDragHandle(
-                          item: LineId(index),
-                          row: row,
-                          preview: Text('copy $index'),
-                          icon: const Icon(Icons.drag_indicator),
-                        ),
-                      ),
-                      Text('item $index'),
-                    ],
+                    children: [_handle(index, row), Text('item $index')],
                   ),
                 ),
             ],
@@ -266,7 +277,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const LineId(2), true)]);
+    expect(drops, [(const NodeId(2), true)]);
   });
 
   testWidgets('a drop between spaced rows still drops', (tester) async {
@@ -277,7 +288,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const LineId(0), const LineId(1), true, 0)]);
+    expect(drops, [(const NodeId(0), const NodeId(1), true, 0)]);
   });
 
   testWidgets('a row dropped on itself, shifted sideways, changes level', (
@@ -289,7 +300,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const LineId(1), const LineId(1), false, 2)]);
+    expect(drops, [(const NodeId(1), const NodeId(1), false, 2)]);
   });
 
   testWidgets('a row gone during a drag takes no drop', (tester) async {
@@ -305,7 +316,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const LineId(0), const LineId(1), true, 0)]);
+    expect(drops, [(const NodeId(0), const NodeId(1), true, 0)]);
   });
 
   testWidgets('a drag whose row is gone drops nothing', (tester) async {

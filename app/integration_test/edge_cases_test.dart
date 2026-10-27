@@ -9,8 +9,8 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/documents/ui/document_screen.dart';
 import 'package:truce_editor/notes/note_colors.dart';
-import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'app_steps.dart';
 import 'editor_steps.dart';
@@ -403,7 +403,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(NoteEditorScreen), findsNothing);
+    expect(find.byType(DocumentScreen), findsNothing);
   });
 
   testApp('a double tap on New note starts one note', (tester) async {
@@ -417,7 +417,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(NoteEditorScreen), findsNothing);
+    expect(find.byType(DocumentScreen), findsNothing);
     await tester.waitForFile(app.file('Idea.md'), 'Idea');
   });
 
@@ -441,7 +441,7 @@ void main() {
     await tester.waitForNoteClosed();
     await tester.openNote('Plan');
 
-    final screen = find.byType(NoteEditorScreen);
+    final screen = find.byType(DocumentScreen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),

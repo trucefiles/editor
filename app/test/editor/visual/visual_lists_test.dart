@@ -317,6 +317,31 @@ void main() {
     expect(text.text, '- [ ] b\n  - [ ] sub\n- [ ] a');
   });
 
+  testWidgets('while an item is dragged, its subitems fold into its copy', (
+    tester,
+  ) async {
+    final text = TestDocument('- [ ] a\n- [ ] b\n  - [ ] s1\n  - [ ] s2');
+    await pumpDocument(tester, text);
+    bool shows(String text) =>
+        find.text(text, findRichText: true).evaluate().isNotEmpty;
+
+    final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(1));
+    final gesture = await tester.startGesture(handle);
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pumpAndSettle();
+
+    expect(shows('b  +2'), isTrue, reason: 'the copy counts them');
+    expect(shows('s1'), isFalse);
+    expect(shows('s2'), isFalse);
+
+    await gesture.moveTo(handle);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(shows('s1'), isTrue, reason: 'shown again after the drop');
+    expect(text.text, '- [ ] a\n- [ ] b\n  - [ ] s1\n  - [ ] s2');
+  });
+
   testWidgets('on touch, the handle takes drags beside its icon too', (
     tester,
   ) async {

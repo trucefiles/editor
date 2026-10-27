@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/editor/note_mode.dart';
-import 'package:truce_editor/notes/ui/note_editor_screen.dart';
+import 'package:truce_editor/documents/ui/document_screen.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -32,14 +32,14 @@ extension AppSteps on WidgetTester {
   Future<void> waitForNoteClosed({
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(
-    () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    () => find.byType(DocumentScreen).evaluate().isEmpty,
     timeout: timeout,
   );
 
   /// Switches the open note to the mode labeled [mode], e.g. 'Read'.
   Future<void> chooseMode(String mode) async {
     await tapAndSettle(
-      find.byWidgetPredicate((widget) => widget is PopupMenuButton<NoteMode>),
+      find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
     );
     await tapAndSettle(find.text(mode).last);
   }

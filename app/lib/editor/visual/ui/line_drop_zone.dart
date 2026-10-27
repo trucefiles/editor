@@ -179,7 +179,8 @@ class LineDropZoneState extends State<LineDropZone> {
   };
 
   /// [drag]'s copy glides from [from] to [to], then [then] happens and
-  /// the drag is settled; at once without [to].
+  /// the drag is settled; at once without [to], or when it is there
+  /// already (a glide that goes nowhere never ends).
   void _glideTo(
     LineDrag drag, {
     required Offset from,
@@ -188,7 +189,7 @@ class LineDropZoneState extends State<LineDropZone> {
   }) {
     final overlay = Overlay.maybeOf(context);
     final box = overlay?.context.findRenderObject();
-    if (to == null || overlay == null || box is! RenderBox) {
+    if (to == null || to == from || overlay == null || box is! RenderBox) {
       return _settle(then);
     }
     final copy = drag.copy(
