@@ -6,6 +6,11 @@ runs:
   steps:
     - uses: ./.github/actions/setup-flutter
 
+    # Every Dart build compiles the tray's native code, which needs GTK.
+    - uses: ./.github/actions/install-linux-packages
+      with:
+        packages: libgtk-3-dev
+
     - name: Get packages from the lock file
       shell: bash
       run: flutter pub get --enforce-lockfile
