@@ -299,17 +299,17 @@ void main() {
       expect(document.text, '- [ ] miXlk\n\neggs');
     });
 
-    testWidgets('change the kind of an item, its box on or off, and back to '
-        'text', (tester) async {
-      final document = TestDocument('- [ ] milk');
+    testWidgets('put a box on an item, change its kind, and Checklist again '
+        'makes it text', (tester) async {
+      final document = TestDocument('- milk');
       await pumpDocument(tester, document);
 
-      await tester.caretIn(checkboxNodeOf(), 4);
+      await tester.caretIn(listItemNodeOf(), 4);
+      await press(tester, 'Checklist (Ctrl+Shift+9)');
+      expect(document.text, '- [ ] milk');
       await press(tester, 'Numbered list (Ctrl+Shift+7)');
       expect(document.text, '1. [ ] milk');
       await press(tester, 'Checklist (Ctrl+Shift+9)');
-      expect(document.text, '1. milk');
-      await press(tester, 'Numbered list (Ctrl+Shift+7)');
       expect(document.text, 'milk');
       await tester.typeImeText('!');
       expect(document.text, 'milk!');
@@ -336,7 +336,7 @@ void main() {
       await tester.pressShiftDownArrow();
       await press(tester, 'Checklist (Ctrl+Shift+9)');
 
-      expect(document.text, '- a\n- [x] d\n- b');
+      expect(document.text, 'a\n\n- [x] d\n\nb');
     });
 
     testWidgets('tapped again over blank lines, turn the list back', (
