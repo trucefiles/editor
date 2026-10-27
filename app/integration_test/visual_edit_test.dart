@@ -212,9 +212,10 @@ void main() {
     tester,
   ) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
+    await tester.chooseCheckedItems('Show at end');
 
     await tester.tapAndSettle(find.byType(Checkbox).first);
-    expect(find.text('Done (1)'), findsOneWidget);
+    await tester.waitFor(find.text('Done (1)'));
     await tester.tapAndSettle(find.byType(Checkbox).last);
     expect(find.text('Done (1)'), findsNothing);
 

@@ -86,7 +86,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   EditorGate get _gate => _session.gate;
 
-  NoteFolder get _folder => _session.file.folder;
+  late final NoteFolder _folder;
 
   /// The document's settings on this device; the defaults until it has a
   /// file.
@@ -113,18 +113,22 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               note != null && DocumentSummary.of(note.file.text).hasCheckboxes,
           typing: note == null,
         );
+    final file = switch ((note, widget.place)) {
+      (final note?, _) => ExistingFile(note),
+      (_, final place?) => NewFile(place),
+      _ => throw StateError('A note or a place is needed.'),
+    };
+    _folder = file.folder;
     _session = DocumentSession(
       FileEffects(
-        switch ((note, widget.place)) {
-          (final note?, _) => ExistingFile(note),
-          (_, final place?) => NewFile(place),
-          _ => throw StateError('A note or a place is needed.'),
-        },
+        file,
         filesOf: (folder) => _container.read(noteFilesProvider(folder)),
         draftsOf: (folder) => _container.read(noteDraftsProvider(folder.id)),
         create: ref.read(noteActionsProvider).create,
       ),
-      mode: _isReadOnly ? EditMode.read : _mode,
+      // Not yet kept as a conflict copy: only an unreachable folder
+      // makes it read only.
+      mode: _isUnreachable ? EditMode.read : _mode,
       checkedItems: settings.checkedItems,
     );
     _controller = DocumentController(

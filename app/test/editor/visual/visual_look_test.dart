@@ -87,6 +87,19 @@ void main() {
     expect(shows('quoted more'), isTrue);
   });
 
+  testWidgets("a quote's bar ends with its text, the gap below it", (
+    tester,
+  ) async {
+    await pumpDocument(tester, TestDocument('> quoted\n\nafter'));
+    await tester.pumpAndSettle();
+
+    final bar = tester.getRect(quoteBars());
+    final text = tester.getRect(find.text('quoted', findRichText: true));
+    expect(bar.bottom, moreOrLessEquals(text.bottom, epsilon: 4));
+    final after = tester.getRect(find.text('after', findRichText: true));
+    expect(after.top - text.bottom, greaterThan(20), reason: 'a blank line');
+  });
+
   testWidgets('quotes and items nest as the file says', (tester) async {
     await pumpDocument(tester, TestDocument('> - [ ] a\n>   > b'));
     await tester.pumpAndSettle();

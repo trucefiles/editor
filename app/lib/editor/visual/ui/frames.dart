@@ -8,7 +8,7 @@ import '../row_looks.dart';
 /// beside it per quote, indented under the items it is in, as far as the
 /// text of the item it is right in. If it starts that item, [row] puts
 /// the item's row beside it. Outside items, a blank line's space below
-/// it, inside its quotes' bars: blocks stand apart as in Read.
+/// it, past its quotes' bars: blocks stand apart as in Read.
 Widget framed(
   List<Frame> frames,
   Widget child, {
@@ -16,29 +16,36 @@ Widget framed(
   required Widget Function(ItemFrame item, Widget child) row,
 }) {
   final item = frames.whereType<ItemFrame>().lastOrNull;
-  return frames.reversed.fold(
-    item == null
-        ? Padding(
-            padding: EdgeInsets.only(bottom: metrics.blankLine),
-            child: child,
-          )
-        : child,
-    (child, frame) => switch (frame) {
-      QuoteFrame() => _QuoteBar(child, indent: metrics.quoteIndent),
-      ItemFrame() when frame != item => Padding(
-        padding: EdgeInsets.only(left: metrics.levelIndent),
-        child: child,
-      ),
-      ItemFrame(starts: true) => row(frame, child),
-      ItemFrame() => Padding(
-        padding: EdgeInsets.only(
-          left: metrics.handleWidth + metrics.markerWidth,
-        ),
-        child: child,
-      ),
-    },
-  );
+  final inFrames = _inFrames(frames, child, item, metrics: metrics, row: row);
+  return item == null
+      ? Padding(
+          padding: EdgeInsets.only(bottom: metrics.blankLine),
+          child: inFrames,
+        )
+      : inFrames;
 }
+
+Widget _inFrames(
+  List<Frame> frames,
+  Widget child,
+  ItemFrame? item, {
+  required NoteMetrics metrics,
+  required Widget Function(ItemFrame item, Widget child) row,
+}) => frames.reversed.fold(
+  child,
+  (child, frame) => switch (frame) {
+    QuoteFrame() => _QuoteBar(child, indent: metrics.quoteIndent),
+    ItemFrame() when frame != item => Padding(
+      padding: EdgeInsets.only(left: metrics.levelIndent),
+      child: child,
+    ),
+    ItemFrame(starts: true) => row(frame, child),
+    ItemFrame() => Padding(
+      padding: EdgeInsets.only(left: metrics.handleWidth + metrics.markerWidth),
+      child: child,
+    ),
+  },
+);
 
 /// The marker of [item] (see [ListMarker]) in [style]; its box checks
 /// or unchecks by [onToggle].
