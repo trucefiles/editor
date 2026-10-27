@@ -1,27 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart' show Edited, Replaced, Version;
+import 'package:truce_core/truce_core.dart'
+    show Edited, Replaced, Ticket, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 const _delay = Duration(milliseconds: 700);
 
 /// A gate on an editor owner of [text], with what the owner led to.
 final class _Gate {
   _Gate(String text, {CheckedItems checkedItems = CheckedItems.inPlace})
+    : this._(text, checkedItems, ManualTimers());
+
+  _Gate._(String text, CheckedItems checkedItems, this.clock)
     : gate = EditorGate(
         editorOwner(
           text,
           version: const Version(1),
           checkedItems: checkedItems,
+          startTimer: clock.start,
         ),
+        checkDelay: _delay,
       ) {
     gate
-      ..outputs.listen(outputs.add)
+      ..events.listen(outputs.add)
       ..addListener(() => heard++);
   }
 
+  /// The save timers; they fire only when a test says.
+  final ManualTimers clock;
+
   final EditorGate gate;
-  final outputs = <EditorOutput>[];
+  final outputs = <EditorEvent>[];
   int heard = 0;
 
   FormattedContent get shown => gate.state.content as FormattedContent;
@@ -45,9 +55,15 @@ final class _Gate {
     ),
   );
 
+  /// The texts the editor sent so far.
+  List<Edited> get edits => [
+    for (final output in outputs)
+      if (output case ToFile(input: final Edited edited)) edited,
+  ];
+
   /// The text the editor sends when it is secured.
   String secured() {
-    gate.send((_) => const SecureEditor(.close));
+    gate.send((_) => SecureEditor(Ticket(), .close));
     return outputs
         .whereType<ToFile>()
         .map((output) => output.input)
@@ -132,13 +148,17 @@ void main() {
   });
 
   testWidgets('a save timer does not cut the wait short', (tester) async {
-    final run = _Gate('- [ ] a');
+    final run = _Gate('- [ ] a')
+      ..type('x')
+      ..tap(0);
+    final heard = run.heard;
 
-    run
-      ..tap(0)
-      ..gate.external(const SaveTimerFired(0));
-
+    run.clock.fire(SaveTimer.pause.delay);
+    await tester.pump();
+    expect(run.edits, hasLength(1), reason: 'the pause timer fired');
+    expect(run.heard, greaterThan(heard), reason: 'listeners heard of it');
     expect(run.checked, [false]);
+
     await tester.pump(_delay);
     expect(run.checked, [true]);
   });

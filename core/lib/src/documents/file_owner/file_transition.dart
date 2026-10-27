@@ -1,18 +1,24 @@
 import '../../common/moment.dart';
-import '../../owners/owner.dart';
+import '../../owners/effects.dart';
+import '../../owners/machine.dart';
 import '../version.dart';
 import 'file_contract.dart';
 import 'file_state.dart';
 import 'file_work.dart';
 
-/// The file owner's decision on [input] in [state], with its [work].
-Step<FileState, FileWork, FileOutput> fileStep(
+/// The file owner's decision on [message] in [state], with its [work].
+Step<FileState, FileWork, FileEvent, FileEffect> fileStep(
   FileState state,
   FileWork work,
-  FileInput input,
+  FileMessage message,
 ) {
-  final step = _Step(state, work)..handle(input);
-  return (state: step.shown, work: step.work, outputs: step.outputs);
+  final step = _Step(state, work)..handle(message);
+  return (
+    state: step.shown,
+    work: step.work,
+    events: step.events,
+    effects: step.effects,
+  );
 }
 
 /// One input's handling: the state as it changes and what it leads to.
@@ -23,7 +29,8 @@ final class _Step {
 
   FileState state;
   FileWork work;
-  final outputs = <FileOutput>[];
+  final events = <FileEvent>[];
+  final effects = <FileEffect>[];
   FileStatus get status => state.status;
 
   bool get _done => status is KeptAsConflict || status is Closed;
@@ -36,32 +43,35 @@ final class _Step {
     _ => false,
   };
 
-  /// The state with the editing phase the work shows.
-  FileState get shown => switch (status) {
-    Editing() => state.copyWith(
-      status: Editing(switch ((work.io, work.draft)) {
+  /// The state with the editing phase and the file the work shows.
+  FileState get shown => FileState(
+    status: switch (status) {
+      Editing() => Editing(switch ((work.io, work.draft)) {
         (WritingFile(:final text), _) when text == state.text =>
           EditPhase.writing,
         (_, KeptDraft(:final text)) when text == state.text =>
           EditPhase.onDevice,
         _ => EditPhase.inMemory,
       }),
-    ),
-    _ => state,
-  };
+      _ => status,
+    },
+    text: state.text,
+    rev: state.rev,
+    file: (work.moved ?? work.expected)?.version,
+  );
 
-  void handle(FileInput input) {
-    switch (input) {
+  void handle(FileMessage message) {
+    switch (message) {
       case Edited():
-        _edited(input);
+        _edited(message);
       case SaveNow():
         _saveNow();
-      case Secure(:final reason):
-        _secure(reason);
+      case Secure():
+        _secure(message);
       case Observed(:final observation, :final startedAt):
         _observed(observation, startedAt);
       case Pick():
-        _pick(input);
+        _pick(message);
       case RestoreMine():
         _restoreMine();
       case Discard():
@@ -143,7 +153,7 @@ final class _Step {
   void _keepDraft() {
     final id = _id();
     _work(work.copyWith(io: KeepingDraft(id, state.text)));
-    outputs.add(
+    effects.add(
       KeepDraft(
         id,
         base: (work.editsOver ?? work.expected)?.text,
@@ -169,7 +179,7 @@ final class _Step {
 
   void _dropDraft() {
     _work(work.copyWith(draft: null));
-    outputs.add(const DropDraft());
+    effects.add(const DropDraft());
   }
 
   /// No edits are pending any more: in the file, in a conflict copy, or
@@ -206,9 +216,12 @@ final class _Step {
         backedUp: backUp ? expected.text : work.backedUp,
       ),
     );
-    outputs.add(switch ((kind, expected)) {
+    effects.add(switch ((kind, expected)) {
       (WriteKind.create, _) => Create(id, text),
-      (WriteKind.restore, _) => Restore(id, text),
+      (WriteKind.restore, final where?) => Restore(id, text, where: where),
+      (WriteKind.restore, null) => throw StateError(
+        'a restore needs the file it was',
+      ),
       (WriteKind.write || WriteKind.rewrite, final over?) => Write(
         id,
         text,
@@ -251,12 +264,8 @@ final class _Step {
         // Tried again only when asked again.
         _set(status: const SaveFailed());
         _work(work.copyWith(folderRev: null));
-        if (work.securing case (:final reasons, rung: SecureRung.file)) {
-          _work(
-            work.copyWith(
-              securing: (reasons: reasons, rung: SecureRung.device),
-            ),
-          );
+        if (work.securing case (:final asks, rung: SecureRung.file)) {
+          _work(work.copyWith(securing: (asks: asks, rung: SecureRung.device)));
         }
     }
     _takeMove();
@@ -352,7 +361,7 @@ final class _Step {
   void _replaced(Seen latest) {
     _work(work.copyWith(expected: latest, offered: [...work.offered, latest]));
     _set(text: latest.text, status: const InStep());
-    outputs.add(
+    events.add(
       Replaced(latest.text, version: latest.version, ackRev: state.rev),
     );
   }
@@ -415,9 +424,9 @@ final class _Step {
     if (_theirs(pick) case final theirs?) {
       final id = _id();
       _work(work.copyWith(io: BackingUp(id, pick)));
-      outputs.add(BackUpBoth(id, theirs: theirs, mine: state.text));
+      effects.add(BackUpBoth(id, theirs: theirs, mine: state.text));
     } else {
-      outputs.add(const PickNotKept());
+      events.add(const PickNotKept());
     }
   }
 
@@ -434,7 +443,7 @@ final class _Step {
         pick.choice == PickChoice.theirs && pick.rev != state.rev;
     if (!ok || theirs == null || dropsEdits) {
       // No backup, their version changed again, or the conflict is gone.
-      return outputs.add(const PickNotKept());
+      return events.add(const PickNotKept());
     }
     _work(
       work.copyWith(expected: theirs, editsOver: null, backedUp: theirs.text),
@@ -475,17 +484,17 @@ final class _Step {
 
   void _picked(String text, Version? version) {
     _work(work.copyWith(picks: work.picks + 1));
-    outputs.add(Picked(text, version: version, rev: state.rev));
+    events.add(Picked(text, version: version, rev: state.rev));
   }
 
   // Securing.
 
-  void _secure(SecureReason reason) {
+  void _secure(Secure secure) {
     final securing = work.securing;
     _work(
       work.copyWith(
         securing: (
-          reasons: [...?securing?.reasons, reason],
+          asks: [...?securing?.asks, secure],
           rung: securing?.rung ?? SecureRung.file,
         ),
       ),
@@ -496,7 +505,9 @@ final class _Step {
   /// under way: the file, else the device (unless a document with a file
   /// closes), else a conflict copy next to the file.
   void _secureStep(Securing securing) {
-    final closing = securing.reasons.contains(SecureReason.close);
+    final closing = securing.asks.any(
+      (secure) => secure.reason == SecureReason.close,
+    );
     final hasFile = work.expected != null;
     switch (securing.rung) {
       case _ when !_hasEdits:
@@ -519,12 +530,12 @@ final class _Step {
       case KeptDraft(:final text) when text == state.text:
         _answer(kept: !closing);
       case RefusedDraft(:final text) when text == state.text:
-        _secureStep((reasons: securing.reasons, rung: SecureRung.conflict));
+        _secureStep((asks: securing.asks, rung: SecureRung.conflict));
       case _:
         // Kept by [_next] first.
         _work(
           work.copyWith(
-            securing: (reasons: securing.reasons, rung: SecureRung.device),
+            securing: (asks: securing.asks, rung: SecureRung.device),
           ),
         );
     }
@@ -535,7 +546,7 @@ final class _Step {
     _work(work.copyWith(io: KeepingConflict(id, before: status)));
     // Set before the copy is written, so no edit can slip past it.
     _set(status: const KeptAsConflict());
-    outputs.add(KeepAsConflict(id, state.text));
+    effects.add(KeepAsConflict(id, state.text, nextTo: work.expected!));
   }
 
   void _conflictKept(EffectId id, {required bool ok}) {
@@ -554,10 +565,10 @@ final class _Step {
 
   /// Answers every [Secure] waiting.
   void _answer({required bool kept}) {
-    final reasons = work.securing!.reasons;
+    final asks = work.securing!.asks;
     _work(work.copyWith(securing: null));
-    outputs.addAll([for (final reason in reasons) Answer(reason, kept: kept)]);
-    if (kept && reasons.contains(SecureReason.close)) {
+    events.addAll([for (final ask in asks) Answer(ask.ticket, kept: kept)]);
+    if (kept && asks.any((ask) => ask.reason == SecureReason.close)) {
       _set(status: const Closed());
     }
   }

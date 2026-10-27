@@ -28,7 +28,7 @@ class DocumentEditor extends StatelessWidget {
 
   final EditorGate gate;
   final String text;
-  final Stream<EditorOutput> notices;
+  final Stream<EditorEvent> notices;
   final AddItemPlace addItems;
   final void Function(String url) onLink;
   final DocumentImages images;

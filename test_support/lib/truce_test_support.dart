@@ -6,5 +6,7 @@ library;
 
 export 'src/fake_conflict_source.dart';
 export 'src/fake_sync_adapter.dart';
+export 'src/machine_run.dart';
+export 'src/manual_timers.dart';
 export 'src/memory_file_store.dart';
 export 'src/test_helpers.dart';

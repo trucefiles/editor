@@ -30,7 +30,9 @@
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); any document type, any sync tool.
 ///
-/// `owners` holds how an owner of a domain's state runs ([Owner]).
+/// `owners` holds how an owner of a domain's state runs ([Owner]): by a
+/// pure machine ([MachineOwner]) or by plain code ([SimpleOwner]); and
+/// how a question to an owner gets its answer ([ask]).
 /// `versions` holds what conflicts and restore share: the user's choice
 /// between two versions of a file ([Resolution]) and why keeping it failed
 /// ([ResolveError]).
@@ -64,7 +66,13 @@ export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/marks/document_mark.dart';
 export 'src/marks/document_marks.dart';
+export 'src/owners/ask.dart';
+export 'src/owners/effects.dart';
+export 'src/owners/machine.dart';
+export 'src/owners/machine_owner.dart';
 export 'src/owners/owner.dart';
+export 'src/owners/simple_owner.dart';
+export 'src/owners/timers.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';

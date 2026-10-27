@@ -60,7 +60,7 @@ void main() {
 
   test('a change elsewhere without edits shows, and says so', () async {
     final session = fixture.session();
-    final notices = <FileOutput>[];
+    final notices = <FileEvent>[];
     session.fileNotices.listen(notices.add);
     final theirs = await fixture.editElsewhere('two\n');
 

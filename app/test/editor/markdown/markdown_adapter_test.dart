@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart' show Replaced, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/markdown/library/markdown_adapter.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// A Markdown edit adapter on an editor owner of [text].
 final class _Markdown {
@@ -13,6 +14,7 @@ final class _Markdown {
           text,
           version: const Version(1),
           mode: md.EditMode.markdown,
+          startTimer: ManualTimers().start,
         ),
       ) {
     adapter = MarkdownAdapter(gate);

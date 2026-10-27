@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../../common/moment.dart';
+import '../../owners/effects.dart';
 import '../version.dart';
 import 'file_contract.dart';
 
@@ -95,7 +96,7 @@ enum SecureRung {
 }
 
 /// The [Secure]s waiting for one answer, and how far keeping went.
-typedef Securing = ({List<SecureReason> reasons, SecureRung rung});
+typedef Securing = ({List<Secure> asks, SecureRung rung});
 
 /// The file owner's bookkeeping behind its status.
 final class FileWork {

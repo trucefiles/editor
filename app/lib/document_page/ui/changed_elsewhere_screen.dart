@@ -29,7 +29,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   /// The version a pick was sent against, while it is carried out.
   Seen? _picking;
 
-  late final StreamSubscription<FileOutput> _notices;
+  late final StreamSubscription<FileEvent> _notices;
 
   DocumentSession get _session => widget.session;
 

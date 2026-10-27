@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../conflicts/folder_conflicts.dart';
+import '../document_page/document_version.dart';
 import '../documents/document.dart';
 import '../folders/document_folder.dart';
 
@@ -68,4 +69,12 @@ final class FolderScans {
     }
     return null;
   }
+
+  /// What this scan tells of the document at [key]: found in a version,
+  /// gone, or unknown where the scan could not see it (see [covers]).
+  Observation observe(DocumentKey key) => switch (findNote(key)) {
+    _ when !covers(key) => const Unknown(),
+    final found? => Found(found.seen),
+    null => const Gone(),
+  };
 }

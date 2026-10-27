@@ -16,10 +16,13 @@ typedef CreateNote = Future<Result<Document, StoreError>> Function(
   required String text,
 });
 
-/// Does what one open document's file owner asks (see `file_contract.dart`):
-/// keeps and drops its draft on this device, writes, creates and restores
-/// its file, backs it up and keeps conflict copies. Knows where the file
-/// is ([file]); answers each effect with the input that tells its result.
+/// The effect handler of one open document's file owner (see
+/// `file_contract.dart`): keeps and drops its draft on this device,
+/// writes, creates and restores its file, backs it up and keeps conflict
+/// copies; answers each effect with the result the owner gets. Where an
+/// effect names a version of the file, it acts on that version's
+/// document; drafts and a new document's file go where the file is now
+/// ([file]).
 final class FileEffects {
   FileEffects(
     this._file, {
@@ -41,13 +44,14 @@ final class FileEffects {
   /// document goes when its place changes.
   DocumentDraft? _draft;
 
-  /// Where the file is.
+  /// Where the file is: where it was created or the user moved it, or
+  /// where a new document's file goes.
   DocumentFile get file => _file;
 
-  /// Does [effect]; its result as the file owner's input, `null` for an
-  /// effect without one. Draft work starts before this returns, so drafts
-  /// are kept and dropped in the order asked.
-  Future<FileInput?> run(FileEffect effect) => switch (effect) {
+  /// Does [effect]; its result for the file owner, `null` for an effect
+  /// without one. Draft work starts before this returns, so drafts are
+  /// kept and dropped in the order asked.
+  Future<FileResult?> run(FileEffect effect) => switch (effect) {
     KeepDraft(:final id, :final base, :final text) => _keepDraft(
       id,
       base,
@@ -59,23 +63,24 @@ final class FileEffects {
       _write(text, documentOf(over.version), backUpFirst: backUpFirst),
     ),
     Create(:final id, :final text) => _wrote(id, _createFile(text)),
-    Restore(:final id, :final text) => _wrote(id, _restore(text)),
+    Restore(:final id, :final text, :final where) => _wrote(
+      id,
+      _restore(text, documentOf(where.version)),
+    ),
     BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
       id,
       theirs,
       mine,
     ),
-    KeepAsConflict(:final id, :final text) => _keepAsConflict(id, text),
+    KeepAsConflict(:final id, :final text, :final nextTo) => _keepAsConflict(
+      id,
+      text,
+      documentOf(nextTo.version),
+    ),
   };
 
   /// The user moved or renamed the document to [copy].
   void moved(Document copy) => _file = ExistingFile(copy);
-
-  /// What shows now descends from [version], e.g. a change from
-  /// elsewhere: the file as last read.
-  void follow(Version version) {
-    if (_file is ExistingFile) _file = ExistingFile(documentOf(version));
-  }
 
   /// The user picked where a new document's file goes; its draft goes
   /// along.
@@ -91,7 +96,7 @@ final class FileEffects {
     _keepDraft(null, draft.base, draft.text);
   }
 
-  Future<FileInput?> _keepDraft(EffectId? id, String? base, String text) {
+  Future<FileResult?> _keepDraft(EffectId? id, String? base, String text) {
     final draft = DocumentDraft(
       id: _draftId,
       path: _file.pathFor(text),
@@ -103,13 +108,13 @@ final class FileEffects {
     return kept.then((kept) => id == null ? null : DraftKept(id, kept: kept));
   }
 
-  Future<FileInput?> _dropDraft() async {
+  Future<FileResult?> _dropDraft() async {
     _draft = null;
     await _draftsOf(_file.folder).remove(_draftId);
     return null;
   }
 
-  Future<FileInput> _wrote(EffectId id, Future<WriteOutcome> write) async {
+  Future<FileResult> _wrote(EffectId id, Future<WriteOutcome> write) async {
     final outcome = await write;
     return Wrote(id, outcome, endedAt: Moment.now());
   }
@@ -149,14 +154,12 @@ final class FileEffects {
     };
   }
 
-  Future<WriteOutcome> _restore(String text) async {
-    final file = _file;
-    if (file is! ExistingFile) return const WriteFailed();
-    final files = _filesOf(file.folder);
-    return switch (await files.restore(file.document, text)) {
+  Future<WriteOutcome> _restore(String text, Document where) async {
+    final files = _filesOf(where.folder);
+    return switch (await files.restore(where, text)) {
       Ok(value: final restored) => _written(restored),
       Err(error: StoreError.alreadyExists) => switch (await files.reload(
-        file.document,
+        where,
       )) {
         Ok(value: final there) => Taken(there.seen),
         Err() => const WriteFailed(),
@@ -171,19 +174,18 @@ final class FileEffects {
     return Written(document.seen);
   }
 
-  Future<FileInput> _backUpBoth(EffectId id, Seen theirs, String mine) async {
-    final backedUp = await _filesOf(_file.folder)
-        .backUp(documentOf(theirs.version), mine);
+  Future<FileResult> _backUpBoth(EffectId id, Seen theirs, String mine) async {
+    final document = documentOf(theirs.version);
+    final backedUp = await _filesOf(document.folder).backUp(document, mine);
     return BackedUp(id, ok: backedUp is Ok);
   }
 
-  Future<FileInput> _keepAsConflict(EffectId id, String text) async {
-    final kept = switch (_file) {
-      ExistingFile(:final document) => await _filesOf(
-        document.folder,
-      ).saveAsConflict(document, text),
-      NewFile() => const Err<void, StoreError>(StoreError.notFound),
-    };
+  Future<FileResult> _keepAsConflict(
+    EffectId id,
+    String text,
+    Document nextTo,
+  ) async {
+    final kept = await _filesOf(nextTo.folder).saveAsConflict(nextTo, text);
     return ConflictKept(id, ok: kept is Ok);
   }
 }

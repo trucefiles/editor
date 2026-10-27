@@ -206,7 +206,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     if (mounted) setState(() {});
   }
 
-  void _onEditorNotice(EditorOutput notice) {
+  void _onEditorNotice(EditorEvent notice) {
     final messenger = _messenger.currentState;
     if (messenger == null) return;
     switch (notice) {
@@ -237,7 +237,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     }
   }
 
-  void _onFileNotice(FileOutput notice) {
+  void _onFileNotice(FileEvent notice) {
     if (notice is Replaced) {
       _messenger.currentState?.showHint(
         'Updated with a change from another device or app',

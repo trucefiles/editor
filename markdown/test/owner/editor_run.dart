@@ -3,27 +3,37 @@ library;
 
 import 'package:truce_core/truce_core.dart' show Edited, Version;
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 const v1 = Version(1);
 const v2 = Version(2);
 
-/// An editor owner with what it led to so far.
+/// An editor machine with what it led to so far. [onOutputs] hears what
+/// each message sent through [send] led to.
 final class EditorRun {
   EditorRun(
     String text, {
     CheckedItems checkedItems = CheckedItems.moveToEnd,
     EditMode mode = EditMode.visual,
-  }) : owner = editorOwner(
-         text,
-         version: v1,
-         checkedItems: checkedItems,
-         mode: mode,
-       ) {
-    owner.outputs.listen(outputs.add);
-  }
+    this.onOutputs,
+  }) : owner = MachineRun.of(
+         editorMachine(
+           text,
+           version: v1,
+           checkedItems: checkedItems,
+           mode: mode,
+         ),
+       );
 
-  final EditorOwner owner;
-  final outputs = <EditorOutput>[];
+  final MachineRun<EditorMessage, EditorState, EditorEvent, EditorEffect> owner;
+  final void Function(List<Object?> outputs)? onOutputs;
+
+  List<Object?> get outputs => owner.outputs;
+
+  void send(EditorMessage message) {
+    final outputs = owner.send(message);
+    onOutputs?.call(outputs);
+  }
 
   EditorState get state => owner.state;
   int get revision => state.revision;
@@ -50,30 +60,29 @@ final class EditorRun {
   /// The leaf of row [index].
   NodeId leaf(int index) => shown.view.rows[index].leaf.id;
 
-  void caret(int row, int offset) => owner.send(
+  void caret(int row, int offset) => send(
     CaretMoved(
       TextSelection.caret(Place(leaf(row), offset)),
       revision: revision,
     ),
   );
 
-  void type(String text) => owner.send(
+  void type(String text) => send(
     Typed(text, over: shown.selection as TextSelection, revision: revision),
   );
 
-  void press(EditKey key) => owner.send(Pressed(key, revision: revision));
+  void press(EditKey key) => send(Pressed(key, revision: revision));
 
-  void runCommand(Command command) =>
-      owner.send(Run(command, revision: revision));
+  void runCommand(Command command) => send(Run(command, revision: revision));
 
   NodeId item(int index) =>
       (shown.view.doc.root.children.first as ListNode).items[index].id;
 
   void toggle(int index) =>
-      owner.send(ToggleItems([item(index)], revision: revision));
+      send(ToggleItems([item(index)], revision: revision));
 
   /// The save timer [timer] last started fires.
-  void fire(SaveTimer timer) => owner.send(
+  void fire(SaveTimer timer) => send(
     SaveTimerFired(
       outputs
           .whereType<StartSaveTimer>()

@@ -25,5 +25,12 @@ final class Seen {
   final Version version;
 
   @override
+  bool operator ==(Object other) =>
+      other is Seen && other.version == version && other.text == text;
+
+  @override
+  int get hashCode => Object.hash(version, text);
+
+  @override
   String toString() => 'Seen($version)';
 }

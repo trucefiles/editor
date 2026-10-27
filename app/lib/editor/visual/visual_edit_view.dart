@@ -40,7 +40,7 @@ class VisualEditView extends StatefulWidget {
   });
 
   final EditorGate gate;
-  final Stream<md.EditorOutput> notices;
+  final Stream<md.EditorEvent> notices;
   final AddItemPlace? addItems;
   final void Function(String url) onLink;
   final DocumentImages images;
@@ -60,7 +60,7 @@ class _VisualEditViewState extends State<VisualEditView> {
     onFold: (item) => _adapter.folded = item,
     onCaretPlaced: _focus.requestFocus,
   );
-  late final StreamSubscription<md.EditorOutput> _notices;
+  late final StreamSubscription<md.EditorEvent> _notices;
 
   /// The look in the current theme and metrics. Kept between builds:
   /// the library lays the whole document out anew for each new
