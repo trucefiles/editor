@@ -451,10 +451,16 @@ void main() {
 
     final screen = find.byType(DocumentScreen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
-    final scaffold = tester.widget<Scaffold>(
-      find.descendant(of: screen, matching: find.byType(Scaffold)),
+    // The move writes the mark without a rescan; the next scan shows it.
+    await tester.waitUntil(
+      () =>
+          tester
+              .widget<Scaffold>(
+                find.descendant(of: screen, matching: find.byType(Scaffold)),
+              )
+              .backgroundColor ==
+          documentTint('teal', scheme),
     );
-    expect(scaffold.backgroundColor, documentTint('teal', scheme));
   });
 
   testApp('moving onto a taken name in a subfolder keeps both', (tester) async {

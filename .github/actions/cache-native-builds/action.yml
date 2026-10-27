@@ -1,0 +1,23 @@
+name: Cache native builds
+description: >
+  Keeps the native libraries that Dart build hooks compile (the tray's C++
+  code) between runs, so they are rebuilt only when a dependency changes.
+  Runs after setup-flutter. Release builds don't use it and always build
+  fresh.
+
+inputs:
+  build:
+    description: What the job builds, e.g. apk; each build keeps its own cache.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # The hooks check their sources by content, so an older cache is safe:
+    # whatever changed is rebuilt.
+    - name: Restore native builds
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .dart_tool/hooks_runner
+        key: native-${{ runner.os }}-${{ inputs.build }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('pubspec.lock') }}
+        restore-keys: native-${{ runner.os }}-${{ inputs.build }}-${{ env.FLUTTER_VERSION }}-
