@@ -11,7 +11,8 @@ import 'timers.dart';
 /// from the effects, so no caller can fake one. Effects and work stay
 /// hidden.
 ///
-/// Each step, in this order: the state is set; each effect starts, in
+/// The machine's starting effects start as the owner is made. Each step,
+/// in this order: the state is set; each effect starts, in
 /// order, before the next message is handled ([Wait]s by the timers, the
 /// rest by the handler); then [changes] and [events] fire.
 final class MachineOwner<
@@ -34,7 +35,9 @@ final class MachineOwner<
        _step = machine.step,
        _state = machine.state,
        _work = machine.work,
-       _timers = Timers(startTimer: startTimer);
+       _timers = Timers(startTimer: startTimer) {
+    machine.effects.forEach(_start);
+  }
 
   final Machine<Message, State, Work, Event, Effect> _machine;
   final Step<State, Work, Event, Effect> Function(State, Work, Message) _step;

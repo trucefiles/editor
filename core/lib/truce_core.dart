@@ -53,6 +53,7 @@ export 'src/changes/watched_folder_changes.dart';
 export 'src/common/keyed_task_queue.dart';
 export 'src/common/moment.dart';
 export 'src/common/result.dart';
+export 'src/compare/compare_owner.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';

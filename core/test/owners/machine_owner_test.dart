@@ -139,6 +139,20 @@ void main() {
     expect(owner.state, 5, reason: 'no result, no step');
   });
 
+  test('starting effects start as the owner is made', () async {
+    final owner = _Owner(
+      Machine(
+        state: _counter.state,
+        work: _counter.work,
+        effects: const [_Get(0)],
+        step: _counter.step,
+      ),
+      handle: (_) async => const _Fetched(7),
+    );
+    await pumpEventQueue();
+    expect(owner.state, 7);
+  });
+
   test('changes fire only when the state differs', () {
     final owner = _Owner(_counter, handle: _never);
     final changes = <int>[];

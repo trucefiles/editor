@@ -19,7 +19,11 @@ final class ManualTimers {
       _pending.firstWhere((timer) => timer.delay == delay).fire();
 
   /// Fires every pending timer, oldest first.
-  void fireAll() => [..._pending].forEach((timer) => timer.fire());
+  void fireAll() {
+    for (final timer in [..._pending]) {
+      timer.fire();
+    }
+  }
 }
 
 final class _ManualTimer implements Timer {

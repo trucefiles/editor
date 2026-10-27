@@ -15,6 +15,7 @@ final class Machine<Message, State, Work, Event, Effect> {
   const Machine({
     required this.state,
     required this.work,
+    this.effects = const [],
     required this.step,
     this.violations,
   });
@@ -24,6 +25,9 @@ final class Machine<Message, State, Work, Event, Effect> {
 
   /// The work it starts with.
   final Work work;
+
+  /// The effects it starts with (e.g. loading what it shows first).
+  final List<Effect> effects;
 
   final Step<State, Work, Event, Effect> Function(
     State state,

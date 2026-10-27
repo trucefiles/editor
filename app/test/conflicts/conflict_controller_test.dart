@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/conflicts/conflict_controller.dart';
+import 'package:truce_editor/conflicts/conflict_sides.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
@@ -40,20 +41,38 @@ void main() {
   late ProviderSubscription<ConflictState> watching;
   late NotifierProvider<ConflictController, ConflictState> provider;
 
+  ConflictState current() => container.read(provider);
+
+  /// Watches the screen of [conflict], as the screen does.
+  void watch(FolderConflict conflict) {
+    provider = conflictProvider(conflict);
+    watching = container.listen(provider, (_, _) {});
+  }
+
+  /// Waits until the sides shown loaded, or failed to.
+  Future<ConflictState> loaded() async {
+    final done = Completer<ConflictState>();
+    final waiting = container.listen(provider, (_, state) {
+      if (state is! CompareLoading && !done.isCompleted) done.complete(state);
+    }, fireImmediately: true);
+    final state = await done.future;
+    waiting.close();
+    return state;
+  }
+
+  /// The sides shown.
+  ConflictSides sides() => switch (current()) {
+    CompareShowing(:final sides) => sides,
+    final other => throw StateError('no sides show: $other'),
+  };
+
   /// Opens the scanned conflict and waits until its sides are loaded.
   Future<ConflictController> open() async {
     final scans = await container.read(folderScansProvider.future);
-    final conflict = scans.conflicts.all.single;
-    provider = conflictProvider(conflict);
-    final loaded = Completer<void>();
-    watching = container.listen(provider, (_, state) {
-      if (state.sides != null && !loaded.isCompleted) loaded.complete();
-    }, fireImmediately: true);
-    await loaded.future;
+    watch(scans.conflicts.all.single);
+    await loaded();
     return container.read(provider.notifier);
   }
-
-  ConflictState current() => container.read(provider);
 
   test('loads both sides of the oldest copy', () async {
     write('todo.md', '# Todo\nmine\n');
@@ -62,9 +81,8 @@ void main() {
 
     await open();
 
-    final sides = current().sides!.value;
-    expect(sides.current, '# Todo\nmine\n');
-    expect(sides.other, '# Todo\nfirst\n');
+    expect(sides().current, '# Todo\nmine\n');
+    expect(sides().other, '# Todo\nfirst\n');
   });
 
   test('resolves and rescans when the screen closes meanwhile', () async {
@@ -75,7 +93,7 @@ void main() {
     final kept = controller.keep(const KeepCurrent());
     watching.close();
 
-    expect((await kept).done, isTrue);
+    expect(await kept, isNull, reason: 'the screen closed first');
     final scans = await container.read(folderScansProvider.future);
     expect(scans.conflicts.all, isEmpty);
   });
@@ -88,13 +106,15 @@ void main() {
 
     final kept = await controller.keep(const KeepCurrent());
 
-    expect(kept, (error: null, done: false));
-    expect(current().sides!.value.other, '# Todo\nsecond\n');
-    expect(current().busy, isFalse);
+    expect(kept, isA<KeepAnswer>().having((a) => a.done, 'done', isFalse));
+    expect(kept!.error, isNull);
+    await loaded();
+    expect(sides().other, '# Todo\nsecond\n');
 
     final last = await controller.keep(const KeepCurrent());
 
-    expect(last, (error: null, done: true));
+    expect(last!.done, isTrue);
+    expect(last.error, isNull);
     expect(files(), ['todo.md']);
     expect(File('${dir.path}/todo.md').readAsStringSync(), '# Todo\nmine\n');
   });
@@ -106,7 +126,7 @@ void main() {
 
     final kept = await controller.keep(const KeepOther());
 
-    expect(kept.done, isTrue);
+    expect(kept!.done, isTrue);
     expect(File('${dir.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
   });
 
@@ -118,7 +138,7 @@ void main() {
 
     final kept = await controller.keep(const KeepOther());
 
-    expect(kept.done, isTrue);
+    expect(kept!.done, isTrue);
     final deep = Directory('${dir.path}/a/b/c');
     expect(deep.listSync().map((e) => e.uri.pathSegments.last), ['todo.md']);
     expect(File('${deep.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
@@ -128,11 +148,11 @@ void main() {
   test('restores a document deleted several levels deep', () async {
     write('a/b/c/$first', '# Todo\nfirst\n');
     final controller = await open();
-    expect(current().sides!.value.current, isNull);
+    expect(sides().current, isNull);
 
     final kept = await controller.keep(const KeepOther());
 
-    expect(kept.done, isTrue);
+    expect(kept!.done, isTrue);
     final deep = Directory('${dir.path}/a/b/c');
     expect(deep.listSync().map((e) => e.uri.pathSegments.last), ['todo.md']);
     expect(File('${deep.path}/todo.md').readAsStringSync(), '# Todo\nfirst\n');
@@ -146,8 +166,10 @@ void main() {
 
     final kept = await controller.keep(const KeepOther());
 
-    expect(kept, (error: ResolveError.changedSinceScan, done: false));
-    expect(current().sides!.value.current, '# Todo\nchanged elsewhere\n');
+    expect(kept!.error, ResolveError.changedSinceScan);
+    expect(kept.done, isFalse);
+    await loaded();
+    expect(sides().current, '# Todo\nchanged elsewhere\n');
     expect(files(), [first, 'todo.md']..sort());
   });
 
@@ -155,21 +177,22 @@ void main() {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');
     final scans = await container.read(folderScansProvider.future);
-    provider = conflictProvider(scans.conflicts.all.single);
     // Changed since the scan, so the sides can't be loaded from it.
     write('todo.md', '# Todo\nchanged\n');
-    var loaded = Completer<void>();
-    container.listen(provider, (_, state) {
-      if (state.sides != null && !loaded.isCompleted) loaded.complete();
-    }, fireImmediately: true);
-    await loaded.future;
-    expect(current().sides!.error, StoreError.changedSinceRead);
+    watch(scans.conflicts.all.single);
+    expect(
+      await loaded(),
+      isA<CompareLoadFailed<FolderConflict, ConflictSides>>().having(
+        (s) => s.error,
+        'error',
+        StoreError.changedSinceRead,
+      ),
+    );
 
-    loaded = Completer<void>();
     await container.read(folderScansProvider.notifier).refresh();
-    await loaded.future;
+    await loaded();
 
-    expect(current().sides!.value.current, '# Todo\nchanged\n');
+    expect(sides().current, '# Todo\nchanged\n');
   });
 
   test('shows why the sides cannot be read', () async {
@@ -178,13 +201,17 @@ void main() {
     final scans = await container.read(folderScansProvider.future);
     final FolderConflict conflict = scans.conflicts.all.single;
     File('${dir.path}/$first').deleteSync();
-    final loaded = Completer<ConflictState>();
-    container.listen(conflictProvider(conflict), (_, state) {
-      if (state.sides != null && !loaded.isCompleted) loaded.complete(state);
-    }, fireImmediately: true);
+    watch(conflict);
 
-    final state = await loaded.future;
+    final state = await loaded();
 
-    expect(state.sides!.error, StoreError.notFound);
+    expect(
+      state,
+      isA<CompareLoadFailed<FolderConflict, ConflictSides>>().having(
+        (s) => s.error,
+        'error',
+        StoreError.notFound,
+      ),
+    );
   });
 }
