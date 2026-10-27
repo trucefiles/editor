@@ -11,8 +11,8 @@ import 'timers.dart';
 /// from the effects, so no caller can fake one. Effects and work stay
 /// hidden.
 ///
-/// An effect that fails is a bug: it is reported, and the owner closes,
-/// so no question to it waits forever. The machine's starting effects
+/// A step, rule or effect that throws is a bug: it is reported, and the
+/// owner ends at once, so no question to it waits forever. The machine's starting effects
 /// start as the owner is made. Each step,
 /// in this order: the state is set; each effect starts, in
 /// order, before the next message is handled ([Wait]s by the timers, the
@@ -53,6 +53,7 @@ final class MachineOwner<
   Work _work;
   bool _handling = false;
   bool _closed = false;
+  bool _broken = false;
 
   /// Effects started whose result has not come back yet.
   int _underWay = 0;
@@ -80,17 +81,35 @@ final class MachineOwner<
   }
 
   void _take(Message message) {
+    if (_broken) return;
     _messages.add(message);
     if (_handling) return;
     _handling = true;
     try {
       while (_messages.isNotEmpty) {
-        _stepOn(_messages.removeFirst());
+        final next = _messages.removeFirst();
+        try {
+          _stepOn(next);
+        } on Object catch (error, stack) {
+          _fail(error, stack);
+        }
       }
     } finally {
       _handling = false;
     }
     _endIfQuiet();
+  }
+
+  /// A bug (a step, a rule or an effect that throws): reported where
+  /// uncaught errors go, and the owner ends at once. Every question to it
+  /// ends unanswered; messages and results that come later are ignored.
+  void _fail(Object error, StackTrace stack) {
+    _closed = true;
+    _broken = true;
+    _messages.clear();
+    _timers.close();
+    Zone.current.handleUncaughtError(error, stack);
+    if (!_ended.isCompleted) _ended.complete(_endStreams());
   }
 
   void _stepOn(Message message) {
@@ -122,15 +141,9 @@ final class MachineOwner<
     };
     unawaited(
       result
-          .then(
-            (result) {
-              if (result != null) _take(result);
-            },
-            onError: (Object error, StackTrace stack) {
-              Zone.current.handleUncaughtError(error, stack);
-              unawaited(close());
-            },
-          )
+          .then((result) {
+            if (result != null) _take(result);
+          }, onError: _fail)
           .whenComplete(() {
             _underWay--;
             _endIfQuiet();

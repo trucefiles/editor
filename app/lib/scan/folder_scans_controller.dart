@@ -61,8 +61,9 @@ class FolderScansController extends AsyncNotifier<FolderScans> {
   /// Rescans now, e.g. after a write, when a document opens, when the app
   /// comes back to the foreground, or when the user asks; done once a scan
   /// that started after this call has ended, so it sees every write made
-  /// before. Waits for the first folders, so it never scans too few. Does
-  /// nothing once the app ends.
+  /// before. Waits for the first folders, so it never scans too few: while
+  /// the folder list can't be loaded, it waits until it can. Does nothing
+  /// once the app ends.
   Future<void> refresh() async {
     if (!ref.mounted) return;
     final owner = ref.read(folderScansOwnerProvider);

@@ -61,9 +61,12 @@ final class DocumentActions {
     DocumentPlace place, {
     required String title,
     required String text,
-  }) async => (await _ask<DocumentCreated>(
+  }) async => switch (await _ask<DocumentCreated>(
     (ticket) => CreateDocument(ticket, place, title: title, text: text),
-  )).result;
+  )) {
+    final answer? => answer.result,
+    null => const Err(_notRun),
+  };
 
   /// See [DocumentSteps.move].
   Future<Result<Document, MoveFailure>> move(
@@ -71,41 +74,54 @@ final class DocumentActions {
     String text,
     DocumentPlace place, {
     String? title,
-  }) async => (await _ask<DocumentMoved>(
+  }) async => switch (await _ask<DocumentMoved>(
     (ticket) => MoveDocument(ticket, document, text, place, title: title),
-  )).result;
+  )) {
+    final answer? => answer.result,
+    null => const Err(MoveNotWritten(_notRun)),
+  };
 
   /// See [DocumentSteps.delete].
   Future<Result<DeletedNote, DeleteFailure>> delete(
     Document document,
     String text,
-  ) async => (await _ask<DocumentDeleted>(
+  ) async => switch (await _ask<DocumentDeleted>(
     (ticket) => DeleteDocument(ticket, document, text),
-  )).result;
+  )) {
+    final answer? => answer.result,
+    null => const Err(DeleteNotDone(_notRun)),
+  };
 
   /// See [DocumentSteps.undoDelete].
   Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async =>
-      (await _ask<DeleteUndone>((ticket) => UndoDelete(ticket, deleted)))
-          .result;
+      switch (await _ask<DeleteUndone>(
+        (ticket) => UndoDelete(ticket, deleted),
+      )) {
+        final answer? => answer.result,
+        null => const Err(_notRun),
+      };
 
   /// See [DocumentSteps.setMark].
   Future<Result<void, StoreError>> setMark(
     Document document,
     DocumentMark mark,
-  ) async =>
-      (await _ask<MarkSet>((ticket) => SetMark(ticket, document, mark))).result;
+  ) async => switch (await _ask<MarkSet>(
+    (ticket) => SetMark(ticket, document, mark),
+  )) {
+    final answer? => answer.result,
+    null => const Err(_notRun),
+  };
 
-  /// The documents owner's answer to [asking]. The owner runs every
-  /// action sent before it closes, so a missing answer is a bug.
-  Future<A> _ask<A extends DocumentsAnswer>(
+  /// The documents owner's answer to [asking]; `null` once the owner
+  /// ended (a bug in an earlier action, or the app ends).
+  Future<A?> _ask<A extends DocumentsAnswer>(
     DocumentsInput Function(Ticket ticket) asking,
-  ) async {
+  ) {
     final owner = _ref.read(documentsProvider).owner;
-    final answer = await ask<DocumentsInput, A>(
-      owner.send,
-      owner.events,
-      asking,
-    );
-    return answer ?? (throw StateError('asked after the app ended'));
+    return ask<DocumentsInput, A>(owner.send, owner.events, asking);
   }
 }
+
+/// How an action fails that never ran, as its owner had ended: the files
+/// could not be worked on.
+const _notRun = StoreError.ioFailure;

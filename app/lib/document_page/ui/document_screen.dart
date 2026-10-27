@@ -199,13 +199,20 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   bool _toldStopped = false;
 
-  /// Tells once that the document stopped taking edits (a bug).
+  /// Tells once that the document stopped taking edits (a bug), once
+  /// it is known whether its edits are kept.
   void _tellIfStopped() {
-    if (!_session.stopped || _toldStopped) return;
+    final kept = _session.editsKept;
+    if (!_session.stopped || kept == null || _toldStopped) return;
     _toldStopped = true;
     _messenger.currentState?.showHint(
-      'Something went wrong, so this document is read only now. Your edits '
-      'are kept on this device and go into the file at the next start.',
+      kept
+          ? 'Something went wrong, so this document is read only now. Your '
+                'edits are kept on this device and go into the file at the '
+                'next start.'
+          : 'Something went wrong, so this document is read only now, and '
+                "your latest edits couldn't be kept. Copy them elsewhere "
+                'before you leave.',
     );
   }
 
@@ -317,7 +324,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         Navigator.pop(context);
       case DeleteRefused(:final failure):
         showSnack(context, deleteFailureText(failure));
-      case AlreadyGone():
+      case AlreadyGone() || DocumentStopped():
         break;
     }
   }
@@ -341,6 +348,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         );
       case Err(error: NoFile.notCreated):
         // The banner tells why.
+        break;
+      case Err(error: NoFile.stopped):
+        // Told as it stopped.
         break;
     }
   }

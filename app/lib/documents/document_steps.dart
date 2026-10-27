@@ -21,7 +21,7 @@ final documentStepsProvider = Provider<DocumentSteps>(DocumentSteps.new);
 /// delete and undo, color, and recovering the drafts of the last run. Run
 /// one at a time by the documents owner, so their side steps (mark,
 /// settings, backups) never mix.
-final class DocumentSteps {
+base class DocumentSteps {
   DocumentSteps(this._ref);
 
   final Ref _ref;

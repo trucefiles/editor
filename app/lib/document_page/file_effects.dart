@@ -105,18 +105,26 @@ final class FileEffects {
   /// Keeps [text] as the draft without the file owner, once it stopped
   /// (a bug): over the base of the draft before, else of the file as
   /// opened. It goes into the file at the next start.
-  Future<void> keepLastDraft(String text) async {
+  /// Whether they are kept, or there was nothing to keep.
+  Future<bool> keepLastDraft(String text) async {
     final base =
         _draft?.base ??
         switch (_file) {
           ExistingFile(:final document) => document.file.text,
           NewFile() => null,
         };
-    if (text == (base ?? '')) return;
-    await _keepDraft(null, base, text);
+    if (text == (base ?? '')) return true;
+    return _keep(base, text);
   }
 
-  Future<FileResult?> _keepDraft(EffectId? id, String? base, String text) {
+  Future<FileResult?> _keepDraft(EffectId? id, String? base, String text) =>
+      _keep(
+        base,
+        text,
+      ).then((kept) => id == null ? null : DraftKept(id, kept: kept));
+
+  /// Keeps [text] over [base] as this document's draft; whether it is kept.
+  Future<bool> _keep(String? base, String text) {
     final draft = DocumentDraft(
       id: _draftId,
       path: _file.pathFor(text),
@@ -124,8 +132,7 @@ final class FileEffects {
       text: text,
     );
     _draft = draft;
-    final kept = _draftsOf(_file.folder).keep(draft);
-    return kept.then((kept) => id == null ? null : DraftKept(id, kept: kept));
+    return _draftsOf(_file.folder).keep(draft);
   }
 
   Future<FileResult?> _dropDraft() async {

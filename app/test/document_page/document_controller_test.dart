@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/document_controller.dart';
+import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
+import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
+import '../support.dart' show eventually;
 import 'document_fixture.dart';
 
 void main() {
@@ -198,6 +202,52 @@ void main() {
       final document = (await controller.withFile()).value;
 
       expect(settings[document.key]?.mode, EditMode.markdown);
+    });
+  });
+
+  group('once the document stopped (a bug)', () {
+    /// A controller on a session whose file owner stopped as it wrote.
+    Future<DocumentController> stopped() async {
+      late DocumentController controller;
+      await runZonedGuarded(() async {
+        final session = DocumentSession(
+          FileEffects(
+            ExistingFile(fixture.document),
+            filesOf: (_) => throw StateError('bug'),
+            draftsOf: (folder) => fixture.drafts[folder.id]!,
+            create: (_, {required title, required text}) =>
+                throw StateError('bug'),
+          ),
+        );
+        addTearDown(session.dispose);
+        controller = controllerOn(session, delete: (_, _) => fail('deleted'));
+        session.type('mine ');
+        await session.secure(.hide);
+        await pumpEventQueue();
+      }, (_, _) {});
+      expect(controller.session.stopped, isTrue);
+      return controller;
+    }
+
+    test('it is not deleted', () async {
+      final controller = await stopped();
+
+      expect(await controller.deleteDocument(), isA<DocumentStopped>());
+      expect(fixture.onDisk('a.md'), 'one\n');
+    });
+
+    test('nothing acts on its file', () async {
+      final controller = await stopped();
+
+      expect((await controller.withFile()).error, NoFile.stopped);
+    });
+
+    test('it goes as the edits are kept on this device', () async {
+      final controller = await stopped();
+      await eventually(() async => controller.session.editsKept != null);
+
+      expect(controller.session.editsKept, isTrue);
+      expect(await controller.mayGo(.close, () => fail('asked')), isTrue);
     });
   });
 

@@ -36,7 +36,7 @@ void main() {
     expect(owner.state, 3);
   });
 
-  test('a handler that throws (a bug) closes the owner', () async {
+  test('a handler that throws (a bug) ends the owner at once', () async {
     final errors = <Object>[];
     final answers = <String>[];
     var ended = false;
@@ -53,7 +53,7 @@ void main() {
     }, (error, _) => errors.add(error));
 
     expect(errors.single, isA<StateError>());
-    expect(answers, ['done 2'], reason: 'sent before, still runs');
+    expect(answers, isEmpty, reason: 'inputs waiting are dropped');
     expect(ended, isTrue, reason: 'questions to it end unanswered');
   });
 

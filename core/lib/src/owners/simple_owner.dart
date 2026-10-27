@@ -21,8 +21,8 @@ typedef HandleInput<In, State, Event> = Future<void> Function(
 
 /// An [Owner] whose inputs (e.g. user actions) are run by plain async
 /// code ([HandleInput]), one at a time, in the order sent; tested on
-/// fakes, not as a pure machine. A handler that throws (a bug) closes it:
-/// inputs sent before still run.
+/// fakes, not as a pure machine. A handler that throws (a bug) ends it at
+/// once.
 final class SimpleOwner<In, State, Event> implements Owner<In, State, Event> {
   SimpleOwner(this._state, this._handle);
 
@@ -74,13 +74,16 @@ final class SimpleOwner<In, State, Event> implements Owner<In, State, Event> {
   }
 
   /// Handles [input]. An error is a bug: it is reported where uncaught
-  /// errors go, and the owner closes, so no question to it waits forever.
+  /// errors go, and the owner ends at once; inputs waiting are dropped, so
+  /// every question to it ends unanswered.
   Future<void> _handleOne(In input) async {
     try {
       await _handle(input, _outlet);
     } on Object catch (error, stack) {
+      _closed = true;
+      _inputs.clear();
       Zone.current.handleUncaughtError(error, stack);
-      unawaited(close());
+      if (!_ended.isCompleted) _ended.complete(_endStreams());
     }
   }
 

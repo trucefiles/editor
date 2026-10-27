@@ -66,9 +66,18 @@ final class DocumentSession extends ChangeNotifier {
   bool _stopped = false;
 
   /// Whether the file owner stopped by a bug: the document takes no more
-  /// edits; those made so far are kept on this device and go into the
-  /// file at the next start.
+  /// edits; those made so far are kept on this device ([editsKept]) and
+  /// go into the file at the next start.
   bool get stopped => _stopped;
+
+  /// Once [stopped]: whether the edits are kept on this device; `null`
+  /// while that is not known yet.
+  bool? get editsKept => _editsKept;
+  bool? _editsKept;
+
+  /// The keeps of the last draft started since [stopped]; the last one
+  /// holds every edit.
+  int _lastKeeps = 0;
 
   /// Where the file is.
   DocumentFile get file => switch (document) {
@@ -156,7 +165,8 @@ final class DocumentSession extends ChangeNotifier {
   }
 
   void _onEditorEvent(EditorEvent event) => switch (event) {
-    ToFile(:final input) when _stopped => _keepLastDraft(input),
+    ToFile(input: Edited(:final text)) when _stopped => _keepLastDraft(text),
+    ToFile() when _stopped => null,
     ToFile(:final input) => _file.send(input),
     AskLink() ||
     UndoOffered() ||
@@ -170,16 +180,21 @@ final class DocumentSession extends ChangeNotifier {
   void _onFileStopped() {
     if (_disposed) return;
     _stopped = true;
-    unawaited(_effects.keepLastDraft(text));
+    _keepLastDraft(text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
     gate.send((_) => SecureEditor(Ticket(), SecureReason.hide));
     notifyListeners();
   }
 
-  void _keepLastDraft(FileInput input) {
-    if (input case Edited(:final text)) {
-      unawaited(_effects.keepLastDraft(text));
-    }
+  void _keepLastDraft(String text) {
+    final keep = ++_lastKeeps;
+    unawaited(
+      _effects.keepLastDraft(text).then((kept) {
+        if (keep != _lastKeeps || _disposed) return;
+        _editsKept = kept;
+        notifyListeners();
+      }),
+    );
   }
 
   /// Edits held in the editor change where the edits are, before they

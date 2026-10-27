@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_actions.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
+import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_document_place/new_document_place.dart';
 import 'package:truce_editor/documents/new_document_place/new_document_place_controller.dart';
@@ -400,6 +402,29 @@ void main() {
     expect((await scans()).markOf(document.key), teal);
   });
 
+  test('after a bug in an action, actions fail instead of waiting', () async {
+    final buggy = ProviderContainer(
+      overrides: [
+        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        documentStepsProvider.overrideWith(_BuggySteps.new),
+      ],
+    );
+    addTearDown(buggy.dispose);
+    final buggyActions = buggy.read(documentActionsProvider);
+    final document = await documentIn(work, 'plan.md', '# Plan\n');
+    final outcomes = <Result<void, StoreError>>[];
+
+    await runZonedGuarded(() async {
+      outcomes
+        ..add(await buggyActions.setMark(document, _teal))
+        ..add(await buggyActions.setMark(document, _teal));
+    }, (_, _) {});
+
+    expect(outcomes, hasLength(2));
+    expect(outcomes, everyElement(isA<Err<void, StoreError>>()));
+  });
+
   test('setMark writes nothing if the mark is already set', () async {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
 
@@ -428,4 +453,17 @@ void main() {
     expect(file(work, 'a/b/c/todo.md').readAsStringSync(), '# Deep\nmine\n');
     expect((await scans()).markOf(deep.key), mark);
   });
+}
+
+const _teal = DocumentMark(color: 'teal');
+
+/// Steps whose color step has a bug.
+final class _BuggySteps extends DocumentSteps {
+  _BuggySteps(super.ref);
+
+  @override
+  Future<Result<void, StoreError>> setMark(
+    Document document,
+    DocumentMark mark,
+  ) => throw StateError('bug');
 }

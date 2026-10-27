@@ -47,6 +47,11 @@ final class AlreadyGone extends DeleteOutcome {
   const AlreadyGone();
 }
 
+/// The document stopped taking edits (a bug); it is not deleted.
+final class DocumentStopped extends DeleteOutcome {
+  const DocumentStopped();
+}
+
 /// The document is still there, for [failure].
 final class DeleteRefused extends DeleteOutcome {
   const DeleteRefused(this.failure);
@@ -61,6 +66,9 @@ enum NoFile {
 
   /// Its file could not be created; the screen's banner tells why.
   notCreated,
+
+  /// The document stopped taking edits (a bug); nothing acts on it.
+  stopped,
 }
 
 /// How restoring a backup into the open document ended.
@@ -151,10 +159,10 @@ final class DocumentController {
   /// they are kept: in the file or a conflict copy, or on this device
   /// while the folder can't be reached. A failed save may just have
   /// started a check of the folder, so this waits for its outcome. Once
-  /// the session stopped, they are kept on this device.
+  /// the session stopped, whether it kept them on this device.
   Future<bool> keep(SecureReason reason) async {
-    // Kept on this device by the session itself.
-    if (session.stopped) return true;
+    // Kept on this device by the session itself, if it could.
+    if (session.stopped) return session.editsKept ?? false;
     if (await session.secure(reason)) return true;
     return await reachSettled() == Reach.unreachable;
   }
@@ -162,6 +170,8 @@ final class DocumentController {
   /// Deletes the document with every edit sent; a new document is just
   /// dropped.
   Future<DeleteOutcome> deleteDocument() async {
+    // Its edits wait on this device for the next start.
+    if (session.stopped) return const DocumentStopped();
     if (session.file is NewFile) {
       session.discard();
       return const NewDropped();
@@ -178,6 +188,7 @@ final class DocumentController {
   /// The document's file, with every edit sent, for an action that needs
   /// one; a new document's file is created first.
   Future<Result<Document, NoFile>> withFile() async {
+    if (session.stopped) return const Err(NoFile.stopped);
     await session.secure(SecureReason.hide);
     return switch ((session.document, session.status)) {
       (final document?, _) => Ok(document),
