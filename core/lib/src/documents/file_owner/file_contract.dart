@@ -333,6 +333,8 @@ final class KeepAsConflict extends FileEffect {
 sealed class FileStatus {
   const FileStatus();
 
+  /// Equal by case only: a case with fields must compare them in its own
+  /// `==`, or the owner's `changes` would miss a change of them.
   @override
   bool operator ==(Object other) => other.runtimeType == runtimeType;
 

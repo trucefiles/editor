@@ -152,6 +152,21 @@ void main() {
     expect(seen, [Reach.retrying]);
   });
 
+  test('closing during a check starts no retry', () async {
+    final listing = Completer<void>();
+    final timers = ManualTimers();
+    final slow = folderReach(
+      _SlowStore(listing.future),
+      startTimer: timers.start,
+    )..send(const Accessed(Access.mayBeGone));
+
+    final closed = slow.close();
+    listing.complete();
+    await closed;
+
+    expect(timers.pending, isEmpty);
+  });
+
   test('an access that works during the first check ends it', () async {
     final listing = Completer<void>();
     final slow = folderReach(_SlowStore(listing.future));

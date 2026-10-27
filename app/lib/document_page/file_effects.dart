@@ -5,9 +5,9 @@ import '../documents/document_draft.dart';
 import '../documents/document_drafts.dart';
 import '../documents/document_files.dart';
 import '../documents/document_place.dart';
+import '../documents/document_version.dart';
 import '../folders/document_folder.dart';
 import 'document_file.dart';
-import 'document_version.dart';
 
 /// Creates a document's file holding [text] at [place], named after [title].
 typedef CreateNote = Future<Result<Document, StoreError>> Function(
@@ -38,6 +38,12 @@ final class FileEffects {
   /// One draft per open document; names it in its folder's drafts.
   final _draftId = DocumentDraft.newId();
 
+  /// Where drafts and a new document's file go: the place the user last
+  /// gave. Writes go over the version the owner names instead. The two
+  /// differ only after a move that left the original (it changed
+  /// meanwhile): the draft then names the copy while writes go over the
+  /// original. Nothing is lost: a recovered draft that does not build on
+  /// the copy's text becomes a conflict copy.
   DocumentFile _file;
 
   /// The draft kept last, until it is dropped; kept again where a new
@@ -94,6 +100,20 @@ final class FileEffects {
       _draftsOf(from.folder).remove(_draftId);
     }
     _keepDraft(null, draft.base, draft.text);
+  }
+
+  /// Keeps [text] as the draft without the file owner, once it stopped
+  /// (a bug): over the base of the draft before, else of the file as
+  /// opened. It goes into the file at the next start.
+  Future<void> keepLastDraft(String text) async {
+    final base =
+        _draft?.base ??
+        switch (_file) {
+          ExistingFile(:final document) => document.file.text,
+          NewFile() => null,
+        };
+    if (text == (base ?? '')) return;
+    await _keepDraft(null, base, text);
   }
 
   Future<FileResult?> _keepDraft(EffectId? id, String? base, String text) {

@@ -99,6 +99,17 @@ void main() {
     expect((await scans()).findNote(document.key), isNotNull);
   });
 
+  test('an action before the first scan does not wait forever', () async {
+    // Drafts are recovered first, so the action's rescan can run.
+    final created = await actions.create(
+      (folder: folders[0], subfolder: null),
+      title: 'Plan',
+      text: 'Plan\n',
+    );
+
+    expect((await scans()).findNote(created.value.key), isNotNull);
+  });
+
   test('create puts the document in the chosen subfolder', () async {
     Directory('${work.path}/a/b').createSync(recursive: true);
     await scans();

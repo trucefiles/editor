@@ -12,12 +12,28 @@ export 'documents_contract.dart';
 /// `documents_contract.dart`); it has no state of its own to show.
 typedef DocumentsOwner = Owner<DocumentsInput, Null, DocumentsAnswer>;
 
+/// The app's documents owner, and the answer to its first input: putting
+/// the drafts left by the last run into their files.
+typedef Documents = ({
+  DocumentsOwner owner,
+  Future<DraftsRecovered?> draftsRecovered,
+});
+
 /// The app's documents owner. Outlives every screen, so an undo still
-/// works after the editor closed.
-final documentsOwnerProvider = Provider<DocumentsOwner>((ref) {
+/// works after the editor closed. Its first input recovers the drafts
+/// written before it was made; later ones belong to open documents.
+final documentsProvider = Provider<Documents>((ref) {
   final owner = documentsOwner(ref.read(documentStepsProvider));
   ref.onDispose(() => unawaited(owner.close()));
-  return owner;
+  final startedAt = DateTime.now();
+  return (
+    owner: owner,
+    draftsRecovered: ask<DocumentsInput, DraftsRecovered>(
+      owner.send,
+      owner.events,
+      (ticket) => RecoverDrafts(ticket, before: startedAt),
+    ),
+  );
 });
 
 /// A documents owner that runs each action by [steps].

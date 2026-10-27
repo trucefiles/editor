@@ -36,19 +36,25 @@ void main() {
     expect(owner.state, 3);
   });
 
-  test('an input whose handler throws (a bug) stops none after it', () async {
+  test('a handler that throws (a bug) closes the owner', () async {
     final errors = <Object>[];
+    final answers = <String>[];
+    var ended = false;
     await runZonedGuarded(() async {
+      owner.events.listen(answers.add, onDone: () => ended = true);
       owner
         ..send(1)
         ..send(2);
       gates[1]!.completeError(StateError('bug'));
       gates[2] = Completer<void>()..complete();
       await pumpEventQueue();
+      owner.send(3);
+      await pumpEventQueue();
     }, (error, _) => errors.add(error));
 
     expect(errors.single, isA<StateError>());
-    expect(owner.state, 2);
+    expect(answers, ['done 2'], reason: 'sent before, still runs');
+    expect(ended, isTrue, reason: 'questions to it end unanswered');
   });
 
   test('events and changes tell what the inputs led to', () async {

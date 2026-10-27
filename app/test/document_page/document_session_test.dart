@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
-import 'package:truce_editor/document_page/document_version.dart';
+import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/document_page/save_state.dart';
+import 'package:truce_editor/documents/document_version.dart';
 
 import '../support.dart' hide documentOf;
 import 'document_fixture.dart';
@@ -35,6 +37,35 @@ void main() {
 
     expect(fixture.onDisk('Milk.md'), 'Milk\n');
     expect(session.document?.path, path('Milk.md'));
+  });
+
+  test('a bug in writing stops the session; edits stay a draft', () async {
+    final errors = <Object>[];
+    late DocumentSession session;
+
+    // Made in the zone, so the error of its file owner is heard there.
+    await runZonedGuarded(() async {
+      session = DocumentSession(
+        FileEffects(
+          ExistingFile(fixture.document),
+          filesOf: (_) => throw StateError('bug'),
+          draftsOf: (folder) => fixture.drafts[folder.id]!,
+          create: (_, {required title, required text}) =>
+              throw StateError('bug'),
+        ),
+      )..type('mine ');
+      expect(await session.secure(.hide), isFalse);
+      await pumpEventQueue();
+    }, (error, _) => errors.add(error));
+    addTearDown(session.dispose);
+
+    expect(errors.single, isA<StateError>());
+    expect(session.stopped, isTrue);
+    expect(fixture.onDisk('a.md'), 'one\n');
+    await eventually(
+      () async =>
+          (await fixture.draftsIn('f1')).singleOrNull?.text == 'mine one\n',
+    );
   });
 
   test('typing tells listeners the edits are being edited, at once', () {

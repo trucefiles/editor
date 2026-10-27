@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/document_file.dart';
-import 'package:truce_editor/document_page/document_version.dart';
+import 'package:truce_editor/documents/document_version.dart';
 
 import '../support.dart' hide documentOf;
 import 'document_fixture.dart';

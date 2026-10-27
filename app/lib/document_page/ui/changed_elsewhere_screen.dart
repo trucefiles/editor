@@ -5,10 +5,10 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../backups/backup_retention.dart';
 import '../../common/snack.dart';
+import '../../documents/document_version.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../document_session.dart';
-import '../document_version.dart';
 
 /// Shows the open document's edits next to the version from elsewhere,
 /// in the same view as a sync conflict, so the user sees both before

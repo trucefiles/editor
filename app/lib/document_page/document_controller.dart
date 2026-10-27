@@ -150,8 +150,11 @@ final class DocumentController {
   /// Keeps the edits for [reason] ([DocumentSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
   /// while the folder can't be reached. A failed save may just have
-  /// started a check of the folder, so this waits for its outcome.
+  /// started a check of the folder, so this waits for its outcome. Once
+  /// the session stopped, they are kept on this device.
   Future<bool> keep(SecureReason reason) async {
+    // Kept on this device by the session itself.
+    if (session.stopped) return true;
     if (await session.secure(reason)) return true;
     return await reachSettled() == Reach.unreachable;
   }

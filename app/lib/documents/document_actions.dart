@@ -100,7 +100,7 @@ final class DocumentActions {
   Future<A> _ask<A extends DocumentsAnswer>(
     DocumentsInput Function(Ticket ticket) asking,
   ) async {
-    final owner = _ref.read(documentsOwnerProvider);
+    final owner = _ref.read(documentsProvider).owner;
     final answer = await ask<DocumentsInput, A>(
       owner.send,
       owner.events,

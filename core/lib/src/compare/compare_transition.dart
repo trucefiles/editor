@@ -32,6 +32,27 @@ compareStep<Target, Sides>(
   );
 }
 
+/// Where the compare owner starts: loading [target].
+Step<
+  CompareState<Target, Sides>,
+  CompareWork,
+  KeepAnswer,
+  CompareEffect<Target, Sides>
+>
+compareStart<Target, Sides>(Target target) {
+  final step = _Step<Target, Sides>(
+    false,
+    CompareLoading(target),
+    const CompareWork(),
+  ).._load(target);
+  return (
+    state: step.state,
+    work: step.work,
+    events: step.events,
+    effects: step.effects,
+  );
+}
+
 /// How [state] and [work] break the compare owner's rules.
 List<String> compareViolations<Target, Sides>(
   CompareState<Target, Sides> state,

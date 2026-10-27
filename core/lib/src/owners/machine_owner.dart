@@ -11,7 +11,9 @@ import 'timers.dart';
 /// from the effects, so no caller can fake one. Effects and work stay
 /// hidden.
 ///
-/// The machine's starting effects start as the owner is made. Each step,
+/// An effect that fails is a bug: it is reported, and the owner closes,
+/// so no question to it waits forever. The machine's starting effects
+/// start as the owner is made. Each step,
 /// in this order: the state is set; each effect starts, in
 /// order, before the next message is handled ([Wait]s by the timers, the
 /// rest by the handler); then [changes] and [events] fire.
@@ -113,15 +115,22 @@ final class MachineOwner<
     final result = switch (effect) {
       final Wait<Result> wait => _timers.wait(wait),
       _ => switch (_handle) {
-        final handle? => handle(effect),
+        // A handler that throws at once fails like one that fails later.
+        final handle? => Future.sync(() => handle(effect)),
         null => throw StateError('no handler for $effect'),
       },
     };
     unawaited(
       result
-          .then((result) {
-            if (result != null) _take(result);
-          })
+          .then(
+            (result) {
+              if (result != null) _take(result);
+            },
+            onError: (Object error, StackTrace stack) {
+              Zone.current.handleUncaughtError(error, stack);
+              unawaited(close());
+            },
+          )
           .whenComplete(() {
             _underWay--;
             _endIfQuiet();

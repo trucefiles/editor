@@ -142,7 +142,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       delete: ref.read(documentActionsProvider).delete,
       editSettings: _settings.edit,
     );
-    _session.addListener(_showShownMode);
+    _session
+      ..addListener(_showShownMode)
+      ..addListener(_tellIfStopped);
     _notices = [
       _session.editorNotices.listen(_onEditorNotice),
       _session.fileNotices.listen(_onFileNotice),
@@ -161,7 +163,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     for (final notices in _notices) {
       unawaited(notices.cancel());
     }
-    _session.removeListener(_showShownMode);
+    _session
+      ..removeListener(_showShownMode)
+      ..removeListener(_tellIfStopped);
     _controller.dispose();
     final session = _session;
     // Also after a leave that kept the edits: the screen may also go
@@ -191,6 +195,18 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final shown = _isReadOnly ? EditMode.read : _controller.mode;
     if (_gate.state.mode != shown) _gate.send((_) => SetMode(shown));
     if (mounted) setState(() {});
+  }
+
+  bool _toldStopped = false;
+
+  /// Tells once that the document stopped taking edits (a bug).
+  void _tellIfStopped() {
+    if (!_session.stopped || _toldStopped) return;
+    _toldStopped = true;
+    _messenger.currentState?.showHint(
+      'Something went wrong, so this document is read only now. Your edits '
+      'are kept on this device and go into the file at the next start.',
+    );
   }
 
   void _onEditorNotice(EditorEvent notice) {
@@ -508,7 +524,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   );
 
   /// Only shown in Read: no mode to pick.
-  bool get _isReadOnly => _isDone || _isUnreachable;
+  bool get _isReadOnly => _isDone || _isUnreachable || _session.stopped;
 
   /// Open for editing: undo and redo work.
   bool get _isEdited => !_isReadOnly && _gate.state.mode != EditMode.read;

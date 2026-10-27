@@ -13,9 +13,12 @@ final class Timers {
 
   /// The waits not over yet, each with its timer.
   final _waiting = <Completer<Object?>, Timer>{};
+  bool _closed = false;
 
-  /// [wait]'s result once its delay is over; `null` if [close] came first.
+  /// [wait]'s result once its delay is over; `null` if [close] came first,
+  /// at once if it came before.
   Future<Done?> wait<Done>(Wait<Done> wait) {
+    if (_closed) return Future.value();
     final waited = Completer<Object?>();
     _waiting[waited] = _start(wait.delay, () {
       if (_waiting.remove(waited) != null) waited.complete(wait.done);
@@ -26,6 +29,7 @@ final class Timers {
   /// Ends every wait not over yet, without its result: nothing waits for
   /// time once its owner is closed.
   void close() {
+    _closed = true;
     for (final MapEntry(key: waited, value: timer) in _waiting.entries) {
       timer.cancel();
       waited.complete(null);

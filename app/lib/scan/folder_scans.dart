@@ -1,8 +1,8 @@
 import 'package:truce_core/truce_core.dart';
 
 import '../conflicts/folder_conflicts.dart';
-import '../document_page/document_version.dart';
 import '../documents/document.dart';
+import '../documents/document_version.dart';
 import '../folders/document_folder.dart';
 
 /// What the last scan of all folders found.

@@ -89,6 +89,21 @@ final _counter = Machine<_Message, int, int, int, Object>(
   },
 );
 
+/// As [_counter], but a fetched result also starts a wait.
+final _sleepAfterFetch = Machine<_Message, int, int, int, Object>(
+  state: 0,
+  work: 0,
+  step: (state, steps, message) {
+    final step = _counter.step(state, steps, message);
+    return (
+      state: step.state,
+      work: step.work,
+      events: step.events,
+      effects: [...step.effects, if (message is _Fetched) const _Sleep()],
+    );
+  },
+);
+
 Future<_Result?> _never(Object _) => Completer<_Result?>().future;
 
 void main() {
@@ -214,6 +229,36 @@ void main() {
       owner.changes.listen(null, onDone: () => ended = true);
       await owner.close();
       expect(ended, isTrue);
+    });
+
+    test('a failed effect (a bug) is reported and closes it', () async {
+      final errors = <Object>[];
+      var ended = false;
+      await runZonedGuarded(() async {
+        final owner = _Owner(_counter, handle: (_) => throw StateError('bug'));
+        owner.events.listen(null, onDone: () => ended = true);
+        owner.send(const _Fetch(1));
+        await pumpEventQueue();
+        owner.send(const _Add(1));
+        expect(owner.state, 0, reason: 'closed: later inputs are dropped');
+      }, (error, _) => errors.add(error));
+
+      expect(errors.single, isA<StateError>());
+      expect(ended, isTrue);
+    });
+
+    test('a wait asked after close ends at once', () async {
+      final clock = ManualTimers();
+      final fetched = Completer<_Result?>();
+      final owner = _Owner(
+        _sleepAfterFetch,
+        handle: (_) => fetched.future,
+        startTimer: clock.start,
+      )..send(const _Fetch(1));
+      final closed = owner.close();
+      fetched.complete(const _Fetched(1));
+      await closed;
+      expect(clock.pending, isEmpty);
     });
   });
 }

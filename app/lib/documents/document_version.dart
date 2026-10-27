@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document.dart';
+import 'document.dart';
 
 /// A version of a document's file as the app read or wrote it: owners only
 /// compare it; the app acts on its [document] (where the file is, how it is

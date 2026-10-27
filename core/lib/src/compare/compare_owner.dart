@@ -1,6 +1,5 @@
 import '../common/moment.dart';
 import '../common/result.dart';
-import '../owners/effects.dart';
 import '../owners/machine.dart';
 import '../owners/machine_owner.dart';
 import '../owners/owner.dart';
@@ -49,13 +48,16 @@ abstract interface class CompareSource<Target, Sides> {
 CompareMachine<Target, Sides> compareMachine<Target, Sides>(
   Target start, {
   required bool goesOn,
-}) => Machine(
-  state: CompareLoading(start),
-  work: const CompareWork(loading: EffectId(0), nextId: 1),
-  effects: [LoadSides(const EffectId(0), start)],
-  step: (state, work, message) => compareStep(goesOn, state, work, message),
-  violations: compareViolations,
-);
+}) {
+  final first = compareStart<Target, Sides>(start);
+  return Machine(
+    state: first.state,
+    work: first.work,
+    effects: first.effects,
+    step: (state, work, message) => compareStep(goesOn, state, work, message),
+    violations: compareViolations,
+  );
+}
 
 /// The compare owner of [start], whose sides and keeps go through
 /// [source]; see [compareMachine] for [goesOn].

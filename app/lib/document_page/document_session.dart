@@ -5,10 +5,10 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../documents/document.dart';
+import '../documents/document_version.dart';
 import '../editor/editor_gate.dart';
 import '../scan/folder_scans.dart';
 import 'document_file.dart';
-import 'document_version.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
 
@@ -44,7 +44,7 @@ final class DocumentSession extends ChangeNotifier {
     _subscriptions = [
       gate.events.listen(_onEditorEvent),
       _file.events.listen(_onFileEvent),
-      _file.changes.listen((_) => notifyListeners()),
+      _file.changes.listen((_) => notifyListeners(), onDone: _onFileStopped),
     ];
     gate.addListener(_onEditorChanged);
   }
@@ -61,6 +61,14 @@ final class DocumentSession extends ChangeNotifier {
 
   /// Whether the editor held edits not yet sent, as listeners last heard.
   bool _unsent = false;
+
+  bool _disposed = false;
+  bool _stopped = false;
+
+  /// Whether the file owner stopped by a bug: the document takes no more
+  /// edits; those made so far are kept on this device and go into the
+  /// file at the next start.
+  bool get stopped => _stopped;
 
   /// Where the file is.
   DocumentFile get file => switch (document) {
@@ -148,12 +156,31 @@ final class DocumentSession extends ChangeNotifier {
   }
 
   void _onEditorEvent(EditorEvent event) => switch (event) {
+    ToFile(:final input) when _stopped => _keepLastDraft(input),
     ToFile(:final input) => _file.send(input),
     AskLink() ||
     UndoOffered() ||
     UndoRefused() ||
     HistoryEnd() => _editorNotices.add(event),
   };
+
+  /// The file owner ended before [dispose]: it stopped by a bug. The
+  /// edits it holds, and those the editor still holds, are kept as the
+  /// draft.
+  void _onFileStopped() {
+    if (_disposed) return;
+    _stopped = true;
+    unawaited(_effects.keepLastDraft(text));
+    // The editor sends what it still holds; [_keepLastDraft] keeps it.
+    gate.send((_) => SecureEditor(Ticket(), SecureReason.hide));
+    notifyListeners();
+  }
+
+  void _keepLastDraft(FileInput input) {
+    if (input case Edited(:final text)) {
+      unawaited(_effects.keepLastDraft(text));
+    }
+  }
 
   /// Edits held in the editor change where the edits are, before they
   /// reach the file owner.
@@ -180,6 +207,7 @@ final class DocumentSession extends ChangeNotifier {
   /// Closes both owners; work under way still ends.
   @override
   void dispose() {
+    _disposed = true;
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }

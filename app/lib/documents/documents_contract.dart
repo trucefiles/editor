@@ -74,8 +74,8 @@ final class SetMark extends DocumentsInput {
   final DocumentMark mark;
 }
 
-/// Put the drafts written before [before] into their files; sent once,
-/// before the first scan.
+/// Put the drafts written before [before] into their files; the owner's
+/// first input, before the first scan.
 final class RecoverDrafts extends DocumentsInput {
   const RecoverDrafts(super.ticket, {required this.before});
 

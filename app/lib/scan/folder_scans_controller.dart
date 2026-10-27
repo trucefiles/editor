@@ -16,8 +16,7 @@ typedef FolderScansOwner = ScansOwner<DocumentFolder, FolderScans>;
 /// The app's scans owner, wired: it scans the added folders, the first
 /// time once the edits left by the last run are in their files (so no
 /// document shows its old text while its draft is pending), and again
-/// whenever the folders change. Drafts written after the app started
-/// belong to open documents and are left alone.
+/// whenever the folders change.
 final folderScansOwnerProvider = Provider<FolderScansOwner>((ref) {
   final scanning = FolderScanning(
     (folder) => ref.read(folderServicesProvider(folder.location)),
@@ -25,14 +24,8 @@ final folderScansOwnerProvider = Provider<FolderScansOwner>((ref) {
   );
   final owner = scansOwner<DocumentFolder, FolderScans>(scanning.scan);
   ref.onDispose(() => unawaited(owner.close()));
-  final documents = ref.read(documentsOwnerProvider);
-  final startedAt = DateTime.now();
   unawaited(
-    ask<DocumentsInput, DraftsRecovered>(
-      documents.send,
-      documents.events,
-      (ticket) => RecoverDrafts(ticket, before: startedAt),
-    ).then((_) {
+    ref.read(documentsProvider).draftsRecovered.then((_) {
       if (!ref.mounted) return;
       ref.listen(foldersProvider, (_, folders) {
         if (folders.value case final folders?) {
