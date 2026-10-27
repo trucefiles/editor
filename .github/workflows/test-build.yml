@@ -22,6 +22,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/build-apk
+        with:
+          cache-native-builds: 'true'
 
   build-flatpak:
     name: Build Flatpak
@@ -32,3 +34,5 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/build-flatpak
+        with:
+          cache-native-builds: 'true'
