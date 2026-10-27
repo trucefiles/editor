@@ -14,7 +14,8 @@ final class ImeBatchFix extends DeltaTextInputClientDecorator {
 /// reshaped it for the new line (the library sends the input method the
 /// text as it is right after). A change before the new line that comes
 /// after it (Samsung's keyboard sends its autocorrect after the new line)
-/// is moved ahead of it, so it isn't lost.
+/// is moved ahead of it, so it isn't lost. Only replacements and
+/// deletions are moved: the recorded batches have no insertion there.
 List<TextEditingDelta> fixedBatch(List<TextEditingDelta> deltas) {
   final newline = deltas.indexWhere(_isNewline);
   if (newline < 0) return deltas;

@@ -158,6 +158,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     }
     _session.removeListener(_onSessionChanged);
     final session = _session;
+    // Also after a leave that kept the edits: the screen may also go
+    // without one (its route removed), and a second answer is quick.
     unawaited(
       session.secure(SecureReason.close).whenComplete(() {
         session.dispose();

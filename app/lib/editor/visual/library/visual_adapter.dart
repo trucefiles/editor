@@ -374,6 +374,10 @@ final class VisualAdapter {
 
   /// After an Enter, the row above the caret shows in the node the caret
   /// was in, and the caret's row in the node the library made for it.
+  /// Also where the owner split nothing (an empty item taken out of its
+  /// list, Enter on a selected block): the rows then only change nodes,
+  /// which shows the same, and the input method finds the caret in the
+  /// new node, as it expects after every Enter.
   void _applySplit(List<RowLook> looks, md.FormattedContent shown) {
     final split = _split;
     _split = null;
