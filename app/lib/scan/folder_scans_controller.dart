@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/draft_recovery.dart';
+import '../documents/documents_owner.dart';
 import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
 import '../sync_tool/folder_services.dart';
@@ -16,8 +16,8 @@ typedef FolderScansOwner = ScansOwner<DocumentFolder, FolderScans>;
 /// The app's scans owner, wired: it scans the added folders, the first
 /// time once the edits left by the last run are in their files (so no
 /// document shows its old text while its draft is pending), and again
-/// whenever the folders change. Nothing is scanned if the folders can't
-/// be loaded.
+/// whenever the folders change. Drafts written after the app started
+/// belong to open documents and are left alone.
 final folderScansOwnerProvider = Provider<FolderScansOwner>((ref) {
   final scanning = FolderScanning(
     (folder) => ref.read(folderServicesProvider(folder.location)),
@@ -25,15 +25,21 @@ final folderScansOwnerProvider = Provider<FolderScansOwner>((ref) {
   );
   final owner = scansOwner<DocumentFolder, FolderScans>(scanning.scan);
   ref.onDispose(() => unawaited(owner.close()));
+  final documents = ref.read(documentsOwnerProvider);
+  final startedAt = DateTime.now();
   unawaited(
-    ref.read(draftRecoveryProvider.future).then((_) {
+    ask<DocumentsInput, DraftsRecovered>(
+      documents.send,
+      documents.events,
+      (ticket) => RecoverDrafts(ticket, before: startedAt),
+    ).then((_) {
       if (!ref.mounted) return;
       ref.listen(foldersProvider, (_, folders) {
         if (folders.value case final folders?) {
           owner.send(FoldersChanged(folders));
         }
       }, fireImmediately: true);
-    }, onError: (Object _) {}),
+    }),
   );
   return owner;
 });

@@ -174,6 +174,26 @@ void main() {
       expect(settings.settingsOf(document.key), DocumentSettings.defaults);
     });
 
+    test(
+      'asked right after a color, waits for it and takes it along',
+      () async {
+        final document = await documentIn(work, 'plan.md', '# Plan\n');
+        const mark = DocumentMark(color: 'teal');
+
+        final marked = actions.setMark(document, mark);
+        final moved = actions.move(document, '# Plan\n', (
+          folder: folders[1],
+          subfolder: null,
+        ));
+
+        expect(await marked, isA<Ok<void, StoreError>>());
+        final copy = (await moved).value;
+        await container.read(folderScansProvider.notifier).refresh();
+        expect((await scans()).markOf(copy.key), mark);
+        expect(marksFile(work), isNot(contains('plan.md')));
+      },
+    );
+
     test('renames the document, keeping its extension', () async {
       final document = await documentIn(work, 'plan.MD', 'a');
 

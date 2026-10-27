@@ -11,6 +11,7 @@ import '../../common/error_text.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
+import '../../documents/deleted_note.dart';
 import '../../documents/document.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
