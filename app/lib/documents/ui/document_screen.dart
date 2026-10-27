@@ -86,7 +86,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   EditorGate get _gate => _session.gate;
 
-  late final NoteFolder _folder;
+  /// Where the document is now: it changes when the user moves it, or
+  /// picks another place for a new one.
+  NoteFolder get _folder => _session.file.folder;
 
   /// The document's settings on this device; the defaults until it has a
   /// file.
@@ -118,7 +120,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       (_, final place?) => NewFile(place),
       _ => throw StateError('A note or a place is needed.'),
     };
-    _folder = file.folder;
     _session = DocumentSession(
       FileEffects(
         file,
@@ -128,7 +129,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ),
       // Not yet kept as a conflict copy: only an unreachable folder
       // makes it read only.
-      mode: _isUnreachable ? EditMode.read : _mode,
+      mode: _unreachable(file.folder) ? EditMode.read : _mode,
       checkedItems: settings.checkedItems,
     );
     _controller = DocumentController(
@@ -462,8 +463,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   /// The edits were kept as a conflict copy; nothing more to edit here.
   bool get _isDone => _session.status is KeptAsConflict;
 
-  bool get _isUnreachable =>
-      ref.read(folderReachProvider(_folder.location)) == Reach.unreachable;
+  bool get _isUnreachable => _unreachable(_folder);
+
+  bool _unreachable(NoteFolder folder) =>
+      ref.read(folderReachProvider(folder.location)) == Reach.unreachable;
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.

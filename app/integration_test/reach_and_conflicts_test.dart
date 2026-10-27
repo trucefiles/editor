@@ -36,7 +36,7 @@ void main() {
   ) async {
     await tester.addFolder(app);
     await tester.waitFor(find.byTooltip('New note'));
-    await tester.loseFolder(app);
+    await tester.loseFolder(app.notes);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
 
@@ -51,7 +51,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openNote('Plan');
     await tester.chooseMode('Markdown edit');
-    await tester.loseFolder(app);
+    await tester.loseFolder(app.notes);
 
     await tester.waitFor(find.textContaining("Notes can't be reached."));
     expect(find.byType(SuperEditor), findsNothing);
@@ -73,6 +73,26 @@ void main() {
 
     await tester.pageBack();
 
+    await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
+    expect(find.text("Your edits can't be saved"), findsNothing);
+  });
+
+  testApp('a note moved to another folder goes by that folder\'s reach', (
+    tester,
+  ) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.addWorkFolder();
+    await tester.openNote('Plan');
+    await tester.chooseMode('Markdown edit');
+    await tester.placeNote(folder: 'Work');
+    await tester.waitUntil(() => File('${app.work.path}/plan.md').existsSync());
+
+    await tester.loseFolder(app.work);
+
+    await tester.waitFor(find.textContaining("Work can't be reached."));
+    expect(find.byType(SuperEditor), findsNothing);
+    await tester.pageBack();
     await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
     expect(find.text("Your edits can't be saved"), findsNothing);
   });
