@@ -166,9 +166,9 @@ void main() {
 
     // The caret at the end of a row's text, then a few presses.
     for (final (start, row, caret, presses, typed) in [
-      ('', 0, 0, 1, '# x'),
-      ('', 0, 0, 2, '## x'),
-      ('', 0, 0, 3, '### x'),
+      ('', 0, 0, 1, '# x\n'),
+      ('', 0, 0, 2, '## x\n'),
+      ('', 0, 0, 3, '### x\n'),
       ('Title', 0, 5, 1, '# Titlex'),
       ('Title', 0, 5, 2, '## Titlex'),
       ('Title', 0, 5, 4, 'Titlex'),
@@ -213,7 +213,7 @@ void main() {
       await press(tester, 'Bold (Ctrl+B)', 1);
       await tester.typeImeText('milk');
 
-      expect(document.text, '**milk**');
+      expect(document.text, '**milk**\n');
     });
   });
 
@@ -362,7 +362,7 @@ void main() {
       await press(tester, 'Checklist (Ctrl+Shift+9)');
       await tester.typeImeText('eggs');
 
-      expect(document.text, '- [ ] eggs');
+      expect(document.text, '- [ ] eggs\n');
     });
   });
 
@@ -434,7 +434,7 @@ void main() {
     await tester.typeImeText('Idea');
 
     expect(find.text('Untitled'), findsNothing);
-    expect(document.text, 'Idea');
+    expect(document.text, 'Idea\n');
   });
 
   testWidgets('a tapped table shows its text with the caret in it, and is '

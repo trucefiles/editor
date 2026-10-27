@@ -37,11 +37,16 @@ where it can. Everything else in the file stays exactly as it was.
     Truce adds a blank line between them.
 - **Paste** turns each pasted line into its own item in a list, or its
   own paragraph elsewhere, like pressing Enter.
+- **List buttons** turn lines into a list, or change its kind. Pressed
+  again where the lines already have that kind (or a checkbox), they make
+  the lines text again.
 - **Numbering.** Numbered items count on from the list's first number. A
   new numbered sublist starts at 1.
 - **Empty checklist items** are saved as `- [ ] ` with a space at the
   end, so other apps see them as checklist items too. This is the only
   place Truce saves a trailing space.
+- **New notes end with a line break**, as most tools expect. Files that
+  already exist keep how they end.
 - **Lines that join the text above.** A line of text right below a list
   item or quote belongs to it, even without indent or `>`. That's the
   standard's rule.

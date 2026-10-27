@@ -33,7 +33,7 @@ void main() {
 
     expect(await session.secure(.close), isTrue);
 
-    expect(fixture.onDisk('Milk.md'), 'Milk');
+    expect(fixture.onDisk('Milk.md'), 'Milk\n');
     expect(session.note?.path, path('Milk.md'));
   });
 

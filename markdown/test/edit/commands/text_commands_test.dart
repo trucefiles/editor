@@ -60,7 +60,7 @@ void main() {
     final document = Shown.read('```\ncode\n```');
     expect(document.rows, ['code', '']);
     expect(_type(document, 1, 0, 'x').document.text, '```\ncode\n```\n\nx');
-    expect(_type(Shown.read(''), 0, 0, 'x').document.text, 'x');
+    expect(_type(Shown.read(''), 0, 0, 'x').document.text, 'x\n');
   });
 
   test('an empty paragraph left in a list splits it once it gets text', () {

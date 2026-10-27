@@ -103,6 +103,8 @@ final class _Printer {
     final finalNewline =
         lines.length > 1 && lines.last.text.isEmpty && trailing < lines.length;
     final count = finalNewline ? lines.length - 1 : lines.length;
+    // A new text ends with one too, as most tools expect.
+    final endsWithNewline = finalNewline || markdown.text.isEmpty;
     if (_printable(root.children).isEmpty && blocks.isEmpty) {
       return (text: markdown.text, lines: _ranges);
     }
@@ -118,7 +120,7 @@ final class _Printer {
     );
     for (final (index, line) in _out.indexed) {
       text.write(line.text);
-      if (index < _out.length - 1 || finalNewline) {
+      if (index < _out.length - 1 || endsWithNewline) {
         text.write(line.ending.isEmpty ? markdown.lineEnding : line.ending);
       }
     }

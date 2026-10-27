@@ -29,7 +29,7 @@ void main() {
     expect(app.topFiles, isEmpty);
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\n\nMilk');
+    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\n\nMilk\n');
     await tester.waitForNoteClosed();
     expect(find.text('Groceries'), findsOneWidget);
   });
@@ -50,7 +50,7 @@ void main() {
     await tester.typeNewNote('Idea');
 
     tester.hideAndComeBack();
-    await tester.waitForFile(app.file('Idea.md'), 'Idea');
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
 
     await tester.typeOver('Idea\nmore\n');
     await tester.pageBack();
@@ -123,7 +123,7 @@ void main() {
     await tester.waitFor(find.text('Notes/a/b/c/Shop.md'));
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\n\nMilk');
+    await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\n\nMilk\n');
     await tester.waitFor(find.byTooltip('New note'));
     expect(app.topFiles.length, 1);
   });
@@ -140,10 +140,10 @@ void main() {
 
     // The user switches apps with the dialog open, and comes back.
     tester.hideAndComeBack();
-    await tester.waitForFile(app.file('Idea.md'), 'Idea');
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
     await tester.fillPlace(subfolder: 'inbox');
 
-    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea');
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
     await tester.pageBack();
     await tester.waitForNoteClosed();
     expect(app.file('Idea.md').existsSync(), isFalse);
@@ -165,7 +165,7 @@ void main() {
     await tester.typeNewNote('Idea');
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea');
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
     await tester.waitFor(find.byTooltip('New note'));
   });
 

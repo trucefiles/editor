@@ -40,7 +40,7 @@ void main() {
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\n\nnew');
+    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\n\nnew\n');
     expect(app.file('Groceries.md').readAsStringSync(), 'Groceries\nold\n');
   });
 
@@ -53,7 +53,7 @@ void main() {
     await tester.waitForNoteClosed();
     await tester.waitForFile(
       app.file('Mon Tue plan.md'),
-      'Mon/Tue: plan?\n\nx',
+      'Mon/Tue: plan?\n\nx\n',
     );
     expect(app.namesIn(), ['Mon Tue plan.md']);
   });
@@ -488,7 +488,7 @@ void main() {
 
     expect(app.folder('inbox').existsSync(), isFalse);
     final texts = [for (final file in app.topFiles) file.readAsStringSync()];
-    expect(texts, contains('Idea\n\nmore'));
+    expect(texts, contains('Idea\n\nmore\n'));
   });
 
   testApp('a pin comes back with an undone delete', (tester) async {
