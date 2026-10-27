@@ -144,6 +144,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       reachSettled: () =>
           ref.read(folderReachProvider(_folder.location).notifier).settled(),
       backUp: _backUp,
+      canEdit: () => !_isReadOnly,
     );
     _session.addListener(_onSessionChanged);
     _notices = [
@@ -444,7 +445,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       document: document,
       title: documentTitle(text, _session.file.pathFor(text)),
       controller: _controller,
-      canRestore: !_isReadOnly,
       messenger: messenger,
     );
   }

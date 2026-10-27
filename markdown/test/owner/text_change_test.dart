@@ -25,4 +25,18 @@ void main() {
   test('takes repeated text as gone at its end', () {
     expect(textChange('abab', 'ab'), (start: 2, removed: 'ab', added: ''));
   });
+
+  test('never cuts a character made of two code units in two', () {
+    // 😀 and 😁 share their first code unit.
+    expect(textChange('a😀b', 'a😁b'), (start: 1, removed: '😀', added: '😁'));
+  });
+
+  test('never cuts one in two at the change end', () {
+    // U+1F600 and U+1FA00 share their second code unit.
+    expect(textChange('a\u{1F600}b', 'a\u{1FA00}b'), (
+      start: 1,
+      removed: '\u{1F600}',
+      added: '\u{1FA00}',
+    ));
+  });
 }

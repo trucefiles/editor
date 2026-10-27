@@ -8,15 +8,14 @@ import '../../documents/document.dart';
 import '../document_controller.dart';
 
 /// Opens the backups of the open [document], whose title is [title];
-/// restoring one goes through [controller], into the document (only if
-/// [canRestore]), and comes back to it; the editor offers its undo.
+/// restoring one goes through [controller], into the document (while it
+/// can be edited), and comes back to it; the editor offers its undo.
 /// [messenger] is the document screen's, to tell a failure there.
 Future<void> openDocumentBackups(
   BuildContext context, {
   required Document document,
   required String title,
   required DocumentController controller,
-  required bool canRestore,
   required ScaffoldMessengerState messenger,
 }) => Navigator.push(
   context,
@@ -28,7 +27,6 @@ Future<void> openDocumentBackups(
         context,
         backup,
         controller: controller,
-        canRestore: canRestore,
         messenger: messenger,
       ),
     ),
@@ -41,7 +39,6 @@ Future<void> _compare(
   BuildContext context,
   FolderBackup backup, {
   required DocumentController controller,
-  required bool canRestore,
   required ScaffoldMessengerState messenger,
 }) async {
   final navigator = Navigator.of(context);
@@ -52,16 +49,21 @@ Future<void> _compare(
       builder: (_) => RestoreIntoDocumentScreen(
         backup,
         current: current,
-        canRestore: canRestore,
+        canRestore: controller.canEdit(),
       ),
     ),
   );
   if (restored == null) return;
-  if (!await controller.restore(restored)) {
-    messenger.showHint(
+  final failure = switch (await controller.restore(restored)) {
+    RestoreOutcome.restored => null,
+    RestoreOutcome.notEditable =>
+      "The document can't be edited here now, so nothing was restored.",
+    RestoreOutcome.notBackedUp =>
       "The document's text could not be backed up, so nothing was restored.",
-    );
-    return;
+  };
+  if (failure != null) {
+    messenger.showHint(failure);
+  } else if (navigator.mounted) {
+    navigator.pop();
   }
-  if (navigator.mounted) navigator.pop();
 }

@@ -301,15 +301,19 @@ final class _Step {
     );
   }
 
+  /// Undoes the latest step; at the history's start, tells so.
   void _undo() {
-    final history = work.history;
-    switch (history.undone(_snapshot())) {
-      case (history: final next, :final back):
-        work = work.copyWith(history: next);
-        _restore(back);
-        if (!next.canUndo) outputs.add(HistoryEnd(next.start));
-      case null:
-        outputs.add(HistoryEnd(history.start));
+    _undoLatest();
+    if (!work.history.canUndo) outputs.add(HistoryEnd(work.history.start));
+  }
+
+  void _undoLatest() {
+    if (work.history.undone(_snapshot()) case (
+      history: final next,
+      :final back,
+    )) {
+      work = work.copyWith(history: next);
+      _restore(back);
     }
   }
 
@@ -326,7 +330,7 @@ final class _Step {
   /// Undoes step [id] if it is the latest.
   void _undoStep(int id) {
     if (work.history.latestId == id) {
-      _undo();
+      _undoLatest();
     } else {
       outputs.add(UndoRefused(id));
     }

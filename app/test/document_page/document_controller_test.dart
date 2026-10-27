@@ -28,6 +28,7 @@ void main() {
       session,
       reachSettled: () async => reach,
       backUp: (_) async => const Ok(null),
+      canEdit: () => true,
     );
   }
 
@@ -37,6 +38,7 @@ void main() {
       session,
       reachSettled: () async => reach,
       backUp: (_) async => const Ok(null),
+      canEdit: () => true,
     );
 
     expect(await controller.keep(.close), isTrue);
@@ -72,10 +74,10 @@ void main() {
           backedUp.add(text);
           return const Ok(null);
         },
+        canEdit: () => true,
       );
 
-      expect(await controller.textNow(), 'mine one\n');
-      expect(await controller.restore('backup\n'), isTrue);
+      expect(await controller.restore('backup\n'), RestoreOutcome.restored);
       expect(backedUp, ['mine one\n']);
       expect(textShown(session), 'backup');
       session.gate.send((now) => Undo(revision: now.revision));
@@ -88,9 +90,28 @@ void main() {
         session,
         reachSettled: () async => reach,
         backUp: (_) async => const Err(StoreError.ioFailure),
+        canEdit: () => true,
       );
 
-      expect(await controller.restore('backup\n'), isFalse);
+      expect(await controller.restore('backup\n'), RestoreOutcome.notBackedUp);
+      expect(textShown(session), 'mine one');
+    });
+
+    test('changes nothing once the document cannot be edited', () async {
+      final session = fixture.session()..type('mine ');
+      final backedUp = <String>[];
+      final controller = DocumentController(
+        session,
+        reachSettled: () async => reach,
+        backUp: (text) async {
+          backedUp.add(text);
+          return const Ok(null);
+        },
+        canEdit: () => false,
+      );
+
+      expect(await controller.restore('backup\n'), RestoreOutcome.notEditable);
+      expect(backedUp, isEmpty);
       expect(textShown(session), 'mine one');
     });
   });

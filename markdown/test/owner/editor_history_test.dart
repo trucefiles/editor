@@ -212,6 +212,18 @@ void main() {
       expect(run.rows, ['b']);
     });
 
+    test('is not told to end by the offered undo of its only step', () {
+      final run = EditorRun('ab\n\n---\n\ncd')
+        ..caret(2, 0)
+        ..press(EditKey.backspace)
+        ..press(EditKey.backspace);
+      final offered = run.outputs.whereType<UndoOffered>().single;
+      run.owner.send(UndoStep(offered.id));
+      expect(run.rows, ['ab', '[DividerNode]', 'cd']);
+      expect(run.state.canUndo, isFalse);
+      expect(run.outputs.whereType<HistoryEnd>(), isEmpty);
+    });
+
     test('starts where it opened after a newer copy came before any edit', () {
       final run = EditorRun('a')
         ..owner.send(
