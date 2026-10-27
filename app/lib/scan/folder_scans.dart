@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../conflicts/folder_conflicts.dart';
@@ -7,9 +6,8 @@ import '../documents/document.dart';
 import '../folders/document_folder.dart';
 
 /// What the last scan of all folders found.
-@immutable
 final class FolderScans {
-  const FolderScans({
+  FolderScans({
     required this.documents,
     required this.marks,
     required this.subfolders,
@@ -63,12 +61,11 @@ final class FolderScans {
         (folder) => key.path.value.startsWith('${folder.value}/'),
       );
 
-  Document? findNote(DocumentKey key) {
-    for (final document in documents) {
-      if (document.key == key) return document;
-    }
-    return null;
-  }
+  Document? findNote(DocumentKey key) => _byKey[key];
+
+  late final Map<DocumentKey, Document> _byKey = {
+    for (final document in documents) document.key: document,
+  };
 
   /// What this scan tells of the document at [key]: found in a version,
   /// gone, or unknown where the scan could not see it (see [covers]).

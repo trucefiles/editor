@@ -26,7 +26,9 @@
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
 ///     files go ([FolderReach]).
 ///
-/// 13. `documents`: an open document's file, kept on the device and in
+/// 13. `scans`: when the folders are scanned, and which scan is the
+///     latest ([ScansOwner]); any folder and result type.
+/// 14. `documents`: an open document's file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); any document type, any sync tool.
 ///
@@ -77,6 +79,7 @@ export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
+export 'src/scans/scans_owner.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';
 export 'src/storage/local_file_store.dart';

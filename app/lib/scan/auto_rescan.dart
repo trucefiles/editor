@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../common/debouncer.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
 import '../reach/folder_reach_controller.dart';
@@ -16,45 +15,39 @@ final autoRescanProvider = AsyncNotifierProvider<AutoRescan, void>(
   AutoRescan.new,
 );
 
-/// Rescans when a folder's files change, as the refresh setting asks, while
-/// the app is in use. Changes that come close together, like a sync of
-/// many files, lead to one rescan.
+/// Tells the scans owner when a folder's files change, as the refresh
+/// setting asks, while the app is in use, and whether the app is in use;
+/// the owner decides when to rescan.
 ///
 /// Starts following a folder's changes afresh once the folder is reachable
 /// again, so a folder that went away is watched again, not only polled.
 ///
-/// Also rescans once when the refresh setting changes, for changes made
-/// while nothing was looking. Changes made while the app was not in use
-/// are the screens' to catch up on, as they do in every mode.
+/// Also tells it when the refresh setting changes, for changes made while
+/// nothing was looking. Changes made while the app was not in use are the
+/// screens' to catch up on, as they do in every mode.
 class AutoRescan extends AsyncNotifier<void> {
-  /// How long changes must pause before a rescan.
-  static const settleTime = Duration(milliseconds: 500);
-
-  /// The longest a rescan waits while changes keep coming.
-  static const maxWait = Duration(seconds: 3);
-
   RefreshSettings? _lastSettings;
 
   @override
   Future<void> build() async {
+    final scans = ref.watch(folderScansOwnerProvider);
     final subscriptions = <StreamSubscription<RelPath>>[];
-    final rescanSoon = Debouncer(_rescan, settle: settleTime, maxWait: maxWait);
     // This build's own end: `ref.mounted` speaks for the newest build, so
     // a build that a newer one replaced while it awaited must stop by this.
     var disposed = false;
     ref.onDispose(() {
       disposed = true;
-      rescanSoon.cancel();
       for (final subscription in subscriptions) {
         unawaited(subscription.cancel());
       }
     });
     final active = ref.watch(appActiveProvider);
+    scans.send(Active(active: active));
     final settings = await ref.watch(refreshSettingsProvider.future);
     if (disposed) return;
     final settingChanged = _lastSettings != null && _lastSettings != settings;
     _lastSettings = settings;
-    if (settingChanged) _rescan();
+    if (settingChanged) scans.send(const SettingChanged());
     if (!active) return;
     final folders = await ref.watch(foldersProvider.future);
     if (disposed) return;
@@ -72,9 +65,9 @@ class AutoRescan extends AsyncNotifier<void> {
     ]);
     if (disposed) return;
     for (final folderChanges in changes.nonNulls) {
-      subscriptions.add(folderChanges.changes.listen((_) => rescanSoon()));
+      subscriptions.add(
+        folderChanges.changes.listen((_) => scans.send(const FilesChanged())),
+      );
     }
   }
-
-  void _rescan() => unawaited(ref.read(folderScansProvider.notifier).refresh());
 }

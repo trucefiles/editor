@@ -253,6 +253,7 @@ void main() {
     await container
         .read(foldersProvider.notifier)
         .change(folder.copyWith(name: 'Renamed'));
+    await container.read(folderScansProvider.notifier).refresh();
 
     expect((await scans()).documents.single.folder.name, 'Renamed');
   });

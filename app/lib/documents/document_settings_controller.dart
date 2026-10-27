@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pool/pool.dart';
+import 'package:truce_core/truce_core.dart' show Gone;
 
 import '../scan/folder_scans.dart';
 import '../storage/app_storage.dart';
@@ -58,38 +59,25 @@ class DocumentSettingsController
   Future<void> forget(DocumentKey document) =>
       _change((all) => all.remove(DocumentSettingsStore.storeKey(document)));
 
-  /// Forgets the settings of documents that [scans] did not find where they
-  /// could be seen, and of folders that are gone, once they have been
-  /// missing for [KeptNoteSettings.grace]; until then, at [now], marks
-  /// them missing, and found again once a scan finds them. Settings of
-  /// folders that could not be scanned, below subfolders that could not
-  /// be read, and of documents whose files could not be read count as found.
-  /// As [edit].
-  Future<void> prune(FolderScans scans, {required DateTime now}) {
-    final found = {
-      for (final document in scans.documents)
-        DocumentSettingsStore.storeKey(document.key),
-      for (final key in scans.unreadNotes) DocumentSettingsStore.storeKey(key),
+  /// Forgets the settings of documents that [scans] found gone (see
+  /// [FolderScans.observe]), and of folders that are gone, once they have
+  /// been missing for [KeptNoteSettings.grace]; until then, at [now],
+  /// marks them missing, and found again once a scan finds them. Settings
+  /// of documents the scan could not see count as found. As [edit].
+  Future<void> prune(FolderScans scans, {required DateTime now}) => _change((
+    all,
+  ) {
+    final pruned = {
+      for (final MapEntry(:key, :value) in all.entries)
+        key: ?switch (DocumentSettingsStore.keyOf(key)) {
+          final document? when scans.observe(document) is! Gone => value.found,
+          _ => value.missedAt(now),
+        },
     };
-    final unknown = [
-      for (final folder in scans.failedFolders.keys)
-        DocumentSettingsStore.folderPrefix(folder.id),
-      for (final MapEntry(key: folderId, value: subfolders)
-          in scans.unreadable.entries)
-        for (final subfolder in subfolders)
-          '${DocumentSettingsStore.storeKey((folderId: folderId, path: subfolder))}/',
-    ];
-    bool seen(String key) => found.contains(key) || unknown.any(key.startsWith);
-    return _change((all) {
-      final pruned = {
-        for (final MapEntry(:key, :value) in all.entries)
-          key: ?(seen(key) ? value.found : value.missedAt(now)),
-      };
-      all
-        ..clear()
-        ..addAll(pruned);
-    });
-  }
+    all
+      ..clear()
+      ..addAll(pruned);
+  });
 
   /// Applies [apply] to the settings; saves them if it changed any.
   Future<void> _change(

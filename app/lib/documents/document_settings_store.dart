@@ -49,6 +49,16 @@ final class DocumentSettingsStore {
   static String storeKey(DocumentKey document) =>
       '${folderPrefix(document.folderId)}${document.path.value}';
 
+  /// The document [storeKey] names; `null` if it names none.
+  static DocumentKey? keyOf(String storeKey) {
+    final at = storeKey.indexOf('/');
+    if (at < 0) return null;
+    return switch (RelPath.parse(storeKey.substring(at + 1))) {
+      final path? => (folderId: storeKey.substring(0, at), path: path),
+      null => null,
+    };
+  }
+
   /// How the keys of the documents in folder [folderId] start.
   static String folderPrefix(String folderId) => '$folderId/';
 
