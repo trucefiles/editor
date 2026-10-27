@@ -94,6 +94,10 @@ final class EditHistory {
         null => null,
       };
 
+  /// The history with its typing run ended: the next typing is a step of
+  /// its own.
+  EditHistory runEnded() => run == null ? this : _with();
+
   /// No steps: the document was replaced for the reason [start].
   EditHistory cleared(HistoryStart start) =>
       EditHistory(start: start, nextId: nextId);

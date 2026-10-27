@@ -127,15 +127,10 @@ Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
         ),
       )
           when now.leaf == caret.leaf && next.doc.nodeOf(now.leaf) != null =>
-        Typing(
-          now.leaf,
-          from: now.offset,
-          to:
-              now.offset +
-              textAt(view.doc, caret.leaf).length -
+        _deleted(
+          now,
+          textAt(view.doc, caret.leaf).length -
               textAt(next.doc, now.leaf).length,
-          added: '',
-          end: now.offset,
         ),
       (
         EditRaw(),
@@ -152,6 +147,19 @@ Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
         _changed(#markdown, was, text),
       _ => null,
     };
+
+/// [count] characters deleted at [caret] as typing; `null` where the
+/// caret's text lost none (e.g. a divider went), which is a step of its
+/// own.
+Typing? _deleted(Place caret, int count) => count > 0
+    ? Typing(
+        caret.leaf,
+        from: caret.offset,
+        to: caret.offset + count,
+        added: '',
+        end: caret.offset,
+      )
+    : null;
 
 /// The change from [before] to [after] in [text] as typing; a new line
 /// (Enter, a paste of lines) is a step of its own, as in Visual edit.

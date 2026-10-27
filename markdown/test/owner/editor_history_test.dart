@@ -58,6 +58,43 @@ void main() {
       },
     );
 
+    test('a caret moved away and back starts a new one', () {
+      final run = EditorRun('ab')
+        ..caret(0, 2)
+        ..type('x')
+        ..caret(0, 0)
+        ..caret(0, 3)
+        ..type('y')
+        ..undo();
+      expect(run.rows, ['abx']);
+    });
+
+    test('a divider deleted after deleting text is one of its own', () {
+      final run = EditorRun('ab\n\n---\n\ncd')
+        ..caret(2, 2)
+        ..press(EditKey.backspace)
+        ..caret(2, 0)
+        ..press(EditKey.backspace)
+        ..press(EditKey.backspace);
+      expect(run.rows, ['ab', 'c']);
+      final offered = run.outputs.whereType<UndoOffered>().single;
+      expect(offered.what, OfferedUndo.removal);
+      run.owner.send(UndoStep(offered.id));
+      expect(run.rows, ['ab', '[DividerNode]', 'c']);
+    });
+
+    test('a quote ended by Backspace after deleting text is its own', () {
+      final run = EditorRun('> ab')
+        ..caret(0, 2)
+        ..press(EditKey.backspace)
+        ..press(EditKey.backspace)
+        ..press(EditKey.backspace);
+      expect(run.shown.view.doc.root.children.first, isNot(isA<QuoteNode>()));
+      run.undo();
+      expect(run.shown.view.doc.root.children.first, isA<QuoteNode>());
+      expect(run.rows, ['']);
+    });
+
     test('one per command, with the caret back where it was', () {
       final run = EditorRun('ab')
         ..caret(0, 1)
@@ -137,11 +174,20 @@ void main() {
       expect(run.markdown, 'on ');
     });
 
-    test('a backup restored is one step', () {
+    test('a backup restored is one step, offered for undo', () {
       final run = EditorRun('mine')
         ..owner.send(ReplaceAll('backup', revision: 0));
       expect(run.rows, ['backup']);
-      run.undo();
+      final offered = run.outputs.whereType<UndoOffered>().single;
+      expect(offered.what, OfferedUndo.restore);
+      run
+        ..caret(0, 6)
+        ..type('x')
+        ..owner.send(UndoStep(offered.id));
+      expect(run.outputs.last, isA<UndoRefused>());
+      run
+        ..undo()
+        ..undo();
       expect(run.text, 'mine');
     });
   });
@@ -164,6 +210,15 @@ void main() {
         ),
       );
       expect(run.rows, ['b']);
+    });
+
+    test('starts where it opened after a newer copy came before any edit', () {
+      final run = EditorRun('a')
+        ..owner.send(
+          const FromFile(Replaced('b', version: Version(2), ackRev: 0)),
+        )
+        ..undo();
+      expect((run.outputs.last as HistoryEnd).start, HistoryStart.opened);
     });
 
     test('ends at a version picked', () {

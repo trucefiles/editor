@@ -9,8 +9,8 @@ import '../document_controller.dart';
 
 /// Opens the backups of the open [document], whose title is [title];
 /// restoring one goes through [controller], into the document (only if
-/// [canRestore]), and comes back to it. [messenger] is the document
-/// screen's, to tell the outcome there; [onUndo] takes a restore back.
+/// [canRestore]), and comes back to it; the editor offers its undo.
+/// [messenger] is the document screen's, to tell a failure there.
 Future<void> openDocumentBackups(
   BuildContext context, {
   required Document document,
@@ -18,7 +18,6 @@ Future<void> openDocumentBackups(
   required DocumentController controller,
   required bool canRestore,
   required ScaffoldMessengerState messenger,
-  required VoidCallback onUndo,
 }) => Navigator.push(
   context,
   MaterialPageRoute<void>(
@@ -31,7 +30,6 @@ Future<void> openDocumentBackups(
         controller: controller,
         canRestore: canRestore,
         messenger: messenger,
-        onUndo: onUndo,
       ),
     ),
   ),
@@ -45,7 +43,6 @@ Future<void> _compare(
   required DocumentController controller,
   required bool canRestore,
   required ScaffoldMessengerState messenger,
-  required VoidCallback onUndo,
 }) async {
   final navigator = Navigator.of(context);
   final current = await controller.textNow();
@@ -67,5 +64,4 @@ Future<void> _compare(
     return;
   }
   if (navigator.mounted) navigator.pop();
-  messenger.showHint('Backup restored', actionLabel: 'Undo', onAction: onUndo);
 }

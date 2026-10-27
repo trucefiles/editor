@@ -9,7 +9,7 @@ import 'package:truce_editor/editor/visual/ui/line_drag.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
 import 'package:truce_markdown/truce_markdown.dart'
-    show CheckedItems, ItemsRemoved, UndoStep;
+    show CheckedItems, UndoOffered, UndoStep;
 
 import '../editor_robot.dart';
 
@@ -464,7 +464,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(text.text, '- [ ] a\n- [ ] b');
 
-    final removed = text.notices.whereType<ItemsRemoved>().single;
+    final removed = text.notices.whereType<UndoOffered>().single;
     text.gate.send((_) => UndoStep(removed.id));
     await tester.pumpAndSettle();
 

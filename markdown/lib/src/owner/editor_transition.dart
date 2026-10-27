@@ -42,6 +42,9 @@ final class _Step {
   EditorWork work;
   final outputs = <EditorOutput>[];
 
+  /// What the input's step did, if it is offered for undo right away.
+  OfferedUndo? offered;
+
   void handle(EditorInput input) {
     // An input on what no longer shows (e.g. a box tap whose wait ended
     // after a change elsewhere) is dropped.
@@ -51,8 +54,19 @@ final class _Step {
     }
     final (before, origin, rev) = (state, work.origin, work.rev);
     _handle(input);
-    if (input is ShownInput && input is! Undo && input is! Redo) {
-      if (work.rev != rev) _record(input, before, origin);
+    switch (input) {
+      case Undo() || Redo():
+        break;
+      case ShownInput() when work.rev != rev:
+        _record(input, before, origin);
+        if (offered case final what?) {
+          outputs.add(UndoOffered(work.history.latestId!, what));
+        }
+      case CaretMoved() || RawCaretMoved():
+        // Typing after a caret move starts a new step.
+        work = work.copyWith(history: work.history.runEnded());
+      case _:
+        break;
     }
     _settleFlags();
   }
@@ -110,7 +124,11 @@ final class _Step {
           when ackRev == work.rev:
         work = work.copyWith(
           lineage: version,
-          history: work.history.cleared(HistoryStart.changedElsewhere),
+          // Before the first edit, it still starts where the document
+          // opened (e.g. a newer copy of an own save shows).
+          history: work.history.nextId == 0
+              ? work.history
+              : work.history.cleared(HistoryStart.changedElsewhere),
         );
         _reload(text);
       case (
@@ -248,10 +266,7 @@ final class _Step {
     );
     if (identical(edited.doc, before)) return;
     _textChanged();
-    // The input's step gets the next id.
-    if (_removes(command, before, edited.doc)) {
-      outputs.add(ItemsRemoved(work.history.nextId));
-    }
+    if (_removes(command, before, edited.doc)) offered = OfferedUndo.removal;
   }
 
   /// Whether [command] removed what an undo is offered for: items by the
@@ -363,6 +378,7 @@ final class _Step {
       work = work.copyWith(origin: next.origin);
       _show(_fresh(next.doc));
     }
+    offered = OfferedUndo.restore;
     _changedByHistory();
   }
 

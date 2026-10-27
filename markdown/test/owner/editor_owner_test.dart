@@ -328,7 +328,7 @@ void main() {
     test('can be undone while the text did not change since', () {
       final run = EditorRun('- a\n- b');
       run.runCommand(DeleteItem(run.item(0)));
-      final removed = run.outputs.whereType<ItemsRemoved>().single;
+      final removed = run.outputs.whereType<UndoOffered>().single;
       run.owner.send(UndoStep(removed.id));
       run.pause();
       expect(run.sent, '- a\n- b');
@@ -342,17 +342,17 @@ void main() {
         ),
       );
       expect(run.rows, ['a', 'b']);
-      expect(run.outputs.whereType<ItemsRemoved>(), hasLength(1));
+      expect(run.outputs.whereType<UndoOffered>(), hasLength(1));
       final emptied = EditorRun('a\n\n```\n```\n\nb');
       emptied.runCommand(JoinWithPrevious(Place(emptied.leaf(1), 0)));
       expect(emptied.rows, ['a', 'b']);
-      expect(emptied.outputs.whereType<ItemsRemoved>(), isEmpty);
+      expect(emptied.outputs.whereType<UndoOffered>(), isEmpty);
     });
 
     test('cannot be undone after another edit', () {
       final run = EditorRun('- a\n- b');
       run.runCommand(DeleteItem(run.item(0)));
-      final removed = run.outputs.whereType<ItemsRemoved>().single;
+      final removed = run.outputs.whereType<UndoOffered>().single;
       run
         ..caret(0, 0)
         ..type('x')

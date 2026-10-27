@@ -16,7 +16,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         EditorOutput,
         FromFile,
         HistoryEnd,
-        ItemsRemoved,
+        UndoOffered,
         SecureEditor,
         StartSaveTimer,
         ToFile,
@@ -49,7 +49,7 @@ final class TestDocument {
   /// Each text sent to be kept, in order.
   final edits = <String>[];
 
-  /// What the owner asked of the user or told them, e.g. [ItemsRemoved].
+  /// What the owner asked of the user or told them, e.g. [UndoOffered].
   final notices = <EditorOutput>[];
 
   /// The links the user opened.
@@ -83,7 +83,7 @@ final class TestDocument {
         edits.add(text);
         _text = text;
         _rev = rev;
-      case AskLink() || ItemsRemoved() || UndoRefused() || HistoryEnd():
+      case AskLink() || UndoOffered() || UndoRefused() || HistoryEnd():
         notices.add(output);
       case ToFile() || StartSaveTimer():
         break;

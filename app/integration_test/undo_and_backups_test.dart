@@ -54,6 +54,22 @@ void main() {
     await tester.leaveExpecting(app, '# Plan\n\nabcd\n');
   });
 
+  testApp('Ctrl+Z in Markdown edit undoes and puts the caret at the change', (
+    tester,
+  ) async {
+    await tester.openVisual(app, 'Plan', '# Plan\n\nab\n\nzz\n');
+    await tester.chooseMode('Markdown edit');
+    await tester.clickLine('ab', 2);
+    await tester.typeImeText('cd');
+    await tester.clickLine('zz', 0);
+
+    await tester.pressCtrl(LogicalKeyboardKey.keyZ);
+    expect(tester.showsLine('ab'), isTrue);
+    await tester.typeImeText('x');
+
+    await tester.leaveExpecting(app, '# Plan\n\nabx\n\nzz\n');
+  });
+
   testApp('undo at the start tells why and leads to the backups', (
     tester,
   ) async {

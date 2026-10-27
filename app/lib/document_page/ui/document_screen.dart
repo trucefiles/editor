@@ -209,9 +209,12 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final messenger = _messenger.currentState;
     if (messenger == null) return;
     switch (notice) {
-      case ItemsRemoved(:final id):
+      case UndoOffered(:final id, :final what):
         messenger.showHint(
-          'Removed',
+          switch (what) {
+            OfferedUndo.removal => 'Removed',
+            OfferedUndo.restore => 'Backup restored',
+          },
           actionLabel: 'Undo',
           onAction: () => _gate.send((_) => UndoStep(id)),
         );
@@ -443,7 +446,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       controller: _controller,
       canRestore: !_isReadOnly,
       messenger: messenger,
-      onUndo: () => undo(_gate),
     );
   }
 

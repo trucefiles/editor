@@ -83,7 +83,7 @@ final class DocumentSession extends ChangeNotifier {
   SaveState get saveState => saveStateOf(status, unsent: gate.state.unsent);
 
   /// What the editor asks of the user or tells them: [AskLink],
-  /// [ItemsRemoved], [UndoRefused], [HistoryEnd].
+  /// [UndoOffered], [UndoRefused], [HistoryEnd].
   Stream<EditorOutput> get editorNotices => _editorNotices.stream;
 
   /// What the user is told of the file: [Replaced], [PickNotKept].
@@ -152,7 +152,7 @@ final class DocumentSession extends ChangeNotifier {
     ToFile(:final input) => _toFile(input),
     StartSaveTimer(:final id, :final delay) => _startTimer(id, delay),
     AskLink() ||
-    ItemsRemoved() ||
+    UndoOffered() ||
     UndoRefused() ||
     HistoryEnd() => _editorNotices.add(output),
   };

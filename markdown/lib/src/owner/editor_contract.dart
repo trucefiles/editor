@@ -185,8 +185,8 @@ final class SetCollapsed extends EditorInput {
   final bool collapsed;
 }
 
-/// Undo step [id], the removal [ItemsRemoved] told of, if it is still
-/// the latest.
+/// Undo step [id], which [UndoOffered] told of, if it is still the
+/// latest.
 final class UndoStep extends EditorInput {
   const UndoStep(this.id);
 
@@ -243,11 +243,22 @@ final class AskLink extends EditorOutput {
   final TextSelection range;
 }
 
-/// A command removed items or blocks without text, as undo step [id].
-final class ItemsRemoved extends EditorOutput {
-  const ItemsRemoved(this.id);
+/// Undo step [id] is one the user is offered to undo right away: [what]
+/// it did.
+final class UndoOffered extends EditorOutput {
+  const UndoOffered(this.id, this.what);
 
   final int id;
+  final OfferedUndo what;
+}
+
+/// What a step offered for undo did.
+enum OfferedUndo {
+  /// Removed items, or blocks without text.
+  removal,
+
+  /// Put a backup in place of the text ([ReplaceAll]).
+  restore,
 }
 
 /// Undo step [id] could not be undone: the text changed since.
