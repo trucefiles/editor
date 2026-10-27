@@ -173,18 +173,11 @@ void main() {
     await tester.addFolder(app);
     await tester.openNote('Todo');
 
-    Future<void> pressCtrl(LogicalKeyboardKey digit) async {
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await tester.sendKeyEvent(digit);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-      await tester.pumpAndSettle();
-    }
-
-    await pressCtrl(LogicalKeyboardKey.digit3);
+    await tester.pressCtrl(LogicalKeyboardKey.digit3);
     expect(find.byTooltip('Mode: Read'), findsOne);
-    await pressCtrl(LogicalKeyboardKey.digit2);
+    await tester.pressCtrl(LogicalKeyboardKey.digit2);
     expect(find.byTooltip('Mode: Markdown edit'), findsOne);
-    await pressCtrl(LogicalKeyboardKey.digit1);
+    await tester.pressCtrl(LogicalKeyboardKey.digit1);
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 

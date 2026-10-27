@@ -186,6 +186,17 @@ final class DocumentFiles {
     String text,
   ) => _services.conflicts.keepAsConflict(path, TextFile.empty().encode(text));
 
+  /// Keeps a backup of [text], the document's text now, before the user
+  /// replaces it with a backup.
+  Future<Result<void, StoreError>> backUpCurrent(
+    Document document,
+    String text,
+  ) => _services.backups.saveCurrent(
+    at: DateTime.now(),
+    filePath: document.path,
+    bytes: document.file.encode(text),
+  );
+
   /// Keeps a backup of [current], the document's file, and [edited], text the
   /// user edited from an older version, before the user keeps one of them.
   Future<Result<void, StoreError>> backUp(Document current, String edited) =>

@@ -277,11 +277,12 @@ final class _Step {
   /// The text change [input] made from [before], read from [origin], as
   /// an undo step, or as part of the latest one where it goes on typing.
   void _record(ShownInput input, EditorState before, Origin origin) {
+    final typing = typingOf(input, before, state);
+    final history = work.history;
     work = work.copyWith(
-      history: work.history.recorded(
-        snapshotOf(before.content, origin),
-        typingOf(input, before, state),
-      ),
+      history:
+          history.continued(typing) ??
+          history.recorded(snapshotOf(before.content, origin), typing),
     );
   }
 
@@ -622,13 +623,24 @@ final class _Step {
 
   /// The state telling whether edits are only in memory and what undo
   /// and redo can do; what shows is the same.
-  void _settleFlags() => state = EditorState(
-    content: state.content,
-    mode: state.mode,
-    checkedItems: state.checkedItems,
-    revision: state.revision,
-    unsent: work.sentRev != work.rev,
-    canUndo: work.history.canUndo,
-    canRedo: work.history.canRedo,
-  );
+  void _settleFlags() {
+    final (unsent, canUndo, canRedo) = (
+      work.sentRev != work.rev,
+      work.history.canUndo,
+      work.history.canRedo,
+    );
+    if ((state.unsent, state.canUndo, state.canRedo) ==
+        (unsent, canUndo, canRedo)) {
+      return;
+    }
+    state = EditorState(
+      content: state.content,
+      mode: state.mode,
+      checkedItems: state.checkedItems,
+      revision: state.revision,
+      unsent: unsent,
+      canUndo: canUndo,
+      canRedo: canRedo,
+    );
+  }
 }

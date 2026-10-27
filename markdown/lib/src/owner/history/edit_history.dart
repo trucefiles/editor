@@ -43,14 +43,18 @@ final class EditHistory {
   /// The id of the step undo takes back next.
   int? get latestId => undos.lastOrNull?.id;
 
-  /// The history once an edit changed the document from [before]:
-  /// [typing] joins the latest step where its run takes it, else the edit
-  /// is a new step. Redo steps go.
+  /// The history with [typing] joined to the latest step, where its run
+  /// takes it; `null` where it is a new step.
+  EditHistory? continued(Typing? typing) => switch (run) {
+    final run? when typing != null && run.takes(typing) => _with(
+      run: run.then(typing),
+    ),
+    _ => null,
+  };
+
+  /// The history with an edit that changed the document from [before] as
+  /// a new step, its typing [typing] if it was typing. Redo steps go.
   EditHistory recorded(Snapshot before, Typing? typing) {
-    final run = this.run;
-    if (typing != null && run != null && run.takes(typing)) {
-      return _with(run: run.then(typing), redos: const []);
-    }
     final undos = [...this.undos, (id: nextId, snapshot: before)];
     final dropped = undos.length > limit;
     return _with(

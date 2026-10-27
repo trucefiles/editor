@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/touch.dart';
 import 'document_text_styles.dart';
 
 /// The sizes around a document's text: gaps between lines, indents, the slots
@@ -20,7 +21,7 @@ final class DocumentMetrics {
     final body = DocumentTextStyles.sizeOf(DocumentTextStyles.body(theme));
     return DocumentMetrics(
       scale: MediaQuery.textScalerOf(context).scale(body) / body,
-      touch: theme.materialTapTargetSize == MaterialTapTargetSize.padded,
+      touch: usesTouch(theme),
     );
   }
 

@@ -83,7 +83,7 @@ final class DocumentSession extends ChangeNotifier {
   SaveState get saveState => saveStateOf(status, unsent: gate.state.unsent);
 
   /// What the editor asks of the user or tells them: [AskLink],
-  /// [ItemsRemoved], [UndoRefused].
+  /// [ItemsRemoved], [UndoRefused], [HistoryEnd].
   Stream<EditorOutput> get editorNotices => _editorNotices.stream;
 
   /// What the user is told of the file: [Replaced], [PickNotKept].
@@ -125,6 +125,11 @@ final class DocumentSession extends ChangeNotifier {
   void pick(PickChoice choice, {required Seen theirs, required int rev}) =>
       _toFile(Pick(choice, seen: theirs.version, rev: rev));
 
+  /// The document reads [text] instead (a backup restored), as one edit
+  /// that undo takes back.
+  void replaceAll(String text) =>
+      gate.send((now) => ReplaceAll(text, revision: now.revision));
+
   /// Writes the edits as the file again, after it was deleted elsewhere.
   void restoreMine() => _toFile(const RestoreMine());
 
@@ -146,7 +151,10 @@ final class DocumentSession extends ChangeNotifier {
   void _onEditorOutput(EditorOutput output) => switch (output) {
     ToFile(:final input) => _toFile(input),
     StartSaveTimer(:final id, :final delay) => _startTimer(id, delay),
-    AskLink() || ItemsRemoved() || UndoRefused() => _editorNotices.add(output),
+    AskLink() ||
+    ItemsRemoved() ||
+    UndoRefused() ||
+    HistoryEnd() => _editorNotices.add(output),
   };
 
   /// Edits held in the editor change where the edits are, before they

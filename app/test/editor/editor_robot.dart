@@ -15,6 +15,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         EditMode,
         EditorOutput,
         FromFile,
+        HistoryEnd,
         ItemsRemoved,
         SecureEditor,
         StartSaveTimer,
@@ -82,7 +83,7 @@ final class TestDocument {
         edits.add(text);
         _text = text;
         _rev = rev;
-      case AskLink() || ItemsRemoved() || UndoRefused():
+      case AskLink() || ItemsRemoved() || UndoRefused() || HistoryEnd():
         notices.add(output);
       case ToFile() || StartSaveTimer():
         break;
