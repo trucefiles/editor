@@ -132,6 +132,10 @@ final class _Step {
         assert(false, 'a box tap is a ToggleItem');
       case (Run(command: DeleteRange(:final range)), null):
         _deleted(shown, range);
+      case (Run(command: AddItem(:final list, at: AddAt.last)), null)
+          when state.checkedItems == CheckedItems.moveToEnd:
+        // Checked items stay at the end.
+        _run(AddItem(list, at: AddAt.afterOpen));
       case (Run(:final command), null):
         _run(command);
       case (ToggleItems(:final items), null):

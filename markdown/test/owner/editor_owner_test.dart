@@ -331,6 +331,21 @@ void main() {
       expect(run.sent, '- [ ] c\n- [ ] d\n- [x] a\n- [x] b');
     });
 
+    test('with "Move to end" an item added last goes above the checked '
+        'ones; in place, at the end', () {
+      String added(CheckedItems checkedItems) {
+        final run = _Run('- [ ] a\n- [x] b', checkedItems: checkedItems);
+        run
+          ..runCommand(AddItem(run.shown.view.doc.root.children.single.id))
+          ..type('new')
+          ..pause();
+        return run.sent;
+      }
+
+      expect(added(CheckedItems.moveToEnd), '- [ ] a\n- [ ] new\n- [x] b');
+      expect(added(CheckedItems.inPlace), '- [ ] a\n- [x] b\n- [ ] new');
+    });
+
     test('in place stay where they are', () {
       final run = _Run('- [ ] a\n- [ ] b', checkedItems: CheckedItems.inPlace)
         ..toggle(0)

@@ -6,9 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/visual/ui/drawn_table.dart';
 import 'package:truce_markdown/truce_markdown.dart'
-    show ItemsRemoved, UndoRemoval;
+    show CheckedItems, ItemsRemoved, UndoRemoval;
 
 import '../editor_robot.dart';
 
@@ -87,6 +88,21 @@ void main() {
     await tester.typeImeText('eggs');
 
     expect(document.text, '- [ ] eggs\n- [ ] milk');
+  });
+
+  testWidgets('Add item at the bottom, with "Move to end", adds above the '
+      'checked items', (tester) async {
+    final document = TestDocument(
+      '- [ ] milk\n- [x] tea',
+      checkedItems: CheckedItems.moveToEnd,
+    );
+    await pumpDocument(tester, document, addItems: AddItemPlace.bottom);
+
+    await tester.tap(find.text('Add item'));
+    await tester.pumpAndSettle();
+    await tester.typeImeText('eggs');
+
+    expect(document.text, '- [ ] milk\n- [ ] eggs\n- [x] tea');
   });
 
   testWidgets('the delete button of the edited row deletes its item, '

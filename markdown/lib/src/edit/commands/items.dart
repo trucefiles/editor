@@ -22,18 +22,38 @@ Change deleteItem(ViewRows view, ItemNode item) => (
   selection: caretOnceGone(view, {item.id}),
 );
 
-/// A new empty item in [list], last unless [first]: with an open box
-/// where the list's items have boxes.
-Change addItem(ViewRows view, ListNode list, {bool first = false}) {
+/// Where the Add item button adds an item in its list.
+enum AddAt {
+  first,
+  last,
+
+  /// Right after the last item not checked: checked items gathered at
+  /// the end stay below it.
+  afterOpen,
+}
+
+/// A new empty item in [list], [at] its place: with an open box where
+/// the list's items have boxes.
+Change addItem(ViewRows view, ListNode list, {required AddAt at}) {
   final fresh = view.doc.freshIds;
   final text = emptyParagraph(fresh);
   final item = ItemNode(fresh.take(), [
     text,
   ], checked: list.items.any((item) => item.hasBox) ? false : null);
+  final index = switch (at) {
+    AddAt.first => 0,
+    AddAt.last => list.items.length,
+    AddAt.afterOpen =>
+      list.items.lastIndexWhere((item) => !(item.checked ?? false)) + 1,
+  };
   return (
     doc: view.doc.edited({
       list.id: [
-        list.withChildren([if (first) item, ...list.items, if (!first) item]),
+        list.withChildren([
+          ...list.items.take(index),
+          item,
+          ...list.items.skip(index),
+        ]),
       ],
     }, fresh: fresh),
     selection: TextSelection.caret(Place(text.id, 0)),

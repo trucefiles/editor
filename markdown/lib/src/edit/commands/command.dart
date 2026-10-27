@@ -24,6 +24,7 @@ import 'text_commands.dart';
 
 export 'heading.dart' show nextHeadingLevel;
 export 'indent.dart' show canIndent, canOutdent;
+export 'items.dart' show AddAt;
 export 'set_frame.dart' show FrameKind;
 
 /// One user action, with the places it acts on.
@@ -160,12 +161,12 @@ final class RemoveBlock extends EditCommand {
   final NodeId block;
 }
 
-/// The Add item button of [list]: a new empty item, last unless [first].
+/// The Add item button of [list]: a new empty item, [at] its place.
 final class AddItem extends EditCommand {
-  const AddItem(this.list, {this.first = false});
+  const AddItem(this.list, {this.at = AddAt.last});
 
   final NodeId list;
-  final bool first;
+  final AddAt at;
 }
 
 /// A drop: [item] with its subitems right before [target], or after it
@@ -299,11 +300,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
     RemoveBlock(:final block) => removeBlock(view, block),
-    AddItem(:final list, :final first) => addItem(
-      view,
-      node(list),
-      first: first,
-    ),
+    AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

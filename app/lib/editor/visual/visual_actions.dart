@@ -115,7 +115,7 @@ final class VisualActions {
 
   /// A new item in [list], as its [first] or last, with the caret in it.
   void addItem(NodeId list, {required bool first}) {
-    _gate.run((_) => AddItem(list, first: first));
+    _gate.run((_) => AddItem(list, at: first ? AddAt.first : AddAt.last));
     onCaretPlaced();
   }
 
