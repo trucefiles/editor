@@ -5,7 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/error_text.dart';
 import '../../scan/folder_scans.dart';
 import '../../scan/folder_scans_controller.dart';
-import '../note_folder.dart';
+import '../document_folder.dart';
 
 /// One row per folder that [scans] could not read in full: folders that
 /// failed, with a retry, and folders with subfolders that can't be read.
@@ -15,7 +15,7 @@ class FolderProblems extends ConsumerWidget {
   final FolderScans scans;
 
   /// The folders the user added, for the names of [FolderScans.unreadable].
-  final List<NoteFolder> folders;
+  final List<DocumentFolder> folders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(
@@ -37,7 +37,7 @@ class FolderProblems extends ConsumerWidget {
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),
             subtitle: Text(
-              "${_names(subfolders)} can't be read, so the notes there aren't shown.",
+              "${_names(subfolders)} can't be read, so the documents there aren't shown.",
             ),
           ),
     ],

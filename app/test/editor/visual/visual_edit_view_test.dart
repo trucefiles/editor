@@ -407,12 +407,12 @@ void main() {
   });
 
   group('links', () {
-    const note = 'see [docs](https://a.b) now\n\nother';
+    const linkedText = 'see [docs](https://a.b) now\n\nother';
 
     testWidgets('a tap opens one in a line the caret is not in', (
       tester,
     ) async {
-      final document = TestDocument(note);
+      final document = TestDocument(linkedText);
       await pumpDocument(tester, document);
       await tester.caretIn(paragraphNodeOf(index: 1), 0);
 
@@ -425,7 +425,7 @@ void main() {
     testWidgets('a tap in the caret line places the caret to edit it', (
       tester,
     ) async {
-      final document = TestDocument(note);
+      final document = TestDocument(linkedText);
       await pumpDocument(tester, document);
       await tester.caretIn(paragraphNodeOf(), 0);
 

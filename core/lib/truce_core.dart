@@ -19,8 +19,8 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `marks`: colors of notes, synced inside the folder
-///     ([NoteMarks]).
+/// 10. `marks`: colors of documents, synced inside the folder
+///     ([DocumentMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
 ///     ([FolderChanges]).
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
@@ -62,8 +62,8 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
-export 'src/marks/note_mark.dart';
-export 'src/marks/note_marks.dart';
+export 'src/marks/document_mark.dart';
+export 'src/marks/document_marks.dart';
 export 'src/owners/owner.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';

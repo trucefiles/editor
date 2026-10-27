@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../folders/note_folder.dart';
+import '../../folders/document_folder.dart';
 import '../../folders/ui/folder_badge.dart';
 
-/// The app bar of a screen comparing two versions of the note at [file] in
-/// [folder]; [note], if given, tells below why there are two.
+/// The app bar of a screen comparing two versions of the document at [file] in
+/// [folder]; [reason], if given, tells below why there are two.
 AppBar compareAppBar({
-  required NoteFolder folder,
+  required DocumentFolder folder,
   required RelPath file,
-  String? note,
+  String? reason,
 }) => AppBar(
   title: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -18,10 +18,10 @@ AppBar compareAppBar({
       FolderBadge(folder, file: file),
     ],
   ),
-  bottom: note == null
+  bottom: reason == null
       ? null
       : PreferredSize(
           preferredSize: const Size.fromHeight(24),
-          child: Text(note),
+          child: Text(reason),
         ),
 );

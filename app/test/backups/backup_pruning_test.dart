@@ -17,8 +17,9 @@ void main() {
   /// Writes a backup of `a.md` saved [age] ago into [folderId]'s backups.
   File backup(String folderId, Duration age) {
     final savedAt = DateTime.now().subtract(age).microsecondsSinceEpoch;
-    return File('${storage.backupsPath(folderId)}/$savedAt.other/notes/a.md')
-      ..writeCreatingFolders('backup');
+    return File(
+      '${storage.backupsPath(folderId)}/$savedAt.other/documents/a.md',
+    )..writeCreatingFolders('backup');
   }
 
   ProviderContainer pruning() {
@@ -54,7 +55,7 @@ void main() {
     // A backup on its way: its folder is made, its file not yet.
     final micros = DateTime.now().microsecondsSinceEpoch;
     final fresh = Directory(
-      '${storage.backupsPath('current')}/$micros.edit/notes',
+      '${storage.backupsPath('current')}/$micros.edit/documents',
     )..createSync(recursive: true);
 
     await prune();

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/note_folder.dart';
+import '../folders/document_folder.dart';
 import '../platform/platform_wiring.dart';
 import '../refresh/refresh_settings_controller.dart';
 import '../storage/app_storage.dart';
@@ -39,7 +39,7 @@ final class FolderServices {
   /// Puts [backups] back into the folder.
   final BackupRestore restore;
 
-  final NoteMarks marks;
+  final DocumentMarks marks;
 
   /// Whether the folder can be reached, as accesses through [store] show.
   final FolderReach reach;

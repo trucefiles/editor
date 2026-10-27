@@ -34,12 +34,12 @@ void main() {
     backups = container.read(folderServicesProvider(folder.location)).backups;
   });
 
-  File note() => File('${dir.path}/todo.md');
+  File document() => File('${dir.path}/todo.md');
 
   late ProviderSubscription<RestoreState> watching;
   late NotifierProvider<RestoreController, RestoreState> provider;
 
-  /// Backs up [text] as the note before editing, then opens that backup
+  /// Backs up [text] as the document before editing, then opens that backup
   /// from the list of all backups and waits until it is loaded.
   Future<RestoreController> open(String text) async {
     await backups.saveBeforeEdit(
@@ -71,7 +71,7 @@ void main() {
   });
 
   test('restores and rescans when the screen closes meanwhile', () async {
-    note().writeAsStringSync('# Todo\nnow\n');
+    document().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
 
     final kept = controller.keep(const KeepOther());
@@ -79,11 +79,11 @@ void main() {
 
     expect(await kept, isA<Ok<void, ResolveError>>());
     final scans = await container.read(folderScansProvider.future);
-    expect(scans.notes.single.file.text, '# Todo\nbackup\n');
+    expect(scans.documents.single.file.text, '# Todo\nbackup\n');
   });
 
   test('loads again at the next scan after loading failed', () async {
-    note().writeAsStringSync('# Todo\nnow\n');
+    document().writeAsStringSync('# Todo\nnow\n');
     await backups.saveBeforeEdit(
       at: DateTime.now(),
       filePath: path('todo.md'),
@@ -112,8 +112,8 @@ void main() {
     expect(current().choice!.value.bytes, utf8.encode('# Todo\nbackup\n'));
   });
 
-  test('loads the backup next to the note', () async {
-    note().writeAsStringSync('# Todo\nnow\n');
+  test('loads the backup next to the document', () async {
+    document().writeAsStringSync('# Todo\nnow\n');
 
     await open('# Todo\nbackup\n');
 
@@ -123,24 +123,24 @@ void main() {
   });
 
   test('restores the backup', () async {
-    note().writeAsStringSync('# Todo\nnow\n');
+    document().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
 
     final kept = await controller.keep(const KeepOther());
 
     expect(kept, isA<Ok<void, ResolveError>>());
-    expect(note().readAsStringSync(), '# Todo\nbackup\n');
+    expect(document().readAsStringSync(), '# Todo\nbackup\n');
   });
 
-  test('loads the note again if it changed meanwhile', () async {
-    note().writeAsStringSync('# Todo\nnow\n');
+  test('loads the document again if it changed meanwhile', () async {
+    document().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
-    note().writeAsStringSync('# Todo\nchanged elsewhere\n');
+    document().writeAsStringSync('# Todo\nchanged elsewhere\n');
 
     final kept = await controller.keep(const KeepOther());
 
     expect(kept!.error, ResolveError.changedSinceScan);
-    expect(note().readAsStringSync(), '# Todo\nchanged elsewhere\n');
+    expect(document().readAsStringSync(), '# Todo\nchanged elsewhere\n');
     expect(
       String.fromCharCodes(current().choice!.value.current!.bytes),
       '# Todo\nchanged elsewhere\n',

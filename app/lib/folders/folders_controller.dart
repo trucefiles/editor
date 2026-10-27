@@ -10,9 +10,9 @@ import '../platform/platform_wiring.dart';
 import '../storage/app_storage.dart';
 import '../sync_tool/folder_services.dart';
 import 'add_folder_error.dart';
+import 'document_folder.dart';
 import 'folder_colors.dart';
 import 'folder_settings_store.dart';
-import 'note_folder.dart';
 
 final folderSettingsStoreProvider = Provider<FolderSettingsStore>(
   (ref) => FolderSettingsStore(
@@ -21,19 +21,19 @@ final folderSettingsStoreProvider = Provider<FolderSettingsStore>(
 );
 
 final foldersProvider =
-    AsyncNotifierProvider<FoldersController, List<NoteFolder>>(
+    AsyncNotifierProvider<FoldersController, List<DocumentFolder>>(
       FoldersController.new,
     );
 
 /// The folders added on this device; every change is saved right away.
-class FoldersController extends AsyncNotifier<List<NoteFolder>> {
+class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   final Random _random = Random.secure();
   final _changes = Pool(1);
 
   FolderSettingsStore get _store => ref.read(folderSettingsStoreProvider);
 
   @override
-  Future<List<NoteFolder>> build() async =>
+  Future<List<DocumentFolder>> build() async =>
       switch (await ref.watch(folderSettingsStoreProvider).load()) {
         Ok(:final value) => value,
         Err(:final error) => throw FolderSettingsException(error),
@@ -42,7 +42,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
   /// Adds the folder at [path], named after its last segment. Does nothing
   /// if it is already added. Refuses a folder of the sync tool's own (e.g.
   /// its version folder), a folder inside an added one, or one holding an
-  /// added one: their notes would show twice. Compares the folders' host
+  /// added one: their documents would show twice. Compares the folders' host
   /// paths, as a sandbox may show each at its own path.
   Future<Result<void, AddFolderError>> add(String path) =>
       _oneAtATime(() => _add(path));
@@ -69,7 +69,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     }
     final saved = await _save([
       ...folders,
-      NoteFolder(
+      DocumentFolder(
         id: _newId(),
         path: path,
         name: _segments(path).lastOrNull ?? path,
@@ -82,7 +82,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
     };
   }
 
-  Future<Result<void, SettingsError>> change(NoteFolder changed) =>
+  Future<Result<void, SettingsError>> change(DocumentFolder changed) =>
       _oneAtATime(() async {
         final folders = await future;
         return _save([
@@ -92,19 +92,22 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       });
 
   /// Forgets the folder; its files stay untouched.
-  Future<Result<void, SettingsError>> remove(NoteFolder removed) => _oneAtATime(
-    () async {
-      final folders = await future;
-      return _save(folders.where((folder) => folder.id != removed.id).toList());
-    },
-  );
+  Future<Result<void, SettingsError>> remove(DocumentFolder removed) =>
+      _oneAtATime(() async {
+        final folders = await future;
+        return _save(
+          folders.where((folder) => folder.id != removed.id).toList(),
+        );
+      });
 
   /// Runs [step] after every earlier change, so each change starts from the
   /// list the one before saved.
   Future<T> _oneAtATime<T>(Future<T> Function() step) =>
       _changes.withResource(step);
 
-  Future<Result<void, SettingsError>> _save(List<NoteFolder> folders) async {
+  Future<Result<void, SettingsError>> _save(
+    List<DocumentFolder> folders,
+  ) async {
     final saved = await _store.save(folders);
     if (saved is Ok) state = AsyncData(folders);
     return saved;
@@ -122,7 +125,7 @@ class FoldersController extends AsyncNotifier<List<NoteFolder>> {
       List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();
 }
 
-/// The saved folder list could not be loaded; shown instead of the notes.
+/// The saved folder list could not be loaded; shown instead of the documents.
 final class FolderSettingsException implements Exception {
   const FolderSettingsException(this.error);
 

@@ -5,7 +5,7 @@ const documentCorpus = [
   '',
   'Just one line',
   '# Shopping\n\n- milk\n- [ ] eggs\n- [x] bread\n  - whole grain\n\nDone.',
-  '---\ntitle: Note\ntags: [a, b]\n---\n\n# Title\n\nText with **bold** and _it_.',
+  '---\ntitle: Document\ntags: [a, b]\n---\n\n# Title\n\nText with **bold** and _it_.',
   '* a\n*   [ ] b\n* [X] c\n\n  more c\n\n* d',
   '1. one\n2. two\n   1. inner\n   2. inner two\n3. three',
   '1. same\n1. same\n1. same',

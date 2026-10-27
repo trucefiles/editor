@@ -28,7 +28,7 @@ void main() {
     );
   });
 
-  final note = path('a.md');
+  final document = path('a.md');
 
   Duration seconds(num value) => Duration(milliseconds: (value * 1000).round());
 
@@ -49,12 +49,16 @@ void main() {
       if (timer.isActive) timer,
   ];
 
-  FileVersion versionOnDisk() => inner.files[note]!.version;
+  FileVersion versionOnDisk() => inner.files[document]!.version;
 
   Future<FileEntry> write(String text, FileEntry? last) async =>
       (await (last == null
-              ? store.create(note, bytesOf(text))
-              : store.replace(note, bytesOf(text), ifUnchanged: last.version)))
+              ? store.create(document, bytesOf(text))
+              : store.replace(
+                  document,
+                  bytesOf(text),
+                  ifUnchanged: last.version,
+                )))
           .value;
 
   test('rewrites a write within the window, a window after the earlier '
@@ -112,7 +116,7 @@ void main() {
     wait(3);
 
     final third = await store.replace(
-      note,
+      document,
       bytesOf('v3!'),
       ifUnchanged: second.version,
     );
@@ -135,14 +139,14 @@ void main() {
     final first = await write('v1', null);
     final second = await write('v2', first);
 
-    await store.delete(note, ifUnchanged: second.version);
+    await store.delete(document, ifUnchanged: second.version);
 
     expect(pending(), isEmpty);
   });
 
   test('rewrites a file created right after a delete', () async {
     final first = await write('v1', null);
-    await store.delete(note, ifUnchanged: first.version);
+    await store.delete(document, ifUnchanged: first.version);
     final created = await write('v2', null);
 
     await fireTimers();
@@ -164,53 +168,53 @@ void main() {
 
   test('counts versions it read, written by others', () async {
     // Another app wrote the file 1 s ago.
-    inner.files[note] = FileContent(
+    inner.files[document] = FileContent(
       bytesOf('theirs'),
       version: const FileVersion('theirs'),
       modified: now.subtract(seconds(1)),
     );
-    final read = (await store.read(note)).value;
+    final read = (await store.read(document)).value;
 
-    await store.replace(note, bytesOf('mine!!'), ifUnchanged: read.version);
+    await store.replace(document, bytesOf('mine!!'), ifUnchanged: read.version);
 
     expect(pending().single.duration, seconds(1) + margin);
   });
 
   test('ignores old versions it read', () async {
-    inner.files[note] = FileContent(
+    inner.files[document] = FileContent(
       bytesOf('old'),
       version: const FileVersion('old'),
       modified: now.subtract(const Duration(hours: 1)),
     );
-    final read = (await store.read(note)).value;
+    final read = (await store.read(document)).value;
 
-    await store.replace(note, bytesOf('new'), ifUnchanged: read.version);
+    await store.replace(document, bytesOf('new'), ifUnchanged: read.version);
 
     expect(timers, isEmpty);
   });
 
   test('counts versions read from a clock slightly ahead', () async {
-    inner.files[note] = FileContent(
+    inner.files[document] = FileContent(
       bytesOf('theirs'),
       version: const FileVersion('theirs'),
       modified: now.add(seconds(1)),
     );
-    final read = (await store.read(note)).value;
+    final read = (await store.read(document)).value;
 
-    await store.replace(note, bytesOf('mine!!'), ifUnchanged: read.version);
+    await store.replace(document, bytesOf('mine!!'), ifUnchanged: read.version);
 
     expect(pending().single.duration, seconds(3) + margin);
   });
 
   test('ignores versions read from a clock far ahead', () async {
-    inner.files[note] = FileContent(
+    inner.files[document] = FileContent(
       bytesOf('theirs'),
       version: const FileVersion('theirs'),
       modified: now.add(const Duration(hours: 1)),
     );
-    final read = (await store.read(note)).value;
+    final read = (await store.read(document)).value;
 
-    await store.replace(note, bytesOf('mine!!'), ifUnchanged: read.version);
+    await store.replace(document, bytesOf('mine!!'), ifUnchanged: read.version);
 
     expect(timers, isEmpty);
   });

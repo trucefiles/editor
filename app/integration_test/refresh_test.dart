@@ -40,7 +40,7 @@ void main() {
     );
   });
 
-  testApp('shows a change made before the note opened', (tester) async {
+  testApp('shows a change made before the document opened', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -52,10 +52,10 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
-  testApp('the refresh button shows new notes', (tester) async {
+  testApp('the refresh button shows new documents', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip('New document'));
 
     app.write('new.md', '# New\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -63,7 +63,7 @@ void main() {
     await tester.waitFor(find.text('New'));
   });
 
-  testApp('pulling the grid down shows new notes', (tester) async {
+  testApp('pulling the grid down shows new documents', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('old.md', '# Old\n');
     await tester.addFolder(app);
@@ -76,7 +76,9 @@ void main() {
     await tester.waitFor(find.text('New'));
   });
 
-  testApp('the refresh button in an open note shows a change', (tester) async {
+  testApp('the refresh button in an open document shows a change', (
+    tester,
+  ) async {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -88,7 +90,7 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
-  testApp('shows new notes and changes live, without refreshing', (
+  testApp('shows new documents and changes live, without refreshing', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
@@ -105,7 +107,7 @@ void main() {
 
   testApp('switches to manual refresh in the settings', (tester) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip('New document'));
 
     await tester.chooseInMenu('Settings');
     await tester.tapAndSettle(find.text('Refresh changes in folders'));
@@ -123,14 +125,16 @@ void main() {
     expect(find.text('New'), findsNothing);
   });
 
-  testApp('never writes back a change shown in the open note', (tester) async {
+  testApp('never writes back a change shown in the open document', (
+    tester,
+  ) async {
     app.write('todo.md', '# Todo\n- [ ] milk\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
     final file = app.file('todo.md');
     final from = DateTime(2001);
 
-    /// Changes the note elsewhere, waits until the open note shows it, and
+    /// Changes the document elsewhere, waits until the open document shows it, and
     /// over a few rescans checks that the app leaves the file alone.
     Future<void> changeElsewhere(String text, Finder shown) async {
       file

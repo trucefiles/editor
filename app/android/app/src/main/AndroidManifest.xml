@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Reads and writes notes in the folders the user adds, by path. The
+    <!-- Reads and writes documents in the folders the user adds, by path. The
          app only opens files inside those folders. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <application

@@ -10,21 +10,21 @@ void main() {
       for (final raw in [
         '.stfolder',
         '.stignore',
-        '.stversions/notes/todo.md',
-        'notes/.stfolder',
+        '.stversions/documents/todo.md',
+        'documents/.stfolder',
         '.syncthing.todo.md.tmp',
-        'notes/.syncthing.truce-1a2b.tmp',
+        'documents/.syncthing.truce-1a2b.tmp',
         '~syncthing~todo.md.tmp',
-        'notes/todo.sync-conflict-20261003-134809-4I343AW.md',
+        'documents/todo.sync-conflict-20261003-134809-4I343AW.md',
       ]) {
         expect(adapter.isInternal(path(raw)), isTrue, reason: raw);
       }
     });
 
-    test('does not match notes or other dotfiles', () {
+    test('does not match documents or other dotfiles', () {
       for (final raw in [
         'todo.md',
-        'notes/todo.md',
+        'documents/todo.md',
         '.hidden',
         '.syncthing.todo.md',
         'stversions/todo.md',
@@ -38,17 +38,17 @@ void main() {
     test("matches Syncthing's folders and anything inside them", () {
       for (final names in [
         ['sync', '.stversions'],
-        ['sync', '.stversions', 'Notes'],
+        ['sync', '.stversions', 'Documents'],
         ['sync', '.stfolder'],
       ]) {
         expect(adapter.isInternalFolder(names), isTrue, reason: '$names');
       }
     });
 
-    test('does not match note folders', () {
+    test('does not match document folders', () {
       for (final names in [
         <String>[],
-        ['sync', 'Notes'],
+        ['sync', 'Documents'],
         ['sync', 'stversions'],
         ['sync', '.hidden'],
       ]) {

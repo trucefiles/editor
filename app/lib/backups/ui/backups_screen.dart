@@ -10,8 +10,8 @@ import '../backup_retention.dart';
 import 'backup_kind_text.dart';
 import 'restore_screen.dart';
 
-/// Every note backup on this device, newest first; tapping one compares it
-/// with the note to restore it.
+/// Every document backup on this device, newest first; tapping one compares it
+/// with the document to restore it.
 class BackupsScreen extends ConsumerWidget {
   const BackupsScreen({super.key});
 
@@ -24,7 +24,7 @@ class BackupsScreen extends ConsumerWidget {
         AsyncData(value: final backups) when backups.isEmpty => EmptyState(
           icon: Icons.history,
           text:
-              'No backups. Notes are backed up on this device before '
+              'No backups. Documents are backed up on this device before '
               'editing and before keeping a version, for '
               '${backupRetention.inDays} days.',
         ),
@@ -48,13 +48,13 @@ class _BackupTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (:folder, backup: shown) = backup;
-    final note = ref.watch(folderScansProvider).value?.findNote((
+    final document = ref.watch(folderScansProvider).value?.findNote((
       folderId: folder.id,
       path: shown.filePath,
     ));
     return ListTile(
       leading: const Icon(Icons.history),
-      title: Text(note?.title ?? shown.filePath.name),
+      title: Text(document?.title ?? shown.filePath.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

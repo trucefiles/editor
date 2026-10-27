@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:truce_core/truce_core.dart';
 
 import '../storage/json_file.dart';
-import 'note_folder.dart';
+import 'document_folder.dart';
 
 /// Keeps the folder list in a JSON file in app storage.
 final class FolderSettingsStore {
@@ -12,7 +12,7 @@ final class FolderSettingsStore {
   final JsonFile _file;
 
   /// The saved folders; empty before the first [save].
-  Future<Result<List<NoteFolder>, SettingsError>> load() async {
+  Future<Result<List<DocumentFolder>, SettingsError>> load() async {
     final Object? json;
     switch (await _file.read()) {
       case Ok(:final value):
@@ -25,23 +25,24 @@ final class FolderSettingsStore {
         return const Err(SettingsError.unreadable);
     }
     final folders = switch (json) {
-      final List<Object?> list => list.map(NoteFolder.fromJson).toList(),
+      final List<Object?> list => list.map(DocumentFolder.fromJson).toList(),
       _ => null,
     };
     if (folders == null || folders.contains(null)) {
       return const Err(SettingsError.corrupt);
     }
-    return Ok(folders.cast<NoteFolder>());
+    return Ok(folders.cast<DocumentFolder>());
   }
 
   /// Replaces the saved list atomically.
-  Future<Result<void, SettingsError>> save(List<NoteFolder> folders) async =>
-      switch (await _file.write([
-        for (final folder in folders) folder.toJson(),
-      ])) {
-        Ok() => const Ok(null),
-        Err() => const Err(SettingsError.unwritable),
-      };
+  Future<Result<void, SettingsError>> save(
+    List<DocumentFolder> folders,
+  ) async => switch (await _file.write([
+    for (final folder in folders) folder.toJson(),
+  ])) {
+    Ok() => const Ok(null),
+    Err() => const Err(SettingsError.unwritable),
+  };
 }
 
 enum SettingsError { unreadable, corrupt, unwritable }

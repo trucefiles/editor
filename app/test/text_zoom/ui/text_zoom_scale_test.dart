@@ -29,7 +29,7 @@ void main() {
     return size;
   }
 
-  testWidgets('scales notes text by the size', (tester) async {
+  testWidgets('scales documents text by the size', (tester) async {
     expect(await scaled(tester, percent: 150), 15);
     expect(await scaled(tester, percent: 80), 8);
   });

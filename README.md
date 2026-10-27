@@ -23,7 +23,7 @@
   a private network or a phone's hotspot with no internet at all. As
   devices come and go, editing carries on.
 - **Conflicts are caught, never lost.** When two devices change the same
-  note at once, Truce notices, shows both versions side by side and lets
+  document at once, Truce notices, shows both versions side by side and lets
   you choose. Nothing is overwritten behind your back, and backups
   of the last 7 days let you go back.
 - **Plain files you own.** Documents are ordinary Markdown files in your
@@ -57,7 +57,7 @@ Truce is in early development (0.x), so expect changes between versions.
 Grab the APK (Android) or the Flatpak (Linux) from the
 [latest release](https://github.com/trucefiles/editor/releases/latest).
 You need Syncthing running on your devices, with a shared folder for your
-notes.
+documents.
 
 To check a download, compare it with `SHA256SUMS` from the same release.
 The APK is signed with the key whose certificate SHA-256 is in

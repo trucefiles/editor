@@ -125,7 +125,7 @@ void main() {
     expect(File('${dir.path}/todo.md').readAsStringSync(), '# Root todo\n');
   });
 
-  test('restores a note deleted several levels deep', () async {
+  test('restores a document deleted several levels deep', () async {
     write('a/b/c/$first', '# Todo\nfirst\n');
     final controller = await open();
     expect(current().sides!.value.current, isNull);

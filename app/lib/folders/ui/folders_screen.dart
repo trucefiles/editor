@@ -4,9 +4,9 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
 import '../../sync_tool/folder_services.dart';
+import '../document_folder.dart';
 import '../folder_actions.dart';
 import '../folders_controller.dart';
-import '../note_folder.dart';
 import 'add_folder_error_text.dart';
 import 'folder_badge.dart';
 import 'folder_edit_dialog.dart';
@@ -62,7 +62,7 @@ class FoldersScreen extends ConsumerWidget {
   Future<void> _edit(
     BuildContext context,
     WidgetRef ref,
-    NoteFolder folder,
+    DocumentFolder folder,
   ) async {
     final changed = await showFolderEditDialog(context, folder);
     if (changed == null) return;
@@ -75,7 +75,7 @@ class FoldersScreen extends ConsumerWidget {
   Future<void> _remove(
     BuildContext context,
     WidgetRef ref,
-    NoteFolder folder,
+    DocumentFolder folder,
   ) async {
     if (!await _confirmRemove(context, folder)) return;
     final saved = await ref.read(folderActionsProvider).remove(folder);
@@ -85,7 +85,10 @@ class FoldersScreen extends ConsumerWidget {
   }
 
   /// Whether the user wants to remove [folder] from the app.
-  Future<bool> _confirmRemove(BuildContext context, NoteFolder folder) async =>
+  Future<bool> _confirmRemove(
+    BuildContext context,
+    DocumentFolder folder,
+  ) async =>
       await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -131,7 +134,7 @@ Future<bool> _askForAccess(BuildContext context) async =>
       builder: (context) => AlertDialog(
         title: const Text('Allow file access'),
         content: const Text(
-          'To edit notes in your synced folders, Android needs to allow '
+          'To edit documents in your synced folders, Android needs to allow '
           'this app access to files. The app only opens the folders you '
           'add here. Turn on the switch on the next page, then come back '
           'and add a folder.',

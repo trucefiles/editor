@@ -9,7 +9,7 @@ import '../folder_services.dart';
 /// Syncthing's file-name rules.
 const SyncAdapter syncthingAdapter = SyncthingAdapter();
 
-/// The files the app shows: notes of the types it handles, without
+/// The files the app shows: documents of the types it handles, without
 /// Syncthing's own files.
 const FileFilter _shown = DefaultFileFilter(
   syncthingAdapter,
@@ -21,7 +21,7 @@ const FileFilter _shown = DefaultFileFilter(
 /// leads to a rescan.
 const FileFilter _followed = AnyFileFilter([
   SyncthingFileFilter(_shown),
-  NoteMarks.files,
+  DocumentMarks.files,
 ]);
 
 /// The core services for one folder, wired for Syncthing. [backupsPath] is
@@ -55,7 +55,7 @@ FolderServices syncthingFolderServices(
     ),
     backups: backups,
     restore: BackupRestore(folder: store, backups: backups),
-    marks: NoteMarks(store, deviceId: deviceId),
+    marks: DocumentMarks(store, deviceId: deviceId),
     reach: reach,
   );
 }

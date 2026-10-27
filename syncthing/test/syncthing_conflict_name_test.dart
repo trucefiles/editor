@@ -50,7 +50,7 @@ void main() {
     for (final (main, copy) in [
       ('todo.md', 'todo.sync-conflict-20261003-090807.md'),
       ('a.b.txt', 'a.b.sync-conflict-20261003-090807.txt'),
-      ('notes', 'notes.sync-conflict-20261003-090807'),
+      ('documents', 'documents.sync-conflict-20261003-090807'),
     ]) {
       expect(SyncthingConflictName.format(main, at), copy);
       final parsed = SyncthingConflictName.parse(copy)!;
@@ -64,7 +64,7 @@ void main() {
       'todo.md',
       'todo.sync-conflict.md',
       'todo.sync-conflict-2026103-134809.md',
-      'todo.sync-conflict-20261003-134809-4I343AW.notes.md',
+      'todo.sync-conflict-20261003-134809-4I343AW.documents.md',
       '.sync-conflict-20261003-134809-4I343AW',
     ]) {
       expect(SyncthingConflictName.parse(raw), isNull, reason: raw);

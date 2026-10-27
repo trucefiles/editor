@@ -2,14 +2,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:truce_editor/documents/ui/document_screen.dart';
-import 'package:truce_editor/notes/note_colors.dart';
+import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/documents/document_colors.dart';
 
 import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of the notes grid and the folders, in the real app on
+/// End-to-end tests of the documents grid and the folders, in the real app on
 /// the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/grid_and_folders_test.dart
@@ -21,7 +21,7 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  /// Pins the note [title] from the grid.
+  /// Pins the document [title] from the grid.
   Future<void> pin(WidgetTester tester, String title) async {
     await tester.longPress(find.text(title));
     await tester.pumpAndSettle();
@@ -29,12 +29,12 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
   }
 
-  testApp('deletes a note and undoes it', (tester) async {
+  testApp('deletes a document and undoes it', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
 
-    await tester.chooseInMenu('Delete note');
+    await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
     expect(app.file('plan.md').existsSync(), isFalse);
     await tester.tapAndSettle(find.text('Undo'));
@@ -43,7 +43,7 @@ void main() {
     await tester.waitFor(find.text('Plan'));
   });
 
-  testApp('pins a note from the grid', (tester) async {
+  testApp('pins a document from the grid', (tester) async {
     app.write('plan.md', '# Plan\n');
     app.write('ideas.md', '# Ideas\n');
     await tester.addFolder(app);
@@ -61,7 +61,7 @@ void main() {
     expect(app.folder('.truce').existsSync(), isFalse);
   });
 
-  testApp('pins a note several levels deep from the grid', (tester) async {
+  testApp('pins a document several levels deep from the grid', (tester) async {
     app.write('a/b/c/plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
@@ -71,7 +71,7 @@ void main() {
     expect(app.namesIn('a/b/c'), ['plan.md']);
   });
 
-  testApp('an open note shows its color and last edit', (tester) async {
+  testApp('an open document shows its color and last edit', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
@@ -92,7 +92,7 @@ void main() {
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),
     );
-    expect(scaffold.backgroundColor, noteTint('teal', scheme));
+    expect(scaffold.backgroundColor, documentTint('teal', scheme));
     expect(find.textContaining('Edited '), findsOne);
   });
 

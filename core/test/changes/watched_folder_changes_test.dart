@@ -18,7 +18,7 @@ void main() {
 
   Future<StreamQueue<RelPath>> watch() async {
     final queue = StreamQueue(
-      WatchedFolderChanges(root.path, followed: const _Notes()).changes,
+      WatchedFolderChanges(root.path, followed: const _Documents()).changes,
     );
     addTearDown(queue.cancel);
     // Lets the watcher start before files change.
@@ -59,7 +59,7 @@ void main() {
   test('ends when the folder is deleted', () async {
     final all = WatchedFolderChanges(
       root.path,
-      followed: const _Notes(),
+      followed: const _Documents(),
     ).changes.toList();
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
@@ -73,7 +73,7 @@ void main() {
 
     final changes = WatchedFolderChanges(
       root.path,
-      followed: const _Notes(),
+      followed: const _Documents(),
     ).changes;
 
     expect(await changes.toList(), isEmpty);
@@ -81,8 +81,8 @@ void main() {
 }
 
 /// Follows `.md` files outside hidden folders.
-final class _Notes implements FileFilter {
-  const _Notes();
+final class _Documents implements FileFilter {
+  const _Documents();
 
   @override
   bool includesFolder(RelPath folder) => !folder.name.startsWith('.');

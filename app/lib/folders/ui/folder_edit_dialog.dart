@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../document_folder.dart';
 import '../folder_colors.dart';
-import '../note_folder.dart';
 
 /// Edits a folder's name and color; returns the changed folder, or `null`
 /// if cancelled.
-Future<NoteFolder?> showFolderEditDialog(
+Future<DocumentFolder?> showFolderEditDialog(
   BuildContext context,
-  NoteFolder folder,
-) => showDialog<NoteFolder>(
+  DocumentFolder folder,
+) => showDialog<DocumentFolder>(
   context: context,
   builder: (_) => _FolderEditDialog(folder),
 );
@@ -16,7 +16,7 @@ Future<NoteFolder?> showFolderEditDialog(
 class _FolderEditDialog extends StatefulWidget {
   const _FolderEditDialog(this.folder);
 
-  final NoteFolder folder;
+  final DocumentFolder folder;
 
   @override
   State<_FolderEditDialog> createState() => _FolderEditDialogState();

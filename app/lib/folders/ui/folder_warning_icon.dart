@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../sync_tool/folder_services.dart';
-import '../note_folder.dart';
+import '../document_folder.dart';
 import 'folder_notice_text.dart';
 
 /// A small warning sign if the sync tool warns about [folder]; the full
@@ -10,7 +10,7 @@ import 'folder_notice_text.dart';
 class FolderWarningIcon extends ConsumerWidget {
   const FolderWarningIcon(this.folder, {super.key});
 
-  final NoteFolder folder;
+  final DocumentFolder folder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

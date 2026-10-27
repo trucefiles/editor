@@ -7,7 +7,7 @@ import '../../common/screen_shortcuts.dart';
 import '../text_zoom.dart';
 import '../text_zoom_controller.dart';
 import '../text_zoom_target.dart';
-import 'note_text_zoom.dart';
+import 'document_text_zoom.dart';
 import 'pinch_to_zoom.dart';
 import 'text_zoom_keys.dart';
 import 'text_zoom_scale.dart';
@@ -15,10 +15,10 @@ import 'text_zoom_title.dart';
 import 'text_zoom_toast_host.dart';
 import 'wheel_to_zoom.dart';
 
-/// [child], the whole app, with its text at the app's zoom, and note text
-/// ([NoteTextZoom]) at the note text zoom. On every
+/// [child], the whole app, with its text at the app's zoom, and document text
+/// ([DocumentTextZoom]) at the document text zoom. On every
 /// screen, the zoom keys ([textZoomKeys]), Ctrl with the mouse wheel and
-/// pinching change the note text zoom; each such change shows it for a
+/// pinching change the document text zoom; each such change shows it for a
 /// moment ([TextZoomToastHost]).
 class TextZoomScope extends ConsumerStatefulWidget {
   const TextZoomScope({required this.child, super.key});
@@ -31,7 +31,7 @@ class TextZoomScope extends ConsumerStatefulWidget {
 
 class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
   /// The zoom gestures change.
-  static const _gestured = TextZoomTarget.notes;
+  static const _gestured = TextZoomTarget.documents;
 
   /// Counts the zoom gestures, so the toast shows after each.
   final _gestures = ValueNotifier(0);
@@ -74,7 +74,7 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
             title: textZoomTitle(_gestured),
             zoom: zoom,
             shows: _gestures,
-            child: NoteTextZoomScope(
+            child: DocumentTextZoomScope(
               zoom: zoom,
               child: TextZoomScale(
                 zoom: ref.watch(textZoomProvider(TextZoomTarget.app)),

@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/empty_state.dart';
-import '../../notes/note.dart';
-import '../../notes/note_settings_controller.dart';
-import '../../notes/ui/note_card.dart';
-import '../../notes/ui/note_grid.dart';
-import '../../notes/ui/pin_or_color_sheet.dart';
+import '../../documents/document.dart';
+import '../../documents/document_settings_controller.dart';
+import '../../documents/ui/document_card.dart';
+import '../../documents/ui/document_grid.dart';
+import '../../documents/ui/pin_or_color_sheet.dart';
 import '../../scan/folder_scans_controller.dart';
-import '../note_search.dart';
+import '../document_search.dart';
 
 /// Full-text search across all folders, updated as the user types.
 class SearchScreen extends ConsumerStatefulWidget {
@@ -31,16 +31,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final scans = ref.watch(folderScansProvider).value;
-    final notes = scans?.notes ?? const <Note>[];
-    ref.watch(noteSettingsProvider);
-    final settings = ref.read(noteSettingsProvider.notifier);
+    final documents = scans?.documents ?? const <Document>[];
+    ref.watch(documentSettingsProvider);
+    final settings = ref.read(documentSettingsProvider.notifier);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
           controller: _query,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Search all notes',
+            hintText: 'Search all documents',
             border: InputBorder.none,
           ),
         ),
@@ -49,7 +49,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         listenable: _query,
         builder: (context, _) {
           if (_query.text.trim().isEmpty) return const SizedBox.shrink();
-          final found = searchNotes(notes, _query.text);
+          final found = searchNotes(documents, _query.text);
           if (found.isEmpty) {
             return const EmptyState(
               icon: Icons.search_off,
@@ -60,14 +60,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.all(12),
-                sliver: noteGrid([
-                  for (final note in found)
-                    NoteCard(
-                      note,
-                      mark: scans?.markOf(note.key) ?? NoteMark.none,
-                      pinned: settings.settingsOf(note.key).pinned,
-                      onTap: () => openNote(context, note),
-                      onMark: () => editPinOrColor(context, ref, note),
+                sliver: documentGrid([
+                  for (final document in found)
+                    DocumentCard(
+                      document,
+                      mark: scans?.markOf(document.key) ?? DocumentMark.none,
+                      pinned: settings.settingsOf(document.key).pinned,
+                      onTap: () => openNote(context, document),
+                      onMark: () => editPinOrColor(context, ref, document),
                     ),
                 ]),
               ),

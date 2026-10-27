@@ -19,13 +19,13 @@ final class AppStorage {
   /// `android/app/src/main/res/xml`).
   String get deviceIdPath => '$settingsPath/device_id';
 
-  /// Holds one backup folder per note folder.
+  /// Holds one backup folder per document folder.
   String get _backupsRootPath => '$rootPath/backups';
 
   /// Backups of one folder's files, by [folderId].
   String backupsPath(String folderId) => '$_backupsRootPath/$folderId';
 
-  /// Edits not yet in one folder's note files, by [folderId].
+  /// Edits not yet in one folder's document files, by [folderId].
   String draftsPath(String folderId) => '$rootPath/drafts/$folderId';
 
   /// Every backup folder, also of folders removed from the app since.

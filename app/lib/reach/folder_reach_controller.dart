@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
-import '../folders/note_folder.dart';
 import '../sync_tool/folder_services.dart';
 
 final folderReachProvider =
@@ -33,9 +33,9 @@ class FolderReachController extends Notifier<Reach> {
 }
 
 /// The folders that are [Reach.retrying] right now.
-final retryingFoldersProvider = Provider<List<NoteFolder>>(
+final retryingFoldersProvider = Provider<List<DocumentFolder>>(
   (ref) => [
-    for (final folder in ref.watch(foldersProvider).value ?? <NoteFolder>[])
+    for (final folder in ref.watch(foldersProvider).value ?? <DocumentFolder>[])
       if (ref.watch(folderReachProvider(folder.location)) == Reach.retrying)
         folder,
   ],

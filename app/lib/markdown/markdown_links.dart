@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../common/open_link.dart';
 import '../common/snack.dart';
 
-/// Kinds of links a tap in a note opens. Others (local files, relative
+/// Kinds of links a tap in a document opens. Others (local files, relative
 /// paths, app schemes) could run things the reader didn't expect.
 const _openedSchemes = {'http', 'https', 'mailto'};
 

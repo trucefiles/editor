@@ -12,7 +12,7 @@ void main() {
 
     await fileBackupsAt(folder.path).saveBeforeEdit(
       at: DateTime(2026, 10, 15),
-      filePath: path('notes/a.md'),
+      filePath: path('documents/a.md'),
       bytes: utf8.encode('a'),
     );
 
@@ -28,7 +28,7 @@ void main() {
     final backups = fileBackupsAt(folder.path);
     await backups.saveBeforeEdit(
       at: DateTime(2026, 10, 15),
-      filePath: path('notes/a.md'),
+      filePath: path('documents/a.md'),
       bytes: utf8.encode('a'),
     );
     final saved = folder.listSync(recursive: true).whereType<File>().single;
@@ -36,6 +36,6 @@ void main() {
 
     final listed = (await backups.list()).value;
 
-    expect(listed.map((backup) => backup.filePath), [path('notes/a.md')]);
+    expect(listed.map((backup) => backup.filePath), [path('documents/a.md')]);
   });
 }

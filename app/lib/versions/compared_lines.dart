@@ -3,7 +3,7 @@ import 'package:diffutil_dart/diffutil.dart';
 /// Which of two compared versions has a line.
 enum LineOrigin { both, shownOnly, otherOnly }
 
-/// One line of two versions of a note, compared.
+/// One line of two versions of a document, compared.
 typedef ComparedLine = ({String text, LineOrigin origin});
 
 /// The lines of [shown] and [other] in order, as a line diff from

@@ -36,7 +36,7 @@ extension type const RelPath._(String value) {
   }
 
   /// The file a relative link [reference] in this file leads to, e.g.
-  /// `img/a.png` for `notes/b.md` and `../img/a.png`; `null` for a link
+  /// `img/a.png` for `documents/b.md` and `../img/a.png`; `null` for a link
   /// with a scheme or host, one from the root, or one that leaves the
   /// root.
   RelPath? linked(String reference) {

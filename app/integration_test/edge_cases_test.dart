@@ -9,8 +9,8 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/documents/ui/document_screen.dart';
-import 'package:truce_editor/notes/note_colors.dart';
+import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/documents/document_colors.dart';
 
 import 'app_steps.dart';
 import 'editor_steps.dart';
@@ -29,7 +29,7 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  testApp('a new note titled like another gets a numbered file', (
+  testApp('a new document titled like another gets a numbered file', (
     tester,
   ) async {
     app.write('Groceries.md', 'Groceries\nold\n');
@@ -58,7 +58,7 @@ void main() {
     expect(app.namesIn(), ['Mon Tue plan.md']);
   });
 
-  testApp('typing a new note and deleting it all leaves no file', (
+  testApp('typing a new document and deleting it all leaves no file', (
     tester,
   ) async {
     await tester.addFolder(app);
@@ -74,7 +74,9 @@ void main() {
     expect(app.topFiles, isEmpty);
   });
 
-  testApp('renaming onto a taken name keeps the other note', (tester) async {
+  testApp('renaming onto a taken name keeps the other document', (
+    tester,
+  ) async {
     app.write('plan.md', '# Plan\n');
     app.write('Ideas.md', '# Ideas\n');
     await tester.addFolder(app);
@@ -89,26 +91,27 @@ void main() {
     expect(app.topFiles, hasLength(2));
   });
 
-  testApp('opening and leaving a note without edits leaves its file alone', (
-    tester,
-  ) async {
-    app.write('plan.md', '# Plan\r\n- [ ] a\r\n');
-    final modified = app.file('plan.md').lastModifiedSync();
-    await tester.addFolder(app);
+  testApp(
+    'opening and leaving a document without edits leaves its file alone',
+    (tester) async {
+      app.write('plan.md', '# Plan\r\n- [ ] a\r\n');
+      final modified = app.file('plan.md').lastModifiedSync();
+      await tester.addFolder(app);
 
-    for (final mode in ['Visual edit', 'Markdown edit', 'Read']) {
-      await tester.openNote('Plan');
-      await tester.chooseMode(mode);
-      await tester.pageBack();
-      await tester.waitForNoteClosed();
-    }
-    await tester.runFor(const Duration(seconds: 3));
+      for (final mode in ['Visual edit', 'Markdown edit', 'Read']) {
+        await tester.openNote('Plan');
+        await tester.chooseMode(mode);
+        await tester.pageBack();
+        await tester.waitForNoteClosed();
+      }
+      await tester.runFor(const Duration(seconds: 3));
 
-    expect(app.file('plan.md').readAsStringSync(), '# Plan\r\n- [ ] a\r\n');
-    expect(app.file('plan.md').lastModifiedSync(), modified);
-  });
+      expect(app.file('plan.md').readAsStringSync(), '# Plan\r\n- [ ] a\r\n');
+      expect(app.file('plan.md').lastModifiedSync(), modified);
+    },
+  );
 
-  testApp('typing in a CRLF note keeps its line breaks', (tester) async {
+  testApp('typing in a CRLF document keeps its line breaks', (tester) async {
     await tester.openVisual(
       app,
       'Shop',
@@ -195,13 +198,13 @@ void main() {
   });
 
   testApp('typed "- " at a line start stays text', (tester) async {
-    await tester.openVisual(app, 'Note', '# Note\ntext\n');
+    await tester.openVisual(app, 'Document', '# Document\ntext\n');
     await tester.clickLine('text', 4);
 
     await tester.pressEnter();
     await tester.typeImeText('- [ ] milk');
 
-    await tester.leaveExpecting(app, '# Note\ntext\n\n\\- \\[ ] milk\n');
+    await tester.leaveExpecting(app, '# Document\ntext\n\n\\- \\[ ] milk\n');
   });
 
   testApp('switching modes while typing keeps every edit', (tester) async {
@@ -230,14 +233,14 @@ void main() {
     await tester.waitForFile(app.file('blank.md'), 'Now text');
   });
 
-  testApp('a note deleted elsewhere while open keeps the edits', (
+  testApp('a document deleted elsewhere while open keeps the edits', (
     tester,
   ) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
 
-    app.file('note.md').deleteSync();
+    app.file('document.md').deleteSync();
     await tester.tapAndSettle(find.byTooltip('Refresh'));
     await tester.runFor(const Duration(seconds: 1));
     await tester.pageBack();
@@ -247,7 +250,9 @@ void main() {
     expect(texts, contains('# Shop\n- [ ] milky\n'));
   });
 
-  testApp('search finds a note, an unknown word finds none', (tester) async {
+  testApp('search finds a document, an unknown word finds none', (
+    tester,
+  ) async {
     app.write('plan.md', '# Plan\nbuy milk\n');
     app.write('ideas.md', '# Ideas\nfly\n');
     await tester.addFolder(app);
@@ -270,7 +275,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
-    await tester.chooseInMenu('Delete note');
+    await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
 
     app.write('plan.md', '# Plan\nother\n');
@@ -281,14 +286,14 @@ void main() {
     expect(texts, containsAll(['# Plan\nv1\n', '# Plan\nother\n']));
   });
 
-  testApp('a note renamed elsewhere while open keeps the edits', (
+  testApp('a document renamed elsewhere while open keeps the edits', (
     tester,
   ) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
     await tester.clickLine('milk', 4);
     await tester.typeImeText('y');
 
-    app.file('note.md').renameSync(app.file('shop.md').path);
+    app.file('document.md').renameSync(app.file('shop.md').path);
     await tester.tapAndSettle(find.byTooltip('Refresh'));
     await tester.runFor(const Duration(seconds: 1));
     await tester.pageBack();
@@ -300,10 +305,10 @@ void main() {
     };
     expect(texts['shop.md'], '# Shop\n- [ ] milk\n');
     expect(texts.values, contains('# Shop\n- [ ] milky\n'));
-    expect(texts.keys, isNot(contains('note.md')));
+    expect(texts.keys, isNot(contains('document.md')));
   });
 
-  testApp('a note that is not UTF-8 is never written', (tester) async {
+  testApp('a document that is not UTF-8 is never written', (tester) async {
     app.file('latin.md').writeAsBytesSync([
       0x23,
       0x20,
@@ -344,13 +349,13 @@ void main() {
     await tester.runFor(const Duration(seconds: 1));
 
     expect(
-      app.file('note.md').readAsBytesSync(),
+      app.file('document.md').readAsBytesSync(),
       utf8.encode('﻿# Shop\n- [ ] milky\n'),
     );
   });
 
   testApp('Backspace after an emoji removes all of it', (tester) async {
-    await tester.openVisual(app, 'Note', '# Note\nok\n');
+    await tester.openVisual(app, 'Document', '# Document\nok\n');
     await tester.clickLine('ok', 2);
     await tester.typeImeText(' 👍🏽');
 
@@ -358,7 +363,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The space before it goes too: a trailing space isn't saved.
-    await tester.leaveExpecting(app, '# Note\nok\n');
+    await tester.leaveExpecting(app, '# Document\nok\n');
   });
 
   testApp('deleting the middle numbered item numbers the rest on', (
@@ -390,7 +395,7 @@ void main() {
     expect(find.text('Plan'), findsOneWidget);
   });
 
-  testApp('a double tap on a card opens the note once', (tester) async {
+  testApp('a double tap on a card opens the document once', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
@@ -405,12 +410,12 @@ void main() {
     expect(find.byType(DocumentScreen), findsNothing);
   });
 
-  testApp('a double tap on New note starts one note', (tester) async {
+  testApp('a double tap on New document starts one document', (tester) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip('New document'));
     // Both taps where the button is, though the first may have opened the
-    // note already.
-    final newNote = tester.getCenter(find.byTooltip('New note'));
+    // document already.
+    final newNote = tester.getCenter(find.byTooltip('New document'));
 
     await tester.tapAt(newNote);
     await tester.pump(const Duration(milliseconds: 40));
@@ -424,7 +429,7 @@ void main() {
     await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
   });
 
-  testApp('a color stays on a note moved to a subfolder', (tester) async {
+  testApp('a color stays on a document moved to a subfolder', (tester) async {
     app.write('plan.md', '# Plan\n');
     app.folder('done').createSync();
     await tester.addFolder(app);
@@ -449,7 +454,7 @@ void main() {
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),
     );
-    expect(scaffold.backgroundColor, noteTint('teal', scheme));
+    expect(scaffold.backgroundColor, documentTint('teal', scheme));
   });
 
   testApp('moving onto a taken name in a subfolder keeps both', (tester) async {
@@ -474,7 +479,7 @@ void main() {
     expect(texts, containsAll(['# Plan\nmine\n', '# Older\n']));
   });
 
-  testApp('a subfolder deleted while a new note waits is not made again', (
+  testApp('a subfolder deleted while a new document waits is not made again', (
     tester,
   ) async {
     app.write('old.md', '# Old\n');
@@ -506,7 +511,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
 
     await tester.openNote('Plan');
-    await tester.chooseInMenu('Delete note');
+    await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));
     await tester.waitForFile(app.file('plan.md'), '# Plan\n');
@@ -524,7 +529,9 @@ void main() {
     await tester.leaveExpecting(app, '# Shop\n- [x] milk\n- [ ] eggs\n');
   });
 
-  testApp('the same title in two subfolders opens each note', (tester) async {
+  testApp('the same title in two subfolders opens each document', (
+    tester,
+  ) async {
     app.write('a/plan.md', '# Plan\nin a\n');
     app.write('b/plan.md', '# Plan\nin b\n');
     await tester.addFolder(app);

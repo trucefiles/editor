@@ -4,7 +4,7 @@ import '../text_zoom.dart';
 
 /// [child] with its text at [zoom], on top of the system's own text
 /// scaling. Another [TextZoomScale] inside it replaces this zoom instead
-/// of adding to it, e.g. note text inside the app's text.
+/// of adding to it, e.g. document text inside the app's text.
 class TextZoomScale extends StatelessWidget {
   const TextZoomScale({required this.zoom, required this.child, super.key});
 

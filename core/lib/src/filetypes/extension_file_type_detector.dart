@@ -2,7 +2,7 @@ import '../storage/rel_path.dart';
 import 'file_type.dart';
 import 'file_type_detector.dart';
 
-/// Markdown notes and checklists.
+/// Markdown documents and checklists.
 const markdownFileType = FileType('markdown');
 
 /// Detects the [FileType] by file extension, ignoring case.

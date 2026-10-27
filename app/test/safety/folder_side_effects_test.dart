@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/notes/note.dart';
-import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/documents/document.dart';
+import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/sync_tool/folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 
@@ -14,35 +14,35 @@ import '../support.dart';
 /// folders or anything outside the folder.
 void main() {
   late Directory base;
-  late Directory notes;
+  late Directory documents;
   late Directory backups;
   late FolderServices services;
-  late NoteFiles files;
+  late DocumentFiles files;
 
   setUp(() {
     base = tempFolder();
-    notes = Directory('${base.path}/Notes')..createSync();
+    documents = Directory('${base.path}/Documents')..createSync();
     backups = Directory('${base.path}/app/backups/f1');
     _populate(base);
-    final folder = folderAt(notes);
+    final folder = folderAt(documents);
     services = syncthingFolderServices(
-      notes.path,
+      documents.path,
       backupsPath: backups.path,
       deviceId: '0123456789abcdef',
       platform: hostFacts(),
     );
-    files = NoteFiles(folder, services);
+    files = DocumentFiles(folder, services);
   });
 
   /// Every entry below [base], with what a write would change.
   Map<String, String> snapshot() => _snapshot(base);
 
-  /// The note at [name], as the app reads it.
-  Future<Note> noteAt(String name) async {
+  /// The document at [name], as the app reads it.
+  Future<Document> documentAt(String name) async {
     final scan = (await services.scanner.scan()).value;
     final entry = scan.files.firstWhere((file) => file.path.value == name);
-    final placeholder = Note(
-      folder: folderAt(notes),
+    final placeholder = Document(
+      folder: folderAt(documents),
       path: entry.path,
       file: TextFile.empty(),
       version: entry.version,
@@ -75,63 +75,63 @@ void main() {
     expect(changed(before, snapshot()), isEmpty);
   });
 
-  test('creating a note adds only that note', () async {
+  test('creating a document adds only that document', () async {
     final before = snapshot();
 
     await files.create('New');
 
-    expect(changed(before, snapshot()), {'Notes/New.md'});
+    expect(changed(before, snapshot()), {'Documents/New.md'});
   });
 
-  test('saving a note changes only that note', () async {
-    final note = await noteAt('sub/b.md');
+  test('saving a document changes only that document', () async {
+    final document = await documentAt('sub/b.md');
     final before = snapshot();
 
-    await files.save(note, 'edited');
+    await files.save(document, 'edited');
 
-    expect(changed(before, snapshot()), {'Notes/sub/b.md'});
+    expect(changed(before, snapshot()), {'Documents/sub/b.md'});
   });
 
-  test('deleting a note and undoing it touch only that note', () async {
-    final note = await noteAt('sub/b.md');
+  test('deleting a document and undoing it touch only that document', () async {
+    final document = await documentAt('sub/b.md');
     final before = snapshot();
 
-    await files.delete(note);
-    expect(changed(before, snapshot()), {'Notes/sub/b.md'});
-    expect(Directory('${notes.path}/sub').existsSync(), isTrue);
+    await files.delete(document);
+    expect(changed(before, snapshot()), {'Documents/sub/b.md'});
+    expect(Directory('${documents.path}/sub').existsSync(), isTrue);
 
-    await files.restore(note, note.file.text);
-    final restored = File('${notes.path}/sub/b.md').readAsStringSync();
-    expect(restored, note.file.text);
+    await files.restore(document, document.file.text);
+    final restored = File('${documents.path}/sub/b.md').readAsStringSync();
+    expect(restored, document.file.text);
   });
 
-  test('coloring a note adds only this device\'s marks file', () async {
+  test('coloring a document adds only this device\'s marks file', () async {
     final before = snapshot();
 
-    await services.marks.set(path('a.md'), const NoteMark(color: 'teal'));
+    await services.marks.set(path('a.md'), const DocumentMark(color: 'teal'));
 
     expect(changed(before, snapshot()), {
-      'Notes/.truce',
-      'Notes/.truce/marks',
-      'Notes/.truce/marks/0123456789abcdef.json',
+      'Documents/.truce',
+      'Documents/.truce/marks',
+      'Documents/.truce/marks/0123456789abcdef.json',
     });
   });
 
   test('keeping edits as a conflict copy adds only the copy', () async {
-    final note = await noteAt('sub/b.md');
+    final document = await documentAt('sub/b.md');
     final before = snapshot();
 
-    await files.saveAsConflict(note, 'mine');
+    await files.saveAsConflict(document, 'mine');
 
     final added = changed(before, snapshot());
     expect(added, hasLength(1));
-    expect(added.single, startsWith('Notes/sub/b.sync-conflict-'));
+    expect(added.single, startsWith('Documents/sub/b.sync-conflict-'));
   });
 
   for (final resolution in [const KeepCurrent(), const KeepOther()]) {
     test('resolving a conflict with ${resolution.runtimeType} touches only '
-        'the note and its copy', () async {
-      File('${notes.path}/sub/b.sync-conflict-20261003-134809-ABCDEFG.md')
+        'the document and its copy', () async {
+      File('${documents.path}/sub/b.sync-conflict-20261003-134809-ABCDEFG.md')
           .writeAsStringSync('theirs');
       final scan = (await services.scanner.scan()).value;
       final conflict = scan.conflicts.single;
@@ -150,32 +150,32 @@ void main() {
           if (path != 'app' && !path.startsWith('app/')) path,
       };
       expect(inFolder, {
-        if (resolution is KeepOther) 'Notes/sub/b.md',
-        'Notes/sub/b.sync-conflict-20261003-134809-ABCDEFG.md',
+        if (resolution is KeepOther) 'Documents/sub/b.md',
+        'Documents/sub/b.sync-conflict-20261003-134809-ABCDEFG.md',
       });
     });
   }
 
   group('once the folder is gone', () {
     // E.g. moved, deleted, or on a drive that is not mounted.
-    late Note note;
+    late Document document;
     late Map<String, String> before;
 
     setUp(() async {
-      note = await noteAt('sub/b.md');
-      notes.renameSync('${base.path}/Moved');
+      document = await documentAt('sub/b.md');
+      documents.renameSync('${base.path}/Moved');
       before = snapshot();
     });
 
-    test('creating a note does not bring it back', () async {
+    test('creating a document does not bring it back', () async {
       expect((await files.create('New')).error, StoreError.notFound);
       expect(changed(before, snapshot()), isEmpty);
     });
 
-    test('coloring a note does not bring it back', () async {
+    test('coloring a document does not bring it back', () async {
       final colored = await services.marks.set(
         path('a.md'),
-        const NoteMark(color: 'teal'),
+        const DocumentMark(color: 'teal'),
       );
 
       expect(colored.error, StoreError.notFound);
@@ -184,41 +184,44 @@ void main() {
 
     test('keeping edits as a conflict copy does not bring it back', () async {
       expect(
-        (await files.saveAsConflict(note, 'mine')).error,
+        (await files.saveAsConflict(document, 'mine')).error,
         StoreError.notFound,
       );
       expect(changed(before, snapshot()), isEmpty);
     });
 
     test('saving, restoring and deleting do not bring it back', () async {
-      expect((await files.save(note, 'mine')).error, StoreError.notFound);
-      expect((await files.restore(note, 'mine')).error, StoreError.notFound);
-      expect((await files.delete(note)).error, StoreError.notFound);
+      expect((await files.save(document, 'mine')).error, StoreError.notFound);
+      expect(
+        (await files.restore(document, 'mine')).error,
+        StoreError.notFound,
+      );
+      expect((await files.delete(document)).error, StoreError.notFound);
       expect(changed(before, snapshot()), isEmpty);
     });
   });
 }
 
-/// A Syncthing folder `Notes` with the tool's own files, files and folders
+/// A Syncthing folder `Documents` with the tool's own files, files and folders
 /// the app does not show, a link to a folder outside, and files next to it.
 void _populate(Directory base) {
   void write(String path, String text) =>
       File('${base.path}/$path').writeCreatingFolders(text);
 
-  Directory('${base.path}/Notes/.stfolder').createSync();
-  write('Notes/.stignore', '// ignore nothing\n');
-  write('Notes/.stversions/a~20261001-120000.md', 'old a');
-  write('Notes/.stversions/sub/b~20261001-120000.md', 'old b');
-  write('Notes/a.md', '# A\n');
-  write('Notes/sub/b.md', '# B\n- [ ] item\n');
-  write('Notes/sub/deeper/c.md', '# C\n');
-  write('Notes/sub/picture.png', 'not text');
-  write('Notes/readme.txt', 'plain text');
-  write('Notes/.hidden/h.md', '# Hidden\n');
-  write('Notes/.syncthing.a.md.tmp', 'Syncthing at work');
+  Directory('${base.path}/Documents/.stfolder').createSync();
+  write('Documents/.stignore', '// ignore nothing\n');
+  write('Documents/.stversions/a~20261001-120000.md', 'old a');
+  write('Documents/.stversions/sub/b~20261001-120000.md', 'old b');
+  write('Documents/a.md', '# A\n');
+  write('Documents/sub/b.md', '# B\n- [ ] item\n');
+  write('Documents/sub/deeper/c.md', '# C\n');
+  write('Documents/sub/picture.png', 'not text');
+  write('Documents/readme.txt', 'plain text');
+  write('Documents/.hidden/h.md', '# Hidden\n');
+  write('Documents/.syncthing.a.md.tmp', 'Syncthing at work');
   write('outside/secret.md', '# Secret\n');
   write('sibling.md', '# Sibling\n');
-  Link('${base.path}/Notes/linked').createSync('${base.path}/outside');
+  Link('${base.path}/Documents/linked').createSync('${base.path}/outside');
 }
 
 /// Each entry below [root] by relative path: a file's bytes, time and mode,

@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
-import '../folders/note_folder.dart';
 import '../sync_tool/folder_services.dart';
 
-/// A backup and the folder its note is in.
-typedef FolderBackup = ({NoteFolder folder, Backup backup});
+/// A backup and the folder its document is in.
+typedef FolderBackup = ({DocumentFolder folder, Backup backup});
 
 /// The backups of every folder added on this device, newest first; read
 /// again each time they are shown. A folder whose backups can't be read is

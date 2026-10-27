@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
-import '../../note_metrics.dart';
-import '../../note_text_styles.dart';
+import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
 import '../library/library_nodes.dart';
 import '../row_looks.dart';
 import '../visual_actions.dart';
@@ -35,7 +35,7 @@ class BlockBuilder implements ComponentBuilder {
     if (componentViewModel is! BlockViewModel) return null;
     final look = componentViewModel.look;
     final context = componentContext.context;
-    final metrics = NoteMetrics.of(context);
+    final metrics = DocumentMetrics.of(context);
     return BoxComponent(
       key: componentContext.componentKey,
       isVisuallySelectable: look is BlockLook,
@@ -50,7 +50,7 @@ class BlockBuilder implements ComponentBuilder {
               SizedBox(width: metrics.handleWidth),
               MarkerView(
                 item,
-                style: NoteTextStyles.body(Theme.of(context)),
+                style: DocumentTextStyles.body(Theme.of(context)),
                 onToggle: () => actions.toggle(item.item),
               ),
               Expanded(child: child),
@@ -79,8 +79,10 @@ class BlockBuilder implements ComponentBuilder {
       onTap: () => actions.openRaw(leaf.id),
       child: Text(
         raw,
-        style: NoteTextStyles.monospace(NoteTextStyles.body(Theme.of(context)))
-            .copyWith(
+        style:
+            DocumentTextStyles.monospace(
+              DocumentTextStyles.body(Theme.of(context)),
+            ).copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant
                   .withValues(alpha: 0.6),
             ),

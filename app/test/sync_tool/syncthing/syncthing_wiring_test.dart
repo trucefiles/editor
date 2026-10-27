@@ -11,7 +11,7 @@ void main() {
   const live = RefreshSettings.standard;
   final manual = live.copyWith(mode: RefreshMode.manual);
   final periodic = live.copyWith(mode: RefreshMode.periodic);
-  const portalFolder = '/run/user/1000/doc/1a2b3c/Notes';
+  const portalFolder = '/run/user/1000/doc/1a2b3c/Documents';
 
   group('changes', () {
     test('none are looked for with manual refresh', () {
@@ -71,7 +71,7 @@ void main() {
       ('polled', periodic.copyWith(interval: const Duration(milliseconds: 20))),
       ('watched', live),
     ]) {
-      test('$name, follow only notes, conflict copies and marks', () async {
+      test('$name, follow only documents, conflict copies and marks', () async {
         final folder = tempFolder();
         final changes = syncthingFolderFollowing(
           folder.path,
@@ -89,7 +89,7 @@ void main() {
           '.obsidian/workspace.json',
           '.a.md.swp',
           'a.md~',
-          'notes.txt',
+          'documents.txt',
           'sub/a.md',
           'a.sync-conflict-20261003-134809-ABCDEFG.md',
           '.truce/marks/laptop.json',

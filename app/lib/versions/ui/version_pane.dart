@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../common/time_texts.dart';
-import '../../text_zoom/ui/note_text_zoom.dart';
+import '../../text_zoom/ui/document_text_zoom.dart';
 import '../compared_lines.dart';
 import 'diff_colors.dart';
 import 'selectable_lines.dart';
 
-/// One side of a conflict: its text, at the note text zoom, compared
+/// One side of a conflict: its text, at the document text zoom, compared
 /// with the other side's as a line diff (lines only this side has as
 /// added, lines only the other side has as removed), and a button to
 /// keep it.
@@ -55,7 +55,7 @@ class VersionPane extends StatelessWidget {
                 style: theme.textTheme.bodyLarge,
               ),
             ),
-            final text => NoteTextZoom(
+            final text => DocumentTextZoom(
               child: _HighlightedText(text, compareTo),
             ),
           },

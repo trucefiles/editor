@@ -37,7 +37,7 @@ void main() {
         String.fromCharCodes(value.bytes),
   };
 
-  test('loads the backup next to the note', () async {
+  test('loads the backup next to the document', () async {
     folder.put('todo.md', 'now');
 
     final choice = await load();
@@ -46,7 +46,7 @@ void main() {
     expect(String.fromCharCodes(choice.current!.bytes), 'now');
   });
 
-  test('restores the backup over the note, after a backup of it', () async {
+  test('restores the backup over the document, after a backup of it', () async {
     folder.put('todo.md', 'now');
 
     final kept = await restore.keep(await load(), const KeepOther());
@@ -56,7 +56,7 @@ void main() {
     expect(keptBackups(), {'now'});
   });
 
-  test('restores a deleted note', () async {
+  test('restores a deleted document', () async {
     final choice = await load();
     expect(choice.current, isNull);
 
@@ -75,7 +75,7 @@ void main() {
     expect(kept.error, ResolveError.folderMissing);
   });
 
-  test('keeping the note changes nothing', () async {
+  test('keeping the document changes nothing', () async {
     folder.put('todo.md', 'now');
 
     await restore.keep(await load(), const KeepCurrent());
@@ -95,7 +95,7 @@ void main() {
     expect(folder.textOf('todo.md'), 'changed');
   });
 
-  test('never overwrites a note recreated after loading', () async {
+  test('never overwrites a document recreated after loading', () async {
     final choice = await load();
     folder.put('todo.md', 'new');
 

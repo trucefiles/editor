@@ -6,7 +6,7 @@ void main() {
   final at = DateTime.utc(2026, 10, 12, 15);
   final micros = at.microsecondsSinceEpoch;
 
-  test('keeps the whole note path below the time and kind', () {
+  test('keeps the whole document path below the time and kind', () {
     final backup = Backup.of(
       path('lists/todo.md'),
       at: at,
@@ -58,6 +58,6 @@ void main() {
   test('tells when the backups in a top folder were saved', () {
     expect(Backup.savedAtOfFolder('$micros.edit'), at);
     expect(Backup.savedAtOfFolder('$micros.unknown'), isNull);
-    expect(Backup.savedAtOfFolder('notes'), isNull);
+    expect(Backup.savedAtOfFolder('documents'), isNull);
   });
 }

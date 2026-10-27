@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../folders/note_folder.dart';
+import '../../folders/document_folder.dart';
 import '../../scan/folder_scans_controller.dart';
 import '../folder_reach_controller.dart';
 
@@ -11,7 +11,7 @@ import '../folder_reach_controller.dart';
 class UnreachableBanner extends ConsumerWidget {
   const UnreachableBanner(this.folder, {required this.message, super.key});
 
-  final NoteFolder folder;
+  final DocumentFolder folder;
   final String message;
 
   @override

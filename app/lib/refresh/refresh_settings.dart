@@ -9,7 +9,7 @@ enum RefreshMode {
   /// By checking the folders every [RefreshSettings.interval].
   periodic,
 
-  /// Only when the user refreshes (or opens a note, comes back to the app).
+  /// Only when the user refreshes (or opens a document, comes back to the app).
   manual,
 }
 

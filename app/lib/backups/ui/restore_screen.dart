@@ -16,7 +16,7 @@ import '../backup_retention.dart';
 import '../restore_controller.dart';
 import 'backup_kind_text.dart';
 
-/// Shows a backup next to its note as it is now, in the same view as a
+/// Shows a backup next to its document as it is now, in the same view as a
 /// conflict; the user keeps one. Closes once a version is kept, with the
 /// outcome to tell as its result.
 class RestoreScreen extends ConsumerStatefulWidget {
@@ -60,7 +60,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       appBar: compareAppBar(
         folder: folder,
         file: backup.filePath,
-        note: 'Backup: ${backup.kind.text}',
+        reason: 'Backup: ${backup.kind.text}',
       ),
       body: Column(
         children: [
@@ -92,8 +92,8 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         text: current == null ? null : versionText(current.bytes),
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
-            ? 'The note stays deleted.'
-            : 'The note stays as it is.',
+            ? 'The document stays deleted.'
+            : 'The document stays as it is.',
       ),
       other: ShownVersion(
         label: 'Backup',
@@ -101,7 +101,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         text: versionText(choice.bytes),
         keepLabel: 'Restore',
         keptMessage: deleted
-            ? 'The note is restored from this backup.'
+            ? 'The document is restored from this backup.'
             : 'The current version is replaced by the backup. A backup of '
                   'the current version stays on this device for '
                   '${backupRetention.inDays} days.',

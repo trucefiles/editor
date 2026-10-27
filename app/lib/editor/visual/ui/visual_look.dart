@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
+import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
 import '../../library/editor_look.dart';
-import '../../note_metrics.dart';
-import '../../note_text_styles.dart';
-import '../../ui/note_image.dart';
+import '../../ui/document_image.dart';
 import '../library/attributed_text.dart';
 import '../library/library_nodes.dart';
 import '../row_looks.dart';
@@ -14,10 +14,10 @@ import '../row_looks.dart';
 /// images (as [images] finds them) and inline HTML in the text.
 EditorLook visualLook(
   ThemeData theme, {
-  required NoteMetrics metrics,
-  required NoteImages images,
+  required DocumentMetrics metrics,
+  required DocumentImages images,
 }) {
-  final body = NoteTextStyles.body(theme);
+  final body = DocumentTextStyles.body(theme);
   final colors = theme.colorScheme;
   return EditorLook(
     theme,
@@ -29,12 +29,10 @@ EditorLook visualLook(
       DoneHeadingLook() || AddItemLook() => false,
     },
     textStyleOf: (node) => switch (lookOf(node)) {
-      TextLook(leaf: md.HeadingNode(:final level)) => NoteTextStyles.heading(
-        body,
-        level,
-      ),
-      TextLook(leaf: md.CodeNode()) => NoteTextStyles.code(body),
-      RawTextLook() => NoteTextStyles.monospace(
+      TextLook(leaf: md.HeadingNode(:final level)) =>
+        DocumentTextStyles.heading(body, level),
+      TextLook(leaf: md.CodeNode()) => DocumentTextStyles.code(body),
+      RawTextLook() => DocumentTextStyles.monospace(
         body,
       ).copyWith(color: _dim(colors)),
       _ => body,
@@ -52,7 +50,7 @@ EditorLook visualLook(
     ),
     inlineWidgets: [
       (context, style, placeholder) => switch (placeholder) {
-        ObjectPlaceholder(inline: final md.ImageInline image) => NoteImage(
+        ObjectPlaceholder(inline: final md.ImageInline image) => DocumentImage(
           image.destination,
           alt: image.description,
           images: images,
@@ -80,7 +78,7 @@ TextStyle _formatted(
       ?style.decoration,
     ]),
   ),
-  md.TextFormat.code => NoteTextStyles.code(
+  md.TextFormat.code => DocumentTextStyles.code(
     style,
   ).copyWith(backgroundColor: colors.surfaceContainerHighest),
 };
