@@ -121,6 +121,15 @@ void main() {
     expect(edited.document.text, '**hello** you');
   });
 
+  test('after a replacement the caret is after the new text', () {
+    // An autocorrect from helo to hello inserts only the second l.
+    final document = Shown.read('helo you');
+    final edited = document.run(
+      ReplaceText(_range(document, 0, 0, 4), 'hello'),
+    );
+    expect(edited.selection, edited.document.caret(0, 5));
+  });
+
   test('typing in an autolink changes where it leads', () {
     String typed(String text, int at, String insert) {
       final document = Shown.read(text);

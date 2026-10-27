@@ -27,7 +27,8 @@ Change insertText(
 /// The text in [range], within one text place, replaced by [text], as an
 /// input method does: the text both share at their start and end keeps
 /// its formatting; what changed takes the formatting of the first
-/// character it replaced (else of the one before).
+/// character it replaced (else of the one before). The caret goes after
+/// the new text.
 Change replaceText(ViewRows view, TextSelection range, String text) {
   final (start, end) = ordered(view, range);
   assert(start.leaf == end.leaf, 'a replacement within one text place');
@@ -41,13 +42,20 @@ Change replaceText(ViewRows view, TextSelection range, String text) {
     (false, true) => shown.formattingAt(from - 1),
     (false, false) => Formatting.plain,
   };
-  return typed(
+  final (:doc, selection: _) = typed(
     view,
     Place(start.leaf, from),
     to,
     VisibleText([
       TextPiece(text.substring(head, text.length - tail), formatting),
     ]),
+  );
+  // After the whole new text, even where only its middle changed.
+  return (
+    doc: doc,
+    selection: TextSelection.caret(
+      Place(start.leaf, start.offset + text.length),
+    ),
   );
 }
 
