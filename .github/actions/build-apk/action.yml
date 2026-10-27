@@ -9,10 +9,20 @@ outputs:
     description: The built APK file.
     value: ${{ steps.apk.outputs.path }}
 
+inputs:
+  cache-native-builds:
+    description: Reuse native libraries from earlier runs; never for releases.
+    default: 'false'
+
 runs:
   using: composite
   steps:
     - uses: ./.github/actions/setup-flutter
+
+    - if: inputs.cache-native-builds == 'true'
+      uses: ./.github/actions/cache-native-builds
+      with:
+        build: apk
 
     - name: Get packages from the lock file
       shell: bash
