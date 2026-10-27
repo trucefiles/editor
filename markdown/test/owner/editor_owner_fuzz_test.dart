@@ -2,8 +2,9 @@ import 'dart:math';
 
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Edited, Picked, Replaced, SecureReason, Version;
+    show EffectId, Edited, Picked, Replaced, SecureReason, Ticket, Version;
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 import '../support/document_corpus.dart';
 
@@ -15,29 +16,34 @@ void main() {
     for (var seed = 0; seed < 20; seed++) {
       for (final (index, text) in documentCorpus.indexed) {
         final random = Random(seed * 1000 + index);
-        final owner = editorOwner(
-          text,
-          version: const Version(0),
-          checkedItems: CheckedItems.values[random.nextInt(3)],
+        final owner = MachineRun.of(
+          editorMachine(
+            text,
+            version: const Version(0),
+            checkedItems: CheckedItems.values[random.nextInt(3)],
+          ),
         );
         var fileText = text;
         var rev = 0;
-        final timers = <int>[];
+        final timers = <EffectId>[];
         var versions = 0;
-        owner.outputs.listen((output) {
-          switch (output) {
-            case ToFile(input: Edited(:final text, rev: final edited)):
-              fileText = text;
-              rev = edited;
-            case StartSaveTimer(:final id):
-              timers.add(id);
-            case _:
+        void send(EditorMessage message) {
+          for (final output in owner.send(message)) {
+            switch (output) {
+              case ToFile(input: Edited(:final text, rev: final edited)):
+                fileText = text;
+                rev = edited;
+              case StartSaveTimer(:final id):
+                timers.add(id);
+              case _:
+            }
           }
-        });
+        }
+
         void fromFile(String text) {
           fileText = text;
           final version = Version(++versions);
-          owner.send(
+          send(
             FromFile(
               random.nextBool()
                   ? Replaced(text, version: version, ackRev: rev)
@@ -57,7 +63,7 @@ void main() {
               case null:
                 break;
               case final input:
-                owner.send(input);
+                send(input);
             }
             _expectSound(owner.state, fileText);
           } on Object catch (error) {
@@ -92,9 +98,13 @@ void _expectSound(EditorState state, String fileText) {
   }
 }
 
-/// A random input on [state], [timers] the save timers started so far;
+/// A random message on [state], [timers] the save timers started so far;
 /// `null` for a change from the file owner.
-EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
+EditorMessage? _randomInput(
+  Random random,
+  EditorState state,
+  List<EffectId> timers,
+) {
   final revision = state.revision;
   T pick<T>(List<T> from) => from[random.nextInt(from.length)];
   final visual = switch (state.content) {
@@ -158,7 +168,7 @@ EditorInput? _randomInput(Random random, EditorState state, List<int> timers) {
       revision: revision,
     ),
     10 => SetCheckedItems(pick(CheckedItems.values)),
-    11 => SecureEditor(pick(SecureReason.values)),
+    11 => SecureEditor(Ticket(), pick(SecureReason.values)),
     12 when raws.isNotEmpty => OpenRawBlock(
       pick(raws).leaf.id,
       atEnd: random.nextBool(),

@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart' show Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/visual/library/visual_adapter.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// The budget for a typed character in a 2000-item list, from the
 /// library's request to its document showing it, on the JIT that tests
@@ -21,7 +22,13 @@ void main() {
           '${nested && item.isOdd ? '  ' : ''}'
               '- [${item % 3 == 0 ? 'x' : ' '}] item number $item with words',
       ].join('\n');
-      final gate = EditorGate(md.editorOwner(text, version: const Version(1)));
+      final gate = EditorGate(
+        md.editorOwner(
+          text,
+          version: const Version(1),
+          startTimer: ManualTimers().start,
+        ),
+      );
       final adapter = VisualAdapter(gate);
       final node = adapter.document.getNodeAt(1000)!.id;
       final times = [

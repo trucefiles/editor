@@ -1,121 +1,86 @@
 import 'dart:async';
 
 import '../common/result.dart';
+import '../owners/machine.dart';
+import '../owners/machine_owner.dart';
+import '../owners/owner.dart';
+import '../owners/timers.dart';
 import '../storage/file_store.dart';
+import 'reach_contract.dart';
+import 'reach_transition.dart';
+import 'reach_work.dart';
 
-/// Whether a folder's files can be reached.
-enum Reach {
-  reachable,
+export 'reach_contract.dart';
 
-  /// An access failed and the folder could not be read: checking again for
-  /// a short while. Nothing that depends on the folder should run.
-  retrying,
+/// The owner of whether one folder's files can be reached (see
+/// `reach_contract.dart`).
+typedef FolderReach = Owner<ReachInput, Reach, ReachEvent>;
 
-  /// The folder could not be read for a while. Any access that works makes
-  /// it [reachable] again.
-  unreachable,
+/// The reach owner's machine.
+typedef ReachMachine =
+    Machine<ReachMessage, Reach, ReachWork, ReachEvent, ReachEffect>;
+
+/// The reach machine: retries [retries] times, [retryEvery] apart, after
+/// a failed check.
+ReachMachine reachMachine({
+  int retries = 5,
+  Duration retryEvery = const Duration(seconds: 1),
+}) {
+  final ReachTiming timing = (retries: retries, retryEvery: retryEvery);
+  return Machine(
+    state: Reach.reachable,
+    work: const ReachWork(),
+    step: (state, work, message) => reachStep(timing, state, work, message),
+    violations: reachViolations,
+  );
 }
 
-/// Tells whether one folder can be reached, from how accesses to its files
-/// go (see [saw]).
-///
-/// An access that fails in a way that may mean the folder is out of reach
-/// (not found, no access, I/O failure) starts a check: the folder itself is
-/// listed, without its contents. If that works, nothing changes: e.g. one
-/// file was deleted. Else the folder is [Reach.retrying] and checked every
-/// [retryEvery], up to [retries] times, then [Reach.unreachable]. Any access
-/// that works meanwhile or later makes it [Reach.reachable].
-final class FolderReach {
-  /// [store] is the folder's store whose accesses are not reported here,
-  /// so checks never report themselves. [wait] stands in for the clock in
-  /// tests.
-  FolderReach(
-    this._store, {
-    this.retries = 5,
-    this.retryEvery = const Duration(seconds: 1),
-    this.checkTimeout = const Duration(seconds: 2),
-    Future<void> Function(Duration)? wait,
-  }) : _wait = wait ?? Future<void>.delayed;
+/// The reach owner of the folder in [store], whose accesses are not
+/// reported to it, so checks never report themselves. A check that takes
+/// longer than [checkTimeout] counts as failed; [startTimer] stands in for
+/// the clock in tests.
+FolderReach folderReach(
+  FileStore store, {
+  int retries = 5,
+  Duration retryEvery = const Duration(seconds: 1),
+  Duration checkTimeout = const Duration(seconds: 2),
+  StartTimer? startTimer,
+}) =>
+    MachineOwner<
+      ReachMessage,
+      ReachInput,
+      ReachResult,
+      Reach,
+      ReachWork,
+      ReachEvent,
+      ReachEffect
+    >(
+      reachMachine(retries: retries, retryEvery: retryEvery),
+      handle: (effect) => switch (effect) {
+        CheckFolder(:final id) => _canRead(
+          store,
+          checkTimeout,
+        ).then((ok) => FolderChecked(id, ok: ok)),
+        // Waits run by the owner's timers.
+        WaitToRetry() => throw StateError('a wait reached the handler'),
+      },
+      startTimer: startTimer,
+    );
 
-  final FileStore _store;
+/// Whether the folder in [store] itself can be listed within [timeout].
+Future<bool> _canRead(FileStore store, Duration timeout) => store
+    .list(enterFolder: (_) => false, includeFile: (_) => false)
+    .then((listed) => listed is Ok)
+    .timeout(timeout, onTimeout: () => false);
 
-  /// How many checks follow the first failed one before the folder is
-  /// [Reach.unreachable].
-  final int retries;
-
-  final Duration retryEvery;
-
-  /// A check that takes longer than this counts as failed.
-  final Duration checkTimeout;
-
-  final Future<void> Function(Duration) _wait;
-  final _changes = StreamController<Reach>.broadcast(sync: true);
-  Reach _state = Reach.reachable;
-  Future<void>? _check;
-
-  /// Accesses that worked, so a check can tell one came meanwhile.
-  int _worked = 0;
-
-  Reach get state => _state;
-
-  /// Every change of [state].
-  Stream<Reach> get changes => _changes.stream;
-
-  /// [state] once a running check and its retries are over, e.g. to tell
-  /// whether a failed save failed because the folder is out of reach.
-  Future<Reach> settled() async {
-    await _check;
-    return _state;
-  }
-
-  /// An access to the folder's files ended with [outcome].
-  void saw(Result<Object?, StoreError> outcome) {
-    switch (outcome) {
-      case Ok():
-        _worked++;
-        _set(Reach.reachable);
-      case Err(
-            error: StoreError.notFound ||
-                StoreError.accessDenied ||
-                StoreError.ioFailure,
-          )
-          when _state == Reach.reachable && _check == null:
-        _check = _checkOnce().whenComplete(() => _check = null);
-      case Err():
-        break;
-    }
-  }
-
-  Future<void> _checkOnce() async {
-    final worked = _worked;
-    // An access that worked during the first check: the folder is there.
-    if (await _canRead() || _worked != worked) return;
-    _set(Reach.retrying);
-    for (var retry = 0; retry < retries; retry++) {
-      await _wait(retryEvery);
-      // An access worked meanwhile, or disposed.
-      if (_state != Reach.retrying || _changes.isClosed) return;
-      if (await _canRead()) {
-        _set(Reach.reachable);
-        return;
-      }
-    }
-    if (_state == Reach.retrying) _set(Reach.unreachable);
-  }
-
-  /// Whether the folder itself can be listed.
-  Future<bool> _canRead() => _store
-      .list(enterFolder: (_) => false, includeFile: (_) => false)
-      .then((listed) => listed is Ok)
-      .timeout(checkTimeout, onTimeout: () => false);
-
-  /// Ignored once disposed: a check may still be running.
-  void _set(Reach state) {
-    if (state == _state || _changes.isClosed) return;
-    _state = state;
-    _changes.add(state);
-  }
-
-  /// Stops telling of changes; a running check ends at its next step.
-  Future<void> dispose() => _changes.close();
-}
+/// How an access that ended with [outcome] went, for the reach.
+Access accessOf(Result<Object?, StoreError> outcome) => switch (outcome) {
+  Ok() => Access.worked,
+  Err(
+    error: StoreError.notFound ||
+        StoreError.accessDenied ||
+        StoreError.ioFailure,
+  ) =>
+    Access.mayBeGone,
+  Err() => Access.otherError,
+};

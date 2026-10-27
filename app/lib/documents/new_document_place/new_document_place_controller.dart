@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pool/pool.dart';
 
+import '../../settings/setting_controller.dart';
 import '../../storage/app_storage.dart';
 import 'new_document_place.dart';
 import 'new_document_place_store.dart';
 
-final newNotePlaceStoreProvider = Provider<NewNotePlaceStore>(
+final newNotePlaceStoreProvider = Provider<SettingStore<NewNotePlaceSetting?>>(
   (ref) => NewNotePlaceStore(
     File('${ref.watch(appStorageProvider).settingsPath}/new_note_place.json'),
   ),
@@ -20,20 +20,8 @@ final newNotePlaceProvider =
 
 /// The setting of where new documents go on this device; `null` for the
 /// default (see `DocumentActions.defaultFolder`).
-class NewNotePlaceController extends AsyncNotifier<NewNotePlaceSetting?> {
-  final _changes = Pool(1);
-
+class NewNotePlaceController extends SettingController<NewNotePlaceSetting?> {
   @override
-  Future<NewNotePlaceSetting?> build() =>
-      ref.watch(newNotePlaceStoreProvider).load();
-
-  /// Takes [place] once the setting is loaded, so screens show it; saves
-  /// it after every earlier change.
-  Future<void> set(NewNotePlaceSetting? place) async {
-    await future;
-    state = AsyncData(place);
-    await _changes.withResource(
-      () => ref.read(newNotePlaceStoreProvider).save(place),
-    );
-  }
+  Provider<SettingStore<NewNotePlaceSetting?>> get store =>
+      newNotePlaceStoreProvider;
 }

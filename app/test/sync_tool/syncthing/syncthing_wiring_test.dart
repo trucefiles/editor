@@ -172,4 +172,4 @@ void main() {
 }
 
 /// A reach no test looks at.
-FolderReach _reach() => FolderReach(LocalFileStore('/', (token) => token));
+FolderReach _reach() => folderReach(LocalFileStore('/', (token) => token));

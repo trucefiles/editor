@@ -28,8 +28,16 @@ class FolderReachController extends Notifier<Reach> {
   }
 
   /// The reach once a running check and its retries are over.
-  Future<Reach> settled() =>
-      ref.read(folderServicesProvider(_location)).reach.settled();
+  Future<Reach> settled() async {
+    final reach = ref.read(folderServicesProvider(_location)).reach;
+    final settled = await ask<ReachInput, Settled>(
+      reach.send,
+      reach.events,
+      Settle.new,
+    );
+    // The folder was removed meanwhile.
+    return settled?.reach ?? reach.state;
+  }
 }
 
 /// The folders that are [Reach.retrying] right now.

@@ -39,6 +39,31 @@ void main() {
   late ProviderSubscription<RestoreState> watching;
   late NotifierProvider<RestoreController, RestoreState> provider;
 
+  RestoreState current() => container.read(provider);
+
+  /// Watches the screen of [backup], as the screen does.
+  void watch(FolderBackup backup) {
+    provider = restoreProvider(backup);
+    watching = container.listen(provider, (_, _) {});
+  }
+
+  /// Waits until the versions shown loaded, or failed to.
+  Future<RestoreState> loaded() async {
+    final done = Completer<RestoreState>();
+    final waiting = container.listen(provider, (_, state) {
+      if (state is! CompareLoading && !done.isCompleted) done.complete(state);
+    }, fireImmediately: true);
+    final state = await done.future;
+    waiting.close();
+    return state;
+  }
+
+  /// The backup and the file shown.
+  RestoreChoice choice() => switch (current()) {
+    CompareShowing(:final sides) => sides,
+    final other => throw StateError('nothing shows: $other'),
+  };
+
   /// Backs up [text] as the document before editing, then opens that backup
   /// from the list of all backups and waits until it is loaded.
   Future<RestoreController> open(String text) async {
@@ -49,17 +74,10 @@ void main() {
     );
     // Kept alive like the backups screen does.
     container.listen(allBackupsProvider, (_, _) {});
-    final backup = (await container.read(allBackupsProvider.future)).single;
-    provider = restoreProvider(backup);
-    final loaded = Completer<void>();
-    watching = container.listen(provider, (_, state) {
-      if (state.choice != null && !loaded.isCompleted) loaded.complete();
-    }, fireImmediately: true);
-    await loaded.future;
+    watch((await container.read(allBackupsProvider.future)).single);
+    await loaded();
     return container.read(provider.notifier);
   }
-
-  RestoreState current() => container.read(provider);
 
   test('lists the backups of every folder', () async {
     await open('# Todo\nbackup\n');
@@ -77,7 +95,7 @@ void main() {
     final kept = controller.keep(const KeepOther());
     watching.close();
 
-    expect(await kept, isA<Ok<void, ResolveError>>());
+    expect(await kept, isNull, reason: 'the screen closed first');
     final scans = await container.read(folderScansProvider.future);
     expect(scans.documents.single.file.text, '# Todo\nbackup\n');
   });
@@ -96,20 +114,21 @@ void main() {
       '/${backup.backup.storePath.value}',
     );
     final away = kept.renameSync('${kept.path}-away');
-    provider = restoreProvider(backup);
-    var loaded = Completer<void>();
-    container.listen(provider, (_, state) {
-      if (state.choice != null && !loaded.isCompleted) loaded.complete();
-    }, fireImmediately: true);
-    await loaded.future;
-    expect(current().choice!.error, StoreError.notFound);
+    watch(backup);
+    expect(
+      await loaded(),
+      isA<CompareLoadFailed<FolderBackup, RestoreChoice>>().having(
+        (s) => s.error,
+        'error',
+        StoreError.notFound,
+      ),
+    );
 
     away.renameSync(kept.path);
-    loaded = Completer<void>();
     await container.read(folderScansProvider.notifier).refresh();
-    await loaded.future;
+    await loaded();
 
-    expect(current().choice!.value.bytes, utf8.encode('# Todo\nbackup\n'));
+    expect(choice().bytes, utf8.encode('# Todo\nbackup\n'));
   });
 
   test('loads the backup next to the document', () async {
@@ -117,9 +136,8 @@ void main() {
 
     await open('# Todo\nbackup\n');
 
-    final choice = current().choice!.value;
-    expect(String.fromCharCodes(choice.bytes), '# Todo\nbackup\n');
-    expect(String.fromCharCodes(choice.current!.bytes), '# Todo\nnow\n');
+    expect(String.fromCharCodes(choice().bytes), '# Todo\nbackup\n');
+    expect(String.fromCharCodes(choice().current!.bytes), '# Todo\nnow\n');
   });
 
   test('restores the backup', () async {
@@ -128,8 +146,18 @@ void main() {
 
     final kept = await controller.keep(const KeepOther());
 
-    expect(kept, isA<Ok<void, ResolveError>>());
+    expect(kept!.error, isNull);
+    expect(kept.done, isTrue);
     expect(document().readAsStringSync(), '# Todo\nbackup\n');
+  });
+
+  test('lists the backup of the file it replaced', () async {
+    document().writeAsStringSync('# Todo\nnow\n');
+    final controller = await open('# Todo\nbackup\n');
+
+    await controller.keep(const KeepOther());
+
+    expect(await container.read(allBackupsProvider.future), hasLength(2));
   });
 
   test('loads the document again if it changed meanwhile', () async {
@@ -140,11 +168,12 @@ void main() {
     final kept = await controller.keep(const KeepOther());
 
     expect(kept!.error, ResolveError.changedSinceScan);
+    expect(kept.done, isFalse);
     expect(document().readAsStringSync(), '# Todo\nchanged elsewhere\n');
+    await loaded();
     expect(
-      String.fromCharCodes(current().choice!.value.current!.bytes),
+      String.fromCharCodes(choice().current!.bytes),
       '# Todo\nchanged elsewhere\n',
     );
-    expect(current().busy, isFalse);
   });
 }

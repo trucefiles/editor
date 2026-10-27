@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
@@ -19,7 +18,7 @@ import '../support.dart';
 
 void main() {
   late StreamController<RelPath> changes;
-  late _CountingScans scans;
+  late _RecordingScans scans;
   late ProviderContainer container;
   late DocumentFolder folder;
 
@@ -33,7 +32,7 @@ void main() {
   }) async {
     // Broadcast: a rebuild listens again.
     changes = StreamController<RelPath>.broadcast();
-    scans = _CountingScans();
+    scans = _RecordingScans();
     folder = folderAt(tempFolder());
     container = ProviderContainer(
       overrides: [
@@ -44,7 +43,7 @@ void main() {
           (ref, location) async => manual ? null : _StreamChanges(changes),
         ),
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
-        folderScansProvider.overrideWith(() => scans),
+        folderScansOwnerProvider.overrideWithValue(scans),
         refreshSettingsProvider.overrideWith(_FixedSettings.new),
         folderReachProvider.overrideWith2(_SettableReach.new),
       ],
@@ -54,9 +53,7 @@ void main() {
     if (folders == null) await container.read(autoRescanProvider.future);
   }
 
-  Future<void> settle() => Future<void>.delayed(
-    AutoRescan.settleTime + const Duration(milliseconds: 100),
-  );
+  Future<void> settle() => pumpEventQueue();
 
   test('follows a folder afresh once it is reachable again', () async {
     await start();
@@ -75,27 +72,34 @@ void main() {
     expect(listens, before + 1);
   });
 
-  test('rescans once for changes that come close together', () async {
+  test('tells the scans of every change', () async {
     await start();
 
     changes
       ..add(path('a.md'))
-      ..add(path('b.md'))
-      ..add(path('a.md'));
+      ..add(path('b.md'));
     await settle();
 
-    expect(scans.refreshes, 1);
+    expect(
+      scans.inputs.whereType<FilesChanged<Object?, Object?>>(),
+      hasLength(2),
+    );
   });
 
-  test('rescans again for a later change', () async {
+  test('tells the scans whether the app is in use', () async {
     await start();
-    changes.add(path('a.md'));
-    await settle();
+    (container.read(appActiveProvider.notifier) as _FixedActivity).set(
+      active: false,
+    );
+    await container.read(autoRescanProvider.future);
 
-    changes.add(path('b.md'));
-    await settle();
-
-    expect(scans.refreshes, 2);
+    expect(
+      [
+        for (final input in scans.inputs)
+          if (input case Active(:final active)) active,
+      ],
+      [true, false],
+    );
   });
 
   test('does not look for changes while the app is not in use', () async {
@@ -147,37 +151,24 @@ void main() {
     await container.read(autoRescanProvider.future);
     await settle();
 
-    expect(scans.refreshes, 0);
+    expect(scans.inputs.whereType<FilesChanged<Object?, Object?>>(), isEmpty);
+    expect(scans.inputs.whereType<SettingChanged<Object?, Object?>>(), isEmpty);
     expect(changes.hasListener, isTrue);
   });
 
-  test('rescans once when the refresh setting changes', () async {
+  test('tells the scans once when the refresh setting changes', () async {
     await start();
 
-    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).change(
+    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).show(
       RefreshSettings.standard.copyWith(mode: RefreshMode.periodic),
     );
     await container.read(autoRescanProvider.future);
 
-    expect(scans.refreshes, 1);
+    expect(
+      scans.inputs.whereType<SettingChanged<Object?, Object?>>(),
+      hasLength(1),
+    );
   });
-
-  test(
-    'rescans while changes keep coming, at the latest after a while',
-    () async {
-      await start();
-      final until = DateTime.now().add(
-        AutoRescan.maxWait + const Duration(milliseconds: 500),
-      );
-
-      while (DateTime.now().isBefore(until)) {
-        changes.add(path('a.md'));
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      }
-
-      expect(scans.refreshes, 1);
-    },
-  );
 }
 
 final class _StreamChanges implements FolderChanges {
@@ -206,7 +197,7 @@ class _FixedSettings extends RefreshSettingsController {
   @override
   Future<RefreshSettings> build() async => RefreshSettings.standard;
 
-  void change(RefreshSettings settings) => state = AsyncData(settings);
+  void show(RefreshSettings settings) => state = AsyncData(settings);
 }
 
 class _FixedActivity extends AppActivity {
@@ -220,22 +211,24 @@ class _FixedActivity extends AppActivity {
   void set({required bool active}) => state = active;
 }
 
-class _CountingScans extends FolderScansController {
-  int refreshes = 0;
+/// A scans owner that records what it is told.
+final class _RecordingScans implements FolderScansOwner {
+  final inputs = <ScansInput<DocumentFolder, FolderScans>>[];
 
   @override
-  Future<FolderScans> build() async => FolderScans(
-    documents: const [],
-    marks: const {},
-    subfolders: const {},
-    conflicts: FolderConflicts(const []),
-    failedFolders: const {},
-    unreadable: const {},
-    startedAt: Moment.now(),
-  );
+  void send(ScansInput<DocumentFolder, FolderScans> input) => inputs.add(input);
 
   @override
-  Future<void> refresh() async => refreshes++;
+  FolderScans? get state => null;
+
+  @override
+  Stream<FolderScans?> get changes => const Stream.empty();
+
+  @override
+  Stream<Fresh> get events => const Stream.empty();
+
+  @override
+  Future<void> close() async {}
 }
 
 /// One reach for every folder, set by the test.

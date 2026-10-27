@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/document_file.dart';
-import 'package:truce_editor/document_page/document_version.dart';
+import 'package:truce_editor/documents/document_version.dart';
 
 import '../support.dart' hide documentOf;
 import 'document_fixture.dart';
@@ -55,7 +55,9 @@ void main() {
   test('a restore where a file is now tells what it holds', () async {
     final effects = fixture.effects(ExistingFile(fixture.document));
 
-    final wrote = await effects.run(const Restore(id, 'x\n'));
+    final wrote = await effects.run(
+      Restore(id, 'x\n', where: fixture.document.seen),
+    );
 
     expect(
       (wrote! as Wrote).outcome,
@@ -91,5 +93,15 @@ void main() {
 
     expect(await fixture.draftsIn('f1'), isEmpty);
     expect(await fixture.draftsIn('f2'), isEmpty);
+  });
+
+  test('a conflict copy goes next to the version named', () async {
+    final effects = fixture.effects(fixture.newFile);
+
+    final kept = await effects.run(
+      KeepAsConflict(id, 'mine\n', nextTo: fixture.document.seen),
+    );
+
+    expect(kept, isA<ConflictKept>().having((kept) => kept.ok, 'ok', isTrue));
   });
 }

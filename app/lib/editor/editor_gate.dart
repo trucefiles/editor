@@ -6,14 +6,20 @@ import 'package:truce_markdown/truce_markdown.dart';
 /// The one way into an open document's editor owner. Holds box taps for a
 /// short wait, so quick taps move together and a mistap can be undone by
 /// a second tap; any other user input first sends the waiting ones.
-/// Listeners hear once after each call, however many inputs it sent.
+/// Listeners hear once after each call, however many inputs it sent, and
+/// whenever the owner's state changes on its own (a save timer).
 final class EditorGate extends ChangeNotifier {
   EditorGate(
     this._owner, {
     this.checkDelay = const Duration(milliseconds: 700),
-  });
+  }) {
+    _changes = _owner.changes.listen((_) {
+      if (_depth == 0) notifyListeners();
+    });
+  }
 
   final EditorOwner _owner;
+  late final StreamSubscription<EditorState> _changes;
 
   /// How long box taps wait for more taps.
   final Duration checkDelay;
@@ -32,7 +38,7 @@ final class EditorGate extends ChangeNotifier {
   EditorState get state => _owner.state;
 
   /// What the owner's inputs lead to.
-  Stream<EditorOutput> get outputs => _owner.outputs;
+  Stream<EditorEvent> get events => _owner.events;
 
   /// Whether [item]'s box shows checked: its state, flipped while a tap on
   /// it waits.
@@ -55,8 +61,8 @@ final class EditorGate extends ChangeNotifier {
     _timer = _waiting.isEmpty ? null : Timer(checkDelay, () => _change(_flush));
   });
 
-  /// An input not from the user (the file owner's message, a save timer):
-  /// the taps go on waiting.
+  /// An input not from the user (the file owner's message): the taps go
+  /// on waiting.
   void external(EditorInput input) => _change(() => _owner.send(input));
 
   void _flush() {
@@ -78,9 +84,12 @@ final class EditorGate extends ChangeNotifier {
     if (_depth == 0) notifyListeners();
   }
 
+  /// Also closes the owner.
   @override
   void dispose() {
     _timer?.cancel();
+    unawaited(_changes.cancel());
+    unawaited(_owner.close());
     super.dispose();
   }
 }

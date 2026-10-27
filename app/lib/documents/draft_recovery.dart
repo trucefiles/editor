@@ -1,7 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/folders_controller.dart';
 import 'document_draft.dart';
 import 'document_drafts.dart';
 import 'document_file_name.dart';
@@ -71,18 +69,3 @@ final class DraftRecovery {
     return created is Ok;
   }
 }
-
-/// Recovers the drafts of every folder once per app run, before the first
-/// scan, so no document opens with its old text while its draft is pending.
-/// Drafts written after the app started belong to open documents and are left
-/// alone.
-final draftRecoveryProvider = FutureProvider<void>((ref) async {
-  final startedAt = DateTime.now();
-  final folders = await ref.read(foldersProvider.future);
-  for (final folder in folders) {
-    await DraftRecovery(
-      ref.read(documentDraftsProvider(folder.id)),
-      ref.read(documentFilesProvider(folder)),
-    ).recover(before: startedAt);
-  }
-});

@@ -2,7 +2,6 @@ import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart'
     show
         Edited,
-        FileOutput,
         Found,
         Moment,
         Observed,
@@ -12,10 +11,12 @@ import 'package:truce_core/truce_core.dart'
         Secure,
         SecureReason,
         Seen,
+        Ticket,
         ToEditor,
         Version,
-        openedFileOwner;
+        openedFile;
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 import 'editor_run.dart';
 
@@ -435,7 +436,7 @@ void main() {
 
   test('securing sends the text first', () {
     final run = EditorRun('ab')..type('x');
-    run.owner.send(const SecureEditor(SecureReason.hide));
+    run.owner.send(SecureEditor(Ticket(), SecureReason.hide));
     expect(
       run.outputs.whereType<ToFile>().map((out) => out.input.runtimeType),
       [Edited, Secure],
@@ -444,23 +445,35 @@ void main() {
   });
 
   test('with a file owner, a change elsewhere after a save shows', () {
-    final editor = EditorRun('a');
-    final file = openedFileOwner(const Seen('a', v1));
-    editor.owner.outputs.listen((output) {
-      if (output case ToFile(:final input)) file.send(input);
-    });
-    file.outputs.listen((FileOutput output) {
-      if (output case final ToEditor message) {
-        editor.owner.send(FromFile(message));
+    final file = MachineRun.of(openedFile(const Seen('a', v1)));
+    late final EditorRun editor;
+    void toEditor(List<Object?> outputs) {
+      for (final output in outputs) {
+        if (output case final ToEditor message) {
+          editor.send(FromFile(message));
+        }
       }
-    });
+    }
+
+    editor = EditorRun(
+      'a',
+      onOutputs: (outputs) {
+        for (final output in outputs) {
+          if (output case ToFile(:final input)) toEditor(file.send(input));
+        }
+      },
+    );
     editor
       ..caret(0, 1)
       ..type('b')
       ..pause();
-    file.send(Observed(const Found(Seen('ab', v2)), startedAt: Moment.now()));
-    file.send(
-      Observed(const Found(Seen('abc', Version(3))), startedAt: Moment.now()),
+    toEditor(
+      file.send(Observed(const Found(Seen('ab', v2)), startedAt: Moment.now())),
+    );
+    toEditor(
+      file.send(
+        Observed(const Found(Seen('abc', Version(3))), startedAt: Moment.now()),
+      ),
     );
     expect(editor.rows, ['abc']);
     expect(file.state.text, 'abc');

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Edited, Replaced, SecureReason, Version;
+    show Edited, Replaced, SecureReason, Ticket, Version;
 import 'package:truce_editor/editor/document_editor.dart';
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/visual/library/library_nodes.dart';
@@ -13,15 +13,15 @@ import 'package:truce_markdown/truce_markdown.dart'
         AskLink,
         CheckedItems,
         EditMode,
-        EditorOutput,
+        EditorEvent,
         FromFile,
         HistoryEnd,
         UndoOffered,
         SecureEditor,
-        StartSaveTimer,
         ToFile,
         UndoRefused,
         editorOwner;
+import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// An open document's editor owner in memory, as the editor views get it:
 /// records the text it sends to be kept, and the links opened.
@@ -37,9 +37,11 @@ final class TestDocument {
            version: const Version(1),
            mode: mode,
            checkedItems: checkedItems,
+           // Never fire: the text is sent as the tests ask.
+           startTimer: ManualTimers().start,
          ),
        ) {
-    final outputs = gate.outputs.listen(_onOutput);
+    final outputs = gate.events.listen(_onOutput);
     addTearDown(outputs.cancel);
     addTearDown(gate.dispose);
   }
@@ -50,7 +52,7 @@ final class TestDocument {
   final edits = <String>[];
 
   /// What the owner asked of the user or told them, e.g. [UndoOffered].
-  final notices = <EditorOutput>[];
+  final notices = <EditorEvent>[];
 
   /// The links the user opened.
   final links = <String>[];
@@ -61,7 +63,7 @@ final class TestDocument {
 
   /// The text as the owner keeps it now, every edit sent.
   String get text {
-    gate.external(const SecureEditor(SecureReason.hide));
+    gate.external(SecureEditor(Ticket(), SecureReason.hide));
     return _text;
   }
 
@@ -77,7 +79,7 @@ final class TestDocument {
     );
   }
 
-  void _onOutput(EditorOutput output) {
+  void _onOutput(EditorEvent output) {
     switch (output) {
       case ToFile(input: Edited(:final text, :final rev)):
         edits.add(text);
@@ -85,7 +87,7 @@ final class TestDocument {
         _rev = rev;
       case AskLink() || UndoOffered() || UndoRefused() || HistoryEnd():
         notices.add(output);
-      case ToFile() || StartSaveTimer():
+      case ToFile():
         break;
     }
   }
@@ -109,7 +111,7 @@ Future<void> pumpDocument(
         builder: (context, _) => DocumentEditor(
           document.gate,
           text: document.sent,
-          notices: document.gate.outputs,
+          notices: document.gate.events,
           addItems: addItems,
           onLink: document.links.add,
           images: (_) => null,

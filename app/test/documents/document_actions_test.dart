@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_actions.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
+import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_document_place/new_document_place.dart';
 import 'package:truce_editor/documents/new_document_place/new_document_place_controller.dart';
@@ -99,6 +101,17 @@ void main() {
     expect((await scans()).findNote(document.key), isNotNull);
   });
 
+  test('an action before the first scan does not wait forever', () async {
+    // Drafts are recovered first, so the action's rescan can run.
+    final created = await actions.create(
+      (folder: folders[0], subfolder: null),
+      title: 'Plan',
+      text: 'Plan\n',
+    );
+
+    expect((await scans()).findNote(created.value.key), isNotNull);
+  });
+
   test('create puts the document in the chosen subfolder', () async {
     Directory('${work.path}/a/b').createSync(recursive: true);
     await scans();
@@ -173,6 +186,26 @@ void main() {
       expect(settings.settingsOf(moved.key), mine);
       expect(settings.settingsOf(document.key), DocumentSettings.defaults);
     });
+
+    test(
+      'asked right after a color, waits for it and takes it along',
+      () async {
+        final document = await documentIn(work, 'plan.md', '# Plan\n');
+        const mark = DocumentMark(color: 'teal');
+
+        final marked = actions.setMark(document, mark);
+        final moved = actions.move(document, '# Plan\n', (
+          folder: folders[1],
+          subfolder: null,
+        ));
+
+        expect(await marked, isA<Ok<void, StoreError>>());
+        final copy = (await moved).value;
+        await container.read(folderScansProvider.notifier).refresh();
+        expect((await scans()).markOf(copy.key), mark);
+        expect(marksFile(work), isNot(contains('plan.md')));
+      },
+    );
 
     test('renames the document, keeping its extension', () async {
       final document = await documentIn(work, 'plan.MD', 'a');
@@ -369,6 +402,29 @@ void main() {
     expect((await scans()).markOf(document.key), teal);
   });
 
+  test('after a bug in an action, actions fail instead of waiting', () async {
+    final buggy = ProviderContainer(
+      overrides: [
+        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        documentStepsProvider.overrideWith(_BuggySteps.new),
+      ],
+    );
+    addTearDown(buggy.dispose);
+    final buggyActions = buggy.read(documentActionsProvider);
+    final document = await documentIn(work, 'plan.md', '# Plan\n');
+    final outcomes = <Result<void, StoreError>>[];
+
+    await runZonedGuarded(() async {
+      outcomes
+        ..add(await buggyActions.setMark(document, _teal))
+        ..add(await buggyActions.setMark(document, _teal));
+    }, (_, _) {});
+
+    expect(outcomes, hasLength(2));
+    expect(outcomes, everyElement(isA<Err<void, StoreError>>()));
+  });
+
   test('setMark writes nothing if the mark is already set', () async {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
 
@@ -397,4 +453,17 @@ void main() {
     expect(file(work, 'a/b/c/todo.md').readAsStringSync(), '# Deep\nmine\n');
     expect((await scans()).markOf(deep.key), mark);
   });
+}
+
+const _teal = DocumentMark(color: 'teal');
+
+/// Steps whose color step has a bug.
+final class _BuggySteps extends DocumentSteps {
+  _BuggySteps(super.ref);
+
+  @override
+  Future<Result<void, StoreError>> setMark(
+    Document document,
+    DocumentMark mark,
+  ) => throw StateError('bug');
 }

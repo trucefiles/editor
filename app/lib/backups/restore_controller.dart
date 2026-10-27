@@ -1,72 +1,44 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../scan/folder_scans.dart';
 import '../scan/folder_scans_controller.dart';
 import '../sync_tool/folder_services.dart';
+import '../versions/compare_controller.dart';
 import 'all_backups.dart';
+import 'restore_compare.dart';
+
+/// What the restore screen shows.
+typedef RestoreState = CompareState<FolderBackup, RestoreChoice>;
 
 final restoreProvider = NotifierProvider.autoDispose
     .family<RestoreController, RestoreState, FolderBackup>(
       RestoreController.new,
     );
 
-/// Shows one backup next to its document's file; the user keeps one of them.
-/// Versions that could not be loaded are loaded again with each new scan.
-class RestoreController extends Notifier<RestoreState> {
-  RestoreController(this._backup);
-
-  final FolderBackup _backup;
-
-  BackupRestore get _restore =>
-      ref.read(folderServicesProvider(_backup.folder.location)).restore;
+/// Shows one backup next to its document's file; the user keeps one of
+/// them. A keep that worked ends it; after a failed one, both load again,
+/// to show the file as it is now.
+class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
+  RestoreController(super.start);
 
   @override
-  RestoreState build() {
-    // E.g. once the folder can be reached again.
-    ref.listen(folderScansProvider, (_, _) {
-      if (state case RestoreState(choice: Err(), busy: false)) {
-        unawaited(_load());
-      }
-    });
-    unawaited(_load());
-    return const RestoreState();
-  }
+  bool get goesOn => false;
 
-  /// Keeps the document's file or the backup, then rescans. `null` while the
-  /// versions load or a choice runs: nothing was done. After a failure the
-  /// versions load again, to show the file as it is now.
-  Future<Result<void, ResolveError>?> keep(Resolution resolution) async {
-    final RestoreState(:choice, :busy) = state;
-    if (choice is! Ok<RestoreChoice, StoreError> || busy) return null;
-    state = RestoreState(choice: choice, busy: true);
-    // Read before the first await: the screen may close meanwhile, and
-    // the rescan must still run.
+  @override
+  CompareSource<FolderBackup, RestoreChoice> source() {
     final scans = ref.read(folderScansProvider.notifier);
-    final kept = await _restore.keep(choice.value, resolution);
-    await scans.refresh();
-    if (!ref.mounted) return kept;
-    ref.invalidate(allBackupsProvider);
-    if (kept is Err) await _load();
-    return kept;
+    return RestoreCompare(
+      ref.read(folderServicesProvider(start.folder.location)).restore,
+      () {
+        // The list behind this screen shows the backup of the file replaced.
+        if (ref.mounted) ref.invalidate(allBackupsProvider);
+        return scans.refresh();
+      },
+    );
   }
 
-  Future<void> _load() async {
-    final choice = await _restore.load(_backup.backup);
-    if (ref.mounted) state = RestoreState(choice: choice);
-  }
-}
-
-/// What the restore screen shows.
-@immutable
-final class RestoreState {
-  const RestoreState({this.choice, this.busy = false});
-
-  /// The backup and the document's file; `null` while they load.
-  final Result<RestoreChoice, StoreError>? choice;
-
-  /// A choice is being carried out; no other may start.
-  final bool busy;
+  /// The same backup, as it is now.
+  @override
+  FolderBackup nextIn(FolderScans scans) => start;
 }

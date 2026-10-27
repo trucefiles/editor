@@ -6,7 +6,7 @@
 library;
 
 import 'package:truce_core/truce_core.dart'
-    show FileInput, SecureReason, ToEditor;
+    show Asking, EffectId, FileInput, SecureReason, Ticket, ToEditor, Wait;
 
 import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';
@@ -39,9 +39,15 @@ enum CheckedItems {
   moveToEnd,
 }
 
+/// What the editor owner handles: inputs anyone may send, and the results
+/// of its effects.
+sealed class EditorMessage {
+  const EditorMessage();
+}
+
 // Inputs.
 
-sealed class EditorInput {
+sealed class EditorInput extends EditorMessage {
   const EditorInput();
 }
 
@@ -193,13 +199,6 @@ final class UndoStep extends EditorInput {
   final int id;
 }
 
-/// The save timer [StartSaveTimer] started with [id] fired.
-final class SaveTimerFired extends EditorInput {
-  const SaveTimerFired(this.id);
-
-  final int id;
-}
-
 /// What the file owner tells the editor.
 final class FromFile extends EditorInput {
   const FromFile(this.message);
@@ -208,36 +207,64 @@ final class FromFile extends EditorInput {
 }
 
 /// Keep the edits somewhere lasting now (the user leaves, hides or
-/// closes): the editor sends its text, then the file owner keeps it.
-final class SecureEditor extends EditorInput {
-  const SecureEditor(this.reason);
+/// closes): the editor sends its text, then asks the file owner to keep
+/// it; the file owner's answer carries [ticket] back.
+final class SecureEditor extends EditorInput implements Asking {
+  const SecureEditor(this.ticket, this.reason);
 
+  @override
+  final Ticket ticket;
   final SecureReason reason;
 }
 
-// Outputs.
+// Results.
 
-sealed class EditorOutput {
-  const EditorOutput();
+sealed class EditorResult extends EditorMessage {
+  const EditorResult();
+}
+
+/// The save timer [StartSaveTimer] started with [id] fired.
+final class SaveTimerFired extends EditorResult {
+  const SaveTimerFired(this.id);
+
+  final EffectId id;
+}
+
+// Effects.
+
+sealed class EditorEffect {
+  const EditorEffect();
+}
+
+/// Fire [SaveTimerFired] with [id] after [delay].
+final class StartSaveTimer extends EditorEffect
+    implements Wait<SaveTimerFired> {
+  const StartSaveTimer(this.id, this.delay);
+
+  @override
+  final EffectId id;
+  @override
+  final Duration delay;
+
+  @override
+  SaveTimerFired get done => SaveTimerFired(id);
+}
+
+// Events.
+
+sealed class EditorEvent {
+  const EditorEvent();
 }
 
 /// What the file owner gets.
-final class ToFile extends EditorOutput {
+final class ToFile extends EditorEvent {
   const ToFile(this.input);
 
   final FileInput input;
 }
 
-/// Send [SaveTimerFired] with [id] after [delay].
-final class StartSaveTimer extends EditorOutput {
-  const StartSaveTimer(this.id, this.delay);
-
-  final int id;
-  final Duration delay;
-}
-
 /// The link dialog opens on [range].
-final class AskLink extends EditorOutput {
+final class AskLink extends EditorEvent {
   const AskLink(this.range);
 
   final TextSelection range;
@@ -245,7 +272,7 @@ final class AskLink extends EditorOutput {
 
 /// Undo step [id] is one the user is offered to undo right away: [what]
 /// it did.
-final class UndoOffered extends EditorOutput {
+final class UndoOffered extends EditorEvent {
   const UndoOffered(this.id, this.what);
 
   final int id;
@@ -262,14 +289,14 @@ enum OfferedUndo {
 }
 
 /// Undo step [id] could not be undone: the text changed since.
-final class UndoRefused extends EditorOutput {
+final class UndoRefused extends EditorEvent {
   const UndoRefused(this.id);
 
   final int id;
 }
 
 /// Undo reached the start of the history, which is there for [start].
-final class HistoryEnd extends EditorOutput {
+final class HistoryEnd extends EditorEvent {
   const HistoryEnd(this.start);
 
   final HistoryStart start;

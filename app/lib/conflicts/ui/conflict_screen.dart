@@ -33,30 +33,29 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       ref.read(conflictProvider(widget.initial).notifier);
 
   Future<void> _keep(VersionSide side) async {
-    final kept = await _controller.keep(switch (side) {
+    final answer = await _controller.keep(switch (side) {
       VersionSide.current => const KeepCurrent(),
       VersionSide.other => const KeepOther(),
     });
-    if (!mounted) return;
-    final outcome = switch (kept.error) {
+    if (!mounted || answer == null || !answer.taken) return;
+    final outcome = switch (answer.error) {
       final error? => error.text,
       null =>
         'Conflict resolved. A backup is kept for '
             '${backupRetention.inDays} days.',
     };
-    if (kept.done) {
+    if (answer.done) {
       // The opener tells it, where the user lands.
       Navigator.pop(context, outcome);
-    } else if (kept.error != null) {
+    } else if (answer.error != null) {
       showSnack(context, outcome);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final ConflictState(:conflict, :sides, :busy) = ref.watch(
-      conflictProvider(widget.initial),
-    );
+    final shown = ref.watch(conflictProvider(widget.initial));
+    final conflict = shown.target;
     final count = conflict.conflict.copies.length;
     return Scaffold(
       appBar: compareAppBar(
@@ -68,14 +67,20 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         children: [
           UnreachableBanner(conflict.folder, message: waitMessage),
           Expanded(
-            child: switch (sides) {
-              Err(:final error) => Center(child: Text(error.text)),
-              Ok(value: final sides) => _chooser(
+            child: switch (shown) {
+              CompareLoading() => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              CompareLoadFailed(:final error) => Center(
+                child: Text(error.text),
+              ),
+              CompareShowing(:final sides) => _chooser(
                 conflict.conflict,
                 sides,
-                busy || _unreachable(conflict.folder),
+                _unreachable(conflict.folder),
               ),
-              null => const Center(child: CircularProgressIndicator()),
+              CompareKeeping(:final sides) || CompareDone(:final sides) =>
+                _chooser(conflict.conflict, sides, true),
             },
           ),
         ],

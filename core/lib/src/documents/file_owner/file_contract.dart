@@ -5,11 +5,9 @@
 library;
 
 import '../../common/moment.dart';
+import '../../owners/ask.dart';
+import '../../owners/effects.dart';
 import '../version.dart';
-
-/// An effect's id; its result comes back with it. Results of effects the
-/// owner no longer waits for are ignored.
-extension type const EffectId(int value) {}
 
 /// Why edits must be kept now: the document closes, the app is hidden
 /// (and may be ended), or the app exits.
@@ -18,9 +16,15 @@ enum SecureReason { close, hide, exit }
 /// Which version a pick keeps: the edits, or the file's from elsewhere.
 enum PickChoice { mine, theirs }
 
+/// What the file owner handles: inputs anyone may send, and the results
+/// of its effects.
+sealed class FileMessage {
+  const FileMessage();
+}
+
 // Inputs.
 
-sealed class FileInput {
+sealed class FileInput extends FileMessage {
   const FileInput();
 }
 
@@ -50,9 +54,11 @@ final class SaveNow extends FileInput {
 
 /// Keep the edits somewhere lasting now; answered by [Answer]. A
 /// [Secure] that comes while another waits is answered with it.
-final class Secure extends FileInput {
-  const Secure(this.reason);
+final class Secure extends FileInput implements Asking {
+  const Secure(this.ticket, this.reason);
 
+  @override
+  final Ticket ticket;
   final SecureReason reason;
 }
 
@@ -115,8 +121,14 @@ final class Moved extends FileInput {
   final Seen copy;
 }
 
+// Results.
+
+sealed class FileResult extends FileMessage {
+  const FileResult();
+}
+
 /// Whether [KeepDraft] kept the draft.
-final class DraftKept extends FileInput {
+final class DraftKept extends FileResult {
   const DraftKept(this.id, {required this.kept});
 
   final EffectId id;
@@ -124,7 +136,7 @@ final class DraftKept extends FileInput {
 }
 
 /// How [Write], [Create] or [Restore] went; it ended at [endedAt].
-final class Wrote extends FileInput {
+final class Wrote extends FileResult {
   const Wrote(this.id, this.outcome, {required this.endedAt});
 
   final EffectId id;
@@ -168,7 +180,7 @@ final class WriteFailed extends WriteOutcome {
 }
 
 /// Whether [BackUpBoth] backed up both versions.
-final class BackedUp extends FileInput {
+final class BackedUp extends FileResult {
   const BackedUp(this.id, {required this.ok});
 
   final EffectId id;
@@ -176,21 +188,21 @@ final class BackedUp extends FileInput {
 }
 
 /// Whether [KeepAsConflict] kept the copy.
-final class ConflictKept extends FileInput {
+final class ConflictKept extends FileResult {
   const ConflictKept(this.id, {required this.ok});
 
   final EffectId id;
   final bool ok;
 }
 
-// Outputs.
+// Events.
 
-sealed class FileOutput {
-  const FileOutput();
+sealed class FileEvent {
+  const FileEvent();
 }
 
 /// What the editor owner gets.
-sealed class ToEditor extends FileOutput {
+sealed class ToEditor extends FileEvent {
   const ToEditor();
 }
 
@@ -217,8 +229,26 @@ final class Picked extends ToEditor {
   final int rev;
 }
 
-/// What the app does for the owner; results come back as inputs.
-sealed class FileEffect extends FileOutput {
+/// The answer to [Secure]: whether the edits are kept somewhere lasting.
+final class Answer extends FileEvent implements Answering {
+  const Answer(this.ticket, {required this.kept});
+
+  @override
+  final Ticket ticket;
+  final bool kept;
+}
+
+/// A pick changed nothing: no backup could be made, the version from
+/// elsewhere changed again, or theirs was picked and the edits changed
+/// since.
+final class PickNotKept extends FileEvent {
+  const PickNotKept();
+}
+
+// Effects.
+
+/// What the app does for the owner; results come back as [FileResult]s.
+sealed class FileEffect {
   const FileEffect();
 }
 
@@ -265,14 +295,15 @@ final class Create extends FileEffect {
   final String text;
 }
 
-/// Write [text] as the file again where it was deleted, never over an
-/// existing one; answered by [Wrote]: [Written], [Taken] or
-/// [WriteFailed].
+/// Write [text] as the file again where it was deleted, [where] it was
+/// last, never over an existing one; answered by [Wrote]: [Written],
+/// [Taken] or [WriteFailed].
 final class Restore extends FileEffect {
-  const Restore(this.id, this.text);
+  const Restore(this.id, this.text, {required this.where});
 
   final EffectId id;
   final String text;
+  final Seen where;
 }
 
 /// Back up [theirs] and the edits [mine] before a pick; answered by
@@ -285,35 +316,30 @@ final class BackUpBoth extends FileEffect {
   final String mine;
 }
 
-/// Keep [text] as a conflict copy next to the file; answered by
-/// [ConflictKept].
+/// Keep [text] as a conflict copy next to the file, as it is at
+/// [nextTo]; answered by [ConflictKept].
 final class KeepAsConflict extends FileEffect {
-  const KeepAsConflict(this.id, this.text);
+  const KeepAsConflict(this.id, this.text, {required this.nextTo});
 
   final EffectId id;
   final String text;
-}
-
-/// The answer to [Secure]: whether the edits are kept somewhere lasting.
-final class Answer extends FileOutput {
-  const Answer(this.reason, {required this.kept});
-
-  final SecureReason reason;
-  final bool kept;
-}
-
-/// A pick changed nothing: no backup could be made, the version from
-/// elsewhere changed again, or theirs was picked and the edits changed
-/// since.
-final class PickNotKept extends FileOutput {
-  const PickNotKept();
+  final Seen nextTo;
 }
 
 // State.
 
-/// Where the document stands against its file.
+/// Where the document stands against its file. Statuses are equal when
+/// they are the same case with equal fields.
 sealed class FileStatus {
   const FileStatus();
+
+  /// Equal by case only: a case with fields must compare them in its own
+  /// `==`, or the owner's `changes` would miss a change of them.
+  @override
+  bool operator ==(Object other) => other.runtimeType == runtimeType;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
 }
 
 /// A new document with nothing to keep: no file, no draft.
@@ -332,6 +358,12 @@ final class Editing extends FileStatus {
   const Editing(this.phase);
 
   final EditPhase phase;
+
+  @override
+  bool operator ==(Object other) => other is Editing && other.phase == phase;
+
+  @override
+  int get hashCode => phase.hashCode;
 }
 
 enum EditPhase {
@@ -351,6 +383,13 @@ final class ChangedElsewhere extends FileStatus {
   const ChangedElsewhere(this.theirs);
 
   final Seen theirs;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChangedElsewhere && other.theirs == theirs;
+
+  @override
+  int get hashCode => theirs.hashCode;
 }
 
 /// The file was deleted elsewhere; edits (if any) go on into the draft

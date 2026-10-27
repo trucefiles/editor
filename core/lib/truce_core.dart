@@ -26,11 +26,15 @@
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
 ///     files go ([FolderReach]).
 ///
-/// 13. `documents`: an open document's file, kept on the device and in
+/// 13. `scans`: when the folders are scanned, and which scan is the
+///     latest ([ScansOwner]); any folder and result type.
+/// 14. `documents`: an open document's file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); any document type, any sync tool.
 ///
-/// `owners` holds how an owner of a domain's state runs ([Owner]).
+/// `owners` holds how an owner of a domain's state runs ([Owner]): by a
+/// pure machine ([MachineOwner]) or by plain code ([SimpleOwner]); and
+/// how a question to an owner gets its answer ([ask]).
 /// `versions` holds what conflicts and restore share: the user's choice
 /// between two versions of a file ([Resolution]) and why keeping it failed
 /// ([ResolveError]).
@@ -49,6 +53,7 @@ export 'src/changes/watched_folder_changes.dart';
 export 'src/common/keyed_task_queue.dart';
 export 'src/common/moment.dart';
 export 'src/common/result.dart';
+export 'src/compare/compare_owner.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
@@ -64,11 +69,18 @@ export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/marks/document_mark.dart';
 export 'src/marks/document_marks.dart';
+export 'src/owners/ask.dart';
+export 'src/owners/effects.dart';
+export 'src/owners/machine.dart';
+export 'src/owners/machine_owner.dart';
 export 'src/owners/owner.dart';
+export 'src/owners/simple_owner.dart';
+export 'src/owners/timers.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
+export 'src/scans/scans_owner.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_names.dart';
 export 'src/storage/local_file_store.dart';

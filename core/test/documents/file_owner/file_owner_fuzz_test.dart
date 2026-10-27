@@ -1,7 +1,9 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 /// A folder, a device and an editor around one file owner, driven by
 /// random events: typing, changes elsewhere, scans, effects finishing,
@@ -15,14 +17,13 @@ final class _World {
     this.delayed = false,
   }) {
     if (!isNew) file = Seen('a', _version());
-    owner = switch (file) {
-      final opened? => openedFileOwner(opened),
-      null => newFileOwner(),
-    };
+    owner = _Owner(switch (file) {
+      final opened? => openedFile(opened),
+      null => newFile(),
+    }, _output);
     text = owner.state.text;
     lineage = file?.version;
     taken.add(text);
-    owner.outputs.listen(_output);
   }
 
   final Random random;
@@ -34,13 +35,13 @@ final class _World {
   final bool delayed;
 
   /// Messages for the editor not yet delivered.
-  final toEditor = <FileOutput>[];
+  final toEditor = <FileEvent>[];
 
   /// Texts a draft's base may be: those the editor took, and those the
   /// owner wrote, which the edits after them build on.
   final taken = <String>{};
 
-  late final FileOwner owner;
+  late final _Owner owner;
   Seen? _file;
 
   /// Every text the file had: a change elsewhere may replace one the
@@ -83,12 +84,12 @@ final class _World {
 
   Version _version() => Version(++_versions);
 
-  void _output(FileOutput output) {
+  void _output(Object? output) {
     switch (output) {
-      case Replaced() || Picked() when delayed:
-        toEditor.add(output);
-      case Replaced() || Picked():
-        _toEditor(output);
+      case final ToEditor message when delayed:
+        toEditor.add(message);
+      case final ToEditor message:
+        _toEditor(message);
       case DropDraft():
         draft = null;
       case final FileEffect effect:
@@ -160,7 +161,7 @@ final class _World {
 
   /// The editor takes a change from the owner: a change elsewhere only
   /// if it has no edits the owner had not seen.
-  void _toEditor(FileOutput output) {
+  void _toEditor(FileEvent output) {
     switch (output) {
       case Replaced(:final text, :final version, :final ackRev)
           when ackRev == rev:
@@ -221,6 +222,7 @@ final class _World {
         secures++;
         owner.send(
           Secure(
+            Ticket(),
             SecureReason.values[random.nextInt(SecureReason.values.length)],
           ),
         );
@@ -309,7 +311,7 @@ final class _World {
   void close() {
     _deliver();
     secures++;
-    owner.send(const Secure(SecureReason.close));
+    owner.send(Secure(Ticket(), SecureReason.close));
     while (effects.isNotEmpty) {
       _finish(effects.removeAt(0));
     }
@@ -394,6 +396,32 @@ void main() {
           }
         }
       });
+    }
+  }
+}
+
+/// A file machine stepped as its owner steps it: a message sent while one
+/// is handled waits for it; each step's outputs go to [_output].
+final class _Owner {
+  _Owner(FileMachine machine, this._output) : _run = MachineRun.of(machine);
+
+  final MachineRun<FileMessage, FileState, FileEvent, FileEffect> _run;
+  final void Function(Object? output) _output;
+  final _messages = Queue<FileMessage>();
+  bool _handling = false;
+
+  FileState get state => _run.state;
+
+  void send(FileMessage message) {
+    _messages.add(message);
+    if (_handling) return;
+    _handling = true;
+    try {
+      while (_messages.isNotEmpty) {
+        _run.send(_messages.removeFirst()).forEach(_output);
+      }
+    } finally {
+      _handling = false;
     }
   }
 }

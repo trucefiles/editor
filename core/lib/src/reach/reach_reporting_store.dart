@@ -6,7 +6,7 @@ import '../storage/rel_path.dart';
 import 'folder_reach.dart';
 
 /// [FileStore] that tells a [FolderReach] how each access to [_inner]
-/// went. Changes nothing else.
+/// went ([Accessed]). Changes nothing else.
 final class ReachReportingStore implements FileStore {
   const ReachReportingStore(this._inner, this._reach);
 
@@ -46,7 +46,7 @@ final class ReachReportingStore implements FileStore {
     Future<Result<T, StoreError>> access,
   ) async {
     final outcome = await access;
-    _reach.saw(outcome);
+    _reach.send(Accessed(accessOf(outcome)));
     return outcome;
   }
 }

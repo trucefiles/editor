@@ -66,4 +66,19 @@ void main() {
       );
     });
   });
+
+  group('observe', () {
+    test('a document found, gone, or unknown where the scan was blind', () {
+      final found = scans(failed: {home: StoreError.ioFailure});
+
+      expect(
+        found.observe((folderId: 'work', path: path('a.md'))),
+        isA<Gone>(),
+      );
+      expect(
+        found.observe((folderId: 'home', path: path('a.md'))),
+        isA<Unknown>(),
+      );
+    });
+  });
 }

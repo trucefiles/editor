@@ -1,5 +1,5 @@
 import 'package:truce_core/truce_core.dart'
-    show Edited, Picked, Replaced, SaveNow, Secure, SecureReason, Step;
+    show EffectId, Edited, Picked, Replaced, SaveNow, Secure, Step;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
@@ -24,14 +24,19 @@ import 'raw_closed.dart';
 import 'reload.dart';
 import 'save_clock.dart';
 
-/// The editor owner's decision on [input] in [state], with its [work].
-Step<EditorState, EditorWork, EditorOutput> editorStep(
+/// The editor owner's decision on [message] in [state], with its [work].
+Step<EditorState, EditorWork, EditorEvent, EditorEffect> editorStep(
   EditorState state,
   EditorWork work,
-  EditorInput input,
+  EditorMessage message,
 ) {
-  final step = _Step(state, work)..handle(input);
-  return (state: step.state, work: step.work, outputs: step.outputs);
+  final step = _Step(state, work)..handle(message);
+  return (
+    state: step.state,
+    work: step.work,
+    events: step.events,
+    effects: step.effects,
+  );
 }
 
 /// One input's handling: the state as it changes and what it leads to.
@@ -40,12 +45,22 @@ final class _Step {
 
   EditorState state;
   EditorWork work;
-  final outputs = <EditorOutput>[];
+  final events = <EditorEvent>[];
+  final effects = <EditorEffect>[];
 
   /// What the input's step did, if it is offered for undo right away.
   OfferedUndo? offered;
 
-  void handle(EditorInput input) {
+  void handle(EditorMessage message) {
+    switch (message) {
+      case SaveTimerFired(:final id):
+        _tick(work.clock.fired(id.value));
+      case final EditorInput input:
+        _input(input);
+    }
+  }
+
+  void _input(EditorInput input) {
     // An input on what no longer shows (e.g. a box tap whose wait ended
     // after a change elsewhere) is dropped.
     if (input case ShownInput(:final revision)
@@ -60,7 +75,7 @@ final class _Step {
       case ShownInput() when work.rev != rev:
         _record(input, before, origin);
         if (offered case final what?) {
-          outputs.add(UndoOffered(work.history.latestId!, what));
+          events.add(UndoOffered(work.history.latestId!, what));
         }
       case CaretMoved() || RawCaretMoved():
         // Typing after a caret move starts a new step.
@@ -113,8 +128,6 @@ final class _Step {
         );
       case (UndoStep(:final id), _):
         _undoStep(id);
-      case (SaveTimerFired(:final id), _):
-        _tick(work.clock.fired(id));
       case (
             FromFile(
               message: Replaced(:final text, :final version, :final ackRev),
@@ -143,8 +156,8 @@ final class _Step {
           history: work.history.cleared(HistoryStart.replacedHere),
         );
         _reload(text);
-      case (SecureEditor(:final reason), _):
-        _secure(reason);
+      case (final SecureEditor secure, _):
+        _secure(secure);
       case _:
         break;
     }
@@ -217,7 +230,7 @@ final class _Step {
         );
       case OpenLinkDialog():
         if (shown.selection case final TextSelection range) {
-          outputs.add(AskLink(range));
+          events.add(AskLink(range));
         }
       case Consumed():
         break;
@@ -304,7 +317,7 @@ final class _Step {
   /// Undoes the latest step; at the history's start, tells so.
   void _undo() {
     _undoLatest();
-    if (!work.history.canUndo) outputs.add(HistoryEnd(work.history.start));
+    if (!work.history.canUndo) events.add(HistoryEnd(work.history.start));
   }
 
   void _undoLatest() {
@@ -332,7 +345,7 @@ final class _Step {
     if (work.history.latestId == id) {
       _undoLatest();
     } else {
-      outputs.add(UndoRefused(id));
+      events.add(UndoRefused(id));
     }
   }
 
@@ -485,15 +498,16 @@ final class _Step {
 
   void _tick(Tick tick) {
     work = work.copyWith(clock: tick.clock);
-    outputs.addAll([
-      for (final (:timer, :id) in tick.started) StartSaveTimer(id, timer.delay),
+    effects.addAll([
+      for (final (:timer, :id) in tick.started)
+        StartSaveTimer(EffectId(id), timer.delay),
     ]);
     switch (tick.save) {
       case Save.draft:
         _send();
       case Save.folder:
         _send();
-        outputs.add(const ToFile(SaveNow()));
+        events.add(const ToFile(SaveNow()));
       case null:
         break;
     }
@@ -503,7 +517,7 @@ final class _Step {
   /// The text, printed, to the file owner, unless it has it.
   void _send() {
     if (work.sentRev == work.rev) return;
-    outputs.add(
+    events.add(
       ToFile(
         Edited(
           _printed().text,
@@ -516,10 +530,10 @@ final class _Step {
     work = work.copyWith(sentRev: work.rev);
   }
 
-  void _secure(SecureReason reason) {
+  void _secure(SecureEditor secure) {
     _send();
     work = work.copyWith(clock: work.clock.left);
-    outputs.add(ToFile(Secure(reason)));
+    events.add(ToFile(Secure(secure.ticket, secure.reason)));
     _settleFlags();
   }
 

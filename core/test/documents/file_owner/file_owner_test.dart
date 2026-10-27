@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 extension on Editing {
   /// Matches an [Editing] in this phase.
@@ -11,26 +12,32 @@ const _v1 = Version(1);
 const _v2 = Version(2);
 const _v3 = Version(3);
 
-/// A file owner with what it led to so far.
+/// A file machine with what it led to so far.
 final class _Run {
-  _Run(this.owner) {
-    owner.outputs.listen(outputs.add);
+  _Run(FileMachine machine) : machine = MachineRun.of(machine);
+
+  _Run.opened(String text) : this(openedFile(Seen(text, _v1)));
+
+  _Run.unwritten() : this(newFile());
+
+  final MachineRun<FileMessage, FileState, FileEvent, FileEffect> machine;
+
+  FileState get state => machine.state;
+
+  FileStatus get status => state.status;
+
+  T last<T>() => machine.last<T>();
+
+  List<T> all<T>() => machine.all<T>();
+
+  void send(FileMessage message) => machine.send(message);
+
+  /// Asks to keep the edits for [reason]; its ticket.
+  Ticket secure(SecureReason reason) {
+    final ticket = Ticket();
+    send(Secure(ticket, reason));
+    return ticket;
   }
-
-  _Run.opened(String text) : this(openedFileOwner(Seen(text, _v1)));
-
-  _Run.unwritten() : this(newFileOwner());
-
-  final FileOwner owner;
-  final outputs = <FileOutput>[];
-
-  FileStatus get status => owner.state.status;
-
-  T last<T extends FileOutput>() => outputs.whereType<T>().last;
-
-  List<T> all<T extends FileOutput>() => outputs.whereType<T>().toList();
-
-  void send(FileInput input) => owner.send(input);
 
   /// The editor's text at [rev], on [lineage], after [picks] picks (by
   /// default all sent so far).
@@ -56,7 +63,7 @@ final class _Run {
   }
 
   void wrote(WriteOutcome outcome) {
-    final id = switch (outputs.whereType<FileEffect>().lastWhere(
+    final id = switch (machine.effects.lastWhere(
       (effect) => effect is Write || effect is Create || effect is Restore,
     )) {
       Write(:final id) || Create(:final id) || Restore(:final id) => id,
@@ -120,6 +127,32 @@ void main() {
         ..wrote(const Written(Seen('ab', _v2)));
       final write = run.last<Write>();
       expect((write.text, write.over), ('ab', copy));
+    });
+
+    test('a write that finds the file gone after a move goes on with the '
+        'copy, written again', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..send(const Moved(copy))
+        ..wrote(const WriteGone());
+      expect(run.status, const Editing(EditPhase.writing).matcher);
+      final write = run.last<Write>();
+      expect((write.text, write.over), ('ab', copy));
+      run.wrote(const Written(Seen('ab', _v2)));
+      expect(run.status, isA<InStep>());
+    });
+
+    test('a write that finds the file gone after a move, with edits back '
+        'to the copy, is in step', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..send(const Moved(copy))
+        ..edit('a', 2)
+        ..wrote(const WriteGone());
+      expect(run.status, isA<InStep>());
+      expect(run.all<Write>(), hasLength(1));
     });
 
     test('edits made during a write are kept after it, then written when '
@@ -270,6 +303,7 @@ void main() {
       expect(run.all<Write>(), isEmpty);
       run.send(const RestoreMine());
       expect(run.last<Restore>().text, 'ab');
+      expect(run.last<Restore>().where, const Seen('a', _v1));
       run.wrote(const Written(Seen('ab', _v2)));
       expect(run.status, isA<InStep>());
     });
@@ -309,7 +343,7 @@ void main() {
       final run = _Run.opened('a')
         ..send(Observed(const Unknown(), startedAt: Moment.now()));
       expect(run.status, isA<InStep>());
-      expect(run.outputs, isEmpty);
+      expect(run.machine.outputs, isEmpty);
     });
   });
 
@@ -350,7 +384,7 @@ void main() {
         ..send(const Pick(PickChoice.theirs, seen: _v2, rev: 1));
       backedUp(run);
       expect(run.last<Picked>().text, 'x');
-      expect(run.owner.state.text, 'x');
+      expect(run.state.text, 'x');
       expect(run.status, isA<InStep>());
     });
 
@@ -389,7 +423,7 @@ void main() {
       backedUp(run);
       run.keep();
       expect(run.all<PickNotKept>(), hasLength(1));
-      expect(run.owner.state.text, 'abc');
+      expect(run.state.text, 'abc');
       expect(run.status, isA<ChangedElsewhere>());
     });
 
@@ -417,7 +451,7 @@ void main() {
         ..send(const SaveNow())
         ..send(const Discard());
       expect(run.all<Write>(), hasLength(2));
-      expect(run.owner.state.text, 'ab');
+      expect(run.state.text, 'ab');
       expect(run.all<Picked>(), isEmpty);
     });
 
@@ -453,7 +487,7 @@ void main() {
       final picked = run.last<Picked>();
       // Typed on the same version before the editor took the pick.
       run.edit('abz', picked.rev + 1, picks: 0);
-      expect(run.owner.state.text, 'a');
+      expect(run.state.text, 'a');
       expect(run.status, isA<InStep>());
       // The editor goes on from the pick's rev, so a change takes.
       run.found(const Seen('a!', _v3));
@@ -463,7 +497,7 @@ void main() {
 
   group('securing', () {
     test('answers at once when the file holds the edits', () {
-      final run = _Run.opened('a')..send(const Secure(SecureReason.close));
+      final run = _Run.opened('a')..secure(SecureReason.close);
       expect(run.last<Answer>().kept, isTrue);
       expect(run.status, isA<Closed>());
     });
@@ -471,7 +505,7 @@ void main() {
     test('keeps the edits on the device, then writes them', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)
-        ..send(const Secure(SecureReason.hide));
+        ..secure(SecureReason.hide);
       expect(run.all<Write>(), isEmpty);
       run.keep();
       expect(run.all<Answer>(), isEmpty);
@@ -481,15 +515,14 @@ void main() {
     });
 
     test('a second secure is answered with the first', () {
-      final run = _Run.opened('a')
-        ..save('ab', 1)
-        ..send(const Secure(SecureReason.hide))
-        ..send(const Secure(SecureReason.close));
+      final run = _Run.opened('a')..save('ab', 1);
+      final hide = run.secure(SecureReason.hide);
+      final close = run.secure(SecureReason.close);
       expect(run.all<Answer>(), isEmpty);
       run.wrote(const Written(Seen('ab', _v2)));
       expect(
-        [for (final answer in run.all<Answer>()) (answer.reason, answer.kept)],
-        [(SecureReason.hide, true), (SecureReason.close, true)],
+        [for (final answer in run.all<Answer>()) (answer.ticket, answer.kept)],
+        [(hide, true), (close, true)],
       );
       expect(run.all<Write>(), hasLength(1));
       expect(run.status, isA<Closed>());
@@ -500,14 +533,15 @@ void main() {
         ..edit('ab', 1)
         ..keep()
         ..found(const Seen('x', _v2))
-        ..send(const Secure(SecureReason.close));
+        ..secure(SecureReason.close);
       expect(run.last<KeepAsConflict>().text, 'ab');
+      expect(run.last<KeepAsConflict>().nextTo.version, _v1);
       expect(run.status, isA<KeptAsConflict>());
       run
         ..edit('abc', 2)
         ..send(ConflictKept(run.last<KeepAsConflict>().id, ok: true));
       expect(run.last<Answer>().kept, isTrue);
-      expect(run.owner.state.text, 'ab');
+      expect(run.state.text, 'ab');
     });
 
     test('keeps them on the device if no copy can be made', () {
@@ -515,7 +549,7 @@ void main() {
         ..edit('ab', 1)
         ..keep()
         ..found(const Seen('x', _v2))
-        ..send(const Secure(SecureReason.close));
+        ..secure(SecureReason.close);
       run.send(ConflictKept(run.last<KeepAsConflict>().id, ok: false));
       expect(run.last<Answer>().kept, isFalse);
       expect(run.all<KeepDraft>().single.text, 'ab');
@@ -527,7 +561,7 @@ void main() {
       final run = _Run.opened('a')
         ..save('ab', 1)
         ..wrote(const WriteFailed())
-        ..send(const Secure(SecureReason.close));
+        ..secure(SecureReason.close);
       expect(run.all<Write>(), hasLength(2));
       run.wrote(const WriteFailed());
       expect(run.last<KeepAsConflict>().text, 'ab');
@@ -539,14 +573,14 @@ void main() {
           final run = _Run.opened('a')
             ..edit('ab', 1)
             ..found(const Seen('x', _v2))
-            ..send(Secure(reason));
+            ..secure(reason);
           expect(run.all<Answer>(), isEmpty);
           run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
           expect(run.last<Answer>().kept, isTrue);
           expect(run.all<KeepAsConflict>(), isEmpty);
           run.edit('abc', 2);
           expect(run.status, isA<ChangedElsewhere>());
-          expect(run.owner.state.text, 'abc');
+          expect(run.state.text, 'abc');
         });
 
         test('answers at once when the device holds the edits', () {
@@ -554,7 +588,7 @@ void main() {
             ..edit('ab', 1)
             ..keep()
             ..send(Observed(const Gone(), startedAt: Moment.now()))
-            ..send(Secure(reason));
+            ..secure(reason);
           expect(run.last<Answer>().kept, isTrue);
           expect(run.all<KeepDraft>(), hasLength(1));
         });
@@ -564,7 +598,7 @@ void main() {
           final run = _Run.opened('a')
             ..save('ab', 1)
             ..wrote(const WriteFailed())
-            ..send(Secure(reason))
+            ..secure(reason)
             ..wrote(const WriteFailed());
           expect(run.all<Write>(), hasLength(2));
           expect(run.all<KeepDraft>(), hasLength(1));
@@ -576,7 +610,7 @@ void main() {
           final run = _Run.opened('a')
             ..edit('ab', 1)
             ..found(const Seen('x', _v2))
-            ..send(Secure(reason));
+            ..secure(reason);
           run.send(DraftKept(run.last<KeepDraft>().id, kept: false));
           expect(run.last<KeepAsConflict>().text, 'ab');
         });
@@ -586,7 +620,7 @@ void main() {
     test('drops a deleted file\'s draft when there are no edits', () {
       final run = _Run.opened('a')
         ..send(Observed(const Gone(), startedAt: Moment.now()))
-        ..send(const Secure(SecureReason.close));
+        ..secure(SecureReason.close);
       expect(run.last<Answer>().kept, isTrue);
       expect(run.all<KeepAsConflict>(), isEmpty);
     });
@@ -596,7 +630,7 @@ void main() {
     test('empty is never written', () {
       final run = _Run.unwritten()
         ..edit(' ', 1, lineage: null)
-        ..send(const Secure(SecureReason.close));
+        ..secure(SecureReason.close);
       expect(run.all<Create>(), isEmpty);
       expect(run.last<Answer>().kept, isTrue);
     });
@@ -608,7 +642,7 @@ void main() {
       expect(run.last<KeepDraft>().base, isNull);
       run.send(const SaveNow());
       expect(run.all<Create>(), isEmpty);
-      run.send(const Secure(SecureReason.hide));
+      run.secure(SecureReason.hide);
       expect(run.last<Create>().text, 'a');
       run.wrote(const Written(Seen('a', _v1)));
       expect(run.last<Answer>().kept, isTrue);
@@ -619,7 +653,7 @@ void main() {
     test('kept on the device when it cannot be created', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
-        ..send(const Secure(SecureReason.hide))
+        ..secure(SecureReason.hide)
         ..keep()
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isTrue);
@@ -629,7 +663,7 @@ void main() {
     test('closed, it says it is only on the device', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
-        ..send(const Secure(SecureReason.close))
+        ..secure(SecureReason.close)
         ..keep()
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
@@ -640,7 +674,7 @@ void main() {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
         ..keep(kept: false)
-        ..send(const Secure(SecureReason.hide))
+        ..secure(SecureReason.hide)
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
       expect(run.all<KeepAsConflict>(), isEmpty);
@@ -648,10 +682,27 @@ void main() {
   });
 
   test('a move goes on with the copy', () {
-    final run = _Run.opened('a')
-      ..send(const Moved(Seen('a', _v2)))
-      ..save('ab', 1);
+    final run = _Run.opened('a')..send(const Moved(Seen('a', _v2)));
+    expect(run.state.file, _v2);
+    run.save('ab', 1);
     expect(run.last<Write>().over.version, _v2);
+  });
+
+  test('the state names the file as last read or written', () {
+    final run = _Run.opened('a');
+    expect(run.state.file, _v1);
+    run
+      ..save('ab', 1)
+      ..wrote(const Written(Seen('ab', _v2)));
+    expect(run.state.file, _v2);
+    expect(_Run.unwritten().state.file, isNull);
+  });
+
+  test('a move during a write names the copy at once', () {
+    final run = _Run.opened('a')
+      ..save('ab', 1)
+      ..send(const Moved(Seen('a', _v3)));
+    expect(run.state.file, _v3);
   });
 
   test('a copy that changed before the move is a change elsewhere', () {

@@ -2,24 +2,32 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart' show Edited, SecureReason, Version;
+import 'package:truce_core/truce_core.dart'
+    show Edited, SecureReason, Ticket, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/visual/library/library_nodes.dart';
 import 'package:truce_editor/editor/visual/library/visual_adapter.dart';
 import 'package:truce_editor/editor/visual/row_looks.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// A Visual edit adapter on an editor owner of [text].
 final class _Visual {
   _Visual(String text)
-    : gate = EditorGate(md.editorOwner(text, version: const Version(1))) {
-    gate.outputs.listen(outputs.add);
+    : gate = EditorGate(
+        md.editorOwner(
+          text,
+          version: const Version(1),
+          startTimer: ManualTimers().start,
+        ),
+      ) {
+    gate.events.listen(outputs.add);
     adapter = VisualAdapter(gate);
   }
 
   final EditorGate gate;
   late final VisualAdapter adapter;
-  final outputs = <md.EditorOutput>[];
+  final outputs = <md.EditorEvent>[];
 
   Editor get editor => adapter.editor;
   Document get document => adapter.document;
@@ -36,7 +44,7 @@ final class _Visual {
 
   /// The text the owner sends once secured.
   String secured() {
-    gate.send((_) => const md.SecureEditor(SecureReason.close));
+    gate.send((_) => md.SecureEditor(Ticket(), SecureReason.close));
     return outputs
         .whereType<md.ToFile>()
         .map((output) => output.input)

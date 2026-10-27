@@ -30,32 +30,28 @@ class RestoreScreen extends ConsumerStatefulWidget {
 
 class _RestoreScreenState extends ConsumerState<RestoreScreen> {
   Future<void> _keep(VersionSide side) async {
-    final kept = await ref.read(restoreProvider(widget.backup).notifier).keep(
+    final answer = await ref.read(restoreProvider(widget.backup).notifier).keep(
       switch (side) {
         VersionSide.current => const KeepCurrent(),
         VersionSide.other => const KeepOther(),
       },
     );
-    if (!mounted) return;
-    switch (kept) {
-      case Ok():
+    if (!mounted || answer == null || !answer.taken) return;
+    switch (answer.error) {
+      case final error?:
+        showSnack(context, error.text);
+      case null:
         Navigator.pop(
           context,
           side == VersionSide.other ? 'Backup restored.' : null,
         );
-      case Err(:final error):
-        showSnack(context, error.text);
-      case null:
-        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final (:folder, :backup) = widget.backup;
-    final RestoreState(:choice, :busy) = ref.watch(
-      restoreProvider(widget.backup),
-    );
+    final shown = ref.watch(restoreProvider(widget.backup));
     return Scaffold(
       appBar: compareAppBar(
         folder: folder,
@@ -66,15 +62,20 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         children: [
           UnreachableBanner(folder, message: waitMessage),
           Expanded(
-            child: switch (choice) {
-              Err(:final error) => Center(child: Text(error.text)),
-              Ok(value: final choice) => _chooser(
-                choice,
-                busy ||
-                    ref.watch(folderReachProvider(folder.location)) ==
-                        Reach.unreachable,
+            child: switch (shown) {
+              CompareLoading() => const Center(
+                child: CircularProgressIndicator(),
               ),
-              null => const Center(child: CircularProgressIndicator()),
+              CompareLoadFailed(:final error) => Center(
+                child: Text(error.text),
+              ),
+              CompareShowing(sides: final choice) => _chooser(
+                choice,
+                ref.watch(folderReachProvider(folder.location)) ==
+                    Reach.unreachable,
+              ),
+              CompareKeeping(sides: final choice) ||
+              CompareDone(sides: final choice) => _chooser(choice, true),
             },
           ),
         ],

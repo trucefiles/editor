@@ -41,7 +41,7 @@ FolderServices syncthingFolderServices(
       replacesInPlace: platform.replacesInPlace,
     ),
   );
-  final reach = FolderReach(folder);
+  final reach = folderReach(folder);
   final store = ReachReportingStore(folder, reach);
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(

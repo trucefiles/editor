@@ -23,6 +23,16 @@ void main() {
       key: value.settings,
   };
 
+  test('a store key names its document again', () {
+    final key = (folderId: 'f1', path: path('a/b.md'));
+
+    expect(
+      DocumentSettingsStore.keyOf(DocumentSettingsStore.storeKey(key)),
+      key,
+    );
+    expect(DocumentSettingsStore.keyOf('no-path'), isNull);
+  });
+
   test('loads nothing before the first save', () async {
     expect(await loaded(), isEmpty);
   });
