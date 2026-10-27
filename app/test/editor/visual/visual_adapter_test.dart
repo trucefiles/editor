@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart' show Edited, SecureReason, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
+import 'package:truce_editor/editor/visual/library/library_nodes.dart';
 import 'package:truce_editor/editor/visual/library/visual_adapter.dart';
+import 'package:truce_editor/editor/visual/row_looks.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
 /// A Visual edit adapter on an editor owner of [text].
@@ -146,14 +150,145 @@ void main() {
     expect(visual.secured(), r'a\*\*x\*\*b');
   });
 
-  test('other content requests are refused', () {
-    final visual = _Visual('a');
+  group('requests', () {
+    /// The requests Visual edit refused, by the note it prints.
+    final refused = <String>[];
+    setUp(() {
+      final print = debugPrint;
+      debugPrint = (message, {wrapWidth}) => refused.add(message ?? '');
+      addTearDown(() {
+        debugPrint = print;
+        refused.clear();
+      });
+    });
 
-    visual.editor.execute([
-      DeleteNodeRequest(nodeId: visual.document.first.id),
-    ]);
+    /// A Visual edit of 'abc' with b selected, after [request].
+    _Visual after(EditRequest Function(_Visual visual) request) {
+      final visual = _Visual('abc');
+      visual.editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection(base: visual.at(0, 1), extent: visual.at(0, 2)),
+          SelectionChangeType.expandSelection,
+          SelectionReason.userInteraction,
+        ),
+      ]);
+      visual.editor.execute([request(visual)]);
+      return visual;
+    }
 
-    expect(visual.texts, ['a']);
+    String first(_Visual visual) => visual.document.first.id;
+
+    final ownerInputs = <String, EditRequest Function(_Visual)>{
+      'InsertText': (visual) => InsertTextRequest(
+        documentPosition: visual.at(0, 1),
+        textToInsert: 'x',
+        attributions: const {},
+      ),
+      'InsertPlainTextAtCaret': (_) => const InsertPlainTextAtCaretRequest('x'),
+      'InsertCharacterAtCaret': (_) =>
+          InsertCharacterAtCaretRequest(character: 'x'),
+      'InsertStyledTextAtCaret': (_) =>
+          InsertStyledTextAtCaretRequest(AttributedText('x')),
+      'DeleteSelection': (_) => DeleteSelectionRequest(TextAffinity.upstream),
+      'DeleteContent': (visual) => DeleteContentRequest(
+        documentRange: DocumentRange(
+          start: visual.at(0, 1),
+          end: visual.at(0, 2),
+        ),
+      ),
+      'DeleteUpstream': (_) => const DeleteUpstreamRequest(),
+      'DeleteUpstreamCharacter': (_) => const DeleteUpstreamCharacterRequest(),
+      'DeleteUpstreamAtBeginningOfNode': (visual) =>
+          DeleteUpstreamAtBeginningOfNodeRequest(visual.document.first),
+      'DeleteDownstream': (_) => const DeleteDownstreamRequest(),
+      'DeleteDownstreamCharacter': (_) =>
+          const DeleteDownstreamCharacterRequest(),
+      'CombineParagraphs': (visual) => CombineParagraphsRequest(
+        firstNodeId: first(visual),
+        secondNodeId: 'next',
+      ),
+      'InsertNewlineAtCaret': (_) => InsertNewlineAtCaretRequest(),
+      'InsertSoftNewlineAtCaret': (_) =>
+          const InsertSoftNewlineAtCaretRequest(),
+      'PasteEditor': (visual) =>
+          PasteEditorRequest(content: 'x', pastePosition: visual.at(0, 1)),
+    };
+
+    for (final MapEntry(key: name, value: request) in ownerInputs.entries) {
+      test('$name goes to the owner', () {
+        final visual = after(request);
+
+        expect(refused, isEmpty);
+        expect(visual.texts, isNot(['abc']));
+      });
+    }
+
+    final librarys = <String, EditRequest Function(_Visual)>{
+      'ChangeSelection': (visual) => ChangeSelectionRequest(
+        DocumentSelection.collapsed(position: visual.at(0, 3)),
+        SelectionChangeType.placeCaret,
+        SelectionReason.userInteraction,
+      ),
+      'ClearSelection': (_) => const ClearSelectionRequest(),
+      'ChangeComposingRegion': (visual) => ChangeComposingRegionRequest(
+        DocumentRange(start: visual.at(0, 0), end: visual.at(0, 1)),
+      ),
+      'ClearComposingRegion': (_) => const ClearComposingRegionRequest(),
+      'ChangeInteractionMode': (_) =>
+          const ChangeInteractionModeRequest(isInteractionModeDesired: true),
+      'RemoveComposerPreferenceStyles': (_) =>
+          RemoveComposerPreferenceStylesRequest(const {}),
+      'ChangeSingleColumnLayoutComponentStyles': (visual) =>
+          ChangeSingleColumnLayoutComponentStylesRequest(
+            nodeId: first(visual),
+            styles: SingleColumnLayoutComponentStyles(),
+          ),
+    };
+
+    for (final MapEntry(key: name, value: request) in librarys.entries) {
+      test('$name goes to the library and leaves the text', () {
+        final visual = after(request);
+
+        expect(refused, isEmpty);
+        expect(visual.texts, ['abc']);
+      });
+    }
+
+    final refusals = <String, EditRequest Function(_Visual)>{
+      'DeleteNode': (visual) => DeleteNodeRequest(nodeId: first(visual)),
+      'MoveNode': (visual) =>
+          MoveNodeRequest(nodeId: first(visual), newIndex: 0),
+      'ReplaceNode': (visual) => ReplaceNodeRequest(
+        existingNodeId: first(visual),
+        newNode: ParagraphNode(id: 'new', text: AttributedText('x')),
+      ),
+      'ReplaceNodeWithEmptyParagraphWithCaret': (visual) =>
+          ReplaceNodeWithEmptyParagraphWithCaretRequest(nodeId: first(visual)),
+      'InsertNodeAtIndex': (_) => InsertNodeAtIndexRequest(
+        nodeIndex: 0,
+        newNode: ParagraphNode(id: 'new', text: AttributedText('x')),
+      ),
+      'InsertAttributedText': (visual) =>
+          InsertAttributedTextRequest(visual.at(0, 1), AttributedText('x')),
+      'InsertPlainTextAtEndOfDocument': (_) =>
+          InsertPlainTextAtEndOfDocumentRequest('x'),
+    };
+
+    for (final MapEntry(key: name, value: request) in refusals.entries) {
+      test('$name is refused', () {
+        final visual = after(request);
+
+        expect(refused, ['Visual edit refused ${name}Request']);
+        expect(visual.texts, ['abc']);
+      });
+    }
+
+    test('the library has no other requests', () {
+      // A library update that changes its requests fails here: check the
+      // lists above still hold. Any request that is neither an owner input
+      // nor the library's own is refused.
+      expect(defaultRequestHandlers, hasLength(68));
+    });
   });
 
   test('a waiting box tap shows checked at once', () {
@@ -171,6 +306,7 @@ void main() {
 
     visual.gate.tapBox(item.id);
 
-    expect(visual.document.first.id, isNotEmpty);
+    final look = lookOf(visual.document.first) as TextLook;
+    expect(look.frames.whereType<ItemFrame>().single.checked, isTrue);
   });
 }
