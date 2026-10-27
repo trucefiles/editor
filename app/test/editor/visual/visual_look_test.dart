@@ -100,6 +100,22 @@ void main() {
     expect(after.top - text.bottom, greaterThan(20), reason: 'a blank line');
   });
 
+  testWidgets('the bar of a quote runs through the gaps between its rows', (
+    tester,
+  ) async {
+    await pumpDocument(tester, TestDocument('> one\n>\n> two\n\nafter'));
+    await tester.pumpAndSettle();
+
+    final [first, second] = [
+      for (final bar in quoteBars().evaluate())
+        tester.getRect(find.byWidget(bar.widget)),
+    ];
+    final one = tester.getRect(find.text('one', findRichText: true));
+    final two = tester.getRect(find.text('two', findRichText: true));
+    expect(two.top - one.bottom, greaterThan(20), reason: 'a blank line');
+    expect(second.top, moreOrLessEquals(first.bottom), reason: 'no break');
+  });
+
   testWidgets('quotes and items nest as the file says', (tester) async {
     await pumpDocument(tester, TestDocument('> - [ ] a\n>   > b'));
     await tester.pumpAndSettle();

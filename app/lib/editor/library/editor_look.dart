@@ -8,7 +8,8 @@ import '../note_metrics.dart';
 /// the style [textStyleOf] gives it, styled further by its attributions
 /// with [inlineTextStyler]; placeholders drawn by [inlineWidgets]. Caret,
 /// selection and touch handles in the theme's colors. What Visual and
-/// Markdown edit share; each says how its text looks.
+/// Markdown edit share; each says how its text looks. A node whose row
+/// [spacesItself] puts the line gaps above and below it on its own.
 final class EditorLook {
   EditorLook(
     ThemeData theme, {
@@ -16,6 +17,7 @@ final class EditorLook {
     required TextStyle Function(DocumentNode node) textStyleOf,
     required AttributionStyleAdjuster inlineTextStyler,
     List<InlineWidgetBuilder> inlineWidgets = const [],
+    bool Function(DocumentNode node) spacesItself = _never,
   }) : stylesheet = Stylesheet(
          documentPadding: _documentPadding,
          rules: [
@@ -24,7 +26,7 @@ final class EditorLook {
              (document, node) => {
                Styles.padding: CascadingPadding.symmetric(
                  horizontal: _lineInset,
-                 vertical: metrics.lineGap,
+                 vertical: spacesItself(node) ? 0 : metrics.lineGap,
                ),
                Styles.textStyle: textStyleOf(node),
                Styles.inlineWidgetBuilders: inlineWidgets,
@@ -67,3 +69,5 @@ List<SuperEditorLayerBuilder> _overlays(Color caret) => [
 
 const _documentPadding = EdgeInsets.fromLTRB(0, 8, 0, 88);
 const _lineInset = 16.0;
+
+bool _never(DocumentNode node) => false;

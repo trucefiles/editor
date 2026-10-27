@@ -13,15 +13,20 @@ sealed class Frame {
   const Frame();
 }
 
-/// A quote: a bar beside its rows.
+/// A quote: a bar beside its rows; it [starts] at its first row and
+/// [ends] at its last.
 final class QuoteFrame extends Frame {
-  const QuoteFrame();
+  const QuoteFrame({required this.starts, required this.ends});
+
+  final bool starts;
+  final bool ends;
 
   @override
-  bool operator ==(Object other) => other is QuoteFrame;
+  bool operator ==(Object other) =>
+      other is QuoteFrame && other.starts == starts && other.ends == ends;
 
   @override
-  int get hashCode => (QuoteFrame).hashCode;
+  int get hashCode => Object.hash(QuoteFrame, starts, ends);
 }
 
 /// A list item: its rows indented; its [marker] beside the row that
@@ -218,6 +223,13 @@ final class RowLooks {
       .expand((item) => [item, ..._doc.pathOf(item.id).whereType<ItemNode>()])
       .groupFoldBy((item) => item.id, (int? count, _) => (count ?? 0) + 1);
 
+  /// The first and last leaf of each quote that has leaves.
+  late final Map<NodeId, ({NodeId first, NodeId last})> _quoteEnds = {
+    for (final quote in nodesIn(_doc.root).whereType<QuoteNode>())
+      if (leavesIn(quote).toList() case final leaves when leaves.isNotEmpty)
+        quote.id: (first: leaves.first.id, last: leaves.last.id),
+  };
+
   ListNode? _topList(NodeId leaf) =>
       _doc.pathOf(leaf).whereType<ListNode>().firstOrNull;
 
@@ -280,7 +292,12 @@ final class RowLooks {
     return [
       for (final (index, node) in path.indexed)
         ...switch (node) {
-          QuoteNode() => const [QuoteFrame()],
+          final QuoteNode quote => [
+            QuoteFrame(
+              starts: _quoteEnds[quote.id]!.first == leaf,
+              ends: _quoteEnds[quote.id]!.last == leaf,
+            ),
+          ],
           final ItemNode item => [
             ItemFrame(
               item.id,
