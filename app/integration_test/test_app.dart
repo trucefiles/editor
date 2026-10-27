@@ -17,6 +17,8 @@ import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
+import 'ui_driver.dart';
+
 /// The real app on fresh temp storage, with a folder picker that returns
 /// [notes] instead of opening the system dialog.
 final class TestApp {
@@ -98,12 +100,15 @@ final class _FixedPicker implements FolderPicker {
   Future<Result<String?, PickError>> pick() async => Ok(_path);
 }
 
-/// A test of the app, [body]; then takes the app down and runs one more
-/// frame, for the work widgets schedule as they go (the editor lets go of
-/// the keyboard a frame later), before Flutter checks that none is left.
+/// A test of the app, [body]; then lets a closed document finish its
+/// last steps (its file written, its draft dropped), takes the app down
+/// and runs one more frame, for the work widgets schedule as they go (the
+/// editor lets go of the keyboard a frame later), before Flutter checks
+/// that none is left.
 void testApp(String description, WidgetTesterCallback body) =>
     testWidgets(description, (tester) async {
       await body(tester);
+      await tester.runFor(const Duration(milliseconds: 500));
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     });

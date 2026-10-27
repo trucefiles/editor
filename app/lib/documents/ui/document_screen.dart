@@ -419,11 +419,16 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ..listen(folderScansProvider, (_, next) {
         if (next.value case final scans?) _session.observe(scans);
       });
-    return PopScope(
-      canPop: _canLeaveNow,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_leave());
-      },
+    // Follows the editor too: an edit not yet sent makes leaving wait.
+    return ListenableBuilder(
+      listenable: _gate,
+      builder: (_, scaffold) => PopScope(
+        canPop: _canLeaveNow,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_leave());
+        },
+        child: scaffold!,
+      ),
       child: _scaffold(),
     );
   }
