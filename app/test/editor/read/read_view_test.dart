@@ -2,32 +2,28 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/note_mode.dart';
-import 'package:truce_editor/editor/super_editor/note_editor_view.dart';
+import 'package:truce_editor/editor/read/read_view.dart';
 import 'package:truce_editor/markdown/markdown_links.dart';
 import 'package:truce_editor/platform/link_opener.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
-import '../editor_support.dart';
-import 'editor_robot.dart';
+import '../editor_robot.dart';
 
-/// A note in Read: formatted, and its links open.
+/// A document in Read: formatted, and its links open.
 void main() {
   late _FakeLinkOpener links;
 
   setUp(() => links = _FakeLinkOpener());
 
   Future<void> show(WidgetTester tester, String markdown) async {
-    final note = documentOf(FakeNoteText(markdown), mode: NoteMode.read);
-    addTearDown(note.dispose);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [linkOpenerProvider.overrideWithValue(links)],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
-              builder: (context, ref, _) => NoteEditorView(
-                note,
-                onRemoved: (_, _) {},
+              builder: (context, ref, _) => ReadView(
+                markdown,
                 onLink: (url) => openMarkdownLink(context, ref, url),
                 images: (_) => null,
               ),
@@ -87,10 +83,9 @@ void main() {
   testWidgets('lays out small text on touch, items wider apart', (
     tester,
   ) async {
-    await pumpNoteEditor(
+    await pumpDocument(
       tester,
-      FakeNoteText('Para\n\nPara\n\n- [ ] a\n- [x] b'),
-      mode: NoteMode.read,
+      TestDocument('Para\n\nPara\n\n- [ ] a\n- [x] b', mode: EditMode.read),
       theme: ThemeData(materialTapTargetSize: MaterialTapTargetSize.padded),
       around: (context, child) => MediaQuery(
         data: MediaQuery.of(context)

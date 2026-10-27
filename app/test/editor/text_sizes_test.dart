@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/note_mode.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
-import '../editor_support.dart';
 import 'editor_robot.dart';
 
-/// A note's text is as large in every mode: switching modes keeps its
+/// A document's text is as large in every mode: switching modes keeps its
 /// size.
 void main() {
-  const note = '# Head\n\nplain words with `code` in them';
+  const text = '# Head\n\nplain words with `code` in them';
 
-  /// The font size of the text [text] in the note shown in [mode].
+  /// The font size of [piece] in the document shown in [mode].
   Future<double> sizeOf(
     WidgetTester tester,
-    String text, {
-    required NoteMode mode,
+    String piece, {
+    required EditMode mode,
   }) async {
-    final document = documentOf(FakeNoteText(note), mode: mode);
-    addTearDown(document.dispose);
-    // A fresh view: one kept from before would show its own note.
+    // A fresh view: one kept from before would show its own document.
     await tester.pumpWidget(const SizedBox());
-    await showNoteEditor(tester, document);
+    await pumpDocument(tester, TestDocument(text, mode: mode));
     await tester.pumpAndSettle();
     final sizes = [
       for (final element
           in find.byWidgetPredicate((widget) => widget is RichText).evaluate())
         ...spanSizes((element.widget as RichText).text, const TextStyle()),
     ];
-    return sizes.firstWhere((entry) => entry.$1 == text).$2;
+    return sizes.firstWhere((entry) => entry.$1 == piece).$2;
   }
 
   for (final (text, what) in [
@@ -37,8 +34,8 @@ void main() {
   ]) {
     testWidgets('$what is as large in Visual edit as in Read', (tester) async {
       expect(
-        await sizeOf(tester, text, mode: NoteMode.visual),
-        await sizeOf(tester, text, mode: NoteMode.read),
+        await sizeOf(tester, text, mode: EditMode.visual),
+        await sizeOf(tester, text, mode: EditMode.read),
       );
     });
   }
@@ -46,7 +43,7 @@ void main() {
   testWidgets('code is a little smaller than the text around it', (
     tester,
   ) async {
-    for (final mode in [NoteMode.visual, NoteMode.read]) {
+    for (final mode in [EditMode.visual, EditMode.read]) {
       final body = await sizeOf(tester, 'plain words with ', mode: mode);
       final code = await sizeOf(tester, 'code', mode: mode);
       expect(code, lessThan(body), reason: '$mode');
@@ -58,8 +55,8 @@ void main() {
     tester,
   ) async {
     expect(
-      await sizeOf(tester, 'code', mode: NoteMode.markdown),
-      await sizeOf(tester, 'plain words with ', mode: NoteMode.markdown),
+      await sizeOf(tester, 'code', mode: EditMode.markdown),
+      await sizeOf(tester, 'plain words with ', mode: EditMode.markdown),
     );
   });
 
@@ -67,16 +64,12 @@ void main() {
     tester,
   ) async {
     /// How far below 'a' the line 'b' of [text] starts, in [mode].
-    Future<double> pitch(String text, NoteMode mode) async {
-      final document = documentOf(FakeNoteText(text), mode: mode);
-      addTearDown(document.dispose);
-      // A fresh view: one kept from before would show its own note.
+    Future<double> pitch(String text, EditMode mode) async {
+      // A fresh view: one kept from before would show its own document.
       await tester.pumpWidget(const SizedBox());
-      // A fresh view: one kept from before would show its own note.
-      await tester.pumpWidget(const SizedBox());
-      await showNoteEditor(
+      await pumpDocument(
         tester,
-        document,
+        TestDocument(text, mode: mode),
         // Desktop: on touch, item rows are taller in the editors only, to
         // be hit by a finger.
         theme: ThemeData(
@@ -90,9 +83,9 @@ void main() {
     }
 
     for (final text in ['- a\n- b', 'a\n\nb', '# a\n\nb']) {
-      final visual = await pitch(text, NoteMode.visual);
+      final visual = await pitch(text, EditMode.visual);
       expect(
-        await pitch(text, NoteMode.read),
+        await pitch(text, EditMode.read),
         closeTo(visual, visual * 0.15),
         reason: text,
       );

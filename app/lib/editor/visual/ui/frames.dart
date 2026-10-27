@@ -7,7 +7,8 @@ import '../row_looks.dart';
 /// [child] inside [frames], outermost first, spaced by [metrics]: a bar
 /// beside it per quote, indented under the items it is in, as far as the
 /// text of the item it is right in. If it starts that item, [row] puts
-/// the item's row beside it.
+/// the item's row beside it. Outside items, a blank line's space below
+/// it, inside its quotes' bars: blocks stand apart as in Read.
 Widget framed(
   List<Frame> frames,
   Widget child, {
@@ -16,7 +17,12 @@ Widget framed(
 }) {
   final item = frames.whereType<ItemFrame>().lastOrNull;
   return frames.reversed.fold(
-    child,
+    item == null
+        ? Padding(
+            padding: EdgeInsets.only(bottom: metrics.blankLine),
+            child: child,
+          )
+        : child,
     (child, frame) => switch (frame) {
       QuoteFrame() => _QuoteBar(child, indent: metrics.quoteIndent),
       ItemFrame() when frame != item => Padding(
