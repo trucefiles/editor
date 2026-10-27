@@ -82,14 +82,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
-  /// The mode the user picked last; it shows unless the document is read
-  /// only.
-  late EditMode _mode;
-
-  /// A mode picked before the document had a file, to remember once it
-  /// has.
-  bool _modeToSave = false;
-
   EditorGate get _gate => _session.gate;
 
   /// Where the document is now: it changes when the user moves it, or
@@ -114,7 +106,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       final document? => _settings.settingsOf(document.key),
       null => DocumentSettings.defaults,
     };
-    _mode =
+    final mode =
         settings.mode ??
         firstMode(
           hasCheckboxes:
@@ -137,17 +129,20 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ),
       // Not yet kept as a conflict copy: only an unreachable folder
       // makes it read only.
-      mode: _unreachable(file.folder) ? EditMode.read : _mode,
+      mode: _unreachable(file.folder) ? EditMode.read : mode,
       checkedItems: settings.checkedItems,
     );
     _controller = DocumentController(
       _session,
+      mode: mode,
       reachSettled: () =>
           ref.read(folderReachProvider(_folder.location).notifier).settled(),
       backUp: _backUp,
       canEdit: () => !_isReadOnly,
+      delete: ref.read(documentActionsProvider).delete,
+      editSettings: _settings.edit,
     );
-    _session.addListener(_onSessionChanged);
+    _session.addListener(_showShownMode);
     _notices = [
       _session.editorNotices.listen(_onEditorNotice),
       _session.fileNotices.listen(_onFileNotice),
@@ -166,7 +161,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     for (final notices in _notices) {
       unawaited(notices.cancel());
     }
-    _session.removeListener(_onSessionChanged);
+    _session.removeListener(_showShownMode);
+    _controller.dispose();
     final session = _session;
     // Also after a leave that kept the edits: the screen may also go
     // without one (its route removed), and a second answer is quick.
@@ -189,20 +185,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         null => const Err(StoreError.notFound),
       };
 
-  /// Follows the session: Read once it takes no more edits, and the
-  /// mode picked before the document had a file, remembered once it has.
-  void _onSessionChanged() {
-    if (_modeToSave && _session.document != null) {
-      _modeToSave = false;
-      _saveMode(_mode);
-    }
-    _showShownMode();
-  }
-
   /// Shows the document in the mode it shows in: Read while it can't be
   /// edited.
   void _showShownMode() {
-    final shown = _isReadOnly ? EditMode.read : _mode;
+    final shown = _isReadOnly ? EditMode.read : _controller.mode;
     if (_gate.state.mode != shown) _gate.send((_) => SetMode(shown));
     if (mounted) setState(() {});
   }
@@ -246,25 +232,20 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     }
   }
 
-  /// Leaves once the edits are kept (see [DocumentController.keep]);
-  /// asks if they can be kept nowhere. While the folder can't be reached,
-  /// they stay on this device and go into the file at the next start.
+  /// Leaves once the edits are kept (see [DocumentController.mayGo]).
+  /// While the folder can't be reached, they stay on this device and go
+  /// into the file at the next start.
   Future<void> _leave() async {
-    if (await _controller.keep(SecureReason.close) || await _askToDiscard()) {
-      _close();
-    }
+    if (await _controller.mayGo(SecureReason.close, _askToDiscard)) _close();
   }
 
   /// On desktop: quits once the edits are kept, or the user discards them.
-  Future<AppExitResponse> _onExitRequested() async {
-    if (await _controller.keep(SecureReason.exit) || await _askToDiscard()) {
-      return AppExitResponse.exit;
-    }
-    return AppExitResponse.cancel;
-  }
+  Future<AppExitResponse> _onExitRequested() async =>
+      await _controller.mayGo(SecureReason.exit, _askToDiscard)
+      ? AppExitResponse.exit
+      : AppExitResponse.cancel;
 
-  /// Whether the user drops edits that can be kept nowhere; if so, the
-  /// session drops them.
+  /// Whether the user drops edits that can be kept nowhere.
   Future<bool> _askToDiscard() async {
     if (!mounted) return false;
     final discard = await showDialog<bool>(
@@ -287,11 +268,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         ],
       ),
     );
-    if (discard ?? false) {
-      _session.discard();
-      return true;
-    }
-    return false;
+    return discard ?? false;
   }
 
   /// Closes the editor if it is still the top screen (the user may have
@@ -312,46 +289,42 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     SaveFailed() => false,
   };
 
-  /// [context] is this screen's, below its own messenger. A new document
-  /// is just dropped.
+  /// [context] is this screen's, below its own messenger.
   Future<void> _delete(BuildContext context) async {
-    if (_session.file is NewFile) {
-      _session.discard();
-      return Navigator.pop(context);
-    }
-    await _session.secure(SecureReason.hide);
-    final document = _session.document;
-    if (!context.mounted || document == null) return;
-    final actions = ref.read(documentActionsProvider);
-    final deleted = await actions.delete(document, _session.text);
+    final outcome = await _controller.deleteDocument();
     if (!context.mounted) return;
-    switch (deleted) {
-      case Ok(:final value):
-        _offerUndo(actions, value);
+    switch (outcome) {
+      case NewDropped():
         Navigator.pop(context);
-      case Err(:final error):
-        showSnack(context, deleteFailureText(error));
+      case DocumentDeleted(:final deleted):
+        _offerUndo(ref.read(documentActionsProvider), deleted);
+        Navigator.pop(context);
+      case DeleteRefused(:final failure):
+        showSnack(context, deleteFailureText(failure));
+      case AlreadyGone():
+        break;
     }
   }
 
-  /// Runs [action] on the document's file; a new document's file is
-  /// created first. [context] is this screen's, below its own messenger.
+  /// Runs [action] on the document's file (see
+  /// [DocumentController.withFile]). [context] is this screen's, below
+  /// its own messenger.
   Future<void> _withFile(
     BuildContext context,
     FutureOr<void> Function(Document document) action,
   ) async {
-    await _session.secure(SecureReason.hide);
+    final file = await _controller.withFile();
     if (!context.mounted) return;
-    switch ((_session.document, _session.status)) {
-      case (final document?, _):
+    switch (file) {
+      case Ok(value: final document):
         await action(document);
-      case (null, Unwritten()):
+      case Err(error: NoFile.empty):
         showSnack(
           context,
           "Write something first. An empty document isn't saved.",
         );
-      case (null, _):
-        // Not created: the banner tells why.
+      case Err(error: NoFile.notCreated):
+        // The banner tells why.
         break;
     }
   }
@@ -464,22 +437,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   }
 
   void _showMode(EditMode mode) {
-    _mode = mode;
+    _controller.pickMode(mode);
     _showShownMode();
-    _saveMode(mode);
-  }
-
-  /// Remembers [mode] on this device; for a new document, once it has a
-  /// file.
-  void _saveMode(EditMode mode) {
-    final document = _session.document;
-    if (document == null) {
-      _modeToSave = true;
-      return;
-    }
-    unawaited(
-      _settings.edit(document.key, (settings) => settings.withMode(mode)),
-    );
   }
 
   @override
@@ -527,7 +486,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     },
     for (final (index, mode) in EditMode.values.indexed)
       SingleActivator(_digits[index], control: true): () {
-        if (!_isReadOnly && mode != _mode) _showMode(mode);
+        if (!_isReadOnly && mode != _controller.mode) _showMode(mode);
       },
   };
 
@@ -597,7 +556,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               onPressed: _refresh,
             ),
           if (!readOnly) ...[
-            EditModeButton(mode: _mode, onChanged: _showMode),
+            EditModeButton(mode: _controller.mode, onChanged: _showMode),
             _menu(context, settings),
           ],
         ],
