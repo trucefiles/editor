@@ -35,10 +35,7 @@ class MarkdownEditView extends StatefulWidget {
 
 class _MarkdownEditViewState extends State<MarkdownEditView> {
   late final _adapter = MarkdownAdapter(widget.gate);
-  late final _highlights = HighlightPhase(
-    _adapter.highlightsOf,
-    changed: _adapter.treeChanged,
-  );
+  late final _highlights = HighlightPhase(_adapter.highlightsOf);
 
   /// The look in the current theme and metrics. Kept between builds:
   /// the library lays the whole document out anew for each new
@@ -57,7 +54,6 @@ class _MarkdownEditViewState extends State<MarkdownEditView> {
 
   @override
   void dispose() {
-    _highlights.close();
     _adapter.dispose();
     super.dispose();
   }

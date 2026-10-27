@@ -36,24 +36,24 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Groceries'));
 
-    await tester.typeNewNote('Groceries\nnew\n');
+    await tester.typeNewNote('Groceries\nnew');
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\nnew\n');
+    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\n\nnew');
     expect(app.file('Groceries.md').readAsStringSync(), 'Groceries\nold\n');
   });
 
   testApp('a slash in the first line never makes a subfolder', (tester) async {
     await tester.addFolder(app);
 
-    await tester.typeNewNote('# Mon/Tue: plan?\nx\n');
+    await tester.typeNewNote('Mon/Tue: plan?\nx');
     await tester.pageBack();
 
     await tester.waitForNoteClosed();
     await tester.waitForFile(
       app.file('Mon Tue plan.md'),
-      '# Mon/Tue: plan?\nx\n',
+      'Mon/Tue: plan?\n\nx',
     );
     expect(app.namesIn(), ['Mon Tue plan.md']);
   });
@@ -160,7 +160,7 @@ void main() {
     await tester.pressShiftEnter();
     await tester.typeImeText('oat');
 
-    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\\\n      oat\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\\\n  oat\n');
   });
 
   testApp('a selection across items deletes and joins them', (tester) async {
@@ -194,14 +194,14 @@ void main() {
     );
   });
 
-  testApp('typing "- " at a line start makes an item', (tester) async {
+  testApp('typed "- " at a line start stays text', (tester) async {
     await tester.openVisual(app, 'Note', '# Note\ntext\n');
     await tester.clickLine('text', 4);
 
     await tester.pressEnter();
     await tester.typeImeText('- [ ] milk');
 
-    await tester.leaveExpecting(app, '# Note\ntext\n- [ ] milk\n');
+    await tester.leaveExpecting(app, '# Note\ntext\n\n\\- \\[ ] milk\n');
   });
 
   testApp('switching modes while typing keeps every edit', (tester) async {
@@ -357,10 +357,11 @@ void main() {
     await tester.pressBackspace();
     await tester.pumpAndSettle();
 
-    await tester.leaveExpecting(app, '# Note\nok \n');
+    // The space before it goes too: a trailing space isn't saved.
+    await tester.leaveExpecting(app, '# Note\nok\n');
   });
 
-  testApp('deleting the middle numbered item leaves the other lines alone', (
+  testApp('deleting the middle numbered item numbers the rest on', (
     tester,
   ) async {
     await tester.openVisual(
@@ -370,11 +371,9 @@ void main() {
     );
     await tester.clickLine('two', 1);
 
-    await tester.tapAndSettle(find.byTooltip('Item actions').hitTestable());
-    await tester.tapAndSettle(find.text('Delete'));
-    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.byTooltip('Delete item').hitTestable());
 
-    await tester.leaveExpecting(app, '# Steps\n1. one\n3. three\n');
+    await tester.leaveExpecting(app, '# Steps\n1. one\n2. three\n');
   });
 
   testApp('adding the same folder twice keeps one', (tester) async {
@@ -478,18 +477,18 @@ void main() {
     app.folder('inbox').createSync();
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
-    await tester.typeNewNote('Idea\n');
+    await tester.typeNewNote('Idea');
     await tester.placeNote(subfolder: 'inbox');
 
     app.folder('inbox').deleteSync(recursive: true);
-    await tester.typeLines('more');
+    await tester.typeLines('\nmore');
     await tester.pageBack();
     await tester.waitForNoteClosed();
     await tester.runFor(const Duration(seconds: 1));
 
     expect(app.folder('inbox').existsSync(), isFalse);
     final texts = [for (final file in app.topFiles) file.readAsStringSync()];
-    expect(texts, contains('Idea\nmore'));
+    expect(texts, contains('Idea\n\nmore'));
   });
 
   testApp('a pin comes back with an undone delete', (tester) async {

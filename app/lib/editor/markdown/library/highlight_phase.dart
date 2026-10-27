@@ -26,21 +26,15 @@ final class HighlightAttribution implements Attribution {
 
 /// Gives each line's text its highlights ([highlightsOf] its node), as
 /// attributions the stylesheet styles; the document's text stays plain.
-/// Styles again on each [changed].
 ///
-/// It follows [changed] until [close]. Not in [dispose]: the library
-/// disposes the phases of a layout it rebuilds, e.g. for a new
-/// stylesheet, and goes on with the same phases in the new one.
+/// The highlights change only with the lines, so only with a change of
+/// the document, after which the library styles every node anew. Marked
+/// dirty earlier, while the library's transaction still ends, it would
+/// style nodes that are gone.
 final class HighlightPhase extends SingleColumnLayoutStylePhase {
-  HighlightPhase(this.highlightsOf, {required this.changed}) {
-    changed.addListener(markDirty);
-  }
+  HighlightPhase(this.highlightsOf);
 
   final List<HighlightSpan> Function(String nodeId) highlightsOf;
-  final Listenable changed;
-
-  /// Stops following [changed], once the editor is gone.
-  void close() => changed.removeListener(markDirty);
 
   @override
   SingleColumnLayoutViewModel style(

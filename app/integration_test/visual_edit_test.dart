@@ -256,12 +256,11 @@ void main() {
     await tester.leaveExpecting(app, 'fresh');
   });
 
-  testApp('deleting an item from its menu can be undone', (tester) async {
+  testApp('deleting an item with its button can be undone', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
     await tester.clickLine('milk', 1);
 
-    await tester.tapAndSettle(find.byTooltip('Item actions').hitTestable());
-    await tester.tapAndSettle(find.text('Delete'));
+    await tester.tapAndSettle(find.byTooltip('Delete item').hitTestable());
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 

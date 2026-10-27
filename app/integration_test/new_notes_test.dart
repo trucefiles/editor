@@ -23,13 +23,13 @@ void main() {
   ) async {
     await tester.addFolder(app);
 
-    await tester.typeNewNote('Groceries\nMilk\n');
+    await tester.typeNewNote('Groceries\nMilk');
     await tester.waitFor(find.text('Notes/Groceries.md'));
     await tester.runFor(const Duration(seconds: 3));
     expect(app.topFiles, isEmpty);
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\nMilk\n');
+    await tester.waitForFile(app.file('Groceries.md'), 'Groceries\n\nMilk');
     await tester.waitForNoteClosed();
     expect(find.text('Groceries'), findsOneWidget);
   });
@@ -47,10 +47,10 @@ void main() {
 
   testApp("hiding the app writes a new note's file", (tester) async {
     await tester.addFolder(app);
-    await tester.typeNewNote('Idea\n');
+    await tester.typeNewNote('Idea');
 
     tester.hideAndComeBack();
-    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
+    await tester.waitForFile(app.file('Idea.md'), 'Idea');
 
     await tester.typeOver('Idea\nmore\n');
     await tester.pageBack();
@@ -118,12 +118,12 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
 
-    await tester.typeNewNote('Groceries\nMilk\n');
+    await tester.typeNewNote('Groceries\nMilk');
     await tester.placeNote(subfolder: 'a/b/c', name: 'Shop');
     await tester.waitFor(find.text('Notes/a/b/c/Shop.md'));
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\nMilk\n');
+    await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\n\nMilk');
     await tester.waitFor(find.byTooltip('New note'));
     expect(app.topFiles.length, 1);
   });
@@ -135,15 +135,15 @@ void main() {
     app.folder('inbox').createSync();
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
-    await tester.typeNewNote('Idea\n');
+    await tester.typeNewNote('Idea');
     await tester.tapAndSettle(find.byTooltip(placeAndName));
 
     // The user switches apps with the dialog open, and comes back.
     tester.hideAndComeBack();
-    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
+    await tester.waitForFile(app.file('Idea.md'), 'Idea');
     await tester.fillPlace(subfolder: 'inbox');
 
-    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
+    await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea');
     await tester.pageBack();
     await tester.waitForNoteClosed();
     expect(app.file('Idea.md').existsSync(), isFalse);

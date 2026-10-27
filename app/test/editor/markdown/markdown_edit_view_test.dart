@@ -35,6 +35,21 @@ void main() {
     expect(document.text, 'a\r\nb\r\nxc');
   });
 
+  testWidgets('deleting every line at once leaves an empty document', (
+    tester,
+  ) async {
+    final document = markdown('# Plan\n\nmine\n');
+    await pumpDocument(tester, document);
+
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.pressCtlA();
+    await tester.pressBackspace();
+    await tester.typeImeText('x');
+
+    expect(tester.takeException(), isNull);
+    expect(document.text, 'x');
+  });
+
   testWidgets('Tab types a tab', (tester) async {
     final document = markdown('- a');
     await pumpDocument(tester, document);
@@ -56,6 +71,21 @@ void main() {
       greaterThan(_styleAt(body, 0).fontSize!),
     );
     expect(_styleAt(title, 0).color, isNot(_styleAt(title, 3).color));
+  });
+
+  testWidgets('a fence typed above restyles the lines below it', (
+    tester,
+  ) async {
+    await pumpDocument(tester, markdown('x\n# Title'));
+    InlineSpan spanOf(String text) =>
+        tester.widget<RichText>(find.text(text, findRichText: true).first).text;
+    final heading = _styleAt(spanOf('# Title'), 3).fontSize!;
+
+    await tester.caretIn(lineNodeOf(0), 0);
+    await tester.typeImeText('```');
+    await tester.pumpAndSettle();
+
+    expect(_styleAt(spanOf('# Title'), 3).fontSize, lessThan(heading));
   });
 
   testWidgets('only Ctrl and a tap open a link', (tester) async {
