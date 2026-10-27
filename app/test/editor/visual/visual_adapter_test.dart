@@ -122,6 +122,30 @@ void main() {
     expect(visual.texts, ['ab']);
   });
 
+  test('pasted lines in an item become items, as with Enter', () {
+    final visual = _Visual('- [ ] ab');
+    visual.caret(0, 1);
+
+    visual.editor.execute([
+      PasteEditorRequest(content: 'x\ny', pastePosition: visual.at(0, 1)),
+    ]);
+
+    expect(visual.texts, ['ax', 'yb']);
+    expect(visual.secured(), '- [ ] ax\n- [ ] yb');
+  });
+
+  test('pasted Markdown marks stay text', () {
+    final visual = _Visual('ab');
+    visual.caret(0, 1);
+
+    visual.editor.execute([
+      PasteEditorRequest(content: '**x**', pastePosition: visual.at(0, 1)),
+    ]);
+
+    expect(visual.texts, ['a**x**b']);
+    expect(visual.secured(), r'a\*\*x\*\*b');
+  });
+
   test('other content requests are refused', () {
     final visual = _Visual('a');
 
