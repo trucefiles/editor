@@ -258,8 +258,11 @@ final class _Step {
         _cameBack(there);
       case Taken():
         throw StateError('a new document takes the next free name');
-      case WriteGone():
+      case WriteGone() when work.moved == null:
         _goneElsewhere();
+      case WriteGone():
+        // The move took the file: the edits go to the copy next.
+        break;
       case WriteFailed():
         // Tried again only when asked again.
         _set(status: const SaveFailed());
@@ -388,18 +391,18 @@ final class _Step {
   }
 
   /// The copy a move left while a write was under way, now that it ended:
-  /// what writes go over, and written again where it lacks the edits. A
-  /// write that found the file gone found the move, not a delete.
+  /// what writes go over, and written again where it lacks the edits.
   void _takeMove() {
     final copy = work.moved;
     if (copy == null) return;
     _work(work.copyWith(moved: null, expected: copy));
     switch (status) {
-      case InStep() || DeletedElsewhere() when copy.text != state.text:
+      case InStep() when copy.text != state.text:
         _set(status: const Editing(EditPhase.inMemory));
         _askFolder();
-      case DeletedElsewhere():
-        _inStep(copy);
+      case Editing() when copy.text == state.text:
+        // Back to the copy's text: nothing to write.
+        _settle(const InStep());
       case _:
         break;
     }

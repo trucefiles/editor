@@ -143,6 +143,18 @@ void main() {
       expect(run.status, isA<InStep>());
     });
 
+    test('a write that finds the file gone after a move, with edits back '
+        'to the copy, is in step', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..send(const Moved(copy))
+        ..edit('a', 2)
+        ..wrote(const WriteGone());
+      expect(run.status, isA<InStep>());
+      expect(run.all<Write>(), hasLength(1));
+    });
+
     test('edits made during a write are kept after it, then written when '
         'asked, without a backup', () {
       final run = _Run.opened('a')
