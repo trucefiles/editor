@@ -21,7 +21,8 @@ typedef HandleInput<In, State, Event> = Future<void> Function(
 
 /// An [Owner] whose inputs (e.g. user actions) are run by plain async
 /// code ([HandleInput]), one at a time, in the order sent; tested on
-/// fakes, not as a pure machine.
+/// fakes, not as a pure machine. A handler that throws (a bug) does not
+/// stop the inputs after it.
 final class SimpleOwner<In, State, Event> implements Owner<In, State, Event> {
   SimpleOwner(this._state, this._handle);
 
@@ -64,11 +65,21 @@ final class SimpleOwner<In, State, Event> implements Owner<In, State, Event> {
     _running = true;
     try {
       while (_inputs.isNotEmpty) {
-        await _handle(_inputs.removeFirst(), _outlet);
+        await _handleOne(_inputs.removeFirst());
       }
     } finally {
       _running = false;
       _endIfDone();
+    }
+  }
+
+  /// Handles [input]; an error is a bug, reported where uncaught errors
+  /// go, and the next input still runs.
+  Future<void> _handleOne(In input) async {
+    try {
+      await _handle(input, _outlet);
+    } on Object catch (error, stack) {
+      Zone.current.handleUncaughtError(error, stack);
     }
   }
 

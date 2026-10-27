@@ -36,6 +36,21 @@ void main() {
     expect(owner.state, 3);
   });
 
+  test('an input whose handler throws (a bug) stops none after it', () async {
+    final errors = <Object>[];
+    await runZonedGuarded(() async {
+      owner
+        ..send(1)
+        ..send(2);
+      gates[1]!.completeError(StateError('bug'));
+      gates[2] = Completer<void>()..complete();
+      await pumpEventQueue();
+    }, (error, _) => errors.add(error));
+
+    expect(errors.single, isA<StateError>());
+    expect(owner.state, 2);
+  });
+
   test('events and changes tell what the inputs led to', () async {
     final events = <String>[];
     final changes = <int>[];
