@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/notes/note.dart';
 import 'package:truce_editor/notes/note_settings_controller.dart';
@@ -11,6 +10,7 @@ import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import '../support.dart';
 
@@ -38,13 +38,13 @@ void main() {
     'marks the settings of gone notes missing as the app comes into use',
     () async {
       final views = container.read(noteSettingsProvider.notifier);
-      await views.edit(key('kept.md'), (s) => s.withMode(NoteMode.visual));
-      await views.edit(key('gone.md'), (s) => s.withMode(NoteMode.markdown));
+      await views.edit(key('kept.md'), (s) => s.withMode(EditMode.visual));
+      await views.edit(key('gone.md'), (s) => s.withMode(EditMode.markdown));
       final activity = container.read(appActiveProvider.notifier) as _Activity
         ..set(active: false);
       container.listen(noteSettingsPruningProvider, (_, _) {});
       await container.read(noteSettingsPruningProvider.future);
-      expect(views.settingsOf(key('gone.md')).mode, NoteMode.markdown);
+      expect(views.settingsOf(key('gone.md')).mode, EditMode.markdown);
 
       activity.set(active: true);
       await container.read(noteSettingsPruningProvider.future);
@@ -53,7 +53,7 @@ void main() {
       final kept = container.read(noteSettingsProvider).value!;
       expect(kept['f1/gone.md']!.missingSince, isNotNull);
       expect(kept['f1/kept.md']!.missingSince, isNull);
-      expect(views.settingsOf(key('gone.md')).mode, NoteMode.markdown);
+      expect(views.settingsOf(key('gone.md')).mode, EditMode.markdown);
     },
   );
 

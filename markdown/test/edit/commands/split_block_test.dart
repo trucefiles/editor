@@ -75,6 +75,16 @@ void main() {
     expect(selection, document.caret(1, 0));
   });
 
+  test('Enter at the end of an item with subitems keeps them with it', () {
+    final (:document, :selection) = _enter(
+      Shown.read('- [ ] a\n  - [x] a1\n- [ ] b'),
+      0,
+      1,
+    );
+    expect(document.text, '- [ ] a\n  - [x] a1\n- [ ] \n- [ ] b');
+    expect(selection, document.caret(2, 0));
+  });
+
   test('Enter at an item\'s start makes an empty item above', () {
     final (:document, :selection) = _enter(Shown.read('- a'), 0, 0);
     expect(document.text, '-\n- a');

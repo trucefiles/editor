@@ -1,11 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/checked_items.dart';
-import 'package:truce_editor/editor/note_mode.dart';
 import 'package:truce_editor/notes/kept_note_settings.dart';
 import 'package:truce_editor/notes/note_settings.dart';
 import 'package:truce_editor/notes/note_settings_store.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../support.dart';
 
@@ -34,9 +33,9 @@ void main() {
       path: path('a.md'),
     ));
     const settings = NoteSettings(
-      mode: NoteMode.markdown,
+      mode: EditMode.markdown,
       pinned: true,
-      checkedItems: CheckedItems.toEnd,
+      checkedItems: CheckedItems.moveToEnd,
     );
 
     await store.save({
@@ -65,10 +64,10 @@ void main() {
     );
 
     expect(await loaded(), {
-      'f1/a.md': const NoteSettings(mode: NoteMode.visual),
-      'f1/b.md': const NoteSettings(mode: NoteMode.markdown),
+      'f1/a.md': const NoteSettings(mode: EditMode.visual),
+      'f1/b.md': const NoteSettings(mode: EditMode.markdown),
       'f1/c.md': const NoteSettings(
-        mode: NoteMode.read,
+        mode: EditMode.read,
         pinned: true,
         checkedItems: CheckedItems.inPlace,
       ),
@@ -86,8 +85,22 @@ void main() {
         pinned: true,
         checkedItems: CheckedItems.inPlace,
       ),
-      'f1/b.md': const NoteSettings(),
+      'f1/b.md': const NoteSettings(checkedItems: CheckedItems.doneSection),
     });
+  });
+
+  test('reads Move to end as older versions named it', () async {
+    file.writeCreatingFolders(
+      '{"f1/a.md": {"pinned": false, "checked": "toEnd"}}',
+    );
+
+    expect(await loaded(), {
+      'f1/a.md': const NoteSettings(checkedItems: CheckedItems.moveToEnd),
+    });
+  });
+
+  test('a note never set moves checked items to the end', () {
+    expect(NoteSettings.defaults.checkedItems, CheckedItems.moveToEnd);
   });
 
   test('ignores a damaged file and entries it cannot read', () async {
@@ -97,8 +110,11 @@ void main() {
       '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
     );
     expect(await loaded(), {
-      'f1/a.md': const NoteSettings(mode: NoteMode.visual),
-      'f1/d.md': const NoteSettings(pinned: true),
+      'f1/a.md': const NoteSettings(mode: EditMode.visual),
+      'f1/d.md': const NoteSettings(
+        pinned: true,
+        checkedItems: CheckedItems.doneSection,
+      ),
     });
 
     file.writeAsStringSync('not json');

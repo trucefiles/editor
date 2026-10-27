@@ -1,6 +1,8 @@
 /// One version of a document's file: a stamp of its content, compared
-/// for equality only.
-final class Version {
+/// for equality only. Whoever reads the files may extend it to carry what
+/// it needs to act on that version (where the file is, how it is
+/// written); owners only compare versions.
+base class Version {
   const Version(this._stamp);
 
   final Object _stamp;

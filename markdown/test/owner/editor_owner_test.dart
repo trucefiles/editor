@@ -70,7 +70,9 @@ final class _Run {
     ),
   );
 
-  void type(String text) => owner.send(Typed(text, revision: revision));
+  void type(String text) => owner.send(
+    Typed(text, over: shown.selection as TextSelection, revision: revision),
+  );
 
   void press(EditKey key) => owner.send(Pressed(key, revision: revision));
 
@@ -81,7 +83,7 @@ final class _Run {
       (shown.view.doc.root.children.first as ListNode).items[index].id;
 
   void toggle(int index) =>
-      owner.send(ToggleItem(item(index), revision: revision));
+      owner.send(ToggleItems([item(index)], revision: revision));
 
   /// The save timer [timer] last started fires.
   void fire(SaveTimer timer) => owner.send(
@@ -150,14 +152,35 @@ void main() {
       expect(run.sent, 'ya**x**b');
     });
 
-    test('typing with a divider selected replaces it', () {
-      final run = _Run('a\n\n---\n\nb')
-        ..caret(2, 0)
-        ..press(EditKey.backspace)
+    test('typed where a selection was deleted, takes its style', () {
+      final run = _Run('a **bc** d');
+      final leaf = run.leaf(0);
+      run
+        ..runCommand(DeleteRange(TextSelection(Place(leaf, 2), Place(leaf, 4))))
         ..type('x')
         ..pause();
-      expect(run.rows, ['a', 'x', 'b']);
-      expect(run.sent, 'a\n\nx\n\nb');
+      expect(run.sent, 'a **x** d');
+    });
+
+    test('typed over another place, takes the style there', () {
+      final run = _Run('a **b**')
+        ..caret(0, 1)
+        ..press(EditKey.bold);
+      final b = Place(run.leaf(0), 2);
+      run.owner.send(
+        Typed('x', over: TextSelection.caret(b), revision: run.revision),
+      );
+      run.pause();
+      expect(run.sent, 'a x**b**');
+    });
+
+    test('typed text with line breaks splits as a paste', () {
+      final run = _Run('- a')
+        ..caret(0, 1)
+        ..type('x\ny')
+        ..pause();
+      expect(run.rows, ['ax', 'y']);
+      expect(run.sent, '- ax\n- y');
     });
 
     test('a selected divider stays selected through a change elsewhere', () {
@@ -177,7 +200,7 @@ void main() {
         const FromFile(Replaced('- [ ] a\n- [ ] c', version: _v2, ackRev: 0)),
       );
       final shown = run.state;
-      run.owner.send(ToggleItem(run.item(0), revision: tapped));
+      run.owner.send(ToggleItems([run.item(0)], revision: tapped));
       expect(run.state, same(shown));
       expect(run.edits, isEmpty);
     });
@@ -204,6 +227,16 @@ void main() {
       run.owner.send(EditText('a\n\n- b', revision: run.revision));
       run.pause();
       expect(run.sent, 'a\n\n- b');
+    });
+
+    test('switching to Read sends the edits, so they are what shows', () {
+      final run = _Run('a');
+      run.type('x');
+      expect(run.edits, isEmpty);
+
+      run.owner.send(const SetMode(EditMode.read));
+
+      expect(run.sent, 'xa');
     });
 
     test('takes over Visual edit\'s text, and gives it back read anew', () {
@@ -282,6 +315,45 @@ void main() {
         ..toggle(0)
         ..pause();
       expect(run.sent, '- [ ] b\n- [x] a');
+    });
+
+    test('checked together move together, in their order; an unchecked '
+        'one stays where it is', () {
+      final run = _Run('- [ ] a\n- [ ] b\n- [x] c\n- [ ] d');
+      run.owner.send(
+        ToggleItems([
+          run.item(1),
+          run.item(0),
+          run.item(2),
+        ], revision: run.revision),
+      );
+      run.pause();
+      expect(run.sent, '- [ ] c\n- [ ] d\n- [x] a\n- [x] b');
+    });
+
+    test('with "Move to end" an item added last goes above the checked '
+        'ones; in place, at the end', () {
+      String added(CheckedItems checkedItems) {
+        final run = _Run('- [ ] a\n- [x] b', checkedItems: checkedItems);
+        run
+          ..runCommand(AddItem(run.shown.view.doc.root.children.single.id))
+          ..type('new')
+          ..pause();
+        return run.sent;
+      }
+
+      expect(added(CheckedItems.moveToEnd), '- [ ] a\n- [ ] new\n- [x] b');
+      expect(added(CheckedItems.inPlace), '- [ ] a\n- [x] b\n- [ ] new');
+    });
+
+    test('in Read, the menu commands run and the text is sent at once', () {
+      final run = _Run('- [x] a\n- [ ] b', mode: EditMode.read);
+      run.runCommand(MoveToEnd(run.shown.selection));
+      expect(run.sent, '- [ ] b\n- [x] a');
+      run.runCommand(ClearChecked(run.shown.selection));
+      expect(run.sent, '- [ ] b');
+      run.runCommand(Toggle(run.item(0), run.shown.selection));
+      expect(run.sent, '- [ ] b', reason: 'Read takes no edits');
     });
 
     test('in place stay where they are', () {

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../editor/checked_items.dart';
-import '../editor/note_mode.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 /// How this device shows one note: view settings, not properties of the
 /// note, so they are kept per device and never synced.
@@ -10,14 +9,14 @@ final class NoteSettings {
   const NoteSettings({
     this.mode,
     this.pinned = false,
-    this.checkedItems = CheckedItems.doneSection,
+    this.checkedItems = CheckedItems.moveToEnd,
   });
 
   /// Nothing chosen yet.
   static const defaults = NoteSettings();
 
   /// The mode the note was last shown in; `null` if never.
-  final NoteMode? mode;
+  final EditMode? mode;
 
   /// Shown before notes that are not pinned.
   final bool pinned;
@@ -27,7 +26,7 @@ final class NoteSettings {
 
   bool get isDefault => this == defaults;
 
-  NoteSettings withMode(NoteMode mode) =>
+  NoteSettings withMode(EditMode mode) =>
       NoteSettings(mode: mode, pinned: pinned, checkedItems: checkedItems);
 
   NoteSettings withPinned({required bool pinned}) =>

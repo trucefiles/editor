@@ -68,6 +68,18 @@ final class DocumentTree implements EarlierReading {
     for (final line in lines) ...[line.text, line.ending],
   ].join();
 
+  /// The text after its front matter, for readers that don't know front
+  /// matter; the whole text if it has none.
+  late final String textAfterFrontMatter = switch (root.children.firstOrNull) {
+    final FrontMatterBlock front => [
+      for (final line in lines.skip(front.lines.length)) ...[
+        line.text,
+        line.ending,
+      ],
+    ].join(),
+    _ => text,
+  };
+
   /// The ending most of its lines have, for lines it gets.
   late final String lineEnding = dominantEnding(
     lines.map((line) => line.ending),
@@ -126,6 +138,57 @@ final class DocumentTree implements EarlierReading {
       byteOrderMark: byteOrderMark,
     );
   }
+
+  /// This document with its lines from [start] to [end] replaced by
+  /// [lines], as a line editor holds them: a line that keeps its id keeps
+  /// its line ending, a new one ends as most lines do; the document's
+  /// last line ends with none. A text with line breaks in it (e.g. pasted
+  /// lines) becomes as many lines, the first one keeping the id; the
+  /// new ones end as most lines do.
+  DocumentTree withLines(
+    int start,
+    int end,
+    List<({LineId? id, String text})> lines,
+  ) {
+    // The line before becomes the last one: it loses its ending.
+    if (end == this.lines.length && lines.isEmpty && start > 0) {
+      final before = this.lines[start - 1];
+      return withLines(start - 1, end, [(id: before.id, text: before.text)]);
+    }
+    final atEnd = end == this.lines.length;
+    return changed(
+      LineChange(start, end, [
+        for (final (index, (:id, :text)) in lines.indexed)
+          ..._parts(
+            id,
+            splitLines(text),
+            last: atEnd && index == lines.length - 1,
+          ),
+      ]),
+    );
+  }
+
+  /// The lines a line editor's line [id] holds, as [parts]: the last
+  /// ends as the line did, inner ones as new lines do.
+  List<({LineId? id, String text, String ending})> _parts(
+    LineId? id,
+    List<TextLine> parts, {
+    required bool last,
+  }) => [
+    for (final (index, part) in parts.indexed)
+      (
+        id: index == 0 ? id : null,
+        text: part.text,
+        ending: switch (index == parts.length - 1) {
+          false => lineEnding,
+          true when last => '',
+          true => switch (id == null ? null : lineOf(id)?.ending) {
+            final ending? when ending.isNotEmpty => ending,
+            _ => lineEnding,
+          },
+        },
+      ),
+  ];
 
   /// This document with [text] instead, e.g. after it was edited as text:
   /// the unchanged lines at its start and end keep their ids; all others

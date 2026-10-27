@@ -55,6 +55,10 @@ final class NoteMetrics {
   /// [blockGap] apart, which may be more.
   double get paragraphGap => math.max(0, 28 * scale - blockGap);
 
+  /// Space between two blocks a blank line parts (e.g. two paragraphs), the
+  /// same in every mode.
+  double get blankLine => blockGap + paragraphGap;
+
   /// Indent of an item's text under the items it is in, per level.
   double get levelIndent => 28 * scale;
 

@@ -6,8 +6,10 @@ import '../doc/doc_tree.dart';
 import '../edit/change.dart' show startOf;
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
+import '../edit/commands/text_commands.dart' show ordered;
 import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
+import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
 import '../print/printer.dart';
 import '../view/rows.dart';
@@ -46,6 +48,15 @@ final class _Step {
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
+      // Read takes its menu's commands on all checked items; the text is
+      // sent at once, as Read shows the text kept.
+      case (
+            Run(command: final command && (MoveToEnd() || ClearChecked())),
+            FormattedContent(),
+          )
+          when state.mode == EditMode.read:
+        _run(command);
+        _send();
       case (EditText(:final text), MarkdownContent(text: final old))
           when text != old:
         _show(MarkdownContent(text));
@@ -124,14 +135,20 @@ final class _Step {
         _visual(input, closed);
       case (Pressed(:final key), null):
         _pressed(shown, key);
-      case (Typed(:final text), null):
-        _typed(shown, text);
+      case (Typed(:final text, :final over), null):
+        _typed(shown, text, over);
       case (Run(command: Toggle()), null):
         assert(false, 'a box tap is a ToggleItem');
+      case (Run(command: DeleteRange(:final range)), null):
+        _deleted(shown, range);
+      case (Run(command: AddItem(:final list, at: AddAt.last)), null)
+          when state.checkedItems == CheckedItems.moveToEnd:
+        // Checked items stay at the end.
+        _run(AddItem(list, at: AddAt.afterOpen));
       case (Run(:final command), null):
         _run(command);
-      case (ToggleItem(:final item), null):
-        _toggle(item);
+      case (ToggleItems(:final items), null):
+        _toggle(items);
       case (OpenRawBlock(:final block, :final atEnd), null):
         _openRaw(shown, block, atEnd: atEnd);
       case _:
@@ -166,30 +183,33 @@ final class _Step {
     }
   }
 
-  void _typed(FormattedContent shown, String text) {
-    switch (shown.selection) {
-      case final TextSelection range:
-        final at = range.extent;
-        final style = shown.typingStyle ?? typingStyleAt(shown.view.doc, at);
-        _run(switch (range) {
-          _ when range.isCaret => InsertText(at, text, style),
-          _ when range.base.leaf == range.extent.leaf => ReplaceText(
-            range,
-            text,
-          ),
-          _ => Paste(range, plainLines(text, style)),
-        });
-      case BlockSelection(:final block)
-          when shown.view.doc.nodeOf(block) is DividerNode:
-        _run(
-          TypeOverBlock(
-            block,
-            plainLines(text, shown.typingStyle ?? Formatting.plain),
-          ),
-        );
-      case BlockSelection():
-        break;
-    }
+  /// [text] typed over [range]: the typing style holds only at the
+  /// shown caret.
+  void _typed(FormattedContent shown, String text, TextSelection range) {
+    final at = range.extent;
+    final style =
+        (range == shown.selection ? shown.typingStyle : null) ??
+        typingStyleAt(shown.view.doc, at);
+    final lines = plainLines(text, style);
+    _run(switch (range) {
+      _ when lines.length > 1 => Paste(range, lines),
+      _ when range.isCaret => InsertText(at, text, style),
+      _ when range.base.leaf == range.extent.leaf => ReplaceText(range, text),
+      _ => Paste(range, lines),
+    });
+  }
+
+  /// [range] deleted; typing right there goes on in the formatting of
+  /// the first character deleted, as typing over a selection does.
+  void _deleted(FormattedContent shown, TextSelection range) {
+    final (start, end) = ordered(shown.view, range);
+    _run(DeleteRange(range));
+    if (start.leaf != end.leaf || start.offset == end.offset) return;
+    final deleted = textAt(
+      shown.view.doc,
+      start.leaf,
+    ).formattingAt(start.offset);
+    _show(_formatted(typingStyle: deleted));
   }
 
   /// [command] run on what shows; a changed document is a text change.
@@ -255,14 +275,20 @@ final class _Step {
     }
   }
 
-  /// [item]'s box toggled; with "Move to end", once checked, it moves.
-  void _toggle(NodeId item) {
-    final shown = state.content as FormattedContent;
-    _run(Toggle(item, shown.selection));
+  /// [items]' boxes toggled in order; with "Move to end", the checked
+  /// ones move together.
+  void _toggle(List<NodeId> items) {
+    for (final item in items) {
+      _run(Toggle(item, (state.content as FormattedContent).selection));
+    }
     if (state.checkedItems != CheckedItems.moveToEnd) return;
     final after = state.content as FormattedContent;
-    if (after.view.doc.nodeOf(item) case ItemNode(checked: true)) {
-      _run(MoveToEnd(after.selection, items: [item]));
+    final checked = [
+      for (final item in items)
+        if (after.view.doc.nodeOf(item) case ItemNode(checked: true)) item,
+    ];
+    if (checked.isNotEmpty) {
+      _run(MoveToEnd(after.selection, items: checked));
     }
   }
 
@@ -308,8 +334,11 @@ final class _Step {
         _show(state.content, mode: mode);
         _reload(text);
         work = work.copyWith(left: null);
+        if (mode == EditMode.read) _send();
       case (FormattedContent(:final selection), _):
         _show(_closedRaw(selection), mode: mode);
+        // Read shows the text as sent.
+        if (mode == EditMode.read) _send();
       case (MarkdownContent(), _):
         break;
     }

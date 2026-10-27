@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/view/rows.dart';
 
 import '../support/shown.dart';
 
@@ -58,6 +59,31 @@ void main() {
       expect(
         _after('- a\n  1. x\n- b', (n) => Indent(n.caret(2, 0))),
         '- a\n  1. x\n  2. b',
+      );
+    });
+
+    test('under a Done section, goes under the open item shown above', () {
+      final document = Shown.read(
+        '- [ ] a\n- [x] done\n- [ ] b',
+        done: DoneSections(),
+      );
+      expect(document.rows, ['a', 'b', 'done done']);
+      expect(canIndent(document.view, document.leaf(1)), isTrue);
+      expect(
+        document.run(Indent(document.caret(1, 0))).document.text,
+        '- [ ] a\n  - [ ] b\n- [x] done',
+      );
+    });
+
+    test('keeps the selection given, e.g. the user\'s during a swipe', () {
+      final document = Shown.read('- a\n- b\n\nc');
+      final user = document.caret(2, 1);
+      final indented = document.run(Indent(document.caret(1, 0), after: user));
+      expect(indented.document.text, '- a\n  - b\n\nc');
+      expect(indented.selection, user);
+      expect(
+        document.run(Outdent(document.caret(1, 0), after: user)).selection,
+        user,
       );
     });
 

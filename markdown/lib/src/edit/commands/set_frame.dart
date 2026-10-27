@@ -20,11 +20,11 @@ enum FrameKind { checkbox, bullet, numbered, quote }
 typedef _Step = DocTree Function(DocTree doc, FreshIds fresh);
 
 /// [kind] set on what [selection] covers, or taken off where all of it
-/// has it already. A box is per item; bullet or numbered is per list,
-/// the whole list changing kind; text not in a list becomes items of a
-/// new list (joining a list of that kind right before or after it); a
-/// quote wraps the blocks, in a list the items' text. The selection
-/// stays.
+/// has it already (a box or list taken off makes the items text). A box
+/// is per item; bullet or numbered is per list, the whole list changing
+/// kind; text not in a list becomes items of a new list (joining a list
+/// of that kind right before or after it); a quote wraps the blocks, in
+/// a list the items' text. The selection stays.
 Change setFrame(ViewRows view, TextSelection selection, FrameKind kind) {
   final rows = _selectedRows(view, selection);
   final steps = switch (kind) {
@@ -66,13 +66,14 @@ List<_Step> _boxes(ViewRows view, List<TextRow> rows) {
   final doc = view.doc;
   final items = _items(doc, rows);
   final free = _freeLeaves(doc, rows);
-  final off = free.isEmpty && items.every((item) => item.hasBox);
+  if (free.isEmpty && items.every((item) => item.hasBox)) {
+    return _liftedOut(doc, items);
+  }
   return [
     for (final item in items)
-      if (off || !item.hasBox)
-        (doc, _) => doc.withNode(
-          (doc.nodeOf(item.id)! as ItemNode).withBox(off ? null : false),
-        ),
+      if (!item.hasBox)
+        (doc, _) =>
+            doc.withNode((doc.nodeOf(item.id)! as ItemNode).withBox(false)),
     ..._newLists(doc, free, ListKind.bullet, checked: false),
   ];
 }
@@ -83,13 +84,7 @@ List<_Step> _listKind(ViewRows view, List<TextRow> rows, ListKind kind) {
   final free = _freeLeaves(doc, rows);
   final lists = {for (final item in items) doc.parentOf(item.id)! as ListNode};
   if (free.isEmpty && lists.every((list) => list.kind == kind)) {
-    final lifted = {for (final item in items) item.id};
-    return [
-      for (final list in lists)
-        (doc, fresh) => doc.edited({
-          list.id: liftedOut(doc.nodeOf(list.id)! as ListNode, lifted, fresh),
-        }),
-    ];
+    return _liftedOut(doc, items);
   }
   return [
     for (final list in lists)
@@ -97,6 +92,18 @@ List<_Step> _listKind(ViewRows view, List<TextRow> rows, ListKind kind) {
         (doc, _) =>
             doc.withNode((doc.nodeOf(list.id)! as ListNode).withKind(kind)),
     ..._newLists(doc, free, kind),
+  ];
+}
+
+/// [items] taken out of their lists, as text.
+List<_Step> _liftedOut(DocTree doc, List<ItemNode> items) {
+  final lists = {for (final item in items) doc.parentOf(item.id)! as ListNode};
+  final lifted = {for (final item in items) item.id};
+  return [
+    for (final list in lists)
+      (doc, fresh) => doc.edited({
+        list.id: liftedOut(doc.nodeOf(list.id)! as ListNode, lifted, fresh),
+      }),
   ];
 }
 

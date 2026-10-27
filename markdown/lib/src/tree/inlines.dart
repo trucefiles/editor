@@ -171,6 +171,9 @@ final class ImageInline extends ContainerInline {
 
   final String destination;
   final String title;
+
+  /// Its description as plain text.
+  String get description => plainTextOf(children);
 }
 
 /// The plain text [inlines] show, e.g. an image's description.

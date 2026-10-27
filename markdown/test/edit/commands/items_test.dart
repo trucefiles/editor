@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
-import 'package:truce_markdown/src/edit/commands/heading.dart';
 
 import '../support/shown.dart';
 
@@ -38,6 +37,14 @@ void main() {
     final (document: after, :selection) = document.run(AddItem(list));
     expect(after.text, '- [x] a\n- [ ] ');
     expect(selection, after.caret(1, 0));
+  });
+
+  test('Add item puts an empty item first, or after the open items', () {
+    final document = Shown.read('- [ ] a\n- [x] b');
+    final list = document.doc.root.children.single.id;
+    String added(AddAt at) => document.run(AddItem(list, at: at)).document.text;
+    expect(added(AddAt.first), '- [ ] \n- [ ] a\n- [x] b');
+    expect(added(AddAt.afterOpen), '- [ ] a\n- [ ] \n- [x] b');
   });
 
   test('a drop moves an item with its subitems', () {

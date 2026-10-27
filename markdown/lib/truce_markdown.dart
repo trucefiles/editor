@@ -9,16 +9,21 @@
 library;
 
 export 'src/doc/doc_nodes.dart';
+export 'src/doc/doc_tree.dart' show DocTree;
 export 'src/document_tree.dart' show DocumentTree;
 export 'src/edit/clipboard_lines.dart';
 export 'src/edit/commands/command.dart';
 export 'src/edit/keys/key_map.dart';
 export 'src/edit/selection.dart';
 export 'src/edit/typing_style.dart';
+export 'src/highlight/highlights.dart';
 export 'src/lines/line.dart';
 export 'src/lines/line_change.dart';
+export 'src/lines/line_endings.dart' show TextLine, splitLines;
 export 'src/owner/editor_owner.dart';
+export 'src/summary/document_summary.dart';
 export 'src/tree/blocks.dart';
+export 'src/tree/inlines.dart' show HtmlInline, ImageInline, Inline;
 export 'src/view/rows.dart';
 export 'src/visible/formatting.dart';
 export 'src/visible/visible_text.dart';

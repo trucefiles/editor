@@ -106,6 +106,14 @@ void main() {
       );
     });
 
+    test('the text after front matter', () {
+      expect(
+        DocumentTree.read('---\na: b\n---\n# A\ntext').textAfterFrontMatter,
+        '# A\ntext',
+      );
+      expect(DocumentTree.read('# A\ntext').textAfterFrontMatter, '# A\ntext');
+    });
+
     test('character references only by their whole name', () {
       final leaf =
           DocumentTree.read('&ampx; &copycat; &amp; &semi; &copy;')

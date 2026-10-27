@@ -36,7 +36,8 @@
 
 ## What it does today
 
-- Notes and checklists, edited as text, as a checklist, or read rendered.
+- Notes and checklists, edited visually (lists, styles, drag and drop),
+  as raw Markdown, or read rendered.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -104,8 +105,8 @@ A Dart pub workspace with six packages:
   written back block-exact, with the editor's owner. Pure Dart, no UI;
   uses core, which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
-- `app`: the Flutter app (Android, Linux). Uses only `core` and, in its
-  sync-tool wiring, `syncthing`.
+- `app`: the Flutter app (Android, Linux). Uses `core`, `markdown` for
+  its editor and, in its sync-tool wiring, `syncthing`.
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `lints`: analyzer and lint settings shared by all packages.

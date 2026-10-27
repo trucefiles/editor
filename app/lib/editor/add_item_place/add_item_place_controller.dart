@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pool/pool.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../../storage/app_storage.dart';
+import 'add_item_place.dart';
 import 'add_item_place_store.dart';
 
 final addItemPlaceStoreProvider = Provider<AddItemPlaceStore>(

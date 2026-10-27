@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart';
 
+import '../marker.dart';
 import '../note_metrics.dart';
 import '../note_text_styles.dart';
 
-/// The marker of a list item of [kind], the same in every mode: its box,
-/// [checked] or not, which [onToggle] checks or unchecks; its bullet; or
-/// its [number]; text in [style]. Every kind ends the same gap before the
+/// The [marker] of a list item, the same in every mode: its box, checked
+/// or not, which [onToggle] checks or unchecks; its bullet; or its
+/// number; text in [style]. Every kind ends the same gap before the
 /// text (a box where it is drawn), as lists are drawn on the web, so
 /// numbers line up on their dot; centered on the item's first line of
 /// text. Sized by the [NoteMetrics] of its context, the box too.
 class ListMarker extends StatelessWidget {
   const ListMarker(
-    this.kind, {
+    this.marker, {
     required this.style,
-    this.checked = false,
-    this.number = 1,
     this.onToggle,
     super.key,
   });
 
-  final ListKind kind;
-  final bool checked;
-  final int number;
+  final Marker marker;
   final TextStyle style;
 
   /// Toggles the box; without it, the box only shows its state.
@@ -42,17 +38,17 @@ class ListMarker extends StatelessWidget {
           Directionality.of(context),
           gap: metrics.markerGap,
           // A checkbox draws its box in the middle of its tap area.
-          drawnWidth: kind == ListKind.checkbox
+          drawnWidth: marker is BoxMarker
               ? Checkbox.width * metrics.scale
               : null,
         ),
-        child: switch (kind) {
-          ListKind.checkbox => Transform.scale(
+        child: switch (marker) {
+          BoxMarker(:final checked) => Transform.scale(
             scale: metrics.scale,
-            child: _box(Theme.of(context).colorScheme),
+            child: _box(Theme.of(context).colorScheme, checked: checked),
           ),
-          ListKind.bullet => Text('•', style: style),
-          ListKind.numbered => Text('$number.', style: style),
+          BulletMarker() => Text('•', style: style),
+          NumberMarker(:final number) => Text('$number.', style: style),
         },
       ),
     );
@@ -60,7 +56,7 @@ class ListMarker extends StatelessWidget {
 
   /// The box, in the same colors whether or not it toggles: where it
   /// can't (Read, a dragged copy), it shows its state, it isn't disabled.
-  Widget _box(ColorScheme colors) => Checkbox(
+  Widget _box(ColorScheme colors, {required bool checked}) => Checkbox(
     value: checked,
     // As high as a line of text, so lists stay compact.
     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

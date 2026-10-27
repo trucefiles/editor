@@ -9,8 +9,8 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/documents/ui/document_screen.dart';
 import 'package:truce_editor/notes/note_colors.dart';
-import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'app_steps.dart';
 import 'editor_steps.dart';
@@ -36,24 +36,24 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Groceries'));
 
-    await tester.typeNewNote('Groceries\nnew\n');
+    await tester.typeNewNote('Groceries\nnew');
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\nnew\n');
+    await tester.waitForFile(app.file('Groceries 2.md'), 'Groceries\n\nnew\n');
     expect(app.file('Groceries.md').readAsStringSync(), 'Groceries\nold\n');
   });
 
   testApp('a slash in the first line never makes a subfolder', (tester) async {
     await tester.addFolder(app);
 
-    await tester.typeNewNote('# Mon/Tue: plan?\nx\n');
+    await tester.typeNewNote('Mon/Tue: plan?\nx');
     await tester.pageBack();
 
     await tester.waitForNoteClosed();
     await tester.waitForFile(
       app.file('Mon Tue plan.md'),
-      '# Mon/Tue: plan?\nx\n',
+      'Mon/Tue: plan?\n\nx\n',
     );
     expect(app.namesIn(), ['Mon Tue plan.md']);
   });
@@ -160,7 +160,7 @@ void main() {
     await tester.pressShiftEnter();
     await tester.typeImeText('oat');
 
-    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\\\n      oat\n');
+    await tester.leaveExpecting(app, '# Shop\n- [ ] milk\\\n  oat\n');
   });
 
   testApp('a selection across items deletes and joins them', (tester) async {
@@ -194,14 +194,14 @@ void main() {
     );
   });
 
-  testApp('typing "- " at a line start makes an item', (tester) async {
+  testApp('typed "- " at a line start stays text', (tester) async {
     await tester.openVisual(app, 'Note', '# Note\ntext\n');
     await tester.clickLine('text', 4);
 
     await tester.pressEnter();
     await tester.typeImeText('- [ ] milk');
 
-    await tester.leaveExpecting(app, '# Note\ntext\n- [ ] milk\n');
+    await tester.leaveExpecting(app, '# Note\ntext\n\n\\- \\[ ] milk\n');
   });
 
   testApp('switching modes while typing keeps every edit', (tester) async {
@@ -357,10 +357,11 @@ void main() {
     await tester.pressBackspace();
     await tester.pumpAndSettle();
 
-    await tester.leaveExpecting(app, '# Note\nok \n');
+    // The space before it goes too: a trailing space isn't saved.
+    await tester.leaveExpecting(app, '# Note\nok\n');
   });
 
-  testApp('deleting the middle numbered item leaves the other lines alone', (
+  testApp('deleting the middle numbered item numbers the rest on', (
     tester,
   ) async {
     await tester.openVisual(
@@ -370,11 +371,9 @@ void main() {
     );
     await tester.clickLine('two', 1);
 
-    await tester.tapAndSettle(find.byTooltip('Item actions').hitTestable());
-    await tester.tapAndSettle(find.text('Delete'));
-    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.byTooltip('Delete item').hitTestable());
 
-    await tester.leaveExpecting(app, '# Steps\n1. one\n3. three\n');
+    await tester.leaveExpecting(app, '# Steps\n1. one\n2. three\n');
   });
 
   testApp('adding the same folder twice keeps one', (tester) async {
@@ -403,22 +402,26 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(NoteEditorScreen), findsNothing);
+    expect(find.byType(DocumentScreen), findsNothing);
   });
 
   testApp('a double tap on New note starts one note', (tester) async {
     await tester.addFolder(app);
+    await tester.waitFor(find.byTooltip('New note'));
+    // Both taps where the button is, though the first may have opened the
+    // note already.
+    final newNote = tester.getCenter(find.byTooltip('New note'));
 
-    await tester.tap(find.byTooltip('New note'));
+    await tester.tapAt(newNote);
     await tester.pump(const Duration(milliseconds: 40));
-    await tester.tap(find.byTooltip('New note'), warnIfMissed: false);
+    await tester.tapAt(newNote);
     await tester.pumpAndSettle();
     await tester.typeLines('Idea');
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(NoteEditorScreen), findsNothing);
-    await tester.waitForFile(app.file('Idea.md'), 'Idea');
+    expect(find.byType(DocumentScreen), findsNothing);
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
   });
 
   testApp('a color stays on a note moved to a subfolder', (tester) async {
@@ -441,7 +444,7 @@ void main() {
     await tester.waitForNoteClosed();
     await tester.openNote('Plan');
 
-    final screen = find.byType(NoteEditorScreen);
+    final screen = find.byType(DocumentScreen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),
@@ -478,18 +481,18 @@ void main() {
     app.folder('inbox').createSync();
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
-    await tester.typeNewNote('Idea\n');
+    await tester.typeNewNote('Idea');
     await tester.placeNote(subfolder: 'inbox');
 
     app.folder('inbox').deleteSync(recursive: true);
-    await tester.typeLines('more');
+    await tester.typeLines('\nmore');
     await tester.pageBack();
     await tester.waitForNoteClosed();
     await tester.runFor(const Duration(seconds: 1));
 
     expect(app.folder('inbox').existsSync(), isFalse);
     final texts = [for (final file in app.topFiles) file.readAsStringSync()];
-    expect(texts, contains('Idea\nmore'));
+    expect(texts, contains('Idea\n\nmore\n'));
   });
 
   testApp('a pin comes back with an undone delete', (tester) async {
@@ -514,7 +517,7 @@ void main() {
   testApp('clearing checked items can be undone', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [x] milk\n- [ ] eggs\n');
 
-    await tester.chooseInMenu('Clear checked items');
+    await tester.chooseInMenu('Clear checked items now');
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 

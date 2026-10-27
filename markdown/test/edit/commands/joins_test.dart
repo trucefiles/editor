@@ -39,6 +39,15 @@ void main() {
     expect(_joinNext('a\n\nb'), 'ab');
   });
 
+  test('Delete in an empty item drops it, the item below kept', () {
+    expect(_joinNext('- [ ] \n- [x] b'), '- [x] b');
+    expect(_joinNext('> \n\nb'), 'b');
+  });
+
+  test('Delete in an empty item with subitems joins as usual', () {
+    expect(_joinNext('- \n  - b'), '- b');
+  });
+
   test('a join across items moves the subitems under the item above', () {
     expect(_joinNext('- a\n- b\n  - c\n- d'), '- ab\n  - c\n- d');
   });

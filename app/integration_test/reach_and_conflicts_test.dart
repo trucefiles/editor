@@ -36,7 +36,7 @@ void main() {
   ) async {
     await tester.addFolder(app);
     await tester.waitFor(find.byTooltip('New note'));
-    await tester.loseFolder(app);
+    await tester.loseFolder(app.notes);
 
     await tester.tapAndSettle(find.byTooltip('New note'));
 
@@ -51,7 +51,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openNote('Plan');
     await tester.chooseMode('Markdown edit');
-    await tester.loseFolder(app);
+    await tester.loseFolder(app.notes);
 
     await tester.waitFor(find.textContaining("Notes can't be reached."));
     expect(find.byType(SuperEditor), findsNothing);
@@ -73,6 +73,26 @@ void main() {
 
     await tester.pageBack();
 
+    await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
+    expect(find.text("Your edits can't be saved"), findsNothing);
+  });
+
+  testApp('a note moved to another folder goes by that folder\'s reach', (
+    tester,
+  ) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.addWorkFolder();
+    await tester.openNote('Plan');
+    await tester.chooseMode('Markdown edit');
+    await tester.placeNote(folder: 'Work');
+    await tester.waitUntil(() => File('${app.work.path}/plan.md').existsSync());
+
+    await tester.loseFolder(app.work);
+
+    await tester.waitFor(find.textContaining("Work can't be reached."));
+    expect(find.byType(SuperEditor), findsNothing);
+    await tester.pageBack();
     await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
     expect(find.text("Your edits can't be saved"), findsNothing);
   });
@@ -103,21 +123,22 @@ void main() {
     await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
   });
 
-  testApp('hiding the app keeps clashing edits, menus stay put', (
-    tester,
-  ) async {
+  testApp('hiding the app keeps clashing edits here to compare, menus stay '
+      'put', (tester) async {
     await clashInPlan(tester);
     await tester.tapAndSettle(find.byTooltip('Show menu'));
 
     tester.hideAndComeBack();
 
-    await tester.waitFor(find.textContaining('kept as a conflict copy'));
+    await tester.waitFor(find.textContaining('changed on another device'));
     expect(find.text('Delete note'), findsOneWidget);
-    expect(find.byType(SuperEditor), findsNothing);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
-    await tester.tapAndSettle(find.text('Close'));
-    await tester.waitFor(find.byTooltip('New note'));
+    expect(find.byType(SuperEditor), findsOneWidget);
+    expect(
+      app.file('plan.md').readAsStringSync(),
+      '# Plan\nv2 from elsewhere\n',
+    );
   });
 
   testApp('restores the version from before editing', (tester) async {

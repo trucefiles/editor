@@ -1,6 +1,8 @@
 /// Tab and Shift+Tab in an item: one level in or out.
 library;
 
+import 'package:collection/collection.dart';
+
 import '../../doc/doc_nodes.dart';
 import '../../doc/doc_tree.dart';
 import '../../view/rows.dart';
@@ -19,25 +21,37 @@ ItemNode? itemAt(ViewRows view, NodeId leaf) {
   };
 }
 
-/// Whether the item at [leaf] can be indented: it has an item above it
-/// in its list.
+/// Whether the item at [leaf] can be indented: an item of its list shows
+/// above it.
 bool canIndent(ViewRows view, NodeId leaf) => switch (itemAt(view, leaf)) {
-  final item? =>
-    (view.doc.parentOf(item.id)! as ListNode).items.first.id != item.id,
+  final item? => _shownAbove(view, item) != null,
   null => false,
 };
+
+/// The item of [item]'s list that shows right above it: checked items
+/// shown apart, in a Done section, are passed over.
+ItemNode? _shownAbove(ViewRows view, ItemNode item) {
+  final list = view.doc.parentOf(item.id)! as ListNode;
+  return list.items
+      .take(list.items.indexOf(item))
+      .lastWhereOrNull((other) => !_shownApart(view, other));
+}
+
+/// Whether [item] shows in a Done section, or not at all there.
+bool _shownApart(ViewRows view, ItemNode item) =>
+    view.row(leavesIn(item).first.id)?.done ?? true;
 
 /// Whether the item at [leaf] can be outdented: it is in an item.
 bool canOutdent(ViewRows view, NodeId leaf) => itemAt(view, leaf) != null;
 
-/// The item at [selection]'s caret made the last child of the item above
-/// it, its own children coming along; it joins that item's sublist if it
+/// The item at [selection]'s caret made the last child of the item shown
+/// above it, its own children coming along; it joins that item's sublist if it
 /// ends with one, else starts one of its list's kind.
 Change indent(ViewRows view, TextSelection selection) {
   final doc = view.doc;
   final item = itemAt(view, selection.extent.leaf)!;
   final list = doc.parentOf(item.id)! as ListNode;
-  final above = list.items[list.items.indexOf(item) - 1];
+  final above = _shownAbove(view, item)!;
   final fresh = doc.freshIds;
   final into = above.withChildren(switch (above.children.last) {
     final ListNode sublist => [

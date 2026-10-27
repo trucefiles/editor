@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,21 +18,28 @@ import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
+import 'ui_driver.dart';
+
 /// The real app on fresh temp storage, with a folder picker that returns
-/// [notes] instead of opening the system dialog.
+/// [notes], then [work], instead of opening the system dialog.
 final class TestApp {
-  TestApp._(this.notes, this._storage);
+  TestApp._(this.notes, this.work, this._storage);
 
   /// Creates the temp folders; both are deleted after the test.
   factory TestApp.create() {
     final root = Directory.systemTemp.createTempSync('truce_ui_test');
     addTearDown(() => root.deleteSync(recursive: true));
     final notes = Directory('${root.path}/Notes')..createSync();
-    return TestApp._(notes, AppStorage('${root.path}/app'));
+    final work = Directory('${root.path}/Work')..createSync();
+    return TestApp._(notes, work, AppStorage('${root.path}/app'));
   }
 
   /// The folder the picker hands to the app.
   final Directory notes;
+
+  /// The folder the picker hands to the app the second time.
+  final Directory work;
+
   final AppStorage _storage;
 
   /// Starts the app, with the locale data and text zooms that `main`
@@ -46,7 +54,9 @@ final class TestApp {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
           savedTextZoomsProvider.overrideWithValue(textZooms),
           systemTrayProvider.overrideWithValue(null),
-          folderPickerProvider.overrideWithValue(_FixedPicker(notes.path)),
+          folderPickerProvider.overrideWithValue(
+            _QueuedPicker([notes.path, work.path]),
+          ),
         ],
         child: const TruceApp(),
       ),
@@ -89,21 +99,36 @@ final class TestApp {
   ];
 }
 
-final class _FixedPicker implements FolderPicker {
-  const _FixedPicker(this._path);
+/// Picks [_paths] in turn, then the last one again.
+final class _QueuedPicker implements FolderPicker {
+  _QueuedPicker(this._paths);
 
-  final String _path;
+  final List<String> _paths;
+  int _picks = 0;
 
   @override
-  Future<Result<String?, PickError>> pick() async => Ok(_path);
+  Future<Result<String?, PickError>> pick() async =>
+      Ok(_paths[min(_picks++, _paths.length - 1)]);
 }
 
-/// A test of the app, [body]; then takes the app down and runs one more
-/// frame, for the work widgets schedule as they go (the editor lets go of
-/// the keyboard a frame later), before Flutter checks that none is left.
+/// A test of the app, [body]; then closes the screens still open and
+/// lets a closed document finish its last steps (its file written, its
+/// draft dropped) before the app goes. The screens are popped, not left
+/// the user's way, as that may ask the user (e.g. to discard edits). A
+/// closed document's last steps are file work no widget shows, so the
+/// app runs a set time for them. One more frame runs for the work
+/// widgets schedule as they go (the editor lets go of the keyboard a
+/// frame later), before Flutter checks that none is left.
 void testApp(String description, WidgetTesterCallback body) =>
     testWidgets(description, (tester) async {
       await body(tester);
+      final navigator = find.byType(Navigator);
+      if (navigator.evaluate().isNotEmpty) {
+        tester
+            .state<NavigatorState>(navigator.first)
+            .popUntil((route) => route.isFirst);
+      }
+      await tester.runFor(const Duration(seconds: 1));
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     });

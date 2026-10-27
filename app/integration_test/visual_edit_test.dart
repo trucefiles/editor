@@ -25,128 +25,70 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  testApp('the clicked line shows its marks, the others hide them', (
-    tester,
-  ) async {
+  testApp('marks never show, in the clicked line either', (tester) async {
     await tester.openVisual(
       app,
       'Title',
       '# Title\n**bold** one\n\nplain *it*\n',
     );
-    expect(tester.showsLine('bold one'), isTrue);
 
-    await tester.clickLine('**bold** one', 2);
-    expect(tester.showsLine('**bold** one'), isTrue);
+    await tester.clickLine('bold one', 2);
+
+    expect(tester.showsLine('bold one'), isTrue);
+    expect(tester.showsLine('**bold** one'), isFalse);
     expect(tester.showsLine('plain it'), isTrue);
-
-    await tester.clickLine('plain *it*', 2);
-    expect(tester.showsLine('plain *it*'), isTrue);
-    expect(tester.showsLine('bold one'), isTrue);
   });
 
-  testApp('the marks follow the caret moved by arrow keys', (tester) async {
-    await tester.openVisual(
-      app,
-      'Title',
-      '# Title\n**bold** one\n\nplain *it*\n',
-    );
-    await tester.clickLine('**bold** one', 2);
-
-    await tester.pressDownArrow();
-    await tester.pressDownArrow();
-    await tester.pumpAndSettle();
-    expect(tester.showsLine('plain *it*'), isTrue);
-    expect(tester.showsLine('bold one'), isTrue);
-
-    await tester.pressUpArrow();
-    await tester.pressUpArrow();
-    await tester.pumpAndSettle();
-    expect(tester.showsLine('**bold** one'), isTrue);
-  });
-
-  testApp('a new line below a paragraph keeps its marks until typed on', (
-    tester,
-  ) async {
-    await tester.openVisual(app, 'Title', '# Title\n**bold** one\n');
-    await tester.clickLine('**bold** one', 12);
-
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.pressEnter();
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.pumpAndSettle();
-    expect(tester.showsLine('**bold** one'), isTrue);
-
-    await tester.typeImeText('two');
-    await tester.pumpAndSettle();
-    expect(tester.showsLine('**bold** one\ntwo'), isTrue);
-  });
-
-  testApp('the marks still follow the caret after an edit is saved', (
-    tester,
-  ) async {
-    await tester.openVisual(
-      app,
-      'Title',
-      '# Title\n**bold** one\n\nplain *it*\n',
-    );
-    await tester.clickLine('plain *it*', 10);
-    await tester.typeImeText('!');
-    await tester.waitFor(find.byTooltip(savedOnDevice));
-    await tester.tap(find.byTooltip(savedOnDevice));
-    await tester.waitForFile(
-      app.file('note.md'),
-      '# Title\n**bold** one\n\nplain *it*!\n',
-    );
-
-    await tester.clickLine('**bold** one', 2);
-
-    expect(tester.showsLine('**bold** one'), isTrue);
-    expect(tester.showsLine('plain it!'), isTrue);
-  });
-
-  testApp('a new note shows it is being edited, not saved', (tester) async {
+  testApp('a new note shows it is not saved once typed in', (tester) async {
     await tester.addFolder(app);
     await tester.tapAndSettle(find.byTooltip('New note'));
-
-    expect(find.byTooltip('Editing…'), findsOneWidget);
     expect(find.byTooltip('Saved in the folder'), findsNothing);
+
+    await tester.typeLines('x');
+
+    expect(find.byTooltip('Saved in the folder'), findsNothing);
+    expect(
+      find.byTooltip('Editing…').evaluate().isNotEmpty ||
+          find.byTooltip(savedOnDevice).evaluate().isNotEmpty,
+      isTrue,
+    );
   });
 
   testApp('list buttons turn lines into a list, change it and undo it', (
     tester,
   ) async {
-    await tester.openVisual(app, 'Shop', '# Shop\nmilk\neggs\n');
+    await tester.openVisual(app, 'Shop', '# Shop\nmilk\n\neggs\n');
     await tester.clickLine('milk', 0);
     await tester.pressShiftDownArrow();
 
-    await tester.pressTool('Checklist');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
     expect(find.byType(Checkbox), findsNWidgets(2));
-    await tester.pressTool('Bulleted list');
+    await tester.pressTool('Bulleted list (Ctrl+Shift+8)');
     expect(find.byType(Checkbox), findsNothing);
-    await tester.pressTool('Numbered list');
+    await tester.pressTool('Numbered list (Ctrl+Shift+7)');
 
-    await tester.leaveExpecting(app, '# Shop\n1. milk\n1. eggs\n');
+    await tester.leaveExpecting(app, '# Shop\n\n1. milk\n2. eggs\n');
   });
 
-  testApp('a list button twice gives back the text', (tester) async {
+  testApp('Checklist twice gives the line back as it was', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
     await tester.clickLine('milk', 4);
 
-    await tester.pressTool('Checklist');
-    await tester.pressTool('Checklist');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
     await tester.typeImeText('s');
 
     await tester.leaveExpecting(app, '# Shop\nmilks\n');
   });
 
-  testApp('a list button on a heading starts a list below it', (tester) async {
+  testApp('a list button on a heading makes it an item', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
-    await tester.clickLine('# Shop', 2);
+    await tester.clickLine('Shop', 4);
 
-    await tester.pressTool('Checklist');
-    await tester.typeImeText('bread');
+    await tester.pressTool('Checklist (Ctrl+Shift+9)');
+    await tester.typeImeText('!');
 
-    await tester.leaveExpecting(app, '# Shop\n- [ ] bread\nmilk\n');
+    await tester.leaveExpecting(app, '- [ ] # Shop!\n\nmilk\n');
   });
 
   testApp('Add item adds an item of the list kind', (tester) async {
@@ -212,11 +154,12 @@ void main() {
     tester,
   ) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
+    await tester.chooseCheckedItems('Show at end');
 
     await tester.tapAndSettle(find.byType(Checkbox).first);
-    expect(find.text('Done (1)'), findsOneWidget);
+    await tester.waitFor(find.text('Done (1)'));
     await tester.tapAndSettle(find.byType(Checkbox).last);
-    expect(find.text('Done (1)'), findsNothing);
+    await tester.waitUntil(() => find.text('Done (1)').evaluate().isEmpty);
 
     await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n- [ ] eggs\n');
   });
@@ -244,7 +187,8 @@ void main() {
     await tester.leaveExpecting(app, '# Steps\n1. one\n2. two\n');
   });
 
-  testApp('select all and type replaces the whole note', (tester) async {
+  testApp('select all and type replaces the whole note, in its first '
+      'block', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n> quote\n');
     await tester.clickLine('milk', 1);
 
@@ -252,15 +196,14 @@ void main() {
     await tester.pressBackspace();
     await tester.typeImeText('fresh');
 
-    await tester.leaveExpecting(app, 'fresh');
+    await tester.leaveExpecting(app, '# fresh\n');
   });
 
-  testApp('deleting an item from its menu can be undone', (tester) async {
+  testApp('deleting an item with its button can be undone', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
     await tester.clickLine('milk', 1);
 
-    await tester.tapAndSettle(find.byTooltip('Item actions').hitTestable());
-    await tester.tapAndSettle(find.text('Delete'));
+    await tester.tapAndSettle(find.byTooltip('Delete item').hitTestable());
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 
@@ -273,7 +216,7 @@ void main() {
     await tester.pressEnd();
 
     await tester.typeImeText(' so');
-    await tester.clickLine('# Quote', 1);
+    await tester.clickLine('Quote', 1);
 
     expect(tester.showsLine('said so'), isTrue);
     await tester.leaveExpecting(app, '# Quote\n> said so\n');
@@ -292,27 +235,26 @@ void main() {
     await tester.waitForFile(app.file('note.md'), '# Shop\n- [ ] milky\n');
   });
 
-  testApp('typed marks show while on the line, format once left', (
-    tester,
-  ) async {
+  testApp('typed marks stay text', (tester) async {
     await tester.openVisual(app, 'Note', '# Note\nbuy milk\n');
     await tester.clickLine('buy milk', 8);
 
     await tester.typeImeText(' **now**');
+    await tester.clickLine('Note', 2);
     expect(tester.showsLine('buy milk **now**'), isTrue);
-    await tester.clickLine('# Note', 2);
-    expect(tester.showsLine('buy milk now'), isTrue);
 
-    await tester.leaveExpecting(app, '# Note\nbuy milk **now**\n');
+    await tester.leaveExpecting(app, '# Note\nbuy milk \\*\\*now\\*\\*\n');
   });
 
-  testApp('Backspace at the start of an item joins it to the one above', (
-    tester,
-  ) async {
+  testApp('Backspace at the start of an item takes its box, then joins it '
+      'to the one above', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] shake\n');
     await tester.clickLine('shake', 1);
     await tester.pressLeftArrow();
 
+    await tester.pressBackspace();
+    await tester.pumpAndSettle();
+    expect(find.byType(Checkbox), findsOneWidget);
     await tester.pressBackspace();
     await tester.typeImeText(' ');
 
@@ -324,12 +266,12 @@ void main() {
   ) async {
     await app.useRefresh(RefreshMode.manual);
     await tester.openVisual(app, 'Plan', '# Plan\n**a** first\n\nsecond\n');
-    await tester.clickLine('**a** first', 11);
+    await tester.clickLine('a first', 7);
 
     app.write('note.md', '# Plan\n**a** first\n\nsecond\n\nthird\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
     await tester.waitFor(find.text('third', findRichText: true));
-    expect(tester.showsLine('**a** first'), isTrue);
+    expect(tester.showsLine('a first'), isTrue);
     await tester.typeImeText('!');
 
     await tester.leaveExpecting(

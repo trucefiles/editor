@@ -60,7 +60,7 @@ void main() {
     final document = Shown.read('```\ncode\n```');
     expect(document.rows, ['code', '']);
     expect(_type(document, 1, 0, 'x').document.text, '```\ncode\n```\n\nx');
-    expect(_type(Shown.read(''), 0, 0, 'x').document.text, 'x');
+    expect(_type(Shown.read(''), 0, 0, 'x').document.text, 'x\n');
   });
 
   test('an empty paragraph left in a list splits it once it gets text', () {
@@ -119,6 +119,15 @@ void main() {
       ReplaceText(_range(document, 0, 0, 4), 'hello'),
     );
     expect(edited.document.text, '**hello** you');
+  });
+
+  test('after a replacement the caret is after the new text', () {
+    // An autocorrect from helo to hello inserts only the second l.
+    final document = Shown.read('helo you');
+    final edited = document.run(
+      ReplaceText(_range(document, 0, 0, 4), 'hello'),
+    );
+    expect(edited.selection, edited.document.caret(0, 5));
   });
 
   test('typing in an autolink changes where it leads', () {

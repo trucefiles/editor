@@ -32,6 +32,10 @@ Accepted behavior that is not planned to change, grouped by topic.
   them while editing, but they are gone once saved. That's why "Pick
   mine" and the compare view, which show the saved text, can look
   different from the editor.
+- **Links keep working when their definition goes.** If an edit removes
+  a link definition (a line like `[site]: https://example.org`), the
+  links that used it are saved with their address written out, as
+  `[site](https://example.org)`.
 - **An HTML tag moved to the start of a line becomes plain text.** At
   the start of a line, a tag would turn everything after it into HTML.
   To keep the note as it was, Truce saves the tag as plain text there.

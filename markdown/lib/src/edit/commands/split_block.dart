@@ -75,7 +75,9 @@ VisibleText _after(TextNode leaf, Place at, bool keptLast) => keptLast
 
 /// [item] split into one item per leaf of [leaves], the parts of [leaf]:
 /// the first item with what came before [leaf], the last with what came
-/// after it; [item] itself is item [kept].
+/// after it (its subitems); [item] itself is item [kept]. Split at its
+/// text's end, what came after stays with [item]: a new empty item never
+/// takes another's subitems.
 DocTree _splitItem(
   ViewRows view,
   ItemNode item,
@@ -87,12 +89,13 @@ DocTree _splitItem(
 ) {
   final index = item.children.indexOf(leaf);
   final box = _newBox(view, item, at);
+  final rest = kept == 0 && textOf(leaves.last).isEmpty ? 0 : leaves.length - 1;
   final items = [
     for (final (part, text) in leaves.indexed)
       [
         if (part == 0) ...item.children.take(index),
         text,
-        if (part == leaves.length - 1) ...item.children.skip(index + 1),
+        if (part == rest) ...item.children.skip(index + 1),
       ],
   ];
   return view.doc.edited({

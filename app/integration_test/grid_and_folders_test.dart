@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/documents/ui/document_screen.dart';
 import 'package:truce_editor/notes/note_colors.dart';
-import 'package:truce_editor/notes/ui/note_editor_screen.dart';
 
 import 'app_steps.dart';
 import 'test_app.dart';
@@ -86,7 +86,7 @@ void main() {
 
     await tester.openNote('Plan');
 
-    final screen = find.byType(NoteEditorScreen);
+    final screen = find.byType(DocumentScreen);
     await tester.waitFor(screen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     final scaffold = tester.widget<Scaffold>(

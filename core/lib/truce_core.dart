@@ -19,20 +19,14 @@
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]).
-/// 10. `markdown`: Markdown documents as lines with the CommonMark + GFM
-///     block tree read from them ([MarkdownDocument]), what an editor
-///     shows of them ([Arrangement], [EditView]), the single mapping from
-///     edits in views back to lines ([TextEdits]), structure edits
-///     ([ItemEdits], [KeyEdits]) and how their Markdown shows ([MarkupSpan],
-///     [ShownText]).
-/// 11. `marks`: colors of notes, synced inside the folder
-///    ([NoteMarks]).
-/// 12. `changes`: changes to a folder's files as they happen
-///    ([FolderChanges]).
-/// 13. `reach`: whether a folder can be reached, from how accesses to its
-///    files go ([FolderReach]).
+/// 10. `marks`: colors of notes, synced inside the folder
+///     ([NoteMarks]).
+/// 11. `changes`: changes to a folder's files as they happen
+///     ([FolderChanges]).
+/// 12. `reach`: whether a folder can be reached, from how accesses to its
+///     files go ([FolderReach]).
 ///
-/// 14. `documents`: an open document's file, kept on the device and in
+/// 13. `documents`: an open document's file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); any document type, any sync tool.
 ///
@@ -68,23 +62,6 @@ export 'src/filetypes/file_type_detector.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
-export 'src/markdown/document/item_outline.dart' show ItemOutline, LineSpan;
-export 'src/markdown/document/markdown_document.dart';
-export 'src/markdown/edit/formatting.dart';
-export 'src/markdown/edit/item_edits.dart' show ItemEdits;
-export 'src/markdown/edit/key_edits.dart';
-export 'src/markdown/edit/list_conversion.dart';
-export 'src/markdown/edit/text_edits.dart';
-export 'src/markdown/lines/line_id.dart';
-export 'src/markdown/lines/markdown_line.dart';
-export 'src/markdown/tree/blocks.dart';
-export 'src/markdown/view/display_arrangement.dart';
-export 'src/markdown/view/edit_view.dart';
-export 'src/markdown/view/leaf_markup.dart' show LeafKind;
-export 'src/markdown/view/mark_style.dart';
-export 'src/markdown/view/markup.dart';
-export 'src/markdown/view/plain_text.dart';
-export 'src/markdown/view/shown_text.dart';
 export 'src/marks/note_mark.dart';
 export 'src/marks/note_marks.dart';
 export 'src/owners/owner.dart';

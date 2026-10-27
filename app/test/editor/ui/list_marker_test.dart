@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/editor/marker.dart';
 import 'package:truce_editor/editor/ui/list_marker.dart';
 
 void main() {
@@ -20,7 +20,10 @@ void main() {
     );
   }
 
-  const box = ListMarker(ListKind.checkbox, style: TextStyle(fontSize: 16));
+  const box = ListMarker(
+    BoxMarker(checked: false),
+    style: TextStyle(fontSize: 16),
+  );
 
   /// The width the box is drawn at, in the middle of its tap area.
   double drawnBox(WidgetTester tester) {
@@ -51,15 +54,13 @@ void main() {
 
     final shown = await fillOf(
       const ListMarker(
-        ListKind.checkbox,
-        checked: true,
+        BoxMarker(checked: true),
         style: TextStyle(fontSize: 16),
       ),
     );
     final toggled = await fillOf(
       ListMarker(
-        ListKind.checkbox,
-        checked: true,
+        BoxMarker(checked: true),
         style: const TextStyle(fontSize: 16),
         onToggle: () {},
       ),

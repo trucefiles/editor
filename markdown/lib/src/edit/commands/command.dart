@@ -22,6 +22,9 @@ import 'split_block.dart';
 import 'styles.dart';
 import 'text_commands.dart';
 
+export 'heading.dart' show nextHeadingLevel;
+export 'indent.dart' show canIndent, canOutdent;
+export 'items.dart' show AddAt;
 export 'set_frame.dart' show FrameKind;
 
 /// One user action, with the places it acts on.
@@ -107,18 +110,23 @@ final class RemoveFrame extends EditCommand {
   final NodeId leaf;
 }
 
-/// Tab in an item: it becomes a subitem of the item above.
+/// Tab in the item at [selection]'s caret: it becomes a subitem of the
+/// item above. The selection is [after] then (e.g. the user's, kept while
+/// a swipe indents another row), else [selection].
 final class Indent extends EditCommand {
-  const Indent(this.selection);
+  const Indent(this.selection, {this.after});
 
   final TextSelection selection;
+  final Selection? after;
 }
 
-/// Shift+Tab in an item: it goes one level out.
+/// Shift+Tab in the item at [selection]'s caret: it goes one level out.
+/// The selection is [after] then, else [selection] (see [Indent]).
 final class Outdent extends EditCommand {
-  const Outdent(this.selection);
+  const Outdent(this.selection, {this.after});
 
   final TextSelection selection;
+  final Selection? after;
 }
 
 /// The heading button or shortcut at [at]: its text a heading of [level],
@@ -153,21 +161,12 @@ final class RemoveBlock extends EditCommand {
   final NodeId block;
 }
 
-/// Typing with [block], a divider, selected: [lines] (see `plainLines`)
-/// take its place as paragraphs.
-final class TypeOverBlock extends EditCommand {
-  const TypeOverBlock(this.block, this.lines);
-
-  final NodeId block;
-  final List<VisibleText> lines;
-}
-
-/// The Add item button of [list]: a new empty item, last unless [first].
+/// The Add item button of [list]: a new empty item, [at] its place.
 final class AddItem extends EditCommand {
-  const AddItem(this.list, {this.first = false});
+  const AddItem(this.list, {this.at = AddAt.last});
 
   final NodeId list;
-  final bool first;
+  final AddAt at;
 }
 
 /// A drop: [item] with its subitems right before [target], or after it
@@ -272,8 +271,14 @@ Change _change(ViewRows view, EditCommand command) {
     JoinWithPrevious(:final at) => joinWithPrevious(view, at),
     JoinWithNext(:final at) => joinWithNext(view, at),
     RemoveFrame(:final leaf) => removeFrame(view, leaf),
-    Indent(:final selection) => indent(view, selection),
-    Outdent(:final selection) => outdent(view, selection),
+    Indent(:final selection, :final after) => _then(
+      indent(view, selection),
+      after,
+    ),
+    Outdent(:final selection, :final after) => _then(
+      outdent(view, selection),
+      after,
+    ),
     SetHeading(:final at, :final level) => setHeading(view, at, level),
     SetFrame(:final selection, :final kind) => setFrame(view, selection, kind),
     SetLink(:final range, :final text, :final url) => setLink(
@@ -295,16 +300,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
     RemoveBlock(:final block) => removeBlock(view, block),
-    TypeOverBlock(:final block, :final lines) => typedOverBlock(
-      view,
-      block,
-      lines,
-    ),
-    AddItem(:final list, :final first) => addItem(
-      view,
-      node(list),
-      first: first,
-    ),
+    AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,
@@ -340,3 +336,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
   };
 }
+
+/// [change] with the selection [after], if given.
+Change _then(Change change, Selection? after) =>
+    after == null ? change : (doc: change.doc, selection: after);

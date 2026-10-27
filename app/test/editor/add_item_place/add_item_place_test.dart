@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/add_item_place/add_item_place_controller.dart';
 import 'package:truce_editor/editor/add_item_place/add_item_place_store.dart';
 import 'package:truce_editor/storage/app_storage.dart';

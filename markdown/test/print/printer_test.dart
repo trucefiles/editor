@@ -299,6 +299,21 @@ void main() {
       );
     });
 
+    test('a new text with a final newline', () {
+      final (:doc, :origin) = loadMarkdown('');
+      final root = doc.root;
+      final typed = DocTree(
+        root.withChildren([
+          ParagraphNode(
+            doc.freshIds.take(),
+            VisibleText([TextPiece('milk', Formatting.plain)]),
+          ),
+        ]),
+        nextId: doc.nextId + 1,
+      );
+      expect(printMarkdown(typed, origin).text, 'milk\n');
+    });
+
     test('a byte order mark and final newline as read', () {
       expect(
         edited('\uFEFFa\n', (doc) {

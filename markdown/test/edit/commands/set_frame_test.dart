@@ -21,12 +21,19 @@ String _framed(String text, FrameKind kind, [int from = 0, int? to]) {
 
 void main() {
   group('a box', () {
-    test('goes on items that have none, and off where all have one', () {
+    test('goes on items that have none', () {
       expect(
         _framed('- a\n- [x] b', FrameKind.checkbox, 0, 1),
         '- [ ] a\n- [x] b',
       );
-      expect(_framed('- [ ] a\n- [x] b', FrameKind.checkbox, 0, 1), '- a\n- b');
+    });
+
+    test('where all items have one, takes them out of the list, as the '
+        'list buttons do', () {
+      expect(
+        _framed('- [ ] a\n- [x] b\n- [ ] c', FrameKind.checkbox, 0, 1),
+        'a\n\nb\n\n- [ ] c',
+      );
     });
 
     test('makes text a list of boxes', () {

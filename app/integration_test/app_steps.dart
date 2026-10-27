@@ -1,10 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/editor/note_mode.dart';
-import 'package:truce_editor/notes/ui/note_editor_screen.dart';
+import 'package:truce_editor/documents/ui/document_screen.dart';
+import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -32,14 +35,14 @@ extension AppSteps on WidgetTester {
   Future<void> waitForNoteClosed({
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(
-    () => find.byType(NoteEditorScreen).evaluate().isEmpty,
+    () => find.byType(DocumentScreen).evaluate().isEmpty,
     timeout: timeout,
   );
 
   /// Switches the open note to the mode labeled [mode], e.g. 'Read'.
   Future<void> chooseMode(String mode) async {
     await tapAndSettle(
-      find.byWidgetPredicate((widget) => widget is PopupMenuButton<NoteMode>),
+      find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
     );
     await tapAndSettle(find.text(mode).last);
   }
@@ -72,7 +75,7 @@ extension AppSteps on WidgetTester {
 
   /// Sets the open note's "Checked items" choice, from the default.
   Future<void> chooseCheckedItems(String choice) async {
-    await chooseInMenu('Checked items: Show at end');
+    await chooseInMenu('Checked items: Move to end');
     await tapAndSettle(find.text(choice));
   }
 
@@ -90,8 +93,28 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(subfolder).last);
   }
 
+  /// Adds [app]'s second folder, Work, from Manage folders.
+  Future<void> addWorkFolder() async {
+    await tapAndSettle(find.byTooltip('Manage folders'));
+    await tapAndSettle(find.text('Add folder'));
+    await waitFor(find.text('Work'));
+    await pageBack();
+    await pumpAndSettle();
+  }
+
+  /// Picks [folder] in the open place-and-name dialog.
+  Future<void> pickFolder(String folder) async {
+    await tapAndSettle(find.byType(DropdownButtonFormField<NoteFolder>));
+    await tapAndSettle(find.text(folder).last);
+  }
+
   /// Fills in the open place-and-name dialog and confirms it.
-  Future<void> fillPlace({String? subfolder, String? name}) async {
+  Future<void> fillPlace({
+    String? folder,
+    String? subfolder,
+    String? name,
+  }) async {
+    if (folder != null) await pickFolder(folder);
     if (subfolder != null) await pickSubfolder(subfolder);
     if (name != null) {
       await enterText(find.widgetWithText(TextField, 'Name'), name);
@@ -100,9 +123,13 @@ extension AppSteps on WidgetTester {
   }
 
   /// Sets the open note's place and name.
-  Future<void> placeNote({String? subfolder, String? name}) async {
+  Future<void> placeNote({
+    String? folder,
+    String? subfolder,
+    String? name,
+  }) async {
     await tapAndSettle(find.byTooltip(placeAndName));
-    await fillPlace(subfolder: subfolder, name: name);
+    await fillPlace(folder: folder, subfolder: subfolder, name: name);
   }
 
   /// The user switches to another app and comes back.
@@ -117,14 +144,16 @@ extension AppSteps on WidgetTester {
     }
   }
 
-  /// Removes [app]'s notes folder, refreshes, and waits through the
-  /// retries until the app marks it as unreachable.
-  Future<void> loseFolder(TestApp app) async {
-    app.notes.renameSync('${app.notes.path}-away');
+  /// Removes [folder], refreshes, and waits through the retries until
+  /// the app marks it as unreachable.
+  Future<void> loseFolder(Directory folder) async {
+    final trying =
+        'Trying to reach ${folder.path.split(Platform.pathSeparator).last}…';
+    folder.renameSync('${folder.path}-away');
     await tap(find.byTooltip('Refresh'));
-    await waitFor(find.text('Trying to reach Notes…'));
+    await waitFor(find.text(trying));
     await waitUntil(
-      () => find.text('Trying to reach Notes…').evaluate().isEmpty,
+      () => find.text(trying).evaluate().isEmpty,
       timeout: const Duration(seconds: 15),
     );
   }

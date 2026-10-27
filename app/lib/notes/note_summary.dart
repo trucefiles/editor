@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_markdown/truce_markdown.dart';
 
 import 'note_title.dart';
 
 /// What cards and search show of one version of a note: its title and
 /// its preview, with and without checked items. Worked out from one
-/// parse of the text.
+/// read of the text.
 @immutable
 final class NoteSummary {
   const NoteSummary({
@@ -21,15 +22,11 @@ final class NoteSummary {
     RelPath path, {
     int maxLines = previewLines,
   }) {
-    final document = MarkdownDocument.parse(text);
+    final summary = DocumentSummary.of(text, maxLines: maxLines);
     return NoteSummary(
-      title: noteTitleIn(document, path),
-      preview: notePreviewIn(document, maxLines: maxLines),
-      previewHidingDone: notePreviewIn(
-        document,
-        maxLines: maxLines,
-        hideDone: true,
-      ),
+      title: noteTitleOf(summary, path),
+      preview: summary.preview,
+      previewHidingDone: summary.previewHidingDone,
     );
   }
 
@@ -39,7 +36,7 @@ final class NoteSummary {
   /// See [noteTitle].
   final String title;
 
-  /// See [notePreviewIn].
+  /// See [DocumentSummary.preview].
   final String preview;
 
   /// [preview] with checked items left out and counted instead.

@@ -131,13 +131,7 @@ Command? _randomCommand(Random random, Shown document) {
     },
     9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
     10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
-    11 when dividers.isNotEmpty => switch (pick(dividers).leaf.id) {
-      final divider when random.nextBool() => RemoveBlock(divider),
-      final divider => TypeOverBlock(
-        divider,
-        plainLines(pick(['x', 'x\ny', '- x']), Formatting.plain),
-      ),
-    },
+    11 when dividers.isNotEmpty => RemoveBlock(pick(dividers).leaf.id),
     _ => switch (keyAction(view, range, pick(EditKey.values))) {
       RunCommand(:final command) => command,
       _ => null,

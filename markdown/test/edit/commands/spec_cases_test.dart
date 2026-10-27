@@ -98,9 +98,9 @@ void main() {
   test('a split above a tabbed item writes its parts anew', () {
     final edited = _run(
       ' - foob\n   - aio\n\t - baz',
-      (d) => SplitBlock(_range(d, 1, 1, 3)),
+      (d) => SplitBlock(_range(d, 1, 1, 2)),
     );
-    expect(edited.document.text, ' - foob\n   - a\n   -\n     - baz');
+    expect(edited.document.text, ' - foob\n   - a\n   - o\n     - baz');
   });
 
   test('a deletion that takes a tab\'s item writes the parts anew', () {
