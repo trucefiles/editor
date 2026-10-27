@@ -102,6 +102,7 @@ final class DocumentSession extends ChangeNotifier {
   /// document's file is created, as only securing it does.
   void saveNow() => switch (_effects.file) {
     ExistingFile() => _toFile(const SaveNow()),
+    // As when the app hides: kept, and the document stays open.
     NewFile() => unawaited(secure(SecureReason.hide)),
   };
 

@@ -111,11 +111,14 @@ final class _QueuedPicker implements FolderPicker {
       Ok(_paths[min(_picks++, _paths.length - 1)]);
 }
 
-/// A test of the app, [body]; then closes the screens still open, as the
-/// user would, and lets a closed document finish its last steps (its
-/// file written, its draft dropped) before the app goes. One more frame
-/// runs for the work widgets schedule as they go (the editor lets go of
-/// the keyboard a frame later), before Flutter checks that none is left.
+/// A test of the app, [body]; then closes the screens still open and
+/// lets a closed document finish its last steps (its file written, its
+/// draft dropped) before the app goes. The screens are popped, not left
+/// the user's way, as that may ask the user (e.g. to discard edits). A
+/// closed document's last steps are file work no widget shows, so the
+/// app runs a set time for them. One more frame runs for the work
+/// widgets schedule as they go (the editor lets go of the keyboard a
+/// frame later), before Flutter checks that none is left.
 void testApp(String description, WidgetTesterCallback body) =>
     testWidgets(description, (tester) async {
       await body(tester);
