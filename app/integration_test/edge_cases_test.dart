@@ -407,17 +407,21 @@ void main() {
 
   testApp('a double tap on New note starts one note', (tester) async {
     await tester.addFolder(app);
+    await tester.waitFor(find.byTooltip('New note'));
+    // Both taps where the button is, though the first may have opened the
+    // note already.
+    final newNote = tester.getCenter(find.byTooltip('New note'));
 
-    await tester.tap(find.byTooltip('New note'));
+    await tester.tapAt(newNote);
     await tester.pump(const Duration(milliseconds: 40));
-    await tester.tap(find.byTooltip('New note'), warnIfMissed: false);
+    await tester.tapAt(newNote);
     await tester.pumpAndSettle();
     await tester.typeLines('Idea');
     await tester.pageBack();
     await tester.pumpAndSettle();
 
     expect(find.byType(DocumentScreen), findsNothing);
-    await tester.waitForFile(app.file('Idea.md'), 'Idea');
+    await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
   });
 
   testApp('a color stays on a note moved to a subfolder', (tester) async {

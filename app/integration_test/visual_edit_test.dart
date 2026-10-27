@@ -70,7 +70,7 @@ void main() {
     await tester.leaveExpecting(app, '# Shop\n\n1. milk\n2. eggs\n');
   });
 
-  testApp('Checklist twice makes the line text again', (tester) async {
+  testApp('Checklist twice gives the line back as it was', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
     await tester.clickLine('milk', 4);
 
@@ -78,7 +78,7 @@ void main() {
     await tester.pressTool('Checklist (Ctrl+Shift+9)');
     await tester.typeImeText('s');
 
-    await tester.leaveExpecting(app, '# Shop\n\nmilks\n');
+    await tester.leaveExpecting(app, '# Shop\nmilks\n');
   });
 
   testApp('a list button on a heading makes it an item', (tester) async {
