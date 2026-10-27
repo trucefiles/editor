@@ -72,7 +72,7 @@ final class Positions {
   /// row it is in doesn't show. In an open [raw] block, its own caret.
   DocumentSelection? toLibrary(md.Selection selection, {md.RawRegion? raw}) {
     if (raw != null) {
-      return switch (_ids.find(raw.block)) {
+      return switch (_ids.find(RawTextLook.keyOf(raw.block))) {
         final id? => DocumentSelection(
           base: _textPosition(id, raw.base),
           extent: _textPosition(id, raw.extent),

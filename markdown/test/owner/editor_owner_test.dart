@@ -152,6 +152,16 @@ void main() {
       expect(run.sent, 'ya**x**b');
     });
 
+    test('typed where a selection was deleted, takes its style', () {
+      final run = _Run('a **bc** d');
+      final leaf = run.leaf(0);
+      run
+        ..runCommand(DeleteRange(TextSelection(Place(leaf, 2), Place(leaf, 4))))
+        ..type('x')
+        ..pause();
+      expect(run.sent, 'a **x** d');
+    });
+
     test('typed over another place, takes the style there', () {
       final run = _Run('a **b**')
         ..caret(0, 1)

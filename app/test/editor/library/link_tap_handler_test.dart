@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_editor/editor/super_editor/link_tap_handler.dart';
+import 'package:truce_editor/editor/library/link_tap_handler.dart';
 
 /// When a tap opens a link while editing.
 void main() {

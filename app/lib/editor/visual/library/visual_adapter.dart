@@ -257,7 +257,7 @@ final class VisualAdapter {
     final selection = composer.selection;
     return raw != null &&
         selection != null &&
-        _ids.keyOf(selection.extent.nodeId) == raw.block;
+        _ids.keyOf(selection.extent.nodeId) == RawTextLook.keyOf(raw.block);
   }
 
   /// [request] in the open raw block, edited as plain text there: Enter
@@ -309,7 +309,8 @@ final class VisualAdapter {
     final selection = composer.selection;
     if (shown == null || selection == null) return;
     final raw = shown.raw;
-    if (raw != null && _ids.keyOf(selection.extent.nodeId) == raw.block) {
+    if (raw != null &&
+        _ids.keyOf(selection.extent.nodeId) == RawTextLook.keyOf(raw.block)) {
       final (base, extent) = (
         selection.base.nodePosition,
         selection.extent.nodePosition,

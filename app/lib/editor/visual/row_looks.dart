@@ -109,15 +109,20 @@ final class BlockLook extends RowLook {
   int get hashCode => Object.hash(leaf, done, _frames.hash(frames));
 }
 
-/// A raw block open as its raw text.
+/// A raw block open as its raw text. A node of its own, not the one
+/// that shows the block whole: the library keeps a node's kind for its
+/// id.
 final class RawTextLook extends RowLook {
   const RawTextLook(this.raw, {required this.frames});
 
   final RawRegion raw;
   final List<Frame> frames;
 
+  /// The key of the node that shows [block] open.
+  static Object keyOf(NodeId block) => (open: block);
+
   @override
-  NodeId get key => raw.block;
+  Object get key => keyOf(raw.block);
 
   @override
   bool operator ==(Object other) =>

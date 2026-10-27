@@ -6,8 +6,10 @@ import '../doc/doc_tree.dart';
 import '../edit/change.dart' show startOf;
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
+import '../edit/commands/text_commands.dart' show ordered;
 import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
+import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
 import '../print/printer.dart';
 import '../view/rows.dart';
@@ -128,6 +130,8 @@ final class _Step {
         _typed(shown, text, over);
       case (Run(command: Toggle()), null):
         assert(false, 'a box tap is a ToggleItem');
+      case (Run(command: DeleteRange(:final range)), null):
+        _deleted(shown, range);
       case (Run(:final command), null):
         _run(command);
       case (ToggleItems(:final items), null):
@@ -180,6 +184,19 @@ final class _Step {
       _ when range.base.leaf == range.extent.leaf => ReplaceText(range, text),
       _ => Paste(range, lines),
     });
+  }
+
+  /// [range] deleted; typing right there goes on in the formatting of
+  /// the first character deleted, as typing over a selection does.
+  void _deleted(FormattedContent shown, TextSelection range) {
+    final (start, end) = ordered(shown.view, range);
+    _run(DeleteRange(range));
+    if (start.leaf != end.leaf || start.offset == end.offset) return;
+    final deleted = textAt(
+      shown.view.doc,
+      start.leaf,
+    ).formattingAt(start.offset);
+    _show(_formatted(typingStyle: deleted));
   }
 
   /// [command] run on what shows; a changed document is a text change.
