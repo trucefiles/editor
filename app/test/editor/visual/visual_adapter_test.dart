@@ -291,6 +291,33 @@ void main() {
     });
   });
 
+  test('a selection from outside into an open raw block closes it', () {
+    final visual = _Visual('a\n\n| x |\n|---|\n| 1 |');
+    md.RawRegion? raw() =>
+        (visual.gate.state.content as md.FormattedContent).raw;
+    final table = (visual.gate.state.content as md.FormattedContent)
+        .view
+        .doc
+        .root
+        .children
+        .whereType<md.TableNode>()
+        .single;
+    visual.gate.send(
+      (now) => md.OpenRawBlock(table.id, atEnd: false, revision: now.revision),
+    );
+    expect(raw(), isNotNull);
+
+    visual.editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(base: visual.at(0, 0), extent: visual.at(1, 2)),
+        SelectionChangeType.expandSelection,
+        SelectionReason.userInteraction,
+      ),
+    ]);
+
+    expect(raw(), isNull);
+  });
+
   test('a waiting box tap shows checked at once', () {
     final visual = _Visual('- [ ] a');
     final item =

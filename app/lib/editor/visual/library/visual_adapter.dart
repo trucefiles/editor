@@ -211,7 +211,8 @@ final class VisualAdapter {
   void press(md.EditKey key) =>
       _gate.send((now) => md.Pressed(key, revision: now.revision));
 
-  /// Whether the caret is in an open raw block, edited as plain text.
+  /// Whether the selection is wholly in an open raw block, edited as
+  /// plain text.
   bool get inRaw => _inRaw;
 
   /// Whether an input method is composing text: keys go to it.
@@ -252,13 +253,16 @@ final class VisualAdapter {
 
   // Raw blocks.
 
-  bool get _inRaw {
-    final raw = _shown?.raw;
-    final selection = composer.selection;
-    return raw != null &&
-        selection != null &&
-        _ids.keyOf(selection.extent.nodeId) == RawTextLook.keyOf(raw.block);
-  }
+  bool get _inRaw => switch ((_shown?.raw, composer.selection)) {
+    (final raw?, final selection?) => _isWithin(raw, selection),
+    _ => false,
+  };
+
+  /// Whether both ends of [selection] are in the open [raw] block.
+  bool _isWithin(md.RawRegion raw, DocumentSelection selection) => [
+    selection.base,
+    selection.extent,
+  ].every((end) => _ids.keyOf(end.nodeId) == RawTextLook.keyOf(raw.block));
 
   /// [request] in the open raw block, edited as plain text there: Enter
   /// is a line break; Backspace at its start and Delete at its end do
@@ -309,8 +313,7 @@ final class VisualAdapter {
     final selection = composer.selection;
     if (shown == null || selection == null) return;
     final raw = shown.raw;
-    if (raw != null &&
-        _ids.keyOf(selection.extent.nodeId) == RawTextLook.keyOf(raw.block)) {
+    if (raw != null && _isWithin(raw, selection)) {
       final (base, extent) = (
         selection.base.nodePosition,
         selection.extent.nodePosition,
