@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/documents/document_draft.dart';
+import 'package:truce_editor/documents/document_drafts.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/folders/note_folder.dart';
-import 'package:truce_editor/notes/note_draft.dart';
-import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -19,7 +19,7 @@ void main() {
   late AppStorage storage;
 
   /// Starts the app's providers with [folders] saved as the folder list.
-  Future<void> start(List<NoteFolder> folders) async {
+  Future<void> start(List<DocumentFolder> folders) async {
     storage = AppStorage(tempFolder().path);
     container = ProviderContainer(
       overrides: [
@@ -38,7 +38,7 @@ void main() {
     if (modified != null) file.setLastModifiedSync(modified);
   }
 
-  test('finds the notes and conflicts of every folder', () async {
+  test('finds the documents and conflicts of every folder', () async {
     final work = tempFolder();
     final home = tempFolder();
     write(work, 'plan.md', '# Plan');
@@ -48,7 +48,10 @@ void main() {
 
     final found = await scans();
 
-    expect(found.notes.map((n) => n.title), unorderedEquals(['Plan', 'Todo']));
+    expect(
+      found.documents.map((n) => n.title),
+      unorderedEquals(['Plan', 'Todo']),
+    );
     final conflict = found.conflicts.all.single;
     expect(conflict.folder.id, 'home');
     expect(conflict.conflict.mainPath, path('todo.md'));
@@ -76,17 +79,17 @@ void main() {
     final first = await scans();
     await refreshed;
 
-    expect(first.notes.map((n) => n.title), ['Plan']);
-    expect((await scans()).notes.map((n) => n.title), ['Plan']);
+    expect(first.documents.map((n) => n.title), ['Plan']);
+    expect((await scans()).documents.map((n) => n.title), ['Plan']);
   });
 
   test('the first scan shows edits left by the last run', () async {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');
     await start([folderAt(dir, id: 'f1')]);
-    final drafts = NoteDrafts(Directory(storage.draftsPath('f1')));
+    final drafts = DocumentDrafts(Directory(storage.draftsPath('f1')));
     await drafts.keep(
-      NoteDraft(
+      DocumentDraft(
         id: '1',
         path: path('plan.md'),
         base: '# Plan\nv1\n',
@@ -99,11 +102,11 @@ void main() {
 
     final found = await scans();
 
-    expect(found.notes.single.file.text, '# Plan\nmine\n');
+    expect(found.documents.single.file.text, '# Plan\nmine\n');
     expect(await drafts.all(before: DateTime.now()), isEmpty);
   });
 
-  test('finds notes, marks and conflicts several levels deep', () async {
+  test('finds documents, marks and conflicts several levels deep', () async {
     final dir = tempFolder();
     write(dir, 'todo.md', '# Root');
     write(dir, 'a/todo.md', '# A');
@@ -111,19 +114,19 @@ void main() {
     write(dir, 'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Old');
     final folder = folderAt(dir);
     await servicesFor(folder).marks
-        .set(path('a/b/c/todo.md'), const NoteMark(color: 'teal'));
+        .set(path('a/b/c/todo.md'), const DocumentMark(color: 'teal'));
     await start([folder]);
 
     final found = await scans();
 
     expect(
-      found.notes.map((n) => n.path.value),
+      found.documents.map((n) => n.path.value),
       unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
     );
     final deep = (folderId: folder.id, path: path('a/b/c/todo.md'));
     final shallow = (folderId: folder.id, path: path('a/todo.md'));
     expect(found.markOf(deep).color, 'teal');
-    expect(found.markOf(shallow), NoteMark.none);
+    expect(found.markOf(shallow), DocumentMark.none);
     expect(found.conflicts.forNote(deep), isNotNull);
     expect(found.conflicts.forNote(shallow), isNull);
   });
@@ -134,11 +137,11 @@ void main() {
     write(dir, 'root.md', '# Root');
     write(dir, 'a/b/c/deep.md', '# Deep');
     write(dir, 'a/b/c/deeper.md', '# Deeper');
-    write(dir, 'x/note.md', '# X');
-    write(dir, 'y/photo.jpg', 'not a note');
-    write(other, 'z/note.md', '# Z');
+    write(dir, 'x/document.md', '# X');
+    write(dir, 'y/photo.jpg', 'not a document');
+    write(other, 'z/document.md', '# Z');
     Directory('${dir.path}/empty/deeper').createSync(recursive: true);
-    write(dir, '.hidden/note.md', '# Hidden');
+    write(dir, '.hidden/document.md', '# Hidden');
     await start([folderAt(dir, id: 'one'), folderAt(other, id: 'two')]);
 
     final found = await scans();
@@ -155,46 +158,49 @@ void main() {
     expect(found.subfoldersOf('two').map((p) => p.value), ['z']);
   });
 
-  test('lists notes newest first', () async {
+  test('lists documents newest first', () async {
     final dir = tempFolder();
     write(dir, 'old.md', '# Old', modified: DateTime(2020));
     write(dir, 'new.md', '# New', modified: DateTime(2025));
     await start([folderAt(dir)]);
 
-    expect((await scans()).notes.map((n) => n.title), ['New', 'Old']);
+    expect((await scans()).documents.map((n) => n.title), ['New', 'Old']);
   });
 
-  test('lists notes with the same time by path', () async {
+  test('lists documents with the same time by path', () async {
     final dir = tempFolder();
     for (final name in ['c.md', 'a.md', 'b.md']) {
       write(dir, name, '# ${name[0]}', modified: DateTime(2025));
     }
     await start([folderAt(dir)]);
 
-    expect((await scans()).notes.map((n) => n.path.value), [
+    expect((await scans()).documents.map((n) => n.path.value), [
       'a.md',
       'b.md',
       'c.md',
     ]);
   });
 
-  test('lists the newest notes first and keeps marks by note', () async {
-    final dir = tempFolder();
-    write(dir, 'old.md', '# Old', modified: DateTime(2020));
-    write(dir, 'new.md', '# New', modified: DateTime(2025));
-    final folder = folderAt(dir);
-    final marks = servicesFor(folder).marks;
-    await marks.set(path('new.md'), const NoteMark(color: 'teal'));
-    await start([folder]);
+  test(
+    'lists the newest documents first and keeps marks by document',
+    () async {
+      final dir = tempFolder();
+      write(dir, 'old.md', '# Old', modified: DateTime(2020));
+      write(dir, 'new.md', '# New', modified: DateTime(2025));
+      final folder = folderAt(dir);
+      final marks = servicesFor(folder).marks;
+      await marks.set(path('new.md'), const DocumentMark(color: 'teal'));
+      await start([folder]);
 
-    final found = await scans();
+      final found = await scans();
 
-    expect(found.notes.map((n) => n.title), ['New', 'Old']);
-    expect(
-      found.markOf((folderId: folder.id, path: path('new.md'))),
-      const NoteMark(color: 'teal'),
-    );
-  });
+      expect(found.documents.map((n) => n.title), ['New', 'Old']);
+      expect(
+        found.markOf((folderId: folder.id, path: path('new.md'))),
+        const DocumentMark(color: 'teal'),
+      );
+    },
+  );
 
   test('reports a folder that cannot be read', () async {
     final gone = folderAt(Directory('${tempFolder().path}/gone'));
@@ -203,11 +209,11 @@ void main() {
     final found = await scans();
 
     expect(found.failedFolders, {gone: StoreError.notFound});
-    expect(found.notes, isEmpty);
+    expect(found.documents, isEmpty);
   });
 
   test(
-    'shows the last version of a note it could not read, uncovered',
+    'shows the last version of a document it could not read, uncovered',
     () async {
       final dir = tempFolder();
       write(dir, 'plan.md', '# Plan\nv1\n');
@@ -226,7 +232,7 @@ void main() {
     },
   );
 
-  test('refresh shows a note written just before', () async {
+  test('refresh shows a document written just before', () async {
     final dir = tempFolder();
     await start([folderAt(dir)]);
     await scans();
@@ -234,10 +240,10 @@ void main() {
     write(dir, 'new.md', '# New');
     await container.read(folderScansProvider.notifier).refresh();
 
-    expect((await scans()).notes.single.title, 'New');
+    expect((await scans()).documents.single.title, 'New');
   });
 
-  test('shows a renamed folder on its notes', () async {
+  test('shows a renamed folder on its documents', () async {
     final dir = tempFolder();
     write(dir, 'todo.md', '# Todo');
     final folder = folderAt(dir);
@@ -248,6 +254,6 @@ void main() {
         .read(foldersProvider.notifier)
         .change(folder.copyWith(name: 'Renamed'));
 
-    expect((await scans()).notes.single.folder.name, 'Renamed');
+    expect((await scans()).documents.single.folder.name, 'Renamed');
   });
 }

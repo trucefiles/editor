@@ -1,4 +1,4 @@
-/// What the platform the app runs on means for note folders. Set once by
+/// What the platform the app runs on means for document folders. Set once by
 /// the platform wiring; read by the sync-tool wiring and settings, so
 /// neither tells platforms apart itself.
 final class PlatformFacts {

@@ -32,7 +32,7 @@ void main() {
   }
 
   for (final (target, title) in [
-    (TextZoomTarget.notes, 'Note text size'),
+    (TextZoomTarget.documents, 'Document text size'),
     (TextZoomTarget.app, 'App text size'),
   ]) {
     testWidgets('the slider sets the ${title.toLowerCase()} only', (

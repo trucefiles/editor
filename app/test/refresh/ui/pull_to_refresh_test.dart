@@ -9,7 +9,7 @@ void main() {
   late int refreshes;
   late ScrollController scroll;
 
-  /// Shows a list of [lines], the first one 'note'; [physics] as the
+  /// Shows a list of [lines], the first one 'document'; [physics] as the
   /// list sets them.
   Future<void> show(
     WidgetTester tester, {
@@ -28,7 +28,7 @@ void main() {
               controller: scroll,
               physics: physics,
               children: [
-                const Text('note'),
+                const Text('document'),
                 for (var i = 1; i < lines; i++)
                   SizedBox(height: 50, child: Text('line $i')),
               ],
@@ -50,7 +50,7 @@ void main() {
   testWidgets('pulling down by touch refreshes', (tester) async {
     await show(tester);
 
-    await tester.fling(find.text('note'), const Offset(0, 300), 1000);
+    await tester.fling(find.text('document'), const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
 
     expect(refreshes, 1);
@@ -61,7 +61,7 @@ void main() {
   ) async {
     await show(tester, physics: null);
 
-    await tester.fling(find.text('note'), const Offset(0, 300), 1000);
+    await tester.fling(find.text('document'), const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
 
     expect(refreshes, 1);
@@ -72,7 +72,7 @@ void main() {
   ) async {
     await show(tester);
 
-    await tester.fling(find.text('note'), const Offset(0, 300), 1000);
+    await tester.fling(find.text('document'), const Offset(0, 300), 1000);
     while (refreshes == 0) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -110,12 +110,12 @@ void main() {
   ) async {
     await show(tester, lines: 40);
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('note')),
+      tester.getCenter(find.text('document')),
     );
 
     await drag(tester, gesture, const Offset(0, 100));
     await drag(tester, gesture, const Offset(0, -100));
-    expect(scroll.offset, 0, reason: 'the note stays put');
+    expect(scroll.offset, 0, reason: 'the document stays put');
 
     await drag(tester, gesture, const Offset(0, -100));
     expect(scroll.offset, greaterThan(50));
@@ -128,12 +128,12 @@ void main() {
     await show(tester);
 
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('note')),
+      tester.getCenter(find.text('document')),
       kind: PointerDeviceKind.trackpad,
     );
     for (var i = 1; i <= 10; i++) {
       await gesture.panZoomUpdate(
-        tester.getCenter(find.text('note')),
+        tester.getCenter(find.text('document')),
         pan: Offset(0, 40.0 * i),
       );
       await tester.pump(const Duration(milliseconds: 16));
@@ -150,7 +150,7 @@ void main() {
     await show(tester);
 
     final mouse = TestPointer(1, PointerDeviceKind.mouse)
-      ..hover(tester.getCenter(find.text('note')));
+      ..hover(tester.getCenter(find.text('document')));
     for (var i = 0; i < 10; i++) {
       await tester.sendEventToBinding(mouse.scroll(const Offset(0, -100)));
       await tester.pump(const Duration(milliseconds: 16));

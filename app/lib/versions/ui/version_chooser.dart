@@ -6,7 +6,7 @@ import 'version_pane.dart';
 
 /// Which of the two versions the user keeps.
 enum VersionSide {
-  /// The note's file as it is in the folder.
+  /// The document's file as it is in the folder.
   current,
 
   /// The version that clashes with it.
@@ -37,7 +37,7 @@ final class ShownVersion {
   final DateTime? modified;
 }
 
-/// The one view for every clash between two versions of a note: shows both
+/// The one view for every clash between two versions of a document: shows both
 /// and asks before keeping one. The owner of [onKeep] makes the backups
 /// its versions' [ShownVersion.keptMessage] tells of, before it changes
 /// anything.

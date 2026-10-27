@@ -10,7 +10,7 @@ void main() {
 
   bool includes(String file) => filter.includesPath(path(file));
 
-  test('includes notes and their conflict copies', () {
+  test('includes documents and their conflict copies', () {
     expect(includes('a.md'), isTrue);
     expect(includes('sub/b.md'), isTrue);
     expect(includes('a.sync-conflict-20261003-134809-ABCDEFG.md'), isTrue);

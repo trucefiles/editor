@@ -6,7 +6,7 @@ import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
-import 'package:truce_editor/text_zoom/ui/note_text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scope.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_title.dart';
 
@@ -14,12 +14,12 @@ import '../../support.dart';
 
 void main() {
   final page = find.text('page');
-  final note = find.text('note');
-  final toast = find.text(textZoomTitle(TextZoomTarget.notes));
+  final document = find.text('document');
+  final toast = find.text(textZoomTitle(TextZoomTarget.documents));
 
   TextZoom zoom(
     WidgetTester tester, [
-    TextZoomTarget of = TextZoomTarget.notes,
+    TextZoomTarget of = TextZoomTarget.documents,
   ]) =>
       ProviderScope.containerOf(tester.element(page))
           .read(textZoomProvider(of));
@@ -29,7 +29,7 @@ void main() {
 
   var taps = 0;
 
-  /// An app with a page in [TextZoomScope], with note text on it.
+  /// An app with a page in [TextZoomScope], with document text on it.
   Future<void> show(WidgetTester tester) async {
     taps = 0;
     final storage = AppStorage(tempFolder().path);
@@ -51,7 +51,7 @@ void main() {
               body: Column(
                 children: [
                   const Text('page'),
-                  const NoteTextZoom(child: Text('note')),
+                  const DocumentTextZoom(child: Text('document')),
                   TextButton(onPressed: () => taps++, child: const Text('tap')),
                 ],
               ),
@@ -70,21 +70,21 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('shows the app at its zoom, note text at its own', (
+  testWidgets('shows the app at its zoom, document text at its own', (
     tester,
   ) async {
     await show(tester);
 
     expect(scaled(tester, page), 15);
-    expect(scaled(tester, note), 10);
+    expect(scaled(tester, document), 10);
   });
 
-  testWidgets('keys zoom note text only', (tester) async {
+  testWidgets('keys zoom document text only', (tester) async {
     await show(tester);
     await pressCtrlPlus(tester);
 
     expect(zoom(tester).percent, 110);
-    expect(scaled(tester, note), 11);
+    expect(scaled(tester, document), 11);
     expect(scaled(tester, page), 15);
     expect(zoom(tester, TextZoomTarget.app).percent, 150);
   });

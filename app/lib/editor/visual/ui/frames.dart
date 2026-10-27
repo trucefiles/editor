@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../note_metrics.dart';
+import '../../document_metrics.dart';
 import '../../ui/list_marker.dart';
 import '../row_looks.dart';
 
@@ -14,7 +14,7 @@ import '../row_looks.dart';
 Widget framed(
   List<Frame> frames,
   Widget child, {
-  required NoteMetrics metrics,
+  required DocumentMetrics metrics,
   required Widget Function(ItemFrame item, Widget child) row,
 }) {
   final item = frames.whereType<ItemFrame>().lastOrNull;
@@ -55,7 +55,7 @@ Widget _inFrame(
   Frame frame,
   Widget child,
   ItemFrame? item,
-  NoteMetrics metrics,
+  DocumentMetrics metrics,
   Widget Function(ItemFrame item, Widget child) row,
 ) => switch (frame) {
   QuoteFrame() => _QuoteBar(child, indent: metrics.quoteIndent),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../document_folder.dart';
 import '../folder_selection.dart';
-import '../note_folder.dart';
 import 'folder_badge.dart';
 import 'folder_warning_icon.dart';
 
@@ -12,10 +12,10 @@ import 'folder_warning_icon.dart';
 class FolderFilterBar extends ConsumerWidget {
   const FolderFilterBar(this.folders, {required this.conflictCount, super.key});
 
-  final List<NoteFolder> folders;
+  final List<DocumentFolder> folders;
 
   /// Pending sync conflicts in a folder, shown on its chip.
-  final int Function(NoteFolder folder) conflictCount;
+  final int Function(DocumentFolder folder) conflictCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
+import '../document_metrics.dart';
 import '../editor_gate.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
 import '../library/touch_controls.dart';
-import '../note_metrics.dart';
-import '../ui/empty_note_hint.dart';
-import '../ui/note_image.dart';
+import '../ui/document_image.dart';
+import '../ui/empty_document_hint.dart';
 import 'library/ime_batches.dart';
 import 'library/visual_adapter.dart';
 import 'library/visual_keys.dart';
@@ -43,7 +43,7 @@ class VisualEditView extends StatefulWidget {
   final Stream<md.EditorOutput> notices;
   final AddItemPlace? addItems;
   final void Function(String url) onLink;
-  final NoteImages images;
+  final DocumentImages images;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;
@@ -66,7 +66,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   /// the library lays the whole document out anew for each new
   /// stylesheet.
   EditorLook? _look;
-  (ThemeData, NoteMetrics)? _lookFor;
+  (ThemeData, DocumentMetrics)? _lookFor;
 
   @override
   void initState() {
@@ -85,7 +85,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final key = (Theme.of(context), NoteMetrics.of(context));
+    final key = (Theme.of(context), DocumentMetrics.of(context));
     if (key == _lookFor) return;
     _lookFor = key;
     _look = visualLook(key.$1, metrics: key.$2, images: widget.images);
@@ -113,7 +113,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   @override
   Widget build(BuildContext context) {
     final look = _look!;
-    final metrics = NoteMetrics.of(context);
+    final metrics = DocumentMetrics.of(context);
     final editor = SuperEditor(
       editor: _adapter.editor,
       focusNode: _focus,

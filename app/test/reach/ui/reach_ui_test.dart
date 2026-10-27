@@ -11,7 +11,7 @@ import 'package:truce_editor/reach/ui/unreachable_banner.dart';
 import '../../support.dart';
 
 void main() {
-  final folder = folderAt(Directory('/notes'));
+  final folder = folderAt(Directory('/documents'));
 
   group('overlay', () {
     Future<void> pumpOverlay(WidgetTester tester, {required bool retrying}) =>
@@ -39,7 +39,7 @@ void main() {
     ) async {
       await pumpOverlay(tester, retrying: true);
 
-      expect(find.text('Trying to reach Notes…'), findsOneWidget);
+      expect(find.text('Trying to reach Documents…'), findsOneWidget);
       await tester.tap(find.text('Act'), warnIfMissed: false);
       expect(tester.takeException(), isNull);
     });
@@ -70,7 +70,7 @@ void main() {
     testWidgets('tells that the folder cannot be reached', (tester) async {
       await pumpBanner(tester, Reach.unreachable);
 
-      expect(find.text("Notes can't be reached. Wait."), findsOneWidget);
+      expect(find.text("Documents can't be reached. Wait."), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
 

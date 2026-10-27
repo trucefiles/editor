@@ -5,7 +5,7 @@ import 'add_item_place/add_item_place.dart';
 import 'editor_gate.dart';
 import 'markdown/markdown_edit_view.dart';
 import 'read/read_view.dart';
-import 'ui/note_image.dart';
+import 'ui/document_image.dart';
 import 'visual/visual_edit_view.dart';
 
 /// The open document in the mode its editor owner (behind [gate]) is in:
@@ -31,7 +31,7 @@ class DocumentEditor extends StatelessWidget {
   final Stream<EditorOutput> notices;
   final AddItemPlace addItems;
   final void Function(String url) onLink;
-  final NoteImages images;
+  final DocumentImages images;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;

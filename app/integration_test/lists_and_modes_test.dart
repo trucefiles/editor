@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 
-import 'package:truce_editor/notes/ui/note_card.dart';
+import 'package:truce_editor/documents/ui/document_card.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 
@@ -12,7 +12,7 @@ import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of lists and a note's modes, in the real app on
+/// End-to-end tests of lists and a document's modes, in the real app on
 /// the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/lists_and_modes_test.dart
@@ -35,14 +35,14 @@ void main() {
     await tester.waitForFile(app.file('todo.md'), '# Todo\n- [x] Call Bob\n');
   });
 
-  testApp('edits a note several levels deep', (tester) async {
+  testApp('edits a document several levels deep', (tester) async {
     app.write('a/b/c/todo.md', '# Deep\n- [ ] Call Bob\n');
     app.write('todo.md', '# Root\n');
     await tester.addFolder(app);
 
-    await tester.waitFor(find.text('Notes/a/b/c'));
+    await tester.waitFor(find.text('Documents/a/b/c'));
     await tester.openNote('Deep');
-    expect(find.text('Notes/a/b/c/todo.md'), findsOne);
+    expect(find.text('Documents/a/b/c/todo.md'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
 
@@ -53,7 +53,7 @@ void main() {
     expect(app.file('todo.md').readAsStringSync(), '# Root\n');
   });
 
-  testApp('an undo in a checklist goes away with the note', (tester) async {
+  testApp('an undo in a checklist goes away with the document', (tester) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
     await tester.openNote('List');
@@ -67,7 +67,7 @@ void main() {
     await tester.waitForFile(app.file('list.md'), '# List\n- [ ] a\n');
   });
 
-  testApp('a note keeps its Done section choice, on this device only', (
+  testApp('a document keeps its Done section choice, on this device only', (
     tester,
   ) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
@@ -137,7 +137,7 @@ void main() {
     expect(app.conflictCopies(), isEmpty);
   });
 
-  testApp('reopens a note in the mode it was left in', (tester) async {
+  testApp('reopens a document in the mode it was left in', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
@@ -152,7 +152,7 @@ void main() {
     expect(find.byTooltip('Mode: Markdown edit'), findsOneWidget);
   });
 
-  testApp('first shows a note without checkboxes in Read', (tester) async {
+  testApp('first shows a document without checkboxes in Read', (tester) async {
     app.write('read.md', '# Read me\n\nSome **bold** text.\n');
     await tester.addFolder(app);
 
@@ -188,14 +188,14 @@ void main() {
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 
-  testApp('Ctrl with + or =, - and 0 zoom note text, on every screen', (
+  testApp('Ctrl with + or =, - and 0 zoom document text, on every screen', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
     await tester.addFolder(app);
     await tester.openNote('Todo');
 
-    /// How large the note shows text of 10 px.
+    /// How large the document shows text of 10 px.
     double scaled() =>
         MediaQuery.textScalerOf(tester.element(find.byType(SuperEditor)))
             .scale(10);
@@ -224,7 +224,7 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.equal);
     expect(scaled(), closeTo(base * 1.2, 0.01));
     expect(appText(), closeTo(base, 0.01), reason: 'app text stays');
-    expect(find.text('Note text size'), findsOne, reason: 'toast');
+    expect(find.text('Document text size'), findsOne, reason: 'toast');
     expect(find.text('120 %'), findsOne);
     expect(
       find.textContaining('=', findRichText: true),
@@ -257,7 +257,10 @@ void main() {
     await tester.waitForNoteClosed();
     double home() => MediaQuery.textScalerOf(
       tester.element(
-        find.descendant(of: find.byType(NoteCard), matching: find.text('Todo')),
+        find.descendant(
+          of: find.byType(DocumentCard),
+          matching: find.text('Todo'),
+        ),
       ),
     ).scale(10);
     expect(home(), closeTo(base * 1.4, 0.01));
@@ -265,11 +268,11 @@ void main() {
     expect(home(), closeTo(base * 1.3, 0.01));
   });
 
-  testApp('starts at the saved zooms, notes and the app each at its own', (
+  testApp('starts at the saved zooms, documents and the app each at its own', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
-    await app.useTextZoom(TextZoomTarget.notes, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
     await app.useTextZoom(TextZoomTarget.app, TextZoom.closestTo(130));
     await app.launch(tester);
 
@@ -288,7 +291,10 @@ void main() {
     await tester.waitFor(find.text('Todo'));
     expect(
       scaled(
-        find.descendant(of: find.byType(NoteCard), matching: find.text('Todo')),
+        find.descendant(
+          of: find.byType(DocumentCard),
+          matching: find.text('Todo'),
+        ),
       ),
       closeTo(15, 0.01),
     );

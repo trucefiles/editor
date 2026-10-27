@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/documents/document_draft.dart';
+import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/folders/add_folder_error.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/notes/note_draft.dart';
-import 'package:truce_editor/notes/note_drafts.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
@@ -52,11 +52,11 @@ void main() {
   });
 
   test('adds the picked folder', () async {
-    picker.result = const Ok('/sync/Notes');
+    picker.result = const Ok('/sync/Documents');
 
     expect(await actions.pickAndAdd(), isA<Ok<void, AddFolderError>>());
 
-    expect(await paths(), ['/sync/Notes']);
+    expect(await paths(), ['/sync/Documents']);
   });
 
   test('adds nothing if the user cancels', () async {
@@ -77,17 +77,17 @@ void main() {
   });
 
   test('reports a folder inside an added one', () async {
-    picker.result = const Ok('/sync/Notes');
+    picker.result = const Ok('/sync/Documents');
     await actions.pickAndAdd();
-    picker.result = const Ok('/sync/Notes/work');
+    picker.result = const Ok('/sync/Documents/work');
 
     final added = await actions.pickAndAdd();
 
     expect(added.error, AddFolderError.overlaps);
-    expect(await paths(), ['/sync/Notes']);
+    expect(await paths(), ['/sync/Documents']);
   });
 
-  test('remove stops filtering the notes by that folder', () async {
+  test('remove stops filtering the documents by that folder', () async {
     picker.result = const Ok('/sync/a');
     await actions.pickAndAdd();
     picker.result = const Ok('/sync/b');
@@ -110,20 +110,20 @@ void main() {
     picker.result = const Ok('/sync/b');
     await actions.pickAndAdd();
     final [a, b] = await container.read(foldersProvider.future);
-    NoteDraft draft() =>
-        NoteDraft(id: '1', path: path('x.md'), base: '', text: 'mine');
-    await container.read(noteDraftsProvider(a.id)).keep(draft());
-    await container.read(noteDraftsProvider(b.id)).keep(draft());
+    DocumentDraft draft() =>
+        DocumentDraft(id: '1', path: path('x.md'), base: '', text: 'mine');
+    await container.read(documentDraftsProvider(a.id)).keep(draft());
+    await container.read(documentDraftsProvider(b.id)).keep(draft());
 
     await actions.remove(a);
 
     final later = DateTime.now().add(const Duration(days: 1));
     expect(
-      await container.read(noteDraftsProvider(a.id)).all(before: later),
+      await container.read(documentDraftsProvider(a.id)).all(before: later),
       isEmpty,
     );
     expect(
-      await container.read(noteDraftsProvider(b.id)).all(before: later),
+      await container.read(documentDraftsProvider(b.id)).all(before: later),
       hasLength(1),
     );
   });

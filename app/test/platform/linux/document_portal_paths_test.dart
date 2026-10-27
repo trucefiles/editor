@@ -34,25 +34,34 @@ void main() {
       DocumentPortalPaths(connect: () => DBusClient(address));
 
   test('tells the host path of a folder picked through the portal', () async {
-    await runPortal(hostPaths: {'ab12': '/home/me/Notes'});
+    await runPortal(hostPaths: {'ab12': '/home/me/Documents'});
 
-    expect(await paths().of('/run/doc/ab12/Notes'), '/home/me/Notes');
-    expect(await paths().of('/run/doc/ab12/Notes/work'), '/home/me/Notes/work');
+    expect(await paths().of('/run/doc/ab12/Documents'), '/home/me/Documents');
+    expect(
+      await paths().of('/run/doc/ab12/Documents/work'),
+      '/home/me/Documents/work',
+    );
   });
 
   test('keeps other paths', () async {
-    await runPortal(hostPaths: {'ab12': '/home/me/Notes'});
+    await runPortal(hostPaths: {'ab12': '/home/me/Documents'});
 
-    expect(await paths().of('/home/me/Notes'), '/home/me/Notes');
+    expect(await paths().of('/home/me/Documents'), '/home/me/Documents');
     expect(await paths().of('/run/doc/ab12'), '/run/doc/ab12');
     expect(await paths().of('/run/doc/cd34/Work'), '/run/doc/cd34/Work');
   });
 
   test('keeps paths without a portal or with an older one', () async {
-    expect(await paths().of('/run/doc/ab12/Notes'), '/run/doc/ab12/Notes');
+    expect(
+      await paths().of('/run/doc/ab12/Documents'),
+      '/run/doc/ab12/Documents',
+    );
 
     await runPortal(tellsHostPaths: false);
-    expect(await paths().of('/run/doc/ab12/Notes'), '/run/doc/ab12/Notes');
+    expect(
+      await paths().of('/run/doc/ab12/Documents'),
+      '/run/doc/ab12/Documents',
+    );
   });
 }
 

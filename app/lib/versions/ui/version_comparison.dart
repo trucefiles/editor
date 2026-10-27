@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Two versions of a note shown side by side, or stacked on narrow
+/// Two versions of a document shown side by side, or stacked on narrow
 /// screens, for the user to pick one.
 class VersionComparison extends StatelessWidget {
   const VersionComparison({

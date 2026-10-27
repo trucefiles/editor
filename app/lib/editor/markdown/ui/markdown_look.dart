@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
+import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
 import '../../library/editor_look.dart';
-import '../../note_metrics.dart';
-import '../../note_text_styles.dart';
 import '../library/highlight_phase.dart';
 
 /// How Markdown edit looks in [theme]: the text as written, in monospace
 /// so its marks line up; marks and raw text dimmed, and the rest as it
 /// reads (bold, headings, links).
-EditorLook markdownLook(ThemeData theme, {required NoteMetrics metrics}) {
-  final body = NoteTextStyles.monospace(NoteTextStyles.body(theme));
+EditorLook markdownLook(ThemeData theme, {required DocumentMetrics metrics}) {
+  final body = DocumentTextStyles.monospace(DocumentTextStyles.body(theme));
   final colors = theme.colorScheme;
   return EditorLook(
     theme,
@@ -40,7 +40,7 @@ TextStyle _highlighted(
   md.TextHighlight.code => style.copyWith(
     backgroundColor: colors.surfaceContainerHighest,
   ),
-  md.HeadingHighlight(:final level) => NoteTextStyles.heading(style, level),
+  md.HeadingHighlight(:final level) => DocumentTextStyles.heading(style, level),
   md.LinkHighlight() => style.copyWith(
     color: colors.primary,
     decoration: TextDecoration.underline,

@@ -69,7 +69,7 @@ class PullToRefreshState extends State<PullToRefresh> {
     _scrolling = _PullBehavior(
       this,
       ambient,
-      // Pulls down even when the content fits, e.g. a short note in a
+      // Pulls down even when the content fits, e.g. a short document in a
       // scroll view the child builds itself.
       pulling: PullHoldPhysics(
         _hold,

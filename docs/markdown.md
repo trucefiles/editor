@@ -1,12 +1,12 @@
 # Markdown in Truce
 
-Notes are plain Markdown files. Truce reads them as standard Markdown
+Documents are plain Markdown files. Truce reads them as standard Markdown
 ([CommonMark](https://commonmark.org) with GitHub's task lists and
 tables), so any other Markdown app shows them the same way. When you
 edit, Truce changes only the blocks you touched and keeps their style
 where it can. Everything else in the file stays exactly as it was.
 
-## How notes show
+## How documents show
 
 - **All standard Markdown.** Paragraphs, headings, quotes, lists, code
   blocks, tables, lines, HTML and link definitions all show as the
@@ -19,11 +19,11 @@ where it can. Everything else in the file stays exactly as it was.
     the toolbar or keys (Ctrl+B, Tab, ...) for styles and lists.
     Tables and other raw blocks show their Markdown when you tap them.
   - **Markdown edit** shows every character of the file.
-  - **Read** shows the note the way any Markdown viewer draws it.
+  - **Read** shows the document the way any Markdown viewer draws it.
 - **Front matter** (lines between two `---` lines at the very top) shows
   dimmed while editing and is hidden in Read.
 - **Tables** are drawn as tables. Tap one to edit its Markdown lines.
-- **Images** show inside the note, from the web or from the note's
+- **Images** show inside the document, from the web or from the document's
   folder.
 
 ## Editing
@@ -45,7 +45,7 @@ where it can. Everything else in the file stays exactly as it was.
 - **Empty checklist items** are saved as `- [ ] ` with a space at the
   end, so other apps see them as checklist items too. This is the only
   place Truce saves a trailing space.
-- **New notes end with a line break**, as most tools expect. Files that
+- **New documents end with a line break**, as most tools expect. Files that
   already exist keep how they end.
 - **Lines that join the text above.** A line of text right below a list
   item or quote belongs to it, even without indent or `>`. That's the

@@ -37,8 +37,12 @@ class TextZoomToast extends StatelessWidget {
                   spacing: 12,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text(title), Text('$zoom')],
+                      spacing: 12,
+                      children: [
+                        // A long title wraps rather than push the percent out.
+                        Expanded(child: Text(title)),
+                        Text('$zoom'),
+                      ],
                     ),
                     LinearProgressIndicator(
                       value:

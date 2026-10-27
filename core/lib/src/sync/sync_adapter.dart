@@ -16,7 +16,7 @@ abstract interface class SyncAdapter {
 
   /// Whether the folder whose path has the segments [names], outermost
   /// first, is the sync tool's own (e.g. its version folder) or lies
-  /// inside it. Such a folder never holds the user's notes.
+  /// inside it. Such a folder never holds the user's documents.
   bool isInternalFolder(List<String> names);
 
   /// File name for the temp file of an atomic write, placed next to the

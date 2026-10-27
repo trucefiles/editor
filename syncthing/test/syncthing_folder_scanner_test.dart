@@ -50,7 +50,7 @@ void main() {
       );
     });
 
-    test('include notes several levels deep', () async {
+    test('include documents several levels deep', () async {
       store
         ..put('a/b/c/d/deep.md', 'deep')
         ..put('a/b/mid.md', 'mid')
@@ -143,7 +143,7 @@ void main() {
       expect(conflict.copies.single.id, 'lists/$copy1');
     });
 
-    test('keeps same-named notes in different subfolders apart', () async {
+    test('keeps same-named documents in different subfolders apart', () async {
       store
         ..put('todo.md', 'root')
         ..put('a/todo.md', 'a')

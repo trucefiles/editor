@@ -1,18 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/note_folder.dart';
-import '../notes/note.dart';
+import '../documents/document.dart';
+import '../folders/document_folder.dart';
 
 /// A pending conflict and the folder it is in.
 @immutable
 final class FolderConflict {
   const FolderConflict(this.folder, this.conflict);
 
-  final NoteFolder folder;
+  final DocumentFolder folder;
   final Conflict conflict;
 
-  NoteKey get key => (folderId: folder.id, path: conflict.mainPath);
+  DocumentKey get key => (folderId: folder.id, path: conflict.mainPath);
 }
 
 /// The pending conflicts of all folders.
@@ -22,7 +22,7 @@ final class FolderConflicts {
 
   final List<FolderConflict> all;
 
-  FolderConflict? forNote(NoteKey key) {
+  FolderConflict? forNote(DocumentKey key) {
     for (final conflict in all) {
       if (conflict.key == key) return conflict;
     }
@@ -32,7 +32,7 @@ final class FolderConflicts {
   int countIn(String folderId) =>
       all.where((conflict) => conflict.folder.id == folderId).length;
 
-  /// Conflicts whose main file is gone, shown as recoverable notes.
+  /// Conflicts whose main file is gone, shown as recoverable documents.
   List<FolderConflict> get orphans =>
       all.where((conflict) => conflict.conflict.isOrphaned).toList();
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../../document_metrics.dart';
 import '../../library/child_text.dart';
-import '../../note_metrics.dart';
 import '../row_looks.dart';
 import '../visual_actions.dart';
 import 'frames.dart';
@@ -66,7 +66,7 @@ class _RowComponentState extends State<RowComponent>
       highlightWhenEmpty: _row.highlightWhenEmpty,
       underlines: _row.createUnderlines(),
     );
-    final metrics = NoteMetrics.of(context);
+    final metrics = DocumentMetrics.of(context);
     final framedText = framed(
       _row.frames,
       text,
@@ -99,7 +99,7 @@ class _RowComponentState extends State<RowComponent>
   /// [metrics]; its drag handle and delete button take the whole row's
   /// height, so a finger hits them anywhere beside the row. A raw block
   /// open as text shows only its marker.
-  Widget _itemRow(ItemFrame item, Widget text, NoteMetrics metrics) {
+  Widget _itemRow(ItemFrame item, Widget text, DocumentMetrics metrics) {
     final look = _row.look;
     final inset = metrics.itemRowInset;
     final row = Padding(
@@ -158,7 +158,7 @@ class _RowComponentState extends State<RowComponent>
 
   /// How the row looks while dragged: its handle, marker and text, and
   /// how many subitems move with it.
-  Widget _dragged(ItemFrame item, NoteMetrics metrics) => Row(
+  Widget _dragged(ItemFrame item, DocumentMetrics metrics) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       SizedBox(
@@ -191,7 +191,7 @@ class _RowComponentState extends State<RowComponent>
 
   /// The icon of a slot beside the row (handle, delete), by the row's
   /// first line: drawn at line size, whatever the slot's size.
-  static Widget _slotIcon(IconData icon, NoteMetrics metrics) => Padding(
+  static Widget _slotIcon(IconData icon, DocumentMetrics metrics) => Padding(
     padding: EdgeInsets.only(top: metrics.itemRowInset),
     child: Icon(icon, size: metrics.handleIconSize),
   );
@@ -199,7 +199,7 @@ class _RowComponentState extends State<RowComponent>
   /// Shown only while the caret is in this text; kept in the tree while
   /// hidden, so the row's layout stays put. Deletes the item with its
   /// subitems.
-  Widget _deleteButton(ItemFrame item, NoteMetrics metrics) => Visibility(
+  Widget _deleteButton(ItemFrame item, DocumentMetrics metrics) => Visibility(
     visible: _row.selection != null,
     maintainState: true,
     maintainAnimation: true,

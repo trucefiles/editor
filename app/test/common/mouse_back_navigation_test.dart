@@ -18,13 +18,13 @@ void main() {
     );
     unawaited(
       navigator.currentState!.push(
-        MaterialPageRoute<void>(builder: (_) => const Text('note')),
+        MaterialPageRoute<void>(builder: (_) => const Text('document')),
       ),
     );
     await tester.pumpAndSettle();
 
     final mouse = await tester.startGesture(
-      tester.getCenter(find.text('note')),
+      tester.getCenter(find.text('document')),
       kind: PointerDeviceKind.mouse,
       buttons: kBackMouseButton,
     );
@@ -32,6 +32,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('home'), findsOne);
-    expect(find.text('note'), findsNothing);
+    expect(find.text('document'), findsNothing);
   });
 }

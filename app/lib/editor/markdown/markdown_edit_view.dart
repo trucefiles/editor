@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../document_metrics.dart';
 import '../editor_gate.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
 import '../library/touch_controls.dart';
-import '../note_metrics.dart';
-import '../ui/empty_note_hint.dart';
+import '../ui/empty_document_hint.dart';
 import 'library/highlight_phase.dart';
 import 'library/markdown_adapter.dart';
 import 'library/markdown_keys.dart';
@@ -41,12 +41,12 @@ class _MarkdownEditViewState extends State<MarkdownEditView> {
   /// the library lays the whole document out anew for each new
   /// stylesheet.
   EditorLook? _look;
-  (ThemeData, NoteMetrics)? _lookFor;
+  (ThemeData, DocumentMetrics)? _lookFor;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final key = (Theme.of(context), NoteMetrics.of(context));
+    final key = (Theme.of(context), DocumentMetrics.of(context));
     if (key == _lookFor) return;
     _lookFor = key;
     _look = markdownLook(key.$1, metrics: key.$2);

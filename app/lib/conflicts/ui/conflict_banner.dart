@@ -4,7 +4,7 @@ import '../../common/snack.dart';
 import '../folder_conflicts.dart';
 import 'conflict_screen.dart';
 
-/// Tells that an open note has another version from a sync conflict.
+/// Tells that an open document has another version from a sync conflict.
 class ConflictBanner extends StatelessWidget {
   const ConflictBanner(this.conflict, {super.key});
 
@@ -19,8 +19,8 @@ class ConflictBanner extends StatelessWidget {
         // Either side may have won the sync conflict, so this names
         // neither: the file shows the winner, the copies the others.
         count == 1
-            ? 'A sync conflict left another version of this note.'
-            : 'A sync conflict left $count other versions of this note.',
+            ? 'A sync conflict left another version of this document.'
+            : 'A sync conflict left $count other versions of this document.',
       ),
       actions: [
         TextButton(

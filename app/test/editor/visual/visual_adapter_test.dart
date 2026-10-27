@@ -151,7 +151,7 @@ void main() {
   });
 
   group('requests', () {
-    /// The requests Visual edit refused, by the note it prints.
+    /// The requests Visual edit refused, by the message it prints.
     final refused = <String>[];
     setUp(() {
       final print = debugPrint;

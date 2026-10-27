@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_settings_store.dart';
-import 'package:truce_editor/folders/note_folder.dart';
 
 import '../support.dart';
 
@@ -21,9 +21,9 @@ void main() {
   });
 
   test('saves and loads folders', () async {
-    const folder = NoteFolder(
+    const folder = DocumentFolder(
       id: 'a1',
-      path: '/notes',
+      path: '/documents',
       name: 'Private',
       color: Color(0xFF3F51B5),
     );

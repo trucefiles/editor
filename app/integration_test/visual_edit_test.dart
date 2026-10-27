@@ -39,9 +39,9 @@ void main() {
     expect(tester.showsLine('plain it'), isTrue);
   });
 
-  testApp('a new note shows it is not saved once typed in', (tester) async {
+  testApp('a new document shows it is not saved once typed in', (tester) async {
     await tester.addFolder(app);
-    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.tapAndSettle(find.byTooltip('New document'));
     expect(find.byTooltip('Saved in the folder'), findsNothing);
 
     await tester.typeLines('x');
@@ -124,7 +124,7 @@ void main() {
     expect(tester.showsLine('eggs'), isTrue);
     await tester.pageBack();
     await tester.waitForFile(
-      app.file('note.md'),
+      app.file('document.md'),
       '# Shop\n- [ ] milk\n  - [ ] eggs\n',
     );
     await tester.waitForNoteClosed();
@@ -187,7 +187,7 @@ void main() {
     await tester.leaveExpecting(app, '# Steps\n1. one\n2. two\n');
   });
 
-  testApp('select all and type replaces the whole note, in its first '
+  testApp('select all and type replaces the whole document, in its first '
       'block', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n> quote\n');
     await tester.clickLine('milk', 1);
@@ -222,7 +222,7 @@ void main() {
     await tester.leaveExpecting(app, '# Quote\n> said so\n');
   });
 
-  testApp('Esc in a list leaves the note with every edit saved', (
+  testApp('Esc in a list leaves the document with every edit saved', (
     tester,
   ) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
@@ -232,18 +232,18 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.waitForNoteClosed();
 
-    await tester.waitForFile(app.file('note.md'), '# Shop\n- [ ] milky\n');
+    await tester.waitForFile(app.file('document.md'), '# Shop\n- [ ] milky\n');
   });
 
   testApp('typed marks stay text', (tester) async {
-    await tester.openVisual(app, 'Note', '# Note\nbuy milk\n');
+    await tester.openVisual(app, 'Document', '# Document\nbuy milk\n');
     await tester.clickLine('buy milk', 8);
 
     await tester.typeImeText(' **now**');
-    await tester.clickLine('Note', 2);
+    await tester.clickLine('Document', 2);
     expect(tester.showsLine('buy milk **now**'), isTrue);
 
-    await tester.leaveExpecting(app, '# Note\nbuy milk \\*\\*now\\*\\*\n');
+    await tester.leaveExpecting(app, '# Document\nbuy milk \\*\\*now\\*\\*\n');
   });
 
   testApp('Backspace at the start of an item takes its box, then joins it '
@@ -268,7 +268,7 @@ void main() {
     await tester.openVisual(app, 'Plan', '# Plan\n**a** first\n\nsecond\n');
     await tester.clickLine('a first', 7);
 
-    app.write('note.md', '# Plan\n**a** first\n\nsecond\n\nthird\n');
+    app.write('document.md', '# Plan\n**a** first\n\nsecond\n\nthird\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
     await tester.waitFor(find.text('third', findRichText: true));
     expect(tester.showsLine('a first'), isTrue);

@@ -127,7 +127,8 @@ void main() {
       outside = await Directory.systemTemp.createTemp('truce_outside');
       await File('${outside.path}/secret.md').writeAsString('secret');
       await Link('${fx.root.path}/linked').create(outside.path);
-      await Link('${fx.root.path}/note.md').create('${outside.path}/secret.md');
+      await Link('${fx.root.path}/document.md')
+          .create('${outside.path}/secret.md');
     });
 
     tearDown(() => outside.delete(recursive: true));
@@ -142,7 +143,7 @@ void main() {
         StoreError.accessDenied,
       );
       expect(
-        (await fx.store.read(path('note.md'))).error,
+        (await fx.store.read(path('document.md'))).error,
         StoreError.accessDenied,
       );
     });
@@ -164,18 +165,18 @@ void main() {
       ));
 
       final replaced = await fx.store.replace(
-        path('note.md'),
+        path('document.md'),
         bytesOf('x'),
         ifUnchanged: version,
       );
       final deleted = await fx.store.delete(
-        path('note.md'),
+        path('document.md'),
         ifUnchanged: version,
       );
 
       expect(replaced.error, StoreError.accessDenied);
       expect(deleted.error, StoreError.accessDenied);
-      expect(Link('${fx.root.path}/note.md').existsSync(), isTrue);
+      expect(Link('${fx.root.path}/document.md').existsSync(), isTrue);
       expect(File('${outside.path}/secret.md').readAsStringSync(), 'secret');
     });
   });

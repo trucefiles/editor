@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-import '../note_metrics.dart';
+import '../document_metrics.dart';
 
 /// How the library draws a document being edited, in [theme]: lines close
 /// together like a notes app's, spaced by [metrics]; each node's text in
@@ -13,7 +13,7 @@ import '../note_metrics.dart';
 final class EditorLook {
   EditorLook(
     ThemeData theme, {
-    required NoteMetrics metrics,
+    required DocumentMetrics metrics,
     required TextStyle Function(DocumentNode node) textStyleOf,
     required AttributionStyleAdjuster inlineTextStyler,
     List<InlineWidgetBuilder> inlineWidgets = const [],

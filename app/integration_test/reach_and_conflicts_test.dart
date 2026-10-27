@@ -21,7 +21,7 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  /// Opens the note Plan in [tester], as text, with mine typed in and a
+  /// Opens the document Plan in [tester], as text, with mine typed in and a
   /// change from elsewhere in its file.
   Future<void> clashInPlan(WidgetTester tester) async {
     app.write('plan.md', '# Plan\nv1\n');
@@ -31,45 +31,45 @@ void main() {
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
   }
 
-  testApp('a folder that is gone is retried, then no new note goes in', (
+  testApp('a folder that is gone is retried, then no new document goes in', (
     tester,
   ) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New note'));
-    await tester.loseFolder(app.notes);
+    await tester.waitFor(find.byTooltip('New document'));
+    await tester.loseFolder(app.documents);
 
-    await tester.tapAndSettle(find.byTooltip('New note'));
+    await tester.tapAndSettle(find.byTooltip('New document'));
 
     await tester.waitFor(find.text('No folder can be reached right now.'));
-    expect(app.notes.existsSync(), isFalse);
+    expect(app.documents.existsSync(), isFalse);
   });
 
-  testApp('an open note is read-only while its folder is unreachable', (
+  testApp('an open document is read-only while its folder is unreachable', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
     await tester.chooseMode('Markdown edit');
-    await tester.loseFolder(app.notes);
+    await tester.loseFolder(app.documents);
 
-    await tester.waitFor(find.textContaining("Notes can't be reached."));
+    await tester.waitFor(find.textContaining("Documents can't be reached."));
     expect(find.byType(SuperEditor), findsNothing);
 
-    Directory('${app.notes.path}-away').renameSync(app.notes.path);
+    Directory('${app.documents.path}-away').renameSync(app.documents.path);
     await tester.tapAndSettle(find.text('Retry'));
     await tester.waitFor(find.byType(SuperEditor));
     expect(find.textContaining("can't be reached"), findsNothing);
   });
 
-  testApp('back from a note whose folder just went away keeps the edits', (
+  testApp('back from a document whose folder just went away keeps the edits', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openNote('Plan');
     await tester.typeOver('# Plan\nmine\n');
-    app.notes.renameSync('${app.notes.path}-away');
+    app.documents.renameSync('${app.documents.path}-away');
 
     await tester.pageBack();
 
@@ -77,7 +77,7 @@ void main() {
     expect(find.text("Your edits can't be saved"), findsNothing);
   });
 
-  testApp('a note moved to another folder goes by that folder\'s reach', (
+  testApp('a document moved to another folder goes by that folder\'s reach', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
@@ -107,7 +107,7 @@ void main() {
       app.file('plan.md').readAsStringSync(),
       '# Plan\nv2 from elsewhere\n',
     );
-    await tester.waitFor(find.byTooltip('New note'));
+    await tester.waitFor(find.byTooltip('New document'));
   });
 
   testApp('compares a change from elsewhere and keeps mine', (tester) async {
@@ -131,7 +131,7 @@ void main() {
     tester.hideAndComeBack();
 
     await tester.waitFor(find.textContaining('changed on another device'));
-    expect(find.text('Delete note'), findsOneWidget);
+    expect(find.text('Delete document'), findsOneWidget);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
     expect(find.byType(SuperEditor), findsOneWidget);
@@ -160,7 +160,7 @@ void main() {
     await tester.waitFor(find.text('Backup restored.'));
   });
 
-  testApp('keeps clashing edits of a deep note as a conflict copy', (
+  testApp('keeps clashing edits of a deep document as a conflict copy', (
     tester,
   ) async {
     app.write('a/b/c/plan.md', '# Plan\nv1\n');
@@ -189,7 +189,7 @@ void main() {
     await tester.openNote('Todo');
 
     await tester.openCompare();
-    expect(find.text('Notes/a/b/c'), findsOne);
+    expect(find.text('Documents/a/b/c'), findsOne);
     await tester.keep(find.text('Keep this').last);
 
     await tester.waitFor(find.textContaining('Conflict resolved'));

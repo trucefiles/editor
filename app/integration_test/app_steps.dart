@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/documents/ui/document_screen.dart';
-import 'package:truce_editor/folders/note_folder.dart';
+import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import 'test_app.dart';
@@ -17,7 +17,7 @@ const placeAndName = 'Place and name';
 
 /// The steps a user takes in the app, shared by the UI tests.
 extension AppSteps on WidgetTester {
-  /// Launches [app] and adds its notes folder.
+  /// Launches [app] and adds its documents folder.
   Future<void> addFolder(TestApp app) async {
     await app.launch(this);
     await waitFor(find.text('Add folder'));
@@ -25,13 +25,13 @@ extension AppSteps on WidgetTester {
     await waitUntil(() => find.text('Add folder').evaluate().isEmpty);
   }
 
-  /// Opens the note titled [title] from the grid.
+  /// Opens the document titled [title] from the grid.
   Future<void> openNote(String title) async {
     await waitFor(find.text(title));
     await tapAndSettle(find.text(title));
   }
 
-  /// Waits until the open note has closed.
+  /// Waits until the open document has closed.
   Future<void> waitForNoteClosed({
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(
@@ -39,7 +39,7 @@ extension AppSteps on WidgetTester {
     timeout: timeout,
   );
 
-  /// Switches the open note to the mode labeled [mode], e.g. 'Read'.
+  /// Switches the open document to the mode labeled [mode], e.g. 'Read'.
   Future<void> chooseMode(String mode) async {
     await tapAndSettle(
       find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
@@ -47,7 +47,7 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(mode).last);
   }
 
-  /// Types [text] over the open note's whole text, in Markdown edit.
+  /// Types [text] over the open document's whole text, in Markdown edit.
   Future<void> typeOver(String text) async {
     if (find.byTooltip('Mode: Markdown edit').evaluate().isEmpty) {
       await chooseMode('Markdown edit');
@@ -73,15 +73,15 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(item));
   }
 
-  /// Sets the open note's "Checked items" choice, from the default.
+  /// Sets the open document's "Checked items" choice, from the default.
   Future<void> chooseCheckedItems(String choice) async {
     await chooseInMenu('Checked items: Move to end');
     await tapAndSettle(find.text(choice));
   }
 
-  /// Starts a new note and types [text] into it, where the caret waits.
+  /// Starts a new document and types [text] into it, where the caret waits.
   Future<void> typeNewNote(String text) async {
-    await tapAndSettle(find.byTooltip('New note'));
+    await tapAndSettle(find.byTooltip('New document'));
     await waitFor(find.byTooltip(placeAndName));
     await typeLines(text);
   }
@@ -104,7 +104,7 @@ extension AppSteps on WidgetTester {
 
   /// Picks [folder] in the open place-and-name dialog.
   Future<void> pickFolder(String folder) async {
-    await tapAndSettle(find.byType(DropdownButtonFormField<NoteFolder>));
+    await tapAndSettle(find.byType(DropdownButtonFormField<DocumentFolder>));
     await tapAndSettle(find.text(folder).last);
   }
 
@@ -122,7 +122,7 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text('OK'));
   }
 
-  /// Sets the open note's place and name.
+  /// Sets the open document's place and name.
   Future<void> placeNote({
     String? folder,
     String? subfolder,
@@ -158,7 +158,7 @@ extension AppSteps on WidgetTester {
     );
   }
 
-  /// Opens the compare view the open note offers.
+  /// Opens the compare view the open document offers.
   Future<void> openCompare() async {
     await waitFor(find.text('Compare'));
     await tapAndSettle(find.text('Compare'));

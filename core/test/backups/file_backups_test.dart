@@ -14,7 +14,7 @@ void main() {
     backups = FileBackups(store);
   });
 
-  test('saves a note before editing', () async {
+  test('saves a document before editing', () async {
     await backups.saveBeforeEdit(
       at: at,
       filePath: path('lists/todo.md'),
@@ -36,7 +36,7 @@ void main() {
     expect(store.textOf('$atMicros.other/lists/todo.md'), 'other');
   });
 
-  test('saves only the other version of a deleted note', () async {
+  test('saves only the other version of a deleted document', () async {
     await backups.saveBoth(
       at: at,
       filePath: path('todo.md'),

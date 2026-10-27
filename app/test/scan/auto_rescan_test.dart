@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/folders/note_folder.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
@@ -21,7 +21,7 @@ void main() {
   late StreamController<RelPath> changes;
   late _CountingScans scans;
   late ProviderContainer container;
-  late NoteFolder folder;
+  late DocumentFolder folder;
 
   /// Starts auto refresh for one folder whose changes come from [changes];
   /// none are looked for if [manual]. With [folders], the folder list
@@ -192,11 +192,11 @@ final class _StreamChanges implements FolderChanges {
 class _FixedFolders extends FoldersController {
   _FixedFolders(this._folders, {this._loaded});
 
-  final List<NoteFolder> _folders;
+  final List<DocumentFolder> _folders;
   final Future<void>? _loaded;
 
   @override
-  Future<List<NoteFolder>> build() async {
+  Future<List<DocumentFolder>> build() async {
     await _loaded;
     return _folders;
   }
@@ -225,7 +225,7 @@ class _CountingScans extends FolderScansController {
 
   @override
   Future<FolderScans> build() async => FolderScans(
-    notes: const [],
+    documents: const [],
     marks: const {},
     subfolders: const {},
     conflicts: FolderConflicts(const []),

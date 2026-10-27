@@ -13,7 +13,7 @@ final restoreProvider = NotifierProvider.autoDispose
       RestoreController.new,
     );
 
-/// Shows one backup next to its note's file; the user keeps one of them.
+/// Shows one backup next to its document's file; the user keeps one of them.
 /// Versions that could not be loaded are loaded again with each new scan.
 class RestoreController extends Notifier<RestoreState> {
   RestoreController(this._backup);
@@ -35,7 +35,7 @@ class RestoreController extends Notifier<RestoreState> {
     return const RestoreState();
   }
 
-  /// Keeps the note's file or the backup, then rescans. `null` while the
+  /// Keeps the document's file or the backup, then rescans. `null` while the
   /// versions load or a choice runs: nothing was done. After a failure the
   /// versions load again, to show the file as it is now.
   Future<Result<void, ResolveError>?> keep(Resolution resolution) async {
@@ -64,7 +64,7 @@ class RestoreController extends Notifier<RestoreState> {
 final class RestoreState {
   const RestoreState({this.choice, this.busy = false});
 
-  /// The backup and the note's file; `null` while they load.
+  /// The backup and the document's file; `null` while they load.
   final Result<RestoreChoice, StoreError>? choice;
 
   /// A choice is being carried out; no other may start.

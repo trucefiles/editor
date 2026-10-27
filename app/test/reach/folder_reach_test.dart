@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/documents/document_actions.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/folders/note_folder.dart';
-import 'package:truce_editor/notes/note_actions.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -19,8 +19,8 @@ import '../support.dart';
 void main() {
   late ProviderContainer container;
   late Directory work;
-  late NoteFolder workFolder;
-  late NoteFolder homeFolder;
+  late DocumentFolder workFolder;
+  late DocumentFolder homeFolder;
 
   setUp(() async {
     work = tempFolder();
@@ -40,7 +40,7 @@ void main() {
     await container.read(folderScansProvider.future);
   });
 
-  Reach reachOf(NoteFolder folder) =>
+  Reach reachOf(DocumentFolder folder) =>
       container.read(folderReachProvider(folder.location));
 
   test('a folder that is gone is retried, then unreachable', () async {
@@ -61,7 +61,10 @@ void main() {
     expect(reachOf(homeFolder), Reach.reachable);
     expect(container.read(retryingFoldersProvider), isEmpty);
     expect(
-      container.read(noteActionsProvider).reachableOf([workFolder, homeFolder]),
+      container.read(documentActionsProvider).reachableOf([
+        workFolder,
+        homeFolder,
+      ]),
       [homeFolder],
     );
 
@@ -72,17 +75,17 @@ void main() {
     expect(seen, [Reach.retrying, Reach.unreachable, Reach.reachable]);
   });
 
-  test('a deleted note changes nothing', () async {
-    final note =
+  test('a deleted document changes nothing', () async {
+    final document =
         (await container
-                .read(noteActionsProvider)
+                .read(documentActionsProvider)
                 .create(
                   (folder: workFolder, subfolder: null),
                   title: 'b',
                   text: '# b\n',
                 ))
             .value;
-    File('${work.path}/${note.path.value}').deleteSync();
+    File('${work.path}/${document.path.value}').deleteSync();
 
     await container.read(folderScansProvider.notifier).refresh();
     await pumpEventQueue();

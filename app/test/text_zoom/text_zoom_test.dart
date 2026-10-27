@@ -91,21 +91,21 @@ void main() {
 
     test('start at the base size', () async {
       final app = await start();
-      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.normal);
+      expect(zoomOf(app, TextZoomTarget.documents), TextZoom.normal);
       expect(zoomOf(app, TextZoomTarget.app), TextZoom.normal);
     });
 
     test('are there from the start, as saved', () async {
       final first = await start();
       await first
-          .read(textZoomProvider(TextZoomTarget.notes).notifier)
+          .read(textZoomProvider(TextZoomTarget.documents).notifier)
           .change((zoom) => zoom.larger);
       await first
           .read(textZoomProvider(TextZoomTarget.app).notifier)
           .set(TextZoom.closestTo(150));
 
       final next = await start();
-      expect(zoomOf(next, TextZoomTarget.notes), TextZoom.closestTo(110));
+      expect(zoomOf(next, TextZoomTarget.documents), TextZoom.closestTo(110));
       expect(zoomOf(next, TextZoomTarget.app), TextZoom.closestTo(150));
     });
 
@@ -116,16 +116,16 @@ void main() {
           .set(TextZoom.closestTo(120));
 
       expect(zoomOf(app, TextZoomTarget.app), TextZoom.closestTo(120));
-      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.normal);
+      expect(zoomOf(app, TextZoomTarget.documents), TextZoom.normal);
     });
 
-    test('keep the note zoom saved by earlier versions', () async {
+    test('keep the document zoom saved by earlier versions', () async {
       File('${storage.settingsPath}/note_text_size.json')
         ..createSync(recursive: true)
         ..writeAsStringSync('{"percent": 130}');
 
       final app = await start();
-      expect(zoomOf(app, TextZoomTarget.notes), TextZoom.closestTo(130));
+      expect(zoomOf(app, TextZoomTarget.documents), TextZoom.closestTo(130));
       expect(zoomOf(app, TextZoomTarget.app), TextZoom.normal);
     });
   });

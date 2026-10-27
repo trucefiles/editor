@@ -45,7 +45,7 @@ void main() {
         builder: (_, child) => _zone(child!),
         home: Scaffold(
           body: MediaQuery(
-            // Zoomed, like note text inside the app.
+            // Zoomed, like document text inside the app.
             data: const MediaQueryData(textScaler: TextScaler.linear(2)),
             child: Row(
               key: row,
@@ -107,7 +107,7 @@ void main() {
     await gesture.up();
   });
 
-  /// [count] rows of 48 px, [spacing] apart (as note lines are), one
+  /// [count] rows of 48 px, [spacing] apart (as document lines are), one
   /// below the other; drops go to [onDrop].
   Future<void> showRows(
     WidgetTester tester, {

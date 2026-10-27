@@ -9,7 +9,7 @@ extension AddFolderErrorText on AddFolderError {
       'This folder overlaps with one you already added.',
     AddFolderError.syncToolInternal =>
       "This folder holds the sync tool's own files, such as old versions. "
-          'Please pick the folder with your notes.',
+          'Please pick the folder with your documents.',
     AddFolderError.notSaved => 'The folder list could not be saved.',
   };
 }

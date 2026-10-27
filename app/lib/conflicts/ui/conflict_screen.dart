@@ -5,7 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../../backups/backup_retention.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../folders/note_folder.dart';
+import '../../folders/document_folder.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/resolve_error_text.dart';
@@ -16,7 +16,7 @@ import '../conflict_controller.dart';
 import '../conflict_sides.dart';
 import '../folder_conflicts.dart';
 
-/// Shows both versions of a conflicting note side by side; the user keeps
+/// Shows both versions of a conflicting document side by side; the user keeps
 /// one. Several conflict copies are resolved one by one, oldest first.
 /// Closes once no copy is left, with the outcome to tell as its result.
 class ConflictScreen extends ConsumerStatefulWidget {
@@ -62,7 +62,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       appBar: compareAppBar(
         folder: conflict.folder,
         file: conflict.conflict.mainPath,
-        note: count > 1 ? '$count other versions, oldest first' : null,
+        reason: count > 1 ? '$count other versions, oldest first' : null,
       ),
       body: Column(
         children: [
@@ -83,7 +83,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     );
   }
 
-  bool _unreachable(NoteFolder folder) =>
+  bool _unreachable(DocumentFolder folder) =>
       ref.watch(folderReachProvider(folder.location)) == Reach.unreachable;
 
   Widget _chooser(Conflict conflict, ConflictSides sides, bool busy) {
@@ -95,7 +95,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         text: sides.current,
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
-            ? 'The note stays deleted and the other version is removed. '
+            ? 'The document stays deleted and the other version is removed. '
                   '$bothBackedUp'
             : 'The other version is removed. $bothBackedUp',
       ),
@@ -105,7 +105,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         text: sides.other,
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
-            ? 'The note is restored from this version. $bothBackedUp'
+            ? 'The document is restored from this version. $bothBackedUp'
             : 'The current version is replaced by the other one. '
                   '$bothBackedUp',
       ),

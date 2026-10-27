@@ -57,7 +57,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
             value: RefreshMode.manual,
             title: Text('Manual'),
             subtitle: Text(
-              'Only with Refresh or pull-down, when a note opens, or when '
+              'Only with Refresh or pull-down, when a document opens, or when '
               'you come back to the app.',
             ),
           ),

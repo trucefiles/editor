@@ -30,11 +30,11 @@ void main() {
   test('adds a folder named after its last segment', () async {
     final folders = container();
 
-    await folders.read(foldersProvider.notifier).add('/sync/Notes');
+    await folders.read(foldersProvider.notifier).add('/sync/Documents');
 
     final added = (await folders.read(foldersProvider.future)).single;
-    expect(added.path, '/sync/Notes');
-    expect(added.name, 'Notes');
+    expect(added.path, '/sync/Documents');
+    expect(added.name, 'Documents');
   });
 
   test('adds a path only once, with distinct colors', () async {
@@ -53,30 +53,30 @@ void main() {
   test('refuses a folder inside or holding an added one', () async {
     final folders = container();
     final controller = folders.read(foldersProvider.notifier);
-    await controller.add('/sync/Notes');
+    await controller.add('/sync/Documents');
 
     expect(
-      (await controller.add('/sync/Notes/work/2026')).error,
+      (await controller.add('/sync/Documents/work/2026')).error,
       AddFolderError.overlaps,
     );
     expect((await controller.add('/sync')).error, AddFolderError.overlaps);
     expect(
-      await controller.add('/sync/Notes/'),
+      await controller.add('/sync/Documents/'),
       isA<Ok<void, AddFolderError>>(),
     );
     expect(
-      await controller.add('/sync/Notes2'),
+      await controller.add('/sync/Documents2'),
       isA<Ok<void, AddFolderError>>(),
     );
 
     final list = await folders.read(foldersProvider.future);
-    expect(list.map((f) => f.path), ['/sync/Notes', '/sync/Notes2']);
+    expect(list.map((f) => f.path), ['/sync/Documents', '/sync/Documents2']);
   });
 
   test("refuses the sync tool's own folders, also on the host", () async {
     final folders = container(
       hostPaths: const _FakeHostPaths({
-        '/doc/1/Notes': '/sync/.stversions/Notes',
+        '/doc/1/Documents': '/sync/.stversions/Documents',
       }),
     );
     final controller = folders.read(foldersProvider.notifier);
@@ -86,7 +86,7 @@ void main() {
       AddFolderError.syncToolInternal,
     );
     expect(
-      (await controller.add('/doc/1/Notes')).error,
+      (await controller.add('/doc/1/Documents')).error,
       AddFolderError.syncToolInternal,
     );
     expect(await folders.read(foldersProvider.future), isEmpty);
@@ -95,26 +95,26 @@ void main() {
   test('refuses a folder that overlaps an added one on the host', () async {
     final folders = container(
       hostPaths: const _FakeHostPaths({
-        '/doc/1/Notes': '/sync/Notes',
-        '/doc/2/work': '/sync/Notes/work',
-        '/doc/3/Notes': '/sync/Notes',
+        '/doc/1/Documents': '/sync/Documents',
+        '/doc/2/work': '/sync/Documents/work',
+        '/doc/3/Documents': '/sync/Documents',
       }),
     );
     final controller = folders.read(foldersProvider.notifier);
-    await controller.add('/doc/1/Notes');
+    await controller.add('/doc/1/Documents');
 
     expect(
       (await controller.add('/doc/2/work')).error,
       AddFolderError.overlaps,
     );
     expect(
-      await controller.add('/doc/3/Notes'),
+      await controller.add('/doc/3/Documents'),
       isA<Ok<void, AddFolderError>>(),
     );
 
     final added = (await folders.read(foldersProvider.future)).single;
-    expect(added.path, '/doc/1/Notes');
-    expect(added.name, 'Notes');
+    expect(added.path, '/doc/1/Documents');
+    expect(added.name, 'Documents');
   });
 
   test('saves changes and removals for the next start', () async {

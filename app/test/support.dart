@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
-import 'package:truce_editor/folders/note_folder.dart';
-import 'package:truce_editor/notes/note.dart';
-import 'package:truce_editor/notes/note_drafts.dart';
+import 'package:truce_editor/documents/document.dart';
+import 'package:truce_editor/documents/document_drafts.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/platform/platform_facts.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
@@ -56,21 +56,21 @@ Directory tempFolder() {
   return dir;
 }
 
-NoteFolder folderAt(Directory dir, {String id = 'f1'}) => NoteFolder(
+DocumentFolder folderAt(Directory dir, {String id = 'f1'}) => DocumentFolder(
   id: id,
   path: dir.path,
-  name: 'Notes',
+  name: 'Documents',
   color: const Color(0xFF009688),
 );
 
-/// A note held in memory, never read from a file.
-Note noteOf(
-  NoteFolder folder,
+/// A document held in memory, never read from a file.
+Document documentOf(
+  DocumentFolder folder,
   String text, {
   String name = 'a.md',
   int version = 0,
   DateTime? modified,
-}) => Note(
+}) => Document(
   folder: folder,
   path: path(name),
   file: const TextFile.empty().withText(text),
@@ -79,7 +79,7 @@ Note noteOf(
 );
 
 /// Services for [folder], with backups in their own temp folder.
-FolderServices servicesFor(NoteFolder folder) => syncthingFolderServices(
+FolderServices servicesFor(DocumentFolder folder) => syncthingFolderServices(
   folder.path,
   backupsPath: tempFolder().path,
   deviceId: '0123456789abcdef',
@@ -91,18 +91,18 @@ PlatformFacts hostFacts() =>
     ProviderContainer.test().read(platformFactsProvider);
 
 /// Drafts in their own temp folder.
-NoteDrafts tempDrafts() => NoteDrafts(tempFolder());
+DocumentDrafts tempDrafts() => DocumentDrafts(tempFolder());
 
-/// A scan that starts now and finds [notes]; it could not read the
+/// A scan that starts now and finds [documents]; it could not read the
 /// files of [unread], the subfolders [unreadable] or the folders
 /// [failed].
 FolderScans scanFinding(
-  List<Note> notes, {
-  Set<NoteKey> unread = const {},
+  List<Document> documents, {
+  Set<DocumentKey> unread = const {},
   Map<String, List<RelPath>> unreadable = const {},
-  Map<NoteFolder, StoreError> failed = const {},
+  Map<DocumentFolder, StoreError> failed = const {},
 }) => FolderScans(
-  notes: notes,
+  documents: documents,
   marks: const {},
   subfolders: const {},
   conflicts: FolderConflicts(const []),

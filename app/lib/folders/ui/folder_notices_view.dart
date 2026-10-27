@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../sync_tool/folder_services.dart';
-import '../note_folder.dart';
+import '../document_folder.dart';
 import 'folder_notice_text.dart';
 
 /// Everything the sync tool has to tell about [folder], one line each:
@@ -11,7 +11,7 @@ import 'folder_notice_text.dart';
 class FolderNoticesView extends ConsumerWidget {
   const FolderNoticesView(this.folder, {super.key});
 
-  final NoteFolder folder;
+  final DocumentFolder folder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

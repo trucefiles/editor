@@ -21,21 +21,21 @@ import 'package:truce_test_support/truce_test_support.dart';
 import 'ui_driver.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
-/// [notes], then [work], instead of opening the system dialog.
+/// [documents], then [work], instead of opening the system dialog.
 final class TestApp {
-  TestApp._(this.notes, this.work, this._storage);
+  TestApp._(this.documents, this.work, this._storage);
 
   /// Creates the temp folders; both are deleted after the test.
   factory TestApp.create() {
     final root = Directory.systemTemp.createTempSync('truce_ui_test');
     addTearDown(() => root.deleteSync(recursive: true));
-    final notes = Directory('${root.path}/Notes')..createSync();
+    final documents = Directory('${root.path}/Documents')..createSync();
     final work = Directory('${root.path}/Work')..createSync();
-    return TestApp._(notes, work, AppStorage('${root.path}/app'));
+    return TestApp._(documents, work, AppStorage('${root.path}/app'));
   }
 
   /// The folder the picker hands to the app.
-  final Directory notes;
+  final Directory documents;
 
   /// The folder the picker hands to the app the second time.
   final Directory work;
@@ -55,7 +55,7 @@ final class TestApp {
           savedTextZoomsProvider.overrideWithValue(textZooms),
           systemTrayProvider.overrideWithValue(null),
           folderPickerProvider.overrideWithValue(
-            _QueuedPicker([notes.path, work.path]),
+            _QueuedPicker([documents.path, work.path]),
           ),
         ],
         child: const TruceApp(),
@@ -74,25 +74,25 @@ final class TestApp {
       textZoomStoreIn(_storage, target).save(zoom);
 
   /// [name] may lead through subfolders; [write] creates them.
-  File file(String name) => File('${notes.path}/$name');
+  File file(String name) => File('${documents.path}/$name');
 
   /// Writes [text] to [name], creating its subfolders.
   void write(String name, String text) =>
       file(name)..writeCreatingFolders(text);
 
   /// [name] may lead through subfolders.
-  Directory folder(String name) => Directory('${notes.path}/$name');
+  Directory folder(String name) => Directory('${documents.path}/$name');
 
-  /// The files at the top of the notes folder.
-  Iterable<File> get topFiles => notes.listSync().whereType<File>();
+  /// The files at the top of the documents folder.
+  Iterable<File> get topFiles => documents.listSync().whereType<File>();
 
-  /// The names of what [name] holds, files and folders; the notes folder
+  /// The names of what [name] holds, files and folders; the documents folder
   /// itself if [name] is empty.
   List<String> namesIn([String name = '']) => [
     for (final entry in folder(name).listSync()) entry.uri.pathSegments.last,
   ];
 
-  /// The sync conflict copies in [name], or in the notes folder itself.
+  /// The sync conflict copies in [name], or in the documents folder itself.
   List<File> conflictCopies([String name = '']) => [
     for (final file in folder(name).listSync().whereType<File>())
       if (file.path.contains('.sync-conflict-')) file,

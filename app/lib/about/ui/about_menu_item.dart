@@ -30,8 +30,8 @@ Future<void> _show(BuildContext context, WidgetRef ref) async {
     children: [
       const SizedBox(height: 16),
       const Text(
-        'Notes and checklists in folders that Syncthing keeps in sync '
-        'between your devices.',
+        'Your documents, shared between your devices and people, '
+        'with no server in the middle.',
       ),
       const SizedBox(height: 8),
       Align(

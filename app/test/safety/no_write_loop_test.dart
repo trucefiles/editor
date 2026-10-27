@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_file.dart';
-import 'package:truce_editor/documents/document_session.dart';
-import 'package:truce_editor/documents/file_effects.dart';
-import 'package:truce_editor/folders/note_folder.dart';
-import 'package:truce_editor/notes/note.dart';
-import 'package:truce_editor/notes/note_files.dart';
+import 'package:truce_editor/document_page/document_file.dart';
+import 'package:truce_editor/document_page/document_session.dart';
+import 'package:truce_editor/document_page/file_effects.dart';
+import 'package:truce_editor/documents/document.dart';
+import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../support.dart';
@@ -97,12 +97,12 @@ final class _Device {
     final dir = tempFolder();
     File('${dir.path}/todo.md').writeAsStringSync(text);
     final folder = folderAt(dir, id: name);
-    final files = NoteFiles(folder, servicesFor(folder));
-    final note = (await files.reload(_placeholder(folder))).value;
+    final files = DocumentFiles(folder, servicesFor(folder));
+    final document = (await files.reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = DocumentSession(
       FileEffects(
-        ExistingFile(note),
+        ExistingFile(document),
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
         create: (place, {required title, required text}) =>
@@ -115,7 +115,7 @@ final class _Device {
   }
 
   final Directory dir;
-  final NoteFiles files;
+  final DocumentFiles files;
   final DocumentSession session;
 
   File get mainFile => File('${dir.path}/todo.md');
@@ -135,7 +135,7 @@ final class _Device {
   /// any edits. Returns how many files it wrote.
   Future<int> runApp() async {
     final before = _state();
-    final latest = switch (await files.reload(session.note!)) {
+    final latest = switch (await files.reload(session.document!)) {
       Ok(:final value) => value,
       Err() => null,
     };
@@ -148,7 +148,7 @@ final class _Device {
     }.length;
   }
 
-  /// Copies the note to [other] the way Syncthing does: atomically, with
+  /// Copies the document to [other] the way Syncthing does: atomically, with
   /// this device's modification time.
   void syncTo(_Device other) {
     if (!mainFile.existsSync()) return;
@@ -158,7 +158,7 @@ final class _Device {
     temp.renameSync(other.mainFile.path);
   }
 
-  /// Changes only the note's time, as some file systems and tools do.
+  /// Changes only the document's time, as some file systems and tools do.
   void restamp(DateTime time) => mainFile.setLastModifiedSync(time);
 
   Map<String, String> _state() => {
@@ -166,7 +166,7 @@ final class _Device {
       file.path: '${file.readAsBytesSync()} ${file.lastModifiedSync()}',
   };
 
-  static Note _placeholder(NoteFolder folder) => Note(
+  static Document _placeholder(DocumentFolder folder) => Document(
     folder: folder,
     path: RelPath.parse('todo.md')!,
     file: TextFile.empty(),

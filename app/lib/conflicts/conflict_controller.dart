@@ -15,7 +15,7 @@ final conflictProvider = NotifierProvider.autoDispose
       ConflictController.new,
     );
 
-/// Resolves one note's conflict copies one by one, oldest first. Loads the
+/// Resolves one document's conflict copies one by one, oldest first. Loads the
 /// sides of the oldest copy; after each resolve, moves on to the next copy
 /// the rescan finds. Sides that could not be loaded are loaded again with
 /// each new scan.
@@ -69,7 +69,7 @@ class ConflictController extends Notifier<ConflictState> {
   }
 
   /// After a failed load (e.g. the folder could not be reached, or the
-  /// note changed since its scan), loads the sides of the note's conflict
+  /// document changed since its scan), loads the sides of the document's conflict
   /// as [scans] found it.
   void _loadAgainIfFailed(FolderScans scans) {
     final ConflictState(:conflict, :sides, :busy) = state;

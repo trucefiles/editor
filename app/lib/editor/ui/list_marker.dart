@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../document_metrics.dart';
+import '../document_text_styles.dart';
 import '../marker.dart';
-import '../note_metrics.dart';
-import '../note_text_styles.dart';
 
 /// The [marker] of a list item, the same in every mode: its box, checked
 /// or not, which [onToggle] checks or unchecks; its bullet; or its
 /// number; text in [style]. Every kind ends the same gap before the
 /// text (a box where it is drawn), as lists are drawn on the web, so
 /// numbers line up on their dot; centered on the item's first line of
-/// text. Sized by the [NoteMetrics] of its context, the box too.
+/// text. Sized by the [DocumentMetrics] of its context, the box too.
 class ListMarker extends StatelessWidget {
   const ListMarker(
     this.marker, {
@@ -26,10 +26,10 @@ class ListMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metrics = NoteMetrics.of(context);
+    final metrics = DocumentMetrics.of(context);
     return SizedBox(
       width: metrics.markerWidth,
-      height: NoteTextStyles.lineHeightOf(
+      height: DocumentTextStyles.lineHeightOf(
         style,
         MediaQuery.textScalerOf(context),
       ),

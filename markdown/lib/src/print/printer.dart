@@ -373,7 +373,7 @@ final class _Printer {
     }
   }
 
-  /// Notes the lines of [node]'s leaves, copied to [start] from source
+  /// Documents the lines of [node]'s leaves, copied to [start] from source
   /// line [from] on.
   void _copiedRanges(DocBlock node, int start, int from) {
     for (final leaf in leavesIn(node)) {

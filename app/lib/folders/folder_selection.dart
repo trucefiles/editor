@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Id of the folder the notes grid is filtered to; `null` shows all.
+/// Id of the folder the documents grid is filtered to; `null` shows all.
 final selectedFolderIdProvider = NotifierProvider<FolderIdChoice, String?>(
   FolderIdChoice.new,
 );

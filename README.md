@@ -5,12 +5,12 @@
 <h1 align="center">Truce Editor</h1>
 
 <p align="center">
-  Your notes and checklists, shared between your devices and people,<br>
+  Your documents, shared between your devices and people,<br>
   with no server in the middle.
 </p>
 
 <p align="center">
-  <img src="docs/images/screenshot.png" width="720" alt="Truce Editor showing a grid of notes and checklists">
+  <img src="docs/images/screenshot.png" width="720" alt="Truce Editor showing a grid of documents">
 </p>
 
 ## Why Truce
@@ -23,7 +23,7 @@
   a private network or a phone's hotspot with no internet at all. As
   devices come and go, editing carries on.
 - **Conflicts are caught, never lost.** When two devices change the same
-  note at once, Truce notices, shows both versions side by side and lets
+  document at once, Truce notices, shows both versions side by side and lets
   you choose. Nothing is overwritten behind your back, and backups
   of the last 7 days let you go back.
 - **Plain files you own.** Documents are ordinary Markdown files in your
@@ -36,8 +36,8 @@
 
 ## What it does today
 
-- Notes and checklists, edited visually (lists, styles, drag and drop),
-  as raw Markdown, or read rendered.
+- Markdown documents and checklists, edited visually (lists, styles,
+  drag and drop), as raw Markdown, or read rendered.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -47,7 +47,7 @@
 
 - Assisted merge: Truce suggests a merged version of a conflict for you to
   accept.
-- More kinds of files beyond notes and checklists.
+- More kinds of files beyond Markdown.
 - Windows, macOS and iOS.
 
 Truce is in early development (0.x), so expect changes between versions.
@@ -57,7 +57,7 @@ Truce is in early development (0.x), so expect changes between versions.
 Grab the APK (Android) or the Flatpak (Linux) from the
 [latest release](https://github.com/trucefiles/editor/releases/latest).
 You need Syncthing running on your devices, with a shared folder for your
-notes.
+documents.
 
 To check a download, compare it with `SHA256SUMS` from the same release.
 The APK is signed with the key whose certificate SHA-256 is in
