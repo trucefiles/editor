@@ -41,12 +41,27 @@ final class VisualActions {
 
   void deleteItem(NodeId item) => _gate.run((_) => DeleteItem(item));
 
-  /// The item whose text [leaf] is, one level deeper or shallower.
-  void indent(NodeId leaf) =>
-      _gate.run((_) => Indent(TextSelection.caret(Place(leaf, 0))));
+  /// The item whose text [leaf] is, one level deeper or shallower, where
+  /// it can go; the user's selection stays where it is.
+  void indent(NodeId leaf) => _gate.run(
+    (selection) => switch (_shown?.view) {
+      final view? when canIndent(view, leaf) => Indent(
+        TextSelection.caret(Place(leaf, 0)),
+        after: selection,
+      ),
+      _ => null,
+    },
+  );
 
-  void outdent(NodeId leaf) =>
-      _gate.run((_) => Outdent(TextSelection.caret(Place(leaf, 0))));
+  void outdent(NodeId leaf) => _gate.run(
+    (selection) => switch (_shown?.view) {
+      final view? when canOutdent(view, leaf) => Outdent(
+        TextSelection.caret(Place(leaf, 0)),
+        after: selection,
+      ),
+      _ => null,
+    },
+  );
 
   /// [item] lifted to be dragged: taps waiting go first; its subitems
   /// fold.
@@ -57,9 +72,9 @@ final class VisualActions {
 
   void dragEnded() => onFold(null);
 
-  /// [item], whose text is [leaf], dropped next to [target], [below] it
-  /// or above; dropped on itself, it goes [levels] deeper (shallower if
-  /// negative).
+  /// [item], whose text is [leaf], dropped right next to [target]'s row,
+  /// [below] it or above; dropped on itself, it goes [levels] deeper
+  /// (shallower if negative).
   void drop(
     NodeId item, {
     required NodeId leaf,
@@ -69,8 +84,17 @@ final class VisualActions {
   }) {
     if (item != target) {
       return _gate.run(
-        (selection) =>
-            MoveItem(item, target, below: below, selection: selection),
+        (selection) => switch (_firstSubitem(target)) {
+          // Right below the row, above the subitems shown under it.
+          final first? when below && first == item => null,
+          final first? when below => MoveItem(
+            item,
+            first,
+            below: false,
+            selection: selection,
+          ),
+          _ => MoveItem(item, target, below: below, selection: selection),
+        },
       );
     }
     final step = levels > 0 ? indent : outdent;
@@ -78,6 +102,12 @@ final class VisualActions {
       step(leaf);
     }
   }
+
+  /// The first subitem of [item], if it shows right under its text.
+  NodeId? _firstSubitem(NodeId item) => switch (_shown?.view.doc.nodeOf(item)) {
+    ItemNode(children: [_, ListNode(:final items), ...]) => items.first.id,
+    _ => null,
+  };
 
   /// [list]'s Done section folded or unfolded.
   void setCollapsed(NodeId list, {required bool collapsed}) =>

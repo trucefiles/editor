@@ -3,8 +3,10 @@
 library;
 
 import 'package:characters/characters.dart';
+import 'package:collection/collection.dart';
 
 import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
@@ -70,7 +72,9 @@ Change joinWithPrevious(ViewRows view, Place at) {
 
 /// Delete at the end of [at]'s text place: the text place shown in the
 /// row below joins it; code that holds any keeps its place, and the caret
-/// goes to its start (as Backspace after code goes to its end).
+/// goes to its start (as Backspace after code goes to its end). An empty
+/// text place goes instead, if nothing else is in its item or quote, so
+/// the row below keeps its item and box.
 Change joinWithNext(ViewRows view, Place at) {
   final below = _textRow(view, view.rowOf(at.leaf)! + 1);
   if (below.leaf case CodeNode(:final code) when code.isNotEmpty) {
@@ -79,11 +83,30 @@ Change joinWithNext(ViewRows view, Place at) {
       selection: TextSelection.caret(Place(below.leaf.id, 0)),
     );
   }
+  if (_emptyGone(view.doc, at.leaf) case final doc?) {
+    return (doc: doc, selection: TextSelection.caret(Place(below.leaf.id, 0)));
+  }
   return deleteAcross(
     view,
     Place(at.leaf, textAt(view.doc, at.leaf).length),
     Place(below.leaf.id, 0),
   );
+}
+
+/// [doc] without [leaf], if it is an empty text place alone in its item
+/// or quote (or at the top level), along with the items, lists and
+/// quotes it alone fills; `null` otherwise.
+DocTree? _emptyGone(DocTree doc, NodeId leaf) {
+  if (textAt(doc, leaf).text.isNotEmpty) return null;
+  final parent = doc.parentOf(leaf)!;
+  if (parent is! DocRoot && parent.children.length > 1) return null;
+  final alone = doc
+      .pathOf(leaf)
+      .reversed
+      .takeWhile((container) => container is! DocRoot)
+      .takeWhile((container) => container.children.length == 1)
+      .lastOrNull;
+  return doc.edited({alone?.id ?? leaf: const []});
 }
 
 TextRow _textRow(ViewRows view, int index) => switch (view.rows[index]) {

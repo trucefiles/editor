@@ -5,16 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/editor/checked_items.dart';
-import 'package:truce_editor/editor/note_document_controller.dart';
-
-import 'package:truce_editor/editor/super_editor/components/line_drag.dart';
-
+import 'package:truce_editor/editor/visual/ui/line_drag.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show CheckedItems, ItemsRemoved, UndoRemoval;
 
-import '../editor_support.dart';
-import 'editor_robot.dart';
+import '../editor_robot.dart';
 
 /// List rows in Visual edit: joining lines, indenting, moving and
 /// deleting items.
@@ -42,8 +39,8 @@ void main() {
     testWidgets('Delete at the end joins the item below onto it', (
       tester,
     ) async {
-      final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] milk\n- [ ] eggs');
+      await pumpDocument(tester, text);
       final milk = checkboxNodeOf();
 
       await tester.caretIn(milk, 4);
@@ -53,19 +50,25 @@ void main() {
       expect(caret(), at(milk, 4));
     });
 
-    testWidgets('the soft keyboard joins at the start too', (tester) async {
-      final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
-      await pumpNoteEditor(tester, text);
+    testWidgets('the soft keyboard takes the box away and joins at the start '
+        'too', (tester) async {
+      final text = TestDocument('- [ ] milk\n- [ ] eggs');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 1), 0);
+      await tester.ime.backspace(getter: imeClientGetter);
+      expect(find.byType(Checkbox), findsOneWidget);
       await tester.ime.backspace(getter: imeClientGetter);
 
       expect(text.text, '- [ ] milkeggs');
     });
 
     testWidgets('either key drops an empty item', (tester) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] \n- [ ] \n- [x] b');
-      await pumpNoteEditor(tester, text, checkedItems: CheckedItems.inPlace);
+      final text = TestDocument(
+        '- [ ] a\n- [ ] \n- [ ] \n- [x] b',
+        checkedItems: CheckedItems.inPlace,
+      );
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressBackspace();
@@ -78,22 +81,22 @@ void main() {
       expect(caret(), at(checkboxNodeOf(index: 1), 0));
     });
 
-    testWidgets('an empty item by a heading or buttons just goes away', (
+    testWidgets('an empty first item leaves the list as an empty line', (
       tester,
     ) async {
-      final text = FakeNoteText('# T\n- [ ] \n- [ ] a');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('# T\n- [ ] \n- [ ] a');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(), 0);
       await tester.pressBackspace();
 
       expect(text.text, '# T\n- [ ] a');
-      expect(caret(), at(checkboxNodeOf(), 0));
+      expect(caret(), at(paragraphNodeOf(index: 1), 0));
     });
 
     testWidgets('keys inside the text edit it as usual', (tester) async {
-      final text = FakeNoteText('- [ ] milk\n- [ ] eggs');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] milk\n- [ ] eggs');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 1), 2);
       await tester.pressBackspace();
@@ -101,16 +104,16 @@ void main() {
       expect(text.text, '- [ ] milk\n- [ ] egs');
     });
 
-    testWidgets('nothing joins across a heading', (tester) async {
-      final text = FakeNoteText('- [ ] a\n# Later\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+    testWidgets('below a heading, Backspace takes the box away first', (
+      tester,
+    ) async {
+      final text = TestDocument('# Later\n- [ ] b');
+      await pumpDocument(tester, text);
 
-      await tester.caretIn(checkboxNodeOf(index: 1), 0);
-      await tester.pressBackspace();
       await tester.caretIn(checkboxNodeOf(), 0);
       await tester.pressBackspace();
 
-      expect(text.text, '- [ ] a\n# Later\n- [ ] b');
+      expect(text.text, '# Later\n\nb');
     });
   });
 
@@ -118,8 +121,8 @@ void main() {
     testWidgets('Tab indents under the item above, Shift+Tab outdents', (
       tester,
     ) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] b');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressTab();
@@ -134,8 +137,8 @@ void main() {
     testWidgets('Tab under a numbered item indents to its text', (
       tester,
     ) async {
-      final text = FakeNoteText('1. a\n2. b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('1. a\n2. b');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(listItemNodeOf(index: 1), 0);
       await tester.pressTab();
@@ -145,12 +148,12 @@ void main() {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       await tester.pressTab();
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-      expect(text.text, '1. a\n1. b');
+      expect(text.text, '1. a\n2. b');
     });
 
     testWidgets('Tab indents under the open item shown above', (tester) async {
-      final text = FakeNoteText('- [ ] a\n- [x] done\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [x] done\n- [ ] b');
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 1), 0);
       await tester.pressTab();
@@ -161,8 +164,11 @@ void main() {
     testWidgets('without a Done section, under the checked item above', (
       tester,
     ) async {
-      final text = FakeNoteText('- [ ] a\n- [x] done\n- [ ] b');
-      await pumpNoteEditor(tester, text, checkedItems: CheckedItems.inPlace);
+      final text = TestDocument(
+        '- [ ] a\n- [x] done\n- [ ] b',
+        checkedItems: CheckedItems.inPlace,
+      );
+      await pumpDocument(tester, text);
 
       await tester.caretIn(checkboxNodeOf(index: 2), 0);
       await tester.pressTab();
@@ -171,8 +177,8 @@ void main() {
     });
 
     testWidgets('swiping right indents, left outdents', (tester) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] b');
+      await pumpDocument(tester, text);
 
       await swipe(tester, checkboxNodeOf(index: 1), const Offset(100, 0));
       expect(text.text, '- [ ] a\n  - [ ] b');
@@ -184,8 +190,8 @@ void main() {
     testWidgets('any list row swipes, bullets and numbered items too', (
       tester,
     ) async {
-      final text = FakeNoteText('- a\n- b\n\n1. c\n2. d');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- a\n- b\n\n1. c\n2. d');
+      await pumpDocument(tester, text);
 
       await swipe(tester, listItemNodeOf(index: 1), const Offset(100, 0));
       await swipe(tester, listItemNodeOf(index: 3), const Offset(100, 0));
@@ -196,8 +202,8 @@ void main() {
     testWidgets('a long press that moves, to select text, does not indent', (
       tester,
     ) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] b');
+      await pumpDocument(tester, text);
 
       final gesture = await tester.startGesture(
         tester.tapPointIn(checkboxNodeOf(index: 1), 0),
@@ -220,8 +226,8 @@ void main() {
       tester,
     ) async {
       final long = 'long ' * 100;
-      final text = FakeNoteText('- [ ] a\n- [ ] $long');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] $long');
+      await pumpDocument(tester, text);
 
       await swipe(tester, checkboxNodeOf(index: 1), const Offset(100, 0));
 
@@ -229,9 +235,9 @@ void main() {
     });
 
     testWidgets('a pinch over two rows swipes neither', (tester) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b\n- [ ] c');
+      final text = TestDocument('- [ ] a\n- [ ] b\n- [ ] c');
       var zoom = TextZoom.normal;
-      await pumpNoteEditor(
+      await pumpDocument(
         tester,
         text,
         around: (context, child) => StatefulBuilder(
@@ -261,8 +267,8 @@ void main() {
     });
 
     testWidgets('a short swipe does nothing', (tester) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] b');
+      await pumpDocument(tester, text);
 
       await swipe(tester, checkboxNodeOf(index: 1), const Offset(20, 0));
 
@@ -272,8 +278,8 @@ void main() {
     testWidgets('a mouse drag indents from the box, not the text', (
       tester,
     ) async {
-      final text = FakeNoteText('- [ ] a\n- [ ] b');
-      await pumpNoteEditor(tester, text);
+      final text = TestDocument('- [ ] a\n- [ ] b');
+      await pumpDocument(tester, text);
 
       await swipe(
         tester,
@@ -296,8 +302,8 @@ void main() {
   testWidgets('dragging an item by its handle takes its subitems along', (
     tester,
   ) async {
-    final text = FakeNoteText('- [ ] a\n- [ ] b\n  - [ ] sub');
-    await pumpNoteEditor(tester, text);
+    final text = TestDocument('- [ ] a\n- [ ] b\n  - [ ] sub');
+    await pumpDocument(tester, text);
 
     final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(1));
     final above = tester.getTopLeft(find.byIcon(Icons.drag_indicator).at(0));
@@ -314,8 +320,8 @@ void main() {
   testWidgets('on touch, the handle takes drags beside its icon too', (
     tester,
   ) async {
-    final text = FakeNoteText('- [ ] a\n- [ ] b');
-    await pumpNoteEditor(tester, text);
+    final text = TestDocument('- [ ] a\n- [ ] b');
+    await pumpDocument(tester, text);
 
     final slot = tester.getRect(find.byType(LineDragHandle).at(1));
     final icon = tester.getRect(find.byIcon(Icons.drag_indicator).at(1));
@@ -336,8 +342,8 @@ void main() {
   testWidgets('on touch, the handle takes drags in the gap above its icon', (
     tester,
   ) async {
-    final text = FakeNoteText('- [ ] a\n- [ ] b');
-    await pumpNoteEditor(tester, text);
+    final text = TestDocument('- [ ] a\n- [ ] b');
+    await pumpDocument(tester, text);
 
     final slot = tester.getRect(find.byType(LineDragHandle).at(0));
     final icon = tester.getRect(find.byIcon(Icons.drag_indicator).at(0));
@@ -357,8 +363,8 @@ void main() {
   testWidgets('dropped below an item with subitems, it lands right under it', (
     tester,
   ) async {
-    final text = FakeNoteText('- [ ] a\n  - [ ] sub\n- [ ] b');
-    await pumpNoteEditor(tester, text);
+    final text = TestDocument('- [ ] a\n  - [ ] sub\n- [ ] b');
+    await pumpDocument(tester, text);
 
     final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(2));
     final target = tester.getBottomLeft(
@@ -374,11 +380,32 @@ void main() {
     expect(text.text, '- [ ] a\n  - [ ] b\n  - [ ] sub');
   });
 
+  testWidgets('a first subitem dropped right below its parent stays', (
+    tester,
+  ) async {
+    final text = TestDocument('- [ ] a\n  - [ ] sub\n- [ ] b');
+    await pumpDocument(tester, text);
+
+    final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(1));
+    final target = tester.getBottomLeft(
+      find.byIcon(Icons.drag_indicator).at(0),
+    );
+    final gesture = await tester.startGesture(handle);
+    await tester.pump();
+    await gesture.moveTo(Offset(handle.dx, target.dy));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(text.text, '- [ ] a\n  - [ ] sub\n- [ ] b');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('dropped above a subitem, it lands as its sibling', (
     tester,
   ) async {
-    final text = FakeNoteText('- [ ] a\n  - [ ] x\n  - [ ] y\n- [ ] b');
-    await pumpNoteEditor(tester, text);
+    final text = TestDocument('- [ ] a\n  - [ ] x\n  - [ ] y\n- [ ] b');
+    await pumpDocument(tester, text);
 
     final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(3));
     final target = tester.getTopLeft(find.byIcon(Icons.drag_indicator).at(1));
@@ -392,36 +419,28 @@ void main() {
     expect(text.text, '- [ ] a\n  - [ ] b\n  - [ ] x\n  - [ ] y');
   });
 
-  testWidgets('the menu indents an item', (tester) async {
-    final text = FakeNoteText('- [ ] a\n- [ ] b');
-    await pumpNoteEditor(tester, text);
+  testWidgets('the toolbar indents an item', (tester) async {
+    final text = TestDocument('- [ ] a\n- [ ] b');
+    await pumpDocument(tester, text);
 
     await tester.caretIn(checkboxNodeOf(index: 1), 0);
-    await tester.tap(find.byTooltip('Item actions').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Indent'));
+    await tester.tap(find.byTooltip('Indent (Tab)'));
     await tester.pumpAndSettle();
 
     expect(text.text, '- [ ] a\n  - [ ] b');
   });
 
   testWidgets('undoing a delete brings the item back', (tester) async {
-    final text = FakeNoteText('- [ ] a\n- [ ] x\n- [ ] b');
-    EditUndo? removed;
-    final note = await pumpNoteEditor(
-      tester,
-      text,
-      onRemoved: (_, undo) => removed = undo,
-    );
+    final text = TestDocument('- [ ] a\n- [ ] x\n- [ ] b');
+    await pumpDocument(tester, text);
 
     await tester.caretIn(checkboxNodeOf(index: 1), 0);
-    await tester.tap(find.byTooltip('Item actions').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
+    await tester.tap(find.byTooltip('Delete item').hitTestable());
     await tester.pumpAndSettle();
     expect(text.text, '- [ ] a\n- [ ] b');
 
-    expect(note.undo(removed!), isTrue);
+    final removed = text.notices.whereType<ItemsRemoved>().single;
+    text.gate.send((_) => UndoRemoval(removed.id));
     await tester.pumpAndSettle();
 
     expect(text.text, '- [ ] a\n- [ ] x\n- [ ] b');
@@ -435,7 +454,7 @@ void main() {
   });
 
   testWidgets('the Done count counts only checked items', (tester) async {
-    await pumpNoteEditor(tester, FakeNoteText('- [x] a\n  - [ ] sub\n- [ ] b'));
+    await pumpDocument(tester, TestDocument('- [x] a\n  - [ ] sub\n- [ ] b'));
 
     expect(find.text('Done (1)'), findsOneWidget);
   });

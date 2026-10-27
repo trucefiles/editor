@@ -109,18 +109,23 @@ final class RemoveFrame extends EditCommand {
   final NodeId leaf;
 }
 
-/// Tab in an item: it becomes a subitem of the item above.
+/// Tab in the item at [selection]'s caret: it becomes a subitem of the
+/// item above. The selection is [after] then (e.g. the user's, kept while
+/// a swipe indents another row), else [selection].
 final class Indent extends EditCommand {
-  const Indent(this.selection);
+  const Indent(this.selection, {this.after});
 
   final TextSelection selection;
+  final Selection? after;
 }
 
-/// Shift+Tab in an item: it goes one level out.
+/// Shift+Tab in the item at [selection]'s caret: it goes one level out.
+/// The selection is [after] then, else [selection] (see [Indent]).
 final class Outdent extends EditCommand {
-  const Outdent(this.selection);
+  const Outdent(this.selection, {this.after});
 
   final TextSelection selection;
+  final Selection? after;
 }
 
 /// The heading button or shortcut at [at]: its text a heading of [level],
@@ -265,8 +270,14 @@ Change _change(ViewRows view, EditCommand command) {
     JoinWithPrevious(:final at) => joinWithPrevious(view, at),
     JoinWithNext(:final at) => joinWithNext(view, at),
     RemoveFrame(:final leaf) => removeFrame(view, leaf),
-    Indent(:final selection) => indent(view, selection),
-    Outdent(:final selection) => outdent(view, selection),
+    Indent(:final selection, :final after) => _then(
+      indent(view, selection),
+      after,
+    ),
+    Outdent(:final selection, :final after) => _then(
+      outdent(view, selection),
+      after,
+    ),
     SetHeading(:final at, :final level) => setHeading(view, at, level),
     SetFrame(:final selection, :final kind) => setFrame(view, selection, kind),
     SetLink(:final range, :final text, :final url) => setLink(
@@ -328,3 +339,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
   };
 }
+
+/// [change] with the selection [after], if given.
+Change _then(Change change, Selection? after) =>
+    after == null ? change : (doc: change.doc, selection: after);
