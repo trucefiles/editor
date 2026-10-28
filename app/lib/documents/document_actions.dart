@@ -80,30 +80,35 @@ final class DocumentActions {
     required DocumentType type,
     required String title,
     required String text,
+    bool newSubfolder = false,
   }) async => switch (await _ask<DocumentCreated>(
-    (ticket) =>
-        CreateDocument(ticket, place, type: type, title: title, text: text),
+    (ticket) => CreateDocument(
+      ticket,
+      place,
+      type: type,
+      title: title,
+      text: text,
+      newSubfolder: newSubfolder,
+    ),
   )) {
     final answer? => answer.result,
     null => const Err(_notRun),
   };
-
-  /// See [DocumentSteps.createSubfolder].
-  Future<Result<void, StoreError>> createSubfolder(DocumentPlace place) async =>
-      switch (await _ask<SubfolderCreated>(
-        (ticket) => CreateSubfolder(ticket, place),
-      )) {
-        final answer? => answer.result,
-        null => const Err(_notRun),
-      };
 
   /// See [DocumentSteps.move].
   Future<Result<DocumentText, MoveFailure>> move(
     DocumentText document,
     DocumentPlace place, {
     String? title,
+    bool newSubfolder = false,
   }) async => switch (await _ask<DocumentMoved>(
-    (ticket) => MoveDocument(ticket, document, place, title: title),
+    (ticket) => MoveDocument(
+      ticket,
+      document,
+      place,
+      title: title,
+      newSubfolder: newSubfolder,
+    ),
   )) {
     final answer? => answer.result,
     null => const Err(MoveNotWritten(_notRun)),

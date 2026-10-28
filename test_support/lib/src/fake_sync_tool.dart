@@ -2,7 +2,7 @@ import 'package:truce_core/truce_core.dart';
 
 import 'fake_copy_names.dart';
 import 'fake_live_changes.dart';
-import 'fake_sync_adapter.dart';
+import 'fake_sync_rules.dart';
 import 'memory_file_store.dart';
 
 /// A made-up sync tool with no files on disk, for tests of generic code:
@@ -23,7 +23,7 @@ final class FakeSyncTool implements SyncTool {
 
   @override
   bool isToolFolder(List<String> names) =>
-      const FakeSyncAdapter().isInternalFolder(names);
+      const FakeSyncRules().isInternalFolder(names);
 
   @override
   Future<SyncStatus> recognize(Uri address) async =>
@@ -44,19 +44,22 @@ final class FakePlace implements ToolPlace {
   @override
   final FakeLiveChanges changes = FakeLiveChanges();
 
-  @override
-  SubfolderNames get subfolders => _ListedNames(files);
+  /// What the fake tool shows: no hidden files, none of its own.
+  static final _shown = VisibleFileFilter(const FakeSyncRules().isInternal);
 
   @override
-  SyncedFolder open(FileStore store, {required FolderChanges? changes}) {
-    final shown = VisibleFileFilter(const FakeSyncAdapter().isInternal);
+  SubfolderNames get subfolders => _ListedNames(files).shownBy(_shown);
+
+  @override
+  SyncedFolder open(BoundedPlace bounded) {
+    final store = bounded.files;
     return SyncedFolder(
       store: store,
-      scanner: NamedCopiesScanner(store, shown, const FakeCopyNames()),
+      scanner: NamedCopiesScanner(store, _shown, const FakeCopyNames()),
       conflicts: NamedConflictSource(store, const FakeCopyNames()),
       notices: const _NoNotices(),
-      changes: changes,
-      shown: shown,
+      changes: bounded.changes,
+      shown: _shown,
     );
   }
 }

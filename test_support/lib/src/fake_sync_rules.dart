@@ -6,8 +6,8 @@ import 'fake_copy_names.dart';
 /// own folder is `.fake`, its temp files end in `.fake-tmp`, and its
 /// conflict copies are named by [FakeCopyNames] (or kept out of the folder,
 /// [FakeConflictSource]).
-final class FakeSyncAdapter {
-  const FakeSyncAdapter();
+final class FakeSyncRules {
+  const FakeSyncRules();
 
   static const _folder = '.fake';
   static const _tempSuffix = '.fake-tmp';

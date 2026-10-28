@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../file_types/document_types.dart';
 import '../document.dart';
 import '../document_files.dart';
 import '../open_failure.dart';
@@ -17,7 +18,10 @@ final cardPreviewsProvider = Provider<CardPreviews>(
         .read(documentFilesProvider(document.folder))
         .reload(document)) {
       Ok(value: final read) => Previewed(
-        read.type.cardSummary(read.text, read.path),
+        ref
+            .read(documentTypesProvider)
+            .ofFile(read.type)
+            .cardSummary(read.text, read.path),
       ),
       Err(error: NotText()) => const PreviewNotText(),
       Err(error: NotRead()) => const PreviewUnreadable(),

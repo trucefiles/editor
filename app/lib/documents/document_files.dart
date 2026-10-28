@@ -44,7 +44,7 @@ final class DocumentFiles {
   /// before its folder changed: refused if the folder doesn't show it;
   /// [NotText] if it is not text.
   Future<Result<DocumentText, OpenFailure>> open(RelPath path) async {
-    final type = _types.of(path);
+    final type = _types.of(path)?.support;
     if (type == null || !_folder.covers(path)) {
       return const Err(NotRead(StoreError.outside));
     }
@@ -65,21 +65,31 @@ final class DocumentFiles {
 
   /// New document of [type] in [subfolder] (the base folder's top level
   /// if `null`), named after [title], holding [text]; by default a
-  /// `# title` line. If [subfolder] is gone, the document goes to the top
-  /// of the folder's part that held it: it is kept, and the deleted
-  /// folder never comes back.
+  /// `# title` line; [newSubfolder] makes [subfolder] first. If
+  /// [subfolder] is gone, the document goes to the top of the folder's
+  /// part that held it: it is kept, and the deleted folder never comes
+  /// back.
   Future<Result<DocumentText, StoreError>> create(
     String title, {
     required DocumentType type,
     RelPath? subfolder,
+    bool newSubfolder = false,
     String? text,
   }) async {
     final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
     final extension = type.newFileExtension;
-    final created = await _createNamed(title, extension, subfolder, file);
+    final created = await _createNamed(title, extension, (
+      folder: subfolder,
+      isNew: newSubfolder,
+    ), file);
     if (created case Err(error: StoreError.notFound) when subfolder != null) {
       final top = _topOf(subfolder);
-      if (top != subfolder) return _createNamed(title, extension, top, file);
+      if (top != subfolder) {
+        return _createNamed(title, extension, (
+          folder: top,
+          isNew: false,
+        ), file);
+      }
     }
     return created;
   }
@@ -91,39 +101,35 @@ final class DocumentFiles {
     final Subfolders subfolders => subfolders.rootOf(subfolder),
   };
 
-  /// Creates [subfolder], a new one the user asked for; one that is
-  /// already there is fine. Never brings back a gone chosen subfolder of
-  /// the folder, nor the base folder.
-  Future<Result<void, StoreError>> createSubfolder(RelPath subfolder) =>
-      _store.createFolder(subfolder);
-
   /// A copy of [document], from any folder, holding [text] in
   /// [document]'s byte style, in [subfolder] (the base folder's top level
-  /// if `null`); named after [title] (by default [document]'s name) with
-  /// [document]'s extension, and a number if that name is taken.
+  /// if `null`; made first if [newSubfolder]); named after [title] (by
+  /// default [document]'s name) with [document]'s extension, and a number
+  /// if that name is taken.
   Future<Result<DocumentText, StoreError>> copyIn(
     DocumentText document,
     String text, {
     RelPath? subfolder,
+    bool newSubfolder = false,
     String? title,
   }) {
     final (:base, :extension) = splitFileName(document.path.name);
-    return _createNamed(
-      title ?? base,
-      extension,
-      subfolder,
-      document.file.withText(text),
-    );
+    return _createNamed(title ?? base, extension, (
+      folder: subfolder,
+      isNew: newSubfolder,
+    ), document.file.withText(text));
   }
 
   /// Moves [document]'s file, as last saved, from anywhere in this base
-  /// folder to [subfolder] (its top level if `null`); named after [title]
-  /// (by default [document]'s name) with [document]'s extension, and a
-  /// number if that name is taken. Fails with [StoreError.changedSinceRead]
-  /// if the file changed since [document] was read: nothing moved.
+  /// folder to [subfolder] (its top level if `null`; made first if
+  /// [newSubfolder]); named after [title] (by default [document]'s name)
+  /// with [document]'s extension, and a number if that name is taken.
+  /// Fails with [StoreError.changedSinceRead] if the file changed since
+  /// [document] was read: nothing moved.
   Future<Result<DocumentText, StoreError>> moveIn(
     DocumentText document, {
     RelPath? subfolder,
+    bool newSubfolder = false,
     String? title,
   }) {
     final DocumentText(document: Document(path: from, :version), :file) =
@@ -132,18 +138,17 @@ final class DocumentFiles {
     return _named(
       title ?? base,
       extension,
-      subfolder,
+      (folder: subfolder, isNew: newSubfolder),
       (path) => _store.move(from, path, ifUnchanged: version),
       file,
     );
   }
 
-  /// Fails with [StoreError.notFound] if [subfolder] is gone: the store
-  /// would create it, and a deleted folder never comes back.
+  /// See [_named].
   Future<Result<DocumentText, StoreError>> _createNamed(
     String title,
     String extension,
-    RelPath? subfolder,
+    _Subfolder subfolder,
     TextFile file,
   ) {
     final bytes = file.encode(file.text);
@@ -157,27 +162,25 @@ final class DocumentFiles {
   }
 
   /// Writes [file] by [write] at the first free name after [title] in
-  /// [subfolder]. Fails with [StoreError.notFound] if [subfolder] is gone:
-  /// the store would create it, and a deleted folder never comes back.
+  /// [subfolder]'s folder, made first if it is a new one the user asked
+  /// for. Fails with [StoreError.notFound] if an existing one is gone: the
+  /// store would create it, and a deleted folder never comes back.
   Future<Result<DocumentText, StoreError>> _named(
     String title,
     String extension,
-    RelPath? subfolder,
+    _Subfolder subfolder,
     Future<Result<FileEntry, StoreError>> Function(RelPath path) write,
     TextFile file,
   ) async {
-    if (subfolder != null && !await _hasFolder(subfolder)) {
-      return const Err(StoreError.notFound);
-    }
+    if (await _ready(subfolder) case Err(:final error)) return Err(error);
+    final folder = subfolder.folder;
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
       final name = documentFileName(
         title,
         attempt: attempt,
         extension: extension,
       );
-      final path = subfolder == null
-          ? RelPath.parse(name)!
-          : subfolder.child(name)!;
+      final path = folder == null ? RelPath.parse(name)! : folder.child(name)!;
       switch (await write(path)) {
         case Ok(value: final entry):
           return Ok(_documentAt(entry, file));
@@ -189,6 +192,17 @@ final class DocumentFiles {
     }
     return const Err(StoreError.alreadyExists);
   }
+
+  /// Makes [subfolder]'s folder if it is new, else checks it is there.
+  Future<Result<void, StoreError>> _ready(_Subfolder subfolder) async =>
+      switch (subfolder) {
+        (folder: null, isNew: _) => const Ok(null),
+        (folder: final folder?, isNew: true) => _store.createFolder(folder),
+        (folder: final folder?, isNew: false) =>
+          await _hasFolder(folder)
+              ? const Ok(null)
+              : const Err(StoreError.notFound),
+      };
 
   /// Whether [subfolder] is there.
   Future<bool> _hasFolder(RelPath subfolder) async =>
@@ -290,7 +304,7 @@ final class DocumentFiles {
   DocumentText _documentAt(FileEntry entry, TextFile file) => DocumentText(
     _document(
       entry.path,
-      _types.of(entry.path)!,
+      _types.of(entry.path)!.support,
       entry.version,
       entry.modified,
     ),
@@ -299,7 +313,7 @@ final class DocumentFiles {
 
   Document _document(
     RelPath path,
-    DocumentType type,
+    FileTypeSupport<Object?> type,
     FileVersion version,
     DateTime modified,
   ) => Document(
@@ -310,6 +324,11 @@ final class DocumentFiles {
     modified: modified,
   );
 }
+
+/// Where a document goes in its base folder: [folder] (its top level if
+/// `null`), and whether it is a new one the user asked for ([isNew]),
+/// made right before the document's file.
+typedef _Subfolder = ({RelPath? folder, bool isNew});
 
 final documentFilesProvider = Provider.family<DocumentFiles, DocumentFolder>(
   (ref, folder) => DocumentFiles(

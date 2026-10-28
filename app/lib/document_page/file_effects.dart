@@ -12,12 +12,13 @@ import '../folders/document_folder.dart';
 import 'document_file.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named
-/// after [title].
+/// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
 typedef CreateNote = Future<Result<DocumentText, StoreError>> Function(
   DocumentPlace place, {
   required DocumentType type,
   required String title,
   required String text,
+  bool newSubfolder,
 });
 
 /// The effect handler of one open document's file owner (see
@@ -187,6 +188,7 @@ final class FileEffects {
       type: file.type,
       title: file.titleFor(text),
       text: text,
+      newSubfolder: file.newSubfolder,
     )) {
       Ok(value: final created) => _written(created),
       Err() => const WriteFailed(),

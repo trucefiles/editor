@@ -42,7 +42,6 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late Color _color = widget.folder.color;
   late final _parts = SubfolderChoice(
     names: ref.read(subfolderNamesProvider(widget.folder.base)),
-    isToolFolder: ref.read(syncToolsProvider).isToolFolder,
     taken: [
       for (final other
           in ref.read(foldersProvider).value ?? const <DocumentFolder>[])

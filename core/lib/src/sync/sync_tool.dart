@@ -2,6 +2,7 @@ import '../changes/folder_changes.dart';
 import '../changes/live_changes.dart';
 import '../conflicts/conflict_source.dart';
 import '../filter/file_filter.dart';
+import '../place/bounded_place.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
 import '../storage/subfolder_names.dart';
@@ -30,16 +31,19 @@ abstract interface class SyncTool {
   bool isToolFolder(List<String> names);
 
   /// Whether this tool syncs the base folder at [address], as far as it
-  /// can tell.
+  /// can tell. Any address is asked, also one the tool can't open:
+  /// [SyncStatus.unknown] then.
   Future<SyncStatus> recognize(Uri address);
 
   /// Whether the tool keeps old versions of the base folder's files that
   /// the app can't reach from it, e.g. as it is a subfolder of the synced
-  /// folder; for a hint to pick the synced folder itself.
+  /// folder; for a hint to pick the synced folder itself. `false` for an
+  /// address the tool can't open.
   Future<bool> missesOldVersions(Uri address);
 
-  /// The tool's access to the base folder at [address]. Kept as long as
-  /// the base folder is; built again only for another address.
+  /// The tool's access to the base folder at [address], one it
+  /// recognized or the user picked it for. Kept as long as the base
+  /// folder is; built again only for another address.
   ToolPlace place(Uri address);
 }
 
@@ -58,11 +62,10 @@ abstract interface class ToolPlace {
   /// The folder names in the base folder, for the user to pick subfolders.
   SubfolderNames get subfolders;
 
-  /// The base folder's files by the tool's rules, on [store], which holds
-  /// only what the app may touch there (the handled file types and the
-  /// app's own files), and on [changes], its changes bounded alike
-  /// (`null`: not followed live).
-  SyncedFolder open(FileStore store, {required FolderChanges? changes});
+  /// The base folder's files by the tool's rules, on [bounded]: only what
+  /// the app may touch there (the handled file types and the app's own
+  /// files), and its changes bounded alike.
+  SyncedFolder open(BoundedPlace bounded);
 }
 
 /// What a sync tool offers for one base folder.

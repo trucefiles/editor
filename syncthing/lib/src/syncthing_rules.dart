@@ -6,8 +6,8 @@ import 'syncthing_conflict_name.dart';
 ///
 /// Works for any folder inside a Syncthing folder, root or subfolder: it
 /// matches names, never looks for the folder's root.
-final class SyncthingAdapter {
-  const SyncthingAdapter();
+final class SyncthingRules {
+  const SyncthingRules();
 
   /// Syncthing's own files and folders, at the root of a Syncthing folder.
   static const _internalNames = {'.stfolder', '.stignore', '.stversions'};

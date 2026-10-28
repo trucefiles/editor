@@ -95,7 +95,7 @@ Document listedDocument(
 }) => Document(
   folder: folder,
   path: path(name),
-  type: appDocumentTypes().of(path(name))!,
+  type: appDocumentTypes().of(path(name))!.support,
   version: FileVersion(version),
   modified: modified ?? DateTime(2000),
 );

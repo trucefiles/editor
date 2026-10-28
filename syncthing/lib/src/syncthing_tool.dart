@@ -23,8 +23,9 @@ final class SyncthingTool implements SyncTool {
       SyncthingPlace.rules.isInternalFolder(names);
 
   @override
-  Future<SyncStatus> recognize(Uri address) =>
-      SyncthingSyncCheck(_disk.markersAt(address)).check();
+  Future<SyncStatus> recognize(Uri address) async => _disk.serves(address)
+      ? SyncthingSyncCheck(_disk.markersAt(address)).check()
+      : SyncStatus.unknown;
 
   /// Syncthing keeps old versions in `.stversions` at the root of the
   /// synced folder: out of reach from any folder below it.

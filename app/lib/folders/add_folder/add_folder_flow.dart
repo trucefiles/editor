@@ -26,16 +26,10 @@ enum AddFolderStep {
 
 /// What [AddFolderFlow] needs from the app, wired.
 final class AddFolderWork {
-  const AddFolderWork({
-    required this.tools,
-    required this.isToolFolder,
-    required this.add,
-  });
+  const AddFolderWork({required this.tools, required this.add});
 
   /// The sync tools the app works with, in the order offered.
   final List<SyncTool> tools;
-
-  final bool Function(List<String> segments) isToolFolder;
 
   /// Adds the folder; see `FoldersController.add`.
   final Future<Result<DocumentFolder, FolderError>> Function({
@@ -106,7 +100,6 @@ final class AddFolderFlow extends ChangeNotifier {
     _parts?.dispose();
     _parts = SubfolderChoice(
       names: tool.place(address).subfolders,
-      isToolFolder: _work.isToolFolder,
       taken: [
         for (final folder in _folders)
           if (folder.base.address == address) folder.selection,

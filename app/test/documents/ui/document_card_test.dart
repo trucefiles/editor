@@ -20,8 +20,9 @@ void main() {
   );
 
   /// [text] as the card's preview, read.
-  CardPreview read(String text) =>
-      Previewed(document.type.cardSummary(text, document.path));
+  CardPreview read(String text) => Previewed(
+    appDocumentTypes().ofFile(document.type).cardSummary(text, document.path),
+  );
 
   Future<double> heightWith(WidgetTester tester, int lines) async {
     final text = ['# Title', for (var i = 1; i <= lines; i++) 'line $i'];

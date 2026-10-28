@@ -25,10 +25,8 @@ Future<DocumentPlace?> showNotePlaceDialog(
 /// Like [showNotePlaceDialog], also asking for a document's file name without
 /// its extension, starting at [name]. A subfolder may also be typed, a new
 /// one too, if [canHold] says documents of the folder can go there. The
-/// chosen place and name as typed, and whether the subfolder is a new one
-/// to make first; `null` if cancelled.
-Future<({DocumentPlace place, String name, bool newSubfolder})?>
-showNoteFileDialog(
+/// chosen place and name; `null` if cancelled.
+Future<PickedPlace?> showNoteFileDialog(
   BuildContext context, {
   required List<DocumentFolder> folders,
   required DocumentPlace initial,
@@ -54,6 +52,11 @@ showNoteFileDialog(
   ),
   _ => null,
 };
+
+/// A place and name the user picked, the name as typed; [newSubfolder]:
+/// the place's subfolder is a new one, made with the document's first
+/// write there.
+typedef PickedPlace = ({DocumentPlace place, String name, bool newSubfolder});
 
 typedef _Choice = ({DocumentPlace place, String? name, bool newSubfolder});
 

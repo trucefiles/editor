@@ -8,6 +8,8 @@ import 'package:truce_editor/folders/folder_colors.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
+import '../../support.dart' show hostSyncthing;
+
 void main() {
   final synced = Uri.parse('fake://host/synced');
   final plain = Uri.parse('fake://host/plain');
@@ -48,11 +50,13 @@ void main() {
     color: folderColors.first,
   );
 
-  AddFolderFlow flow([List<DocumentFolder> folders = const []]) {
+  AddFolderFlow flow([
+    List<DocumentFolder> folders = const [],
+    List<SyncTool>? tools,
+  ]) {
     final flow = AddFolderFlow(
       AddFolderWork(
-        tools: [other, syncthing, plainFolder],
-        isToolFolder: (_) => false,
+        tools: tools ?? [other, syncthing, plainFolder],
         add:
             ({
               required address,
@@ -83,6 +87,14 @@ void main() {
     await adding.pickBase(synced);
 
     expect(adding.step, AddFolderStep.parts);
+    expect(adding.tool, syncthing);
+  });
+
+  test('a folder on no disk is asked of a disk tool too', () async {
+    final adding = flow(const [], [hostSyncthing(), syncthing]);
+
+    await adding.pickBase(synced);
+
     expect(adding.tool, syncthing);
   });
 

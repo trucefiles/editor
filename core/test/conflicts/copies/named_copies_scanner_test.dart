@@ -13,7 +13,7 @@ void main() {
     store = MemoryFileStore();
     scanner = NamedCopiesScanner(
       store,
-      VisibleFileFilter(const FakeSyncAdapter().isInternal),
+      VisibleFileFilter(const FakeSyncRules().isInternal),
       const FakeCopyNames(),
     );
   });

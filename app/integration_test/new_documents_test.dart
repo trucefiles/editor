@@ -204,6 +204,20 @@ void main() {
     expect(app.file('plan.md').existsSync(), isFalse);
   });
 
+  testApp('moves a document into a typed new subfolder', (tester) async {
+    app.write('plan.md', '# Plan\n');
+    await tester.addFolder(app);
+    await tester.openNote('Plan');
+
+    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.typeSubfolder('done/2026');
+    await tester.tapAndSettle(find.text('OK'));
+
+    await tester.waitFor(find.text('Saved as Documents/done/2026/plan.md'));
+    await tester.waitForFile(app.file('done/2026/plan.md'), '# Plan\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
+  });
+
   testApp('renames a document', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);

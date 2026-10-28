@@ -243,6 +243,5 @@ final class _SpiedPlace implements ToolPlace {
   SubfolderNames get subfolders => _place.subfolders;
 
   @override
-  SyncedFolder open(FileStore store, {required FolderChanges? changes}) =>
-      _place.open(store, changes: changes);
+  SyncedFolder open(BoundedPlace bounded) => _place.open(bounded);
 }

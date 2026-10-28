@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_actions.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/following_changes.dart';
@@ -78,12 +79,10 @@ void main() {
       title: 'New',
       text: '# New',
     )).value;
-    final inbox = (folder: folder, subfolder: path('work/inbox'));
-    expect(await actions.createSubfolder(inbox), isA<Ok<void, StoreError>>());
     final moved = await actions.move(created, (
       folder: folder,
       subfolder: path('work/inbox'),
-    ));
+    ), newSubfolder: true);
 
     expect(place.files.textOf('work/a.md'), '# A\nmore');
     expect(moved.value.path, path('work/inbox/New.md'));
@@ -94,12 +93,17 @@ void main() {
       const NotRead(StoreError.outside),
     );
     expect(
-      (await actions.createSubfolder((
+      (await actions.move(moved.value, (
         folder: folder,
         subfolder: path('home/new'),
-      ))).error,
-      StoreError.outside,
+      ), newSubfolder: true)).error,
+      isA<MoveNotWritten>().having(
+        (failure) => failure.error,
+        'error',
+        StoreError.outside,
+      ),
     );
+    expect(place.files.textOf('work/inbox/New.md'), '# New');
   });
 
   test('follows the tool\'s live changes of what the folder shows', () async {

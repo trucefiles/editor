@@ -137,18 +137,16 @@ BaseFolderServices baseFolderServices(
   required Duration Function() checkEvery,
   required void Function(Set<RelPath> paths) wrote,
 }) {
+  // Below the boundary: a write it refuses is never told.
   final bounded = BoundedPlace(
-    ReachReportingStore(place.files, reach),
+    WriteReportingStore(ReachReportingStore(place.files, reach), wrote),
     place.changes,
     selection,
     handles: (file) =>
         types.handles(file) || DocumentMarks.files.includesFile(file),
     checkEvery: checkEvery,
   );
-  final synced = place.open(
-    WriteReportingStore(bounded.files, wrote),
-    changes: bounded.changes,
-  );
+  final synced = place.open(bounded);
   final backups = fileBackupsAt(backupsPath);
   return BaseFolderServices(
     store: synced.store,

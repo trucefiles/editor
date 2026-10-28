@@ -182,6 +182,31 @@ void main() {
       expect(File('${dir.path}/Milk.md').existsSync(), isFalse);
     });
 
+    test('makes a new subfolder the user asked for, then the document '
+        'in it', () async {
+      final created = (await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('work/2026/q1'),
+        newSubfolder: true,
+      )).value;
+
+      expect(created.path, path('work/2026/q1/Milk.md'));
+      expect(read('work/2026/q1/Milk.md'), '# Milk\n');
+    });
+
+    test('never makes a new subfolder outside what it shows', () async {
+      final created = await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('home/new'),
+        newSubfolder: true,
+      );
+
+      expect(created.error, StoreError.outside);
+      expect(Directory('${dir.path}/home').existsSync(), isFalse);
+    });
+
     test('never brings back its chosen subfolder once it is gone', () async {
       Directory('${dir.path}/work').deleteSync(recursive: true);
 
@@ -215,6 +240,31 @@ void main() {
       ]);
       expect(File('${dir.path}/Plan.md').existsSync(), isFalse);
       expect(read('inbox/Plan.md'), 'taken');
+    });
+
+    test('makes a new subfolder the user asked for, then moves in', () async {
+      File('${dir.path}/Plan.md').writeAsStringSync('a');
+      final document = (await files.open(path('Plan.md'))).value;
+
+      final moved = (await files.moveIn(
+        document,
+        subfolder: path('inbox/2026'),
+        newSubfolder: true,
+      )).value;
+
+      expect(moved.path, path('inbox/2026/Plan.md'));
+      expect(read('inbox/2026/Plan.md'), 'a');
+    });
+
+    test('moves nothing into a missing subfolder not asked for', () async {
+      File('${dir.path}/Plan.md').writeAsStringSync('a');
+      final document = (await files.open(path('Plan.md'))).value;
+
+      final moved = await files.moveIn(document, subfolder: path('gone'));
+
+      expect(moved.error, StoreError.notFound);
+      expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+      expect(read('Plan.md'), 'a');
     });
 
     test('renames, with the extension kept', () async {

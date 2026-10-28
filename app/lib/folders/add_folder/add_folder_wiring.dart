@@ -9,7 +9,6 @@ final addFolderWorkProvider = Provider<AddFolderWork>((ref) {
   final tools = ref.watch(syncToolsProvider);
   return AddFolderWork(
     tools: tools.all,
-    isToolFolder: tools.isToolFolder,
     add: ref.read(foldersProvider.notifier).add,
   );
 });

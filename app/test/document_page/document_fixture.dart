@@ -56,11 +56,18 @@ final class DocumentFixture {
     file,
     filesOf: (folder) => files[folder.id]!,
     draftsOf: (folder) => drafts[folder.id]!,
-    create: (place, {required type, required title, required text}) =>
-        files[place.folder.id]!.create(
+    create:
+        (
+          place, {
+          required type,
+          required title,
+          required text,
+          newSubfolder = false,
+        }) => files[place.folder.id]!.create(
           title,
           type: type,
           subfolder: place.subfolder,
+          newSubfolder: newSubfolder,
           text: text,
         ),
   );

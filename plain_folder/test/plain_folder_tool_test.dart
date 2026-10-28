@@ -45,14 +45,23 @@ void main() {
 
     setUp(() {
       store = MemoryFileStore()..put('todo.md', 'main');
-      folder = PlainFolderPlace(
-        LocalPlace(
-          files: store,
-          changes: null,
-          subfolders: const LocalSubfolderNames('/none'),
-          markers: const FakeFolderMarkers([{}]),
-        ),
-      ).open(store, changes: null);
+      folder =
+          PlainFolderPlace(
+            LocalPlace(
+              files: store,
+              changes: null,
+              subfolders: const LocalSubfolderNames('/none'),
+              markers: const FakeFolderMarkers([{}]),
+            ),
+          ).open(
+            BoundedPlace(
+              store,
+              null,
+              const WholeFolder(),
+              handles: (_) => true,
+              checkEvery: () => Duration.zero,
+            ),
+          );
     });
 
     test(

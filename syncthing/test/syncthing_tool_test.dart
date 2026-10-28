@@ -22,6 +22,8 @@ void main() {
       dir = Directory.systemTemp.createTempSync('truce_syncthing_tool');
       addTearDown(() => dir.deleteSync(recursive: true));
       Directory('${dir.path}/synced/docs').createSync(recursive: true);
+      Directory('${dir.path}/synced/.stversions').createSync();
+      Directory('${dir.path}/synced/.git').createSync();
       File('${dir.path}/synced/.stfolder').createSync();
       Directory('${dir.path}/plain').createSync();
     });
@@ -40,12 +42,20 @@ void main() {
       expect(await tool.missesOldVersions(at('plain')), isFalse);
     });
 
+    test("doesn't know an address it can't open", () async {
+      final elsewhere = Uri.parse('fake://cloud/notes');
+
+      expect(await tool.recognize(elsewhere), SyncStatus.unknown);
+      expect(await tool.missesOldVersions(elsewhere), isFalse);
+    });
+
     test('knows its own folders', () {
       expect(tool.isToolFolder(['.stversions']), isTrue);
       expect(tool.isToolFolder(['docs']), isFalse);
     });
 
-    test('works on the folder at an address with its temp files', () async {
+    test('works on the folder at an address with its temp files, '
+        'offering only the folders it shows', () async {
       final place = tool.place(at('synced'));
 
       await place.files.create(path('a.md'), bytesOf('text'));
@@ -73,7 +83,7 @@ void main() {
             {'.stfolder'},
           ]),
         ),
-      ).open(store, changes: live);
+      ).open(_bounded(store, live));
     });
 
     test('shows documents with their conflict copies apart', () async {
@@ -97,7 +107,7 @@ void main() {
         const ListAgain(),
       ];
 
-      expect(await folder.changes!.changes.toList(), [
+      expect(await folder.changes!.changes.take(2).toList(), [
         PathChanged(path(copy)),
         const ListAgain(),
       ]);
@@ -109,10 +119,19 @@ void main() {
   });
 }
 
+/// All of [store] and [live], as the app bounds them for a whole folder.
+BoundedPlace _bounded(FileStore store, LiveChanges? live) => BoundedPlace(
+  store,
+  live,
+  const WholeFolder(),
+  handles: (_) => true,
+  checkEvery: () => Duration.zero,
+);
+
 /// Changes that give [hints], then end.
-final class _Hints implements FolderChanges {
+final class _Hints implements LiveChanges {
   List<ChangeHint> hints = const [];
 
   @override
-  Stream<ChangeHint> get changes => Stream.fromIterable(hints);
+  Stream<ChangeHint> below(RelPath? folder) => Stream.fromIterable(hints);
 }

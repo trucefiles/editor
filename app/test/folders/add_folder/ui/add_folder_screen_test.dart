@@ -48,7 +48,6 @@ void main() {
           addFolderWorkProvider.overrideWith(
             (ref) => AddFolderWork(
               tools: [syncthing, plain],
-              isToolFolder: (_) => false,
               add:
                   ({
                     required address,

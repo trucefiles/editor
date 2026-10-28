@@ -26,6 +26,7 @@ import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
 import '../../editor/ui/history_buttons.dart';
+import '../../file_types/document_type.dart';
 import '../../file_types/document_types.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/document_folder.dart';
@@ -72,6 +73,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   late final FolderStateController _folderState;
   late final ProviderContainer _container;
   late final DocumentSettingsController _settings;
+  late final DocumentType _type;
   late final EditorPart _part;
   late final DocumentSession _session;
   late final DocumentController _controller;
@@ -105,16 +107,18 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       final document? => _settings.settingsOf(document.key),
       null => DocumentSettings.defaults,
     };
+    final types = ref.read(documentTypesProvider);
+    _type = switch (document) {
+      final document? => types.ofFile(document.type),
+      null => types.forNew,
+    };
     final file = switch ((document, widget.place)) {
       (final document?, _) => ExistingFile(document),
-      (_, final place?) => NewFile(
-        place,
-        type: ref.read(documentTypesProvider).forNew,
-      ),
+      (_, final place?) => NewFile(place, type: _type),
       _ => throw StateError('A document or a place is needed.'),
     };
     final opened = document?.seen;
-    _part = file.type.editorPart(
+    _part = _type.editorPart(
       (
         text: opened?.text ?? '',
         version: opened?.version,
@@ -459,11 +463,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     await openDocumentBackups(
       context,
       document: document.document,
-      title: documentTitle(
-        text,
-        _session.file.pathFor(text),
-        _session.file.type,
-      ),
+      title: documentTitle(text, _session.file.pathFor(text), _type.support),
       controller: _controller,
       messenger: messenger,
     );
@@ -563,7 +563,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       appBar: AppBar(
         backgroundColor: tint,
         title: DocumentHeading(
-          title: documentTitle(text, path, _session.file.type),
+          title: documentTitle(text, path, _type.support),
           edited: _session.document?.document.modified,
         ),
         actions: [

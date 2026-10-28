@@ -5,7 +5,6 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/snack.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_file_name.dart';
-import '../../documents/document_place.dart';
 import '../../documents/document_title.dart';
 import '../../documents/move_failure.dart';
 import '../../documents/ui/document_place_dialog.dart';
@@ -66,24 +65,19 @@ class DocumentPlaceChip extends ConsumerWidget {
       canHold: actions.canHold,
     );
     if (picked == null || !context.mounted) return;
-    if (picked.newSubfolder &&
-        await actions.createSubfolder(picked.place) is Err) {
-      if (context.mounted) showSnack(context, "Couldn't make the subfolder.");
-      return;
-    }
-    if (!context.mounted) return;
     // Read after the dialog: hiding the app meanwhile creates the file.
-    if (session.file is NewFile) {
+    if (session.file case NewFile(:final type)) {
       final name = picked.name.trim();
       return session.place(
         NewFile(
           picked.place,
-          type: session.file.type,
+          type: type,
           name: name.isEmpty ? null : name,
+          newSubfolder: picked.newSubfolder,
         ),
       );
     }
-    await _move(context, actions, picked.place, picked.name);
+    await _move(context, actions, picked);
   }
 
   /// Moves or renames the document's file; an empty [name] names it after
@@ -92,9 +86,9 @@ class DocumentPlaceChip extends ConsumerWidget {
   Future<void> _move(
     BuildContext context,
     DocumentActions actions,
-    DocumentPlace place,
-    String name,
+    PickedPlace picked,
   ) async {
+    final (:place, :name, :newSubfolder) = picked;
     await session.secure(SecureReason.hide);
     if (!context.mounted) return;
     final current = session.document;
@@ -114,7 +108,12 @@ class DocumentPlaceChip extends ConsumerWidget {
         isNamedAfter(current.path.name, title)) {
       return;
     }
-    final moved = await actions.move(current, place, title: title);
+    final moved = await actions.move(
+      current,
+      place,
+      title: title,
+      newSubfolder: newSubfolder,
+    );
     if (!context.mounted) return;
     switch (moved) {
       case Ok(value: final copy):

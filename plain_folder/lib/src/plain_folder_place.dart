@@ -11,6 +11,10 @@ final class PlainFolderPlace implements ToolPlace {
   static const rules = PlainFolderRules();
   static const _names = PlainConflictNames();
 
+  /// What the app shows of a plain folder: no hidden files, none of its
+  /// own.
+  static final _shown = VisibleFileFilter(rules.isInternal);
+
   final LocalPlace _local;
 
   @override
@@ -20,18 +24,18 @@ final class PlainFolderPlace implements ToolPlace {
   LiveChanges? get changes => _local.changes;
 
   @override
-  SubfolderNames get subfolders => _local.subfolders;
+  SubfolderNames get subfolders => _local.subfolders.shownBy(_shown);
 
   @override
-  SyncedFolder open(FileStore store, {required FolderChanges? changes}) {
-    final shown = VisibleFileFilter(rules.isInternal);
+  SyncedFolder open(BoundedPlace bounded) {
+    final store = bounded.files;
     return SyncedFolder(
       store: store,
-      scanner: NamedCopiesScanner(store, shown, _names),
+      scanner: NamedCopiesScanner(store, _shown, _names),
       conflicts: NamedConflictSource(store, _names),
       notices: const _NoNotices(),
-      changes: changes,
-      shown: shown,
+      changes: bounded.changes,
+      shown: _shown,
     );
   }
 }

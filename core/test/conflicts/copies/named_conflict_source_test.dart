@@ -20,7 +20,7 @@ void main() {
   /// The conflicts in [store], as the scan finds them.
   Future<List<Conflict>> scan() async => (await NamedCopiesScanner(
     store,
-    VisibleFileFilter(const FakeSyncAdapter().isInternal),
+    VisibleFileFilter(const FakeSyncRules().isInternal),
     const FakeCopyNames(),
   ).scan()).value.conflicts;
 

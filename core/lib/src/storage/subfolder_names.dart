@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../common/result.dart';
+import '../filter/file_filter.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
 
@@ -11,6 +12,35 @@ abstract interface class SubfolderNames {
   /// The names of the folders directly in [folder] (the base folder
   /// itself if `null`), sorted.
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder);
+}
+
+/// Subfolder names as a sync tool offers them to pick.
+extension ShownSubfolderNames on SubfolderNames {
+  /// Only the folders [shown] lets through, e.g. no hidden ones and none
+  /// of the tool's own.
+  SubfolderNames shownBy(FileFilter shown) => _Shown(this, shown);
+}
+
+final class _Shown implements SubfolderNames {
+  const _Shown(this._all, this._shown);
+
+  final SubfolderNames _all;
+  final FileFilter _shown;
+
+  @override
+  Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
+      switch (await _all.namesIn(folder)) {
+        Ok(value: final names) => Ok([
+          for (final name in names)
+            if (_pathOf(folder, name) case final path?
+                when _shown.includesFolder(path))
+              name,
+        ]),
+        Err(:final error) => Err(error),
+      };
+
+  static RelPath? _pathOf(RelPath? folder, String name) =>
+      folder == null ? RelPath.parse(name) : folder.child(name);
 }
 
 /// [SubfolderNames] of a base folder on the local file system, at the

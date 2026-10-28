@@ -220,8 +220,13 @@ void main() {
             ExistingFile(fixture.document),
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,
-            create: (_, {required type, required title, required text}) =>
-                throw StateError('bug'),
+            create: (
+              _, {
+              required type,
+              required title,
+              required text,
+              newSubfolder = false,
+            }) => throw StateError('bug'),
           ),
         );
         addTearDown(session.dispose);

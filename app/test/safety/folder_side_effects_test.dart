@@ -39,7 +39,7 @@ void main() {
     final listed = Document(
       folder: folderAt(documents),
       path: entry.path,
-      type: appDocumentTypes().of(entry.path)!,
+      type: appDocumentTypes().of(entry.path)!.support,
       version: entry.version,
       modified: entry.modified,
     );

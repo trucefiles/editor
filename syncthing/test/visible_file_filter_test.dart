@@ -4,7 +4,7 @@ import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart' show path;
 
 void main() {
-  final filter = VisibleFileFilter(const SyncthingAdapter().isInternal);
+  final filter = VisibleFileFilter(const SyncthingRules().isInternal);
 
   test('includes visible folders only', () {
     expect(filter.includesFolder(path('lists')), isTrue);

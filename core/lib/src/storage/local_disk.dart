@@ -26,6 +26,10 @@ final class LocalDisk {
   /// Whether the app can look at the folders above the folder at a path.
   final bool Function(String folderPath) seesParents;
 
+  /// Whether [address] is a folder on this device, which this kit opens.
+  /// A tool asked about any other address answers that it doesn't know it.
+  bool serves(Uri address) => address.isScheme('file');
+
   /// The base folder at [address], whose atomic writes name their temp
   /// files by [tempName].
   LocalPlace at(Uri address, {required TempFileNamer tempName}) {
@@ -45,9 +49,9 @@ final class LocalDisk {
     return LocalFolderMarkers(path, seesParents: seesParents(path));
   }
 
-  /// The tools hand over only their own base folders' addresses, so any
-  /// other kind of address is a bug.
-  static String _pathOf(Uri address) => address.isScheme('file')
+  /// The tools hand over only addresses it [serves], so any other is a
+  /// bug.
+  String _pathOf(Uri address) => serves(address)
       ? address.toFilePath()
       : throw ArgumentError.value(address, 'address', 'not a file: address');
 }

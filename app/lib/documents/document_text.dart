@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import 'document.dart';
 
@@ -19,6 +18,6 @@ final class DocumentText {
 
   DocumentFolder get folder => document.folder;
   RelPath get path => document.path;
-  DocumentType get type => document.type;
+  FileTypeSupport<Object?> get type => document.type;
   DocumentKey get key => document.key;
 }

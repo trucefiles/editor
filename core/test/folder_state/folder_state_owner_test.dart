@@ -20,7 +20,7 @@ void main() {
       (_) => (
         scanner: NamedCopiesScanner(
           store,
-          VisibleFileFilter(const FakeSyncAdapter().isInternal),
+          VisibleFileFilter(const FakeSyncRules().isInternal),
           const FakeCopyNames(),
         ),
         marks: DocumentMarks(store, deviceId: 'phone'),

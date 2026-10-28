@@ -23,7 +23,8 @@ sealed class DocumentsInput implements Asking {
 }
 
 /// Create a document of [type] holding [text] at [place], named after
-/// [title].
+/// [title]; first [place]'s subfolder if it is a new one the user asked
+/// for ([newSubfolder]).
 final class CreateDocument extends DocumentsInput {
   const CreateDocument(
     super.ticket,
@@ -31,29 +32,32 @@ final class CreateDocument extends DocumentsInput {
     required this.type,
     required this.title,
     required this.text,
+    this.newSubfolder = false,
   });
 
   final DocumentPlace place;
   final DocumentType type;
   final String title;
   final String text;
-}
-
-/// Create the subfolder of [place], a new one the user asked for.
-final class CreateSubfolder extends DocumentsInput {
-  const CreateSubfolder(super.ticket, this.place);
-
-  final DocumentPlace place;
+  final bool newSubfolder;
 }
 
 /// Move [document], as last saved, to [place], renamed after [title] if
-/// given.
+/// given; first make [place]'s subfolder if it is a new one the user asked
+/// for ([newSubfolder]).
 final class MoveDocument extends DocumentsInput {
-  const MoveDocument(super.ticket, this.document, this.place, {this.title});
+  const MoveDocument(
+    super.ticket,
+    this.document,
+    this.place, {
+    this.title,
+    this.newSubfolder = false,
+  });
 
   final DocumentText document;
   final DocumentPlace place;
   final String? title;
+  final bool newSubfolder;
 }
 
 /// Delete [document], holding [text], so it can be undone.
@@ -100,12 +104,6 @@ final class DocumentCreated extends DocumentsAnswer {
   const DocumentCreated(super.ticket, this.result);
 
   final Result<DocumentText, StoreError> result;
-}
-
-final class SubfolderCreated extends DocumentsAnswer {
-  const SubfolderCreated(super.ticket, this.result);
-
-  final Result<void, StoreError> result;
 }
 
 final class DocumentMoved extends DocumentsAnswer {
