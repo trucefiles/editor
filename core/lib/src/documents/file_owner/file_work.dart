@@ -50,6 +50,13 @@ final class WritingFile extends Io {
   final WriteKind kind;
 }
 
+/// Reading the file as it is now, where it was [at] when the read began.
+final class ReadingFile extends Io {
+  const ReadingFile(super.id, {required this.at});
+
+  final Seen at;
+}
+
 /// Backing up both versions for [pick].
 final class BackingUp extends Io {
   const BackingUp(super.id, this.pick);
@@ -114,6 +121,7 @@ final class FileWork {
     this.lastWriteEnd,
     this.backedUp,
     this.moved,
+    this.toRead,
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -162,6 +170,10 @@ final class FileWork {
   /// The copy a move left while a write was under way.
   final Seen? moved;
 
+  /// A version of the file an observation found, not seen yet: read once
+  /// no I/O is under way.
+  final Version? toRead;
+
   FileWork copyWith({
     Object? expected = _same,
     Object? offered = _same,
@@ -176,6 +188,7 @@ final class FileWork {
     Object? lastWriteEnd = _same,
     Object? backedUp = _same,
     Object? moved = _same,
+    Object? toRead = _same,
   }) => FileWork(
     expected: _or(expected, this.expected),
     offered: _or(offered, this.offered),
@@ -190,6 +203,7 @@ final class FileWork {
     lastWriteEnd: _or(lastWriteEnd, this.lastWriteEnd),
     backedUp: _or(backedUp, this.backedUp),
     moved: _or(moved, this.moved),
+    toRead: _or(toRead, this.toRead),
   );
 }
 

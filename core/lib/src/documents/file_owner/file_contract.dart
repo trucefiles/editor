@@ -74,11 +74,12 @@ sealed class Observation {
   const Observation();
 }
 
-/// The file is there, holding [seen].
+/// The file is there, in [version]. A version the owner hasn't seen it
+/// reads itself ([ReadLatest]).
 final class Found extends Observation {
-  const Found(this.seen);
+  const Found(this.version);
 
-  final Seen seen;
+  final Version version;
 }
 
 /// The scan could not tell (e.g. the folder was out of reach).
@@ -177,6 +178,15 @@ final class WriteGone extends WriteOutcome {
 /// The write failed for another reason (e.g. no access).
 final class WriteFailed extends WriteOutcome {
   const WriteFailed();
+}
+
+/// What [ReadLatest] read: the file now; `null` if it could not be read
+/// (e.g. gone or no access), so nothing is learned.
+final class LatestRead extends FileResult {
+  const LatestRead(this.id, this.seen);
+
+  final EffectId id;
+  final Seen? seen;
 }
 
 /// Whether [BackUpBoth] backed up both versions.
@@ -304,6 +314,15 @@ final class Restore extends FileEffect {
   final EffectId id;
   final String text;
   final Seen where;
+}
+
+/// Read the file where [at] is, as it is now: an observation found a
+/// version not seen yet. Answered by [LatestRead].
+final class ReadLatest extends FileEffect {
+  const ReadLatest(this.id, {required this.at});
+
+  final EffectId id;
+  final Seen at;
 }
 
 /// Back up [theirs] and the edits [mine] before a pick; answered by

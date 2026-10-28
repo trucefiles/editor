@@ -46,9 +46,12 @@ final class DocumentMarks {
   /// Changes to this device's files, one at a time.
   final _changes = Pool(1);
 
-  /// The marked documents; unmarked ones are left out. Skips device files that
-  /// cannot be read.
-  Future<Result<Map<RelPath, DocumentMark>, StoreError>> load() async {
+  /// The marks files of all devices, as [known] holds them, with those
+  /// that are new or changed since read again, and those gone left out.
+  /// Keeps what [known] holds of a file that can't be read now; skips one
+  /// never read.
+  Future<Result<MarksFiles, StoreError>> load({MarksFiles? known}) async {
+    final last = known ?? MarksFiles.none;
     final List<FileEntry> entries;
     switch (await _store.list(
       enterFolder: files.includesFolder,
@@ -59,25 +62,49 @@ final class DocumentMarks {
       case Err(:final error):
         return Err(error);
     }
-    final newest = <RelPath, StampedMark>{};
-    for (final entry in entries) {
-      final directory = _directoryOf(entry.path);
-      if (await _store.read(entry.path) case Ok(:final value)) {
-        DocumentMarksFile.decode(value.bytes)?.forEach((name, stamped) {
-          final document = _inDirectory(directory, name);
-          if (document == null) return;
-          final known = newest[document];
-          if (known == null || stamped.changed.isAfter(known.changed)) {
-            newest[document] = stamped;
-          }
-        });
-      }
-    }
-    return Ok({
-      for (final MapEntry(:key, :value) in newest.entries)
-        if (!value.mark.isNone) key: value.mark,
+    return Ok(
+      MarksFiles({
+        for (final entry in entries)
+          entry.path: ?switch (last.files[entry.path]) {
+            final read? when read.version == entry.version => read,
+            final read => await _read(entry.path) ?? read,
+          },
+      }),
+    );
+  }
+
+  /// [known] with the marks files at [paths] read again, e.g. as they
+  /// changed: a file that is gone is left out; one that can't be read now
+  /// keeps what [known] holds of it.
+  Future<MarksFiles> reload(MarksFiles known, Set<RelPath> paths) async {
+    final read = {
+      for (final path in paths.where(files.includesFile))
+        path: await _store.read(path),
+    };
+    return MarksFiles({
+      for (final MapEntry(:key, :value) in known.files.entries)
+        if (!read.containsKey(key)) key: value,
+      for (final MapEntry(key: path, value: result) in read.entries)
+        path: ?switch (result) {
+          Ok(:final value) => _decoded(value) ?? known.files[path],
+          Err(error: StoreError.notFound) => null,
+          Err() => known.files[path],
+        },
     });
   }
+
+  /// The marks file at [path]; `null` if it can't be read as one.
+  Future<ReadMarksFile?> _read(RelPath path) async =>
+      switch (await _store.read(path)) {
+        Ok(:final value) => _decoded(value),
+        Err() => null,
+      };
+
+  static ReadMarksFile? _decoded(FileContent content) =>
+      switch (DocumentMarksFile.decode(content.bytes)) {
+        final marks? => (version: content.version, marks: marks),
+        null => null,
+      };
 
   /// Sets the mark of [document] in this device's file of its directory.
   /// Fails with [StoreError.ioFailure] if the file cannot be read as marks,
@@ -201,4 +228,39 @@ final class _MarksFiles implements FileFilter {
 
   @override
   bool includesFile(RelPath file) => DocumentMarks._isDeviceFile(file);
+}
+
+/// One device's marks file as read: its version and its marks, by
+/// document name in its directory.
+typedef ReadMarksFile = ({FileVersion version, Map<String, StampedMark> marks});
+
+/// The marks files of all devices in a base folder, as read, by path;
+/// see [DocumentMarks].
+final class MarksFiles {
+  MarksFiles(this.files);
+
+  static final none = MarksFiles(const {});
+
+  final Map<RelPath, ReadMarksFile> files;
+
+  /// The marked documents, per document the newest mark of all devices;
+  /// unmarked ones are left out.
+  late final Map<RelPath, DocumentMark> marks = () {
+    final newest = <RelPath, StampedMark>{};
+    for (final MapEntry(key: path, value: file) in files.entries) {
+      final directory = DocumentMarks._directoryOf(path);
+      file.marks.forEach((name, stamped) {
+        final document = DocumentMarks._inDirectory(directory, name);
+        if (document == null) return;
+        final known = newest[document];
+        if (known == null || stamped.changed.isAfter(known.changed)) {
+          newest[document] = stamped;
+        }
+      });
+    }
+    return {
+      for (final MapEntry(:key, :value) in newest.entries)
+        if (!value.mark.isNone) key: value.mark,
+    };
+  }();
 }

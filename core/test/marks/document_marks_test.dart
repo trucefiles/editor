@@ -28,7 +28,7 @@ void main() {
     await marks.set(path('todo.md'), amber);
     await marks.set(path('lists/shop.md'), teal);
 
-    expect((await marks.load()).value, {
+    expect((await marks.load()).value.marks, {
       path('todo.md'): amber,
       path('lists/shop.md'): teal,
     });
@@ -42,7 +42,7 @@ void main() {
     ]);
 
     expect(set, everyElement(isA<Ok<void, StoreError>>()));
-    expect((await marks.load()).value, {
+    expect((await marks.load()).value.marks, {
       path('todo.md'): amber,
       path('lists/shop.md'): teal,
     });
@@ -79,7 +79,7 @@ void main() {
   "todo.md": {"color": "teal", "changed": "2026-10-13T00:00:00Z"}
 }''');
 
-    expect((await device('phone').load()).value, {path('todo.md'): teal});
+    expect((await device('phone').load()).value.marks, {path('todo.md'): teal});
     await device('phone').set(path('plan.md'), amber);
     expect(store.textOf('.truce/marks/phone.json'), isNot(contains('shop')));
   });
@@ -103,7 +103,7 @@ void main() {
     await device('laptop').set(path('plan.md'), teal);
     await device('phone').set(path('plan.md'), amber);
 
-    expect((await device('phone').load()).value, {
+    expect((await device('phone').load()).value.marks, {
       path('todo.md'): teal,
       path('plan.md'): amber,
     });
@@ -113,7 +113,7 @@ void main() {
     await device('phone').set(path('todo.md'), amber);
     await device('laptop').set(path('todo.md'), DocumentMark.none);
 
-    expect((await device('phone').load()).value, isEmpty);
+    expect((await device('phone').load()).value.marks, isEmpty);
   });
 
   test('remove drops the mark of a document', () async {
@@ -123,7 +123,7 @@ void main() {
 
     await marks.remove(path('todo.md'));
 
-    expect((await marks.load()).value, {path('plan.md'): teal});
+    expect((await marks.load()).value.marks, {path('plan.md'): teal});
   });
 
   test('remove writes nothing if there is nothing to drop', () async {
@@ -170,7 +170,9 @@ void main() {
       ..put('.truce/marks/broken.json', 'not json');
     await device('phone').set(path('todo.md'), amber);
 
-    expect((await device('phone').load()).value, {path('todo.md'): amber});
+    expect((await device('phone').load()).value.marks, {
+      path('todo.md'): amber,
+    });
   });
 
   test('keeps entries of a file it reads in part', () async {
@@ -181,7 +183,9 @@ void main() {
   "/abs.md": {"color": "amber", "changed": "2026-10-13T00:00:00Z"}
 }''');
 
-    expect((await device('phone').load()).value, {path('todo.md'): amber});
+    expect((await device('phone').load()).value.marks, {
+      path('todo.md'): amber,
+    });
   });
 
   test('never writes over its own file if it cannot read it', () async {
@@ -211,9 +215,73 @@ void main() {
     await marks.set(path('lists/other.md'), amber);
     store.unreadableFolders.clear();
 
-    expect((await marks.load()).value, {
+    expect((await marks.load()).value.marks, {
       path('lists/shop.md'): teal,
       path('lists/other.md'): amber,
+    });
+  });
+
+  group('reading again', () {
+    test('reads only the marks files that are new or changed', () async {
+      await device('phone').set(path('todo.md'), amber);
+      await device('laptop').set(path('lists/shop.md'), teal);
+      final known = (await device('phone').load()).value;
+      await device('laptop').set(path('lists/shop.md'), amber);
+      store.reads.clear();
+
+      final again = (await device('phone').load(known: known)).value;
+
+      expect(store.reads, [path('lists/.truce/marks/laptop.json')]);
+      expect(again.marks, {
+        path('todo.md'): amber,
+        path('lists/shop.md'): amber,
+      });
+    });
+
+    test('leaves out marks files that are gone', () async {
+      await device('phone').set(path('todo.md'), amber);
+      final known = (await device('phone').load()).value;
+      store.files.remove(path('.truce/marks/phone.json'));
+
+      final again = (await device('phone').load(known: known)).value;
+
+      expect(again.marks, isEmpty);
+    });
+
+    test('reloads the files asked, and only those', () async {
+      await device('phone').set(path('todo.md'), amber);
+      await device('laptop').set(path('plan.md'), teal);
+      final known = (await device('phone').load()).value;
+      await device('laptop').set(path('plan.md'), amber);
+      store
+        ..files.remove(path('.truce/marks/phone.json'))
+        ..reads.clear();
+
+      final again = await device('phone').reload(known, {
+        path('.truce/marks/laptop.json'),
+        path('.truce/marks/phone.json'),
+        path('plan.md'),
+      });
+
+      expect(
+        store.reads,
+        unorderedEquals([
+          path('.truce/marks/laptop.json'),
+          path('.truce/marks/phone.json'),
+        ]),
+      );
+      expect(again.marks, {path('plan.md'): amber});
+    });
+
+    test('a reload keeps what it knew of a file it cannot read now', () async {
+      await device('phone').set(path('todo.md'), amber);
+      final known = (await device('phone').load()).value;
+      store.failWith = StoreError.accessDenied;
+
+      final again = await device('phone')
+          .reload(known, {path('.truce/marks/phone.json')});
+
+      expect(again.marks, {path('todo.md'): amber});
     });
   });
 }

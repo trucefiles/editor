@@ -5,17 +5,22 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  test('goes on with the fallback once the primary ends', () async {
+  test('goes on with the fallback once the primary ends, after asking '
+      'to list again', () async {
     final changes = FallbackFolderChanges(
       _FixedChanges(['a.md']),
       _FixedChanges(['b.md']),
     );
 
-    expect(await changes.changes.toList(), [path('a.md'), path('b.md')]);
+    expect(await changes.changes.toList(), [
+      PathChanged(path('a.md')),
+      const ListAgain(),
+      PathChanged(path('b.md')),
+    ]);
   });
 
   test('tells when it is on the fallback', () async {
-    final primary = StreamController<RelPath>();
+    final primary = StreamController<ChangeHint>();
     final changes = FallbackFolderChanges(
       _StreamChanges(primary),
       _FixedChanges([]),
@@ -31,15 +36,15 @@ void main() {
   });
 
   test('never starts the fallback while the primary runs', () async {
-    final primary = StreamController<RelPath>();
-    final fallback = StreamController<RelPath>();
+    final primary = StreamController<ChangeHint>();
+    final fallback = StreamController<ChangeHint>();
     final changes = FallbackFolderChanges(
       _StreamChanges(primary),
       _StreamChanges(fallback),
     );
 
     final subscription = changes.changes.listen((_) {});
-    primary.add(path('a.md'));
+    primary.add(PathChanged(path('a.md')));
     await Future<void>.delayed(Duration.zero);
 
     expect(fallback.hasListener, isFalse);
@@ -56,14 +61,15 @@ final class _FixedChanges implements FolderChanges {
   final List<String> paths;
 
   @override
-  Stream<RelPath> get changes => Stream.fromIterable(paths.map(path));
+  Stream<ChangeHint> get changes =>
+      Stream.fromIterable(paths.map((name) => PathChanged(path(name))));
 }
 
 final class _StreamChanges implements FolderChanges {
   _StreamChanges(this._controller);
 
-  final StreamController<RelPath> _controller;
+  final StreamController<ChangeHint> _controller;
 
   @override
-  Stream<RelPath> get changes => _controller.stream;
+  Stream<ChangeHint> get changes => _controller.stream;
 }

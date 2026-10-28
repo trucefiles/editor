@@ -1,85 +1,15 @@
 import 'dart:async';
 
-import '../common/result.dart';
-import '../filter/file_filter.dart';
-import '../storage/file_store.dart';
-import '../storage/rel_path.dart';
 import 'folder_changes.dart';
 
-/// [FolderChanges] found by listing the folder every [interval] and
-/// comparing the listing with the one before. Works on any [FileStore].
-/// Lists only the files [followed] includes, so other folders cost
-/// nothing.
-///
-/// A folder that is gone counts as empty, so its files show as deleted
-/// and again as created once it is back. Other listing failures skip the
-/// round. Never ends on its own.
+/// [FolderChanges] where they can't be followed live: asks for the folder
+/// to be listed again every [interval]. Never ends on its own.
 final class PolledFolderChanges implements FolderChanges {
-  const PolledFolderChanges(
-    this._store, {
-    required this.interval,
-    required this.followed,
-  });
-
-  final FileStore _store;
+  const PolledFolderChanges({required this.interval});
 
   final Duration interval;
 
-  /// The files and folders whose changes count.
-  final FileFilter followed;
-
   @override
-  Stream<RelPath> get changes {
-    Timer? timer;
-    late final StreamController<RelPath> controller;
-    Map<RelPath, FileVersion>? last;
-    var busy = false;
-
-    Future<void> poll() async {
-      if (busy) return;
-      busy = true;
-      try {
-        final now = await _snapshot();
-        final before = last;
-        if (now == null) return;
-        last = now;
-        if (before != null) _changedPaths(before, now).forEach(controller.add);
-      } finally {
-        busy = false;
-      }
-    }
-
-    controller = StreamController<RelPath>(
-      onListen: () {
-        unawaited(poll());
-        timer = Timer.periodic(interval, (_) => unawaited(poll()));
-      },
-      onCancel: () => timer?.cancel(),
-    );
-    return controller.stream;
-  }
-
-  /// Every file's version; empty if the folder is gone, `null` if it could
-  /// not be listed.
-  Future<Map<RelPath, FileVersion>?> _snapshot() async =>
-      switch (await _store.list(
-        enterFolder: followed.includesFolder,
-        includeFile: followed.includesFile,
-      )) {
-        Ok(:final value) => {
-          for (final file in value.files) file.path: file.version,
-        },
-        Err(error: StoreError.notFound) => const {},
-        Err() => null,
-      };
-
-  static Iterable<RelPath> _changedPaths(
-    Map<RelPath, FileVersion> before,
-    Map<RelPath, FileVersion> now,
-  ) => {
-    for (final MapEntry(key: path, value: version) in now.entries)
-      if (before[path] != version) path,
-    for (final path in before.keys)
-      if (!now.containsKey(path)) path,
-  };
+  Stream<ChangeHint> get changes =>
+      Stream.periodic(interval, (_) => const ListAgain());
 }

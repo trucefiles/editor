@@ -30,7 +30,15 @@ final class _Run {
 
   List<T> all<T>() => machine.all<T>();
 
-  void send(FileMessage message) => machine.send(message);
+  /// What the file holds for a read the owner starts: the last [found].
+  Seen? _file;
+
+  /// Sends [message]; a read it starts reads what [found] last found.
+  void send(FileMessage message) {
+    for (final read in machine.send(message).whereType<ReadLatest>()) {
+      send(LatestRead(read.id, _file));
+    }
+  }
 
   /// Asks to keep the edits for [reason]; its ticket.
   Ticket secure(SecureReason reason) {
@@ -72,8 +80,12 @@ final class _Run {
     send(Wrote(id, outcome, endedAt: Moment.now()));
   }
 
-  void found(Seen seen, {Moment? startedAt}) =>
-      send(Observed(Found(seen), startedAt: startedAt ?? Moment.now()));
+  /// A scan found the file in [seen]'s version, holding [seen]'s text
+  /// for the reads that follow.
+  void found(Seen seen, {Moment? startedAt}) {
+    _file = seen;
+    send(Observed(Found(seen.version), startedAt: startedAt ?? Moment.now()));
+  }
 }
 
 void main() {
@@ -244,6 +256,66 @@ void main() {
   });
 
   group('changes elsewhere', () {
+    test('a version found is read by the owner before it counts', () {
+      final run = _Run.opened('a');
+      final led = run.machine.send(
+        Observed(const Found(_v2), startedAt: Moment.now()),
+      );
+      final read = led.whereType<ReadLatest>().single;
+      expect(read.at, const Seen('a', _v1));
+      expect(run.status, isA<InStep>());
+
+      run.send(LatestRead(read.id, const Seen('b', _v2)));
+
+      expect(run.state.text, 'b');
+      expect(run.last<Replaced>().version, _v2);
+    });
+
+    test('a version already known is not read', () {
+      final run = _Run.opened('a')
+        ..send(Observed(const Found(_v1), startedAt: Moment.now()));
+
+      expect(run.all<ReadLatest>(), isEmpty);
+    });
+
+    test('a read that finds nothing changes nothing', () {
+      final run = _Run.opened('a')..edit('ab', 1);
+      run.machine.send(Observed(const Found(_v2), startedAt: Moment.now()));
+      run.keep();
+
+      expect(run.status, const Editing(EditPhase.onDevice).matcher);
+    });
+
+    test('a read waits for the I/O under way, and reads the newest', () {
+      final run = _Run.opened('a')..edit('ab', 1);
+      run.machine
+        ..send(Observed(const Found(_v2), startedAt: Moment.now()))
+        ..send(Observed(const Found(_v3), startedAt: Moment.now()));
+      expect(run.all<ReadLatest>(), isEmpty);
+
+      run.machine.send(DraftKept(run.last<KeepDraft>().id, kept: true));
+      run.machine.send(
+        LatestRead(run.last<ReadLatest>().id, const Seen('y', _v3)),
+      );
+
+      expect(run.all<ReadLatest>(), hasLength(1));
+      expect((run.status as ChangedElsewhere).theirs.version, _v3);
+    });
+
+    test('a read of the file before a move is dropped', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a');
+      run.machine.send(Observed(const Found(_v2), startedAt: Moment.now()));
+      final read = run.last<ReadLatest>();
+
+      run
+        ..send(const Moved(copy))
+        ..send(LatestRead(read.id, const Seen('b', _v2)));
+
+      expect(run.state.text, 'a');
+      expect(run.status, isA<InStep>());
+    });
+
     test('replace the text when there are no edits', () {
       final run = _Run.opened('a')..found(const Seen('x', _v2));
       final replaced = run.last<Replaced>();
@@ -270,10 +342,11 @@ void main() {
       () {
         final run = _Run.opened('a')
           ..edit('ab', 1)
-          ..found(const Seen('x', _v2));
+          ..found(const Seen('x', _v2))
+          // Read once the draft is kept.
+          ..keep();
         expect(run.status, isA<ChangedElsewhere>());
         run
-          ..keep()
           ..edit('abc', 2)
           ..keep()
           ..send(const SaveNow());
@@ -287,6 +360,7 @@ void main() {
         ..edit('ab', 1)
         ..found(const Seen('x', _v2))
         ..found(const Seen('y', _v3))
+        ..keep()
         ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1));
       expect(run.all<BackUpBoth>(), isEmpty);
       expect((run.status as ChangedElsewhere).theirs.version, _v3);
@@ -425,6 +499,14 @@ void main() {
       expect(run.all<PickNotKept>(), hasLength(1));
       expect(run.state.text, 'abc');
       expect(run.status, isA<ChangedElsewhere>());
+    });
+
+    test('change nothing while a newer version waits to be read', () {
+      final run = changed()
+        ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1));
+      run.machine.send(Observed(const Found(_v3), startedAt: Moment.now()));
+      backedUp(run);
+      expect(run.all<PickNotKept>(), hasLength(1));
     });
 
     test('change nothing once their version changed again', () {

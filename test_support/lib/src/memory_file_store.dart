@@ -25,6 +25,9 @@ final class MemoryFileStore implements FileStore {
   /// The files the last [list] call returned.
   List<RelPath> lastListed = const [];
 
+  /// Every file [read] was asked for, in order.
+  final List<RelPath> reads = [];
+
   int _clock = 0;
 
   /// Adds or overwrites [path] without any checks.
@@ -79,6 +82,7 @@ final class MemoryFileStore implements FileStore {
 
   @override
   Future<Result<FileContent, StoreError>> read(RelPath path) async {
+    reads.add(path);
     if (failWith case final error?) return Err(error);
     final content = files[path];
     return content == null ? const Err(StoreError.notFound) : Ok(content);
