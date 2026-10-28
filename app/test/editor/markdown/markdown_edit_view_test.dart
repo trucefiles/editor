@@ -4,8 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_core/truce_core.dart' show Undo;
-import 'package:truce_markdown/truce_markdown.dart' show EditMode, Request;
+import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import '../editor_robot.dart';
 
@@ -141,10 +140,44 @@ void main() {
     await tester.caretIn(lineNodeOf(0), 0);
     await tester.caretIn(lineNodeOf(0), 4);
     await tester.typeImeText('e');
-    document.gate.external(const Request(Undo()));
+    document.undo();
     await tester.pumpAndSettle();
 
     expect(document.text, 'abcd');
+  });
+
+  testWidgets('a paste is an undo step of its own', (tester) async {
+    final document = markdown('a');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('bc');
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText('x');
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    await tester.typeImeText('y');
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'axbc');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'ax');
+  });
+
+  testWidgets('a paste over a selected word is one undo step', (tester) async {
+    final document = markdown('buy milk');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy eggs');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy milk');
   });
 
   testWidgets('keypad keys move the caret with NumLock off', (tester) async {

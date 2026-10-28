@@ -5,18 +5,21 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditKey;
 
 import '../../library/keypad_keys.dart';
+import '../../library/own_paste.dart';
 import '../../library/rich_text_keys.dart';
 import 'visual_adapter.dart';
 
 /// Visual edit's key handling: the keys that edit go to the owner as what
 /// they are ([EditKey]), while no input method composes (so dead keys
 /// and input methods keep their keys); copy keeps what it copied for a
-/// paste here. Caret and selection keys are the library's; in an open
-/// raw block, its text is edited as plain text by the library's keys.
-/// The keypad's navigation keys work as the keys they stand for.
+/// paste here, and Ctrl+V pastes as one edit. Caret and selection keys
+/// are the library's; in an open raw block, its text is edited as plain
+/// text by the library's keys. The keypad's navigation keys work as the
+/// keys they stand for.
 List<SuperEditorKeyboardAction> visualKeyboardActions(VisualAdapter adapter) {
   final actions = [
     _copy(adapter),
+    pasteKey(adapter.paste),
     _editKeys(adapter),
     _tabInRaw(adapter),
     for (final action in defaultImeKeyboardActions)

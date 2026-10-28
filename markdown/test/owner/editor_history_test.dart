@@ -16,6 +16,25 @@ extension on EditorRun {
 
   void editText(String text) => owner.send(EditText(text, revision: revision));
 
+  void paste(String text) => owner.send(
+    Typed(
+      text,
+      over: shown.selection as TextSelection,
+      pasted: true,
+      revision: revision,
+    ),
+  );
+
+  void editRaw(String text, {bool pasted = false}) => owner.send(
+    EditRaw(
+      text,
+      base: text.length,
+      extent: text.length,
+      pasted: pasted,
+      revision: revision,
+    ),
+  );
+
   void pasteText(String text) =>
       owner.send(EditText(text, revision: revision, pasted: true));
 
@@ -176,6 +195,46 @@ void main() {
         ..editText('on x')
         ..undo();
       expect(run.markdown, 'on ');
+    });
+
+    test('a paste is one of its own', () {
+      final run = EditorRun('')
+        ..type('a')
+        ..paste('bc')
+        ..type('d')
+        ..undo();
+      expect(run.rows, ['abc']);
+      run.undo();
+      expect(run.rows, ['a']);
+    });
+
+    test('a paste over a selection is one', () {
+      final run = EditorRun('one two');
+      run
+        ..owner.send(
+          CaretMoved(
+            TextSelection(Place(run.leaf(0), 4), Place(run.leaf(0), 7)),
+            revision: run.revision,
+          ),
+        )
+        ..paste('six')
+        ..undo();
+      expect(run.rows, ['one two']);
+    });
+
+    test('a paste in a raw block is one of its own', () {
+      final run = EditorRun('a\n\n<div>');
+      run
+        ..owner.send(
+          OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision),
+        )
+        ..editRaw('<div>x')
+        ..editRaw('<div>xyz', pasted: true)
+        ..editRaw('<div>xyzw')
+        ..undo();
+      expect(run.text, 'a\n\n<div>xyz');
+      run.undo();
+      expect(run.text, 'a\n\n<div>x');
     });
 
     test('a caret moved in Markdown edit starts a new step', () {

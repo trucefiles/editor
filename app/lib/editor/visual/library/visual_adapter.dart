@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show TextAffinity;
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
@@ -149,7 +150,8 @@ final class VisualAdapter {
     CombineParagraphsRequest() => _pressed(md.EditKey.delete),
     InsertNewlineAtCaretRequest(:final newNodeId) => _enter(newNodeId),
     InsertSoftNewlineAtCaretRequest() => _pressed(md.EditKey.shiftEnter),
-    PasteEditorRequest(:final content) => _paste(content),
+    _PasteRequest(:final text) ||
+    PasteEditorRequest(content: final text) => _paste(text),
     _ => null,
   };
 
@@ -184,8 +186,9 @@ final class VisualAdapter {
     return _pressed(md.EditKey.enter);
   }
 
-  /// Text from the clipboard over the selection: the fragment copied here
-  /// last, with its styles, while the clipboard still holds its text.
+  /// Text from the clipboard over the selection, as one paste: the
+  /// fragment copied here last, with its styles, while the clipboard
+  /// still holds its text.
   md.EditorInput? Function(md.EditorState) _paste(String text) {
     final range = _rangeOf(composer.selection);
     final copied = _copied;
@@ -194,7 +197,12 @@ final class VisualAdapter {
         md.Paste(range, lines),
         revision: now.revision,
       ),
-      (final range?, _) => md.Typed(text, over: range, revision: now.revision),
+      (final range?, _) => md.Typed(
+        text,
+        over: range,
+        pasted: true,
+        revision: now.revision,
+      ),
       (null, _) => null,
     };
   }
@@ -206,6 +214,9 @@ final class VisualAdapter {
       };
 
   // Keys and actions.
+
+  /// [text] pasted over the selection, as one edit.
+  void paste(String text) => editor.execute([_PasteRequest(text)]);
 
   /// [key] pressed: the toolbar or a keyboard shortcut.
   void press(md.EditKey key) =>
@@ -269,15 +280,23 @@ final class VisualAdapter {
   /// nothing. The owner then gets the block's text.
   void _rawEdit(EditRequest request) {
     final executor = _executor!;
-    final command = switch (request) {
-      InsertNewlineAtCaretRequest() || InsertSoftNewlineAtCaretRequest() =>
-        _libraryCommand(InsertPlainTextAtCaretRequest('\n')),
+    final commands = switch (request) {
+      InsertNewlineAtCaretRequest() || InsertSoftNewlineAtCaretRequest() => [
+        ?_libraryCommand(InsertPlainTextAtCaretRequest('\n')),
+      ],
       DeleteUpstreamAtBeginningOfNodeRequest() ||
-      CombineParagraphsRequest() => null,
-      _ => _libraryCommand(request),
+      CombineParagraphsRequest() => <EditCommand>[],
+      _PasteRequest(:final text) => [
+        if (composer.selection?.isCollapsed == false)
+          ?_libraryCommand(
+            const DeleteSelectionRequest(TextAffinity.downstream),
+          ),
+        ?_libraryCommand(InsertPlainTextAtCaretRequest(text)),
+      ],
+      _ => [?_libraryCommand(request)],
     };
-    if (command == null) return;
-    executor.executeCommand(command);
+    if (commands.isEmpty) return;
+    commands.forEach(executor.executeCommand);
     final selection = composer.selection;
     final node = selection == null
         ? null
@@ -286,6 +305,7 @@ final class VisualAdapter {
     _gate.send(
       (now) => md.EditRaw(
         node.text.toPlainText(),
+        pasted: request is _PasteRequest || request is PasteEditorRequest,
         base: (selection.base.nodePosition as TextNodePosition).offset,
         extent: (selection.extent.nodePosition as TextNodePosition).offset,
         revision: now.revision,
@@ -436,6 +456,13 @@ final class _RunCommand extends EditCommand {
       _adapter._executor = outer;
     }
   }
+}
+
+/// [text] pasted over the selection; see [VisualAdapter.paste].
+final class _PasteRequest implements EditRequest {
+  const _PasteRequest(this.text);
+
+  final String text;
 }
 
 /// A content request Visual edit doesn't take: nothing happens.

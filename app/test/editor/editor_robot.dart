@@ -15,6 +15,7 @@ import 'package:truce_core/truce_core.dart'
         Ticket,
         ToFile,
         UndoOffered,
+        Undo,
         UndoRefused,
         Version;
 import 'package:truce_editor/editor/document_editor.dart';
@@ -75,6 +76,9 @@ final class TestDocument {
     gate.external(Request(SecureEditor(Ticket(), SecureReason.hide)));
     return _text;
   }
+
+  /// Undo, as the buttons and keys ask.
+  void undo() => gate.external(const Request(Undo()));
 
   /// The text as last sent, without asking for more.
   String get sent => _text;

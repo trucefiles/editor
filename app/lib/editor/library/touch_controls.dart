@@ -1,13 +1,22 @@
 import 'package:flutter/widgets.dart';
 import 'package:super_editor/super_editor.dart';
 
+import 'own_paste.dart';
+
 /// The touch controls of the super_editor [child] (caret handles, the
-/// drag handles of a selection) in [color], whichever touch platform's
-/// controls the editor shows.
+/// drag handles of a selection, the toolbar) in [color], whichever touch
+/// platform's controls the editor shows. The toolbar runs [operations]
+/// (e.g. our own paste).
 class TouchControls extends StatefulWidget {
-  const TouchControls({required this.color, required this.child, super.key});
+  const TouchControls({
+    required this.color,
+    required this.operations,
+    required this.child,
+    super.key,
+  });
 
   final Color color;
+  final PasteOperations operations;
   final Widget child;
 
   @override
@@ -18,11 +27,34 @@ class _TouchControlsState extends State<TouchControls> {
   late var _android = _androidIn(widget.color);
   late var _ios = _iosIn(widget.color);
 
-  static SuperEditorAndroidControlsController _androidIn(Color color) =>
-      SuperEditorAndroidControlsController(controlsColor: color);
+  SuperEditorAndroidControlsController _androidIn(Color color) {
+    late final SuperEditorAndroidControlsController controller;
+    return controller = SuperEditorAndroidControlsController(
+      controlsColor: color,
+      toolbarBuilder: (context, key, focalPoint) => DefaultAndroidEditorToolbar(
+        floatingToolbarKey: key,
+        focalPoint: focalPoint,
+        editorOps: widget.operations,
+        editorControlsController: controller,
+        selectionNotifier: widget.operations.selection,
+      ),
+    );
+  }
 
-  static SuperEditorIosControlsController _iosIn(Color color) =>
-      SuperEditorIosControlsController(handleColor: color);
+  SuperEditorIosControlsController _iosIn(Color color) {
+    late final SuperEditorIosControlsController controller;
+    return controller = SuperEditorIosControlsController(
+      handleColor: color,
+      toolbarBuilder: (context, key, focalPoint) =>
+          iOSSystemPopoverEditorToolbarWithFallbackBuilder(
+            context,
+            key,
+            focalPoint,
+            widget.operations,
+            controller,
+          ),
+    );
+  }
 
   /// A color is set once per controller: a new color takes new ones.
   @override

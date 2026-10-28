@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show TextAffinity;
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart'
     show EditableLines, Line, LineId, splitLines;
@@ -47,9 +48,6 @@ final class LinesAdapter<L extends EditableLines<L>> {
   /// Whether our own patch runs: its changes are no edits.
   bool _patching = false;
 
-  /// Whether the transaction running is a paste.
-  bool _pasting = false;
-
   Document get document => _document;
 
   /// The lines, e.g. for highlighting.
@@ -74,6 +72,9 @@ final class LinesAdapter<L extends EditableLines<L>> {
 
   // Library edits.
 
+  /// [text] pasted over the selection, as one edit.
+  void paste(String text) => editor.execute([_PasteRequest(text)]);
+
   /// Our patch, and pastes as plain text, its lines made at the end of
   /// the transaction like any text with line breaks; the library's
   /// handlers take every other request.
@@ -82,29 +83,33 @@ final class LinesAdapter<L extends EditableLines<L>> {
       nodes,
       selection: selection,
     ),
-    PasteEditorRequest(:final content, :final pastePosition) => _paste(
-      content,
-      pastePosition,
-    ),
+    _PasteRequest(:final text) => _PasteCommand([
+      if (composer.selection?.isCollapsed == false)
+        ?_libraryCommand(const DeleteSelectionRequest(TextAffinity.downstream)),
+      ?_libraryCommand(InsertPlainTextAtCaretRequest(text)),
+    ]),
+    PasteEditorRequest(:final content, :final pastePosition) => _PasteCommand([
+      ?_libraryCommand(
+        InsertTextRequest(
+          documentPosition: pastePosition,
+          textToInsert: content,
+          attributions: const {},
+        ),
+      ),
+    ]),
     _ => null,
   };
 
-  EditCommand _paste(String content, DocumentPosition position) {
-    _pasting = true;
-    return InsertTextCommand(
-      documentPosition: position,
-      textToInsert: content,
-      attributions: const {},
-    );
-  }
+  EditCommand? _libraryCommand(EditRequest request) => _libraryHandlers
+      .map((handler) => handler(editor, request))
+      .nonNulls
+      .firstOrNull;
 
   /// The lines the transaction's [changes] touched, re-read; the edited
   /// text gets the text. A node that came to hold line breaks (pasted text, or
   /// text an input method put in) is split into its lines. A transaction
   /// that only moved the caret tells the edited text so.
   void _onTransactionEnd(List<EditEvent> changes) {
-    final pasted = _pasting;
-    _pasting = false;
     if (_patching) return;
     final edits = changes
         .whereType<DocumentEdit>()
@@ -152,7 +157,7 @@ final class LinesAdapter<L extends EditableLines<L>> {
       _show(caret);
     }
     _treeChanged.changed();
-    _text.edit(_tree.text, pasted: pasted);
+    _text.edit(_tree.text, pasted: changes.any((change) => change is _Pasted));
   }
 
   static bool _movesCaret(EditEvent change) =>
@@ -282,6 +287,31 @@ final class _PatchRequest implements EditRequest {
 
   final List<TargetNode> nodes;
   final DocumentSelection? selection;
+}
+
+/// [text] pasted over the selection; see [LinesAdapter.paste].
+final class _PasteRequest implements EditRequest {
+  const _PasteRequest(this.text);
+
+  final String text;
+}
+
+/// Runs [commands], a paste, and tells so with [_Pasted].
+final class _PasteCommand extends EditCommand {
+  _PasteCommand(this.commands);
+
+  final List<EditCommand> commands;
+
+  @override
+  void execute(EditContext context, CommandExecutor executor) {
+    commands.forEach(executor.executeCommand);
+    executor.logChanges([const _Pasted()]);
+  }
+}
+
+/// The transaction was a paste.
+final class _Pasted extends EditEvent {
+  const _Pasted();
 }
 
 /// Tells its listeners of a change.

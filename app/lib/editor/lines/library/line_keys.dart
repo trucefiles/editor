@@ -2,14 +2,16 @@ import 'package:flutter/services.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../../library/keypad_keys.dart';
+import '../../library/own_paste.dart';
 import '../../library/rich_text_keys.dart';
 
-/// A line editor's key handling: the library's keys for plain text, and
-/// Tab types a tab. The keypad's navigation keys work as the keys they
-/// stand for.
-List<SuperEditorKeyboardAction> lineKeyboardActions() {
+/// A line editor's key handling: the library's keys for plain text, Tab
+/// types a tab, and Ctrl+V pastes with [paste]. The keypad's navigation
+/// keys work as the keys they stand for.
+List<SuperEditorKeyboardAction> lineKeyboardActions(PasteText paste) {
   final actions = [
     _tabTypesTab,
+    pasteKey(paste),
     for (final action in defaultImeKeyboardActions)
       if (!richTextKeys.contains(action)) action,
   ];

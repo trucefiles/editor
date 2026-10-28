@@ -164,6 +164,36 @@ void main() {
     expect(plain.text, 'ax');
   });
 
+  testWidgets('a paste over a selected word is one undo step', (tester) async {
+    final plain = _Plain('buy milk');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'buy eggs');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'buy milk');
+  });
+
+  testWidgets('the touch toolbar pastes as one undo step', (tester) async {
+    final plain = _Plain('buy milk');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.tap(find.text('Paste'));
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'buy eggs');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'buy milk');
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('a change from elsewhere shows right away', (tester) async {
     final plain = _Plain('a');
     await _pumpPlain(tester, plain);
