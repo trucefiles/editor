@@ -18,8 +18,7 @@ final class SpyFileStore implements FileStore {
     bool Function(RelPath folder)? enterFolder,
     bool Function(RelPath file)? includeFile,
   }) => inner.list(
-    enterFolder: (folder) =>
-        _record(folder, enterFolder?.call(folder) ?? true),
+    enterFolder: (folder) => _record(folder, enterFolder?.call(folder) ?? true),
     includeFile: (file) => _record(file, includeFile?.call(file) ?? true),
   );
 

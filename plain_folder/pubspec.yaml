@@ -1,0 +1,15 @@
+name: truce_plain_folder
+description: Plain folders for Truce, synced by no tool or one the app doesn't know. Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  truce_core: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any
+  truce_test_support: any

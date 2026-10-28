@@ -13,23 +13,24 @@ void main() {
 
   test('parses names without device ID or extension', () {
     expect(
-      const SyncthingConflictNames().parse('todo.sync-conflict-20151003-134809.md')
+      const SyncthingConflictNames()
+          .parse('todo.sync-conflict-20151003-134809.md')
           ?.mainName,
       'todo.md',
     );
     expect(
-      const SyncthingConflictNames().parse(
-        'Makefile.sync-conflict-20261003-134809-4I343AW',
-      )?.mainName,
+      const SyncthingConflictNames()
+          .parse('Makefile.sync-conflict-20261003-134809-4I343AW')
+          ?.mainName,
       'Makefile',
     );
   });
 
   test('keeps dots inside the base name', () {
     expect(
-      const SyncthingConflictNames().parse(
-        'v1.2 plan.sync-conflict-20261003-134809-4I343AW.md',
-      )?.mainName,
+      const SyncthingConflictNames()
+          .parse('v1.2 plan.sync-conflict-20261003-134809-4I343AW.md')
+          ?.mainName,
       'v1.2 plan.md',
     );
   });
