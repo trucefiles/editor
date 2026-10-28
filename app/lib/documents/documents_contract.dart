@@ -5,6 +5,7 @@ library;
 
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_type.dart';
 import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
@@ -20,33 +21,29 @@ sealed class DocumentsInput implements Asking {
   final Ticket ticket;
 }
 
-/// Create a document holding [text] at [place], named after [title].
+/// Create a document of [type] holding [text] at [place], named after
+/// [title].
 final class CreateDocument extends DocumentsInput {
   const CreateDocument(
     super.ticket,
     this.place, {
+    required this.type,
     required this.title,
     required this.text,
   });
 
   final DocumentPlace place;
+  final DocumentType type;
   final String title;
   final String text;
 }
 
-/// Move [document], holding [text], to [place], renamed after [title] if
+/// Move [document], as last saved, to [place], renamed after [title] if
 /// given.
 final class MoveDocument extends DocumentsInput {
-  const MoveDocument(
-    super.ticket,
-    this.document,
-    this.text,
-    this.place, {
-    this.title,
-  });
+  const MoveDocument(super.ticket, this.document, this.place, {this.title});
 
   final Document document;
-  final String text;
   final DocumentPlace place;
   final String? title;
 }

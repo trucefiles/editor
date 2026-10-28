@@ -111,6 +111,7 @@ export 'src/storage/local_file_store.dart';
 export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
 export 'src/storage/selection.dart';
+export 'src/storage/subfolder_names.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';

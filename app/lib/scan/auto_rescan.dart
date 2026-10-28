@@ -8,7 +8,7 @@ import '../platform/app_activity.dart';
 import '../reach/folder_reach_controller.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'folder_scans_controller.dart';
 
 final autoRescanProvider = AsyncNotifierProvider<AutoRescan, void>(
@@ -51,17 +51,16 @@ class AutoRescan extends AsyncNotifier<void> {
     if (!active) return;
     final folders = await ref.watch(foldersProvider.future);
     if (disposed) return;
-    // Follows again once a folder is back: watching ends when its folder
+    final bases = {for (final folder in folders) folder.base};
+    // Follows again once a base folder is back: watching ends when it
     // goes away, and goes on by polling until then.
-    for (final folder in folders) {
+    for (final base in bases) {
       ref.watch(
-        folderReachProvider(folder.location)
-            .select((reach) => reach == Reach.reachable),
+        folderReachProvider(base).select((reach) => reach == Reach.reachable),
       );
     }
     final changes = await Future.wait([
-      for (final folder in folders)
-        ref.watch(folderChangesProvider(folder.location).future),
+      for (final base in bases) ref.watch(folderChangesProvider(base).future),
     ]);
     if (disposed) return;
     for (final folderChanges in changes.nonNulls) {

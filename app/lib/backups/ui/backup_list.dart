@@ -62,7 +62,7 @@ class _BackupTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final (:folder, backup: shown) = backup;
     final document = ref.watch(folderScansProvider).value?.findNote((
-      folderId: folder.id,
+      baseId: folder.base.id,
       path: shown.filePath,
     ));
     return ListTile(

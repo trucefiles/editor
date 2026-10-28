@@ -28,7 +28,7 @@ import '../document.dart';
 import '../document_actions.dart';
 import '../document_settings_controller.dart';
 import '../document_settings_pruning.dart';
-import '../new_document_place/new_document_place_controller.dart';
+import '../new_file_place/new_file_place_controller.dart';
 import 'document_card.dart';
 import 'document_grid.dart';
 import 'document_sections.dart';
@@ -69,7 +69,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     // one goes to the place set.
     ref
       ..watch(documentSettingsProvider)
-      ..watch(newNotePlaceProvider)
+      ..watch(newFilePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(documentSettingsPruningProvider)
       ..watch(autoRescanProvider);
@@ -134,7 +134,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
-    final place = actions.newNotePlace(folders);
+    final place = actions.newFilePlace(folders);
     await Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (_) => DocumentScreen.fresh(place)),

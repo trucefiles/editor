@@ -89,7 +89,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
   }
 
   bool _unreachable(DocumentFolder folder) =>
-      ref.watch(folderReachProvider(folder.location)) == Reach.unreachable;
+      ref.watch(folderReachProvider(folder.base)) == Reach.unreachable;
 
   Widget _chooser(Conflict conflict, ConflictSides sides, bool busy) {
     final deleted = sides.current == null;

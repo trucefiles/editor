@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'conflict_sides.dart';
 import 'folder_conflicts.dart';
 
@@ -10,7 +10,7 @@ final class ConflictCompare
     implements CompareSource<FolderConflict, ConflictSides> {
   ConflictCompare(this._services, this._rescan);
 
-  final FolderServices _services;
+  final BaseFolderServices _services;
   final Future<void> Function() _rescan;
 
   @override

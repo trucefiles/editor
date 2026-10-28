@@ -43,7 +43,7 @@ void main() {
     late TextZoomStore store;
 
     setUp(() {
-      file = File('${tempFolder().path}/settings/note_text_size.json');
+      file = File('${tempFolder().path}/settings/document_text_size.json');
       store = TextZoomStore(file);
     });
 
@@ -120,7 +120,7 @@ void main() {
     });
 
     test('keep the document zoom saved by earlier versions', () async {
-      File('${storage.settingsPath}/note_text_size.json')
+      File('${storage.settingsPath}/document_text_size.json')
         ..createSync(recursive: true)
         ..writeAsStringSync('{"percent": 130}');
 

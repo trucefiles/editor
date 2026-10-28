@@ -75,13 +75,24 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
   late DocumentFolder _folder = widget.folders.contains(widget.initial.folder)
       ? widget.initial.folder
       : widget.folders.first;
-  late RelPath? _subfolder = _subfolders.contains(widget.initial.subfolder)
+  late RelPath? _subfolder = _offers(widget.initial.subfolder)
       ? widget.initial.subfolder
-      : null;
+      : _top;
 
   late final _name = TextEditingController(text: widget.name);
 
   List<RelPath> get _subfolders => widget.subfoldersOf(_folder);
+
+  /// Whether the base folder's top level can be picked in [_folder].
+  bool get _offersTopLevel => _folder.selection is WholeFolder;
+
+  bool _offers(RelPath? subfolder) =>
+      subfolder == null ? _offersTopLevel : _subfolders.contains(subfolder);
+
+  /// Where [_folder] starts: its top as the last scan found it.
+  RelPath? get _top => _offersTopLevel
+      ? null
+      : _subfolders.firstOrNull ?? topOf(_folder).subfolder;
 
   @override
   void dispose() {
@@ -110,19 +121,20 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
             ],
             onChanged: (folder) => setState(() {
               _folder = folder ?? _folder;
-              _subfolder = null;
+              _subfolder = _top;
             }),
           ),
           if (_subfolders case final subfolders when subfolders.isNotEmpty) ...[
             const SizedBox(height: 16),
             DropdownButtonFormField<RelPath?>(
-              // A new key per folder resets the field to the top level.
+              // A new key per folder resets the field to the folder's top.
               key: ValueKey(_folder.id),
               initialValue: _subfolder,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Subfolder'),
               items: [
-                const DropdownMenuItem(child: Text('Top level')),
+                if (_offersTopLevel)
+                  const DropdownMenuItem(child: Text('Top level')),
                 for (final subfolder in subfolders)
                   DropdownMenuItem(
                     value: subfolder,

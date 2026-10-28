@@ -13,7 +13,7 @@ void main() {
   late DocumentSettingsStore store;
 
   setUp(() {
-    file = File('${tempFolder().path}/settings/note_views.json');
+    file = File('${tempFolder().path}/settings/file_settings.json');
     store = DocumentSettingsStore(file);
   });
 

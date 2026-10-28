@@ -12,7 +12,7 @@ TextZoomStore textZoomStoreIn(AppStorage storage, TextZoomTarget target) =>
     TextZoomStore(
       File(
         '${storage.settingsPath}/${switch (target) {
-          TextZoomTarget.documents => 'note_text_size.json',
+          TextZoomTarget.documents => 'document_text_size.json',
           TextZoomTarget.app => 'app_text_size.json',
         }}',
       ),

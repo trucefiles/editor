@@ -11,8 +11,8 @@ import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/move_failure.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place_controller.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -126,14 +126,14 @@ void main() {
     expect((await scans()).findNote(document.key)?.path, path('a/b/Plan.md'));
   });
 
-  group('newNotePlace', () {
-    Future<void> setPlace(NewNotePlaceSetting? place) =>
-        container.read(newNotePlaceProvider.notifier).set(place);
+  group('newFilePlace', () {
+    Future<void> setPlace(NewFilePlaceSetting? place) =>
+        container.read(newFilePlaceProvider.notifier).set(place);
 
     test('is the default folder without a setting', () async {
-      await container.read(newNotePlaceProvider.future);
+      await container.read(newFilePlaceProvider.future);
 
-      expect(actions.newNotePlace(folders), (
+      expect(actions.newFilePlace(folders), (
         folder: folders[0],
         subfolder: null,
       ));
@@ -143,7 +143,7 @@ void main() {
       await documentIn(home, 'inbox/a.md', 'a');
       await setPlace((folderId: 'home', subfolder: path('inbox')));
 
-      expect(actions.newNotePlace(folders), (
+      expect(actions.newFilePlace(folders), (
         folder: folders[1],
         subfolder: path('inbox'),
       ));
@@ -152,7 +152,7 @@ void main() {
     test('falls back to the default for a folder not offered', () async {
       await setPlace((folderId: 'home', subfolder: null));
 
-      expect(actions.newNotePlace([folders[0]]), (
+      expect(actions.newFilePlace([folders[0]]), (
         folder: folders[0],
         subfolder: null,
       ));

@@ -16,7 +16,7 @@ class UnreachableBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(folderReachProvider(folder.location)) != Reach.unreachable) {
+    if (ref.watch(folderReachProvider(folder.base)) != Reach.unreachable) {
       return const SizedBox.shrink();
     }
     return MaterialBanner(

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import '../versions/version_text.dart';
 
 /// The two versions of one conflict copy, as text to compare.
@@ -23,7 +23,7 @@ final class ConflictSides {
 
   /// Reads both sides of [conflict]'s oldest copy, as [versionText].
   static Future<Result<ConflictSides, StoreError>> load(
-    FolderServices services,
+    BaseFolderServices services,
     Conflict conflict,
   ) async {
     final copy = conflict.copies.first;

@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/documents_owner.dart';
+import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'folder_scanning.dart';
 import 'folder_scans.dart';
 
@@ -19,7 +20,8 @@ typedef FolderScansOwner = ScansOwner<DocumentFolder, FolderScans>;
 /// whenever the folders change.
 final folderScansOwnerProvider = Provider<FolderScansOwner>((ref) {
   final scanning = FolderScanning(
-    (folder) => ref.read(folderServicesProvider(folder.location)),
+    (base) => ref.read(baseFolderServicesProvider(base)),
+    ref.read(documentTypesProvider),
     mounted: () => ref.mounted,
   );
   final owner = scansOwner<DocumentFolder, FolderScans>(scanning.scan);

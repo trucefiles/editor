@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place_store.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place_store.dart';
 
 import '../../support.dart';
 
@@ -10,10 +10,10 @@ void main() {
   final documents = folderAt(Directory('/documents'));
   final work = folderAt(Directory('/work'), id: 'f2');
 
-  group('resolveNewNotePlace', () {
+  group('resolveNewFilePlace', () {
     test('finds the folder, with the subfolder as set', () {
       expect(
-        resolveNewNotePlace(
+        resolveNewFilePlace(
           (folderId: 'f2', subfolder: path('inbox')),
           [documents, work],
         ),
@@ -23,20 +23,20 @@ void main() {
 
     test('none for a folder that is not offered, or no setting', () {
       expect(
-        resolveNewNotePlace((folderId: 'f9', subfolder: null), [documents]),
+        resolveNewFilePlace((folderId: 'f9', subfolder: null), [documents]),
         isNull,
       );
-      expect(resolveNewNotePlace(null, [documents]), isNull);
+      expect(resolveNewFilePlace(null, [documents]), isNull);
     });
   });
 
-  group('NewNotePlaceStore', () {
+  group('NewFilePlaceStore', () {
     late File file;
-    late NewNotePlaceStore store;
+    late NewFilePlaceStore store;
 
     setUp(() {
-      file = File('${tempFolder().path}/settings/new_note_place.json');
-      store = NewNotePlaceStore(file);
+      file = File('${tempFolder().path}/settings/new_file_place.json');
+      store = NewFilePlaceStore(file);
     });
 
     test('loads nothing before the first save', () async {

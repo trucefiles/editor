@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../sync_tool/folder_services.dart';
+import '../../sync_tool/base_folder_services.dart';
 import '../document_folder.dart';
 import 'folder_notice_text.dart';
 
@@ -14,11 +14,11 @@ class FolderWarningIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notices = ref.watch(folderNoticesProvider(folder.location)).value;
+    final notices = ref.watch(folderNoticesProvider(folder.base)).value;
     final warnings = [...?notices?.where((notice) => notice.isWarning)];
     if (warnings.isEmpty) return const SizedBox.shrink();
     final tool = ref
-        .watch(folderServicesProvider(folder.location))
+        .watch(baseFolderServicesProvider(folder.base))
         .syncToolName;
     return Tooltip(
       message: warnings.map((warning) => warning.shortText(tool)).join('\n'),
