@@ -3,6 +3,16 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Plain text files
+
+Text files (`.txt`) show next to Markdown documents. A card shows the first
+line as the title and the next lines below it. A text file opens in the same
+page and is edited as written, with no styling: a `#` is just a character.
+Undo, backups, compare and conflict copies work as for Markdown.
+
+<img src="screenshots/plain_text/plain_text_cards_desktop.png" width="600" alt="A text file's card next to a Markdown document's card">
+<img src="screenshots/plain_text/plain_text_editor_desktop.png" width="600" alt="A text file open, edited as written">
+
 ## Undo, redo and a document's backups
 
 Undo and redo take back and redo your edits while a document is open, with

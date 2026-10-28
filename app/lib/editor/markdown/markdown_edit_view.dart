@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:super_editor/super_editor.dart';
+import 'package:truce_markdown/truce_markdown.dart' as md;
 
-import '../document_metrics.dart';
 import '../editor_gate.dart';
-import '../library/editor_look.dart';
-import '../library/link_tap_handler.dart';
-import '../library/touch_controls.dart';
-import '../ui/empty_document_hint.dart';
-import 'library/highlight_phase.dart';
-import 'library/markdown_adapter.dart';
-import 'library/markdown_keys.dart';
-import 'ui/markdown_look.dart';
+import '../lines/edited_text.dart';
+import '../lines/line_edit_view.dart';
+import 'library/markdown_lines.dart';
 
 /// Markdown edit of the document behind [gate]: its text as written,
 /// line by line, highlighted as it reads. Links open with [onLink] on a
@@ -34,66 +28,36 @@ class MarkdownEditView extends StatefulWidget {
 }
 
 class _MarkdownEditViewState extends State<MarkdownEditView> {
-  late final _adapter = MarkdownAdapter(widget.gate);
-  late final _highlights = HighlightPhase(_adapter.highlightsOf);
-
-  /// The look in the current theme and metrics. Kept between builds:
-  /// the library lays the whole document out anew for each new
-  /// stylesheet.
-  EditorLook? _look;
-  (ThemeData, DocumentMetrics)? _lookFor;
+  late final _text = MarkdownText(widget.gate);
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final key = (Theme.of(context), DocumentMetrics.of(context));
-    if (key == _lookFor) return;
-    _lookFor = key;
-    _look = markdownLook(key.$1, metrics: key.$2);
-  }
+  Widget build(BuildContext context) => LineEditView<md.DocumentTree>(
+    _text,
+    editing: markdownLines,
+    onLink: widget.onLink,
+    autofocus: widget.autofocus,
+  );
+}
+
+/// The text Markdown edit edits: the editor owner's, behind [_gate].
+final class MarkdownText implements EditedText {
+  MarkdownText(this._gate);
+
+  final EditorGate _gate;
 
   @override
-  void dispose() {
-    _adapter.dispose();
-    super.dispose();
-  }
+  ShownText? get shown => switch (_gate.state.content) {
+    md.MarkdownContent(:final text, :final caret) => (text: text, caret: caret),
+    md.FormattedContent() => null,
+  };
 
   @override
-  Widget build(BuildContext context) {
-    final look = _look!;
-    return Stack(
-      children: [
-        TouchControls(
-          color: look.handleColor,
-          child: SuperEditor(
-            editor: _adapter.editor,
-            autofocus: widget.autofocus,
-            stylesheet: look.stylesheet,
-            selectionStyle: look.selection,
-            documentOverlayBuilders: look.overlays,
-            customStylePhases: [_highlights],
-            keyboardActions: markdownKeyboardActions(),
-            contentTapDelegateFactories: [
-              (_) => LinkTapHandler(
-                linkAt: _adapter.linkAt,
-                onLink: widget.onLink,
-                opens: (position) => editingTapOpens(
-                  position,
-                  tapOpens: false,
-                  caretNode: _adapter.composer.selection?.extent.nodeId,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ListenableBuilder(
-          listenable: _adapter.treeChanged,
-          builder: (context, _) => EmptyNoteHint(
-            empty: _adapter.tree.text.isEmpty,
-            padding: look.firstLinePadding,
-          ),
-        ),
-      ],
-    );
-  }
+  void edit(String text) =>
+      _gate.send((now) => md.EditText(text, revision: now.revision));
+
+  @override
+  void addListener(VoidCallback listener) => _gate.addListener(listener);
+
+  @override
+  void removeListener(VoidCallback listener) => _gate.removeListener(listener);
 }

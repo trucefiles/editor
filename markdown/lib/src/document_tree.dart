@@ -22,7 +22,8 @@ import 'tree/document_style.dart';
 /// keep their ids across changes. Ids are unique among the trees changed
 /// from one [DocumentTree.read]. Questions are lookups, derived once per
 /// tree when first asked.
-final class DocumentTree implements EarlierReading, EditableLines {
+final class DocumentTree
+    implements EarlierReading, EditableLines<DocumentTree> {
   DocumentTree._(this._lines, DocumentReading reading)
     : root = reading.root,
       definitions = Map.unmodifiable(reading.definitions),

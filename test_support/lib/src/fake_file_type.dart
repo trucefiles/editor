@@ -37,11 +37,9 @@ final class _FakeSummary implements TextSummary<FakePreview> {
       _lines.first.startsWith('# ') ? _lines.first.substring(2) : null;
 
   @override
-  String get firstLine =>
-      _lines.map((line) => line.trim()).firstWhere(
-        (line) => line.isNotEmpty,
-        orElse: () => '',
-      );
+  String get firstLine => _lines
+      .map((line) => line.trim())
+      .firstWhere((line) => line.isNotEmpty, orElse: () => '');
 
   @override
   String preview(FakePreview options) => _lines

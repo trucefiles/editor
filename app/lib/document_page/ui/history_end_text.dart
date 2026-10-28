@@ -1,4 +1,4 @@
-import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_core/truce_core.dart' show HistoryStart;
 
 /// What the user is told when undo reaches the start of the history.
 extension HistoryStartText on HistoryStart {

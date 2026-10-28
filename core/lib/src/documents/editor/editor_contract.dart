@@ -7,7 +7,13 @@
 library;
 
 import '../../owners/ask.dart';
+import '../../owners/owner.dart';
 import '../file_owner/file_contract.dart';
+
+/// Any document type's editor owner as the document page sees it: the
+/// page's requests go in, its notices come out, and its state tells of
+/// the edits.
+typedef PageEditor = Owner<EditorRequest, EditorStatus, EditorNotice>;
 
 /// What the document page asks of any editor.
 sealed class EditorRequest {

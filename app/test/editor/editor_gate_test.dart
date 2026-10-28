@@ -1,6 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Edited, Replaced, Ticket, Version;
+    show
+        Edited,
+        FromFile,
+        Replaced,
+        SaveTimer,
+        SecureEditor,
+        Ticket,
+        ToFile,
+        Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -58,18 +66,14 @@ final class _Gate {
   /// The texts the editor sent so far.
   List<Edited> get edits => [
     for (final output in outputs)
-      if (output case ToFile(input: final Edited edited)) edited,
+      if (output case Notice(notice: ToFile(input: final Edited edited)))
+        edited,
   ];
 
   /// The text the editor sends when it is secured.
   String secured() {
-    gate.send((_) => SecureEditor(Ticket(), .close));
-    return outputs
-        .whereType<ToFile>()
-        .map((output) => output.input)
-        .whereType<Edited>()
-        .last
-        .text;
+    gate.send((_) => Request(SecureEditor(Ticket(), .close)));
+    return edits.last.text;
   }
 }
 
@@ -140,7 +144,9 @@ void main() {
     run
       ..tap(0)
       ..gate.external(
-        const FromFile(Replaced('- [ ] a\n', version: Version(2), ackRev: 0)),
+        const Request(
+          FromFile(Replaced('- [ ] a\n', version: Version(2), ackRev: 0)),
+        ),
       );
     await tester.pump(_delay);
 

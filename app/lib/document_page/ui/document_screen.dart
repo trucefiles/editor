@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart';
 
 import '../../common/error_text.dart';
 import '../../common/screen_shortcuts.dart';
@@ -17,25 +16,17 @@ import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
 import '../../documents/document_drafts.dart';
 import '../../documents/document_files.dart';
-import '../../documents/document_images.dart';
 import '../../documents/document_place.dart';
 import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
 import '../../documents/document_title.dart';
-import '../../documents/ui/checked_items_dialog.dart';
+import '../../documents/document_version.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
-import '../../documents/ui/edit_mode_button.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
-import '../../editor/add_item_place/add_item_place.dart';
-import '../../editor/add_item_place/add_item_place_controller.dart';
-import '../../editor/document_editor.dart';
-import '../../editor/editor_gate.dart';
-import '../../editor/first_mode.dart';
-import '../../editor/run_command.dart';
 import '../../editor/ui/history_buttons.dart';
+import '../../file_types/document_types.dart';
 import '../../folders/document_folder.dart';
-import '../../markdown/markdown_links.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
@@ -45,6 +36,7 @@ import '../../theme/touch.dart';
 import '../document_controller.dart';
 import '../document_file.dart';
 import '../document_session.dart';
+import '../editor_part.dart';
 import '../file_effects.dart';
 import 'document_backups.dart';
 import 'document_place_chip.dart';
@@ -52,9 +44,10 @@ import 'edit_state_banner.dart';
 import 'history_end_text.dart';
 import 'save_indicator.dart';
 
-/// Editor for one document, in Visual edit, Markdown edit or Read. Saves
-/// as the user types; a new document's file is created as the user
-/// leaves it or the app is hidden.
+/// The one page for an open text document of any type; its type's editor
+/// part shows the text (e.g. Visual edit, Markdown edit or Read of a
+/// Markdown document). Saves as the user types; a new document's file is
+/// created as the user leaves it or the app is hidden.
 class DocumentScreen extends ConsumerStatefulWidget {
   const DocumentScreen(Document this.document, {super.key}) : place = null;
 
@@ -75,6 +68,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   late final FolderScansController _scans;
   late final ProviderContainer _container;
   late final DocumentSettingsController _settings;
+  late final EditorPart _part;
   late final DocumentSession _session;
   late final DocumentController _controller;
   late final AppLifecycleListener _lifecycle;
@@ -82,7 +76,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
-  EditorGate get _gate => _session.gate;
+  PageEditor get _editor => _session.editor;
 
   /// Where the document is now: it changes when the user moves it, or
   /// picks another place for a new one.
@@ -106,19 +100,31 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       final document? => _settings.settingsOf(document.key),
       null => DocumentSettings.defaults,
     };
-    final mode =
-        settings.mode ??
-        firstMode(
-          hasCheckboxes:
-              document != null &&
-              DocumentSummary.of(document.file.text).hasCheckboxes,
-          typing: document == null,
-        );
     final file = switch ((document, widget.place)) {
       (final document?, _) => ExistingFile(document),
       (_, final place?) => NewFile(place),
       _ => throw StateError('A document or a place is needed.'),
     };
+    final opened = document?.seen;
+    _part =
+        switch (document) {
+          final document? => documentTypes.of(document.path),
+          null => newDocumentType,
+        }.editorPart(
+          (
+            text: opened?.text ?? '',
+            version: opened?.version,
+            settings: settings,
+            // Not yet kept as a conflict copy: only an unreachable folder
+            // makes it read only.
+            readOnly: _unreachable(file.folder),
+            isNew: document == null,
+          ),
+          EditorPage(
+            keepSettings: (change) => _controller.keepSettings(change),
+            withFile: _withFile,
+          ),
+        );
     _session = DocumentSession(
       FileEffects(
         file,
@@ -127,14 +133,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             _container.read(documentDraftsProvider(folder.id)),
         create: ref.read(documentActionsProvider).create,
       ),
-      // Not yet kept as a conflict copy: only an unreachable folder
-      // makes it read only.
-      mode: _unreachable(file.folder) ? EditMode.read : mode,
-      checkedItems: settings.checkedItems,
+      _part.editor,
     );
     _controller = DocumentController(
       _session,
-      mode: mode,
       reachSettled: () =>
           ref.read(folderReachProvider(_folder.location).notifier).settled(),
       backUp: _backUp,
@@ -142,6 +144,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       delete: ref.read(documentActionsProvider).delete,
       editSettings: _settings.edit,
     );
+    _part.addListener(_onPartChanged);
     _session
       ..addListener(_showShownMode)
       ..addListener(_tellIfStopped);
@@ -163,6 +166,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     for (final notices in _notices) {
       unawaited(notices.cancel());
     }
+    _part.removeListener(_onPartChanged);
     _session
       ..removeListener(_showShownMode)
       ..removeListener(_tellIfStopped);
@@ -189,11 +193,13 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         null => const Err(StoreError.notFound),
       };
 
-  /// Shows the document in the mode it shows in: Read while it can't be
-  /// edited.
+  /// Shows the document only to read while it can't be edited.
   void _showShownMode() {
-    final shown = _isReadOnly ? EditMode.read : _controller.mode;
-    if (_gate.state.mode != shown) _gate.send((_) => SetMode(shown));
+    _part.showReadOnly(readOnly: _isReadOnly);
+    if (mounted) setState(() {});
+  }
+
+  void _onPartChanged() {
     if (mounted) setState(() {});
   }
 
@@ -216,7 +222,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     );
   }
 
-  void _onEditorNotice(EditorEvent notice) {
+  void _onEditorNotice(EditorNotice notice) {
     final messenger = _messenger.currentState;
     if (messenger == null) return;
     switch (notice) {
@@ -227,7 +233,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             OfferedUndo.restore => 'Backup restored',
           },
           actionLabel: 'Undo',
-          onAction: () => _gate.send((_) => UndoStep(id)),
+          onAction: () => _editor.send(UndoStep(id)),
         );
       case UndoRefused():
         messenger.showHint(
@@ -242,7 +248,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               ? null
               : () => unawaited(_openBackups(context)),
         );
-      case _:
+      case ToFile():
         break;
     }
   }
@@ -304,7 +310,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   /// Whether the screen can close at once: nothing is left to keep.
   bool get _canLeaveNow => switch (_session.status) {
-    InStep() || Unwritten() => !_gate.state.unsent,
+    InStep() || Unwritten() => !_editor.state.unsent,
     KeptAsConflict() || Closed() => true,
     Editing() ||
     ChangedElsewhere() ||
@@ -370,46 +376,13 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     );
   }
 
-  /// Whether the document has checklist items. Read when the menu
-  /// opens; in Markdown edit it reads the text.
-  bool get _hasCheckboxes => switch (_gate.state.content) {
-    FormattedContent(:final view) => view.doc.hasCheckboxes,
-    MarkdownContent() => DocumentSummary.of(_session.text).hasCheckboxes,
-  };
-
-  /// Whether the menu's commands on checked items run: in Visual edit and
-  /// Read, while the document takes edits.
-  bool get _runsCheckedCommands =>
-      _gate.state.mode != EditMode.markdown && !_isReadOnly;
-
   /// [context] is this screen's, below its own messenger; [settings] are
   /// the document's.
   Widget _menu(BuildContext context, DocumentSettings settings) =>
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          if (_hasCheckboxes) ...[
-            if (_runsCheckedCommands) ...[
-              PopupMenuItem(
-                value: () => _gate.run(MoveToEnd.new),
-                child: const Text('Move checked items to end now'),
-              ),
-              PopupMenuItem(
-                value: () => _gate.run(ClearChecked.new),
-                child: const Text('Clear checked items now'),
-              ),
-            ],
-            PopupMenuItem(
-              value: () => _withFile(
-                context,
-                (document) =>
-                    _pickCheckedItems(document, settings.checkedItems),
-              ),
-              child: Text(
-                'Checked items: ${checkedItemsName(settings.checkedItems)}',
-              ),
-            ),
-          ],
+          ..._part.menu(context, settings),
           PopupMenuItem(
             value: () => _withFile(
               context,
@@ -449,24 +422,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     );
   }
 
-  /// Asks how [document]'s checked items show, on this device; nothing moves.
-  Future<void> _pickCheckedItems(
-    Document document,
-    CheckedItems current,
-  ) async {
-    final chosen = await showCheckedItemsDialog(context, current: current);
-    if (chosen == null || chosen == current) return;
-    await _settings.edit(
-      document.key,
-      (settings) => settings.withCheckedItems(chosen),
-    );
-  }
-
-  void _showMode(EditMode mode) {
-    _controller.pickMode(mode);
-    _showShownMode();
-  }
-
   @override
   Widget build(BuildContext context) {
     ref
@@ -474,10 +429,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         _showShownMode();
       })
       ..listen(documentSettingsProvider, (_, _) {
-        final checkedItems = _settingsNow.checkedItems;
-        if (_gate.state.checkedItems != checkedItems) {
-          _gate.send((_) => SetCheckedItems(checkedItems));
-        }
+        _part.settingsChanged(_settingsNow);
       })
       ..listen(folderScansProvider, (_, next) {
         if (next.value case final scans?) _session.observe(scans);
@@ -491,36 +443,30 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     );
   }
 
-  /// Esc leaves the document, as the back arrow does; Ctrl+1, 2, 3 pick
-  /// the modes in the mode menu's order; Ctrl+Z undoes, Ctrl+Shift+Z and
-  /// Ctrl+Y redo while the document is edited.
+  /// Esc leaves the document, as the back arrow does; Ctrl+Z undoes,
+  /// Ctrl+Shift+Z and Ctrl+Y redo while the document is edited; the
+  /// type's own keys work while it can be edited.
   late final Map<SingleActivator, VoidCallback> _keys = {
     const SingleActivator(LogicalKeyboardKey.escape): () =>
         unawaited(Navigator.maybePop(context)),
     const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
-      if (_isEdited) undo(_gate);
+      if (_isEdited) _editor.send(const Undo());
     },
     const SingleActivator(
       LogicalKeyboardKey.keyZ,
       control: true,
       shift: true,
     ): () {
-      if (_isEdited) redo(_gate);
+      if (_isEdited) _editor.send(const Redo());
     },
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
-      if (_isEdited) redo(_gate);
+      if (_isEdited) _editor.send(const Redo());
     },
-    for (final (index, mode) in EditMode.values.indexed)
-      SingleActivator(_digits[index], control: true): () {
-        if (!_isReadOnly && mode != _controller.mode) _showMode(mode);
+    for (final MapEntry(key: keys, value: action) in _part.keys.entries)
+      keys: () {
+        if (!_isReadOnly) action();
       },
   };
-
-  static const _digits = [
-    LogicalKeyboardKey.digit1,
-    LogicalKeyboardKey.digit2,
-    LogicalKeyboardKey.digit3,
-  ];
 
   /// Hints whose action works on this screen (e.g. undoing a removed
   /// item) show on this screen's own messenger, so they go with it: once
@@ -537,7 +483,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   bool get _isReadOnly => _isDone || _isUnreachable || _session.stopped;
 
   /// Open for editing: undo and redo work.
-  bool get _isEdited => !_isReadOnly && _gate.state.mode != EditMode.read;
+  bool get _isEdited => !_isReadOnly && _part.isEditing;
 
   /// The edits were kept as a conflict copy; nothing more to edit here.
   bool get _isDone => _session.status is KeptAsConflict;
@@ -559,7 +505,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         : scans?.markOf(key) ?? DocumentMark.none;
     ref.watch(documentSettingsProvider);
     final settings = _settingsNow;
-    final addItems = ref.watch(addItemPlaceProvider).value ?? AddItemPlace.top;
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
     final path = _session.file.pathFor(text);
@@ -573,7 +518,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),
-          if (_isEdited) HistoryButtons(_gate),
+          if (_isEdited) HistoryButtons(_editor),
           // On touch, pulling down refreshes, and the menu has it.
           if (readOnly || !usesTouch(Theme.of(context)))
             IconButton(
@@ -582,7 +527,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               onPressed: _refresh,
             ),
           if (!readOnly) ...[
-            EditModeButton(mode: _controller.mode, onChanged: _showMode),
+            ..._part.actions(context),
             _menu(context, settings),
           ],
         ],
@@ -615,17 +560,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               key: _pull,
               onRefresh: _scans.refresh,
               child: DocumentTextZoom(
-                child: DocumentEditor(
-                  _gate,
-                  text: text,
-                  notices: _session.editorNotices,
-                  addItems: addItems,
-                  onLink: (url) => openMarkdownLink(context, ref, url),
-                  images: documentImages(
-                    _container.read(documentFilesProvider(_folder)),
-                    folder: _folder,
-                    document: path,
-                  ),
+                child: _part.view(
+                  (folder: _folder, path: path, kept: text),
                   // A new document is for typing right away.
                   autofocus: widget.document == null,
                 ),

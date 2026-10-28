@@ -5,11 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_core/truce_core.dart' show UndoOffered, UndoStep;
 import 'package:truce_editor/editor/visual/ui/line_drag.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
-import 'package:truce_markdown/truce_markdown.dart'
-    show CheckedItems, UndoOffered, UndoStep;
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, Request;
 
 import '../editor_robot.dart';
 
@@ -465,7 +465,7 @@ void main() {
     expect(text.text, '- [ ] a\n- [ ] b');
 
     final removed = text.notices.whereType<UndoOffered>().single;
-    text.gate.send((_) => UndoStep(removed.id));
+    text.gate.send((_) => Request(UndoStep(removed.id)));
     await tester.pumpAndSettle();
 
     expect(text.text, '- [ ] a\n- [ ] x\n- [ ] b');

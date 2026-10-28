@@ -36,6 +36,7 @@ void main() {
     write('a.md', '# A'.codeUnits);
     write('sub/b.md', '# B'.codeUnits);
     write('c.txt', 'c'.codeUnits);
+    write('d.png', 'd'.codeUnits);
     write('a.sync-conflict-20261012-101010-ABCDEFG.md', 'x'.codeUnits);
     write('.stversions/a.md', 'old'.codeUnits);
 
@@ -43,9 +44,12 @@ void main() {
 
     expect(
       documents.map((n) => n.path.value),
-      unorderedEquals(['a.md', 'sub/b.md']),
+      unorderedEquals(['a.md', 'sub/b.md', 'c.txt']),
     );
-    expect(documents.map((n) => n.file.text), unorderedEquals(['# A', '# B']));
+    expect(
+      documents.map((n) => n.file.text),
+      unorderedEquals(['# A', '# B', 'c']),
+    );
   });
 
   test('leaves out files that are not UTF-8', () async {

@@ -1,12 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart' show Replaced, Version;
+import 'package:truce_core/truce_core.dart' show FromFile, Replaced, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
-import 'package:truce_editor/editor/markdown/library/markdown_adapter.dart';
+import 'package:truce_editor/editor/lines/library/lines_adapter.dart';
+import 'package:truce_editor/editor/markdown/library/markdown_lines.dart';
+import 'package:truce_editor/editor/markdown/markdown_edit_view.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
-/// A Markdown edit adapter on an editor owner of [text].
+/// A line adapter on the Markdown edit of an editor owner of [text].
 final class _Markdown {
   _Markdown(String text)
     : gate = EditorGate(
@@ -17,12 +19,12 @@ final class _Markdown {
           startTimer: ManualTimers().start,
         ),
       ) {
-    adapter = MarkdownAdapter(gate);
+    adapter = LinesAdapter(MarkdownText(gate), read: md.DocumentTree.read);
     addTearDown(adapter.dispose);
   }
 
   final EditorGate gate;
-  late final MarkdownAdapter adapter;
+  late final LinesAdapter<md.DocumentTree> adapter;
 
   Editor get editor => adapter.editor;
   Document get document => adapter.document;
@@ -65,7 +67,7 @@ final class _Markdown {
 
   /// Text from elsewhere, e.g. the file changed on another device.
   void fromElsewhere(String text) => gate.external(
-    md.FromFile(Replaced(text, version: const Version(2), ackRev: 0)),
+    md.Request(FromFile(Replaced(text, version: const Version(2), ackRev: 0))),
   );
 }
 
@@ -149,9 +151,10 @@ void main() {
     final markdown = _Markdown('# Title');
 
     expect(
-      markdown.adapter
-          .highlightsOf(markdown.ids.single)
-          .map((span) => span.highlight),
+      lineHighlightsOf(
+        markdown.adapter,
+        markdown.ids.single,
+      ).map((span) => span.highlight),
       contains(const md.HeadingHighlight(1)),
     );
   });
@@ -159,7 +162,7 @@ void main() {
   test('finds the link at a position', () {
     final markdown = _Markdown('see [docs](https://x.org)');
 
-    expect(markdown.adapter.linkAt(markdown.at(0, 6)), 'https://x.org');
-    expect(markdown.adapter.linkAt(markdown.at(0, 1)), isNull);
+    expect(lineLinkAt(markdown.adapter, markdown.at(0, 6)), 'https://x.org');
+    expect(lineLinkAt(markdown.adapter, markdown.at(0, 1)), isNull);
   });
 }

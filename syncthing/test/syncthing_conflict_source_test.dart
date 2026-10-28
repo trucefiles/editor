@@ -20,10 +20,7 @@ void main() {
   /// The conflicts in [store], as the scan finds them.
   Future<List<Conflict>> scan() async => (await SyncthingFolderScanner(
     store,
-    const DefaultFileFilter(
-      SyncthingAdapter(),
-      fakeFileTypes,
-    ),
+    const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
   ).scan()).value.conflicts;
 
   group('read and discard', () {

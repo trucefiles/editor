@@ -1,48 +1,33 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart';
 
-import 'document_title.dart';
+import 'document_file_name.dart';
+import 'document_settings.dart';
 
 /// What cards and search show of one version of a document: its title and
-/// its preview, with and without checked items. Worked out from one
-/// read of the text.
+/// its preview, as the document's settings on this device say. Worked out
+/// by the document's type, from one read of the text.
 @immutable
 final class DocumentCardSummary {
-  const DocumentCardSummary({
-    required this.title,
-    required this.preview,
-    required this.previewHidingDone,
-  });
-
-  /// The summary of [text], the content of the document at [path], with
-  /// previews of up to [maxLines] lines.
-  factory DocumentCardSummary.of(
-    String text,
-    RelPath path, {
-    int maxLines = previewLines,
-  }) {
-    final summary = DocumentSummary.of(text, maxLines: maxLines);
-    return DocumentCardSummary(
-      title: documentTitleOf(summary, path),
-      preview: summary.preview,
-      previewHidingDone: summary.previewHidingDone,
-    );
-  }
+  const DocumentCardSummary({required this.title, required this.preview});
 
   /// Most lines a preview holds.
   static const previewLines = 10;
 
-  /// See [documentTitle].
+  /// The text's own title, else the file name without its extension.
   final String title;
 
-  /// See [DocumentSummary.preview].
-  final String preview;
-
-  /// [preview] with checked items left out and counted instead.
-  final String previewHidingDone;
-
-  /// [previewHidingDone] if [hideDone], else [preview].
-  String previewOf({required bool hideDone}) =>
-      hideDone ? previewHidingDone : preview;
+  /// The preview as the document's settings say.
+  final String Function(DocumentSettings settings) preview;
 }
+
+/// [summary] as cards show it, of the document at [path]; [options] says
+/// how the preview shows for the document's settings.
+DocumentCardSummary cardSummaryOf<O>(
+  TextSummary<O> summary,
+  RelPath path, {
+  required O Function(DocumentSettings settings) options,
+}) => DocumentCardSummary(
+  title: summary.title ?? splitFileName(path.name).base,
+  preview: (settings) => summary.preview(options(settings)),
+);

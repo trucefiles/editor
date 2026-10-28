@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import '../documents/delete_failure.dart';
 import '../documents/deleted_note.dart';
@@ -85,23 +84,21 @@ enum RestoreOutcome {
 
 /// The open document's view model: whether its edits are kept as the
 /// user leaves or quits, deleting it, its file for the actions that need
-/// one, the mode the user picked, and backups restored into it. No UI.
+/// one, its settings on this device, and backups restored into it. No UI.
 final class DocumentController {
-  /// [mode]: the mode it opens in. [reachSettled]: the reach of the
-  /// document's folder once a running check of it is over. [backUp]:
-  /// backs up the document's text. [canEdit]: whether the document can be
-  /// edited here now. [delete] deletes it; [editSettings] changes its
-  /// settings.
+  /// [reachSettled]: the reach of the document's folder once a running
+  /// check of it is over. [backUp]: backs up the document's text.
+  /// [canEdit]: whether the document can be edited here now. [delete]
+  /// deletes it; [editSettings] changes its settings.
   DocumentController(
     this.session, {
-    required this._mode,
     required this.reachSettled,
     required this.backUp,
     required this.canEdit,
     required this.delete,
     required this.editSettings,
   }) {
-    session.addListener(_saveModeOnceFiled);
+    session.addListener(_keepOnceFiled);
   }
 
   final DocumentSession session;
@@ -111,34 +108,28 @@ final class DocumentController {
   final DeleteDocument delete;
   final EditSettings editSettings;
 
-  EditMode _mode;
+  /// Settings changes made before the document had a file, to keep once
+  /// it has, in order.
+  final _toKeep = <DocumentSettings Function(DocumentSettings)>[];
 
-  /// A mode picked before the document had a file, to remember once it
-  /// has.
-  bool _modeToSave = false;
-
-  /// The mode the user picked last; it shows unless the document is read
-  /// only.
-  EditMode get mode => _mode;
-
-  /// Shows [mode] from now on, and remembers it on this device; for a new
-  /// document, once it has a file.
-  void pickMode(EditMode mode) {
-    _mode = mode;
-    _saveMode();
+  /// Changes the document's settings on this device by [change]; for a
+  /// new document, once it has a file.
+  void keepSettings(DocumentSettings Function(DocumentSettings) change) {
+    _toKeep.add(change);
+    _keepOnceFiled();
   }
 
-  void _saveModeOnceFiled() {
-    if (_modeToSave && session.document != null) _saveMode();
-  }
-
-  void _saveMode() {
+  void _keepOnceFiled() {
     final document = session.document;
-    _modeToSave = document == null;
-    if (document == null) return;
-    final mode = _mode;
+    if (document == null || _toKeep.isEmpty) return;
+    final changes = [..._toKeep];
+    _toKeep.clear();
     unawaited(
-      editSettings(document.key, (settings) => settings.withMode(mode)),
+      editSettings(
+        document.key,
+        (settings) =>
+            changes.fold(settings, (settings, change) => change(settings)),
+      ),
     );
   }
 
@@ -198,7 +189,7 @@ final class DocumentController {
   }
 
   /// Stops following the session.
-  void dispose() => session.removeListener(_saveModeOnceFiled);
+  void dispose() => session.removeListener(_keepOnceFiled);
 
   /// The document's text with every edit sent, to compare a backup with.
   Future<String> textNow() async {

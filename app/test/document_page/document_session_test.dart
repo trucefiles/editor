@@ -11,6 +11,7 @@ import 'package:truce_editor/documents/document_version.dart';
 
 import '../support.dart' hide documentOf;
 import 'document_fixture.dart';
+import 'markdown_session.dart';
 
 void main() {
   late DocumentFixture fixture;
@@ -45,7 +46,7 @@ void main() {
 
     // Made in the zone, so the error of its file owner is heard there.
     await runZonedGuarded(() async {
-      session = DocumentSession(
+      session = markdownSession(
         FileEffects(
           ExistingFile(fixture.document),
           filesOf: (_) => throw StateError('bug'),

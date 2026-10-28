@@ -10,12 +10,9 @@ import 'line_endings.dart';
 /// its text changes. A byte order mark is kept apart from the lines.
 /// Immutable: a change gives new lines; ids are unique among the lines
 /// changed from one [TextLines.read].
-final class TextLines implements EditableLines {
-  TextLines._(
-    List<Line> lines,
-    this._nextLineId, {
-    required this.byteOrderMark,
-  }) : lines = List.unmodifiable(lines);
+final class TextLines implements EditableLines<TextLines> {
+  TextLines._(List<Line> lines, this._nextLineId, {required this.byteOrderMark})
+    : lines = List.unmodifiable(lines);
 
   /// [text], with its lines ended by `\n`, `\r\n` or `\r`.
   factory TextLines.read(String text) {
@@ -179,9 +176,8 @@ final class TextLines implements EditableLines {
   /// These lines with [text] instead (see [changeTo]).
   @override
   TextLines withText(String text) =>
-      changed(
-    changeTo(text),
-  ).withMark(mark: text.startsWith(byteOrderMarkCharacter));
+      changed(changeTo(text))
+          .withMark(mark: text.startsWith(byteOrderMarkCharacter));
 
   /// These lines, starting with a byte order mark if [mark].
   TextLines withMark({required bool mark}) => mark == byteOrderMark

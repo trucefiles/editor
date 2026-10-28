@@ -47,9 +47,14 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(mode).last);
   }
 
-  /// Types [text] over the open document's whole text, in Markdown edit.
+  /// Types [text] over the open document's whole text, as written: in
+  /// Markdown edit for a document that has modes.
   Future<void> typeOver(String text) async {
-    if (find.byTooltip('Mode: Markdown edit').evaluate().isEmpty) {
+    final hasModes = find
+        .byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>)
+        .evaluate()
+        .isNotEmpty;
+    if (hasModes && find.byTooltip('Mode: Markdown edit').evaluate().isEmpty) {
       await chooseMode('Markdown edit');
     }
     await tapAndSettle(find.byType(SuperEditor));

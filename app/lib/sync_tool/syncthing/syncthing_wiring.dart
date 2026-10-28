@@ -2,6 +2,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 
 import '../../backups/file_backups_at.dart';
+import '../../file_types/document_types.dart';
 import '../../platform/platform_facts.dart';
 import '../../refresh/refresh_settings.dart';
 import '../folder_services.dart';
@@ -11,15 +12,15 @@ const SyncAdapter syncthingAdapter = SyncthingAdapter();
 
 /// The files the app shows: documents of the types it handles, without
 /// Syncthing's own files.
-const FileFilter _shown = DefaultFileFilter(
+final FileFilter _shown = DefaultFileFilter(
   syncthingAdapter,
-  ExtensionFileTypeDetector.standard(),
+  documentTypes.detector,
 );
 
 /// The files whose changes count: the shown ones, their conflict copies
 /// and the marks of all devices. Nothing else, e.g. `.git` or swap files,
 /// leads to a rescan.
-const FileFilter _followed = AnyFileFilter([
+final FileFilter _followed = AnyFileFilter([
   SyncthingFileFilter(_shown),
   DocumentMarks.files,
 ]);

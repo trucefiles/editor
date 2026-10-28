@@ -65,7 +65,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     DocumentCard(
                       document,
                       mark: scans?.markOf(document.key) ?? DocumentMark.none,
-                      pinned: settings.settingsOf(document.key).pinned,
+                      settings: settings.settingsOf(document.key),
                       onTap: () => openNote(context, document),
                       onMark: () => editPinOrColor(context, ref, document),
                     ),

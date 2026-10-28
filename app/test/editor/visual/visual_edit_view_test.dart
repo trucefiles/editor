@@ -6,10 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_core/truce_core.dart' show UndoOffered, UndoStep;
 import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/visual/ui/drawn_table.dart';
 import 'package:truce_markdown/truce_markdown.dart'
-    show CheckedItems, EditMode, UndoOffered, SetMode, UndoStep;
+    show CheckedItems, EditMode, Request, SetMode;
 
 import '../editor_robot.dart';
 
@@ -118,7 +119,7 @@ void main() {
 
     expect(document.text, '- [ ] eggs');
     final removed = document.notices.whereType<UndoOffered>().single;
-    document.gate.send((_) => UndoStep(removed.id));
+    document.gate.send((_) => Request(UndoStep(removed.id)));
     await tester.pumpAndSettle();
     expect(document.text, '- [ ] milk\n- [ ] eggs');
   });

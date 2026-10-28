@@ -8,6 +8,7 @@ import '../../text_zoom/ui/document_text_zoom.dart';
 import '../document.dart';
 import '../document_card_summary.dart';
 import '../document_colors.dart';
+import '../document_settings.dart';
 
 /// A document in the grid: title and first lines at the document text zoom;
 /// folder, last edit, pin and color.
@@ -17,23 +18,20 @@ class DocumentCard extends StatelessWidget {
     required this.onTap,
     required this.onMark,
     this.mark = DocumentMark.none,
-    this.pinned = false,
+    this.settings = DocumentSettings.defaults,
     this.hasConflict = false,
-    this.hideDone = false,
     super.key,
   });
 
   final Document document;
   final DocumentMark mark;
 
-  /// Shows a pin.
-  final bool pinned;
+  /// The document's settings on this device: a pin, and how its preview
+  /// shows.
+  final DocumentSettings settings;
 
   /// Shows a badge: another version from a sync conflict is waiting.
   final bool hasConflict;
-
-  /// Leaves checked items out of the preview, counting them instead.
-  final bool hideDone;
 
   final VoidCallback onTap;
 
@@ -44,7 +42,7 @@ class DocumentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final preview = document.preview(hideDone: hideDone);
+    final preview = document.preview(settings);
     return Card(
       clipBehavior: Clip.antiAlias,
       color: documentTint(mark.color, theme.colorScheme),
@@ -98,7 +96,7 @@ class DocumentCard extends StatelessWidget {
                         .edited(document.modified, now: DateTime.now()),
                     style: textTheme.labelSmall,
                   ),
-                  if (pinned)
+                  if (settings.pinned)
                     const Tooltip(
                       message: 'Pinned',
                       child: Icon(Icons.push_pin, size: 18),

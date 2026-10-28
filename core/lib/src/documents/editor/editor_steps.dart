@@ -47,7 +47,10 @@ mixin EditorSteps<S> {
         _undoLatest();
         if (!book.history.canUndo) notify(HistoryEnd(book.history.start));
       case Redo():
-        if (book.history.redone(snapshot()) case (:final history, :final back)) {
+        if (book.history.redone(snapshot()) case (
+          :final history,
+          :final back,
+        )) {
           book = book.copyWith(history: history);
           _back(back);
         }
@@ -63,7 +66,9 @@ mixin EditorSteps<S> {
         _changedByHistory();
         record(before, null);
         notify(UndoOffered(book.history.latestId!, OfferedUndo.restore));
-      case FromFile(message: Replaced(:final text, :final version, :final ackRev))
+      case FromFile(
+            message: Replaced(:final text, :final version, :final ackRev),
+          )
           when ackRev == book.rev:
         book = book.copyWith(
           lineage: version,
@@ -114,8 +119,7 @@ mixin EditorSteps<S> {
 
   /// The typing run ends: typing next starts a step of its own (e.g. the
   /// caret moved).
-  void endTypingRun() =>
-      book = book.copyWith(history: book.history.runEnded());
+  void endTypingRun() => book = book.copyWith(history: book.history.runEnded());
 
   /// The text to the file owner, unless it has it.
   void send() {

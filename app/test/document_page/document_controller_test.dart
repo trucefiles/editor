@@ -15,6 +15,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 
 import '../support.dart' show eventually;
 import 'document_fixture.dart';
+import 'markdown_session.dart';
 
 void main() {
   late DocumentFixture fixture;
@@ -38,7 +39,6 @@ void main() {
   }) {
     final controller = DocumentController(
       session,
-      mode: EditMode.read,
       reachSettled: () async => reach,
       backUp: backUp ?? (_) async => const Ok(null),
       canEdit: () => canEdit,
@@ -184,24 +184,25 @@ void main() {
     });
   });
 
-  group('the mode picked', () {
-    test('is remembered at once', () {
-      final controller = controllerOn(fixture.session())
-        ..pickMode(EditMode.markdown);
+  group('settings kept', () {
+    test('are kept at once', () {
+      controllerOn(fixture.session())
+          .keepSettings((settings) => settings.withMode(EditMode.markdown));
 
-      expect(controller.mode, EditMode.markdown);
       expect(settings[fixture.document.key]?.mode, EditMode.markdown);
     });
 
-    test('is remembered once a new document has a file', () async {
+    test('are kept in order once a new document has a file', () async {
       final controller = controllerOn(fixture.session(fixture.newFile))
-        ..pickMode(EditMode.markdown);
+        ..keepSettings((settings) => settings.withMode(EditMode.markdown))
+        ..keepSettings((settings) => settings.withPinned(pinned: true));
       expect(settings, isEmpty);
 
       controller.session.type('new');
       final document = (await controller.withFile()).value;
 
       expect(settings[document.key]?.mode, EditMode.markdown);
+      expect(settings[document.key]?.pinned, isTrue);
     });
   });
 
@@ -210,7 +211,7 @@ void main() {
     Future<DocumentController> stopped() async {
       late DocumentController controller;
       await runZonedGuarded(() async {
-        final session = DocumentSession(
+        final session = markdownSession(
           FileEffects(
             ExistingFile(fixture.document),
             filesOf: (_) => throw StateError('bug'),
@@ -266,7 +267,7 @@ void main() {
       expect(await controller.restore('backup\n'), RestoreOutcome.restored);
       expect(backedUp, ['mine one\n']);
       expect(textShown(session), 'backup');
-      session.gate.send((now) => Undo(revision: now.revision));
+      session.editor.send(const Undo());
       expect(textShown(session), 'mine one');
     });
 
