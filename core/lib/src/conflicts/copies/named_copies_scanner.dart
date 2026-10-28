@@ -22,29 +22,47 @@ final class NamedCopiesScanner implements FolderScanner {
       WithConflictCopies(_filter, _names).includesFile(file);
 
   @override
-  Future<Result<FolderScan, StoreError>> scan() async {
+  Future<Result<FolderScan, StoreError>> scan({FileFilter? also}) async {
     final listed = await _store.list(
-      enterFolder: _filter.includesFolder,
-      includeFile: _includesFileOrCopy,
+      enterFolder: (folder) =>
+          _filter.includesFolder(folder) ||
+          (also?.includesFolder(folder) ?? false),
+      includeFile: (file) =>
+          _includesFileOrCopy(file) || (also?.includesFile(file) ?? false),
     );
     return switch (listed) {
       Ok(
         value: Listing(files: final entries, :final folders, :final unreadable),
       ) =>
-        Ok(
-          FolderScan(
-            files: _shownOf(entries),
-            subfolders: folders,
-            conflicts: groupConflictCopies(
-              entries,
-              _names,
-              _filter.includesFile,
-            ),
-            unreadable: unreadable,
-          ),
-        ),
+        Ok(_scanOf(entries, folders, unreadable, also)),
       Err(:final error) => Err(error),
     };
+  }
+
+  /// What one walk listed, told apart: what the filter shows, and what
+  /// was asked [also].
+  FolderScan _scanOf(
+    List<FileEntry> entries,
+    List<RelPath> folders,
+    List<RelPath> unreadable,
+    FileFilter? also,
+  ) {
+    final own = [
+      for (final entry in entries)
+        if (_walked(entry.path.parent) && _includesFileOrCopy(entry.path))
+          entry,
+    ];
+    return FolderScan(
+      files: _shownOf(own),
+      subfolders: folders.where(_walked).toList(),
+      conflicts: groupConflictCopies(own, _names, _filter.includesFile),
+      unreadable: unreadable.where(_walked).toList(),
+      alsoListed: [
+        if (also != null)
+          for (final entry in entries)
+            if (also.includesFile(entry.path)) entry,
+      ],
+    );
   }
 
   /// Conflict copies lie next to their main file: listing a folder's own
@@ -91,6 +109,12 @@ final class NamedCopiesScanner implements FolderScanner {
         return Err(error);
     }
   }
+
+  /// Whether the filter's own walk enters [folder]: it and every folder
+  /// on the way to it (`null`: the top level).
+  bool _walked(RelPath? folder) =>
+      folder == null ||
+      (_filter.includesFolder(folder) && _walked(folder.parent));
 
   List<FileEntry> _shownOf(List<FileEntry> entries) => [
     for (final entry in entries)

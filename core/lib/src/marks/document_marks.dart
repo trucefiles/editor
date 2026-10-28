@@ -50,27 +50,47 @@ final class DocumentMarks {
   /// that are new or changed since read again, and those gone left out.
   /// Keeps what [known] holds of a file that can't be read now; skips one
   /// never read.
-  Future<Result<MarksFiles, StoreError>> load({MarksFiles? known}) async {
+  Future<Result<MarksFiles, StoreError>> load({MarksFiles? known}) async =>
+      switch (await _store.list(
+        enterFolder: files.includesFolder,
+        includeFile: files.includesFile,
+      )) {
+        Ok(:final value) => Ok(await loadListed(value.files, known: known)),
+        Err(:final error) => Err(error),
+      };
+
+  /// As [load], from [entries]: the marks files a listing just found
+  /// (e.g. one that listed [files] along with the documents).
+  Future<MarksFiles> loadListed(
+    List<FileEntry> entries, {
+    MarksFiles? known,
+  }) async {
     final last = known ?? MarksFiles.none;
-    final List<FileEntry> entries;
-    switch (await _store.list(
-      enterFolder: files.includesFolder,
-      includeFile: files.includesFile,
-    )) {
-      case Ok(:final value):
-        entries = value.files;
-      case Err(:final error):
-        return Err(error);
-    }
-    return Ok(
-      MarksFiles({
-        for (final entry in entries)
-          entry.path: ?switch (last.files[entry.path]) {
-            final read? when read.version == entry.version => read,
-            final read => await _read(entry.path) ?? read,
-          },
-      }),
+    return MarksFiles({
+      for (final entry in entries)
+        entry.path: ?switch (last.files[entry.path]) {
+          final read? when read.version == entry.version => read,
+          final read => await _read(entry.path) ?? read,
+        },
+    });
+  }
+
+  /// The mark of [document] as all devices' files hold it now. Reads
+  /// only the marks files of its own directory.
+  Future<Result<DocumentMark, StoreError>> markOf(RelPath document) async {
+    final marksFolder = _inDirectory(document.parent, '$_folder/$_marks')!;
+    final listed = await _store.list(
+      enterFolder: (folder) =>
+          folder == marksFolder ||
+          marksFolder.value.startsWith('${folder.value}/'),
+      includeFile: (file) => file.parent == marksFolder && _isDeviceFile(file),
     );
+    return switch (listed) {
+      Ok(:final value) => Ok(
+        (await loadListed(value.files)).marks[document] ?? DocumentMark.none,
+      ),
+      Err(:final error) => Err(error),
+    };
   }
 
   /// [known] with the marks files at [paths] read again, e.g. as they

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document.dart';
+import 'package:truce_editor/documents/document_card_summary.dart';
 import 'package:truce_editor/documents/previews/card_preview.dart';
 import 'package:truce_editor/documents/previews/card_previews.dart';
 
@@ -12,6 +13,8 @@ void main() {
   final folder = folderAt(Directory('/documents'));
   Document doc(String name, {int version = 0}) =>
       listedDocument(folder, name: name, version: version);
+
+  const previewed = Previewed(DocumentCardSummary(title: 'A', previews: {}));
 
   /// The reads asked for, each waiting until the test ends it.
   late Map<Document, Completer<CardPreview>> reads;
@@ -38,18 +41,30 @@ void main() {
 
     final read = cards.read(a);
     expect(cards.known(a), isNull);
-    reads[a]!.complete(const PreviewUnreadable());
+    reads[a]!.complete(previewed);
 
-    expect(await read, isA<PreviewUnreadable>());
-    expect(cards.known(a), isA<PreviewUnreadable>());
-    expect(await cards.read(a), isA<PreviewUnreadable>());
+    expect(await read, isA<Previewed>());
+    expect(cards.known(a), isA<Previewed>());
+    expect(await cards.read(a), isA<Previewed>());
     expect(started, [a]);
+  });
+
+  test('reads a document again after a read that failed', () async {
+    final cards = previews();
+    final a = doc('a.md');
+    unawaited(cards.read(a));
+    reads[a]!.complete(const PreviewUnreadable());
+    await pumpEventQueue();
+
+    expect(cards.known(a), isNull);
+    unawaited(cards.read(a));
+    expect(started, [a, a]);
   });
 
   test('reads a new version again', () async {
     final cards = previews();
     unawaited(cards.read(doc('a.md')));
-    reads.values.single.complete(const PreviewUnreadable());
+    reads.values.single.complete(previewed);
     await pumpEventQueue();
 
     expect(cards.known(doc('a.md', version: 1)), isNull);
@@ -64,7 +79,7 @@ void main() {
     unawaited(cards.read(c));
     expect(started, [a]);
 
-    reads[a]!.complete(const PreviewUnreadable());
+    reads[a]!.complete(previewed);
     await pumpEventQueue();
 
     expect(started, [a, c]);
@@ -77,7 +92,7 @@ void main() {
     unawaited(cards.read(b));
 
     cards.drop(b);
-    reads[a]!.complete(const PreviewUnreadable());
+    reads[a]!.complete(previewed);
     await pumpEventQueue();
 
     expect(started, [a]);
@@ -88,13 +103,13 @@ void main() {
     final [a, b, c] = [doc('a.md'), doc('b.md'), doc('c.md')];
     for (final document in [a, b]) {
       unawaited(cards.read(document));
-      reads[document]!.complete(const PreviewUnreadable());
+      reads[document]!.complete(previewed);
       await pumpEventQueue();
     }
     cards.known(a);
 
     unawaited(cards.read(c));
-    reads[c]!.complete(const PreviewUnreadable());
+    reads[c]!.complete(previewed);
     await pumpEventQueue();
 
     expect(cards.known(a), isNotNull);

@@ -5,9 +5,10 @@ import '../documents/document_files.dart';
 import '../documents/document_title.dart';
 import '../folders/document_folder.dart';
 
-/// [documents] as a search sees them: each matches by its folder's name
-/// and the names on its path (subfolders and file) from memory, and by
-/// its title and text once read through [filesOf].
+/// [documents] as a search sees them: each matches by its folder's name,
+/// its subfolders' names and its file name without the extension (or
+/// "md" would find every document) from memory, and by its title and
+/// text once read through [filesOf].
 List<Searchable<Document>> searchablesOf(
   List<Document> documents, {
   required DocumentFiles Function(DocumentFolder folder) filesOf,
@@ -15,7 +16,11 @@ List<Searchable<Document>> searchablesOf(
   for (final document in documents)
     Searchable(
       document,
-      names: [document.folder.name, ...document.path.value.split('/')],
+      names: [
+        document.folder.name,
+        ...?document.path.parent?.value.split('/'),
+        nameTitle(document.path),
+      ],
       read: () async =>
           switch (await filesOf(document.folder).reload(document)) {
             Ok(value: final read) => (

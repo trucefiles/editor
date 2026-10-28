@@ -110,6 +110,29 @@ void main() {
     expect(search.find('a'), ['a.md']);
   });
 
+  test(
+    'tells of new texts at most once a while, and at once when complete',
+    () async {
+      final gate = Completer<void>();
+      final search = ReadingSearch([
+        for (var i = 0; i < 9; i++) item('$i.md', text: 'milk'),
+        item('last.md', text: 'milk', gate: gate.future),
+      ], changesEvery: const Duration(hours: 1));
+      addTearDown(search.close);
+      var told = 0;
+      search.changes.listen((_) => told++);
+      await pumpEventQueue();
+
+      expect(search.find('milk'), hasLength(9));
+      expect(told, 0);
+
+      gate.complete();
+      await pumpEventQueue();
+      expect(told, 1);
+      expect(search.find('milk'), hasLength(10));
+    },
+  );
+
   test('stops reading once closed', () async {
     final gate = Completer<void>();
     final reads = <String>[];

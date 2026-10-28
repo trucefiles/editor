@@ -8,12 +8,16 @@ import 'text_search.dart';
 /// A search that reads every item's text when it opens, in the
 /// background, a few at a time, and keeps the texts only while it is
 /// open. Texts changed meanwhile are not read again: a search lasts
-/// seconds. Matches names at once and texts as they come.
+/// seconds. Matches names at once and texts as they come; tells of new
+/// texts at most once per [changesEvery], and at once when complete.
 final class ReadingSearch<Item> implements OpenSearch<Item> {
   /// Opens the search over [items] and starts reading.
-  ReadingSearch(List<Searchable<Item>> items, {int readsAtOnce = 4})
-    : _items = List.unmodifiable(items),
-      _texts = List.filled(items.length, null) {
+  ReadingSearch(
+    List<Searchable<Item>> items, {
+    int readsAtOnce = 4,
+    this.changesEvery = const Duration(milliseconds: 150),
+  }) : _items = List.unmodifiable(items),
+       _haystacks = [for (final item in items) haystackOf(item.names, null)] {
     final pool = Pool(readsAtOnce);
     _reads = Future.wait([
       for (final (index, item) in _items.indexed)
@@ -21,13 +25,16 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
     ]).whenComplete(pool.close);
   }
 
+  final Duration changesEvery;
+
   final List<Searchable<Item>> _items;
 
-  /// The texts read so far, by item.
-  final List<SearchText?> _texts;
+  /// What each item is compared with; its text in it once read.
+  final List<SearchHaystack> _haystacks;
 
   late final Future<void> _reads;
   final _changes = StreamController<void>.broadcast();
+  Timer? _toldSoon;
   var _done = 0;
   var _closed = false;
 
@@ -40,9 +47,10 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
   @override
   List<Item> find(String query) {
     final words = searchWords(query);
+    if (words.isEmpty) return const [];
     final matches = [
       for (final (index, item) in _items.indexed)
-        (item: item.item, match: matchOf(words, item, _texts[index])),
+        (item: item.item, match: matchOf(words, _haystacks[index])),
     ];
     return [
       for (final best in [SearchMatch.named, SearchMatch.inText])
@@ -55,15 +63,31 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
     if (_closed) return;
     final text = await item.read();
     if (_closed) return;
-    _texts[index] = text;
+    _haystacks[index] = haystackOf(item.names, text);
     _done++;
-    _changes.add(null);
+    _tell();
+  }
+
+  /// Tells of new texts: at once when complete, else once the time to
+  /// gather more is up.
+  void _tell() {
+    if (complete) {
+      _toldSoon?.cancel();
+      _toldSoon = null;
+      _changes.add(null);
+    } else {
+      _toldSoon ??= Timer(changesEvery, () {
+        _toldSoon = null;
+        if (!_closed) _changes.add(null);
+      });
+    }
   }
 
   @override
   Future<void> close() async {
     _closed = true;
-    _texts.fillRange(0, _texts.length, null);
+    _toldSoon?.cancel();
+    _haystacks.fillRange(0, _haystacks.length, (named: '', all: ''));
     await _changes.close();
     await _reads;
   }

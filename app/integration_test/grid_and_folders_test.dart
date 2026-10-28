@@ -6,7 +6,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/ui/document_screen.dart';
 import 'package:truce_editor/documents/document_colors.dart';
+import 'package:truce_editor/documents/ui/all_documents_screen.dart';
 import 'package:truce_editor/documents/ui/document_sections.dart';
+import 'package:truce_editor/documents/ui/listed_document_card.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_test_support/truce_test_support.dart' show path;
@@ -133,6 +135,36 @@ void main() {
       300,
       scrollable: documents(),
     );
+  });
+
+  testApp('All by name builds only the cards near the screen', (tester) async {
+    for (var i = 100; i < 220; i++) {
+      app.write('n$i.md', '# Note $i\n');
+    }
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Show all', skipOffstage: false));
+    await tester.scrollUntilVisible(
+      find.text('Show all'),
+      600,
+      scrollable: find
+          .descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
+    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.byTooltip('Sort'));
+    await tester.tapAndSettle(find.text('By name'));
+
+    expect(find.text('Note 100'), findsOne);
+    final built = find.descendant(
+      of: find.byType(AllDocumentsScreen),
+      matching: find.byType(ListedDocumentCard, skipOffstage: false),
+      skipOffstage: false,
+    );
+    expect(built.evaluate().length, lessThan(100));
   });
 
   testApp('pins a document several levels deep from the grid', (tester) async {

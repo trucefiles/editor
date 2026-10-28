@@ -69,6 +69,14 @@ void main() {
     expect(found(), ['ideas.txt']);
   });
 
+  test('does not find every document by its extension', () async {
+    final search = await open();
+
+    search.find('md');
+
+    expect(found(), isEmpty);
+  });
+
   test('finds a document only by every word', () async {
     final search = await open();
 

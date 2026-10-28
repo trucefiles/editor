@@ -92,22 +92,18 @@ FolderStateOwner folderStateOwner(
       dropsNewWorkOnClose: true,
     );
 
-/// Lists [reader]'s base folder whole; its marks only help, so a base
-/// folder whose marks can't be listed keeps [known].
+/// Lists [reader]'s base folder whole, its marks files on the same walk.
 Future<ListingDone> _list(
   EffectId id,
   BaseFolderReader reader,
   MarksFiles known,
 ) async {
   final startedAt = Moment.now();
-  final scan = await reader.scanner.scan();
+  final scan = await reader.scanner.scan(also: DocumentMarks.files);
   final Result<BaseListing, StoreError> listing = switch (scan) {
     Ok(value: final scan) => Ok((
       scan: scan,
-      marks: switch (await reader.marks.load(known: known)) {
-        Ok(:final value) => value,
-        Err() => known,
-      },
+      marks: await reader.marks.loadListed(scan.alsoListed, known: known),
     )),
     Err(:final error) => Err(error),
   };

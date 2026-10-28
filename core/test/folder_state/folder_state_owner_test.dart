@@ -41,6 +41,7 @@ void main() {
       store,
       deviceId: 'laptop',
     ).set(path('top.md'), const DocumentMark(color: 'teal'));
+    store.listCount = 0;
     owner.send(BasesChanged({'a': 'whole'}));
 
     final base = await next();
@@ -52,6 +53,7 @@ void main() {
     expect(base.marks.marks, {
       path('top.md'): const DocumentMark(color: 'teal'),
     });
+    expect(store.listCount, 1, reason: 'one walk for documents and marks');
   });
 
   test('reads no file to list or check', () async {

@@ -19,6 +19,27 @@ void main() {
   });
 
   group('files', () {
+    test('come with the files asked also, apart from them', () async {
+      store
+        ..put('todo.md', 'main')
+        ..put('.truce/marks/phone.json', '{}')
+        ..put('.truce/marks/note.md', 'not shown')
+        ..put('lists/.truce/marks/laptop.json', '{}');
+
+      final scan = (await scanner.scan(also: DocumentMarks.files)).value;
+
+      expect(scan.files.map((e) => e.path), [path('todo.md')]);
+      expect(scan.subfolders, [path('lists')]);
+      expect(
+        scan.alsoListed.map((e) => e.path.value),
+        unorderedEquals([
+          '.truce/marks/phone.json',
+          'lists/.truce/marks/laptop.json',
+        ]),
+      );
+      expect(store.listCount, 1);
+    });
+
     test('come with the subfolders that could not be read', () async {
       store
         ..put('todo.md', 'main')

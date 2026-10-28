@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -114,6 +115,10 @@ class AllDocumentsScreen extends ConsumerWidget {
     );
   }
 
+  /// Cards built together in by-name order: a few rows in any column
+  /// count.
+  static const _cardsPerBox = 24;
+
   /// [documents] in the order and view [settings] say, built lazily.
   static Widget _documents(
     List<Document> documents,
@@ -127,17 +132,17 @@ class AllDocumentsScreen extends ConsumerWidget {
       itemCount: documents.length,
       itemBuilder: (_, index) => ListedDocumentRow(documents[index]),
     ),
-    // A section at a time: a lazy grid that something follows breaks
-    // scrolling (see documentGrid).
-    (DocumentOrder.name, DocumentView.cards) => _sectionsList([
-      for (final section in sectionsByName(documents))
-        (
-          heading: DocumentsHeading(_placeOf(section)),
-          body: documentGridBox([
-            for (final document in section.documents)
-              ListedDocumentCard(document),
+    // A lazy grid that something follows breaks scrolling (see
+    // documentGrid), so each section's cards come in boxes of a few rows,
+    // each built only near the screen.
+    (DocumentOrder.name, DocumentView.cards) => _rows([
+      for (final section in sectionsByName(documents)) ...[
+        DocumentsHeading(_placeOf(section)),
+        for (final cards in section.documents.slices(_cardsPerBox))
+          documentGridBox([
+            for (final document in cards) ListedDocumentCard(document),
           ]),
-        ),
+      ],
     ]),
     (DocumentOrder.name, DocumentView.list) => _rows([
       for (final section in sectionsByName(documents)) ...[
@@ -150,15 +155,6 @@ class AllDocumentsScreen extends ConsumerWidget {
       ],
     ]),
   };
-
-  static Widget _sectionsList(List<({Widget heading, Widget body})> sections) =>
-      SliverList.builder(
-        itemCount: sections.length,
-        itemBuilder: (_, index) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [sections[index].heading, sections[index].body],
-        ),
-      );
 
   static Widget _rows(List<Widget> rows) => SliverList.builder(
     itemCount: rows.length,

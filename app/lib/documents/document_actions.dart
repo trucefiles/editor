@@ -27,9 +27,9 @@ final class DocumentActions {
 
   final Ref _ref;
 
-  /// Where a new document goes without a place set for new documents: the one of
-  /// [folders] the grid is filtered to, else the first. [folders] must not
-  /// be empty.
+  /// Where a new document goes without a place set for new documents:
+  /// the one of [folders] the grid is filtered to, else the first.
+  /// [folders] must not be empty.
   DocumentFolder defaultFolder(List<DocumentFolder> folders) {
     final selected = _ref.read(selectedFolderIdProvider);
     return folders.where((folder) => folder.id == selected).firstOrNull ??
@@ -44,8 +44,9 @@ final class DocumentActions {
         folder,
   ];
 
-  /// Where a new document goes: the place the user set for new documents, if its
-  /// folder is one of [folders], else the [defaultFolder] of [folders].
+  /// Where a new document goes: the place the user set for new documents,
+  /// if its folder is one of [folders], else the [defaultFolder] of
+  /// [folders].
   DocumentPlace newFilePlace(List<DocumentFolder> folders) =>
       resolveNewFilePlace(_ref.read(newFilePlaceProvider).value, folders) ??
       topOf(defaultFolder(folders));

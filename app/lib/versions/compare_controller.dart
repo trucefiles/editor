@@ -8,9 +8,9 @@ import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 
 /// One compare screen's flow: shows what its compare owner shows, passes
-/// what the folders hold on to it each time it changes, and asks it to keep a side. Each kind of
-/// comparison (a conflict, a backup) says where its sides come from and
-/// what comes next.
+/// what the folders hold on to it each time it changes, and asks it to
+/// keep a side. Each kind of comparison (a conflict, a backup) says where
+/// its sides come from and what comes next.
 abstract class CompareController<Target, Sides>
     extends Notifier<CompareState<Target, Sides>> {
   CompareController(this.start);

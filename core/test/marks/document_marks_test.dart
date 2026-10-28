@@ -34,6 +34,29 @@ void main() {
     });
   });
 
+  test("one document's mark is the newest of every device, read from its "
+      'own directory only', () async {
+    await device('phone').set(path('lists/shop.md'), amber);
+    await device('laptop').set(path('lists/shop.md'), teal);
+    await device('phone').set(path('todo.md'), amber);
+    store.reads.clear();
+
+    final mark = await device('phone').markOf(path('lists/shop.md'));
+
+    expect(mark.value, teal);
+    expect(
+      store.reads.map((read) => read.value),
+      unorderedEquals([
+        'lists/.truce/marks/phone.json',
+        'lists/.truce/marks/laptop.json',
+      ]),
+    );
+    expect(
+      (await device('phone').markOf(path('plan.md'))).value,
+      DocumentMark.none,
+    );
+  });
+
   test('marks set at the same time are all kept', () async {
     final marks = device('phone');
     final set = await Future.wait([

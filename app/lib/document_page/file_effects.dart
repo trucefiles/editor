@@ -22,10 +22,10 @@ typedef CreateNote = Future<Result<DocumentText, StoreError>> Function(
 /// The effect handler of one open document's file owner (see
 /// `file_contract.dart`): keeps and drops its draft on this device,
 /// reads, writes, creates and restores its file, backs it up and keeps
-/// conflict copies; answers each effect with the result the owner gets. Where an
-/// effect names a version of the file, it acts on that version's
-/// document; drafts and a new document's file go where the file is now
-/// ([file]).
+/// conflict copies; answers each effect with the result the owner gets.
+/// Where an effect names a version of the file, it acts on that
+/// version's document; drafts and a new document's file go where the
+/// file is now ([file]).
 final class FileEffects {
   FileEffects(
     this._file, {

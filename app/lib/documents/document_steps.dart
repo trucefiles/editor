@@ -189,8 +189,8 @@ base class DocumentSteps {
   /// from its marks, as the folder state may not have seen a color just
   /// set. None if the marks can't be read.
   Future<DocumentMark> _markOf(DocumentFolder folder, RelPath path) async =>
-      switch (await _marksOf(folder).load()) {
-        Ok(:final value) => value.marks[path] ?? DocumentMark.none,
+      switch (await _marksOf(folder).markOf(path)) {
+        Ok(:final value) => value,
         Err() => DocumentMark.none,
       };
 
