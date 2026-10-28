@@ -29,10 +29,10 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderSettingsStoreProvider).save([folderAt(dir)]);
+    await container.read(folderListStoreProvider).save([folderAt(dir)]);
   });
 
-  DocumentKey key(String name) => (folderId: 'f1', path: path(name));
+  DocumentKey key(String name) => (baseId: 'f1', path: path(name));
 
   test(
     'marks the settings of gone documents missing as the app comes into use',

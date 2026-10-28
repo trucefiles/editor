@@ -12,7 +12,7 @@ import 'package:truce_editor/refresh/refresh_settings_controller.dart';
 import 'package:truce_editor/scan/auto_rescan.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
@@ -60,7 +60,7 @@ void main() {
     var listens = 0;
     changes.onListen = () => listens++;
     final reach = container.read(
-      folderReachProvider(folder.location).notifier,
+      folderReachProvider(folder.base).notifier,
     ) as _SettableReach;
 
     reach.set(Reach.unreachable);

@@ -18,16 +18,13 @@ void main() {
   group('a folder', () {
     late MemoryFileStore store;
     late SyncedFolder folder;
-    Duration? polled;
 
     setUp(() {
-      polled = null;
       store = MemoryFileStore()..put('todo.md', 'main');
       folder = tool.open(
         store,
         shown: const DefaultFileFilter(PlainFolderRules(), fakeFileTypes),
         markers: const FakeFolderMarkers([{}]),
-        pollInterval: () => polled,
       );
     });
 
@@ -59,12 +56,8 @@ void main() {
       );
     });
 
-    test('tells only that it polls, while it does', () async {
+    test('tells nothing', () async {
       expect(await folder.notices.check(), isEmpty);
-      polled = const Duration(minutes: 1);
-      expect(await folder.notices.check(), [
-        const PolledNotice(Duration(minutes: 1)),
-      ]);
     });
   });
 

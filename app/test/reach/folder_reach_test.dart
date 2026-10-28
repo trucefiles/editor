@@ -33,7 +33,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderSettingsStoreProvider).save([
+    await container.read(folderListStoreProvider).save([
       workFolder,
       homeFolder,
     ]);
@@ -41,12 +41,12 @@ void main() {
   });
 
   Reach reachOf(DocumentFolder folder) =>
-      container.read(folderReachProvider(folder.location));
+      container.read(folderReachProvider(folder.base));
 
   test('a folder that is gone is retried, then unreachable', () async {
     final seen = <Reach>[];
     container.listen(
-      folderReachProvider(workFolder.location),
+      folderReachProvider(workFolder.base),
       (_, next) => seen.add(next),
     );
     work.renameSync('${work.path}-away');
@@ -81,6 +81,7 @@ void main() {
                 .read(documentActionsProvider)
                 .create(
                   (folder: workFolder, subfolder: null),
+                  type: appDocumentTypes().forNew,
                   title: 'b',
                   text: '# b\n',
                 ))

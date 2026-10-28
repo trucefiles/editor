@@ -29,7 +29,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderSettingsStoreProvider).save([folderAt(dir)]);
+    await container.read(folderListStoreProvider).save([folderAt(dir)]);
   });
 
   void write(String name, String text) =>

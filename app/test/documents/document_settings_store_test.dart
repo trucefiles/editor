@@ -24,7 +24,7 @@ void main() {
   };
 
   test('a store key names its document again', () {
-    final key = (folderId: 'f1', path: path('a/b.md'));
+    final key = (baseId: 'b1', path: path('a/b.md'));
 
     expect(
       DocumentSettingsStore.keyOf(DocumentSettingsStore.storeKey(key)),
@@ -39,7 +39,7 @@ void main() {
 
   test('saves and loads settings', () async {
     final key = DocumentSettingsStore.storeKey((
-      folderId: 'f1',
+      baseId: 'b1',
       path: path('a.md'),
     ));
     const settings = DocumentSettings(
@@ -62,51 +62,9 @@ void main() {
       missingSince: DateTime.utc(2026, 10, 21, 9),
     );
 
-    await store.save({'f1/a.md': kept});
+    await store.save({'b1/a.md': kept});
 
-    expect(await store.load(), {'f1/a.md': kept});
-  });
-
-  test('reads the views older versions saved, as their modes', () async {
-    file.writeCreatingFolders(
-      '{"f1/a.md": "list", "f1/b.md": "text", '
-      '"f1/c.md": {"view": "rendered", "pinned": true, "checked": "inPlace"}}',
-    );
-
-    expect(await loaded(), {
-      'f1/a.md': const DocumentSettings(mode: EditMode.visual),
-      'f1/b.md': const DocumentSettings(mode: EditMode.markdown),
-      'f1/c.md': const DocumentSettings(
-        mode: EditMode.read,
-        pinned: true,
-        checkedItems: CheckedItems.inPlace,
-      ),
-    });
-  });
-
-  test('reads the Done section older versions saved', () async {
-    file.writeCreatingFolders(
-      '{"f1/a.md": {"pinned": true, "doneSection": false}, '
-      '"f1/b.md": {"pinned": false, "doneSection": true}}',
-    );
-
-    expect(await loaded(), {
-      'f1/a.md': const DocumentSettings(
-        pinned: true,
-        checkedItems: CheckedItems.inPlace,
-      ),
-      'f1/b.md': const DocumentSettings(checkedItems: CheckedItems.doneSection),
-    });
-  });
-
-  test('reads Move to end as older versions named it', () async {
-    file.writeCreatingFolders(
-      '{"f1/a.md": {"pinned": false, "checked": "toEnd"}}',
-    );
-
-    expect(await loaded(), {
-      'f1/a.md': const DocumentSettings(checkedItems: CheckedItems.moveToEnd),
-    });
+    expect(await store.load(), {'b1/a.md': kept});
   });
 
   test('a document never set moves checked items to the end', () {
@@ -115,13 +73,18 @@ void main() {
 
   test('ignores a damaged file and entries it cannot read', () async {
     file.writeCreatingFolders(
-      '{"f1/a.md": "list", "f1/b.md": "grid", '
-      '"f1/c.md": {"pinned": 1, "doneSection": true}, '
-      '"f1/d.md": {"view": "grid", "pinned": true, "doneSection": true}}',
+      '{"b1/a.md": {"mode": "visual", "pinned": false, "checked": "inPlace"}, '
+      '"b1/b.md": "list", '
+      '"b1/c.md": {"pinned": 1, "checked": "inPlace"}, '
+      '"b1/d.md": {"mode": "grid", "pinned": true, "checked": "doneSection"}, '
+      '"b1/e.md": {"pinned": true, "checked": "sideways"}}',
     );
     expect(await loaded(), {
-      'f1/a.md': const DocumentSettings(mode: EditMode.visual),
-      'f1/d.md': const DocumentSettings(
+      'b1/a.md': const DocumentSettings(
+        mode: EditMode.visual,
+        checkedItems: CheckedItems.inPlace,
+      ),
+      'b1/d.md': const DocumentSettings(
         pinned: true,
         checkedItems: CheckedItems.doneSection,
       ),

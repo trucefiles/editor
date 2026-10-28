@@ -8,12 +8,14 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
+import 'package:truce_editor/file_types/document_types.dart';
+import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/platform/platform_facts.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
@@ -56,12 +58,30 @@ Directory tempFolder() {
   return dir;
 }
 
-DocumentFolder folderAt(Directory dir, {String id = 'f1'}) => DocumentFolder(
+/// A folder showing [selection] of the base folder at [dir], synced by
+/// Syncthing; the base folder's id is [baseId], by default [id].
+DocumentFolder folderAt(
+  Directory dir, {
+  String id = 'f1',
+  String? baseId,
+  Selection selection = const WholeFolder(),
+}) => DocumentFolder(
   id: id,
-  path: dir.path,
+  base: BaseFolder(id: baseId ?? id, path: dir.path, toolId: syncthingTool.id),
+  selection: selection,
   name: 'Documents',
   color: const Color(0xFF009688),
 );
+
+/// The document types the app handles.
+DocumentTypes appDocumentTypes() {
+  final container = ProviderContainer();
+  try {
+    return container.read(documentTypesProvider);
+  } finally {
+    container.dispose();
+  }
+}
 
 /// A document held in memory, never read from a file.
 Document documentOf(
@@ -73,18 +93,33 @@ Document documentOf(
 }) => Document(
   folder: folder,
   path: path(name),
+  type: appDocumentTypes().of(path(name))!,
   file: const TextFile.empty().withText(text),
   version: FileVersion(version),
   modified: modified ?? DateTime(2000),
 );
 
-/// Services for [folder], with backups in their own temp folder.
-FolderServices servicesFor(DocumentFolder folder) => syncthingFolderServices(
-  folder.path,
-  backupsPath: tempFolder().path,
-  deviceId: '0123456789abcdef',
-  platform: hostFacts(),
-);
+/// Services for [folder]'s base folder, bounded to [folder], with backups
+/// at [backupsPath], by default in their own temp folder.
+BaseFolderServices servicesFor(DocumentFolder folder, {String? backupsPath}) {
+  final platform = hostFacts();
+  final files = LocalFileStore(
+    folder.base.path,
+    syncthingTool.rules.tempFileName,
+    replacesInPlace: platform.replacesInPlace,
+  );
+  return baseFolderServices(
+    folder.base,
+    tool: syncthingTool,
+    files: files,
+    reach: folderReach(files),
+    selection: folder.selection,
+    types: appDocumentTypes(),
+    platform: platform,
+    backupsPath: backupsPath ?? tempFolder().path,
+    deviceId: '0123456789abcdef',
+  );
+}
 
 /// The facts of the platform the tests run on.
 PlatformFacts hostFacts() =>
@@ -93,15 +128,22 @@ PlatformFacts hostFacts() =>
 /// Drafts in their own temp folder.
 DocumentDrafts tempDrafts() => DocumentDrafts(tempFolder());
 
-/// A scan that starts now and finds [documents]; it could not read the
-/// files of [unread], the subfolders [unreadable] or the folders
-/// [failed].
+/// A scan of [folders] (by default those of [documents] and [failed])
+/// that starts now and finds [documents]; it could not read the files of
+/// [unread], the subfolders [unreadable] or the folders [failed].
 FolderScans scanFinding(
   List<Document> documents, {
+  List<DocumentFolder>? folders,
   Set<DocumentKey> unread = const {},
   Map<String, List<RelPath>> unreadable = const {},
   Map<DocumentFolder, StoreError> failed = const {},
 }) => FolderScans(
+  folders:
+      folders ??
+      {
+        for (final document in documents) document.folder,
+        ...failed.keys,
+      }.toList(),
   documents: documents,
   marks: const {},
   subfolders: const {},

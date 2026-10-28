@@ -61,7 +61,6 @@ void main() {
         markers: const FakeFolderMarkers([
           {'.stfolder'},
         ]),
-        pollInterval: () => null,
       );
     });
 

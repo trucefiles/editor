@@ -36,17 +36,13 @@ final class SyncthingTool implements SyncTool {
     FileStore store, {
     required FileFilter shown,
     required FolderMarkers markers,
-    required Duration? Function() pollInterval,
   }) {
     final seen = SyncthingMtimeWindowStore(store);
     return SyncedFolder(
       store: seen,
       scanner: NamedCopiesScanner(seen, shown, _names),
       conflicts: NamedConflictSource(seen, _names),
-      notices: SyncthingFolderNotices(
-        SyncthingSyncCheck(markers),
-        pollInterval: pollInterval,
-      ),
+      notices: SyncthingFolderNotices(SyncthingSyncCheck(markers)),
       followed: WithConflictCopies(shown, _names),
     );
   }

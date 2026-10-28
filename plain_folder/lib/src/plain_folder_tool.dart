@@ -32,25 +32,19 @@ final class PlainFolderTool implements SyncTool {
     FileStore store, {
     required FileFilter shown,
     required FolderMarkers markers,
-    required Duration? Function() pollInterval,
   }) => SyncedFolder(
     store: store,
     scanner: NamedCopiesScanner(store, shown, _names),
     conflicts: NamedConflictSource(store, _names),
-    notices: _PolledNotices(pollInterval),
+    notices: const _NoNotices(),
     followed: WithConflictCopies(shown, _names),
   );
 }
 
-/// A plain folder's only notice: that its changes are polled, while
-/// [_pollInterval] gives an interval.
-final class _PolledNotices implements FolderNotices {
-  const _PolledNotices(this._pollInterval);
-
-  final Duration? Function() _pollInterval;
+/// No tool tells anything about a plain folder.
+final class _NoNotices implements FolderNotices {
+  const _NoNotices();
 
   @override
-  Future<List<FolderNotice>> check() async => [
-    if (_pollInterval() case final interval?) PolledNotice(interval),
-  ];
+  Future<List<FolderNotice>> check() async => const [];
 }

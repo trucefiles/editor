@@ -28,7 +28,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderSettingsStoreProvider).save(folders);
+    await container.read(folderListStoreProvider).save(folders);
   }
 
   Future<FolderScans> scans() => container.read(folderScansProvider.future);
@@ -123,8 +123,8 @@ void main() {
       found.documents.map((n) => n.path.value),
       unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
     );
-    final deep = (folderId: folder.id, path: path('a/b/c/todo.md'));
-    final shallow = (folderId: folder.id, path: path('a/todo.md'));
+    final deep = (baseId: folder.base.id, path: path('a/b/c/todo.md'));
+    final shallow = (baseId: folder.base.id, path: path('a/todo.md'));
     expect(found.markOf(deep).color, 'teal');
     expect(found.markOf(shallow), DocumentMark.none);
     expect(found.conflicts.forNote(deep), isNotNull);
@@ -196,7 +196,7 @@ void main() {
 
       expect(found.documents.map((n) => n.title), ['New', 'Old']);
       expect(
-        found.markOf((folderId: folder.id, path: path('new.md'))),
+        found.markOf((baseId: folder.base.id, path: path('new.md'))),
         const DocumentMark(color: 'teal'),
       );
     },
@@ -225,7 +225,7 @@ void main() {
       await container.read(folderScansProvider.notifier).refresh();
       final found = await scans();
 
-      final key = (folderId: 'f1', path: path('plan.md'));
+      final key = (baseId: 'f1', path: path('plan.md'));
       expect(found.findNote(key)?.file.text, '# Plan\nv1\n');
       expect(found.unreadNotes, {key});
       expect(found.covers(key), isFalse);

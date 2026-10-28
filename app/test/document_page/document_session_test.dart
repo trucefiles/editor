@@ -51,7 +51,7 @@ void main() {
           ExistingFile(fixture.document),
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
-          create: (_, {required title, required text}) =>
+          create: (_, {required type, required title, required text}) =>
               throw StateError('bug'),
         ),
       )..type('mine ');
@@ -81,7 +81,7 @@ void main() {
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
           draftsOf: (folder) => fixture.drafts[folder.id]!,
-          create: (_, {required title, required text}) =>
+          create: (_, {required type, required title, required text}) =>
               throw StateError('bug'),
         ),
       )..type('a ');
@@ -136,7 +136,13 @@ void main() {
   test('a scan that cannot see the file says nothing of it', () async {
     final session = fixture.session();
 
-    session.observe(scanFinding(const [], unread: {fixture.document.key}));
+    session.observe(
+      scanFinding(
+        const [],
+        folders: fixture.folders,
+        unread: {fixture.document.key},
+      ),
+    );
 
     expect(session.status, isA<InStep>());
   });
@@ -156,6 +162,7 @@ void main() {
     Directory('${fixture.dirs[0].path}/sub').createSync();
     final inSub = (await fixture.files['f1']!.create(
       'b',
+      type: appDocumentTypes().forNew,
       subfolder: path('sub'),
     )).value;
     final session = fixture.session(ExistingFile(inSub));
@@ -163,11 +170,24 @@ void main() {
     session.observe(
       scanFinding(
         const [],
+        folders: fixture.folders,
         unreadable: {
           'f1': [path('sub')],
         },
       ),
     );
+
+    expect(session.status, isA<InStep>());
+  });
+
+  test('a scan in which no folder shows the file any more says nothing of '
+      'it', () {
+    final session = fixture.session();
+    final narrowed = fixture.folders[0].copyWith(
+      selection: Selection.of([path('elsewhere')]),
+    );
+
+    session.observe(scanFinding(const [], folders: [narrowed]));
 
     expect(session.status, isA<InStep>());
   });

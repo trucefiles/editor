@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/conflicts/folder_conflicts.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
@@ -17,8 +16,8 @@ import '../support.dart';
 void main() {
   late ProviderContainer container;
   late DocumentSettingsController views;
-  final a = (folderId: 'f1', path: path('a.md'));
-  final b = (folderId: 'f1', path: path('b.md'));
+  final a = (baseId: 'f1', path: path('a.md'));
+  final b = (baseId: 'f1', path: path('b.md'));
 
   setUp(() {
     final storage = AppStorage(tempFolder().path);
@@ -102,8 +101,8 @@ void main() {
     late DocumentFolder home;
 
     setUp(() {
-      work = folderAt(tempFolder(), id: 'work');
-      home = folderAt(tempFolder(), id: 'home');
+      work = folderAt(tempFolder(), id: 'work', baseId: 'work');
+      home = folderAt(tempFolder(), id: 'home', baseId: 'home');
     });
 
     final now = DateTime.utc(2026, 10, 21, 9);
@@ -123,15 +122,12 @@ void main() {
       Map<DocumentFolder, StoreError> failed = const {},
       Map<String, List<RelPath>> unreadable = const {},
       Set<DocumentKey> unreadNotes = const {},
-    }) => FolderScans(
-      documents: documents,
-      marks: const {},
-      subfolders: const {},
-      conflicts: FolderConflicts(const []),
-      failedFolders: failed,
+    }) => scanFinding(
+      documents,
+      folders: [work, home],
+      failed: failed,
       unreadable: unreadable,
-      startedAt: Moment.now(),
-      unreadNotes: unreadNotes,
+      unread: unreadNotes,
     );
 
     test('drops views of documents and folders that are gone', () async {
@@ -139,7 +135,7 @@ void main() {
       await remember(kept.key, EditMode.visual);
       await remember(documentAt(work, 'gone.md').key, EditMode.markdown);
       await remember((
-        folderId: 'removed',
+        baseId: 'removed',
         path: path('a.md'),
       ), EditMode.markdown);
 
@@ -196,6 +192,16 @@ void main() {
       await pruneAfterGrace(scans([], failed: {home: StoreError.ioFailure}));
 
       expect(viewOf(unread.key), EditMode.read);
+    });
+
+    test('keeps the views of documents no folder shows', () async {
+      final narrowed = work.copyWith(selection: Selection.of([path('kept')]));
+      final outside = documentAt(work, 'elsewhere/a.md');
+      await remember(outside.key, EditMode.read);
+
+      await pruneAfterGrace(scanFinding([], folders: [narrowed, home]));
+
+      expect(viewOf(outside.key), EditMode.read);
     });
 
     test('keeps views below subfolders that could not be read', () async {

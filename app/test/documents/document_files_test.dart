@@ -3,23 +3,27 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/folders/document_folder.dart';
 
 import '../support.dart';
+
+DocumentFiles filesOf(DocumentFolder folder) =>
+    DocumentFiles(folder, servicesFor(folder), appDocumentTypes());
 
 void main() {
   late Directory dir;
   late DocumentFiles files;
+  final markdown = appDocumentTypes().forNew;
 
   setUp(() {
     dir = tempFolder();
-    final folder = folderAt(dir);
-    files = DocumentFiles(folder, servicesFor(folder));
+    files = filesOf(folderAt(dir));
   });
 
   String read(String name) => File('${dir.path}/$name').readAsStringSync();
 
   test('creates a document with a title heading', () async {
-    final document = (await files.create('Shopping')).value;
+    final document = (await files.create('Shopping', type: markdown)).value;
 
     expect(document.path.value, 'Shopping.md');
     expect(read('Shopping.md'), '# Shopping\n');
@@ -31,6 +35,7 @@ void main() {
 
     final document = (await files.create(
       'Shopping',
+      type: markdown,
       subfolder: path('a/b/c'),
     )).value;
 
@@ -40,7 +45,11 @@ void main() {
   });
 
   test('creates a document holding the given text', () async {
-    final document = (await files.create('Milk', text: 'Milk\nEggs\n')).value;
+    final document = (await files.create(
+      'Milk',
+      type: markdown,
+      text: 'Milk\nEggs\n',
+    )).value;
 
     expect(document.path.value, 'Milk.md');
     expect(read('Milk.md'), 'Milk\nEggs\n');
@@ -49,7 +58,7 @@ void main() {
   test('copies a document in under its name, in its byte style', () async {
     final other = tempFolder();
     final otherFolder = folderAt(other);
-    final source = DocumentFiles(otherFolder, servicesFor(otherFolder));
+    final source = filesOf(otherFolder);
     File('${other.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
     final document = (await source.open(path('Plan.md'))).value;
     File('${dir.path}/Plan.md').writeAsStringSync('taken');
@@ -77,6 +86,7 @@ void main() {
     () async {
       final created = (await files.create(
         'Milk',
+        type: markdown,
         subfolder: path('gone'),
       )).value;
 
@@ -86,7 +96,7 @@ void main() {
   );
 
   test('never copies into a subfolder deleted meanwhile', () async {
-    final document = (await files.create('Milk')).value;
+    final document = (await files.create('Milk', type: markdown)).value;
 
     final copied = await files.copyIn(
       document,
@@ -99,15 +109,15 @@ void main() {
   });
 
   test('picks a free name', () async {
-    await files.create('Shopping');
+    await files.create('Shopping', type: markdown);
 
-    final document = (await files.create('Shopping')).value;
+    final document = (await files.create('Shopping', type: markdown)).value;
 
     expect(document.path.value, 'Shopping 2.md');
   });
 
   test('saves in the file\'s line break style', () async {
-    final created = (await files.create('a')).value;
+    final created = (await files.create('a', type: markdown)).value;
     File('${dir.path}/a.md').writeAsStringSync('a\r\n');
     final document = (await files.reload(created)).value;
 
@@ -118,7 +128,7 @@ void main() {
   });
 
   test('refuses to save over a change from elsewhere', () async {
-    final document = (await files.create('a')).value;
+    final document = (await files.create('a', type: markdown)).value;
     File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
     expect(
@@ -129,11 +139,99 @@ void main() {
   });
 
   test('restores a deleted document', () async {
-    final document = (await files.create('a')).value;
+    final document = (await files.create('a', type: markdown)).value;
     await files.delete(document);
 
     await files.restore(document, '# a\nback');
 
     expect(read('a.md'), '# a\nback');
+  });
+
+  group('in a folder of some subfolders', () {
+    late DocumentFiles work;
+
+    setUp(() {
+      Directory('${dir.path}/work/inbox').createSync(recursive: true);
+      work = filesOf(folderAt(dir, selection: Selection.of([path('work')])));
+    });
+
+    test('refuses a file the folder does not show', () async {
+      File('${dir.path}/home.md').writeAsStringSync('home');
+      File('${dir.path}/work/photo.png').writeAsStringSync('png');
+
+      expect((await work.open(path('home.md'))).error, StoreError.outside);
+      expect(
+        (await work.open(path('work/photo.png'))).error,
+        StoreError.outside,
+      );
+    });
+
+    test('a new document whose subfolder is gone goes to the top of the '
+        'folder', () async {
+      final created = (await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('work/gone'),
+      )).value;
+
+      expect(created.path, path('work/Milk.md'));
+      expect(File('${dir.path}/Milk.md').existsSync(), isFalse);
+    });
+
+    test('never brings back its chosen subfolder once it is gone', () async {
+      Directory('${dir.path}/work').deleteSync(recursive: true);
+
+      final created = await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('work'),
+      );
+
+      expect(created.error, StoreError.notFound);
+      expect(Directory('${dir.path}/work').existsSync(), isFalse);
+    });
+  });
+
+  group('moveIn', () {
+    test('moves the file as saved, to a free name', () async {
+      File('${dir.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
+      Directory('${dir.path}/inbox').createSync();
+      File('${dir.path}/inbox/Plan.md').writeAsStringSync('taken');
+      final document = (await files.open(path('Plan.md'))).value;
+
+      final moved = (await files.moveIn(
+        document,
+        subfolder: path('inbox'),
+      )).value;
+
+      expect(moved.path, path('inbox/Plan 2.md'));
+      expect(File('${dir.path}/inbox/Plan 2.md').readAsBytesSync(), [
+        ...[0xEF, 0xBB, 0xBF],
+        ...'a\r\n'.codeUnits,
+      ]);
+      expect(File('${dir.path}/Plan.md').existsSync(), isFalse);
+      expect(read('inbox/Plan.md'), 'taken');
+    });
+
+    test('renames, with the extension kept', () async {
+      File('${dir.path}/plan.txt').writeAsStringSync('a');
+      final document = (await files.open(path('plan.txt'))).value;
+
+      final moved = (await files.moveIn(document, title: 'Ideas')).value;
+
+      expect(moved.path, path('Ideas.txt'));
+      expect(moved.type, document.type);
+    });
+
+    test('moves nothing once the file changed elsewhere', () async {
+      final document = (await files.create('a', type: markdown)).value;
+      File('${dir.path}/a.md').writeAsStringSync('other device, longer');
+
+      final moved = await files.moveIn(document, title: 'b');
+
+      expect(moved.error, StoreError.changedSinceRead);
+      expect(read('a.md'), 'other device, longer');
+      expect(File('${dir.path}/b.md').existsSync(), isFalse);
+    });
   });
 }

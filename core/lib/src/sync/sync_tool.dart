@@ -31,15 +31,11 @@ abstract interface class SyncTool {
 
   /// The files of one base folder, by this tool's rules, on [store], which
   /// holds only what the app may touch there. [shown] picks the documents;
-  /// [markers] look outside, for the tool's own data only;
-  /// [pollInterval] tells, at each check of the notices, how often the
-  /// folder is polled because changes can't be followed live (`null`: not
-  /// polled).
+  /// [markers] look outside, for the tool's own data only.
   SyncedFolder open(
     FileStore store, {
     required FileFilter shown,
     required FolderMarkers markers,
-    required Duration? Function() pollInterval,
   });
 }
 

@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_files.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
-import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
@@ -16,7 +15,7 @@ void main() {
   late Directory base;
   late Directory documents;
   late Directory backups;
-  late FolderServices services;
+  late BaseFolderServices services;
   late DocumentFiles files;
 
   setUp(() {
@@ -25,13 +24,8 @@ void main() {
     backups = Directory('${base.path}/app/backups/f1');
     _populate(base);
     final folder = folderAt(documents);
-    services = syncthingFolderServices(
-      documents.path,
-      backupsPath: backups.path,
-      deviceId: '0123456789abcdef',
-      platform: hostFacts(),
-    );
-    files = DocumentFiles(folder, services);
+    services = servicesFor(folder, backupsPath: backups.path);
+    files = DocumentFiles(folder, services, appDocumentTypes());
   });
 
   /// Every entry below [base], with what a write would change.
@@ -44,6 +38,7 @@ void main() {
     final placeholder = Document(
       folder: folderAt(documents),
       path: entry.path,
+      type: appDocumentTypes().of(entry.path)!,
       file: TextFile.empty(),
       version: entry.version,
       modified: entry.modified,
@@ -79,7 +74,7 @@ void main() {
   test('creating a document adds only that document', () async {
     final before = snapshot();
 
-    await files.create('New');
+    await files.create('New', type: appDocumentTypes().forNew);
 
     expect(changed(before, snapshot()), {'Documents/New.md'});
   });
@@ -169,7 +164,10 @@ void main() {
     });
 
     test('creating a document does not bring it back', () async {
-      expect((await files.create('New')).error, StoreError.notFound);
+      expect(
+        (await files.create('New', type: appDocumentTypes().forNew)).error,
+        StoreError.notFound,
+      );
       expect(changed(before, snapshot()), isEmpty);
     });
 

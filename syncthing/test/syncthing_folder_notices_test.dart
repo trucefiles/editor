@@ -3,13 +3,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 
 void main() {
-  Future<List<FolderNotice>> check(
-    SyncStatus status, {
-    Duration? pollInterval,
-  }) => SyncthingFolderNotices(
-    _FixedCheck(status),
-    pollInterval: () => pollInterval,
-  ).check();
+  Future<List<FolderNotice>> check(SyncStatus status) =>
+      SyncthingFolderNotices(_FixedCheck(status)).check();
 
   test('none for a synced folder', () async {
     expect(await check(SyncStatus.synced), isEmpty);
@@ -27,18 +22,6 @@ void main() {
 
     expect(notices, [isA<SyncUnknownNotice>()]);
     expect(notices.single.isWarning, isFalse);
-  });
-
-  test('tells the interval when changes are polled', () async {
-    final notices = await check(
-      SyncStatus.notSynced,
-      pollInterval: const Duration(seconds: 10),
-    );
-
-    expect(notices, [
-      isA<NotSyncedNotice>(),
-      const PolledNotice(Duration(seconds: 10)),
-    ]);
   });
 }
 

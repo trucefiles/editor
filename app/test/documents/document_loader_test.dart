@@ -1,33 +1,41 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_loader.dart';
 import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
 void main() {
   late Directory dir;
   late DocumentFolder folder;
-  late FolderServices services;
+  late BaseFolderServices services;
   late DocumentLoader loader;
 
   setUp(() {
     dir = tempFolder();
     folder = folderAt(dir);
     services = servicesFor(folder);
-    loader = DocumentLoader(services);
+    loader = DocumentLoader(appDocumentTypes());
   });
+
+  /// The folder that shows [path], as the folders are now.
+  DocumentFolder? folderOfPath(RelPath path) =>
+      folder.covers(path) ? folder : null;
 
   void write(String name, List<int> bytes) => (File(
     '${dir.path}/$name',
   )..createSync(recursive: true)).writeAsBytesSync(bytes);
 
   /// Loads the documents of the files the folder's scan lists.
-  Future<DocumentLoad> loadAll() async =>
-      loader.load(folder, (await services.scanner.scan()).value.files);
+  Future<DocumentLoad> loadAll() async => loader.load(
+    services.store,
+    (await services.scanner.scan()).value.files,
+    folderOfPath,
+  );
 
   /// The documents of [loadAll].
   Future<List<Document>> load() async => (await loadAll()).documents;
@@ -103,6 +111,17 @@ void main() {
     expect((await load()).single.modified, DateTime(2024));
   });
 
+  test('leaves out the files no folder shows', () async {
+    write('work/a.md', '# A'.codeUnits);
+    write('home/b.md', '# B'.codeUnits);
+    folder = folder.copyWith(selection: Selection.of([path('work')]));
+
+    expect(
+      [for (final document in await load()) document.path],
+      [path('work/a.md')],
+    );
+  });
+
   test('shows unchanged documents in the folder as now named', () async {
     write('a.md', '# A'.codeUnits);
     await load();
@@ -116,7 +135,7 @@ void main() {
     final files = (await services.scanner.scan()).value.files;
     File('${dir.path}/a.md').deleteSync();
 
-    final loaded = await loader.load(folder, files);
+    final loaded = await loader.load(services.store, files, folderOfPath);
 
     expect(loaded.documents, isEmpty);
     expect(loaded.unread, {path('a.md')});

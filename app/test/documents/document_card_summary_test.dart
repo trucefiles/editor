@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document_card_summary.dart';
 import 'package:truce_editor/documents/document_settings.dart';
-import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 import '../support.dart';
@@ -11,7 +10,7 @@ void main() {
   const hidden = DocumentSettings();
 
   DocumentCardSummary summaryOf(String text, String name) =>
-      documentTypes.of(path(name)).cardSummary(text, path(name));
+      appDocumentTypes().of(path(name))!.cardSummary(text, path(name));
 
   group('Markdown', () {
     test('holds the title and the preview as the settings say', () {

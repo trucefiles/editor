@@ -1,17 +1,12 @@
-import 'package:flutter/painting.dart';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/search/document_search.dart';
 
 import '../support.dart';
 
-const _folder = DocumentFolder(
-  id: 'f1',
-  path: '/documents',
-  name: 'Documents',
-  color: Color(0xFF009688),
-);
+final _folder = folderAt(Directory('/documents'));
 
 Document document(String name, String text) =>
     documentOf(_folder, text, name: name, modified: DateTime(2026));

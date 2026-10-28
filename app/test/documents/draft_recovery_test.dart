@@ -6,14 +6,14 @@ import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/documents/draft_recovery.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
 void main() {
   late Directory dir;
   late DocumentDrafts drafts;
-  late FolderServices services;
+  late BaseFolderServices services;
   late DraftRecovery recovery;
   final later = DateTime.now().add(const Duration(days: 1));
 
@@ -22,7 +22,12 @@ void main() {
     final folder = folderAt(dir);
     drafts = tempDrafts();
     services = servicesFor(folder);
-    recovery = DraftRecovery(drafts, DocumentFiles(folder, services));
+    final files = DocumentFiles(folder, services, appDocumentTypes());
+    recovery = DraftRecovery(
+      drafts,
+      filesFor: (path) => folder.covers(path) ? files : null,
+      types: appDocumentTypes(),
+    );
   });
 
   File document() => File('${dir.path}/a.md');
@@ -99,6 +104,22 @@ void main() {
     expect(await recovery.recover(before: DateTime(2000)), 0);
 
     expect(document().readAsStringSync(), '# a\nv1\n');
+    expect(await drafts.all(before: later), hasLength(1));
+  });
+
+  test('keeps a draft no folder shows, untouched', () async {
+    document().writeAsStringSync('# a\nv1\n');
+    await leaveDraft('# a\nmine\n');
+    recovery = DraftRecovery(
+      drafts,
+      filesFor: (_) => null,
+      types: appDocumentTypes(),
+    );
+
+    expect(await recovery.recover(before: later), 0);
+
+    expect(document().readAsStringSync(), '# a\nv1\n');
+    expect(conflictCopies(), isEmpty);
     expect(await drafts.all(before: later), hasLength(1));
   });
 
