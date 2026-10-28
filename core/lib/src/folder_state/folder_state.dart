@@ -3,7 +3,6 @@ import '../conflicts/conflict.dart';
 import '../marks/document_marks.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
-import '../storage/selection.dart';
 
 /// What the base folders hold, by base folder id: the folder state
 /// owner's state. Holds every base folder it follows.
@@ -80,9 +79,8 @@ final class Listed extends BaseState {
 
   /// Whether what is at [path] is known: no subfolder above it could not
   /// be read.
-  bool sees(RelPath path) => !unreadable.any(
-    (folder) => folder == path || Selection.isInside(path, folder),
-  );
+  bool sees(RelPath path) =>
+      !unreadable.any((folder) => path.isAtOrInside(folder));
 
   Listed copyWith({
     Map<RelPath, FileEntry>? files,

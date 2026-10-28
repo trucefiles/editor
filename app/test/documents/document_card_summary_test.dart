@@ -1,13 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document_card_summary.dart';
-import 'package:truce_editor/documents/document_settings.dart';
+import 'package:truce_editor/documents/view_settings.dart';
+import 'package:truce_editor/editor/markdown/markdown_view.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 import '../support.dart';
 
 void main() {
-  const shown = DocumentSettings(checkedItems: CheckedItems.inPlace);
-  const hidden = DocumentSettings();
+  final shown = const MarkdownView(checkedItems: CheckedItems.inPlace).settings;
+  const hidden = ViewSettings.none;
 
   DocumentCardSummary summaryOf(String text, String name) =>
       appDocumentTypes().of(path(name))!.cardSummary(text, path(name));

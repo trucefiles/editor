@@ -4,12 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_actions.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/following_changes.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
-import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
@@ -38,7 +38,6 @@ void main() {
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         syncToolsProvider.overrideWithValue(SyncTools([tool])),
-        liveChangesPossibleProvider.overrideWithValue(true),
         appActiveProvider.overrideWith(_Active.new),
       ],
     );
@@ -90,7 +89,10 @@ void main() {
     expect(moved.value.path, path('work/inbox/New.md'));
     expect(place.files.textOf('work/inbox/New.md'), '# New');
     expect(await listed(), unorderedEquals(['work/a.md', 'work/inbox/New.md']));
-    expect((await files.open(path('home/b.md'))).error, StoreError.outside);
+    expect(
+      (await files.open(path('home/b.md'))).error,
+      const NotRead(StoreError.outside),
+    );
     expect(
       (await actions.createSubfolder((
         folder: folder,

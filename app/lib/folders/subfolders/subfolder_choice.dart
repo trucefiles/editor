@@ -61,11 +61,11 @@ final class SubfolderChoice extends ChangeNotifier {
 
   /// Whether a folder above [folder] is picked, so it is shown with it.
   bool isInPicked(RelPath folder) =>
-      _picked.any((picked) => Selection.isInside(folder, picked));
+      _picked.any((picked) => folder.isInside(picked));
 
   /// Whether a folder below [folder] is picked, so it opens to show it.
   bool holdsPicked(RelPath folder) =>
-      _picked.any((picked) => Selection.isInside(picked, folder));
+      _picked.any((picked) => picked.isInside(folder));
 
   /// The folders in [parent] (the base folder's top level if `null`) the
   /// user can pick from, sorted: no hidden ones and none of the sync

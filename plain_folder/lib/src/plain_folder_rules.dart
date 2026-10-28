@@ -8,21 +8,24 @@ import 'plain_conflict_names.dart';
 /// Temp files a crash leaves (`.truce-*.tmp`) are hidden but never cleaned
 /// up: deleting them would be a write into the folder that no user action
 /// asked for, and an unknown sync tool may sync them.
-final class PlainFolderRules implements SyncAdapter {
+final class PlainFolderRules {
   const PlainFolderRules();
 
   static const _tempPrefix = '.truce-';
   static const _tempSuffix = '.tmp';
 
-  @override
+  /// Whether [path] belongs to the sync tool itself (folder markers,
+  /// version folders, temp files, conflict copies): never shown.
   bool isInternal(RelPath path) =>
       _isTempFile(path.name) ||
       const PlainConflictNames().parse(path.name) != null;
 
-  @override
+  /// Whether the folder with the segments [names], outermost first, is
+  /// the tool's own or lies inside it.
   bool isInternalFolder(List<String> names) => false;
 
-  @override
+  /// The temp file name of an atomic write; [randomToken] keeps
+  /// concurrent writes apart.
   String tempFileName(String randomToken) =>
       '$_tempPrefix$randomToken$_tempSuffix';
 

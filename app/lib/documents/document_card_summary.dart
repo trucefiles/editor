@@ -1,17 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
-import 'document_settings.dart';
 import 'document_title.dart';
+import 'view_settings.dart';
 
 /// What cards and search show of one version of a document: its title and
-/// its preview, as the document's settings on this device say. Worked out
-/// by the document's type, from one read of the text; holds only the
+/// its preview, as the document's view settings on this device say. Worked
+/// out by the document's type, from one read of the text; holds only the
 /// strings shown, never the text.
 @immutable
 final class DocumentCardSummary {
-  const DocumentCardSummary({required this.title, required this.previews});
+  const DocumentCardSummary({required this.title, required this.preview});
 
   /// Most lines a preview holds.
   static const previewLines = 10;
@@ -19,24 +18,25 @@ final class DocumentCardSummary {
   /// The text's own title, else the file name without its extension.
   final String title;
 
-  /// The preview for each way checked items show: the only setting that
-  /// shapes it.
-  final Map<CheckedItems, String> previews;
-
-  /// The preview as the document's [settings] say.
-  String preview(DocumentSettings settings) => previews[settings.checkedItems]!;
+  /// The preview as the document's view settings say.
+  final String Function(ViewSettings view) preview;
 }
 
-/// [summary] as cards show it, of the document at [path]; [options] says
-/// how the preview shows for each way checked items show.
-DocumentCardSummary cardSummaryOf<O>(
+/// [summary] as cards show it, of the document at [path]: one preview
+/// per entry of the type's [options], picked for a document by [optionOf]
+/// its view settings.
+DocumentCardSummary cardSummaryOf<K, O>(
   TextSummary<O> summary,
   RelPath path, {
-  required O Function(CheckedItems checkedItems) options,
-}) => DocumentCardSummary(
-  title: titleOf(summary, path),
-  previews: {
-    for (final checkedItems in CheckedItems.values)
-      checkedItems: summary.preview(options(checkedItems)),
-  },
-);
+  required Map<K, O> options,
+  required K Function(ViewSettings view) optionOf,
+}) {
+  final previews = {
+    for (final MapEntry(:key, :value) in options.entries)
+      key: summary.preview(value),
+  };
+  return DocumentCardSummary(
+    title: titleOf(summary, path),
+    preview: (view) => previews[optionOf(view)]!,
+  );
+}

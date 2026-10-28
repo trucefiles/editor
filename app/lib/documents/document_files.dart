@@ -10,6 +10,7 @@ import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
 import 'document_file_name.dart';
 import 'document_text.dart';
+import 'open_failure.dart';
 
 /// Reads and writes single document files in one folder, through its base
 /// folder's services. Every write is atomic and checks that the file did
@@ -28,7 +29,7 @@ final class DocumentFiles {
   FileStore get _store => _services.store;
 
   /// [document]'s file as it is now.
-  Future<Result<DocumentText, StoreError>> reload(Document document) =>
+  Future<Result<DocumentText, OpenFailure>> reload(Document document) =>
       open(document.path);
 
   /// The bytes of the file at [path], e.g. an image a document shows; `null`
@@ -41,11 +42,11 @@ final class DocumentFiles {
 
   /// The document in the file at [path], with its text, e.g. kept from
   /// before its folder changed: refused if the folder doesn't show it;
-  /// [StoreError.ioFailure] if it is not text.
-  Future<Result<DocumentText, StoreError>> open(RelPath path) async {
+  /// [NotText] if it is not text.
+  Future<Result<DocumentText, OpenFailure>> open(RelPath path) async {
     final type = _types.of(path);
     if (type == null || !_folder.covers(path)) {
-      return const Err(StoreError.outside);
+      return const Err(NotRead(StoreError.outside));
     }
     final read = await _store.read(path);
     return switch (read) {
@@ -56,9 +57,9 @@ final class DocumentFiles {
             file,
           ),
         ),
-        null => const Err(StoreError.ioFailure),
+        null => const Err(NotText()),
       },
-      Err(:final error) => Err(error),
+      Err(:final error) => Err(NotRead(error)),
     };
   }
 
@@ -189,21 +190,12 @@ final class DocumentFiles {
     return const Err(StoreError.alreadyExists);
   }
 
-  /// Whether [subfolder] is there; lists only the folders on the way to it.
-  Future<bool> _hasFolder(RelPath subfolder) async {
-    bool onTheWay(RelPath folder) =>
-        folder == subfolder || subfolder.value.startsWith('${folder.value}/');
-    final listed = await _store.list(
-      enterFolder: onTheWay,
-      includeFile: (_) => false,
-    );
-    return switch (listed) {
-      Ok(value: final listing) =>
-        listing.folders.contains(subfolder) ||
-            listing.unreadable.contains(subfolder),
-      Err() => false,
-    };
-  }
+  /// Whether [subfolder] is there.
+  Future<bool> _hasFolder(RelPath subfolder) async =>
+      switch (await _store.foldersThere({subfolder})) {
+        Ok(value: final there) => there.contains(subfolder),
+        Err() => false,
+      };
 
   /// Writes [text] over [document]; fails with [StoreError.changedSinceRead]
   /// if the file changed since [document] was read.

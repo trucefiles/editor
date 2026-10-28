@@ -134,8 +134,12 @@ void main() {
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
 
-    await show(const PreviewUnreadable());
+    await show(const PreviewNotText());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsOne);
+
+    await show(const PreviewUnreadable());
+    expect(find.text('document'), findsOne);
+    expect(find.text("Can't be shown as text."), findsNothing);
   });
 }

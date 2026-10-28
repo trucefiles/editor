@@ -3,7 +3,6 @@ import '../../filter/file_filter.dart';
 import '../../scan/folder_scanner.dart';
 import '../../storage/file_store.dart';
 import '../../storage/rel_path.dart';
-import '../../storage/selection.dart';
 import 'conflict_copy_grouping.dart';
 import 'conflict_copy_names.dart';
 import 'with_conflict_copies.dart';
@@ -71,10 +70,7 @@ final class NamedCopiesScanner implements FolderScanner {
   Future<Result<PartScan, StoreError>> scanIn(Set<RelPath?> asked) async {
     bool onTheWay(RelPath folder) =>
         _filter.includesFolder(folder) &&
-        asked.any(
-          (one) =>
-              one != null && (one == folder || Selection.isInside(one, folder)),
-        );
+        asked.any((one) => one != null && one.isAtOrInside(folder));
     final listed = await _store.list(
       enterFolder: onTheWay,
       includeFile: (file) =>
@@ -86,10 +82,7 @@ final class NamedCopiesScanner implements FolderScanner {
       ):
         bool unknown(RelPath? folder) =>
             folder != null &&
-            unreadable.any(
-              (blocked) =>
-                  blocked == folder || Selection.isInside(folder, blocked),
-            );
+            unreadable.any((blocked) => folder.isAtOrInside(blocked));
         return Ok(
           PartScan(
             files: _shownOf(entries),

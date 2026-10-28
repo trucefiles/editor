@@ -5,6 +5,7 @@ import 'document_draft.dart';
 import 'document_drafts.dart';
 import 'document_file_name.dart';
 import 'document_files.dart';
+import 'open_failure.dart';
 
 /// Puts edits kept on this device into their documents' files, for drafts left
 /// when the app was ended before it could write them.
@@ -62,7 +63,7 @@ final class DraftRecovery {
         };
       case Ok(value: final document):
         return await files.saveAsConflict(document, draft.text) is Ok;
-      case Err(error: StoreError.notFound):
+      case Err(error: NotRead(error: StoreError.notFound)):
         return await files.saveAsConflictOfGone(draft.path, draft.text) is Ok;
       case Err():
         return false;

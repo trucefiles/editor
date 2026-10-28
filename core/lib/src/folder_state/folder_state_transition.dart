@@ -120,7 +120,7 @@ final class _Step {
     );
   }
 
-  void _basesChanged(Map<String, Object> bases) {
+  void _basesChanged(Map<String, Selection> bases) {
     final before = work.bases ?? const {};
     bool kept(String baseId) => bases.containsKey(baseId);
     state = FolderState({
@@ -317,7 +317,7 @@ final class _Step {
   /// Whether [path] is [folder] or inside it; anything is inside the top
   /// level (`null`).
   static bool _inOrAt(RelPath path, RelPath? folder) =>
-      folder == null || path == folder || Selection.isInside(path, folder);
+      folder == null || path.isAtOrInside(folder);
 
   /// [files] as shown: a file's time is never older than the app's own
   /// last write of it.

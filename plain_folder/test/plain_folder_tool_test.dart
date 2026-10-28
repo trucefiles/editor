@@ -52,7 +52,7 @@ void main() {
           subfolders: const LocalSubfolderNames('/none'),
           markers: const FakeFolderMarkers([{}]),
         ),
-      ).open(store, changes: null, types: fakeFileTypes);
+      ).open(store, changes: null);
     });
 
     test(

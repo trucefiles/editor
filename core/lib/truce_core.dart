@@ -10,9 +10,9 @@
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
 /// 3. `sync`: a sync tool as one plugin ([SyncTool]) with its access to
-///    each base folder ([ToolPlace]); the parts plugins build on: file-name
-///    rules ([SyncAdapter]), whether a tool syncs a folder ([SyncCheck])
-///    and what to tell the user about a folder ([FolderNotices]).
+///    each base folder ([ToolPlace]); the parts plugins build on: whether a
+///    tool syncs a folder ([SyncCheck]) and what to tell the user about a
+///    folder ([FolderNotices]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
 ///    what each type gives lists ([FileTypeSupport]).
@@ -96,8 +96,8 @@ export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
 export 'src/filetypes/file_type_support.dart';
 export 'src/filter/any_file_filter.dart';
-export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
+export 'src/filter/visible_file_filter.dart';
 export 'src/folder_state/folder_state_owner.dart';
 export 'src/marks/document_mark.dart';
 export 'src/marks/document_marks.dart';
@@ -118,6 +118,7 @@ export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
+export 'src/storage/folders_there.dart';
 export 'src/storage/local_disk.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/move_by_copy.dart';
@@ -126,7 +127,6 @@ export 'src/storage/selection.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
-export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
 export 'src/sync/sync_tool.dart';
 export 'src/text/lines/editable_lines.dart';

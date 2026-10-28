@@ -23,6 +23,12 @@ extension type const RelPath._(String value) {
     return slash < 0 ? null : RelPath._(value.substring(0, slash));
   }
 
+  /// Whether this lies below [folder], e.g. `a/b` below `a`.
+  bool isInside(RelPath folder) => value.startsWith('${folder.value}/');
+
+  /// Whether this is [folder] or lies below it.
+  bool isAtOrInside(RelPath folder) => this == folder || isInside(folder);
+
   /// The path of [name] inside this folder, e.g. `lists/todo.md` for
   /// `lists` and `todo.md`. `null` if [name] is not a valid name.
   RelPath? child(String name) =>

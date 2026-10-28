@@ -6,19 +6,21 @@ import 'syncthing_conflict_name.dart';
 ///
 /// Works for any folder inside a Syncthing folder, root or subfolder: it
 /// matches names, never looks for the folder's root.
-final class SyncthingAdapter implements SyncAdapter {
+final class SyncthingAdapter {
   const SyncthingAdapter();
 
   /// Syncthing's own files and folders, at the root of a Syncthing folder.
   static const _internalNames = {'.stfolder', '.stignore', '.stversions'};
 
-  @override
+  /// Whether [path] belongs to the sync tool itself (folder markers,
+  /// version folders, temp files, conflict copies): never shown.
   bool isInternal(RelPath path) =>
       _hasInternalName(path.value.split('/')) ||
       _isTempFile(path.name) ||
       const SyncthingConflictNames().parse(path.name) != null;
 
-  @override
+  /// Whether the folder with the segments [names], outermost first, is
+  /// the tool's own or lies inside it.
   bool isInternalFolder(List<String> names) => _hasInternalName(names);
 
   static bool _hasInternalName(List<String> names) =>
@@ -26,7 +28,9 @@ final class SyncthingAdapter implements SyncAdapter {
 
   /// Syncthing never syncs `.syncthing.*` files and deletes stale ones
   /// after a day, so a temp file left by a crash is cleaned up.
-  @override
+  ///
+  /// The temp file name of an atomic write; [randomToken] keeps
+  /// concurrent writes apart.
   String tempFileName(String randomToken) =>
       '.syncthing.truce-$randomToken.tmp';
 

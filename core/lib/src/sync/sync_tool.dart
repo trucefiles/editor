@@ -1,7 +1,6 @@
 import '../changes/folder_changes.dart';
 import '../changes/live_changes.dart';
 import '../conflicts/conflict_source.dart';
-import '../filetypes/file_type_detector.dart';
 import '../filter/file_filter.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
@@ -60,14 +59,10 @@ abstract interface class ToolPlace {
   SubfolderNames get subfolders;
 
   /// The base folder's files by the tool's rules, on [store], which holds
-  /// only what the app may touch there, and on [changes], its changes
-  /// bounded alike (`null`: not followed live). [types] tell which files
-  /// are documents.
-  SyncedFolder open(
-    FileStore store, {
-    required FolderChanges? changes,
-    required FileTypeDetector types,
-  });
+  /// only what the app may touch there (the handled file types and the
+  /// app's own files), and on [changes], its changes bounded alike
+  /// (`null`: not followed live).
+  SyncedFolder open(FileStore store, {required FolderChanges? changes});
 }
 
 /// What a sync tool offers for one base folder.
@@ -92,7 +87,7 @@ final class SyncedFolder {
   /// `null` where they can't be followed live.
   final FolderChanges? changes;
 
-  /// Which files and folders the tool shows: the documents, outside its
-  /// own files and folders.
+  /// Which files and folders the tool shows: none of its own and no
+  /// hidden ones.
   final FileFilter shown;
 }

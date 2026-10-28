@@ -10,12 +10,16 @@ import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings.dart';
+import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import '../support.dart' show eventually;
 import 'document_fixture.dart';
 import 'markdown_session.dart';
+
+/// A type's view settings, opaque to the page.
+const _view = ViewSettings({'mode': 'markdown'});
 
 void main() {
   late DocumentFixture fixture;
@@ -187,21 +191,21 @@ void main() {
   group('settings kept', () {
     test('are kept at once', () {
       controllerOn(fixture.session())
-          .keepSettings((settings) => settings.withMode(EditMode.markdown));
+          .keepSettings((settings) => settings.withView(_view));
 
-      expect(settings[fixture.document.key]?.mode, EditMode.markdown);
+      expect(settings[fixture.document.key]?.view, _view);
     });
 
     test('are kept in order once a new document has a file', () async {
       final controller = controllerOn(fixture.session(fixture.newFile))
-        ..keepSettings((settings) => settings.withMode(EditMode.markdown))
+        ..keepSettings((settings) => settings.withView(_view))
         ..keepSettings((settings) => settings.withPinned(pinned: true));
       expect(settings, isEmpty);
 
       controller.session.type('new');
       final document = (await controller.withFile()).value;
 
-      expect(settings[document.key]?.mode, EditMode.markdown);
+      expect(settings[document.key]?.view, _view);
       expect(settings[document.key]?.pinned, isTrue);
     });
   });

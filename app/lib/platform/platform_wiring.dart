@@ -26,9 +26,6 @@ final _reportsChanges =
     FileSystemEntity.isWatchSupported &&
     (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
 
-/// Whether changes can be followed live anywhere on this platform.
-final liveChangesPossibleProvider = Provider<bool>((ref) => _reportsChanges);
-
 /// The shared parts of folders on this device, with this platform's facts,
 /// for the sync tools.
 final localDiskProvider = Provider<LocalDisk>(

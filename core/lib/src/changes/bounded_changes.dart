@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../common/result.dart';
 import '../storage/file_store.dart';
+import '../storage/folders_there.dart';
 import '../storage/rel_path.dart';
 import '../storage/selection.dart';
 import 'folder_changes.dart';
@@ -54,25 +55,13 @@ final class BoundedChanges implements FolderChanges {
     ListAgain() => true,
   };
 
-  /// Which of [roots] are there now, by one listing that walks only the
-  /// way to them; none if the base folder can't be listed.
-  Future<Set<RelPath?>> _there(Set<RelPath?> roots) async {
-    final listed = await _files.list(
-      enterFolder: (folder) => roots.any(
-        (root) =>
-            root != null &&
-            (root == folder || Selection.isInside(root, folder)),
-      ),
-      includeFile: (_) => false,
-    );
-    return switch (listed) {
-      Ok(value: final listing) => {
-        for (final root in roots)
-          if (root == null || listing.folders.contains(root)) root,
-      },
-      Err() => const {},
-    };
-  }
+  /// Which of [roots] are there now, by one listing; none if the base
+  /// folder can't be listed.
+  Future<Set<RelPath?>> _there(Set<RelPath?> roots) async =>
+      switch (await _files.foldersThere({for (final root in roots) ?root})) {
+        Ok(value: final there) => {if (roots.contains(null)) null, ...there},
+        Err() => const {},
+      };
 }
 
 /// One listen of [BoundedChanges]: its live follows, the ones that ended,

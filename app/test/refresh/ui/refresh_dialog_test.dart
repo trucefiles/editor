@@ -9,18 +9,14 @@ void main() {
   Future<void> open(
     WidgetTester tester, {
     RefreshSettings current = RefreshSettings.standard,
-    bool liveAvailable = true,
   }) async {
     chosen = null;
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
-            onPressed: () async => chosen = await showRefreshDialog(
-              context,
-              current: current,
-              liveAvailable: liveAvailable,
-            ),
+            onPressed: () async =>
+                chosen = await showRefreshDialog(context, current: current),
             child: const Text('open'),
           ),
         ),
@@ -49,13 +45,6 @@ void main() {
         interval: Duration(minutes: 1),
       ),
     );
-  });
-
-  testWidgets('offers live updates only where possible', (tester) async {
-    await open(tester, liveAvailable: false);
-
-    expect(find.text('Live'), findsNothing);
-    expect(find.text('Periodic'), findsOne);
   });
 
   testWidgets('the interval is off for manual refresh', (tester) async {

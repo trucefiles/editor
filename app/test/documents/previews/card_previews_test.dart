@@ -14,7 +14,9 @@ void main() {
   Document doc(String name, {int version = 0}) =>
       listedDocument(folder, name: name, version: version);
 
-  const previewed = Previewed(DocumentCardSummary(title: 'A', previews: {}));
+  final previewed = Previewed(
+    DocumentCardSummary(title: 'A', preview: (_) => ''),
+  );
 
   /// The reads asked for, each waiting until the test ends it.
   late Map<Document, Completer<CardPreview>> reads;

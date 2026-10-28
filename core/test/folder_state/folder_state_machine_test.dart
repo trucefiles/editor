@@ -85,6 +85,9 @@ extension on _Run {
 const _settle = Duration(milliseconds: 500);
 const _longest = Duration(seconds: 3);
 
+const _whole = WholeFolder();
+final _work = Selection.of([path('work')]);
+
 void main() {
   group('listings', () {
     test('lists nothing before the base folders are known', () {
@@ -92,7 +95,7 @@ void main() {
       final ticket = run.refresh();
       expect(run.listings, isEmpty);
 
-      run.send(BasesChanged({'a': 'whole'}));
+      run.send(BasesChanged({'a': _whole}));
       expect(run.state.bases['a'], isA<NotListed>());
       expect(run.listings.single.baseId, 'a');
       run.listed(_scan([_file('x.md')]));
@@ -102,7 +105,7 @@ void main() {
     });
 
     test('lists one base folder at a time; a refresh waits for all', () {
-      final run = _run()..send(BasesChanged({'a': 'whole', 'b': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole, 'b': _whole}));
       expect(run.listings, hasLength(1));
       run.listed(_scan([]));
       final ticket = run.refresh();
@@ -119,7 +122,7 @@ void main() {
     });
 
     test('a refresh during a listing waits for one more, shared', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       final first = run.refresh();
       final second = run.refresh();
       run.listed(_scan([]));
@@ -132,7 +135,7 @@ void main() {
     });
 
     test('a failed listing leaves the base folder unknown', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       final ticket = run.refresh();
 
       run.listingFailed(StoreError.accessDenied);
@@ -144,7 +147,7 @@ void main() {
     });
 
     test('holds the conflicts, subfolders and unreadable subfolders', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
 
       run.listed(
         _scan(
@@ -163,7 +166,7 @@ void main() {
     });
 
     test('asks to read the marks files over the ones known', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       final marks = MarksFiles(const {});
       run
         ..listed(_scan([]), marks: marks)
@@ -175,10 +178,10 @@ void main() {
 
   group('base folders', () {
     test('a new base folder, or one whose selection changed, is listed', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run.listed(_scan([_file('x.md')]));
 
-      run.send(BasesChanged({'a': 'work', 'b': 'whole'}));
+      run.send(BasesChanged({'a': _work, 'b': _whole}));
       expect(run.base('a').files.keys, [path('x.md')], reason: 'kept until');
       expect(run.state.bases['b'], isA<NotListed>());
 
@@ -188,22 +191,22 @@ void main() {
     });
 
     test('an unchanged base folder is not listed again', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
-        ..send(BasesChanged({'a': 'whole'}));
+        ..send(BasesChanged({'a': _whole}));
 
       expect(run.listings, hasLength(1));
     });
 
     test('one no longer followed goes, and refreshes stop waiting for it', () {
-      final run = _run()..send(BasesChanged({'a': 'whole', 'b': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole, 'b': _whole}));
       run.listed(_scan([]));
       final ticket = run.refresh();
       run.listed(_scan([]));
       run.changed('b', 'x.md');
 
-      run.send(BasesChanged({'a': 'whole'}));
+      run.send(BasesChanged({'a': _whole}));
       expect(run.state.bases.keys, ['a']);
       run.listed(_scan([]));
 
@@ -214,7 +217,7 @@ void main() {
     });
 
     test('a listing of a base folder that went is dropped', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
 
       run
         ..send(BasesChanged({}))
@@ -226,7 +229,7 @@ void main() {
 
   group('changes', () {
     test('changed paths are checked once changes pause, by folder', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
         ..changed('a', 'work/x.md')
@@ -241,7 +244,7 @@ void main() {
     });
 
     test('changes that keep coming are checked after the longest wait', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
         ..changed('a', 'x.md')
@@ -252,7 +255,7 @@ void main() {
     });
 
     test('a changed marks file is read again, no folder checked', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
         ..changed('a', 'work/.truce/marks/phone.json')
@@ -265,7 +268,7 @@ void main() {
     });
 
     test('list again lists the base folder at once', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
         ..send(const Hinted('a', ListAgain()));
@@ -274,7 +277,7 @@ void main() {
     });
 
     test('hints are ignored while not in use, and dropped when it ends', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run
         ..listed(_scan([]))
         ..changed('a', 'x.md')
@@ -291,7 +294,7 @@ void main() {
     });
 
     test('a whole listing takes the place of the checks due', () {
-      final run = _run()..send(BasesChanged({'a': 'whole'}));
+      final run = _run()..send(BasesChanged({'a': _whole}));
       run.changed('a', 'x.md');
       run.waited(_settle);
       run.send(const Hinted('a', ListAgain()));
@@ -309,7 +312,7 @@ void main() {
     late _Run run;
 
     setUp(() {
-      run = _run()..send(BasesChanged({'a': 'whole'}));
+      run = _run()..send(BasesChanged({'a': _whole}));
       run.listed(
         _scan(
           [_file('work/x.md'), _file('work/deep/y.md'), _file('top.md')],
@@ -466,7 +469,7 @@ void main() {
     late _Run run;
 
     setUp(() {
-      run = _run()..send(BasesChanged({'a': 'whole'}));
+      run = _run()..send(BasesChanged({'a': _whole}));
       run.listed(_scan([_file('x.md', time: 1)]));
     });
 
@@ -523,7 +526,7 @@ void main() {
   });
 
   test('an old result is ignored', () {
-    final run = _run()..send(BasesChanged({'a': 'whole'}));
+    final run = _run()..send(BasesChanged({'a': _whole}));
     final old = run.listings.single.id;
     run.listed(_scan([_file('x.md')]));
 

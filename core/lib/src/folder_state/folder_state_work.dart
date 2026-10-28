@@ -1,6 +1,7 @@
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../storage/rel_path.dart';
+import '../storage/selection.dart';
 
 /// The listing or check under way: its base folder, the folders a check
 /// looks at (`null` for a whole listing), and the [Refresh] tickets a
@@ -38,7 +39,7 @@ final class FolderStateWork {
 
   /// The base folders followed, with what is selected in each; `null`
   /// until the first are known.
-  final Map<String, Object>? bases;
+  final Map<String, Selection>? bases;
 
   /// Whether the app is in use.
   final bool active;
@@ -70,7 +71,7 @@ final class FolderStateWork {
   final int nextId;
 
   FolderStateWork copyWith({
-    Map<String, Object>? bases,
+    Map<String, Selection>? bases,
     bool? active,
     Object? running = _same,
     List<WaitingRefresh>? refreshes,

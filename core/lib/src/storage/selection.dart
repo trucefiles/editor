@@ -13,7 +13,7 @@ sealed class Selection {
     final all = subfolders.toSet();
     return Subfolders._({
       for (final subfolder in all)
-        if (!all.any((other) => isInside(subfolder, other))) subfolder,
+        if (!all.any((other) => subfolder.isInside(other))) subfolder,
     });
   }
 
@@ -32,10 +32,6 @@ sealed class Selection {
 
   /// Everything this or [other] selects.
   Selection union(Selection other);
-
-  /// Whether [inner] lies inside [outer], below it.
-  static bool isInside(RelPath inner, RelPath outer) =>
-      inner.value.startsWith('${outer.value}/');
 }
 
 /// The whole base folder.
@@ -72,16 +68,15 @@ final class Subfolders extends Selection {
   final Set<RelPath> roots;
 
   /// The selected subfolder [path] lies in; `null` if none.
-  RelPath? rootOf(RelPath path) => roots
-      .where((root) => root == path || Selection.isInside(path, root))
-      .firstOrNull;
+  RelPath? rootOf(RelPath path) =>
+      roots.where((root) => path.isAtOrInside(root)).firstOrNull;
 
   @override
   bool covers(RelPath path) => rootOf(path) != null;
 
   @override
   bool reaches(RelPath folder) =>
-      covers(folder) || roots.any((root) => Selection.isInside(root, folder));
+      covers(folder) || roots.any((root) => root.isInside(folder));
 
   @override
   bool overlaps(Selection other) => switch (other) {
@@ -89,9 +84,7 @@ final class Subfolders extends Selection {
     Subfolders(roots: final others) => roots.any(
       (root) => others.any(
         (other) =>
-            root == other ||
-            Selection.isInside(root, other) ||
-            Selection.isInside(other, root),
+            root == other || root.isInside(other) || other.isInside(root),
       ),
     ),
   };

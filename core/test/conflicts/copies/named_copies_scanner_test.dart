@@ -13,7 +13,7 @@ void main() {
     store = MemoryFileStore();
     scanner = NamedCopiesScanner(
       store,
-      const DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes),
+      VisibleFileFilter(const FakeSyncAdapter().isInternal),
       const FakeCopyNames(),
     );
   });
@@ -57,7 +57,7 @@ void main() {
         ..put('todo.md', 'main')
         ..put('lists/a.md', 'a')
         ..put(copy1, 'copy')
-        ..put('photo.jpg', 'jpg')
+        ..put('.hidden.md', 'hidden')
         ..put('.fake/todo.md', 'old');
 
       final files = (await scanner.scan()).value.files;
@@ -111,8 +111,8 @@ void main() {
       store
         ..put('a/todo.md', 'main')
         ..put('a/$copy1', 'copy')
-        ..put('a/photo.jpg', 'jpg')
-        ..put('a/photo.fake-copy-20261003-134809.jpg', 'copy');
+        ..put('a/.hidden.md', 'hidden')
+        ..put('a/.hidden.fake-copy-20261003-134809.md', 'copy');
 
       await scanner.scan();
 
@@ -194,7 +194,6 @@ void main() {
 
     test('skips filtered files and folders', () async {
       store
-        ..put('photo.fake-copy-20261003-134809.jpg', 'copy')
         ..put('.fake/$copy1', 'old')
         ..put('.hidden/$copy1', 'copy');
 

@@ -23,12 +23,8 @@ final class PlainFolderPlace implements ToolPlace {
   SubfolderNames get subfolders => _local.subfolders;
 
   @override
-  SyncedFolder open(
-    FileStore store, {
-    required FolderChanges? changes,
-    required FileTypeDetector types,
-  }) {
-    final shown = DefaultFileFilter(rules, types);
+  SyncedFolder open(FileStore store, {required FolderChanges? changes}) {
+    final shown = VisibleFileFilter(rules.isInternal);
     return SyncedFolder(
       store: store,
       scanner: NamedCopiesScanner(store, shown, _names),

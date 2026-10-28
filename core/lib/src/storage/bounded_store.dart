@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../common/result.dart';
 import 'file_store.dart';
+import 'folders_there.dart';
 import 'rel_path.dart';
 import 'selection.dart';
 
@@ -111,14 +112,8 @@ final class BoundedStore implements FileStore {
       final Subfolders subfolders => subfolders.rootOf(path),
     };
     if (root == null) return true;
-    final listed = await _inner.list(
-      enterFolder: (folder) =>
-          folder == root || Selection.isInside(root, folder),
-      includeFile: (_) => false,
-    );
-    return switch (listed) {
-      Ok(value: final listing) =>
-        listing.folders.contains(root) || listing.unreadable.isNotEmpty,
+    return switch (await _inner.foldersThere({root})) {
+      Ok(value: final there) => there.contains(root),
       Err() => true,
     };
   }

@@ -26,11 +26,7 @@ Future<void> _change(
   WidgetRef ref,
   RefreshSettings current,
 ) async {
-  final chosen = await showRefreshDialog(
-    context,
-    current: current,
-    liveAvailable: ref.read(liveRefreshAvailableProvider),
-  );
+  final chosen = await showRefreshDialog(context, current: current);
   if (chosen != null && chosen != current) {
     await ref.read(refreshSettingsProvider.notifier).set(chosen);
   }

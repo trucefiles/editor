@@ -148,7 +148,6 @@ BaseFolderServices baseFolderServices(
   final synced = place.open(
     WriteReportingStore(bounded.files, wrote),
     changes: bounded.changes,
-    types: types.detector,
   );
   final backups = fileBackupsAt(backupsPath);
   return BaseFolderServices(

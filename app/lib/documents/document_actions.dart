@@ -150,6 +150,7 @@ final class DocumentActions {
   }
 }
 
-/// How an action fails that never ran, as its owner had ended: the files
-/// could not be worked on.
+/// How an action fails that never ran, as its owner had ended (a bug in
+/// an earlier action, or the app ends): to the user, nothing was written,
+/// so it reads as a failed write.
 const _notRun = StoreError.ioFailure;

@@ -3,9 +3,9 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const filter = WithConflictCopies(
-    DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes),
-    FakeCopyNames(),
+  final filter = WithConflictCopies(
+    VisibleFileFilter(const FakeSyncAdapter().isInternal),
+    const FakeCopyNames(),
   );
 
   bool includes(String file) => filter.includesPath(path(file));
@@ -27,7 +27,6 @@ void main() {
   });
 
   test('leaves out conflict copies of files it leaves out', () {
-    expect(includes('a.fake-copy-20261003-134809.txt'), isFalse);
     expect(includes('.a.fake-copy-20261003-134809.md'), isFalse);
   });
 }

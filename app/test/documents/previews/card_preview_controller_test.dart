@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/previews/card_preview.dart';
 import 'package:truce_editor/documents/previews/card_preview_controller.dart';
+import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -43,18 +43,20 @@ void main() {
 
     final summary = (shown.read() as Previewed).summary;
     expect(summary.title, 'Plan');
-    expect(summary.preview(DocumentSettings.defaults), 'steps');
+    expect(summary.preview(ViewSettings.none), 'steps');
   });
 
-  test("a card says when a file can't be shown as text", () async {
-    File('${dir.path}/plan.md').writeAsBytesSync([0xFF, 0xFE]);
-    final document = await listed('plan.md');
+  test(
+    "a card says when a file can't be shown as text, and keeps it",
+    () async {
+      File('${dir.path}/plan.md').writeAsBytesSync([0xFF, 0xFE]);
+      final document = await listed('plan.md');
+      final previews = container.read(cardPreviewsProvider);
 
-    expect(
-      await container.read(cardPreviewsProvider).read(document),
-      isA<PreviewUnreadable>(),
-    );
-  });
+      expect(await previews.read(document), isA<PreviewNotText>());
+      expect(previews.known(document), isA<PreviewNotText>());
+    },
+  );
 
   test('a card shown again shows its preview at once', () async {
     File('${dir.path}/plan.md').writeAsStringSync('# Plan');

@@ -264,10 +264,18 @@ class _TypedSubfolder extends StatelessWidget {
       helperMaxLines: 2,
       errorMaxLines: 3,
     ),
-    label: const Text('Subfolder'),
-    hintText: offersTopLevel ? topLevel : null,
-    helperText: 'Pick one, or type a new one',
-    errorText: errorText,
+    // A plain arrow at the field's end, where the other fields have theirs;
+    // a tap anywhere on the field opens the list.
+    decorationBuilder: (context, menu) => InputDecoration(
+      label: const Text('Subfolder'),
+      hintText: offersTopLevel ? topLevel : null,
+      helperText: 'Pick one, or type a new one',
+      errorText: errorText,
+      suffixIcon: Icon(
+        menu.isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+      ),
+      suffixIconConstraints: const BoxConstraints(),
+    ),
     onSelected: (_) => onChanged(),
     dropdownMenuEntries: [
       if (offersTopLevel) DropdownMenuEntry(value: '', label: topLevel),

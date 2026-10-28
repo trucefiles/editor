@@ -48,12 +48,8 @@ final class FakePlace implements ToolPlace {
   SubfolderNames get subfolders => _ListedNames(files);
 
   @override
-  SyncedFolder open(
-    FileStore store, {
-    required FolderChanges? changes,
-    required FileTypeDetector types,
-  }) {
-    final shown = DefaultFileFilter(const FakeSyncAdapter(), types);
+  SyncedFolder open(FileStore store, {required FolderChanges? changes}) {
+    final shown = VisibleFileFilter(const FakeSyncAdapter().isInternal);
     return SyncedFolder(
       store: store,
       scanner: NamedCopiesScanner(store, shown, const FakeCopyNames()),
@@ -76,8 +72,7 @@ final class _ListedNames implements SubfolderNames {
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async {
     final listed = await _files.list(
       enterFolder: (inner) =>
-          folder != null &&
-              (inner == folder || Selection.isInside(folder, inner)) ||
+          folder != null && folder.isAtOrInside(inner) ||
           inner.parent == folder,
       includeFile: (_) => false,
     );

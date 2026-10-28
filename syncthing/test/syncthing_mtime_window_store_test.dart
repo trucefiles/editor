@@ -13,19 +13,24 @@ void main() {
   late DateTime now;
   late List<_FakeTimer> timers;
 
+  /// A store over [inner] that goes on from [memory].
+  SyncthingMtimeWindowStore storeWith(SyncthingWriteMemory memory) =>
+      SyncthingMtimeWindowStore(
+        inner,
+        memory,
+        now: () => now,
+        timer: (duration, callback) {
+          final timer = _FakeTimer(duration, callback);
+          timers.add(timer);
+          return timer;
+        },
+      );
+
   setUp(() {
     inner = MemoryFileStore();
     now = DateTime(2026);
     timers = [];
-    store = SyncthingMtimeWindowStore(
-      inner,
-      now: () => now,
-      timer: (duration, callback) {
-        final timer = _FakeTimer(duration, callback);
-        timers.add(timer);
-        return timer;
-      },
-    );
+    store = storeWith(SyncthingWriteMemory());
   });
 
   final document = path('a.md');
@@ -72,6 +77,20 @@ void main() {
 
     expect(inner.textOf('a.md'), 'v2');
     expect(versionOnDisk(), isNot(second.version));
+  });
+
+  test('a new store on the same memory knows the writes before', () async {
+    final memory = SyncthingWriteMemory();
+    store = storeWith(memory);
+    final first = await write('v1', null);
+    // E.g. the user changed what the base folder's folders show.
+    store = storeWith(memory);
+    wait(1);
+    await write('v2', first);
+
+    expect(pending().single.duration, seconds(1) + margin);
+    await fireTimers();
+    expect(inner.textOf('a.md'), 'v2');
   });
 
   test('rewrites writes of any size', () async {

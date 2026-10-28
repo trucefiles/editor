@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../document.dart';
 import '../document_files.dart';
+import '../open_failure.dart';
 import 'card_preview.dart';
 import 'card_previews.dart';
 
@@ -18,7 +19,8 @@ final cardPreviewsProvider = Provider<CardPreviews>(
       Ok(value: final read) => Previewed(
         read.type.cardSummary(read.text, read.path),
       ),
-      Err() => const PreviewUnreadable(),
+      Err(error: NotText()) => const PreviewNotText(),
+      Err(error: NotRead()) => const PreviewUnreadable(),
     },
   ),
 );

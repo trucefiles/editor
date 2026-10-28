@@ -6,6 +6,7 @@ import '../documents/document_files.dart';
 import '../documents/document_place.dart';
 import '../documents/document_text.dart';
 import '../documents/document_version.dart';
+import '../documents/open_failure.dart';
 import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import 'document_file.dart';
@@ -170,7 +171,7 @@ final class FileEffects {
         over.document,
       )) {
         Ok(value: final theirs) => Changed(theirs.seen),
-        Err(error: StoreError.notFound) => const WriteGone(),
+        Err(error: NotRead(error: StoreError.notFound)) => const WriteGone(),
         Err() => const WriteFailed(),
       },
       Err(error: StoreError.notFound) => const WriteGone(),

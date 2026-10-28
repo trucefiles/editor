@@ -4,22 +4,19 @@ import '../../common/interval_text.dart';
 import '../refresh_settings.dart';
 
 /// Lets the user pick how changes from elsewhere show up; the new setting,
-/// or `null` if cancelled. Offers live updates only if [liveAvailable].
+/// or `null` if cancelled.
 Future<RefreshSettings?> showRefreshDialog(
   BuildContext context, {
   required RefreshSettings current,
-  required bool liveAvailable,
 }) => showDialog<RefreshSettings>(
   context: context,
-  builder: (_) =>
-      _RefreshDialog(current: current, liveAvailable: liveAvailable),
+  builder: (_) => _RefreshDialog(current: current),
 );
 
 class _RefreshDialog extends StatefulWidget {
-  const _RefreshDialog({required this.current, required this.liveAvailable});
+  const _RefreshDialog({required this.current});
 
   final RefreshSettings current;
-  final bool liveAvailable;
 
   @override
   State<_RefreshDialog> createState() => _RefreshDialogState();
@@ -39,15 +36,14 @@ class _RefreshDialogState extends State<_RefreshDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.liveAvailable)
-            const RadioListTile(
-              value: RefreshMode.live,
-              title: Text('Live'),
-              subtitle: Text(
-                'As they happen. Folders where this is not possible are '
-                'checked at the interval below.',
-              ),
+          const RadioListTile(
+            value: RefreshMode.live,
+            title: Text('Live'),
+            subtitle: Text(
+              'As they happen. Folders where this is not possible are '
+              'checked at the interval below.',
             ),
+          ),
           const RadioListTile(
             value: RefreshMode.periodic,
             title: Text('Periodic'),

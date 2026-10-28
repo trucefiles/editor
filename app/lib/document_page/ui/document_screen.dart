@@ -118,14 +118,16 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       (
         text: opened?.text ?? '',
         version: opened?.version,
-        settings: settings,
+        view: settings.view,
         // Not yet kept as a conflict copy: only an unreachable folder
         // makes it read only.
         readOnly: _unreachable(file.folder),
         isNew: document == null,
       ),
       EditorPage(
-        keepSettings: (change) => _controller.keepSettings(change),
+        keepView: (change) => _controller.keepSettings(
+          (settings) => settings.withView(change(settings.view)),
+        ),
         withFile: _withFile,
       ),
     );
@@ -423,7 +425,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          ..._part.menu(context, settings),
+          ..._part.menu(context, settings.view),
           PopupMenuItem(
             value: () => _withFile(
               context,
@@ -474,7 +476,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         _showShownMode();
       })
       ..listen(documentSettingsProvider, (_, _) {
-        _part.settingsChanged(_settingsNow);
+        _part.viewChanged(_settingsNow.view);
       })
       ..listen(folderContentsProvider, (_, next) {
         if (next.value case final contents?) _session.observe(contents);

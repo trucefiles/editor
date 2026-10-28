@@ -26,9 +26,14 @@ import 'package:truce_core/truce_core.dart';
 /// A rewrite that fails, or that does not happen because the app ends
 /// first, is not retried: the content may then stay unseen until the
 /// file's next write. Each rewrite is logged.
+///
+/// What it knows of earlier writes lives in [_memory], which outlasts the
+/// store: a new store over the same base folder (e.g. after the user
+/// changed what its folders show) goes on from it.
 final class SyncthingMtimeWindowStore implements FileStore {
   SyncthingMtimeWindowStore(
-    this._inner, {
+    this._inner,
+    this._memory, {
     DateTime Function()? now,
     Timer Function(Duration, void Function())? timer,
   }) : _now = now ?? DateTime.now,
@@ -44,11 +49,9 @@ final class SyncthingMtimeWindowStore implements FileStore {
   static final _log = Logger('truce.syncthing');
 
   final FileStore _inner;
+  final SyncthingWriteMemory _memory;
   final DateTime Function() _now;
   final Timer Function(Duration, void Function()) _timer;
-
-  final Map<RelPath, _FileState> _files = {};
-  final _writes = KeyedTaskQueue<RelPath>();
 
   @override
   Future<Result<Listing, StoreError>> list({
@@ -117,7 +120,8 @@ final class SyncthingMtimeWindowStore implements FileStore {
     required FileVersion ifUnchanged,
   }) => moveByCopy(this, from, to, ifUnchanged: ifUnchanged);
 
-  _FileState _stateOf(RelPath path) => _files.putIfAbsent(path, _FileState.new);
+  _FileState _stateOf(RelPath path) =>
+      _memory._files.putIfAbsent(path, _FileState.new);
 
   void _wrote(RelPath path, Uint8List bytes, FileEntry entry) {
     final state = _stateOf(path);
@@ -166,7 +170,7 @@ final class SyncthingMtimeWindowStore implements FileStore {
 
   /// Runs [operation] after every earlier write to [path] is done.
   Future<T> _serial<T>(RelPath path, Future<T> Function() operation) =>
-      _writes.run(path, operation);
+      _memory._writes.run(path, operation);
 
   static bool _sameBytes(Uint8List a, Uint8List b) {
     if (a.length != b.length) return false;
@@ -175,6 +179,13 @@ final class SyncthingMtimeWindowStore implements FileStore {
     }
     return true;
   }
+}
+
+/// What [SyncthingMtimeWindowStore] knows of one base folder's writes:
+/// kept as long as the base folder, by its place.
+final class SyncthingWriteMemory {
+  final Map<RelPath, _FileState> _files = {};
+  final _writes = KeyedTaskQueue<RelPath>();
 }
 
 /// What the store knows about one file.

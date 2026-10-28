@@ -73,7 +73,7 @@ void main() {
             {'.stfolder'},
           ]),
         ),
-      ).open(store, changes: live, types: fakeFileTypes);
+      ).open(store, changes: live);
     });
 
     test('shows documents with their conflict copies apart', () async {

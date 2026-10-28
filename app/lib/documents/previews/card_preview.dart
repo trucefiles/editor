@@ -19,7 +19,13 @@ final class Previewed extends CardPreview {
   final DocumentCardSummary summary;
 }
 
-/// The text could not be read; the card shows the file name only.
+/// The file holds no text; the card shows the file name and says so.
+/// Told by the file itself, so kept like a preview.
+final class PreviewNotText extends CardPreview {
+  const PreviewNotText();
+}
+
+/// The file could not be read now; the card shows the file name only.
 final class PreviewUnreadable extends CardPreview {
   const PreviewUnreadable();
 }
@@ -28,5 +34,7 @@ final class PreviewUnreadable extends CardPreview {
 /// else the file name without its extension.
 String cardTitle(Document document, CardPreview preview) => switch (preview) {
   Previewed(:final summary) => summary.title,
-  PreviewReading() || PreviewUnreadable() => nameTitle(document.path),
+  PreviewReading() ||
+  PreviewNotText() ||
+  PreviewUnreadable() => nameTitle(document.path),
 };

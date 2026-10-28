@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 
 import '../support.dart';
@@ -159,10 +160,13 @@ void main() {
       File('${dir.path}/home.md').writeAsStringSync('home');
       File('${dir.path}/work/photo.png').writeAsStringSync('png');
 
-      expect((await work.open(path('home.md'))).error, StoreError.outside);
+      expect(
+        (await work.open(path('home.md'))).error,
+        const NotRead(StoreError.outside),
+      );
       expect(
         (await work.open(path('work/photo.png'))).error,
-        StoreError.outside,
+        const NotRead(StoreError.outside),
       );
     });
 
