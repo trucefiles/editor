@@ -1,9 +1,16 @@
 import 'package:truce_core/truce_core.dart'
-    show EffectId, Edited, Picked, Replaced, SaveNow, Secure, Step;
+    show
+        EditorBook,
+        EditorNotice,
+        EditorSteps,
+        EffectId,
+        OfferedUndo,
+        Step,
+        UndoOffered,
+        textChange;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
-import '../doc/origin.dart';
 import '../edit/change.dart' show startOf;
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
@@ -18,11 +25,9 @@ import '../visible/formatting.dart';
 import 'editor_contract.dart';
 import 'editor_work.dart';
 import 'history/snapshot.dart';
-import 'history/text_change.dart';
 import 'history/typing.dart';
 import 'raw_closed.dart';
 import 'reload.dart';
-import 'save_clock.dart';
 
 /// The editor owner's decision on [message] in [state], with its [work].
 Step<EditorState, EditorWork, EditorEvent, EditorEffect> editorStep(
@@ -40,7 +45,7 @@ Step<EditorState, EditorWork, EditorEvent, EditorEffect> editorStep(
 }
 
 /// One input's handling: the state as it changes and what it leads to.
-final class _Step {
+final class _Step with EditorSteps<Snapshot> {
   _Step(this.state, this.work);
 
   EditorState state;
@@ -48,13 +53,37 @@ final class _Step {
   final events = <EditorEvent>[];
   final effects = <EditorEffect>[];
 
+  @override
+  EditorBook<Snapshot> get book => work.book;
+
+  @override
+  set book(EditorBook<Snapshot> book) => work = work.copyWith(book: book);
+
+  @override
+  void notify(EditorNotice notice) => events.add(Notice(notice));
+
+  @override
+  void startTimer(EffectId id, Duration delay) =>
+      effects.add(StartSaveTimer(id, delay));
+
+  @override
+  Snapshot snapshot() => snapshotOf(state.content, work.origin);
+
+  @override
+  String get text => _printed().text;
+
+  /// Read shows the text kept.
+  @override
+  bool get sendsAtOnce => state.mode == EditMode.read;
+
   /// What the input's step did, if it is offered for undo right away.
   OfferedUndo? offered;
 
   void handle(EditorMessage message) {
     switch (message) {
       case SaveTimerFired(:final id):
-        _tick(work.clock.fired(id.value));
+        fired(id);
+        _settleFlags();
       case final EditorInput input:
         _input(input);
     }
@@ -67,19 +96,20 @@ final class _Step {
         when revision != state.revision) {
       return;
     }
-    final (before, origin, rev) = (state, work.origin, work.rev);
+    final (before, origin, rev) = (state, work.origin, book.rev);
     _handle(input);
     switch (input) {
-      case Undo() || Redo():
-        break;
-      case ShownInput() when work.rev != rev:
-        _record(input, before, origin);
+      case ShownInput() when book.rev != rev:
+        record(
+          snapshotOf(before.content, origin),
+          typingOf(input, before, state),
+        );
         if (offered case final what?) {
-          events.add(UndoOffered(work.history.latestId!, what));
+          notify(UndoOffered(book.history.latestId!, what));
         }
       case CaretMoved() || RawCaretMoved():
         // Typing after a caret move starts a new step.
-        work = work.copyWith(history: work.history.runEnded());
+        endTypingRun();
       case _:
         break;
     }
@@ -88,12 +118,8 @@ final class _Step {
 
   void _handle(EditorInput input) {
     switch ((input, state.content)) {
-      case (Undo(), _):
-        _undo();
-      case (Redo(), _):
-        _redo();
-      case (ReplaceAll(:final text), _):
-        _replaceAll(text);
+      case (Request(:final request), _):
+        handleRequest(request);
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
@@ -105,11 +131,11 @@ final class _Step {
           )
           when state.mode == EditMode.read:
         _run(command);
-        _send();
+        send();
       case (EditText(:final text), MarkdownContent(text: final old))
           when text != old:
         _show(MarkdownContent(text));
-        _textChanged();
+        textChanged();
       case (SetMode(:final mode), _):
         _setMode(mode);
       case (SetCheckedItems(:final checkedItems), _):
@@ -126,38 +152,6 @@ final class _Step {
             ),
           ),
         );
-      case (UndoStep(:final id), _):
-        _undoStep(id);
-      case (
-            FromFile(
-              message: Replaced(:final text, :final version, :final ackRev),
-            ),
-            _,
-          )
-          when ackRev == work.rev:
-        work = work.copyWith(
-          lineage: version,
-          // Before the first edit, it still starts where the document
-          // opened (e.g. a newer copy of an own save shows).
-          history: work.history.nextId == 0
-              ? work.history
-              : work.history.cleared(HistoryStart.changedElsewhere),
-        );
-        _reload(text);
-      case (
-        FromFile(message: Picked(:final text, :final version, :final rev)),
-        _,
-      ):
-        work = work.copyWith(
-          lineage: version,
-          rev: rev,
-          sentRev: rev,
-          picks: work.picks + 1,
-          history: work.history.cleared(HistoryStart.replacedHere),
-        );
-        _reload(text);
-      case (final SecureEditor secure, _):
-        _secure(secure);
       case _:
         break;
     }
@@ -173,7 +167,7 @@ final class _Step {
             raw: RawRegion(raw.block, text, base: base, extent: extent),
           ),
         );
-        if (text != raw.text) _textChanged();
+        if (text != raw.text) textChanged();
       case (RawCaretMoved(:final base, :final extent), final raw?):
         _show(
           _formatted(
@@ -278,7 +272,7 @@ final class _Step {
       ),
     );
     if (identical(edited.doc, before)) return;
-    _textChanged();
+    textChanged();
     if (_removes(command, before, edited.doc)) offered = OfferedUndo.removal;
   }
 
@@ -302,58 +296,8 @@ final class _Step {
 
   // Undo and redo.
 
-  /// The text change [input] made from [before], read from [origin], as
-  /// an undo step, or as part of the latest one where it goes on typing.
-  void _record(ShownInput input, EditorState before, Origin origin) {
-    final typing = typingOf(input, before, state);
-    final history = work.history;
-    work = work.copyWith(
-      history:
-          history.continued(typing) ??
-          history.recorded(snapshotOf(before.content, origin), typing),
-    );
-  }
-
-  /// Undoes the latest step; at the history's start, tells so.
-  void _undo() {
-    _undoLatest();
-    if (!work.history.canUndo) events.add(HistoryEnd(work.history.start));
-  }
-
-  void _undoLatest() {
-    if (work.history.undone(_snapshot()) case (
-      history: final next,
-      :final back,
-    )) {
-      work = work.copyWith(history: next);
-      _restore(back);
-    }
-  }
-
-  void _redo() {
-    if (work.history.redone(_snapshot()) case (
-      history: final next,
-      :final back,
-    )) {
-      work = work.copyWith(history: next);
-      _restore(back);
-    }
-  }
-
-  /// Undoes step [id] if it is the latest.
-  void _undoStep(int id) {
-    if (work.history.latestId == id) {
-      _undoLatest();
-    } else {
-      events.add(UndoRefused(id));
-    }
-  }
-
-  /// What shows now, to come back to.
-  Snapshot _snapshot() => snapshotOf(state.content, work.origin);
-
-  /// [back] shows again, as a text change.
-  void _restore(Snapshot back) {
+  @override
+  void restore(Snapshot back) {
     switch ((back, state.content)) {
       case (_, MarkdownContent(text: final now)):
         if (back case TreeSnapshot(
@@ -381,13 +325,12 @@ final class _Step {
           ),
         );
       case (TextSnapshot(:final text), FormattedContent()):
-        _reload(text);
+        reload(text);
     }
-    _changedByHistory();
   }
 
-  /// The document reads [text] instead, from its start.
-  void _replaceAll(String text) {
+  @override
+  void replaceText(String text) {
     if (state.mode == EditMode.markdown) {
       _show(MarkdownContent(text, caret: 0));
     } else {
@@ -395,15 +338,6 @@ final class _Step {
       work = work.copyWith(origin: next.origin);
       _show(_fresh(next.doc));
     }
-    offered = OfferedUndo.restore;
-    _changedByHistory();
-  }
-
-  /// A text change not typed: saved as typing is; Read shows the text
-  /// kept, so it is sent at once.
-  void _changedByHistory() {
-    _textChanged();
-    if (state.mode == EditMode.read) _send();
   }
 
   /// [items]' boxes toggled in order; with "Move to end", the checked
@@ -460,13 +394,13 @@ final class _Step {
         _show(MarkdownContent(printed.text), mode: mode);
       case (MarkdownContent(:final text), EditMode.visual || EditMode.read):
         _show(state.content, mode: mode);
-        _reload(text);
+        reload(text);
         work = work.copyWith(left: null);
-        if (mode == EditMode.read) _send();
+        if (mode == EditMode.read) send();
       case (FormattedContent(:final selection), _):
         _show(_closedRaw(selection), mode: mode);
         // Read shows the text as sent.
-        if (mode == EditMode.read) _send();
+        if (mode == EditMode.read) send();
       case (MarkdownContent(), _):
         break;
     }
@@ -490,53 +424,6 @@ final class _Step {
 
   // Saving.
 
-  /// A text change: its rev, and the save clock runs.
-  void _textChanged() {
-    work = work.copyWith(rev: work.rev + 1);
-    _tick(work.clock.typed());
-  }
-
-  void _tick(Tick tick) {
-    work = work.copyWith(clock: tick.clock);
-    effects.addAll([
-      for (final (:timer, :id) in tick.started)
-        StartSaveTimer(EffectId(id), timer.delay),
-    ]);
-    switch (tick.save) {
-      case Save.draft:
-        _send();
-      case Save.folder:
-        _send();
-        events.add(const ToFile(SaveNow()));
-      case null:
-        break;
-    }
-    _settleFlags();
-  }
-
-  /// The text, printed, to the file owner, unless it has it.
-  void _send() {
-    if (work.sentRev == work.rev) return;
-    events.add(
-      ToFile(
-        Edited(
-          _printed().text,
-          rev: work.rev,
-          lineage: work.lineage,
-          picks: work.picks,
-        ),
-      ),
-    );
-    work = work.copyWith(sentRev: work.rev);
-  }
-
-  void _secure(SecureEditor secure) {
-    _send();
-    work = work.copyWith(clock: work.clock.left);
-    events.add(ToFile(Secure(secure.ticket, secure.reason)));
-    _settleFlags();
-  }
-
   /// What the file says once the text is sent: the document printed,
   /// with the open raw block as typed.
   PrintedMarkdown _printed() => switch (state.content) {
@@ -552,7 +439,8 @@ final class _Step {
   /// [text] shows instead, read anew: the selection and collapsed Done
   /// sections follow their lines, and an open raw block whose text the
   /// change kept stays open.
-  void _reload(String text) {
+  @override
+  void reload(String text) {
     if (state.mode == EditMode.markdown) return _show(MarkdownContent(text));
     final next = loaded(text);
     final content = switch (state.content) {
@@ -650,31 +538,20 @@ final class _Step {
     mode: mode ?? state.mode,
     checkedItems: checkedItems ?? state.checkedItems,
     revision: state.revision + 1,
-    unsent: work.sentRev != work.rev,
-    canUndo: work.history.canUndo,
-    canRedo: work.history.canRedo,
+    status: book.status,
   );
 
   /// The state telling whether edits are only in memory and what undo
   /// and redo can do; what shows is the same.
   void _settleFlags() {
-    final (unsent, canUndo, canRedo) = (
-      work.sentRev != work.rev,
-      work.history.canUndo,
-      work.history.canRedo,
-    );
-    if ((state.unsent, state.canUndo, state.canRedo) ==
-        (unsent, canUndo, canRedo)) {
-      return;
-    }
+    final status = book.status;
+    if (state.status == status) return;
     state = EditorState(
       content: state.content,
       mode: state.mode,
       checkedItems: state.checkedItems,
       revision: state.revision,
-      unsent: unsent,
-      canUndo: canUndo,
-      canRedo: canRedo,
+      status: status,
     );
   }
 }

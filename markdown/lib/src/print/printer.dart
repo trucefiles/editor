@@ -3,13 +3,14 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:truce_core/truce_core.dart'
+    show byteOrderMarkCharacter, dominantEnding;
 
 import '../doc/definitions.dart';
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../doc/origin.dart';
 import '../document_tree.dart';
-import '../lines/line_endings.dart';
 import '../tree/blocks.dart';
 import 'as_read.dart';
 import 'frames.dart';

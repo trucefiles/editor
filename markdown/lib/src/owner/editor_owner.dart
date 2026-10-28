@@ -1,5 +1,5 @@
 import 'package:truce_core/truce_core.dart'
-    show Machine, MachineOwner, Owner, StartTimer, Version;
+    show EditorBook, Machine, MachineOwner, Owner, StartTimer, Version;
 
 import '../edit/change.dart';
 import '../view/rows.dart';
@@ -9,7 +9,6 @@ import 'editor_work.dart';
 import 'reload.dart';
 
 export 'editor_contract.dart';
-export 'save_clock.dart' show SaveTimer;
 
 /// The owner of what one open Markdown document's editor shows (see
 /// `editor_contract.dart`).
@@ -68,9 +67,11 @@ EditorMachine editorMachine(
       mode: mode,
       checkedItems: checkedItems,
       revision: 0,
-      unsent: false,
     ),
-    work: EditorWork(origin: document.origin, lineage: version),
+    work: EditorWork(
+      origin: document.origin,
+      book: EditorBook(lineage: version),
+    ),
     step: editorStep,
   );
 }

@@ -89,7 +89,8 @@ void main() {
           '.obsidian/workspace.json',
           '.a.md.swp',
           'a.md~',
-          'documents.txt',
+          'picture.png',
+          'notes.txt',
           'sub/a.md',
           'a.sync-conflict-20261003-134809-ABCDEFG.md',
           '.truce/marks/laptop.json',
@@ -99,6 +100,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 500));
 
         expect(seen, {
+          path('notes.txt'),
           path('sub/a.md'),
           path('a.sync-conflict-20261003-134809-ABCDEFG.md'),
           path('.truce/marks/laptop.json'),

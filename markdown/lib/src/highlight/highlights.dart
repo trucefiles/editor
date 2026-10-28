@@ -1,5 +1,6 @@
+import 'package:truce_core/truce_core.dart' show LineId;
+
 import '../document_tree.dart';
-import '../lines/line.dart';
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';
 

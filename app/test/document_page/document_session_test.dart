@@ -11,6 +11,7 @@ import 'package:truce_editor/documents/document_version.dart';
 
 import '../support.dart' hide documentOf;
 import 'document_fixture.dart';
+import 'markdown_session.dart';
 
 void main() {
   late DocumentFixture fixture;
@@ -45,7 +46,7 @@ void main() {
 
     // Made in the zone, so the error of its file owner is heard there.
     await runZonedGuarded(() async {
-      session = DocumentSession(
+      session = markdownSession(
         FileEffects(
           ExistingFile(fixture.document),
           filesOf: (_) => throw StateError('bug'),
@@ -66,6 +67,36 @@ void main() {
       () async =>
           (await fixture.draftsIn('f1')).singleOrNull?.text == 'mine one\n',
     );
+  });
+
+  test('once stopped, its text is the latest edits, also those the editor '
+      'still held', () async {
+    var broken = false;
+    late DocumentSession session;
+
+    await runZonedGuarded(() async {
+      session = markdownSession(
+        FileEffects(
+          ExistingFile(fixture.document),
+          filesOf: (folder) =>
+              broken ? throw StateError('bug') : fixture.files[folder.id]!,
+          draftsOf: (folder) => fixture.drafts[folder.id]!,
+          create: (_, {required title, required text}) =>
+              throw StateError('bug'),
+        ),
+      )..type('a ');
+      // Sent at the typing pause: kept as a draft, not yet in the file.
+      await eventually(() async => !session.editor.state.unsent);
+      broken = true;
+      session
+        ..type('mine ')
+        ..saveNow();
+      await pumpEventQueue();
+    }, (_, _) {});
+    addTearDown(session.dispose);
+
+    expect(session.stopped, isTrue);
+    expect(session.text, 'a mine one\n');
   });
 
   test('typing tells listeners the edits are being edited, at once', () {

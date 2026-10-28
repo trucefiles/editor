@@ -5,7 +5,8 @@
 /// block is. Blank lines are no blocks: they are layout between leaves.
 library;
 
-import '../lines/line.dart';
+import 'package:truce_core/truce_core.dart' show LineId;
+
 import 'inlines.dart';
 
 /// Identifies a block while it lives, across edits of its lines.

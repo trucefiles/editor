@@ -1,30 +1,52 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document_card_summary.dart';
+import 'package:truce_editor/documents/document_settings.dart';
+import 'package:truce_editor/file_types/document_types.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 import '../support.dart';
 
 void main() {
-  const text = '# Shopping\n- [x] milk\n- [ ] eggs';
+  const shown = DocumentSettings(checkedItems: CheckedItems.inPlace);
+  const hidden = DocumentSettings();
 
-  test('holds the title and both previews of the text', () {
-    final summary = DocumentCardSummary.of(text, path('a.md'));
+  DocumentCardSummary summaryOf(String text, String name) =>
+      documentTypes.of(path(name)).cardSummary(text, path(name));
 
-    expect(summary.title, 'Shopping');
-    expect(summary.previewOf(hideDone: false), '☑ milk\n☐ eggs');
-    expect(summary.previewOf(hideDone: true), '☐ eggs\n+ 1 done');
+  group('Markdown', () {
+    test('holds the title and the preview as the settings say', () {
+      final summary = summaryOf('# Shopping\n- [x] milk\n- [ ] eggs', 'a.md');
+
+      expect(summary.title, 'Shopping');
+      expect(summary.preview(shown), '☑ milk\n☐ eggs');
+      expect(summary.preview(hidden), '☐ eggs\n+ 1 done');
+    });
+
+    test('takes the title from the file name without a heading', () {
+      expect(summaryOf('text', 'lists/Plan.md').title, 'Plan');
+    });
   });
 
-  test('takes the title from the file name without a heading', () {
-    expect(DocumentCardSummary.of('text', path('lists/Plan.md')).title, 'Plan');
-  });
+  group('plain text', () {
+    test('the first line is the title, the later lines the preview', () {
+      final summary = summaryOf('Shopping\n\n- [x] milk\n  eggs  \n', 'a.txt');
 
-  test('previews hold up to the given lines', () {
-    final summary = DocumentCardSummary.of(
-      'a\nb\nc',
-      path('a.md'),
-      maxLines: 2,
-    );
+      expect(summary.title, 'Shopping');
+      expect(summary.preview(hidden), '- [x] milk\n  eggs');
+      expect(summary.preview(shown), summary.preview(hidden));
+    });
 
-    expect(summary.preview, 'a\nb');
+    test('takes the title from the file name without words', () {
+      expect(summaryOf(' \n', 'lists/Plan.txt').title, 'Plan');
+    });
+
+    test('previews hold up to ten lines', () {
+      final lines = [for (var line = 0; line < 12; line++) 'line $line'];
+
+      expect(
+        summaryOf(lines.join('\n'), 'a.txt').preview(hidden),
+        lines.skip(1).take(10).join('\n'),
+      );
+    });
   });
 }

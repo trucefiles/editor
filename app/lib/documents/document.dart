@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
 import 'document_card_summary.dart';
+import 'document_settings.dart';
 
 /// One document file, as last read.
 @immutable
@@ -27,17 +29,16 @@ final class Document {
 
   DocumentKey get key => (folderId: folder.id, path: path);
 
-  /// Worked out once, on first use, from [file].
-  late final DocumentCardSummary _summary = DocumentCardSummary.of(
-    file.text,
-    path,
-  );
+  /// Worked out once, on first use, from [file], by its type.
+  late final DocumentCardSummary _summary = documentTypes
+      .of(path)
+      .cardSummary(file.text, path);
 
   String get title => _summary.title;
 
-  /// The preview of the document's text for its card; see [DocumentCardSummary].
-  String preview({required bool hideDone}) =>
-      _summary.previewOf(hideDone: hideDone);
+  /// The preview of the document's text for its card, as its [settings]
+  /// on this device say; see [DocumentCardSummary].
+  String preview(DocumentSettings settings) => _summary.preview(settings);
 
   /// This document with [folder]'s current name and color; itself if they are
   /// unchanged.

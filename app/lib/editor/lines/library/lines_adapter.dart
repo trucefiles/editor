@@ -1,20 +1,23 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_core/truce_core.dart'
+    show EditableLines, Line, LineId, splitLines;
 
-import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
+import '../edited_text.dart';
 
 /// Connects the library's [editor], one plain text node per line, to the
-/// editor owner behind [_gate] in Markdown edit. The library edits the
-/// lines itself, as plain text; after each transaction that changed
-/// them, the change re-reads the lines' tree (see
-/// [md.DocumentTree.withLines]) and the owner gets the new text. A text
-/// from elsewhere shows at once, the caret kept on its line.
-final class MarkdownAdapter {
-  MarkdownAdapter(this._gate)
-    : _tree = md.DocumentTree.read(_ownerText(_gate)) {
+/// text [_text] edits, read as lines of kind [L] (e.g. a Markdown tree,
+/// which highlights by them). The library edits the lines itself, as
+/// plain text; after each transaction that changed them, the change
+/// re-reads the lines (see [EditableLines.withLines]) and [_text] gets the
+/// new text. A text from elsewhere shows at once, the caret kept on its
+/// line.
+final class LinesAdapter<L extends EditableLines<L>> {
+  /// [read] reads a text as lines.
+  LinesAdapter(this._text, {required L Function(String text) read})
+    : _tree = read(_text.shown?.text ?? '') {
     _document = MutableDocument(
       nodes: [
         for (final line in _tree.lines)
@@ -26,66 +29,38 @@ final class MarkdownAdapter {
       requestHandlers: [_handle, ..._libraryHandlers],
       reactionPipeline: [],
     )..addListener(FunctionalEditListener(_onTransactionEnd));
-    _gate.addListener(_onOwnerChanged);
+    _text.addListener(_onTextChanged);
   }
 
-  final EditorGate _gate;
+  final EditedText _text;
   late final Editor editor;
   late final MutableDocument _document;
   final composer = MutableDocumentComposer();
 
   /// The lines as the library holds them, read.
-  md.DocumentTree _tree;
+  L _tree;
 
   /// The line each node shows; a node the library just made has none.
-  final _lineOf = <String, md.LineId>{};
+  final _lineOf = <String, LineId>{};
   int _nextNodeId = 0;
-
-  /// The text sent to the owner last, so its echo is no news.
-  String? _sent;
 
   /// Whether our own patch runs: its changes are no edits.
   bool _patching = false;
 
   Document get document => _document;
 
-  /// The lines' tree, for highlighting.
-  md.DocumentTree get tree => _tree;
+  /// The lines, e.g. for highlighting.
+  L get tree => _tree;
 
   final _treeChanged = _Changes();
 
   /// Tells of each change of [tree].
   Listenable get treeChanged => _treeChanged;
 
-  /// The highlights of the line node [nodeId] shows; none for one the
-  /// library just made.
-  List<md.HighlightSpan> highlightsOf(String nodeId) =>
-      switch (_lineOf[nodeId]) {
-        final line? => md.highlightsOf(_tree, line),
-        null => const [],
-      };
-
-  /// Where the link at [position] leads, if its text is part of one.
-  String? linkAt(DocumentPosition position) => switch (position.nodePosition) {
-    TextNodePosition(:final offset) =>
-      highlightsOf(position.nodeId)
-          .where((span) => span.start <= offset && offset < span.end)
-          .map((span) => span.highlight)
-          .whereType<md.LinkHighlight>()
-          .lastOrNull
-          ?.destination,
-    _ => null,
-  };
-
   /// The line node [nodeId] shows; `null` for one the library just made.
-  md.LineId? lineOf(String nodeId) => _lineOf[nodeId];
+  LineId? lineOf(String nodeId) => _lineOf[nodeId];
 
-  static String _ownerText(EditorGate gate) => switch (gate.state.content) {
-    md.MarkdownContent(:final text) => text,
-    md.FormattedContent() => '',
-  };
-
-  String _newNodeId(md.LineId line) {
+  String _newNodeId(LineId line) {
     final id = 'line-${_nextNodeId++}';
     _lineOf[id] = line;
     return id;
@@ -113,8 +88,8 @@ final class MarkdownAdapter {
     _ => null,
   };
 
-  /// The lines the transaction's [changes] touched, re-read; the owner
-  /// gets the text. A node that came to hold line breaks (pasted text, or
+  /// The lines the transaction's [changes] touched, re-read; the edited
+  /// text gets the text. A node that came to hold line breaks (pasted text, or
   /// text an input method put in) is split into its lines.
   void _onTransactionEnd(List<EditEvent> changes) {
     if (_patching) return;
@@ -130,7 +105,7 @@ final class MarkdownAdapter {
             _document.getNodeById(edit.nodeId) != null)
           edit.nodeId,
     };
-    final oldLines = <md.LineId>{
+    final oldLines = <LineId>{
       for (final edit in edits)
         if (edit is NodeRemovedEvent) ?_lineOf.remove(edit.nodeId),
       for (final id in touched) ?_lineOf[id],
@@ -161,21 +136,22 @@ final class MarkdownAdapter {
       _show(caret);
     }
     _treeChanged.changed();
-    final text = _sent = _tree.text;
-    _gate.send((now) => md.EditText(text, revision: now.revision));
+    _text.edit(_tree.text);
   }
 
   // Text from elsewhere.
 
-  /// Shows the owner's text when it is not what was sent: the lines that
-  /// stayed keep their nodes; the caret goes where the owner says (after
-  /// an undo, to the change), else it stays on its line.
-  void _onOwnerChanged() {
-    final (text, offset) = switch (_gate.state.content) {
-      md.MarkdownContent(:final text, :final caret) => (text, caret),
-      md.FormattedContent() => (null, null),
+  /// Shows the edited text when it is not what was sent: the lines that
+  /// stayed keep their nodes; the caret goes where it says (after an
+  /// undo, to the change), else it stays on its line.
+  void _onTextChanged() {
+    final (text, offset) = switch (_text.shown) {
+      (:final text, :final caret) => (text, caret),
+      null => (null, null),
     };
-    if (text == null || identical(text, _sent) || text == _tree.text) return;
+    // What shows already, e.g. the echo of an edit sent. Not compared with
+    // the text sent last: undo and redo may bring that same text back.
+    if (text == null || text == _tree.text) return;
     final caret = switch (offset) {
       final offset? => _caretAtOffset(text, offset),
       null => _caretOf(composer.selection),
@@ -187,7 +163,7 @@ final class MarkdownAdapter {
 
   /// The line and offset of the caret at [offset] in [text].
   static _Caret _caretAtOffset(String text, int offset) {
-    final lines = md.splitLines(text.substring(0, offset));
+    final lines = splitLines(text.substring(0, offset));
     return (line: lines.length - 1, offset: lines.last.text.length);
   }
 
@@ -226,7 +202,7 @@ final class MarkdownAdapter {
     }
   }
 
-  TargetNode _target(String id, md.Line line) => (
+  TargetNode _target(String id, Line line) => (
     id: id,
     shows: (node) => node is TextNode && _textOf(node) == line.text,
     build: () => _lineNode(id, line.text),
@@ -245,16 +221,16 @@ final class MarkdownAdapter {
     final linesBefore = _document
         .toList()
         .take(index)
-        .map((node) => md.splitLines(_textOf(node)).length)
+        .map((node) => splitLines(_textOf(node)).length)
         .sum;
     final ownText = _textOf(_document.getNodeAt(index)!);
-    final own = md.splitLines(
+    final own = splitLines(
       ownText.substring(0, offset.clamp(0, ownText.length)),
     );
     return (line: linesBefore + own.length - 1, offset: own.last.text.length);
   }
 
-  static DocumentSelection _caretAt(md.Line line, String nodeId, int offset) =>
+  static DocumentSelection _caretAt(Line line, String nodeId, int offset) =>
       DocumentSelection.collapsed(
         position: DocumentPosition(
           nodeId: nodeId,
@@ -268,7 +244,7 @@ final class MarkdownAdapter {
       (node as TextNode).text.toPlainText();
 
   void dispose() {
-    _gate.removeListener(_onOwnerChanged);
+    _text.removeListener(_onTextChanged);
     _treeChanged.dispose();
     editor.dispose();
   }

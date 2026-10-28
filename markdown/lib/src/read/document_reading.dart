@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
-import '../lines/line.dart';
+import 'package:truce_core/truce_core.dart' show Line, LineId;
+
 import '../tree/blocks.dart';
 import 'block_freezer.dart';
 import 'block_reader.dart';

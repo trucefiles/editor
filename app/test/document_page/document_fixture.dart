@@ -12,6 +12,7 @@ import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../support.dart';
+import 'markdown_session.dart';
 
 /// Two folders on disk, `f1` holding the document `a.md`, with their files,
 /// drafts and backups. Everything is removed after the test.
@@ -56,7 +57,7 @@ final class DocumentFixture {
 
   /// A session on [file], by default on [document]; disposed after the test.
   DocumentSession session([DocumentFile? file]) {
-    final session = DocumentSession(effects(file ?? ExistingFile(document)));
+    final session = markdownSession(effects(file ?? ExistingFile(document)));
     addTearDown(session.dispose);
     return session;
   }

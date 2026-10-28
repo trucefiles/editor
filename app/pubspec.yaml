@@ -29,6 +29,7 @@ dependencies:
   tray_manager: ^0.8.0
   truce_core: any
   truce_markdown: any
+  truce_plain_text: any
   truce_syncthing: any
   url_launcher: ^6.3.3
 

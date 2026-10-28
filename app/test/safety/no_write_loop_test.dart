@@ -10,6 +10,7 @@ import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
+import '../document_page/markdown_session.dart';
 import '../support.dart';
 
 /// Proves that open documents never write on their own: a change that
@@ -100,7 +101,7 @@ final class _Device {
     final files = DocumentFiles(folder, servicesFor(folder));
     final document = (await files.reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
-    final session = DocumentSession(
+    final session = markdownSession(
       FileEffects(
         ExistingFile(document),
         filesOf: (_) => files,

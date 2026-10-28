@@ -14,10 +14,7 @@ void main() {
     store = MemoryFileStore();
     scanner = SyncthingFolderScanner(
       store,
-      const DefaultFileFilter(
-        SyncthingAdapter(),
-        ExtensionFileTypeDetector.standard(),
-      ),
+      const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
     );
   });
 

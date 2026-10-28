@@ -2,61 +2,45 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart';
 
 import '../documents/document.dart';
 import '../documents/document_version.dart';
-import '../editor/editor_gate.dart';
 import '../scan/folder_scans.dart';
 import 'document_file.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
 
-/// One open document, its page model: its editor owner (what shows,
-/// behind its [gate]) and its file owner (where the edits are kept),
-/// joined: each one's events become the other's inputs. Their effects run
-/// inside the owners. No UI. Listeners hear of every change of where the
-/// edits are ([status], [saveState]); the [gate] tells of changes to what
-/// shows.
+/// One open document, its page model: its editor owner (what shows, of
+/// the document's type, seen through the shared [editor] contract) and
+/// its file owner (where the edits are kept), joined: each one's events
+/// become the other's inputs. Their effects run inside the owners. No UI.
+/// Listeners hear of every change of where the edits are ([status],
+/// [saveState]).
 final class DocumentSession extends ChangeNotifier {
-  /// The document whose file [effects] reads and writes; it opens in
-  /// [mode], its checked items shown as [checkedItems].
-  DocumentSession(
-    this._effects, {
-    EditMode mode = EditMode.visual,
-    CheckedItems checkedItems = CheckedItems.moveToEnd,
-  }) : _file = fileOwner(switch (_effects.file) {
-         ExistingFile(:final document) => openedFile(document.seen),
-         NewFile() => newFile(),
-       }, _effects.run) {
-    final opened = switch (_effects.file) {
-      ExistingFile(:final document) => document.seen,
-      NewFile() => null,
-    };
-    gate = EditorGate(
-      editorOwner(
-        opened?.text ?? '',
-        version: opened?.version,
-        mode: mode,
-        checkedItems: checkedItems,
-      ),
-    );
+  /// The document whose file [effects] reads and writes, edited by
+  /// [editor], which opened with the file's text as [effects] last saw
+  /// it.
+  DocumentSession(this._effects, this.editor)
+    : _file = fileOwner(switch (_effects.file) {
+        ExistingFile(:final document) => openedFile(document.seen),
+        NewFile() => newFile(),
+      }, _effects.run) {
     _subscriptions = [
-      gate.events.listen(_onEditorEvent),
+      editor.events.listen(_onEditorEvent),
+      editor.changes.listen(_onEditorChanged),
       _file.events.listen(_onFileEvent),
       _file.changes.listen((_) => notifyListeners(), onDone: _onFileStopped),
     ];
-    gate.addListener(_onEditorChanged);
   }
 
   final FileEffects _effects;
   final FileOwner _file;
 
   /// The way into the editor owner.
-  late final EditorGate gate;
+  final PageEditor editor;
 
   late final List<StreamSubscription<Object>> _subscriptions;
-  final _editorNotices = StreamController<EditorEvent>.broadcast(sync: true);
+  final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
   final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, as listeners last heard.
@@ -79,6 +63,9 @@ final class DocumentSession extends ChangeNotifier {
   /// holds every edit.
   int _lastKeeps = 0;
 
+  /// The text of the last draft started since [stopped].
+  String? _lastDraft;
+
   /// Where the file is.
   DocumentFile get file => switch (document) {
     final document? => ExistingFile(document),
@@ -95,15 +82,16 @@ final class DocumentSession extends ChangeNotifier {
   /// Where the document stands against its file.
   FileStatus get status => _file.state.status;
 
-  /// The edits as last sent to be kept, and their rev.
-  String get text => _file.state.text;
+  /// The edits as last sent to be kept, and their rev. Once [stopped],
+  /// the text kept as the last draft: the latest edits.
+  String get text => _lastDraft ?? _file.state.text;
   int get rev => _file.state.rev;
 
-  SaveState get saveState => saveStateOf(status, unsent: gate.state.unsent);
+  SaveState get saveState => saveStateOf(status, unsent: editor.state.unsent);
 
-  /// What the editor asks of the user or tells them: [AskLink],
-  /// [UndoOffered], [UndoRefused], [HistoryEnd].
-  Stream<EditorEvent> get editorNotices => _editorNotices.stream;
+  /// What the editor tells the user: [UndoOffered], [UndoRefused],
+  /// [HistoryEnd].
+  Stream<EditorNotice> get editorNotices => _editorNotices.stream;
 
   /// What the user is told of the file: [Replaced], [PickNotKept].
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
@@ -113,8 +101,8 @@ final class DocumentSession extends ChangeNotifier {
   /// The question goes to the editor, which sends its text first; the
   /// file owner answers.
   Future<bool> secure(SecureReason reason) async {
-    final answer = await ask<EditorInput, Answer>(
-      (input) => gate.send((_) => input),
+    final answer = await ask<EditorRequest, Answer>(
+      editor.send,
       _file.events,
       (ticket) => SecureEditor(ticket, reason),
     );
@@ -143,8 +131,7 @@ final class DocumentSession extends ChangeNotifier {
 
   /// The document reads [text] instead (a backup restored), as one edit
   /// that undo takes back.
-  void replaceAll(String text) =>
-      gate.send((now) => ReplaceAll(text, revision: now.revision));
+  void replaceAll(String text) => editor.send(ReplaceAll(text));
 
   /// Writes the edits as the file again, after it was deleted elsewhere.
   void restoreMine() => _file.send(const RestoreMine());
@@ -164,14 +151,11 @@ final class DocumentSession extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onEditorEvent(EditorEvent event) => switch (event) {
+  void _onEditorEvent(EditorNotice event) => switch (event) {
     ToFile(input: Edited(:final text)) when _stopped => _keepLastDraft(text),
     ToFile() when _stopped => null,
     ToFile(:final input) => _file.send(input),
-    AskLink() ||
-    UndoOffered() ||
-    UndoRefused() ||
-    HistoryEnd() => _editorNotices.add(event),
+    UndoOffered() || UndoRefused() || HistoryEnd() => _editorNotices.add(event),
   };
 
   /// The file owner ended before [dispose]: it stopped by a bug. The
@@ -182,11 +166,12 @@ final class DocumentSession extends ChangeNotifier {
     _stopped = true;
     _keepLastDraft(text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
-    gate.send((_) => SecureEditor(Ticket(), SecureReason.hide));
+    editor.send(SecureEditor(Ticket(), SecureReason.hide));
     notifyListeners();
   }
 
   void _keepLastDraft(String text) {
+    _lastDraft = text;
     final keep = ++_lastKeeps;
     unawaited(
       _effects.keepLastDraft(text).then((kept) {
@@ -199,8 +184,8 @@ final class DocumentSession extends ChangeNotifier {
 
   /// Edits held in the editor change where the edits are, before they
   /// reach the file owner.
-  void _onEditorChanged() {
-    final unsent = gate.state.unsent;
+  void _onEditorChanged(EditorStatus status) {
+    final unsent = status.unsent;
     if (unsent == _unsent) return;
     _unsent = unsent;
     notifyListeners();
@@ -209,7 +194,7 @@ final class DocumentSession extends ChangeNotifier {
   void _onFileEvent(FileEvent event) {
     switch (event) {
       case ToEditor():
-        gate.external(FromFile(event));
+        editor.send(FromFile(event));
         if (event is Replaced) _fileNotices.add(event);
       case PickNotKept():
         _fileNotices.add(event);
@@ -228,9 +213,7 @@ final class DocumentSession extends ChangeNotifier {
     }
     unawaited(_editorNotices.close());
     unawaited(_fileNotices.close());
-    gate
-      ..removeListener(_onEditorChanged)
-      ..dispose();
+    unawaited(editor.close());
     unawaited(_file.close());
     super.dispose();
   }

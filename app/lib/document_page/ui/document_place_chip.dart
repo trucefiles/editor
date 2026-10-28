@@ -10,6 +10,7 @@ import '../../documents/document_title.dart';
 import '../../documents/move_failure.dart';
 import '../../documents/ui/document_place_dialog.dart';
 import '../../documents/ui/move_failure_text.dart';
+import '../../file_types/document_types.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../scan/folder_scans_controller.dart';
@@ -95,7 +96,9 @@ class DocumentPlaceChip extends ConsumerWidget {
     }
     // Read after the dialog and the save, so no edit is left behind.
     final text = session.text;
-    final title = name.trim().isEmpty ? documentTitleLine(text) : name.trim();
+    final title = name.trim().isEmpty
+        ? documentTitleLine(text, documentTypes.of(current.path))
+        : name.trim();
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&
         isNamedAfter(current.path.name, title)) {

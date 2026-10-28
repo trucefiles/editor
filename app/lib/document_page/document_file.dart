@@ -4,6 +4,7 @@ import '../documents/document.dart';
 import '../documents/document_file_name.dart';
 import '../documents/document_place.dart';
 import '../documents/document_title.dart';
+import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
 
 /// Where an open document's file is: one that exists, or the place a new
@@ -44,11 +45,15 @@ final class NewFile extends DocumentFile {
 
   /// The file's name without its extension, for a document holding
   /// [text].
-  String titleFor(String text) => name ?? documentTitleLine(text);
+  String titleFor(String text) =>
+      name ?? documentTitleLine(text, newDocumentType);
 
   @override
   RelPath pathFor(String text) {
-    final name = documentFileName(titleFor(text));
+    final name = documentFileName(
+      titleFor(text),
+      extension: newDocumentType.newFileExtension,
+    );
     return place.subfolder?.child(name) ?? RelPath.parse(name)!;
   }
 }

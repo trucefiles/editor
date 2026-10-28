@@ -1,38 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:truce_markdown/truce_markdown.dart' show Redo, Undo;
+import 'package:truce_core/truce_core.dart';
 
-import '../editor_gate.dart';
-
-/// Undo and Redo for the editor behind [gate], each on while it has a
-/// step to take.
+/// Undo and Redo for [editor], each on while it has a step to take.
 class HistoryButtons extends StatelessWidget {
-  const HistoryButtons(this.gate, {super.key});
+  const HistoryButtons(this.editor, {super.key});
 
-  final EditorGate gate;
+  final PageEditor editor;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: gate,
+  Widget build(BuildContext context) => StreamBuilder(
+    stream: editor.changes,
     builder: (context, _) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           tooltip: 'Undo',
           icon: const Icon(Icons.undo),
-          onPressed: gate.state.canUndo ? () => undo(gate) : null,
+          onPressed: editor.state.canUndo
+              ? () => editor.send(const Undo())
+              : null,
         ),
         IconButton(
           tooltip: 'Redo',
           icon: const Icon(Icons.redo),
-          onPressed: gate.state.canRedo ? () => redo(gate) : null,
+          onPressed: editor.state.canRedo
+              ? () => editor.send(const Redo())
+              : null,
         ),
       ],
     ),
   );
 }
-
-/// Undoes the latest step of the editor behind [gate].
-void undo(EditorGate gate) => gate.send((now) => Undo(revision: now.revision));
-
-/// Redoes the step undone last.
-void redo(EditorGate gate) => gate.send((now) => Redo(revision: now.revision));

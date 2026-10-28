@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
@@ -169,11 +168,8 @@ class _DocumentsBody extends ConsumerWidget {
     Widget card(Document document) => DocumentCard(
       document,
       mark: markOf(document),
-      pinned: pinned(document),
+      settings: settings.settingsOf(document.key),
       hasConflict: conflicts?.forNote(document.key) != null,
-      hideDone:
-          settings.settingsOf(document.key).checkedItems !=
-          CheckedItems.inPlace,
       onTap: () => openNote(context, document),
       onMark: () => editPinOrColor(context, ref, document),
     );

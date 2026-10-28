@@ -37,8 +37,15 @@ final class EditorGate extends ChangeNotifier {
 
   EditorState get state => _owner.state;
 
+  /// Each new state of the owner.
+  Stream<EditorState> get changes => _owner.changes;
+
   /// What the owner's inputs lead to.
   Stream<EditorEvent> get events => _owner.events;
+
+  /// Completes once the owner ended, after [dispose].
+  Future<void> get closed => _closed.future;
+  final _closed = Completer<void>();
 
   /// Whether [item]'s box shows checked: its state, flipped while a tap on
   /// it waits.
@@ -89,7 +96,7 @@ final class EditorGate extends ChangeNotifier {
   void dispose() {
     _timer?.cancel();
     unawaited(_changes.cancel());
-    unawaited(_owner.close());
+    _closed.complete(_owner.close());
     super.dispose();
   }
 }

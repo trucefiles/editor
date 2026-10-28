@@ -1,7 +1,7 @@
 /// A test run of one editor owner, shared by the owner's test suites.
 library;
 
-import 'package:truce_core/truce_core.dart' show Edited, Version;
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -28,12 +28,20 @@ final class EditorRun {
   final MachineRun<EditorMessage, EditorState, EditorEvent, EditorEffect> owner;
   final void Function(List<Object?> outputs)? onOutputs;
 
-  List<Object?> get outputs => owner.outputs;
+  /// What the machine led to, the page's notices unwrapped.
+  List<Object?> get outputs => _unwrapped(owner.outputs);
 
   void send(EditorMessage message) {
-    final outputs = owner.send(message);
+    final outputs = _unwrapped(owner.send(message));
     onOutputs?.call(outputs);
   }
+
+  static List<Object?> _unwrapped(List<Object?> outputs) => [
+    for (final output in outputs) output is Notice ? output.notice : output,
+  ];
+
+  /// The document page's [request].
+  void request(EditorRequest request) => send(Request(request));
 
   EditorState get state => owner.state;
   int get revision => state.revision;

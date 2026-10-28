@@ -1,4 +1,5 @@
-import '../lines/line.dart';
+import 'package:truce_core/truce_core.dart' show Line, LineId;
+
 import '../tree/blocks.dart';
 import 'open_blocks.dart';
 import 'syntax/block_starts.dart';

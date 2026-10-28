@@ -1,20 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart'
-    show
-        Edited,
-        Found,
-        Moment,
-        Observed,
-        Picked,
-        Replaced,
-        SaveNow,
-        Secure,
-        SecureReason,
-        Seen,
-        Ticket,
-        ToEditor,
-        Version,
-        openedFile;
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -28,13 +13,13 @@ void main() {
         ..type('x');
       expect(run.rows, ['axb']);
       expect(run.edits, isEmpty);
-      expect(run.state.unsent, isTrue);
+      expect(run.state.status.unsent, isTrue);
       run.pause();
       expect(
         (run.sent, run.edits.single.rev, run.edits.single.lineage),
         ('axb', 1, v1),
       );
-      expect(run.state.unsent, isFalse);
+      expect(run.state.status.unsent, isFalse);
     });
 
     test('sends at most every 30 s while it goes on', () {
@@ -108,7 +93,7 @@ void main() {
       final run = EditorRun('a\n\n---\n\nb')
         ..caret(2, 0)
         ..press(EditKey.backspace);
-      run.owner.send(
+      run.request(
         const FromFile(Replaced('x\n\na\n\n---\n\nb', version: v2, ackRev: 0)),
       );
       expect(run.shown.selection, BlockSelection(run.leaf(2)));
@@ -117,7 +102,7 @@ void main() {
     test('drops an input on what no longer shows', () {
       final run = EditorRun('- [ ] a\n- [ ] b');
       final tapped = run.revision;
-      run.owner.send(
+      run.request(
         const FromFile(Replaced('- [ ] a\n- [ ] c', version: v2, ackRev: 0)),
       );
       final shown = run.state;
@@ -184,7 +169,7 @@ void main() {
   group('changes from the file owner', () {
     test('a change elsewhere shows, the caret kept by its lines', () {
       final run = EditorRun('ab\n\ncd')..caret(1, 1);
-      run.owner.send(
+      run.request(
         const FromFile(Replaced('ab\n\ncd!', version: v2, ackRev: 0)),
       );
       expect(run.rows, ['ab', 'cd!']);
@@ -199,15 +184,13 @@ void main() {
 
     test('a caret on a kept line stays there', () {
       final run = EditorRun('ab\n\ncd\n\nef')..caret(2, 1);
-      run.owner.send(
-        const FromFile(Replaced('ab\n\nef', version: v2, ackRev: 0)),
-      );
+      run.request(const FromFile(Replaced('ab\n\nef', version: v2, ackRev: 0)));
       expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 1)));
     });
 
     test('a change elsewhere after an edit not sent there is ignored', () {
       final run = EditorRun('ab')..type('x');
-      run.owner.send(const FromFile(Replaced('z', version: v2, ackRev: 0)));
+      run.request(const FromFile(Replaced('z', version: v2, ackRev: 0)));
       expect(run.rows, ['xab']);
       run.pause();
       expect(run.edits.last.lineage, v1);
@@ -216,9 +199,9 @@ void main() {
     test('a pick always shows, and later edits descend from it', () {
       final run = EditorRun('ab')..type('x');
       // The file owner never got the edit at rev 1: revs go on from 0.
-      run.owner.send(const FromFile(Picked('z', version: v2, rev: 0)));
+      run.request(const FromFile(Picked('z', version: v2, rev: 0)));
       expect(run.rows, ['z']);
-      expect(run.state.unsent, isFalse);
+      expect(run.state.status.unsent, isFalse);
       run
         ..type('y')
         ..pause();
@@ -303,7 +286,7 @@ void main() {
       final list = run.shown.view.doc.root.children.first.id;
       run.owner.send(SetCollapsed(list, collapsed: true));
       expect(run.rows, ['a']);
-      run.owner.send(
+      run.request(
         const FromFile(
           Replaced('x\n\n- [ ] a\n- [x] b', version: v2, ackRev: 0),
         ),
@@ -330,7 +313,7 @@ void main() {
       final run = EditorRun('- a\n- b');
       run.runCommand(DeleteItem(run.item(0)));
       final removed = run.outputs.whereType<UndoOffered>().single;
-      run.owner.send(UndoStep(removed.id));
+      run.request(UndoStep(removed.id));
       run.pause();
       expect(run.sent, '- a\n- b');
     });
@@ -357,7 +340,7 @@ void main() {
       run
         ..caret(0, 0)
         ..type('x')
-        ..owner.send(UndoStep(removed.id));
+        ..request(UndoStep(removed.id));
       expect(run.outputs.last, isA<UndoRefused>());
       expect(run.rows, ['xb']);
     });
@@ -423,11 +406,11 @@ void main() {
       run.owner.send(
         OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision),
       );
-      run.owner.send(
+      run.request(
         const FromFile(Replaced('a!\n\n<div>\n\nb', version: v2, ackRev: 0)),
       );
       expect(run.shown.raw?.text, '<div>');
-      run.owner.send(
+      run.request(
         const FromFile(Replaced('a!\n\n<p>\n\nb', version: v2, ackRev: 0)),
       );
       expect(run.shown.raw, isNull);
@@ -436,7 +419,7 @@ void main() {
 
   test('securing sends the text first', () {
     final run = EditorRun('ab')..type('x');
-    run.owner.send(SecureEditor(Ticket(), SecureReason.hide));
+    run.request(SecureEditor(Ticket(), SecureReason.hide));
     expect(
       run.outputs.whereType<ToFile>().map((out) => out.input.runtimeType),
       [Edited, Secure],
@@ -450,7 +433,7 @@ void main() {
     void toEditor(List<Object?> outputs) {
       for (final output in outputs) {
         if (output case final ToEditor message) {
-          editor.send(FromFile(message));
+          editor.request(FromFile(message));
         }
       }
     }

@@ -71,6 +71,7 @@ void main() {
       'a.md',
       'sub/b.md',
       'sub/deeper/c.md',
+      'readme.txt',
     });
     expect(changed(before, snapshot()), isEmpty);
   });

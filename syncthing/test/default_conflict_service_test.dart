@@ -26,10 +26,7 @@ void main() {
 
   Future<Conflict> scanOne() async => (await SyncthingFolderScanner(
     folder,
-    const DefaultFileFilter(
-      SyncthingAdapter(),
-      ExtensionFileTypeDetector.standard(),
-    ),
+    const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
   ).scan()).value.conflicts.single;
 
   Future<Result<void, ResolveError>> resolve(

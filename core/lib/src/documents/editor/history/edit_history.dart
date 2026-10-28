@@ -1,16 +1,16 @@
 import 'package:collection/collection.dart';
 
 import '../editor_contract.dart';
-import 'snapshot.dart';
 import 'typing.dart';
 
-/// One undo or redo step: the document to come back to, and the step's
-/// [id].
-typedef HistoryStep = ({int id, Snapshot snapshot});
+/// One undo or redo step: the document to come back to, as a snapshot of
+/// the type's own ([S]), and the step's [id].
+typedef HistoryStep<S> = ({int id, S snapshot});
 
 /// The undo and redo steps of one editing session, an immutable value:
-/// each operation gives the history after it.
-final class EditHistory {
+/// each operation gives the history after it. Any document type: [S] is
+/// what its editor showed at a step, to come back to.
+final class EditHistory<S> {
   const EditHistory({
     this.undos = const [],
     this.redos = const [],
@@ -23,10 +23,10 @@ final class EditHistory {
   static const limit = 100;
 
   /// What undo comes back to, the latest last.
-  final List<HistoryStep> undos;
+  final List<HistoryStep<S>> undos;
 
   /// What redo comes back to, the next last.
-  final List<HistoryStep> redos;
+  final List<HistoryStep<S>> redos;
 
   /// The typing the latest undo step holds, while more may join it.
   final TypingRun? run;
@@ -45,7 +45,7 @@ final class EditHistory {
 
   /// The history with [typing] joined to the latest step, where its run
   /// takes it; `null` where it is a new step.
-  EditHistory? continued(Typing? typing) => switch (run) {
+  EditHistory<S>? continued(Typing? typing) => switch (run) {
     final run? when typing != null && run.takes(typing) => _with(
       run: run.then(typing),
     ),
@@ -54,7 +54,7 @@ final class EditHistory {
 
   /// The history with an edit that changed the document from [before] as
   /// a new step, its typing [typing] if it was typing. Redo steps go.
-  EditHistory recorded(Snapshot before, Typing? typing) {
+  EditHistory<S> recorded(S before, Typing? typing) {
     final undos = [...this.undos, (id: nextId, snapshot: before)];
     final dropped = undos.length > limit;
     return _with(
@@ -68,7 +68,7 @@ final class EditHistory {
 
   /// The latest undo step's document, and the history once undo went
   /// back to it from [now]; `null` if there is none.
-  ({EditHistory history, Snapshot back})? undone(Snapshot now) =>
+  ({EditHistory<S> history, S back})? undone(S now) =>
       switch (undos.lastOrNull) {
         (:final id, :final snapshot)? => (
           history: _with(
@@ -82,7 +82,7 @@ final class EditHistory {
 
   /// The next redo step's document, and the history once redo went to
   /// it from [now]; `null` if there is none.
-  ({EditHistory history, Snapshot back})? redone(Snapshot now) =>
+  ({EditHistory<S> history, S back})? redone(S now) =>
       switch (redos.lastOrNull) {
         (:final id, :final snapshot)? => (
           history: _with(
@@ -96,17 +96,17 @@ final class EditHistory {
 
   /// The history with its typing run ended: the next typing is a step of
   /// its own.
-  EditHistory runEnded() => run == null ? this : _with();
+  EditHistory<S> runEnded() => run == null ? this : _with();
 
   /// No steps: the document was replaced for the reason [start].
-  EditHistory cleared(HistoryStart start) =>
+  EditHistory<S> cleared(HistoryStart start) =>
       EditHistory(start: start, nextId: nextId);
 
   /// This history with what is given changed; the typing run ends unless
   /// one is given.
-  EditHistory _with({
-    List<HistoryStep>? undos,
-    List<HistoryStep>? redos,
+  EditHistory<S> _with({
+    List<HistoryStep<S>>? undos,
+    List<HistoryStep<S>>? redos,
     TypingRun? run,
     HistoryStart? start,
     int? nextId,

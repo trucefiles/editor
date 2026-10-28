@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart'
-    show Edited, SecureReason, Ticket, Version;
+    show Edited, SecureEditor, SecureReason, Ticket, ToFile, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/visual/library/library_nodes.dart';
 import 'package:truce_editor/editor/visual/library/visual_adapter.dart';
@@ -44,13 +44,12 @@ final class _Visual {
 
   /// The text the owner sends once secured.
   String secured() {
-    gate.send((_) => md.SecureEditor(Ticket(), SecureReason.close));
-    return outputs
-        .whereType<md.ToFile>()
-        .map((output) => output.input)
-        .whereType<Edited>()
-        .last
-        .text;
+    gate.send((_) => md.Request(SecureEditor(Ticket(), SecureReason.close)));
+    return [
+      for (final output in outputs)
+        if (output case md.Notice(notice: ToFile(input: final Edited edited)))
+          edited.text,
+    ].last;
   }
 
   DocumentPosition at(int node, int offset) => DocumentPosition(

@@ -20,9 +20,16 @@ const _maxBaseBytes = 200;
 /// Windows) are dropped.
 String documentFileName(
   String title, {
+  required String extension,
   int attempt = 1,
-  String extension = '.md',
 }) {
+  final base = _baseName(title);
+  return attempt == 1 ? '$base$extension' : '$base $attempt$extension';
+}
+
+/// The name [documentFileName] gives [title], without number and
+/// extension.
+String _baseName(String title) {
   var base = title
       .replaceAll(_unsafe, ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
@@ -30,8 +37,7 @@ String documentFileName(
       .replaceFirst(RegExp(r'^\.+'), '');
   base = _cut(base);
   base = base.replaceFirst(RegExp(r'[. ]+$'), '');
-  if (base.isEmpty) base = 'Untitled';
-  return attempt == 1 ? '$base$extension' : '$base $attempt$extension';
+  return base.isEmpty ? 'Untitled' : base;
 }
 
 /// [text] cut to [_maxBaseLength] characters and [_maxBaseBytes] UTF-8
@@ -62,7 +68,7 @@ String _cut(String text) {
 /// only the case, which some storage (e.g. Android's) can't tell apart.
 bool isNamedAfter(String name, String title) {
   final base = splitFileName(name).base.toLowerCase();
-  final wanted = splitFileName(documentFileName(title)).base.toLowerCase();
+  final wanted = _baseName(title).toLowerCase();
   return base == wanted ||
       RegExp('^${RegExp.escape(wanted)} [0-9]+\$').hasMatch(base);
 }

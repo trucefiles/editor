@@ -3,7 +3,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Edited, Replaced, SecureReason, Ticket, Version;
+    show
+        Edited,
+        EditorNotice,
+        FromFile,
+        HistoryEnd,
+        Replaced,
+        SecureEditor,
+        SecureReason,
+        Ticket,
+        ToFile,
+        UndoOffered,
+        UndoRefused,
+        Version;
 import 'package:truce_editor/editor/document_editor.dart';
 import 'package:truce_editor/editor/editor_gate.dart';
 import 'package:truce_editor/editor/visual/library/library_nodes.dart';
@@ -14,12 +26,8 @@ import 'package:truce_markdown/truce_markdown.dart'
         CheckedItems,
         EditMode,
         EditorEvent,
-        FromFile,
-        HistoryEnd,
-        UndoOffered,
-        SecureEditor,
-        ToFile,
-        UndoRefused,
+        Notice,
+        Request,
         editorOwner;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
@@ -51,8 +59,8 @@ final class TestDocument {
   /// Each text sent to be kept, in order.
   final edits = <String>[];
 
-  /// What the owner asked of the user or told them, e.g. [UndoOffered].
-  final notices = <EditorEvent>[];
+  /// What the owner told the user, e.g. [UndoOffered].
+  final notices = <EditorNotice>[];
 
   /// The links the user opened.
   final links = <String>[];
@@ -63,7 +71,7 @@ final class TestDocument {
 
   /// The text as the owner keeps it now, every edit sent.
   String get text {
-    gate.external(SecureEditor(Ticket(), SecureReason.hide));
+    gate.external(Request(SecureEditor(Ticket(), SecureReason.hide)));
     return _text;
   }
 
@@ -75,19 +83,24 @@ final class TestDocument {
   void changeElsewhere(String text) {
     _text = text;
     gate.external(
-      FromFile(Replaced(text, version: Version(++_version), ackRev: _rev)),
+      Request(
+        FromFile(Replaced(text, version: Version(++_version), ackRev: _rev)),
+      ),
     );
   }
 
   void _onOutput(EditorEvent output) {
     switch (output) {
-      case ToFile(input: Edited(:final text, :final rev)):
+      case Notice(notice: ToFile(input: Edited(:final text, :final rev))):
         edits.add(text);
         _text = text;
         _rev = rev;
-      case AskLink() || UndoOffered() || UndoRefused() || HistoryEnd():
-        notices.add(output);
-      case ToFile():
+      case Notice(
+        notice: final notice &&
+            (UndoOffered() || UndoRefused() || HistoryEnd()),
+      ):
+        notices.add(notice);
+      case AskLink() || Notice():
         break;
     }
   }

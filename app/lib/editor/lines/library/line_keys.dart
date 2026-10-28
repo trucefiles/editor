@@ -4,10 +4,10 @@ import 'package:super_editor/super_editor.dart';
 import '../../library/keypad_keys.dart';
 import '../../library/rich_text_keys.dart';
 
-/// Markdown edit's key handling: the library's keys for plain text, and
+/// A line editor's key handling: the library's keys for plain text, and
 /// Tab types a tab. The keypad's navigation keys work as the keys they
 /// stand for.
-List<SuperEditorKeyboardAction> markdownKeyboardActions() {
+List<SuperEditorKeyboardAction> lineKeyboardActions() {
   final actions = [
     _tabTypesTab,
     for (final action in defaultImeKeyboardActions)
