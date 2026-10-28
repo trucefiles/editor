@@ -144,11 +144,18 @@ final class RawCaretMoved extends ShownInput {
   final int extent;
 }
 
-/// Markdown edit's text is now [text].
+/// Markdown edit's text is now [text]. A [pasted] text is an undo step
+/// of its own, never part of the typing around it.
 final class EditText extends ShownInput {
-  const EditText(this.text, {required super.revision});
+  const EditText(this.text, {required super.revision, this.pasted = false});
 
   final String text;
+  final bool pasted;
+}
+
+/// The user moved the caret in Markdown edit.
+final class TextCaretMoved extends ShownInput {
+  const TextCaretMoved({required super.revision});
 }
 
 /// The document shows in [mode]; for Read, the text is sent first, so

@@ -12,8 +12,8 @@ import '../edited_text.dart';
 /// which highlights by them). The library edits the lines itself, as
 /// plain text; after each transaction that changed them, the change
 /// re-reads the lines (see [EditableLines.withLines]) and [_text] gets the
-/// new text. A text from elsewhere shows at once, the caret kept on its
-/// line.
+/// new text; a caret the user moved, [_text] hears of too. A text from
+/// elsewhere shows at once, the caret kept on its line.
 final class LinesAdapter<L extends EditableLines<L>> {
   /// [read] reads a text as lines.
   LinesAdapter(this._text, {required L Function(String text) read})
@@ -47,6 +47,9 @@ final class LinesAdapter<L extends EditableLines<L>> {
   /// Whether our own patch runs: its changes are no edits.
   bool _patching = false;
 
+  /// Whether the transaction running is a paste.
+  bool _pasting = false;
+
   Document get document => _document;
 
   /// The lines, e.g. for highlighting.
@@ -79,26 +82,39 @@ final class LinesAdapter<L extends EditableLines<L>> {
       nodes,
       selection: selection,
     ),
-    PasteEditorRequest(:final content, :final pastePosition) =>
-      InsertTextCommand(
-        documentPosition: pastePosition,
-        textToInsert: content,
-        attributions: const {},
-      ),
+    PasteEditorRequest(:final content, :final pastePosition) => _paste(
+      content,
+      pastePosition,
+    ),
     _ => null,
   };
 
+  EditCommand _paste(String content, DocumentPosition position) {
+    _pasting = true;
+    return InsertTextCommand(
+      documentPosition: position,
+      textToInsert: content,
+      attributions: const {},
+    );
+  }
+
   /// The lines the transaction's [changes] touched, re-read; the edited
   /// text gets the text. A node that came to hold line breaks (pasted text, or
-  /// text an input method put in) is split into its lines.
+  /// text an input method put in) is split into its lines. A transaction
+  /// that only moved the caret tells the edited text so.
   void _onTransactionEnd(List<EditEvent> changes) {
+    final pasted = _pasting;
+    _pasting = false;
     if (_patching) return;
     final edits = changes
         .whereType<DocumentEdit>()
         .map((edit) => edit.change)
         .whereType<NodeDocumentChange>()
         .toList();
-    if (edits.isEmpty) return;
+    if (edits.isEmpty) {
+      if (changes.any(_movesCaret)) _text.caretMoved();
+      return;
+    }
     final touched = {
       for (final edit in edits)
         if (edit is! NodeRemovedEvent &&
@@ -136,8 +152,12 @@ final class LinesAdapter<L extends EditableLines<L>> {
       _show(caret);
     }
     _treeChanged.changed();
-    _text.edit(_tree.text);
+    _text.edit(_tree.text, pasted: pasted);
   }
+
+  static bool _movesCaret(EditEvent change) =>
+      change is SelectionChangeEvent &&
+      change.newSelection != change.oldSelection;
 
   // Text from elsewhere.
 

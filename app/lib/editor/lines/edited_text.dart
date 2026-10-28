@@ -11,6 +11,10 @@ abstract interface class EditedText implements Listenable {
   /// (e.g. in another mode).
   ShownText? get shown;
 
-  /// The user changed the text to [text].
-  void edit(String text);
+  /// The user changed the text to [text]; [pasted] if by a paste, which
+  /// is an undo step of its own.
+  void edit(String text, {required bool pasted});
+
+  /// The user moved the caret: typing next is an undo step of its own.
+  void caretMoved();
 }

@@ -52,8 +52,13 @@ final class MarkdownText implements EditedText {
   };
 
   @override
-  void edit(String text) =>
-      _gate.send((now) => md.EditText(text, revision: now.revision));
+  void edit(String text, {required bool pasted}) => _gate.send(
+    (now) => md.EditText(text, revision: now.revision, pasted: pasted),
+  );
+
+  @override
+  void caretMoved() =>
+      _gate.send((now) => md.TextCaretMoved(revision: now.revision));
 
   @override
   void addListener(VoidCallback listener) => _gate.addListener(listener);

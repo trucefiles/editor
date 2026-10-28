@@ -116,6 +116,54 @@ void main() {
     expect(find.text('abcd', findRichText: true), findsOne);
   });
 
+  testWidgets('a word typed letter by letter is one undo step', (tester) async {
+    final plain = _Plain('a');
+    await _pumpPlain(tester, plain);
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText(' milk');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+
+    expect(plain.text, 'a ');
+  });
+
+  testWidgets('typing after a click away and back is a new undo step', (
+    tester,
+  ) async {
+    final plain = _Plain('ab');
+    await _pumpPlain(tester, plain);
+    await tester.caretIn(lineNodeOf(0), 2);
+    await tester.typeImeText('cd');
+
+    await tester.caretIn(lineNodeOf(0), 0);
+    await tester.caretIn(lineNodeOf(0), 4);
+    await tester.typeImeText('e');
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+
+    expect(plain.text, 'abcd');
+  });
+
+  testWidgets('a paste is an undo step of its own', (tester) async {
+    final plain = _Plain('a');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('bc');
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText('x');
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    await tester.typeImeText('y');
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'axbc');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'ax');
+  });
+
   testWidgets('a change from elsewhere shows right away', (tester) async {
     final plain = _Plain('a');
     await _pumpPlain(tester, plain);

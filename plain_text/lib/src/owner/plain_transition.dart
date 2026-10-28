@@ -44,13 +44,15 @@ final class _Step with EditorSteps<String> {
       case TextEdited(:final revision) when revision != state.revision:
         // Typed on what no longer shows.
         break;
-      case TextEdited(:final text) when text != state.text:
+      case TextEdited(:final text, :final pasted) when text != state.text:
         final before = state.text;
         _show(text);
         textChanged();
-        record(before, typingIn(null, before, text));
+        record(before, pasted ? null : typingIn(null, before, text));
       case TextEdited():
         break;
+      case CaretMoved():
+        endTypingRun();
       case PlainRequest(:final request):
         handleRequest(request);
       case PlainTimerFired(:final id):

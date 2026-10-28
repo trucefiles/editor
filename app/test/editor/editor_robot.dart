@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
@@ -205,6 +206,22 @@ extension EditorRobot on WidgetTester {
     await tapAt(point);
     await pump(kTapTimeout);
     await pumpAndSettle();
+  }
+
+  /// The clipboard holds [text] for the rest of the test.
+  void clipboardHolds(String text) {
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': text}
+          : null,
+    );
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
   }
 
   /// Lets box taps wait out their time, so they are sent.

@@ -71,6 +71,25 @@ void main() {
     await tester.waitForFile(app.file('plan.txt'), 'Plan\nabcd\n');
   });
 
+  testApp('typing after a click away and back is a new undo step', (
+    tester,
+  ) async {
+    app.write('list.txt', 'List\nmilk\n');
+    await tester.addFolder(app);
+    await tester.openNote('List');
+    await tester.clickLine('milk', 4);
+    await tester.typeImeText(' egg');
+    await tester.clickLine('List', 0);
+    await tester.clickLine('milk egg', 8);
+    await tester.typeImeText('s');
+
+    await tester.pressCtrl(LogicalKeyboardKey.keyZ);
+    expect(tester.showsLine('milk egg'), isTrue);
+
+    await tester.pageBack();
+    await tester.waitForFile(app.file('list.txt'), 'List\nmilk egg\n');
+  });
+
   testApp('compares a change from elsewhere and keeps mine', (tester) async {
     app.write('plan.txt', 'Plan\nv1\n');
     await tester.addFolder(app);

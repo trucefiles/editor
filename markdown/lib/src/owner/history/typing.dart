@@ -54,7 +54,7 @@ Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
           when raw.block == was.block =>
         typingIn((#raw, raw.block), was.text, raw.text),
       (
-        EditText(),
+        EditText(pasted: false),
         MarkdownContent(text: final was),
         MarkdownContent(:final text),
       ) =>

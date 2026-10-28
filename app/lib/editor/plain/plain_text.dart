@@ -18,8 +18,12 @@ final class PlainText implements EditedText {
   ShownText get shown => (text: _owner.state.text, caret: _owner.state.caret);
 
   @override
-  void edit(String text) =>
-      _owner.send(TextEdited(text, revision: _owner.state.revision));
+  void edit(String text, {required bool pasted}) => _owner.send(
+    TextEdited(text, revision: _owner.state.revision, pasted: pasted),
+  );
+
+  @override
+  void caretMoved() => _owner.send(const CaretMoved());
 
   @override
   void addListener(VoidCallback listener) =>

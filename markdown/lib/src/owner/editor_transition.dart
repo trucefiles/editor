@@ -107,7 +107,7 @@ final class _Step with EditorSteps<Snapshot> {
         if (offered case final what?) {
           notify(UndoOffered(book.history.latestId!, what));
         }
-      case CaretMoved() || RawCaretMoved():
+      case CaretMoved() || RawCaretMoved() || TextCaretMoved():
         // Typing after a caret move starts a new step.
         endTypingRun();
       case _:

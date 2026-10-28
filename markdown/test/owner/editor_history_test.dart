@@ -16,6 +16,11 @@ extension on EditorRun {
 
   void editText(String text) => owner.send(EditText(text, revision: revision));
 
+  void pasteText(String text) =>
+      owner.send(EditText(text, revision: revision, pasted: true));
+
+  void moveTextCaret() => owner.send(TextCaretMoved(revision: revision));
+
   String get markdown => (state.content as MarkdownContent).text;
 }
 
@@ -171,6 +176,26 @@ void main() {
         ..editText('on x')
         ..undo();
       expect(run.markdown, 'on ');
+    });
+
+    test('a caret moved in Markdown edit starts a new step', () {
+      final run = EditorRun('', mode: EditMode.markdown)
+        ..editText('milk')
+        ..moveTextCaret()
+        ..editText('milks')
+        ..undo();
+      expect(run.markdown, 'milk');
+    });
+
+    test('a paste in Markdown edit is a step of its own', () {
+      final run = EditorRun('', mode: EditMode.markdown)
+        ..editText('a')
+        ..pasteText('abc')
+        ..editText('abcd')
+        ..undo();
+      expect(run.markdown, 'abc');
+      run.undo();
+      expect(run.markdown, 'a');
     });
 
     test('a backup restored is one step, offered for undo', () {

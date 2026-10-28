@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_markdown/truce_markdown.dart' show EditMode;
+import 'package:truce_core/truce_core.dart' show Undo;
+import 'package:truce_markdown/truce_markdown.dart' show EditMode, Request;
 
 import '../editor_robot.dart';
 
@@ -120,24 +121,30 @@ void main() {
   testWidgets('pasted Windows line breaks make lines', (tester) async {
     final document = markdown('');
     await pumpDocument(tester, document);
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (call) async => call.method == 'Clipboard.getData'
-          ? <String, Object?>{'text': 'a\r\nb\rc'}
-          : null,
-    );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        null,
-      ),
-    );
+    tester.clipboardHolds('a\r\nb\rc');
 
     await tester.caretIn(lineNodeOf(0), 0);
     await tester.pressCtlV();
     await tester.pumpAndSettle();
 
     expect(document.text, 'a\nb\nc');
+  });
+
+  testWidgets('typing after a click away and back is a new undo step', (
+    tester,
+  ) async {
+    final document = markdown('ab');
+    await pumpDocument(tester, document);
+    await tester.caretIn(lineNodeOf(0), 2);
+    await tester.typeImeText('cd');
+
+    await tester.caretIn(lineNodeOf(0), 0);
+    await tester.caretIn(lineNodeOf(0), 4);
+    await tester.typeImeText('e');
+    document.gate.external(const Request(Undo()));
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'abcd');
   });
 
   testWidgets('keypad keys move the caret with NumLock off', (tester) async {
