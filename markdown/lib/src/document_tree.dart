@@ -1,8 +1,12 @@
-import 'package:collection/collection.dart';
+import 'package:truce_core/truce_core.dart'
+    show
+        EditableLines,
+        Line,
+        LineChange,
+        LineId,
+        TextLines,
+        byteOrderMarkCharacter;
 
-import 'lines/line.dart';
-import 'lines/line_change.dart';
-import 'lines/line_endings.dart';
 import 'read/document_reading.dart';
 import 'tree/blocks.dart';
 import 'tree/document_style.dart';
@@ -10,47 +14,33 @@ import 'tree/document_style.dart';
 /// A Markdown document: its lines as in the file, and the block tree read
 /// from them.
 ///
-/// Lines are the bytes, each with its own line ending; the tree is what
-/// CommonMark and GitHub Flavored Markdown read in them, with front matter
-/// as the one extension. A byte order mark is kept apart from the lines.
-/// Immutable: a change returns a new tree that reads again only from the
-/// block before the change until the reading lines up with this one, and
-/// keeps the rest. Lines and blocks keep their ids across changes. Ids
-/// are unique among the trees changed from one [DocumentTree.read].
-/// Questions are lookups, derived once per tree when first asked.
-final class DocumentTree implements EarlierReading {
-  DocumentTree._(
-    List<Line> lines,
-    DocumentReading reading,
-    this._nextLineId, {
-    required this.byteOrderMark,
-  }) : lines = List.unmodifiable(lines),
-       root = reading.root,
-       definitions = Map.unmodifiable(reading.definitions),
-       _nextBlockId = reading.nextBlockId;
+/// Lines are the bytes, each with its own line ending ([TextLines]); the
+/// tree is what CommonMark and GitHub Flavored Markdown read in them, with
+/// front matter as the one extension. Immutable: a change returns a new
+/// tree that reads again only from the block before the change until the
+/// reading lines up with this one, and keeps the rest. Lines and blocks
+/// keep their ids across changes. Ids are unique among the trees changed
+/// from one [DocumentTree.read]. Questions are lookups, derived once per
+/// tree when first asked.
+final class DocumentTree implements EarlierReading, EditableLines {
+  DocumentTree._(this._lines, DocumentReading reading)
+    : root = reading.root,
+      definitions = Map.unmodifiable(reading.definitions),
+      _nextBlockId = reading.nextBlockId;
 
   /// [text], with its lines ended by `\n`, `\r\n` or `\r`.
   factory DocumentTree.read(String text) {
-    final bom = text.startsWith(byteOrderMarkCharacter);
-    final lines = [
-      for (final (index, line) in splitLines(
-        bom ? text.substring(1) : text,
-      ).indexed)
-        Line(LineId(index), line.text, line.ending),
-    ];
-    return DocumentTree._(
-      lines,
-      readDocument(lines),
-      lines.length,
-      byteOrderMark: bom,
-    );
+    final lines = TextLines.read(text);
+    return DocumentTree._(lines, readDocument(lines.lines));
   }
 
+  final TextLines _lines;
+
   @override
-  final List<Line> lines;
+  List<Line> get lines => _lines.lines;
 
   /// Whether the text starts with a byte order mark.
-  final bool byteOrderMark;
+  bool get byteOrderMark => _lines.byteOrderMark;
 
   @override
   final RootBlock root;
@@ -60,13 +50,10 @@ final class DocumentTree implements EarlierReading {
   @override
   final Map<String, LinkDefinition> definitions;
 
-  final int _nextLineId;
   final int _nextBlockId;
 
-  late final String text = [
-    if (byteOrderMark) byteOrderMarkCharacter,
-    for (final line in lines) ...[line.text, line.ending],
-  ].join();
+  @override
+  String get text => _lines.text;
 
   /// The text after its front matter, for readers that don't know front
   /// matter; the whole text if it has none.
@@ -81,162 +68,56 @@ final class DocumentTree implements EarlierReading {
   };
 
   /// The ending most of its lines have, for lines it gets.
-  late final String lineEnding = dominantEnding(
-    lines.map((line) => line.ending),
-  );
+  String get lineEnding => _lines.lineEnding;
 
   /// How the document writes what it holds, for new content.
   late final DocumentStyle style = DocumentStyle.of(root);
 
   /// This document with [change] made; a document keeps at least one line.
   DocumentTree changed(LineChange change) {
-    assert(
-      change.lines.isNotEmpty || change.end - change.start < lines.length,
-      'a change leaves a document without lines',
-    );
-    assert(() {
-      final kept = change.lines.map((line) => line.id).nonNulls.toList();
-      final others = {
-        for (final line in [
-          ...lines.take(change.start),
-          ...lines.skip(change.end),
-        ])
-          line.id,
-      };
-      return kept.toSet().length == kept.length && !kept.any(others.contains);
-    }(), 'line ids stay unique');
-    assert(() {
-      final endings = [
-        ...lines.take(change.start).map((line) => line.ending),
-        ...change.lines.map((line) => line.ending),
-        ...lines.skip(change.end).map((line) => line.ending),
-      ];
-      return endings.last.isEmpty &&
-          endings.take(endings.length - 1).every((e) => e.isNotEmpty);
-    }(), 'every line but the last ends with a line ending');
-    var nextLineId = _nextLineId;
-    final added = [
-      for (final line in change.lines)
-        Line(line.id ?? LineId(nextLineId++), line.text, line.ending),
-    ];
-    final newLines = [
-      ...lines.take(change.start),
-      ...added,
-      ...lines.skip(change.end),
-    ];
+    final next = _lines.changed(change);
     return DocumentTree._(
-      newLines,
+      next,
       rereadDocument(
         this,
-        newLines,
+        next.lines,
         start: change.start,
         end: change.end,
-        count: added.length,
+        count: change.lines.length,
         nextBlockId: _nextBlockId,
       ),
-      nextLineId,
-      byteOrderMark: byteOrderMark,
     );
   }
 
   /// This document with its lines from [start] to [end] replaced by
-  /// [lines], as a line editor holds them: a line that keeps its id keeps
-  /// its line ending, a new one ends as most lines do; the document's
-  /// last line ends with none. A text with line breaks in it (e.g. pasted
-  /// lines) becomes as many lines, the first one keeping the id; the
-  /// new ones end as most lines do.
+  /// [lines], as a line editor holds them (see [TextLines.changeOf]).
+  @override
   DocumentTree withLines(
     int start,
     int end,
     List<({LineId? id, String text})> lines,
-  ) {
-    // The line before becomes the last one: it loses its ending.
-    if (end == this.lines.length && lines.isEmpty && start > 0) {
-      final before = this.lines[start - 1];
-      return withLines(start - 1, end, [(id: before.id, text: before.text)]);
-    }
-    final atEnd = end == this.lines.length;
-    return changed(
-      LineChange(start, end, [
-        for (final (index, (:id, :text)) in lines.indexed)
-          ..._parts(
-            id,
-            splitLines(text),
-            last: atEnd && index == lines.length - 1,
-          ),
-      ]),
-    );
-  }
+  ) => changed(_lines.changeOf(start, end, lines));
 
-  /// The lines a line editor's line [id] holds, as [parts]: the last
-  /// ends as the line did, inner ones as new lines do.
-  List<({LineId? id, String text, String ending})> _parts(
-    LineId? id,
-    List<TextLine> parts, {
-    required bool last,
-  }) => [
-    for (final (index, part) in parts.indexed)
-      (
-        id: index == 0 ? id : null,
-        text: part.text,
-        ending: switch (index == parts.length - 1) {
-          false => lineEnding,
-          true when last => '',
-          true => switch (id == null ? null : lineOf(id)?.ending) {
-            final ending? when ending.isNotEmpty => ending,
-            _ => lineEnding,
-          },
-        },
-      ),
-  ];
-
-  /// This document with [text] instead, e.g. after it was edited as text:
-  /// the unchanged lines at its start and end keep their ids; all others
-  /// are new lines.
+  /// This document with [text] instead, e.g. after it was edited as text
+  /// (see [TextLines.changeTo]).
+  @override
   DocumentTree withText(String text) {
-    final bom = text.startsWith(byteOrderMarkCharacter);
-    final news = splitLines(bom ? text.substring(1) : text);
-    final olds = [
-      for (final line in lines) (text: line.text, ending: line.ending),
-    ];
-    final head = _sameAtStart(news, olds);
-    final tail = _sameAtStart(
-      news.skip(head).toList().reversed,
-      olds.skip(head).toList().reversed,
-    );
-    final changed = this.changed(
-      LineChange(head, olds.length - tail, [
-        for (final line in news.sublist(head, news.length - tail))
-          (id: null, text: line.text, ending: line.ending),
-      ]),
-    );
-    return bom == byteOrderMark
+    final changed = this.changed(_lines.changeTo(text));
+    final mark = text.startsWith(byteOrderMarkCharacter);
+    return mark == byteOrderMark
         ? changed
-        : DocumentTree._(
-            changed.lines,
-            (
-              root: changed.root,
-              definitions: changed.definitions,
-              nextBlockId: changed._nextBlockId,
-            ),
-            changed._nextLineId,
-            byteOrderMark: bom,
-          );
+        : DocumentTree._(changed._lines.withMark(mark: mark), (
+            root: changed.root,
+            definitions: changed.definitions,
+            nextBlockId: changed._nextBlockId,
+          ));
   }
-
-  late final Map<LineId, int> _indexes = {
-    for (final (index, line) in lines.indexed) line.id: index,
-  };
 
   @override
-  int indexOf(LineId id) =>
-      _indexes[id] ?? (throw ArgumentError.value(id, 'id', 'no such line'));
+  int indexOf(LineId id) => _lines.indexOf(id);
 
   /// The line [id]; `null` if there is none.
-  Line? lineOf(LineId id) => switch (_indexes[id]) {
-    final index? => lines[index],
-    null => null,
-  };
+  Line? lineOf(LineId id) => _lines.lineOf(id);
 
   /// Every leaf, in file order.
   late final List<LeafBlock> leaves = root.leaves.toList();
@@ -312,7 +193,3 @@ final class _Places {
     _ => false,
   };
 }
-
-/// How many items [a] and [b] have equal at their start.
-int _sameAtStart<T>(Iterable<T> a, Iterable<T> b) =>
-    IterableZip([a, b]).takeWhile((pair) => pair[0] == pair[1]).length;

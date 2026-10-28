@@ -10,7 +10,8 @@
 ///    syncs a folder ([SyncCheck]) and what to tell the user about a folder
 ///    ([FolderNotices]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
-/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]).
+/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
+///    what each type gives lists ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
 ///    whose copies each sync tool keeps in its [ConflictSource], merged per
 ///    file type ([ConflictHandler]).
@@ -18,7 +19,8 @@
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
-///    ([TextFile]).
+///    ([TextFile]); a text as lines that keep their ids while edited
+///    ([TextLines]).
 /// 10. `marks`: colors of documents, synced inside the folder
 ///     ([DocumentMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -30,7 +32,10 @@
 ///     latest ([ScansOwner]); any folder and result type.
 /// 14. `documents`: an open document's file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
-///     ([FileOwner]); any document type, any sync tool.
+///     ([FileOwner]); and what every type's editor shares: the page's
+///     requests and notices ([EditorRequest], [EditorNotice]), the save
+///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
+///     ([EditorSteps]); any document type, any sync tool.
 ///
 /// `owners` holds how an owner of a domain's state runs ([Owner]): by a
 /// pure machine ([MachineOwner]) or by plain code ([SimpleOwner]); and
@@ -52,6 +57,7 @@ export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';
 export 'src/common/keyed_task_queue.dart';
 export 'src/common/moment.dart';
+export 'src/common/most_used.dart';
 export 'src/common/result.dart';
 export 'src/compare/compare_owner.dart';
 export 'src/conflicts/conflict.dart';
@@ -59,11 +65,19 @@ export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/default_conflict_service.dart';
+export 'src/documents/editor/editor_book.dart';
+export 'src/documents/editor/editor_contract.dart';
+export 'src/documents/editor/editor_steps.dart';
+export 'src/documents/editor/history/edit_history.dart';
+export 'src/documents/editor/history/text_change.dart';
+export 'src/documents/editor/history/typing.dart';
+export 'src/documents/editor/save_clock.dart';
 export 'src/documents/file_owner/file_owner.dart';
 export 'src/documents/version.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
+export 'src/filetypes/file_type_support.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
@@ -88,6 +102,11 @@ export 'src/storage/rel_path.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
+export 'src/text/lines/editable_lines.dart';
+export 'src/text/lines/line.dart';
+export 'src/text/lines/line_change.dart';
+export 'src/text/lines/line_endings.dart';
+export 'src/text/lines/text_lines.dart';
 export 'src/text/text_file.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

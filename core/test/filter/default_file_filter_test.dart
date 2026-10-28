@@ -7,7 +7,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 void main() {
   const filter = DefaultFileFilter(
     FakeSyncAdapter(),
-    ExtensionFileTypeDetector.standard(),
+    fakeFileTypes,
   );
 
   test('includes visible folders only', () {

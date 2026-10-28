@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart'
-    show EffectId, Edited, Picked, Replaced, SecureReason, Ticket, Version;
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -30,7 +29,9 @@ void main() {
         void send(EditorMessage message) {
           for (final output in owner.send(message)) {
             switch (output) {
-              case ToFile(input: Edited(:final text, rev: final edited)):
+              case Notice(
+                notice: ToFile(input: Edited(:final text, rev: final edited)),
+              ):
                 fileText = text;
                 rev = edited;
               case StartSaveTimer(:final id):
@@ -44,10 +45,12 @@ void main() {
           fileText = text;
           final version = Version(++versions);
           send(
-            FromFile(
-              random.nextBool()
-                  ? Replaced(text, version: version, ackRev: rev)
-                  : Picked(text, version: version, rev: rev),
+            Request(
+              FromFile(
+                random.nextBool()
+                    ? Replaced(text, version: version, ackRev: rev)
+                    : Picked(text, version: version, rev: rev),
+              ),
             ),
           );
         }
@@ -58,7 +61,7 @@ void main() {
           steps.add('$input');
           try {
             switch (input) {
-              case null when !owner.state.unsent:
+              case null when !owner.state.status.unsent:
                 fromFile('$fileText\n\nz');
               case null:
                 break;
@@ -80,7 +83,7 @@ void main() {
 
 void _expectSound(EditorState state, String fileText) {
   switch (state.content) {
-    case MarkdownContent(:final text) when !state.unsent:
+    case MarkdownContent(:final text) when !state.status.unsent:
       expect(text, fileText, reason: 'the file owner has what shows');
     case MarkdownContent():
       break;
@@ -168,14 +171,14 @@ EditorMessage? _randomInput(
       revision: revision,
     ),
     10 => SetCheckedItems(pick(CheckedItems.values)),
-    11 => SecureEditor(Ticket(), pick(SecureReason.values)),
+    11 => Request(SecureEditor(Ticket(), pick(SecureReason.values))),
     12 when raws.isNotEmpty => OpenRawBlock(
       pick(raws).leaf.id,
       atEnd: random.nextBool(),
       revision: revision,
     ),
-    13 => Undo(revision: revision),
-    14 => Redo(revision: revision),
+    13 => const Request(Undo()),
+    14 => const Request(Redo()),
     _ => SetMode(EditMode.visual),
   };
 }

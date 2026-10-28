@@ -1,13 +1,12 @@
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart' show Picked, Replaced, Version;
-import 'package:truce_markdown/src/owner/history/edit_history.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import 'editor_run.dart';
 
 extension on EditorRun {
-  void undo() => owner.send(Undo(revision: revision));
-  void redo() => owner.send(Redo(revision: revision));
+  void undo() => request(const Undo());
+  void redo() => request(const Redo());
 
   /// What the file would hold now.
   String get text {
@@ -31,7 +30,7 @@ void main() {
       expect(run.rows, ['one ']);
       run.undo();
       expect(run.rows, ['']);
-      expect(run.state.canUndo, isFalse);
+      expect(run.state.status.canUndo, isFalse);
     });
 
     test('a caret move starts a new one', () {
@@ -79,7 +78,7 @@ void main() {
       expect(run.rows, ['ab', 'c']);
       final offered = run.outputs.whereType<UndoOffered>().single;
       expect(offered.what, OfferedUndo.removal);
-      run.owner.send(UndoStep(offered.id));
+      run.request(UndoStep(offered.id));
       expect(run.rows, ['ab', '[DividerNode]', 'c']);
     });
 
@@ -109,7 +108,7 @@ void main() {
       expect(run.text, '- [ ] b\n- [x] a');
       run.undo();
       expect(run.text, '- [ ] a\n- [ ] b');
-      expect(run.state.canUndo, isFalse);
+      expect(run.state.status.canUndo, isFalse);
     });
   });
 
@@ -136,7 +135,7 @@ void main() {
         ..redo();
       expect(run.rows, ['ab']);
       expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 2)));
-      expect(run.state.canRedo, isFalse);
+      expect(run.state.status.canRedo, isFalse);
     });
 
     test('a new edit drops what redo had', () {
@@ -144,7 +143,7 @@ void main() {
         ..type('ab')
         ..undo()
         ..type('c');
-      expect(run.state.canRedo, isFalse);
+      expect(run.state.status.canRedo, isFalse);
     });
 
     test('go across a mode switch', () {
@@ -175,15 +174,14 @@ void main() {
     });
 
     test('a backup restored is one step, offered for undo', () {
-      final run = EditorRun('mine')
-        ..owner.send(ReplaceAll('backup', revision: 0));
+      final run = EditorRun('mine')..request(const ReplaceAll('backup'));
       expect(run.rows, ['backup']);
       final offered = run.outputs.whereType<UndoOffered>().single;
       expect(offered.what, OfferedUndo.restore);
       run
         ..caret(0, 6)
         ..type('x')
-        ..owner.send(UndoStep(offered.id));
+        ..request(UndoStep(offered.id));
       expect(run.outputs.last, isA<UndoRefused>());
       run
         ..undo()
@@ -196,10 +194,10 @@ void main() {
     test('ends at a change from elsewhere', () {
       final run = EditorRun('a')..type('x');
       run.pause();
-      run.owner.send(
+      run.request(
         FromFile(Replaced('b', version: const Version(2), ackRev: 1)),
       );
-      expect(run.state.canUndo, isFalse);
+      expect(run.state.status.canUndo, isFalse);
       run.undo();
       expect(
         run.outputs.last,
@@ -218,17 +216,15 @@ void main() {
         ..press(EditKey.backspace)
         ..press(EditKey.backspace);
       final offered = run.outputs.whereType<UndoOffered>().single;
-      run.owner.send(UndoStep(offered.id));
+      run.request(UndoStep(offered.id));
       expect(run.rows, ['ab', '[DividerNode]', 'cd']);
-      expect(run.state.canUndo, isFalse);
+      expect(run.state.status.canUndo, isFalse);
       expect(run.outputs.whereType<HistoryEnd>(), isEmpty);
     });
 
     test('starts where it opened after a newer copy came before any edit', () {
       final run = EditorRun('a')
-        ..owner.send(
-          const FromFile(Replaced('b', version: Version(2), ackRev: 0)),
-        )
+        ..request(const FromFile(Replaced('b', version: Version(2), ackRev: 0)))
         ..undo();
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.opened);
     });
@@ -236,7 +232,7 @@ void main() {
     test('ends at a version picked', () {
       final run = EditorRun('a')
         ..type('x')
-        ..owner.send(const FromFile(Picked('b', version: Version(2), rev: 5)))
+        ..request(const FromFile(Picked('b', version: Version(2), rev: 5)))
         ..undo();
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.replacedHere);
     });

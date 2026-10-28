@@ -3,11 +3,11 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const detector = ExtensionFileTypeDetector.standard();
+  final detector = ExtensionFileTypeDetector.of(const [FakeFileType()]);
 
-  test('detects Markdown by extension, ignoring case', () {
-    expect(detector.detect(path('todo.md')), markdownFileType);
-    expect(detector.detect(path('lists/TODO.MD')), markdownFileType);
+  test('detects a type by its extensions, ignoring case', () {
+    expect(detector.detect(path('todo.md')), FakeFileType.id);
+    expect(detector.detect(path('lists/TODO.MD')), FakeFileType.id);
   });
 
   test('returns null for unknown or missing extensions', () {

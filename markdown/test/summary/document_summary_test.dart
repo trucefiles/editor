@@ -4,7 +4,7 @@ import 'package:truce_markdown/truce_markdown.dart';
 void main() {
   String preview(String text, {int maxLines = 6, bool hideDone = false}) {
     final summary = DocumentSummary.of(text, maxLines: maxLines);
-    return hideDone ? summary.previewHidingDone : summary.preview;
+    return summary.preview(MarkdownPreview(hideChecked: hideDone));
   }
 
   String? title(String text) => DocumentSummary.of(text, maxLines: 1).title;

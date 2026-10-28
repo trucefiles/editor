@@ -28,7 +28,7 @@ void main() {
     folder,
     const DefaultFileFilter(
       SyncthingAdapter(),
-      ExtensionFileTypeDetector.standard(),
+      fakeFileTypes,
     ),
   ).scan()).value.conflicts.single;
 

@@ -16,7 +16,7 @@ void main() {
       store,
       const DefaultFileFilter(
         SyncthingAdapter(),
-        ExtensionFileTypeDetector.standard(),
+        fakeFileTypes,
       ),
     );
   });

@@ -1,12 +1,13 @@
 /// The editor owner's contract: what reaches it, what it decides, what it
 /// leads to. One editor owner per open Markdown document; it holds what
 /// the editor shows (the doc tree, the selection, the view state), runs
-/// the commands, and sends the printed text to the file owner as the
-/// save timing says (see `save_clock.dart`).
+/// the commands, and handles what every type's editor shares (core's
+/// editor contract): the page's requests, undo, and sending the printed
+/// text to the file owner as the save timing says.
 library;
 
 import 'package:truce_core/truce_core.dart'
-    show Asking, EffectId, FileInput, SecureReason, Ticket, ToEditor, Wait;
+    show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
 
 import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';
@@ -150,24 +151,6 @@ final class EditText extends ShownInput {
   final String text;
 }
 
-/// Undo the latest step of this editing session.
-final class Undo extends ShownInput {
-  const Undo({required super.revision});
-}
-
-/// Redo the step undone last.
-final class Redo extends ShownInput {
-  const Redo({required super.revision});
-}
-
-/// The document now reads [text] (a backup the user restored): one step,
-/// which undo takes back.
-final class ReplaceAll extends ShownInput {
-  const ReplaceAll(this.text, {required super.revision});
-
-  final String text;
-}
-
 /// The document shows in [mode]; for Read, the text is sent first, so
 /// the file owner's text is what shows.
 final class SetMode extends EditorInput {
@@ -191,30 +174,11 @@ final class SetCollapsed extends EditorInput {
   final bool collapsed;
 }
 
-/// Undo step [id], which [UndoOffered] told of, if it is still the
-/// latest.
-final class UndoStep extends EditorInput {
-  const UndoStep(this.id);
+/// A request of the document page (see core's editor contract).
+final class Request extends EditorInput {
+  const Request(this.request);
 
-  final int id;
-}
-
-/// What the file owner tells the editor.
-final class FromFile extends EditorInput {
-  const FromFile(this.message);
-
-  final ToEditor message;
-}
-
-/// Keep the edits somewhere lasting now (the user leaves, hides or
-/// closes): the editor sends its text, then asks the file owner to keep
-/// it; the file owner's answer carries [ticket] back.
-final class SecureEditor extends EditorInput implements Asking {
-  const SecureEditor(this.ticket, this.reason);
-
-  @override
-  final Ticket ticket;
-  final SecureReason reason;
+  final EditorRequest request;
 }
 
 // Results.
@@ -256,11 +220,11 @@ sealed class EditorEvent {
   const EditorEvent();
 }
 
-/// What the file owner gets.
-final class ToFile extends EditorEvent {
-  const ToFile(this.input);
+/// What the document page hears (see core's editor contract).
+final class Notice extends EditorEvent {
+  const Notice(this.notice);
 
-  final FileInput input;
+  final EditorNotice notice;
 }
 
 /// The link dialog opens on [range].
@@ -268,53 +232,6 @@ final class AskLink extends EditorEvent {
   const AskLink(this.range);
 
   final TextSelection range;
-}
-
-/// Undo step [id] is one the user is offered to undo right away: [what]
-/// it did.
-final class UndoOffered extends EditorEvent {
-  const UndoOffered(this.id, this.what);
-
-  final int id;
-  final OfferedUndo what;
-}
-
-/// What a step offered for undo did.
-enum OfferedUndo {
-  /// Removed items, or blocks without text.
-  removal,
-
-  /// Put a backup in place of the text ([ReplaceAll]).
-  restore,
-}
-
-/// Undo step [id] could not be undone: the text changed since.
-final class UndoRefused extends EditorEvent {
-  const UndoRefused(this.id);
-
-  final int id;
-}
-
-/// Undo reached the start of the history, which is there for [start].
-final class HistoryEnd extends EditorEvent {
-  const HistoryEnd(this.start);
-
-  final HistoryStart start;
-}
-
-/// Why the undo history starts where it does.
-enum HistoryStart {
-  /// The document was opened there.
-  opened,
-
-  /// The document changed on another device (or elsewhere) there.
-  changedElsewhere,
-
-  /// A version was picked, or edits discarded, there.
-  replacedHere,
-
-  /// Older steps are not kept.
-  limit,
 }
 
 // State.
@@ -326,9 +243,7 @@ final class EditorState {
     required this.mode,
     required this.checkedItems,
     required this.revision,
-    required this.unsent,
-    this.canUndo = false,
-    this.canRedo = false,
+    this.status = const EditorStatus(),
   });
 
   /// What shows: [MarkdownContent] in Markdown edit, else
@@ -341,12 +256,9 @@ final class EditorState {
   /// Counts the changes to what shows; inputs name the one they saw.
   final int revision;
 
-  /// Whether there are edits only in memory, not yet sent to be kept.
-  final bool unsent;
-
-  /// Whether [Undo] and [Redo] have a step to take.
-  final bool canUndo;
-  final bool canRedo;
+  /// What it tells of the edits: whether some are only in memory, and
+  /// what undo and redo can do.
+  final EditorStatus status;
 }
 
 /// What shows: the doc tree, or the text Markdown edit edits.

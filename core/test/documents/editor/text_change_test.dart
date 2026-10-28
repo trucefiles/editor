@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/owner/history/text_change.dart';
+import 'package:truce_core/truce_core.dart';
 
 void main() {
   test('finds text added', () {

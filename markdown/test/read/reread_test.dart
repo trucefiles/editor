@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:test/test.dart';
+import 'package:truce_core/truce_core.dart' show LineChange;
 import 'package:truce_markdown/src/document_tree.dart';
-import 'package:truce_markdown/src/lines/line_change.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
 
 import '../spec/spec_examples.dart';

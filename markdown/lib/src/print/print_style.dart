@@ -2,7 +2,8 @@
 /// else the document's, else the standard style.
 library;
 
-import '../common/most_used.dart';
+import 'package:truce_core/truce_core.dart' show mostUsed;
+
 import '../doc/doc_nodes.dart';
 import '../tree/blocks.dart';
 import '../tree/document_style.dart';

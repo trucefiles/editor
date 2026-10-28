@@ -1,4 +1,5 @@
-import '../common/most_used.dart';
+import 'package:truce_core/truce_core.dart' show mostUsed;
+
 import 'blocks.dart';
 import 'inlines.dart';
 

@@ -1,3 +1,5 @@
+import 'package:truce_core/truce_core.dart' show TextSummary;
+
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../doc/load.dart';
@@ -8,7 +10,7 @@ import '../visible/visible_text.dart';
 /// What lists of documents show of one: its title and a preview of its
 /// first lines, as plain words. Read from one load of the text; each
 /// part is worked out when first asked.
-final class DocumentSummary {
+final class DocumentSummary implements TextSummary<MarkdownPreview> {
   /// The summary of [text], with previews of up to [maxLines] lines.
   DocumentSummary.of(String text, {this.maxLines = 10})
     : _doc = loadMarkdown(text).doc;
@@ -25,6 +27,7 @@ final class DocumentSummary {
 
   /// The first level-1 heading with text in no other block; `null` if
   /// there is none.
+  @override
   late final String? title = switch (_title) {
     final title? => _plain(title.text).trim(),
     null => null,
@@ -32,6 +35,7 @@ final class DocumentSummary {
 
   /// The first line with text, without marks or a box; empty if there is
   /// none. Names new documents.
+  @override
   late final String firstLine =
       leavesIn(_doc.root)
           .where((leaf) => leaf is! DividerNode)
@@ -43,23 +47,37 @@ final class DocumentSummary {
 
   /// Up to [maxLines] lines after the title, in file order: items at
   /// their level, boxes as `☐ text` or `☑ text`, bullets as `• text`,
-  /// numbers as `2. text`, a divider as a line.
-  late final String preview = _preview(
+  /// numbers as `2. text`, a divider as a line; without checked items
+  /// if [MarkdownPreview.hideChecked].
+  @override
+  String preview(MarkdownPreview options) =>
+      options.hideChecked ? _previewHidingDone : _previewAll;
+
+  late final String _previewAll = _preview(
     _doc,
     _title,
     maxLines: maxLines,
     hideDone: false,
   );
 
-  /// [preview] without the checked items at a list's top level (those a
-  /// Done section shows) and their subitems, counted in a last line, e.g.
-  /// `+ 3 done`.
-  late final String previewHidingDone = _preview(
+  /// [_previewAll] without the checked items at a list's top level (those
+  /// a Done section shows) and their subitems, counted in a last line,
+  /// e.g. `+ 3 done`.
+  late final String _previewHidingDone = _preview(
     _doc,
     _title,
     maxLines: maxLines,
     hideDone: true,
   );
+}
+
+/// How a Markdown preview shows.
+final class MarkdownPreview {
+  const MarkdownPreview({this.hideChecked = false});
+
+  /// Leaves out checked items (and their subitems), counting them
+  /// instead.
+  final bool hideChecked;
 }
 
 HeadingNode? _titleOf(DocTree doc) => doc.root.children

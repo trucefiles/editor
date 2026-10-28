@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/owner/save_clock.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// A clock driven by events, with the timers running and the saves made.
 final class _Clock {
