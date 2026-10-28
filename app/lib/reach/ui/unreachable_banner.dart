@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../../folder_state/folder_state_controller.dart';
 import '../../folders/document_folder.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../folder_reach_controller.dart';
 
 /// Tells that [folder] can't be reached, with [message] on what that means
@@ -25,7 +25,7 @@ class UnreachableBanner extends ConsumerWidget {
       actions: [
         TextButton(
           // Any access that works brings the folder back.
-          onPressed: ref.read(folderScansProvider.notifier).refresh,
+          onPressed: ref.read(folderContentsProvider.notifier).refresh,
           child: const Text('Retry'),
         ),
       ],

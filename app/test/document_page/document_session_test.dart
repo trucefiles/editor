@@ -9,7 +9,7 @@ import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/document_page/save_state.dart';
 import 'package:truce_editor/documents/document_version.dart';
 
-import '../support.dart' hide documentOf;
+import '../support.dart';
 import 'document_fixture.dart';
 import 'markdown_session.dart';
 
@@ -126,32 +126,33 @@ void main() {
     session.fileNotices.listen(notices.add);
     final theirs = await fixture.editElsewhere('two\n');
 
-    session.observe(scanFinding([theirs]));
+    session.observe(contentsFinding([theirs.document]));
 
+    await eventually(() => notices.isNotEmpty);
     expect(notices.single, isA<Replaced>());
     expect(session.text, 'two\n');
-    expect(session.document?.file.text, 'two\n');
+    expect(session.document?.text, 'two\n');
   });
 
-  test('a scan that cannot see the file says nothing of it', () async {
-    final session = fixture.session();
+  test(
+    'a listing of the version it holds reads nothing and says nothing',
+    () async {
+      final reads = <Object>[];
+      final session = fixture.session()..fileNotices.listen(reads.add);
 
-    session.observe(
-      scanFinding(
-        const [],
-        folders: fixture.folders,
-        unread: {fixture.document.key},
-      ),
-    );
+      session.observe(contentsFinding([fixture.document.document]));
+      await pumpEventQueue();
 
-    expect(session.status, isA<InStep>());
-  });
+      expect(reads, isEmpty);
+      expect(session.status, isA<InStep>());
+    },
+  );
 
   test('a scan in which the folder failed says nothing of the file', () {
     final session = fixture.session();
 
     session.observe(
-      scanFinding(const [], failed: {fixture.folders[0]: .ioFailure}),
+      contentsFinding(const [], failed: {fixture.folders[0]: .ioFailure}),
     );
 
     expect(session.status, isA<InStep>());
@@ -168,7 +169,7 @@ void main() {
     final session = fixture.session(ExistingFile(inSub));
 
     session.observe(
-      scanFinding(
+      contentsFinding(
         const [],
         folders: fixture.folders,
         unreadable: {
@@ -187,7 +188,7 @@ void main() {
       selection: Selection.of([path('elsewhere')]),
     );
 
-    session.observe(scanFinding(const [], folders: [narrowed]));
+    session.observe(contentsFinding(const [], folders: [narrowed]));
 
     expect(session.status, isA<InStep>());
   });
@@ -195,7 +196,7 @@ void main() {
   test('a new document has nothing to find in scans', () {
     final session = fixture.session(fixture.newFile);
 
-    session.observe(scanFinding(const []));
+    session.observe(contentsFinding(const []));
 
     expect(session.status, isA<Unwritten>());
   });

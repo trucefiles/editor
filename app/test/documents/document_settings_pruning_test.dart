@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_settings_pruning.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
@@ -58,13 +58,13 @@ void main() {
   );
 
   test(
-    'keeps the settings of a document written after the last scan',
+    'keeps the settings of a document written after the last listing',
     () async {
       final activity = container.read(appActiveProvider.notifier) as _Activity
         ..set(active: false);
       container.listen(documentSettingsPruningProvider, (_, _) {});
-      await container.read(folderScansProvider.future);
-      // E.g. a document just moved here: no scan has seen it yet.
+      await container.read(folderContentsProvider.future);
+      // E.g. a document just moved here: no listing has seen it yet.
       File('${dir.path}/moved.md').writeAsStringSync('# Moved\n');
       final views = container.read(documentSettingsProvider.notifier);
       await views.edit(key('moved.md'), (s) => s.withPinned(pinned: true));

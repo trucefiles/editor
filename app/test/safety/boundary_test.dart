@@ -10,13 +10,15 @@ import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/documents/document_steps.dart';
+import 'package:truce_editor/documents/previews/card_preview_controller.dart';
+import 'package:truce_editor/folder_state/folder_contents.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
+import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
@@ -63,10 +65,9 @@ void main() {
         touched.value,
   };
 
-  Future<FolderScans> scanned() async {
-    await container.read(folderScansProvider.future);
-    await container.read(folderScansProvider.notifier).refresh();
-    return container.read(folderScansProvider.future);
+  Future<FolderContents> scanned() async {
+    await container.read(folderContentsProvider.future);
+    return (await container.read(folderContentsProvider.notifier).refresh())!;
   }
 
   setUp(() {
@@ -93,9 +94,17 @@ void main() {
     expect([
       for (final document in found.documents) document.path.value,
     ], unorderedEquals(['notes/work/a.md', 'notes/work/inbox/c.md']));
-    final a = found.documents.firstWhere(
-      (document) => document.path.value == 'notes/work/a.md',
-    );
+    for (final document in found.documents) {
+      await container.read(cardPreviewsProvider).read(document);
+    }
+    final search = container.listen(searchProvider, (_, _) {});
+    await eventually(() => search.read().complete);
+    search.close();
+    final a = (await files.reload(
+      found.documents.firstWhere(
+        (document) => document.path.value == 'notes/work/a.md',
+      ),
+    )).value;
     final saved = (await files.save(a, '# A\nmore')).value;
     await files.backUpBeforeEdit(saved);
     expect(await files.bytesOf(path('home/picture.png')), isNull);
@@ -105,7 +114,7 @@ void main() {
       title: 'New',
       text: '# New',
     )).value;
-    await actions.setMark(created, const DocumentMark(color: 'teal'));
+    await actions.setMark(created.document, const DocumentMark(color: 'teal'));
     final moved = (await actions.move(created, (
       folder: folder,
       subfolder: path('notes/work/inbox'),

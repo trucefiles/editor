@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_card_summary.dart';
+import 'package:truce_editor/documents/previews/card_preview.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
@@ -12,13 +12,16 @@ import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 import '../../support.dart';
 
 void main() {
-  Document document(String text) => documentOf(
+  final document = listedDocument(
     folderAt(Directory.systemTemp),
-    text,
     name: 'document.md',
     version: 1,
     modified: DateTime(2026, 10, 14),
   );
+
+  /// [text] as the card's preview, read.
+  CardPreview read(String text) =>
+      Previewed(document.type.cardSummary(text, document.path));
 
   Future<double> heightWith(WidgetTester tester, int lines) async {
     final text = ['# Title', for (var i = 1; i <= lines; i++) 'line $i'];
@@ -30,7 +33,8 @@ void main() {
             child: SizedBox(
               width: 240,
               child: DocumentCard(
-                document(text.join('\n')),
+                document,
+                preview: read(text.join('\n')),
                 onTap: () {},
                 onMark: () {},
               ),
@@ -64,7 +68,8 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: DocumentCard(
-            document('# Title'),
+            document,
+            preview: read('# Title'),
             hasConflict: hasConflict,
             onTap: () {},
             onMark: () {},
@@ -91,7 +96,8 @@ void main() {
               zoom: TextZoom.closestTo(120),
               child: Scaffold(
                 body: DocumentCard(
-                  document('# Title\nline'),
+                  document,
+                  preview: read('# Title\nline'),
                   onTap: () {},
                   onMark: () {},
                 ),
@@ -108,4 +114,28 @@ void main() {
       expect(scaled(find.textContaining('Oct 14')), 12);
     },
   );
+
+  testWidgets('shows the file name while the text is read, and says when it '
+      "can't be shown", (tester) async {
+    Future<void> show(CardPreview preview) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DocumentCard(
+            document,
+            preview: preview,
+            onTap: () {},
+            onMark: () {},
+          ),
+        ),
+      ),
+    );
+
+    await show(const PreviewReading());
+    expect(find.text('document'), findsOne);
+    expect(find.text("Can't be shown as text."), findsNothing);
+
+    await show(const PreviewUnreadable());
+    expect(find.text('document'), findsOne);
+    expect(find.text("Can't be shown as text."), findsOne);
+  });
 }

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document.dart';
+import '../documents/document_text.dart';
 import '../documents/document_version.dart';
-import '../scan/folder_scans.dart';
+import '../folder_state/folder_contents.dart';
 import 'document_file.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
@@ -74,7 +74,7 @@ final class DocumentSession extends ChangeNotifier {
 
   /// The document's file as last read or written, or where the user moved
   /// it; `null` until a new document's file is created.
-  Document? get document => switch (_file.state.file) {
+  DocumentText? get document => switch (_file.state.file) {
     final version? => documentOf(version),
     null => null,
   };
@@ -117,10 +117,15 @@ final class DocumentSession extends ChangeNotifier {
     NewFile() => unawaited(secure(SecureReason.hide)),
   };
 
-  /// What [scans] found of the file.
-  void observe(FolderScans scans) {
+  /// What [contents] know of the file.
+  void observe(FolderContents contents) {
     if (document?.key case final key?) {
-      _file.send(Observed(scans.observe(key), startedAt: scans.startedAt));
+      if (contents.seenAt(key) case final seenAt?) {
+        _file.send(Observed(contents.observe(key), startedAt: seenAt));
+      } else {
+        // Not listed: what it holds is unknown.
+        _file.send(Observed(const Unknown(), startedAt: Moment.now()));
+      }
     }
   }
 
@@ -140,7 +145,7 @@ final class DocumentSession extends ChangeNotifier {
   void discard() => _file.send(const Discard());
 
   /// The user moved or renamed the document to [copy].
-  void moved(Document copy) {
+  void moved(DocumentText copy) {
     _effects.moved(copy);
     _file.send(Moved(copy.seen));
   }

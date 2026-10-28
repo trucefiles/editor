@@ -3,26 +3,25 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
+import 'package:truce_editor/folder_state/following_changes.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_controller.dart';
-import 'package:truce_editor/scan/auto_rescan.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
 void main() {
-  late StreamController<RelPath> changes;
-  late _RecordingScans scans;
+  late StreamController<ChangeHint> changes;
+  late _RecordingOwner owner;
   late ProviderContainer container;
   late DocumentFolder folder;
 
-  /// Starts auto refresh for one folder whose changes come from [changes];
+  /// Starts following the changes of one folder whose changes come from [changes];
   /// none are looked for if [manual]. With [folders], the folder list
   /// loads only once it completes, and the start does not wait for it.
   Future<void> start({
@@ -31,8 +30,8 @@ void main() {
     Completer<void>? folders,
   }) async {
     // Broadcast: a rebuild listens again.
-    changes = StreamController<RelPath>.broadcast();
-    scans = _RecordingScans();
+    changes = StreamController<ChangeHint>.broadcast();
+    owner = _RecordingOwner();
     folder = folderAt(tempFolder());
     container = ProviderContainer(
       overrides: [
@@ -43,14 +42,14 @@ void main() {
           (ref, location) async => manual ? null : _StreamChanges(changes),
         ),
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
-        folderScansOwnerProvider.overrideWithValue(scans),
+        folderStateOwnerProvider.overrideWithValue(owner),
         refreshSettingsProvider.overrideWith(_FixedSettings.new),
         folderReachProvider.overrideWith2(_SettableReach.new),
       ],
     );
     addTearDown(container.dispose);
-    container.listen(autoRescanProvider, (_, _) {});
-    if (folders == null) await container.read(autoRescanProvider.future);
+    container.listen(followingChangesProvider, (_, _) {});
+    if (folders == null) await container.read(followingChangesProvider.future);
   }
 
   Future<void> settle() => pumpEventQueue();
@@ -64,38 +63,44 @@ void main() {
     ) as _SettableReach;
 
     reach.set(Reach.unreachable);
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
     final before = listens;
     reach.set(Reach.reachable);
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
 
     expect(listens, before + 1);
   });
 
-  test('tells the scans of every change', () async {
+  test('passes every hint on, with its base folder', () async {
     await start();
 
     changes
-      ..add(path('a.md'))
-      ..add(path('b.md'));
+      ..add(PathChanged(path('a.md')))
+      ..add(const ListAgain());
     await settle();
 
     expect(
-      scans.inputs.whereType<FilesChanged<Object?, Object?>>(),
-      hasLength(2),
+      [
+        for (final input in owner.inputs)
+          if (input case Hinted(:final baseId, :final hint)) (baseId, hint),
+      ],
+      [
+        (folder.base.id, PathChanged(path('a.md'))),
+        (folder.base.id, const ListAgain()),
+      ],
     );
   });
 
-  test('tells the scans whether the app is in use', () async {
+  test('tells the owner whether the app is in use', () async {
     await start();
     (container.read(appActiveProvider.notifier) as _FixedActivity).set(
       active: false,
     );
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
 
     expect(
       [
-        for (final input in scans.inputs)
+        for (final input in owner.inputs)
           if (input case Active(:final active)) active,
       ],
       [true, false],
@@ -121,7 +126,7 @@ void main() {
     (container.read(appActiveProvider.notifier) as _FixedActivity).set(
       active: false,
     );
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
 
     expect(changes.hasListener, isFalse);
   });
@@ -133,7 +138,7 @@ void main() {
     (container.read(appActiveProvider.notifier) as _FixedActivity).set(
       active: false,
     );
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
     folders.complete();
     await settle();
 
@@ -145,39 +150,38 @@ void main() {
     final activity =
         container.read(appActiveProvider.notifier) as _FixedActivity
           ..set(active: false);
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
 
     activity.set(active: true);
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
     await settle();
 
-    expect(scans.inputs.whereType<FilesChanged<Object?, Object?>>(), isEmpty);
-    expect(scans.inputs.whereType<SettingChanged<Object?, Object?>>(), isEmpty);
+    expect(owner.inputs.whereType<Hinted>(), isEmpty);
+    expect(owner.inputs.whereType<Refresh>(), isEmpty);
     expect(changes.hasListener, isTrue);
   });
 
-  test('tells the scans once when the refresh setting changes', () async {
+  test('lists again once when the refresh setting changes', () async {
     await start();
 
     (container.read(refreshSettingsProvider.notifier) as _FixedSettings).show(
       RefreshSettings.standard.copyWith(mode: RefreshMode.periodic),
     );
-    await container.read(autoRescanProvider.future);
+    await container.read(followingChangesProvider.future);
 
-    expect(
-      scans.inputs.whereType<SettingChanged<Object?, Object?>>(),
-      hasLength(1),
-    );
+    await settle();
+
+    expect(owner.inputs.whereType<Refresh>(), hasLength(1));
   });
 }
 
 final class _StreamChanges implements FolderChanges {
   _StreamChanges(this._controller);
 
-  final StreamController<RelPath> _controller;
+  final StreamController<ChangeHint> _controller;
 
   @override
-  Stream<RelPath> get changes => _controller.stream;
+  Stream<ChangeHint> get changes => _controller.stream;
 }
 
 class _FixedFolders extends FoldersController {
@@ -211,21 +215,22 @@ class _FixedActivity extends AppActivity {
   void set({required bool active}) => state = active;
 }
 
-/// A scans owner that records what it is told.
-final class _RecordingScans implements FolderScansOwner {
-  final inputs = <ScansInput<DocumentFolder, FolderScans>>[];
+/// A folder state owner that records what it is told.
+final class _RecordingOwner implements FolderStateOwner {
+  final inputs = <FolderStateInput>[];
 
   @override
-  void send(ScansInput<DocumentFolder, FolderScans> input) => inputs.add(input);
+  void send(FolderStateInput input) => inputs.add(input);
 
   @override
-  FolderScans? get state => null;
+  FolderState get state => FolderState.none;
+
+  // Open while the app runs, as the real owner's.
+  @override
+  Stream<FolderState> get changes => StreamController<FolderState>().stream;
 
   @override
-  Stream<FolderScans?> get changes => const Stream.empty();
-
-  @override
-  Stream<Fresh> get events => const Stream.empty();
+  Stream<Fresh> get events => StreamController<Fresh>().stream;
 
   @override
   Future<void> close() async {}

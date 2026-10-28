@@ -9,6 +9,7 @@ import '../folders/document_folder.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
 import 'document_file_name.dart';
+import 'document_text.dart';
 
 /// Reads and writes single document files in one folder, through its base
 /// folder's services. Every write is atomic and checks that the file did
@@ -26,8 +27,8 @@ final class DocumentFiles {
 
   FileStore get _store => _services.store;
 
-  /// The current version of [document]'s file.
-  Future<Result<Document, StoreError>> reload(Document document) =>
+  /// [document]'s file as it is now.
+  Future<Result<DocumentText, StoreError>> reload(Document document) =>
       open(document.path);
 
   /// The bytes of the file at [path], e.g. an image a document shows; `null`
@@ -38,9 +39,10 @@ final class DocumentFiles {
         Err() => null,
       };
 
-  /// The document in the file at [path], e.g. kept from before its
-  /// folder changed: refused if the folder doesn't show it.
-  Future<Result<Document, StoreError>> open(RelPath path) async {
+  /// The document in the file at [path], with its text, e.g. kept from
+  /// before its folder changed: refused if the folder doesn't show it;
+  /// [StoreError.ioFailure] if it is not text.
+  Future<Result<DocumentText, StoreError>> open(RelPath path) async {
     final type = _types.of(path);
     if (type == null || !_folder.covers(path)) {
       return const Err(StoreError.outside);
@@ -49,7 +51,10 @@ final class DocumentFiles {
     return switch (read) {
       Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
         final file? => Ok(
-          _document(path, type, file, content.version, content.modified),
+          DocumentText(
+            _document(path, type, content.version, content.modified),
+            file,
+          ),
         ),
         null => const Err(StoreError.ioFailure),
       },
@@ -62,7 +67,7 @@ final class DocumentFiles {
   /// `# title` line. If [subfolder] is gone, the document goes to the top
   /// of the folder's part that held it: it is kept, and the deleted
   /// folder never comes back.
-  Future<Result<Document, StoreError>> create(
+  Future<Result<DocumentText, StoreError>> create(
     String title, {
     required DocumentType type,
     RelPath? subfolder,
@@ -89,8 +94,8 @@ final class DocumentFiles {
   /// [document]'s byte style, in [subfolder] (the base folder's top level
   /// if `null`); named after [title] (by default [document]'s name) with
   /// [document]'s extension, and a number if that name is taken.
-  Future<Result<Document, StoreError>> copyIn(
-    Document document,
+  Future<Result<DocumentText, StoreError>> copyIn(
+    DocumentText document,
     String text, {
     RelPath? subfolder,
     String? title,
@@ -109,24 +114,26 @@ final class DocumentFiles {
   /// (by default [document]'s name) with [document]'s extension, and a
   /// number if that name is taken. Fails with [StoreError.changedSinceRead]
   /// if the file changed since [document] was read: nothing moved.
-  Future<Result<Document, StoreError>> moveIn(
-    Document document, {
+  Future<Result<DocumentText, StoreError>> moveIn(
+    DocumentText document, {
     RelPath? subfolder,
     String? title,
   }) {
-    final (:base, :extension) = splitFileName(document.path.name);
+    final DocumentText(document: Document(path: from, :version), :file) =
+        document;
+    final (:base, :extension) = splitFileName(from.name);
     return _named(
       title ?? base,
       extension,
       subfolder,
-      (path) => _store.move(document.path, path, ifUnchanged: document.version),
-      document.file,
+      (path) => _store.move(from, path, ifUnchanged: version),
+      file,
     );
   }
 
   /// Fails with [StoreError.notFound] if [subfolder] is gone: the store
   /// would create it, and a deleted folder never comes back.
-  Future<Result<Document, StoreError>> _createNamed(
+  Future<Result<DocumentText, StoreError>> _createNamed(
     String title,
     String extension,
     RelPath? subfolder,
@@ -145,7 +152,7 @@ final class DocumentFiles {
   /// Writes [file] by [write] at the first free name after [title] in
   /// [subfolder]. Fails with [StoreError.notFound] if [subfolder] is gone:
   /// the store would create it, and a deleted folder never comes back.
-  Future<Result<Document, StoreError>> _named(
+  Future<Result<DocumentText, StoreError>> _named(
     String title,
     String extension,
     RelPath? subfolder,
@@ -194,14 +201,14 @@ final class DocumentFiles {
 
   /// Writes [text] over [document]; fails with [StoreError.changedSinceRead]
   /// if the file changed since [document] was read.
-  Future<Result<Document, StoreError>> save(
-    Document document,
+  Future<Result<DocumentText, StoreError>> save(
+    DocumentText document,
     String text,
   ) async {
     final written = await _store.replace(
       document.path,
       document.file.encode(text),
-      ifUnchanged: document.version,
+      ifUnchanged: document.document.version,
     );
     return switch (written) {
       Ok(value: final entry) => Ok(
@@ -213,8 +220,8 @@ final class DocumentFiles {
 
   /// Writes [text] as [document]'s file again, e.g. after it was deleted
   /// elsewhere or to undo a delete. Never overwrites an existing file.
-  Future<Result<Document, StoreError>> restore(
-    Document document,
+  Future<Result<DocumentText, StoreError>> restore(
+    DocumentText document,
     String text,
   ) async {
     final created = await _store.create(
@@ -232,7 +239,7 @@ final class DocumentFiles {
   /// Keeps [text] as a conflict copy of [document], for edits that cannot go
   /// into its file. It syncs, and is resolved like any conflict.
   Future<Result<void, StoreError>> saveAsConflict(
-    Document document,
+    DocumentText document,
     String text,
   ) => _services.conflicts.keepAsConflict(
     document.path,
@@ -249,7 +256,7 @@ final class DocumentFiles {
   /// Keeps a backup of [text], the document's text now, before the user
   /// replaces it with a backup.
   Future<Result<void, StoreError>> backUpCurrent(
-    Document document,
+    DocumentText document,
     String text,
   ) => _services.backups.saveCurrent(
     at: DateTime.now(),
@@ -259,20 +266,22 @@ final class DocumentFiles {
 
   /// Keeps a backup of [current], the document's file, and [edited], text the
   /// user edited from an older version, before the user keeps one of them.
-  Future<Result<void, StoreError>> backUp(Document current, String edited) =>
-      _services.backups.saveBoth(
-        at: DateTime.now(),
-        filePath: current.path,
-        current: current.file.encode(current.file.text),
-        other: current.file.encode(edited),
-      );
+  Future<Result<void, StoreError>> backUp(
+    DocumentText current,
+    String edited,
+  ) => _services.backups.saveBoth(
+    at: DateTime.now(),
+    filePath: current.path,
+    current: current.file.encode(current.text),
+    other: current.file.encode(edited),
+  );
 
   /// Keeps a backup of [document]'s file before edits are first saved over it.
-  Future<Result<void, StoreError>> backUpBeforeEdit(Document document) =>
+  Future<Result<void, StoreError>> backUpBeforeEdit(DocumentText document) =>
       _services.backups.saveBeforeEdit(
         at: DateTime.now(),
         filePath: document.path,
-        bytes: document.file.encode(document.file.text),
+        bytes: document.file.encode(document.text),
       );
 
   Future<Result<void, StoreError>> delete(Document document) =>
@@ -280,25 +289,25 @@ final class DocumentFiles {
 
   /// The document just written as [entry], holding [file].
   /// Only ever of a handled type: the store writes nothing else.
-  Document _documentAt(FileEntry entry, TextFile file) => _document(
-    entry.path,
-    _types.of(entry.path)!,
+  DocumentText _documentAt(FileEntry entry, TextFile file) => DocumentText(
+    _document(
+      entry.path,
+      _types.of(entry.path)!,
+      entry.version,
+      entry.modified,
+    ),
     file,
-    entry.version,
-    entry.modified,
   );
 
   Document _document(
     RelPath path,
     DocumentType type,
-    TextFile file,
     FileVersion version,
     DateTime modified,
   ) => Document(
     folder: _folder,
     path: path,
     type: type,
-    file: file,
     version: version,
     modified: modified,
   );

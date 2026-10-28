@@ -9,12 +9,14 @@ import '../document.dart';
 import '../document_card_summary.dart';
 import '../document_colors.dart';
 import '../document_settings.dart';
+import '../previews/card_preview.dart';
 
-/// A document in the grid: title and first lines at the document text zoom;
-/// folder, last edit, pin and color.
+/// A document in the grid: title and first lines at the document text zoom
+/// (as its [preview] has them); folder, last edit, pin and color.
 class DocumentCard extends StatelessWidget {
   const DocumentCard(
     this.document, {
+    required this.preview,
     required this.onTap,
     required this.onMark,
     this.mark = DocumentMark.none,
@@ -24,6 +26,7 @@ class DocumentCard extends StatelessWidget {
   });
 
   final Document document;
+  final CardPreview preview;
   final DocumentMark mark;
 
   /// The document's settings on this device: a pin, and how its preview
@@ -42,7 +45,6 @@ class DocumentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final preview = document.preview(settings);
     return Card(
       clipBehavior: Clip.antiAlias,
       color: documentTint(mark.color, theme.colorScheme),
@@ -69,18 +71,32 @@ class DocumentCard extends StatelessWidget {
                   spacing: 6,
                   children: [
                     Text(
-                      document.title,
+                      cardTitle(document, preview),
                       style: textTheme.titleMedium,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (preview.isNotEmpty)
-                      Text(
-                        preview,
-                        style: textTheme.bodySmall,
-                        maxLines: DocumentCardSummary.previewLines,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    ...switch (preview) {
+                      Previewed(:final summary)
+                          when summary.preview(settings).isNotEmpty =>
+                        [
+                          Text(
+                            summary.preview(settings),
+                            style: textTheme.bodySmall,
+                            maxLines: DocumentCardSummary.previewLines,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      PreviewUnreadable() => [
+                        Text(
+                          "Can't be shown as text.",
+                          style: textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                      Previewed() || PreviewReading() => const <Widget>[],
+                    },
                   ],
                 ),
               ),

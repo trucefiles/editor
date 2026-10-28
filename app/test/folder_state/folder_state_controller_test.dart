@@ -5,10 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
+import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/file_types/document_types.dart';
+import 'package:truce_editor/folder_state/folder_contents.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 
@@ -31,7 +33,13 @@ void main() {
     await container.read(folderListStoreProvider).save(folders);
   }
 
-  Future<FolderScans> scans() => container.read(folderScansProvider.future);
+  Future<FolderContents> scans() =>
+      container.read(folderContentsProvider.future);
+
+  /// The file names of [contents]' documents, in order.
+  List<String> names(FolderContents contents) => [
+    for (final document in contents.documents) document.path.name,
+  ];
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
     final file = File('${dir.path}/$name')..writeCreatingFolders(text);
@@ -48,10 +56,7 @@ void main() {
 
     final found = await scans();
 
-    expect(
-      found.documents.map((n) => n.title),
-      unorderedEquals(['Plan', 'Todo']),
-    );
+    expect(names(found), unorderedEquals(['plan.md', 'todo.md']));
     final conflict = found.conflicts.all.single;
     expect(conflict.folder.id, 'home');
     expect(conflict.conflict.mainPath, path('todo.md'));
@@ -61,7 +66,7 @@ void main() {
   test('a refresh still running when the app ends does no harm', () async {
     await start([folderAt(tempFolder(), id: 'a'), folderAt(tempFolder())]);
     await scans();
-    final controller = container.read(folderScansProvider.notifier);
+    final controller = container.read(folderContentsProvider.notifier);
 
     final refreshes = [controller.refresh(), controller.refresh()];
     container.dispose();
@@ -73,17 +78,18 @@ void main() {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan');
     await start([folderAt(dir)]);
-    container.listen(folderScansProvider, (_, _) {});
+    container.listen(folderContentsProvider, (_, _) {});
 
-    final refreshed = container.read(folderScansProvider.notifier).refresh();
+    final refreshed = container.read(folderContentsProvider.notifier).refresh();
     final first = await scans();
     await refreshed;
 
-    expect(first.documents.map((n) => n.title), ['Plan']);
-    expect((await scans()).documents.map((n) => n.title), ['Plan']);
+    expect(names(first), ['plan.md']);
+    expect(names(await scans()), ['plan.md']);
   });
 
-  test('the first scan shows edits left by the last run', () async {
+  test('the first listing is made once edits left by the last run are in '
+      'their files', () async {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');
     await start([folderAt(dir, id: 'f1')]);
@@ -102,7 +108,8 @@ void main() {
 
     final found = await scans();
 
-    expect(found.documents.single.file.text, '# Plan\nmine\n');
+    expect(names(found), ['plan.md']);
+    expect(File('${dir.path}/plan.md').readAsStringSync(), '# Plan\nmine\n');
     expect(await drafts.all(before: DateTime.now()), isEmpty);
   });
 
@@ -164,7 +171,7 @@ void main() {
     write(dir, 'new.md', '# New', modified: DateTime(2025));
     await start([folderAt(dir)]);
 
-    expect((await scans()).documents.map((n) => n.title), ['New', 'Old']);
+    expect(names(await scans()), ['new.md', 'old.md']);
   });
 
   test('lists documents with the same time by path', () async {
@@ -194,7 +201,7 @@ void main() {
 
       final found = await scans();
 
-      expect(found.documents.map((n) => n.title), ['New', 'Old']);
+      expect(names(found), ['new.md', 'old.md']);
       expect(
         found.markOf((baseId: folder.base.id, path: path('new.md'))),
         const DocumentMark(color: 'teal'),
@@ -212,25 +219,31 @@ void main() {
     expect(found.documents, isEmpty);
   });
 
-  test(
-    'shows the last version of a document it could not read, uncovered',
-    () async {
-      final dir = tempFolder();
-      write(dir, 'plan.md', '# Plan\nv1\n');
-      await start([folderAt(dir, id: 'f1')]);
-      await scans();
-      // No longer text: the version read before is all the scan knows.
-      File('${dir.path}/plan.md').writeAsBytesSync([0xFF, 0xFE]);
+  test('lists a file that is not text, without reading it', () async {
+    final dir = tempFolder();
+    File('${dir.path}/plan.md').writeAsBytesSync([0xFF, 0xFE]);
+    await start([folderAt(dir)]);
 
-      await container.read(folderScansProvider.notifier).refresh();
-      final found = await scans();
+    expect(names(await scans()), ['plan.md']);
+  });
 
-      final key = (baseId: 'f1', path: path('plan.md'));
-      expect(found.findNote(key)?.file.text, '# Plan\nv1\n');
-      expect(found.unreadNotes, {key});
-      expect(found.covers(key), isFalse);
-    },
-  );
+  test("shows the app's own write without a refresh", () async {
+    final dir = tempFolder();
+    final folder = folderAt(dir);
+    await start([folder]);
+    await scans();
+    final shown = container.listen(folderContentsProvider, (_, _) {});
+
+    await container
+        .read(documentFilesProvider(folder))
+        .create(
+          'New',
+          type: container.read(documentTypesProvider).forNew,
+          text: '# New',
+        );
+
+    await eventually(() => names(shown.read().requireValue).contains('New.md'));
+  });
 
   test('refresh shows a document written just before', () async {
     final dir = tempFolder();
@@ -238,9 +251,9 @@ void main() {
     await scans();
 
     write(dir, 'new.md', '# New');
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
 
-    expect((await scans()).documents.single.title, 'New');
+    expect(names(await scans()), ['new.md']);
   });
 
   test('shows a renamed folder on its documents', () async {
@@ -253,7 +266,7 @@ void main() {
     await container
         .read(foldersProvider.notifier)
         .change(folder.copyWith(name: 'Renamed'));
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
 
     expect((await scans()).documents.single.folder.name, 'Renamed');
   });

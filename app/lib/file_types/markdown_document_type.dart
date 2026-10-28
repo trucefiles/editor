@@ -22,9 +22,8 @@ final class MarkdownDocumentType implements DocumentType {
   DocumentCardSummary cardSummary(String text, RelPath path) => cardSummaryOf(
     support.summary(text, maxLines: DocumentCardSummary.previewLines),
     path,
-    options: (settings) => MarkdownPreview(
-      hideChecked: settings.checkedItems != CheckedItems.inPlace,
-    ),
+    options: (checkedItems) =>
+        MarkdownPreview(hideChecked: checkedItems != CheckedItems.inPlace),
   );
 
   @override

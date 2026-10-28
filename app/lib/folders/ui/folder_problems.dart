@@ -3,38 +3,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
-import '../../scan/folder_scans.dart';
-import '../../scan/folder_scans_controller.dart';
+import '../../folder_state/folder_contents.dart';
+import '../../folder_state/folder_state_controller.dart';
 import '../document_folder.dart';
 
-/// One row per folder that [scans] could not read in full: folders that
+/// One row per folder that could not be seen in full in [contents]: folders that
 /// failed, with a retry, folders with subfolders that can't be read, and
 /// folders whose chosen subfolders are gone.
 class FolderProblems extends ConsumerWidget {
-  const FolderProblems(this.scans, {required this.folders, super.key});
+  const FolderProblems(this.contents, {required this.folders, super.key});
 
-  final FolderScans scans;
+  final FolderContents contents;
 
-  /// The folders the user added, for the names of [FolderScans.unreadable]
-  /// and [FolderScans.gone].
+  /// The folders the user added, for the names of [FolderContents.unreadable]
+  /// and [FolderContents.gone].
   final List<DocumentFolder> folders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(
     children: [
       for (final MapEntry(key: folder, value: error)
-          in scans.failedFolders.entries)
+          in contents.failedFolders.entries)
         ListTile(
           leading: const Icon(Icons.error_outline),
           title: Text(folder.name),
           subtitle: Text(error.text),
           trailing: TextButton(
-            onPressed: ref.read(folderScansProvider.notifier).refresh,
+            onPressed: ref.read(folderContentsProvider.notifier).refresh,
             child: const Text('Retry'),
           ),
         ),
       for (final folder in folders)
-        if (scans.unreadable[folder.id] case final subfolders?)
+        if (contents.unreadable[folder.id] case final subfolders?)
           ListTile(
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),
@@ -43,7 +43,7 @@ class FolderProblems extends ConsumerWidget {
             ),
           ),
       for (final folder in folders)
-        if (scans.gone[folder.id] case final subfolders?)
+        if (contents.gone[folder.id] case final subfolders?)
           ListTile(
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),

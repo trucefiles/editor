@@ -112,6 +112,15 @@ Accepted behavior that is not planned to change, grouped by topic.
   for changes every few seconds instead of following them live, and the
   folder's notice says so.
 
+## Search
+
+- **Search shows texts as they were when it opened.** Search reads every
+  document when you open it and keeps the texts only while it is open. A
+  change made meanwhile shows the next time you open search.
+- **Search needs a while with many documents.** Matches by file and folder
+  name show at once; matches in the texts show as search reads them, which
+  takes a while with thousands of documents, most of all on Android.
+
 ## Unreachable folders
 
 - **A failed save or rescan is not retried when the folder comes back.**

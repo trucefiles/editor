@@ -104,6 +104,21 @@ final _sleepAfterFetch = Machine<_Message, int, int, int, Object>(
   },
 );
 
+/// As [_counter], but a fetched result also starts another fetch.
+final _fetchAfterFetch = Machine<_Message, int, int, int, Object>(
+  state: 0,
+  work: 0,
+  step: (state, steps, message) {
+    final step = _counter.step(state, steps, message);
+    return (
+      state: step.state,
+      work: step.work,
+      events: step.events,
+      effects: [...step.effects, if (message is _Fetched) const _Get(0)],
+    );
+  },
+);
+
 /// An answer no input of [_counter] gets.
 final class _Answer implements Answering {
   @override
@@ -219,6 +234,27 @@ void main() {
         expect(ended, isTrue);
       },
     );
+
+    test('with new work dropped, starts no effect a later result asks for, '
+        'and still ends', () async {
+      final asked = <Object>[];
+      final first = Completer<_Result?>();
+      final owner = _Owner(
+        _fetchAfterFetch,
+        handle: (effect) {
+          asked.add(effect);
+          return first.future;
+        },
+        dropsNewWorkOnClose: true,
+      )..send(const _Fetch(1));
+
+      final closed = owner.close();
+      first.complete(const _Fetched(7));
+      await closed;
+
+      expect(asked, hasLength(1));
+      expect(owner.state, 7);
+    });
 
     test('ends waits at once, cancelling their timers', () async {
       final clock = ManualTimers();

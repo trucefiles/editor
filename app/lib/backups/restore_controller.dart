@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../scan/folder_scans.dart';
-import '../scan/folder_scans_controller.dart';
+import '../documents/document.dart';
+import '../folder_state/folder_contents.dart';
+import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import '../versions/compare_controller.dart';
 import 'all_backups.dart';
@@ -27,18 +28,22 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
 
   @override
   CompareSource<FolderBackup, RestoreChoice> source() {
-    final scans = ref.read(folderScansProvider.notifier);
+    final folderState = ref.read(folderContentsProvider.notifier);
     return RestoreCompare(
       ref.read(baseFolderServicesProvider(start.folder.base)).restore,
       () {
         // The list behind this screen shows the backup of the file replaced.
         if (ref.mounted) ref.invalidate(allBackupsProvider);
-        return scans.refresh();
+        return folderState.refresh();
       },
     );
   }
 
+  @override
+  DocumentKey get document =>
+      (baseId: start.folder.base.id, path: start.backup.filePath);
+
   /// The same backup, as it is now.
   @override
-  FolderBackup nextIn(FolderScans scans) => start;
+  FolderBackup nextIn(FolderContents contents) => start;
 }

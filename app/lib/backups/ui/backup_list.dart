@@ -6,8 +6,8 @@ import '../../common/empty_state.dart';
 import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../common/time_texts.dart';
+import '../../documents/ui/listed_document.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../all_backups.dart';
 import '../backup_actions.dart';
 import 'backup_kind_text.dart';
@@ -61,13 +61,13 @@ class _BackupTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (:folder, backup: shown) = backup;
-    final document = ref.watch(folderScansProvider).value?.findNote((
+    final title = watchTitle(ref, (
       baseId: folder.base.id,
       path: shown.filePath,
     ));
     return ListTile(
       leading: const Icon(Icons.history),
-      title: Text(document?.title ?? shown.filePath.name),
+      title: Text(title),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

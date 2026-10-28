@@ -9,29 +9,30 @@ import '../reach/folder_reach_controller.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
 import '../sync_tool/base_folder_services.dart';
-import 'folder_scans_controller.dart';
+import 'folder_state_controller.dart';
 
-final autoRescanProvider = AsyncNotifierProvider<AutoRescan, void>(
-  AutoRescan.new,
+final followingChangesProvider = AsyncNotifierProvider<FollowingChanges, void>(
+  FollowingChanges.new,
 );
 
-/// Tells the scans owner when a folder's files change, as the refresh
-/// setting asks, while the app is in use, and whether the app is in use;
-/// the owner decides when to rescan.
+/// Passes what each base folder's changes hint on to the folder state
+/// owner, as the refresh setting asks, while the app is in use, and tells
+/// it whether the app is in use; the owner decides what to list or check.
 ///
-/// Starts following a folder's changes afresh once the folder is reachable
+/// Starts following a base folder's changes afresh once it is reachable
 /// again, so a folder that went away is watched again, not only polled.
 ///
-/// Also tells it when the refresh setting changes, for changes made while
-/// nothing was looking. Changes made while the app was not in use are the
-/// screens' to catch up on, as they do in every mode.
-class AutoRescan extends AsyncNotifier<void> {
+/// Also lists every base folder once when the refresh setting changes,
+/// for changes made while nothing was looking. Changes made while the app
+/// was not in use are the screens' to catch up on, as they do in every
+/// mode.
+class FollowingChanges extends AsyncNotifier<void> {
   RefreshSettings? _lastSettings;
 
   @override
   Future<void> build() async {
-    final scans = ref.watch(folderScansOwnerProvider);
-    final subscriptions = <StreamSubscription<RelPath>>[];
+    final owner = ref.watch(folderStateOwnerProvider);
+    final subscriptions = <StreamSubscription<ChangeHint>>[];
     // This build's own end: `ref.mounted` speaks for the newest build, so
     // a build that a newer one replaced while it awaited must stop by this.
     var disposed = false;
@@ -42,12 +43,14 @@ class AutoRescan extends AsyncNotifier<void> {
       }
     });
     final active = ref.watch(appActiveProvider);
-    scans.send(Active(active: active));
+    owner.send(Active(active: active));
     final settings = await ref.watch(refreshSettingsProvider.future);
     if (disposed) return;
     final settingChanged = _lastSettings != null && _lastSettings != settings;
     _lastSettings = settings;
-    if (settingChanged) scans.send(const SettingChanged());
+    if (settingChanged) {
+      unawaited(ref.read(folderContentsProvider.notifier).refresh());
+    }
     if (!active) return;
     final folders = await ref.watch(foldersProvider.future);
     if (disposed) return;
@@ -60,12 +63,16 @@ class AutoRescan extends AsyncNotifier<void> {
       );
     }
     final changes = await Future.wait([
-      for (final base in bases) ref.watch(folderChangesProvider(base).future),
+      for (final base in bases)
+        ref
+            .watch(folderChangesProvider(base).future)
+            .then((changes) => (base: base, changes: changes)),
     ]);
     if (disposed) return;
-    for (final folderChanges in changes.nonNulls) {
+    for (final (:base, :changes) in changes) {
+      if (changes == null) continue;
       subscriptions.add(
-        folderChanges.changes.listen((_) => scans.send(const FilesChanged())),
+        changes.changes.listen((hint) => owner.send(Hinted(base.id, hint))),
       );
     }
   }

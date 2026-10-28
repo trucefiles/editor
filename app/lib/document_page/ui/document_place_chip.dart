@@ -10,9 +10,9 @@ import '../../documents/document_title.dart';
 import '../../documents/move_failure.dart';
 import '../../documents/ui/document_place_dialog.dart';
 import '../../documents/ui/move_failure_text.dart';
+import '../../folder_state/folder_state_controller.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../document_file.dart';
 import '../document_session.dart';
 
@@ -43,9 +43,9 @@ class DocumentPlaceChip extends ConsumerWidget {
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    // Change events don't tell about new empty subfolders; a rescan finds
+    // Change events don't tell about new empty subfolders; a listing finds
     // them, so the dialog offers them.
-    await ref.read(folderScansProvider.notifier).refresh();
+    await ref.read(folderContentsProvider.notifier).refresh();
     if (!context.mounted) return;
     final actions = ref.read(documentActionsProvider);
     final folders = actions.reachableOf(ref.read(foldersProvider).value ?? []);
@@ -100,7 +100,7 @@ class DocumentPlaceChip extends ConsumerWidget {
     // The saved document moves: read after the dialog and the save, so no
     // edit is left behind.
     final title = name.trim().isEmpty
-        ? documentTitleLine(current.file.text, current.type)
+        ? documentTitleLine(current.text, current.type)
         : name.trim();
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/document_text.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
@@ -32,18 +33,17 @@ void main() {
   Map<String, String> snapshot() => _snapshot(base);
 
   /// The document at [name], as the app reads it.
-  Future<Document> documentAt(String name) async {
+  Future<DocumentText> documentAt(String name) async {
     final scan = (await services.scanner.scan()).value;
     final entry = scan.files.firstWhere((file) => file.path.value == name);
-    final placeholder = Document(
+    final listed = Document(
       folder: folderAt(documents),
       path: entry.path,
       type: appDocumentTypes().of(entry.path)!,
-      file: TextFile.empty(),
       version: entry.version,
       modified: entry.modified,
     );
-    return (await files.reload(placeholder)).value;
+    return (await files.reload(listed)).value;
   }
 
   /// Entries that differ between [before] and [after], by path.
@@ -92,13 +92,13 @@ void main() {
     final document = await documentAt('sub/b.md');
     final before = snapshot();
 
-    await files.delete(document);
+    await files.delete(document.document);
     expect(changed(before, snapshot()), {'Documents/sub/b.md'});
     expect(Directory('${documents.path}/sub').existsSync(), isTrue);
 
-    await files.restore(document, document.file.text);
+    await files.restore(document, document.text);
     final restored = File('${documents.path}/sub/b.md').readAsStringSync();
-    expect(restored, document.file.text);
+    expect(restored, document.text);
   });
 
   test('coloring a document adds only this device\'s marks file', () async {
@@ -154,7 +154,7 @@ void main() {
 
   group('once the folder is gone', () {
     // E.g. moved, deleted, or on a drive that is not mounted.
-    late Document document;
+    late DocumentText document;
     late Map<String, String> before;
 
     setUp(() async {
@@ -195,7 +195,10 @@ void main() {
         (await files.restore(document, 'mine')).error,
         StoreError.notFound,
       );
-      expect((await files.delete(document)).error, StoreError.notFound);
+      expect(
+        (await files.delete(document.document)).error,
+        StoreError.notFound,
+      );
       expect(changed(before, snapshot()), isEmpty);
     });
   });

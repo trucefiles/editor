@@ -110,7 +110,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
           : VersionChooser(
               current: ShownVersion(
                 label: 'Current version',
-                modified: documentOf(theirs.version).modified,
+                modified: documentOf(theirs.version).document.modified,
                 text: theirs.text,
                 keepLabel: 'Keep this',
                 keptMessage: 'Your edits are dropped. $bothBackedUp',

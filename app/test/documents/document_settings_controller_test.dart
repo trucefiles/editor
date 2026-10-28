@@ -6,8 +6,8 @@ import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_settings_store.dart';
 import 'package:truce_editor/documents/kept_document_settings.dart';
+import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
@@ -109,25 +109,23 @@ void main() {
     final graceLater = now.add(KeptNoteSettings.grace);
 
     Document documentAt(DocumentFolder folder, String name) =>
-        documentOf(folder, '', name: name);
+        listedDocument(folder, name: name);
 
     /// Prunes by [found] now and again once the grace period is over.
-    Future<void> pruneAfterGrace(FolderScans found) async {
+    Future<void> pruneAfterGrace(FolderContents found) async {
       await views.prune(found, now: now);
       await views.prune(found, now: graceLater);
     }
 
-    FolderScans scans(
+    FolderContents scans(
       List<Document> documents, {
       Map<DocumentFolder, StoreError> failed = const {},
       Map<String, List<RelPath>> unreadable = const {},
-      Set<DocumentKey> unreadNotes = const {},
-    }) => scanFinding(
+    }) => contentsFinding(
       documents,
       folders: [work, home],
       failed: failed,
       unreadable: unreadable,
-      unread: unreadNotes,
     );
 
     test('drops views of documents and folders that are gone', () async {
@@ -199,7 +197,7 @@ void main() {
       final outside = documentAt(work, 'elsewhere/a.md');
       await remember(outside.key, EditMode.read);
 
-      await pruneAfterGrace(scanFinding([], folders: [narrowed, home]));
+      await pruneAfterGrace(contentsFinding([], folders: [narrowed, home]));
 
       expect(viewOf(outside.key), EditMode.read);
     });
@@ -221,15 +219,6 @@ void main() {
 
       expect(viewOf(hidden.key), EditMode.read);
       expect(viewOf(gone.key), isNull);
-    });
-
-    test('keeps views of documents whose files could not be read', () async {
-      final unread = documentAt(work, 'a.md');
-      await remember(unread.key, EditMode.read);
-
-      await pruneAfterGrace(scans([], unreadNotes: {unread.key}));
-
-      expect(viewOf(unread.key), EditMode.read);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/ui/document_screen.dart';
 import 'package:truce_editor/documents/document_colors.dart';
+import 'package:truce_editor/documents/ui/document_sections.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_test_support/truce_test_support.dart' show path;
@@ -53,17 +54,85 @@ void main() {
     app.write('ideas.md', '# Ideas\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
-    expect(find.text('Others'), findsNothing);
+    expect(find.text('Recent'), findsNothing);
 
     await pin(tester, 'Plan');
 
     // In its own section, above the others.
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     expect(top('Pinned'), lessThan(top('Plan')));
-    expect(top('Plan'), lessThan(top('Others')));
-    expect(top('Others'), lessThan(top('Ideas')));
+    expect(top('Plan'), lessThan(top('Recent')));
+    expect(top('Recent'), lessThan(top('Ideas')));
     // A pin is this device's view, not synced with the folder.
     expect(app.folder('.truce').existsSync(), isFalse);
+  });
+
+  testApp('All shows every document, by name under each subfolder, as '
+      'cards or a list', (tester) async {
+    app.write('b.md', '# Bee\n');
+    app.write('work/a.md', '# Ant\n');
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Bee'));
+
+    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.byTooltip('Sort'));
+    await tester.tapAndSettle(find.text('By name'));
+    await tester.waitFor(find.text('Ant'));
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    double heading(String text) => tester
+        .getTopLeft(
+          find.descendant(
+            of: find.byType(DocumentsHeading),
+            matching: find.text(text),
+          ),
+        )
+        .dy;
+    expect(heading('Documents'), lessThan(top('Bee')));
+    expect(top('Bee'), lessThan(heading('Documents/work')));
+    expect(heading('Documents/work'), lessThan(top('Ant')));
+
+    await tester.tapAndSettle(find.byTooltip('Show as list'));
+    expect(find.byType(ListTile), findsNWidgets(2));
+    await tester.openNote('Ant');
+    await tester.waitFor(find.byType(DocumentScreen));
+  });
+
+  testApp('Recent shows as many documents as set, All the rest', (
+    tester,
+  ) async {
+    for (var day = 1; day <= 21; day++) {
+      app.write('d$day.md', '# Day $day\n');
+      app.file('d$day.md').setLastModifiedSync(DateTime(2026, 10, day));
+    }
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Day 21'));
+
+    await tester.chooseInMenu('Settings');
+    await tester.tapAndSettle(find.text('Recent documents on home'));
+    await tester.tapAndSettle(find.text('20'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // The documents' own scroll view, not the folder chips'.
+    Finder documents() => find
+        .descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.text('Show all'),
+      300,
+      scrollable: documents(),
+    );
+    expect(find.text('Day 2'), findsOne);
+    expect(find.text('Day 1'), findsNothing);
+    await tester.tapAndSettle(find.text('Show all'));
+    await tester.scrollUntilVisible(
+      find.text('Day 1'),
+      300,
+      scrollable: documents(),
+    );
   });
 
   testApp('pins a document several levels deep from the grid', (tester) async {

@@ -14,6 +14,7 @@ void main() {
           leading: const [Text('orphan')],
           pinned: [for (final name in pinned) Text(name)],
           others: [for (final name in others) Text(name)],
+          footer: const Text('footer'),
         ),
       ),
     ),
@@ -29,8 +30,9 @@ void main() {
 
     expect(top(tester, 'orphan'), lessThan(top(tester, 'Pinned')));
     expect(top(tester, 'Pinned'), lessThan(top(tester, 'a')));
-    expect(top(tester, 'a'), lessThan(top(tester, 'Others')));
-    expect(top(tester, 'Others'), lessThan(top(tester, 'b')));
+    expect(top(tester, 'a'), lessThan(top(tester, 'Recent')));
+    expect(top(tester, 'Recent'), lessThan(top(tester, 'b')));
+    expect(top(tester, 'b'), lessThan(top(tester, 'footer')));
   });
 
   testWidgets('shows no headings if nothing is pinned', (tester) async {
@@ -38,14 +40,14 @@ void main() {
 
     expect(find.text('b'), findsOne);
     expect(find.text('Pinned'), findsNothing);
-    expect(find.text('Others'), findsNothing);
+    expect(find.text('Recent'), findsNothing);
   });
 
-  testWidgets('shows no "Others" heading if all are pinned', (tester) async {
+  testWidgets('shows no "Recent" heading if all are pinned', (tester) async {
     await show(tester, pinned: ['a']);
 
     expect(find.text('Pinned'), findsOne);
-    expect(find.text('Others'), findsNothing);
+    expect(find.text('Recent'), findsNothing);
   });
 
   testWidgets('cards keep their own height', (tester) async {

@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/file_effects.dart';
-import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/document_text.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -47,7 +47,7 @@ final class DocumentFixture {
   final List<DocumentFolder> folders;
   final Map<String, DocumentFiles> files;
   final Map<String, DocumentDrafts> drafts;
-  late final Document document;
+  late final DocumentText document;
 
   /// A time after every draft written during the test.
   final later = DateTime.now().add(const Duration(days: 1));
@@ -89,9 +89,9 @@ final class DocumentFixture {
       drafts[id]!.all(before: later);
 
   /// The document as another device or app changed it to [text].
-  Future<Document> editElsewhere(String text) async {
+  Future<DocumentText> editElsewhere(String text) async {
     File('${dirs[0].path}/a.md').writeAsStringSync(text);
-    return (await files['f1']!.reload(document)).value;
+    return (await files['f1']!.reload(document.document)).value;
   }
 }
 

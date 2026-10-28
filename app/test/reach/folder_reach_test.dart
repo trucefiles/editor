@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_actions.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 
@@ -37,7 +37,7 @@ void main() {
       workFolder,
       homeFolder,
     ]);
-    await container.read(folderScansProvider.future);
+    await container.read(folderContentsProvider.future);
   });
 
   Reach reachOf(DocumentFolder folder) =>
@@ -51,7 +51,7 @@ void main() {
     );
     work.renameSync('${work.path}-away');
 
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
     await pumpEventQueue();
     expect(reachOf(workFolder), Reach.retrying);
     expect(container.read(retryingFoldersProvider), [workFolder]);
@@ -69,7 +69,7 @@ void main() {
     );
 
     Directory('${work.path}-away').renameSync(work.path);
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
 
     expect(reachOf(workFolder), Reach.reachable);
     expect(seen, [Reach.retrying, Reach.unreachable, Reach.reachable]);
@@ -88,7 +88,7 @@ void main() {
             .value;
     File('${work.path}/${document.path.value}').deleteSync();
 
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
     await pumpEventQueue();
 
     expect(reachOf(workFolder), Reach.reachable);

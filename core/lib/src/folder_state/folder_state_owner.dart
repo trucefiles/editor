@@ -88,6 +88,8 @@ FolderStateOwner folderStateOwner(
         WaitForChanges() => throw StateError('a wait reached the handler'),
       },
       startTimer: startTimer,
+      // What the base folders hold matters only while someone listens.
+      dropsNewWorkOnClose: true,
     );
 
 /// Lists [reader]'s base folder whole; its marks only help, so a base

@@ -50,7 +50,14 @@ void main() {
   Future<void> changedAgain(WidgetTester tester, String text) async {
     await tester.runAsync(() async {
       final latest = await fixture.editElsewhere(text);
-      session.observe(scanFinding([latest]));
+      session.observe(contentsFinding([latest.document]));
+      // The file owner reads the new version itself.
+      await eventually(
+        () => switch (session.status) {
+          ChangedElsewhere(:final theirs) => theirs.text == text,
+          _ => session.text == text,
+        },
+      );
     });
     await settle(tester);
   }

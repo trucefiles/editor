@@ -1,80 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../../common/empty_state.dart';
-import '../../documents/document.dart';
-import '../../documents/document_settings_controller.dart';
-import '../../documents/ui/document_card.dart';
 import '../../documents/ui/document_grid.dart';
-import '../../documents/ui/pin_or_color_sheet.dart';
-import '../../scan/folder_scans_controller.dart';
-import '../document_search.dart';
+import '../../documents/ui/listed_document_card.dart';
+import '../search_controller.dart';
 
-/// Full-text search across all folders, updated as the user types.
-class SearchScreen extends ConsumerStatefulWidget {
+/// Search across all folders, updated as the user types and as texts are
+/// read.
+class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
 
   @override
-  ConsumerState<SearchScreen> createState() => _SearchScreenState();
-}
-
-class _SearchScreenState extends ConsumerState<SearchScreen> {
-  final _query = TextEditingController();
-
-  @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scans = ref.watch(folderScansProvider).value;
-    final documents = scans?.documents ?? const <Document>[];
-    ref.watch(documentSettingsProvider);
-    final settings = ref.read(documentSettingsProvider.notifier);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final (:query, :found, :complete) = ref.watch(searchProvider);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
-          controller: _query,
           autofocus: true,
+          onChanged: ref.read(searchProvider.notifier).find,
           decoration: const InputDecoration(
             hintText: 'Search all documents',
             border: InputBorder.none,
           ),
         ),
-      ),
-      body: ListenableBuilder(
-        listenable: _query,
-        builder: (context, _) {
-          if (_query.text.trim().isEmpty) return const SizedBox.shrink();
-          final found = searchNotes(documents, _query.text);
-          if (found.isEmpty) {
-            return const EmptyState(
-              icon: Icons.search_off,
-              text: 'Nothing found.',
-            );
-          }
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(12),
-                sliver: documentGrid([
-                  for (final document in found)
-                    DocumentCard(
-                      document,
-                      mark: scans?.markOf(document.key) ?? DocumentMark.none,
-                      settings: settings.settingsOf(document.key),
-                      onTap: () => openNote(context, document),
-                      onMark: () => editPinOrColor(context, ref, document),
-                    ),
-                ]),
+        bottom: complete
+            ? null
+            : const PreferredSize(
+                preferredSize: Size.fromHeight(4),
+                child: LinearProgressIndicator(
+                  semanticsLabel: 'Reading documents',
+                ),
               ),
-            ],
-          );
-        },
       ),
+      body: switch ((query.trim().isEmpty, found.isEmpty)) {
+        (true, _) => const SizedBox.shrink(),
+        (false, true) when complete => const EmptyState(
+          icon: Icons.search_off,
+          text: 'Nothing found.',
+        ),
+        (false, true) => const SizedBox.shrink(),
+        (false, false) => CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(12),
+              sliver: documentGrid(
+                found.length,
+                (index) => ListedDocumentCard(found[index]),
+              ),
+            ),
+          ],
+        ),
+      },
     );
   }
 }

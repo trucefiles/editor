@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/backups/restore_controller.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
@@ -96,8 +96,7 @@ void main() {
     watching.close();
 
     expect(await kept, isNull, reason: 'the screen closed first');
-    final scans = await container.read(folderScansProvider.future);
-    expect(scans.documents.single.file.text, '# Todo\nbackup\n');
+    expect(document().readAsStringSync(), '# Todo\nbackup\n');
   });
 
   test('loads again at the next scan after loading failed', () async {
@@ -125,7 +124,7 @@ void main() {
     );
 
     away.renameSync(kept.path);
-    await container.read(folderScansProvider.notifier).refresh();
+    await container.read(folderContentsProvider.notifier).refresh();
     await loaded();
 
     expect(choice().bytes, utf8.encode('# Todo\nbackup\n'));
