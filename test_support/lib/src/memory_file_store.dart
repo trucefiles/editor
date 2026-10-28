@@ -99,6 +99,13 @@ final class MemoryFileStore implements FileStore {
   }
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) async {
+    if (failWith case final error?) return Err(error);
+    emptyFolders.add(folder);
+    return const Ok(null);
+  }
+
+  @override
   Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {

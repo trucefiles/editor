@@ -74,6 +74,10 @@ final class SyncthingMtimeWindowStore implements FileStore {
       });
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
+      _inner.createFolder(folder);
+
+  @override
   Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {

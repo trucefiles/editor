@@ -13,9 +13,6 @@ final class FakeSyncAdapter implements SyncAdapter {
   static const _tempSuffix = '.fake-tmp';
 
   @override
-  String get name => 'Fake sync';
-
-  @override
   bool isInternal(RelPath path) =>
       isInternalFolder(path.value.split('/')) ||
       path.name.endsWith(_tempSuffix) ||

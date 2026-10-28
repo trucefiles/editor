@@ -2,84 +2,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/base_folder.dart';
-import '../folders/folder_lookup.dart';
-import '../folders/folders_controller.dart';
-import '../platform/platform_facts.dart';
-import '../platform/platform_wiring.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
 import 'base_folder_services.dart';
 
 /// How a base folder's changes are found (`null`: not looked for), and how
-/// often it is polled because they can't be followed live, asked at each
-/// check (`null`: not polled).
-typedef FolderFollowing = ({
-  FolderChanges? changes,
-  Duration? Function() pollInterval,
-});
+/// often it is polled as live changes were asked for but can't be followed
+/// there (`null`: not so).
+typedef FolderFollowing = ({FolderChanges? changes, Duration? pollsInstead});
 
 /// How changes to a base folder are found, as the refresh setting asks:
-/// watched, one watcher per selected subfolder, and polled once watching
-/// fails; or only polled, at the set interval. A poll asks for a listing,
-/// which tells its reach how it went, like every other access.
+/// live, by its sync tool, where it can follow them live; else polled at
+/// the set interval, the same for every sync tool. A poll asks for a
+/// listing, which tells its reach how it went, like every other access.
 final folderFollowingProvider =
     FutureProvider.family<FolderFollowing, BaseFolder>((ref, base) async {
       final refresh = await ref.watch(refreshSettingsProvider.future);
-      final platform = ref.watch(platformFactsProvider);
-      final services = ref.watch(baseFolderServicesProvider(base));
-      final selection = ref.watch(
-        foldersProvider.select(
-          (folders) => (folders.value ?? const []).selectionOf(base),
-        ),
-      );
+      final live = ref.watch(baseFolderServicesProvider(base)).changes;
       final polled = PolledFolderChanges(interval: refresh.interval);
-      switch (_following(base.path, refresh, platform)) {
-        case _Following.none:
-          return (changes: null, pollInterval: () => null);
-        case _Following.watched:
-          final watched = FallbackFolderChanges(
-            MergedFolderChanges([
-              for (final root in _watchedRoots(selection))
-                WatchedFolderChanges(
-                  base.path,
-                  followed: services.followed,
-                  under: root,
-                ),
-            ]),
-            polled,
-          );
-          return (
-            changes: watched,
-            pollInterval: () => watched.isOnFallback ? refresh.interval : null,
-          );
-        case _Following.polled:
-          final asked = refresh.mode == RefreshMode.live;
-          return (
-            changes: polled,
-            pollInterval: () => asked ? refresh.interval : null,
-          );
-      }
+      return switch (refresh.mode) {
+        RefreshMode.manual => (changes: null, pollsInstead: null),
+        RefreshMode.live when live != null => (
+          changes: live,
+          pollsInstead: null,
+        ),
+        RefreshMode.live => (changes: polled, pollsInstead: refresh.interval),
+        RefreshMode.periodic => (changes: polled, pollsInstead: null),
+      };
     });
 
-/// The folders to watch: the base folder itself (`null`) when it is all
-/// selected, else each selected subfolder.
-List<RelPath?> _watchedRoots(Selection selection) => switch (selection) {
-  WholeFolder() => const [null],
-  Subfolders(:final roots) => [...roots],
-};
+/// What the user should know about [BaseFolder]: what its sync tool
+/// tells, and whether its changes are polled as they can't be followed
+/// live. Checked once; invalidate to check again.
+final folderNoticesProvider =
+    FutureProvider.family<List<FolderNotice>, BaseFolder>((ref, base) async {
+      final following = await ref.watch(folderFollowingProvider(base).future);
+      return [
+        ...await ref.watch(baseFolderServicesProvider(base)).notices.check(),
+        if (following.pollsInstead case final interval?) PolledNotice(interval),
+      ];
+    });
 
-/// How a base folder's changes are followed.
-enum _Following { none, watched, polled }
-
-/// The one place that decides how the base folder at [path] follows
-/// changes for [refresh]: live means watched where the platform reports
-/// the folder's changes, polled elsewhere.
-_Following _following(
-  String path,
-  RefreshSettings refresh,
-  PlatformFacts platform,
-) => switch (refresh.mode) {
-  RefreshMode.manual => _Following.none,
-  RefreshMode.live when platform.reportsChangesIn(path) => _Following.watched,
-  RefreshMode.live || RefreshMode.periodic => _Following.polled,
-};
+/// How changes to [BaseFolder] are found, as the refresh setting asks;
+/// `null` if they aren't looked for (manual refresh).
+final folderChangesProvider = FutureProvider.family<FolderChanges?, BaseFolder>(
+  (ref, base) async =>
+      (await ref.watch(folderFollowingProvider(base).future)).changes,
+);

@@ -90,6 +90,12 @@ final class DocumentFiles {
     final Subfolders subfolders => subfolders.rootOf(subfolder),
   };
 
+  /// Creates [subfolder], a new one the user asked for; one that is
+  /// already there is fine. Never brings back a gone chosen subfolder of
+  /// the folder, nor the base folder.
+  Future<Result<void, StoreError>> createSubfolder(RelPath subfolder) =>
+      _store.createFolder(subfolder);
+
   /// A copy of [document], from any folder, holding [text] in
   /// [document]'s byte style, in [subfolder] (the base folder's top level
   /// if `null`); named after [title] (by default [document]'s name) with

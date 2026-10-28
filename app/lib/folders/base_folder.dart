@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 final class BaseFolder {
   const BaseFolder({
     required this.id,
-    required this.path,
+    required this.address,
     required this.toolId,
   });
 
@@ -17,22 +17,37 @@ final class BaseFolder {
   /// base folder (its drafts and backups) and keys its documents.
   final String id;
 
-  /// Absolute path on this device.
-  final String path;
+  /// Where its sync tool finds it, e.g. `file:` for a folder on this
+  /// device. Only the tool opens it; the app keeps, compares and shows it.
+  final Uri address;
 
   /// The id of the sync tool that works on it.
   final String toolId;
 
-  Map<String, Object> toJson() => {'id': id, 'path': path, 'tool': toolId};
+  /// Where it is, for the user: a folder on this device by its path.
+  String get shownAddress => addressText(address);
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'address': '$address',
+    'tool': toolId,
+  };
 
   /// `null` if [json] is not a base folder written by [toJson].
   static BaseFolder? fromJson(Object? json) => switch (json) {
     {
       'id': final String id,
-      'path': final String path,
+      'address': final String address,
       'tool': final String toolId,
     } =>
-      BaseFolder(id: id, path: path, toolId: toolId),
+      switch (Uri.tryParse(address)) {
+        final address? when address.hasScheme => BaseFolder(
+          id: id,
+          address: address,
+          toolId: toolId,
+        ),
+        _ => null,
+      },
     _ => null,
   };
 
@@ -40,9 +55,14 @@ final class BaseFolder {
   bool operator ==(Object other) =>
       other is BaseFolder &&
       other.id == id &&
-      other.path == path &&
+      other.address == address &&
       other.toolId == toolId;
 
   @override
-  int get hashCode => Object.hash(id, path, toolId);
+  int get hashCode => Object.hash(id, address, toolId);
 }
+
+/// [address] for the user: a folder on this device by its path, any other
+/// as it is.
+String addressText(Uri address) =>
+    address.isScheme('file') ? address.toFilePath() : '$address';

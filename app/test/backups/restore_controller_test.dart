@@ -84,7 +84,7 @@ void main() {
 
     final listed = await container.read(allBackupsProvider.future);
 
-    expect(listed.single.folder.base.path, dir.path);
+    expect(listed.single.folder.base.address, Uri.file(dir.path));
     expect(listed.single.backup.filePath, path('todo.md'));
   });
 

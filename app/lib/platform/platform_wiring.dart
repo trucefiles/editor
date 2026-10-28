@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../tray/app_window.dart';
 import '../tray/hosted_tray.dart';
@@ -12,25 +13,34 @@ import 'linux/document_portal.dart';
 import 'linux/document_portal_paths.dart';
 import 'linux/gtk_app_window.dart';
 import 'linux/status_notifier_host.dart';
-import 'platform_facts.dart';
 import 'storage_access.dart';
 
 // The one place that tells platforms apart: it picks each platform's
 // implementations and states its facts; the rest of the app sees only
 // their interfaces.
 
-/// Facts about this platform, for the sync-tool wiring and settings.
-final platformFactsProvider = Provider<PlatformFacts>(
-  (ref) => PlatformFacts(
-    // Only where package:watcher has a native watcher; elsewhere, as on
-    // Android, it only polls.
-    reportsChanges:
-        FileSystemEntity.isWatchSupported &&
-        (Platform.isLinux || Platform.isMacOS || Platform.isWindows),
+/// Whether this platform tells the app about changes other apps make to
+/// files as they happen: only where package:watcher has a native watcher;
+/// elsewhere, as on Android, it only polls.
+final _reportsChanges =
+    FileSystemEntity.isWatchSupported &&
+    (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
+
+/// Whether changes can be followed live anywhere on this platform.
+final liveChangesPossibleProvider = Provider<bool>((ref) => _reportsChanges);
+
+/// The shared parts of folders on this device, with this platform's facts,
+/// for the sync tools.
+final localDiskProvider = Provider<LocalDisk>(
+  (ref) => LocalDisk(
     // On Android shared storage, a renamed-over file soon shows other apps
     // the old file's modification time.
     replacesInPlace: Platform.isAndroid,
-    isPortalFolder: isInDocumentPortal,
+    // A folder handed in through the Flatpak document portal passes on no
+    // change events for changes made outside the sandbox, and shows only
+    // the picked folder, not what lies above it.
+    followsLive: (path) => _reportsChanges && !isInDocumentPortal(path),
+    seesParents: (path) => !isInDocumentPortal(path),
   ),
 );
 

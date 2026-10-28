@@ -1,49 +1,41 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'syncthing_adapter.dart';
-import 'syncthing_conflict_name.dart';
-import 'syncthing_folder_notices.dart';
-import 'syncthing_mtime_window_store.dart';
+import 'syncthing_place.dart';
 import 'syncthing_sync_check.dart';
 
-/// Syncthing as a sync tool plugin: recognizes its folders by their
-/// marker, keeps conflict copies as files next to their main file, and
-/// rewrites a save it might miss (see [SyncthingMtimeWindowStore]).
+/// Syncthing as a sync tool plugin, for folders on this device: recognizes
+/// its folders by their marker, keeps conflict copies as files next to
+/// their main file, and rewrites a save it might miss (see
+/// `SyncthingMtimeWindowStore`).
 final class SyncthingTool implements SyncTool {
-  const SyncthingTool();
+  const SyncthingTool(this._disk);
 
-  static const _names = SyncthingConflictNames();
+  final LocalDisk _disk;
 
   @override
   String get id => 'syncthing';
 
   @override
-  SyncAdapter get rules => const SyncthingAdapter();
+  String get name => 'Syncthing';
 
   @override
-  Future<SyncStatus> recognize(FolderMarkers markers) =>
-      SyncthingSyncCheck(markers).check();
+  bool isToolFolder(List<String> names) =>
+      SyncthingPlace.rules.isInternalFolder(names);
+
+  @override
+  Future<SyncStatus> recognize(Uri address) =>
+      SyncthingSyncCheck(_disk.markersAt(address)).check();
 
   /// Syncthing keeps old versions in `.stversions` at the root of the
   /// synced folder: out of reach from any folder below it.
   @override
-  Future<bool> missesOldVersions(FolderMarkers markers) async =>
-      await recognize(markers) == SyncStatus.synced &&
-      await markers.holds(SyncthingSyncCheck.rootMarker) != true;
+  Future<bool> missesOldVersions(Uri address) async =>
+      await recognize(address) == SyncStatus.synced &&
+      await _disk.markersAt(address).holds(SyncthingSyncCheck.rootMarker) !=
+          true;
 
   @override
-  SyncedFolder open(
-    FileStore store, {
-    required FileFilter shown,
-    required FolderMarkers markers,
-  }) {
-    final seen = SyncthingMtimeWindowStore(store);
-    return SyncedFolder(
-      store: seen,
-      scanner: NamedCopiesScanner(seen, shown, _names),
-      conflicts: NamedConflictSource(seen, _names),
-      notices: SyncthingFolderNotices(SyncthingSyncCheck(markers)),
-      followed: WithConflictCopies(shown, _names),
-    );
-  }
+  ToolPlace place(Uri address) => SyncthingPlace(
+    _disk.at(address, tempName: SyncthingPlace.rules.tempFileName),
+  );
 }

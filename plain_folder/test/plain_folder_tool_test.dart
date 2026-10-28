@@ -1,18 +1,42 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_plain_folder/truce_plain_folder.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const tool = PlainFolderTool();
+  group('the tool', () {
+    late Directory dir;
+    final tool = PlainFolderTool(
+      LocalDisk(
+        replacesInPlace: false,
+        followsLive: (_) => false,
+        seesParents: (_) => true,
+      ),
+    );
 
-  test('recognizes nothing on its own: the user picks it', () async {
-    final markers = FakeFolderMarkers(const [
-      {'.stfolder'},
-    ]);
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('truce_plain_tool');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/.stfolder').createSync();
+    });
 
-    expect(await tool.recognize(markers), SyncStatus.unknown);
-    expect(await tool.missesOldVersions(markers), isFalse);
+    test('recognizes nothing on its own: the user picks it', () async {
+      final address = Uri.file(dir.path);
+
+      expect(await tool.recognize(address), SyncStatus.unknown);
+      expect(await tool.missesOldVersions(address), isFalse);
+      expect(tool.isToolFolder(['.stversions']), isFalse);
+    });
+
+    test('writes atomically with its own temp files', () async {
+      final place = tool.place(Uri.file(dir.path));
+
+      await place.files.create(path('a.md'), bytesOf('text'));
+
+      expect(File('${dir.path}/a.md').readAsStringSync(), 'text');
+    });
   });
 
   group('a folder', () {
@@ -21,11 +45,14 @@ void main() {
 
     setUp(() {
       store = MemoryFileStore()..put('todo.md', 'main');
-      folder = tool.open(
-        store,
-        shown: const DefaultFileFilter(PlainFolderRules(), fakeFileTypes),
-        markers: const FakeFolderMarkers([{}]),
-      );
+      folder = PlainFolderPlace(
+        LocalPlace(
+          files: store,
+          changes: null,
+          subfolders: const LocalSubfolderNames('/none'),
+          markers: const FakeFolderMarkers([{}]),
+        ),
+      ).open(store, changes: null, types: fakeFileTypes);
     });
 
     test(
@@ -50,10 +77,6 @@ void main() {
       final scan = (await folder.scanner.scan()).value;
 
       expect(scan.files.map((file) => file.path), [path('todo.md')]);
-      expect(
-        folder.followed.includesFile(path('.truce-0123abcd.tmp')),
-        isFalse,
-      );
     });
 
     test('tells nothing', () async {

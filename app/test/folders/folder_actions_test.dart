@@ -35,7 +35,7 @@ void main() {
   Future<void> add(String basePath) => container
       .read(foldersProvider.notifier)
       .add(
-        basePath: basePath,
+        address: Uri.file(basePath),
         toolId: 'syncthing',
         selection: const WholeFolder(),
         name: basePath,

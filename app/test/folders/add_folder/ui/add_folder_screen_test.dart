@@ -5,27 +5,37 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/add_folder/add_folder_flow.dart';
 import 'package:truce_editor/folders/add_folder/add_folder_wiring.dart';
 import 'package:truce_editor/folders/add_folder/ui/add_folder_screen.dart';
+import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
-import 'package:truce_editor/sync_tool/sync_tools.dart';
-import 'package:truce_test_support/truce_test_support.dart'
-    show FakeFolderMarkers;
+import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
 
 import '../../../support.dart';
 
 void main() {
-  late List<({String basePath, String toolId, Selection selection})> added;
+  final picked = Uri.parse('fake://host/sync');
+  late List<({Uri address, String toolId, Selection selection})> added;
   late Result<DocumentFolder, FolderError> answer;
+  late FakeSyncTool syncthing;
+  late FakeSyncTool plain;
 
   setUp(() {
     added = [];
     answer = const Err(FolderError.notSaved);
+    syncthing = FakeSyncTool('syncthing');
+    plain = FakeSyncTool('plain');
+    for (final tool in [syncthing, plain]) {
+      tool.place(picked).files.emptyFolders.addAll([
+        path('home'),
+        path('notes/work'),
+      ]);
+    }
   });
 
   /// Opens the screen over a home page, with [folders] added before; the
-  /// picker picks `/sync`, which no tool recognizes.
+  /// picker picks `fake://host/sync`, which no tool recognizes.
   Future<void> open(
     WidgetTester tester, {
     List<DocumentFolder> folders = const [],
@@ -34,26 +44,21 @@ void main() {
       ProviderScope(
         overrides: [
           foldersProvider.overrideWith(() => _Folders(folders)),
-          folderPickerProvider.overrideWithValue(const _Picker('/sync')),
+          folderPickerProvider.overrideWithValue(_Picker(picked)),
           addFolderWorkProvider.overrideWith(
             (ref) => AddFolderWork(
-              tools: ref.watch(syncToolsProvider).all,
-              markersOf: (_) => const FakeFolderMarkers([{}]),
-              namesOf: (_) => const _Names({
-                null: ['home', 'notes'],
-                'notes': ['work'],
-              }),
+              tools: [syncthing, plain],
               isToolFolder: (_) => false,
               add:
                   ({
-                    required basePath,
+                    required address,
                     required toolId,
                     required selection,
                     required name,
                     required color,
                   }) async {
                     added.add((
-                      basePath: basePath,
+                      address: address,
                       toolId: toolId,
                       selection: selection,
                     ));
@@ -93,7 +98,7 @@ void main() {
   Future<void> pickSyncFolder(WidgetTester tester) async {
     await tester.tap(find.text('Pick a folder'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Plain folder'));
+    await tester.tap(find.text('Fake plain'));
     await tester.pumpAndSettle();
   }
 
@@ -105,9 +110,9 @@ void main() {
 
     await tester.tap(find.text('Pick a folder'));
     await tester.pumpAndSettle();
-    expect(find.text('How is /sync synced?'), findsOne);
-    expect(find.text('Syncthing'), findsOne);
-    await tester.tap(find.text('Plain folder'));
+    expect(find.text('How is fake://host/sync synced?'), findsOne);
+    expect(find.text('Fake syncthing'), findsOne);
+    await tester.tap(find.text('Fake plain'));
     await tester.pumpAndSettle();
     expect(
       tester
@@ -126,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(added.single, (
-      basePath: '/sync',
+      address: picked,
       toolId: 'plain',
       selection: Selection.of([path('notes/work')]),
     ));
@@ -166,13 +171,21 @@ void main() {
   testWidgets('shows more of a folder added before, never what it shows', (
     tester,
   ) async {
-    final before = folderAt(
-      tempFolder(),
-      selection: Selection.of([path('notes/work')]),
+    final base = BaseFolder(id: 'b1', address: picked, toolId: syncthing.id);
+    await open(
+      tester,
+      folders: [
+        DocumentFolder(
+          id: 'f1',
+          base: base,
+          selection: Selection.of([path('notes/work')]),
+          name: 'Work',
+          color: Colors.teal,
+        ),
+      ],
     );
-    await open(tester, folders: [before]);
 
-    await tester.tap(find.text(before.base.path));
+    await tester.tap(find.text(base.shownAddress));
     await tester.pumpAndSettle();
     await tester.tap(find.text('notes'));
     await tester.pumpAndSettle();
@@ -195,21 +208,10 @@ final class _Folders extends FoldersController {
 }
 
 final class _Picker implements FolderPicker {
-  const _Picker(this.path);
+  const _Picker(this.address);
 
-  final String path;
-
-  @override
-  Future<Result<String?, PickError>> pick() async => Ok(path);
-}
-
-/// Folder names by the path of their parent (`null` for the top).
-final class _Names implements SubfolderNames {
-  const _Names(this.byParent);
-
-  final Map<String?, List<String>> byParent;
+  final Uri address;
 
   @override
-  Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
-      Ok(byParent[folder?.value] ?? const []);
+  Future<Result<Uri?, PickError>> pick() async => Ok(address);
 }

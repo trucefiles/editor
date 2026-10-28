@@ -10,7 +10,6 @@ import 'package:truce_editor/refresh/refresh_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
@@ -154,11 +153,14 @@ void main() {
       return container.read(folderNoticesProvider(base).future);
     }
 
-    test('tell when live updates fall back to polling', () async {
-      final notices = await noticesOf(portalFolder, live);
+    test(
+      'tell when live updates can not work and changes are polled',
+      () async {
+        final notices = await noticesOf(portalFolder, live);
 
-      expect(notices, contains(PolledNotice(live.interval)));
-    });
+        expect(notices, contains(PolledNotice(live.interval)));
+      },
+    );
 
     test(
       'say nothing about polling unless live updates were asked for',
@@ -178,25 +180,61 @@ void main() {
       );
     });
 
-    test('tell when watching failed and changes are polled', () async {
+    test('say nothing about polling once a watched folder is gone', () async {
       final folder = tempFolder();
       final (:container, :base) = await _start(folder.path, live);
       final following = await container.read(
         folderFollowingProvider(base).future,
       );
-      Future<List<FolderNotice>> notices() =>
-          container.refresh(folderNoticesProvider(base).future);
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
-      expect((await notices()).whereType<PolledNotice>(), isEmpty);
 
-      // Watching ends with the folder.
+      // Watching ends with the folder; it heals on its own once it is back.
       folder.deleteSync(recursive: true);
       addTearDown(folder.createSync);
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      expect(await notices(), contains(PolledNotice(live.interval)));
+      expect(
+        (await container.refresh(folderNoticesProvider(base).future))
+            .whereType<PolledNotice>(),
+        isEmpty,
+      );
+    }, testOn: 'linux');
+
+    test('a gone chosen subfolder is followed live again once back', () async {
+      final folder = tempFolder();
+      Directory('${folder.path}/work').createSync();
+      Directory('${folder.path}/home').createSync();
+      final (:container, :base) = await _start(
+        folder.path,
+        live.copyWith(interval: const Duration(seconds: 5)),
+        selection: Selection.of([path('work'), path('home')]),
+      );
+      final changes = (await container.read(
+        folderFollowingProvider(base).future,
+      )).changes!;
+      final seen = <ChangeHint>[];
+      final subscription = changes.changes.listen(seen.add);
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      Directory('${folder.path}/work').deleteSync();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      File('${folder.path}/home/b.md').writeAsStringSync('b');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(
+        seen,
+        containsAllInOrder([const ListAgain(), PathChanged(path('home/b.md'))]),
+      );
+
+      // Checked again after the refresh interval.
+      Directory('${folder.path}/work').createSync();
+      await eventually(() async {
+        File('${folder.path}/work/a.md').writeAsStringSync('a');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        return seen.contains(PathChanged(path('work/a.md')));
+      });
     }, testOn: 'linux');
   });
 }

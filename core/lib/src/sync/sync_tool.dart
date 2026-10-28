@@ -1,41 +1,72 @@
+import '../changes/folder_changes.dart';
+import '../changes/live_changes.dart';
 import '../conflicts/conflict_source.dart';
+import '../filetypes/file_type_detector.dart';
 import '../filter/file_filter.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
-import '../storage/folder_markers.dart';
+import '../storage/subfolder_names.dart';
 import 'folder_notices.dart';
-import 'sync_adapter.dart';
 import 'sync_check.dart';
 
 /// One sync tool the app works with, e.g. Syncthing, or none ("Plain
 /// folder"): it recognizes the base folders it syncs and offers their
 /// files by its rules. One implementation per tool, each in a package of
 /// its own; the app's wiring registers them at compile time.
+///
+/// A base folder is known by its address, a URI the tool understands
+/// (e.g. `file:` for a folder on this device). Generic code only keeps,
+/// compares, shows and hands on an address; only the tool opens it.
 abstract interface class SyncTool {
   /// Stable and unique among the tools, kept with each base folder, so the
   /// same tool works on it at the next start.
   String get id;
 
-  /// Its file-name rules: the temp files of atomic writes, its own
-  /// folders.
-  SyncAdapter get rules;
+  /// The tool's name, for the UI.
+  String get name;
 
-  /// Whether this tool syncs the base folder that [markers] look at, as
-  /// far as it can tell.
-  Future<SyncStatus> recognize(FolderMarkers markers);
+  /// Whether the folder whose path has the segments [names], outermost
+  /// first, is the tool's own (e.g. its version folder) or lies inside it.
+  /// Such a folder never holds the user's documents.
+  bool isToolFolder(List<String> names);
+
+  /// Whether this tool syncs the base folder at [address], as far as it
+  /// can tell.
+  Future<SyncStatus> recognize(Uri address);
 
   /// Whether the tool keeps old versions of the base folder's files that
   /// the app can't reach from it, e.g. as it is a subfolder of the synced
   /// folder; for a hint to pick the synced folder itself.
-  Future<bool> missesOldVersions(FolderMarkers markers);
+  Future<bool> missesOldVersions(Uri address);
 
-  /// The files of one base folder, by this tool's rules, on [store], which
-  /// holds only what the app may touch there. [shown] picks the documents;
-  /// [markers] look outside, for the tool's own data only.
+  /// The tool's access to the base folder at [address]. Kept as long as
+  /// the base folder is; built again only for another address.
+  ToolPlace place(Uri address);
+}
+
+/// A sync tool's access to one base folder: the bottom of its stack
+/// ([files], [changes], [subfolders]), which the app bounds to what its
+/// folders show, and the top ([open]), the tool's rules on the bounded
+/// part.
+abstract interface class ToolPlace {
+  /// All of the base folder's files; seen by the app only once bounded.
+  FileStore get files;
+
+  /// The base folder's changes as they happen; `null` where they can't be
+  /// followed live.
+  LiveChanges? get changes;
+
+  /// The folder names in the base folder, for the user to pick subfolders.
+  SubfolderNames get subfolders;
+
+  /// The base folder's files by the tool's rules, on [store], which holds
+  /// only what the app may touch there, and on [changes], its changes
+  /// bounded alike (`null`: not followed live). [types] tell which files
+  /// are documents.
   SyncedFolder open(
     FileStore store, {
-    required FileFilter shown,
-    required FolderMarkers markers,
+    required FolderChanges? changes,
+    required FileTypeDetector types,
   });
 }
 
@@ -46,7 +77,8 @@ final class SyncedFolder {
     required this.scanner,
     required this.conflicts,
     required this.notices,
-    required this.followed,
+    required this.changes,
+    required this.shown,
   });
 
   /// The folder's files, read and written by the tool's rules.
@@ -56,7 +88,11 @@ final class SyncedFolder {
   final ConflictSource conflicts;
   final FolderNotices notices;
 
-  /// The files whose changes count: the shown ones and the tool's records
-  /// of them, e.g. their conflict copies.
-  final FileFilter followed;
+  /// The folder's changes as they happen, without the tool's own files;
+  /// `null` where they can't be followed live.
+  final FolderChanges? changes;
+
+  /// Which files and folders the tool shows: the documents, outside its
+  /// own files and folders.
+  final FileFilter shown;
 }

@@ -5,8 +5,9 @@ import 'package:truce_core/truce_core.dart';
 
 /// Asks the user for a folder on this device.
 abstract interface class FolderPicker {
-  /// Absolute path of the chosen folder; `null` if the user cancelled.
-  Future<Result<String?, PickError>> pick();
+  /// The address of the chosen folder (`file:`); `null` if the user
+  /// cancelled.
+  Future<Result<Uri?, PickError>> pick();
 }
 
 enum PickError {
@@ -22,9 +23,12 @@ final class SystemFolderPicker implements FolderPicker {
   const SystemFolderPicker();
 
   @override
-  Future<Result<String?, PickError>> pick() async {
+  Future<Result<Uri?, PickError>> pick() async {
     try {
-      return Ok(await getDirectoryPath());
+      return Ok(switch (await getDirectoryPath()) {
+        final path? => Uri.file(path),
+        null => null,
+      });
     } on PlatformException {
       return const Err(PickError.unsupportedLocation);
     }

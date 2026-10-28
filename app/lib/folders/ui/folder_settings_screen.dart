@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
-import '../../platform/platform_wiring.dart';
 import '../../sync_tool/base_folder_services.dart';
 import '../../sync_tool/sync_tools.dart';
 import '../base_folder.dart';
@@ -23,9 +22,7 @@ final missesOldVersionsProvider = FutureProvider.autoDispose
       (ref, base) => ref
           .watch(syncToolsProvider)
           .of(base.toolId)
-          .missesOldVersions(
-            baseFolderMarkers(base.path, ref.watch(platformFactsProvider)),
-          ),
+          .missesOldVersions(base.address),
     );
 
 /// A folder's settings: its name, color and what it shows of its base
@@ -44,7 +41,7 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late final _name = TextEditingController(text: widget.folder.name);
   late Color _color = widget.folder.color;
   late final _parts = SubfolderChoice(
-    names: ref.read(subfolderNamesProvider)(widget.folder.base.path),
+    names: ref.read(subfolderNamesProvider(widget.folder.base)),
     isToolFolder: ref.read(syncToolsProvider).isToolFolder,
     taken: [
       for (final other
@@ -109,12 +106,12 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(base.path, style: small),
-          Text('Synced by: ${tool.rules.name}', style: small),
+          Text(base.shownAddress, style: small),
+          Text('Synced by: ${tool.name}', style: small),
           FolderNoticesView(widget.folder),
           if (hint)
             Text(
-              'Pick the ${tool.rules.name} folder itself to get more '
+              'Pick the ${tool.name} folder itself to get more '
               'history.',
               style: small,
             ),

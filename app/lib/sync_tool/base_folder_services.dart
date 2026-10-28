@@ -8,12 +8,11 @@ import '../file_types/document_types.dart';
 import '../folders/base_folder.dart';
 import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
-import '../platform/platform_facts.dart';
-import '../platform/platform_wiring.dart';
+import '../refresh/refresh_settings.dart';
+import '../refresh/refresh_settings_controller.dart';
 import '../storage/app_storage.dart';
 import '../storage/device_id.dart';
 import 'app_writes.dart';
-import 'base_folder_following.dart';
 import 'sync_tools.dart';
 
 /// The core services for one base folder, by its sync tool, bounded to
@@ -29,7 +28,8 @@ final class BaseFolderServices {
     required this.marks,
     required this.reach,
     required this.notices,
-    required this.followed,
+    required this.changes,
+    required this.shown,
   });
 
   /// The base folder's files, by its sync tool; refuses anything outside
@@ -58,39 +58,31 @@ final class BaseFolderServices {
   /// What the sync tool tells about the base folder.
   final FolderNotices notices;
 
-  /// The files whose changes count: the documents, the sync tool's records
-  /// of them, and the marks of all devices. Nothing else, e.g. `.git` or
-  /// swap files, leads to a rescan.
-  final FileFilter followed;
+  /// The changes of the documents, the sync tool's records of them and the
+  /// marks of all devices, as they happen; `null` where they can't be
+  /// followed live.
+  final FolderChanges? changes;
+
+  /// Which files and folders the sync tool shows.
+  final FileFilter shown;
 }
 
-/// Builds the file layer of a base folder, for its sync tool's [rules]
-/// (the temp files of atomic writes). Overridable in tests, e.g. to see
-/// every path the app touches.
-typedef FileLayer = FileStore Function(BaseFolder base, SyncAdapter rules);
-
-final fileLayerProvider = Provider<FileLayer>((ref) {
-  final platform = ref.watch(platformFactsProvider);
-  return (base, rules) => LocalFileStore(
-    base.path,
-    rules.tempFileName,
-    replacesInPlace: platform.replacesInPlace,
-  );
-});
-
-/// One base folder's file layer and reach. They stay while what its
-/// folders show changes; only the bounded services above them are built
-/// again.
-final _baseFolderAccessProvider =
-    Provider.family<({FileStore files, FolderReach reach}), BaseFolder>((
+/// A base folder's place by its sync tool, and its reach. They stay while
+/// what its folders show changes; only the bounded services above them are
+/// built again, so a write still under way in the old services (e.g. a
+/// Syncthing rewrite) keeps its files.
+final _baseFolderPlaceProvider =
+    Provider.family<({ToolPlace place, FolderReach reach}), BaseFolder>((
       ref,
       base,
     ) {
-      final tool = ref.watch(syncToolsProvider).of(base.toolId);
-      final files = ref.watch(fileLayerProvider)(base, tool.rules);
-      final reach = folderReach(files);
+      final place = ref
+          .watch(syncToolsProvider)
+          .of(base.toolId)
+          .place(base.address);
+      final reach = folderReach(place.files);
       ref.onDispose(() => unawaited(reach.close()));
-      return (files: files, reach: reach);
+      return (place: place, reach: reach);
     });
 
 /// The services of a base folder, built from what its folders show now:
@@ -105,53 +97,64 @@ final baseFolderServicesProvider =
           (folders) => (folders.value ?? const []).selectionOf(base),
         ),
       );
-      final (:files, :reach) = ref.watch(_baseFolderAccessProvider(base));
+      final (:place, :reach) = ref.watch(_baseFolderPlaceProvider(base));
       return baseFolderServices(
-        base,
-        tool: ref.watch(syncToolsProvider).of(base.toolId),
-        files: files,
+        place,
+        syncToolName: ref.watch(syncToolsProvider).of(base.toolId).name,
         reach: reach,
         selection: selection,
         types: ref.watch(documentTypesProvider),
-        platform: ref.watch(platformFactsProvider),
         backupsPath: ref.watch(appStorageProvider).backupsPath(base.id),
         deviceId: ref.watch(deviceIdProvider),
+        // Read at each wait; an old build's changes may still be followed
+        // for a moment after it is replaced.
+        checkEvery: () =>
+            ((ref.mounted ? ref.read(refreshSettingsProvider).value : null) ??
+                    RefreshSettings.standard)
+                .interval,
         wrote: (paths) => ref.read(appWritesProvider).wrote(base.id, paths),
       );
     });
 
-/// The services of [base] by its sync [tool], over its file layer [files]
-/// that tells [reach] how each access went, bounded to [selection]: the
-/// files of the handled [types] and the marks. Each write, the sync
-/// tool's own included, is told to [wrote].
+/// The folder names of [BaseFolder], for the user to pick subfolders.
+final subfolderNamesProvider = Provider.family<SubfolderNames, BaseFolder>(
+  (ref, base) => ref.watch(_baseFolderPlaceProvider(base)).place.subfolders,
+);
+
+/// The services of a base folder on [place], its sync tool's access to it,
+/// whose files tell [reach] how each access went, bounded to [selection]:
+/// the files of the handled [types] and the marks. Each write, the sync
+/// tool's own included, is told to [wrote]. A followed subfolder that is
+/// gone is checked every [checkEvery] whether it is back.
 BaseFolderServices baseFolderServices(
-  BaseFolder base, {
-  required SyncTool tool,
-  required FileStore files,
+  ToolPlace place, {
+  required String syncToolName,
   required FolderReach reach,
   required Selection selection,
   required DocumentTypes types,
-  required PlatformFacts platform,
   required String backupsPath,
   required String deviceId,
+  required Duration Function() checkEvery,
   required void Function(Set<RelPath> paths) wrote,
 }) {
-  final bounded = BoundedStore(
-    ReachReportingStore(files, reach),
+  final bounded = BoundedPlace(
+    ReachReportingStore(place.files, reach),
+    place.changes,
     selection,
     handles: (file) =>
         types.handles(file) || DocumentMarks.files.includesFile(file),
+    checkEvery: checkEvery,
   );
-  final synced = tool.open(
-    WriteReportingStore(bounded, wrote),
-    shown: DefaultFileFilter(tool.rules, types.detector),
-    markers: baseFolderMarkers(base.path, platform),
+  final synced = place.open(
+    WriteReportingStore(bounded.files, wrote),
+    changes: bounded.changes,
+    types: types.detector,
   );
   final backups = fileBackupsAt(backupsPath);
   return BaseFolderServices(
     store: synced.store,
     scanner: synced.scanner,
-    syncToolName: tool.rules.name,
+    syncToolName: syncToolName,
     conflicts: DefaultConflictService(
       folder: synced.store,
       source: synced.conflicts,
@@ -162,40 +165,7 @@ BaseFolderServices baseFolderServices(
     marks: DocumentMarks(synced.store, deviceId: deviceId),
     reach: reach,
     notices: synced.notices,
-    followed: AnyFileFilter([synced.followed, DocumentMarks.files]),
+    changes: synced.changes,
+    shown: synced.shown,
   );
 }
-
-/// A sync tool's look at the base folder at [basePath] and above, for its
-/// own markers only.
-FolderMarkers baseFolderMarkers(String basePath, PlatformFacts platform) =>
-    LocalFolderMarkers(
-      basePath,
-      seesParents: platform.canReadParentsOf(basePath),
-    );
-
-/// The folder names of the base folder at a path, for the user to pick
-/// subfolders. Overridable in tests.
-final subfolderNamesProvider = Provider<SubfolderNames Function(String)>(
-  (_) => LocalSubfolderNames.new,
-);
-
-/// What the user should know about [BaseFolder]: what its sync tool
-/// tells, and whether its changes are polled as they can't be followed
-/// live. Checked once; invalidate to check again.
-final folderNoticesProvider =
-    FutureProvider.family<List<FolderNotice>, BaseFolder>((ref, base) async {
-      final following = await ref.watch(folderFollowingProvider(base).future);
-      return [
-        ...await ref.watch(baseFolderServicesProvider(base)).notices.check(),
-        if (following.pollInterval() case final interval?)
-          PolledNotice(interval),
-      ];
-    });
-
-/// How changes to [BaseFolder] are found, as the refresh setting asks;
-/// `null` if they aren't looked for (manual refresh).
-final folderChangesProvider = FutureProvider.family<FolderChanges?, BaseFolder>(
-  (ref, base) async =>
-      (await ref.watch(folderFollowingProvider(base).future)).changes,
-);

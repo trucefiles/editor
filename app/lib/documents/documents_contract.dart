@@ -39,6 +39,13 @@ final class CreateDocument extends DocumentsInput {
   final String text;
 }
 
+/// Create the subfolder of [place], a new one the user asked for.
+final class CreateSubfolder extends DocumentsInput {
+  const CreateSubfolder(super.ticket, this.place);
+
+  final DocumentPlace place;
+}
+
 /// Move [document], as last saved, to [place], renamed after [title] if
 /// given.
 final class MoveDocument extends DocumentsInput {
@@ -93,6 +100,12 @@ final class DocumentCreated extends DocumentsAnswer {
   const DocumentCreated(super.ticket, this.result);
 
   final Result<DocumentText, StoreError> result;
+}
+
+final class SubfolderCreated extends DocumentsAnswer {
+  const SubfolderCreated(super.ticket, this.result);
+
+  final Result<void, StoreError> result;
 }
 
 final class DocumentMoved extends DocumentsAnswer {

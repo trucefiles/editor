@@ -17,7 +17,7 @@ final refreshSettingsStoreProvider = Provider<SettingStore<RefreshSettings>>(
 /// Whether live updates are possible anywhere on this platform; if not,
 /// the user can't pick them.
 final liveRefreshAvailableProvider = Provider<bool>(
-  (ref) => ref.watch(platformFactsProvider).reportsChanges,
+  (ref) => ref.watch(liveChangesPossibleProvider),
 );
 
 final refreshSettingsProvider =

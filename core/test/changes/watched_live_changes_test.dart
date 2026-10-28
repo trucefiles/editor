@@ -17,9 +17,7 @@ void main() {
   });
 
   Future<StreamQueue<ChangeHint>> watch() async {
-    final queue = StreamQueue(
-      WatchedFolderChanges(root.path, followed: const _Documents()).changes,
-    );
+    final queue = StreamQueue(WatchedLiveChanges(root.path).below(null));
     addTearDown(queue.cancel);
     // Lets the watcher start before files change.
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -46,24 +44,10 @@ void main() {
     expect(await queue.next, PathChanged(path('new/deep/b.md')));
   });
 
-  test('drops the changes of files it does not follow', () async {
-    final queue = await watch();
-
-    write('.git/HEAD');
-    write('a.md~');
-    write('b.md');
-
-    expect(await queue.next, PathChanged(path('b.md')));
-  });
-
   test('watches only its subfolder, with paths in the folder', () async {
     Directory('${root.path}/work').createSync();
     final queue = StreamQueue(
-      WatchedFolderChanges(
-        root.path,
-        followed: const _Documents(),
-        under: path('work'),
-      ).changes,
+      WatchedLiveChanges(root.path).below(path('work')),
     );
     addTearDown(queue.cancel);
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -75,10 +59,7 @@ void main() {
   });
 
   test('ends when the folder is deleted', () async {
-    final all = WatchedFolderChanges(
-      root.path,
-      followed: const _Documents(),
-    ).changes.toList();
+    final all = WatchedLiveChanges(root.path).below(null).toList();
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     await root.delete(recursive: true);
@@ -89,22 +70,8 @@ void main() {
   test('ends at once if the folder is missing', () async {
     await root.delete();
 
-    final changes = WatchedFolderChanges(
-      root.path,
-      followed: const _Documents(),
-    ).changes;
+    final changes = WatchedLiveChanges(root.path).below(null);
 
     expect(await changes.toList(), isEmpty);
   });
-}
-
-/// Follows `.md` files outside hidden folders.
-final class _Documents implements FileFilter {
-  const _Documents();
-
-  @override
-  bool includesFolder(RelPath folder) => !folder.name.startsWith('.');
-
-  @override
-  bool includesFile(RelPath file) => file.name.endsWith('.md');
 }

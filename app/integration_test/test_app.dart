@@ -107,8 +107,8 @@ final class _QueuedPicker implements FolderPicker {
   int _picks = 0;
 
   @override
-  Future<Result<String?, PickError>> pick() async =>
-      Ok(_paths[min(_picks++, _paths.length - 1)]);
+  Future<Result<Uri?, PickError>> pick() async =>
+      Ok(Uri.file(_paths[min(_picks++, _paths.length - 1)]));
 }
 
 /// A test of the app, [body]; then closes the screens still open and

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -30,7 +29,7 @@ final class FolderListWork {
 
   final FolderListStore store;
 
-  /// Where folders lie on the host, to tell whether they overlap.
+  /// Where base folders lie on the host, to tell whether they overlap.
   final HostPaths hostPaths;
 
   /// Whether the folder whose path has these segments belongs to a sync
@@ -103,25 +102,26 @@ final class _FolderListSteps {
   }
 
   /// Refuses a folder of a sync tool's own, a base folder inside an added
-  /// one or holding one (compared by host paths, as a sandbox may show
+  /// one or holding one (compared by host addresses, as a sandbox may show
   /// each at its own path), and a selection that clashes. Best effort in a
-  /// sandbox: a path whose host path is unknown is checked as the sandbox
-  /// shows it.
+  /// sandbox: an address whose host address is unknown is checked as the
+  /// sandbox shows it.
   Future<Result<DocumentFolder, FolderError>> _add(
     List<DocumentFolder> folders,
     AddFolder add,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    final segments = _segments(await _work.hostPaths.of(add.basePath));
-    if (_work.isToolFolder(segments)) {
+    final host = await _work.hostPaths.of(add.address);
+    if (_work.isToolFolder(_segments(host))) {
       return const Err(FolderError.syncToolInternal);
     }
     BaseFolder? same;
     for (final base in {for (final folder in folders) folder.base}) {
-      final other = _segments(await _work.hostPaths.of(base.path));
-      if (listEquals(other, segments)) {
+      final other = await _work.hostPaths.of(base.address);
+      if (!_samePlace(host, other)) continue;
+      if (listEquals(_segments(other), _segments(host))) {
         same = base;
-      } else if (_isWithin(segments, other) || _isWithin(other, segments)) {
+      } else if (_isWithin(host, other) || _isWithin(other, host)) {
         return const Err(FolderError.overlaps);
       }
     }
@@ -129,7 +129,7 @@ final class _FolderListSteps {
       id: _newId(),
       base:
           same ??
-          BaseFolder(id: _newId(), path: add.basePath, toolId: add.toolId),
+          BaseFolder(id: _newId(), address: add.address, toolId: add.toolId),
       selection: add.selection,
       name: add.name,
       color: add.color,
@@ -208,13 +208,22 @@ final class _FolderListSteps {
             other.selection.overlaps(folder.selection),
       );
 
-  static List<String> _segments(String path) =>
-      path.split(Platform.pathSeparator)..removeWhere((s) => s.isEmpty);
+  static List<String> _segments(Uri address) => [
+    for (final segment in address.pathSegments)
+      if (segment.isNotEmpty) segment,
+  ];
+
+  /// Whether [a] and [b] can lie in one another: the same kind of place on
+  /// the same host.
+  static bool _samePlace(Uri a, Uri b) =>
+      a.scheme == b.scheme && a.authority == b.authority;
 
   /// Whether the folder at [inner] lies inside the one at [outer].
-  static bool _isWithin(List<String> inner, List<String> outer) =>
-      inner.length > outer.length &&
-      listEquals(inner.sublist(0, outer.length), outer);
+  static bool _isWithin(Uri inner, Uri outer) {
+    final (inside, around) = (_segments(inner), _segments(outer));
+    return inside.length > around.length &&
+        listEquals(inside.sublist(0, around.length), around);
+  }
 
   String _newId() =>
       List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();

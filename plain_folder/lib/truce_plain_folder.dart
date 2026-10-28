@@ -6,5 +6,6 @@
 library;
 
 export 'src/plain_conflict_names.dart';
+export 'src/plain_folder_place.dart';
 export 'src/plain_folder_rules.dart';
 export 'src/plain_folder_tool.dart';

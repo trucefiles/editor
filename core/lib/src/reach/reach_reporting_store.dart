@@ -43,6 +43,10 @@ final class ReachReportingStore implements FileStore {
   }) => _reported(_inner.delete(path, ifUnchanged: ifUnchanged));
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
+      _reported(_inner.createFolder(folder));
+
+  @override
   Future<Result<FileEntry, StoreError>> move(
     RelPath from,
     RelPath to, {

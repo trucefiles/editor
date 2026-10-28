@@ -4,7 +4,8 @@ import 'package:truce_core/truce_core.dart';
 
 /// [FileStore] that records every path it touches on [inner], for tests
 /// that check what the app never touches: each folder a listing walked,
-/// each file it listed, and each file read, written, moved or deleted.
+/// each file it listed, each file read, written, moved or deleted, and
+/// each folder created.
 final class SpyFileStore implements FileStore {
   SpyFileStore(this.inner);
 
@@ -32,6 +33,12 @@ final class SpyFileStore implements FileStore {
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) {
     touched.add(path);
     return inner.create(path, bytes);
+  }
+
+  @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) {
+    touched.add(folder);
+    return inner.createFolder(folder);
   }
 
   @override

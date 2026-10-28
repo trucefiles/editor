@@ -6,6 +6,7 @@ import '../folder_state/folder_state_controller.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
@@ -56,6 +57,18 @@ final class DocumentActions {
       _ref.read(folderContentsProvider).value?.subfoldersOf(folder.id) ??
       const [];
 
+  /// Whether documents of [folder] can go into [subfolder], an existing
+  /// one or a new one: inside what the folder shows, in folders its sync
+  /// tool shows (e.g. none of its own, no hidden one).
+  bool canHold(DocumentFolder folder, RelPath subfolder) {
+    final shown = _ref.read(baseFolderServicesProvider(folder.base)).shown;
+    return folder.selection.covers(subfolder) &&
+        [
+          for (RelPath? inner = subfolder; inner != null; inner = inner.parent)
+            inner,
+        ].every(shown.includesFolder);
+  }
+
   /// [document]'s color, as last seen.
   DocumentMark markOf(Document document) =>
       _ref.read(folderContentsProvider).value?.markOf(document.key) ??
@@ -74,6 +87,15 @@ final class DocumentActions {
     final answer? => answer.result,
     null => const Err(_notRun),
   };
+
+  /// See [DocumentSteps.createSubfolder].
+  Future<Result<void, StoreError>> createSubfolder(DocumentPlace place) async =>
+      switch (await _ask<SubfolderCreated>(
+        (ticket) => CreateSubfolder(ticket, place),
+      )) {
+        final answer? => answer.result,
+        null => const Err(_notRun),
+      };
 
   /// See [DocumentSteps.move].
   Future<Result<DocumentText, MoveFailure>> move(

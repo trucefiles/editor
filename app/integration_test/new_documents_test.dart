@@ -130,6 +130,21 @@ void main() {
     expect(app.topFiles.length, 1);
   });
 
+  testApp('a new document goes into a typed new subfolder', (tester) async {
+    app.write('old.md', '# Old\n');
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.typeNewNote('Plans');
+    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.typeSubfolder('2026/spring');
+    await tester.tapAndSettle(find.text('OK'));
+    await tester.waitFor(find.text('Documents/2026/spring/Plans.md'));
+    await tester.pageBack();
+
+    await tester.waitForFile(app.file('2026/spring/Plans.md'), 'Plans\n');
+  });
+
   testApp('a place picked while the app was hidden moves the new file', (
     tester,
   ) async {

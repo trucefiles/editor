@@ -5,10 +5,9 @@ import 'package:truce_core/truce_core.dart';
 
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
-import '../reach/folder_reach_controller.dart';
 import '../refresh/refresh_settings.dart';
 import '../refresh/refresh_settings_controller.dart';
-import '../sync_tool/base_folder_services.dart';
+import '../sync_tool/base_folder_following.dart';
 import 'folder_state_controller.dart';
 
 final followingChangesProvider = AsyncNotifierProvider<FollowingChanges, void>(
@@ -18,9 +17,6 @@ final followingChangesProvider = AsyncNotifierProvider<FollowingChanges, void>(
 /// Passes what each base folder's changes hint on to the folder state
 /// owner, as the refresh setting asks, while the app is in use, and tells
 /// it whether the app is in use; the owner decides what to list or check.
-///
-/// Starts following a base folder's changes afresh once it is reachable
-/// again, so a folder that went away is watched again, not only polled.
 ///
 /// Also lists every base folder once when the refresh setting changes,
 /// for changes made while nothing was looking. Changes made while the app
@@ -55,13 +51,6 @@ class FollowingChanges extends AsyncNotifier<void> {
     final folders = await ref.watch(foldersProvider.future);
     if (disposed) return;
     final bases = {for (final folder in folders) folder.base};
-    // Follows again once a base folder is back: watching ends when it
-    // goes away, and goes on by polling until then.
-    for (final base in bases) {
-      ref.watch(
-        folderReachProvider(base).select((reach) => reach == Reach.reachable),
-      );
-    }
     final changes = await Future.wait([
       for (final base in bases)
         ref

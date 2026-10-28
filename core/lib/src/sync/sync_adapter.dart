@@ -1,14 +1,11 @@
 import '../storage/rel_path.dart';
 
-/// A sync tool's file-name rules that other layers need. Pure: no file
-/// access.
+/// A sync tool's file-name rules, for the core parts its plugin builds on
+/// (e.g. `DefaultFileFilter`, `LocalFileStore`'s temp files). Pure: no
+/// file access. Private to the plugin: never part of `SyncTool`.
 ///
-/// One implementation per sync tool. Syncthing is the only one for now.
 /// How the tool's conflicts are found is its `ConflictSource`'s job.
 abstract interface class SyncAdapter {
-  /// The sync tool's name, for the UI.
-  String get name;
-
   /// Whether [path] belongs to the sync tool itself (folder markers, version
   /// folders, temp files, conflict copies). Such files are never shown, and
   /// touched only by the tool's own `ConflictSource`.

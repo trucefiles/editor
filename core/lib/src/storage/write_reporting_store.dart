@@ -6,7 +6,8 @@ import 'rel_path.dart';
 
 /// [FileStore] that tells [_wrote] the paths each write to [_inner]
 /// changed, once it worked: created, replaced, deleted, or moved (both
-/// paths). Changes nothing else.
+/// paths). A new folder changes no file, so it is not told. Changes
+/// nothing else.
 final class WriteReportingStore implements FileStore {
   const WriteReportingStore(this._inner, this._wrote);
 
@@ -26,6 +27,10 @@ final class WriteReportingStore implements FileStore {
   @override
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
       _reported({path}, _inner.create(path, bytes));
+
+  @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
+      _inner.createFolder(folder);
 
   @override
   Future<Result<FileEntry, StoreError>> replace(

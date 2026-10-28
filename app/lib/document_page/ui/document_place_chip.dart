@@ -63,8 +63,15 @@ class DocumentPlaceChip extends ConsumerWidget {
         ExistingFile() => splitFileName(path.name).base,
       },
       subfoldersOf: actions.subfoldersOf,
+      canHold: actions.canHold,
     );
     if (picked == null || !context.mounted) return;
+    if (picked.newSubfolder &&
+        await actions.createSubfolder(picked.place) is Err) {
+      if (context.mounted) showSnack(context, "Couldn't make the subfolder.");
+      return;
+    }
+    if (!context.mounted) return;
     // Read after the dialog: hiding the app meanwhile creates the file.
     if (session.file is NewFile) {
       final name = picked.name.trim();

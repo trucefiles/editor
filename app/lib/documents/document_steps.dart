@@ -21,10 +21,10 @@ import 'move_failure.dart';
 
 final documentStepsProvider = Provider<DocumentSteps>(DocumentSteps.new);
 
-/// The steps of the user's actions on documents: create, move or rename,
-/// delete and undo, color, and recovering the drafts of the last run. Run
-/// one at a time by the documents owner, so their side steps (mark,
-/// settings, backups) never mix.
+/// The steps of the user's actions on documents: create, new subfolder,
+/// move or rename, delete and undo, color, and recovering the drafts of
+/// the last run. Run one at a time by the documents owner, so their side
+/// steps (mark, settings, backups) never mix.
 base class DocumentSteps {
   DocumentSteps(this._ref);
 
@@ -56,6 +56,17 @@ base class DocumentSteps {
   }) => _ref
       .read(documentFilesProvider(place.folder))
       .create(title, type: type, subfolder: place.subfolder, text: text);
+
+  /// Creates the subfolder of [place], a new one the user asked for, so
+  /// documents can go there.
+  Future<Result<void, StoreError>> createSubfolder(DocumentPlace place) =>
+      switch (place.subfolder) {
+        final subfolder? =>
+          _ref
+              .read(documentFilesProvider(place.folder))
+              .createSubfolder(subfolder),
+        null => Future.value(const Ok(null)),
+      };
 
   /// Moves [document], as last saved, to [place], renamed after [title] if
   /// given (with a number if taken), with its color, settings and backups.

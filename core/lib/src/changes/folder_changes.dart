@@ -15,8 +15,8 @@ abstract interface class FolderChanges {
   /// than once for one change.
   ///
   /// Starts when listened to and stops when cancelled; each listen starts
-  /// anew. Ends when changes can no longer be followed, e.g. the folder is
-  /// gone; never emits errors.
+  /// anew. Ends only if changes can no longer be followed at all; never
+  /// emits errors.
   Stream<ChangeHint> get changes;
 }
 
@@ -54,4 +54,26 @@ final class ListAgain extends ChangeHint {
 
   @override
   String toString() => 'ListAgain()';
+}
+
+/// Narrows [FolderChanges].
+extension FolderChangesWithout on FolderChanges {
+  /// These changes without the hints of paths [drops] matches.
+  FolderChanges without(bool Function(RelPath path) drops) =>
+      _Without(this, drops);
+}
+
+final class _Without implements FolderChanges {
+  const _Without(this._all, this._drops);
+
+  final FolderChanges _all;
+  final bool Function(RelPath path) _drops;
+
+  @override
+  Stream<ChangeHint> get changes => _all.changes.where(
+    (hint) => switch (hint) {
+      PathChanged(:final path) => !_drops(path),
+      ListAgain() => true,
+    },
+  );
 }

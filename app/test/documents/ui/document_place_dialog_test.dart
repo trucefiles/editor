@@ -104,7 +104,8 @@ void main() {
   });
 
   testWidgets('with a name, asks for it too', (tester) async {
-    late Future<({DocumentPlace place, String name})?> result;
+    late Future<({DocumentPlace place, String name, bool newSubfolder})?>
+    result;
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
@@ -115,6 +116,7 @@ void main() {
               initial: (folder: documents, subfolder: null),
               name: 'Milk',
               subfoldersOf: (_) => const [],
+              canHold: (_, _) => true,
             ),
             child: const Text('open'),
           ),
@@ -125,12 +127,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(TextField, 'Milk'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Shopping');
+    await tester.enterText(find.widgetWithText(TextField, 'Milk'), 'Shopping');
     await tester.tap(find.text('OK'));
 
     expect(await result, (
       place: (folder: documents, subfolder: null),
       name: 'Shopping',
+      newSubfolder: false,
     ));
   });
 
@@ -138,5 +141,109 @@ void main() {
     await open(tester, const {});
 
     expect(find.byType(TextField), findsNothing);
+  });
+
+  group('with a name, takes a typed subfolder', () {
+    /// Opens the file dialog on [folder], whose documents can go only into
+    /// `work` and below; the returned future completes with its result.
+    Future<Future<({DocumentPlace place, String name, bool newSubfolder})?>>
+    openFile(WidgetTester tester, DocumentFolder folder) async {
+      late Future<({DocumentPlace place, String name, bool newSubfolder})?>
+      result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => result = showNoteFileDialog(
+                context,
+                folders: [folder],
+                initial: topOf(folder),
+                name: 'Milk',
+                subfoldersOf: (_) => [path('work')],
+                canHold: (_, subfolder) => subfolder.value.startsWith('work'),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      return result;
+    }
+
+    Finder subfolderField() => find.descendant(
+      of: find.byType(DropdownMenu<String>),
+      matching: find.byType(TextField),
+    );
+
+    testWidgets('a new one inside the folder', (tester) async {
+      final result = await openFile(tester, documents);
+
+      await tester.enterText(subfolderField(), 'work/2026');
+      await tester.tap(find.text('OK'));
+
+      expect(await result, (
+        place: (folder: documents, subfolder: path('work/2026')),
+        name: 'Milk',
+        newSubfolder: true,
+      ));
+    });
+
+    testWidgets('none for the top level', (tester) async {
+      final result = await openFile(tester, documents);
+
+      await tester.enterText(subfolderField(), '');
+      await tester.tap(find.text('OK'));
+
+      expect(await result, (
+        place: (folder: documents, subfolder: null),
+        name: 'Milk',
+        newSubfolder: false,
+      ));
+    });
+
+    testWidgets('one offered, typed, is no new one', (tester) async {
+      final result = await openFile(tester, documents);
+
+      await tester.enterText(subfolderField(), 'work');
+      await tester.tap(find.text('OK'));
+
+      expect(await result, (
+        place: (folder: documents, subfolder: path('work')),
+        name: 'Milk',
+        newSubfolder: false,
+      ));
+    });
+
+    testWidgets('refuses one documents of the folder cannot go to', (
+      tester,
+    ) async {
+      await openFile(tester, documents);
+
+      await tester.enterText(subfolderField(), 'home');
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text("Documents of this folder can't go there."), findsOne);
+
+      await tester.enterText(subfolderField(), '../up');
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text("Documents of this folder can't go there."), findsOne);
+      expect(find.byType(AlertDialog), findsOne);
+    });
+
+    testWidgets('a folder of some subfolders has no top level', (tester) async {
+      await openFile(
+        tester,
+        folderAt(Directory('/w'), selection: Selection.of([path('work')])),
+      );
+
+      await tester.enterText(subfolderField(), '');
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pick or type a subfolder.'), findsOne);
+    });
   });
 }

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
-import '../../sync_tool/base_folder_services.dart';
+import '../../sync_tool/base_folder_following.dart';
 import '../add_folder/ui/add_folder_screen.dart';
 import '../document_folder.dart';
 import '../folder_actions.dart';
@@ -61,9 +61,9 @@ class FoldersScreen extends ConsumerWidget {
 
   /// Where [folder] is, and what it shows there.
   static String _shownOf(DocumentFolder folder) => switch (folder.selection) {
-    WholeFolder() => folder.base.path,
+    WholeFolder() => folder.base.shownAddress,
     Subfolders(:final roots) => [
-      for (final root in roots) '${folder.base.path}/${root.value}',
+      for (final root in roots) '${folder.base.shownAddress}/${root.value}',
     ].join('\n'),
   };
 

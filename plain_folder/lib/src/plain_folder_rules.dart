@@ -15,9 +15,6 @@ final class PlainFolderRules implements SyncAdapter {
   static const _tempSuffix = '.tmp';
 
   @override
-  String get name => 'Plain folder';
-
-  @override
   bool isInternal(RelPath path) =>
       _isTempFile(path.name) ||
       const PlainConflictNames().parse(path.name) != null;

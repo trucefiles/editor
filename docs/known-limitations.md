@@ -97,10 +97,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   app stops in the middle of a save, the temp file stays. Truce hides it but
   never deletes it, as it writes into your folders only when you ask. You
   can delete it yourself.
-- **A chosen subfolder that is gone slows live updates.** If one of a
-  folder's chosen subfolders is gone, Truce checks the whole base folder
-  for changes every few seconds instead of following them live, and the
-  folder's notice says so.
 
 ## Search
 

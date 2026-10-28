@@ -75,10 +75,10 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
         FoldersLoading() => null,
       };
 
-  /// Adds a folder showing [selection] of the base folder at [basePath],
+  /// Adds a folder showing [selection] of the base folder at [address],
   /// synced by the tool [toolId]; the folder added.
   Future<Result<DocumentFolder, FolderError>> add({
-    required String basePath,
+    required Uri address,
     required String toolId,
     required Selection selection,
     required String name,
@@ -86,7 +86,7 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   }) async => switch (await _ask<FolderAdded>(
     (ticket) => AddFolder(
       ticket,
-      basePath: basePath,
+      address: address,
       toolId: toolId,
       selection: selection,
       name: name,

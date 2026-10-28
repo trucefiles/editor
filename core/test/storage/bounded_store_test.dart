@@ -136,6 +136,33 @@ void main() {
     );
   });
 
+  group('createFolder', () {
+    test('creates a folder inside the selection', () async {
+      expect(
+        await store.createFolder(path('work/2026')),
+        isA<Ok<void, StoreError>>(),
+      );
+      expect(files.emptyFolders, {path('work/2026')});
+    });
+
+    test('refuses a folder outside', () async {
+      expect(
+        (await store.createFolder(path('home/2026'))).error,
+        StoreError.outside,
+      );
+      expect(files.emptyFolders, isEmpty);
+    });
+
+    test('never brings back a selected subfolder that is gone', () async {
+      files.files.removeWhere((file, _) => file.value.startsWith('work/'));
+
+      for (final folder in [path('work'), path('work/2026')]) {
+        expect((await store.createFolder(folder)).error, StoreError.notFound);
+      }
+      expect(files.emptyFolders, isEmpty);
+    });
+  });
+
   test('nothing selected touches nothing', () async {
     final none = bounded(Selection.nothing);
 

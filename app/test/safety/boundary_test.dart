@@ -21,7 +21,7 @@ import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_editor/sync_tool/sync_tools.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
 
 import '../support.dart';
@@ -41,9 +41,10 @@ void main() {
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         hostPathsProvider.overrideWithValue(const SameHostPaths()),
-        fileLayerProvider.overrideWithValue(
-          (base, rules) =>
-              spy = SpyFileStore(LocalFileStore(base.path, rules.tempFileName)),
+        syncToolsProvider.overrideWith(
+          (ref) => SyncTools([
+            _SpiedTool(hostSyncthing(), (files) => spy = SpyFileStore(files)),
+          ]),
         ),
       ],
     );
@@ -189,4 +190,55 @@ void main() {
       );
     },
   );
+}
+
+/// [_tool] with each place's files seen through [_spy], below every other
+/// layer.
+final class _SpiedTool implements SyncTool {
+  _SpiedTool(this._tool, this._spy);
+
+  final SyncTool _tool;
+  final FileStore Function(FileStore files) _spy;
+
+  @override
+  String get id => _tool.id;
+
+  @override
+  String get name => _tool.name;
+
+  @override
+  bool isToolFolder(List<String> names) => _tool.isToolFolder(names);
+
+  @override
+  Future<SyncStatus> recognize(Uri address) => _tool.recognize(address);
+
+  @override
+  Future<bool> missesOldVersions(Uri address) =>
+      _tool.missesOldVersions(address);
+
+  @override
+  ToolPlace place(Uri address) => _SpiedPlace(_tool.place(address), _spy);
+}
+
+final class _SpiedPlace implements ToolPlace {
+  _SpiedPlace(this._place, FileStore Function(FileStore files) spy)
+    : files = spy(_place.files);
+
+  final ToolPlace _place;
+
+  @override
+  final FileStore files;
+
+  @override
+  LiveChanges? get changes => _place.changes;
+
+  @override
+  SubfolderNames get subfolders => _place.subfolders;
+
+  @override
+  SyncedFolder open(
+    FileStore store, {
+    required FolderChanges? changes,
+    required FileTypeDetector types,
+  }) => _place.open(store, changes: changes, types: types);
 }
