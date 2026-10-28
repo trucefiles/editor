@@ -258,14 +258,18 @@ final class _Step {
     if (base is! Listed) return;
     var checked = base;
     if (marks != null) checked = checked.copyWith(marks: marks);
-    if (part case Ok(value: final part)) {
-      checked = _mergePart(
-        baseId,
-        checked,
-        part,
-        asked: running.checked!,
-        startedAt: startedAt,
-      );
+    switch (part) {
+      case Ok(value: final part):
+        checked = _mergePart(
+          baseId,
+          checked,
+          part,
+          asked: running.checked!,
+          startedAt: startedAt,
+        );
+      case Err():
+        // What changed there is still unknown: a listing finds it.
+        work = work.copyWith(listDue: {...work.listDue, baseId});
     }
     _setBase(baseId, checked);
   }

@@ -408,8 +408,29 @@ void main() {
         );
 
       expect(run.base('a').seenAt(path('work/x.md')), same(checkedAt));
-      expect(run.base('a').seenAt(path('work/deep/y.md')), same(checkedAt));
+      expect(
+        run.base('a').seenAt(path('work/deep/y.md')),
+        same(listedAt),
+        reason: 'a check looks only directly in its folder',
+      );
       expect(run.base('a').seenAt(path('top.md')), same(listedAt));
+    });
+
+    test('that fail leave a whole listing due', () {
+      final listings = run.listings.length;
+      run
+        ..changed('a', 'work/x.md')
+        ..waited(_settle)
+        ..send(
+          CheckDone(
+            run.checks.last.id,
+            const Err(StoreError.ioFailure),
+            marks: null,
+            startedAt: Moment.now(),
+          ),
+        );
+
+      expect(run.listings, hasLength(listings + 1));
     });
 
     test('put the marks read again in place', () {

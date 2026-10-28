@@ -73,13 +73,10 @@ final class Listed extends BaseState {
   final Map<RelPath?, Moment> checkedAt;
 
   /// When what is known of [path] was seen: the start of the last listing
-  /// or check that saw it, so a write that ended later is not in it.
-  Moment seenAt(RelPath path) {
-    for (RelPath? folder = path.parent; ; folder = folder.parent) {
-      if (checkedAt[folder] case final checked?) return checked;
-      if (folder == null) return listedAt;
-    }
-  }
+  /// or check of its folder, so a write that ended later is not in it. A
+  /// check looks only directly in a folder, so one of a folder above
+  /// tells nothing of [path].
+  Moment seenAt(RelPath path) => checkedAt[path.parent] ?? listedAt;
 
   /// Whether what is at [path] is known: no subfolder above it could not
   /// be read.
