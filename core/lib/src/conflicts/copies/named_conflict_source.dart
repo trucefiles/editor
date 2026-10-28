@@ -1,19 +1,26 @@
 import 'dart:typed_data';
 
-import 'package:truce_core/truce_core.dart';
+import '../../common/result.dart';
+import '../../storage/file_store.dart';
+import '../../storage/rel_path.dart';
+import '../conflict.dart';
+import '../conflict_source.dart';
+import 'conflict_copy_names.dart';
 
-import 'syncthing_conflict_name.dart';
-
-/// Syncthing's conflict copies: files next to their main file, named by
-/// [SyncthingConflictName]. A copy's id is its path, as given by
-/// `groupSyncthingConflicts`.
-final class SyncthingConflictSource implements ConflictSource {
-  const SyncthingConflictSource(this._store, {this._clock = DateTime.now});
+/// Conflict copies kept as files next to their main file, named by
+/// [_names]. A copy's id is its path, as given by `groupConflictCopies`.
+final class NamedConflictSource implements ConflictSource {
+  const NamedConflictSource(
+    this._store,
+    this._names, {
+    this._clock = DateTime.now,
+  });
 
   /// Gives up on a free name after this many seconds' worth of tries.
   static const _maxAttempts = 60;
 
   final FileStore _store;
+  final ConflictCopyNames _names;
   final DateTime Function() _clock;
 
   @override
@@ -40,7 +47,7 @@ final class SyncthingConflictSource implements ConflictSource {
     final now = _clock();
     for (var attempt = 0; attempt < _maxAttempts; attempt++) {
       final at = now.add(Duration(seconds: attempt));
-      final name = SyncthingConflictName.format(mainPath.name, at);
+      final name = _names.format(mainPath.name, at);
       switch (await _store.create(mainPath.sibling(name)!, bytes)) {
         case Ok():
           return const Ok(null);

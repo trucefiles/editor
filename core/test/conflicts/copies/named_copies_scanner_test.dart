@@ -1,20 +1,20 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const copy1 = 'todo.sync-conflict-20261003-134809-4I343AW.md';
-  const copy2 = 'todo.sync-conflict-20261004-080000-ABCDEFG.md';
+  const copy1 = 'todo.fake-copy-20261003-134809.md';
+  const copy2 = 'todo.fake-copy-20261004-080000.md';
 
   late MemoryFileStore store;
-  late SyncthingFolderScanner scanner;
+  late NamedCopiesScanner scanner;
 
   setUp(() {
     store = MemoryFileStore();
-    scanner = SyncthingFolderScanner(
+    scanner = NamedCopiesScanner(
       store,
-      const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
+      const DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes),
+      const FakeCopyNames(),
     );
   });
 
@@ -37,7 +37,7 @@ void main() {
         ..put('lists/a.md', 'a')
         ..put(copy1, 'copy')
         ..put('photo.jpg', 'jpg')
-        ..put('.stversions/todo.md', 'old');
+        ..put('.fake/todo.md', 'old');
 
       final files = (await scanner.scan()).value.files;
 
@@ -52,8 +52,8 @@ void main() {
         ..put('a/b/c/d/deep.md', 'deep')
         ..put('a/b/mid.md', 'mid')
         ..put('a/b/.git/objects/x.md', 'hidden')
-        ..put('a/.stversions/b/old.md', 'old')
-        ..put('a/b/c/.syncthing.d.md.tmp', 'temp');
+        ..put('a/.fake/b/old.md', 'old')
+        ..put('a/b/c/d.md.fake-tmp', 'temp');
 
       final files = (await scanner.scan()).value.files;
 
@@ -67,7 +67,7 @@ void main() {
       store
         ..put('a/b/c/deep.md', 'deep')
         ..put('a/.git/x.md', 'hidden')
-        ..put('.stversions/b/old.md', 'old')
+        ..put('.fake/b/old.md', 'old')
         ..put('photos/cat.jpg', 'jpg')
         ..emptyFolders.add(path('empty/deeper'));
 
@@ -91,7 +91,7 @@ void main() {
         ..put('a/todo.md', 'main')
         ..put('a/$copy1', 'copy')
         ..put('a/photo.jpg', 'jpg')
-        ..put('a/photo.sync-conflict-20261003-134809-4I343AW.jpg', 'copy');
+        ..put('a/photo.fake-copy-20261003-134809.jpg', 'copy');
 
       await scanner.scan();
 
@@ -173,8 +173,8 @@ void main() {
 
     test('skips filtered files and folders', () async {
       store
-        ..put('photo.sync-conflict-20261003-134809-4I343AW.jpg', 'copy')
-        ..put('.stversions/$copy1', 'old')
+        ..put('photo.fake-copy-20261003-134809.jpg', 'copy')
+        ..put('.fake/$copy1', 'old')
         ..put('.hidden/$copy1', 'copy');
 
       expect((await scanner.scan()).value.conflicts, isEmpty);

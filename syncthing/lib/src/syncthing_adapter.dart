@@ -19,7 +19,7 @@ final class SyncthingAdapter implements SyncAdapter {
   bool isInternal(RelPath path) =>
       _hasInternalName(path.value.split('/')) ||
       _isTempFile(path.name) ||
-      SyncthingConflictName.parse(path.name) != null;
+      const SyncthingConflictNames().parse(path.name) != null;
 
   @override
   bool isInternalFolder(List<String> names) => _hasInternalName(names);

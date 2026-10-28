@@ -240,6 +240,45 @@ void main() {
     });
   });
 
+  group('move', () {
+    test('moves an unchanged file, never over another one', () async {
+      await fx.write('a.md', 'a');
+      await fx.write('taken.md', 'other');
+      final version = await fx.versionOf('a.md');
+
+      final taken = await fx.store.move(
+        path('a.md'),
+        path('taken.md'),
+        ifUnchanged: version,
+      );
+      final moved = await fx.store.move(
+        path('a.md'),
+        path('sub/b.md'),
+        ifUnchanged: version,
+      );
+
+      expect(taken.error, StoreError.alreadyExists);
+      expect(fx.textAt('taken.md'), 'other');
+      expect(moved.value.path, path('sub/b.md'));
+      expect(fx.textAt('sub/b.md'), 'a');
+      expect(fx.textAt('a.md'), isNull);
+    });
+
+    test('keeps a changed file where it is', () async {
+      final version = await fx.changedSinceRead('a.md');
+
+      final moved = await fx.store.move(
+        path('a.md'),
+        path('b.md'),
+        ifUnchanged: version,
+      );
+
+      expect(moved.error, StoreError.changedSinceRead);
+      expect(fx.textAt('a.md'), 'changed elsewhere');
+      expect(fx.textAt('b.md'), isNull);
+    });
+  });
+
   test('replace never writes over a folder', () async {
     await fx.write('sub/a.md', 'a');
     final version = (await fx.store.list()).value.files.single.version;

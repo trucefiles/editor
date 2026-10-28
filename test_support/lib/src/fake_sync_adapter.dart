@@ -1,8 +1,11 @@
 import 'package:truce_core/truce_core.dart';
 
+import 'fake_copy_names.dart';
+
 /// A made-up sync tool's file-name rules for tests of generic code: its
-/// own folder is `.fake`, its temp files end in `.fake-tmp`, and it keeps
-/// conflict copies out of the folder ([FakeConflictSource]).
+/// own folder is `.fake`, its temp files end in `.fake-tmp`, and its
+/// conflict copies are named by [FakeCopyNames] (or kept out of the folder,
+/// [FakeConflictSource]).
 final class FakeSyncAdapter implements SyncAdapter {
   const FakeSyncAdapter();
 
@@ -15,7 +18,8 @@ final class FakeSyncAdapter implements SyncAdapter {
   @override
   bool isInternal(RelPath path) =>
       isInternalFolder(path.value.split('/')) ||
-      path.name.endsWith(_tempSuffix);
+      path.name.endsWith(_tempSuffix) ||
+      const FakeCopyNames().parse(path.name) != null;
 
   @override
   bool isInternalFolder(List<String> names) => names.contains(_folder);

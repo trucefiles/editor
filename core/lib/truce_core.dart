@@ -3,18 +3,21 @@
 /// Pure Dart, no UI. The app uses only what this library exports.
 ///
 /// Layers, bottom up:
-/// 1. `storage`: byte-level file access under one folder ([FileStore]).
+/// 1. `storage`: byte-level file access under one folder ([FileStore]),
+///    bounded to what the app may touch in it ([BoundedStore] over a
+///    [Selection]); a sync tool's look outside it ([FolderMarkers]).
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
-/// 3. `sync`: a sync tool's file-name rules ([SyncAdapter]), whether it
-///    syncs a folder ([SyncCheck]) and what to tell the user about a folder
-///    ([FolderNotices]).
+/// 3. `sync`: a sync tool as one plugin ([SyncTool]): its file-name rules
+///    ([SyncAdapter]), whether it syncs a folder ([SyncCheck]) and what to
+///    tell the user about a folder ([FolderNotices]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
 ///    what each type gives lists ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
 ///    whose copies each sync tool keeps in its [ConflictSource], merged per
-///    file type ([ConflictHandler]).
+///    file type ([ConflictHandler]); copies kept as files next to their
+///    main file, by a tool's names ([ConflictCopyNames]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
@@ -53,6 +56,7 @@ export 'src/backups/backup.dart';
 export 'src/backups/file_backups.dart';
 export 'src/changes/fallback_folder_changes.dart';
 export 'src/changes/folder_changes.dart';
+export 'src/changes/merged_folder_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
 export 'src/changes/watched_folder_changes.dart';
 export 'src/common/keyed_task_queue.dart';
@@ -64,6 +68,11 @@ export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
+export 'src/conflicts/copies/conflict_copy_grouping.dart';
+export 'src/conflicts/copies/conflict_copy_names.dart';
+export 'src/conflicts/copies/named_conflict_source.dart';
+export 'src/conflicts/copies/named_copies_scanner.dart';
+export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
 export 'src/documents/editor/editor_book.dart';
 export 'src/documents/editor/editor_contract.dart';
@@ -95,13 +104,17 @@ export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
 export 'src/scans/scans_owner.dart';
+export 'src/storage/bounded_store.dart';
 export 'src/storage/file_store.dart';
-export 'src/storage/folder_names.dart';
+export 'src/storage/folder_markers.dart';
 export 'src/storage/local_file_store.dart';
+export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
+export 'src/storage/selection.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
+export 'src/sync/sync_tool.dart';
 export 'src/text/lines/editable_lines.dart';
 export 'src/text/lines/line.dart';
 export 'src/text/lines/line_change.dart';

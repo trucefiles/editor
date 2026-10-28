@@ -3,27 +3,24 @@ import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:truce_core/src/marks/document_marks_file.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_test_support/truce_test_support.dart' show bytesOf;
 
 void main() {
   final changed = DateTime.utc(2026, 10, 13, 18, 40);
 
   test('round-trips marks, unmarked documents included', () {
-    final marks = <RelPath, StampedMark>{
-      path('a/b.md'): (
-        mark: const DocumentMark(color: 'teal'),
-        changed: changed,
-      ),
-      path('gone.md'): (mark: DocumentMark.none, changed: changed),
+    final marks = <String, StampedMark>{
+      'b.md': (mark: const DocumentMark(color: 'teal'), changed: changed),
+      'gone.md': (mark: DocumentMark.none, changed: changed),
     };
 
     expect(DocumentMarksFile.decode(DocumentMarksFile.encode(marks)), marks);
   });
 
-  test('writes readable JSON sorted by path', () {
+  test('writes readable JSON sorted by name', () {
     final bytes = DocumentMarksFile.encode({
-      path('z.md'): (mark: DocumentMark.none, changed: changed),
-      path('a.md'): (mark: const DocumentMark(color: 'teal'), changed: changed),
+      'z.md': (mark: DocumentMark.none, changed: changed),
+      'a.md': (mark: const DocumentMark(color: 'teal'), changed: changed),
     });
 
     expect(utf8.decode(bytes), '''
@@ -51,13 +48,21 @@ void main() {
       );
 
       expect(decoded, {
-        path('todo.md'): (
-          mark: const DocumentMark(color: 'teal'),
-          changed: changed,
-        ),
+        'todo.md': (mark: const DocumentMark(color: 'teal'), changed: changed),
       });
     },
   );
+
+  test('skips entries for documents in other directories', () {
+    final decoded = DocumentMarksFile.decode(
+      bytesOf(
+        '{"lists/a.md": {"color": "teal", "changed": "2026-10-13T18:40:00Z"},'
+        ' "..": {"color": "teal", "changed": "2026-10-13T18:40:00Z"}}',
+      ),
+    );
+
+    expect(decoded, isEmpty);
+  });
 
   test('skips a mark whose color is not a string', () {
     final decoded = DocumentMarksFile.decode(

@@ -1,26 +1,27 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const copy1 = 'todo.sync-conflict-20261003-134809-4I343AW.md';
+  const copy1 = 'todo.fake-copy-20261003-134809.md';
 
   late MemoryFileStore store;
-  late SyncthingConflictSource source;
+  late NamedConflictSource source;
 
   setUp(() {
     store = MemoryFileStore();
-    source = SyncthingConflictSource(
+    source = NamedConflictSource(
       store,
+      const FakeCopyNames(),
       clock: () => DateTime(2026, 10, 13, 14, 30),
     );
   });
 
   /// The conflicts in [store], as the scan finds them.
-  Future<List<Conflict>> scan() async => (await SyncthingFolderScanner(
+  Future<List<Conflict>> scan() async => (await NamedCopiesScanner(
     store,
-    const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
+    const DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes),
+    const FakeCopyNames(),
   ).scan()).value.conflicts;
 
   group('read and discard', () {
@@ -74,7 +75,7 @@ void main() {
       expect(conflict.mainPath, path('a/b/c/todo.md'));
       expect(
         conflict.copies.single.id,
-        'a/b/c/todo.sync-conflict-20261013-143000.md',
+        'a/b/c/todo.fake-copy-20261013-143000.md',
       );
       expect(store.textOf(conflict.copies.single.id), 'mine');
     });
@@ -83,7 +84,7 @@ void main() {
       await source.add(path('todo.md'), bytesOf('first'));
       await source.add(path('todo.md'), bytesOf('second'));
 
-      expect(store.textOf('todo.sync-conflict-20261013-143001.md'), 'second');
+      expect(store.textOf('todo.fake-copy-20261013-143001.md'), 'second');
     });
   });
 }

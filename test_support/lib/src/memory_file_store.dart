@@ -114,6 +114,13 @@ final class MemoryFileStore implements FileStore {
     return const Ok(null);
   }
 
+  @override
+  Future<Result<FileEntry, StoreError>> move(
+    RelPath from,
+    RelPath to, {
+    required FileVersion ifUnchanged,
+  }) => moveByCopy(this, from, to, ifUnchanged: ifUnchanged);
+
   StoreError? _check(RelPath path, FileVersion expected) {
     if (failWith case final error?) return error;
     final content = files[path];
