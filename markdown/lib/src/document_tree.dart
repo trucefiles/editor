@@ -1,11 +1,5 @@
 import 'package:truce_core/truce_core.dart'
-    show
-        EditableLines,
-        Line,
-        LineChange,
-        LineId,
-        TextLines,
-        byteOrderMarkCharacter;
+    show EditableLines, Line, LineChange, LineId, TextLines;
 
 import 'read/document_reading.dart';
 import 'tree/blocks.dart';
@@ -104,10 +98,10 @@ final class DocumentTree
   @override
   DocumentTree withText(String text) {
     final changed = this.changed(_lines.changeTo(text));
-    final mark = text.startsWith(byteOrderMarkCharacter);
-    return mark == byteOrderMark
+    final lines = changed._lines.withMarkOf(text);
+    return identical(lines, changed._lines)
         ? changed
-        : DocumentTree._(changed._lines.withMark(mark: mark), (
+        : DocumentTree._(lines, (
             root: changed.root,
             definitions: changed.definitions,
             nextBlockId: changed._nextBlockId,

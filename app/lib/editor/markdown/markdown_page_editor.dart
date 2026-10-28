@@ -1,7 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import 'editor_gate.dart';
+import '../editor_gate.dart';
 
 /// The Markdown editor owner behind [gate] as the document page sees it
 /// (core's editor contract). The page's requests go through the gate, so

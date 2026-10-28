@@ -9,14 +9,14 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/editor/lines/line_edit_view.dart';
-import 'package:truce_editor/plain_editor/plain_editor_part.dart';
-import 'package:truce_editor/plain_editor/plain_text.dart';
-import 'package:truce_editor/plain_editor/ui/plain_read_view.dart';
+import 'package:truce_editor/editor/plain/plain_editor_part.dart';
+import 'package:truce_editor/editor/plain/plain_text.dart';
+import 'package:truce_editor/editor/plain/ui/plain_read_view.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
-import '../editor/editor_robot.dart';
-import '../support.dart';
+import '../../support.dart';
+import '../editor_robot.dart';
 
 /// A plain text document's editor owner in memory, as its line editor
 /// gets it: records the texts it sends to be kept.
@@ -162,6 +162,13 @@ void main() {
     expect(find.byType(PlainReadView), findsOne);
     expect(find.byType(SuperEditor), findsNothing);
     expect(part.isEditing, isFalse);
+
+    // It shows the editor's text, not the text as last kept.
+    part.editor.send(
+      const FromFile(Replaced('one\nnew', version: Version(2), ackRev: 0)),
+    );
+    await tester.pump();
+    expect(find.text('one\nnew'), findsOne);
 
     part.showReadOnly(readOnly: false);
     await tester.pumpAndSettle();

@@ -166,7 +166,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     for (final notices in _notices) {
       unawaited(notices.cancel());
     }
-    _part.removeListener(_onPartChanged);
+    _part
+      ..removeListener(_onPartChanged)
+      ..dispose();
     _session
       ..removeListener(_showShownMode)
       ..removeListener(_tellIfStopped);

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
-import '../editor/lines/edited_text.dart';
+import '../lines/edited_text.dart';
 
 /// The text a plain text document's line editor edits: its editor
 /// owner's. Listeners hear of each new state of the owner, until it

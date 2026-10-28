@@ -8,12 +8,18 @@ final class ExtensionFileTypeDetector implements FileTypeDetector {
   /// [types] maps lower-case extensions without the dot, e.g. `md`.
   const ExtensionFileTypeDetector(this._types);
 
-  /// The types of [supports], by their extensions.
-  ExtensionFileTypeDetector.of(Iterable<FileTypeSupport<Object?>> supports)
-    : this({
-        for (final support in supports)
-          for (final extension in support.extensions) extension: support.type,
-      });
+  /// The types of [supports], by their extensions; no two share one.
+  factory ExtensionFileTypeDetector.of(
+    Iterable<FileTypeSupport<Object?>> supports,
+  ) {
+    final extensions = [
+      for (final support in supports)
+        for (final extension in support.extensions) (extension, support.type),
+    ];
+    final types = {for (final (extension, type) in extensions) extension: type};
+    assert(types.length == extensions.length, 'two types share an extension');
+    return ExtensionFileTypeDetector(types);
+  }
 
   final Map<String, FileType> _types;
 

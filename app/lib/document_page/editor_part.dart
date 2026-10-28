@@ -77,4 +77,7 @@ abstract interface class EditorPart implements Listenable {
 
   /// The type's keys while the document can be edited.
   Map<SingleActivator, VoidCallback> get keys;
+
+  /// The page is gone; its editor is closed with the page's session.
+  void dispose();
 }

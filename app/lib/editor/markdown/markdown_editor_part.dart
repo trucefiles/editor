@@ -3,20 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import '../document_page/editor_part.dart';
-import '../documents/document_files.dart';
-import '../documents/document_images.dart';
-import '../documents/document_settings.dart';
-import '../documents/ui/checked_items_dialog.dart';
-import '../documents/ui/edit_mode_button.dart';
-import '../markdown/markdown_links.dart';
-import 'add_item_place/add_item_place.dart';
-import 'add_item_place/add_item_place_controller.dart';
-import 'document_editor.dart';
-import 'editor_gate.dart';
-import 'first_mode.dart';
+import '../../document_page/editor_part.dart';
+import '../../documents/document_files.dart';
+import '../../documents/document_images.dart';
+import '../../documents/document_settings.dart';
+import '../../documents/ui/checked_items_dialog.dart';
+import '../../documents/ui/edit_mode_button.dart';
+import '../../markdown/markdown_links.dart';
+import '../add_item_place/add_item_place.dart';
+import '../add_item_place/add_item_place_controller.dart';
+import '../document_editor.dart';
+import '../editor_gate.dart';
+import '../first_mode.dart';
+import '../run_command.dart';
 import 'markdown_page_editor.dart';
-import 'run_command.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
 /// behind a gate, in the mode the user picked (remembered on this device)

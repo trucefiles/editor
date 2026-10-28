@@ -69,6 +69,36 @@ void main() {
     );
   });
 
+  test('once stopped, its text is the latest edits, also those the editor '
+      'still held', () async {
+    var broken = false;
+    late DocumentSession session;
+
+    await runZonedGuarded(() async {
+      session = markdownSession(
+        FileEffects(
+          ExistingFile(fixture.document),
+          filesOf: (folder) =>
+              broken ? throw StateError('bug') : fixture.files[folder.id]!,
+          draftsOf: (folder) => fixture.drafts[folder.id]!,
+          create: (_, {required title, required text}) =>
+              throw StateError('bug'),
+        ),
+      )..type('a ');
+      // Sent at the typing pause: kept as a draft, not yet in the file.
+      await eventually(() async => !session.editor.state.unsent);
+      broken = true;
+      session
+        ..type('mine ')
+        ..saveNow();
+      await pumpEventQueue();
+    }, (_, _) {});
+    addTearDown(session.dispose);
+
+    expect(session.stopped, isTrue);
+    expect(session.text, 'a mine one\n');
+  });
+
   test('typing tells listeners the edits are being edited, at once', () {
     final session = fixture.session(fixture.newFile);
     final states = <SaveState>[];

@@ -3,7 +3,7 @@ import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/documents/document_version.dart';
 import 'package:truce_editor/editor/editor_gate.dart';
-import 'package:truce_editor/editor/markdown_page_editor.dart';
+import 'package:truce_editor/editor/markdown/markdown_page_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 /// A session on the Markdown document whose file [effects] reads and

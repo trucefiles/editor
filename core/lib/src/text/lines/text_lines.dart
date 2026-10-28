@@ -175,14 +175,15 @@ final class TextLines implements EditableLines<TextLines> {
 
   /// These lines with [text] instead (see [changeTo]).
   @override
-  TextLines withText(String text) =>
-      changed(changeTo(text))
-          .withMark(mark: text.startsWith(byteOrderMarkCharacter));
+  TextLines withText(String text) => changed(changeTo(text)).withMarkOf(text);
 
-  /// These lines, starting with a byte order mark if [mark].
-  TextLines withMark({required bool mark}) => mark == byteOrderMark
-      ? this
-      : TextLines._(lines, _nextLineId, byteOrderMark: mark);
+  /// These lines, starting with a byte order mark if [text] does.
+  TextLines withMarkOf(String text) {
+    final mark = text.startsWith(byteOrderMarkCharacter);
+    return mark == byteOrderMark
+        ? this
+        : TextLines._(lines, _nextLineId, byteOrderMark: mark);
+  }
 
   static String _withoutMark(String text) =>
       text.startsWith(byteOrderMarkCharacter) ? text.substring(1) : text;

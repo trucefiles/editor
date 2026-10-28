@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
-import '../document_page/editor_part.dart';
-import '../documents/document_settings.dart';
-import '../editor/lines/line_edit_view.dart';
+import '../../document_page/editor_part.dart';
+import '../../documents/document_settings.dart';
+import '../lines/line_edit_view.dart';
 import 'plain_page_editor.dart';
 import 'plain_text.dart';
 import 'ui/plain_look.dart';
@@ -39,10 +39,15 @@ final class PlainEditorPart extends ChangeNotifier implements EditorPart {
   @override
   void settingsChanged(DocumentSettings settings) {}
 
-  /// While read only, the text as last kept.
+  /// While read only, the editor's text, its latest edits too (they may
+  /// not be kept yet).
   @override
   Widget view(EditorPlace place, {required bool autofocus}) => _readOnly
-      ? PlainReadView(place.kept, key: const ValueKey(#read))
+      ? ListenableBuilder(
+          key: const ValueKey(#read),
+          listenable: _text,
+          builder: (_, _) => PlainReadView(_text.shown.text),
+        )
       : LineEditView<TextLines>(
           _text,
           key: const ValueKey(#edit),

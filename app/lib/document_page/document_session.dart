@@ -63,6 +63,9 @@ final class DocumentSession extends ChangeNotifier {
   /// holds every edit.
   int _lastKeeps = 0;
 
+  /// The text of the last draft started since [stopped].
+  String? _lastDraft;
+
   /// Where the file is.
   DocumentFile get file => switch (document) {
     final document? => ExistingFile(document),
@@ -79,8 +82,9 @@ final class DocumentSession extends ChangeNotifier {
   /// Where the document stands against its file.
   FileStatus get status => _file.state.status;
 
-  /// The edits as last sent to be kept, and their rev.
-  String get text => _file.state.text;
+  /// The edits as last sent to be kept, and their rev. Once [stopped],
+  /// the text kept as the last draft: the latest edits.
+  String get text => _lastDraft ?? _file.state.text;
   int get rev => _file.state.rev;
 
   SaveState get saveState => saveStateOf(status, unsent: editor.state.unsent);
@@ -167,6 +171,7 @@ final class DocumentSession extends ChangeNotifier {
   }
 
   void _keepLastDraft(String text) {
+    _lastDraft = text;
     final keep = ++_lastKeeps;
     unawaited(
       _effects.keepLastDraft(text).then((kept) {

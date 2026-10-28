@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
 import '../sync_tool/folder_services.dart';
 import 'document.dart';
@@ -57,9 +58,10 @@ final class DocumentFiles {
     String? text,
   }) async {
     final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
-    final created = await _createNamed(title, '.md', subfolder, file);
+    final extension = newDocumentType.newFileExtension;
+    final created = await _createNamed(title, extension, subfolder, file);
     if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      return _createNamed(title, '.md', null, file);
+      return _createNamed(title, extension, null, file);
     }
     return created;
   }

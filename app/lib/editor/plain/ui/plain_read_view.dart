@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../editor/document_text_styles.dart';
+import '../../document_text_styles.dart';
 
 /// A plain [text] to read, as written, in the document's body text;
 /// selectable.

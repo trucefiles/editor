@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../editor/document_metrics.dart';
-import '../../editor/document_text_styles.dart';
-import '../../editor/library/editor_look.dart';
+import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
+import '../../library/editor_look.dart';
 
 /// How a plain text looks while edited in [theme]: every line in the
 /// document's body text, nothing styled.

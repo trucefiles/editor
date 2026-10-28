@@ -15,4 +15,12 @@ void main() {
       expect(detector.detect(path(raw)), isNull, reason: raw);
     }
   });
+
+  test('two types may not share an extension', () {
+    expect(
+      () =>
+          ExtensionFileTypeDetector.of(const [FakeFileType(), FakeFileType()]),
+      throwsA(isA<AssertionError>()),
+    );
+  });
 }
