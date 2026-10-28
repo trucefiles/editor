@@ -9,9 +9,9 @@ import '../folders/document_folder.dart';
 import 'document_files.dart';
 
 /// The images the document at [document] in [folder] shows: a web image from its
-/// url, and an image in the folder by its link relative to the document, read
-/// through [files]. Any other image (another scheme, outside the folder)
-/// doesn't show.
+/// url, and an image in its base folder by its link relative to the document,
+/// read through [files]. Any other image (another scheme, outside what the
+/// folders show) doesn't show.
 DocumentImages documentImages(
   DocumentFiles files, {
   required DocumentFolder folder,
@@ -20,19 +20,19 @@ DocumentImages documentImages(
   final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
   if (scheme == 'http' || scheme == 'https') return NetworkImage(url);
   return switch (document.linked(url)) {
-    final path? => FolderImage(folder.id, path, files.bytesOf),
+    final path? => FolderImage(folder.base.id, path, files.bytesOf),
     null => null,
   };
 };
 
-/// The image in the file at [path] of the folder [folder], whose bytes
+/// The image in the file at [path] of the base folder [baseId], whose bytes
 /// [read] gives. Equal to another of the same file, so the image cache
 /// decodes it once.
 @immutable
 final class FolderImage extends ImageProvider<FolderImage> {
-  const FolderImage(this.folder, this.path, this.read);
+  const FolderImage(this.baseId, this.path, this.read);
 
-  final String folder;
+  final String baseId;
   final RelPath path;
   final Future<Uint8List?> Function(RelPath path) read;
 
@@ -58,8 +58,8 @@ final class FolderImage extends ImageProvider<FolderImage> {
 
   @override
   bool operator ==(Object other) =>
-      other is FolderImage && other.folder == folder && other.path == path;
+      other is FolderImage && other.baseId == baseId && other.path == path;
 
   @override
-  int get hashCode => Object.hash(folder, path);
+  int get hashCode => Object.hash(baseId, path);
 }

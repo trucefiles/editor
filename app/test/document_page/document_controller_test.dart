@@ -216,7 +216,7 @@ void main() {
             ExistingFile(fixture.document),
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,
-            create: (_, {required title, required text}) =>
+            create: (_, {required type, required title, required text}) =>
                 throw StateError('bug'),
           ),
         );

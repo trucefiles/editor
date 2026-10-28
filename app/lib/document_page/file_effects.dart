@@ -6,12 +6,15 @@ import '../documents/document_drafts.dart';
 import '../documents/document_files.dart';
 import '../documents/document_place.dart';
 import '../documents/document_version.dart';
+import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import 'document_file.dart';
 
-/// Creates a document's file holding [text] at [place], named after [title].
+/// Creates a document's file of [type] holding [text] at [place], named
+/// after [title].
 typedef CreateNote = Future<Result<Document, StoreError>> Function(
   DocumentPlace place, {
+  required DocumentType type,
   required String title,
   required String text,
 });
@@ -95,7 +98,7 @@ final class FileEffects {
     _file = to;
     final draft = _draft;
     if (draft == null) return;
-    if (from.folder.id != to.folder.id) {
+    if (from.folder.base != to.folder.base) {
       // Not awaited: the queue of the draft's id keeps the order.
       _draftsOf(from.folder).remove(_draftId);
     }
@@ -173,6 +176,7 @@ final class FileEffects {
     if (file is! NewFile) return const WriteFailed();
     return switch (await _create(
       file.place,
+      type: file.type,
       title: file.titleFor(text),
       text: text,
     )) {

@@ -7,8 +7,8 @@ import '../storage/app_storage.dart';
 import '../storage/json_file.dart';
 import 'document_draft.dart';
 
-/// The drafts of one folder's documents, one JSON file each in app storage.
-/// Per device and never synced.
+/// The drafts of one base folder's documents, one JSON file each in app
+/// storage. Per device and never synced.
 final class DocumentDrafts {
   DocumentDrafts(this._folder);
 
@@ -54,12 +54,20 @@ final class DocumentDrafts {
     }
   });
 
-  /// Deletes every draft, once their folder is removed from the app.
-  Future<void> clear() async {
-    try {
-      await _folder.delete(recursive: true);
-    } on FileSystemException {
-      // None yet, or tried again when the folder is removed again.
+  /// Deletes the drafts of the documents [under] covers, as the user
+  /// removes the folder that showed them: no edit is recovered into it.
+  /// With the whole base folder, every draft goes, also unreadable ones.
+  Future<void> removeUnder(Selection under) async {
+    if (under is WholeFolder) {
+      try {
+        await _folder.delete(recursive: true);
+      } on FileSystemException {
+        // None yet, or tried again when the folder is removed again.
+      }
+      return;
+    }
+    for (final draft in await all(before: DateTime(9999))) {
+      if (under.covers(draft.path)) await remove(draft.id);
     }
   }
 
@@ -72,9 +80,9 @@ final class DocumentDrafts {
       };
 }
 
-/// The drafts of the folder with this id.
+/// The drafts of the base folder with this id.
 final documentDraftsProvider = Provider.family<DocumentDrafts, String>(
-  (ref, folderId) => DocumentDrafts(
-    Directory(ref.watch(appStorageProvider).draftsPath(folderId)),
+  (ref, baseId) => DocumentDrafts(
+    Directory(ref.watch(appStorageProvider).draftsPath(baseId)),
   ),
 );

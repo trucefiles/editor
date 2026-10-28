@@ -3,22 +3,26 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_type.dart';
 import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
 import 'document_file_name.dart';
 
-/// Reads and writes single document files in one folder. Every write is atomic
-/// and checks that the file did not change since it was read.
+/// Reads and writes single document files in one folder, through its base
+/// folder's services. Every write is atomic and checks that the file did
+/// not change since it was read. A path the folder doesn't show, or of a
+/// type the app doesn't handle, is refused with [StoreError.outside].
 final class DocumentFiles {
-  const DocumentFiles(this._folder, this._services);
+  const DocumentFiles(this._folder, this._services, this._types);
 
   /// Gives up on a unique name after this many tries.
   static const _maxAttempts = 100;
 
   final DocumentFolder _folder;
-  final FolderServices _services;
+  final BaseFolderServices _services;
+  final DocumentTypes _types;
 
   FileStore get _store => _services.store;
 
@@ -34,13 +38,18 @@ final class DocumentFiles {
         Err() => null,
       };
 
-  /// The document in the file at [path].
+  /// The document in the file at [path], e.g. kept from before its
+  /// folder changed: refused if the folder doesn't show it.
   Future<Result<Document, StoreError>> open(RelPath path) async {
+    final type = _types.of(path);
+    if (type == null || !_folder.covers(path)) {
+      return const Err(StoreError.outside);
+    }
     final read = await _store.read(path);
     return switch (read) {
       Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
         final file? => Ok(
-          _document(path, file, content.version, content.modified),
+          _document(path, type, file, content.version, content.modified),
         ),
         null => const Err(StoreError.ioFailure),
       },
@@ -48,28 +57,38 @@ final class DocumentFiles {
     };
   }
 
-  /// New document in [subfolder] (the folder's root if `null`), named after
-  /// [title], holding [text]; by default a `# title` line. If [subfolder]
-  /// is gone, the document goes to the folder's top level: it is kept, and the
-  /// deleted folder never comes back.
+  /// New document of [type] in [subfolder] (the base folder's top level
+  /// if `null`), named after [title], holding [text]; by default a
+  /// `# title` line. If [subfolder] is gone, the document goes to the top
+  /// of the folder's part that held it: it is kept, and the deleted
+  /// folder never comes back.
   Future<Result<Document, StoreError>> create(
     String title, {
+    required DocumentType type,
     RelPath? subfolder,
     String? text,
   }) async {
     final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
-    final extension = newDocumentType.newFileExtension;
+    final extension = type.newFileExtension;
     final created = await _createNamed(title, extension, subfolder, file);
     if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      return _createNamed(title, extension, null, file);
+      final top = _topOf(subfolder);
+      if (top != subfolder) return _createNamed(title, extension, top, file);
     }
     return created;
   }
 
-  /// A copy of [document], from any folder, holding [text] in [document]'s byte
-  /// style, in [subfolder] of this folder (its root if `null`); named
-  /// after [title] (by default [document]'s name) with [document]'s extension, and
-  /// a number if that name is taken.
+  /// The top of the folder's part that holds [subfolder]: the base
+  /// folder's top level (`null`) or a selected subfolder.
+  RelPath? _topOf(RelPath subfolder) => switch (_folder.selection) {
+    WholeFolder() => null,
+    final Subfolders subfolders => subfolders.rootOf(subfolder),
+  };
+
+  /// A copy of [document], from any folder, holding [text] in
+  /// [document]'s byte style, in [subfolder] (the base folder's top level
+  /// if `null`); named after [title] (by default [document]'s name) with
+  /// [document]'s extension, and a number if that name is taken.
   Future<Result<Document, StoreError>> copyIn(
     Document document,
     String text, {
@@ -85,6 +104,26 @@ final class DocumentFiles {
     );
   }
 
+  /// Moves [document]'s file, as last saved, from anywhere in this base
+  /// folder to [subfolder] (its top level if `null`); named after [title]
+  /// (by default [document]'s name) with [document]'s extension, and a
+  /// number if that name is taken. Fails with [StoreError.changedSinceRead]
+  /// if the file changed since [document] was read: nothing moved.
+  Future<Result<Document, StoreError>> moveIn(
+    Document document, {
+    RelPath? subfolder,
+    String? title,
+  }) {
+    final (:base, :extension) = splitFileName(document.path.name);
+    return _named(
+      title ?? base,
+      extension,
+      subfolder,
+      (path) => _store.move(document.path, path, ifUnchanged: document.version),
+      document.file,
+    );
+  }
+
   /// Fails with [StoreError.notFound] if [subfolder] is gone: the store
   /// would create it, and a deleted folder never comes back.
   Future<Result<Document, StoreError>> _createNamed(
@@ -92,11 +131,30 @@ final class DocumentFiles {
     String extension,
     RelPath? subfolder,
     TextFile file,
+  ) {
+    final bytes = file.encode(file.text);
+    return _named(
+      title,
+      extension,
+      subfolder,
+      (path) => _store.create(path, bytes),
+      file,
+    );
+  }
+
+  /// Writes [file] by [write] at the first free name after [title] in
+  /// [subfolder]. Fails with [StoreError.notFound] if [subfolder] is gone:
+  /// the store would create it, and a deleted folder never comes back.
+  Future<Result<Document, StoreError>> _named(
+    String title,
+    String extension,
+    RelPath? subfolder,
+    Future<Result<FileEntry, StoreError>> Function(RelPath path) write,
+    TextFile file,
   ) async {
     if (subfolder != null && !await _hasFolder(subfolder)) {
       return const Err(StoreError.notFound);
     }
-    final bytes = file.encode(file.text);
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
       final name = documentFileName(
         title,
@@ -106,7 +164,7 @@ final class DocumentFiles {
       final path = subfolder == null
           ? RelPath.parse(name)!
           : subfolder.child(name)!;
-      switch (await _store.create(path, bytes)) {
+      switch (await write(path)) {
         case Ok(value: final entry):
           return Ok(_documentAt(entry, file));
         case Err(error: StoreError.alreadyExists):
@@ -221,17 +279,25 @@ final class DocumentFiles {
       _store.delete(document.path, ifUnchanged: document.version);
 
   /// The document just written as [entry], holding [file].
-  Document _documentAt(FileEntry entry, TextFile file) =>
-      _document(entry.path, file, entry.version, entry.modified);
+  /// Only ever of a handled type: the store writes nothing else.
+  Document _documentAt(FileEntry entry, TextFile file) => _document(
+    entry.path,
+    _types.of(entry.path)!,
+    file,
+    entry.version,
+    entry.modified,
+  );
 
   Document _document(
     RelPath path,
+    DocumentType type,
     TextFile file,
     FileVersion version,
     DateTime modified,
   ) => Document(
     folder: _folder,
     path: path,
+    type: type,
     file: file,
     version: version,
     modified: modified,
@@ -239,6 +305,9 @@ final class DocumentFiles {
 }
 
 final documentFilesProvider = Provider.family<DocumentFiles, DocumentFolder>(
-  (ref, folder) =>
-      DocumentFiles(folder, ref.watch(folderServicesProvider(folder.location))),
+  (ref, folder) => DocumentFiles(
+    folder,
+    ref.watch(baseFolderServicesProvider(folder.base)),
+    ref.watch(documentTypesProvider),
+  ),
 );

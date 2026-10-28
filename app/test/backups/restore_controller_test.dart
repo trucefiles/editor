@@ -11,7 +11,7 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';
 
@@ -30,8 +30,8 @@ void main() {
     );
     addTearDown(container.dispose);
     final folder = folderAt(dir);
-    await container.read(folderSettingsStoreProvider).save([folder]);
-    backups = container.read(folderServicesProvider(folder.location)).backups;
+    await container.read(folderListStoreProvider).save([folder]);
+    backups = container.read(baseFolderServicesProvider(folder.base)).backups;
   });
 
   File document() => File('${dir.path}/todo.md');
@@ -84,7 +84,7 @@ void main() {
 
     final listed = await container.read(allBackupsProvider.future);
 
-    expect(listed.single.folder.path, dir.path);
+    expect(listed.single.folder.base.path, dir.path);
     expect(listed.single.backup.filePath, path('todo.md'));
   });
 

@@ -27,12 +27,17 @@ final class DocumentFixture {
       folders,
       {
         for (final folder in folders)
-          folder.id: DocumentFiles(folder, servicesFor(folder)),
+          folder.id: DocumentFiles(
+            folder,
+            servicesFor(folder),
+            appDocumentTypes(),
+          ),
       },
       {for (final folder in folders) folder.id: tempDrafts()},
     );
     fixture.document = (await fixture.files['f1']!.create(
       'a',
+      type: appDocumentTypes().forNew,
       text: 'one\n',
     )).value;
     return fixture;
@@ -51,8 +56,13 @@ final class DocumentFixture {
     file,
     filesOf: (folder) => files[folder.id]!,
     draftsOf: (folder) => drafts[folder.id]!,
-    create: (place, {required title, required text}) => files[place.folder.id]!
-        .create(title, subfolder: place.subfolder, text: text),
+    create: (place, {required type, required title, required text}) =>
+        files[place.folder.id]!.create(
+          title,
+          type: type,
+          subfolder: place.subfolder,
+          text: text,
+        ),
   );
 
   /// A session on [file], by default on [document]; disposed after the test.
@@ -63,7 +73,10 @@ final class DocumentFixture {
   }
 
   /// A new document going to the top of folder `f1`.
-  NewFile get newFile => NewFile((folder: folders[0], subfolder: null));
+  NewFile get newFile => NewFile((
+    folder: folders[0],
+    subfolder: null,
+  ), type: appDocumentTypes().forNew);
 
   /// The text of the file at [name] in folder [index]; `null` if none.
   String? onDisk(String name, {int index = 0}) {

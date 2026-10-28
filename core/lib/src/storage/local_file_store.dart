@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../common/keyed_task_queue.dart';
 import '../common/result.dart';
 import 'file_store.dart';
+import 'move_by_copy.dart';
 import 'rel_path.dart';
 
 /// [FileStore] on the local file system (`dart:io`), for platforms where
@@ -115,6 +116,14 @@ final class LocalFileStore implements FileStore {
     await _checkUnchanged(file, ifUnchanged);
     await file.delete();
   });
+
+  /// By copy, as `dart:io` has no rename that refuses to overwrite.
+  @override
+  Future<Result<FileEntry, StoreError>> move(
+    RelPath from,
+    RelPath to, {
+    required FileVersion ifUnchanged,
+  }) => moveByCopy(this, from, to, ifUnchanged: ifUnchanged);
 
   /// Runs [action] guarded; while [replacesInPlace], after every earlier
   /// read or write of [path] that runs in turn.

@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
-import '../../sync_tool/folder_services.dart';
+import '../../sync_tool/base_folder_services.dart';
+import '../add_folder/ui/add_folder_screen.dart';
 import '../document_folder.dart';
 import '../folder_actions.dart';
 import '../folders_controller.dart';
-import 'add_folder_error_text.dart';
 import 'folder_badge.dart';
-import 'folder_edit_dialog.dart';
+import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
-import 'settings_error_text.dart';
+import 'folder_settings_screen.dart';
 
 /// Opens the [FoldersScreen]. Notices can change while the app runs (e.g.
 /// watching a folder failed), so they are checked again first.
@@ -23,7 +23,7 @@ Future<void> openFoldersScreen(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Lists the folders on this device: add, rename, recolor, remove.
+/// Lists the folders on this device: add, change, remove.
 class FoldersScreen extends ConsumerWidget {
   const FoldersScreen({super.key});
 
@@ -45,7 +45,7 @@ class FoldersScreen extends ConsumerWidget {
               title: Text(folder.name),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(folder.path), FolderNoticesView(folder)],
+                children: [Text(_shownOf(folder)), FolderNoticesView(folder)],
               ),
               onTap: () => _edit(context, ref, folder),
               trailing: IconButton(
@@ -59,18 +59,22 @@ class FoldersScreen extends ConsumerWidget {
     );
   }
 
+  /// Where [folder] is, and what it shows there.
+  static String _shownOf(DocumentFolder folder) => switch (folder.selection) {
+    WholeFolder() => folder.base.path,
+    Subfolders(:final roots) => [
+      for (final root in roots) '${folder.base.path}/${root.value}',
+    ].join('\n'),
+  };
+
   Future<void> _edit(
     BuildContext context,
     WidgetRef ref,
     DocumentFolder folder,
-  ) async {
-    final changed = await showFolderEditDialog(context, folder);
-    if (changed == null) return;
-    final saved = await ref.read(folderActionsProvider).change(changed);
-    if (saved case Err(:final error) when context.mounted) {
-      showSnack(context, error.text);
-    }
-  }
+  ) => Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => FolderSettingsScreen(folder)),
+  );
 
   Future<void> _remove(
     BuildContext context,
@@ -111,8 +115,7 @@ class FoldersScreen extends ConsumerWidget {
       false;
 }
 
-/// Makes sure the app may open folders, lets the user pick one and adds
-/// it.
+/// Makes sure the app may open folders, then adds one step by step.
 Future<void> addFolder(BuildContext context, WidgetRef ref) async {
   final actions = ref.read(folderActionsProvider);
   if (!await actions.hasAccess()) {
@@ -121,10 +124,11 @@ Future<void> addFolder(BuildContext context, WidgetRef ref) async {
     }
     return;
   }
-  final added = await actions.pickAndAdd();
-  if (added case Err(:final error) when context.mounted) {
-    showSnack(context, error.text);
-  }
+  if (!context.mounted) return;
+  await Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => const AddFolderScreen()),
+  );
 }
 
 /// Explains why the app needs all-files access; `true` to continue.

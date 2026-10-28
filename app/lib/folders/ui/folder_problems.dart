@@ -8,13 +8,15 @@ import '../../scan/folder_scans_controller.dart';
 import '../document_folder.dart';
 
 /// One row per folder that [scans] could not read in full: folders that
-/// failed, with a retry, and folders with subfolders that can't be read.
+/// failed, with a retry, folders with subfolders that can't be read, and
+/// folders whose chosen subfolders are gone.
 class FolderProblems extends ConsumerWidget {
   const FolderProblems(this.scans, {required this.folders, super.key});
 
   final FolderScans scans;
 
-  /// The folders the user added, for the names of [FolderScans.unreadable].
+  /// The folders the user added, for the names of [FolderScans.unreadable]
+  /// and [FolderScans.gone].
   final List<DocumentFolder> folders;
 
   @override
@@ -38,6 +40,19 @@ class FolderProblems extends ConsumerWidget {
             title: Text(folder.name),
             subtitle: Text(
               "${_names(subfolders)} can't be read, so the documents there aren't shown.",
+            ),
+          ),
+      for (final folder in folders)
+        if (scans.gone[folder.id] case final subfolders?)
+          ListTile(
+            leading: const Icon(Icons.folder_off_outlined),
+            title: Text(folder.name),
+            subtitle: Text(
+              subfolders.length == 1
+                  ? '${_names(subfolders)} is gone. Change the folder to '
+                        'pick another one.'
+                  : '${_names(subfolders)} are gone. Change the folder to '
+                        'pick others.',
             ),
           ),
     ],

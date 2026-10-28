@@ -27,6 +27,8 @@ import '../../documents/ui/pin_or_color_sheet.dart';
 import '../../editor/ui/history_buttons.dart';
 import '../../file_types/document_types.dart';
 import '../../folders/document_folder.dart';
+import '../../folders/folder_lookup.dart';
+import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
@@ -38,6 +40,7 @@ import '../document_file.dart';
 import '../document_session.dart';
 import '../editor_part.dart';
 import '../file_effects.dart';
+import '../open_documents.dart';
 import 'document_backups.dart';
 import 'document_place_chip.dart';
 import 'edit_state_banner.dart';
@@ -73,6 +76,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   late final DocumentController _controller;
   late final AppLifecycleListener _lifecycle;
   late final List<StreamSubscription<Object>> _notices;
+  late final void Function() _leaveOpenDocuments;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
@@ -102,35 +106,34 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     };
     final file = switch ((document, widget.place)) {
       (final document?, _) => ExistingFile(document),
-      (_, final place?) => NewFile(place),
+      (_, final place?) => NewFile(
+        place,
+        type: ref.read(documentTypesProvider).forNew,
+      ),
       _ => throw StateError('A document or a place is needed.'),
     };
     final opened = document?.seen;
-    _part =
-        switch (document) {
-          final document? => documentTypes.of(document.path),
-          null => newDocumentType,
-        }.editorPart(
-          (
-            text: opened?.text ?? '',
-            version: opened?.version,
-            settings: settings,
-            // Not yet kept as a conflict copy: only an unreachable folder
-            // makes it read only.
-            readOnly: _unreachable(file.folder),
-            isNew: document == null,
-          ),
-          EditorPage(
-            keepSettings: (change) => _controller.keepSettings(change),
-            withFile: _withFile,
-          ),
-        );
+    _part = file.type.editorPart(
+      (
+        text: opened?.text ?? '',
+        version: opened?.version,
+        settings: settings,
+        // Not yet kept as a conflict copy: only an unreachable folder
+        // makes it read only.
+        readOnly: _unreachable(file.folder),
+        isNew: document == null,
+      ),
+      EditorPage(
+        keepSettings: (change) => _controller.keepSettings(change),
+        withFile: _withFile,
+      ),
+    );
     _session = DocumentSession(
       FileEffects(
         file,
         filesOf: (folder) => _container.read(documentFilesProvider(folder)),
         draftsOf: (folder) =>
-            _container.read(documentDraftsProvider(folder.id)),
+            _container.read(documentDraftsProvider(folder.base.id)),
         create: ref.read(documentActionsProvider).create,
       ),
       _part.editor,
@@ -138,7 +141,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     _controller = DocumentController(
       _session,
       reachSettled: () =>
-          ref.read(folderReachProvider(_folder.location).notifier).settled(),
+          ref.read(folderReachProvider(_folder.base).notifier).settled(),
       backUp: _backUp,
       canEdit: () => !_isReadOnly,
       delete: ref.read(documentActionsProvider).delete,
@@ -152,6 +155,12 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       _session.editorNotices.listen(_onEditorNotice),
       _session.fileNotices.listen(_onFileNotice),
     ];
+    _leaveOpenDocuments = ref
+        .read(openDocumentsProvider)
+        .add(
+          base: () => _folder.base,
+          secure: () => _session.secure(SecureReason.hide),
+        );
     _lifecycle = AppLifecycleListener(
       onHide: () => unawaited(_session.secure(SecureReason.hide)),
       onExitRequested: _onExitRequested,
@@ -174,10 +183,13 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ..removeListener(_tellIfStopped);
     _controller.dispose();
     final session = _session;
+    final leaveOpenDocuments = _leaveOpenDocuments;
     // Also after a leave that kept the edits: the screen may also go
-    // without one (its route removed), and a second answer is quick.
+    // without one (its route removed), and a second answer is quick. It
+    // stays an open document until then, so a folder change waits for it.
     unawaited(
       session.secure(SecureReason.close).whenComplete(() {
+        leaveOpenDocuments();
         session.dispose();
         unawaited(_scans.refresh());
       }),
@@ -302,6 +314,32 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     return discard ?? false;
   }
 
+  /// Closes once no folder shows the document any more: its edits were
+  /// saved before (see `FolderListWork.secureOpen`). As the user narrowed
+  /// its folder, what is left stays on this device; as they removed it,
+  /// its drafts go with it, so the hint promises nothing.
+  void _closeIfNotShown(List<DocumentFolder> folders) {
+    final path = _session.file.pathFor(_session.text);
+    if (folders.folderOf(_folder.base.id, path) != null) return;
+    final removed = !folders.any((folder) => folder.id == _folder.id);
+    ScaffoldMessenger.of(context).showHint(
+      removed
+          ? 'The folder was removed, so the document closed.'
+          : 'The document is no longer in a folder shown here. Your edits '
+                'are kept.',
+    );
+    _closeWithAllOnTop();
+  }
+
+  /// Closes the editor and every screen or dialog open on top of it.
+  void _closeWithAllOnTop() {
+    final route = mounted ? ModalRoute.of(context) : null;
+    if (route == null || !route.isActive) return;
+    Navigator.of(context)
+      ..popUntil((top) => top == route)
+      ..pop();
+  }
+
   /// Closes the editor if it is still the top screen (the user may have
   /// left it meanwhile).
   void _close() {
@@ -418,7 +456,11 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     await openDocumentBackups(
       context,
       document: document,
-      title: documentTitle(text, _session.file.pathFor(text)),
+      title: documentTitle(
+        text,
+        _session.file.pathFor(text),
+        _session.file.type,
+      ),
       controller: _controller,
       messenger: messenger,
     );
@@ -427,7 +469,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   @override
   Widget build(BuildContext context) {
     ref
-      ..listen(folderReachProvider(_folder.location), (_, _) {
+      ..listen(folderReachProvider(_folder.base), (_, _) {
         _showShownMode();
       })
       ..listen(documentSettingsProvider, (_, _) {
@@ -435,6 +477,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       })
       ..listen(folderScansProvider, (_, next) {
         if (next.value case final scans?) _session.observe(scans);
+      })
+      ..listen(foldersProvider, (_, next) {
+        if (next.value case final folders?) _closeIfNotShown(folders);
       });
     return PopScope(
       canPop: _canLeaveNow,
@@ -493,11 +538,11 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   bool get _isUnreachable => _unreachable(_folder);
 
   bool _unreachable(DocumentFolder folder) =>
-      ref.read(folderReachProvider(folder.location)) == Reach.unreachable;
+      ref.read(folderReachProvider(folder.base)) == Reach.unreachable;
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
-    ref.watch(folderReachProvider(_folder.location));
+    ref.watch(folderReachProvider(_folder.base));
     final unreachable = _isUnreachable;
     final readOnly = _isReadOnly;
     final scans = ref.watch(folderScansProvider).value;
@@ -515,7 +560,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       appBar: AppBar(
         backgroundColor: tint,
         title: DocumentHeading(
-          title: documentTitle(text, path),
+          title: documentTitle(text, path, _session.file.type),
           edited: _session.document?.modified,
         ),
         actions: [

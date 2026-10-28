@@ -61,6 +61,42 @@ void main() {
     ]);
   });
 
+  test('keeps the marks of each directory next to its documents', () async {
+    await device('phone').set(path('lists/shop.md'), teal);
+
+    expect(
+      store.textOf('lists/.truce/marks/phone.json'),
+      contains('"shop.md"'),
+    );
+    expect(store.textOf('.truce/marks/phone.json'), isNull);
+  });
+
+  test('ignores entries an older version kept for other directories, '
+      'and drops them at the next write', () async {
+    store.put('.truce/marks/phone.json', '''
+{
+  "lists/shop.md": {"color": "amber", "changed": "2026-10-13T00:00:00Z"},
+  "todo.md": {"color": "teal", "changed": "2026-10-13T00:00:00Z"}
+}''');
+
+    expect((await device('phone').load()).value, {path('todo.md'): teal});
+    await device('phone').set(path('plan.md'), amber);
+    expect(store.textOf('.truce/marks/phone.json'), isNot(contains('shop')));
+  });
+
+  test('a write lists only its own directory', () async {
+    final marks = device('phone');
+    await marks.set(path('todo.md'), amber);
+    store.put('lists/deep/x.md', 'x');
+
+    await marks.set(path('plan.md'), teal);
+
+    expect(
+      store.lastListed.map((p) => p.value),
+      unorderedEquals(['todo.md', 'plan.md']),
+    );
+  });
+
   test('the newest mark of a document wins across devices', () async {
     await device('phone').set(path('todo.md'), amber);
     await device('laptop').set(path('todo.md'), teal);
@@ -125,10 +161,11 @@ void main() {
     expect(store.textOf('.truce/marks/laptop.json'), contains('todo.md'));
   });
 
-  test('ignores files outside the marks folder and unreadable ones', () async {
+  test('ignores files outside the marks folders and unreadable ones', () async {
     store
       ..put('documents.json', '{}')
       ..put('.truce/marks/old/phone.json', '{}')
+      ..put('.git/.truce/marks/phone.json', '{"todo.md": {}}')
       ..put('.truce/marks/.syncthing.truce-1.tmp', '{}')
       ..put('.truce/marks/broken.json', 'not json');
     await device('phone').set(path('todo.md'), amber);
@@ -166,20 +203,17 @@ void main() {
     );
   });
 
-  test(
-    'a write keeps marks of documents in subfolders it cannot read',
-    () async {
-      final marks = device('phone');
-      await marks.set(path('lists/shop.md'), teal);
-      store.unreadableFolders.add(path('lists'));
+  test('a write keeps every mark of a directory it cannot list', () async {
+    final marks = device('phone');
+    await marks.set(path('lists/shop.md'), teal);
+    store.unreadableFolders.add(path('lists'));
 
-      await marks.set(path('todo.md'), amber);
-      store.unreadableFolders.clear();
+    await marks.set(path('lists/other.md'), amber);
+    store.unreadableFolders.clear();
 
-      expect((await marks.load()).value, {
-        path('lists/shop.md'): teal,
-        path('todo.md'): amber,
-      });
-    },
-  );
+    expect((await marks.load()).value, {
+      path('lists/shop.md'): teal,
+      path('lists/other.md'): amber,
+    });
+  });
 }

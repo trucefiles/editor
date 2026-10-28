@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../documents/new_document_place/ui/new_document_place_tile.dart';
+import '../../documents/new_file_place/ui/new_file_place_tile.dart';
 import '../../editor/add_item_place/ui/add_item_place_tile.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
 import '../../text_zoom/text_zoom_target.dart';
@@ -16,7 +16,7 @@ class SettingsScreen extends StatelessWidget {
     appBar: AppBar(title: const Text('Settings')),
     body: ListView(
       children: const [
-        NewNotePlaceTile(),
+        NewFilePlaceTile(),
         AddItemPlaceTile(),
         TextZoomTile(TextZoomTarget.documents),
         TextZoomTile(TextZoomTarget.app),

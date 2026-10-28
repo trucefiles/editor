@@ -3,7 +3,7 @@ import 'package:truce_syncthing/src/syncthing_conflict_name.dart';
 
 void main() {
   test('parses a current conflict name', () {
-    final name = SyncthingConflictName.parse(
+    final name = const SyncthingConflictNames().parse(
       'todo.sync-conflict-20261003-134809-4I343AW.md',
     )!;
 
@@ -13,29 +13,30 @@ void main() {
 
   test('parses names without device ID or extension', () {
     expect(
-      SyncthingConflictName.parse('todo.sync-conflict-20151003-134809.md')
+      const SyncthingConflictNames()
+          .parse('todo.sync-conflict-20151003-134809.md')
           ?.mainName,
       'todo.md',
     );
     expect(
-      SyncthingConflictName.parse(
-        'Makefile.sync-conflict-20261003-134809-4I343AW',
-      )?.mainName,
+      const SyncthingConflictNames()
+          .parse('Makefile.sync-conflict-20261003-134809-4I343AW')
+          ?.mainName,
       'Makefile',
     );
   });
 
   test('keeps dots inside the base name', () {
     expect(
-      SyncthingConflictName.parse(
-        'v1.2 plan.sync-conflict-20261003-134809-4I343AW.md',
-      )?.mainName,
+      const SyncthingConflictNames()
+          .parse('v1.2 plan.sync-conflict-20261003-134809-4I343AW.md')
+          ?.mainName,
       'v1.2 plan.md',
     );
   });
 
   test('maps nested names to the innermost main file, newest marker', () {
-    final name = SyncthingConflictName.parse(
+    final name = const SyncthingConflictNames().parse(
       'todo.sync-conflict-20261003-134809-4I343AW'
       '.sync-conflict-20261004-080000-ABCDEFG.md',
     )!;
@@ -52,8 +53,8 @@ void main() {
       ('a.b.txt', 'a.b.sync-conflict-20261003-090807.txt'),
       ('documents', 'documents.sync-conflict-20261003-090807'),
     ]) {
-      expect(SyncthingConflictName.format(main, at), copy);
-      final parsed = SyncthingConflictName.parse(copy)!;
+      expect(const SyncthingConflictNames().format(main, at), copy);
+      final parsed = const SyncthingConflictNames().parse(copy)!;
       expect(parsed.mainName, main);
       expect(parsed.createdAt, at);
     }
@@ -67,7 +68,7 @@ void main() {
       'todo.sync-conflict-20261003-134809-4I343AW.documents.md',
       '.sync-conflict-20261003-134809-4I343AW',
     ]) {
-      expect(SyncthingConflictName.parse(raw), isNull, reason: raw);
+      expect(const SyncthingConflictNames().parse(raw), isNull, reason: raw);
     }
   });
 }

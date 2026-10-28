@@ -56,6 +56,24 @@ void main() {
     expect(await queue.next, path('b.md'));
   });
 
+  test('watches only its subfolder, with paths in the folder', () async {
+    Directory('${root.path}/work').createSync();
+    final queue = StreamQueue(
+      WatchedFolderChanges(
+        root.path,
+        followed: const _Documents(),
+        under: path('work'),
+      ).changes,
+    );
+    addTearDown(queue.cancel);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    write('other.md');
+    write('work/a.md');
+
+    expect(await queue.next, path('work/a.md'));
+  });
+
   test('ends when the folder is deleted', () async {
     final all = WatchedFolderChanges(
       root.path,

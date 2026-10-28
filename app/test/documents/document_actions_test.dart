@@ -11,8 +11,8 @@ import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/move_failure.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place.dart';
-import 'package:truce_editor/documents/new_document_place/new_document_place_controller.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
+import 'package:truce_editor/documents/new_file_place/new_file_place_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -20,7 +20,7 @@ import 'package:truce_editor/scan/folder_scans.dart';
 import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
-import 'package:truce_editor/sync_tool/folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_services.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../support.dart';
@@ -31,11 +31,15 @@ void main() {
   late Directory work;
   late Directory home;
   late List<DocumentFolder> folders;
+  final markdown = appDocumentTypes().forNew;
 
   setUp(() async {
     work = tempFolder();
     home = tempFolder();
-    folders = [folderAt(work, id: 'work'), folderAt(home, id: 'home')];
+    folders = [
+      folderAt(work, id: 'work', baseId: 'work'),
+      folderAt(home, id: 'home', baseId: 'home'),
+    ];
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
@@ -43,7 +47,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderSettingsStoreProvider).save(folders);
+    await container.read(folderListStoreProvider).save(folders);
     actions = container.read(documentActionsProvider);
   });
 
@@ -93,6 +97,7 @@ void main() {
 
     final document = (await actions.create(
       (folder: folders[1], subfolder: null),
+      type: markdown,
       title: 'Plan',
       text: 'Plan\nsteps\n',
     )).value;
@@ -105,6 +110,7 @@ void main() {
     // Drafts are recovered first, so the action's rescan can run.
     final created = await actions.create(
       (folder: folders[0], subfolder: null),
+      type: markdown,
       title: 'Plan',
       text: 'Plan\n',
     );
@@ -118,6 +124,7 @@ void main() {
 
     final document = (await actions.create(
       (folder: folders[0], subfolder: path('a/b')),
+      type: markdown,
       title: 'Plan',
       text: '# Plan\n',
     )).value;
@@ -126,14 +133,14 @@ void main() {
     expect((await scans()).findNote(document.key)?.path, path('a/b/Plan.md'));
   });
 
-  group('newNotePlace', () {
-    Future<void> setPlace(NewNotePlaceSetting? place) =>
-        container.read(newNotePlaceProvider.notifier).set(place);
+  group('newFilePlace', () {
+    Future<void> setPlace(NewFilePlaceSetting? place) =>
+        container.read(newFilePlaceProvider.notifier).set(place);
 
     test('is the default folder without a setting', () async {
-      await container.read(newNotePlaceProvider.future);
+      await container.read(newFilePlaceProvider.future);
 
-      expect(actions.newNotePlace(folders), (
+      expect(actions.newFilePlace(folders), (
         folder: folders[0],
         subfolder: null,
       ));
@@ -143,7 +150,7 @@ void main() {
       await documentIn(home, 'inbox/a.md', 'a');
       await setPlace((folderId: 'home', subfolder: path('inbox')));
 
-      expect(actions.newNotePlace(folders), (
+      expect(actions.newFilePlace(folders), (
         folder: folders[1],
         subfolder: path('inbox'),
       ));
@@ -152,7 +159,7 @@ void main() {
     test('falls back to the default for a folder not offered', () async {
       await setPlace((folderId: 'home', subfolder: null));
 
-      expect(actions.newNotePlace([folders[0]]), (
+      expect(actions.newFilePlace([folders[0]]), (
         folder: folders[0],
         subfolder: null,
       ));
@@ -169,7 +176,7 @@ void main() {
       await actions.setMark(document, mark);
       await settings.edit(document.key, (_) => mine);
 
-      final moved = (await actions.move(document, '# Plan\nmore\n', (
+      final moved = (await actions.move(document, (
         folder: folders[1],
         subfolder: path('inbox'),
       ))).value;
@@ -177,10 +184,7 @@ void main() {
       await container.read(folderScansProvider.notifier).refresh();
       expect(moved.path, path('inbox/plan.md'));
       expect(file(work, 'plan.md').existsSync(), isFalse);
-      expect(
-        file(home, 'inbox/plan.md').readAsStringSync(),
-        '# Plan\r\nmore\r\n',
-      );
+      expect(file(home, 'inbox/plan.md').readAsStringSync(), '# Plan\r\n');
       expect((await scans()).markOf(moved.key), mark);
       expect(marksFile(work), isNot(contains('plan.md')));
       expect(settings.settingsOf(moved.key), mine);
@@ -194,7 +198,7 @@ void main() {
         const mark = DocumentMark(color: 'teal');
 
         final marked = actions.setMark(document, mark);
-        final moved = actions.move(document, '# Plan\n', (
+        final moved = actions.move(document, (
           folder: folders[1],
           subfolder: null,
         ));
@@ -210,7 +214,7 @@ void main() {
     test('renames the document, keeping its extension', () async {
       final document = await documentIn(work, 'plan.MD', 'a');
 
-      final moved = (await actions.move(document, 'a', (
+      final moved = (await actions.move(document, (
         folder: folders[0],
         subfolder: null,
       ), title: 'Ideas')).value;
@@ -224,7 +228,7 @@ void main() {
       final document = await documentIn(work, 'plan.md', 'a');
       file(home, 'plan.md').writeAsStringSync('taken');
 
-      final moved = (await actions.move(document, 'a', (
+      final moved = (await actions.move(document, (
         folder: folders[1],
         subfolder: null,
       ))).value;
@@ -240,7 +244,7 @@ void main() {
       ).writeAsStringSync('b');
       final document = await documentIn(work, 'plan.md', 'a');
 
-      final moved = await actions.move(document, 'a', (
+      final moved = await actions.move(document, (
         folder: folders[1],
         subfolder: null,
       ));
@@ -254,7 +258,7 @@ void main() {
       final document = await documentIn(work, 'plan.md', 'a');
       file(work, 'plan.md').writeAsStringSync('changed elsewhere');
 
-      final moved = await actions.move(document, 'a', (
+      final moved = await actions.move(document, (
         folder: folders[1],
         subfolder: null,
       ));
@@ -262,6 +266,69 @@ void main() {
       expect(moved.error, isA<MoveLeftOriginal>());
       expect(file(work, 'plan.md').readAsStringSync(), 'changed elsewhere');
       expect(file(home, 'plan.md').readAsStringSync(), 'a');
+    });
+  });
+
+  group('move within one base folder', () {
+    late List<DocumentFolder> parts;
+
+    setUp(() async {
+      parts = [
+        folderAt(
+          work,
+          id: 'a',
+          baseId: 'shared',
+          selection: Selection.of([path('a')]),
+        ),
+        folderAt(
+          work,
+          id: 'b',
+          baseId: 'shared',
+          selection: Selection.of([path('b')]),
+        ),
+      ];
+      Directory('${work.path}/b').createSync();
+      await container.read(folderListStoreProvider).save(parts);
+      container.invalidate(folderListOwnerProvider);
+      actions = container.read(documentActionsProvider);
+    });
+
+    test('moves the file itself to the other folder', () async {
+      final document = await documentIn(work, 'a/plan.md', '\uFEFF# Plan\r\n');
+
+      final moved = (await actions.move(document, (
+        folder: parts[1],
+        subfolder: path('b'),
+      ))).value;
+
+      expect(moved.key, (baseId: 'shared', path: path('b/plan.md')));
+      expect(moved.folder.id, 'b');
+      expect(file(work, 'b/plan.md').readAsBytesSync(), [
+        ...[0xEF, 0xBB, 0xBF],
+        ...'# Plan\r\n'.codeUnits,
+      ]);
+      expect(file(work, 'a/plan.md').existsSync(), isFalse);
+    });
+
+    test('moves nothing once the file changed elsewhere', () async {
+      final document = await documentIn(work, 'a/plan.md', 'a');
+      file(work, 'a/plan.md').writeAsStringSync('changed elsewhere');
+
+      final moved = await actions.move(document, (
+        folder: parts[1],
+        subfolder: path('b'),
+      ));
+
+      expect(
+        moved.error,
+        isA<MoveNotWritten>().having(
+          (failure) => failure.error,
+          'error',
+          StoreError.changedSinceRead,
+        ),
+      );
+      expect(file(work, 'a/plan.md').readAsStringSync(), 'changed elsewhere');
+      expect(file(work, 'b/plan.md').existsSync(), isFalse);
     });
   });
 
@@ -318,7 +385,7 @@ void main() {
     () async {
       final document = await documentIn(work, 'plan.md', '# Plan\n');
       final laptop = DocumentMarks(
-        container.read(folderServicesProvider(folders[0].location)).store,
+        container.read(baseFolderServicesProvider(folders[0].base)).store,
         deviceId: 'laptop',
         now: () => DateTime.utc(2000),
       );

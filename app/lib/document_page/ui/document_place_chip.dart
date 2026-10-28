@@ -10,7 +10,6 @@ import '../../documents/document_title.dart';
 import '../../documents/move_failure.dart';
 import '../../documents/ui/document_place_dialog.dart';
 import '../../documents/ui/move_failure_text.dart';
-import '../../file_types/document_types.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../scan/folder_scans_controller.dart';
@@ -70,7 +69,11 @@ class DocumentPlaceChip extends ConsumerWidget {
     if (session.file is NewFile) {
       final name = picked.name.trim();
       return session.place(
-        NewFile(picked.place, name: name.isEmpty ? null : name),
+        NewFile(
+          picked.place,
+          type: session.file.type,
+          name: name.isEmpty ? null : name,
+        ),
       );
     }
     await _move(context, actions, picked.place, picked.name);
@@ -94,17 +97,17 @@ class DocumentPlaceChip extends ConsumerWidget {
         'Please wait until the document is saved in its folder.',
       );
     }
-    // Read after the dialog and the save, so no edit is left behind.
-    final text = session.text;
+    // The saved document moves: read after the dialog and the save, so no
+    // edit is left behind.
     final title = name.trim().isEmpty
-        ? documentTitleLine(text, documentTypes.of(current.path))
+        ? documentTitleLine(current.file.text, current.type)
         : name.trim();
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&
         isNamedAfter(current.path.name, title)) {
       return;
     }
-    final moved = await actions.move(current, text, place, title: title);
+    final moved = await actions.move(current, place, title: title);
     if (!context.mounted) return;
     switch (moved) {
       case Ok(value: final copy):

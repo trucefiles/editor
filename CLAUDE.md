@@ -10,7 +10,7 @@ Prefer the simpler option when in doubt.
 
 ## Architecture
 - `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
-- Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`); `core` never knows one, and in the app only the sync-tool wiring imports it.
+- Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`, `plain_folder`); `core` never knows one, and in the app only the sync-tool wiring imports it.
 - Each document type's support (reading, editing, writing) lives in a pure-Dart package of its own (`markdown`, `plain_text`); `core` never knows one.
 - Lower layers never know upper ones; they receive what they need from above.
 - Each concern lives in the layer that owns it; app-wide concerns stay in the app.

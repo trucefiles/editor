@@ -1,4 +1,4 @@
-import '../folder_settings_store.dart';
+import '../folder_list_store.dart';
 
 /// User-facing text for failures of the saved folder list.
 extension SettingsErrorText on SettingsError {

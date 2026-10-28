@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'all_backups.dart';
 import 'document_backups.dart';
 
@@ -16,7 +16,7 @@ final class BackupActions {
   /// Deletes [backup]; the lists show it gone.
   Future<Result<void, StoreError>> delete(FolderBackup backup) async {
     final deleted = await _ref
-        .read(folderServicesProvider(backup.folder.location))
+        .read(baseFolderServicesProvider(backup.folder.base))
         .backups
         .delete(backup.backup);
     _ref

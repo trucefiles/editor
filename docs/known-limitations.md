@@ -11,7 +11,9 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A conflict copy can bring back a deleted subfolder.** If a document's
   subfolder is deleted on another device while the document has unsaved edits
   here, the edits are kept as a conflict copy in that subfolder, which
-  recreates it, so the edits stay visible.
+  recreates it, so the edits stay visible. A subfolder you chose for a
+  folder is never made again: there the edits stay on this device, not
+  shown, until the subfolder is back.
 
 - **A moved or renamed document can come back.** Sync tools see a move or
   rename as a delete and a new file. If another device edits the document
@@ -80,6 +82,33 @@ Accepted behavior that is not planned to change, grouped by topic.
   treats the re-added folder as a new one, so the Backups screen doesn't
   list its earlier backups. They are deleted after 7 days, like every
   backup.
+- **Backups outside what a folder shows stay hidden.** If you change a
+  folder to show fewer subfolders, the Backups screen no longer lists the
+  backups of documents left outside. They are deleted after 7 days, like
+  every backup.
+
+## Folders
+
+- **Images from outside a folder don't show.** A document shows an image
+  only if the image file is in a part of the base folder that one of your
+  folders shows. Pick the image's subfolder too to see it.
+- **A plain folder can keep temp files after a crash.** In a folder no sync
+  app syncs, Truce saves through a temp file named `.truce-….tmp`. If the
+  app stops in the middle of a save, the temp file stays. Truce hides it but
+  never deletes it, as it writes into your folders only when you ask. You
+  can delete it yourself.
+- **A chosen subfolder that is gone slows live updates.** If one of a
+  folder's chosen subfolders is gone, Truce checks the whole base folder
+  for changes every few seconds instead of following them live, and the
+  folder's notice says so.
+
+## Syncing
+
+- **Quick saves can reach other devices late.** Syncthing can miss a save
+  that comes within 2 seconds of the last one and keeps the file's size.
+  Truce works around this by saving such a file once more a moment later.
+  In rare cases a save can still reach your other devices only with the
+  next one. Nothing is lost on this device.
 
 ## Unreachable folders
 

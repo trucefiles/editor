@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_type.dart';
+import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
+import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
 import '../scan/folder_scans_controller.dart';
-import '../sync_tool/folder_services.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
@@ -31,11 +34,12 @@ base class DocumentSteps {
   DocumentSettingsController get _settings =>
       _ref.read(documentSettingsProvider.notifier);
 
-  DocumentMarks _marksOf(Document document) =>
-      _ref.read(folderServicesProvider(document.folder.location)).marks;
+  BaseFolderServices _servicesOf(Document document) =>
+      _ref.read(baseFolderServicesProvider(document.folder.base));
 
-  FileBackups _backupsOf(Document document) =>
-      _ref.read(folderServicesProvider(document.folder.location)).backups;
+  DocumentMarks _marksOf(Document document) => _servicesOf(document).marks;
+
+  FileBackups _backupsOf(Document document) => _servicesOf(document).backups;
 
   /// [from]'s backups become [to]'s: the document moved there. Best
   /// effort, as its color: a backup left behind still shows in Backups.
@@ -43,59 +47,69 @@ base class DocumentSteps {
       _backupsOf(from)
           .moveAll(from: from.path, to: to.path, into: _backupsOf(to));
 
-  /// Creates a document holding [text] at [place], named after [title], and
-  /// rescans, so the grid shows the document.
+  /// Creates a document of [type] holding [text] at [place], named after
+  /// [title], and rescans, so the grid shows the document.
   Future<Result<Document, StoreError>> create(
     DocumentPlace place, {
+    required DocumentType type,
     required String title,
     required String text,
   }) async {
     final created = await _ref
         .read(documentFilesProvider(place.folder))
-        .create(title, subfolder: place.subfolder, text: text);
+        .create(title, type: type, subfolder: place.subfolder, text: text);
     if (created is Ok) await _scans.refresh();
     return created;
   }
 
-  /// Moves [document], holding [text], to [place], renamed after [title] if
-  /// given: writes it there under that name (with a number if taken), in
-  /// its byte style, with its color and settings, then removes the old
-  /// file; its backups follow once the old file is gone. Refused while a sync conflict of
-  /// the document waits. If the old file can't be removed, e.g. as it changed
-  /// since [document] was read, both stay: never lose data. No rescan, as for
+  /// Moves [document], as last saved, to [place], renamed after [title] if
+  /// given (with a number if taken), with its color, settings and backups.
+  /// Refused while a sync conflict of the document waits, and if its file
+  /// changed since [document] was read: the user saves their edits first.
+  /// Within one base folder the file itself moves; to another one it is
+  /// copied, then the old file is removed. If that fails, e.g. as it
+  /// changed meanwhile, both stay: never lose data. No rescan, as for
   /// [delete].
   Future<Result<Document, MoveFailure>> move(
     Document document,
-    String text,
     DocumentPlace place, {
     String? title,
   }) async {
     if (_conflictWaits(document)) return const Err(MoveBlockedByConflict());
     final mark = markOf(document);
     final settings = _settings.settingsOf(document.key);
-    final copied = await _ref
-        .read(documentFilesProvider(place.folder))
-        .copyIn(document, text, subfolder: place.subfolder, title: title);
-    final Document copy;
-    switch (copied) {
+    final files = _ref.read(documentFilesProvider(place.folder));
+    final sameBase = place.folder.base == document.folder.base;
+    final written = sameBase
+        ? await files.moveIn(document, subfolder: place.subfolder, title: title)
+        : await files.copyIn(
+            document,
+            document.file.text,
+            subfolder: place.subfolder,
+            title: title,
+          );
+    final Document moved;
+    switch (written) {
       case Ok(:final value):
-        copy = value;
+        moved = value;
       case Err(:final error):
         return Err(MoveNotWritten(error));
     }
     // Best effort, as the color of a new document.
-    if (mark != DocumentMark.none) await _marksOf(copy).set(copy.path, mark);
-    await _settings.edit(copy.key, (_) => settings);
-    final deleted = await _ref
-        .read(documentFilesProvider(document.folder))
-        .delete(document);
-    if (deleted case Err(:final error)) {
-      return Err(MoveLeftOriginal(copy, error));
+    if (mark != DocumentMark.none) await _marksOf(moved).set(moved.path, mark);
+    await _settings.edit(moved.key, (_) => settings);
+    if (!sameBase) {
+      final deleted = await _ref
+          .read(documentFilesProvider(document.folder))
+          .delete(document);
+      if (deleted case Err(:final error)) {
+        return Err(MoveLeftOriginal(moved, error));
+      }
     }
     await _marksOf(document).remove(document.path);
     await _settings.forget(document.key);
-    await _moveBackups(document, copy);
-    return Ok(copy);
+    await _moveBackups(document, moved);
+    return Ok(moved);
   }
 
   /// Deletes [document] with its mark and settings, keeping them and its
@@ -148,8 +162,8 @@ base class DocumentSteps {
     };
   }
 
-  /// Recovers the drafts of every folder written before [before] (see
-  /// [DraftRecovery]). Recovers none if the folders can't be loaded.
+  /// Recovers the drafts of every base folder written before [before]
+  /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
     final folders = await _ref
         .read(foldersProvider.future)
@@ -157,10 +171,15 @@ base class DocumentSteps {
           (folders) => folders,
           onError: (_) => <DocumentFolder>[],
         );
-    for (final folder in folders) {
+    final types = _ref.read(documentTypesProvider);
+    for (final base in {for (final folder in folders) folder.base}) {
       await DraftRecovery(
-        _ref.read(documentDraftsProvider(folder.id)),
-        _ref.read(documentFilesProvider(folder)),
+        _ref.read(documentDraftsProvider(base.id)),
+        filesFor: (path) => switch (folders.folderOf(base.id, path)) {
+          final folder? => _ref.read(documentFilesProvider(folder)),
+          null => null,
+        },
+        types: types,
       ).recover(before: before);
     }
   }

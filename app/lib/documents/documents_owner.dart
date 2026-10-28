@@ -48,19 +48,19 @@ Future<DocumentsAnswer> _run(
   DocumentSteps steps,
   DocumentsInput input,
 ) => switch (input) {
-  CreateDocument(:final ticket, :final place, :final title, :final text) =>
-    steps
-        .create(place, title: title, text: text)
-        .then((result) => DocumentCreated(ticket, result)),
-  MoveDocument(
+  CreateDocument(
     :final ticket,
-    :final document,
-    :final text,
     :final place,
+    :final type,
     :final title,
+    :final text,
   ) =>
     steps
-        .move(document, text, place, title: title)
+        .create(place, type: type, title: title, text: text)
+        .then((result) => DocumentCreated(ticket, result)),
+  MoveDocument(:final ticket, :final document, :final place, :final title) =>
+    steps
+        .move(document, place, title: title)
         .then((result) => DocumentMoved(ticket, result)),
   DeleteDocument(:final ticket, :final document, :final text) =>
     steps

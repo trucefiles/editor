@@ -9,7 +9,11 @@ enum ResolveError {
   folderMissing,
   backupFailed,
   accessDenied,
-  ioFailure;
+  ioFailure,
+
+  /// The file lies outside what the app may touch now, e.g. its folder no
+  /// longer selects it.
+  outside;
 
   /// Why a write failed: a file that is missing, already exists or changed
   /// means the folder no longer matches what the user saw.
@@ -19,5 +23,6 @@ enum ResolveError {
     StoreError.changedSinceRead => changedSinceScan,
     StoreError.accessDenied => accessDenied,
     StoreError.ioFailure => ioFailure,
+    StoreError.outside => outside,
   };
 }

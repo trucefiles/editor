@@ -75,7 +75,11 @@ void main() {
     expect((await fixture.draftsIn('f1')).single.path, path('Milk.md'));
 
     effects.place(
-      NewFile((folder: fixture.folders[1], subfolder: null), name: 'Eggs'),
+      NewFile(
+        (folder: fixture.folders[1], subfolder: null),
+        type: appDocumentTypes().forNew,
+        name: 'Eggs',
+      ),
     );
 
     await eventually(() async => (await fixture.draftsIn('f2')).isNotEmpty);
@@ -89,7 +93,12 @@ void main() {
     await effects.run(const KeepDraft(id, base: null, text: 'Milk'));
     await effects.run(const DropDraft());
 
-    effects.place(NewFile((folder: fixture.folders[1], subfolder: null)));
+    effects.place(
+      NewFile((
+        folder: fixture.folders[1],
+        subfolder: null,
+      ), type: appDocumentTypes().forNew),
+    );
 
     expect(await fixture.draftsIn('f1'), isEmpty);
     expect(await fixture.draftsIn('f2'), isEmpty);

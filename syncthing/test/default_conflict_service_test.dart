@@ -18,15 +18,16 @@ void main() {
     backupStore = MemoryFileStore();
     service = DefaultConflictService(
       folder: folder,
-      source: SyncthingConflictSource(folder),
+      source: NamedConflictSource(folder, const SyncthingConflictNames()),
       backups: FileBackups(backupStore),
       clock: () => now = now.add(const Duration(seconds: 1)),
     );
   });
 
-  Future<Conflict> scanOne() async => (await SyncthingFolderScanner(
+  Future<Conflict> scanOne() async => (await NamedCopiesScanner(
     folder,
     const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
+    const SyncthingConflictNames(),
   ).scan()).value.conflicts.single;
 
   Future<Result<void, ResolveError>> resolve(

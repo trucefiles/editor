@@ -58,8 +58,8 @@ void main() {
         tester.pumpWidget(
           ProviderScope(
             overrides: [
-              folderReachProvider(folder.location)
-                  .overrideWith(() => _FixedReach(folder.location, reach)),
+              folderReachProvider(folder.base)
+                  .overrideWith(() => _FixedReach(folder.base, reach)),
             ],
             child: MaterialApp(
               home: Scaffold(body: UnreachableBanner(folder, message: 'Wait.')),
@@ -83,7 +83,7 @@ void main() {
 }
 
 final class _FixedReach extends FolderReachController {
-  _FixedReach(super.location, this._reach);
+  _FixedReach(super.base, this._reach);
 
   final Reach _reach;
 

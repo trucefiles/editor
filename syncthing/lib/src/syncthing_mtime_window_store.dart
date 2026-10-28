@@ -104,6 +104,15 @@ final class SyncthingMtimeWindowStore implements FileStore {
     return deleted;
   });
 
+  /// By copy through this store, so the copy is a write like any other
+  /// and the original's delete keeps its newest time.
+  @override
+  Future<Result<FileEntry, StoreError>> move(
+    RelPath from,
+    RelPath to, {
+    required FileVersion ifUnchanged,
+  }) => moveByCopy(this, from, to, ifUnchanged: ifUnchanged);
+
   _FileState _stateOf(RelPath path) => _files.putIfAbsent(path, _FileState.new);
 
   void _wrote(RelPath path, Uint8List bytes, FileEntry entry) {

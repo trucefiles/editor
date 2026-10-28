@@ -15,7 +15,9 @@ final documentSettingsStoreProvider =
     Provider<SettingStore<Map<String, KeptNoteSettings>>>(
       (ref) => DocumentSettingsStore(
         // Named for what it first held: the views.
-        File('${ref.watch(appStorageProvider).settingsPath}/note_views.json'),
+        File(
+          '${ref.watch(appStorageProvider).settingsPath}/file_settings.json',
+        ),
       ),
     );
 

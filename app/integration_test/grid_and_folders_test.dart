@@ -1,9 +1,14 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/ui/document_screen.dart';
 import 'package:truce_editor/documents/document_colors.dart';
+import 'package:truce_editor/folders/folder_actions.dart';
+import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_test_support/truce_test_support.dart' show path;
 
 import 'app_steps.dart';
 import 'test_app.dart';
@@ -121,5 +126,84 @@ void main() {
 
     await tester.waitFor(find.text('Add folder'));
     expect(app.file('plan.md').existsSync(), isTrue);
+  });
+
+  group('narrowing a folder', () {
+    setUp(() {
+      app
+        ..write('notes/a.md', '# A\n')
+        ..write('home/b.md', '# B\n');
+    });
+
+    /// Changes the one folder to show only `notes`; returns at once, the
+    /// change goes on.
+    Future<Object?> narrow(WidgetTester tester) {
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Navigator).first),
+      );
+      final folder = container.read(foldersProvider).value!.single;
+      return container
+          .read(folderActionsProvider)
+          .change(folder.copyWith(selection: Selection.of([path('notes')])));
+    }
+
+    testApp('closes a document it no longer shows, with the screen on top, '
+        'keeping the edits', (tester) async {
+      await tester.addFolder(app);
+      await tester.openNote('B');
+      await tester.typeOver('# B\nmine');
+      await tester.chooseInMenu('Backups');
+
+      await narrow(tester);
+
+      await tester.waitFor(
+        find.text(
+          'The document is no longer in a folder shown here. Your edits '
+          'are kept.',
+        ),
+      );
+      await tester.waitForNoteClosed();
+      await tester.waitForFile(app.file('home/b.md'), '# B\nmine');
+      await tester.waitFor(find.text('A'));
+      expect(find.text('B'), findsNothing);
+    });
+
+    testApp('removing its folder closes a document without promising its '
+        'edits', (tester) async {
+      await tester.addFolder(app);
+      await tester.openNote('B');
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Navigator).first),
+      );
+      final folder = container.read(foldersProvider).value!.single;
+
+      await tester.runAsync(
+        () => container.read(folderActionsProvider).remove(folder),
+      );
+
+      await tester.waitFor(
+        find.text('The folder was removed, so the document closed.'),
+      );
+      await tester.waitForNoteClosed();
+      expect(find.textContaining('Your edits are kept'), findsNothing);
+    });
+
+    testApp('waits for the last save of a document just closed', (
+      tester,
+    ) async {
+      await tester.addFolder(app);
+      await tester.openNote('B');
+      await tester.typeOver('# B\nmine');
+
+      // Gone without leaving, as when its route is removed: its edits are
+      // saved as it goes, before the folder changes.
+      final screen = tester.element(find.byType(DocumentScreen));
+      Navigator.of(screen).removeRoute(ModalRoute.of(screen)!);
+      await tester.pump();
+      final changed = narrow(tester);
+
+      await tester.runAsync(() => changed);
+      await tester.waitForFile(app.file('home/b.md'), '# B\nmine');
+    });
   });
 }

@@ -98,7 +98,11 @@ final class _Device {
     final dir = tempFolder();
     File('${dir.path}/todo.md').writeAsStringSync(text);
     final folder = folderAt(dir, id: name);
-    final files = DocumentFiles(folder, servicesFor(folder));
+    final files = DocumentFiles(
+      folder,
+      servicesFor(folder),
+      appDocumentTypes(),
+    );
     final document = (await files.reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = markdownSession(
@@ -106,8 +110,8 @@ final class _Device {
         ExistingFile(document),
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
-        create: (place, {required title, required text}) =>
-            files.create(title, subfolder: place.subfolder, text: text),
+        create: (place, {required type, required title, required text}) => files
+            .create(title, type: type, subfolder: place.subfolder, text: text),
       ),
       mode: EditMode.markdown,
     );
@@ -170,6 +174,7 @@ final class _Device {
   static Document _placeholder(DocumentFolder folder) => Document(
     folder: folder,
     path: RelPath.parse('todo.md')!,
+    type: appDocumentTypes().forNew,
     file: TextFile.empty(),
     version: const FileVersion(0),
     modified: DateTime(2000),

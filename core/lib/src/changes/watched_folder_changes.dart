@@ -19,20 +19,34 @@ final _log = Logger('WatchedFolderChanges');
 ///
 /// The library watches every subfolder and cannot be told to skip some,
 /// so the events of files [followed] leaves out are dropped here.
+///
+/// With [under], watches only that subfolder; paths stay relative to the
+/// folder.
 final class WatchedFolderChanges implements FolderChanges {
-  const WatchedFolderChanges(this.rootPath, {required this.followed});
+  const WatchedFolderChanges(
+    this.rootPath, {
+    required this.followed,
+    this.under,
+  });
 
   /// Absolute path of the folder.
   final String rootPath;
+
+  /// The subfolder watched; `null` for the whole folder.
+  final RelPath? under;
 
   /// The files and folders whose changes count.
   final FileFilter followed;
 
   @override
   Stream<RelPath> get changes {
-    final watcher = DirectoryWatcher(rootPath);
+    final watcher = DirectoryWatcher(
+      under == null
+          ? rootPath
+          : p.joinAll([rootPath, ...under!.value.split('/')]),
+    );
     return watcher.events
-        .map((event) => _relative(event.path, watcher.path))
+        .map((event) => _relative(event.path, rootPath))
         .where((path) => path != null && followed.includesPath(path))
         .cast<RelPath>()
         .transform(_endOnError);

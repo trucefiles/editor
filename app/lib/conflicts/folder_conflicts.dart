@@ -12,7 +12,7 @@ final class FolderConflict {
   final DocumentFolder folder;
   final Conflict conflict;
 
-  DocumentKey get key => (folderId: folder.id, path: conflict.mainPath);
+  DocumentKey get key => (baseId: folder.base.id, path: conflict.mainPath);
 }
 
 /// The pending conflicts of all folders.

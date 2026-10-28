@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
@@ -12,8 +13,8 @@ import 'document_place.dart';
 import 'document_steps.dart';
 import 'documents_owner.dart';
 import 'move_failure.dart';
-import 'new_document_place/new_document_place.dart';
-import 'new_document_place/new_document_place_controller.dart';
+import 'new_file_place/new_file_place.dart';
+import 'new_file_place/new_file_place_controller.dart';
 
 final documentActionsProvider = Provider<DocumentActions>(DocumentActions.new);
 
@@ -38,15 +39,15 @@ final class DocumentActions {
   /// reached.
   List<DocumentFolder> reachableOf(List<DocumentFolder> folders) => [
     for (final folder in folders)
-      if (_ref.read(folderReachProvider(folder.location)) != Reach.unreachable)
+      if (_ref.read(folderReachProvider(folder.base)) != Reach.unreachable)
         folder,
   ];
 
   /// Where a new document goes: the place the user set for new documents, if its
   /// folder is one of [folders], else the [defaultFolder] of [folders].
-  DocumentPlace newNotePlace(List<DocumentFolder> folders) =>
-      resolveNewNotePlace(_ref.read(newNotePlaceProvider).value, folders) ??
-      (folder: defaultFolder(folders), subfolder: null);
+  DocumentPlace newFilePlace(List<DocumentFolder> folders) =>
+      resolveNewFilePlace(_ref.read(newFilePlaceProvider).value, folders) ??
+      topOf(defaultFolder(folders));
 
   /// The subfolders of [folder], as last scanned.
   List<RelPath> subfoldersOf(DocumentFolder folder) =>
@@ -59,10 +60,12 @@ final class DocumentActions {
   /// See [DocumentSteps.create].
   Future<Result<Document, StoreError>> create(
     DocumentPlace place, {
+    required DocumentType type,
     required String title,
     required String text,
   }) async => switch (await _ask<DocumentCreated>(
-    (ticket) => CreateDocument(ticket, place, title: title, text: text),
+    (ticket) =>
+        CreateDocument(ticket, place, type: type, title: title, text: text),
   )) {
     final answer? => answer.result,
     null => const Err(_notRun),
@@ -71,11 +74,10 @@ final class DocumentActions {
   /// See [DocumentSteps.move].
   Future<Result<Document, MoveFailure>> move(
     Document document,
-    String text,
     DocumentPlace place, {
     String? title,
   }) async => switch (await _ask<DocumentMoved>(
-    (ticket) => MoveDocument(ticket, document, text, place, title: title),
+    (ticket) => MoveDocument(ticket, document, place, title: title),
   )) {
     final answer? => answer.result,
     null => const Err(MoveNotWritten(_notRun)),
