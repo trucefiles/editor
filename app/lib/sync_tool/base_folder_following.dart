@@ -19,9 +19,9 @@ typedef FolderFollowing = ({
 });
 
 /// How changes to a base folder are found, as the refresh setting asks:
-/// watched, one watcher per selected subfolder, and polled through its
-/// services once watching fails; or only polled, at the set interval.
-/// Polls tell its reach how they went, like every other access.
+/// watched, one watcher per selected subfolder, and polled once watching
+/// fails; or only polled, at the set interval. A poll asks for a listing,
+/// which tells its reach how it went, like every other access.
 final folderFollowingProvider =
     FutureProvider.family<FolderFollowing, BaseFolder>((ref, base) async {
       final refresh = await ref.watch(refreshSettingsProvider.future);
@@ -32,12 +32,7 @@ final folderFollowingProvider =
           (folders) => (folders.value ?? const []).selectionOf(base),
         ),
       );
-      final polled = PolledFolderChanges(
-        // A poll that works brings an unreachable folder back.
-        services.store,
-        interval: refresh.interval,
-        followed: services.followed,
-      );
+      final polled = PolledFolderChanges(interval: refresh.interval);
       switch (_following(base.path, refresh, platform)) {
         case _Following.none:
           return (changes: null, pollInterval: () => null);

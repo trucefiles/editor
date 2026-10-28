@@ -21,6 +21,15 @@ void main() {
       expect(summary.preview(hidden), '☐ eggs\n+ 1 done');
     });
 
+    test('works out its previews once, holding no text', () {
+      final summary = summaryOf('# A\n- [x] milk', 'a.md');
+
+      expect(
+        identical(summary.preview(hidden), summary.preview(hidden)),
+        isTrue,
+      );
+    });
+
     test('takes the title from the file name without a heading', () {
       expect(summaryOf('text', 'lists/Plan.md').title, 'Plan');
     });

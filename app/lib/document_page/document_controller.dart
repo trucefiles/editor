@@ -6,6 +6,7 @@ import '../documents/delete_failure.dart';
 import '../documents/deleted_note.dart';
 import '../documents/document.dart';
 import '../documents/document_settings.dart';
+import '../documents/document_text.dart';
 import 'document_file.dart';
 import 'document_session.dart';
 
@@ -14,7 +15,7 @@ typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
 /// Deletes a document holding a text, so it can be undone.
 typedef DeleteDocument = Future<Result<DeletedNote, DeleteFailure>> Function(
-  Document document,
+  DocumentText document,
   String text,
 );
 
@@ -178,7 +179,7 @@ final class DocumentController {
 
   /// The document's file, with every edit sent, for an action that needs
   /// one; a new document's file is created first.
-  Future<Result<Document, NoFile>> withFile() async {
+  Future<Result<DocumentText, NoFile>> withFile() async {
     if (session.stopped) return const Err(NoFile.stopped);
     await session.secure(SecureReason.hide);
     return switch ((session.document, session.status)) {

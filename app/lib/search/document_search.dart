@@ -1,19 +1,33 @@
-import '../documents/document.dart';
+import 'package:truce_core/truce_core.dart';
 
-/// Documents whose title or text contains every word of [query], ignoring
-/// case; the title may come from the file name. Title matches come
-/// first; otherwise the order of [documents] is kept.
-List<Document> searchNotes(List<Document> documents, String query) {
-  final words = query.toLowerCase().split(RegExp(r'\s+'))
-    ..removeWhere((word) => word.isEmpty);
-  if (words.isEmpty) return const [];
-  final inTitle = <Document>[];
-  final inText = <Document>[];
-  for (final document in documents) {
-    final title = document.title.toLowerCase();
-    final text = '$title\n${document.file.text.toLowerCase()}';
-    if (!words.every(text.contains)) continue;
-    (words.any(title.contains) ? inTitle : inText).add(document);
-  }
-  return [...inTitle, ...inText];
-}
+import '../documents/document.dart';
+import '../documents/document_files.dart';
+import '../documents/document_title.dart';
+import '../folders/document_folder.dart';
+
+/// [documents] as a search sees them: each matches by its folder's name,
+/// its subfolders' names and its file name without the extension (or
+/// "md" would find every document) from memory, and by its title and
+/// text once read through [filesOf].
+List<Searchable<Document>> searchablesOf(
+  List<Document> documents, {
+  required DocumentFiles Function(DocumentFolder folder) filesOf,
+}) => [
+  for (final document in documents)
+    Searchable(
+      document,
+      names: [
+        document.folder.name,
+        ...?document.path.parent?.value.split('/'),
+        nameTitle(document.path),
+      ],
+      read: () async =>
+          switch (await filesOf(document.folder).reload(document)) {
+            Ok(value: final read) => (
+              title: documentTitle(read.text, read.path, read.type),
+              text: read.text,
+            ),
+            Err() => null,
+          },
+    ),
+];

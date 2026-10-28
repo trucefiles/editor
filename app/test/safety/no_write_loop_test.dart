@@ -136,15 +136,15 @@ final class _Device {
   void edit(String text) =>
       session.gate.send((now) => EditText(text, revision: now.revision));
 
-  /// One poll of the app: a rescan, then the app hidden, which keeps
+  /// One poll of the app: a listing, then the app hidden, which keeps
   /// any edits. Returns how many files it wrote.
   Future<int> runApp() async {
     final before = _state();
-    final latest = switch (await files.reload(session.document!)) {
-      Ok(:final value) => value,
+    final latest = switch (await files.reload(session.document!.document)) {
+      Ok(:final value) => value.document,
       Err() => null,
     };
-    session.observe(scanFinding([?latest]));
+    session.observe(contentsFinding([?latest]));
     await session.secure(SecureReason.hide);
     final after = _state();
     return {
@@ -175,7 +175,6 @@ final class _Device {
     folder: folder,
     path: RelPath.parse('todo.md')!,
     type: appDocumentTypes().forNew,
-    file: TextFile.empty(),
     version: const FileVersion(0),
     modified: DateTime(2000),
   );

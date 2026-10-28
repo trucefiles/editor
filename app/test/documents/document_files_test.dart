@@ -119,7 +119,7 @@ void main() {
   test('saves in the file\'s line break style', () async {
     final created = (await files.create('a', type: markdown)).value;
     File('${dir.path}/a.md').writeAsStringSync('a\r\n');
-    final document = (await files.reload(created)).value;
+    final document = (await files.reload(created.document)).value;
 
     final saved = (await files.save(document, 'b\nc\n')).value;
 
@@ -140,7 +140,7 @@ void main() {
 
   test('restores a deleted document', () async {
     final document = (await files.create('a', type: markdown)).value;
-    await files.delete(document);
+    await files.delete(document.document);
 
     await files.restore(document, '# a\nback');
 

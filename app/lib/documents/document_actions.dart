@@ -2,15 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../file_types/document_type.dart';
+import '../folder_state/folder_state_controller.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
-import '../scan/folder_scans_controller.dart';
 import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
 import 'document_place.dart';
 import 'document_steps.dart';
+import 'document_text.dart';
 import 'documents_owner.dart';
 import 'move_failure.dart';
 import 'new_file_place/new_file_place.dart';
@@ -26,9 +27,9 @@ final class DocumentActions {
 
   final Ref _ref;
 
-  /// Where a new document goes without a place set for new documents: the one of
-  /// [folders] the grid is filtered to, else the first. [folders] must not
-  /// be empty.
+  /// Where a new document goes without a place set for new documents:
+  /// the one of [folders] the grid is filtered to, else the first.
+  /// [folders] must not be empty.
   DocumentFolder defaultFolder(List<DocumentFolder> folders) {
     final selected = _ref.read(selectedFolderIdProvider);
     return folders.where((folder) => folder.id == selected).firstOrNull ??
@@ -43,22 +44,25 @@ final class DocumentActions {
         folder,
   ];
 
-  /// Where a new document goes: the place the user set for new documents, if its
-  /// folder is one of [folders], else the [defaultFolder] of [folders].
+  /// Where a new document goes: the place the user set for new documents,
+  /// if its folder is one of [folders], else the [defaultFolder] of
+  /// [folders].
   DocumentPlace newFilePlace(List<DocumentFolder> folders) =>
       resolveNewFilePlace(_ref.read(newFilePlaceProvider).value, folders) ??
       topOf(defaultFolder(folders));
 
-  /// The subfolders of [folder], as last scanned.
+  /// The subfolders of [folder], as last seen.
   List<RelPath> subfoldersOf(DocumentFolder folder) =>
-      _ref.read(folderScansProvider).value?.subfoldersOf(folder.id) ?? const [];
+      _ref.read(folderContentsProvider).value?.subfoldersOf(folder.id) ??
+      const [];
 
-  /// [document]'s color, as last scanned.
+  /// [document]'s color, as last seen.
   DocumentMark markOf(Document document) =>
-      _ref.read(documentStepsProvider).markOf(document);
+      _ref.read(folderContentsProvider).value?.markOf(document.key) ??
+      DocumentMark.none;
 
   /// See [DocumentSteps.create].
-  Future<Result<Document, StoreError>> create(
+  Future<Result<DocumentText, StoreError>> create(
     DocumentPlace place, {
     required DocumentType type,
     required String title,
@@ -72,8 +76,8 @@ final class DocumentActions {
   };
 
   /// See [DocumentSteps.move].
-  Future<Result<Document, MoveFailure>> move(
-    Document document,
+  Future<Result<DocumentText, MoveFailure>> move(
+    DocumentText document,
     DocumentPlace place, {
     String? title,
   }) async => switch (await _ask<DocumentMoved>(
@@ -85,7 +89,7 @@ final class DocumentActions {
 
   /// See [DocumentSteps.delete].
   Future<Result<DeletedNote, DeleteFailure>> delete(
-    Document document,
+    DocumentText document,
     String text,
   ) async => switch (await _ask<DocumentDeleted>(
     (ticket) => DeleteDocument(ticket, document, text),

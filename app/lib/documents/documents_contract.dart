@@ -10,6 +10,7 @@ import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
 import 'document_place.dart';
+import 'document_text.dart';
 import 'move_failure.dart';
 
 // Inputs.
@@ -43,7 +44,7 @@ final class CreateDocument extends DocumentsInput {
 final class MoveDocument extends DocumentsInput {
   const MoveDocument(super.ticket, this.document, this.place, {this.title});
 
-  final Document document;
+  final DocumentText document;
   final DocumentPlace place;
   final String? title;
 }
@@ -52,7 +53,7 @@ final class MoveDocument extends DocumentsInput {
 final class DeleteDocument extends DocumentsInput {
   const DeleteDocument(super.ticket, this.document, this.text);
 
-  final Document document;
+  final DocumentText document;
   final String text;
 }
 
@@ -91,13 +92,13 @@ sealed class DocumentsAnswer implements Answering {
 final class DocumentCreated extends DocumentsAnswer {
   const DocumentCreated(super.ticket, this.result);
 
-  final Result<Document, StoreError> result;
+  final Result<DocumentText, StoreError> result;
 }
 
 final class DocumentMoved extends DocumentsAnswer {
   const DocumentMoved(super.ticket, this.result);
 
-  final Result<Document, MoveFailure> result;
+  final Result<DocumentText, MoveFailure> result;
 }
 
 final class DocumentDeleted extends DocumentsAnswer {

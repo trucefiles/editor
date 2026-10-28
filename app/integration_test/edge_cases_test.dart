@@ -320,14 +320,10 @@ void main() {
     ]);
     await tester.addFolder(app);
     await tester.runFor(const Duration(seconds: 1));
-    final card = find.textContaining('latin');
-    if (card.evaluate().isNotEmpty) {
-      await tester.tapAndSettle(card.first);
-      await tester.runFor(const Duration(seconds: 1));
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyX);
-      await tester.pageBack();
-      await tester.runFor(const Duration(seconds: 2));
-    }
+    await tester.tapAndSettle(find.text('latin'));
+    await tester.runFor(const Duration(seconds: 1));
+
+    expect(find.textContaining("This document can't be opened."), findsOne);
 
     expect(app.file('latin.md').readAsBytesSync(), [
       0x23,

@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../scan/folder_scans.dart';
-import '../scan/folder_scans_controller.dart';
+import '../documents/document.dart';
+import '../folder_state/folder_contents.dart';
+import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import '../versions/compare_controller.dart';
 import 'conflict_compare.dart';
@@ -18,7 +19,7 @@ final conflictProvider = NotifierProvider.autoDispose
     );
 
 /// Resolves one document's conflict copies one by one, oldest first;
-/// after each keep, goes on to the next copy a later scan finds.
+/// after each keep, goes on to the next copy found after it.
 class ConflictController
     extends CompareController<FolderConflict, ConflictSides> {
   ConflictController(super.start);
@@ -29,10 +30,13 @@ class ConflictController
   @override
   CompareSource<FolderConflict, ConflictSides> source() => ConflictCompare(
     ref.read(baseFolderServicesProvider(start.folder.base)),
-    ref.read(folderScansProvider.notifier).refresh,
+    ref.read(folderContentsProvider.notifier).refresh,
   );
 
   @override
-  FolderConflict? nextIn(FolderScans scans) =>
-      scans.conflicts.forNote(start.key);
+  DocumentKey get document => start.key;
+
+  @override
+  FolderConflict? nextIn(FolderContents contents) =>
+      contents.conflicts.forNote(start.key);
 }

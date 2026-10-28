@@ -71,12 +71,11 @@ void main() {
 
     test('leave out Syncthing temp files', () async {
       final folder = tempFolder();
-      final changes = (await _following(
-        folder.path,
-        periodic.copyWith(interval: const Duration(milliseconds: 20)),
-      )).changes!;
+      final changes = (await _following(folder.path, live)).changes!;
       final seen = <RelPath>[];
-      final subscription = changes.changes.listen(seen.add);
+      final subscription = changes.changes.listen(
+        (hint) => seen.addAll(_pathOf(hint)),
+      );
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
@@ -87,67 +86,63 @@ void main() {
       expect(seen, [path('a.md')]);
     });
 
-    for (final (name, refresh) in [
-      ('polled', periodic.copyWith(interval: const Duration(milliseconds: 20))),
-      ('watched', live),
-    ]) {
-      test('$name, follow only documents, conflict copies and marks', () async {
-        final folder = tempFolder();
-        final changes = (await _following(folder.path, refresh)).changes!;
-        final seen = <RelPath>{};
-        final subscription = changes.changes.listen(seen.add);
-        addTearDown(subscription.cancel);
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+    // Polled changes ask for a listing, which keeps to the same files.
+    test('watched, follow only documents, conflict copies and marks', () async {
+      final folder = tempFolder();
+      final changes = (await _following(folder.path, live)).changes!;
+      final seen = <RelPath>{};
+      final subscription = changes.changes.listen(
+        (hint) => seen.addAll(_pathOf(hint)),
+      );
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-        for (final file in [
-          '.git/HEAD',
-          '.obsidian/workspace.json',
-          '.a.md.swp',
-          'a.md~',
-          'picture.png',
-          'notes.txt',
-          'sub/a.md',
-          'a.sync-conflict-20261003-134809-ABCDEFG.md',
-          '.truce/marks/laptop.json',
-        ]) {
-          File('${folder.path}/$file').writeCreatingFolders('a');
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+      for (final file in [
+        '.git/HEAD',
+        '.obsidian/workspace.json',
+        '.a.md.swp',
+        'a.md~',
+        'picture.png',
+        'notes.txt',
+        'sub/a.md',
+        'a.sync-conflict-20261003-134809-ABCDEFG.md',
+        '.truce/marks/laptop.json',
+      ]) {
+        File('${folder.path}/$file').writeCreatingFolders('a');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-        expect(seen, {
-          path('notes.txt'),
-          path('sub/a.md'),
-          path('a.sync-conflict-20261003-134809-ABCDEFG.md'),
-          path('.truce/marks/laptop.json'),
-        });
+      expect(seen, {
+        path('notes.txt'),
+        path('sub/a.md'),
+        path('a.sync-conflict-20261003-134809-ABCDEFG.md'),
+        path('.truce/marks/laptop.json'),
       });
-    }
-    for (final (name, refresh) in [
-      ('polled', periodic.copyWith(interval: const Duration(milliseconds: 20))),
-      ('watched', live),
-    ]) {
-      test('$name, follow only the chosen subfolders', () async {
-        final folder = tempFolder();
-        Directory('${folder.path}/work').createSync();
-        Directory('${folder.path}/home').createSync();
-        final changes = (await _following(
-          folder.path,
-          refresh,
-          selection: Selection.of([path('work')]),
-        )).changes!;
-        final seen = <RelPath>{};
-        final subscription = changes.changes.listen(seen.add);
-        addTearDown(subscription.cancel);
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
 
-        File('${folder.path}/home/a.md').writeAsStringSync('a');
-        File('${folder.path}/top.md').writeAsStringSync('a');
-        File('${folder.path}/work/a.md').writeAsStringSync('a');
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+    test('watched, follow only the chosen subfolders', () async {
+      final folder = tempFolder();
+      Directory('${folder.path}/work').createSync();
+      Directory('${folder.path}/home').createSync();
+      final changes = (await _following(
+        folder.path,
+        live,
+        selection: Selection.of([path('work')]),
+      )).changes!;
+      final seen = <RelPath>{};
+      final subscription = changes.changes.listen(
+        (hint) => seen.addAll(_pathOf(hint)),
+      );
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-        expect(seen, {path('work/a.md')});
-      });
-    }
+      File('${folder.path}/home/a.md').writeAsStringSync('a');
+      File('${folder.path}/top.md').writeAsStringSync('a');
+      File('${folder.path}/work/a.md').writeAsStringSync('a');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      expect(seen, {path('work/a.md')});
+    });
   });
 
   group('notices', () {
@@ -205,3 +200,9 @@ void main() {
     }, testOn: 'linux');
   });
 }
+
+/// The path [hint] names, if any.
+List<RelPath> _pathOf(ChangeHint hint) => switch (hint) {
+  PathChanged(:final path) => [path],
+  ListAgain() => const [],
+};

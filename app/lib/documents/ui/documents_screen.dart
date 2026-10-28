@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../../backups/backup_pruning.dart';
 import '../../common/empty_state.dart';
@@ -13,6 +12,8 @@ import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../document_page/ui/document_screen.dart';
+import '../../folder_state/folder_state_controller.dart';
+import '../../folder_state/following_changes.dart';
 import '../../folders/document_folder.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
@@ -21,21 +22,22 @@ import '../../folders/ui/folder_problems.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
-import '../../scan/auto_rescan.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../../search/ui/search_screen.dart';
 import '../document.dart';
 import '../document_actions.dart';
 import '../document_settings_controller.dart';
 import '../document_settings_pruning.dart';
+import '../home/home_lists.dart';
+import '../home/home_settings.dart';
+import '../home/home_settings_controller.dart';
 import '../new_file_place/new_file_place_controller.dart';
-import 'document_card.dart';
-import 'document_grid.dart';
+import 'all_documents_screen.dart';
 import 'document_sections.dart';
 import 'home_menu.dart';
-import 'pin_or_color_sheet.dart';
+import 'listed_document_card.dart';
 
-/// Home: all documents as cards, filtered by folder.
+/// Home: the recent documents as cards, pinned ones first, filtered by
+/// folder; All shows the rest.
 class DocumentsScreen extends ConsumerStatefulWidget {
   const DocumentsScreen({super.key});
 
@@ -60,7 +62,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     super.dispose();
   }
 
-  Future<void> _refresh() => ref.read(folderScansProvider.notifier).refresh();
+  Future<void> _refresh() =>
+      ref.read(folderContentsProvider.notifier).refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +75,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       ..watch(newFilePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(documentSettingsPruningProvider)
-      ..watch(autoRescanProvider);
+      ..watch(homeSettingsProvider)
+      ..watch(followingChangesProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folders'),
@@ -153,29 +157,24 @@ class _DocumentsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedId = ref.watch(selectedFolderIdProvider);
-    final scans = ref.watch(folderScansProvider).value;
-    final conflicts = scans?.conflicts;
-    DocumentMark markOf(Document document) =>
-        scans?.markOf(document.key) ?? DocumentMark.none;
-    bool shown(String folderId) => selectedId == null || folderId == selectedId;
-    final documents = [
-      for (final document in scans?.documents ?? const <Document>[])
-        if (shown(document.folder.id)) document,
-    ];
+    final contents = ref.watch(folderContentsProvider).value;
+    final conflicts = contents?.conflicts;
+    final documents = filteredBy(
+      selectedId,
+      contents?.documents ?? const <Document>[],
+    );
     ref.watch(documentSettingsProvider);
     final settings = ref.read(documentSettingsProvider.notifier);
-    bool pinned(Document document) => settings.settingsOf(document.key).pinned;
-    Widget card(Document document) => DocumentCard(
-      document,
-      mark: markOf(document),
-      settings: settings.settingsOf(document.key),
-      hasConflict: conflicts?.forNote(document.key) != null,
-      onTap: () => openNote(context, document),
-      onMark: () => editPinOrColor(context, ref, document),
+    final recent = recentOf(
+      documents,
+      isPinned: (document) => settings.settingsOf(document.key).pinned,
+      count:
+          ref.watch(homeSettingsProvider).value?.recentCount ??
+          HomeSettings.standard.recentCount,
     );
     final orphans = [
       for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
-        if (shown(orphan.folder.id)) orphan,
+        if (selectedId == null || orphan.folder.id == selectedId) orphan,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -184,12 +183,12 @@ class _DocumentsBody extends ConsumerWidget {
           folders,
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),
-        if (scans != null) FolderProblems(scans, folders: folders),
+        if (contents != null) FolderProblems(contents, folders: folders),
         Expanded(
           child: PullToRefresh(
             key: pull,
-            onRefresh: ref.read(folderScansProvider.notifier).refresh,
-            child: scans == null
+            onRefresh: ref.read(folderContentsProvider.notifier).refresh,
+            child: contents == null
                 ? const FilledScrollView(child: CircularProgressIndicator())
                 : documents.isEmpty && orphans.isEmpty
                 ? const FilledScrollView(
@@ -207,13 +206,14 @@ class _DocumentsBody extends ConsumerWidget {
                         ),
                     ],
                     pinned: [
-                      for (final document in documents)
-                        if (pinned(document)) card(document),
+                      for (final document in recent.pinned)
+                        ListedDocumentCard(document),
                     ],
                     others: [
-                      for (final document in documents)
-                        if (!pinned(document)) card(document),
+                      for (final document in recent.newest)
+                        ListedDocumentCard(document),
                     ],
+                    footer: const _ShowAll(),
                   ),
           ),
         ),
@@ -230,7 +230,7 @@ class _ConflictsButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count =
-        ref.watch(folderScansProvider).value?.conflicts.all.length ?? 0;
+        ref.watch(folderContentsProvider).value?.conflicts.all.length ?? 0;
     if (count == 0) return const SizedBox.shrink();
     return IconButton(
       tooltip: 'Conflicts',
@@ -241,6 +241,23 @@ class _ConflictsButton extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Opens All, at the end of Recent: everything, sorted and shown as the
+/// user picks.
+class _ShowAll extends StatelessWidget {
+  const _ShowAll();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 16),
+    child: Center(
+      child: OutlinedButton(
+        onPressed: () => openAllDocuments(context),
+        child: const Text('Show all'),
+      ),
+    ),
+  );
 }
 
 class _NoFolders extends ConsumerWidget {

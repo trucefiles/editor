@@ -19,6 +19,27 @@ void main() {
   });
 
   group('files', () {
+    test('come with the files asked also, apart from them', () async {
+      store
+        ..put('todo.md', 'main')
+        ..put('.truce/marks/phone.json', '{}')
+        ..put('.truce/marks/note.md', 'not shown')
+        ..put('lists/.truce/marks/laptop.json', '{}');
+
+      final scan = (await scanner.scan(also: DocumentMarks.files)).value;
+
+      expect(scan.files.map((e) => e.path), [path('todo.md')]);
+      expect(scan.subfolders, [path('lists')]);
+      expect(
+        scan.alsoListed.map((e) => e.path.value),
+        unorderedEquals([
+          '.truce/marks/phone.json',
+          'lists/.truce/marks/laptop.json',
+        ]),
+      );
+      expect(store.listCount, 1);
+    });
+
     test('come with the subfolders that could not be read', () async {
       store
         ..put('todo.md', 'main')
@@ -185,5 +206,66 @@ void main() {
     store.failWith = StoreError.accessDenied;
 
     expect((await scanner.scan()).error, StoreError.accessDenied);
+  });
+
+  group('a part', () {
+    test('holds only the files directly in the folders asked, with their '
+        'conflicts', () async {
+      store
+        ..put('top.md', 'top')
+        ..put('a/todo.md', 'main')
+        ..put('a/$copy1', 'copy')
+        ..put('a/deeper/x.md', 'x')
+        ..put('b/y.md', 'y');
+
+      final part = (await scanner.scanIn({path('a')})).value;
+
+      expect(part.files.map((f) => f.path), [path('a/todo.md')]);
+      expect(part.conflicts.single.copies.single.id, 'a/$copy1');
+      expect(part.found, {path('a')});
+      expect(part.unknown, isEmpty);
+    });
+
+    test('of the top level holds its files only', () async {
+      store
+        ..put('top.md', 'top')
+        ..put('a/todo.md', 'a');
+
+      final part = (await scanner.scanIn({null})).value;
+
+      expect(part.files.map((f) => f.path), [path('top.md')]);
+      expect(part.found, {null});
+    });
+
+    test('tells folders that are gone from those it cannot read', () async {
+      store
+        ..put('private/inner/a.md', 'a')
+        ..unreadableFolders.add(path('private'));
+
+      final part = (await scanner.scanIn({path('gone'), path('private/inner')}))
+          .value;
+
+      expect(part.files, isEmpty);
+      expect(part.found, isEmpty);
+      expect(part.unknown, {path('private/inner')});
+    });
+
+    test('skips filtered folders on the way', () async {
+      store.put('.hidden/a.md', 'a');
+
+      final part = (await scanner.scanIn({path('.hidden')})).value;
+
+      expect(part.files, isEmpty);
+      expect(part.found, isEmpty);
+    });
+
+    test('passes storage errors on', () async {
+      store.failWith = StoreError.accessDenied;
+
+      expect(
+        (await scanner.scanIn({path('a')})).error,
+        StoreError.accessDenied,
+      );
+    });
   });
 }

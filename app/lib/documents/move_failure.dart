@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'document.dart';
+import 'document_text.dart';
 
 /// Why a document was not moved.
 sealed class MoveFailure {
@@ -24,6 +24,6 @@ final class MoveNotWritten extends MoveFailure {
 final class MoveLeftOriginal extends MoveFailure {
   const MoveLeftOriginal(this.copy, this.error);
 
-  final Document copy;
+  final DocumentText copy;
   final StoreError error;
 }

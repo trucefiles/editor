@@ -7,23 +7,26 @@ import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   test('passes on the changes of every part', () async {
-    final a = StreamController<RelPath>();
-    final b = StreamController<RelPath>();
+    final a = StreamController<ChangeHint>();
+    final b = StreamController<ChangeHint>();
     final queue = StreamQueue(
       MergedFolderChanges([_Changes(a.stream), _Changes(b.stream)]).changes,
     );
     addTearDown(queue.cancel);
 
-    a.add(path('a.md'));
-    b.add(path('b.md'));
+    a.add(PathChanged(path('a.md')));
+    b.add(PathChanged(path('b.md')));
 
-    expect(await queue.take(2), [path('a.md'), path('b.md')]);
+    expect(await queue.take(2), [
+      PathChanged(path('a.md')),
+      PathChanged(path('b.md')),
+    ]);
   });
 
   test('ends once one part ends, and stops the others', () async {
-    final a = StreamController<RelPath>();
+    final a = StreamController<ChangeHint>();
     var bCancelled = false;
-    final b = StreamController<RelPath>(onCancel: () => bCancelled = true);
+    final b = StreamController<ChangeHint>(onCancel: () => bCancelled = true);
     final queue = StreamQueue(
       MergedFolderChanges([_Changes(a.stream), _Changes(b.stream)]).changes,
     );
@@ -44,5 +47,5 @@ final class _Changes implements FolderChanges {
   const _Changes(this.changes);
 
   @override
-  final Stream<RelPath> changes;
+  final Stream<ChangeHint> changes;
 }

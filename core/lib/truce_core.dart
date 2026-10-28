@@ -31,8 +31,9 @@
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
 ///     files go ([FolderReach]).
 ///
-/// 13. `scans`: when the folders are scanned, and which scan is the
-///     latest ([ScansOwner]); any folder and result type.
+/// 13. `folder_state`: what the base folders hold (listings, conflicts,
+///     marks), kept in step with changes by its owner, working only on
+///     what changed ([FolderStateOwner]).
 /// 14. `documents`: an open document's file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); and what every type's editor shares: the page's
@@ -40,6 +41,9 @@
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
 ///     ([EditorSteps]); any document type, any sync tool.
 ///
+/// `search` holds search over many texts behind one interface
+/// ([OpenSearch]); today the texts are read when it opens
+/// ([ReadingSearch]).
 /// `owners` holds how an owner of a domain's state runs ([Owner]): by a
 /// pure machine ([MachineOwner]) or by plain code ([SimpleOwner]); and
 /// how a question to an owner gets its answer ([ask]).
@@ -90,6 +94,7 @@ export 'src/filetypes/file_type_support.dart';
 export 'src/filter/any_file_filter.dart';
 export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
+export 'src/folder_state/folder_state_owner.dart';
 export 'src/marks/document_mark.dart';
 export 'src/marks/document_marks.dart';
 export 'src/owners/ask.dart';
@@ -103,7 +108,8 @@ export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
-export 'src/scans/scans_owner.dart';
+export 'src/search/reading_search.dart';
+export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
@@ -112,6 +118,7 @@ export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
 export 'src/storage/selection.dart';
 export 'src/storage/subfolder_names.dart';
+export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';

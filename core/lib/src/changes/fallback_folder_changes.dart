@@ -1,8 +1,8 @@
-import '../storage/rel_path.dart';
 import 'folder_changes.dart';
 
-/// Follows [_primary]; once that ends (e.g. watching failed), goes on with
-/// [_fallback].
+/// Follows [_primary]; once that ends (e.g. watching failed), asks for the
+/// folder to be listed again, as changes may have been missed, and goes
+/// on with [_fallback].
 final class FallbackFolderChanges implements FolderChanges {
   FallbackFolderChanges(this._primary, this._fallback);
 
@@ -14,10 +14,11 @@ final class FallbackFolderChanges implements FolderChanges {
   var _onFallback = false;
 
   @override
-  Stream<RelPath> get changes async* {
+  Stream<ChangeHint> get changes async* {
     _onFallback = false;
     yield* _primary.changes;
     _onFallback = true;
+    yield const ListAgain();
     yield* _fallback.changes;
   }
 }

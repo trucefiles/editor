@@ -39,16 +39,20 @@ final class WatchedFolderChanges implements FolderChanges {
   final FileFilter followed;
 
   @override
-  Stream<RelPath> get changes {
+  Stream<ChangeHint> get changes {
     final watcher = DirectoryWatcher(
       under == null
           ? rootPath
           : p.joinAll([rootPath, ...under!.value.split('/')]),
     );
     return watcher.events
-        .map((event) => _relative(event.path, rootPath))
-        .where((path) => path != null && followed.includesPath(path))
-        .cast<RelPath>()
+        .expand<ChangeHint>(
+          (event) => [
+            if (_relative(event.path, rootPath) case final path?
+                when followed.includesPath(path))
+              PathChanged(path),
+          ],
+        )
         .transform(_endOnError);
   }
 
@@ -59,7 +63,7 @@ final class WatchedFolderChanges implements FolderChanges {
 
   /// Watching failed (folder gone, too many watches): the stream ends, as
   /// [FolderChanges.changes] promises.
-  StreamTransformer<RelPath, RelPath> get _endOnError =>
+  StreamTransformer<ChangeHint, ChangeHint> get _endOnError =>
       StreamTransformer.fromHandlers(
         handleError: (error, _, sink) {
           _log.warning('Stopped watching $rootPath: $error');

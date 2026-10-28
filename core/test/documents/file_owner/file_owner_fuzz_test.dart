@@ -197,7 +197,10 @@ final class _World {
         file = null;
         changedElsewhere = true;
       case 5:
-        scans.add((Moment.now(), file == null ? const Gone() : Found(file!)));
+        scans.add((
+          Moment.now(),
+          file == null ? const Gone() : Found(file!.version),
+        ));
       case 6 when scans.isNotEmpty:
         final (startedAt, observation) = scans.removeAt(0);
         owner.send(Observed(observation, startedAt: startedAt));
@@ -290,6 +293,8 @@ final class _World {
         final ok = random.nextInt(5) > 0;
         if (ok) conflicts.add(text);
         owner.send(ConflictKept(id, ok: ok));
+      case ReadLatest(:final id):
+        owner.send(LatestRead(id, file));
       case DropDraft():
         break;
     }

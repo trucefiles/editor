@@ -430,10 +430,17 @@ void main() {
   test('with a file owner, a change elsewhere after a save shows', () {
     final file = MachineRun.of(openedFile(const Seen('a', v1)));
     late final EditorRun editor;
+    // What the file holds for the reads the file owner starts.
+    var onDisk = const Seen('a', v1);
     void toEditor(List<Object?> outputs) {
       for (final output in outputs) {
-        if (output case final ToEditor message) {
-          editor.request(FromFile(message));
+        switch (output) {
+          case final ToEditor message:
+            editor.request(FromFile(message));
+          case KeepDraft(:final id):
+            toEditor(file.send(DraftKept(id, kept: true)));
+          case ReadLatest(:final id):
+            toEditor(file.send(LatestRead(id, onDisk)));
         }
       }
     }
@@ -450,13 +457,11 @@ void main() {
       ..caret(0, 1)
       ..type('b')
       ..pause();
+    onDisk = const Seen('ab', v2);
+    toEditor(file.send(Observed(const Found(v2), startedAt: Moment.now())));
+    onDisk = const Seen('abc', Version(3));
     toEditor(
-      file.send(Observed(const Found(Seen('ab', v2)), startedAt: Moment.now())),
-    );
-    toEditor(
-      file.send(
-        Observed(const Found(Seen('abc', Version(3))), startedAt: Moment.now()),
-      ),
+      file.send(Observed(const Found(Version(3)), startedAt: Moment.now())),
     );
     expect(editor.rows, ['abc']);
     expect(file.state.text, 'abc');

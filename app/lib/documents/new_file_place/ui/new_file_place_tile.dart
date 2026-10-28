@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../folder_state/folder_state_controller.dart';
 import '../../../folders/folders_controller.dart';
 import '../../../folders/ui/folder_badge.dart';
-import '../../../scan/folder_scans_controller.dart';
 import '../../document_actions.dart';
 import '../../document_place.dart';
 import '../../ui/document_place_dialog.dart';
@@ -19,7 +19,7 @@ class NewFilePlaceTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final folders = ref.watch(foldersProvider).value ?? const [];
     final setting = ref.watch(newFilePlaceProvider);
-    ref.watch(folderScansProvider);
+    ref.watch(folderContentsProvider);
     final actions = ref.read(documentActionsProvider);
     final place = resolveNewFilePlace(setting.value, folders);
     return ListTile(
@@ -40,9 +40,9 @@ class NewFilePlaceTile extends ConsumerWidget {
                   ref.read(newFilePlaceProvider.notifier).set(null),
             ),
       onTap: () async {
-        // Change events don't tell about new empty subfolders; a rescan
+        // Change events don't tell about new empty subfolders; a listing
         // finds them, so the dialog offers them.
-        await ref.read(folderScansProvider.notifier).refresh();
+        await ref.read(folderContentsProvider.notifier).refresh();
         if (!context.mounted) return;
         final picked = await showNotePlaceDialog(
           context,

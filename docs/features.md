@@ -3,6 +3,19 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Recent, All and search
+
+Home shows your most recent documents from every folder, pinned ones on
+top. **Show all** opens every document, newest first or by name (by name,
+under each subfolder), as cards or a list. Settings sets how many recent
+documents home shows. Search looks through every folder, by title, text,
+file and folder names.
+
+<img src="screenshots/home/home_recent_desktop.png" width="600" alt="Home: a pinned document, then the recent ones, and a Show all button">
+<img src="screenshots/home/all_by_name_desktop.png" width="600" alt="All documents by name, as cards under each subfolder">
+<img src="screenshots/home/all_list_desktop.png" width="600" alt="All documents by name, as a list">
+<img src="screenshots/home/search_desktop.png" width="600" alt="Search for lake finds two documents">
+
 ## Plain text files
 
 Text files (`.txt`) show next to Markdown documents. A card shows the first

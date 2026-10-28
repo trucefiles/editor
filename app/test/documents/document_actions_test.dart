@@ -7,17 +7,19 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_actions.dart';
+import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_steps.dart';
+import 'package:truce_editor/documents/document_text.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place_controller.dart';
+import 'package:truce_editor/folder_state/folder_contents.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/scan/folder_scans.dart';
-import 'package:truce_editor/scan/folder_scans_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
@@ -51,7 +53,12 @@ void main() {
     actions = container.read(documentActionsProvider);
   });
 
-  Future<FolderScans> scans() => container.read(folderScansProvider.future);
+  /// What the folders hold, listed after every write so far.
+  Future<FolderContents> scans() async {
+    // The first listing must be done, or the refresh finds no folders yet.
+    await container.read(folderContentsProvider.future);
+    return (await container.read(folderContentsProvider.notifier).refresh())!;
+  }
 
   File file(Directory dir, String name) => File('${dir.path}/$name');
 
@@ -59,14 +66,20 @@ void main() {
   String marksFile(Directory dir) =>
       file(dir, '.truce/marks/0123456789abcdef.json').readAsStringSync();
 
-  Future<Document> documentIn(Directory dir, String name, String text) async {
+  /// The document [name] in [dir], written as [text] and read.
+  Future<DocumentText> documentIn(
+    Directory dir,
+    String name,
+    String text,
+  ) async {
     file(dir, name).writeCreatingFolders(text);
-    // The first scan must be done, or the refresh finds no folders yet.
-    await scans();
-    await container.read(folderScansProvider.notifier).refresh();
-    return (await scans()).documents.singleWhere(
+    final listed = (await scans()).documents.singleWhere(
       (document) => document.path.value == name,
     );
+    return (await container
+            .read(documentFilesProvider(listed.folder))
+            .reload(listed))
+        .value;
   }
 
   group('defaultFolder', () {
@@ -92,7 +105,7 @@ void main() {
     });
   });
 
-  test('create writes the document and rescans', () async {
+  test('create writes the document', () async {
     await scans();
 
     final document = (await actions.create(
@@ -173,7 +186,7 @@ void main() {
       final settings = container.read(documentSettingsProvider.notifier);
       const mark = DocumentMark(color: 'teal');
       const mine = DocumentSettings(mode: EditMode.visual, pinned: true);
-      await actions.setMark(document, mark);
+      await actions.setMark(document.document, mark);
       await settings.edit(document.key, (_) => mine);
 
       final moved = (await actions.move(document, (
@@ -181,7 +194,6 @@ void main() {
         subfolder: path('inbox'),
       ))).value;
 
-      await container.read(folderScansProvider.notifier).refresh();
       expect(moved.path, path('inbox/plan.md'));
       expect(file(work, 'plan.md').existsSync(), isFalse);
       expect(file(home, 'inbox/plan.md').readAsStringSync(), '# Plan\r\n');
@@ -197,7 +209,7 @@ void main() {
         final document = await documentIn(work, 'plan.md', '# Plan\n');
         const mark = DocumentMark(color: 'teal');
 
-        final marked = actions.setMark(document, mark);
+        final marked = actions.setMark(document.document, mark);
         final moved = actions.move(document, (
           folder: folders[1],
           subfolder: null,
@@ -205,7 +217,6 @@ void main() {
 
         expect(await marked, isA<Ok<void, StoreError>>());
         final copy = (await moved).value;
-        await container.read(folderScansProvider.notifier).refresh();
         expect((await scans()).markOf(copy.key), mark);
         expect(marksFile(work), isNot(contains('plan.md')));
       },
@@ -368,7 +379,7 @@ void main() {
       pinned: true,
       checkedItems: CheckedItems.inPlace,
     );
-    await actions.setMark(document, mark);
+    await actions.setMark(document.document, mark);
     await settings.edit(document.key, (_) => mine);
 
     final deleted = (await actions.delete(document, '# Plan\n')).value;
@@ -390,8 +401,11 @@ void main() {
         now: () => DateTime.utc(2000),
       );
       await laptop.set(document.path, const DocumentMark(color: 'amber'));
-      await actions.setMark(document, const DocumentMark(color: 'teal'));
-      await actions.setMark(document, DocumentMark.none);
+      await actions.setMark(
+        document.document,
+        const DocumentMark(color: 'teal'),
+      );
+      await actions.setMark(document.document, DocumentMark.none);
 
       final deleted = (await actions.delete(document, '# Plan\n')).value;
       await actions.undoDelete(deleted);
@@ -403,7 +417,7 @@ void main() {
   test('undo onto a taken path brings the mark to the document, not the other '
       'file', () async {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
-    await actions.setMark(document, const DocumentMark(color: 'teal'));
+    await actions.setMark(document.document, const DocumentMark(color: 'teal'));
     final deleted = (await actions.delete(document, '# Plan\n')).value;
     file(work, 'plan.md').writeAsStringSync('# Other\n');
 
@@ -459,14 +473,14 @@ void main() {
     expect(file(work, 'a/plan 2.md').readAsStringSync(), '# Plan\nmine\n');
   });
 
-  test('setMark saves the mark and rescans', () async {
+  test('setMark saves the mark', () async {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
     const teal = DocumentMark(color: 'teal');
 
-    await actions.setMark(document, teal);
+    await actions.setMark(document.document, teal);
 
-    expect(actions.markOf(document), teal);
     expect((await scans()).markOf(document.key), teal);
+    expect(actions.markOf(document.document), teal);
   });
 
   test('after a bug in an action, actions fail instead of waiting', () async {
@@ -484,8 +498,8 @@ void main() {
 
     await runZonedGuarded(() async {
       outcomes
-        ..add(await buggyActions.setMark(document, _teal))
-        ..add(await buggyActions.setMark(document, _teal));
+        ..add(await buggyActions.setMark(document.document, _teal))
+        ..add(await buggyActions.setMark(document.document, _teal));
     }, (_, _) {});
 
     expect(outcomes, hasLength(2));
@@ -495,7 +509,7 @@ void main() {
   test('setMark writes nothing if the mark is already set', () async {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
 
-    await actions.setMark(document, DocumentMark.none);
+    await actions.setMark(document.document, DocumentMark.none);
 
     expect(Directory('${work.path}/.truce').existsSync(), isFalse);
   });
@@ -508,7 +522,7 @@ void main() {
     );
     const mark = DocumentMark(color: 'teal');
 
-    await actions.setMark(deep, mark);
+    await actions.setMark(deep.document, mark);
 
     expect((await scans()).markOf(deep.key), mark);
     expect((await scans()).markOf(root.key), DocumentMark.none);

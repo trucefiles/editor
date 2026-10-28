@@ -19,6 +19,7 @@ import '../../documents/document_files.dart';
 import '../../documents/document_place.dart';
 import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
+import '../../documents/document_text.dart';
 import '../../documents/document_title.dart';
 import '../../documents/document_version.dart';
 import '../../documents/ui/delete_failure_text.dart';
@@ -26,13 +27,13 @@ import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
 import '../../editor/ui/history_buttons.dart';
 import '../../file_types/document_types.dart';
+import '../../folder_state/folder_state_controller.dart';
 import '../../folders/document_folder.dart';
 import '../../folders/folder_lookup.dart';
 import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
-import '../../scan/folder_scans_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../theme/touch.dart';
 import '../document_controller.dart';
@@ -52,14 +53,14 @@ import 'save_indicator.dart';
 /// Markdown document). Saves as the user types; a new document's file is
 /// created as the user leaves it or the app is hidden.
 class DocumentScreen extends ConsumerStatefulWidget {
-  const DocumentScreen(Document this.document, {super.key}) : place = null;
+  const DocumentScreen(DocumentText this.document, {super.key}) : place = null;
 
   /// A new document, to go into [place].
   const DocumentScreen.fresh(DocumentPlace this.place, {super.key})
     : document = null;
 
-  /// The document to open; `null` for a new one.
-  final Document? document;
+  /// The document to open, as read just before; `null` for a new one.
+  final DocumentText? document;
   final DocumentPlace? place;
 
   @override
@@ -68,7 +69,7 @@ class DocumentScreen extends ConsumerStatefulWidget {
 
 class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   // Read up front: dispose() needs them, and ref is unusable by then.
-  late final FolderScansController _scans;
+  late final FolderStateController _folderState;
   late final ProviderContainer _container;
   late final DocumentSettingsController _settings;
   late final EditorPart _part;
@@ -97,7 +98,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   void initState() {
     super.initState();
     _container = ProviderScope.containerOf(context, listen: false);
-    _scans = ref.read(folderScansProvider.notifier);
+    _folderState = ref.read(folderContentsProvider.notifier);
     _settings = ref.read(documentSettingsProvider.notifier);
     final document = widget.document;
     final settings = switch (document) {
@@ -165,8 +166,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       onHide: () => unawaited(_session.secure(SecureReason.hide)),
       onExitRequested: _onExitRequested,
     );
-    // The document may have changed since the last scan.
-    unawaited(_scans.refresh());
+    // Opening a document lists the folders again, as the refresh setting
+    // promises; its own text was read just before.
+    unawaited(_folderState.refresh());
   }
 
   @override
@@ -191,7 +193,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       session.secure(SecureReason.close).whenComplete(() {
         leaveOpenDocuments();
         session.dispose();
-        unawaited(_scans.refresh());
       }),
     );
     super.dispose();
@@ -386,7 +387,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     if (!context.mounted) return;
     switch (file) {
       case Ok(value: final document):
-        await action(document);
+        await action(document.document);
       case Err(error: NoFile.empty):
         showSnack(
           context,
@@ -455,7 +456,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final text = _session.text;
     await openDocumentBackups(
       context,
-      document: document,
+      document: document.document,
       title: documentTitle(
         text,
         _session.file.pathFor(text),
@@ -475,8 +476,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ..listen(documentSettingsProvider, (_, _) {
         _part.settingsChanged(_settingsNow);
       })
-      ..listen(folderScansProvider, (_, next) {
-        if (next.value case final scans?) _session.observe(scans);
+      ..listen(folderContentsProvider, (_, next) {
+        if (next.value case final contents?) _session.observe(contents);
       })
       ..listen(foldersProvider, (_, next) {
         if (next.value case final folders?) _closeIfNotShown(folders);
@@ -545,11 +546,11 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     ref.watch(folderReachProvider(_folder.base));
     final unreachable = _isUnreachable;
     final readOnly = _isReadOnly;
-    final scans = ref.watch(folderScansProvider).value;
+    final contents = ref.watch(folderContentsProvider).value;
     final key = _session.document?.key;
     final mark = key == null
         ? DocumentMark.none
-        : scans?.markOf(key) ?? DocumentMark.none;
+        : contents?.markOf(key) ?? DocumentMark.none;
     ref.watch(documentSettingsProvider);
     final settings = _settingsNow;
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
@@ -561,7 +562,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         backgroundColor: tint,
         title: DocumentHeading(
           title: documentTitle(text, path, _session.file.type),
-          edited: _session.document?.modified,
+          edited: _session.document?.document.modified,
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),
@@ -582,7 +583,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       body: Column(
         children: [
           if (key != null)
-            if (scans?.conflicts.forNote(key) case final conflict?)
+            if (contents?.conflicts.forNote(key) case final conflict?)
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
@@ -605,7 +606,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             // The editor scrolls inside.
             child: PullToRefresh(
               key: _pull,
-              onRefresh: _scans.refresh,
+              onRefresh: _folderState.refresh,
               child: DocumentTextZoom(
                 child: _part.view(
                   (folder: _folder, path: path, kept: text),

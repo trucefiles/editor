@@ -16,7 +16,7 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
-  Future<StreamQueue<RelPath>> watch() async {
+  Future<StreamQueue<ChangeHint>> watch() async {
     final queue = StreamQueue(
       WatchedFolderChanges(root.path, followed: const _Documents()).changes,
     );
@@ -35,7 +35,7 @@ void main() {
 
     write('a.md');
 
-    expect(await queue.next, path('a.md'));
+    expect(await queue.next, PathChanged(path('a.md')));
   });
 
   test('follows subfolders created after it started', () async {
@@ -43,7 +43,7 @@ void main() {
 
     write('new/deep/b.md');
 
-    expect(await queue.next, path('new/deep/b.md'));
+    expect(await queue.next, PathChanged(path('new/deep/b.md')));
   });
 
   test('drops the changes of files it does not follow', () async {
@@ -53,7 +53,7 @@ void main() {
     write('a.md~');
     write('b.md');
 
-    expect(await queue.next, path('b.md'));
+    expect(await queue.next, PathChanged(path('b.md')));
   });
 
   test('watches only its subfolder, with paths in the folder', () async {
@@ -71,7 +71,7 @@ void main() {
     write('other.md');
     write('work/a.md');
 
-    expect(await queue.next, path('work/a.md'));
+    expect(await queue.next, PathChanged(path('work/a.md')));
   });
 
   test('ends when the folder is deleted', () async {

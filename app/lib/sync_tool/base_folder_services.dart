@@ -12,6 +12,7 @@ import '../platform/platform_facts.dart';
 import '../platform/platform_wiring.dart';
 import '../storage/app_storage.dart';
 import '../storage/device_id.dart';
+import 'app_writes.dart';
 import 'base_folder_following.dart';
 import 'sync_tools.dart';
 
@@ -93,7 +94,8 @@ final _baseFolderAccessProvider =
     });
 
 /// The services of a base folder, built from what its folders show now:
-/// built again when that changes. Its open documents are secured before
+/// built again when that changes. Every write through them is told to
+/// [appWritesProvider]. Its open documents are secured before
 /// (see `FolderListWork.secureOpen`); a Syncthing rewrite still pending in
 /// the stack before ends there, as the user's own write.
 final baseFolderServicesProvider =
@@ -114,12 +116,14 @@ final baseFolderServicesProvider =
         platform: ref.watch(platformFactsProvider),
         backupsPath: ref.watch(appStorageProvider).backupsPath(base.id),
         deviceId: ref.watch(deviceIdProvider),
+        wrote: (paths) => ref.read(appWritesProvider).wrote(base.id, paths),
       );
     });
 
 /// The services of [base] by its sync [tool], over its file layer [files]
 /// that tells [reach] how each access went, bounded to [selection]: the
-/// files of the handled [types] and the marks.
+/// files of the handled [types] and the marks. Each write, the sync
+/// tool's own included, is told to [wrote].
 BaseFolderServices baseFolderServices(
   BaseFolder base, {
   required SyncTool tool,
@@ -130,6 +134,7 @@ BaseFolderServices baseFolderServices(
   required PlatformFacts platform,
   required String backupsPath,
   required String deviceId,
+  required void Function(Set<RelPath> paths) wrote,
 }) {
   final bounded = BoundedStore(
     ReachReportingStore(files, reach),
@@ -138,7 +143,7 @@ BaseFolderServices baseFolderServices(
         types.handles(file) || DocumentMarks.files.includesFile(file),
   );
   final synced = tool.open(
-    bounded,
+    WriteReportingStore(bounded, wrote),
     shown: DefaultFileFilter(tool.rules, types.detector),
     markers: baseFolderMarkers(base.path, platform),
   );

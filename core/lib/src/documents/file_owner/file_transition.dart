@@ -86,6 +86,8 @@ final class _Step {
         _backedUp(id, ok: ok);
       case ConflictKept(:final id, :final ok):
         _conflictKept(id, ok: ok);
+      case LatestRead(:final id, :final seen):
+        _latestRead(id, seen);
     }
     _next();
   }
@@ -93,7 +95,8 @@ final class _Step {
   // The next I/O.
 
   /// Starts the next I/O once none is under way: a pick waiting, the
-  /// next step of a [Secure], the draft, then the file.
+  /// next step of a [Secure], a version found to read, the draft, then
+  /// the file.
   void _next() {
     if (work.io != null) return;
     if (work.pick case final pick?) _startPick(pick);
@@ -101,6 +104,7 @@ final class _Step {
       _secureStep(securing);
     }
     if (work.io != null) return;
+    if (work.toRead != null && !_done) return _readLatest();
     if (!_hasEdits && work.draft != null) _dropDraft();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
     if (work.folderRev != null) _write();
@@ -311,10 +315,45 @@ final class _Step {
       case Unknown():
         break;
       case Gone():
+        _work(work.copyWith(toRead: null));
         _goneElsewhere();
-      case Found(:final seen):
-        _found(seen);
+      case Found(:final version):
+        _foundVersion(version);
     }
+  }
+
+  /// The file is there in [version]: known already, or read before it
+  /// counts.
+  void _foundVersion(Version version) {
+    final known = [
+      work.expected,
+      if (status case ChangedElsewhere(:final theirs)) theirs,
+      ...work.offered,
+    ].nonNulls.where((seen) => seen.version == version).firstOrNull;
+    if (known == null) return _work(work.copyWith(toRead: version));
+    _work(work.copyWith(toRead: null));
+    _found(known);
+  }
+
+  void _readLatest() {
+    final id = _id();
+    final at = work.expected!;
+    _work(work.copyWith(io: ReadingFile(id, at: at), toRead: null));
+    effects.add(ReadLatest(id, at: at));
+  }
+
+  void _latestRead(EffectId id, Seen? seen) {
+    final reading = switch (work.io) {
+      final ReadingFile reading when reading.id == id => reading,
+      _ => null,
+    };
+    if (reading == null) return;
+    _work(work.copyWith(io: null));
+    // Read where the file no longer is (moved meanwhile): the next
+    // observation tells of the file where it is now.
+    if (seen == null || work.expected != reading.at || _done) return;
+    if (work.toRead == seen.version) _work(work.copyWith(toRead: null));
+    _found(seen);
   }
 
   void _found(Seen latest) {
@@ -450,8 +489,9 @@ final class _Step {
     // Theirs would drop edits made since the pick.
     final dropsEdits =
         pick.choice == PickChoice.theirs && pick.rev != state.rev;
-    if (!ok || theirs == null || dropsEdits) {
-      // No backup, their version changed again, or the conflict is gone.
+    if (!ok || theirs == null || work.toRead != null || dropsEdits) {
+      // No backup, their version changed again (perhaps not read yet), or
+      // the conflict is gone.
       return events.add(const PickNotKept());
     }
     _work(

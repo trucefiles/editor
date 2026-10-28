@@ -28,11 +28,15 @@ final class MachineOwner<
 >
     implements Owner<In, State, Event> {
   /// [handle] carries out the effects that are no [Wait]; [startTimer]
-  /// stands in for the clock in tests.
+  /// stands in for the clock in tests. With [dropsNewWorkOnClose], the
+  /// effects steps ask for once the owner is closed are dropped instead of
+  /// started: for an owner whose work only serves those still listening
+  /// (e.g. following a folder's changes). Work under way still ends.
   MachineOwner(
     Machine<Message, State, Work, Event, Effect> machine, {
     this._handle,
     StartTimer? startTimer,
+    this._dropsNewWorkOnClose = false,
   }) : _machine = machine,
        _step = machine.step,
        _state = machine.state,
@@ -45,6 +49,7 @@ final class MachineOwner<
   final Step<State, Work, Event, Effect> Function(State, Work, Message) _step;
   final EffectHandler<Effect, Result>? _handle;
   final Timers _timers;
+  final bool _dropsNewWorkOnClose;
   final _messages = Queue<Message>();
   final _changes = StreamController<State>.broadcast(sync: true);
   final _events = StreamController<Event>.broadcast(sync: true);
@@ -130,6 +135,7 @@ final class MachineOwner<
   }
 
   void _start(Effect effect) {
+    if (_closed && _dropsNewWorkOnClose) return;
     _underWay++;
     final result = switch (effect) {
       final Wait<Result> wait => _timers.wait(wait),

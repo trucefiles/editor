@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import '../storage/rel_path.dart';
 import 'folder_changes.dart';
 
 /// The changes of all of [_parts] in one, e.g. one watcher per selected
@@ -12,15 +11,15 @@ final class MergedFolderChanges implements FolderChanges {
   final List<FolderChanges> _parts;
 
   @override
-  Stream<RelPath> get changes {
-    final subscriptions = <StreamSubscription<RelPath>>[];
-    late final StreamController<RelPath> controller;
+  Stream<ChangeHint> get changes {
+    final subscriptions = <StreamSubscription<ChangeHint>>[];
+    late final StreamController<ChangeHint> controller;
     Future<void> end() async {
       await Future.wait(subscriptions.map((part) => part.cancel()));
       await controller.close();
     }
 
-    controller = StreamController<RelPath>(
+    controller = StreamController<ChangeHint>(
       onListen: () {
         if (_parts.isEmpty) unawaited(controller.close());
         subscriptions.addAll([
