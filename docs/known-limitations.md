@@ -11,7 +11,13 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A conflict copy can bring back a deleted subfolder.** If a document's
   subfolder is deleted on another device while the document has unsaved edits
   here, the edits are kept as a conflict copy in that subfolder, which
-  recreates it, so the edits stay visible.
+  recreates it, so the edits stay visible. A subfolder you chose for a
+  folder is never made again: there the edits stay on this device, not
+  shown, until the subfolder is back.
+- **A chosen subfolder deleted at the very moment of a save can come
+  back.** Truce checks that the subfolder is there right before it writes.
+  If it is deleted in the few milliseconds between, the save makes it
+  again.
 
 - **A moved or renamed document can come back.** Sync tools see a move or
   rename as a delete and a new file. If another device edits the document

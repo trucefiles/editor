@@ -314,15 +314,19 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     return discard ?? false;
   }
 
-  /// Closes once no folder shows the document any more, e.g. as the user
-  /// narrowed its folder: its edits were kept before (see
-  /// `FolderListWork.secureOpen`), and what is left stays on this device.
+  /// Closes once no folder shows the document any more: its edits were
+  /// saved before (see `FolderListWork.secureOpen`). As the user narrowed
+  /// its folder, what is left stays on this device; as they removed it,
+  /// its drafts go with it, so the hint promises nothing.
   void _closeIfNotShown(List<DocumentFolder> folders) {
     final path = _session.file.pathFor(_session.text);
     if (folders.folderOf(_folder.base.id, path) != null) return;
+    final removed = !folders.any((folder) => folder.id == _folder.id);
     ScaffoldMessenger.of(context).showHint(
-      'The document is no longer in a folder shown here. Your edits are '
-      'kept.',
+      removed
+          ? 'The folder was removed, so the document closed.'
+          : 'The document is no longer in a folder shown here. Your edits '
+                'are kept.',
     );
     _closeWithAllOnTop();
   }

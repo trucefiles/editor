@@ -1,6 +1,10 @@
+import 'package:logging/logging.dart';
+
 import '../common/result.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
+
+final _log = Logger('moveByCopy');
 
 /// [FileStore.move] by copying [from] to [to] in [store] and deleting
 /// [from] after: a plain rename would overwrite a file that lands at [to]
@@ -33,7 +37,11 @@ Future<Result<FileEntry, StoreError>> moveByCopy(
     case Ok():
       return Ok(copy);
     case Err(:final error):
-      await store.delete(to, ifUnchanged: copy.version);
+      if (await store.delete(to, ifUnchanged: copy.version) case Err(
+        error: final left,
+      )) {
+        _log.warning('Kept the copy $to of $from: removing it failed ($left)');
+      }
       return Err(error);
   }
 }

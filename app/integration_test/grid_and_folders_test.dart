@@ -168,6 +168,26 @@ void main() {
       expect(find.text('B'), findsNothing);
     });
 
+    testApp('removing its folder closes a document without promising its '
+        'edits', (tester) async {
+      await tester.addFolder(app);
+      await tester.openNote('B');
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Navigator).first),
+      );
+      final folder = container.read(foldersProvider).value!.single;
+
+      await tester.runAsync(
+        () => container.read(folderActionsProvider).remove(folder),
+      );
+
+      await tester.waitFor(
+        find.text('The folder was removed, so the document closed.'),
+      );
+      await tester.waitForNoteClosed();
+      expect(find.textContaining('Your edits are kept'), findsNothing);
+    });
+
     testApp('waits for the last save of a document just closed', (
       tester,
     ) async {

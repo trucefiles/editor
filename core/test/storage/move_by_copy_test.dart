@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -56,7 +57,7 @@ void main() {
   });
 
   test('removes the copy again if the original changed meanwhile', () async {
-    final changing = _ChangesOnCreate(store, path('a.md'));
+    final changing = _ChangesOnCreate(store, [path('a.md')]);
 
     final moved = await moveByCopy(
       changing,
@@ -69,14 +70,36 @@ void main() {
     expect(store.textOf('a.md'), 'changed meanwhile');
     expect(store.textOf('b.md'), isNull);
   });
+
+  test('logs a copy it could not remove again', () async {
+    final changing = _ChangesOnCreate(store, [path('a.md'), path('b.md')]);
+    final logged = <String>[];
+    final logs = Logger.root.onRecord.listen((record) {
+      logged.add(record.message);
+    });
+    addTearDown(logs.cancel);
+
+    final moved = await moveByCopy(
+      changing,
+      path('a.md'),
+      path('b.md'),
+      ifUnchanged: version,
+    );
+
+    expect(moved.error, StoreError.changedSinceRead);
+    expect(store.textOf('a.md'), 'changed meanwhile');
+    expect(store.textOf('b.md'), 'changed meanwhile');
+    expect(logged.single, contains('Kept the copy b.md of a.md'));
+  });
 }
 
-/// Changes [_changed] elsewhere as soon as a file is created.
+/// Changes the files at [_changed] elsewhere as soon as a file is
+/// created.
 final class _ChangesOnCreate implements FileStore {
   _ChangesOnCreate(this._inner, this._changed);
 
   final MemoryFileStore _inner;
-  final RelPath _changed;
+  final List<RelPath> _changed;
 
   @override
   Future<Result<FileEntry, StoreError>> create(
@@ -84,7 +107,9 @@ final class _ChangesOnCreate implements FileStore {
     Uint8List bytes,
   ) async {
     final created = await _inner.create(path, bytes);
-    _inner.put(_changed.value, 'changed meanwhile');
+    for (final changed in _changed) {
+      _inner.put(changed.value, 'changed meanwhile');
+    }
     return created;
   }
 
