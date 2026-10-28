@@ -18,9 +18,12 @@ import 'document_folder.dart';
 ///
 /// A folder without `subfolders` shows its whole base folder.
 final class FolderListStore {
-  FolderListStore(File file) : _file = JsonFile(file);
+  /// [_toolIds] are the ids of the sync tools the app works with: a list
+  /// naming another one (e.g. written by a later version) is corrupt.
+  FolderListStore(File file, {required this._toolIds}) : _file = JsonFile(file);
 
   final JsonFile _file;
+  final Set<String> _toolIds;
 
   /// The saved folders; empty before the first [save].
   Future<Result<List<DocumentFolder>, SettingsError>> load() async =>
@@ -60,14 +63,19 @@ final class FolderListStore {
     ],
   };
 
-  /// `null` if [json] is not a list written by [_encode].
-  static List<DocumentFolder>? _decode(Object? json) {
+  /// `null` if [json] is not a list written by [_encode] for the app's
+  /// sync tools.
+  List<DocumentFolder>? _decode(Object? json) {
     if (json case {
       'baseFolders': final List<Object?> baseList,
       'folders': final List<Object?> folderList,
     }) {
       final bases = baseList.map(BaseFolder.fromJson).toList();
-      if (bases.contains(null)) return null;
+      if (bases.any(
+        (base) => base == null || !_toolIds.contains(base.toolId),
+      )) {
+        return null;
+      }
       final byId = {for (final base in bases.nonNulls) base.id: base};
       final folders = [
         for (final folder in folderList) _decodeFolder(folder, byId),

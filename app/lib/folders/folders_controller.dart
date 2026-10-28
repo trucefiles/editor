@@ -18,6 +18,7 @@ import 'folder_list_store.dart';
 final folderListStoreProvider = Provider<FolderListStore>(
   (ref) => FolderListStore(
     File('${ref.watch(appStorageProvider).settingsPath}/folder_list.json'),
+    toolIds: {for (final tool in ref.watch(syncToolsProvider).all) tool.id},
   ),
 );
 

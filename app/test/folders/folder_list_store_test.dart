@@ -15,7 +15,7 @@ void main() {
 
   setUp(() {
     file = File('${tempFolder().path}/settings/folder_list.json');
-    store = FolderListStore(file);
+    store = FolderListStore(file, toolIds: {'syncthing', 'plain'});
   });
 
   test('loads nothing before the first save', () async {
@@ -57,6 +57,8 @@ void main() {
       '{"baseFolders": [{"id": "b", "path": "/x", "tool": "syncthing"}], '
           '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1, '
           '"subfolders": []}]}',
+      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "unknown"}], '
+          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
     ]) {
       file.writeCreatingFolders(damaged);
 

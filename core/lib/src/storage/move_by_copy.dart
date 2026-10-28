@@ -4,9 +4,11 @@ import 'rel_path.dart';
 
 /// [FileStore.move] by copying [from] to [to] in [store] and deleting
 /// [from] after: a plain rename would overwrite a file that lands at [to]
-/// in the meantime. If [from] changed or went meanwhile, the copy is
-/// removed again (only if still as created), so nothing is lost or
-/// doubled.
+/// in the meantime. If [from] changed since [ifUnchanged] or went, the
+/// delete refuses and the copy is removed again (only if still as
+/// created), so nothing is lost or doubled. The delete alone decides
+/// whether [from] changed, so a store whose versions hide its own
+/// rewrites keeps moving files it rewrote.
 Future<Result<FileEntry, StoreError>> moveByCopy(
   FileStore store,
   RelPath from,
@@ -15,10 +17,8 @@ Future<Result<FileEntry, StoreError>> moveByCopy(
 }) async {
   final FileContent content;
   switch (await store.read(from)) {
-    case Ok(:final value) when value.version == ifUnchanged:
+    case Ok(:final value):
       content = value;
-    case Ok():
-      return const Err(StoreError.changedSinceRead);
     case Err(:final error):
       return Err(error);
   }

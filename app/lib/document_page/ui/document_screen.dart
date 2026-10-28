@@ -171,7 +171,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   @override
   void dispose() {
-    _leaveOpenDocuments();
     _lifecycle.dispose();
     for (final notices in _notices) {
       unawaited(notices.cancel());
@@ -184,10 +183,13 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ..removeListener(_tellIfStopped);
     _controller.dispose();
     final session = _session;
+    final leaveOpenDocuments = _leaveOpenDocuments;
     // Also after a leave that kept the edits: the screen may also go
-    // without one (its route removed), and a second answer is quick.
+    // without one (its route removed), and a second answer is quick. It
+    // stays an open document until then, so a folder change waits for it.
     unawaited(
       session.secure(SecureReason.close).whenComplete(() {
+        leaveOpenDocuments();
         session.dispose();
         unawaited(_scans.refresh());
       }),
@@ -322,7 +324,16 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       'The document is no longer in a folder shown here. Your edits are '
       'kept.',
     );
-    _close();
+    _closeWithAllOnTop();
+  }
+
+  /// Closes the editor and every screen or dialog open on top of it.
+  void _closeWithAllOnTop() {
+    final route = mounted ? ModalRoute.of(context) : null;
+    if (route == null || !route.isActive) return;
+    Navigator.of(context)
+      ..popUntil((top) => top == route)
+      ..pop();
   }
 
   /// Closes the editor if it is still the top screen (the user may have

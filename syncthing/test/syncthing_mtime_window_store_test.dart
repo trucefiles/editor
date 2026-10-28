@@ -125,6 +125,43 @@ void main() {
     expect(inner.textOf('a.md'), 'v3!');
   });
 
+  test('moves a file it rewrote, by the version the caller got', () async {
+    final first = await write('v1', null);
+    final second = await write('v2', first);
+    await fireTimers();
+    wait(3);
+
+    final moved = await store.move(
+      document,
+      path('b.md'),
+      ifUnchanged: second.version,
+    );
+
+    expect(moved, isA<Ok<FileEntry, StoreError>>());
+    expect(inner.textOf('b.md'), 'v2');
+    expect(inner.files, isNot(contains(document)));
+  });
+
+  test(
+    'moves nothing once the file changed elsewhere, and leaves no copy',
+    () async {
+      final first = await write('v1', null);
+      final second = await write('v2', first);
+      await fireTimers();
+      inner.put('a.md', 'theirs');
+
+      final moved = await store.move(
+        document,
+        path('b.md'),
+        ifUnchanged: second.version,
+      );
+
+      expect(moved.error, StoreError.changedSinceRead);
+      expect(inner.textOf('a.md'), 'theirs');
+      expect(inner.files, isNot(contains(path('b.md'))));
+    },
+  );
+
   test('does not rewrite a file that changed meanwhile', () async {
     final first = await write('v1', null);
     await write('v2', first);

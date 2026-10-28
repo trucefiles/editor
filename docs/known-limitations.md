@@ -95,6 +95,16 @@ Accepted behavior that is not planned to change, grouped by topic.
   app stops in the middle of a save, the temp file stays. Truce hides it but
   never deletes it, as it writes into your folders only when you ask. You
   can delete it yourself.
+- **A save right after changing a folder can reach other devices late.**
+  Syncthing can miss a save of the same size within 2 seconds of the last
+  one, so Truce writes such a save once more a moment later. Right after
+  you change what a folder shows, Truce starts that count anew. A save in
+  those first 2 seconds can then reach other devices only with the next
+  save.
+- **A chosen subfolder that is gone slows live updates.** If one of a
+  folder's chosen subfolders is gone, Truce checks the whole base folder
+  for changes every few seconds instead of following them live, and the
+  folder's notice says so.
 
 ## Unreachable folders
 
