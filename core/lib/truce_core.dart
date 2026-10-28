@@ -41,6 +41,9 @@
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
 ///     ([EditorSteps]); any document type, any sync tool.
 ///
+/// `search` holds search over many texts behind one interface
+/// ([OpenSearch]); today the texts are read when it opens
+/// ([ReadingSearch]).
 /// `owners` holds how an owner of a domain's state runs ([Owner]): by a
 /// pure machine ([MachineOwner]) or by plain code ([SimpleOwner]); and
 /// how a question to an owner gets its answer ([ask]).
@@ -105,6 +108,8 @@ export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
 export 'src/scan/folder_scanner.dart';
+export 'src/search/reading_search.dart';
+export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
@@ -113,6 +118,7 @@ export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
 export 'src/storage/selection.dart';
 export 'src/storage/subfolder_names.dart';
+export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
