@@ -4,52 +4,36 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 
-import '../filter/file_filter.dart';
 import '../storage/rel_path.dart';
 import 'folder_changes.dart';
+import 'live_changes.dart';
 
-final _log = Logger('WatchedFolderChanges');
+final _log = Logger('WatchedLiveChanges');
 
-/// [FolderChanges] from the platform's file change events, for a folder
-/// the app opens by path.
+/// [LiveChanges] from the platform's file change events, for a folder on
+/// this device.
 ///
 /// Uses `package:watcher`, which also follows subfolders created later.
 /// Only where the platform reports changes of other apps to this one and
 /// the library watches natively: elsewhere it would poll every second.
-///
-/// The library watches every subfolder and cannot be told to skip some,
-/// so the events of files [followed] leaves out are dropped here.
-///
-/// With [under], watches only that subfolder; paths stay relative to the
-/// folder.
-final class WatchedFolderChanges implements FolderChanges {
-  const WatchedFolderChanges(
-    this.rootPath, {
-    required this.followed,
-    this.under,
-  });
+/// The library reports files only, never a new empty folder.
+final class WatchedLiveChanges implements LiveChanges {
+  const WatchedLiveChanges(this.rootPath);
 
-  /// Absolute path of the folder.
+  /// Absolute path of the base folder.
   final String rootPath;
 
-  /// The subfolder watched; `null` for the whole folder.
-  final RelPath? under;
-
-  /// The files and folders whose changes count.
-  final FileFilter followed;
-
   @override
-  Stream<ChangeHint> get changes {
+  Stream<ChangeHint> below(RelPath? folder) {
     final watcher = DirectoryWatcher(
-      under == null
+      folder == null
           ? rootPath
-          : p.joinAll([rootPath, ...under!.value.split('/')]),
+          : p.joinAll([rootPath, ...folder.value.split('/')]),
     );
     return watcher.events
         .expand<ChangeHint>(
           (event) => [
-            if (_relative(event.path, rootPath) case final path?
-                when followed.includesPath(path))
+            if (_relative(event.path, rootPath) case final path?)
               PathChanged(path),
           ],
         )
@@ -62,7 +46,7 @@ final class WatchedFolderChanges implements FolderChanges {
       : null;
 
   /// Watching failed (folder gone, too many watches): the stream ends, as
-  /// [FolderChanges.changes] promises.
+  /// [LiveChanges.below] promises.
   StreamTransformer<ChangeHint, ChangeHint> get _endOnError =>
       StreamTransformer.fromHandlers(
         handleError: (error, _, sink) {

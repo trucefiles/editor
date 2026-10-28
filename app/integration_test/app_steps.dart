@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_core/truce_core.dart' show RelPath;
 import 'package:truce_editor/document_page/ui/document_screen.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
@@ -103,11 +104,29 @@ extension AppSteps on WidgetTester {
     await typeLines(text);
   }
 
-  /// Picks [subfolder] in the open place-and-name dialog.
+  /// Picks [subfolder] in the open place dialog: from the list of the
+  /// place-and-name dialog, or of the place-only one (Settings).
   Future<void> pickSubfolder(String subfolder) async {
-    await waitFor(find.text('Top level'));
-    await tapAndSettle(find.text('Top level'));
+    await waitFor(find.text('Subfolder'));
+    final typed = find.byType(DropdownMenu<String>);
+    await tapAndSettle(
+      typed.evaluate().isNotEmpty
+          ? typed
+          : find.byType(DropdownButtonFormField<RelPath?>),
+    );
     await tapAndSettle(find.text(subfolder).last);
+  }
+
+  /// Types [subfolder], which may not exist yet, in the open place-and-name
+  /// dialog.
+  Future<void> typeSubfolder(String subfolder) async {
+    final field = find.descendant(
+      of: find.byType(DropdownMenu<String>),
+      matching: find.byType(TextField),
+    );
+    await waitFor(field);
+    await enterText(field, subfolder);
+    await pumpAndSettle();
   }
 
   /// Adds [app]'s second folder, Work, from Manage folders.

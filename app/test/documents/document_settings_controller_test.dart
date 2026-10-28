@@ -6,12 +6,18 @@ import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_settings_store.dart';
 import 'package:truce_editor/documents/kept_document_settings.dart';
+import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../support.dart';
+
+/// A type's view settings showing [mode], opaque to the app.
+ViewSettings _viewIn(String mode) => ViewSettings({'mode': mode});
+
+/// Settings with only a view showing [mode].
+DocumentSettings _viewed(String mode) => DocumentSettings(view: _viewIn(mode));
 
 void main() {
   late ProviderContainer container;
@@ -34,22 +40,18 @@ void main() {
       key: value.settings,
   };
 
-  Future<void> remember(DocumentKey document, EditMode view) =>
-      views.edit(document, (settings) => settings.withMode(view));
+  Future<void> remember(DocumentKey document, String view) =>
+      views.edit(document, (settings) => settings.withView(_viewIn(view)));
 
-  EditMode? viewOf(DocumentKey document) => views.settingsOf(document).mode;
+  Object? viewOf(DocumentKey document) =>
+      views.settingsOf(document).view.json['mode'];
 
   test('views remembered at the same time are all kept', () async {
-    await Future.wait([
-      remember(a, EditMode.markdown),
-      remember(b, EditMode.read),
-    ]);
+    await Future.wait([remember(a, 'markdown'), remember(b, 'read')]);
 
     final expected = {
-      DocumentSettingsStore.storeKey(a): DocumentSettings(
-        mode: EditMode.markdown,
-      ),
-      DocumentSettingsStore.storeKey(b): DocumentSettings(mode: EditMode.read),
+      DocumentSettingsStore.storeKey(a): _viewed('markdown'),
+      DocumentSettingsStore.storeKey(b): _viewed('read'),
     };
     expect(
       container.read(documentSettingsProvider).value,
@@ -59,30 +61,20 @@ void main() {
   });
 
   test('forget drops the view of a document', () async {
-    await remember(a, EditMode.markdown);
-    await remember(b, EditMode.read);
+    await remember(a, 'markdown');
+    await remember(b, 'read');
 
     await views.forget(a);
 
     expect(viewOf(a), isNull);
-    expect(await saved(), {
-      DocumentSettingsStore.storeKey(b): DocumentSettings(mode: EditMode.read),
-    });
+    expect(await saved(), {DocumentSettingsStore.storeKey(b): _viewed('read')});
   });
 
-  test('keeps pin and checked items with the view', () async {
-    await remember(a, EditMode.visual);
+  test('keeps the pin with the view', () async {
+    await remember(a, 'visual');
     await views.edit(a, (settings) => settings.withPinned(pinned: true));
-    await views.edit(
-      a,
-      (settings) => settings.withCheckedItems(CheckedItems.moveToEnd),
-    );
 
-    const expected = DocumentSettings(
-      mode: EditMode.visual,
-      pinned: true,
-      checkedItems: CheckedItems.moveToEnd,
-    );
+    final expected = DocumentSettings(pinned: true, view: _viewIn('visual'));
     expect(views.settingsOf(a), expected);
     expect(await saved(), {DocumentSettingsStore.storeKey(a): expected});
   });
@@ -130,19 +122,14 @@ void main() {
 
     test('drops views of documents and folders that are gone', () async {
       final kept = documentAt(work, 'kept.md');
-      await remember(kept.key, EditMode.visual);
-      await remember(documentAt(work, 'gone.md').key, EditMode.markdown);
-      await remember((
-        baseId: 'removed',
-        path: path('a.md'),
-      ), EditMode.markdown);
+      await remember(kept.key, 'visual');
+      await remember(documentAt(work, 'gone.md').key, 'markdown');
+      await remember((baseId: 'removed', path: path('a.md')), 'markdown');
 
       await pruneAfterGrace(scans([kept]));
 
       expect(await saved(), {
-        DocumentSettingsStore.storeKey(kept.key): DocumentSettings(
-          mode: EditMode.visual,
-        ),
+        DocumentSettingsStore.storeKey(kept.key): _viewed('visual'),
       });
     });
 
@@ -185,28 +172,28 @@ void main() {
 
     test('keeps views of folders that could not be scanned', () async {
       final unread = documentAt(home, 'a.md');
-      await remember(unread.key, EditMode.read);
+      await remember(unread.key, 'read');
 
       await pruneAfterGrace(scans([], failed: {home: StoreError.ioFailure}));
 
-      expect(viewOf(unread.key), EditMode.read);
+      expect(viewOf(unread.key), 'read');
     });
 
     test('keeps the views of documents no folder shows', () async {
       final narrowed = work.copyWith(selection: Selection.of([path('kept')]));
       final outside = documentAt(work, 'elsewhere/a.md');
-      await remember(outside.key, EditMode.read);
+      await remember(outside.key, 'read');
 
       await pruneAfterGrace(contentsFinding([], folders: [narrowed, home]));
 
-      expect(viewOf(outside.key), EditMode.read);
+      expect(viewOf(outside.key), 'read');
     });
 
     test('keeps views below subfolders that could not be read', () async {
       final hidden = documentAt(work, 'private/a.md');
       final gone = documentAt(work, 'privateer.md');
-      await remember(hidden.key, EditMode.read);
-      await remember(gone.key, EditMode.markdown);
+      await remember(hidden.key, 'read');
+      await remember(gone.key, 'markdown');
 
       await pruneAfterGrace(
         scans(
@@ -217,7 +204,7 @@ void main() {
         ),
       );
 
-      expect(viewOf(hidden.key), EditMode.read);
+      expect(viewOf(hidden.key), 'read');
       expect(viewOf(gone.key), isNull);
     });
   });

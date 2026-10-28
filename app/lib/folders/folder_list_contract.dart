@@ -64,20 +64,20 @@ sealed class FolderListAsking extends FolderListInput implements Asking {
   final Ticket ticket;
 }
 
-/// Add a folder showing [selection] of the base folder at [basePath],
+/// Add a folder showing [selection] of the base folder at [address],
 /// which the sync tool [toolId] works on; an added base folder at the
 /// same place is used again, with its own tool.
 final class AddFolder extends FolderListAsking {
   const AddFolder(
     super.ticket, {
-    required this.basePath,
+    required this.address,
     required this.toolId,
     required this.selection,
     required this.name,
     required this.color,
   });
 
-  final String basePath;
+  final Uri address;
   final String toolId;
   final Selection selection;
   final String name;

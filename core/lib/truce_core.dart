@@ -5,12 +5,14 @@
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]),
 ///    bounded to what the app may touch in it ([BoundedStore] over a
-///    [Selection]); a sync tool's look outside it ([FolderMarkers]).
+///    [Selection]); a sync tool's look outside it ([FolderMarkers]); the
+///    shared parts of base folders on this device ([LocalDisk]).
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
-/// 3. `sync`: a sync tool as one plugin ([SyncTool]): its file-name rules
-///    ([SyncAdapter]), whether it syncs a folder ([SyncCheck]) and what to
-///    tell the user about a folder ([FolderNotices]).
+/// 3. `sync`: a sync tool as one plugin ([SyncTool]) with its access to
+///    each base folder ([ToolPlace]); the parts plugins build on: whether a
+///    tool syncs a folder ([SyncCheck]) and what to tell the user about a
+///    folder ([FolderNotices]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
 ///    what each type gives lists ([FileTypeSupport]).
@@ -27,7 +29,7 @@
 /// 10. `marks`: colors of documents, synced inside the folder
 ///     ([DocumentMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
-///     ([FolderChanges]).
+///     ([FolderChanges]), live from the place ([LiveChanges]).
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
 ///     files go ([FolderReach]).
 ///
@@ -41,6 +43,8 @@
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
 ///     ([EditorSteps]); any document type, any sync tool.
 ///
+/// `place` bounds a base folder's files and changes alike to what the app
+/// may touch ([BoundedPlace]).
 /// `search` holds search over many texts behind one interface
 /// ([OpenSearch]); today the texts are read when it opens
 /// ([ReadingSearch]).
@@ -58,11 +62,11 @@ library;
 
 export 'src/backups/backup.dart';
 export 'src/backups/file_backups.dart';
-export 'src/changes/fallback_folder_changes.dart';
+export 'src/changes/bounded_changes.dart';
 export 'src/changes/folder_changes.dart';
-export 'src/changes/merged_folder_changes.dart';
+export 'src/changes/live_changes.dart';
 export 'src/changes/polled_folder_changes.dart';
-export 'src/changes/watched_folder_changes.dart';
+export 'src/changes/watched_live_changes.dart';
 export 'src/common/keyed_task_queue.dart';
 export 'src/common/moment.dart';
 export 'src/common/most_used.dart';
@@ -91,9 +95,8 @@ export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
 export 'src/filetypes/file_type_support.dart';
-export 'src/filter/any_file_filter.dart';
-export 'src/filter/default_file_filter.dart';
 export 'src/filter/file_filter.dart';
+export 'src/filter/visible_file_filter.dart';
 export 'src/folder_state/folder_state_owner.dart';
 export 'src/marks/document_mark.dart';
 export 'src/marks/document_marks.dart';
@@ -104,6 +107,7 @@ export 'src/owners/machine_owner.dart';
 export 'src/owners/owner.dart';
 export 'src/owners/simple_owner.dart';
 export 'src/owners/timers.dart';
+export 'src/place/bounded_place.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
@@ -113,6 +117,8 @@ export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
+export 'src/storage/folders_there.dart';
+export 'src/storage/local_disk.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
@@ -120,7 +126,6 @@ export 'src/storage/selection.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
-export 'src/sync/sync_adapter.dart';
 export 'src/sync/sync_check.dart';
 export 'src/sync/sync_tool.dart';
 export 'src/text/lines/editable_lines.dart';

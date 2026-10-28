@@ -11,7 +11,8 @@ import 'document_folder.dart';
 /// once, and the folders that show parts of them.
 ///
 /// ```json
-/// {"baseFolders": [{"id": "b1", "path": "/home/me/Sync", "tool": "syncthing"}],
+/// {"baseFolders": [{"id": "b1", "address": "file:///home/me/Sync",
+///                   "tool": "syncthing"}],
 ///  "folders": [{"id": "f1", "base": "b1", "name": "Work", "color": 4278228616,
 ///               "subfolders": ["work"]}]}
 /// ```

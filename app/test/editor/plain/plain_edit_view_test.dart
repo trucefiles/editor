@@ -7,7 +7,7 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_settings.dart';
+import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/editor/lines/line_edit_view.dart';
 import 'package:truce_editor/editor/plain/plain_editor_part.dart';
 import 'package:truce_editor/editor/plain/plain_text.dart';
@@ -137,7 +137,7 @@ void main() {
     final part = PlainEditorPart((
       text: 'one\ntwo',
       version: const Version(1),
-      settings: DocumentSettings.defaults,
+      view: ViewSettings.none,
       readOnly: true,
       isNew: false,
     ));

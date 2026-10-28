@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../../common/error_text.dart';
 import '../../common/snack.dart';
 import '../../document_page/ui/document_screen.dart';
 import '../document.dart';
 import '../document_files.dart';
+import '../open_failure.dart';
 
 /// [count] cards, each built by [card], in columns up to 240 wide, each
 /// card as tall as its content: the layout shared by every document grid.

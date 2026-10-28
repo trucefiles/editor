@@ -12,7 +12,6 @@ import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/platform/platform_facts.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
@@ -67,7 +66,11 @@ DocumentFolder folderAt(
   Selection selection = const WholeFolder(),
 }) => DocumentFolder(
   id: id,
-  base: BaseFolder(id: baseId ?? id, path: dir.path, toolId: syncthingTool.id),
+  base: BaseFolder(
+    id: baseId ?? id,
+    address: Uri.file(dir.path),
+    toolId: hostSyncthing().id,
+  ),
   selection: selection,
   name: 'Documents',
   color: const Color(0xFF009688),
@@ -92,7 +95,7 @@ Document listedDocument(
 }) => Document(
   folder: folder,
   path: path(name),
-  type: appDocumentTypes().of(path(name))!,
+  type: appDocumentTypes().of(path(name))!.support,
   version: FileVersion(version),
   modified: modified ?? DateTime(2000),
 );
@@ -117,29 +120,34 @@ BaseFolderServices servicesFor(
   String? backupsPath,
   void Function(Set<RelPath> paths)? wrote,
 }) {
-  final platform = hostFacts();
-  final files = LocalFileStore(
-    folder.base.path,
-    syncthingTool.rules.tempFileName,
-    replacesInPlace: platform.replacesInPlace,
-  );
+  final tool = hostSyncthing();
+  final place = tool.place(folder.base.address);
   return baseFolderServices(
-    folder.base,
-    tool: syncthingTool,
-    files: files,
-    reach: folderReach(files),
+    place,
+    syncToolName: tool.name,
+    reach: folderReach(place.files),
     selection: folder.selection,
     types: appDocumentTypes(),
-    platform: platform,
+    checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',
     wrote: wrote ?? (_) {},
   );
 }
 
-/// The facts of the platform the tests run on.
-PlatformFacts hostFacts() =>
-    ProviderContainer.test().read(platformFactsProvider);
+/// The shared parts of folders on this device, as the platform the tests
+/// run on has them.
+LocalDisk hostDisk() {
+  final container = ProviderContainer();
+  try {
+    return container.read(localDiskProvider);
+  } finally {
+    container.dispose();
+  }
+}
+
+/// Syncthing as the app registers it, for folders on this device.
+SyncTool hostSyncthing() => syncthingTool(hostDisk());
 
 /// Drafts in their own temp folder.
 DocumentDrafts tempDrafts() => DocumentDrafts(tempFolder());

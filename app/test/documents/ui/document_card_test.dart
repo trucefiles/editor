@@ -20,8 +20,9 @@ void main() {
   );
 
   /// [text] as the card's preview, read.
-  CardPreview read(String text) =>
-      Previewed(document.type.cardSummary(text, document.path));
+  CardPreview read(String text) => Previewed(
+    appDocumentTypes().ofFile(document.type).cardSummary(text, document.path),
+  );
 
   Future<double> heightWith(WidgetTester tester, int lines) async {
     final text = ['# Title', for (var i = 1; i <= lines; i++) 'line $i'];
@@ -134,8 +135,12 @@ void main() {
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
 
-    await show(const PreviewUnreadable());
+    await show(const PreviewNotText());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsOne);
+
+    await show(const PreviewUnreadable());
+    expect(find.text('document'), findsOne);
+    expect(find.text("Can't be shown as text."), findsNothing);
   });
 }

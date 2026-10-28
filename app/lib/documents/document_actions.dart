@@ -6,6 +6,7 @@ import '../folder_state/folder_state_controller.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
+import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
 import 'deleted_note.dart';
 import 'document.dart';
@@ -56,6 +57,15 @@ final class DocumentActions {
       _ref.read(folderContentsProvider).value?.subfoldersOf(folder.id) ??
       const [];
 
+  /// Whether documents of [folder] can go into [subfolder], an existing
+  /// one or a new one: inside what the folder shows, in folders its sync
+  /// tool shows (e.g. none of its own, no hidden one).
+  bool canHold(DocumentFolder folder, RelPath subfolder) {
+    final shown = _ref.read(baseFolderServicesProvider(folder.base)).shown;
+    return folder.selection.covers(subfolder) &&
+        [subfolder, ...subfolder.folders].every(shown.includesFolder);
+  }
+
   /// [document]'s color, as last seen.
   DocumentMark markOf(Document document) =>
       _ref.read(folderContentsProvider).value?.markOf(document.key) ??
@@ -67,9 +77,16 @@ final class DocumentActions {
     required DocumentType type,
     required String title,
     required String text,
+    bool newSubfolder = false,
   }) async => switch (await _ask<DocumentCreated>(
-    (ticket) =>
-        CreateDocument(ticket, place, type: type, title: title, text: text),
+    (ticket) => CreateDocument(
+      ticket,
+      place,
+      type: type,
+      title: title,
+      text: text,
+      newSubfolder: newSubfolder,
+    ),
   )) {
     final answer? => answer.result,
     null => const Err(_notRun),
@@ -80,8 +97,15 @@ final class DocumentActions {
     DocumentText document,
     DocumentPlace place, {
     String? title,
+    bool newSubfolder = false,
   }) async => switch (await _ask<DocumentMoved>(
-    (ticket) => MoveDocument(ticket, document, place, title: title),
+    (ticket) => MoveDocument(
+      ticket,
+      document,
+      place,
+      title: title,
+      newSubfolder: newSubfolder,
+    ),
   )) {
     final answer? => answer.result,
     null => const Err(MoveNotWritten(_notRun)),
@@ -128,6 +152,7 @@ final class DocumentActions {
   }
 }
 
-/// How an action fails that never ran, as its owner had ended: the files
-/// could not be worked on.
+/// How an action fails that never ran, as its owner had ended (a bug in
+/// an earlier action, or the app ends): to the user, nothing was written,
+/// so it reads as a failed write.
 const _notRun = StoreError.ioFailure;

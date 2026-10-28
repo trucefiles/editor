@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
 import '../../document_page/editor_part.dart';
-import '../../documents/document_settings.dart';
+import '../../documents/view_settings.dart';
 import '../lines/line_edit_view.dart';
 import 'plain_page_editor.dart';
 import 'plain_text.dart';
@@ -37,7 +37,7 @@ final class PlainEditorPart extends ChangeNotifier implements EditorPart {
   bool get isEditing => !_readOnly;
 
   @override
-  void settingsChanged(DocumentSettings settings) {}
+  void viewChanged(ViewSettings view) {}
 
   /// While read only, the editor's text, its latest edits too (they may
   /// not be kept yet).
@@ -61,7 +61,7 @@ final class PlainEditorPart extends ChangeNotifier implements EditorPart {
   @override
   List<PopupMenuEntry<VoidCallback>> menu(
     BuildContext context,
-    DocumentSettings settings,
+    ViewSettings view,
   ) => const [];
 
   @override

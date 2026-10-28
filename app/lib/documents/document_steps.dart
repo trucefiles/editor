@@ -21,10 +21,10 @@ import 'move_failure.dart';
 
 final documentStepsProvider = Provider<DocumentSteps>(DocumentSteps.new);
 
-/// The steps of the user's actions on documents: create, move or rename,
-/// delete and undo, color, and recovering the drafts of the last run. Run
-/// one at a time by the documents owner, so their side steps (mark,
-/// settings, backups) never mix.
+/// The steps of the user's actions on documents: create, new subfolder,
+/// move or rename, delete and undo, color, and recovering the drafts of
+/// the last run. Run one at a time by the documents owner, so their side
+/// steps (mark, settings, backups) never mix.
 base class DocumentSteps {
   DocumentSteps(this._ref);
 
@@ -47,18 +47,29 @@ base class DocumentSteps {
           .moveAll(from: from.path, to: to.path, into: _backupsOf(to.folder));
 
   /// Creates a document of [type] holding [text] at [place], named after
-  /// [title]. Like every write of the app, the folder state sees it at once.
+  /// [title]; [newSubfolder]: [place]'s subfolder is a new one the user
+  /// asked for, made first. Like every write of the app, the folder state
+  /// sees it at once.
   Future<Result<DocumentText, StoreError>> create(
     DocumentPlace place, {
     required DocumentType type,
     required String title,
     required String text,
+    bool newSubfolder = false,
   }) => _ref
       .read(documentFilesProvider(place.folder))
-      .create(title, type: type, subfolder: place.subfolder, text: text);
+      .create(
+        title,
+        type: type,
+        subfolder: place.subfolder,
+        newSubfolder: newSubfolder,
+        text: text,
+      );
 
   /// Moves [document], as last saved, to [place], renamed after [title] if
-  /// given (with a number if taken), with its color, settings and backups.
+  /// given (with a number if taken), with its color, settings and backups;
+  /// [newSubfolder]: [place]'s subfolder is a new one the user asked for,
+  /// made first.
   /// Refused while a sync conflict of the document waits, and if its file
   /// changed since [document] was read: the user saves their edits first.
   /// Within one base folder the file itself moves; to another one it is
@@ -68,6 +79,7 @@ base class DocumentSteps {
     DocumentText document,
     DocumentPlace place, {
     String? title,
+    bool newSubfolder = false,
   }) async {
     if (_conflictWaits(document.key)) {
       return const Err(MoveBlockedByConflict());
@@ -77,11 +89,17 @@ base class DocumentSteps {
     final files = _ref.read(documentFilesProvider(place.folder));
     final sameBase = place.folder.base == document.folder.base;
     final written = sameBase
-        ? await files.moveIn(document, subfolder: place.subfolder, title: title)
+        ? await files.moveIn(
+            document,
+            subfolder: place.subfolder,
+            newSubfolder: newSubfolder,
+            title: title,
+          )
         : await files.copyIn(
             document,
             document.text,
             subfolder: place.subfolder,
+            newSubfolder: newSubfolder,
             title: title,
           );
     final DocumentText moved;

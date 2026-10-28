@@ -39,6 +39,9 @@ final class DocumentTypes {
     null => null,
   };
 
+  /// The app's type of a document whose file is of [type].
+  DocumentType ofFile(FileTypeSupport<Object?> type) => _byId[type.type]!;
+
   /// Whether the app handles the file at [path].
   bool handles(RelPath path) => of(path) != null;
 }

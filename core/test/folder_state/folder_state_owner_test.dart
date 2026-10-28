@@ -4,6 +4,8 @@ import 'package:truce_test_support/truce_test_support.dart';
 
 /// The folder state owner on the generic scanner and marks of a made-up
 /// sync tool, over files in memory.
+const _whole = WholeFolder();
+
 void main() {
   late MemoryFileStore store;
   late ManualTimers timers;
@@ -18,7 +20,7 @@ void main() {
       (_) => (
         scanner: NamedCopiesScanner(
           store,
-          const DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes),
+          VisibleFileFilter(const FakeSyncRules().isInternal),
           const FakeCopyNames(),
         ),
         marks: DocumentMarks(store, deviceId: 'phone'),
@@ -42,7 +44,7 @@ void main() {
       deviceId: 'laptop',
     ).set(path('top.md'), const DocumentMark(color: 'teal'));
     store.listCount = 0;
-    owner.send(BasesChanged({'a': 'whole'}));
+    owner.send(BasesChanged({'a': _whole}));
 
     final base = await next();
 
@@ -57,7 +59,7 @@ void main() {
   });
 
   test('reads no file to list or check', () async {
-    owner.send(BasesChanged({'a': 'whole'}));
+    owner.send(BasesChanged({'a': _whole}));
     await next();
     store.put('work/new.md', 'new');
     owner.send(Hinted('a', PathChanged(path('work/new.md'))));
@@ -69,7 +71,7 @@ void main() {
   });
 
   test('a changed path is checked with a listing of its folder only', () async {
-    owner.send(BasesChanged({'a': 'whole'}));
+    owner.send(BasesChanged({'a': _whole}));
     await next();
     store.put('work/new.md', 'new');
 
@@ -85,7 +87,7 @@ void main() {
   });
 
   test('a refresh lists again and answers once done', () async {
-    owner.send(BasesChanged({'a': 'whole'}));
+    owner.send(BasesChanged({'a': _whole}));
     await next();
     store.files.remove(path('top.md'));
 

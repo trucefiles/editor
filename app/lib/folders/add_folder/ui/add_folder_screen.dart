@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../../common/snack.dart';
 import '../../../platform/folder_picker.dart';
+import '../../base_folder.dart';
 import '../../folders_controller.dart';
 import '../../subfolders/ui/subfolder_choice_view.dart';
 import '../../ui/folder_color_picker.dart';
@@ -59,8 +60,8 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
 
   Future<void> _pickBase() async {
     switch (await ref.read(folderPickerProvider).pick()) {
-      case Ok(value: final path?):
-        await _flow.pickBase(path);
+      case Ok(value: final address?):
+        await _flow.pickBase(address);
       case Ok():
         break;
       case Err(error: PickError.unsupportedLocation):
@@ -112,8 +113,8 @@ class _BaseStep extends StatelessWidget {
         for (final base in flow.bases)
           ListTile(
             leading: const Icon(Icons.folder_outlined),
-            title: Text(base.path),
-            onTap: () => flow.pickBase(base.path),
+            title: Text(base.shownAddress),
+            onTap: () => flow.pickBase(base.address),
           ),
       ],
     ],
@@ -130,11 +131,11 @@ class _ToolStep extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      Text('How is ${flow.basePath} synced?'),
+      Text('How is ${addressText(flow.address)} synced?'),
       const SizedBox(height: 8),
       for (final tool in flow.tools)
         ListTile(
-          title: Text(tool.rules.name),
+          title: Text(tool.name),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => flow.chooseTool(tool),
         ),
@@ -164,7 +165,7 @@ class _PartsStep extends StatelessWidget {
       ),
     ),
     children: [
-      Text('What should the app show of ${flow.basePath}?'),
+      Text('What should the app show of ${addressText(flow.address)}?'),
       const SizedBox(height: 8),
       SubfolderChoiceView(flow.parts),
     ],

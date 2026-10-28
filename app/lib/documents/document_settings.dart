@@ -1,47 +1,34 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
+import 'view_settings.dart';
 
 /// How this device shows one document: view settings, not properties of the
 /// document, so they are kept per device and never synced.
 @immutable
 final class DocumentSettings {
-  const DocumentSettings({
-    this.mode,
-    this.pinned = false,
-    this.checkedItems = CheckedItems.moveToEnd,
-  });
+  const DocumentSettings({this.pinned = false, this.view = ViewSettings.none});
 
   /// Nothing chosen yet.
   static const defaults = DocumentSettings();
 
-  /// The mode the document was last shown in; `null` if never.
-  final EditMode? mode;
-
   /// Shown before documents that are not pinned.
   final bool pinned;
 
-  /// Where a checklist's checked items go.
-  final CheckedItems checkedItems;
+  /// What the document's type keeps.
+  final ViewSettings view;
 
   bool get isDefault => this == defaults;
 
-  DocumentSettings withMode(EditMode mode) =>
-      DocumentSettings(mode: mode, pinned: pinned, checkedItems: checkedItems);
-
   DocumentSettings withPinned({required bool pinned}) =>
-      DocumentSettings(mode: mode, pinned: pinned, checkedItems: checkedItems);
+      DocumentSettings(pinned: pinned, view: view);
 
-  DocumentSettings withCheckedItems(CheckedItems checkedItems) =>
-      DocumentSettings(mode: mode, pinned: pinned, checkedItems: checkedItems);
+  DocumentSettings withView(ViewSettings view) =>
+      DocumentSettings(pinned: pinned, view: view);
 
   @override
   bool operator ==(Object other) =>
-      other is DocumentSettings &&
-      other.mode == mode &&
-      other.pinned == pinned &&
-      other.checkedItems == checkedItems;
+      other is DocumentSettings && other.pinned == pinned && other.view == view;
 
   @override
-  int get hashCode => Object.hash(mode, pinned, checkedItems);
+  int get hashCode => Object.hash(pinned, view);
 }

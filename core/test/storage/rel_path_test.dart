@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_test_support/truce_test_support.dart' show path;
 
 void main() {
   group('RelPath.parse', () {
@@ -24,6 +25,20 @@ void main() {
     expect(RelPath.parse('a/b/c/todo.md')!.parent?.value, 'a/b/c');
     expect(RelPath.parse('lists/todo.md')!.parent?.value, 'lists');
     expect(RelPath.parse('todo.md')!.parent, isNull);
+  });
+
+  test('RelPath.folders are the folders it is in, innermost first', () {
+    expect(path('a/b/c.md').folders, [path('a/b'), path('a')]);
+    expect(path('c.md').folders, isEmpty);
+  });
+
+  test('RelPath.isInside and isAtOrInside tell a folder below another', () {
+    expect(path('a/b').isInside(path('a')), isTrue);
+    expect(path('a').isInside(path('a')), isFalse);
+    expect(path('ab').isInside(path('a')), isFalse);
+    expect(path('a').isAtOrInside(path('a')), isTrue);
+    expect(path('a/b/c').isAtOrInside(path('a')), isTrue);
+    expect(path('b').isAtOrInside(path('a')), isFalse);
   });
 
   test('RelPath.child adds a last segment', () {

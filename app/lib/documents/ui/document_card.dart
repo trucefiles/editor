@@ -78,16 +78,16 @@ class DocumentCard extends StatelessWidget {
                     ),
                     ...switch (preview) {
                       Previewed(:final summary)
-                          when summary.preview(settings).isNotEmpty =>
+                          when summary.preview(settings.view).isNotEmpty =>
                         [
                           Text(
-                            summary.preview(settings),
+                            summary.preview(settings.view),
                             style: textTheme.bodySmall,
                             maxLines: DocumentCardSummary.previewLines,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
-                      PreviewUnreadable() => [
+                      PreviewNotText() => [
                         Text(
                           "Can't be shown as text.",
                           style: textTheme.bodySmall?.copyWith(
@@ -95,7 +95,9 @@ class DocumentCard extends StatelessWidget {
                           ),
                         ),
                       ],
-                      Previewed() || PreviewReading() => const <Widget>[],
+                      Previewed() ||
+                      PreviewReading() ||
+                      PreviewUnreadable() => const <Widget>[],
                     },
                   ],
                 ),

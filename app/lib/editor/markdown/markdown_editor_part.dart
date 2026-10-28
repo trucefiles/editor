@@ -6,9 +6,7 @@ import 'package:truce_markdown/truce_markdown.dart';
 import '../../document_page/editor_part.dart';
 import '../../documents/document_files.dart';
 import '../../documents/document_images.dart';
-import '../../documents/document_settings.dart';
-import '../../documents/ui/checked_items_dialog.dart';
-import '../../documents/ui/edit_mode_button.dart';
+import '../../documents/view_settings.dart';
 import '../../markdown/markdown_links.dart';
 import '../add_item_place/add_item_place.dart';
 import '../add_item_place/add_item_place_controller.dart';
@@ -17,6 +15,9 @@ import '../editor_gate.dart';
 import '../first_mode.dart';
 import '../run_command.dart';
 import 'markdown_page_editor.dart';
+import 'markdown_view.dart';
+import 'ui/checked_items_dialog.dart';
+import 'ui/edit_mode_button.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
 /// behind a gate, in the mode the user picked (remembered on this device)
@@ -25,7 +26,7 @@ import 'markdown_page_editor.dart';
 final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
   MarkdownEditorPart(EditorStart start, this._page)
     : _mode =
-          start.settings.mode ??
+          MarkdownView.of(start.view).mode ??
           firstMode(
             hasCheckboxes:
                 !start.isNew && DocumentSummary.of(start.text).hasCheckboxes,
@@ -38,7 +39,7 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
           start.text,
           version: start.version,
           mode: _shown,
-          checkedItems: start.settings.checkedItems,
+          checkedItems: MarkdownView.of(start.view).checkedItems,
         ),
       ),
     );
@@ -76,14 +77,14 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
   /// Shows [mode] from now on, and remembers it on this device.
   void _pick(EditMode mode) {
     _mode = mode;
-    _page.keepSettings((settings) => settings.withMode(mode));
+    _page.keepView((view) => MarkdownView.of(view).withMode(mode).settings);
     _showShown();
     notifyListeners();
   }
 
   @override
-  void settingsChanged(DocumentSettings settings) {
-    final checkedItems = settings.checkedItems;
+  void viewChanged(ViewSettings view) {
+    final checkedItems = MarkdownView.of(view).checkedItems;
     if (_gate.state.checkedItems != checkedItems) {
       _gate.send((_) => SetCheckedItems(checkedItems));
     }
@@ -122,7 +123,7 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
   @override
   List<PopupMenuEntry<VoidCallback>> menu(
     BuildContext context,
-    DocumentSettings settings,
+    ViewSettings view,
   ) => [
     if (_hasCheckboxes) ...[
       // In Visual edit and Read.
@@ -139,10 +140,11 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
       PopupMenuItem(
         value: () => _page.withFile(
           context,
-          (_) => _pickCheckedItems(context, settings.checkedItems),
+          (_) => _pickCheckedItems(context, MarkdownView.of(view).checkedItems),
         ),
         child: Text(
-          'Checked items: ${checkedItemsName(settings.checkedItems)}',
+          'Checked items: '
+          '${checkedItemsName(MarkdownView.of(view).checkedItems)}',
         ),
       ),
     ],
@@ -156,7 +158,9 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
   ) async {
     final chosen = await showCheckedItemsDialog(context, current: current);
     if (chosen == null || chosen == current) return;
-    _page.keepSettings((settings) => settings.withCheckedItems(chosen));
+    _page.keepView(
+      (view) => MarkdownView.of(view).withCheckedItems(chosen).settings,
+    );
   }
 }
 

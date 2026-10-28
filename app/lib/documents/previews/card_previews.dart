@@ -63,10 +63,11 @@ final class CardPreviews {
     );
   }
 
-  /// Keeps [preview] if it was read: a read that failed may work next
-  /// time (e.g. a folder briefly out of reach), so it is tried again.
+  /// Keeps [preview] if the file told it (its text, or that it holds
+  /// none): a read that failed may work next time (e.g. a folder briefly
+  /// out of reach), so it is tried again.
   void _keep(Document document, CardPreview preview) {
-    if (preview is! Previewed) return;
+    if (preview is! Previewed && preview is! PreviewNotText) return;
     _known[document] = preview;
     if (_known.length > capacity) _known.remove(_known.keys.first);
   }

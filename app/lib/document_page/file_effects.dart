@@ -6,17 +6,19 @@ import '../documents/document_files.dart';
 import '../documents/document_place.dart';
 import '../documents/document_text.dart';
 import '../documents/document_version.dart';
+import '../documents/open_failure.dart';
 import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import 'document_file.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named
-/// after [title].
+/// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
 typedef CreateNote = Future<Result<DocumentText, StoreError>> Function(
   DocumentPlace place, {
   required DocumentType type,
   required String title,
   required String text,
+  bool newSubfolder,
 });
 
 /// The effect handler of one open document's file owner (see
@@ -170,7 +172,7 @@ final class FileEffects {
         over.document,
       )) {
         Ok(value: final theirs) => Changed(theirs.seen),
-        Err(error: StoreError.notFound) => const WriteGone(),
+        Err(error: NotRead(error: StoreError.notFound)) => const WriteGone(),
         Err() => const WriteFailed(),
       },
       Err(error: StoreError.notFound) => const WriteGone(),
@@ -186,6 +188,7 @@ final class FileEffects {
       type: file.type,
       title: file.titleFor(text),
       text: text,
+      newSubfolder: file.newSubfolder,
     )) {
       Ok(value: final created) => _written(created),
       Err() => const WriteFailed(),

@@ -110,8 +110,20 @@ final class _Device {
         ExistingFile(document),
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
-        create: (place, {required type, required title, required text}) => files
-            .create(title, type: type, subfolder: place.subfolder, text: text),
+        create:
+            (
+              place, {
+              required type,
+              required title,
+              required text,
+              newSubfolder = false,
+            }) => files.create(
+              title,
+              type: type,
+              subfolder: place.subfolder,
+              newSubfolder: newSubfolder,
+              text: text,
+            ),
       ),
       mode: EditMode.markdown,
     );
@@ -174,7 +186,7 @@ final class _Device {
   static Document _placeholder(DocumentFolder folder) => Document(
     folder: folder,
     path: RelPath.parse('todo.md')!,
-    type: appDocumentTypes().forNew,
+    type: appDocumentTypes().forNew.support,
     version: const FileVersion(0),
     modified: DateTime(2000),
   );

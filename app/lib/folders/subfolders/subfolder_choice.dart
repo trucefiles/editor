@@ -7,11 +7,10 @@ import 'package:truce_core/truce_core.dart';
 /// is in one folder only.
 final class SubfolderChoice extends ChangeNotifier {
   /// Starts at [initial]; nothing picked if `null`. [taken] are what the
-  /// base folder's other folders show; [isToolFolder] tells the sync
-  /// tool's own folders by their path's segments.
+  /// base folder's other folders show; [_names] are the folders the sync
+  /// tool offers to pick.
   SubfolderChoice({
     required this._names,
-    required this._isToolFolder,
     required this._taken,
     Selection? initial,
   }) : _whole = initial is WholeFolder,
@@ -21,7 +20,6 @@ final class SubfolderChoice extends ChangeNotifier {
        };
 
   final SubfolderNames _names;
-  final bool Function(List<String> segments) _isToolFolder;
   final List<Selection> _taken;
   bool _whole;
   Set<RelPath> _picked;
@@ -61,23 +59,18 @@ final class SubfolderChoice extends ChangeNotifier {
 
   /// Whether a folder above [folder] is picked, so it is shown with it.
   bool isInPicked(RelPath folder) =>
-      _picked.any((picked) => Selection.isInside(folder, picked));
+      _picked.any((picked) => folder.isInside(picked));
 
   /// Whether a folder below [folder] is picked, so it opens to show it.
   bool holdsPicked(RelPath folder) =>
-      _picked.any((picked) => Selection.isInside(picked, folder));
+      _picked.any((picked) => picked.isInside(folder));
 
   /// The folders in [parent] (the base folder's top level if `null`) the
-  /// user can pick from, sorted: no hidden ones and none of the sync
-  /// tool's own.
+  /// user can pick from, sorted.
   Future<Result<List<RelPath>, StoreError>> foldersIn(RelPath? parent) async =>
       switch (await _names.namesIn(parent)) {
         Ok(value: final names) => Ok([
-          for (final name in names)
-            if (!name.startsWith('.'))
-              if (_pathOf(parent, name) case final path?
-                  when !_isToolFolder(path.value.split('/')))
-                path,
+          for (final name in names) ?_pathOf(parent, name),
         ]),
         Err(:final error) => Err(error),
       };

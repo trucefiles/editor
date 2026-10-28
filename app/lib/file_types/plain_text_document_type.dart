@@ -20,7 +20,8 @@ final class PlainTextDocumentType implements DocumentType {
   DocumentCardSummary cardSummary(String text, RelPath path) => cardSummaryOf(
     support.summary(text, maxLines: DocumentCardSummary.previewLines),
     path,
-    options: (_) => const PlainPreview(),
+    options: const {(): PlainPreview()},
+    optionOf: (_) => (),
   );
 
   @override

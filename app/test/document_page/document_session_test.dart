@@ -51,8 +51,13 @@ void main() {
           ExistingFile(fixture.document),
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
-          create: (_, {required type, required title, required text}) =>
-              throw StateError('bug'),
+          create: (
+            _, {
+            required type,
+            required title,
+            required text,
+            newSubfolder = false,
+          }) => throw StateError('bug'),
         ),
       )..type('mine ');
       expect(await session.secure(.hide), isFalse);
@@ -81,8 +86,13 @@ void main() {
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
           draftsOf: (folder) => fixture.drafts[folder.id]!,
-          create: (_, {required type, required title, required text}) =>
-              throw StateError('bug'),
+          create: (
+            _, {
+            required type,
+            required title,
+            required text,
+            newSubfolder = false,
+          }) => throw StateError('bug'),
         ),
       )..type('a ');
       // Sent at the typing pause: kept as a draft, not yet in the file.
@@ -91,7 +101,7 @@ void main() {
       session
         ..type('mine ')
         ..saveNow();
-      await pumpEventQueue();
+      await eventually(() => session.stopped);
     }, (_, _) {});
     addTearDown(session.dispose);
 
@@ -118,6 +128,23 @@ void main() {
       '${fixture.dirs[0].path}/a.md',
     ]);
     expect(session.saveState, SaveState.none);
+  });
+
+  test('a new subfolder the user asked for is made with the first write '
+      'into it, never for an empty new document', () async {
+    NewFile intoNew() => NewFile(
+      (folder: fixture.folders[0], subfolder: path('2026')),
+      type: appDocumentTypes().forNew,
+      newSubfolder: true,
+    );
+    final empty = fixture.session(intoNew());
+    expect(await empty.secure(.close), isTrue);
+    expect(Directory('${fixture.dirs[0].path}/2026').existsSync(), isFalse);
+
+    final session = fixture.session(intoNew())..type('Milk');
+    expect(await session.secure(.close), isTrue);
+
+    expect(fixture.onDisk('2026/Milk.md'), 'Milk\n');
   });
 
   test('a change elsewhere without edits shows, and says so', () async {

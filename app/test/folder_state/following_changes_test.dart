@@ -8,10 +8,9 @@ import 'package:truce_editor/folder_state/following_changes.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
-import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/refresh_settings_controller.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_following.dart';
 
 import '../support.dart';
 
@@ -44,7 +43,6 @@ void main() {
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
         folderStateOwnerProvider.overrideWithValue(owner),
         refreshSettingsProvider.overrideWith(_FixedSettings.new),
-        folderReachProvider.overrideWith2(_SettableReach.new),
       ],
     );
     addTearDown(container.dispose);
@@ -53,23 +51,6 @@ void main() {
   }
 
   Future<void> settle() => pumpEventQueue();
-
-  test('follows a folder afresh once it is reachable again', () async {
-    await start();
-    var listens = 0;
-    changes.onListen = () => listens++;
-    final reach = container.read(
-      folderReachProvider(folder.base).notifier,
-    ) as _SettableReach;
-
-    reach.set(Reach.unreachable);
-    await container.read(followingChangesProvider.future);
-    final before = listens;
-    reach.set(Reach.reachable);
-    await container.read(followingChangesProvider.future);
-
-    expect(listens, before + 1);
-  });
 
   test('passes every hint on, with its base folder', () async {
     await start();
@@ -234,14 +215,4 @@ final class _RecordingOwner implements FolderStateOwner {
 
   @override
   Future<void> close() async {}
-}
-
-/// One reach for every folder, set by the test.
-class _SettableReach extends FolderReachController {
-  _SettableReach(super.location);
-
-  @override
-  Reach build() => Reach.reachable;
-
-  void set(Reach reach) => state = reach;
 }

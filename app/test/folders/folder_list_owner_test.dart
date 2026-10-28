@@ -42,7 +42,9 @@ void main() {
   }) => folders
       .read(foldersProvider.notifier)
       .add(
-        basePath: basePath,
+        address: basePath.contains('://')
+            ? Uri.parse(basePath)
+            : Uri.file(basePath),
         toolId: 'syncthing',
         selection: selection,
         name: name,
@@ -61,7 +63,7 @@ void main() {
       selection: subfolders(['work']),
     )).value;
 
-    expect(added.base.path, '/sync');
+    expect(added.base.address, Uri.file('/sync'));
     expect(added.base.toolId, 'syncthing');
     expect(added.selection, subfolders(['work']));
     expect(await container().read(foldersProvider.future), [added]);
@@ -112,6 +114,20 @@ void main() {
     expect(
       await add(folders, '/sync/Documents2'),
       isA<Ok<DocumentFolder, FolderError>>(),
+    );
+  });
+
+  test('base folders of other kinds of place never overlap', () async {
+    final folders = container();
+    await add(folders, '/sync');
+
+    expect(
+      await add(folders, 'fake://host/sync/Documents'),
+      isA<Ok<DocumentFolder, FolderError>>(),
+    );
+    expect(
+      (await add(folders, 'fake://host/sync')).error,
+      FolderError.overlaps,
     );
   });
 
@@ -310,5 +326,9 @@ final class _FakeHostPaths implements HostPaths {
   final Map<String, String> _hostPaths;
 
   @override
-  Future<String> of(String path) async => _hostPaths[path] ?? path;
+  Future<Uri> of(Uri address) async =>
+      switch (_hostPaths[address.toFilePath()]) {
+        final host? => Uri.file(host),
+        null => address,
+      };
 }

@@ -34,6 +34,10 @@ abstract interface class FileStore {
   /// [StoreError.notFound], so a write never brings the folder back.
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes);
 
+  /// Creates [folder] and the missing folders on the way to it; one that
+  /// is already there is fine. Like [create], never creates the root.
+  Future<Result<void, StoreError>> createFolder(RelPath folder);
+
   /// Atomically replaces [path] with [bytes]: readers see the old or the new
   /// file, never a partial one. Returns the new file's entry.
   ///

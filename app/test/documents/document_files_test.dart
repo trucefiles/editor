@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 
 import '../support.dart';
@@ -159,10 +160,13 @@ void main() {
       File('${dir.path}/home.md').writeAsStringSync('home');
       File('${dir.path}/work/photo.png').writeAsStringSync('png');
 
-      expect((await work.open(path('home.md'))).error, StoreError.outside);
+      expect(
+        (await work.open(path('home.md'))).error,
+        const NotRead(StoreError.outside),
+      );
       expect(
         (await work.open(path('work/photo.png'))).error,
-        StoreError.outside,
+        const NotRead(StoreError.outside),
       );
     });
 
@@ -176,6 +180,31 @@ void main() {
 
       expect(created.path, path('work/Milk.md'));
       expect(File('${dir.path}/Milk.md').existsSync(), isFalse);
+    });
+
+    test('makes a new subfolder the user asked for, then the document '
+        'in it', () async {
+      final created = (await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('work/2026/q1'),
+        newSubfolder: true,
+      )).value;
+
+      expect(created.path, path('work/2026/q1/Milk.md'));
+      expect(read('work/2026/q1/Milk.md'), '# Milk\n');
+    });
+
+    test('never makes a new subfolder outside what it shows', () async {
+      final created = await work.create(
+        'Milk',
+        type: markdown,
+        subfolder: path('home/new'),
+        newSubfolder: true,
+      );
+
+      expect(created.error, StoreError.outside);
+      expect(Directory('${dir.path}/home').existsSync(), isFalse);
     });
 
     test('never brings back its chosen subfolder once it is gone', () async {
@@ -211,6 +240,31 @@ void main() {
       ]);
       expect(File('${dir.path}/Plan.md').existsSync(), isFalse);
       expect(read('inbox/Plan.md'), 'taken');
+    });
+
+    test('makes a new subfolder the user asked for, then moves in', () async {
+      File('${dir.path}/Plan.md').writeAsStringSync('a');
+      final document = (await files.open(path('Plan.md'))).value;
+
+      final moved = (await files.moveIn(
+        document,
+        subfolder: path('inbox/2026'),
+        newSubfolder: true,
+      )).value;
+
+      expect(moved.path, path('inbox/2026/Plan.md'));
+      expect(read('inbox/2026/Plan.md'), 'a');
+    });
+
+    test('moves nothing into a missing subfolder not asked for', () async {
+      File('${dir.path}/Plan.md').writeAsStringSync('a');
+      final document = (await files.open(path('Plan.md'))).value;
+
+      final moved = await files.moveIn(document, subfolder: path('gone'));
+
+      expect(moved.error, StoreError.notFound);
+      expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+      expect(read('Plan.md'), 'a');
     });
 
     test('renames, with the extension kept', () async {

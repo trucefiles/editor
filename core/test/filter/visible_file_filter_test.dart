@@ -5,7 +5,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 /// The generic filter on a made-up sync tool; Syncthing's own names are
 /// tested in the Syncthing package.
 void main() {
-  const filter = DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes);
+  final filter = VisibleFileFilter(const FakeSyncRules().isInternal);
 
   test('includes visible folders only', () {
     expect(filter.includesFolder(path('lists')), isTrue);
@@ -20,12 +20,12 @@ void main() {
     expect(filter.includesFile(path('a/.fake/b/todo.md')), isFalse);
   });
 
-  test('includes visible files of a known type only', () {
+  test('includes visible files only', () {
     expect(filter.includesFile(path('lists/todo.md')), isTrue);
     expect(filter.includesFile(path('a/b/c/todo.md')), isTrue);
     expect(filter.includesFile(path('.hidden.md')), isFalse);
     expect(filter.includesFile(path('a/b/.hidden.md')), isFalse);
-    expect(filter.includesFile(path('photo.jpg')), isFalse);
+    expect(filter.includesFile(path('photo.jpg')), isTrue);
   });
 
   test("leaves out the sync tool's own files", () {

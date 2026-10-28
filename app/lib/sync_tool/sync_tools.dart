@@ -1,14 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../platform/platform_wiring.dart';
 import 'plain_folder/plain_folder_wiring.dart';
 import 'syncthing/syncthing_wiring.dart';
 
 /// The sync tools the app works with: the one place that registers them,
 /// at compile time.
-final syncToolsProvider = Provider<SyncTools>(
-  (_) => const SyncTools([syncthingTool, plainFolderTool]),
-);
+final syncToolsProvider = Provider<SyncTools>((ref) {
+  final disk = ref.watch(localDiskProvider);
+  return SyncTools([syncthingTool(disk), plainFolderTool(disk)]);
+});
 
 /// The sync tools the app works with, in the order the user is offered
 /// them.
@@ -27,5 +29,5 @@ final class SyncTools {
   /// Whether the folder whose path has the segments [segments] belongs to
   /// any of the tools itself (e.g. its version folder).
   bool isToolFolder(List<String> segments) =>
-      all.any((tool) => tool.rules.isInternalFolder(segments));
+      all.any((tool) => tool.isToolFolder(segments));
 }

@@ -23,18 +23,26 @@ void main() {
   });
 
   test('saves and loads folders, each base folder once', () async {
-    const base = BaseFolder(id: 'b1', path: '/sync', toolId: 'syncthing');
+    final base = BaseFolder(
+      id: 'b1',
+      address: Uri.file('/sync'),
+      toolId: 'syncthing',
+    );
     final folders = [
-      const DocumentFolder(
+      DocumentFolder(
         id: 'a1',
         base: base,
-        selection: WholeFolder(),
+        selection: const WholeFolder(),
         name: 'Private',
-        color: Color(0xFF3F51B5),
+        color: const Color(0xFF3F51B5),
       ),
       DocumentFolder(
         id: 'a2',
-        base: const BaseFolder(id: 'b2', path: '/other', toolId: 'plain'),
+        base: BaseFolder(
+          id: 'b2',
+          address: Uri.parse('fake://host/other'),
+          toolId: 'plain',
+        ),
         selection: Selection.of([path('work'), path('home/notes')]),
         name: 'Work',
         color: const Color(0xFF009688),
@@ -51,13 +59,18 @@ void main() {
       '[{"id": 1}]',
       '{"baseFolders": [], "folders": [{"id": "a", "base": "gone", '
           '"name": "A", "color": 1}]}',
-      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "syncthing"}], '
+      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "syncthing"}], '
           '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1, '
           '"subfolders": ["../up"]}]}',
-      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "syncthing"}], '
+      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "syncthing"}], '
           '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1, '
           '"subfolders": []}]}',
-      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "unknown"}], '
+      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "unknown"}], '
+          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
+      // Written before base folders had addresses.
+      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "syncthing"}], '
+          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
+      '{"baseFolders": [{"id": "b", "address": "/x", "tool": "syncthing"}], '
           '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
     ]) {
       file.writeCreatingFolders(damaged);

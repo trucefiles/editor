@@ -33,12 +33,16 @@ void main() {
   DocumentPortalPaths paths() =>
       DocumentPortalPaths(connect: () => DBusClient(address));
 
+  /// The host path of the folder at [path], as the portal tells it.
+  Future<String> hostOf(String path) async =>
+      (await paths().of(Uri.file(path))).toFilePath();
+
   test('tells the host path of a folder picked through the portal', () async {
     await runPortal(hostPaths: {'ab12': '/home/me/Documents'});
 
-    expect(await paths().of('/run/doc/ab12/Documents'), '/home/me/Documents');
+    expect(await hostOf('/run/doc/ab12/Documents'), '/home/me/Documents');
     expect(
-      await paths().of('/run/doc/ab12/Documents/work'),
+      await hostOf('/run/doc/ab12/Documents/work'),
       '/home/me/Documents/work',
     );
   });
@@ -46,22 +50,23 @@ void main() {
   test('keeps other paths', () async {
     await runPortal(hostPaths: {'ab12': '/home/me/Documents'});
 
-    expect(await paths().of('/home/me/Documents'), '/home/me/Documents');
-    expect(await paths().of('/run/doc/ab12'), '/run/doc/ab12');
-    expect(await paths().of('/run/doc/cd34/Work'), '/run/doc/cd34/Work');
+    expect(await hostOf('/home/me/Documents'), '/home/me/Documents');
+    expect(await hostOf('/run/doc/ab12'), '/run/doc/ab12');
+    expect(await hostOf('/run/doc/cd34/Work'), '/run/doc/cd34/Work');
+  });
+
+  test('keeps addresses of other places', () async {
+    await runPortal(hostPaths: {'ab12': '/home/me/Documents'});
+    final cloud = Uri.parse('cloud://me/run/doc/ab12/Documents');
+
+    expect(await paths().of(cloud), cloud);
   });
 
   test('keeps paths without a portal or with an older one', () async {
-    expect(
-      await paths().of('/run/doc/ab12/Documents'),
-      '/run/doc/ab12/Documents',
-    );
+    expect(await hostOf('/run/doc/ab12/Documents'), '/run/doc/ab12/Documents');
 
     await runPortal(tellsHostPaths: false);
-    expect(
-      await paths().of('/run/doc/ab12/Documents'),
-      '/run/doc/ab12/Documents',
-    );
+    expect(await hostOf('/run/doc/ab12/Documents'), '/run/doc/ab12/Documents');
   });
 }
 

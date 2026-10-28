@@ -35,13 +35,18 @@ void main() {
     ]);
   });
 
-  test('tells nothing of reads, listings and writes that failed', () async {
-    inner.put('a.md', 'a');
+  test(
+    'tells nothing of reads, listings, new folders and failed writes',
+    () async {
+      inner.put('a.md', 'a');
 
-    await store.read(path('a.md'));
-    await store.list();
-    await store.create(path('a.md'), bytesOf('x'));
+      await store.read(path('a.md'));
+      await store.list();
+      await store.create(path('a.md'), bytesOf('x'));
+      await store.createFolder(path('new'));
 
-    expect(reported, isEmpty);
-  });
+      expect(inner.emptyFolders, {path('new')});
+      expect(reported, isEmpty);
+    },
+  );
 }

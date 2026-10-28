@@ -15,6 +15,7 @@ import 'package:truce_editor/documents/document_text.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place_controller.dart';
+import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
@@ -23,7 +24,6 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../support.dart';
 
@@ -185,7 +185,10 @@ void main() {
       await documentIn(home, 'inbox/other.md', 'x');
       final settings = container.read(documentSettingsProvider.notifier);
       const mark = DocumentMark(color: 'teal');
-      const mine = DocumentSettings(mode: EditMode.visual, pinned: true);
+      final mine = DocumentSettings(
+        pinned: true,
+        view: ViewSettings({'mode': 'visual'}),
+      );
       await actions.setMark(document.document, mark);
       await settings.edit(document.key, (_) => mine);
 
@@ -374,10 +377,9 @@ void main() {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
     final settings = container.read(documentSettingsProvider.notifier);
     const mark = DocumentMark(color: 'teal');
-    const mine = DocumentSettings(
-      mode: EditMode.read,
+    final mine = DocumentSettings(
       pinned: true,
-      checkedItems: CheckedItems.inPlace,
+      view: ViewSettings({'mode': 'read', 'checked': 'inPlace'}),
     );
     await actions.setMark(document.document, mark);
     await settings.edit(document.key, (_) => mine);

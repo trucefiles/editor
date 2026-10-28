@@ -95,6 +95,14 @@ final class LocalFileStore implements FileStore {
       });
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
+      _guard(() async {
+        final path = (await _file(folder)).path;
+        if (!createsRoot) await _checkRootExists();
+        await Directory(path).create(recursive: true);
+      });
+
+  @override
   Future<Result<FileEntry, StoreError>> replace(
     RelPath path,
     Uint8List bytes, {

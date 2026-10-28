@@ -41,7 +41,7 @@ final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
           owner.send(
             BasesChanged({
               for (final base in {for (final folder in folders) folder.base})
-                base.id: (base, folders.selectionOf(base)),
+                base.id: folders.selectionOf(base),
             }),
           );
         }

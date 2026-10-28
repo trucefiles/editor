@@ -14,6 +14,7 @@ import '../owners/effects.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
+import '../storage/selection.dart';
 
 /// What the folder state owner handles: inputs anyone may send, and the
 /// results of its effects.
@@ -40,13 +41,13 @@ final class Refresh extends FolderStateInput implements Asking {
 }
 
 /// The base folders to follow are now [bases], by id, each with what is
-/// selected in it: a value compared for equality. A new base folder, or
-/// one whose selection changed, is listed at once; the state of those no
-/// longer named goes. Nothing is listed before the first.
+/// selected in it. A new base folder, or one whose selection changed, is
+/// listed at once; the state of those no longer named goes. Nothing is
+/// listed before the first.
 final class BasesChanged extends FolderStateInput {
-  BasesChanged(Map<String, Object> bases) : bases = Map.unmodifiable(bases);
+  BasesChanged(Map<String, Selection> bases) : bases = Map.unmodifiable(bases);
 
-  final Map<String, Object> bases;
+  final Map<String, Selection> bases;
 }
 
 /// What base folder [baseId]'s changes hint: paths that changed are

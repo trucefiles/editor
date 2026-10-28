@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 
 /// One document file, as listed: where it is, its type, version and time;
@@ -22,7 +21,8 @@ final class Document {
   /// Where it is in [folder]'s base folder.
   final RelPath path;
 
-  final DocumentType type;
+  /// Its file type, as the type's support reads it.
+  final FileTypeSupport<Object?> type;
 
   /// Its version on disk.
   final FileVersion version;

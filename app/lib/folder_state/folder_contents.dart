@@ -39,7 +39,7 @@ final class FolderContents {
 
   Document? _documentOf(String baseId, FileEntry entry) {
     final folder = folders.folderOf(baseId, entry.path);
-    final type = types.of(entry.path);
+    final type = types.of(entry.path)?.support;
     if (folder == null || type == null) return null;
     return Document(
       folder: folder,

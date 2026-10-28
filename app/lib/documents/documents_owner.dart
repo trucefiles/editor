@@ -54,13 +54,26 @@ Future<DocumentsAnswer> _run(
     :final type,
     :final title,
     :final text,
+    :final newSubfolder,
   ) =>
     steps
-        .create(place, type: type, title: title, text: text)
+        .create(
+          place,
+          type: type,
+          title: title,
+          text: text,
+          newSubfolder: newSubfolder,
+        )
         .then((result) => DocumentCreated(ticket, result)),
-  MoveDocument(:final ticket, :final document, :final place, :final title) =>
+  MoveDocument(
+    :final ticket,
+    :final document,
+    :final place,
+    :final title,
+    :final newSubfolder,
+  ) =>
     steps
-        .move(document, place, title: title)
+        .move(document, place, title: title, newSubfolder: newSubfolder)
         .then((result) => DocumentMoved(ticket, result)),
   DeleteDocument(:final ticket, :final document, :final text) =>
     steps

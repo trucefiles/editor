@@ -7,11 +7,10 @@ import 'package:truce_editor/storage/app_storage.dart';
 import '../support.dart';
 
 void main() {
-  ProviderContainer start({required bool liveAvailable}) {
+  ProviderContainer start() {
     final container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
-        liveRefreshAvailableProvider.overrideWithValue(liveAvailable),
       ],
     );
     addTearDown(container.dispose);
@@ -19,7 +18,7 @@ void main() {
   }
 
   test('saves the new setting', () async {
-    final container = start(liveAvailable: true);
+    final container = start();
     await container.read(refreshSettingsProvider.future);
     const periodic = RefreshSettings(
       mode: RefreshMode.periodic,
@@ -33,7 +32,7 @@ void main() {
   });
 
   test('shows the new setting while it is saved', () async {
-    final container = start(liveAvailable: true);
+    final container = start();
     await container.read(refreshSettingsProvider.future);
     const manual = RefreshSettings(
       mode: RefreshMode.manual,
@@ -46,12 +45,16 @@ void main() {
     await saving;
   });
 
-  test('live counts as periodic where it is never possible', () async {
-    final container = start(liveAvailable: false);
+  test('keeps live on every platform', () async {
+    final container = start();
+    await container.read(refreshSettingsProvider.future);
+    const live = RefreshSettings(
+      mode: RefreshMode.live,
+      interval: Duration(seconds: 5),
+    );
 
-    final settings = await container.read(refreshSettingsProvider.future);
+    await container.read(refreshSettingsProvider.notifier).set(live);
 
-    expect(settings.mode, RefreshMode.periodic);
-    expect(settings.interval, RefreshSettings.standard.interval);
+    expect(await container.read(refreshSettingsProvider.future), live);
   });
 }

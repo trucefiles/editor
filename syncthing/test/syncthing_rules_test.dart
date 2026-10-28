@@ -3,7 +3,7 @@ import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  const adapter = SyncthingAdapter();
+  const adapter = SyncthingRules();
 
   group('isInternal', () {
     test("matches Syncthing's files and folders at any depth", () {

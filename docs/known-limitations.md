@@ -15,6 +15,10 @@ Accepted behavior that is not planned to change, grouped by topic.
   folder is never made again: there the edits stay on this device, not
   shown, until the subfolder is back.
 
+- **A new subfolder can stay empty.** A subfolder you type in "Place and
+  name" is made right before the document goes in. If that then fails (for
+  example, the document changed on another device meanwhile), the new
+  subfolder stays, empty. Nothing is lost; delete it if you don't need it.
 - **A moved or renamed document can come back.** Sync tools see a move or
   rename as a delete and a new file. If another device edits the document
   before it learns of the change, the edited document shows up again in its
@@ -97,10 +101,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   app stops in the middle of a save, the temp file stays. Truce hides it but
   never deletes it, as it writes into your folders only when you ask. You
   can delete it yourself.
-- **A chosen subfolder that is gone slows live updates.** If one of a
-  folder's chosen subfolders is gone, Truce checks the whole base folder
-  for changes every few seconds instead of following them live, and the
-  folder's notice says so.
 
 ## Search
 

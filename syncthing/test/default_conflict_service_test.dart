@@ -26,7 +26,7 @@ void main() {
 
   Future<Conflict> scanOne() async => (await NamedCopiesScanner(
     folder,
-    const DefaultFileFilter(SyncthingAdapter(), fakeFileTypes),
+    VisibleFileFilter(const SyncthingRules().isInternal),
     const SyncthingConflictNames(),
   ).scan()).value.conflicts.single;
 

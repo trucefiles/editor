@@ -4,28 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/document.dart';
-import '../documents/document_settings.dart';
+import '../documents/view_settings.dart';
 import '../folders/document_folder.dart';
 
 /// Where an open document's editor starts: the [text] it opens with (read
-/// as [version], `null` for a new document), the document's [settings] on
-/// this device, whether it opens [readOnly], and whether it is [isNew].
+/// as [version], `null` for a new document), what its type keeps of how it
+/// shows on this device ([view]), whether it opens [readOnly], and whether
+/// it is [isNew].
 typedef EditorStart = ({
   String text,
   Version? version,
-  DocumentSettings settings,
+  ViewSettings view,
   bool readOnly,
   bool isNew,
 });
 
 /// What the document page gives an editor part.
 final class EditorPage {
-  const EditorPage({required this.keepSettings, required this.withFile});
+  const EditorPage({required this.keepView, required this.withFile});
 
-  /// Changes the document's settings on this device; for a new document,
-  /// once it has a file.
-  final void Function(DocumentSettings Function(DocumentSettings) change)
-  keepSettings;
+  /// Changes what the type keeps of how the document shows on this
+  /// device; for a new document, once it has a file.
+  final void Function(ViewSettings Function(ViewSettings) change) keepView;
 
   /// Runs an action on the document's file, created first for a new
   /// document; the page tells the user if there is none. The context is
@@ -57,8 +57,8 @@ abstract interface class EditorPart implements Listenable {
   /// only to read.
   bool get isEditing;
 
-  /// The document's settings on this device changed to [settings].
-  void settingsChanged(DocumentSettings settings);
+  /// What the type keeps of how the document shows changed to [view].
+  void viewChanged(ViewSettings view);
 
   /// The editor, as it shows now, at [place]; with the caret in it right
   /// away if [autofocus] (e.g. a new document).
@@ -68,11 +68,11 @@ abstract interface class EditorPart implements Listenable {
   /// (e.g. the mode menu).
   List<Widget> actions(BuildContext context);
 
-  /// What the type adds to the document's menu while it can be edited;
-  /// [context] is the page's.
+  /// What the type adds to the document's menu while it can be edited,
+  /// by its [view] settings now; [context] is the page's.
   List<PopupMenuEntry<VoidCallback>> menu(
     BuildContext context,
-    DocumentSettings settings,
+    ViewSettings view,
   );
 
   /// The type's keys while the document can be edited.

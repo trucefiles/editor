@@ -104,7 +104,7 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with eight packages:
+A Dart pub workspace with these packages:
 
 - `core`: files, sync-tool interfaces, conflict handling and an open
   document's file owner. Pure Dart, no UI, nothing specific to one sync

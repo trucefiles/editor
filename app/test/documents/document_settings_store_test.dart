@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_store.dart';
 import 'package:truce_editor/documents/kept_document_settings.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
+import 'package:truce_editor/documents/view_settings.dart';
 
 import '../support.dart';
 
@@ -42,14 +42,16 @@ void main() {
       baseId: 'b1',
       path: path('a.md'),
     ));
-    const settings = DocumentSettings(
-      mode: EditMode.markdown,
+    final settings = DocumentSettings(
       pinned: true,
-      checkedItems: CheckedItems.moveToEnd,
+      view: ViewSettings({
+        'mode': 'markdown',
+        'list': [1, 2],
+      }),
     );
 
     await store.save({
-      key: const KeptNoteSettings(settings),
+      key: KeptNoteSettings(settings),
       'f1/b.md': const KeptNoteSettings(DocumentSettings()),
     });
 
@@ -67,30 +69,27 @@ void main() {
     expect(await store.load(), {'b1/a.md': kept});
   });
 
-  test('a document never set moves checked items to the end', () {
-    expect(DocumentSettings.defaults.checkedItems, CheckedItems.moveToEnd);
-  });
-
   test('ignores a damaged file and entries it cannot read', () async {
     file.writeCreatingFolders(
-      '{"b1/a.md": {"mode": "visual", "pinned": false, "checked": "inPlace"}, '
+      '{"b1/a.md": {"pinned": false, "view": {"mode": "visual"}}, '
       '"b1/b.md": "list", '
-      '"b1/c.md": {"pinned": 1, "checked": "inPlace"}, '
-      '"b1/d.md": {"mode": "grid", "pinned": true, "checked": "doneSection"}, '
-      '"b1/e.md": {"pinned": true, "checked": "sideways"}}',
+      '"b1/c.md": {"pinned": 1, "view": {}}, '
+      '"b1/d.md": {"pinned": true, "view": "grid"}}',
     );
     expect(await loaded(), {
-      'b1/a.md': const DocumentSettings(
-        mode: EditMode.visual,
-        checkedItems: CheckedItems.inPlace,
-      ),
-      'b1/d.md': const DocumentSettings(
-        pinned: true,
-        checkedItems: CheckedItems.doneSection,
-      ),
+      'b1/a.md': DocumentSettings(view: ViewSettings({'mode': 'visual'})),
+      'b1/d.md': const DocumentSettings(pinned: true),
     });
 
     file.writeAsStringSync('not json');
     expect(await loaded(), isEmpty);
+  });
+
+  test('keeps the pin of settings saved before types kept a view', () async {
+    file.writeCreatingFolders(
+      '{"b1/a.md": {"mode": "visual", "pinned": true, "checked": "inPlace"}}',
+    );
+
+    expect(await loaded(), {'b1/a.md': const DocumentSettings(pinned: true)});
   });
 }

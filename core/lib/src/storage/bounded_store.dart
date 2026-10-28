@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../common/result.dart';
 import 'file_store.dart';
+import 'folders_there.dart';
 import 'rel_path.dart';
 import 'selection.dart';
 
@@ -15,8 +16,9 @@ import 'selection.dart';
 /// inside the selection or on the way to it. Anything else fails with
 /// [StoreError.outside].
 ///
-/// Never brings back a selected subfolder that is gone: a create or move
-/// below it fails with [StoreError.notFound], as for a gone root.
+/// Never brings back a selected subfolder that is gone: a create (of a
+/// file or a folder) or move below it fails with [StoreError.notFound],
+/// as for a gone root.
 final class BoundedStore implements FileStore {
   const BoundedStore(this._inner, this.selection, {required this.handles});
 
@@ -80,6 +82,14 @@ final class BoundedStore implements FileStore {
       : _outside();
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) async {
+    if (!selection.covers(folder)) return _outside();
+    return await _hasSelectedFolderOf(folder)
+        ? _inner.createFolder(folder)
+        : const Err(StoreError.notFound);
+  }
+
+  @override
   Future<Result<FileEntry, StoreError>> move(
     RelPath from,
     RelPath to, {
@@ -102,14 +112,8 @@ final class BoundedStore implements FileStore {
       final Subfolders subfolders => subfolders.rootOf(path),
     };
     if (root == null) return true;
-    final listed = await _inner.list(
-      enterFolder: (folder) =>
-          folder == root || Selection.isInside(root, folder),
-      includeFile: (_) => false,
-    );
-    return switch (listed) {
-      Ok(value: final listing) =>
-        listing.folders.contains(root) || listing.unreadable.isNotEmpty,
+    return switch (await _inner.foldersThere({root})) {
+      Ok(value: final there) => there.contains(root),
       Err() => true,
     };
   }

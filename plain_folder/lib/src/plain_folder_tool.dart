@@ -1,50 +1,37 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'plain_conflict_names.dart';
-import 'plain_folder_rules.dart';
+import 'plain_folder_place.dart';
 
-/// A folder synced by no tool, or by one the app doesn't know: the app
-/// keeps a save that can't land as a conflict copy next to its document
-/// ([PlainConflictNames]), and shows those copies as conflicts.
+/// A folder on this device synced by no tool, or by one the app doesn't
+/// know: the app keeps a save that can't land as a conflict copy next to
+/// its document (`PlainConflictNames`), and shows those copies as
+/// conflicts.
 ///
 /// Recognizes nothing: any folder can be plain, so the user picks it.
 final class PlainFolderTool implements SyncTool {
-  const PlainFolderTool();
+  const PlainFolderTool(this._disk);
 
-  static const _names = PlainConflictNames();
+  final LocalDisk _disk;
 
   @override
   String get id => 'plain';
 
   @override
-  SyncAdapter get rules => const PlainFolderRules();
+  String get name => 'Plain folder';
 
   @override
-  Future<SyncStatus> recognize(FolderMarkers markers) async =>
-      SyncStatus.unknown;
+  bool isToolFolder(List<String> names) =>
+      PlainFolderPlace.rules.isInternalFolder(names);
+
+  @override
+  Future<SyncStatus> recognize(Uri address) async => SyncStatus.unknown;
 
   /// No tool keeps old versions that the app could reach.
   @override
-  Future<bool> missesOldVersions(FolderMarkers markers) async => false;
+  Future<bool> missesOldVersions(Uri address) async => false;
 
   @override
-  SyncedFolder open(
-    FileStore store, {
-    required FileFilter shown,
-    required FolderMarkers markers,
-  }) => SyncedFolder(
-    store: store,
-    scanner: NamedCopiesScanner(store, shown, _names),
-    conflicts: NamedConflictSource(store, _names),
-    notices: const _NoNotices(),
-    followed: WithConflictCopies(shown, _names),
+  ToolPlace place(Uri address) => PlainFolderPlace(
+    _disk.at(address, tempName: PlainFolderPlace.rules.tempFileName),
   );
-}
-
-/// No tool tells anything about a plain folder.
-final class _NoNotices implements FolderNotices {
-  const _NoNotices();
-
-  @override
-  Future<List<FolderNotice>> check() async => const [];
 }

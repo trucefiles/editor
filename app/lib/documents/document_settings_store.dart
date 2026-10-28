@@ -1,21 +1,23 @@
 import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../storage/json_file.dart';
 import '../storage/setting_store.dart';
 import 'document.dart';
 import 'document_settings.dart';
 import 'kept_document_settings.dart';
+import 'view_settings.dart';
 
 /// Keeps the [KeptNoteSettings] of each document in a JSON file in app storage,
 /// keyed by base folder id and path. Per device and never synced. A
-/// convenience: read and write failures are ignored.
+/// convenience: read and write failures are ignored. `view` is the
+/// document type's own part, kept as is.
 ///
 /// ```json
-/// {"b1/todo.md": {"mode": "visual", "pinned": true, "checked": "moveToEnd"},
-///  "b1/old.md": {"pinned": true, "checked": "inPlace",
+/// {"b1/todo.md": {"pinned": true,
+///                 "view": {"mode": "visual", "checked": "moveToEnd"}},
+///  "b1/old.md": {"pinned": true, "view": {},
 ///                "missingSince": "2026-10-21T09:00:00.000Z"}}
 /// ```
 final class DocumentSettingsStore
@@ -58,9 +60,8 @@ final class DocumentSettingsStore
   }
 
   static Map<String, Object?> _encode(KeptNoteSettings kept) => {
-    if (kept.settings.mode case final mode?) 'mode': mode.name,
     'pinned': kept.settings.pinned,
-    'checked': kept.settings.checkedItems.name,
+    'view': kept.settings.view.json,
     if (kept.missingSince case final since?)
       'missingSince': since.toUtc().toIso8601String(),
   };
@@ -70,17 +71,12 @@ final class DocumentSettingsStore
     _ => null,
   };
 
+  /// A `view` it can't read (or none, as saved before types kept their
+  /// own) is as never chosen.
   static DocumentSettings? _decode(Object? json) => switch (json) {
-    {'pinned': final bool pinned, 'checked': final Object checked} &&
-        final Map<Object?, Object?> map =>
-      switch (CheckedItems.values.asNameMap()[checked]) {
-        final checkedItems? => DocumentSettings(
-          mode: EditMode.values.asNameMap()[map['mode']],
-          pinned: pinned,
-          checkedItems: checkedItems,
-        ),
-        null => null,
-      },
+    {'pinned': final bool pinned, 'view': final Map<String, Object?> view} =>
+      DocumentSettings(pinned: pinned, view: ViewSettings(view)),
+    {'pinned': final bool pinned} => DocumentSettings(pinned: pinned),
     _ => null,
   };
 }

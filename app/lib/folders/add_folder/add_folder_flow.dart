@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart';
@@ -29,26 +28,20 @@ enum AddFolderStep {
 final class AddFolderWork {
   const AddFolderWork({
     required this.tools,
-    required this.markersOf,
-    required this.namesOf,
-    required this.isToolFolder,
+    required this.subfoldersOf,
     required this.add,
   });
 
   /// The sync tools the app works with, in the order offered.
   final List<SyncTool> tools;
 
-  /// A look at the base folder at a path, for the tools to recognize it.
-  final FolderMarkers Function(String basePath) markersOf;
-
-  /// The folder names of the base folder at a path.
-  final SubfolderNames Function(String basePath) namesOf;
-
-  final bool Function(List<String> segments) isToolFolder;
+  /// The folder names of a base folder added before, from the place the
+  /// app keeps for it.
+  final SubfolderNames Function(BaseFolder base) subfoldersOf;
 
   /// Adds the folder; see `FoldersController.add`.
   final Future<Result<DocumentFolder, FolderError>> Function({
-    required String basePath,
+    required Uri address,
     required String toolId,
     required Selection selection,
     required String name,
@@ -67,7 +60,8 @@ final class AddFolderFlow extends ChangeNotifier {
   final List<DocumentFolder> _folders;
 
   AddFolderStep _step = AddFolderStep.base;
-  String? _basePath;
+  Uri? _address;
+  BaseFolder? _added;
   SyncTool? _tool;
   SubfolderChoice? _parts;
   String _name = '';
@@ -83,8 +77,8 @@ final class AddFolderFlow extends ChangeNotifier {
   /// The tools to pick from at [AddFolderStep.tool].
   List<SyncTool> get tools => _work.tools;
 
-  /// The chosen base folder's path; from [AddFolderStep.tool] on.
-  String get basePath => _basePath!;
+  /// The chosen base folder's address; from [AddFolderStep.tool] on.
+  Uri get address => _address!;
 
   /// The sync tool for the base folder; from [AddFolderStep.parts] on.
   SyncTool get tool => _tool!;
@@ -95,14 +89,16 @@ final class AddFolderFlow extends ChangeNotifier {
   String get name => _name;
   Color get color => _color;
 
-  /// Uses the base folder at [path]: one added before keeps its tool;
+  /// Uses the base folder at [address]: one added before keeps its tool;
   /// else the first tool that recognizes it, or the user says which.
-  Future<void> pickBase(String path) async {
-    _basePath = path;
-    final added = bases.where((base) => base.path == path).firstOrNull;
+  Future<void> pickBase(Uri address) async {
+    _address = address;
+    final added = _added = bases
+        .where((base) => base.address == address)
+        .firstOrNull;
     final tool = added != null
         ? _work.tools.firstWhere((tool) => tool.id == added.toolId)
-        : await _recognized(path);
+        : await _recognized(address);
     if (tool == null) {
       _go(AddFolderStep.tool);
     } else {
@@ -114,11 +110,14 @@ final class AddFolderFlow extends ChangeNotifier {
     _tool = tool;
     _parts?.dispose();
     _parts = SubfolderChoice(
-      names: _work.namesOf(basePath),
-      isToolFolder: _work.isToolFolder,
+      // A base folder not added yet gets a place for this look only.
+      names: switch (_added) {
+        final added? => _work.subfoldersOf(added),
+        null => tool.place(address).subfolders,
+      },
       taken: [
         for (final folder in _folders)
-          if (folder.base.path == basePath) folder.selection,
+          if (folder.base.address == address) folder.selection,
       ],
     );
     _go(AddFolderStep.parts);
@@ -129,7 +128,7 @@ final class AddFolderFlow extends ChangeNotifier {
   void toName() {
     _name = switch (parts.selection) {
       Subfolders(:final roots) when roots.length == 1 => roots.single.name,
-      _ => _lastSegment(basePath),
+      _ => _lastSegment(address),
     };
     _color = nextFolderColor(_folders.map((folder) => folder.color));
     _go(AddFolderStep.name);
@@ -152,17 +151,16 @@ final class AddFolderFlow extends ChangeNotifier {
 
   /// Adds the folder as chosen.
   Future<Result<DocumentFolder, FolderError>> finish() => _work.add(
-    basePath: basePath,
+    address: address,
     toolId: tool.id,
     selection: parts.selection!,
     name: _name.trim(),
     color: _color,
   );
 
-  Future<SyncTool?> _recognized(String path) async {
-    final markers = _work.markersOf(path);
+  Future<SyncTool?> _recognized(Uri address) async {
     for (final tool in _work.tools) {
-      if (await tool.recognize(markers) == SyncStatus.synced) return tool;
+      if (await tool.recognize(address) == SyncStatus.synced) return tool;
     }
     return null;
   }
@@ -173,9 +171,10 @@ final class AddFolderFlow extends ChangeNotifier {
     return true;
   }
 
-  static String _lastSegment(String path) => path
-      .split(Platform.pathSeparator)
-      .lastWhere((segment) => segment.isNotEmpty, orElse: () => path);
+  static String _lastSegment(Uri address) => address.pathSegments.lastWhere(
+    (segment) => segment.isNotEmpty,
+    orElse: () => addressText(address),
+  );
 
   @override
   void dispose() {

@@ -137,6 +137,10 @@ final class _ChangesOnCreate implements FileStore {
   }) => throw UnimplementedError();
 
   @override
+  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
+      throw UnimplementedError();
+
+  @override
   Future<Result<FileEntry, StoreError>> move(
     RelPath from,
     RelPath to, {

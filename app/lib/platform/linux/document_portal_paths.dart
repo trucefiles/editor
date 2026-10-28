@@ -17,7 +17,11 @@ final class DocumentPortalPaths implements HostPaths {
   static const _interface = 'org.freedesktop.portal.Documents';
 
   @override
-  Future<String> of(String path) async {
+  Future<Uri> of(Uri address) async => address.isScheme('file')
+      ? Uri.file(await _hostPathOf(address.toFilePath()))
+      : address;
+
+  Future<String> _hostPathOf(String path) async {
     final bus = connect();
     try {
       final portal = DBusRemoteObject(
@@ -32,7 +36,7 @@ final class DocumentPortalPaths implements HostPaths {
         _,
         ...final inside,
       ]) {
-        if (await _hostPathOf(portal, id) case final host?) {
+        if (await _hostPathById(portal, id) case final host?) {
           return [host, ...inside].join('/');
         }
       }
@@ -55,7 +59,10 @@ final class DocumentPortalPaths implements HostPaths {
     return _decode(reply.returnValues.single.asByteArray());
   }
 
-  static Future<String?> _hostPathOf(DBusRemoteObject portal, String id) async {
+  static Future<String?> _hostPathById(
+    DBusRemoteObject portal,
+    String id,
+  ) async {
     final reply = await portal.callMethod(_interface, 'GetHostPaths', [
       DBusArray.string([id]),
     ], replySignature: DBusSignature('a{say}'));

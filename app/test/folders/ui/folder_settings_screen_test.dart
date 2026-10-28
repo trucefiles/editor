@@ -8,6 +8,7 @@ import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
+import 'package:truce_editor/sync_tool/base_folder_following.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../../support.dart';
@@ -36,13 +37,15 @@ void main() {
       ProviderScope(
         overrides: [
           foldersProvider.overrideWith(() => folders),
-          subfolderNamesProvider.overrideWithValue(
-            (_) => const _Names({
+          subfolderNamesProvider.overrideWith(
+            (ref, base) => const _Names({
               null: ['home', 'notes', 'work'],
               'notes': ['deep'],
             }),
           ),
-          folderNoticesProvider.overrideWith((ref, base) async => const []),
+          folderNoticesProvider.overrideWith(
+            (ref, base) async => const <FolderNotice>[],
+          ),
           missesOldVersionsProvider.overrideWith(
             (ref, base) async => missesOldVersions,
           ),

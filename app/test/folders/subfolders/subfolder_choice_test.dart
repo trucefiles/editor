@@ -10,16 +10,14 @@ void main() {
     Selection? initial,
   }) => SubfolderChoice(
     names: const _Names({
-      null: ['.git', 'home', 'notes'],
-      'notes': ['private', 'tool', 'work'],
+      null: ['home', 'notes'],
+      'notes': ['private', 'work'],
     }),
-    isToolFolder: (segments) => segments.last == 'tool',
     taken: taken,
     initial: initial,
   );
 
-  test('offers the folders the user can pick, without hidden ones '
-      "or the sync tool's own", () async {
+  test('offers the folders the sync tool names, by path', () async {
     final names = choice();
 
     expect((await names.foldersIn(null)).value, [path('home'), path('notes')]);

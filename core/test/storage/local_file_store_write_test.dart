@@ -57,6 +57,32 @@ void main() {
     });
   });
 
+  group('createFolder', () {
+    test('creates a folder and the ones on the way', () async {
+      final result = await fx.store.createFolder(path('2026/spring'));
+
+      expect(result, isA<Ok<void, StoreError>>());
+      expect(Directory('${fx.root.path}/2026/spring').existsSync(), isTrue);
+    });
+
+    test('is fine with a folder that is there', () async {
+      await Directory('${fx.root.path}/inbox').create();
+
+      final result = await fx.store.createFolder(path('inbox'));
+
+      expect(result, isA<Ok<void, StoreError>>());
+    });
+
+    test('never recreates a missing root folder', () async {
+      await fx.root.delete();
+
+      final result = await fx.store.createFolder(path('inbox'));
+
+      expect(result.error, StoreError.notFound);
+      expect(fx.root.existsSync(), isFalse);
+    });
+  });
+
   group('replace', () {
     test('replaces an unchanged file and leaves no temp file', () async {
       await fx.write('a.md', 'old');

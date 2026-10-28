@@ -14,8 +14,6 @@ sealed class DocumentFile {
 
   DocumentFolder get folder;
 
-  DocumentType get type;
-
   /// The file in [folder] for a document holding [text].
   RelPath pathFor(String text);
 }
@@ -30,31 +28,35 @@ final class ExistingFile extends DocumentFile {
   DocumentFolder get folder => document.folder;
 
   @override
-  DocumentType get type => document.type;
-
-  @override
   RelPath pathFor(String text) => document.path;
 }
 
 /// A new document of [type]: its file goes to [place], named [name], or
 /// after its first line while [name] is `null`; a number is added if the
-/// name is taken then.
+/// name is taken then. [newSubfolder]: [place]'s subfolder is a new one
+/// the user asked for, made right before the file.
 final class NewFile extends DocumentFile {
-  const NewFile(this.place, {required this.type, this.name});
+  const NewFile(
+    this.place, {
+    required this.type,
+    this.name,
+    this.newSubfolder = false,
+  });
 
   final DocumentPlace place;
 
-  @override
   final DocumentType type;
 
   final String? name;
+
+  final bool newSubfolder;
 
   @override
   DocumentFolder get folder => place.folder;
 
   /// The file's name without its extension, for a document holding
   /// [text].
-  String titleFor(String text) => name ?? documentTitleLine(text, type);
+  String titleFor(String text) => name ?? documentTitleLine(text, type.support);
 
   @override
   RelPath pathFor(String text) {
