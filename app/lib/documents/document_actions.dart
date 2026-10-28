@@ -63,10 +63,7 @@ final class DocumentActions {
   bool canHold(DocumentFolder folder, RelPath subfolder) {
     final shown = _ref.read(baseFolderServicesProvider(folder.base)).shown;
     return folder.selection.covers(subfolder) &&
-        [
-          for (RelPath? inner = subfolder; inner != null; inner = inner.parent)
-            inner,
-        ].every(shown.includesFolder);
+        [subfolder, ...subfolder.folders].every(shown.includesFolder);
   }
 
   /// [document]'s color, as last seen.

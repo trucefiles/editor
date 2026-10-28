@@ -25,11 +25,18 @@ void main() {
   });
 
   test('what it cannot read is as never chosen', () {
-    final read = MarkdownView.of(
-      const ViewSettings({'mode': 'grid', 'checked': 3}),
-    );
+    final read = MarkdownView.of(ViewSettings({'mode': 'grid', 'checked': 3}));
 
     expect(read.mode, isNull);
     expect(read.checkedItems, CheckedItems.moveToEnd);
+  });
+
+  test('kept settings never change after they are made', () {
+    final json = <String, Object?>{'mode': 'read'};
+    final view = ViewSettings(json);
+    json['mode'] = 'visual';
+
+    expect(MarkdownView.of(view).mode, EditMode.read);
+    expect(() => view.json['mode'] = 'visual', throwsUnsupportedError);
   });
 }

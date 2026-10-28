@@ -22,6 +22,9 @@ final class MemoryFileStore implements FileStore {
   /// How often [list] was called.
   int listCount = 0;
 
+  /// When set, each [list] waits for it before it lists.
+  Future<void>? listWaits;
+
   /// The files the last [list] call returned.
   List<RelPath> lastListed = const [];
 
@@ -45,6 +48,7 @@ final class MemoryFileStore implements FileStore {
     bool Function(RelPath file)? includeFile,
   }) async {
     listCount++;
+    if (listWaits case final wait?) await wait;
     if (failWith case final error?) return Err(error);
     bool enters(RelPath folder) => enterFolder?.call(folder) ?? true;
 
@@ -56,9 +60,7 @@ final class MemoryFileStore implements FileStore {
             reached(path.parent));
 
     final folders = {
-      for (final path in [...files.keys, ...emptyFolders])
-        for (var folder = path.parent; folder != null; folder = folder.parent)
-          folder,
+      for (final path in [...files.keys, ...emptyFolders]) ...path.folders,
       ...emptyFolders,
     };
     final listing = Listing(

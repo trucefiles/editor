@@ -19,7 +19,7 @@ import 'document_fixture.dart';
 import 'markdown_session.dart';
 
 /// A type's view settings, opaque to the page.
-const _view = ViewSettings({'mode': 'markdown'});
+final _view = ViewSettings({'mode': 'markdown'});
 
 void main() {
   late DocumentFixture fixture;

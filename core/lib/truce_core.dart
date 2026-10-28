@@ -95,7 +95,6 @@ export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
 export 'src/filetypes/file_type_support.dart';
-export 'src/filter/any_file_filter.dart';
 export 'src/filter/file_filter.dart';
 export 'src/filter/visible_file_filter.dart';
 export 'src/folder_state/folder_state_owner.dart';

@@ -26,10 +26,18 @@ enum AddFolderStep {
 
 /// What [AddFolderFlow] needs from the app, wired.
 final class AddFolderWork {
-  const AddFolderWork({required this.tools, required this.add});
+  const AddFolderWork({
+    required this.tools,
+    required this.subfoldersOf,
+    required this.add,
+  });
 
   /// The sync tools the app works with, in the order offered.
   final List<SyncTool> tools;
+
+  /// The folder names of a base folder added before, from the place the
+  /// app keeps for it.
+  final SubfolderNames Function(BaseFolder base) subfoldersOf;
 
   /// Adds the folder; see `FoldersController.add`.
   final Future<Result<DocumentFolder, FolderError>> Function({
@@ -53,6 +61,7 @@ final class AddFolderFlow extends ChangeNotifier {
 
   AddFolderStep _step = AddFolderStep.base;
   Uri? _address;
+  BaseFolder? _added;
   SyncTool? _tool;
   SubfolderChoice? _parts;
   String _name = '';
@@ -84,7 +93,9 @@ final class AddFolderFlow extends ChangeNotifier {
   /// else the first tool that recognizes it, or the user says which.
   Future<void> pickBase(Uri address) async {
     _address = address;
-    final added = bases.where((base) => base.address == address).firstOrNull;
+    final added = _added = bases
+        .where((base) => base.address == address)
+        .firstOrNull;
     final tool = added != null
         ? _work.tools.firstWhere((tool) => tool.id == added.toolId)
         : await _recognized(address);
@@ -99,7 +110,11 @@ final class AddFolderFlow extends ChangeNotifier {
     _tool = tool;
     _parts?.dispose();
     _parts = SubfolderChoice(
-      names: tool.place(address).subfolders,
+      // A base folder not added yet gets a place for this look only.
+      names: switch (_added) {
+        final added? => _work.subfoldersOf(added),
+        null => tool.place(address).subfolders,
+      },
       taken: [
         for (final folder in _folders)
           if (folder.base.address == address) folder.selection,

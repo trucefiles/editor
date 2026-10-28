@@ -99,8 +99,19 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
   late final _name = TextEditingController(text: widget.name);
 
   /// The subfolder as typed, while it can be typed.
-  late final _typed = TextEditingController(text: _subfolder?.value);
+  late final _typed = TextEditingController(text: _subfolder?.value)
+    ..addListener(_onTyped);
   String? _typedError;
+
+  /// Whether the top level was picked from the list (its label shows):
+  /// a subfolder named like it is still a subfolder.
+  var _topLevelPicked = false;
+
+  /// The error goes as the user changes the text.
+  void _onTyped() {
+    if (_typed.text != _topLevel) _topLevelPicked = false;
+    if (_typedError != null) setState(() => _typedError = null);
+  }
 
   List<RelPath> get _subfolders => widget.subfoldersOf(_folder);
 
@@ -141,8 +152,8 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
   /// The typed subfolder, or why documents can't go there. A quick check
   /// for the user; the folder's files refuse a place outside it anyway.
   (RelPath?, String?) _typedSubfolder() {
-    final text = _typed.text.trim();
-    if (text.isEmpty || text == _topLevel) {
+    final text = _typed.text.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (text.isEmpty || _topLevelPicked) {
       return _offersTopLevel
           ? (null, null)
           : (null, 'Pick or type a subfolder.');
@@ -174,6 +185,7 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
               _subfolder = _top;
               _typed.text = _subfolder?.value ?? '';
               _typedError = null;
+              _topLevelPicked = false;
             }),
           ),
           if (widget.canHold != null) ...[
@@ -186,7 +198,7 @@ class _DocumentPlaceDialogState extends State<_DocumentPlaceDialog> {
               subfolders: _subfolders,
               topLevel: _topLevel,
               errorText: _typedError,
-              onChanged: () => setState(() => _typedError = null),
+              onPicked: (value) => _topLevelPicked = value.isEmpty,
             ),
           ] else if (_subfolders case final subfolders
               when subfolders.isNotEmpty) ...[
@@ -244,7 +256,7 @@ class _TypedSubfolder extends StatelessWidget {
     required this.subfolders,
     required this.topLevel,
     required this.errorText,
-    required this.onChanged,
+    required this.onPicked,
     super.key,
   });
 
@@ -253,7 +265,10 @@ class _TypedSubfolder extends StatelessWidget {
   final List<RelPath> subfolders;
   final String topLevel;
   final String? errorText;
-  final VoidCallback onChanged;
+
+  /// Called with the value of an entry picked: the subfolder's path, or
+  /// empty for the top level.
+  final void Function(String value) onPicked;
 
   @override
   Widget build(BuildContext context) => DropdownMenu<String>(
@@ -279,7 +294,7 @@ class _TypedSubfolder extends StatelessWidget {
       ),
       suffixIconConstraints: const BoxConstraints(),
     ),
-    onSelected: (_) => onChanged(),
+    onSelected: (value) => onPicked(value ?? ''),
     dropdownMenuEntries: [
       if (offersTopLevel) DropdownMenuEntry(value: '', label: topLevel),
       for (final subfolder in subfolders)

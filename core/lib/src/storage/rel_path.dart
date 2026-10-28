@@ -23,6 +23,14 @@ extension type const RelPath._(String value) {
     return slash < 0 ? null : RelPath._(value.substring(0, slash));
   }
 
+  /// The folders this path is in, innermost first, e.g. `a/b` then `a`
+  /// for `a/b/c.md`; none at the root.
+  Iterable<RelPath> get folders sync* {
+    for (var folder = parent; folder != null; folder = folder.parent) {
+      yield folder;
+    }
+  }
+
   /// Whether this lies below [folder], e.g. `a/b` below `a`.
   bool isInside(RelPath folder) => value.startsWith('${folder.value}/');
 

@@ -15,8 +15,10 @@ import 'live_changes.dart';
 /// Heals on its own: when the follow of one subfolder ends (it is gone,
 /// or watching failed), it asks for a listing, then checks every
 /// [checkEvery] whether that subfolder is there; once it is, it asks for
-/// a listing again and follows it live again. The other subfolders keep
-/// their live follow meanwhile. One check covers all ended follows, so a
+/// a listing again and follows it live again. A follow that keeps ending
+/// right after it starts again (watching fails while the folder is
+/// there) asks for one listing per wait, at its end. The other
+/// subfolders keep their live follow meanwhile. One check covers all ended follows, so a
 /// gone base folder costs one listing per wait. Never ends on its own.
 final class BoundedChanges implements FolderChanges {
   const BoundedChanges(
@@ -78,6 +80,12 @@ final class _Run {
   late final StreamController<ChangeHint> out;
   final _follows = <RelPath?, StreamSubscription<ChangeHint>>{};
   final _ended = <RelPath?>{};
+
+  /// How long ago each follow started again by a check.
+  final _sinceFollowedAgain = <RelPath?, Stopwatch>{};
+
+  /// The ended ones whose follow ended within a wait of starting again.
+  final _failing = <RelPath?>{};
   Timer? _wait;
   var _stopped = false;
 
@@ -93,6 +101,12 @@ final class _Run {
     if (_stopped) return;
     _follows.remove(root);
     _ended.add(root);
+    final since = _sinceFollowedAgain.remove(root)?.elapsed;
+    if (since != null && since < _changes.checkEvery()) {
+      _failing.add(root);
+    } else {
+      _failing.remove(root);
+    }
     out.add(const ListAgain());
     _wait ??= Timer(_changes.checkEvery(), _check);
   }
@@ -101,9 +115,13 @@ final class _Run {
     final back = await _changes._there({..._ended});
     _wait = null;
     if (_stopped) return;
+    final cameBack = back.difference(_failing);
     _ended.removeAll(back);
-    back.forEach(_follow);
-    if (back.isNotEmpty) out.add(const ListAgain());
+    for (final root in back) {
+      _sinceFollowedAgain[root] = Stopwatch()..start();
+      _follow(root);
+    }
+    if (cameBack.isNotEmpty) out.add(const ListAgain());
     if (_ended.isNotEmpty) _wait = Timer(_changes.checkEvery(), _check);
   }
 

@@ -6,10 +6,13 @@ import 'package:flutter/foundation.dart';
 /// app keeps it as is, as JSON.
 @immutable
 final class ViewSettings {
-  const ViewSettings(this.json);
+  /// Holds a copy of [json] that can't be changed.
+  ViewSettings(Map<String, Object?> json) : json = Map.unmodifiable(json);
+
+  const ViewSettings._none() : json = const {};
 
   /// Nothing kept yet.
-  static const none = ViewSettings({});
+  static const none = ViewSettings._none();
 
   final Map<String, Object?> json;
 

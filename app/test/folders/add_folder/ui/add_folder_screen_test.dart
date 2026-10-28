@@ -48,6 +48,7 @@ void main() {
           addFolderWorkProvider.overrideWith(
             (ref) => AddFolderWork(
               tools: [syncthing, plain],
+              subfoldersOf: (base) => syncthing.place(base.address).subfolders,
               add:
                   ({
                     required address,

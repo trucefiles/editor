@@ -16,10 +16,6 @@ abstract interface class FileFilter {
 /// Checks a path found without walking folders, e.g. from a change event.
 extension FileFilterPaths on FileFilter {
   /// Whether [file] is included and every folder it is in is walked.
-  bool includesPath(RelPath file) {
-    for (var folder = file.parent; folder != null; folder = folder.parent) {
-      if (!includesFolder(folder)) return false;
-    }
-    return includesFile(file);
-  }
+  bool includesPath(RelPath file) =>
+      file.folders.every(includesFolder) && includesFile(file);
 }

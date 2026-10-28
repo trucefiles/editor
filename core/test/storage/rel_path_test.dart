@@ -27,6 +27,11 @@ void main() {
     expect(RelPath.parse('todo.md')!.parent, isNull);
   });
 
+  test('RelPath.folders are the folders it is in, innermost first', () {
+    expect(path('a/b/c.md').folders, [path('a/b'), path('a')]);
+    expect(path('c.md').folders, isEmpty);
+  });
+
   test('RelPath.isInside and isAtOrInside tell a folder below another', () {
     expect(path('a/b').isInside(path('a')), isTrue);
     expect(path('a').isInside(path('a')), isFalse);

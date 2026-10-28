@@ -27,7 +27,10 @@ void main() {
   >
   added;
 
+  late Map<BaseFolder, SubfolderNames> keptNames;
+
   setUp(() {
+    keptNames = {};
     syncthing = FakeSyncTool('syncthing', recognizes: {synced});
     other = FakeSyncTool('other');
     plainFolder = FakeSyncTool('plain');
@@ -57,6 +60,7 @@ void main() {
     final flow = AddFolderFlow(
       AddFolderWork(
         tools: tools ?? [other, syncthing, plainFolder],
+        subfoldersOf: (base) => keptNames[base]!,
         add:
             ({
               required address,
@@ -112,6 +116,8 @@ void main() {
   test('a base folder added before keeps its tool, and what its folders '
       'show stays taken', () async {
     final before = folderOn(plain, selection: Selection.of([path('home')]));
+    final kept = FakePlace()..files.emptyFolders.add(path('kept'));
+    keptNames[before.base] = kept.subfolders;
     final adding = flow([before]);
 
     await adding.pickBase(plain);
@@ -120,6 +126,8 @@ void main() {
     expect(adding.tool, syncthing);
     expect(adding.parts.isTaken(path('home')), isTrue);
     expect(adding.parts.wholeTaken, isTrue);
+    // Its folder names come from the place the app keeps for it.
+    expect((await adding.parts.foldersIn(null)).value, [path('kept')]);
   });
 
   test('is named after the one subfolder picked, in a color no folder '

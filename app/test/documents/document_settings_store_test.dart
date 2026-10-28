@@ -42,7 +42,7 @@ void main() {
       baseId: 'b1',
       path: path('a.md'),
     ));
-    const settings = DocumentSettings(
+    final settings = DocumentSettings(
       pinned: true,
       view: ViewSettings({
         'mode': 'markdown',
@@ -51,7 +51,7 @@ void main() {
     );
 
     await store.save({
-      key: const KeptNoteSettings(settings),
+      key: KeptNoteSettings(settings),
       'f1/b.md': const KeptNoteSettings(DocumentSettings()),
     });
 
@@ -77,7 +77,7 @@ void main() {
       '"b1/d.md": {"pinned": true, "view": "grid"}}',
     );
     expect(await loaded(), {
-      'b1/a.md': const DocumentSettings(view: ViewSettings({'mode': 'visual'})),
+      'b1/a.md': DocumentSettings(view: ViewSettings({'mode': 'visual'})),
       'b1/d.md': const DocumentSettings(pinned: true),
     });
 

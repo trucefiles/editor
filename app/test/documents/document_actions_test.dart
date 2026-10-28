@@ -185,7 +185,7 @@ void main() {
       await documentIn(home, 'inbox/other.md', 'x');
       final settings = container.read(documentSettingsProvider.notifier);
       const mark = DocumentMark(color: 'teal');
-      const mine = DocumentSettings(
+      final mine = DocumentSettings(
         pinned: true,
         view: ViewSettings({'mode': 'visual'}),
       );
@@ -377,7 +377,7 @@ void main() {
     final document = await documentIn(work, 'plan.md', '# Plan\n');
     final settings = container.read(documentSettingsProvider.notifier);
     const mark = DocumentMark(color: 'teal');
-    const mine = DocumentSettings(
+    final mine = DocumentSettings(
       pinned: true,
       view: ViewSettings({'mode': 'read', 'checked': 'inPlace'}),
     );

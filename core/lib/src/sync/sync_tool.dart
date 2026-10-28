@@ -42,8 +42,9 @@ abstract interface class SyncTool {
   Future<bool> missesOldVersions(Uri address);
 
   /// The tool's access to the base folder at [address], one it
-  /// recognized or the user picked it for. Kept as long as the base
-  /// folder is; built again only for another address.
+  /// recognized or the user picked it for. The app keeps one per base
+  /// folder it has, as long as it has it; it may build one more for a
+  /// short look, e.g. at the folder names of a folder being added.
   ToolPlace place(Uri address);
 }
 
