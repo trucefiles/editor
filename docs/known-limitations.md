@@ -14,10 +14,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   recreates it, so the edits stay visible. A subfolder you chose for a
   folder is never made again: there the edits stay on this device, not
   shown, until the subfolder is back.
-- **A chosen subfolder deleted at the very moment of a save can come
-  back.** Truce checks that the subfolder is there right before it writes.
-  If it is deleted in the few milliseconds between, the save makes it
-  again.
 
 - **A moved or renamed document can come back.** Sync tools see a move or
   rename as a delete and a new file. If another device edits the document
@@ -101,12 +97,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   app stops in the middle of a save, the temp file stays. Truce hides it but
   never deletes it, as it writes into your folders only when you ask. You
   can delete it yourself.
-- **A save right after changing a folder can reach other devices late.**
-  Syncthing can miss a save of the same size within 2 seconds of the last
-  one, so Truce writes such a save once more a moment later. Right after
-  you change what a folder shows, Truce starts that count anew. A save in
-  those first 2 seconds can then reach other devices only with the next
-  save.
 - **A chosen subfolder that is gone slows live updates.** If one of a
   folder's chosen subfolders is gone, Truce checks the whole base folder
   for changes every few seconds instead of following them live, and the
@@ -120,6 +110,14 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **Search needs a while with many documents.** Matches by file and folder
   name show at once; matches in the texts show as search reads them, which
   takes a while with thousands of documents, most of all on Android.
+
+## Syncing
+
+- **Quick saves can reach other devices late.** Syncthing can miss a save
+  that comes within 2 seconds of the last one and keeps the file's size.
+  Truce works around this by saving such a file once more a moment later.
+  In rare cases a save can still reach your other devices only with the
+  next one. Nothing is lost on this device.
 
 ## Unreachable folders
 
