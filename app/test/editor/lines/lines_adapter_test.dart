@@ -114,9 +114,7 @@ void main() {
     final markdown = _Markdown('ab');
     markdown.placeCaret(0, 1);
 
-    markdown.editor.execute([
-      PasteEditorRequest(content: 'x\r\ny', pastePosition: markdown.at(0, 1)),
-    ]);
+    markdown.adapter.paste('x\r\ny');
 
     expect(markdown.lines, ['ax', 'yb']);
     expect(markdown.text, 'ax\nyb');

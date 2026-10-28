@@ -13,11 +13,31 @@ typedef PasteText = void Function(String text);
 ///
 /// Own code, as the library's paste removes the selection first and
 /// pastes later, once the clipboard is read: two edits, so two undo
-/// steps, and a caret moved meanwhile gets the text.
+/// steps. Ours pastes once the clipboard is read, over the selection as
+/// it is then, in one edit.
 Future<void> pasteClipboard(PasteText paste) async {
   final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
   if (text != null && text.isNotEmpty) paste(text);
 }
+
+/// [text] pasted over the selection, as one edit: what an editor's
+/// [PasteText] asks of its library editor.
+final class PasteRequest implements EditRequest {
+  const PasteRequest(this.text);
+
+  final String text;
+}
+
+/// The library's requests that paste plain [text] over [selection]: the
+/// selected text removed, then [text] at the caret.
+List<EditRequest> plainPasteRequests(
+  String text,
+  DocumentSelection? selection,
+) => [
+  if (selection?.isCollapsed == false)
+    const DeleteSelectionRequest(TextAffinity.downstream),
+  InsertPlainTextAtCaretRequest(text),
+];
 
 /// Ctrl+V (Cmd+V) pastes with [paste].
 SuperEditorKeyboardAction pasteKey(PasteText paste) =>

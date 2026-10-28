@@ -1,11 +1,11 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show TextAffinity;
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart'
     show EditableLines, Line, LineId, splitLines;
 
 import '../../library/document_patch.dart';
+import '../../library/own_paste.dart';
 import '../edited_text.dart';
 
 /// Connects the library's [editor], one plain text node per line, to the
@@ -73,7 +73,7 @@ final class LinesAdapter<L extends EditableLines<L>> {
   // Library edits.
 
   /// [text] pasted over the selection, as one edit.
-  void paste(String text) => editor.execute([_PasteRequest(text)]);
+  void paste(String text) => editor.execute([PasteRequest(text)]);
 
   /// Our patch, and pastes as plain text, its lines made at the end of
   /// the transaction like any text with line breaks; the library's
@@ -83,19 +83,9 @@ final class LinesAdapter<L extends EditableLines<L>> {
       nodes,
       selection: selection,
     ),
-    _PasteRequest(:final text) => _PasteCommand([
-      if (composer.selection?.isCollapsed == false)
-        ?_libraryCommand(const DeleteSelectionRequest(TextAffinity.downstream)),
-      ?_libraryCommand(InsertPlainTextAtCaretRequest(text)),
-    ]),
-    PasteEditorRequest(:final content, :final pastePosition) => _PasteCommand([
-      ?_libraryCommand(
-        InsertTextRequest(
-          documentPosition: pastePosition,
-          textToInsert: content,
-          attributions: const {},
-        ),
-      ),
+    PasteRequest(:final text) => _PasteCommand([
+      for (final request in plainPasteRequests(text, composer.selection))
+        ?_libraryCommand(request),
     ]),
     _ => null,
   };
@@ -287,13 +277,6 @@ final class _PatchRequest implements EditRequest {
 
   final List<TargetNode> nodes;
   final DocumentSelection? selection;
-}
-
-/// [text] pasted over the selection; see [LinesAdapter.paste].
-final class _PasteRequest implements EditRequest {
-  const _PasteRequest(this.text);
-
-  final String text;
 }
 
 /// Runs [commands], a paste, and tells so with [_Pasted].
