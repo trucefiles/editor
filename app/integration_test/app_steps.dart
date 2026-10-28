@@ -21,8 +21,20 @@ extension AppSteps on WidgetTester {
   Future<void> addFolder(TestApp app) async {
     await app.launch(this);
     await waitFor(find.text('Add folder'));
-    await tapAndSettle(find.text('Add folder'));
+    await addPickedFolder();
     await waitUntil(() => find.text('Add folder').evaluate().isEmpty);
+  }
+
+  /// Adds the next folder the picker gives, whole and synced by
+  /// Syncthing, step by step, from a screen with an Add folder button.
+  Future<void> addPickedFolder() async {
+    await tapAndSettle(find.text('Add folder').last);
+    await tapAndSettle(find.text('Pick a folder'));
+    await waitFor(find.text('Syncthing'));
+    await tapAndSettle(find.text('Syncthing'));
+    await tapAndSettle(find.text('Whole folder'));
+    await tapAndSettle(find.text('Next'));
+    await tapAndSettle(find.text('Add'));
   }
 
   /// Opens the document titled [title] from the grid.
@@ -101,7 +113,7 @@ extension AppSteps on WidgetTester {
   /// Adds [app]'s second folder, Work, from Manage folders.
   Future<void> addWorkFolder() async {
     await tapAndSettle(find.byTooltip('Manage folders'));
-    await tapAndSettle(find.text('Add folder'));
+    await addPickedFolder();
     await waitFor(find.text('Work'));
     await pageBack();
     await pumpAndSettle();

@@ -280,7 +280,7 @@ void main() {
     expect(scaled(title), closeTo(13, 0.01));
 
     await tester.waitFor(find.text('Add folder'));
-    await tester.tapAndSettle(find.text('Add folder'));
+    await tester.addPickedFolder();
     await tester.waitFor(find.text('Todo'));
     expect(
       scaled(

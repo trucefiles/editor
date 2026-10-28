@@ -104,7 +104,7 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with seven packages:
+A Dart pub workspace with eight packages:
 
 - `core`: files, sync-tool interfaces, conflict handling and an open
   document's file owner. Pure Dart, no UI, nothing specific to one sync
@@ -115,9 +115,11 @@ A Dart pub workspace with seven packages:
 - `plain_text`: plain text documents, edited as a whole text, with the
   editor's owner. Pure Dart, no UI; uses core, which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
+- `plain_folder`: folders no sync tool syncs, or one Truce doesn't know,
+  behind core's interfaces. Pure Dart.
 - `app`: the Flutter app (Android, Linux). Uses `core`, `markdown` and
   `plain_text` for its editors (in its file-type wiring) and, in its
-  sync-tool wiring, `syncthing`.
+  sync-tool wiring, `syncthing` and `plain_folder`.
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `lints`: analyzer and lint settings shared by all packages.
@@ -132,5 +134,6 @@ flutter analyze --fatal-infos
 (cd markdown && dart test)
 (cd plain_text && dart test)
 (cd syncthing && dart test)
+(cd plain_folder && dart test)
 (cd app && flutter test)
 ```

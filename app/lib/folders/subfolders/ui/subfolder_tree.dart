@@ -68,6 +68,7 @@ class _Node extends StatelessWidget {
       final taken = choice.isTaken(folder);
       return ExpansionTile(
         controlAffinity: ListTileControlAffinity.leading,
+        initiallyExpanded: choice.holdsPicked(folder),
         title: Text(folder.name),
         subtitle: taken ? const Text('In another folder') : null,
         trailing: Checkbox(

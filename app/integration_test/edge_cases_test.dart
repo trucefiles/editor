@@ -381,16 +381,20 @@ void main() {
     await tester.leaveExpecting(app, '# Steps\n1. one\n2. three\n');
   });
 
-  testApp('adding the same folder twice keeps one', (tester) async {
+  testApp('a folder added before cannot be added whole again', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
 
     await tester.tapAndSettle(find.byTooltip('Manage folders'));
-    await tester.tapAndSettle(find.text('Add folder'));
-    await tester.runFor(const Duration(seconds: 1));
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Add folder').last);
+    await tester.tapAndSettle(find.text(app.documents.path));
+    await tester.tapAndSettle(find.text('Whole folder'));
+    expect(find.text('Another folder shows part of it.'), findsOneWidget);
+    for (final _ in ['parts', 'add folder', 'folders']) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Plan'), findsOneWidget);
   });

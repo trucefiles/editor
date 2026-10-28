@@ -70,6 +70,14 @@ void main() {
     expect(parts.isInPicked(path('home')), isFalse);
   });
 
+  test('a folder holding a picked one opens to show it', () {
+    final parts = choice(initial: Selection.of([path('notes/work')]));
+
+    expect(parts.holdsPicked(path('notes')), isTrue);
+    expect(parts.holdsPicked(path('notes/work')), isFalse);
+    expect(parts.holdsPicked(path('home')), isFalse);
+  });
+
   test('what another folder shows cannot be picked, nor what holds it', () {
     final parts = choice(
       taken: [

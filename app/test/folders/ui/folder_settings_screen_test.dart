@@ -27,15 +27,20 @@ void main() {
 
   Future<void> open(
     WidgetTester tester, {
+    DocumentFolder? shown,
     bool missesOldVersions = false,
   }) async {
-    folders = _Folders([folder, other]);
+    final opened = shown ?? folder;
+    folders = _Folders([opened, other]);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           foldersProvider.overrideWith(() => folders),
           subfolderNamesProvider.overrideWithValue(
-            (_) => const _Names(['home', 'notes', 'work']),
+            (_) => const _Names({
+              null: ['home', 'notes', 'work'],
+              'notes': ['deep'],
+            }),
           ),
           folderNoticesProvider.overrideWith((ref, base) async => const []),
           missesOldVersionsProvider.overrideWith(
@@ -48,7 +53,7 @@ void main() {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(
-                  builder: (_) => FolderSettingsScreen(folder),
+                  builder: (_) => FolderSettingsScreen(opened),
                 ),
               ),
               child: Text(
@@ -84,6 +89,17 @@ void main() {
     expect(folders.changed.single.name, 'Work');
     expect(folders.changed.single.selection, Selection.of([path('work')]));
     expect(find.byType(FolderSettingsScreen), findsNothing);
+  });
+
+  testWidgets('opens the folders on the way to a subfolder it shows', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      shown: folder.copyWith(selection: Selection.of([path('notes/deep')])),
+    );
+
+    expect(tester.widget<Checkbox>(checkboxOf('deep')).value, isTrue);
   });
 
   testWidgets("another folder's part can't be picked, nor the whole", (
@@ -152,13 +168,13 @@ final class _Folders extends FoldersController {
   }
 }
 
-/// The same folder names at every level, but none below the top.
+/// Folder names by the path of their parent (`null` for the top).
 final class _Names implements SubfolderNames {
-  const _Names(this.names);
+  const _Names(this.byParent);
 
-  final List<String> names;
+  final Map<String?, List<String>> byParent;
 
   @override
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
-      Ok(folder == null ? names : const []);
+      Ok(byParent[folder?.value] ?? const []);
 }

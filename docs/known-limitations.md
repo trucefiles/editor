@@ -80,6 +80,21 @@ Accepted behavior that is not planned to change, grouped by topic.
   treats the re-added folder as a new one, so the Backups screen doesn't
   list its earlier backups. They are deleted after 7 days, like every
   backup.
+- **Backups outside what a folder shows stay hidden.** If you change a
+  folder to show fewer subfolders, the Backups screen no longer lists the
+  backups of documents left outside. They are deleted after 7 days, like
+  every backup.
+
+## Folders
+
+- **Images from outside a folder don't show.** A document shows an image
+  only if the image file is in a part of the base folder that one of your
+  folders shows. Pick the image's subfolder too to see it.
+- **A plain folder can keep temp files after a crash.** In a folder no sync
+  app syncs, Truce saves through a temp file named `.truce-….tmp`. If the
+  app stops in the middle of a save, the temp file stays. Truce hides it but
+  never deletes it, as it writes into your folders only when you ask. You
+  can delete it yourself.
 
 ## Unreachable folders
 
