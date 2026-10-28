@@ -5,10 +5,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 /// The generic filter on a made-up sync tool; Syncthing's own names are
 /// tested in the Syncthing package.
 void main() {
-  const filter = DefaultFileFilter(
-    FakeSyncAdapter(),
-    fakeFileTypes,
-  );
+  const filter = DefaultFileFilter(FakeSyncAdapter(), fakeFileTypes);
 
   test('includes visible folders only', () {
     expect(filter.includesFolder(path('lists')), isTrue);

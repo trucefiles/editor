@@ -26,8 +26,8 @@
   document at once, Truce notices, shows both versions side by side and lets
   you choose. Nothing is overwritten behind your back, and backups
   of the last 7 days let you go back.
-- **Plain files you own.** Documents are ordinary Markdown files in your
-  own folders. Truce rewrites only the block you edit (a paragraph, a
+- **Plain files you own.** Documents are ordinary Markdown or text files
+  in your own folders. Truce rewrites only the block you edit (a paragraph, a
   heading, a list item), in the document's own style where it can;
   everything else stays exactly as it was, byte for byte, so documents
   stay readable by any other app.
@@ -38,6 +38,7 @@
 
 - Markdown documents and checklists, edited visually (lists, styles,
   drag and drop), as raw Markdown, or read rendered.
+- Plain text files (`.txt`), edited as text.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -49,7 +50,7 @@
 
 - Assisted merge: Truce suggests a merged version of a conflict for you to
   accept.
-- More kinds of files beyond Markdown.
+- More kinds of files beyond Markdown and plain text.
 - Windows, macOS and iOS.
 
 Truce is in early development (0.x), so expect changes between versions.
@@ -103,7 +104,7 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with six packages:
+A Dart pub workspace with seven packages:
 
 - `core`: files, sync-tool interfaces, conflict handling and an open
   document's file owner. Pure Dart, no UI, nothing specific to one sync
@@ -111,9 +112,12 @@ A Dart pub workspace with six packages:
 - `markdown`: Markdown documents, read into a doc tree, edited and
   written back block-exact, with the editor's owner. Pure Dart, no UI;
   uses core, which knows nothing of it.
+- `plain_text`: plain text documents, edited as a whole text, with the
+  editor's owner. Pure Dart, no UI; uses core, which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
-- `app`: the Flutter app (Android, Linux). Uses `core`, `markdown` for
-  its editor and, in its sync-tool wiring, `syncthing`.
+- `app`: the Flutter app (Android, Linux). Uses `core`, `markdown` and
+  `plain_text` for its editors (in its file-type wiring) and, in its
+  sync-tool wiring, `syncthing`.
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `lints`: analyzer and lint settings shared by all packages.
@@ -126,6 +130,7 @@ dart format .
 flutter analyze --fatal-infos
 (cd core && dart test)
 (cd markdown && dart test)
+(cd plain_text && dart test)
 (cd syncthing && dart test)
 (cd app && flutter test)
 ```

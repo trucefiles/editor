@@ -8,6 +8,7 @@ workspace:
   - app
   - core
   - markdown
+  - plain_text
   - syncthing
   - test_support
   - lints
