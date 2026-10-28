@@ -39,6 +39,7 @@ final class _Step with EditorSteps<String> {
   final effects = <PlainSaveTimer>[];
 
   void handle(PlainMessage message) {
+    _caretTold();
     switch (message) {
       case TextEdited(:final revision) when revision != state.revision:
         // Typed on what no longer shows.
@@ -95,6 +96,16 @@ final class _Step with EditorSteps<String> {
     revision: state.revision + 1,
     status: book.status,
   );
+
+  /// The caret was told with the last state; it stays where it is now.
+  void _caretTold() {
+    if (state.caret == null) return;
+    state = PlainState(
+      state.text,
+      revision: state.revision,
+      status: state.status,
+    );
+  }
 
   void _settleStatus() {
     if (state.status == book.status) return;

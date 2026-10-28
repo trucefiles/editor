@@ -100,6 +100,18 @@ void main() {
       expect(run.state.text, 'one ');
     });
 
+    test('tells the caret once', () {
+      final run = _Run('one')
+        ..edit('one two')
+        ..request(const Undo());
+      expect(run.state.caret, 3);
+
+      run.fire(SaveTimer.pause);
+
+      expect(run.state.caret, isNull);
+      expect(run.state.text, 'one');
+    });
+
     test('a new line is a step of its own', () {
       final run = _Run('')
         ..edit('a')

@@ -74,7 +74,8 @@ final class PlainNotice {
 
 /// The text the editor shows: the plain editor owner's state. After an
 /// undo, a redo or a backup restored, the [caret] goes to the offset in
-/// [text] where it changed (`null`: the caret stays where it is).
+/// [text] where it changed (`null`: the caret stays where it is). The
+/// caret is told once: the next state has none, unless it moves again.
 final class PlainState {
   const PlainState(
     this.text, {
