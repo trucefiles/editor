@@ -143,13 +143,26 @@ void main() {
     expect(markdown.caret, markdown.at(2, 1));
   });
 
+  test('a text from elsewhere without lines in the middle keeps the nodes '
+      'at both ends', () {
+    final markdown = _Markdown('a\nb\nc\nd');
+    final ids = markdown.ids;
+
+    markdown.fromElsewhere('a\nd');
+
+    expect(markdown.lines, ['a', 'd']);
+    expect(markdown.ids, [ids.first, ids.last]);
+  });
+
   test('tells of each change of its lines', () {
     final markdown = _Markdown('a');
     var changes = 0;
     markdown.adapter.linesChanged.addListener(() => changes++);
 
     markdown.fromElsewhere('x');
+    expect(markdown.adapter.lastChange, LinesChange.replaced);
     markdown.type(0, 1, 'b');
+    expect(markdown.adapter.lastChange, LinesChange.edited);
 
     expect(changes, 2);
   });

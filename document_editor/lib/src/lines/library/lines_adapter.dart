@@ -47,9 +47,24 @@ final class LinesAdapter {
   /// The text the nodes show.
   String get text => _shown;
 
+  /// Each node's id and the line it shows, in order.
+  List<({String id, String text})> get lines => [
+    for (final node in _document) (id: node.id, text: _textOf(node)),
+  ];
+
+  /// The line node [id] shows; `null` if there is no such node.
+  String? lineOf(String id) => switch (_document.getNodeById(id)) {
+    final node? => _textOf(node),
+    null => null,
+  };
+
+  /// What changed [text] last.
+  LinesChange get lastChange => _lastChange;
+  LinesChange _lastChange = LinesChange.edited;
+
   final _linesChanged = _Changes();
 
-  /// Tells of each change of [text].
+  /// Tells of each change of [text]; [lastChange] says what made it.
   Listenable get linesChanged => _linesChanged;
 
   String _newNodeId() => 'line-${_nextNodeId++}';
@@ -108,6 +123,7 @@ final class LinesAdapter {
     final text = lines.join('\n');
     if (text == _shown) return;
     _shown = text;
+    _lastChange = LinesChange.edited;
     _linesChanged.changed();
     _text.edit(text, pasted: changes.any((change) => change is _Pasted));
   }
@@ -135,6 +151,7 @@ final class LinesAdapter {
     };
     _shown = text;
     _show(_linesOf(text), caret);
+    _lastChange = LinesChange.replaced;
     _linesChanged.changed();
   }
 
@@ -215,6 +232,7 @@ final class LinesAdapter {
         ),
       );
 
+  /// The line [node] shows.
   static String _textOf(DocumentNode node) =>
       (node as TextNode).text.toPlainText();
 
@@ -223,6 +241,15 @@ final class LinesAdapter {
     _linesChanged.dispose();
     editor.dispose();
   }
+}
+
+/// What changed a line editor's text.
+enum LinesChange {
+  /// The user, in the editor.
+  edited,
+
+  /// A text from elsewhere, e.g. an undo or a change on another device.
+  replaced,
 }
 
 /// The library's own request handlers.

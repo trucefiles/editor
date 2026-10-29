@@ -40,8 +40,8 @@ lists only this document's backups: open one to compare it, then restore it
 ## Editing a document
 
 The same document in each mode: **Visual edit** (lists, checkboxes, styles,
-with the format bar), **Markdown edit** (every character, highlighted) and
-**Read**, on the desktop and on a phone.
+with the format bar), **Markdown edit** (every character, highlighted once
+typing pauses) and **Read**, on the desktop and on a phone.
 
 <img src="screenshots/editor/editor_visual_desktop.png" width="600" alt="Visual edit on the desktop, with the format bar">
 <img src="screenshots/editor/editor_visual_touch.png" width="280" alt="Visual edit on a phone">

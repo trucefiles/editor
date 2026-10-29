@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_core/truce_core.dart' show StartTimer;
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../../lines/library/lines_adapter.dart';
@@ -16,14 +17,17 @@ final markdownLines = LineEditing(
 );
 
 /// Highlights a line editor's lines as Markdown reads them: reads the
-/// whole text at once, and again once the lines have not changed for
-/// [pause], so a read never runs while the user types. Meanwhile each line
-/// keeps the highlights it had, cut to its text; a new line has none.
-/// Links are found only on lines that are as read.
+/// whole text at once, again at once after a text from elsewhere, and
+/// after the user's edits once the lines have not changed for [pause], so
+/// a read never runs while the user types. Meanwhile each line keeps the
+/// highlights it had, cut to its text; a new line has none. Links are
+/// found only on lines that are as read. [startTimer] stands in for
+/// [Timer.new].
 final class MarkdownHighlighter implements LineHighlighter {
   MarkdownHighlighter(
     this._adapter, {
     this.pause = const Duration(seconds: 1),
+    this.startTimer = Timer.new,
   }) {
     _read();
     _adapter.linesChanged.addListener(_onLinesChanged);
@@ -31,6 +35,7 @@ final class MarkdownHighlighter implements LineHighlighter {
 
   final LinesAdapter _adapter;
   final Duration pause;
+  final StartTimer startTimer;
   Timer? _timer;
 
   /// Each line node's text as read, and its highlights.
@@ -43,17 +48,22 @@ final class MarkdownHighlighter implements LineHighlighter {
 
   void _onLinesChanged() {
     _timer?.cancel();
-    _timer = Timer(pause, () {
-      _read();
-      phase.highlightsChanged();
-    });
+    switch (_adapter.lastChange) {
+      case LinesChange.edited:
+        _timer = startTimer(pause, _readAgain);
+      case LinesChange.replaced:
+        _readAgain();
+    }
+  }
+
+  void _readAgain() {
+    _read();
+    phase.highlightsChanged();
   }
 
   /// Reads the lines the nodes show now.
   void _read() {
-    final nodes = [
-      for (final node in _adapter.document) (id: node.id, text: _textOf(node)),
-    ];
+    final nodes = _adapter.lines;
     final highlights = md.highlightsOf(
       md.DocumentTree.read(nodes.map((node) => node.text).join('\n')),
     );
@@ -69,8 +79,7 @@ final class MarkdownHighlighter implements LineHighlighter {
   @override
   String? linkAt(DocumentPosition position) {
     final read = _lines[position.nodeId];
-    final node = _adapter.document.getNodeById(position.nodeId);
-    if (read == null || node == null || read.text != _textOf(node)) {
+    if (read == null || _adapter.lineOf(position.nodeId) != read.text) {
       return null;
     }
     return switch (position.nodePosition) {
@@ -90,9 +99,6 @@ final class MarkdownHighlighter implements LineHighlighter {
     _timer?.cancel();
     _adapter.linesChanged.removeListener(_onLinesChanged);
   }
-
-  static String _textOf(DocumentNode node) =>
-      (node as TextNode).text.toPlainText();
 }
 
 /// A line's text as read, and its highlights.

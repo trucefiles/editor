@@ -18,15 +18,24 @@ final class _Text extends ChangeNotifier implements EditedText {
 
   @override
   void caretMoved() {}
+
+  /// [text] from elsewhere, e.g. an undo.
+  void replace(String text) {
+    _text = text;
+    notifyListeners();
+  }
 }
 
 /// Markdown edit's highlighter over the lines of [text]. Each test
 /// disposes it, so no read is left waiting.
 final class _Highlighted {
-  _Highlighted(String text) : adapter = LinesAdapter(_Text(text)) {
+  _Highlighted(String text) : this._(_Text(text));
+
+  _Highlighted._(this.text) : adapter = LinesAdapter(text) {
     highlighter = MarkdownHighlighter(adapter);
   }
 
+  final _Text text;
   final LinesAdapter adapter;
   late final MarkdownHighlighter highlighter;
 
@@ -113,6 +122,41 @@ void main() {
     expect(text.on(1), isEmpty);
     await tester.pump(const Duration(seconds: 1));
     expect(text.on(1), contains(_heading));
+    text.dispose();
+  });
+
+  testWidgets('reads a text from elsewhere at once', (tester) async {
+    final text = _Highlighted('Title\nplain');
+
+    text.text.replace('# Title\nplain');
+
+    expect(text.on(0), contains(_heading));
+    text.dispose();
+  });
+
+  testWidgets('pasted lines leave the lines below their highlights, and '
+      'each line gets its own after the pause', (tester) async {
+    final text = _Highlighted('x\n# Below');
+
+    text.adapter.editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection.collapsed(position: text.at(0, 1)),
+        SelectionChangeType.placeCaret,
+        SelectionReason.userInteraction,
+      ),
+    ]);
+    text.adapter.paste('\n# One\nplain');
+
+    expect(text.adapter.text, 'x\n# One\nplain\n# Below');
+    expect(text.on(3), contains(_heading));
+    expect(text.on(1), isEmpty);
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      [
+        for (final line in [0, 1, 2, 3]) text.on(line).contains(_heading),
+      ],
+      [false, true, false, true],
+    );
     text.dispose();
   });
 
