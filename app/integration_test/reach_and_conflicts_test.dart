@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
@@ -238,5 +239,28 @@ void main() {
     await tester.waitFor(find.textContaining('Conflict resolved'));
     expect(app.namesIn(), ['todo.md']);
     expect(app.file('todo.md').readAsStringSync(), '# Todo\nmine\n');
+  });
+
+  testApp('removing a folder tells of the edits kept only on this device', (
+    tester,
+  ) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.openDocument('Plan');
+    await tester.typeOver('# Plan\nmine\n');
+    app.documents.renameSync('${app.documents.path}-away');
+    await tester.pageBack();
+    await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
+
+    await tester.tapAndSettle(find.byTooltip('Manage folders'));
+    await tester.tapAndSettle(find.byTooltip('Remove from app'));
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('edits'),
+      ),
+      findsOne,
+    );
   });
 }

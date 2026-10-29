@@ -278,4 +278,26 @@ void main() {
       '# Plan\n**a** first!\n\nsecond\n\nthird\n',
     );
   });
+
+  testApp('a moved document shows the pictures next to its new place', (
+    tester,
+  ) async {
+    app
+      ..write('a/document.md', '# Doc\n\n![p](p.png)\n\nend\n')
+      ..writePicture('a/p.png', width: 1)
+      ..writePicture('b/p.png', width: 2);
+    await tester.addFolder(app);
+    await tester.openDocument('Doc');
+    if (find.byTooltip('Mode: Visual edit').evaluate().isEmpty) {
+      await tester.chooseMode('Visual edit');
+    }
+    await tester.runFor(const Duration(seconds: 2));
+    expect(tester.shownPictureWidth, 1, reason: 'Visual edit shows pictures');
+
+    await tester.placeNote(subfolder: 'b');
+    await tester.runFor(const Duration(seconds: 2));
+
+    expect(app.file('b/document.md').existsSync(), isTrue);
+    expect(tester.shownPictureWidth, 2);
+  });
 }

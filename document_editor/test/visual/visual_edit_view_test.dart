@@ -545,4 +545,22 @@ void main() {
 
     expect(document.text, 'buy mxilk');
   }, variant: linux);
+
+  testWidgets('shows the images of the document', (tester) async {
+    final image = MemoryImage(base64.decode(_onePixelPng));
+    final document = TestDocument('# Doc\n\n![p](p.png)\n\nend');
+    await pumpDocument(tester, document, images: (_) => image);
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Image && widget.image == image,
+      ),
+      findsOne,
+    );
+  });
 }
+
+/// A PNG picture of one pixel.
+const _onePixelPng =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ'
+    '/pLvAAAAAElFTkSuQmCC';

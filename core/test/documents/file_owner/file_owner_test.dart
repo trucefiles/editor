@@ -543,6 +543,13 @@ void main() {
       expect(run.status, isA<InStep>());
     });
 
+    test('discard while changed elsewhere takes their version', () {
+      final run = changed()..send(const Discard());
+      final picked = run.last<Picked>();
+      expect((picked.text, picked.version), ('x', _v2));
+      expect(run.state.file, _v2);
+    });
+
     test('discard after a delete elsewhere leaves the file deleted', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)

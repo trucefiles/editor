@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -94,6 +95,13 @@ final class TestApp {
   void write(String name, String text) =>
       file(name)..writeCreatingFolders(text);
 
+  /// Writes a one pixel high picture [width] pixels wide (1 or 2) to
+  /// [name], creating its subfolders; pictures differ by their width.
+  void writePicture(String name, {required int width}) {
+    final file = this.file(name)..parent.createSync(recursive: true);
+    file.writeAsBytesSync(base64.decode(_pictures[width]!));
+  }
+
   /// [name] may lead through subfolders.
   Directory folder(String name) => Directory('${documents.path}/$name');
 
@@ -112,6 +120,16 @@ final class TestApp {
       if (file.path.contains('.sync-conflict-')) file,
   ];
 }
+
+/// PNG pictures one pixel high, by their width.
+const _pictures = {
+  1:
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ'
+      '/pLvAAAAAElFTkSuQmCC',
+  2:
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAADUlEQVR4nGP4z8AARAAI/gH/'
+      'xp559wAAAABJRU5ErkJggg==',
+};
 
 /// Picks [_paths] in turn, then the last one again.
 final class _QueuedPicker implements FolderPicker {
