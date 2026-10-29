@@ -12,6 +12,7 @@ import '../documents/document_settings_controller.dart';
 import '../documents/document_text.dart';
 import '../documents/document_types.dart';
 import '../documents/document_version.dart';
+import '../documents/view_settings.dart';
 import '../editor/editor_view.dart';
 import '../file_types/editable_type.dart';
 import '../folders/base_folder.dart';
@@ -100,7 +101,7 @@ final class DocumentPages {
       _open(
         types.ofFile(document.type),
         ExistingFile(document),
-        settings: settings().settingsOf(document.key),
+        view: settings().settingsOf(document.key).view,
         withFile: withFile,
       );
 
@@ -110,30 +111,31 @@ final class DocumentPages {
     return _open(
       type,
       NewFile(place, type: type),
-      settings: DocumentSettings.defaults,
+      view: DocumentSettings.defaults.view,
       withFile: withFile,
     );
   }
 
-  /// The page of a document of [type] whose [file] is where it starts.
+  /// The page of a document of [type] whose [file] is where it starts,
+  /// shown as [view] keeps.
   DocumentPage _open(
     EditableType type,
     DocumentFile file, {
-    required DocumentSettings settings,
+    required ViewSettings view,
     required WithFile withFile,
   }) {
     final (opened, newFile) = switch (file) {
       ExistingFile(:final document) => (document, null),
       NewFile() => (null, file),
     };
-    final actions = this.actions();
-    final settingsNow = this.settings();
+    final actionsNow = actions();
+    final settingsNow = settings();
     late final DocumentController controller;
     final editor = type.openEditor(
       (
         text: opened?.text ?? '',
         version: opened?.seen.version,
-        view: settings.view,
+        view: view,
         // Not yet kept as a conflict copy: only an unreachable folder
         // makes it read only.
         readOnly: reachOf(file.folder.base) == Reach.unreachable,
@@ -152,7 +154,7 @@ final class DocumentPages {
         newFile: newFile,
         filesOf: filesOf,
         draftsOf: draftsOf,
-        create: actions.create,
+        create: actionsNow.create,
       ),
       editor.part.editor,
     );
@@ -167,7 +169,7 @@ final class DocumentPages {
         ).backUpCurrent(document, text),
         null => const Err(StoreError.notFound),
       },
-      delete: actions.delete,
+      delete: actionsNow.delete,
       settingsOf: settingsNow.settingsOf,
       editSettings: settingsNow.edit,
     );
