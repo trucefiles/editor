@@ -53,7 +53,7 @@ class DocumentPlaceChip extends ConsumerWidget {
     }
     final file = session.file;
     final path = file.pathFor(session.text);
-    final picked = await showNoteFileDialog(
+    final picked = await showDocumentFileDialog(
       context,
       folders: folders,
       initial: (folder: file.folder, subfolder: path.parent),

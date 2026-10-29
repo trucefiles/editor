@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/delete_failure.dart';
-import '../documents/deleted_note.dart';
+import '../documents/deleted_document.dart';
 import '../documents/document.dart';
 import '../documents/document_settings.dart';
 import '../documents/document_text.dart';
@@ -14,10 +14,11 @@ import 'document_session.dart';
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
 /// Deletes a document holding a text, so it can be undone.
-typedef DeleteDocument = Future<Result<DeletedNote, DeleteFailure>> Function(
-  DocumentText document,
-  String text,
-);
+typedef DeleteDocument =
+    Future<Result<DeletedDocument, DeleteFailure>> Function(
+      DocumentText document,
+      String text,
+    );
 
 /// Changes the settings of a document on this device.
 typedef EditSettings = Future<void> Function(
@@ -39,7 +40,7 @@ final class NewDropped extends DeleteOutcome {
 final class DocumentDeleted extends DeleteOutcome {
   const DocumentDeleted(this.deleted);
 
-  final DeletedNote deleted;
+  final DeletedDocument deleted;
 }
 
 /// The document's file is gone already: nothing was deleted.

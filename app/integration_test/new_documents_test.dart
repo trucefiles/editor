@@ -64,7 +64,7 @@ void main() {
   ) async {
     app.write('groceries.md', '# Groceries\n');
     await tester.addFolder(app);
-    await tester.openNote('Groceries');
+    await tester.openDocument('Groceries');
     await tester.typeOver('# Groceries\nMilk\n');
 
     await tester.waitFor(find.byTooltip(savedOnDevice));
@@ -76,7 +76,7 @@ void main() {
   testApp('tapping the save icon saves in the file right away', (tester) async {
     app.write('todo.md', '# Todo\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
     await tester.typeOver('# Todo\nCall\n');
     await tester.waitFor(find.byTooltip(savedOnDevice));
 
@@ -89,7 +89,7 @@ void main() {
   testApp('Esc leaves a document and saves it in the file', (tester) async {
     app.write('todo.md', '# Todo\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
     await tester.typeOver('# Todo\nCall\n');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -190,7 +190,7 @@ void main() {
     app.write('plan.md', '# Plan\n');
     app.folder('done').createSync();
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.placeNote(subfolder: 'done');
 
@@ -207,7 +207,7 @@ void main() {
   testApp('moves a document into a typed new subfolder', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.tapAndSettle(find.byTooltip(placeAndName));
     await tester.typeSubfolder('done/2026');
@@ -221,7 +221,7 @@ void main() {
   testApp('renames a document', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.placeNote(name: 'Ideas');
 

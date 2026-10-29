@@ -54,7 +54,7 @@ class ListedDocumentRow extends ConsumerWidget {
             if (hasConflict) const ConflictLabel(),
           ],
         ),
-        onTap: () => openNote(context, ref, document),
+        onTap: () => openDocument(context, ref, document),
         onLongPress: onMark,
       ),
     );

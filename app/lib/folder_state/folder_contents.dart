@@ -61,7 +61,7 @@ final class FolderContents {
     for (final document in documents) document.key: document,
   };
 
-  Document? findNote(DocumentKey key) => _byKey[key];
+  Document? findDocument(DocumentKey key) => _byKey[key];
 
   /// The colors of the documents the folders show; unmarked ones left
   /// out.
@@ -163,7 +163,7 @@ final class FolderContents {
   /// What is known of the document at [key]: found in a version, gone,
   /// or unknown where it could not be seen (see [covers]). A document of
   /// a base folder no folder shows any more is gone.
-  Observation observe(DocumentKey key) => switch (findNote(key)) {
+  Observation observe(DocumentKey key) => switch (findDocument(key)) {
     _ when !folders.any((folder) => folder.base.id == key.baseId) =>
       const Gone(),
     _ when !covers(key) => const Unknown(),

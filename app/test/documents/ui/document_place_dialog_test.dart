@@ -25,7 +25,7 @@ void main() {
       MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
-            onPressed: () => result = showNotePlaceDialog(
+            onPressed: () => result = showDocumentPlaceDialog(
               context,
               title: 'Move document',
               action: 'Move',
@@ -109,7 +109,7 @@ void main() {
       MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
-            onPressed: () => result = showNoteFileDialog(
+            onPressed: () => result = showDocumentFileDialog(
               context,
               folders: [documents, work],
               initial: (folder: documents, subfolder: null),
@@ -156,7 +156,7 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) => TextButton(
-              onPressed: () => result = showNoteFileDialog(
+              onPressed: () => result = showDocumentFileDialog(
                 context,
                 folders: [folder],
                 initial: topOf(folder),

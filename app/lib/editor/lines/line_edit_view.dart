@@ -122,7 +122,7 @@ class _LineEditViewState<L extends EditableLines<L>>
         ),
         ListenableBuilder(
           listenable: _adapter.treeChanged,
-          builder: (context, _) => EmptyNoteHint(
+          builder: (context, _) => EmptyDocumentHint(
             empty: _adapter.tree.text.isEmpty,
             padding: look.firstLinePadding,
           ),

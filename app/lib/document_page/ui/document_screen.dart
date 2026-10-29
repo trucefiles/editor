@@ -10,7 +10,7 @@ import '../../common/error_text.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
-import '../../documents/deleted_note.dart';
+import '../../documents/deleted_document.dart';
 import '../../documents/document.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
@@ -410,7 +410,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
 
   /// The hint outlives this screen, so it shows on the app's messenger,
   /// found from above this screen's own.
-  void _offerUndo(DocumentActions actions, DeletedNote deleted) {
+  void _offerUndo(DocumentActions actions, DeletedDocument deleted) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showHint(
       'Document deleted',
@@ -585,7 +585,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       body: Column(
         children: [
           if (key != null)
-            if (contents?.conflicts.forNote(key) case final conflict?)
+            if (contents?.conflicts.forDocument(key) case final conflict?)
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,

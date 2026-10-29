@@ -38,5 +38,5 @@ class ConflictController
 
   @override
   FolderConflict? nextIn(FolderContents contents) =>
-      contents.conflicts.forNote(start.key);
+      contents.conflicts.forDocument(start.key);
 }

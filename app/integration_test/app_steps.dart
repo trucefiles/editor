@@ -39,7 +39,7 @@ extension AppSteps on WidgetTester {
   }
 
   /// Opens the document titled [title] from the grid.
-  Future<void> openNote(String title) async {
+  Future<void> openDocument(String title) async {
     await waitFor(find.text(title));
     await tapAndSettle(find.text(title));
   }

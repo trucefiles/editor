@@ -26,7 +26,7 @@ void main() {
   Future<void> clashInPlan(WidgetTester tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
   }
@@ -49,7 +49,7 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.chooseMode('Markdown edit');
     await tester.loseFolder(app.documents);
 
@@ -67,7 +67,7 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.documents.renameSync('${app.documents.path}-away');
 
@@ -83,7 +83,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.addWorkFolder();
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.chooseMode('Markdown edit');
     await tester.placeNote(folder: 'Work');
     await tester.waitUntil(() => File('${app.work.path}/plan.md').existsSync());
@@ -144,7 +144,7 @@ void main() {
   testApp('restores the version from before editing', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
@@ -165,7 +165,7 @@ void main() {
   ) async {
     app.write('a/b/c/plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.pageBack();
@@ -186,7 +186,7 @@ void main() {
       '# Todo\nfirst\n',
     );
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     await tester.openCompare();
     expect(find.text('Documents/a/b/c'), findsOne);
@@ -225,7 +225,7 @@ void main() {
       '# Todo\nsecond\n',
     );
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     await tester.openCompare();
     await tester.waitFor(find.text('2 other versions, oldest first'));

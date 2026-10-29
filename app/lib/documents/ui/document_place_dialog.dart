@@ -9,7 +9,7 @@ import '../document_place.dart';
 /// any, one of its subfolders, starting at [initial]; titled [title], with
 /// [action] on the confirming button. The chosen place, or `null` if
 /// cancelled.
-Future<DocumentPlace?> showNotePlaceDialog(
+Future<DocumentPlace?> showDocumentPlaceDialog(
   BuildContext context, {
   required String title,
   required String action,
@@ -22,11 +22,11 @@ Future<DocumentPlace?> showNotePlaceDialog(
       _DocumentPlaceDialog(title, action, folders, initial, subfoldersOf, null),
 ))?.place;
 
-/// Like [showNotePlaceDialog], also asking for a document's file name without
+/// Like [showDocumentPlaceDialog], also asking for a document's file name without
 /// its extension, starting at [name]. A subfolder may also be typed, a new
 /// one too, if [canHold] says documents of the folder can go there. The
 /// chosen place and name; `null` if cancelled.
-Future<PickedPlace?> showNoteFileDialog(
+Future<PickedPlace?> showDocumentFileDialog(
   BuildContext context, {
   required List<DocumentFolder> folders,
   required DocumentPlace initial,

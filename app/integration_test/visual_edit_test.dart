@@ -128,7 +128,7 @@ void main() {
       '# Shop\n- [ ] milk\n  - [ ] eggs\n',
     );
     await tester.waitForNoteClosed();
-    await tester.openNote('Shop');
+    await tester.openDocument('Shop');
 
     await tester.dragItem('eggs', const Offset(-40, 0));
 

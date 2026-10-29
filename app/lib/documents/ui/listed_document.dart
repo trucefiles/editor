@@ -35,7 +35,7 @@ ListedLook watchListed(WidgetRef ref, Document document) {
     ),
     hasConflict: ref.watch(
       folderContentsProvider.select(
-        (contents) => contents.value?.conflicts.forNote(key) != null,
+        (contents) => contents.value?.conflicts.forDocument(key) != null,
       ),
     ),
   );
@@ -44,7 +44,9 @@ ListedLook watchListed(WidgetRef ref, Document document) {
 /// The title cards show for the document at [key]: its text's own once
 /// read, else its file name without its extension.
 String watchTitle(WidgetRef ref, DocumentKey key) => switch (ref.watch(
-  folderContentsProvider.select((contents) => contents.value?.findNote(key)),
+  folderContentsProvider.select(
+    (contents) => contents.value?.findDocument(key),
+  ),
 )) {
   final document? => cardTitle(
     document,

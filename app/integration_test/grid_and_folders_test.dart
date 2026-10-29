@@ -40,7 +40,7 @@ void main() {
   testApp('deletes a document and undoes it', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
@@ -95,7 +95,7 @@ void main() {
 
     await tester.tapAndSettle(find.byTooltip('Show as list'));
     expect(find.byType(ListTile), findsNWidgets(2));
-    await tester.openNote('Ant');
+    await tester.openDocument('Ant');
     await tester.waitFor(find.byType(DocumentScreen));
   });
 
@@ -190,7 +190,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.byTooltip('teal'));
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     final screen = find.byType(DocumentScreen);
     await tester.waitFor(screen);
@@ -251,7 +251,7 @@ void main() {
     testApp('closes a document it no longer shows, with the screen on top, '
         'keeping the edits', (tester) async {
       await tester.addFolder(app);
-      await tester.openNote('B');
+      await tester.openDocument('B');
       await tester.typeOver('# B\nmine');
       await tester.chooseInMenu('Backups');
 
@@ -272,7 +272,7 @@ void main() {
     testApp('removing its folder closes a document without promising its '
         'edits', (tester) async {
       await tester.addFolder(app);
-      await tester.openNote('B');
+      await tester.openDocument('B');
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
@@ -293,7 +293,7 @@ void main() {
       tester,
     ) async {
       await tester.addFolder(app);
-      await tester.openNote('B');
+      await tester.openDocument('B');
       await tester.typeOver('# B\nmine');
 
       // Gone without leaving, as when its route is removed: its edits are

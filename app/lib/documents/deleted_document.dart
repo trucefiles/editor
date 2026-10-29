@@ -5,7 +5,7 @@ import 'document_text.dart';
 
 /// A deleted document as last read, its text, mark and settings: enough
 /// to write it back as it was.
-typedef DeletedNote = ({
+typedef DeletedDocument = ({
   DocumentText document,
   String text,
   DocumentMark mark,

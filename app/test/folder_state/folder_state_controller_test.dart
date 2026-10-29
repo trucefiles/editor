@@ -134,8 +134,8 @@ void main() {
     final shallow = (baseId: folder.base.id, path: path('a/todo.md'));
     expect(found.markOf(deep).color, 'teal');
     expect(found.markOf(shallow), DocumentMark.none);
-    expect(found.conflicts.forNote(deep), isNotNull);
-    expect(found.conflicts.forNote(shallow), isNull);
+    expect(found.conflicts.forDocument(deep), isNotNull);
+    expect(found.conflicts.forDocument(shallow), isNull);
   });
 
   test('lists every subfolder per folder, empty ones too', () async {

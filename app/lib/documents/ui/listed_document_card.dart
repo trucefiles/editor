@@ -25,7 +25,7 @@ class ListedDocumentCard extends ConsumerWidget {
       mark: mark,
       settings: settings,
       hasConflict: hasConflict,
-      onTap: () => openNote(context, ref, document),
+      onTap: () => openDocument(context, ref, document),
       onMark: () => editPinOrColor(context, ref, document),
     );
   }

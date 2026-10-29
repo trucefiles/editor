@@ -8,7 +8,7 @@ import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
-import 'deleted_note.dart';
+import 'deleted_document.dart';
 import 'document.dart';
 import 'document_place.dart';
 import 'document_steps.dart';
@@ -112,7 +112,7 @@ final class DocumentActions {
   };
 
   /// See [DocumentSteps.delete].
-  Future<Result<DeletedNote, DeleteFailure>> delete(
+  Future<Result<DeletedDocument, DeleteFailure>> delete(
     DocumentText document,
     String text,
   ) async => switch (await _ask<DocumentDeleted>(
@@ -123,7 +123,7 @@ final class DocumentActions {
   };
 
   /// See [DocumentSteps.undoDelete].
-  Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async =>
+  Future<Result<void, StoreError>> undoDelete(DeletedDocument deleted) async =>
       switch (await _ask<DeleteUndone>(
         (ticket) => UndoDelete(ticket, deleted),
       )) {

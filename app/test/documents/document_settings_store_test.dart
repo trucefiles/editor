@@ -51,15 +51,15 @@ void main() {
     );
 
     await store.save({
-      key: KeptNoteSettings(settings),
-      'f1/b.md': const KeptNoteSettings(DocumentSettings()),
+      key: KeptDocumentSettings(settings),
+      'f1/b.md': const KeptDocumentSettings(DocumentSettings()),
     });
 
     expect(await loaded(), {key: settings, 'f1/b.md': DocumentSettings()});
   });
 
   test('keeps the time a document went missing', () async {
-    final kept = KeptNoteSettings(
+    final kept = KeptDocumentSettings(
       const DocumentSettings(pinned: true),
       missingSince: DateTime.utc(2026, 10, 21, 9),
     );

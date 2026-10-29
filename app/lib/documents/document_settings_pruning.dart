@@ -5,7 +5,7 @@ import '../platform/app_activity.dart';
 import 'document_settings_controller.dart';
 
 /// Forgets the settings of documents that are gone, e.g. deleted or renamed
-/// outside the app, a while after they went (see `KeptNoteSettings`),
+/// outside the app, a while after they went (see `KeptDocumentSettings`),
 /// each time the app comes into use, so the settings file never keeps
 /// growing. Prunes by a listing that started after that.
 final documentSettingsPruningProvider = FutureProvider<void>((ref) async {

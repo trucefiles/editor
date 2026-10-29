@@ -12,7 +12,7 @@ import 'document_settings_store.dart';
 import 'kept_document_settings.dart';
 
 final documentSettingsStoreProvider =
-    Provider<SettingStore<Map<String, KeptNoteSettings>>>(
+    Provider<SettingStore<Map<String, KeptDocumentSettings>>>(
       (ref) => DocumentSettingsStore(
         // Named for what it first held: the views.
         File(
@@ -24,14 +24,14 @@ final documentSettingsStoreProvider =
 final documentSettingsProvider =
     AsyncNotifierProvider<
       DocumentSettingsController,
-      Map<String, KeptNoteSettings>
+      Map<String, KeptDocumentSettings>
     >(DocumentSettingsController.new);
 
 /// How this device shows each document: last view, pin, "Done" section.
 class DocumentSettingsController
-    extends SettingController<Map<String, KeptNoteSettings>> {
+    extends SettingController<Map<String, KeptDocumentSettings>> {
   @override
-  Provider<SettingStore<Map<String, KeptNoteSettings>>> get store =>
+  Provider<SettingStore<Map<String, KeptDocumentSettings>>> get store =>
       documentSettingsStoreProvider;
 
   /// The settings of [document]; the defaults if none or not loaded yet.
@@ -49,7 +49,7 @@ class DocumentSettingsController
     if (changed.isDefault) {
       all.remove(key);
     } else {
-      all[key] = KeptNoteSettings(changed);
+      all[key] = KeptDocumentSettings(changed);
     }
   });
 
@@ -60,7 +60,7 @@ class DocumentSettingsController
 
   /// Forgets the settings of documents that are gone in [contents] (see
   /// [FolderContents.observe]), and of folders that are gone, once they
-  /// have been missing for [KeptNoteSettings.grace]; until then, at [now],
+  /// have been missing for [KeptDocumentSettings.grace]; until then, at [now],
   /// marks them missing, and found again once a listing finds them.
   /// Settings of documents that could not be seen count as found. As
   /// [edit].
@@ -81,7 +81,7 @@ class DocumentSettingsController
 
   /// Applies [apply] to a copy of the settings (see [change]).
   Future<void> _change(
-    void Function(Map<String, KeptNoteSettings> all) apply,
+    void Function(Map<String, KeptDocumentSettings> all) apply,
   ) => change((before) {
     final all = {...before};
     apply(all);
@@ -92,7 +92,7 @@ class DocumentSettingsController
 /// The settings of [document] in [all]; the defaults if none or not loaded
 /// yet.
 DocumentSettings settingsIn(
-  Map<String, KeptNoteSettings>? all,
+  Map<String, KeptDocumentSettings>? all,
   DocumentKey document,
 ) =>
     all?[DocumentSettingsStore.storeKey(document)]?.settings ??

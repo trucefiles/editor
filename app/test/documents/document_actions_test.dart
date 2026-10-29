@@ -116,7 +116,7 @@ void main() {
     )).value;
 
     expect(file(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
-    expect((await scans()).findNote(document.key), isNotNull);
+    expect((await scans()).findDocument(document.key), isNotNull);
   });
 
   test('an action before the first scan does not wait forever', () async {
@@ -128,7 +128,7 @@ void main() {
       text: 'Plan\n',
     );
 
-    expect((await scans()).findNote(created.value.key), isNotNull);
+    expect((await scans()).findDocument(created.value.key), isNotNull);
   });
 
   test('create puts the document in the chosen subfolder', () async {
@@ -143,7 +143,10 @@ void main() {
     )).value;
 
     expect(file(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
-    expect((await scans()).findNote(document.key)?.path, path('a/b/Plan.md'));
+    expect(
+      (await scans()).findDocument(document.key)?.path,
+      path('a/b/Plan.md'),
+    );
   });
 
   group('newFilePlace', () {
@@ -370,7 +373,7 @@ void main() {
 
     expect(await actions.undoDelete(deleted), isA<Ok<void, StoreError>>());
     expect(file(work, 'plan.md').readAsStringSync(), '# Plan\nmine\n');
-    expect((await scans()).findNote(document.key), isNotNull);
+    expect((await scans()).findDocument(document.key), isNotNull);
   });
 
   test('delete drops the mark and settings; undo brings them back', () async {

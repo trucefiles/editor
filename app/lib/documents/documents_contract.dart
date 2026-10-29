@@ -7,7 +7,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../file_types/document_type.dart';
 import 'delete_failure.dart';
-import 'deleted_note.dart';
+import 'deleted_document.dart';
 import 'document.dart';
 import 'document_place.dart';
 import 'document_text.dart';
@@ -72,7 +72,7 @@ final class DeleteDocument extends DocumentsInput {
 final class UndoDelete extends DocumentsInput {
   const UndoDelete(super.ticket, this.deleted);
 
-  final DeletedNote deleted;
+  final DeletedDocument deleted;
 }
 
 /// Give [document] the color [mark].
@@ -115,7 +115,7 @@ final class DocumentMoved extends DocumentsAnswer {
 final class DocumentDeleted extends DocumentsAnswer {
   const DocumentDeleted(super.ticket, this.result);
 
-  final Result<DeletedNote, DeleteFailure> result;
+  final Result<DeletedDocument, DeleteFailure> result;
 }
 
 final class DeleteUndone extends DocumentsAnswer {
