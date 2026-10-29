@@ -22,8 +22,8 @@ final class FakeSyncTool implements SyncTool {
   String get name => 'Fake $id';
 
   @override
-  bool isToolFolder(List<String> names) =>
-      const FakeSyncRules().isInternalFolder(names);
+  bool isToolFolder(Uri address) =>
+      const FakeSyncRules().isInternalFolder(address.pathSegments);
 
   @override
   Future<SyncStatus> recognize(Uri address) async =>

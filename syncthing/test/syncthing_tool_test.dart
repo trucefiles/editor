@@ -49,9 +49,11 @@ void main() {
       expect(await tool.missesOldVersions(elsewhere), isFalse);
     });
 
-    test('knows its own folders', () {
-      expect(tool.isToolFolder(['.stversions']), isTrue);
-      expect(tool.isToolFolder(['docs']), isFalse);
+    test('knows its own folders by their address', () {
+      expect(tool.isToolFolder(at('synced/.stversions')), isTrue);
+      expect(tool.isToolFolder(at('synced/.stversions/docs')), isTrue);
+      expect(tool.isToolFolder(at('synced/docs')), isFalse);
+      expect(tool.isToolFolder(Uri.parse('fake://x/.stversions')), isFalse);
     });
 
     test('works on the folder at an address with its temp files, '

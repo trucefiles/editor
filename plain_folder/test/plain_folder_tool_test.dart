@@ -27,7 +27,7 @@ void main() {
 
       expect(await tool.recognize(address), SyncStatus.unknown);
       expect(await tool.missesOldVersions(address), isFalse);
-      expect(tool.isToolFolder(['.stversions']), isFalse);
+      expect(tool.isToolFolder(Uri.file('${dir.path}/.stversions')), isFalse);
     });
 
     test('writes atomically with its own temp files', () async {

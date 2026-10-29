@@ -25,10 +25,11 @@ abstract interface class SyncTool {
   /// The tool's name, for the UI.
   String get name;
 
-  /// Whether the folder whose path has the segments [names], outermost
-  /// first, is the tool's own (e.g. its version folder) or lies inside it.
-  /// Such a folder never holds the user's documents.
-  bool isToolFolder(List<String> names);
+  /// Whether the folder at [address] is the tool's own (e.g. its version
+  /// folder) or lies inside one. Such a folder never holds the user's
+  /// documents. Any address is asked, also one the tool can't open:
+  /// `false` then.
+  bool isToolFolder(Uri address);
 
   /// Whether this tool syncs the base folder at [address], as far as it
   /// can tell. Any address is asked, also one the tool can't open:

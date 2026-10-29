@@ -17,6 +17,8 @@ import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
+import 'package:truce_editor/sync_tool/sync_tools.dart';
+import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
 
 import '../support.dart';
 
@@ -42,13 +44,14 @@ void main() {
     String basePath, {
     Selection selection = const WholeFolder(),
     String name = 'Documents',
+    String toolId = 'syncthing',
   }) => folders
       .read(foldersProvider.notifier)
       .add(
         address: basePath.contains('://')
             ? Uri.parse(basePath)
             : Uri.file(basePath),
-        toolId: 'syncthing',
+        toolId: toolId,
         selection: selection,
         name: name,
         color: const Color(0xFF009688),
@@ -147,6 +150,24 @@ void main() {
     );
     expect(
       (await add(folders, '/doc/1/Documents')).error,
+      FolderError.syncToolInternal,
+    );
+    expect(await folders.read(foldersProvider.future), isEmpty);
+  });
+
+  test("refuses a sync tool's own folder at any address, also one with "
+      'no files on disk', () async {
+    final folders = ProviderContainer(
+      overrides: [
+        appStorageProvider.overrideWithValue(storage),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        syncToolsProvider.overrideWithValue(SyncTools([FakeSyncTool('cloud')])),
+      ],
+    );
+    addTearDown(folders.dispose);
+
+    expect(
+      (await add(folders, 'fake://cloud/.fake/notes', toolId: 'cloud')).error,
       FolderError.syncToolInternal,
     );
     expect(await folders.read(foldersProvider.future), isEmpty);

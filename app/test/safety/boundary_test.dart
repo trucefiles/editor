@@ -214,7 +214,7 @@ final class _SpiedTool implements SyncTool {
   String get name => _tool.name;
 
   @override
-  bool isToolFolder(List<String> names) => _tool.isToolFolder(names);
+  bool isToolFolder(Uri address) => _tool.isToolFolder(address);
 
   @override
   Future<SyncStatus> recognize(Uri address) => _tool.recognize(address);
