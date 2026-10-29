@@ -7,11 +7,9 @@ import 'file_state.dart';
 import 'file_work.dart';
 
 /// The file owner's decision on [message] in [state], with its [work].
-Step<FileState, FileWork, FileEvent, FileEffect> fileStep(
-  FileState state,
-  FileWork work,
-  FileMessage message,
-) {
+Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>> fileStep<
+  V extends Version
+>(FileState<V> state, FileWork<V> work, FileMessage<V> message) {
   final step = _Step(state, work)..handle(message);
   return (
     state: step.shown,
@@ -24,14 +22,14 @@ Step<FileState, FileWork, FileEvent, FileEffect> fileStep(
 /// One input's handling: the state as it changes and what it leads to.
 /// Inputs update what is known and asked; [_next] then starts the next
 /// I/O once none is under way.
-final class _Step {
+final class _Step<V extends Version> {
   _Step(this.state, this.work);
 
-  FileState state;
-  FileWork work;
+  FileState<V> state;
+  FileWork<V> work;
   final events = <FileEvent>[];
-  final effects = <FileEffect>[];
-  FileStatus get status => state.status;
+  final effects = <FileEffect<V>>[];
+  FileStatus<V> get status => state.status;
 
   bool get _done => status is KeptAsConflict || status is Closed;
 
@@ -44,7 +42,7 @@ final class _Step {
   };
 
   /// The state with the editing phase and the file the work shows.
-  FileState get shown => FileState(
+  FileState<V> get shown => FileState(
     status: switch (status) {
       Editing() => Editing(switch ((work.io, work.draft)) {
         (WritingFile(:final text), _) when text == state.text =>
@@ -57,10 +55,14 @@ final class _Step {
     },
     text: state.text,
     rev: state.rev,
-    file: (work.moved ?? work.expected)?.version,
+    file: _file,
   );
 
-  void handle(FileMessage message) {
+  /// The version of the file the edits go over; `null` while a new
+  /// document has no file.
+  V? get _file => (work.moved ?? work.expected)?.version;
+
+  void handle(FileMessage<V> message) {
     switch (message) {
       case Edited():
         _edited(message);
@@ -162,6 +164,7 @@ final class _Step {
         id,
         base: (work.editsOver ?? work.expected)?.text,
         text: state.text,
+        file: _file,
       ),
     );
   }
@@ -183,12 +186,12 @@ final class _Step {
 
   void _dropDraft() {
     _work(work.copyWith(draft: null));
-    effects.add(const DropDraft());
+    effects.add(DropDraft(file: _file));
   }
 
   /// No edits are pending any more: in the file, in a conflict copy, or
   /// dropped. The draft goes once no I/O is under way.
-  void _settle(FileStatus settled) {
+  void _settle(FileStatus<V> settled) {
     _work(work.copyWith(editsOver: null));
     _set(status: settled);
   }
@@ -238,7 +241,7 @@ final class _Step {
     });
   }
 
-  void _wrote(EffectId id, WriteOutcome outcome, Moment endedAt) {
+  void _wrote(EffectId id, WriteOutcome<V> outcome, Moment endedAt) {
     final writing = switch (work.io) {
       final WritingFile writing when writing.id == id => writing,
       _ => null,
@@ -278,7 +281,7 @@ final class _Step {
     _takeMove();
   }
 
-  void _written(WritingFile writing, Seen seen) {
+  void _written(WritingFile writing, Seen<V> seen) {
     _work(
       work.copyWith(
         expected: seen,
@@ -342,7 +345,7 @@ final class _Step {
     effects.add(ReadLatest(id, at: at));
   }
 
-  void _latestRead(EffectId id, Seen? seen) {
+  void _latestRead(EffectId id, Seen<V>? seen) {
     final reading = switch (work.io) {
       final ReadingFile reading when reading.id == id => reading,
       _ => null,
@@ -356,7 +359,7 @@ final class _Step {
     _found(seen);
   }
 
-  void _found(Seen latest) {
+  void _found(Seen<V> latest) {
     final expected = work.expected!;
     switch (status) {
       case DeletedElsewhere():
@@ -384,7 +387,7 @@ final class _Step {
   }
 
   /// The file is back after it looked deleted.
-  void _cameBack(Seen latest) {
+  void _cameBack(Seen<V> latest) {
     final expected = work.expected!;
     if (latest.text == state.text) {
       _inStep(latest);
@@ -400,7 +403,7 @@ final class _Step {
   }
 
   /// The editor shows [latest], unless it has edits not seen here.
-  void _replaced(Seen latest) {
+  void _replaced(Seen<V> latest) {
     _work(work.copyWith(expected: latest, offered: [...work.offered, latest]));
     _set(text: latest.text, status: const InStep());
     events.add(
@@ -412,12 +415,12 @@ final class _Step {
     if (status is! DeletedElsewhere) _set(status: const DeletedElsewhere());
   }
 
-  void _inStep(Seen latest) {
+  void _inStep(Seen<V> latest) {
     _work(work.copyWith(expected: latest));
     _settle(const InStep());
   }
 
-  void _moved(Seen copy) {
+  void _moved(Seen<V> copy) {
     // A copy that differs changed before the move: writes stay over the
     // version expected, so they find that change, as a scan does.
     if (copy.text != work.expected?.text) return;
@@ -462,7 +465,7 @@ final class _Step {
 
   /// The version from elsewhere [pick] is against, while it waits for
   /// the pick.
-  Seen? _theirs(Pick pick) => switch (status) {
+  Seen<V>? _theirs(Pick pick) => switch (status) {
     ChangedElsewhere(:final theirs) when theirs.version == pick.seen => theirs,
     _ => null,
   };
@@ -630,11 +633,11 @@ final class _Step {
     return id;
   }
 
-  void _work(FileWork next) => work = next;
+  void _work(FileWork<V> next) => work = next;
 
   /// Sets the state; a status the edits can't be written in drops the
   /// write asked.
-  void _set({FileStatus? status, String? text, int? rev}) {
+  void _set({FileStatus<V>? status, String? text, int? rev}) {
     state = state.copyWith(status: status, text: text, rev: rev);
     if (status != null && status is! Editing && status is! SaveFailed) {
       _work(work.copyWith(folderRev: null));

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/document_page/document_controller.dart';
-import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/document_page/save_state.dart';
@@ -12,7 +11,7 @@ import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/view_settings.dart';
-import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_markdown/truce_markdown.dart' hide Selection;
 import 'package:truce_test_support/truce_test_support.dart';
 
 import '../support.dart' show eventually;
@@ -39,14 +38,13 @@ void main() {
   DocumentController controllerOn(
     DocumentSession session, {
     BackUpText? backUp,
-    bool canEdit = true,
     DeleteDocument? delete,
   }) {
     final controller = DocumentController(
       session,
+      reach: () => reach,
       reachSettled: () async => reach,
       backUp: backUp ?? (_) async => const Ok(null),
-      canEdit: () => canEdit,
       delete:
           delete ??
           (document, text) async => Ok((
@@ -55,6 +53,7 @@ void main() {
             mark: DocumentMark.none,
             settings: DocumentSettings.defaults,
           )),
+      settingsOf: (key) => settings[key] ?? DocumentSettings.defaults,
       editSettings: (key, change) async =>
           settings[key] = change(settings[key] ?? DocumentSettings.defaults),
     );
@@ -87,10 +86,11 @@ void main() {
     final session = fixture.session(fixture.newFile);
     DocumentController(
       session,
+      reach: () => reach,
       reachSettled: () async => reach,
       backUp: (_) async => const Ok(null),
-      canEdit: () => true,
       delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
+      settingsOf: (_) => DocumentSettings.defaults,
       editSettings: (_, _) async {},
     ).dispose();
 
@@ -98,6 +98,63 @@ void main() {
     session.type('x');
 
     expect(session.saveState, SaveState.editing);
+  });
+
+  group('what the screen shows', () {
+    test('read only while the folder is unreachable, told as it changes', () {
+      final controller = controllerOn(fixture.session());
+      var told = 0;
+      controller.addListener(() => told++);
+      expect(controller.readOnly, isFalse);
+
+      reach = Reach.unreachable;
+      controller.reachChanged();
+
+      expect(
+        (controller.readOnly, controller.unreachable, told),
+        (true, true, 1),
+      );
+    });
+
+    test('leaves at once only with nothing left to keep', () async {
+      final session = fixture.session();
+      final controller = controllerOn(session);
+      expect(controller.canLeaveNow, isTrue);
+
+      session.type('x');
+
+      expect(controller.canLeaveNow, isFalse);
+      await session.secure(.hide);
+      expect(controller.canLeaveNow, isTrue);
+    });
+
+    test("the document's settings; the defaults while it has no file", () {
+      final pinned = DocumentSettings.defaults.withPinned(pinned: true);
+      settings[fixture.document.key] = pinned;
+
+      expect(controllerOn(fixture.session()).settings, pinned);
+      expect(
+        controllerOn(fixture.session(fixture.newFile)).settings,
+        DocumentSettings.defaults,
+      );
+    });
+
+    test('whether the folders still show the document', () {
+      final controller = controllerOn(fixture.session());
+      final shown = fixture.folders[0];
+
+      expect(controller.shownIn(fixture.folders), DocumentShown.shown);
+      expect(
+        controller.shownIn([
+          shown.copyWith(selection: Selection.of([RelPath.parse('sub')!])),
+        ]),
+        DocumentShown.narrowedAway,
+      );
+      expect(
+        controller.shownIn([fixture.folders[1]]),
+        DocumentShown.folderRemoved,
+      );
+    });
   });
 
   test('edits saved in the file are kept', () async {
@@ -245,8 +302,8 @@ void main() {
       late DocumentController controller;
       await runZonedGuarded(() async {
         final session = markdownSession(
+          fixture.document,
           FileEffects(
-            ExistingFile(fixture.document),
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,
             create: (
@@ -264,7 +321,8 @@ void main() {
         await session.secure(.hide);
         await pumpEventQueue();
       }, (_, _) {});
-      expect(controller.session.stopped, isTrue);
+      expect(controller.session.state, isA<Stopped>());
+      expect(controller.readOnly, isTrue);
       return controller;
     }
 
@@ -283,9 +341,11 @@ void main() {
 
     test('it goes as the edits are kept on this device', () async {
       final controller = await stopped();
-      await eventually(() async => controller.session.editsKept != null);
+      await eventually(
+        () async => (controller.session.state as Stopped).kept != null,
+      );
 
-      expect(controller.session.editsKept, isTrue);
+      expect((controller.session.state as Stopped).kept, isTrue);
       expect(await controller.mayGo(.close, () => fail('asked')), isTrue);
     });
   });
@@ -322,6 +382,7 @@ void main() {
 
     test('changes nothing once the document cannot be edited', () async {
       final session = fixture.session()..type('mine ');
+      reach = Reach.unreachable;
       final backedUp = <String>[];
       final controller = controllerOn(
         session,
@@ -329,7 +390,6 @@ void main() {
           backedUp.add(text);
           return const Ok(null);
         },
-        canEdit: false,
       );
 
       expect(await controller.restore('backup\n'), RestoreOutcome.notEditable);

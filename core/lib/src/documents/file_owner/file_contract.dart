@@ -1,7 +1,9 @@
 /// The file owner's contract: what reaches it, what it decides, what it
 /// leads to. One file owner per open document, new or existing; it keeps
 /// the document's edits on the device and in its file, in step with
-/// changes from elsewhere, and never loses an edit.
+/// changes from elsewhere, and never loses an edit. [V] is the kind of
+/// [Version] the app hands it; the owner only compares versions and hands
+/// them back in its effects, typed, so the app acts on its own kind.
 library;
 
 import '../../common/moment.dart';
@@ -18,13 +20,13 @@ enum PickChoice { mine, theirs }
 
 /// What the file owner handles: inputs anyone may send, and the results
 /// of its effects.
-sealed class FileMessage {
+sealed class FileMessage<V extends Version> {
   const FileMessage();
 }
 
 // Inputs.
 
-sealed class FileInput extends FileMessage {
+sealed class FileInput<V extends Version> extends FileMessage<V> {
   const FileInput();
 }
 
@@ -32,7 +34,7 @@ sealed class FileInput extends FileMessage {
 /// changes; [lineage] is the version it descends from (`null` for a new
 /// document), which moves only with a [Replaced] or [Picked] applied;
 /// [picks] counts the [Picked] applied.
-final class Edited extends FileInput {
+final class Edited extends FileInput<Never> {
   const Edited(
     this.text, {
     required this.rev,
@@ -48,13 +50,13 @@ final class Edited extends FileInput {
 
 /// Write the edits into the file once the device keeps them. A new
 /// document's file is created only when it is secured.
-final class SaveNow extends FileInput {
+final class SaveNow extends FileInput<Never> {
   const SaveNow();
 }
 
 /// Keep the edits somewhere lasting now; answered by [Answer]. A
 /// [Secure] that comes while another waits is answered with it.
-final class Secure extends FileInput implements Asking {
+final class Secure extends FileInput<Never> implements Asking {
   const Secure(this.ticket, this.reason);
 
   @override
@@ -63,7 +65,7 @@ final class Secure extends FileInput implements Asking {
 }
 
 /// What a scan that started at [startedAt] found of the file.
-final class Observed extends FileInput {
+final class Observed extends FileInput<Never> {
   const Observed(this.observation, {required this.startedAt});
 
   final Observation observation;
@@ -94,7 +96,7 @@ final class Gone extends Observation {
 
 /// The user's pick between the edits at [rev] and the version [seen]
 /// from elsewhere, as the compare view showed them.
-final class Pick extends FileInput {
+final class Pick extends FileInput<Never> {
   const Pick(this.choice, {required this.seen, required this.rev});
 
   final PickChoice choice;
@@ -103,33 +105,33 @@ final class Pick extends FileInput {
 }
 
 /// Write the edits as the file again, after it was deleted elsewhere.
-final class RestoreMine extends FileInput {
+final class RestoreMine extends FileInput<Never> {
   const RestoreMine();
 }
 
 /// Drop the edits that could be kept nowhere (a failed write, a change
 /// or deletion elsewhere), while no write or pick is under way; the text
 /// goes back to the file's.
-final class Discard extends FileInput {
+final class Discard extends FileInput<Never> {
   const Discard();
 }
 
 /// The user moved or renamed the document in the app: the owner goes on
 /// with [copy].
-final class Moved extends FileInput {
+final class Moved<V extends Version> extends FileInput<V> {
   const Moved(this.copy);
 
-  final Seen copy;
+  final Seen<V> copy;
 }
 
 // Results.
 
-sealed class FileResult extends FileMessage {
+sealed class FileResult<V extends Version> extends FileMessage<V> {
   const FileResult();
 }
 
 /// Whether [KeepDraft] kept the draft.
-final class DraftKept extends FileResult {
+final class DraftKept extends FileResult<Never> {
   const DraftKept(this.id, {required this.kept});
 
   final EffectId id;
@@ -137,60 +139,60 @@ final class DraftKept extends FileResult {
 }
 
 /// How [Write], [Create] or [Restore] went; it ended at [endedAt].
-final class Wrote extends FileResult {
+final class Wrote<V extends Version> extends FileResult<V> {
   const Wrote(this.id, this.outcome, {required this.endedAt});
 
   final EffectId id;
-  final WriteOutcome outcome;
+  final WriteOutcome<V> outcome;
   final Moment endedAt;
 }
 
-sealed class WriteOutcome {
+sealed class WriteOutcome<V extends Version> {
   const WriteOutcome();
 }
 
 /// The file now holds [seen].
-final class Written extends WriteOutcome {
+final class Written<V extends Version> extends WriteOutcome<V> {
   const Written(this.seen);
 
-  final Seen seen;
+  final Seen<V> seen;
 }
 
 /// The file changed since the version written over; it holds [theirs].
-final class Changed extends WriteOutcome {
+final class Changed<V extends Version> extends WriteOutcome<V> {
   const Changed(this.theirs);
 
-  final Seen theirs;
+  final Seen<V> theirs;
 }
 
 /// A file is where [Restore] would put one; it holds [there].
-final class Taken extends WriteOutcome {
+final class Taken<V extends Version> extends WriteOutcome<V> {
   const Taken(this.there);
 
-  final Seen there;
+  final Seen<V> there;
 }
 
 /// The file to write over is gone.
-final class WriteGone extends WriteOutcome {
+final class WriteGone extends WriteOutcome<Never> {
   const WriteGone();
 }
 
 /// The write failed for another reason (e.g. no access).
-final class WriteFailed extends WriteOutcome {
+final class WriteFailed extends WriteOutcome<Never> {
   const WriteFailed();
 }
 
 /// What [ReadLatest] read: the file now; `null` if it could not be read
 /// (e.g. gone or no access), so nothing is learned.
-final class LatestRead extends FileResult {
+final class LatestRead<V extends Version> extends FileResult<V> {
   const LatestRead(this.id, this.seen);
 
   final EffectId id;
-  final Seen? seen;
+  final Seen<V>? seen;
 }
 
 /// Whether [BackUpBoth] backed up both versions.
-final class BackedUp extends FileResult {
+final class BackedUp extends FileResult<Never> {
   const BackedUp(this.id, {required this.ok});
 
   final EffectId id;
@@ -198,7 +200,7 @@ final class BackedUp extends FileResult {
 }
 
 /// Whether [KeepAsConflict] kept the copy.
-final class ConflictKept extends FileResult {
+final class ConflictKept extends FileResult<Never> {
   const ConflictKept(this.id, {required this.ok});
 
   final EffectId id;
@@ -258,30 +260,40 @@ final class PickNotKept extends FileEvent {
 // Effects.
 
 /// What the app does for the owner; results come back as [FileResult]s.
-sealed class FileEffect {
+sealed class FileEffect<V extends Version> {
   const FileEffect();
 }
 
-/// Keep [text], edited from the file's [base] (`null` for a new
-/// document), on this device; answered by [DraftKept].
-final class KeepDraft extends FileEffect {
-  const KeepDraft(this.id, {required this.base, required this.text});
+/// Keep [text], edited from the file's [base], on this device, as the
+/// draft of the [file] the edits go over; both `null` for a new
+/// document, whose draft goes where its file will. Answered by
+/// [DraftKept].
+final class KeepDraft<V extends Version> extends FileEffect<V> {
+  const KeepDraft(
+    this.id, {
+    required this.base,
+    required this.text,
+    required this.file,
+  });
 
   final EffectId id;
   final String? base;
   final String text;
+  final V? file;
 }
 
 /// The edits are in the file, in a conflict copy, or dropped: remove the
-/// draft.
-final class DropDraft extends FileEffect {
-  const DropDraft();
+/// draft of the [file] the edits went over (`null` for a new document).
+final class DropDraft<V extends Version> extends FileEffect<V> {
+  const DropDraft({required this.file});
+
+  final V? file;
 }
 
 /// Write [text] into the file, only over [over]; back the file up first
 /// if [backUpFirst] (a failed backup never stops the write). Answered by
 /// [Wrote]: [Written], [Changed], [WriteGone] or [WriteFailed].
-final class Write extends FileEffect {
+final class Write<V extends Version> extends FileEffect<V> {
   const Write(
     this.id,
     this.text, {
@@ -291,14 +303,14 @@ final class Write extends FileEffect {
 
   final EffectId id;
   final String text;
-  final Seen over;
+  final Seen<V> over;
   final bool backUpFirst;
 }
 
 /// Create the new document's file holding [text], never over an existing
 /// one: a name already taken gets the next free one (" 2"). Answered by
 /// [Wrote]: [Written] or [WriteFailed].
-final class Create extends FileEffect {
+final class Create extends FileEffect<Never> {
   const Create(this.id, this.text);
 
   final EffectId id;
@@ -308,48 +320,48 @@ final class Create extends FileEffect {
 /// Write [text] as the file again where it was deleted, [where] it was
 /// last, never over an existing one; answered by [Wrote]: [Written],
 /// [Taken] or [WriteFailed].
-final class Restore extends FileEffect {
+final class Restore<V extends Version> extends FileEffect<V> {
   const Restore(this.id, this.text, {required this.where});
 
   final EffectId id;
   final String text;
-  final Seen where;
+  final Seen<V> where;
 }
 
 /// Read the file where [at] is, as it is now: an observation found a
 /// version not seen yet. Answered by [LatestRead].
-final class ReadLatest extends FileEffect {
+final class ReadLatest<V extends Version> extends FileEffect<V> {
   const ReadLatest(this.id, {required this.at});
 
   final EffectId id;
-  final Seen at;
+  final Seen<V> at;
 }
 
 /// Back up [theirs] and the edits [mine] before a pick; answered by
 /// [BackedUp].
-final class BackUpBoth extends FileEffect {
+final class BackUpBoth<V extends Version> extends FileEffect<V> {
   const BackUpBoth(this.id, {required this.theirs, required this.mine});
 
   final EffectId id;
-  final Seen theirs;
+  final Seen<V> theirs;
   final String mine;
 }
 
 /// Keep [text] as a conflict copy next to the file, as it is at
 /// [nextTo]; answered by [ConflictKept].
-final class KeepAsConflict extends FileEffect {
+final class KeepAsConflict<V extends Version> extends FileEffect<V> {
   const KeepAsConflict(this.id, this.text, {required this.nextTo});
 
   final EffectId id;
   final String text;
-  final Seen nextTo;
+  final Seen<V> nextTo;
 }
 
 // State.
 
 /// Where the document stands against its file. Statuses are equal when
 /// they are the same case with equal fields.
-sealed class FileStatus {
+sealed class FileStatus<V extends Version> {
   const FileStatus();
 
   /// Equal by case only: a case with fields must compare them in its own
@@ -362,18 +374,18 @@ sealed class FileStatus {
 }
 
 /// A new document with nothing to keep: no file, no draft.
-final class Unwritten extends FileStatus {
+final class Unwritten extends FileStatus<Never> {
   const Unwritten();
 }
 
 /// The file holds the text.
-final class InStep extends FileStatus {
+final class InStep extends FileStatus<Never> {
   const InStep();
 }
 
 /// There are edits the file does not hold yet; [phase] says where the
 /// latest are.
-final class Editing extends FileStatus {
+final class Editing extends FileStatus<Never> {
   const Editing(this.phase);
 
   final EditPhase phase;
@@ -398,10 +410,10 @@ enum EditPhase {
 
 /// The file changed elsewhere while there were unsaved edits; edits go
 /// on into the draft until the user picks against [theirs].
-final class ChangedElsewhere extends FileStatus {
+final class ChangedElsewhere<V extends Version> extends FileStatus<V> {
   const ChangedElsewhere(this.theirs);
 
-  final Seen theirs;
+  final Seen<V> theirs;
 
   @override
   bool operator ==(Object other) =>
@@ -414,21 +426,21 @@ final class ChangedElsewhere extends FileStatus {
 /// The file was deleted elsewhere; edits (if any) go on into the draft
 /// until the user restores the file, discards them or closes the
 /// document.
-final class DeletedElsewhere extends FileStatus {
+final class DeletedElsewhere extends FileStatus<Never> {
   const DeletedElsewhere();
 }
 
 /// Writing failed for another reason; the edits are kept on the device.
-final class SaveFailed extends FileStatus {
+final class SaveFailed extends FileStatus<Never> {
   const SaveFailed();
 }
 
 /// The edits are kept as a conflict copy: no more edits are taken.
-final class KeptAsConflict extends FileStatus {
+final class KeptAsConflict extends FileStatus<Never> {
   const KeptAsConflict();
 }
 
 /// The document is closed with its edits kept.
-final class Closed extends FileStatus {
+final class Closed extends FileStatus<Never> {
   const Closed();
 }

@@ -8,6 +8,9 @@ import '../documents/deleted_document.dart';
 import '../documents/document.dart';
 import '../documents/document_settings.dart';
 import '../documents/document_text.dart';
+import '../folder_state/folder_contents.dart';
+import '../folders/document_folder.dart';
+import '../folders/folder_lookup.dart';
 import 'document_file.dart';
 import 'document_session.dart';
 
@@ -73,6 +76,18 @@ enum NoFile {
   stopped,
 }
 
+/// Whether the folders still show the open document.
+enum DocumentShown {
+  /// A folder shows it.
+  shown,
+
+  /// Its folder no longer shows the place it is in.
+  narrowedAway,
+
+  /// Its folder was removed.
+  folderRemoved,
+}
+
 /// How restoring a backup into the open document ended.
 enum RestoreOutcome {
   /// The backup's text shows, as one edit undo takes back.
@@ -85,21 +100,24 @@ enum RestoreOutcome {
   notBackedUp,
 }
 
-/// The open document's view model: whether its edits are kept as the
-/// user leaves or quits, deleting it, its file for the actions that need
-/// one, its settings on this device, and backups restored into it. No UI.
-/// Listeners hear of every change of the [session].
+/// The open document's view model: whether it can be edited or left now,
+/// whether its edits are kept as the user leaves or quits, deleting it,
+/// its file for the actions that need one, its mark and settings on this
+/// device, whether a folder still shows it, and backups restored into it.
+/// No UI. Listeners hear of every change of the [session], and of its
+/// folder's reach.
 final class DocumentController extends ChangeNotifier {
-  /// [reachSettled]: the reach of the document's folder once a running
-  /// check of it is over. [backUp]: backs up the document's text.
-  /// [canEdit]: whether the document can be edited here now. [delete]
-  /// deletes it; [editSettings] changes its settings.
+  /// [reach]: the reach of the document's folder now; [reachSettled]: once
+  /// a running check of it is over. [backUp]: backs up the document's
+  /// text. [delete] deletes it; [settingsOf] gives a document's settings,
+  /// [editSettings] changes them.
   DocumentController(
     this.session, {
+    required this.reach,
     required this.reachSettled,
     required this.backUp,
-    required this.canEdit,
     required this.delete,
+    required this.settingsOf,
     required this.editSettings,
   }) {
     _following = session.changes.listen((_) {
@@ -109,12 +127,61 @@ final class DocumentController extends ChangeNotifier {
   }
 
   final DocumentSession session;
+  final Reach Function() reach;
   final Future<Reach> Function() reachSettled;
   final BackUpText backUp;
-  final bool Function() canEdit;
   final DeleteDocument delete;
+  final DocumentSettings Function(DocumentKey document) settingsOf;
   final EditSettings editSettings;
   late final StreamSubscription<void> _following;
+
+  /// The reach of the document's folder changed.
+  void reachChanged() => notifyListeners();
+
+  /// Whether the document's folder can't be reached now.
+  bool get unreachable => reach() == Reach.unreachable;
+
+  /// Whether the document is only shown to read: its edits were kept as a
+  /// conflict copy, its folder can't be reached, or it stopped (a bug).
+  bool get readOnly =>
+      session.status is KeptAsConflict ||
+      unreachable ||
+      session.state is! Running;
+
+  /// Whether the user can leave at once: nothing is left to keep.
+  bool get canLeaveNow => switch (session.status) {
+    InStep() || Unwritten() => !session.editor.state.unsent,
+    KeptAsConflict() || Closed() => true,
+    Editing() ||
+    ChangedElsewhere() ||
+    DeletedElsewhere() ||
+    SaveFailed() => false,
+  };
+
+  /// The document's settings on this device; the defaults until it has a
+  /// file.
+  DocumentSettings get settings => switch (session.document) {
+    final document? => settingsOf(document.key),
+    null => DocumentSettings.defaults,
+  };
+
+  /// The document's mark as [contents] know it; none until it has a file.
+  DocumentMark markIn(FolderContents? contents) => switch (session.document) {
+    final document? => contents?.markOf(document.key) ?? DocumentMark.none,
+    null => DocumentMark.none,
+  };
+
+  /// Whether [folders] still show the document, where it is now.
+  DocumentShown shownIn(List<DocumentFolder> folders) {
+    final file = session.file;
+    final folder = file.folder;
+    if (folders.folderOf(folder.base.id, file.pathFor(session.text)) != null) {
+      return DocumentShown.shown;
+    }
+    return folders.any((shown) => shown.id == folder.id)
+        ? DocumentShown.narrowedAway
+        : DocumentShown.folderRemoved;
+  }
 
   /// Settings changes made before the document had a file, to keep once
   /// it has, in order.
@@ -161,7 +228,7 @@ final class DocumentController extends ChangeNotifier {
   /// the session stopped, whether it kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.
-    if (session.stopped) return session.editsKept ?? false;
+    if (session.state case Stopped(:final kept)) return kept ?? false;
     if (await session.secure(reason)) return true;
     return await reachSettled() == Reach.unreachable;
   }
@@ -170,7 +237,7 @@ final class DocumentController extends ChangeNotifier {
   /// dropped.
   Future<DeleteOutcome> deleteDocument() async {
     // Its edits wait on this device for the next start.
-    if (session.stopped) return const DocumentStopped();
+    if (session.state is! Running) return const DocumentStopped();
     if (session.file is NewFile) {
       session.discard();
       return const NewDropped();
@@ -187,7 +254,7 @@ final class DocumentController extends ChangeNotifier {
   /// The document's file, with every edit sent, for an action that needs
   /// one; a new document's file is created first.
   Future<Result<DocumentText, NoFile>> withFile() async {
-    if (session.stopped) return const Err(NoFile.stopped);
+    if (session.state is! Running) return const Err(NoFile.stopped);
     await session.secure(SecureReason.hide);
     return switch ((session.document, session.status)) {
       (final document?, _) => Ok(document),
@@ -214,7 +281,7 @@ final class DocumentController extends ChangeNotifier {
   /// is backed up.
   Future<RestoreOutcome> restore(String backup) async {
     final now = await textNow();
-    if (!canEdit()) return RestoreOutcome.notEditable;
+    if (readOnly) return RestoreOutcome.notEditable;
     if (await backUp(now) is Err) return RestoreOutcome.notBackedUp;
     session.replaceAll(backup);
     return RestoreOutcome.restored;

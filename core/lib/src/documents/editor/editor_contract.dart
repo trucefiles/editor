@@ -73,7 +73,8 @@ sealed class EditorNotice {
 final class ToFile extends EditorNotice {
   const ToFile(this.input);
 
-  final FileInput input;
+  /// Names no version of the file: the editor only compares versions.
+  final FileInput<Never> input;
 }
 
 /// Undo step [id] is one the user is offered to undo right away: [what]

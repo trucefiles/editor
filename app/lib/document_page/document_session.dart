@@ -9,20 +9,46 @@ import 'document_file.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
 
+/// Whether an open document takes edits.
+sealed class SessionState {
+  const SessionState();
+}
+
+/// Edits go to the file owner, which keeps them.
+final class Running extends SessionState {
+  const Running();
+}
+
+/// The file owner stopped by a bug: the document takes no more edits. The
+/// latest ones, [text], are kept on this device as the draft and go into
+/// the file at the next start. [kept]: whether the device keeps them, as
+/// last known; `null` until first known.
+final class Stopped extends SessionState {
+  const Stopped(this.text, {this.kept});
+
+  final String text;
+  final bool? kept;
+}
+
+/// The page is gone: both owners are closed.
+final class Ended extends SessionState {
+  const Ended();
+}
+
 /// One open document, its page model: its editor owner (what shows, of
 /// the document's type, seen through the shared [editor] contract) and
 /// its file owner (where the edits are kept), joined: each one's events
 /// become the other's inputs. Their effects run inside the owners. No UI.
 /// [changes] tells of every change of where the edits are ([status],
-/// [saveState]).
+/// [saveState]) and of [state].
 final class DocumentSession {
-  /// The document whose file [effects] reads and writes, edited by
-  /// [editor], which opened with the file's text as [effects] last saw
-  /// it.
-  DocumentSession(this._effects, this.editor)
-    : _file = fileOwner(switch (_effects.file) {
-        ExistingFile(:final document) => openedFile(document.seen),
-        NewFile() => newFile(),
+  /// The document [opened] (`null` for a new one, which goes where
+  /// [effects] say), its file read and written by [effects], edited by
+  /// [editor], which opened with [opened]'s text.
+  DocumentSession(DocumentText? opened, this._effects, this.editor)
+    : _file = fileOwner(switch (opened) {
+        final opened? => openedFile(opened.seen),
+        null => newFile(),
       }, _effects.run) {
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
@@ -33,7 +59,7 @@ final class DocumentSession {
   }
 
   final FileEffects _effects;
-  final FileOwner _file;
+  final FileOwner<DocumentVersion> _file;
 
   /// The way into the editor owner.
   final PageEditor editor;
@@ -42,49 +68,32 @@ final class DocumentSession {
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
   final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
   final _changes = StreamController<void>.broadcast(sync: true);
+  final _stopNotices = StreamController<bool>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, as listeners last heard.
   bool _unsent = false;
 
-  bool _disposed = false;
-  bool _stopped = false;
+  /// Whether the document takes edits.
+  SessionState get state => _state;
+  SessionState _state = const Running();
 
-  /// Whether the file owner stopped by a bug: the document takes no more
-  /// edits; those made so far are kept on this device ([editsKept]) and
-  /// go into the file at the next start.
-  bool get stopped => _stopped;
-
-  /// Once [stopped]: whether the edits are kept on this device; `null`
-  /// while that is not known yet.
-  bool? get editsKept => _editsKept;
-  bool? _editsKept;
-
-  /// The keeps of the last draft started since [stopped]; the last one
-  /// holds every edit.
-  int _lastKeeps = 0;
-
-  /// The text of the last draft started since [stopped].
-  String? _lastDraft;
-
-  /// Where the file is.
-  DocumentFile get file => switch (document) {
-    final document? => ExistingFile(document),
-    null => _effects.file,
-  };
+  /// Where the file is: the file the file owner names, else where a new
+  /// document's file goes.
+  DocumentFile get file => _effects.whereOf(_file.state.file);
 
   /// The document's file as last read or written, or where the user moved
   /// it; `null` until a new document's file is created.
-  DocumentText? get document => switch (_file.state.file) {
-    final version? => documentOf(version),
-    null => null,
-  };
+  DocumentText? get document => _file.state.file?.read;
 
   /// Where the document stands against its file.
-  FileStatus get status => _file.state.status;
+  FileStatus<DocumentVersion> get status => _file.state.status;
 
-  /// The edits as last sent to be kept, and their rev. Once [stopped],
-  /// the text kept as the last draft: the latest edits.
-  String get text => _lastDraft ?? _file.state.text;
+  /// The edits as last sent to be kept, and their rev. Once [Stopped],
+  /// its text: the latest edits.
+  String get text => switch (_state) {
+    Stopped(:final text) => text,
+    Running() || Ended() => _file.state.text,
+  };
   int get rev => _file.state.rev;
 
   SaveState get saveState => saveStateOf(status, unsent: editor.state.unsent);
@@ -96,9 +105,13 @@ final class DocumentSession {
   /// What the user is told of the file: [Replaced], [PickNotKept].
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
 
-  /// Fires on every change of where the edits are, and of where the file
-  /// is.
+  /// Fires on every change of where the edits are, of where the file is,
+  /// and of [state].
   Stream<void> get changes => _changes.stream;
+
+  /// Fires once after the document [Stopped], as it is first known
+  /// whether its edits are kept on this device.
+  Stream<bool> get stopNotices => _stopNotices.stream;
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new document's file is created now, unless it is empty.
@@ -149,10 +162,7 @@ final class DocumentSession {
   void discard() => _file.send(const Discard());
 
   /// The user moved or renamed the document to [copy].
-  void moved(DocumentText copy) {
-    _effects.moved(copy);
-    _file.send(Moved(copy.seen));
-  }
+  void moved(DocumentText copy) => _file.send(Moved(copy.seen));
 
   /// The user picked where a new document's file goes.
   void place(NewFile to) {
@@ -160,35 +170,46 @@ final class DocumentSession {
     _changed();
   }
 
-  void _onEditorEvent(EditorNotice event) => switch (event) {
-    ToFile(input: Edited(:final text)) when _stopped => _keepLastDraft(text),
-    ToFile() when _stopped => null,
-    ToFile(:final input) => _file.send(input),
-    UndoOffered() || UndoRefused() || HistoryEnd() => _editorNotices.add(event),
+  void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
+    (ToFile(input: Edited(:final text)), Stopped()) => _keepLastDraft(text),
+    (ToFile(:final input), Running()) => _file.send(input),
+    (ToFile(), Stopped() || Ended()) => null,
+    (UndoOffered() || UndoRefused() || HistoryEnd(), _) => _editorNotices.add(
+      event,
+    ),
   };
 
   /// The file owner ended before [dispose]: it stopped by a bug. The
   /// edits it holds, and those the editor still holds, are kept as the
   /// draft.
   void _onFileStopped() {
-    if (_disposed) return;
-    _stopped = true;
-    _keepLastDraft(text);
+    if (_state is! Running) return;
+    _keepLastDraft(_file.state.text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
     editor.send(SecureEditor(Ticket(), SecureReason.hide));
-    _changed();
   }
 
+  /// Keeps [text], the latest edits, as the draft; only the latest keep's
+  /// outcome counts.
   void _keepLastDraft(String text) {
-    _lastDraft = text;
-    final keep = ++_lastKeeps;
+    final known = switch (_state) {
+      Stopped(:final kept) => kept,
+      Running() || Ended() => null,
+    };
+    final keeping = Stopped(text, kept: known);
+    _setState(keeping);
     unawaited(
-      _effects.keepLastDraft(text).then((kept) {
-        if (keep != _lastKeeps || _disposed) return;
-        _editsKept = kept;
-        _changed();
+      _effects.keepLastDraft(text, file: _file.state.file).then((kept) {
+        if (!identical(_state, keeping)) return;
+        _setState(Stopped(text, kept: kept));
+        if (known == null) _stopNotices.add(kept);
       }),
     );
+  }
+
+  void _setState(SessionState state) {
+    _state = state;
+    _changed();
   }
 
   /// Edits held in the editor change where the edits are, before they
@@ -214,18 +235,19 @@ final class DocumentSession {
   }
 
   void _changed() {
-    if (!_disposed) _changes.add(null);
+    if (_state is! Ended) _changes.add(null);
   }
 
   /// Closes both owners; work under way still ends.
   void dispose() {
-    _disposed = true;
+    _state = const Ended();
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }
     unawaited(_editorNotices.close());
     unawaited(_fileNotices.close());
     unawaited(_changes.close());
+    unawaited(_stopNotices.close());
     unawaited(editor.close());
     unawaited(_file.close());
   }

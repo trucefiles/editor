@@ -21,18 +21,13 @@ import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
 import '../../documents/document_text.dart';
 import '../../documents/document_title.dart';
-import '../../documents/document_version.dart';
 import '../../documents/documents_wiring.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
-import '../../editor/editor_view.dart';
 import '../../editor/ui/history_buttons.dart';
-import '../../file_types/document_types.dart';
-import '../../file_types/editable_type.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/document_folder.dart';
-import '../../folders/folder_lookup.dart';
 import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
@@ -42,9 +37,9 @@ import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../theme/touch.dart';
 import '../document_controller.dart';
 import '../document_file.dart';
+import '../document_page_wiring.dart';
+import '../document_pages.dart';
 import '../document_session.dart';
-import '../editor_part.dart';
-import '../file_effects.dart';
 import 'document_backups.dart';
 import 'document_place_chip.dart';
 import 'edit_state_banner.dart';
@@ -71,116 +66,41 @@ class DocumentScreen extends ConsumerStatefulWidget {
 }
 
 class _DocumentScreenState extends ConsumerState<DocumentScreen> {
-  // Read up front: dispose() needs them, and ref is unusable by then.
-  late final FolderStateController _folderState;
-  late final ProviderContainer _container;
-  late final DocumentSettingsController _settings;
-  late final EditableType _type;
-  late final EditorPart _part;
-  late final EditorView _view;
+  late final DocumentPage _page;
   late final StreamSubscription<void> _partChanges;
-  late final DocumentSession _session;
-  late final DocumentController _controller;
   late final AppLifecycleListener _lifecycle;
   late final List<StreamSubscription<Object>> _notices;
-  late final void Function() _leaveOpenDocuments;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
+  DocumentSession get _session => _page.session;
+  DocumentController get _controller => _page.controller;
   PageEditor get _editor => _session.editor;
 
   /// Where the document is now: it changes when the user moves it, or
   /// picks another place for a new one.
   DocumentFolder get _folder => _session.file.folder;
 
-  /// The document's settings on this device; the defaults until it has a
-  /// file.
-  DocumentSettings get _settingsNow => switch (_session.document) {
-    final document? => _settings.settingsOf(document.key),
-    null => DocumentSettings.defaults,
-  };
-
   @override
   void initState() {
     super.initState();
-    _container = ProviderScope.containerOf(context, listen: false);
-    _folderState = ref.read(folderContentsProvider.notifier);
-    _settings = ref.read(documentSettingsProvider.notifier);
-    final document = widget.document;
-    final settings = switch (document) {
-      final document? => _settings.settingsOf(document.key),
-      null => DocumentSettings.defaults,
-    };
-    final types = ref.read(documentTypesProvider);
-    _type = switch (document) {
-      final document? => types.ofFile(document.type),
-      null => types.forNew,
-    };
-    final file = switch ((document, widget.place)) {
-      (final document?, _) => ExistingFile(document),
-      (_, final place?) => NewFile(place, type: _type),
+    final pages = ref.read(documentPagesProvider);
+    _page = switch ((widget.document, widget.place)) {
+      (final document?, _) => pages.open(document, withFile: _withFile),
+      (_, final place?) => pages.openNew(place, withFile: _withFile),
       _ => throw StateError('A document or a place is needed.'),
     };
-    final opened = document?.seen;
-    final editor = _type.openEditor(
-      (
-        text: opened?.text ?? '',
-        version: opened?.version,
-        view: settings.view,
-        // Not yet kept as a conflict copy: only an unreachable folder
-        // makes it read only.
-        readOnly: _unreachable(file.folder),
-        isNew: document == null,
-      ),
-      EditorPage(
-        keepView: (change) => _controller.keepSettings(
-          (settings) => settings.withView(change(settings.view)),
-        ),
-        withFile: _withFile,
-      ),
-    );
-    _part = editor.part;
-    _view = editor.view;
-    _session = DocumentSession(
-      FileEffects(
-        file,
-        filesOf: (folder) => _container.read(folderFilesProvider).of(folder),
-        draftsOf: (folder) =>
-            _container.read(draftsProvider).of(folder.base.id),
-        create: ref.read(documentActionsProvider).create,
-      ),
-      _part.editor,
-    );
-    _controller = DocumentController(
-      _session,
-      reachSettled: () =>
-          ref.read(folderReachProvider(_folder.base).notifier).settled(),
-      backUp: _backUp,
-      canEdit: () => !_isReadOnly,
-      delete: ref.read(documentActionsProvider).delete,
-      editSettings: _settings.edit,
-    );
-    _partChanges = _part.changes.listen((_) => _onPartChanged());
-    _controller
-      ..addListener(_showShownMode)
-      ..addListener(_tellIfStopped);
+    _partChanges = _page.part.changes.listen((_) => _rebuild());
+    _controller.addListener(_rebuild);
     _notices = [
       _session.editorNotices.listen(_onEditorNotice),
       _session.fileNotices.listen(_onFileNotice),
+      _session.stopNotices.listen(_onStopped),
     ];
-    _leaveOpenDocuments = ref
-        .read(openDocumentsProvider)
-        .add(
-          base: () => _folder.base,
-          secure: () => _session.secure(SecureReason.hide),
-        );
     _lifecycle = AppLifecycleListener(
       onHide: () => unawaited(_session.secure(SecureReason.hide)),
       onExitRequested: _onExitRequested,
     );
-    // Opening a document lists the folders again, as the refresh setting
-    // promises; its own text was read just before.
-    unawaited(_folderState.refresh());
   }
 
   @override
@@ -190,64 +110,26 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       unawaited(notices.cancel());
     }
     unawaited(_partChanges.cancel());
-    _part.dispose();
-    _controller
-      ..removeListener(_showShownMode)
-      ..removeListener(_tellIfStopped)
-      ..dispose();
-    final session = _session;
-    final leaveOpenDocuments = _leaveOpenDocuments;
-    // Also after a leave that kept the edits: the screen may also go
-    // without one (its route removed), and a second answer is quick. It
-    // stays an open document until then, so a folder change waits for it.
-    unawaited(
-      session.secure(SecureReason.close).whenComplete(() {
-        leaveOpenDocuments();
-        session.dispose();
-      }),
-    );
+    _controller.removeListener(_rebuild);
+    unawaited(_page.close());
     super.dispose();
   }
 
-  /// Backs up [text], the document's text now.
-  Future<Result<void, StoreError>> _backUp(String text) async =>
-      switch (_session.document) {
-        final document? =>
-          await _container
-              .read(folderFilesProvider)
-              .of(document.folder)
-              .backUpCurrent(document, text),
-        null => const Err(StoreError.notFound),
-      };
-
-  /// Shows the document only to read while it can't be edited.
-  void _showShownMode() {
-    _part.showReadOnly(readOnly: _isReadOnly);
+  void _rebuild() {
     if (mounted) setState(() {});
   }
 
-  void _onPartChanged() {
-    if (mounted) setState(() {});
-  }
-
-  bool _toldStopped = false;
-
-  /// Tells once that the document stopped taking edits (a bug), once
-  /// it is known whether its edits are kept.
-  void _tellIfStopped() {
-    final kept = _session.editsKept;
-    if (!_session.stopped || kept == null || _toldStopped) return;
-    _toldStopped = true;
-    _messenger.currentState?.showHint(
-      kept
-          ? 'Something went wrong, so this document is read only now. Your '
-                'edits are kept on this device and go into the file at the '
-                'next start.'
-          : 'Something went wrong, so this document is read only now, and '
-                "your latest edits couldn't be kept. Copy them elsewhere "
-                'before you leave.',
-    );
-  }
+  /// Tells that the document stopped taking edits (a bug), and whether
+  /// its edits are [kept].
+  void _onStopped(bool kept) => _messenger.currentState?.showHint(
+    kept
+        ? 'Something went wrong, so this document is read only now. Your '
+              'edits are kept on this device and go into the file at the '
+              'next start.'
+        : 'Something went wrong, so this document is read only now, and '
+              "your latest edits couldn't be kept. Copy them elsewhere "
+              'before you leave.',
+  );
 
   void _onEditorNotice(EditorNotice notice) {
     final messenger = _messenger.currentState;
@@ -332,15 +214,16 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   /// its folder, what is left stays on this device; as they removed it,
   /// its drafts go with it, so the hint promises nothing.
   void _closeIfNotShown(List<DocumentFolder> folders) {
-    final path = _session.file.pathFor(_session.text);
-    if (folders.folderOf(_folder.base.id, path) != null) return;
-    final removed = !folders.any((folder) => folder.id == _folder.id);
-    ScaffoldMessenger.of(context).showHint(
-      removed
-          ? 'The folder was removed, so the document closed.'
-          : 'The document is no longer in a folder shown here. Your edits '
-                'are kept.',
-    );
+    final hint = switch (_controller.shownIn(folders)) {
+      DocumentShown.shown => null,
+      DocumentShown.narrowedAway =>
+        'The document is no longer in a folder shown here. Your edits are '
+            'kept.',
+      DocumentShown.folderRemoved =>
+        'The folder was removed, so the document closed.',
+    };
+    if (hint == null) return;
+    ScaffoldMessenger.of(context).showHint(hint);
     _closeWithAllOnTop();
   }
 
@@ -360,16 +243,6 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       Navigator.pop(context);
     }
   }
-
-  /// Whether the screen can close at once: nothing is left to keep.
-  bool get _canLeaveNow => switch (_session.status) {
-    InStep() || Unwritten() => !_editor.state.unsent,
-    KeptAsConflict() || Closed() => true,
-    Editing() ||
-    ChangedElsewhere() ||
-    DeletedElsewhere() ||
-    SaveFailed() => false,
-  };
 
   /// [context] is this screen's, below its own messenger.
   Future<void> _delete(BuildContext context) async {
@@ -432,7 +305,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          ..._view.menu(context, settings.view),
+          ..._page.view.menu(context, settings.view),
           PopupMenuItem(
             value: () =>
                 _withFile((document) => editPinOrColor(context, ref, document)),
@@ -464,7 +337,11 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     await openDocumentBackups(
       context,
       document: document.document,
-      title: documentTitle(text, _session.file.pathFor(text), _type.support),
+      title: documentTitle(
+        text,
+        _session.file.pathFor(text),
+        _page.type.support,
+      ),
       controller: _controller,
       messenger: messenger,
     );
@@ -474,10 +351,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   Widget build(BuildContext context) {
     ref
       ..listen(folderReachProvider(_folder.base), (_, _) {
-        _showShownMode();
+        _controller.reachChanged();
       })
       ..listen(documentSettingsProvider, (_, _) {
-        _part.viewChanged(_settingsNow.view);
+        _page.part.viewChanged(_controller.settings.view);
       })
       ..listen(folderContentsProvider, (_, next) {
         if (next.value case final contents?) _session.observe(contents);
@@ -486,7 +363,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         if (next.value case final folders?) _closeIfNotShown(folders);
       });
     return PopScope(
-      canPop: _canLeaveNow,
+      canPop: _controller.canLeaveNow,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave());
       },
@@ -513,9 +390,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
       if (_isEdited) _editor.send(const Redo());
     },
-    for (final MapEntry(key: keys, value: action) in _view.keys.entries)
+    for (final MapEntry(key: keys, value: action) in _page.view.keys.entries)
       keys: () {
-        if (!_isReadOnly) action();
+        if (!_controller.readOnly) action();
       },
   };
 
@@ -530,32 +407,19 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     ),
   );
 
-  /// Only shown in Read: no mode to pick.
-  bool get _isReadOnly => _isDone || _isUnreachable || _session.stopped;
-
   /// Open for editing: undo and redo work.
-  bool get _isEdited => !_isReadOnly && _part.isEditing;
-
-  /// The edits were kept as a conflict copy; nothing more to edit here.
-  bool get _isDone => _session.status is KeptAsConflict;
-
-  bool get _isUnreachable => _unreachable(_folder);
-
-  bool _unreachable(DocumentFolder folder) =>
-      ref.read(folderReachProvider(folder.base)) == Reach.unreachable;
+  bool get _isEdited => !_controller.readOnly && _page.part.isEditing;
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
     ref.watch(folderReachProvider(_folder.base));
-    final unreachable = _isUnreachable;
-    final readOnly = _isReadOnly;
+    final unreachable = _controller.unreachable;
+    final readOnly = _controller.readOnly;
     final contents = ref.watch(folderContentsProvider).value;
     final key = _session.document?.key;
-    final mark = key == null
-        ? DocumentMark.none
-        : contents?.markOf(key) ?? DocumentMark.none;
+    final mark = _controller.markIn(contents);
     ref.watch(documentSettingsProvider);
-    final settings = _settingsNow;
+    final settings = _controller.settings;
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
     final path = _session.file.pathFor(text);
@@ -564,7 +428,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       appBar: AppBar(
         backgroundColor: tint,
         title: DocumentHeading(
-          title: documentTitle(text, path, _type.support),
+          title: documentTitle(text, path, _page.type.support),
           edited: _session.document?.document.modified,
         ),
         actions: [
@@ -578,7 +442,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               onPressed: _refresh,
             ),
           if (!readOnly) ...[
-            ..._view.actions(context),
+            ..._page.view.actions(context),
             _menu(context, settings),
           ],
         ],
@@ -609,9 +473,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             // The editor scrolls inside.
             child: PullToRefresh(
               key: _pull,
-              onRefresh: _folderState.refresh,
+              onRefresh: ref.read(folderContentsProvider.notifier).refresh,
               child: DocumentTextZoom(
-                child: _view.view(
+                child: _page.view.view(
                   (
                     kept: text,
                     addItems: ref.watch(

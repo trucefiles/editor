@@ -25,12 +25,13 @@ typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
 /// `file_contract.dart`): keeps and drops its draft on this device,
 /// reads, writes, creates and restores its file, backs it up and keeps
 /// conflict copies; answers each effect with the result the owner gets.
-/// Where an effect names a version of the file, it acts on that
-/// version's document; drafts and a new document's file go where the
-/// file is now ([file]).
+/// Each effect names the file it acts on; where it names none (a new
+/// document's), it acts where the new document's file goes.
 final class FileEffects {
-  FileEffects(
-    this._file, {
+  /// [newFile]: where a new document's file goes; `null` for a document
+  /// opened from its file.
+  FileEffects({
+    this._newFile,
     required this._filesOf,
     required this._draftsOf,
     required this._create,
@@ -43,122 +44,130 @@ final class FileEffects {
   /// One draft per open document; names it in its folder's drafts.
   final _draftId = DocumentDraft.newId();
 
-  /// Where drafts and a new document's file go: the place the user last
-  /// gave. Writes go over the version the owner names instead. The two
-  /// differ only after a move that left the original (it changed
-  /// meanwhile): the draft then names the copy while writes go over the
-  /// original. Nothing is lost: a recovered draft that does not build on
-  /// the copy's text becomes a conflict copy.
-  DocumentFile _file;
+  /// Where a new document's file goes: the place the user last gave;
+  /// `null` for a document opened from its file.
+  NewFile? _newFile;
 
-  /// The draft kept last, until it is dropped; kept again where a new
-  /// document goes when its place changes.
+  /// The draft kept last, until it is dropped: moved along when a new
+  /// document's place changes, and what the last draft builds on once the
+  /// owner stopped.
   DocumentDraft? _draft;
-
-  /// Where the file is: where it was created or the user moved it, or
-  /// where a new document's file goes.
-  DocumentFile get file => _file;
 
   /// Does [effect]; its result for the file owner, `null` for an effect
   /// without one. Draft work starts before this returns, so drafts are
   /// kept and dropped in the order asked.
-  Future<FileResult?> run(FileEffect effect) => switch (effect) {
-    KeepDraft(:final id, :final base, :final text) => _keepDraft(
+  Future<FileResult<DocumentVersion>?> run(
+    FileEffect<DocumentVersion> effect,
+  ) => switch (effect) {
+    KeepDraft(:final id, :final base, :final text, :final file) => _keepDraft(
       id,
       base,
       text,
+      whereOf(file),
     ),
-    DropDraft() => _dropDraft(),
+    DropDraft(:final file) => _dropDraft(whereOf(file)),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
-      _write(text, documentOf(over.version), backUpFirst: backUpFirst),
+      _write(text, over.version.read, backUpFirst: backUpFirst),
     ),
     Create(:final id, :final text) => _wrote(id, _createFile(text)),
     Restore(:final id, :final text, :final where) => _wrote(
       id,
-      _restore(text, documentOf(where.version)),
+      _restore(text, where.version.read),
     ),
-    ReadLatest(:final id, :final at) => _readLatest(id, documentOf(at.version)),
+    ReadLatest(:final id, :final at) => _readLatest(id, at.version.read),
     BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
       id,
-      theirs,
+      theirs.version.read,
       mine,
     ),
     KeepAsConflict(:final id, :final text, :final nextTo) => _keepAsConflict(
       id,
       text,
-      documentOf(nextTo.version),
+      nextTo.version.read,
     ),
   };
-
-  /// The user moved or renamed the document to [copy].
-  void moved(DocumentText copy) => _file = ExistingFile(copy);
 
   /// The user picked where a new document's file goes; its draft goes
   /// along.
   void place(NewFile to) {
-    final from = _file;
-    _file = to;
+    final from = _newFile;
+    _newFile = to;
     final draft = _draft;
     if (draft == null) return;
-    if (from.folder.base != to.folder.base) {
+    if (from != null && from.folder.base != to.folder.base) {
       // Not awaited: the queue of the draft's id keeps the order.
       _draftsOf(from.folder).remove(_draftId);
     }
-    _keepDraft(null, draft.base, draft.text);
+    _keep(draft.base, draft.text, to);
   }
 
   /// Keeps [text] as the draft without the file owner, once it stopped
-  /// (a bug): over the base of the draft before, else of the file as
-  /// opened. It goes into the file at the next start.
+  /// (a bug): over the base of the draft before, else of [file], the
+  /// version the owner last named (`null` for a new document). It goes
+  /// into the file at the next start.
   /// Whether they are kept, or there was nothing to keep.
-  Future<bool> keepLastDraft(String text) async {
-    final base =
-        _draft?.base ??
-        switch (_file) {
-          ExistingFile(:final document) => document.file.text,
-          NewFile() => null,
-        };
+  Future<bool> keepLastDraft(
+    String text, {
+    required DocumentVersion? file,
+  }) async {
+    final base = _draft?.base ?? file?.read.text;
     if (text == (base ?? '')) return true;
-    return _keep(base, text);
+    return _keep(base, text, whereOf(file));
   }
 
-  Future<FileResult?> _keepDraft(EffectId? id, String? base, String text) =>
-      _keep(
-        base,
-        text,
-      ).then((kept) => id == null ? null : DraftKept(id, kept: kept));
+  /// Where the effects on [file] act: the file, or where a new document's
+  /// file goes while it has none.
+  DocumentFile whereOf(DocumentVersion? file) => switch ((file, _newFile)) {
+    (final file?, _) => ExistingFile(file.read),
+    (null, final place?) => place,
+    // The owner names a file for every document opened from one.
+    (null, null) => throw StateError('A document without file or place.'),
+  };
 
-  /// Keeps [text] over [base] as this document's draft; whether it is kept.
-  Future<bool> _keep(String? base, String text) {
+  Future<FileResult<DocumentVersion>> _keepDraft(
+    EffectId id,
+    String? base,
+    String text,
+    DocumentFile where,
+  ) => _keep(base, text, where).then((kept) => DraftKept(id, kept: kept));
+
+  /// Keeps [text] over [base] as the draft of the document [where] is;
+  /// whether it is kept.
+  Future<bool> _keep(String? base, String text, DocumentFile where) {
     final draft = DocumentDraft(
       id: _draftId,
-      path: _file.pathFor(text),
+      path: where.pathFor(text),
       base: base,
       text: text,
     );
     _draft = draft;
-    return _draftsOf(_file.folder).keep(draft);
+    return _draftsOf(where.folder).keep(draft);
   }
 
-  Future<FileResult?> _dropDraft() async {
+  Future<FileResult<DocumentVersion>?> _dropDraft(DocumentFile where) async {
     _draft = null;
-    await _draftsOf(_file.folder).remove(_draftId);
+    await _draftsOf(where.folder).remove(_draftId);
     return null;
   }
 
-  Future<FileResult> _wrote(EffectId id, Future<WriteOutcome> write) async {
+  Future<FileResult<DocumentVersion>> _wrote(
+    EffectId id,
+    Future<WriteOutcome<DocumentVersion>> write,
+  ) async {
     final outcome = await write;
     return Wrote(id, outcome, endedAt: Moment.now());
   }
 
-  Future<FileResult> _readLatest(EffectId id, DocumentText at) async =>
-      switch (await _filesOf(at.folder).reload(at.document)) {
-        Ok(value: final now) => LatestRead(id, now.seen),
-        Err() => LatestRead(id, null),
-      };
+  Future<FileResult<DocumentVersion>> _readLatest(
+    EffectId id,
+    DocumentText at,
+  ) async => switch (await _filesOf(at.folder).reload(at.document)) {
+    Ok(value: final now) => LatestRead(id, now.seen),
+    Err() => LatestRead(id, null),
+  };
 
-  Future<WriteOutcome> _write(
+  Future<WriteOutcome<DocumentVersion>> _write(
     String text,
     DocumentText over, {
     required bool backUpFirst,
@@ -180,9 +189,9 @@ final class FileEffects {
     };
   }
 
-  Future<WriteOutcome> _createFile(String text) async {
-    final file = _file;
-    if (file is! NewFile) return const WriteFailed();
+  Future<WriteOutcome<DocumentVersion>> _createFile(String text) async {
+    final file = _newFile;
+    if (file == null) return const WriteFailed();
     return switch (await _create(
       file.place,
       type: file.type,
@@ -195,7 +204,10 @@ final class FileEffects {
     };
   }
 
-  Future<WriteOutcome> _restore(String text, DocumentText where) async {
+  Future<WriteOutcome<DocumentVersion>> _restore(
+    String text,
+    DocumentText where,
+  ) async {
     final files = _filesOf(where.folder);
     return switch (await files.restore(where, text)) {
       Ok(value: final restored) => _written(restored),
@@ -210,18 +222,19 @@ final class FileEffects {
   }
 
   /// The file now holds [document].
-  WriteOutcome _written(DocumentText document) {
-    _file = ExistingFile(document);
-    return Written(document.seen);
-  }
+  WriteOutcome<DocumentVersion> _written(DocumentText document) =>
+      Written(document.seen);
 
-  Future<FileResult> _backUpBoth(EffectId id, Seen theirs, String mine) async {
-    final document = documentOf(theirs.version);
+  Future<FileResult<DocumentVersion>> _backUpBoth(
+    EffectId id,
+    DocumentText document,
+    String mine,
+  ) async {
     final backedUp = await _filesOf(document.folder).backUp(document, mine);
     return BackedUp(id, ok: backedUp is Ok);
   }
 
-  Future<FileResult> _keepAsConflict(
+  Future<FileResult<DocumentVersion>> _keepAsConflict(
     EffectId id,
     String text,
     DocumentText nextTo,
