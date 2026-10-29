@@ -1,4 +1,4 @@
-import '../../common/most_used.dart';
+import '../common/most_used.dart';
 
 /// A line's text and the line ending after it.
 typedef TextLine = ({String text, String ending});

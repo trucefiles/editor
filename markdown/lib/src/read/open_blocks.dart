@@ -1,24 +1,13 @@
 /// Blocks while the block reader reads them: open until finalized, and
-/// mutable only inside the reader. A container may hold blocks kept from
-/// an earlier reading, when a re-read resumes inside it.
+/// mutable only inside the reader.
 library;
 
 import 'package:collection/collection.dart';
 
 import '../tree/blocks.dart';
 
-/// A child of a container while reading.
-sealed class ReadChild {}
-
-/// A block kept as it was read before.
-final class KeptChild extends ReadChild {
-  KeptChild(this.block);
-
-  final Block block;
-}
-
 /// A block being read.
-sealed class OpenBlock extends ReadChild {
+sealed class OpenBlock {
   OpenBlock(this.firstLine);
 
   OpenContainer? parent;
@@ -49,15 +38,11 @@ final class ReadLine {
   final int tabColumns;
 }
 
-/// A container while reading. [keptId] is the id of the container it
-/// continues from an earlier reading.
+/// A container while reading.
 sealed class OpenContainer extends OpenBlock {
-  OpenContainer(super.firstLine, {this.keptId, List<Block> kept = const []}) {
-    children.addAll(kept.map(KeptChild.new));
-  }
+  OpenContainer(super.firstLine);
 
-  final BlockId? keptId;
-  final children = <ReadChild>[];
+  final children = <OpenBlock>[];
 
   bool canContain(OpenBlock child) => child is! OpenItem;
 
@@ -72,15 +57,15 @@ sealed class OpenContainer extends OpenBlock {
 }
 
 final class OpenRoot extends OpenContainer {
-  OpenRoot({super.keptId, super.kept}) : super(0);
+  OpenRoot() : super(0);
 }
 
 final class OpenQuote extends OpenContainer {
-  OpenQuote(super.firstLine, {super.keptId, super.kept});
+  OpenQuote(super.firstLine);
 }
 
 final class OpenList extends OpenContainer {
-  OpenList(super.firstLine, this.marker, {super.keptId, super.kept});
+  OpenList(super.firstLine, this.marker);
 
   /// The marker of its first item, which later items must continue.
   final ItemMarker marker;
@@ -96,8 +81,6 @@ final class OpenItem extends OpenContainer {
     required this.markerOffset,
     required this.padding,
     required this.checked,
-    super.keptId,
-    super.kept,
   });
 
   final ItemMarker marker;

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../common/unchanged_ends.dart';
+
 /// A UTF-8 text file decoded for editing.
 ///
 /// Editors work on [text] with `\n` line breaks only. [encode] puts the
@@ -84,23 +86,13 @@ final class TextFile {
   /// edited part keep theirs, on both sides; other breaks get [lineBreak].
   List<String> _breaksFor(List<String> lines) {
     final old = text.split('\n');
-    final shorter = old.length < lines.length ? old.length : lines.length;
-    var same = 0;
-    while (same < shorter && old[same] == lines[same]) {
-      same++;
-    }
-    var sameAtEnd = 0;
-    while (sameAtEnd < shorter - same &&
-        old[old.length - 1 - sameAtEnd] ==
-            lines[lines.length - 1 - sameAtEnd]) {
-      sameAtEnd++;
-    }
+    final same = unchangedEnds(old, lines);
     final shift = old.length - lines.length;
     return [
       for (var i = 0; i < lines.length - 1; i++)
-        if (i < same && i < _breaks.length)
+        if (i < same.start && i < _breaks.length)
           _breaks[i]
-        else if (i + 1 >= lines.length - sameAtEnd && i + shift >= 0)
+        else if (i + 1 >= lines.length - same.end && i + shift >= 0)
           _breaks[i + shift]
         else
           lineBreak,

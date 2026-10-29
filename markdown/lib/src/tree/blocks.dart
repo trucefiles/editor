@@ -1,16 +1,13 @@
 /// The blocks of a document as CommonMark 0.31 and GitHub Flavored Markdown
 /// read them: containers that hold blocks, and leaves that hold lines.
-/// Immutable values without parent links, so an edit rebuilds only the
-/// path to what it changed; `DocumentTree` answers questions about where a
-/// block is. Blank lines are no blocks: they are layout between leaves.
+/// Immutable values without parent links; `DocumentTree` answers
+/// questions about where a block is. Lines are named by their index.
+/// Blank lines are no blocks: they are layout between leaves.
 library;
-
-import 'package:truce_core/truce_core.dart' show LineId;
 
 import 'inlines.dart';
 
-/// Identifies a block while it lives, across edits of its lines.
-/// Opaque: only equal or not.
+/// Identifies a block in its tree. Opaque: only equal or not.
 extension type const BlockId(int _value) {}
 
 /// One block.
@@ -55,12 +52,12 @@ final class QuoteBlock extends ContainerBlock {
     required this.lastLine,
   });
 
-  /// The line it starts at.
-  final LineId firstLine;
+  /// The index of the line it starts at.
+  final int firstLine;
 
-  /// The last line that goes on with it, `>` lines after its last block
-  /// included.
-  final LineId lastLine;
+  /// The index of the last line that goes on with it, `>` lines after
+  /// its last block included.
+  final int lastLine;
 
   @override
   QuoteBlock withChildren(List<Block> children) =>
@@ -150,8 +147,8 @@ final class ItemBlock extends ContainerBlock {
     required this.contentColumn,
   });
 
-  /// The line its marker is on.
-  final LineId markerLine;
+  /// The index of the line its marker is on.
+  final int markerLine;
 
   final ItemMarker marker;
 
@@ -190,14 +187,15 @@ typedef PrefixPart = ({BlockId container, int start, int end});
 /// own part, from [contentStart] on.
 final class SourceLine {
   SourceLine(
-    this.id,
+    this.index,
     this.text, {
     required List<PrefixPart> prefix,
     required this.contentStart,
     this.tabColumns = 0,
   }) : prefix = List.unmodifiable(prefix);
 
-  final LineId id;
+  /// Its index among the document's lines.
+  final int index;
 
   /// The whole line, as in the file.
   final String text;
@@ -354,10 +352,10 @@ Iterable<BlockId> idsIn(Block block) => switch (block) {
   LeafBlock() => [block.id],
 };
 
-/// The lines [block] spans, as ids, first and last: from where it starts
+/// The lines [block] spans, as indexes, first and last: from where it starts
 /// (an item at its marker) to its last block's last line; a quote spans
 /// its `>` lines. Not for an empty root.
-({LineId first, LineId last}) lineSpanOf(Block block) => switch (block) {
+({int first, int last}) lineSpanOf(Block block) => switch (block) {
   ItemBlock(:final markerLine, :final children) => (
     first: markerLine,
     last: children.isEmpty ? markerLine : lineSpanOf(children.last).last,
@@ -370,5 +368,5 @@ Iterable<BlockId> idsIn(Block block) => switch (block) {
     first: lineSpanOf(children.first).first,
     last: lineSpanOf(children.last).last,
   ),
-  LeafBlock(:final lines) => (first: lines.first.id, last: lines.last.id),
+  LeafBlock(:final lines) => (first: lines.first.index, last: lines.last.index),
 };

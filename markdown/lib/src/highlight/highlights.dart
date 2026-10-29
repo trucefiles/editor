@@ -1,5 +1,3 @@
-import 'package:truce_core/truce_core.dart' show LineId;
-
 import '../document_tree.dart';
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';
@@ -56,18 +54,18 @@ final class LinkHighlight implements Highlight {
 /// [highlight] from [start] to [end] in a line.
 typedef HighlightSpan = ({int start, int end, Highlight highlight});
 
-/// The highlights of line [id] of [tree], outer ones first: stretches
-/// may lie within others (bold text in a link). Derived once per leaf.
-List<HighlightSpan> highlightsOf(DocumentTree tree, LineId id) =>
-    switch (tree.leafOf(id)) {
-      final leaf? => (_cache[leaf] ??= _leafHighlights(leaf))[id] ?? const [],
-      null => switch (tree.lineOf(id)) {
-        final line? => _layoutLine(line.text),
-        null => const [],
+/// The highlights of each of [tree]'s lines, outer ones first: stretches
+/// may lie within others (bold text in a link).
+List<List<HighlightSpan>> highlightsOf(DocumentTree tree) {
+  final byLeaf = {for (final leaf in tree.leaves) leaf: _leafHighlights(leaf)};
+  return [
+    for (final (index, line) in tree.lines.indexed)
+      switch (tree.leafOf(index)) {
+        final leaf? => byLeaf[leaf]![index]!,
+        null => _layoutLine(line.text),
       },
-    };
-
-final _cache = Expando<Map<LineId, List<HighlightSpan>>>('highlights');
+  ];
+}
 
 /// A line in no leaf (blank, `>` or an empty item's marker): marks
 /// only.
@@ -81,11 +79,11 @@ List<HighlightSpan> _layoutLine(String text) {
 
 /// The highlights of each line of [leaf]: its containers' parts as
 /// marks, then its own part's.
-Map<LineId, List<HighlightSpan>> _leafHighlights(LeafBlock leaf) {
+Map<int, List<HighlightSpan>> _leafHighlights(LeafBlock leaf) {
   final own = _contentHighlights(leaf);
   return {
     for (final (index, line) in leaf.lines.indexed)
-      line.id: [
+      line.index: [
         for (final part in line.prefix)
           if (part.end > part.start)
             (start: part.start, end: part.end, highlight: TextHighlight.mark),

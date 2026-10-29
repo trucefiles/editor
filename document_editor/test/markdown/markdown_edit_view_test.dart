@@ -24,14 +24,14 @@ void main() {
   });
 
   testWidgets('Enter makes a line', (tester) async {
-    final document = markdown('a\r\nbc');
+    final document = markdown('a\nbc');
     await pumpDocument(tester, document);
 
     await tester.caretIn(lineNodeOf(1), 1);
     await tester.pressEnter();
     await tester.typeImeText('x');
 
-    expect(document.text, 'a\r\nb\r\nxc');
+    expect(document.text, 'a\nb\nxc');
   });
 
   testWidgets('deleting every line at once leaves an empty document', (
@@ -72,9 +72,8 @@ void main() {
     expect(_styleAt(title, 0).color, isNot(_styleAt(title, 3).color));
   });
 
-  testWidgets('a fence typed above restyles the lines below it', (
-    tester,
-  ) async {
+  testWidgets('a fence typed above restyles the lines below it once typing '
+      'pauses for a second', (tester) async {
     await pumpDocument(tester, markdown('x\n# Title'));
     InlineSpan spanOf(String text) =>
         tester.widget<RichText>(find.text(text, findRichText: true).first).text;
@@ -83,7 +82,9 @@ void main() {
     await tester.caretIn(lineNodeOf(0), 0);
     await tester.typeImeText('```');
     await tester.pumpAndSettle();
+    expect(_styleAt(spanOf('# Title'), 3).fontSize, heading);
 
+    await tester.pump(const Duration(seconds: 1));
     expect(_styleAt(spanOf('# Title'), 3).fontSize, lessThan(heading));
   });
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../editor_view.dart';
@@ -21,7 +20,7 @@ final class PlainEditorView implements EditorView {
   /// not be kept yet).
   @override
   Widget view(EditorHost host, {required bool autofocus}) => _part.isEditing
-      ? LineEditView<TextLines>(
+      ? LineEditView(
           _text,
           key: const ValueKey(#edit),
           editing: plainLines,
@@ -46,8 +45,7 @@ final class PlainEditorView implements EditorView {
   Map<SingleActivator, VoidCallback> get keys => const {};
 }
 
-/// A plain text's lines: read as written, drawn as plain text.
-final plainLines = LineEditing<TextLines>(
-  read: TextLines.read,
+/// A plain text's lines: drawn as plain text.
+final plainLines = LineEditing(
   look: (theme, metrics) => plainLook(theme, metrics: metrics),
 );

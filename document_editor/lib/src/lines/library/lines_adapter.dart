@@ -1,28 +1,23 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart'
-    show EditableLines, Line, LineId, splitLines;
+import 'package:truce_core/truce_core.dart' show splitLines, unchangedEnds;
 
 import '../../library/document_patch.dart';
 import '../../library/own_paste.dart';
 import '../edited_text.dart';
 
 /// Connects the library's [editor], one plain text node per line, to the
-/// text [_text] edits, read as lines of kind [L] (e.g. a Markdown tree,
-/// which highlights by them). The library edits the lines itself, as
-/// plain text; after each transaction that changed them, the change
-/// re-reads the lines (see [EditableLines.withLines]) and [_text] gets the
-/// new text; a caret the user moved, [_text] hears of too. A text from
-/// elsewhere shows at once, the caret kept on its line.
-final class LinesAdapter<L extends EditableLines<L>> {
-  /// [read] reads a text as lines.
-  LinesAdapter(this._text, {required L Function(String text) read})
-    : _tree = read(_text.shown?.text ?? '') {
+/// text [_text] edits. The library edits the lines itself, as plain text;
+/// after each transaction that changed them, [_text] gets the new [text];
+/// a caret the user moved, [_text] hears of too. A text from elsewhere
+/// shows at once: the lines that stayed at its start and end keep their
+/// nodes, and the caret stays on its line.
+final class LinesAdapter {
+  LinesAdapter(this._text) : _shown = _text.shown?.text ?? '' {
     _document = MutableDocument(
       nodes: [
-        for (final line in _tree.lines)
-          _lineNode(_newNodeId(line.id), line.text),
+        for (final line in _linesOf(_shown)) _lineNode(_newNodeId(), line),
       ],
     );
     editor = Editor(
@@ -38,37 +33,34 @@ final class LinesAdapter<L extends EditableLines<L>> {
   late final MutableDocument _document;
   final composer = MutableDocumentComposer();
 
-  /// The lines as the library holds them, read.
-  L _tree;
+  /// The text the nodes show, their lines broken by `\n`.
+  String _shown;
 
-  /// The line each node shows; a node the library just made has none.
-  final _lineOf = <String, LineId>{};
   int _nextNodeId = 0;
 
   /// Whether our own patch runs: its changes are no edits.
   bool _patching = false;
 
+  /// The nodes, one per line.
   Document get document => _document;
 
-  /// The lines, e.g. for highlighting.
-  L get tree => _tree;
+  /// The text the nodes show.
+  String get text => _shown;
 
-  final _treeChanged = _Changes();
+  final _linesChanged = _Changes();
 
-  /// Tells of each change of [tree].
-  Listenable get treeChanged => _treeChanged;
+  /// Tells of each change of [text].
+  Listenable get linesChanged => _linesChanged;
 
-  /// The line node [nodeId] shows; `null` for one the library just made.
-  LineId? lineOf(String nodeId) => _lineOf[nodeId];
-
-  String _newNodeId(LineId line) {
-    final id = 'line-${_nextNodeId++}';
-    _lineOf[id] = line;
-    return id;
-  }
+  String _newNodeId() => 'line-${_nextNodeId++}';
 
   static DocumentNode _lineNode(String id, String text) =>
       ParagraphNode(id: id, text: AttributedText(text));
+
+  /// [text]'s lines, broken by `\n`, `\r\n` or `\r`.
+  static List<String> _linesOf(String text) => [
+    for (final line in splitLines(text)) line.text,
+  ];
 
   // Library edits.
 
@@ -95,59 +87,29 @@ final class LinesAdapter<L extends EditableLines<L>> {
       .nonNulls
       .firstOrNull;
 
-  /// The lines the transaction's [changes] touched, re-read; the edited
-  /// text gets the text. A node that came to hold line breaks (pasted text, or
+  /// The text after a transaction that changed the lines; the edited
+  /// text gets it. A node that came to hold line breaks (pasted text, or
   /// text an input method put in) is split into its lines. A transaction
   /// that only moved the caret tells the edited text so.
   void _onTransactionEnd(List<EditEvent> changes) {
     if (_patching) return;
-    final edits = changes
-        .whereType<DocumentEdit>()
-        .map((edit) => edit.change)
-        .whereType<NodeDocumentChange>()
-        .toList();
-    if (edits.isEmpty) {
+    final edited = changes.whereType<DocumentEdit>().any(
+      (edit) => edit.change is NodeDocumentChange,
+    );
+    if (!edited) {
       if (changes.any(_movesCaret)) _text.caretMoved();
       return;
     }
-    final touched = {
-      for (final edit in edits)
-        if (edit is! NodeRemovedEvent &&
-            _document.getNodeById(edit.nodeId) != null)
-          edit.nodeId,
-    };
-    final oldLines = <LineId>{
-      for (final edit in edits)
-        if (edit is NodeRemovedEvent) ?_lineOf.remove(edit.nodeId),
-      for (final id in touched) ?_lineOf[id],
-    };
-    final oldIndexes = [for (final line in oldLines) _tree.indexOf(line)];
-    final newIndexes = [
-      for (final id in touched) _document.getNodeIndexById(id),
-    ];
-    if (oldIndexes.isEmpty && newIndexes.isEmpty) return;
-    final start = [...oldIndexes, ...newIndexes].min;
-    final (oldCount, newCount) = (_tree.lines.length, _document.nodeCount);
-    final tail = [
-      oldCount - (oldIndexes.maxOrNull ?? start - 1) - 1,
-      newCount - (newIndexes.maxOrNull ?? start - 1) - 1,
-    ].min;
-    final nodes = _document.toList().sublist(start, newCount - tail);
-    final caret = _caretOf(composer.selection);
-    _tree = _tree.withLines(start, oldCount - tail, [
-      for (final node in nodes) (id: _lineOf[node.id], text: _textOf(node)),
-    ]);
-    if (_tree.lines.length == newCount) {
-      // Nodes and lines go together by position; a line's node is new
-      // only where the line is.
-      for (final (index, node) in nodes.indexed) {
-        _lineOf[node.id] = _tree.lines[start + index].id;
-      }
-    } else {
-      _show(caret);
+    final nodes = [for (final node in _document) _textOf(node)];
+    final lines = nodes.expand(_linesOf).toList();
+    if (lines.length != nodes.length) {
+      _show(lines, _caretOf(composer.selection));
     }
-    _treeChanged.changed();
-    _text.edit(_tree.text, pasted: changes.any((change) => change is _Pasted));
+    final text = lines.join('\n');
+    if (text == _shown) return;
+    _shown = text;
+    _linesChanged.changed();
+    _text.edit(text, pasted: changes.any((change) => change is _Pasted));
   }
 
   static bool _movesCaret(EditEvent change) =>
@@ -166,14 +128,14 @@ final class LinesAdapter<L extends EditableLines<L>> {
     };
     // What shows already, e.g. the echo of an edit sent. Not compared with
     // the text sent last: undo and redo may bring that same text back.
-    if (text == null || text == _tree.text) return;
+    if (text == null || text == _shown) return;
     final caret = switch (offset) {
       final offset? => _caretAtOffset(text, offset),
       null => _caretOf(composer.selection),
     };
-    _tree = _tree.withText(text);
-    _show(caret);
-    _treeChanged.changed();
+    _shown = text;
+    _show(_linesOf(text), caret);
+    _linesChanged.changed();
   }
 
   /// The line and offset of the caret at [offset] in [text].
@@ -184,26 +146,26 @@ final class LinesAdapter<L extends EditableLines<L>> {
 
   // Showing the lines.
 
-  /// Makes the nodes show [_tree]'s lines: a line's node stays, other
-  /// lines get new ones; the caret goes to [caret], kept within the
-  /// lines.
-  void _show(_Caret? caret) {
-    final nodeOf = {
-      for (final MapEntry(:key, :value) in _lineOf.entries) value: key,
-    };
+  /// Makes the nodes show [lines]: the nodes of the lines that stayed at
+  /// the start and end stay, other lines get new ones; the caret goes to
+  /// [caret], kept within the lines.
+  void _show(List<String> lines, _Caret? caret) {
+    final nodes = _document.toList();
+    final same = unchangedEnds([
+      for (final node in nodes) _textOf(node),
+    ], lines);
     final targets = [
-      for (final line in _tree.lines)
-        _target(nodeOf[line.id] ?? 'line-${_nextNodeId++}', line),
+      for (final (index, line) in lines.indexed)
+        _target(switch (index) {
+          _ when index < same.start => nodes[index].id,
+          _ when index >= lines.length - same.end =>
+            nodes[index - lines.length + nodes.length].id,
+          _ => _newNodeId(),
+        }, line),
     ];
-    _lineOf
-      ..clear()
-      ..addAll({
-        for (final (index, line) in _tree.lines.indexed)
-          targets[index].id: line.id,
-      });
     final selection = switch (caret) {
       (:final line, :final offset) => _caretAt(
-        _tree.lines[line.clamp(0, _tree.lines.length - 1)],
+        lines[line.clamp(0, lines.length - 1)],
         targets[line.clamp(0, targets.length - 1)].id,
         offset,
       ),
@@ -217,10 +179,10 @@ final class LinesAdapter<L extends EditableLines<L>> {
     }
   }
 
-  TargetNode _target(String id, Line line) => (
+  TargetNode _target(String id, String line) => (
     id: id,
-    shows: (node) => node is TextNode && _textOf(node) == line.text,
-    build: () => _lineNode(id, line.text),
+    shows: (node) => node is TextNode && _textOf(node) == line,
+    build: () => _lineNode(id, line),
   );
 
   /// The line and offset of [selection]'s caret, counting the lines in
@@ -245,13 +207,11 @@ final class LinesAdapter<L extends EditableLines<L>> {
     return (line: linesBefore + own.length - 1, offset: own.last.text.length);
   }
 
-  static DocumentSelection _caretAt(Line line, String nodeId, int offset) =>
+  static DocumentSelection _caretAt(String line, String nodeId, int offset) =>
       DocumentSelection.collapsed(
         position: DocumentPosition(
           nodeId: nodeId,
-          nodePosition: TextNodePosition(
-            offset: offset.clamp(0, line.text.length),
-          ),
+          nodePosition: TextNodePosition(offset: offset.clamp(0, line.length)),
         ),
       );
 
@@ -260,7 +220,7 @@ final class LinesAdapter<L extends EditableLines<L>> {
 
   void dispose() {
     _text.removeListener(_onTextChanged);
-    _treeChanged.dispose();
+    _linesChanged.dispose();
     editor.dispose();
   }
 }
@@ -268,7 +228,7 @@ final class LinesAdapter<L extends EditableLines<L>> {
 /// The library's own request handlers.
 final _libraryHandlers = defaultRequestHandlers.cast<EditRequestHandler>();
 
-/// A caret on line [line] of the tree, at [offset] in it.
+/// A caret on line [line], at [offset] in it.
 typedef _Caret = ({int line, int offset});
 
 /// Shows the tree's lines; see [PatchCommand].

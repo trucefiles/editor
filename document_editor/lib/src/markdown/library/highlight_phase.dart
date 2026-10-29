@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart'
@@ -26,15 +28,20 @@ final class HighlightAttribution implements Attribution {
 
 /// Gives each line's text its highlights ([highlightsOf] its node), as
 /// attributions the stylesheet styles; the document's text stays plain.
+/// A highlight past the line's end is cut there: a line keeps its
+/// highlights for a while after it changed.
 ///
-/// The highlights change only with the lines, so only with a change of
-/// the document, after which the library styles every node anew. Marked
-/// dirty earlier, while the library's transaction still ends, it would
-/// style nodes that are gone.
+/// The library styles every node anew after each change of the document;
+/// whoever changes the highlights at other times tells
+/// [highlightsChanged], outside the library's transactions (while one
+/// still ends, it would style nodes that are gone).
 final class HighlightPhase extends SingleColumnLayoutStylePhase {
   HighlightPhase(this.highlightsOf);
 
   final List<HighlightSpan> Function(String nodeId) highlightsOf;
+
+  /// Styles the nodes anew, as [highlightsOf] now says.
+  void highlightsChanged() => markDirty();
 
   @override
   SingleColumnLayoutViewModel style(
@@ -56,10 +63,11 @@ final class HighlightPhase extends SingleColumnLayoutStylePhase {
   ) {
     final text = AttributedText(component.text.toPlainText());
     for (final (:start, :end, :highlight) in highlightsOf(component.nodeId)) {
-      if (end > start) {
+      final cut = min(end, text.length);
+      if (cut > start) {
         text.addAttribution(
           HighlightAttribution(highlight),
-          SpanRange(start, end - 1),
+          SpanRange(start, cut - 1),
         );
       }
     }

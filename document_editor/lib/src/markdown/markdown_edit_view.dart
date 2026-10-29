@@ -4,7 +4,7 @@ import 'package:truce_markdown/truce_markdown.dart' as md;
 import '../editor_gate.dart';
 import '../lines/edited_text.dart';
 import '../lines/line_edit_view.dart';
-import 'library/markdown_lines.dart';
+import 'library/markdown_highlighter.dart';
 
 /// Markdown edit of the document behind [gate]: its text as written,
 /// line by line, highlighted as it reads. Links open with [onLink] on a
@@ -31,7 +31,7 @@ class _MarkdownEditViewState extends State<MarkdownEditView> {
   late final _text = MarkdownText(widget.gate);
 
   @override
-  Widget build(BuildContext context) => LineEditView<md.DocumentTree>(
+  Widget build(BuildContext context) => LineEditView(
     _text,
     editing: markdownLines,
     onLink: widget.onLink,

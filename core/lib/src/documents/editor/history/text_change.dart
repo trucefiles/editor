@@ -1,4 +1,4 @@
-import 'dart:math';
+import '../../../common/unchanged_ends.dart';
 
 /// How one text became another: the stretch from [start] that went
 /// ([removed]) and what came in its place ([added]), found by matching
@@ -9,23 +9,9 @@ typedef TextChange = ({int start, String removed, String added});
 /// (`abab` to `ab`) is a guess, which is fine for grouping undo steps
 /// and placing the caret.
 TextChange textChange(String before, String after) {
-  final shorter = min(before.length, after.length);
-  final start = _wholeCharacterStart(
-    before,
-    _firstDiffering(
-      shorter,
-      (index) => before.codeUnitAt(index) == after.codeUnitAt(index),
-    ),
-  );
-  final end = _wholeCharacterEnd(
-    before,
-    _firstDiffering(
-      shorter - start,
-      (index) =>
-          before.codeUnitAt(before.length - 1 - index) ==
-          after.codeUnitAt(after.length - 1 - index),
-    ),
-  );
+  final same = unchangedEnds(before.codeUnits, after.codeUnits);
+  final start = _wholeCharacterStart(before, same.start);
+  final end = _wholeCharacterEnd(before, same.end);
   return (
     start: start,
     removed: before.substring(start, before.length - end),
@@ -44,8 +30,3 @@ int _wholeCharacterEnd(String text, int end) =>
 
 bool _isLead(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
 bool _isTrail(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
-
-/// The first of [count] indexes at which [same] fails; [count] if none.
-int _firstDiffering(int count, bool Function(int index) same) =>
-    Iterable<int>.generate(count)
-        .firstWhere((index) => !same(index), orElse: () => count);

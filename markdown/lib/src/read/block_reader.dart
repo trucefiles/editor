@@ -1,5 +1,3 @@
-import 'package:truce_core/truce_core.dart' show Line, LineId;
-
 import '../tree/blocks.dart';
 import 'open_blocks.dart';
 import 'syntax/block_starts.dart';
@@ -7,66 +5,22 @@ import 'syntax/characters.dart';
 import 'syntax/link_syntax.dart';
 import 'syntax/table_rows.dart';
 
-/// Where a reading resumes inside an earlier reading: at line [line],
-/// with the containers [open] there, outermost (the root) first, each
-/// holding the blocks it keeps before that line.
-typedef ResumePoint = ({
-  int line,
-  List<({ContainerBlock container, List<Block> kept})> open,
-});
-
-/// A block of an earlier reading that starts at a line, with the
-/// containers it is in (outermost first), and for each of them the
-/// blocks it keeps from there on: for the innermost, the block and its
-/// later siblings; for the others, the blocks after the one on the path.
-typedef OldStart = ({
-  Block block,
-  List<ContainerBlock> path,
-  List<List<Block>> rests,
-});
-
-/// The lines where a re-read may stop and keep the earlier reading.
-abstract interface class StopPoints {
-  /// The first line that may stop it.
-  int get from;
-
-  /// The block of the earlier reading that starts at line [index] as the
-  /// outermost block starting there; `null` if none.
-  OldStart? startAt(int index);
-}
-
 /// Reads [lines] into open blocks, as CommonMark 0.31 and GitHub
 /// Flavored Markdown do: in one pass from the top, each line first meets
 /// the open containers, then may start new blocks, and the rest of it
 /// goes to the innermost block that takes lines. Every line that is not
 /// blank or an empty item's marker lands in exactly one leaf.
 ///
-/// From [resume] on, if given, else from the top, where front matter may
-/// be. Stops at the first of [stop]'s lines where the reading starts the
-/// same block in the same containers as the earlier one; from there it
-/// keeps the earlier blocks. [lineIndex] gives kept lines' indexes.
-/// Returns the blocks read and the line it stopped at, if it stopped.
-/// The one reader of block structure.
-({OpenRoot root, int? stoppedAt}) readOpenBlocks(
-  List<Line> lines, {
-  ResumePoint? resume,
-  StopPoints? stop,
-  required int Function(LineId id) lineIndex,
-}) {
-  final reader = _Reader(lines, stop, lineIndex);
-  final root = reader.read(resume);
-  return (root: root, stoppedAt: reader.stoppedAt);
-}
+/// Front matter may start it. The one reader of block structure.
+OpenRoot readOpenBlocks(List<String> lines) => _Reader(lines).read();
 
 const _codeIndent = 4;
 
 /// The reading state, as CommonMark's reference parser keeps it.
 final class _Reader {
-  _Reader(this._lines, this._stop, this._lineIndex);
+  _Reader(this._lines);
 
-  final List<Line> _lines;
-  final StopPoints? _stop;
-  final int Function(LineId id) _lineIndex;
+  final List<String> _lines;
   late final OpenRoot _root;
   late OpenBlock _tip;
   late OpenBlock _oldTip;
@@ -85,69 +39,17 @@ final class _Reader {
   var _allClosed = true;
   var _segments = <Segment>[];
 
-  /// The outermost block started on the line being read.
-  OpenBlock? _startedNow;
-
-  /// The line where the earlier reading took over, if it did.
-  int? stoppedAt;
-
-  OpenRoot read(ResumePoint? resume) {
-    final start = resume == null ? _readFrontMatter() : _resume(resume);
+  OpenRoot read() {
     for (
-      _lineIndexNow = start;
+      _lineIndexNow = _readFrontMatter();
       _lineIndexNow < _lines.length;
       _lineIndexNow++
     ) {
-      _startedNow = null;
       _readLine();
-      if (_stopsHere()) return _root;
     }
     _closeAll();
     return _root;
   }
-
-  /// Opens the containers of [resume]; returns the line to read next.
-  int _resume(ResumePoint resume) {
-    OpenContainer? parent;
-    for (final (:container, :kept) in resume.open) {
-      final open = _reopen(container, kept)..parent = parent;
-      if (parent == null) {
-        _root = open as OpenRoot;
-      } else {
-        parent.children.add(open);
-      }
-      parent = open;
-    }
-    _tip = parent!;
-    _oldTip = _tip;
-    _lastMatched = _tip;
-    return resume.line;
-  }
-
-  OpenContainer _reopen(ContainerBlock block, List<Block> kept) =>
-      switch (block) {
-        RootBlock() => OpenRoot(keptId: block.id, kept: kept),
-        QuoteBlock() => OpenQuote(
-          _lineIndex(block.firstLine),
-          keptId: block.id,
-          kept: kept,
-        ),
-        ListBlock() => OpenList(
-          _lineIndex(lineSpanOf(block).first),
-          block.items.first.marker,
-          keptId: block.id,
-          kept: kept,
-        ),
-        ItemBlock() => OpenItem(
-          _lineIndex(block.markerLine),
-          marker: block.marker,
-          markerOffset: block.markerColumn,
-          padding: block.contentColumn - block.markerColumn,
-          checked: block.checked,
-          keptId: block.id,
-          kept: kept,
-        ),
-      };
 
   /// Front matter at the very top: a `---` line and a closing `---` or
   /// `...` line further down. Returns the index of the first line after
@@ -157,14 +59,11 @@ final class _Reader {
     _tip = _root;
     _oldTip = _root;
     _lastMatched = _root;
-    final first = _lines.firstOrNull?.text;
+    final first = _lines.firstOrNull;
     if (first == null || !frontMatterFence.hasMatch(first)) {
       return 0;
     }
-    final end = _lines.indexWhere(
-      (line) => frontMatterEnd.hasMatch(line.text),
-      1,
-    );
+    final end = _lines.indexWhere(frontMatterEnd.hasMatch, 1);
     if (end < 0) return 0;
     final front = OpenFrontMatter()
       ..open = false
@@ -176,55 +75,8 @@ final class _Reader {
     return end + 1;
   }
 
-  /// Whether the earlier reading takes over from the line just read: it
-  /// started the same block in the same containers there.
-  bool _stopsHere() {
-    final stop = _stop;
-    final started = _startedNow;
-    if (stop == null || started == null || _lineIndexNow < stop.from) {
-      return false;
-    }
-    if (started.firstLine != _lineIndexNow) return false;
-    final old = stop.startAt(_lineIndexNow);
-    if (old == null || !_sameKind(started, old.block)) return false;
-    final path = [
-      for (var box = started.parent; box != null; box = box.parent) box,
-    ].reversed.toList();
-    if (path.length != old.path.length) return false;
-    for (final (index, box) in path.indexed) {
-      if (box.keptId != old.path[index].id) return false;
-    }
-    started.parent!.children.removeLast();
-    for (final (index, box) in path.indexed) {
-      box.children.addAll(old.rests[index].map(KeptChild.new));
-      if (old.path[index] case QuoteBlock(:final lastLine)) {
-        box.lastLine = _lineIndex(lastLine);
-      }
-    }
-    stoppedAt = _lineIndexNow;
-    return true;
-  }
-
-  /// Whether [open] starts the way [block] did: a paragraph may have
-  /// become a heading, table or definitions.
-  static bool _sameKind(OpenBlock open, Block block) => switch (open) {
-    OpenParagraph() =>
-      block is ParagraphBlock ||
-          block is DefinitionsBlock ||
-          block is TableBlock ||
-          (block is HeadingBlock && block.style == HeadingStyle.setext),
-    OpenHeading() => block is HeadingBlock && block.style == HeadingStyle.atx,
-    OpenCode() => block is CodeBlock,
-    OpenHtml() => block is HtmlBlock,
-    OpenRule() => block is RuleBlock,
-    OpenTable() || OpenFrontMatter() || OpenRoot() => false,
-    OpenQuote() => block is QuoteBlock,
-    OpenList() => block is ListBlock,
-    OpenItem() => block is ItemBlock,
-  };
-
   void _readLine() {
-    _line = _lines[_lineIndexNow].text;
+    _line = _lines[_lineIndexNow];
     _offset = 0;
     _column = 0;
     _blank = false;
@@ -488,9 +340,7 @@ final class _Reader {
   /// cells it matches: that line becomes the table's header.
   bool _startsTable(OpenParagraph paragraph, String rest) {
     final headerLine = paragraph.lines.last;
-    final header = _lines[headerLine.index].text.substring(
-      headerLine.contentStart,
-    );
+    final header = _lines[headerLine.index].substring(headerLine.contentStart);
     if (!startsTable(header, rest)) return false;
     final delimiters = splitTableRow(rest);
     _closeUnmatched();
@@ -621,7 +471,6 @@ final class _Reader {
     block.parent = parent;
     parent.children.add(block);
     _tip = block;
-    _startedNow ??= block;
     return block;
   }
 
@@ -662,7 +511,7 @@ final class _Reader {
     if (paragraph.definitionsRead) return;
     paragraph.definitionsRead = true;
     final text = paragraph.lines
-        .map((line) => _lines[line.index].text.substring(line.contentStart))
+        .map((line) => _lines[line.index].substring(line.contentStart))
         .join('\n');
     final definitions = <LinkDefinition>[];
     var at = 0;
@@ -684,9 +533,7 @@ final class _Reader {
   void _dropTrailingBlanks(OpenCode code) {
     while (code.lines.length > 1 &&
         isBlankText(
-          _lines[code.lines.last.index].text.substring(
-            code.lines.last.contentStart,
-          ),
+          _lines[code.lines.last.index].substring(code.lines.last.contentStart),
         )) {
       code.lines.removeLast();
     }
