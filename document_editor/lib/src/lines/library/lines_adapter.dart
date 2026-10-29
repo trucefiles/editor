@@ -17,7 +17,7 @@ final class LinesAdapter {
   LinesAdapter(this._text) : _shown = _text.shown?.text ?? '' {
     _document = MutableDocument(
       nodes: [
-        for (final line in _linesOf(_shown)) _lineNode(_newNodeId(), line),
+        for (final line in splitLines(_shown)) _lineNode(_newNodeId(), line),
       ],
     );
     editor = Editor(
@@ -72,11 +72,6 @@ final class LinesAdapter {
   static DocumentNode _lineNode(String id, String text) =>
       ParagraphNode(id: id, text: AttributedText(text));
 
-  /// [text]'s lines, broken by `\n`, `\r\n` or `\r`.
-  static List<String> _linesOf(String text) => [
-    for (final line in splitLines(text)) line.text,
-  ];
-
   // Library edits.
 
   /// [text] pasted over the selection, as one edit.
@@ -116,7 +111,7 @@ final class LinesAdapter {
       return;
     }
     final nodes = [for (final node in _document) _textOf(node)];
-    final lines = nodes.expand(_linesOf).toList();
+    final lines = nodes.expand(splitLines).toList();
     if (lines.length != nodes.length) {
       _show(lines, _caretOf(composer.selection));
     }
@@ -150,7 +145,7 @@ final class LinesAdapter {
       null => _caretOf(composer.selection),
     };
     _shown = text;
-    _show(_linesOf(text), caret);
+    _show(splitLines(text), caret);
     _lastChange = LinesChange.replaced;
     _linesChanged.changed();
   }
@@ -158,7 +153,7 @@ final class LinesAdapter {
   /// The line and offset of the caret at [offset] in [text].
   static _Caret _caretAtOffset(String text, int offset) {
     final lines = splitLines(text.substring(0, offset));
-    return (line: lines.length - 1, offset: lines.last.text.length);
+    return (line: lines.length - 1, offset: lines.last.length);
   }
 
   // Showing the lines.
@@ -221,7 +216,7 @@ final class LinesAdapter {
     final own = splitLines(
       ownText.substring(0, offset.clamp(0, ownText.length)),
     );
-    return (line: linesBefore + own.length - 1, offset: own.last.text.length);
+    return (line: linesBefore + own.length - 1, offset: own.last.length);
   }
 
   static DocumentSelection _caretAt(String line, String nodeId, int offset) =>

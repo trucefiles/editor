@@ -5,6 +5,8 @@
 /// marks.
 library;
 
+import 'package:truce_core/truce_core.dart' show anyLineBreak;
+
 /// The inline content of one leaf (or table cell): the [inlines] read,
 /// and the source around them that is no inline content: a heading's
 /// marks, whitespace the reader trims.
@@ -195,7 +197,7 @@ Inline inOneLine(Inline inline) {
   List<Inline> children(ContainerInline container) =>
       container.children.map(inOneLine).toList();
   return switch (inline) {
-    _ when !inline.source.contains(lineEnd) => inline,
+    _ when !inline.source.contains(anyLineBreak) => inline,
     SoftBreakInline() || HardBreakInline() => const TextInline(' '),
     TextInline() => inline,
     CodeInline(:final source, :final literal) => CodeInline(
@@ -237,10 +239,7 @@ Inline inOneLine(Inline inline) {
 }
 
 /// [text] with its line ends as spaces.
-String spacedLineEnds(String text) => text.replaceAll(lineEnd, ' ');
-
-/// A line end in source text.
-final lineEnd = RegExp(r'\r\n?|\n');
+String spacedLineEnds(String text) => text.replaceAll(anyLineBreak, ' ');
 
 /// [inlines] and every inline within them, outermost first.
 Iterable<Inline> inlinesWithin(List<Inline> inlines) => inlines.expand(

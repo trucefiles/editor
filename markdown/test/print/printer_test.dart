@@ -65,10 +65,7 @@ void main() {
     });
 
     test('reads back as its writable form, after any edits', () {
-      final crlf = [
-        for (final text in texts.take(80)) text.replaceAll('\n', '\r\n'),
-      ];
-      for (final (index, text) in [...texts, ...crlf].indexed) {
+      for (final (index, text) in texts.indexed) {
         final random = Random(index + 1000 * _seed);
         final loaded = loadMarkdown(text);
         var doc = loaded.doc;
@@ -86,13 +83,6 @@ void main() {
             printed,
             reason: 'not deterministic',
           );
-          if (text.contains('\r\n') && !text.contains(RegExp('[^\r]\n'))) {
-            expect(
-              printed.contains(RegExp('(^|[^\r])\n')),
-              isFalse,
-              reason: 'a line ending not the document\'s: ${_show(printed)}',
-            );
-          }
         }
       }
     });
@@ -112,11 +102,11 @@ void main() {
 
     test('an edited paragraph alone, the rest byte for byte', () {
       expect(
-        edited('# A  \r\n\r\nold *x*\r\n\r\n* b\r\n', (doc) {
+        edited('# A  \n\nold *x*\n\n* b\n', (doc) {
           final paragraph = nth<ParagraphNode>(doc, 0) as TextNode;
           return doc.withNode(retexted(paragraph, 'new'));
         }),
-        '# A  \r\n\r\nnew\r\n\r\n* b\r\n',
+        '# A  \n\nnew\n\n* b\n',
       );
     });
 
@@ -314,13 +304,13 @@ void main() {
       expect(printMarkdown(typed, origin).text, 'milk\n');
     });
 
-    test('a byte order mark and final newline as read', () {
+    test('a final newline as read', () {
       expect(
-        edited('\uFEFFa\n', (doc) {
+        edited('a\n', (doc) {
           final paragraph = nth<ParagraphNode>(doc, 0) as TextNode;
           return doc.withNode(retexted(paragraph, 'b'));
         }),
-        '\uFEFFb\n',
+        'b\n',
       );
     });
 

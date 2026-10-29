@@ -2,6 +2,8 @@
 /// can break lines between.
 library;
 
+import 'package:truce_core/truce_core.dart' show anyLineBreak;
+
 import '../read/syntax/characters.dart';
 import '../read/syntax/extended_autolinks.dart';
 import '../read/syntax/link_syntax.dart';
@@ -329,7 +331,7 @@ String _closing(_Close close, String text, {required String? after}) {
       read.style == LinkStyle.inline &&
       read.destination == mark.destination &&
       read.title == mark.title &&
-      !read.close.contains(lineEnd)) {
+      !read.close.contains(anyLineBreak)) {
     return read.close;
   }
   return '](${destinationSource(mark.destination)}'

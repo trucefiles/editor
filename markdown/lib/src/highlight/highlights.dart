@@ -62,7 +62,7 @@ List<List<HighlightSpan>> highlightsOf(DocumentTree tree) {
     for (final (index, line) in tree.lines.indexed)
       switch (tree.leafOf(index)) {
         final leaf? => byLeaf[leaf]![index]!,
-        null => _layoutLine(line.text),
+        null => _layoutLine(line),
       },
   ];
 }

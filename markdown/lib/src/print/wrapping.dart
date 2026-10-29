@@ -4,8 +4,8 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:truce_core/truce_core.dart' show anyLineBreak;
 
-import '../tree/inlines.dart';
 import 'escaping.dart';
 import 'inline_printer.dart';
 
@@ -45,7 +45,7 @@ List<String> wrappedLines(
     restPrefix: restPrefix,
     source: source,
   ))
-    ...line.split(lineEnd),
+    ...line.split(anyLineBreak),
 ];
 
 List<String> _wrapped(

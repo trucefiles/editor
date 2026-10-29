@@ -23,7 +23,7 @@ void main() {
       }
     });
 
-    test('reads `\\r\\n` and `\\r` line endings as `\\n`, each line keeping its own', () {
+    test('reads `\\r\\n` and `\\r` line endings as `\\n`', () {
       for (final text in texts) {
         final lf = dumpTree(DocumentTree.read(text));
         for (final ending in ['\r\n', '\r']) {
@@ -34,24 +34,20 @@ void main() {
         }
       }
       final mixed = DocumentTree.read('# A\r\n\r\n- [ ] b\r---\nc');
-      expect(
-        [for (final line in mixed.lines) line.ending],
-        ['\r\n', '\r\n', '\r', '\n', ''],
-      );
+      expect(mixed.lines, ['# A', '', '- [ ] b', '---', 'c']);
       expect(mixed.root.children.map((block) => block.runtimeType), [
         HeadingBlock,
         ListBlock,
         RuleBlock,
         ParagraphBlock,
       ]);
-      expect(mixed.lineEnding, '\r\n');
     });
 
-    test('keeps a byte order mark apart from the first line', () {
-      final tree = DocumentTree.read('\uFEFF---\na: b\n---\ntext');
-      expect(tree.byteOrderMark, isTrue);
-      expect(tree.root.children.first, isA<FrontMatterBlock>());
-      expect(tree.text, '\uFEFF---\na: b\n---\ntext');
+    test('keeps a byte order mark as a character of the first line, so '
+        'offsets in that line stay as typed', () {
+      final tree = DocumentTree.read('\uFEFFtext');
+      expect(tree.lines, ['\uFEFFtext']);
+      expect(tree.text, '\uFEFFtext');
     });
 
     test('gives each text leaf inline text whose source is its content', () {
@@ -81,7 +77,7 @@ void main() {
         final tree = DocumentTree.read(text);
         for (final (index, line) in tree.lines.indexed) {
           if (tree.leafOf(index) != null) continue;
-          expect(line.text, matches(_layout), reason: text);
+          expect(line, matches(_layout), reason: text);
         }
       }
     });
