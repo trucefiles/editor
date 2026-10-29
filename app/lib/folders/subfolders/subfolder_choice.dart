@@ -1,11 +1,12 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:truce_core/truce_core.dart';
 
 /// The user's choice of what a folder shows of its base folder: the whole
 /// of it, or some subfolders, picked in a tree of folder names. Parts
 /// another folder of the base folder shows can't be picked: each document
-/// is in one folder only.
-final class SubfolderChoice extends ChangeNotifier {
+/// is in one folder only. [changes] tells of each change of the choice.
+final class SubfolderChoice {
   /// Starts at [initial]; nothing picked if `null`. [taken] are what the
   /// base folder's other folders show; [_names] are the folders the sync
   /// tool offers to pick.
@@ -23,6 +24,10 @@ final class SubfolderChoice extends ChangeNotifier {
   final List<Selection> _taken;
   bool _whole;
   Set<RelPath> _picked;
+  final _changes = StreamController<void>.broadcast(sync: true);
+
+  /// Fires each time the choice changes.
+  Stream<void> get changes => _changes.stream;
 
   /// Whether the whole base folder is chosen.
   bool get whole => _whole;
@@ -43,7 +48,7 @@ final class SubfolderChoice extends ChangeNotifier {
 
   void chooseWhole({required bool whole}) {
     _whole = whole;
-    notifyListeners();
+    _changes.add(null);
   }
 
   /// Picks [folder], or unpicks it if it is picked.
@@ -51,7 +56,7 @@ final class SubfolderChoice extends ChangeNotifier {
     _picked = _picked.contains(folder)
         ? ({..._picked}..remove(folder))
         : {..._picked, folder};
-    notifyListeners();
+    _changes.add(null);
   }
 
   /// Whether [folder] can't be picked: another folder shows part of it.
@@ -74,6 +79,9 @@ final class SubfolderChoice extends ChangeNotifier {
         ]),
         Err(:final error) => Err(error),
       };
+
+  /// The choice is no longer shown.
+  void dispose() => unawaited(_changes.close());
 
   static RelPath? _pathOf(RelPath? parent, String name) =>
       parent == null ? RelPath.parse(name) : parent.child(name);

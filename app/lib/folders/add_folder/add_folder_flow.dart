@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:truce_core/truce_core.dart';
 
 import '../base_folder.dart';
@@ -53,8 +54,9 @@ final class AddFolderWork {
 }
 
 /// The user's way through adding a folder (see [AddFolderStep]); the
-/// screen shows it and forwards the user's choices.
-final class AddFolderFlow extends ChangeNotifier {
+/// screen shows it and forwards the user's choices. [changes] tells of
+/// each change of the step or the choices.
+final class AddFolderFlow {
   /// [folders] are the folders added before.
   AddFolderFlow(this._work, this._folders);
 
@@ -68,6 +70,10 @@ final class AddFolderFlow extends ChangeNotifier {
   SubfolderChoice? _parts;
   String _name = '';
   late String _color = _work.colors.first;
+  final _changes = StreamController<void>.broadcast(sync: true);
+
+  /// Fires each time the step or a choice changes.
+  Stream<void> get changes => _changes.stream;
 
   AddFolderStep get step => _step;
 
@@ -143,7 +149,7 @@ final class AddFolderFlow extends ChangeNotifier {
 
   void recolor(String color) {
     _color = color;
-    notifyListeners();
+    _changes.add(null);
   }
 
   /// The step before; `false` at the first one.
@@ -172,7 +178,7 @@ final class AddFolderFlow extends ChangeNotifier {
 
   bool _go(AddFolderStep step) {
     _step = step;
-    notifyListeners();
+    _changes.add(null);
     return true;
   }
 
@@ -181,9 +187,9 @@ final class AddFolderFlow extends ChangeNotifier {
     orElse: () => addressText(address),
   );
 
-  @override
+  /// The flow is no longer shown.
   void dispose() {
     _parts?.dispose();
-    super.dispose();
+    unawaited(_changes.close());
   }
 }

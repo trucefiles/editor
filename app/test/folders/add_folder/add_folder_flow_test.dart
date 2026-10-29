@@ -84,6 +84,17 @@ void main() {
     return flow;
   }
 
+  test('tells each change of the step and the color', () async {
+    final adding = flow();
+    final steps = <AddFolderStep>[];
+    adding.changes.listen((_) => steps.add(adding.step));
+
+    await adding.pickBase(synced);
+    adding.recolor('pink');
+
+    expect(steps, [AddFolderStep.parts, AddFolderStep.parts]);
+  });
+
   test('a folder a tool recognizes goes on to its parts', () async {
     final adding = flow();
 

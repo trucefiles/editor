@@ -11,8 +11,8 @@ class SubfolderChoiceView extends StatelessWidget {
   final SubfolderChoice choice;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: choice,
+  Widget build(BuildContext context) => StreamBuilder<void>(
+    stream: choice.changes,
     builder: (context, _) => RadioGroup<bool>(
       groupValue: choice.whole,
       onChanged: (whole) => choice.chooseWhole(whole: whole ?? false),

@@ -93,8 +93,8 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
       appBar: AppBar(
         title: const Text('Folder'),
         actions: [
-          ListenableBuilder(
-            listenable: _parts,
+          StreamBuilder<void>(
+            stream: _parts.changes,
             builder: (context, _) => TextButton(
               onPressed: _busy || _parts.selection == null ? null : _save,
               child: const Text('Save'),
