@@ -39,17 +39,35 @@ void main() {
     },
   );
 
-  test('a written file is where the effects go on', () async {
+  test('a written file is told with its document', () async {
     final effects = fixture.effects(ExistingFile(fixture.document));
 
     final wrote = await effects.run(
       Write(id, 'x\n', over: fixture.document.seen, backUpFirst: true),
     );
 
-    expect((wrote! as Wrote).outcome, isA<Written>());
+    final outcome = (wrote! as Wrote<DocumentVersion>).outcome;
     expect(fixture.onDisk('a.md'), 'x\n');
-    final file = effects.file as ExistingFile;
-    expect(file.document.file.text, 'x\n');
+    final written = (outcome as Written<DocumentVersion>).seen.version.read;
+    expect((written.path, written.file.text), (path('a.md'), 'x\n'));
+  });
+
+  test('a draft goes to the file it names', () async {
+    final effects = fixture.effects(ExistingFile(fixture.document));
+    final copy = (await fixture.files['f2']!.create(
+      'b',
+      type: appDocumentTypes().forNew,
+      text: 'one\n',
+    )).value;
+
+    await effects.run(
+      KeepDraft(id, base: 'one\n', text: 'x', file: copy.seen.version),
+    );
+
+    expect((await fixture.draftsIn('f2')).single.path, path('b.md'));
+    expect(await fixture.draftsIn('f1'), isEmpty);
+    await effects.run(DropDraft(file: copy.seen.version));
+    expect(await fixture.draftsIn('f2'), isEmpty);
   });
 
   test('a restore where a file is now tells what it holds', () async {
@@ -69,7 +87,9 @@ void main() {
     final effects = fixture.effects(fixture.newFile);
 
     expect(
-      await effects.run(const KeepDraft(id, base: null, text: 'Milk')),
+      await effects.run(
+        const KeepDraft(id, base: null, text: 'Milk', file: null),
+      ),
       isA<DraftKept>().having((kept) => kept.kept, 'kept', isTrue),
     );
     expect((await fixture.draftsIn('f1')).single.path, path('Milk.md'));
@@ -90,8 +110,10 @@ void main() {
 
   test('a dropped draft is not moved along', () async {
     final effects = fixture.effects(fixture.newFile);
-    await effects.run(const KeepDraft(id, base: null, text: 'Milk'));
-    await effects.run(const DropDraft());
+    await effects.run(
+      const KeepDraft(id, base: null, text: 'Milk', file: null),
+    );
+    await effects.run(const DropDraft(file: null));
 
     effects.place(
       NewFile((

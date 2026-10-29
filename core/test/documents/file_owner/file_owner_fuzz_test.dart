@@ -267,7 +267,7 @@ final class _World {
         }
         owner.send(DraftKept(id, kept: kept));
       case Write(:final id, :final text, :final over):
-        final outcome = switch (file) {
+        final WriteOutcome<Version> outcome = switch (file) {
           null => const WriteGone(),
           final now when now.version != over.version => Changed(now),
           _ when random.nextInt(8) == 0 => _failed(),

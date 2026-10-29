@@ -787,6 +787,26 @@ void main() {
     expect(run.state.file, _v3);
   });
 
+  test('drafts name the file the edits go over', () {
+    final run = _Run.opened('a')..send(const Moved(Seen('a', _v2)));
+    run.edit('ab', 1);
+    expect(run.last<KeepDraft>().file, _v2);
+    run
+      ..keep()
+      ..send(const SaveNow())
+      ..wrote(const Written(Seen('ab', _v3)));
+    expect(run.last<DropDraft>().file, _v3);
+  });
+
+  test("a new document's drafts name no file", () {
+    final run = _Run.unwritten()..edit('a', 1, lineage: null);
+    expect(run.last<KeepDraft>().file, isNull);
+    run
+      ..keep()
+      ..edit('', 2, lineage: null);
+    expect(run.last<DropDraft>().file, isNull);
+  });
+
   test('a copy that changed before the move is a change elsewhere', () {
     final run = _Run.opened('a')
       ..edit('ab', 1)
@@ -797,5 +817,8 @@ void main() {
     expect(run.last<Write>().over.version, _v1);
     run.wrote(const Changed(Seen('x', _v2)));
     expect(run.status, isA<ChangedElsewhere>());
+    // Its drafts stay with the file the edits were made on.
+    run.edit('abc', 2);
+    expect(run.last<KeepDraft>().file, _v1);
   });
 }

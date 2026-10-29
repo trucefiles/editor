@@ -11,30 +11,42 @@ import 'file_work.dart';
 export 'file_contract.dart';
 export 'file_state.dart' show FileState;
 
-/// The owner of one open document's file (see `file_contract.dart`).
-typedef FileOwner = Owner<FileInput, FileState, FileEvent>;
+/// The owner of one open document's file (see `file_contract.dart`),
+/// over versions of kind [V].
+typedef FileOwner<V extends Version> =
+    Owner<FileInput<V>, FileState<V>, FileEvent>;
 
 /// The file owner's machine.
-typedef FileMachine =
-    Machine<FileMessage, FileState, FileWork, FileEvent, FileEffect>;
+typedef FileMachine<V extends Version> =
+    Machine<
+      FileMessage<V>,
+      FileState<V>,
+      FileWork<V>,
+      FileEvent,
+      FileEffect<V>
+    >;
 
 /// Carries out the file owner's effects.
-typedef FileEffectHandler = EffectHandler<FileEffect, FileResult>;
+typedef FileEffectHandler<V extends Version> =
+    EffectHandler<FileEffect<V>, FileResult<V>>;
 
 /// The file owner of [machine], its effects carried out by [handle].
-FileOwner fileOwner(FileMachine machine, FileEffectHandler handle) =>
+FileOwner<V> fileOwner<V extends Version>(
+  FileMachine<V> machine,
+  FileEffectHandler<V> handle,
+) =>
     MachineOwner<
-      FileMessage,
-      FileInput,
-      FileResult,
-      FileState,
-      FileWork,
+      FileMessage<V>,
+      FileInput<V>,
+      FileResult<V>,
+      FileState<V>,
+      FileWork<V>,
       FileEvent,
-      FileEffect
+      FileEffect<V>
     >(machine, handle: handle);
 
 /// The file machine of a document opened as [opened].
-FileMachine openedFile(Seen opened) => Machine(
+FileMachine<V> openedFile<V extends Version>(Seen<V> opened) => Machine(
   state: FileState(
     status: const InStep(),
     text: opened.text,
@@ -46,8 +58,8 @@ FileMachine openedFile(Seen opened) => Machine(
 );
 
 /// The file machine of a new document, which has no file yet.
-FileMachine newFile() => const Machine(
-  state: FileState(status: Unwritten(), text: '', rev: 0, file: null),
-  work: FileWork(expected: null, offered: []),
+FileMachine<V> newFile<V extends Version>() => Machine(
+  state: FileState(status: const Unwritten(), text: '', rev: 0, file: null),
+  work: FileWork(expected: null, offered: const []),
   step: fileStep,
 );

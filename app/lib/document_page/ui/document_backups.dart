@@ -49,7 +49,7 @@ Future<void> _compare(
       builder: (_) => RestoreIntoDocumentScreen(
         backup,
         current: current,
-        canRestore: controller.canEdit(),
+        canRestore: !controller.readOnly,
       ),
     ),
   );

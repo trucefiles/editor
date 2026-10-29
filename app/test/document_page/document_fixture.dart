@@ -52,8 +52,12 @@ final class DocumentFixture {
   /// A time after every draft written during the test.
   final later = DateTime.now().add(const Duration(days: 1));
 
+  /// The effects of a session that starts at [file].
   FileEffects effects(DocumentFile file) => FileEffects(
-    file,
+    newFile: switch (file) {
+      NewFile() => file,
+      ExistingFile() => null,
+    },
     filesOf: (folder) => files[folder.id]!,
     draftsOf: (folder) => drafts[folder.id]!,
     create:
@@ -74,7 +78,11 @@ final class DocumentFixture {
 
   /// A session on [file], by default on [document]; disposed after the test.
   DocumentSession session([DocumentFile? file]) {
-    final session = markdownSession(effects(file ?? ExistingFile(document)));
+    final start = file ?? ExistingFile(document);
+    final session = markdownSession(switch (start) {
+      ExistingFile(:final document) => document,
+      NewFile() => null,
+    }, effects(start));
     addTearDown(session.dispose);
     return session;
   }

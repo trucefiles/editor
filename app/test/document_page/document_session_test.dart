@@ -42,13 +42,14 @@ void main() {
 
   test('a bug in writing stops the session; edits stay a draft', () async {
     final errors = <Object>[];
+    final notices = <bool>[];
     late DocumentSession session;
 
     // Made in the zone, so the error of its file owner is heard there.
     await runZonedGuarded(() async {
       session = markdownSession(
+        fixture.document,
         FileEffects(
-          ExistingFile(fixture.document),
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
           create: (
@@ -59,19 +60,26 @@ void main() {
             newSubfolder = false,
           }) => throw StateError('bug'),
         ),
-      )..type('mine ');
+      );
+      session
+        ..stopNotices.listen(notices.add)
+        ..type('mine ');
       expect(await session.secure(.hide), isFalse);
       await pumpEventQueue();
     }, (error, _) => errors.add(error));
     addTearDown(session.dispose);
 
     expect(errors.single, isA<StateError>());
-    expect(session.stopped, isTrue);
+    expect(session.state, isA<Stopped>());
     expect(fixture.onDisk('a.md'), 'one\n');
     await eventually(
       () async =>
           (await fixture.draftsIn('f1')).singleOrNull?.text == 'mine one\n',
     );
+    // Told once, as it is known that the edits are kept.
+    await eventually(() async => notices.isNotEmpty);
+    expect(notices, [true]);
+    expect(session.state, isA<Stopped>().having((s) => s.kept, 'kept', true));
   });
 
   test('once stopped, its text is the latest edits, also those the editor '
@@ -81,8 +89,8 @@ void main() {
 
     await runZonedGuarded(() async {
       session = markdownSession(
+        fixture.document,
         FileEffects(
-          ExistingFile(fixture.document),
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
           draftsOf: (folder) => fixture.drafts[folder.id]!,
@@ -101,11 +109,11 @@ void main() {
       session
         ..type('mine ')
         ..saveNow();
-      await eventually(() => session.stopped);
+      await eventually(() => session.state is Stopped);
     }, (_, _) {});
     addTearDown(session.dispose);
 
-    expect(session.stopped, isTrue);
+    expect(session.state, isA<Stopped>());
     expect(session.text, 'a mine one\n');
   });
 

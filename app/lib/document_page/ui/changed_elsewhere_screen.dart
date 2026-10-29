@@ -29,14 +29,14 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   bool _closed = false;
 
   /// The version a pick was sent against, while it is carried out.
-  Seen? _picking;
+  Seen<DocumentVersion>? _picking;
 
   late final StreamSubscription<FileEvent> _notices;
 
   DocumentSession get _session => widget.controller.session;
 
   /// The version from elsewhere, while the choice is open.
-  Seen? get _theirs => switch (_session.status) {
+  Seen<DocumentVersion>? get _theirs => switch (_session.status) {
     ChangedElsewhere(:final theirs) => theirs,
     _ => null,
   };
@@ -84,7 +84,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 
   /// Only while the choice is still open: it may have been settled while
   /// the user confirmed. [seen]: the version shown when the user tapped.
-  void _keep(VersionSide side, Seen seen) {
+  void _keep(VersionSide side, Seen<DocumentVersion> seen) {
     if (_theirs == null) return;
     setState(() => _picking = seen);
     _session.pick(
@@ -112,7 +112,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
           : VersionChooser(
               current: ShownVersion(
                 label: 'Current version',
-                modified: documentOf(theirs.version).document.modified,
+                modified: theirs.version.read.document.modified,
                 text: theirs.text,
                 keepLabel: 'Keep this',
                 keptMessage: 'Your edits are dropped. $bothBackedUp',

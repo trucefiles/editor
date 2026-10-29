@@ -1,7 +1,8 @@
 /// One version of a document's file: a stamp of its content, compared
 /// for equality only. Whoever reads the files may extend it to carry what
 /// it needs to act on that version (where the file is, how it is
-/// written); owners only compare versions.
+/// written); owners only compare versions and hand them back typed (see
+/// [Seen]).
 base class Version {
   const Version(this._stamp);
 
@@ -17,12 +18,13 @@ base class Version {
   String toString() => 'Version($_stamp)';
 }
 
-/// A version of a document's file with the text it holds.
-final class Seen {
+/// A version of a document's file with the text it holds; [V] is the
+/// kind of version its reader made, handed back as it is.
+final class Seen<V extends Version> {
   const Seen(this.text, this.version);
 
   final String text;
-  final Version version;
+  final V version;
 
   @override
   bool operator ==(Object other) =>

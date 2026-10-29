@@ -5,6 +5,7 @@ import 'package:truce_editor/document_page/document_controller.dart';
 import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/ui/edit_state_banner.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
+import 'package:truce_editor/documents/document_settings.dart';
 
 import '../../support.dart';
 import '../document_fixture.dart';
@@ -36,10 +37,11 @@ void main() {
     expect(session.status, isA<ChangedElsewhere>());
     final controller = DocumentController(
       session,
+      reach: () => Reach.reachable,
       reachSettled: () async => Reach.reachable,
       backUp: (_) async => const Ok(null),
-      canEdit: () => true,
       delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
+      settingsOf: (_) => DocumentSettings.defaults,
       editSettings: (_, _) async {},
     );
     addTearDown(controller.dispose);
