@@ -50,6 +50,17 @@ void main() {
     expect(kept, {'1': true, '2': false});
   });
 
+  test('a draft with a bad new-subfolder field is still read', () async {
+    File('${dir.path}/1.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        '{"path": "b.md", "text": "mine", "newSubfolder": 1}',
+      );
+
+    final [kept] = await drafts.all(before: later);
+    expect((kept.text, kept.newSubfolder), ('mine', false));
+  });
+
   test('keeps the last of two drafts written at once', () async {
     final both = await Future.wait([
       drafts.keep(draft('1', 'one')),

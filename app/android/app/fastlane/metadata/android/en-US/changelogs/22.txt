@@ -1,0 +1,6 @@
+- New visual editor: documents look as they read while you edit; only changed parts are rewritten
+- Undo and redo, and backups that follow a moved document
+- Plain text files (.txt)
+- Folders can show only some subfolders, and folders no sync app syncs
+- Home: Recent and All, faster listing, search in every folder
+- Many fixes for changes from other devices, moves, line breaks and pictures

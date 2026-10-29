@@ -51,16 +51,16 @@ final class DocumentDraft {
     {'path': final String raw, 'text': final String text} => switch ((
       RelPath.parse(raw),
       json['base'],
-      json['newSubfolder'] ?? false,
     )) {
-      (final path?, final String? base, final bool newSubfolder) =>
-        DocumentDraft(
-          id: id,
-          path: path,
-          base: base,
-          text: text,
-          newSubfolder: newSubfolder,
-        ),
+      (final path?, final String? base) => DocumentDraft(
+        id: id,
+        path: path,
+        base: base,
+        text: text,
+        // An optional field: anything but `true` reads as its default, so
+        // it never makes the draft unreadable.
+        newSubfolder: json['newSubfolder'] == true,
+      ),
       _ => null,
     },
     _ => null,

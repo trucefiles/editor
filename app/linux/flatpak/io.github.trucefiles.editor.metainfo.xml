@@ -19,6 +19,18 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.9.0" date="2026-10-29">
+      <description>
+        <ul>
+          <li>New visual editor: documents look as they read while you edit, and only the parts you change are rewritten in the file. Markdown edit and Read modes too.</li>
+          <li>Undo and redo, and backups of each document that follow it when it moves.</li>
+          <li>Plain text files (.txt) open and edit like Markdown documents.</li>
+          <li>Folders can show only some of their subfolders, and folders no sync app syncs can be added.</li>
+          <li>Home shows Recent and All, lists faster, and search finds documents in every folder.</li>
+          <li>Many fixes for changes from other devices, moves and renames, line breaks and pictures.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.8.1" date="2026-10-23">
       <description>
         <ul>
