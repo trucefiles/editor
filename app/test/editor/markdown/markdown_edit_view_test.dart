@@ -120,24 +120,64 @@ void main() {
   testWidgets('pasted Windows line breaks make lines', (tester) async {
     final document = markdown('');
     await pumpDocument(tester, document);
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (call) async => call.method == 'Clipboard.getData'
-          ? <String, Object?>{'text': 'a\r\nb\rc'}
-          : null,
-    );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        null,
-      ),
-    );
+    tester.clipboardHolds('a\r\nb\rc');
 
     await tester.caretIn(lineNodeOf(0), 0);
     await tester.pressCtlV();
     await tester.pumpAndSettle();
 
     expect(document.text, 'a\nb\nc');
+  });
+
+  testWidgets('typing after a click away and back is a new undo step', (
+    tester,
+  ) async {
+    final document = markdown('ab');
+    await pumpDocument(tester, document);
+    await tester.caretIn(lineNodeOf(0), 2);
+    await tester.typeImeText('cd');
+
+    await tester.caretIn(lineNodeOf(0), 0);
+    await tester.caretIn(lineNodeOf(0), 4);
+    await tester.typeImeText('e');
+    document.undo();
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'abcd');
+  });
+
+  testWidgets('a paste is an undo step of its own', (tester) async {
+    final document = markdown('a');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('bc');
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText('x');
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    await tester.typeImeText('y');
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'axbc');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'ax');
+  });
+
+  testWidgets('a paste over a selected word is one undo step', (tester) async {
+    final document = markdown('buy milk');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy eggs');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy milk');
   });
 
   testWidgets('keypad keys move the caret with NumLock off', (tester) async {

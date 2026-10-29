@@ -151,6 +151,40 @@ void main() {
     expect(document.text, 'buy **milk**');
   });
 
+  testWidgets('a paste is an undo step of its own', (tester) async {
+    final document = TestDocument('a');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('bc');
+    await tester.caretIn(paragraphNodeOf(), 1);
+    await tester.typeImeText('x');
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    await tester.typeImeText('y');
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'axbc');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'ax');
+  });
+
+  testWidgets('a paste over a selected word is one undo step', (tester) async {
+    final document = TestDocument('buy milk');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(paragraphNodeOf(), 5);
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy eggs');
+
+    document.undo();
+    await tester.pumpAndSettle();
+    expect(document.text, 'buy milk');
+  });
+
   testWidgets('Bold leaves a code block as it is', (tester) async {
     final document = TestDocument('```\nbuy milk\n```');
     await pumpDocument(tester, document);

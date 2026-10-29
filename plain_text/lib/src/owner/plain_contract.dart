@@ -21,12 +21,19 @@ sealed class PlainInput extends PlainMessage {
 }
 
 /// The text is now [text], as the editor shows it at [revision]; dropped
-/// if the state moved on since.
+/// if the state moved on since. A [pasted] text is an undo step of its
+/// own, never part of the typing around it.
 final class TextEdited extends PlainInput {
-  const TextEdited(this.text, {required this.revision});
+  const TextEdited(this.text, {required this.revision, this.pasted = false});
 
   final String text;
   final int revision;
+  final bool pasted;
+}
+
+/// The user moved the caret: typing next is an undo step of its own.
+final class CaretMoved extends PlainInput {
+  const CaretMoved();
 }
 
 /// A request of the document page (see core's editor contract).

@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart' show EditableLines;
 import '../document_metrics.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
+import '../library/own_paste.dart';
 import '../library/touch_controls.dart';
 import '../ui/empty_document_hint.dart';
 import 'edited_text.dart';
@@ -60,6 +61,12 @@ class _LineEditViewState<L extends EditableLines<L>>
     extends State<LineEditView<L>> {
   late final _adapter = LinesAdapter<L>(widget.text, read: widget.editing.read);
   late final _phases = widget.editing.phases?.call(_adapter) ?? const [];
+  final _layout = GlobalKey();
+  late final _operations = PasteOperations(
+    _adapter.editor,
+    _adapter.paste,
+    layout: _layout,
+  );
 
   /// The look in the current theme and metrics. Kept between builds:
   /// the library lays the whole document out anew for each new
@@ -89,14 +96,16 @@ class _LineEditViewState<L extends EditableLines<L>>
       children: [
         TouchControls(
           color: look.handleColor,
+          operations: _operations,
           child: SuperEditor(
             editor: _adapter.editor,
+            documentLayoutKey: _layout,
             autofocus: widget.autofocus,
             stylesheet: look.stylesheet,
             selectionStyle: look.selection,
             documentOverlayBuilders: look.overlays,
             customStylePhases: _phases,
-            keyboardActions: lineKeyboardActions(),
+            keyboardActions: lineKeyboardActions(_adapter.paste),
             contentTapDelegateFactories: [
               if (widget.editing.linkAt case final linkAt?)
                 (_) => LinkTapHandler(

@@ -116,6 +116,84 @@ void main() {
     expect(find.text('abcd', findRichText: true), findsOne);
   });
 
+  testWidgets('a word typed letter by letter is one undo step', (tester) async {
+    final plain = _Plain('a');
+    await _pumpPlain(tester, plain);
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText(' milk');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+
+    expect(plain.text, 'a ');
+  });
+
+  testWidgets('typing after a click away and back is a new undo step', (
+    tester,
+  ) async {
+    final plain = _Plain('ab');
+    await _pumpPlain(tester, plain);
+    await tester.caretIn(lineNodeOf(0), 2);
+    await tester.typeImeText('cd');
+
+    await tester.caretIn(lineNodeOf(0), 0);
+    await tester.caretIn(lineNodeOf(0), 4);
+    await tester.typeImeText('e');
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+
+    expect(plain.text, 'abcd');
+  });
+
+  testWidgets('a paste is an undo step of its own', (tester) async {
+    final plain = _Plain('a');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('bc');
+    await tester.caretIn(lineNodeOf(0), 1);
+    await tester.typeImeText('x');
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    await tester.typeImeText('y');
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'axbc');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'ax');
+  });
+
+  testWidgets('a paste over a selected word is one undo step', (tester) async {
+    final plain = _Plain('buy milk');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.pressCtlV();
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'buy eggs');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'buy milk');
+  });
+
+  testWidgets('the touch toolbar pastes as one undo step', (tester) async {
+    final plain = _Plain('buy milk');
+    await _pumpPlain(tester, plain);
+    tester.clipboardHolds('eggs');
+    await tester.selectWordIn(lineNodeOf(0), 5);
+
+    await tester.tap(find.text('Paste'));
+    await tester.pumpAndSettle();
+    expect(plain.owner.state.text, 'buy eggs');
+
+    plain.owner.send(const PlainRequest(Undo()));
+    await tester.pumpAndSettle();
+    expect(plain.text, 'buy milk');
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('a change from elsewhere shows right away', (tester) async {
     final plain = _Plain('a');
     await _pumpPlain(tester, plain);

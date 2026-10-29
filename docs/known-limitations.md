@@ -31,6 +31,10 @@ Accepted behavior that is not planned to change, grouped by topic.
   of this editing session, up to 100 steps. It stops where the document
   changed on another device or a version was chosen in a conflict; older
   versions are in the document's Backups.
+- **A paste from the phone keyboard can join the typing.** A paste with
+  Ctrl+V or from the editor's own Paste button is one undo step. Text the
+  keyboard puts in from its own clipboard bar arrives as typing, so undo
+  can take it back together with the word typed right before it.
 
 ## Editing Markdown
 

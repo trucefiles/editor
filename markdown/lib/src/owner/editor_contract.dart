@@ -71,12 +71,19 @@ final class Pressed extends ShownInput {
 /// [text] typed over [over], the selection the input method or the
 /// keyboard typed at: at the shown caret in the typing style, elsewhere
 /// in the style of the text there. Text with line breaks goes in as a
-/// paste of plain lines.
+/// paste of plain lines. A [pasted] text is an undo step of its own,
+/// never part of the typing around it.
 final class Typed extends ShownInput {
-  const Typed(this.text, {required this.over, required super.revision});
+  const Typed(
+    this.text, {
+    required this.over,
+    required super.revision,
+    this.pasted = false,
+  });
 
   final String text;
   final TextSelection over;
+  final bool pasted;
 }
 
 /// [command] from the input method, a gesture, the toolbar or a menu;
@@ -118,18 +125,21 @@ final class OpenRawBlock extends ShownInput {
 }
 
 /// The open raw block now reads [text], its caret from [base] to [extent]
-/// in it.
+/// in it. A [pasted] text is an undo step of its own, never part of the
+/// typing around it.
 final class EditRaw extends ShownInput {
   const EditRaw(
     this.text, {
     required this.base,
     required this.extent,
     required super.revision,
+    this.pasted = false,
   });
 
   final String text;
   final int base;
   final int extent;
+  final bool pasted;
 }
 
 /// The caret moved within the open raw block.
@@ -144,11 +154,18 @@ final class RawCaretMoved extends ShownInput {
   final int extent;
 }
 
-/// Markdown edit's text is now [text].
+/// Markdown edit's text is now [text]. A [pasted] text is an undo step
+/// of its own, never part of the typing around it.
 final class EditText extends ShownInput {
-  const EditText(this.text, {required super.revision});
+  const EditText(this.text, {required super.revision, this.pasted = false});
 
   final String text;
+  final bool pasted;
+}
+
+/// The user moved the caret in Markdown edit.
+final class TextCaretMoved extends ShownInput {
+  const TextCaretMoved({required super.revision});
 }
 
 /// The document shows in [mode]; for Read, the text is sent first, so

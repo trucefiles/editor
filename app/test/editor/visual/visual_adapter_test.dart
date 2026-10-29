@@ -5,6 +5,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart'
     show Edited, SecureEditor, SecureReason, Ticket, ToFile, Version;
 import 'package:truce_editor/editor/editor_gate.dart';
+import 'package:truce_editor/editor/library/own_paste.dart';
 import 'package:truce_editor/editor/visual/library/library_nodes.dart';
 import 'package:truce_editor/editor/visual/library/visual_adapter.dart';
 import 'package:truce_editor/editor/visual/row_looks.dart';
@@ -137,9 +138,7 @@ void main() {
     final visual = _Visual('- [ ] ab');
     visual.caret(0, 1);
 
-    visual.editor.execute([
-      PasteEditorRequest(content: 'x\ny', pastePosition: visual.at(0, 1)),
-    ]);
+    visual.adapter.paste('x\ny');
 
     expect(visual.texts, ['ax', 'yb']);
     expect(visual.secured(), '- [ ] ax\n- [ ] yb');
@@ -149,9 +148,7 @@ void main() {
     final visual = _Visual('ab');
     visual.caret(0, 1);
 
-    visual.editor.execute([
-      PasteEditorRequest(content: '**x**', pastePosition: visual.at(0, 1)),
-    ]);
+    visual.adapter.paste('**x**');
 
     expect(visual.texts, ['a**x**b']);
     expect(visual.secured(), r'a\*\*x\*\*b');
@@ -217,8 +214,7 @@ void main() {
       'InsertNewlineAtCaret': (_) => InsertNewlineAtCaretRequest(),
       'InsertSoftNewlineAtCaret': (_) =>
           const InsertSoftNewlineAtCaretRequest(),
-      'PasteEditor': (visual) =>
-          PasteEditorRequest(content: 'x', pastePosition: visual.at(0, 1)),
+      'Paste': (_) => const PasteRequest('x'),
     };
 
     for (final MapEntry(key: name, value: request) in ownerInputs.entries) {

@@ -4,6 +4,7 @@ import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
+import '../../library/own_paste.dart';
 import '../row_looks.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
@@ -149,7 +150,7 @@ final class VisualAdapter {
     CombineParagraphsRequest() => _pressed(md.EditKey.delete),
     InsertNewlineAtCaretRequest(:final newNodeId) => _enter(newNodeId),
     InsertSoftNewlineAtCaretRequest() => _pressed(md.EditKey.shiftEnter),
-    PasteEditorRequest(:final content) => _paste(content),
+    PasteRequest(:final text) => _paste(text),
     _ => null,
   };
 
@@ -184,8 +185,9 @@ final class VisualAdapter {
     return _pressed(md.EditKey.enter);
   }
 
-  /// Text from the clipboard over the selection: the fragment copied here
-  /// last, with its styles, while the clipboard still holds its text.
+  /// Text from the clipboard over the selection, as one paste: the
+  /// fragment copied here last, with its styles, while the clipboard
+  /// still holds its text.
   md.EditorInput? Function(md.EditorState) _paste(String text) {
     final range = _rangeOf(composer.selection);
     final copied = _copied;
@@ -194,7 +196,12 @@ final class VisualAdapter {
         md.Paste(range, lines),
         revision: now.revision,
       ),
-      (final range?, _) => md.Typed(text, over: range, revision: now.revision),
+      (final range?, _) => md.Typed(
+        text,
+        over: range,
+        pasted: true,
+        revision: now.revision,
+      ),
       (null, _) => null,
     };
   }
@@ -206,6 +213,9 @@ final class VisualAdapter {
       };
 
   // Keys and actions.
+
+  /// [text] pasted over the selection, as one edit.
+  void paste(String text) => editor.execute([PasteRequest(text)]);
 
   /// [key] pressed: the toolbar or a keyboard shortcut.
   void press(md.EditKey key) =>
@@ -269,15 +279,20 @@ final class VisualAdapter {
   /// nothing. The owner then gets the block's text.
   void _rawEdit(EditRequest request) {
     final executor = _executor!;
-    final command = switch (request) {
-      InsertNewlineAtCaretRequest() || InsertSoftNewlineAtCaretRequest() =>
-        _libraryCommand(InsertPlainTextAtCaretRequest('\n')),
+    final commands = switch (request) {
+      InsertNewlineAtCaretRequest() || InsertSoftNewlineAtCaretRequest() => [
+        ?_libraryCommand(InsertPlainTextAtCaretRequest('\n')),
+      ],
       DeleteUpstreamAtBeginningOfNodeRequest() ||
-      CombineParagraphsRequest() => null,
-      _ => _libraryCommand(request),
+      CombineParagraphsRequest() => <EditCommand>[],
+      PasteRequest(:final text) => [
+        for (final request in plainPasteRequests(text, composer.selection))
+          ?_libraryCommand(request),
+      ],
+      _ => [?_libraryCommand(request)],
     };
-    if (command == null) return;
-    executor.executeCommand(command);
+    if (commands.isEmpty) return;
+    commands.forEach(executor.executeCommand);
     final selection = composer.selection;
     final node = selection == null
         ? null
@@ -286,6 +301,7 @@ final class VisualAdapter {
     _gate.send(
       (now) => md.EditRaw(
         node.text.toPlainText(),
+        pasted: request is PasteRequest,
         base: (selection.base.nodePosition as TextNodePosition).offset,
         extent: (selection.extent.nodePosition as TextNodePosition).offset,
         revision: now.revision,

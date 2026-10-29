@@ -7,9 +7,16 @@ import '../../edit/text_places.dart';
 import '../editor_contract.dart';
 
 /// The typing [input] was, which changed what showed from [before] to
-/// [after]; `null` for any other edit, which is a step of its own.
+/// [after]; `null` for any other edit, which is a step of its own (a
+/// paste too).
 Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
     switch ((input, before.content, after.content)) {
+      (
+        Typed(pasted: true) || EditRaw(pasted: true) || EditText(pasted: true),
+        _,
+        _,
+      ) =>
+        null,
       (
         Typed(:final text, :final over),
         FormattedContent(raw: null, :final view),

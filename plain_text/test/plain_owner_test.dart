@@ -27,6 +27,9 @@ final class _Run {
   void edit(String text) =>
       machine.send(TextEdited(text, revision: state.revision));
 
+  void paste(String text) =>
+      machine.send(TextEdited(text, revision: state.revision, pasted: true));
+
   void request(EditorRequest request) => machine.send(PlainRequest(request));
 
   /// The save timer [timer] last started fires.
@@ -110,6 +113,26 @@ void main() {
 
       expect(run.state.caret, isNull);
       expect(run.state.text, 'one');
+    });
+
+    test('a caret moved away and back starts a new step', () {
+      final run = _Run('')
+        ..edit('milk')
+        ..machine.send(const CaretMoved())
+        ..edit('milks')
+        ..request(const Undo());
+      expect(run.state.text, 'milk');
+    });
+
+    test('a paste is a step of its own', () {
+      final run = _Run('')
+        ..edit('a')
+        ..paste('abc')
+        ..edit('abcd')
+        ..request(const Undo());
+      expect(run.state.text, 'abc');
+      run.request(const Undo());
+      expect(run.state.text, 'a');
     });
 
     test('a new line is a step of its own', () {

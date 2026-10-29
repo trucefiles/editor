@@ -8,6 +8,7 @@ import '../document_metrics.dart';
 import '../editor_gate.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
+import '../library/own_paste.dart';
 import '../library/touch_controls.dart';
 import '../ui/document_image.dart';
 import '../ui/empty_document_hint.dart';
@@ -55,6 +56,12 @@ class VisualEditView extends StatefulWidget {
 class _VisualEditViewState extends State<VisualEditView> {
   final _focus = FocusNode();
   late final _adapter = VisualAdapter(widget.gate, addItems: widget.addItems);
+  final _layout = GlobalKey();
+  late final _operations = PasteOperations(
+    _adapter.editor,
+    _adapter.paste,
+    layout: _layout,
+  );
   late final _actions = VisualActions(
     widget.gate,
     onFold: (item) => _adapter.folded = item,
@@ -116,6 +123,7 @@ class _VisualEditViewState extends State<VisualEditView> {
     final metrics = DocumentMetrics.of(context);
     final editor = SuperEditor(
       editor: _adapter.editor,
+      documentLayoutKey: _layout,
       focusNode: _focus,
       autofocus: widget.autofocus,
       stylesheet: look.stylesheet,
@@ -145,6 +153,7 @@ class _VisualEditViewState extends State<VisualEditView> {
               children: [
                 TouchControls(
                   color: look.handleColor,
+                  operations: _operations,
                   child: LineDropZone(
                     step: metrics.levelIndent,
                     onLift: (drag) => _actions.dragStarted(drag.item),
