@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:pool/pool.dart';
+
 import '../common/result.dart';
 
 /// A JSON value kept in one file in app storage, e.g. a setting; one

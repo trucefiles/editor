@@ -20,10 +20,7 @@ final backupActionsProvider = Provider<BackupActions>(
 final class BackupActions {
   /// [_servicesOf] gives a base folder's services; [_changed] tells the
   /// lists of backups to read them again.
-  BackupActions({
-    required this._servicesOf,
-    required this._changed,
-  });
+  BackupActions({required this._servicesOf, required this._changed});
 
   final BaseFolderServices Function(BaseFolder base) _servicesOf;
   final void Function() _changed;

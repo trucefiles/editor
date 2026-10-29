@@ -58,10 +58,7 @@ void main() {
     await container.read(foldersProvider.notifier).remove(folder);
     final after = container.read(baseFolderServicesProvider(folder.base));
 
-    expect(
-      (await after.store.read(path('a.md'))).error,
-      StoreError.outside,
-    );
+    expect((await after.store.read(path('a.md'))).error, StoreError.outside);
     await expectLater(before.reach.changes, emitsDone);
   });
 
@@ -74,10 +71,7 @@ void main() {
       baseFolderServicesProvider(folderAt(dir).base),
     );
 
-    expect(
-      (await services.store.read(path('a.md'))).error,
-      StoreError.outside,
-    );
+    expect((await services.store.read(path('a.md'))).error, StoreError.outside);
   });
 
   test('a change to what its folders show builds its services again, over '
