@@ -10,7 +10,6 @@ import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

@@ -11,7 +11,6 @@ import '../folders/folders_controller.dart';
 import '../refresh/refresh_settings.dart';
 import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
-import '../storage/device_id.dart';
 import 'app_writes.dart';
 import 'sync_tools.dart';
 

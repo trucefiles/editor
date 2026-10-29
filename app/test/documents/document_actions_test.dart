@@ -23,7 +23,6 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
 
 import '../support.dart';

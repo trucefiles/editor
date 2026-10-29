@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:pool/pool.dart';
-import 'package:truce_core/truce_core.dart';
+import '../common/result.dart';
 
 /// A JSON value kept in one file in app storage, e.g. a setting; one
 /// [JsonFile] per file. Its writes run one at a time (see

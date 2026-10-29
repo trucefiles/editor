@@ -13,7 +13,6 @@ import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart';

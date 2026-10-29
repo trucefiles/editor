@@ -9,7 +9,6 @@ import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/platform/storage_access.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

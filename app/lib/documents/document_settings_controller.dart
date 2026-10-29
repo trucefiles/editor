@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart' show Gone;
+import 'package:truce_core/truce_core.dart' show Gone, SettingStore;
 
 import '../folder_state/folder_contents.dart';
 import '../settings/setting_controller.dart';

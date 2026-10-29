@@ -5,7 +5,6 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/ui/folder_notices_view.dart';
 import 'package:truce_editor/folders/ui/folder_warning_icon.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
 
 import '../../support.dart';

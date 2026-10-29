@@ -21,7 +21,6 @@ import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
 

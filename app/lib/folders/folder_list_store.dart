@@ -3,7 +3,6 @@ import 'dart:ui' show Color;
 
 import 'package:truce_core/truce_core.dart';
 
-import '../storage/json_file.dart';
 import 'base_folder.dart';
 import 'document_folder.dart';
 

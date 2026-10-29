@@ -14,7 +14,6 @@ import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakePlace, FakeSyncTool;

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../storage/app_storage.dart';
-import '../storage/json_file.dart';
 import 'document_draft.dart';
 
 /// The drafts of one base folder's documents, one JSON file each in app
