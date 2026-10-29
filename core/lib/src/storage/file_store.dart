@@ -11,7 +11,7 @@ import 'rel_path.dart';
 ///
 /// Atomic writes go through a temp file next to the target. Implementations
 /// get a [TempFileNamer] when built, so storage never depends on the sync
-/// layer; the wiring passes in the sync tool's naming rule.
+/// layer; the sync tool passes in its own temp name rule.
 abstract interface class FileStore {
   /// Every file and folder below the root, recursively, hidden ones
   /// included. Folders for which [enterFolder] returns `false` are not

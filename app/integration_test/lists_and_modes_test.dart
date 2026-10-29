@@ -27,7 +27,7 @@ void main() {
   testApp('checks a checklist item and saves it', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
@@ -41,7 +41,7 @@ void main() {
     await tester.addFolder(app);
 
     await tester.waitFor(find.text('Documents/a/b/c'));
-    await tester.openNote('Deep');
+    await tester.openDocument('Deep');
     expect(find.text('Documents/a/b/c/todo.md'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
@@ -56,7 +56,7 @@ void main() {
   testApp('an undo in a checklist goes away with the document', (tester) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
+    await tester.openDocument('List');
     await tester.chooseInMenu('Clear checked items now');
     expect(find.text('Undo'), findsOneWidget);
 
@@ -72,14 +72,14 @@ void main() {
   ) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
+    await tester.openDocument('List');
     expect(find.text('Done (1)'), findsNothing);
 
     await tester.chooseCheckedItems('Show at end');
     await tester.waitFor(find.text('Done (1)'));
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.openNote('List');
+    await tester.openDocument('List');
 
     expect(find.text('Done (1)'), findsOneWidget);
     expect(app.folder('.truce').existsSync(), isFalse);
@@ -90,7 +90,7 @@ void main() {
   ) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n- [ ] c\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
+    await tester.openDocument('List');
 
     await tester.tapAndSettle(find.byType(Checkbox).at(1));
     await tester.pageBack();
@@ -104,7 +104,7 @@ void main() {
   testApp('the menu moves checked items to the end now', (tester) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
+    await tester.openDocument('List');
 
     await tester.chooseInMenu('Move checked items to end now');
     await tester.pageBack();
@@ -112,41 +112,39 @@ void main() {
     await tester.waitForFile(app.file('list.md'), '# List\n- [ ] b\n- [x] a\n');
   });
 
-  testApp('in Read, the menu moves checked items to the end and shows it; '
-      'in Markdown edit it offers only the setting', (tester) async {
+  testApp('in Read and Markdown edit the menu offers only the checked items '
+      'setting', (tester) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
-    await tester.chooseMode('Read');
+    await tester.openDocument('List');
 
-    await tester.chooseInMenu('Move checked items to end now');
-    expect(
-      tester.getTopLeft(find.text('b')).dy,
-      lessThan(tester.getTopLeft(find.text('a')).dy),
-    );
-
-    await tester.chooseMode('Markdown edit');
-    await tester.tapAndSettle(find.byTooltip('Show menu'));
-    expect(find.text('Checked items: Move to end'), findsOneWidget);
-    expect(find.text('Clear checked items now'), findsNothing);
-    await tester.tapAt(Offset.zero);
-    await tester.pumpAndSettle();
+    for (final mode in ['Read', 'Markdown edit']) {
+      await tester.chooseMode(mode);
+      await tester.tapAndSettle(find.byTooltip('Show menu'));
+      expect(find.text('Checked items: Move to end'), findsOneWidget);
+      expect(find.text('Move checked items to end now'), findsNothing);
+      expect(find.text('Clear checked items now'), findsNothing);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+    }
     await tester.pageBack();
 
-    await tester.waitForFile(app.file('list.md'), '# List\n- [ ] b\n- [x] a\n');
-    expect(app.conflictCopies(), isEmpty);
+    expect(
+      app.file('list.md').readAsStringSync(),
+      '# List\n- [x] a\n- [ ] b\n',
+    );
   });
 
   testApp('reopens a document in the mode it was left in', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
     expect(find.byType(Checkbox), findsOneWidget);
 
     await tester.chooseMode('Markdown edit');
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     expect(find.byType(Checkbox), findsNothing);
     expect(find.byTooltip('Mode: Markdown edit'), findsOneWidget);
@@ -156,7 +154,7 @@ void main() {
     app.write('read.md', '# Read me\n\nSome **bold** text.\n');
     await tester.addFolder(app);
 
-    await tester.openNote('Read me');
+    await tester.openDocument('Read me');
 
     expect(find.byTooltip('Mode: Read'), findsOne);
     expect(find.byType(SuperEditor), findsNothing);
@@ -171,7 +169,7 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     await tester.pressCtrl(LogicalKeyboardKey.digit3);
     expect(find.byTooltip('Mode: Read'), findsOne);
@@ -186,7 +184,7 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
 
     /// How large the document shows text of 10 px.
     double scaled() =>

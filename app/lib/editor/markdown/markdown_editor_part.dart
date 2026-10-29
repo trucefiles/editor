@@ -7,13 +7,13 @@ import '../../document_page/editor_part.dart';
 import '../../documents/document_files.dart';
 import '../../documents/document_images.dart';
 import '../../documents/view_settings.dart';
-import '../../markdown/markdown_links.dart';
 import '../add_item_place/add_item_place.dart';
 import '../add_item_place/add_item_place_controller.dart';
 import '../document_editor.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
 import '../run_command.dart';
+import 'markdown_links.dart';
 import 'markdown_page_editor.dart';
 import 'markdown_view.dart';
 import 'ui/checked_items_dialog.dart';
@@ -126,8 +126,9 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
     ViewSettings view,
   ) => [
     if (_hasCheckboxes) ...[
-      // In Visual edit and Read.
-      if (_gate.state.mode != EditMode.markdown) ...[
+      // Only Visual edit acts on the document from its menu; Read shows
+      // the standard reading, which the editor's commands don't act on.
+      if (_gate.state.mode == EditMode.visual) ...[
         PopupMenuItem(
           value: () => _gate.run(MoveToEnd.new),
           child: const Text('Move checked items to end now'),

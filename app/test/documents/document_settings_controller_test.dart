@@ -55,7 +55,7 @@ void main() {
     };
     expect(
       container.read(documentSettingsProvider).value,
-      expected.map((key, value) => MapEntry(key, KeptNoteSettings(value))),
+      expected.map((key, value) => MapEntry(key, KeptDocumentSettings(value))),
     );
     expect(await saved(), expected);
   });
@@ -98,7 +98,7 @@ void main() {
     });
 
     final now = DateTime.utc(2026, 10, 21, 9);
-    final graceLater = now.add(KeptNoteSettings.grace);
+    final graceLater = now.add(KeptDocumentSettings.grace);
 
     Document documentAt(DocumentFolder folder, String name) =>
         listedDocument(folder, name: name);

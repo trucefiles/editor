@@ -250,14 +250,18 @@ void main() {
       expect(added(CheckedItems.inPlace), '- [ ] a\n- [x] b\n- [ ] new');
     });
 
-    test('in Read, the menu commands run and the text is sent at once', () {
+    test('in Read, no command changes the text', () {
       final run = EditorRun('- [x] a\n- [ ] b', mode: EditMode.read);
-      run.runCommand(MoveToEnd(run.shown.selection));
-      expect(run.sent, '- [ ] b\n- [x] a');
-      run.runCommand(ClearChecked(run.shown.selection));
-      expect(run.sent, '- [ ] b');
-      run.runCommand(Toggle(run.item(0), run.shown.selection));
-      expect(run.sent, '- [ ] b', reason: 'Read takes no edits');
+      final before = run.shown;
+      run
+        ..runCommand(MoveToEnd(run.shown.selection))
+        ..runCommand(ClearChecked(run.shown.selection))
+        ..runCommand(Toggle(run.item(0), run.shown.selection));
+      expect(run.shown, before);
+      expect(
+        run.edits.map((edit) => edit.text),
+        everyElement('- [x] a\n- [ ] b'),
+      );
     });
 
     test('in place stay where they are', () {

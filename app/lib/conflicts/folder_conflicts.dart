@@ -22,7 +22,7 @@ final class FolderConflicts {
 
   final List<FolderConflict> all;
 
-  FolderConflict? forNote(DocumentKey key) {
+  FolderConflict? forDocument(DocumentKey key) {
     for (final conflict in all) {
       if (conflict.key == key) return conflict;
     }

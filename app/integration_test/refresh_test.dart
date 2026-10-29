@@ -28,7 +28,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.refocusApp();
@@ -82,7 +82,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -100,7 +100,7 @@ void main() {
     app.write('deep/new.md', '# New\n');
     await tester.waitFor(find.text('New'));
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.waitFor(fromElsewhere);
   });
@@ -130,7 +130,7 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] milk\n');
     await tester.addFolder(app);
-    await tester.openNote('Todo');
+    await tester.openDocument('Todo');
     final file = app.file('todo.md');
     final from = DateTime(2001);
 
@@ -171,7 +171,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(RefreshProgressIndicator), findsOne);
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(RefreshProgressIndicator), findsOne);

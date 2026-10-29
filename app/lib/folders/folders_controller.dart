@@ -44,7 +44,9 @@ final foldersProvider =
     );
 
 /// The folders added on this device, as the folder list owner shows them;
-/// every change is saved before it shows.
+/// every change is saved before it shows. Loading while the list loads,
+/// and still loading if it can't be read: nothing may act on folders it
+/// doesn't know ([folderListStateProvider] tells the screens why).
 class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   FolderListOwner get _owner => ref.read(folderListOwnerProvider);
 
@@ -52,28 +54,15 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   Future<List<DocumentFolder>> build() async {
     final owner = ref.watch(folderListOwnerProvider);
     final changes = owner.changes.listen((list) {
-      if (_shown(list) case final shown?) state = shown;
+      if (list case FoldersLoaded(:final folders)) state = AsyncData(folders);
     });
     ref.onDispose(() => unawaited(changes.cancel()));
-    final loaded = owner.state is FoldersLoading
-        ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
-        : owner.state;
-    return switch (loaded) {
+    return switch (await _settled(owner)) {
       FoldersLoaded(:final folders) => folders,
-      FoldersUnreadable(:final error) => throw FolderSettingsException(error),
-      FoldersLoading() => throw StateError('still loading'),
+      FoldersUnreadable() ||
+      FoldersLoading() => Completer<List<DocumentFolder>>().future,
     };
   }
-
-  static AsyncValue<List<DocumentFolder>>? _shown(FolderListState list) =>
-      switch (list) {
-        FoldersLoaded(:final folders) => AsyncData(folders),
-        FoldersUnreadable(:final error) => AsyncError(
-          FolderSettingsException(error),
-          StackTrace.current,
-        ),
-        FoldersLoading() => null,
-      };
 
   /// Adds a folder showing [selection] of the base folder at [address],
   /// synced by the tool [toolId]; the folder added.
@@ -120,9 +109,34 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   ) => ask<FolderListInput, A>(_owner.send, _owner.events, asking);
 }
 
-/// The saved folder list could not be loaded; shown instead of the documents.
-final class FolderSettingsException implements Exception {
-  const FolderSettingsException(this.error);
+final folderListStateProvider =
+    NotifierProvider<FolderListStateController, FolderListState>(
+      FolderListStateController.new,
+    );
 
-  final SettingsError error;
+/// The folder list owner's state as it changes, for the screens: still
+/// loading, loaded, or unreadable and why.
+class FolderListStateController extends Notifier<FolderListState> {
+  @override
+  FolderListState build() {
+    final owner = ref.watch(folderListOwnerProvider);
+    final changes = owner.changes.listen((list) => state = list);
+    ref.onDispose(() => unawaited(changes.cancel()));
+    return owner.state;
+  }
 }
+
+/// The folders once the list has loaded, as [foldersProvider] has them;
+/// none if it can't be read, so a caller that must go on goes on with
+/// nothing to act on.
+Future<List<DocumentFolder>> settledFolders(Ref ref) async =>
+    switch (await _settled(ref.read(folderListOwnerProvider))) {
+      FoldersLoaded() => ref.read(foldersProvider.future),
+      FoldersUnreadable() || FoldersLoading() => const [],
+    };
+
+/// [owner]'s list once it is no longer loading.
+Future<FolderListState> _settled(FolderListOwner owner) async =>
+    owner.state is FoldersLoading
+    ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
+    : owner.state;

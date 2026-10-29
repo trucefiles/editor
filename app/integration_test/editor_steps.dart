@@ -82,7 +82,7 @@ extension EditorSteps on WidgetTester {
   Future<void> openVisual(TestApp app, String title, String text) async {
     app.write('document.md', text);
     await addFolder(app);
-    await openNote(title);
+    await openDocument(title);
     if (find.byTooltip('Mode: Visual edit').evaluate().isEmpty) {
       await chooseMode('Visual edit');
     }

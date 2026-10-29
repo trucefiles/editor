@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/editor/markdown/markdown_links.dart';
 import 'package:truce_editor/editor/read/read_view.dart';
-import 'package:truce_editor/markdown/markdown_links.dart';
 import 'package:truce_editor/platform/link_opener.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -15,11 +15,16 @@ void main() {
 
   setUp(() => links = _FakeLinkOpener());
 
-  Future<void> show(WidgetTester tester, String markdown) async {
+  Future<void> show(
+    WidgetTester tester,
+    String markdown, {
+    ThemeData? theme,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [linkOpenerProvider.overrideWithValue(links)],
         child: MaterialApp(
+          theme: theme,
           home: Scaffold(
             body: Consumer(
               builder: (context, ref, _) => ReadView(
@@ -74,10 +79,23 @@ void main() {
     expect(shown(tester), contains('Title'));
     expect(shown(tester), contains('Some bold text.'));
     expect(shown(tester), isNot(contains('#')));
-    expect(
-      find.byWidgetPredicate((widget) => widget is Checkbox && widget.value!),
-      findsOne,
-    );
+    // The renderer's own checkbox, not the editors' marker.
+    expect(find.byIcon(Icons.check_box), findsOne);
+    expect(find.byType(Checkbox), findsNothing);
+  });
+
+  testWidgets('draws checkboxes in the theme color, also in dark mode', (
+    tester,
+  ) async {
+    final dark = ThemeData(brightness: Brightness.dark);
+    await show(tester, '- [x] done\n- [ ] open', theme: dark);
+
+    for (final icon in [Icons.check_box, Icons.check_box_outline_blank]) {
+      expect(
+        tester.widget<Icon>(find.byIcon(icon)).color,
+        dark.colorScheme.primary,
+      );
+    }
   });
 
   testWidgets('lays out small text on touch, items wider apart', (

@@ -56,7 +56,7 @@ const _spacing = 8.0;
 
 /// Opens [document] in the editor, with its text as it is now; tells the
 /// user if it can't be read.
-Future<void> openNote(
+Future<void> openDocument(
   BuildContext context,
   WidgetRef ref,
   Document document,

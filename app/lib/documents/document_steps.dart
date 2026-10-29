@@ -9,7 +9,7 @@ import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
-import 'deleted_note.dart';
+import 'deleted_document.dart';
 import 'document.dart';
 import 'document_drafts.dart';
 import 'document_files.dart';
@@ -131,7 +131,7 @@ base class DocumentSteps {
   /// Deletes [document] with its mark and settings, keeping them and its
   /// [text] for [undoDelete]. Refused while a sync conflict of the document
   /// waits. Fails if the file changed since [document] was read.
-  Future<Result<DeletedNote, DeleteFailure>> delete(
+  Future<Result<DeletedDocument, DeleteFailure>> delete(
     DocumentText document,
     String text,
   ) async {
@@ -154,8 +154,8 @@ base class DocumentSteps {
   /// overwrites: if a file was created at its path meanwhile, the document
   /// comes back beside it, under the next free numbered name, and its
   /// backups go with it.
-  Future<Result<void, StoreError>> undoDelete(DeletedNote deleted) async {
-    final DeletedNote(:document, :text, :mark, :settings) = deleted;
+  Future<Result<void, StoreError>> undoDelete(DeletedDocument deleted) async {
+    final DeletedDocument(:document, :text, :mark, :settings) = deleted;
     final files = _ref.read(documentFilesProvider(document.folder));
     final restored = switch (await files.restore(document, text)) {
       Err(error: StoreError.alreadyExists) => await files.copyIn(
@@ -180,12 +180,7 @@ base class DocumentSteps {
   /// Recovers the drafts of every base folder written before [before]
   /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
-    final folders = await _ref
-        .read(foldersProvider.future)
-        .then<List<DocumentFolder>>(
-          (folders) => folders,
-          onError: (_) => <DocumentFolder>[],
-        );
+    final folders = await settledFolders(_ref);
     final types = _ref.read(documentTypesProvider);
     for (final base in {for (final folder in folders) folder.base}) {
       await DraftRecovery(
@@ -201,7 +196,8 @@ base class DocumentSteps {
 
   /// Whether a sync conflict of the document at [key] waits, as last seen.
   bool _conflictWaits(DocumentKey key) =>
-      _ref.read(folderContentsProvider).value?.conflicts.forNote(key) != null;
+      _ref.read(folderContentsProvider).value?.conflicts.forDocument(key) !=
+      null;
 
   /// The color of the document at [path] in [folder] as it is now: read
   /// from its marks, as the folder state may not have seen a color just

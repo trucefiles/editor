@@ -17,7 +17,9 @@ typedef FolderBackup = ({DocumentFolder folder, Backup backup});
 final allBackupsProvider = FutureProvider.autoDispose<List<FolderBackup>>((
   ref,
 ) async {
-  final folders = await ref.watch(foldersProvider.future);
+  // Built again as the list changes; none if it can't be read.
+  ref.watch(folderListStateProvider);
+  final folders = await settledFolders(ref);
   final sources = [
     for (final base in {for (final folder in folders) folder.base})
       (base, ref.watch(baseFolderServicesProvider(base)).backups),

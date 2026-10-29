@@ -44,7 +44,7 @@ class NewFilePlaceTile extends ConsumerWidget {
         // finds them, so the dialog offers them.
         await ref.read(folderContentsProvider.notifier).refresh();
         if (!context.mounted) return;
-        final picked = await showNotePlaceDialog(
+        final picked = await showDocumentPlaceDialog(
           context,
           title: 'Default folder for new documents',
           action: 'OK',

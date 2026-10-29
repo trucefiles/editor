@@ -3,6 +3,7 @@ import 'package:truce_plain_text/truce_plain_text.dart';
 
 import '../document_page/editor_part.dart';
 import '../documents/document_card_summary.dart';
+import '../documents/document_title.dart';
 import '../editor/plain/plain_editor_part.dart';
 import 'document_type.dart';
 
@@ -17,12 +18,17 @@ final class PlainTextDocumentType implements DocumentType {
   String get newFileExtension => '.txt';
 
   @override
-  DocumentCardSummary cardSummary(String text, RelPath path) => cardSummaryOf(
-    support.summary(text, maxLines: DocumentCardSummary.previewLines),
-    path,
-    options: const {(): PlainPreview()},
-    optionOf: (_) => (),
-  );
+  DocumentCardSummary cardSummary(String text, RelPath path) {
+    final summary = support.summary(
+      text,
+      maxLines: DocumentCardSummary.previewLines,
+    );
+    final preview = summary.preview(const PlainPreview());
+    return DocumentCardSummary(
+      title: titleOf(summary, path),
+      preview: (_) => preview,
+    );
+  }
 
   @override
   EditorPart editorPart(EditorStart start, EditorPage page) =>

@@ -13,7 +13,7 @@ import 'document_file.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named
 /// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
-typedef CreateNote = Future<Result<DocumentText, StoreError>> Function(
+typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
   DocumentPlace place, {
   required DocumentType type,
   required String title,
@@ -38,7 +38,7 @@ final class FileEffects {
 
   final DocumentFiles Function(DocumentFolder folder) _filesOf;
   final DocumentDrafts Function(DocumentFolder folder) _draftsOf;
-  final CreateNote _create;
+  final CreateDocumentFile _create;
 
   /// One draft per open document; names it in its folder's drafts.
   final _draftId = DocumentDraft.newId();

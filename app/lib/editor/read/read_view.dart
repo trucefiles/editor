@@ -5,15 +5,14 @@ import 'package:truce_markdown/truce_markdown.dart';
 
 import '../document_metrics.dart';
 import '../document_text_styles.dart';
-import '../marker.dart';
 import '../ui/document_image.dart';
-import '../ui/list_marker.dart';
 
 /// The document's [text] to read, formatted by a standard CommonMark +
 /// GitHub renderer, as it is in the file: items in their place, lines
 /// without a blank line between them joined, front matter left out; text
-/// sized as in the editor ([DocumentTextStyles]). Links open with [onLink];
-/// images show as [images] finds them.
+/// sized as in the editor ([DocumentTextStyles]). Only shows: it offers no
+/// actions on the document. Links open with [onLink]; images show as
+/// [images] finds them.
 class ReadView extends StatelessWidget {
   const ReadView(
     this.text, {
@@ -34,17 +33,6 @@ class ReadView extends StatelessWidget {
       data: DocumentTree.read(text).textAfterFrontMatter,
       extensionSet: md.ExtensionSet.gitHubWeb,
       styleSheet: _styleSheet(Theme.of(context), DocumentMetrics.of(context)),
-      // Items as the editors draw them: the same markers, in the same
-      // slot, by the item's first line.
-      listItemCrossAxisAlignment: MarkdownListItemCrossAxisAlignment.start,
-      bulletBuilder: (bullet) => ListMarker(switch (bullet.style) {
-        BulletStyle.unorderedList => const BulletMarker(),
-        BulletStyle.orderedList => NumberMarker(bullet.index + 1),
-      }, style: DocumentTextStyles.body(Theme.of(context))),
-      checkboxBuilder: (checked) => ListMarker(
-        BoxMarker(checked: checked),
-        style: DocumentTextStyles.body(Theme.of(context)),
-      ),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
       onTapLink: (_, href, _) {
         if (href != null) onLink(href);
@@ -58,7 +46,8 @@ class ReadView extends StatelessWidget {
 /// The renderer's own sheet for [theme] (its colors), with the sizes of a
 /// document's text: its body text wherever the renderer uses body text, code
 /// and headings as the editor draws them; spaced by [metrics], so lines
-/// stand as close as in the editors, list markers in the same slot.
+/// stand as close as in the editors. Lists and checkboxes look as the
+/// renderer draws them.
 MarkdownStyleSheet _styleSheet(ThemeData theme, DocumentMetrics metrics) {
   final body = DocumentTextStyles.body(theme);
   final sheet = MarkdownStyleSheet.fromTheme(
@@ -73,9 +62,10 @@ MarkdownStyleSheet _styleSheet(ThemeData theme, DocumentMetrics metrics) {
     h4: DocumentTextStyles.heading(body, 4),
     h5: DocumentTextStyles.heading(body, 5),
     h6: DocumentTextStyles.heading(body, 6),
+    // The renderer's own box, in the theme's color, so it shows in dark
+    // mode too.
+    checkbox: sheet.checkbox?.copyWith(color: theme.colorScheme.primary),
     blockSpacing: metrics.blockGap,
-    listIndent: metrics.markerWidth,
-    listBulletPadding: EdgeInsets.zero,
     pPadding: below,
     h1Padding: below,
     h2Padding: below,

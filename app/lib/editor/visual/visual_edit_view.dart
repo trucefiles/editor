@@ -174,7 +174,10 @@ class _VisualEditViewState extends State<VisualEditView> {
                     child: editor!,
                   ),
                 ),
-                EmptyNoteHint(empty: _isEmpty, padding: look.firstLinePadding),
+                EmptyDocumentHint(
+                  empty: _isEmpty,
+                  padding: look.firstLinePadding,
+                ),
               ],
             ),
           ),

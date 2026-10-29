@@ -80,7 +80,7 @@ void main() {
     app.write('plan.md', '# Plan\n');
     app.write('Ideas.md', '# Ideas\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.placeNote(name: 'Ideas');
     await tester.runFor(const Duration(seconds: 1));
@@ -99,7 +99,7 @@ void main() {
       await tester.addFolder(app);
 
       for (final mode in ['Visual edit', 'Markdown edit', 'Read']) {
-        await tester.openNote('Plan');
+        await tester.openDocument('Plan');
         await tester.chooseMode(mode);
         await tester.pageBack();
         await tester.waitForNoteClosed();
@@ -225,7 +225,7 @@ void main() {
   testApp('an empty file opens and takes text', (tester) async {
     app.write('blank.md', '');
     await tester.addFolder(app);
-    await tester.openNote('blank');
+    await tester.openDocument('blank');
 
     await tester.typeOver('Now text');
     await tester.pageBack();
@@ -274,7 +274,7 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
 
@@ -442,12 +442,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.byTooltip('teal'));
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.placeNote(subfolder: 'done');
     await tester.waitForFile(app.file('done/plan.md'), '# Plan\n');
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     final screen = find.byType(DocumentScreen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
@@ -469,7 +469,7 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.placeNote(subfolder: 'done');
     await tester.runFor(const Duration(seconds: 1));
     await tester.pageBack();
@@ -516,7 +516,7 @@ void main() {
     await tester.tapAndSettle(find.text('Pin'));
     await tester.waitFor(find.byTooltip('Pinned'));
 
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));

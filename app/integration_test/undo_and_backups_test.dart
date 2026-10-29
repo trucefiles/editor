@@ -26,14 +26,14 @@ void main() {
   Future<void> planWithBackup(WidgetTester tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
     await tester.waitForNoteClosed();
     // The grid shows the edit, so the document opens as written.
     await tester.waitFor(find.textContaining('broken', findRichText: true));
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
   }
 
   testApp('Ctrl+Z, Ctrl+Y and the buttons undo and redo typing', (

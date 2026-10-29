@@ -38,7 +38,7 @@ void main() {
   ) async {
     app.write('shopping.txt', 'Shopping\r\n# milk\r\n');
     await tester.addFolder(app);
-    await tester.openNote('Shopping');
+    await tester.openDocument('Shopping');
 
     expect(
       find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
@@ -58,7 +58,7 @@ void main() {
   testApp('Ctrl+Z and Ctrl+Y undo and redo typing', (tester) async {
     app.write('plan.txt', 'Plan\nab\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.clickLine('ab', 2);
     await tester.typeImeText('cd');
 
@@ -76,7 +76,7 @@ void main() {
   ) async {
     app.write('list.txt', 'List\nmilk\n');
     await tester.addFolder(app);
-    await tester.openNote('List');
+    await tester.openDocument('List');
     await tester.clickLine('milk', 4);
     await tester.typeImeText(' egg');
     await tester.clickLine('List', 0);
@@ -93,7 +93,7 @@ void main() {
   testApp('compares a change from elsewhere and keeps mine', (tester) async {
     app.write('plan.txt', 'Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('Plan\nmine\n');
     app.write('plan.txt', 'Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -108,13 +108,13 @@ void main() {
   testApp('restores a backup into the open document', (tester) async {
     app.write('plan.txt', 'Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
     await tester.typeOver('Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.txt'), 'Plan\nbroken\n');
     await tester.waitForNoteClosed();
     await tester.waitFor(find.textContaining('broken', findRichText: true));
-    await tester.openNote('Plan');
+    await tester.openDocument('Plan');
 
     await tester.chooseInMenu('Backups');
     await tester.waitFor(find.textContaining('Before editing'));
