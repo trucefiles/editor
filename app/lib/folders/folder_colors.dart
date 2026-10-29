@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// Colors offered for folders; distinct in light and dark themes.
-const folderColors = <Color>[
-  Colors.teal,
-  Colors.indigo,
-  Colors.orange,
-  Colors.pink,
-  Colors.green,
-  Colors.purple,
-  Colors.brown,
-  Colors.blueGrey,
-];
+/// Colors offered for folders, by the name the folder list keeps; distinct
+/// in light and dark themes. Names must never change, or folders lose
+/// their color.
+const folderColors = <String, Color>{
+  'teal': Colors.teal,
+  'indigo': Colors.indigo,
+  'orange': Colors.orange,
+  'pink': Colors.pink,
+  'green': Colors.green,
+  'purple': Colors.purple,
+  'brown': Colors.brown,
+  'blueGrey': Colors.blueGrey,
+};
 
-/// The first color not used by [used], so new folders differ by default.
-Color nextFolderColor(Iterable<Color> used) {
-  final taken = used.map((color) => color.toARGB32()).toSet();
-  return folderColors.firstWhere(
-    (color) => !taken.contains(color.toARGB32()),
-    orElse: () => folderColors[taken.length % folderColors.length],
-  );
-}
+/// The color of a folder colored [name]; the first offered for an unknown
+/// name.
+Color folderColor(String name) =>
+    folderColors[name] ?? folderColors.values.first;

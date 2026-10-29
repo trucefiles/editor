@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' show Color;
 
 import 'package:truce_core/truce_core.dart';
 
@@ -56,7 +55,7 @@ final class FolderListStore {
           'id': folder.id,
           'base': folder.base.id,
           'name': folder.name,
-          'color': folder.color.toARGB32(),
+          'color': folder.color,
           if (folder.selection case Subfolders(:final roots))
             'subfolders': [for (final root in roots) root.value]..sort(),
         },
@@ -93,19 +92,39 @@ final class FolderListStore {
       'id': final String id,
       'base': final String baseId,
       'name': final String name,
-      'color': final int color,
+      'color': final Object color,
     } =>
-      switch ((bases[baseId], _selection(json))) {
-        (final base?, final selection?) => DocumentFolder(
+      switch ((bases[baseId], _selection(json), _colorName(color))) {
+        (final base?, final selection?, final color?) => DocumentFolder(
           id: id,
           base: base,
           selection: selection,
           name: name,
-          color: Color(color),
+          color: color,
         ),
         _ => null,
       },
     _ => null,
+  };
+
+  /// The color name kept as [json]; a list saved before color names
+  /// kept the color as a number, one of the palette's then. `null` if it
+  /// is neither.
+  static String? _colorName(Object json) => switch (json) {
+    final String name => name,
+    final int number => _numberedColors[number] ?? _numberedColors[0xFF009688],
+    _ => null,
+  };
+
+  static const _numberedColors = {
+    0xFF009688: 'teal',
+    0xFF3F51B5: 'indigo',
+    0xFFFF9800: 'orange',
+    0xFFE91E63: 'pink',
+    0xFF4CAF50: 'green',
+    0xFF9C27B0: 'purple',
+    0xFF795548: 'brown',
+    0xFF607D8B: 'blueGrey',
   };
 
   /// The whole base folder without `subfolders`; `null` for subfolders

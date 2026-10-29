@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -57,7 +56,7 @@ DocumentFolder folderAt(
   ),
   selection: selection,
   name: 'Documents',
-  color: const Color(0xFF009688),
+  color: 'teal',
 );
 
 /// The document types the app handles.

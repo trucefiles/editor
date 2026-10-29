@@ -1,11 +1,9 @@
-import 'dart:ui' show Color;
-
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../base_folder.dart';
 import '../document_folder.dart';
-import '../folder_colors.dart';
+import '../folder_color_names.dart';
 import '../folder_error.dart';
 import '../subfolders/subfolder_choice.dart';
 
@@ -28,12 +26,16 @@ enum AddFolderStep {
 final class AddFolderWork {
   const AddFolderWork({
     required this.tools,
+    required this.colors,
     required this.subfoldersOf,
     required this.add,
   });
 
   /// The sync tools the app works with, in the order offered.
   final List<SyncTool> tools;
+
+  /// The names of the colors offered for folders, in order; never empty.
+  final List<String> colors;
 
   /// The folder names of a base folder added before, from the place the
   /// app keeps for it.
@@ -45,7 +47,7 @@ final class AddFolderWork {
     required String toolId,
     required Selection selection,
     required String name,
-    required Color color,
+    required String color,
   })
   add;
 }
@@ -65,7 +67,7 @@ final class AddFolderFlow extends ChangeNotifier {
   SyncTool? _tool;
   SubfolderChoice? _parts;
   String _name = '';
-  Color _color = folderColors.first;
+  late String _color = _work.colors.first;
 
   AddFolderStep get step => _step;
 
@@ -87,7 +89,7 @@ final class AddFolderFlow extends ChangeNotifier {
   SubfolderChoice get parts => _parts!;
 
   String get name => _name;
-  Color get color => _color;
+  String get color => _color;
 
   /// Uses the base folder at [address]: one added before keeps its tool;
   /// else the first tool that recognizes it, or the user says which.
@@ -130,13 +132,16 @@ final class AddFolderFlow extends ChangeNotifier {
       Subfolders(:final roots) when roots.length == 1 => roots.single.name,
       _ => _lastSegment(address),
     };
-    _color = nextFolderColor(_folders.map((folder) => folder.color));
+    _color = nextFolderColor(
+      _folders.map((folder) => folder.color),
+      _work.colors,
+    );
     _go(AddFolderStep.name);
   }
 
   void rename(String name) => _name = name;
 
-  void recolor(Color color) {
+  void recolor(String color) {
     _color = color;
     notifyListeners();
   }

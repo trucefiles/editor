@@ -1,4 +1,3 @@
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -38,7 +37,7 @@ void main() {
         toolId: 'syncthing',
         selection: const WholeFolder(),
         name: basePath,
-        color: const Color(0xFF009688),
+        color: 'teal',
       );
 
   test('asks the platform for access', () async {

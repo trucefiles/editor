@@ -4,8 +4,6 @@
 /// the list the one before saved.
 library;
 
-import 'dart:ui' show Color;
-
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:truce_core/truce_core.dart';
 
@@ -81,7 +79,7 @@ final class AddFolder extends FolderListAsking {
   final String toolId;
   final Selection selection;
   final String name;
-  final Color color;
+  final String color;
 }
 
 /// Change a folder's name, color or selection to [changed]'s.

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -24,7 +23,7 @@ void main() {
     final folder = folderAt(tempFolder());
     final restyled = folder.copyWith(
       name: 'Other',
-      color: const Color(0xFF000000),
+      color: 'teal',
     );
 
     expect(

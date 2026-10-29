@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -53,7 +52,7 @@ void main() {
         toolId: toolId,
         selection: selection,
         name: name,
-        color: const Color(0xFF009688),
+        color: 'teal',
       );
 
   Selection subfolders(List<String> paths) =>

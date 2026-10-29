@@ -39,7 +39,7 @@ class FolderSettingsScreen extends ConsumerStatefulWidget {
 
 class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late final _name = TextEditingController(text: widget.folder.name);
-  late Color _color = widget.folder.color;
+  late String _color = widget.folder.color;
   late final _parts = SubfolderChoice(
     names: ref.read(subfolderNamesProvider(widget.folder.base)),
     taken: [

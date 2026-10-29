@@ -7,6 +7,7 @@ import 'package:truce_editor/folders/add_folder/add_folder_wiring.dart';
 import 'package:truce_editor/folders/add_folder/ui/add_folder_screen.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
+import 'package:truce_editor/folders/folder_colors.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
@@ -48,6 +49,7 @@ void main() {
           addFolderWorkProvider.overrideWith(
             (ref) => AddFolderWork(
               tools: [syncthing, plain],
+              colors: folderColors.keys.toList(),
               subfoldersOf: (base) => syncthing.place(base.address).subfolders,
               add:
                   ({
@@ -180,7 +182,7 @@ void main() {
           base: base,
           selection: Selection.of([path('notes/work')]),
           name: 'Work',
-          color: Colors.teal,
+          color: 'teal',
         ),
       ],
     );

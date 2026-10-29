@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show Color;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
@@ -71,7 +70,7 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
     required String toolId,
     required Selection selection,
     required String name,
-    required Color color,
+    required String color,
   }) async => switch (await _ask<FolderAdded>(
     (ticket) => AddFolder(
       ticket,

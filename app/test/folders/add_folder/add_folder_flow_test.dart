@@ -1,10 +1,8 @@
-import 'package:flutter/material.dart' show Color, Colors;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/add_folder/add_folder_flow.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/folders/folder_colors.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -22,7 +20,7 @@ void main() {
       String toolId,
       Selection selection,
       String name,
-      Color color,
+      String color,
     })
   >
   added;
@@ -50,7 +48,7 @@ void main() {
     base: BaseFolder(id: 'b1', address: address, toolId: syncthing.id),
     selection: selection,
     name: 'Documents',
-    color: folderColors.first,
+    color: 'teal',
   );
 
   AddFolderFlow flow([
@@ -60,6 +58,7 @@ void main() {
     final flow = AddFolderFlow(
       AddFolderWork(
         tools: tools ?? [other, syncthing, plainFolder],
+        colors: const ['teal', 'pink', 'green'],
         subfoldersOf: (base) => keptNames[base]!,
         add:
             ({
@@ -140,7 +139,7 @@ void main() {
 
     expect(adding.step, AddFolderStep.name);
     expect(adding.name, 'work');
-    expect(adding.color, nextFolderColor([folderOn(plain).color]));
+    expect(adding.color, 'pink');
   });
 
   test('is named after the base folder when it shows more', () async {
@@ -162,7 +161,7 @@ void main() {
     adding
       ..toName()
       ..rename('  Mine ')
-      ..recolor(Colors.pink);
+      ..recolor('green');
 
     final result = await adding.finish();
 
@@ -172,7 +171,7 @@ void main() {
       toolId: 'syncthing',
       selection: Selection.of([path('home'), path('notes/work')]),
       name: 'Mine',
-      color: Colors.pink,
+      color: 'green',
     ));
   });
 
