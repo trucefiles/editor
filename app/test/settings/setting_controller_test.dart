@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/settings/setting_controller.dart';
 
 /// A store in memory whose load ends when a test says.

@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../storage/json_file.dart';
-import '../storage/setting_store.dart';
 import 'device_settings.dart';
 
 /// Keeps the [DeviceSettings] in one JSON file in app storage.

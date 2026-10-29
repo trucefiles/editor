@@ -1,69 +1,61 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/folders_controller.dart';
-import '../platform/app_activity.dart';
-import '../refresh/refresh_settings.dart';
-import '../settings/device_settings_controller.dart';
-import '../sync_tool/base_folder_following.dart';
-import 'folder_state_controller.dart';
-
-final followingChangesProvider = AsyncNotifierProvider<FollowingChanges, void>(
-  FollowingChanges.new,
-);
-
 /// Passes what each base folder's changes hint on to the folder state
-/// owner, as the refresh setting asks, while the app is in use, and tells
-/// it whether the app is in use; the owner decides what to list or check.
-///
-/// Also lists every base folder once when the refresh setting changes,
-/// for changes made while nothing was looking. Changes made while the app
+/// owner while the app is in use, and tells it whether the app is in use;
+/// the owner decides what to list or check. Changes made while the app
 /// was not in use are the screens' to catch up on, as they do in every
-/// mode.
-class FollowingChanges extends AsyncNotifier<void> {
-  RefreshSettings? _lastSettings;
+/// way of refreshing.
+final class FollowingChanges {
+  FollowingChanges(this._owner);
 
-  @override
-  Future<void> build() async {
-    final owner = ref.watch(folderStateOwnerProvider);
-    final subscriptions = <StreamSubscription<ChangeHint>>[];
-    // This build's own end: `ref.mounted` speaks for the newest build, so
-    // a build that a newer one replaced while it awaited must stop by this.
-    var disposed = false;
-    ref.onDispose(() {
-      disposed = true;
-      for (final subscription in subscriptions) {
-        unawaited(subscription.cancel());
-      }
-    });
-    final active = ref.watch(appActiveProvider);
-    owner.send(Active(active: active));
-    final settings = ref.watch(
-      deviceSettingsProvider.select((s) => s.requireValue.refresh),
-    );
-    final settingChanged = _lastSettings != null && _lastSettings != settings;
-    _lastSettings = settings;
-    if (settingChanged) {
-      unawaited(ref.read(folderContentsProvider.notifier).refresh());
+  final FolderStateOwner _owner;
+
+  /// Whether the app is in use, as last told; `null` before the first
+  /// [follow].
+  bool? _active;
+
+  /// The changes followed, by base folder id; none while the app is not
+  /// in use.
+  Map<String, FolderChanges> _followed = const {};
+  List<StreamSubscription<ChangeHint>> _subscriptions = const [];
+
+  /// Follows [changes], how each base folder's changes are found by its
+  /// id, while [active], the app is in use.
+  void follow({
+    required bool active,
+    required Map<String, FolderChanges> changes,
+  }) {
+    if (active != _active) _owner.send(Active(active: active));
+    _active = active;
+    final followed = active ? changes : const <String, FolderChanges>{};
+    if (const MapEquality<String, FolderChanges>().equals(
+      followed,
+      _followed,
+    )) {
+      return;
     }
-    if (!active) return;
-    final folders = await ref.watch(foldersProvider.future);
-    if (disposed) return;
-    final bases = {for (final folder in folders) folder.base};
-    final changes = await Future.wait([
-      for (final base in bases)
-        ref
-            .watch(folderChangesProvider(base).future)
-            .then((changes) => (base: base, changes: changes)),
-    ]);
-    if (disposed) return;
-    for (final (:base, :changes) in changes) {
-      if (changes == null) continue;
-      subscriptions.add(
-        changes.changes.listen((hint) => owner.send(Hinted(base.id, hint))),
-      );
+    _stop();
+    _followed = followed;
+    _subscriptions = [
+      for (final MapEntry(key: baseId, value: changes) in followed.entries)
+        changes.changes.listen((hint) => _owner.send(Hinted(baseId, hint))),
+    ];
+  }
+
+  /// Lists every base folder once, e.g. as the way changes are found
+  /// changed: for changes made while nothing was looking.
+  void listAgain() => _owner.send(Refresh(Ticket()));
+
+  /// Stops following.
+  void close() => _stop();
+
+  void _stop() {
+    for (final subscription in _subscriptions) {
+      unawaited(subscription.cancel());
     }
+    _subscriptions = const [];
   }
 }

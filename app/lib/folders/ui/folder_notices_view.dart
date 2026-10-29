@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../sync_tool/base_folder_following.dart';
-import '../../sync_tool/base_folder_services.dart';
+import '../../sync_tool/base_folder_wiring.dart';
 import '../document_folder.dart';
 import 'folder_notice_text.dart';
 

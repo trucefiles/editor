@@ -34,8 +34,8 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _flow,
+  Widget build(BuildContext context) => StreamBuilder<void>(
+    stream: _flow.changes,
     builder: (context, _) => PopScope(
       canPop: _flow.step == AddFolderStep.base,
       onPopInvokedWithResult: (didPop, _) {
@@ -157,8 +157,8 @@ class _PartsStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _StepPage(
-    action: ListenableBuilder(
-      listenable: flow.parts,
+    action: StreamBuilder<void>(
+      stream: flow.parts.changes,
       builder: (context, _) => FilledButton(
         onPressed: flow.parts.selection == null ? null : flow.toName,
         child: const Text('Next'),

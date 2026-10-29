@@ -3,34 +3,38 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../document_controller.dart';
 import '../document_session.dart';
 import 'changed_elsewhere_screen.dart';
 
 /// Tells what went wrong with an open document's edits and offers its
 /// ways out. Shows nothing while all is well.
 class EditStateBanner extends StatelessWidget {
-  const EditStateBanner(this.session, {required this.onClose, super.key});
+  const EditStateBanner(this.controller, {required this.onClose, super.key});
 
-  final DocumentSession session;
+  /// The open document's view model.
+  final DocumentController controller;
+
+  DocumentSession get _session => controller.session;
 
   /// Closes the editor, keeping the edits where they can be kept.
   final FutureOr<void> Function() onClose;
 
   @override
-  Widget build(BuildContext context) => switch (session.status) {
+  Widget build(BuildContext context) => switch (_session.status) {
     ChangedElsewhere() => _Banner(
       message: 'This document changed on another device or app.',
-      actions: {'Compare': () => openChangedElsewhere(context, session)},
+      actions: {'Compare': () => openChangedElsewhere(context, controller)},
     ),
     DeletedElsewhere() => _Banner(
       message:
           'This document was deleted on another device or app. '
           'Your text is kept here; closing keeps it as a conflict.',
-      actions: {'Restore with my text': session.restoreMine, 'Close': onClose},
+      actions: {'Restore with my text': _session.restoreMine, 'Close': onClose},
     ),
     SaveFailed() => _Banner(
       message: 'Saving failed. Your text is kept here.',
-      actions: {'Retry': session.saveNow},
+      actions: {'Retry': _session.saveNow},
     ),
     KeptAsConflict() => _Banner(
       message:

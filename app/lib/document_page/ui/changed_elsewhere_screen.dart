@@ -8,6 +8,7 @@ import '../../common/snack.dart';
 import '../../documents/document_version.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../document_controller.dart';
 import '../document_session.dart';
 
 /// Shows the open document's edits next to the version from elsewhere,
@@ -15,9 +16,10 @@ import '../document_session.dart';
 /// keeping one. Closes once the document no longer waits for that
 /// choice, whoever settled it.
 class ChangedElsewhereScreen extends StatefulWidget {
-  const ChangedElsewhereScreen(this.session, {super.key});
+  const ChangedElsewhereScreen(this.controller, {super.key});
 
-  final DocumentSession session;
+  /// The open document's view model.
+  final DocumentController controller;
 
   @override
   State<ChangedElsewhereScreen> createState() => _ChangedElsewhereScreenState();
@@ -31,7 +33,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 
   late final StreamSubscription<FileEvent> _notices;
 
-  DocumentSession get _session => widget.session;
+  DocumentSession get _session => widget.controller.session;
 
   /// The version from elsewhere, while the choice is open.
   Seen? get _theirs => switch (_session.status) {
@@ -42,7 +44,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   @override
   void initState() {
     super.initState();
-    _session.addListener(_onSessionChanged);
+    widget.controller.addListener(_onSessionChanged);
     _notices = _session.fileNotices.listen((notice) {
       if (notice is! PickNotKept || !mounted) return;
       setState(() => _picking = null);
@@ -56,7 +58,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 
   @override
   void dispose() {
-    _session.removeListener(_onSessionChanged);
+    widget.controller.removeListener(_onSessionChanged);
     unawaited(_notices.cancel());
     super.dispose();
   }
@@ -131,17 +133,17 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
   }
 }
 
-/// Opens the comparison for [session], which waits for the user's
-/// choice; the edits are sent to be kept first, so the comparison shows
-/// them all.
+/// Opens the comparison for [controller]'s document, which waits for the
+/// user's choice; the edits are sent to be kept first, so the comparison
+/// shows them all.
 Future<void> openChangedElsewhere(
   BuildContext context,
-  DocumentSession session,
+  DocumentController controller,
 ) async {
-  await session.secure(SecureReason.hide);
+  await controller.session.secure(SecureReason.hide);
   if (!context.mounted) return;
   await Navigator.push(
     context,
-    MaterialPageRoute<void>(builder: (_) => ChangedElsewhereScreen(session)),
+    MaterialPageRoute<void>(builder: (_) => ChangedElsewhereScreen(controller)),
   );
 }

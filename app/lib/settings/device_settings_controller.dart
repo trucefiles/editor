@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
 
 import '../storage/app_storage.dart';
 import 'device_settings.dart';

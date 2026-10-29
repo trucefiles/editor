@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:truce_core/truce_core.dart' show loadDeviceId;
 
 /// Where the app keeps its own files, private to this device.
 final class AppStorage {
@@ -85,4 +86,9 @@ final class AppStorage {
 /// Set in `main` once [AppStorage.resolve] is done.
 final appStorageProvider = Provider<AppStorage>(
   (ref) => throw UnimplementedError('appStorageProvider is set in main'),
+);
+
+/// This device's id (see [loadDeviceId]). Set in `main` once it is loaded.
+final deviceIdProvider = Provider<String>(
+  (ref) => throw UnimplementedError('deviceIdProvider is set in main'),
 );

@@ -7,11 +7,11 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_actions.dart';
-import 'package:truce_editor/documents/document_files.dart';
 import 'package:truce_editor/documents/document_settings.dart';
 import 'package:truce_editor/documents/document_settings_controller.dart';
 import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/document_text.dart';
+import 'package:truce_editor/documents/documents_wiring.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
 import 'package:truce_editor/documents/view_settings.dart';
@@ -23,8 +23,7 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 
 import '../support.dart';
 
@@ -79,7 +78,8 @@ void main() {
       (document) => document.path.value == name,
     );
     return (await container
-            .read(documentFilesProvider(listed.folder))
+            .read(folderFilesProvider)
+            .of(listed.folder)
             .reload(listed))
         .value;
   }
@@ -504,7 +504,9 @@ void main() {
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
-        documentStepsProvider.overrideWith(_BuggySteps.new),
+        documentStepsProvider.overrideWith(
+          (ref) => _BuggySteps(ref.watch(documentsWorkProvider)),
+        ),
       ],
     );
     addTearDown(buggy.dispose);
@@ -556,7 +558,7 @@ const _teal = DocumentMark(color: 'teal');
 
 /// Steps whose color step has a bug.
 final class _BuggySteps extends DocumentSteps {
-  _BuggySteps(super.ref);
+  _BuggySteps(super.work);
 
   @override
   Future<Result<void, StoreError>> setMark(

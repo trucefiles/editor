@@ -1,20 +1,21 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/storage/json_file.dart';
-
-import '../support.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
+  late Directory dir;
   late File file;
   late JsonFile json;
 
   setUp(() {
-    file = File('${tempFolder().path}/settings/a.json');
+    dir = Directory.systemTemp.createTempSync('truce_json_file');
+    file = File('${dir.path}/settings/a.json');
     json = JsonFile(file);
   });
+  tearDown(() => dir.deleteSync(recursive: true));
 
   test('is missing before the first write', () async {
     expect((await json.read()).error, JsonFileError.missing);

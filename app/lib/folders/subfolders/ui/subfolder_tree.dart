@@ -61,8 +61,8 @@ class _Node extends StatelessWidget {
   final RelPath folder;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: choice,
+  Widget build(BuildContext context) => StreamBuilder<void>(
+    stream: choice.changes,
     builder: (context, _) {
       final inPicked = choice.isInPicked(folder);
       final taken = choice.isTaken(folder);

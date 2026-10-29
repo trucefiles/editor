@@ -6,7 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import '../../common/snack.dart';
 import '../../document_page/ui/document_screen.dart';
 import '../document.dart';
-import '../document_files.dart';
+import '../documents_wiring.dart';
 import '../open_failure.dart';
 
 /// [count] cards, each built by [card], in columns up to 240 wide, each
@@ -62,7 +62,8 @@ Future<void> openDocument(
   Document document,
 ) async {
   final read = await ref
-      .read(documentFilesProvider(document.folder))
+      .read(folderFilesProvider)
+      .of(document.folder)
       .reload(document);
   if (!context.mounted) return;
   switch (read) {

@@ -1,10 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../storage/app_storage.dart';
-import '../storage/json_file.dart';
 import 'document_draft.dart';
 
 /// The drafts of one base folder's documents, one JSON file each in app
@@ -80,9 +77,19 @@ final class DocumentDrafts {
       };
 }
 
-/// The drafts of the base folder with this id.
-final documentDraftsProvider = Provider.family<DocumentDrafts, String>(
-  (ref, baseId) => DocumentDrafts(
-    Directory(ref.watch(appStorageProvider).draftsPath(baseId)),
-  ),
-);
+/// The drafts of every base folder, one [DocumentDrafts] each, so the
+/// work on each draft's file runs one at a time.
+final class DraftsByBase {
+  /// The drafts of a base folder are in the folder [folderOf] tells by its
+  /// id.
+  DraftsByBase(this._folderOf);
+
+  final String Function(String baseId) _folderOf;
+  final _byBase = <String, DocumentDrafts>{};
+
+  /// The drafts of the base folder with the id [baseId].
+  DocumentDrafts of(String baseId) => _byBase.putIfAbsent(
+    baseId,
+    () => DocumentDrafts(Directory(_folderOf(baseId))),
+  );
+}

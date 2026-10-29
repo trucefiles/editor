@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,14 +7,15 @@ import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/view_settings.dart';
+import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
 import 'package:truce_editor/editor/lines/line_edit_view.dart';
 import 'package:truce_editor/editor/plain/plain_editor_part.dart';
+import 'package:truce_editor/editor/plain/plain_editor_view.dart';
 import 'package:truce_editor/editor/plain/plain_text.dart';
 import 'package:truce_editor/editor/plain/ui/plain_read_view.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
-import '../../support.dart';
 import '../editor_robot.dart';
 
 /// A plain text document's editor owner in memory, as its line editor
@@ -220,17 +220,19 @@ void main() {
       isNew: false,
     ));
     addTearDown(() => unawaited(part.editor.close()));
-    final place = (
-      folder: folderAt(Directory.systemTemp),
-      path: path('a.txt'),
+    final view = PlainEditorView(part);
+    final host = (
       kept: 'one\ntwo',
+      addItems: AddItemPlace.bottom,
+      openLink: (Uri _) async {},
+      images: (String _) => null,
     );
     Future<void> pumpPart() => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ListenableBuilder(
-            listenable: part,
-            builder: (_, _) => part.view(place, autofocus: false),
+          body: StreamBuilder<void>(
+            stream: part.changes,
+            builder: (_, _) => view.view(host, autofocus: false),
           ),
         ),
       ),

@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../storage/json_file.dart';
-import '../storage/setting_store.dart';
 import 'document.dart';
 import 'document_settings.dart';
 import 'kept_document_settings.dart';

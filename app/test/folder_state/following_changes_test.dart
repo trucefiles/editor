@@ -3,60 +3,33 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folder_state/folder_state_controller.dart';
+import 'package:truce_editor/folder_state/folder_state_wiring.dart';
 import 'package:truce_editor/folder_state/following_changes.dart';
-import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_following.dart';
 
 import '../support.dart';
 
 void main() {
   late StreamController<ChangeHint> changes;
   late _RecordingOwner owner;
-  late ProviderContainer container;
-  late DocumentFolder folder;
+  late FollowingChanges following;
 
-  /// Starts following the changes of one folder whose changes come from [changes];
-  /// none are looked for if [manual]. With [folders], the folder list
-  /// loads only once it completes, and the start does not wait for it.
-  Future<void> start({
-    bool active = true,
-    bool manual = false,
-    Completer<void>? folders,
-  }) async {
-    // Broadcast: a rebuild listens again.
+  setUp(() {
     changes = StreamController<ChangeHint>.broadcast();
     owner = _RecordingOwner();
-    folder = folderAt(tempFolder());
-    container = ProviderContainer(
-      overrides: [
-        foldersProvider.overrideWith(
-          () => _FixedFolders([folder], loaded: folders?.future),
-        ),
-        folderChangesProvider.overrideWith(
-          (ref, location) async => manual ? null : _StreamChanges(changes),
-        ),
-        appActiveProvider.overrideWith(() => _FixedActivity(active)),
-        folderStateOwnerProvider.overrideWithValue(owner),
-        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
-        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
-      ],
-    );
-    addTearDown(container.dispose);
-    container.listen(followingChangesProvider, (_, _) {});
-    if (folders == null) await container.read(followingChangesProvider.future);
-  }
+    following = FollowingChanges(owner);
+    addTearDown(following.close);
+  });
+
+  Map<String, FolderChanges> base1() => {'b1': _StreamChanges(changes)};
 
   Future<void> settle() => pumpEventQueue();
 
   test('passes every hint on, with its base folder', () async {
-    await start();
+    following.follow(active: true, changes: base1());
 
     changes
       ..add(PathChanged(path('a.md')))
@@ -68,19 +41,15 @@ void main() {
         for (final input in owner.inputs)
           if (input case Hinted(:final baseId, :final hint)) (baseId, hint),
       ],
-      [
-        (folder.base.id, PathChanged(path('a.md'))),
-        (folder.base.id, const ListAgain()),
-      ],
+      [('b1', PathChanged(path('a.md'))), ('b1', const ListAgain())],
     );
   });
 
-  test('tells the owner whether the app is in use', () async {
-    await start();
-    (container.read(appActiveProvider.notifier) as _FixedActivity).set(
-      active: false,
-    );
-    await container.read(followingChangesProvider.future);
+  test('tells the owner whether the app is in use', () {
+    following
+      ..follow(active: true, changes: base1())
+      ..follow(active: true, changes: base1())
+      ..follow(active: false, changes: base1());
 
     expect(
       [
@@ -91,53 +60,44 @@ void main() {
     );
   });
 
-  test('does not look for changes while the app is not in use', () async {
-    await start(active: false);
+  test('does not look for changes while the app is not in use', () {
+    following.follow(active: false, changes: base1());
 
     expect(changes.hasListener, isFalse);
   });
 
-  test('does not look for changes when refreshing is manual', () async {
-    await start(manual: true);
+  test('does not look for changes when none are looked for', () {
+    following.follow(active: true, changes: const {});
 
     expect(changes.hasListener, isFalse);
   });
 
   test('stops looking once the app is no longer in use', () async {
-    await start();
+    following.follow(active: true, changes: base1());
     expect(changes.hasListener, isTrue);
 
-    (container.read(appActiveProvider.notifier) as _FixedActivity).set(
-      active: false,
-    );
-    await container.read(followingChangesProvider.future);
-
-    expect(changes.hasListener, isFalse);
-  });
-
-  test('a start the app left meanwhile looks for no changes', () async {
-    final folders = Completer<void>();
-    await start(folders: folders);
-
-    (container.read(appActiveProvider.notifier) as _FixedActivity).set(
-      active: false,
-    );
-    await container.read(followingChangesProvider.future);
-    folders.complete();
+    following.follow(active: false, changes: base1());
     await settle();
 
     expect(changes.hasListener, isFalse);
   });
 
-  test('leaves catching up after a pause to the screens', () async {
-    await start();
-    final activity =
-        container.read(appActiveProvider.notifier) as _FixedActivity
-          ..set(active: false);
-    await container.read(followingChangesProvider.future);
+  test('looks for the changes it is given once more, only', () async {
+    final first = _StreamChanges(changes);
+    following
+      ..follow(active: true, changes: {'b1': first})
+      ..follow(active: true, changes: {'b1': first});
+    changes.add(PathChanged(path('a.md')));
+    await settle();
 
-    activity.set(active: true);
-    await container.read(followingChangesProvider.future);
+    expect(owner.inputs.whereType<Hinted>(), hasLength(1));
+  });
+
+  test('leaves catching up after a pause to the screens', () async {
+    following
+      ..follow(active: true, changes: base1())
+      ..follow(active: false, changes: base1())
+      ..follow(active: true, changes: base1());
     await settle();
 
     expect(owner.inputs.whereType<Hinted>(), isEmpty);
@@ -145,8 +105,26 @@ void main() {
     expect(changes.hasListener, isTrue);
   });
 
+  test('stops looking once closed', () async {
+    following
+      ..follow(active: true, changes: base1())
+      ..close();
+    await settle();
+
+    expect(changes.hasListener, isFalse);
+  });
+
   test('lists again once when the refresh setting changes', () async {
-    await start();
+    final container = ProviderContainer(
+      overrides: [
+        folderStateOwnerProvider.overrideWithValue(owner),
+        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(followingChangesProvider, (_, _) {});
 
     await container
         .read(deviceSettingsProvider.notifier)
@@ -157,8 +135,6 @@ void main() {
             ),
           ),
         );
-    await container.read(followingChangesProvider.future);
-
     await settle();
 
     expect(owner.inputs.whereType<Refresh>(), hasLength(1));
@@ -172,30 +148,6 @@ final class _StreamChanges implements FolderChanges {
 
   @override
   Stream<ChangeHint> get changes => _controller.stream;
-}
-
-class _FixedFolders extends FoldersController {
-  _FixedFolders(this._folders, {this._loaded});
-
-  final List<DocumentFolder> _folders;
-  final Future<void>? _loaded;
-
-  @override
-  Future<List<DocumentFolder>> build() async {
-    await _loaded;
-    return _folders;
-  }
-}
-
-class _FixedActivity extends AppActivity {
-  _FixedActivity(this._active);
-
-  final bool _active;
-
-  @override
-  bool build() => _active;
-
-  void set({required bool active}) => state = active;
 }
 
 /// A folder state owner that records what it is told.

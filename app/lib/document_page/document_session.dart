@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/document_text.dart';
@@ -14,9 +13,9 @@ import 'save_state.dart';
 /// the document's type, seen through the shared [editor] contract) and
 /// its file owner (where the edits are kept), joined: each one's events
 /// become the other's inputs. Their effects run inside the owners. No UI.
-/// Listeners hear of every change of where the edits are ([status],
+/// [changes] tells of every change of where the edits are ([status],
 /// [saveState]).
-final class DocumentSession extends ChangeNotifier {
+final class DocumentSession {
   /// The document whose file [effects] reads and writes, edited by
   /// [editor], which opened with the file's text as [effects] last saw
   /// it.
@@ -29,7 +28,7 @@ final class DocumentSession extends ChangeNotifier {
       editor.events.listen(_onEditorEvent),
       editor.changes.listen(_onEditorChanged),
       _file.events.listen(_onFileEvent),
-      _file.changes.listen((_) => notifyListeners(), onDone: _onFileStopped),
+      _file.changes.listen((_) => _changed(), onDone: _onFileStopped),
     ];
   }
 
@@ -42,6 +41,7 @@ final class DocumentSession extends ChangeNotifier {
   late final List<StreamSubscription<Object>> _subscriptions;
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
   final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
+  final _changes = StreamController<void>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, as listeners last heard.
   bool _unsent = false;
@@ -95,6 +95,10 @@ final class DocumentSession extends ChangeNotifier {
 
   /// What the user is told of the file: [Replaced], [PickNotKept].
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
+
+  /// Fires on every change of where the edits are, and of where the file
+  /// is.
+  Stream<void> get changes => _changes.stream;
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new document's file is created now, unless it is empty.
@@ -153,7 +157,7 @@ final class DocumentSession extends ChangeNotifier {
   /// The user picked where a new document's file goes.
   void place(NewFile to) {
     _effects.place(to);
-    notifyListeners();
+    _changed();
   }
 
   void _onEditorEvent(EditorNotice event) => switch (event) {
@@ -172,7 +176,7 @@ final class DocumentSession extends ChangeNotifier {
     _keepLastDraft(text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
     editor.send(SecureEditor(Ticket(), SecureReason.hide));
-    notifyListeners();
+    _changed();
   }
 
   void _keepLastDraft(String text) {
@@ -182,7 +186,7 @@ final class DocumentSession extends ChangeNotifier {
       _effects.keepLastDraft(text).then((kept) {
         if (keep != _lastKeeps || _disposed) return;
         _editsKept = kept;
-        notifyListeners();
+        _changed();
       }),
     );
   }
@@ -193,7 +197,7 @@ final class DocumentSession extends ChangeNotifier {
     final unsent = status.unsent;
     if (unsent == _unsent) return;
     _unsent = unsent;
-    notifyListeners();
+    _changed();
   }
 
   void _onFileEvent(FileEvent event) {
@@ -209,8 +213,11 @@ final class DocumentSession extends ChangeNotifier {
     }
   }
 
+  void _changed() {
+    if (!_disposed) _changes.add(null);
+  }
+
   /// Closes both owners; work under way still ends.
-  @override
   void dispose() {
     _disposed = true;
     for (final subscription in _subscriptions) {
@@ -218,8 +225,8 @@ final class DocumentSession extends ChangeNotifier {
     }
     unawaited(_editorNotices.close());
     unawaited(_fileNotices.close());
+    unawaited(_changes.close());
     unawaited(editor.close());
     unawaited(_file.close());
-    super.dispose();
   }
 }

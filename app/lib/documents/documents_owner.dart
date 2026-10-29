@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'document_steps.dart';
@@ -19,13 +16,11 @@ typedef Documents = ({
   Future<DraftsRecovered?> draftsRecovered,
 });
 
-/// The app's documents owner. Outlives every screen, so an undo still
-/// works after the editor closed. Its first input recovers the drafts
-/// written before it was made; later ones belong to open documents.
-final documentsProvider = Provider<Documents>((ref) {
-  final owner = documentsOwner(ref.read(documentStepsProvider));
-  ref.onDispose(() => unawaited(owner.close()));
-  final startedAt = DateTime.now();
+/// The app's documents owner by [steps], started: its first input
+/// recovers the drafts written before [startedAt], when the app started;
+/// later ones belong to open documents.
+Documents startDocuments(DocumentSteps steps, {required DateTime startedAt}) {
+  final owner = documentsOwner(steps);
   return (
     owner: owner,
     draftsRecovered: ask<DocumentsInput, DraftsRecovered>(
@@ -34,7 +29,7 @@ final documentsProvider = Provider<Documents>((ref) {
       (ticket) => RecoverDrafts(ticket, before: startedAt),
     ),
   );
-});
+}
 
 /// A documents owner that runs each action by [steps].
 DocumentsOwner documentsOwner(DocumentSteps steps) =>

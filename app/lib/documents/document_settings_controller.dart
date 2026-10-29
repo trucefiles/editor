@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart' show Gone;
+import 'package:truce_core/truce_core.dart' show Gone, SettingStore;
 
 import '../folder_state/folder_contents.dart';
 import '../settings/setting_controller.dart';
 import '../storage/app_storage.dart';
 import 'document.dart';
 import 'document_settings.dart';
+import 'document_settings_keeper.dart';
 import 'document_settings_store.dart';
 import 'kept_document_settings.dart';
 
@@ -29,17 +30,17 @@ final documentSettingsProvider =
 
 /// How this device shows each document: last view, pin, "Done" section.
 class DocumentSettingsController
-    extends SettingController<Map<String, KeptDocumentSettings>> {
+    extends SettingController<Map<String, KeptDocumentSettings>>
+    implements DocumentSettingsKeeper {
   @override
   Provider<SettingStore<Map<String, KeptDocumentSettings>>> get store =>
       documentSettingsStoreProvider;
 
-  /// The settings of [document]; the defaults if none or not loaded yet.
+  @override
   DocumentSettings settingsOf(DocumentKey document) =>
       settingsIn(state.value, document);
 
-  /// Changes the settings of [document] with [change], starting from the
-  /// settings the change before left.
+  @override
   Future<void> edit(
     DocumentKey document,
     DocumentSettings Function(DocumentSettings settings) change,
@@ -53,8 +54,8 @@ class DocumentSettingsController
     }
   });
 
-  /// Forgets the settings of [document], e.g. as the user deletes it. As
-  /// [edit].
+  /// As [edit].
+  @override
   Future<void> forget(DocumentKey document) =>
       _change((all) => all.remove(DocumentSettingsStore.storeKey(document)));
 

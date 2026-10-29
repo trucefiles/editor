@@ -3,53 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/documents_owner.dart';
 import '../file_types/document_types.dart';
-import '../folders/base_folder.dart';
-import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
-import '../sync_tool/app_writes.dart';
-import '../sync_tool/base_folder_services.dart';
 import 'folder_contents.dart';
-
-/// The app's folder state owner, wired: it lists the base folders of the
-/// added folders, by their sync tools, the first time once the edits left
-/// by the last run are in their files (so no document shows its old text
-/// while its draft is pending), and again whenever what a base folder's
-/// folders select changes.
-final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
-  var bases = <String, BaseFolder>{};
-  final owner = folderStateOwner((baseId) {
-    final services = ref.read(baseFolderServicesProvider(bases[baseId]!));
-    return (scanner: services.scanner, marks: services.marks);
-  });
-  final writes = ref.read(appWritesProvider).all.listen(owner.send);
-  ref.onDispose(() {
-    unawaited(writes.cancel());
-    unawaited(owner.close());
-  });
-  unawaited(
-    ref.read(documentsProvider).draftsRecovered.then((_) {
-      if (!ref.mounted) return;
-      ref.listen(foldersProvider, (_, folders) {
-        if (folders.value case final folders?) {
-          // Every base folder a listing may still ask for stays known.
-          bases = {
-            ...bases,
-            for (final folder in folders) folder.base.id: folder.base,
-          };
-          owner.send(
-            BasesChanged({
-              for (final base in {for (final folder in folders) folder.base})
-                base.id: folders.selectionOf(base),
-            }),
-          );
-        }
-      }, fireImmediately: true);
-    }),
-  );
-  return owner;
-});
+import 'folder_state_wiring.dart';
 
 final folderContentsProvider =
     AsyncNotifierProvider<FolderStateController, FolderContents>(

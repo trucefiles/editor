@@ -13,7 +13,7 @@ import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../document_page/ui/document_screen.dart';
 import '../../folder_state/folder_state_controller.dart';
-import '../../folder_state/following_changes.dart';
+import '../../folder_state/folder_state_wiring.dart';
 import '../../folders/document_folder.dart';
 import '../../folders/folder_list_contract.dart';
 import '../../folders/folder_selection.dart';

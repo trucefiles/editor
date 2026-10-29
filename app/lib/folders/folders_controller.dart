@@ -1,15 +1,13 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show Color;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../document_page/open_documents.dart';
-import '../documents/document_drafts.dart';
+import '../documents/documents_wiring.dart';
 import '../platform/platform_wiring.dart';
 import '../storage/app_storage.dart';
-import '../sync_tool/sync_tools.dart';
+import '../sync_tool/sync_tools_wiring.dart';
 import 'document_folder.dart';
 import 'folder_error.dart';
 import 'folder_list_owner.dart';
@@ -31,7 +29,7 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
       isToolFolder: ref.watch(syncToolsProvider).isToolFolder,
       secureOpen: ref.read(openDocumentsProvider).secureIn,
       forgetDrafts: (base, under) =>
-          ref.read(documentDraftsProvider(base.id)).removeUnder(under),
+          ref.read(draftsProvider).of(base.id).removeUnder(under),
     ),
   );
   ref.onDispose(() => unawaited(owner.close()));
@@ -57,7 +55,7 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
       if (list case FoldersLoaded(:final folders)) state = AsyncData(folders);
     });
     ref.onDispose(() => unawaited(changes.cancel()));
-    return switch (await _settled(owner)) {
+    return switch (await settledList(owner)) {
       FoldersLoaded(:final folders) => folders,
       FoldersUnreadable() ||
       FoldersLoading() => Completer<List<DocumentFolder>>().future,
@@ -71,8 +69,9 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
     required String toolId,
     required Selection selection,
     required String name,
-    required Color color,
-  }) async => switch (await _ask<FolderAdded>(
+    required String color,
+  }) => answerOf(
+    _owner,
     (ticket) => AddFolder(
       ticket,
       address: address,
@@ -81,32 +80,24 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
       name: name,
       color: color,
     ),
-  )) {
-    final answer? => answer.result,
-    null => const Err(FolderError.notSaved),
-  };
+    read: (FolderAdded answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 
-  Future<Result<void, FolderError>> change(DocumentFolder changed) async =>
-      switch (await _ask<FolderChanged>(
-        (ticket) => ChangeFolder(ticket, changed),
-      )) {
-        final answer? => answer.result,
-        null => const Err(FolderError.notSaved),
-      };
+  Future<Result<void, FolderError>> change(DocumentFolder changed) => answerOf(
+    _owner,
+    (ticket) => ChangeFolder(ticket, changed),
+    read: (FolderChanged answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 
   /// Forgets the folder; its files stay untouched.
-  Future<Result<void, FolderError>> remove(DocumentFolder removed) async =>
-      switch (await _ask<FolderRemoved>(
-        (ticket) => RemoveFolder(ticket, removed),
-      )) {
-        final answer? => answer.result,
-        null => const Err(FolderError.notSaved),
-      };
-
-  /// The owner's answer to [asking]; `null` once it ended.
-  Future<A?> _ask<A extends FolderListAnswer>(
-    FolderListInput Function(Ticket ticket) asking,
-  ) => ask<FolderListInput, A>(_owner.send, _owner.events, asking);
+  Future<Result<void, FolderError>> remove(DocumentFolder removed) => answerOf(
+    _owner,
+    (ticket) => RemoveFolder(ticket, removed),
+    read: (FolderRemoved answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 }
 
 final folderListStateProvider =
@@ -125,18 +116,3 @@ class FolderListStateController extends Notifier<FolderListState> {
     return owner.state;
   }
 }
-
-/// The folders once the list has loaded, as [foldersProvider] has them;
-/// none if it can't be read, so a caller that must go on goes on with
-/// nothing to act on.
-Future<List<DocumentFolder>> settledFolders(Ref ref) async =>
-    switch (await _settled(ref.read(folderListOwnerProvider))) {
-      FoldersLoaded() => ref.read(foldersProvider.future),
-      FoldersUnreadable() || FoldersLoading() => const [],
-    };
-
-/// [owner]'s list once it is no longer loading.
-Future<FolderListState> _settled(FolderListOwner owner) async =>
-    owner.state is FoldersLoading
-    ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
-    : owner.state;

@@ -1,14 +1,11 @@
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
-import 'package:truce_editor/document_page/open_documents.dart';
 import 'package:truce_editor/documents/document_draft.dart';
-import 'package:truce_editor/documents/document_drafts.dart';
-import 'package:truce_editor/documents/document_steps.dart';
+import 'package:truce_editor/documents/documents_wiring.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folder_list_contract.dart';
@@ -16,8 +13,8 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
+import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
 import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
 
 import '../support.dart';
@@ -54,7 +51,7 @@ void main() {
         toolId: toolId,
         selection: selection,
         name: name,
-        color: const Color(0xFF009688),
+        color: 'teal',
       );
 
   Selection subfolders(List<String> paths) =>
@@ -286,7 +283,8 @@ void main() {
     ) async => [
       for (final kept
           in await folders
-              .read(documentDraftsProvider(baseId))
+              .read(draftsProvider)
+              .of(baseId)
               .all(before: DateTime.now().add(const Duration(days: 1))))
         kept.id,
     ];
@@ -299,7 +297,7 @@ void main() {
         selection: subfolders(['work']),
       )).value;
       await add(folders, '/sync', selection: subfolders(['home']));
-      final drafts = folders.read(documentDraftsProvider(work.base.id));
+      final drafts = folders.read(draftsProvider).of(work.base.id);
       await drafts.keep(draft('1', 'work/a.md'));
       await drafts.keep(draft('2', 'home/a.md'));
       await drafts.keep(draft('3', 'elsewhere/a.md'));
@@ -319,7 +317,7 @@ void main() {
         '/sync',
         selection: subfolders(['work']),
       )).value;
-      final drafts = folders.read(documentDraftsProvider(work.base.id));
+      final drafts = folders.read(draftsProvider).of(work.base.id);
       await drafts.keep(draft('1', 'work/a.md'));
       await drafts.keep(draft('2', 'elsewhere/a.md'));
 

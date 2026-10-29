@@ -5,13 +5,14 @@ import '../document_page/editor_part.dart';
 import '../documents/document_card_summary.dart';
 import '../documents/document_title.dart';
 import '../editor/markdown/markdown_editor_part.dart';
+import '../editor/markdown/markdown_editor_view.dart';
 import '../editor/markdown/markdown_view.dart';
-import 'document_type.dart';
+import 'editable_type.dart';
 
 /// Markdown documents and checklists: cards leave checked items out
 /// where the document shows them apart; edited in Visual edit, Markdown
 /// edit or Read.
-final class MarkdownDocumentType implements DocumentType {
+final class MarkdownDocumentType implements EditableType {
   const MarkdownDocumentType();
 
   @override
@@ -38,6 +39,8 @@ final class MarkdownDocumentType implements DocumentType {
   }
 
   @override
-  EditorPart editorPart(EditorStart start, EditorPage page) =>
-      MarkdownEditorPart(start, page);
+  OpenedEditor openEditor(EditorStart start, EditorPage page) {
+    final part = MarkdownEditorPart(start, page);
+    return (part: part, view: MarkdownEditorView(part));
+  }
 }

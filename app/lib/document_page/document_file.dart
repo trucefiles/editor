@@ -4,7 +4,7 @@ import '../documents/document_file_name.dart';
 import '../documents/document_place.dart';
 import '../documents/document_text.dart';
 import '../documents/document_title.dart';
-import '../file_types/document_type.dart';
+import '../documents/document_type.dart';
 import '../folders/document_folder.dart';
 
 /// Where an open document's file is: one that exists, or the place a new

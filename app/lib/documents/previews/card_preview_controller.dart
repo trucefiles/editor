@@ -1,33 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../../file_types/document_types.dart';
 import '../document.dart';
-import '../document_files.dart';
-import '../open_failure.dart';
+import '../documents_wiring.dart';
 import 'card_preview.dart';
 import 'card_previews.dart';
 
 /// The app's card previews: each read from the document's file and worked
 /// out by its type.
-final cardPreviewsProvider = Provider<CardPreviews>(
-  (ref) => CardPreviews(
-    (document) async => switch (await ref
-        .read(documentFilesProvider(document.folder))
-        .reload(document)) {
-      Ok(value: final read) => Previewed(
-        ref
-            .read(documentTypesProvider)
-            .ofFile(read.type)
-            .cardSummary(read.text, read.path),
-      ),
-      Err(error: NotText()) => const PreviewNotText(),
-      Err(error: NotRead()) => const PreviewUnreadable(),
-    },
-  ),
-);
+final cardPreviewsProvider = Provider<CardPreviews>((ref) {
+  final files = ref.watch(folderFilesProvider);
+  final types = ref.watch(documentTypesProvider);
+  return CardPreviews((document) => readPreview(document, files, types));
+});
 
 final cardPreviewProvider = NotifierProvider.autoDispose
     .family<CardPreviewController, CardPreview, Document>(

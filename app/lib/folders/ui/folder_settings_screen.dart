@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/snack.dart';
-import '../../sync_tool/base_folder_services.dart';
-import '../../sync_tool/sync_tools.dart';
+import '../../sync_tool/base_folder_wiring.dart';
+import '../../sync_tool/sync_tools_wiring.dart';
 import '../base_folder.dart';
 import '../document_folder.dart';
 import '../folder_actions.dart';
@@ -39,7 +39,7 @@ class FolderSettingsScreen extends ConsumerStatefulWidget {
 
 class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late final _name = TextEditingController(text: widget.folder.name);
-  late Color _color = widget.folder.color;
+  late String _color = widget.folder.color;
   late final _parts = SubfolderChoice(
     names: ref.read(subfolderNamesProvider(widget.folder.base)),
     taken: [
@@ -93,8 +93,8 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
       appBar: AppBar(
         title: const Text('Folder'),
         actions: [
-          ListenableBuilder(
-            listenable: _parts,
+          StreamBuilder<void>(
+            stream: _parts.changes,
             builder: (context, _) => TextButton(
               onPressed: _busy || _parts.selection == null ? null : _save,
               child: const Text('Save'),

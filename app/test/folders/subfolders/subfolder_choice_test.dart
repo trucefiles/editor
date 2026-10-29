@@ -45,6 +45,19 @@ void main() {
     expect(parts.selection, const WholeFolder());
   });
 
+  test('tells each change of the choice', () {
+    final parts = choice();
+    addTearDown(parts.dispose);
+    var heard = 0;
+    parts.changes.listen((_) => heard++);
+
+    parts
+      ..toggle(path('home'))
+      ..chooseWhole(whole: true);
+
+    expect(heard, 2);
+  });
+
   test('keeps the picked subfolders while the whole is chosen', () {
     final parts = choice()
       ..toggle(path('home'))

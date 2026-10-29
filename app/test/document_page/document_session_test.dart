@@ -109,10 +109,10 @@ void main() {
     expect(session.text, 'a mine one\n');
   });
 
-  test('typing tells listeners the edits are being edited, at once', () {
+  test('typing tells of the edits being edited, at once', () {
     final session = fixture.session(fixture.newFile);
     final states = <SaveState>[];
-    session.addListener(() => states.add(session.saveState));
+    session.changes.listen((_) => states.add(session.saveState));
 
     session.type('x');
 

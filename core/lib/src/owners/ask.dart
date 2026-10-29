@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'owner.dart';
+
 /// Names one question to an owner; its answer carries it back. Opaque:
 /// only compared by identity.
 final class Ticket {
@@ -42,3 +44,15 @@ Future<Answer?> ask<In, Answer extends Answering>(
   send(asking(ticket));
   return answer.future;
 }
+
+/// Asks [owner] the question [asking] makes (see [ask]), and gives what
+/// [read] takes from its answer; [orElse] if the owner ends first.
+Future<R> answerOf<In, A extends Answering, R>(
+  Owner<In, Object?, Object?> owner,
+  In Function(Ticket ticket) asking, {
+  required R Function(A answer) read,
+  required R orElse,
+}) async => switch (await ask<In, A>(owner.send, owner.events, asking)) {
+  final answer? => read(answer),
+  null => orElse,
+};

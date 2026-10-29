@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../document_folder.dart';
+import '../folder_colors.dart';
 
 /// The folder's color dot and name, so it is always clear where a document
 /// lives. With [file], also the subfolders it is in, e.g. `Documents/work/2026`,
@@ -59,7 +60,8 @@ String placeName(DocumentFolder folder, RelPath? subfolder) =>
 class FolderDot extends StatelessWidget {
   const FolderDot(this.color, {super.key, this.size = 10});
 
-  final Color color;
+  /// The color's name.
+  final String color;
   final double size;
 
   @override
@@ -67,7 +69,10 @@ class FolderDot extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: folderColor(color),
+        shape: BoxShape.circle,
+      ),
     );
   }
 }

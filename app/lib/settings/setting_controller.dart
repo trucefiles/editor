@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../storage/setting_store.dart';
-
-export '../storage/setting_store.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// One setting of this device, kept in its store: each change starts from
 /// the value the change before left, shows at once, and is saved.

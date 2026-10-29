@@ -1,28 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../../document_page/editor_part.dart';
-import '../../documents/document_files.dart';
-import '../../documents/document_images.dart';
 import '../../documents/view_settings.dart';
-import '../../settings/device_settings_controller.dart';
-import '../document_editor.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
-import '../run_command.dart';
-import 'markdown_links.dart';
 import 'markdown_page_editor.dart';
 import 'markdown_view.dart';
-import 'ui/checked_items_dialog.dart';
-import 'ui/edit_mode_button.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
 /// behind a gate, in the mode the user picked (remembered on this device)
-/// or in Read while it can't be edited; the mode menu and Ctrl+1, 2, 3;
-/// and the menu's commands on checked items.
-final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
+/// or in Read while it can't be edited; and the commands on checked
+/// items.
+final class MarkdownEditorPart implements EditorPart {
   MarkdownEditorPart(EditorStart start, this._page)
     : _mode =
           MarkdownView.of(start.view).mode ??
@@ -49,9 +40,16 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
   @override
   late final MarkdownPageEditor editor;
 
-  EditorGate get _gate => editor.gate;
+  /// The editor owner, behind its gate.
+  EditorGate get gate => editor.gate;
+
+  final _changes = StreamController<void>.broadcast(sync: true);
+
+  @override
+  Stream<void> get changes => _changes.stream;
 
   /// The mode the user picked last.
+  EditMode get mode => _mode;
   EditMode _mode;
 
   bool _readOnly;
@@ -70,128 +68,46 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
 
   void _showShown() {
     final shown = _shown;
-    if (_gate.state.mode != shown) _gate.send((_) => SetMode(shown));
+    if (gate.state.mode != shown) gate.send((_) => SetMode(shown));
   }
 
   /// Shows [mode] from now on, and remembers it on this device.
-  void _pick(EditMode mode) {
+  void pick(EditMode mode) {
+    if (mode == _mode) return;
     _mode = mode;
     _page.keepView((view) => MarkdownView.of(view).withMode(mode).settings);
     _showShown();
-    notifyListeners();
+    _changes.add(null);
   }
 
   @override
   void viewChanged(ViewSettings view) {
     final checkedItems = MarkdownView.of(view).checkedItems;
-    if (_gate.state.checkedItems != checkedItems) {
-      _gate.send((_) => SetCheckedItems(checkedItems));
+    if (gate.state.checkedItems != checkedItems) {
+      gate.send((_) => SetCheckedItems(checkedItems));
     }
   }
 
-  @override
-  Widget view(EditorPlace place, {required bool autofocus}) =>
-      _MarkdownView(_gate, place: place, autofocus: autofocus);
-
-  @override
-  List<Widget> actions(BuildContext context) => [
-    EditModeButton(mode: _mode, onChanged: _pick),
-  ];
-
-  /// Ctrl+1, 2, 3 pick the modes in the mode menu's order.
-  @override
-  late final Map<SingleActivator, VoidCallback> keys = {
-    for (final (index, mode) in EditMode.values.indexed)
-      SingleActivator(_digits[index], control: true): () {
-        if (mode != _mode) _pick(mode);
-      },
-  };
-
-  static const _digits = [
-    LogicalKeyboardKey.digit1,
-    LogicalKeyboardKey.digit2,
-    LogicalKeyboardKey.digit3,
-  ];
-
-  /// Whether the document has checklist items. Read when the menu opens.
-  bool get _hasCheckboxes => switch (_gate.state.content) {
+  /// Whether the document has checklist items now.
+  bool get hasCheckboxes => switch (gate.state.content) {
     FormattedContent(:final view) => view.doc.hasCheckboxes,
     MarkdownContent(:final text) => DocumentSummary.of(text).hasCheckboxes,
   };
 
-  @override
-  List<PopupMenuEntry<VoidCallback>> menu(
-    BuildContext context,
-    ViewSettings view,
-  ) => [
-    if (_hasCheckboxes) ...[
-      // Only Visual edit acts on the document from its menu; Read shows
-      // the standard reading, which the editor's commands don't act on.
-      if (_gate.state.mode == EditMode.visual) ...[
-        PopupMenuItem(
-          value: () => _gate.run(MoveToEnd.new),
-          child: const Text('Move checked items to end now'),
-        ),
-        PopupMenuItem(
-          value: () => _gate.run(ClearChecked.new),
-          child: const Text('Clear checked items now'),
-        ),
-      ],
-      PopupMenuItem(
-        value: () => _page.withFile(
-          context,
-          (_) => _pickCheckedItems(context, MarkdownView.of(view).checkedItems),
-        ),
-        child: Text(
-          'Checked items: '
-          '${checkedItemsName(MarkdownView.of(view).checkedItems)}',
-        ),
-      ),
-    ],
-  ];
-
-  /// Asks how the document's checked items show, on this device; nothing
-  /// moves.
-  Future<void> _pickCheckedItems(
-    BuildContext context,
+  /// Keeps how the document's checked items show on this device, as
+  /// [ask]ed from [current] once the document has a file; nothing moves.
+  /// Keeps nothing if the user picks none, or [current].
+  Future<void> chooseCheckedItems(
     CheckedItems current,
-  ) async {
-    final chosen = await showCheckedItemsDialog(context, current: current);
+    Future<CheckedItems?> Function(CheckedItems current) ask,
+  ) => _page.withFile((_) async {
+    final chosen = await ask(current);
     if (chosen == null || chosen == current) return;
     _page.keepView(
       (view) => MarkdownView.of(view).withCheckedItems(chosen).settings,
     );
-  }
-}
-
-/// The editor in the mode it shows; lists get Add item buttons where the
-/// setting says, links open in the browser, images show from the web or
-/// the folder.
-class _MarkdownView extends ConsumerWidget {
-  const _MarkdownView(
-    this.gate, {
-    required this.place,
-    required this.autofocus,
   });
 
-  final EditorGate gate;
-  final EditorPlace place;
-  final bool autofocus;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) => DocumentEditor(
-    gate,
-    text: place.kept,
-    notices: gate.events,
-    addItems: ref.watch(
-      deviceSettingsProvider.select((s) => s.requireValue.addItemPlace),
-    ),
-    onLink: (url) => openMarkdownLink(context, ref, url),
-    images: documentImages(
-      ref.read(documentFilesProvider(place.folder)),
-      folder: place.folder,
-      document: place.path,
-    ),
-    autofocus: autofocus,
-  );
+  void dispose() => unawaited(_changes.close());
 }

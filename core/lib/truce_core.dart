@@ -6,7 +6,10 @@
 /// 1. `storage`: byte-level file access under one folder ([FileStore]),
 ///    bounded to what the app may touch in it ([BoundedStore] over a
 ///    [Selection]); a sync tool's look outside it ([FolderMarkers]); the
-///    shared parts of base folders on this device ([LocalDisk]).
+///    shared parts of base folders on this device ([LocalDisk]); the
+///    app's own files in its private storage: a JSON value in one file
+///    ([JsonFile]), where a setting is kept ([SettingStore]), this
+///    device's id ([loadDeviceId]).
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
 /// 3. `sync`: a sync tool as one plugin ([SyncTool]) with its access to
@@ -115,14 +118,17 @@ export 'src/scan/folder_scanner.dart';
 export 'src/search/reading_search.dart';
 export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
+export 'src/storage/device_id.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
 export 'src/storage/folders_there.dart';
+export 'src/storage/json_file.dart';
 export 'src/storage/local_disk.dart';
 export 'src/storage/local_file_store.dart';
 export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
 export 'src/storage/selection.dart';
+export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';

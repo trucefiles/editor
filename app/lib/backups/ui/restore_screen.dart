@@ -11,8 +11,8 @@ import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/version_text.dart';
-import '../all_backups.dart';
 import '../backup_retention.dart';
+import '../folder_backups.dart';
 import '../restore_controller.dart';
 import 'backup_kind_text.dart';
 

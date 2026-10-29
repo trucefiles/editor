@@ -57,6 +57,25 @@ FolderListOwner folderListOwner(FolderListWork work) {
   return owner;
 }
 
+/// [owner]'s list once it is no longer loading; still loading if the
+/// owner ended before.
+Future<FolderListState> settledList(FolderListOwner owner) async =>
+    owner.state is FoldersLoading
+    ? await owner.changes.firstWhere(
+        (list) => list is! FoldersLoading,
+        orElse: () => owner.state,
+      )
+    : owner.state;
+
+/// The folders once [owner]'s list has loaded; none if it can't be read or
+/// the owner ended before, so a caller that must go on goes on with
+/// nothing to act on.
+Future<List<DocumentFolder>> settledFolders(FolderListOwner owner) async =>
+    switch (await settledList(owner)) {
+      FoldersLoaded(:final folders) => folders,
+      FoldersUnreadable() || FoldersLoading() => const [],
+    };
+
 final class _FolderListSteps {
   _FolderListSteps(this._work);
 

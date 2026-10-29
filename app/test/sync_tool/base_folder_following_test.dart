@@ -9,8 +9,8 @@ import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
+import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 
 import '../support.dart';
 
@@ -49,7 +49,7 @@ Future<FolderFollowing> _following(
     refresh,
     selection: selection,
   );
-  return container.read(folderFollowingProvider(base).future);
+  return container.read(folderFollowingProvider(base));
 }
 
 void main() {
@@ -186,9 +186,7 @@ void main() {
     test('say nothing about polling once a watched folder is gone', () async {
       final folder = tempFolder();
       final (:container, :base) = await _start(folder.path, live);
-      final following = await container.read(
-        folderFollowingProvider(base).future,
-      );
+      final following = container.read(folderFollowingProvider(base));
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -214,9 +212,7 @@ void main() {
         live.copyWith(interval: const Duration(seconds: 5)),
         selection: Selection.of([path('work'), path('home')]),
       );
-      final changes = (await container.read(
-        folderFollowingProvider(base).future,
-      )).changes!;
+      final changes = (container.read(folderFollowingProvider(base))).changes!;
       final seen = <ChangeHint>[];
       final subscription = changes.changes.listen(seen.add);
       addTearDown(subscription.cancel);

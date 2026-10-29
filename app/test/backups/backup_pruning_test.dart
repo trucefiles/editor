@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/backups/backup_pruning.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/storage/device_id.dart';
 
 import '../support.dart';
 

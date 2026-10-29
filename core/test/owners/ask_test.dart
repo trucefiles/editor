@@ -51,4 +51,59 @@ void main() {
     await events.close();
     expect(await answer, isNull);
   });
+
+  group('answerOf', () {
+    test('gives what is read from the answer', () async {
+      final owner = _Replier();
+      addTearDown(owner.close);
+
+      final text = await answerOf(
+        owner,
+        _Question.new,
+        read: (_Reply reply) => reply.text,
+        orElse: 'ended',
+      );
+
+      expect(text, 'replied');
+    });
+
+    test('gives the fallback once the owner ended unanswered', () async {
+      final owner = _Replier(replies: false);
+      final text = answerOf(
+        owner,
+        _Question.new,
+        read: (_Reply reply) => reply.text,
+        orElse: 'ended',
+      );
+
+      await owner.close();
+
+      expect(await text, 'ended');
+    });
+  });
+}
+
+/// Replies to each question at once, if [replies].
+final class _Replier implements Owner<_Question, void, Object?> {
+  _Replier({this.replies = true});
+
+  final bool replies;
+  final _events = StreamController<Object?>.broadcast(sync: true);
+
+  @override
+  void send(_Question input) {
+    if (replies) _events.add(_Reply(input.ticket, 'replied'));
+  }
+
+  @override
+  void get state {}
+
+  @override
+  Stream<void> get changes => const Stream.empty();
+
+  @override
+  Stream<Object?> get events => _events.stream;
+
+  @override
+  Future<void> close() => _events.close();
 }

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_text.dart';
+import 'package:truce_editor/documents/document_types.dart';
 import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/base_folder.dart';
@@ -57,7 +57,7 @@ DocumentFolder folderAt(
   ),
   selection: selection,
   name: 'Documents',
-  color: const Color(0xFF009688),
+  color: 'teal',
 );
 
 /// The document types the app handles.
@@ -111,7 +111,7 @@ BaseFolderServices servicesFor(
     syncToolName: tool.name,
     reach: folderReach(place.files),
     selection: folder.selection,
-    types: appDocumentTypes(),
+    handles: appDocumentTypes().handles,
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',
