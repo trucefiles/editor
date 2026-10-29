@@ -16,15 +16,18 @@ Future<void> main(List<String> args) async {
   registerFontLicenses();
   await initializeDateFormatting();
   final storage = await AppStorage.resolve();
+  // One store for the file, so its writes stay one at a time.
+  final settingsStore = deviceSettingsStoreIn(storage);
   final (deviceId, settings) = await (
     loadDeviceId(storage),
-    deviceSettingsStoreIn(storage).load(),
+    settingsStore.load(),
   ).wait;
   runApp(
     ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
         deviceIdProvider.overrideWithValue(deviceId),
+        deviceSettingsStoreProvider.overrideWithValue(settingsStore),
         loadedDeviceSettingsProvider.overrideWithValue(settings),
         startInBackgroundProvider.overrideWithValue(
           args.contains(backgroundFlag),

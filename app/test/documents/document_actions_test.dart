@@ -154,7 +154,7 @@ void main() {
   group('newFilePlace', () {
     Future<void> setPlace(NewFilePlaceSetting? place) => container
         .read(deviceSettingsProvider.notifier)
-        .change((settings) => settings.withNewFilePlace(place));
+        .change((settings) => settings.copyWith(newFilePlace: () => place));
 
     test('is the default folder without a setting', () async {
       expect(actions.newFilePlace(folders), (

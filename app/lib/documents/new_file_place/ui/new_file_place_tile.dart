@@ -39,8 +39,9 @@ class NewFilePlaceTile extends ConsumerWidget {
           : IconButton(
               tooltip: 'Use the default',
               icon: const Icon(Icons.close),
-              onPressed: () =>
-                  device.change((settings) => settings.withNewFilePlace(null)),
+              onPressed: () => device.change(
+                (settings) => settings.copyWith(newFilePlace: () => null),
+              ),
             ),
       onTap: () async {
         // Change events don't tell about new empty subfolders; a listing
@@ -57,10 +58,10 @@ class NewFilePlaceTile extends ConsumerWidget {
         );
         if (picked == null) return;
         await device.change(
-          (settings) => settings.withNewFilePlace((
-            folderId: picked.folder.id,
-            subfolder: picked.subfolder,
-          )),
+          (settings) => settings.copyWith(
+            newFilePlace: () =>
+                (folderId: picked.folder.id, subfolder: picked.subfolder),
+          ),
         );
       },
     );

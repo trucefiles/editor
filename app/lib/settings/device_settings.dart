@@ -62,21 +62,12 @@ final class DeviceSettings {
         TextZoomTarget.app => copyWith(appTextZoom: zoom),
       };
 
-  /// These settings with [place] for new documents; `null` for the default.
-  DeviceSettings withNewFilePlace(NewFilePlaceSetting? place) => DeviceSettings(
-    documentTextZoom: documentTextZoom,
-    appTextZoom: appTextZoom,
-    newFilePlace: place,
-    refresh: refresh,
-    addItemPlace: addItemPlace,
-    closeToTray: closeToTray,
-    home: home,
-  );
-
-  /// Changes any setting but [newFilePlace] (see [withNewFilePlace]).
+  /// These settings with the given ones changed. [newFilePlace] gives the
+  /// new place, which may be `null` for the default.
   DeviceSettings copyWith({
     TextZoom? documentTextZoom,
     TextZoom? appTextZoom,
+    NewFilePlaceSetting? Function()? newFilePlace,
     RefreshSettings? refresh,
     AddItemPlace? addItemPlace,
     bool? closeToTray,
@@ -84,7 +75,7 @@ final class DeviceSettings {
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
-    newFilePlace: newFilePlace,
+    newFilePlace: newFilePlace != null ? newFilePlace() : this.newFilePlace,
     refresh: refresh ?? this.refresh,
     addItemPlace: addItemPlace ?? this.addItemPlace,
     closeToTray: closeToTray ?? this.closeToTray,

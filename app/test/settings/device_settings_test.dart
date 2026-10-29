@@ -73,7 +73,7 @@ void main() {
 
     test('copies keep the place for new documents, and can clear it', () {
       expect(changed.copyWith(closeToTray: true).newFilePlace, isNotNull);
-      expect(changed.withNewFilePlace(null).newFilePlace, isNull);
+      expect(changed.copyWith(newFilePlace: () => null).newFilePlace, isNull);
     });
   });
 
