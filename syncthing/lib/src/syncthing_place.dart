@@ -31,7 +31,10 @@ final class SyncthingPlace implements ToolPlace {
   LiveChanges? get changes => _local.changes;
 
   @override
-  SubfolderNames get subfolders => _local.subfolders.shownBy(_shown);
+  SubfolderNames get subfolders => _local.subfolders.shownBy(showsFolder);
+
+  @override
+  bool showsFolder(RelPath folder) => _shown.includesFolderPath(folder);
 
   /// Changes inside Syncthing's own folders (e.g. `.stversions`) are
   /// dropped: they never touch a document.
@@ -46,7 +49,6 @@ final class SyncthingPlace implements ToolPlace {
       changes: bounded.changes?.without(
         (path) => rules.isInternalFolder(path.value.split('/')),
       ),
-      shown: _shown,
     );
   }
 }

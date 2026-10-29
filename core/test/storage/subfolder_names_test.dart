@@ -51,13 +51,13 @@ void main() {
     );
   });
 
-  test('shown by a filter, names only the folders it lets through', () async {
+  test('shown by a question, names only the folders it lets through', () async {
     Directory('${dir.path}/work/.cache').createSync(recursive: true);
     Directory('${dir.path}/work/tool').createSync();
     Directory('${dir.path}/work/plans').createSync();
     Directory('${dir.path}/.git').createSync();
     final names = LocalSubfolderNames(dir.path)
-        .shownBy(VisibleFileFilter((path) => path.name == 'tool'));
+        .shownBy((path) => !path.name.startsWith('.') && path.name != 'tool');
 
     expect(await _namesIn(names, null), ['work']);
     expect(await _namesIn(names, 'work'), ['plans']);

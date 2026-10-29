@@ -63,11 +63,9 @@ final class DocumentActions {
   /// Whether documents of [folder] can go into [subfolder], an existing
   /// one or a new one: inside what the folder shows, in folders its sync
   /// tool shows (e.g. none of its own, no hidden one).
-  bool canHold(DocumentFolder folder, RelPath subfolder) {
-    final shown = _ref.read(baseFolderServicesProvider(folder.base)).shown;
-    return folder.selection.covers(subfolder) &&
-        [subfolder, ...subfolder.folders].every(shown.includesFolder);
-  }
+  bool canHold(DocumentFolder folder, RelPath subfolder) =>
+      folder.selection.covers(subfolder) &&
+      _ref.read(showsFolderProvider(folder.base))(subfolder);
 
   /// [document]'s color, as last seen.
   DocumentMark markOf(Document document) =>

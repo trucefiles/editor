@@ -63,6 +63,15 @@ void main() {
       expect(File('${dir.path}/synced/a.md').readAsStringSync(), 'text');
       expect((await place.subfolders.namesIn(null)).value, ['docs']);
     });
+
+    test('shows no hidden folder and none of its own, nor what is in them', () {
+      final place = tool.place(at('synced'));
+
+      expect(place.showsFolder(path('docs/new')), isTrue);
+      expect(place.showsFolder(path('.stversions')), isFalse);
+      expect(place.showsFolder(path('.stversions/docs')), isFalse);
+      expect(place.showsFolder(path('docs/.git')), isFalse);
+    });
   });
 
   group('a folder', () {

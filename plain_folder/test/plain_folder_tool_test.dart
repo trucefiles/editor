@@ -37,6 +37,14 @@ void main() {
 
       expect(File('${dir.path}/a.md').readAsStringSync(), 'text');
     });
+
+    test('shows no hidden folder, nor what is in it', () {
+      final place = tool.place(Uri.file(dir.path));
+
+      expect(place.showsFolder(path('docs/new')), isTrue);
+      expect(place.showsFolder(path('.git')), isFalse);
+      expect(place.showsFolder(path('.git/docs')), isFalse);
+    });
   });
 
   group('a folder', () {

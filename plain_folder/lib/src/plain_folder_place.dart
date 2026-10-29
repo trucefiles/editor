@@ -24,7 +24,10 @@ final class PlainFolderPlace implements ToolPlace {
   LiveChanges? get changes => _local.changes;
 
   @override
-  SubfolderNames get subfolders => _local.subfolders.shownBy(_shown);
+  SubfolderNames get subfolders => _local.subfolders.shownBy(showsFolder);
+
+  @override
+  bool showsFolder(RelPath folder) => _shown.includesFolderPath(folder);
 
   @override
   SyncedFolder open(BoundedPlace bounded) {
@@ -35,7 +38,6 @@ final class PlainFolderPlace implements ToolPlace {
       conflicts: NamedConflictSource(store, _names),
       notices: const _NoNotices(),
       changes: bounded.changes,
-      shown: _shown,
     );
   }
 }

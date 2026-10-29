@@ -243,5 +243,8 @@ final class _SpiedPlace implements ToolPlace {
   SubfolderNames get subfolders => _place.subfolders;
 
   @override
+  bool showsFolder(RelPath folder) => _place.showsFolder(folder);
+
+  @override
   SyncedFolder open(BoundedPlace bounded) => _place.open(bounded);
 }

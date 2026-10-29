@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import '../common/result.dart';
-import '../filter/file_filter.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
 
@@ -16,25 +15,24 @@ abstract interface class SubfolderNames {
 
 /// Subfolder names as a sync tool offers them to pick.
 extension ShownSubfolderNames on SubfolderNames {
-  /// Only the folders [shown] lets through, e.g. no hidden ones and none
+  /// Only the folders [shows] lets through, e.g. no hidden ones and none
   /// of the tool's own.
-  SubfolderNames shownBy(FileFilter shown) => _Shown(this, shown);
+  SubfolderNames shownBy(bool Function(RelPath folder) shows) =>
+      _Shown(this, shows);
 }
 
 final class _Shown implements SubfolderNames {
-  const _Shown(this._all, this._shown);
+  const _Shown(this._all, this._shows);
 
   final SubfolderNames _all;
-  final FileFilter _shown;
+  final bool Function(RelPath folder) _shows;
 
   @override
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
       switch (await _all.namesIn(folder)) {
         Ok(value: final names) => Ok([
           for (final name in names)
-            if (_pathOf(folder, name) case final path?
-                when _shown.includesFolder(path))
-              name,
+            if (_pathOf(folder, name) case final path? when _shows(path)) name,
         ]),
         Err(:final error) => Err(error),
       };

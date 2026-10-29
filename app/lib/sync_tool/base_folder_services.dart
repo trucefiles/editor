@@ -29,7 +29,6 @@ final class BaseFolderServices {
     required this.reach,
     required this.notices,
     required this.changes,
-    required this.shown,
   });
 
   /// The base folder's files, by its sync tool; refuses anything outside
@@ -62,9 +61,6 @@ final class BaseFolderServices {
   /// marks of all devices, as they happen; `null` where they can't be
   /// followed live.
   final FolderChanges? changes;
-
-  /// Which files and folders the sync tool shows.
-  final FileFilter shown;
 }
 
 /// A base folder's place by its sync tool, and its reach. They stay while
@@ -122,6 +118,14 @@ final subfolderNamesProvider = Provider.family<SubfolderNames, BaseFolder>(
   (ref, base) => ref.watch(_baseFolderPlaceProvider(base)).place.subfolders,
 );
 
+/// Whether the sync tool of [BaseFolder] shows a folder, and each folder on
+/// the way to it (see [ToolPlace.showsFolder]).
+final showsFolderProvider =
+    Provider.family<bool Function(RelPath folder), BaseFolder>(
+      (ref, base) =>
+          ref.watch(_baseFolderPlaceProvider(base)).place.showsFolder,
+    );
+
 /// The services of a base folder on [place], its sync tool's access to it,
 /// whose files tell [reach] how each access went, bounded to [selection]:
 /// the files of the handled [types] and the marks. Each write, the sync
@@ -164,6 +168,5 @@ BaseFolderServices baseFolderServices(
     reach: reach,
     notices: synced.notices,
     changes: synced.changes,
-    shown: synced.shown,
   );
 }

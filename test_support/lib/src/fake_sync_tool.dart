@@ -48,7 +48,10 @@ final class FakePlace implements ToolPlace {
   static final _shown = VisibleFileFilter(const FakeSyncRules().isInternal);
 
   @override
-  SubfolderNames get subfolders => _ListedNames(files).shownBy(_shown);
+  SubfolderNames get subfolders => _ListedNames(files).shownBy(showsFolder);
+
+  @override
+  bool showsFolder(RelPath folder) => _shown.includesFolderPath(folder);
 
   @override
   SyncedFolder open(BoundedPlace bounded) {
@@ -59,7 +62,6 @@ final class FakePlace implements ToolPlace {
       conflicts: NamedConflictSource(store, const FakeCopyNames()),
       notices: const _NoNotices(),
       changes: bounded.changes,
-      shown: _shown,
     );
   }
 }
