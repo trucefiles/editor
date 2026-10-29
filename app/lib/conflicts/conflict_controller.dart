@@ -1,14 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/document.dart';
-import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import '../versions/compare_controller.dart';
-import 'conflict_compare.dart';
-import 'conflict_sides.dart';
-import 'folder_conflicts.dart';
 
 /// What the conflict screen shows.
 typedef ConflictState = CompareState<FolderConflict, ConflictSides>;

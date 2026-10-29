@@ -1,9 +1,8 @@
 import 'dart:async';
 
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import '../../document_page/editor_part.dart';
-import '../../documents/view_settings.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
 import 'markdown_page_editor.dart';

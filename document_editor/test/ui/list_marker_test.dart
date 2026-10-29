@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/marker.dart';
-import 'package:truce_editor/editor/ui/list_marker.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 
 void main() {
   /// [marker] under a text scaling of [textScale].

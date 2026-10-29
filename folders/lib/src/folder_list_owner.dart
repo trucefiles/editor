@@ -1,14 +1,14 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../platform/host_paths.dart';
 import 'base_folder.dart';
 import 'document_folder.dart';
 import 'folder_error.dart';
 import 'folder_list_contract.dart';
 import 'folder_list_store.dart';
+import 'host_paths.dart';
 
 export 'folder_list_contract.dart';
 
@@ -138,7 +138,7 @@ final class _FolderListSteps {
     for (final base in {for (final folder in folders) folder.base}) {
       final other = await _work.hostPaths.of(base.address);
       if (!_samePlace(host, other)) continue;
-      if (listEquals(_segments(other), _segments(host))) {
+      if (_sameSegments.equals(_segments(other), _segments(host))) {
         same = base;
       } else if (_isWithin(host, other) || _isWithin(other, host)) {
         return const Err(FolderError.overlaps);
@@ -227,6 +227,8 @@ final class _FolderListSteps {
             other.selection.overlaps(folder.selection),
       );
 
+  static const _sameSegments = ListEquality<String>();
+
   static List<String> _segments(Uri address) => [
     for (final segment in address.pathSegments)
       if (segment.isNotEmpty) segment,
@@ -241,7 +243,7 @@ final class _FolderListSteps {
   static bool _isWithin(Uri inner, Uri outer) {
     final (inside, around) = (_segments(inner), _segments(outer));
     return inside.length > around.length &&
-        listEquals(inside.sublist(0, around.length), around);
+        _sameSegments.equals(inside.sublist(0, around.length), around);
   }
 
   String _newId() =>

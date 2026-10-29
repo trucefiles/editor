@@ -1,19 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../document_page/open_documents.dart';
 import '../file_types/document_types.dart';
 import '../folder_state/folder_state_controller.dart';
-import '../folders/folder_list_owner.dart';
 import '../folders/folders_controller.dart';
 import '../storage/app_storage.dart';
 import '../sync_tool/base_folder_wiring.dart';
-import 'document_drafts.dart';
-import 'document_files.dart';
 import 'document_settings_controller.dart';
-import 'document_steps.dart';
-import 'documents_owner.dart';
 
 /// The document files of every folder.
 final folderFilesProvider = Provider<FolderFiles>(

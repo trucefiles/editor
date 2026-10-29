@@ -4,9 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import '../editor_robot.dart';
 
 /// Editing a document in Markdown edit.
 void main() {

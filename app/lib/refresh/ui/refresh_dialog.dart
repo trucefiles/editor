@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/interval_text.dart';
-import '../refresh_settings.dart';
 
 /// Lets the user pick how changes from elsewhere show up; the new setting,
 /// or `null` if cancelled.

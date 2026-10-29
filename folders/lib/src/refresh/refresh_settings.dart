@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// How changes made outside the app (by the sync tool, other apps) show up
 /// while it is open.

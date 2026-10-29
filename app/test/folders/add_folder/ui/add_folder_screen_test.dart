@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/add_folder/add_folder_flow.dart';
 import 'package:truce_editor/folders/add_folder/add_folder_wiring.dart';
 import 'package:truce_editor/folders/add_folder/ui/add_folder_screen.dart';
-import 'package:truce_editor/folders/base_folder.dart';
-import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_colors.dart';
-import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
 
 import '../../../support.dart';

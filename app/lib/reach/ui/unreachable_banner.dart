@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../folder_state/folder_state_controller.dart';
-import '../../folders/document_folder.dart';
 import '../folder_reach_controller.dart';
 
 /// Tells that [folder] can't be reached, with [message] on what that means

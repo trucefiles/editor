@@ -1,11 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_draft.dart';
-import 'package:truce_editor/documents/document_drafts.dart';
-
-import '../support.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late Directory dir;

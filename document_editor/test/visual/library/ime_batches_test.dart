@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/visual/library/ime_batches.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 
 TextEditingDeltaInsertion _insert(String old, String text, int at) =>
     TextEditingDeltaInsertion(

@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/home/home_settings.dart';
-import '../documents/new_file_place/new_file_place.dart';
-import '../editor/add_item_place/add_item_place.dart';
-import '../refresh/refresh_settings.dart';
 import '../text_zoom/text_zoom.dart';
 import '../text_zoom/text_zoom_target.dart';
 

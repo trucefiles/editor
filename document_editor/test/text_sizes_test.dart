@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import 'editor_robot.dart';
 
 /// A document's text is as large in every mode: switching modes keeps its
 /// size.

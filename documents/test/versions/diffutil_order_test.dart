@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:diffutil_dart/diffutil.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 /// What `compareLines` relies on in diffutil beyond its docs: without
 /// moves, its edit script runs from the end of the old list to its

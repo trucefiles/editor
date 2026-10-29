@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
-import '../folders/folder_list_owner.dart';
-import '../folders/folder_lookup.dart';
+import '../base_folder.dart';
+import '../document_folder.dart';
+import '../folder_list_owner.dart';
+import '../folder_lookup.dart';
 import 'base_folder_services.dart';
 import 'sync_tools.dart';
 

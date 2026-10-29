@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document.dart';
-import '../documents/view_settings.dart';
+import '../document.dart';
+import '../view_settings.dart';
 
 /// Where an open document's editor starts: the [text] it opens with (read
 /// as [version], `null` for a new document), what its type keeps of how it

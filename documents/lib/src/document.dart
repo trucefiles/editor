@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../folders/document_folder.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// One document file, as listed: where it is, its type, version and time;
 /// never its text (see `DocumentText`).

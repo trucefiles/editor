@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../sync_tool/base_folder_services.dart';
 import 'conflict_sides.dart';
 import 'folder_conflicts.dart';
 

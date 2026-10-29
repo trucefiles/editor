@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../../common/snack.dart';
 import '../../../platform/folder_picker.dart';
-import '../../base_folder.dart';
 import '../../folders_controller.dart';
 import '../../subfolders/ui/subfolder_choice_view.dart';
 import '../../ui/folder_color_picker.dart';
 import '../../ui/folder_error_text.dart';
-import '../add_folder_flow.dart';
 import '../add_folder_wiring.dart';
 
 /// Adds a folder, step by step (see [AddFolderStep]).

@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../document_controller.dart';
-import '../document_session.dart';
 import 'changed_elsewhere_screen.dart';
 
 /// Tells what went wrong with an open document's edits and offers its

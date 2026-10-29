@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
+import 'package:test/test.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 void main() {
   test('is live, checking every 10 seconds, by default', () {

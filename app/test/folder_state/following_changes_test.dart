@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folder_state/folder_state_wiring.dart';
-import 'package:truce_editor/folder_state/following_changes.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 

@@ -4,7 +4,7 @@
 /// the list the one before saved.
 library;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'document_folder.dart';
@@ -30,7 +30,8 @@ final class FoldersLoaded extends FolderListState {
 
   @override
   bool operator ==(Object other) =>
-      other is FoldersLoaded && listEquals(other.folders, folders);
+      other is FoldersLoaded &&
+      const ListEquality<DocumentFolder>().equals(other.folders, folders);
 
   @override
   int get hashCode => Object.hashAll(folders);

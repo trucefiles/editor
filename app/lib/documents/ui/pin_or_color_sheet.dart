@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../document.dart';
 import '../document_actions.dart';
 import '../document_colors.dart';
 import '../document_settings_controller.dart';

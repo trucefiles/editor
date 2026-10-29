@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../folder_state/folder_state_controller.dart';
-import '../document.dart';
-import '../document_settings.dart';
 import '../document_settings_controller.dart';
-import '../document_title.dart';
-import '../previews/card_preview.dart';
 import '../previews/card_preview_controller.dart';
 
 /// What a listed document shows besides its listing: its [preview], read

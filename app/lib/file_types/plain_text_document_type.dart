@@ -1,11 +1,8 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
-import '../document_page/editor_part.dart';
-import '../documents/document_card_summary.dart';
-import '../documents/document_title.dart';
-import '../editor/plain/plain_editor_part.dart';
-import '../editor/plain/plain_editor_view.dart';
 import 'editable_type.dart';
 
 /// Plain text documents: the first line names one; edited as text.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/document_metrics.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 
 void main() {
   Future<DocumentMetrics> metricsIn(

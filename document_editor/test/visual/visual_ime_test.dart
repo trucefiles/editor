@@ -4,9 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
-
-import '../editor_robot.dart';
 
 /// Android keyboards in Visual edit: the batches of changes Gboard and
 /// Samsung's keyboard send for Enter, as recorded on devices. Gboard sends

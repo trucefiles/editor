@@ -1,4 +1,4 @@
-import '../folders/base_folder.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// The documents open on screen right now, so that a change to what the
 /// app may touch in a base folder first keeps their edits where they last.

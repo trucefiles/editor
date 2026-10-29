@@ -3,14 +3,12 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_following.dart';
 import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 

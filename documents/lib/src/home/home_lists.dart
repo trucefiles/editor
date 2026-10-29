@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../../folders/document_folder.dart';
 import '../document.dart';
 
 /// What Recent shows: the [pinned] documents, then the [newest] others.

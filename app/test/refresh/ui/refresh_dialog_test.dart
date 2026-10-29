@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/refresh/ui/refresh_dialog.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 void main() {
   late RefreshSettings? chosen;

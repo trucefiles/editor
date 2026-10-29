@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/folders/folder_color_names.dart';
+import 'package:test/test.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 void main() {
   const offered = ['teal', 'pink', 'green'];

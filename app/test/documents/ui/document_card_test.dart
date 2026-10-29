@@ -2,8 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document_card_summary.dart';
-import 'package:truce_editor/documents/previews/card_preview.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';

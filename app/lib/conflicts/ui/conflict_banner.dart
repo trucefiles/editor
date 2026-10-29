@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/snack.dart';
-import '../folder_conflicts.dart';
 import 'conflict_screen.dart';
 
 /// Tells that an open document has another version from a sync conflict.

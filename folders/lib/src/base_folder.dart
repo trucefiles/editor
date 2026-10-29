@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// A folder the user granted the app on this device, e.g. a Syncthing
 /// folder: what [DocumentFolder]s show parts of. One sync tool works on it.

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../sync_tool/base_folder_services.dart';
 import '../versions/version_text.dart';
 
 /// The two versions of one conflict copy, as text to compare.

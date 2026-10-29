@@ -1,4 +1,4 @@
-import '../folder_list_store.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// User-facing text for failures of the saved folder list.
 extension SettingsErrorText on SettingsError {

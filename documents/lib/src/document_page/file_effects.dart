@@ -1,14 +1,14 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document_draft.dart';
-import '../documents/document_drafts.dart';
-import '../documents/document_files.dart';
-import '../documents/document_place.dart';
-import '../documents/document_text.dart';
-import '../documents/document_type.dart';
-import '../documents/document_version.dart';
-import '../documents/open_failure.dart';
-import '../folders/document_folder.dart';
+import '../document_draft.dart';
+import '../document_drafts.dart';
+import '../document_files.dart';
+import '../document_place.dart';
+import '../document_text.dart';
+import '../document_type.dart';
+import '../document_version.dart';
+import '../open_failure.dart';
 import 'document_file.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named

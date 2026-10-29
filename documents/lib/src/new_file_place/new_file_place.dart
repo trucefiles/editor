@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../../folders/document_folder.dart';
 import '../document_place.dart';
 
 /// The user's choice of where new documents go: a folder by id and one of

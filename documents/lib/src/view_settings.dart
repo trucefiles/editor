@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// What a document's type keeps of how the document shows on this device
 /// (e.g. Markdown's edit mode). Only the type reads and writes it; the

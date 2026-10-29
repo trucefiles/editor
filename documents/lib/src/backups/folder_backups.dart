@@ -1,9 +1,7 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document.dart';
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
-import '../folders/folder_lookup.dart';
+import '../document.dart';
 
 /// A backup and the folder its document is in.
 typedef FolderBackup = ({DocumentFolder folder, Backup backup});

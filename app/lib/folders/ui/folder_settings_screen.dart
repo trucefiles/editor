@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
 import '../../sync_tool/base_folder_wiring.dart';
 import '../../sync_tool/sync_tools_wiring.dart';
-import '../base_folder.dart';
-import '../document_folder.dart';
 import '../folder_actions.dart';
 import '../folders_controller.dart';
-import '../subfolders/subfolder_choice.dart';
 import '../subfolders/ui/subfolder_choice_view.dart';
 import 'folder_color_picker.dart';
 import 'folder_error_text.dart';

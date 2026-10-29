@@ -1,10 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
-import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
 import 'document_file_name.dart';
 import 'document_text.dart';

@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document_file_name.dart';
+import 'package:test/test.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 void main() {
   test('uses the title and .md', () {

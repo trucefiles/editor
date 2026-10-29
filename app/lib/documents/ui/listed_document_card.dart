@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../document.dart';
 import 'document_card.dart';
 import 'document_grid.dart';
 import 'listed_document.dart';

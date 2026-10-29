@@ -7,7 +7,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart' show RelPath;
 import 'package:truce_editor/document_page/ui/document_screen.dart';
-import 'package:truce_editor/folders/document_folder.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
 import 'test_app.dart';

@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/document.dart';
 import '../documents/documents_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
-import 'document_search.dart';
 import 'text_search_wiring.dart';
 
 /// What search shows: the documents the [query] finds, and whether every

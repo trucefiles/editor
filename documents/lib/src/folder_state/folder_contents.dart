@@ -1,11 +1,10 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../conflicts/folder_conflicts.dart';
-import '../documents/document.dart';
-import '../documents/document_types.dart';
-import '../documents/document_version.dart';
-import '../folders/document_folder.dart';
-import '../folders/folder_lookup.dart';
+import '../document.dart';
+import '../document_types.dart';
+import '../document_version.dart';
 
 /// What the added folders hold now, as the screens show it: their
 /// documents (listed, never their texts), marks, subfolders, conflicts,

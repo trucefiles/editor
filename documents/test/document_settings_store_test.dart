@@ -1,12 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document_settings.dart';
-import 'package:truce_editor/documents/document_settings_store.dart';
-import 'package:truce_editor/documents/kept_document_settings.dart';
-import 'package:truce_editor/documents/view_settings.dart';
-
-import '../support.dart';
+import 'package:test/test.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late File file;

@@ -2,15 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart' show Gone, SettingStore;
+import 'package:truce_documents/truce_documents.dart';
 
-import '../folder_state/folder_contents.dart';
 import '../settings/setting_controller.dart';
 import '../storage/app_storage.dart';
-import 'document.dart';
-import 'document_settings.dart';
-import 'document_settings_keeper.dart';
-import 'document_settings_store.dart';
-import 'kept_document_settings.dart';
 
 final documentSettingsStoreProvider =
     Provider<SettingStore<Map<String, KeptDocumentSettings>>>(

@@ -9,12 +9,12 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import 'ui_driver.dart';

@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/filled_scroll_view.dart';
@@ -11,9 +12,6 @@ import '../../folders/ui/folder_badge.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
-import '../document.dart';
-import '../home/home_lists.dart';
-import '../home/home_settings.dart';
 import 'document_grid.dart';
 import 'document_sections.dart';
 import 'listed_document_card.dart';

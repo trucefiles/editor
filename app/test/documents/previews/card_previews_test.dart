@@ -2,10 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/documents/document_card_summary.dart';
-import 'package:truce_editor/documents/previews/card_preview.dart';
-import 'package:truce_editor/documents/previews/card_previews.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../support.dart';
 

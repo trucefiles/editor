@@ -1,11 +1,11 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document_file_name.dart';
-import '../documents/document_place.dart';
-import '../documents/document_text.dart';
-import '../documents/document_title.dart';
-import '../documents/document_type.dart';
-import '../folders/document_folder.dart';
+import '../document_file_name.dart';
+import '../document_place.dart';
+import '../document_text.dart';
+import '../document_title.dart';
+import '../document_type.dart';
 
 /// Where an open document's file is: one that exists, or the place a new
 /// document's file goes once it is created.

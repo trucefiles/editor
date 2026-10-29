@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// Edits to one document, kept on this device until they are in the document's

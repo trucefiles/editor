@@ -1,12 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../file_types/document_types.dart';
-import '../document.dart';
 import '../documents_wiring.dart';
-import 'card_preview.dart';
-import 'card_previews.dart';
 
 /// The app's card previews: each read from the document's file and worked
 /// out by its type.

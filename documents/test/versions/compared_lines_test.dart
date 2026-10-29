@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/versions/compared_lines.dart';
+import 'package:test/test.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 void main() {
   const both = LineOrigin.both;

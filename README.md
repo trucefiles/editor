@@ -117,11 +117,21 @@ A Dart pub workspace with these packages:
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `plain_folder`: folders no sync tool syncs, or one Truce doesn't know,
   behind core's interfaces. Pure Dart.
-- `app`: the Flutter app (Android, Linux). Uses `core`, `markdown` and
-  `plain_text` for its editors (in its file-type wiring) and, in its
-  sync-tool wiring, `syncthing` and `plain_folder`.
+- `folders`: the folders the user adds, their files through each sync
+  tool, and how their changes are followed. Pure Dart, no UI; uses core.
+- `documents`: the documents in those folders, their drafts, settings,
+  backups and conflicts, and the open document's page. Pure Dart, no UI;
+  uses core and folders.
+- `document_editor`: editing documents on super_editor (Visual edit,
+  Markdown edit, plain text, Read). Flutter; uses core, documents,
+  markdown and plain_text.
+- `app`: the Flutter app (Android, Linux): screens, view models, platform
+  code, and the wiring that picks the document types (`markdown`,
+  `plain_text`) and sync tools (`syncthing`, `plain_folder`).
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
+- `editor_test_support`: helpers for the editor's widget tests, shared by
+  the editor's and the app's tests. Only a dev dependency.
 - `lints`: analyzer and lint settings shared by all packages.
 
 Needs Flutter 3.47.7. From the repository root:
@@ -135,5 +145,8 @@ flutter analyze --fatal-infos
 (cd plain_text && dart test)
 (cd syncthing && dart test)
 (cd plain_folder && dart test)
+(cd folders && dart test)
+(cd documents && dart test)
+(cd document_editor && flutter test)
 (cd app && flutter test)
 ```

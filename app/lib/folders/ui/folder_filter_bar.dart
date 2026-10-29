@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../document_folder.dart';
 import '../folder_selection.dart';
 import 'folder_badge.dart';
 import 'folder_warning_icon.dart';

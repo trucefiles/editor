@@ -7,6 +7,10 @@ environment:
 workspace:
   - app
   - core
+  - document_editor
+  - documents
+  - editor_test_support
+  - folders
   - markdown
   - plain_folder
   - plain_text

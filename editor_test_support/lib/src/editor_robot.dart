@@ -18,10 +18,7 @@ import 'package:truce_core/truce_core.dart'
         Undo,
         UndoRefused,
         Version;
-import 'package:truce_editor/editor/document_editor.dart';
-import 'package:truce_editor/editor/editor_gate.dart';
-import 'package:truce_editor/editor/visual/library/library_nodes.dart';
-import 'package:truce_editor/editor/visual/row_looks.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show
         AskLink,

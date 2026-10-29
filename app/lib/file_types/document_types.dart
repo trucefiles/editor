@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/document_types.dart';
 import 'editable_type.dart';
 import 'markdown_document_type.dart';
 import 'plain_text_document_type.dart';

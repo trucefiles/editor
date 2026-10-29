@@ -1,24 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
 import '../settings/device_settings_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
-import 'delete_failure.dart';
-import 'deleted_document.dart';
-import 'document.dart';
-import 'document_place.dart';
-import 'document_text.dart';
-import 'document_type.dart';
-import 'documents_owner.dart';
 import 'documents_wiring.dart';
-import 'move_failure.dart';
-import 'new_file_place/new_file_place.dart';
 
 final documentActionsProvider = Provider<DocumentActions>(
   (ref) => DocumentActions(

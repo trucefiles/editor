@@ -2,23 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../documents/delete_failure.dart';
-import '../documents/deleted_document.dart';
-import '../documents/document.dart';
-import '../documents/document_settings.dart';
-import '../documents/document_text.dart';
-import '../folder_state/folder_contents.dart';
-import '../folders/document_folder.dart';
-import '../folders/folder_lookup.dart';
-import 'document_file.dart';
-import 'document_session.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// Backs up [text], the open document's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
 /// Deletes a document holding a text, so it can be undone.
-typedef DeleteDocument =
+typedef DeleteForUndo =
     Future<Result<DeletedDocument, DeleteFailure>> Function(
       DocumentText document,
       String text,
@@ -41,8 +32,8 @@ final class NewDropped extends DeleteOutcome {
 }
 
 /// The document was deleted; [deleted] can write it back.
-final class DocumentDeleted extends DeleteOutcome {
-  const DocumentDeleted(this.deleted);
+final class Deleted extends DeleteOutcome {
+  const Deleted(this.deleted);
 
   final DeletedDocument deleted;
 }
@@ -130,7 +121,7 @@ final class DocumentController extends ChangeNotifier {
   final Reach Function() reach;
   final Future<Reach> Function() reachSettled;
   final BackUpText backUp;
-  final DeleteDocument delete;
+  final DeleteForUndo delete;
   final DocumentSettings Function(DocumentKey document) settingsOf;
   final EditSettings editSettings;
   late final StreamSubscription<void> _following;
@@ -246,7 +237,7 @@ final class DocumentController extends ChangeNotifier {
     final document = session.document;
     if (document == null) return const AlreadyGone();
     return switch (await delete(document, session.text)) {
-      Ok(:final value) => DocumentDeleted(value),
+      Ok(:final value) => Deleted(value),
       Err(:final error) => DeleteRefused(error),
     };
   }

@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../folders/document_folder.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// Where a document goes: a folder and a subfolder of its base folder that
 /// it shows, `null` for the base folder's top level (only for a folder

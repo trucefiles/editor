@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
-import '../../document_page/editor_part.dart';
-import '../../documents/view_settings.dart';
 import 'plain_page_editor.dart';
 
 /// A plain text document's part of the document page: its editor owner,

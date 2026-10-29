@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 

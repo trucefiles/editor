@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/document.dart';
-import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 
 /// One compare screen's flow: shows what its compare owner shows, passes

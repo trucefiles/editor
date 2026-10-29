@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/view_settings.dart';
 import 'add_item_place/add_item_place.dart';
 import 'ui/document_image.dart';
 
 /// What the page gives an editor's view: the document's text as last
 /// [kept] (e.g. for a view that only reads), where lists get Add item
-/// buttons ([addItems]), how a web or mail link opens ([openLink]), and
-/// the document's [images].
+/// buttons ([addItems]), how a web or mail link opens ([openLink]), how
+/// a short hint shows ([hint], e.g. a link it doesn't open), and the
+/// document's [images].
 typedef EditorHost = ({
   String kept,
   AddItemPlace addItems,
   Future<void> Function(Uri link) openLink,
+  void Function(String message) hint,
   DocumentImages images,
 });
 

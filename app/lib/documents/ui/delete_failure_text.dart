@@ -1,5 +1,4 @@
-import '../../common/error_text.dart';
-import '../delete_failure.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 /// What to tell the user about [failure].
 String deleteFailureText(DeleteFailure failure) => switch (failure) {

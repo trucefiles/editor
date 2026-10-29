@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../../folders/document_folder.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../document_place.dart';
 
 /// Asks for a folder of [folders] and, if [subfoldersOf] the folder offers
 /// any, one of its subfolders, starting at [initial]; titled [title], with

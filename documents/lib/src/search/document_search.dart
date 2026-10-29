@@ -1,9 +1,9 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document.dart';
-import '../documents/document_files.dart';
-import '../documents/document_title.dart';
-import '../folders/document_folder.dart';
+import '../document.dart';
+import '../document_files.dart';
+import '../document_title.dart';
 
 /// [documents] as a search sees them: each matches by its folder's name,
 /// its subfolders' names and its file name without the extension (or

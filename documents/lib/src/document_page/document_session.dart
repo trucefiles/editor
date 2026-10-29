@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document_text.dart';
-import '../documents/document_version.dart';
+import '../document_text.dart';
+import '../document_version.dart';
 import '../folder_state/folder_contents.dart';
 import 'document_file.dart';
 import 'file_effects.dart';

@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
 import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../support.dart';
 

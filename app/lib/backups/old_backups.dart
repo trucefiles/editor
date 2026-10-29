@@ -1,7 +1,7 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../storage/app_storage.dart';
-import 'file_backups_at.dart';
 
 /// Deletes the backups saved before [olderThan] in every backup folder of
 /// [storage], also those of folders removed since, and the folders they

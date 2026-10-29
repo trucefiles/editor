@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../common/error_text.dart';
+import 'error_text.dart';
 
 /// Why a document's file can't be opened.
 sealed class OpenFailure {

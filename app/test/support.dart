@@ -4,22 +4,17 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/documents/document_drafts.dart';
-import 'package:truce_editor/documents/document_text.dart';
-import 'package:truce_editor/documents/document_types.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_editor/file_types/editable_type.dart';
-import 'package:truce_editor/folder_state/folder_contents.dart';
-import 'package:truce_editor/folders/base_folder.dart';
-import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
-import 'package:truce_test_support/truce_test_support.dart' show path;
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_test_support/truce_test_support.dart'
+    show path, tempFolder;
 
 export 'package:truce_test_support/truce_test_support.dart'
-    show ResultUnwrap, WriteCreatingFolders, bytesOf, path;
+    show ResultUnwrap, WriteCreatingFolders, bytesOf, path, tempFolder;
 
 /// Waits until [holds], for work whose end the test cannot see (files
 /// written after a timer); fails once [timeout] has passed. Fixed waits
@@ -33,13 +28,6 @@ Future<void> eventually(
     if (DateTime.now().isAfter(end)) fail('Not reached within $timeout');
     await Future<void>.delayed(const Duration(milliseconds: 10));
   }
-}
-
-/// A fresh temp folder, deleted after the test.
-Directory tempFolder() {
-  final dir = Directory.systemTemp.createTempSync('truce_test');
-  addTearDown(() => dir.deleteSync(recursive: true));
-  return dir;
 }
 
 /// A folder showing [selection] of the base folder at [dir], synced by

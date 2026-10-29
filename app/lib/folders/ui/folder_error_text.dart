@@ -1,4 +1,4 @@
-import '../folder_error.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// User-facing text for a change to the folder list that did not happen.
 extension FolderErrorText on FolderError {

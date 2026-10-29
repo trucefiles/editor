@@ -6,17 +6,11 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/view_settings.dart';
-import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
-import 'package:truce_editor/editor/lines/line_edit_view.dart';
-import 'package:truce_editor/editor/plain/plain_editor_part.dart';
-import 'package:truce_editor/editor/plain/plain_editor_view.dart';
-import 'package:truce_editor/editor/plain/plain_text.dart';
-import 'package:truce_editor/editor/plain/ui/plain_read_view.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
-
-import '../editor_robot.dart';
 
 /// A plain text document's editor owner in memory, as its line editor
 /// gets it: records the texts it sends to be kept.
@@ -225,6 +219,7 @@ void main() {
       kept: 'one\ntwo',
       addItems: AddItemPlace.bottom,
       openLink: (Uri _) async {},
+      hint: (String _) {},
       images: (String _) => null,
     );
     Future<void> pumpPart() => tester.pumpWidget(

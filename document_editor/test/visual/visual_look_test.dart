@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import '../editor_robot.dart';
 
 /// How a document looks in the editor: theme colors, marks hidden,
 /// quotes, compact lists and gaps.

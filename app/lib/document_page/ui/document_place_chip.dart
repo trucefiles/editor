@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/snack.dart';
 import '../../documents/document_actions.dart';
-import '../../documents/document_file_name.dart';
-import '../../documents/document_title.dart';
-import '../../documents/move_failure.dart';
 import '../../documents/ui/document_place_dialog.dart';
 import '../../documents/ui/move_failure_text.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../document_file.dart';
-import '../document_session.dart';
 
 /// Shows where the open document's file is, e.g. `Documents/inbox/Milk.md`;
 /// tapping it asks for another folder, subfolder or name. A new document

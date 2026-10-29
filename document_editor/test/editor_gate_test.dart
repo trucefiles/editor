@@ -9,7 +9,7 @@ import 'package:truce_core/truce_core.dart'
         Ticket,
         ToFile,
         Version;
-import 'package:truce_editor/editor/editor_gate.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 

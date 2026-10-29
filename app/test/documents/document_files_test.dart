@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_files.dart';
-import 'package:truce_editor/documents/open_failure.dart';
-import 'package:truce_editor/folders/document_folder.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 

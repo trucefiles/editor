@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
-import 'package:truce_editor/editor/add_item_place/ui/add_item_place_tile.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
+import 'package:truce_editor/settings/ui/add_item_place_tile.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
-import '../../../support.dart';
+import '../../support.dart';
 
 void main() {
   final tile = find.byType(AddItemPlaceTile);

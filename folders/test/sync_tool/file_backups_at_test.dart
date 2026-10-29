@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/backups/file_backups_at.dart';
-
-import '../support.dart';
+import 'package:test/test.dart';
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   test('saves backups without leaving temp files behind', () async {

@@ -1,12 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/base_folder.dart';
-import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/folders/folder_list_store.dart';
-
-import '../support.dart';
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late File file;

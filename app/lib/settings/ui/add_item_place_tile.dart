@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 
-import '../../../settings/device_settings_controller.dart';
-import '../add_item_place.dart';
+import '../device_settings_controller.dart';
 
 /// Settings row with where a list's add buttons sit: above its items, or
 /// below them.

@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document.dart';
-import '../folders/document_folder.dart';
+import '../document.dart';
 
 /// A pending conflict and the folder it is in.
 @immutable

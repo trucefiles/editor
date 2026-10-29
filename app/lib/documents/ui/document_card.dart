@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
-import '../document.dart';
-import '../document_card_summary.dart';
 import '../document_colors.dart';
-import '../document_settings.dart';
-import '../previews/card_preview.dart';
 
 /// A document in the grid: title and first lines at the document text zoom
 /// (as its [preview] has them); folder, last edit, pin and color.
