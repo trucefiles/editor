@@ -79,12 +79,7 @@ final class DocumentSession {
 
   /// Where the file is: the file the file owner names, else where a new
   /// document's file goes.
-  DocumentFile get file => switch ((document, _effects.newFile)) {
-    (final document?, _) => ExistingFile(document),
-    (null, final place?) => place,
-    // The file owner names a file for every document opened from one.
-    (null, null) => throw StateError('A document without file or place.'),
-  };
+  DocumentFile get file => _effects.whereOf(_file.state.file);
 
   /// The document's file as last read or written, or where the user moved
   /// it; `null` until a new document's file is created.

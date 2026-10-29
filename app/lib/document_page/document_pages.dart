@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/document.dart';
-import '../documents/document_actions.dart';
 import '../documents/document_drafts.dart';
 import '../documents/document_files.dart';
 import '../documents/document_place.dart';
 import '../documents/document_settings.dart';
-import '../documents/document_settings_controller.dart';
 import '../documents/document_text.dart';
 import '../documents/document_types.dart';
 import '../documents/document_version.dart';
@@ -68,15 +66,18 @@ final class DocumentPage {
 /// Builds the page model of each open document from the app's parts: the
 /// one place that puts a page together.
 final class DocumentPages {
-  /// [actions] and [settings] give the document actions and settings as
-  /// they are as a page opens; [filesOf] and [draftsOf] a folder's
-  /// document files and drafts as they are when asked. [reachOf] tells a
-  /// base folder's reach now, [reachSettled] once a running check of it
-  /// is over. [refreshFolders] lists the folders again.
+  /// [filesOf] and [draftsOf] give a folder's document files and drafts.
+  /// [create] and [delete] create and delete a document's file;
+  /// [settingsOf] gives a document's settings, [editSettings] changes
+  /// them. [reachOf] tells a base folder's reach now, [reachSettled] once
+  /// a running check of it is over. [refreshFolders] lists the folders
+  /// again.
   DocumentPages({
     required this.types,
-    required this.actions,
-    required this.settings,
+    required this.create,
+    required this.delete,
+    required this.settingsOf,
+    required this.editSettings,
     required this.filesOf,
     required this.draftsOf,
     required this.reachOf,
@@ -86,8 +87,10 @@ final class DocumentPages {
   });
 
   final DocumentTypes<EditableType> types;
-  final DocumentActions Function() actions;
-  final DocumentSettingsController Function() settings;
+  final CreateDocumentFile create;
+  final DeleteDocument delete;
+  final DocumentSettings Function(DocumentKey document) settingsOf;
+  final EditSettings editSettings;
   final DocumentFiles Function(DocumentFolder folder) filesOf;
   final DocumentDrafts Function(DocumentFolder folder) draftsOf;
   final Reach Function(BaseFolder base) reachOf;
@@ -101,7 +104,7 @@ final class DocumentPages {
       _open(
         types.ofFile(document.type),
         ExistingFile(document),
-        view: settings().settingsOf(document.key).view,
+        view: settingsOf(document.key).view,
         withFile: withFile,
       );
 
@@ -128,8 +131,6 @@ final class DocumentPages {
       ExistingFile(:final document) => (document, null),
       NewFile() => (null, file),
     };
-    final actionsNow = actions();
-    final settingsNow = settings();
     late final DocumentController controller;
     final editor = type.openEditor(
       (
@@ -154,7 +155,7 @@ final class DocumentPages {
         newFile: newFile,
         filesOf: filesOf,
         draftsOf: draftsOf,
-        create: actionsNow.create,
+        create: create,
       ),
       editor.part.editor,
     );
@@ -169,9 +170,9 @@ final class DocumentPages {
         ).backUpCurrent(document, text),
         null => const Err(StoreError.notFound),
       },
-      delete: actionsNow.delete,
-      settingsOf: settingsNow.settingsOf,
-      editSettings: settingsNow.edit,
+      delete: delete,
+      settingsOf: settingsOf,
+      editSettings: editSettings,
     );
     // Shows the document only to read while it can't be edited.
     controller.addListener(

@@ -26,7 +26,7 @@ typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
 /// reads, writes, creates and restores its file, backs it up and keeps
 /// conflict copies; answers each effect with the result the owner gets.
 /// Each effect names the file it acts on; where it names none (a new
-/// document's), it acts where the new document's file goes ([newFile]).
+/// document's), it acts where the new document's file goes.
 final class FileEffects {
   /// [newFile]: where a new document's file goes; `null` for a document
   /// opened from its file.
@@ -44,16 +44,14 @@ final class FileEffects {
   /// One draft per open document; names it in its folder's drafts.
   final _draftId = DocumentDraft.newId();
 
+  /// Where a new document's file goes: the place the user last gave;
+  /// `null` for a document opened from its file.
   NewFile? _newFile;
 
   /// The draft kept last, until it is dropped: moved along when a new
   /// document's place changes, and what the last draft builds on once the
   /// owner stopped.
   DocumentDraft? _draft;
-
-  /// Where a new document's file goes: the place the user last gave;
-  /// `null` for a document opened from its file.
-  NewFile? get newFile => _newFile;
 
   /// Does [effect]; its result for the file owner, `null` for an effect
   /// without one. Draft work starts before this returns, so drafts are
@@ -65,9 +63,9 @@ final class FileEffects {
       id,
       base,
       text,
-      _where(file),
+      whereOf(file),
     ),
-    DropDraft(:final file) => _dropDraft(_where(file)),
+    DropDraft(:final file) => _dropDraft(whereOf(file)),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
       _write(text, over.version.read, backUpFirst: backUpFirst),
@@ -115,12 +113,12 @@ final class FileEffects {
   }) async {
     final base = _draft?.base ?? file?.read.text;
     if (text == (base ?? '')) return true;
-    return _keep(base, text, _where(file));
+    return _keep(base, text, whereOf(file));
   }
 
   /// Where the effects on [file] act: the file, or where a new document's
   /// file goes while it has none.
-  DocumentFile _where(DocumentVersion? file) => switch ((file, _newFile)) {
+  DocumentFile whereOf(DocumentVersion? file) => switch ((file, _newFile)) {
     (final file?, _) => ExistingFile(file.read),
     (null, final place?) => place,
     // The owner names a file for every document opened from one.

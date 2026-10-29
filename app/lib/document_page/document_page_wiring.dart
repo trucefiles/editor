@@ -14,8 +14,28 @@ import 'document_pages.dart';
 final documentPagesProvider = Provider<DocumentPages>(
   (ref) => DocumentPages(
     types: ref.watch(documentTypesProvider),
-    actions: () => ref.read(documentActionsProvider),
-    settings: () => ref.read(documentSettingsProvider.notifier),
+    create:
+        (
+          place, {
+          required type,
+          required title,
+          required text,
+          newSubfolder = false,
+        }) => ref
+            .read(documentActionsProvider)
+            .create(
+              place,
+              type: type,
+              title: title,
+              text: text,
+              newSubfolder: newSubfolder,
+            ),
+    delete: (document, text) =>
+        ref.read(documentActionsProvider).delete(document, text),
+    settingsOf: (document) =>
+        ref.read(documentSettingsProvider.notifier).settingsOf(document),
+    editSettings: (document, change) =>
+        ref.read(documentSettingsProvider.notifier).edit(document, change),
     filesOf: (folder) => ref.read(folderFilesProvider).of(folder),
     draftsOf: (folder) => ref.read(draftsProvider).of(folder.base.id),
     reachOf: (base) => ref.read(folderReachProvider(base)),

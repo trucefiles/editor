@@ -1,13 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart' show Result, StoreError;
 import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/file_effects.dart';
 import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/document_place.dart';
 import 'package:truce_editor/documents/document_text.dart';
+import 'package:truce_editor/documents/document_type.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -60,20 +63,22 @@ final class DocumentFixture {
     },
     filesOf: (folder) => files[folder.id]!,
     draftsOf: (folder) => drafts[folder.id]!,
-    create:
-        (
-          place, {
-          required type,
-          required title,
-          required text,
-          newSubfolder = false,
-        }) => files[place.folder.id]!.create(
-          title,
-          type: type,
-          subfolder: place.subfolder,
-          newSubfolder: newSubfolder,
-          text: text,
-        ),
+    create: createFile,
+  );
+
+  /// Creates a document's file in the fixture's folders.
+  Future<Result<DocumentText, StoreError>> createFile(
+    DocumentPlace place, {
+    required DocumentType type,
+    required String title,
+    required String text,
+    bool newSubfolder = false,
+  }) => files[place.folder.id]!.create(
+    title,
+    type: type,
+    subfolder: place.subfolder,
+    newSubfolder: newSubfolder,
+    text: text,
   );
 
   /// A session on [file], by default on [document]; disposed after the test.
