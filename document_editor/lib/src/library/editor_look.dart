@@ -29,11 +29,13 @@ final class EditorLook {
                  vertical: spacesItself(node) ? 0 : metrics.lineGap,
                ),
                Styles.textStyle: textStyleOf(node),
-               Styles.inlineWidgetBuilders: inlineWidgets,
              },
            ),
          ],
          inlineTextStyler: inlineTextStyler,
+         // Only the stylesheet's own chain reaches the text: the styler
+         // drops a rule's.
+         inlineWidgetBuilders: inlineWidgets,
          selectedTextColorStrategy: defaultSelectedTextColorStrategy,
        ),
        firstLinePadding = EdgeInsets.only(

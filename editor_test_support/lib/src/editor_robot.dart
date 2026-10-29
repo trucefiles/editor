@@ -116,7 +116,7 @@ Future<void> pumpDocument(
   AddItemPlace addItems = AddItemPlace.top,
   ThemeData? theme,
   TransitionBuilder? around,
-  DocumentImages? images,
+  DocumentImages images = const NoDocumentImages(),
 }) => tester.pumpWidget(
   MaterialApp(
     theme: theme,
@@ -130,7 +130,7 @@ Future<void> pumpDocument(
           notices: document.gate.events,
           addItems: addItems,
           onLink: document.links.add,
-          images: images ?? (_) => null,
+          images: images,
         ),
       ),
     ),

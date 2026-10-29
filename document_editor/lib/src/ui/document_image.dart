@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
 
-/// The image a document's image reference [url] leads to; `null` for one the
-/// app does not show (e.g. outside the document's folder).
-typedef DocumentImages = ImageProvider? Function(String url);
+/// The images a document shows. Equal when they find the same images, so
+/// a view builds what shows them again only when they change.
+abstract interface class DocumentImages {
+  /// The image a document's image reference [url] leads to; `null` for
+  /// one the app does not show (e.g. outside the document's folder).
+  ImageProvider? of(String url);
+}
+
+/// A document that shows no images, e.g. one not in a folder.
+final class NoDocumentImages implements DocumentImages {
+  const NoDocumentImages();
+
+  @override
+  ImageProvider? of(String url) => null;
+
+  @override
+  bool operator ==(Object other) => other is NoDocumentImages;
+
+  @override
+  int get hashCode => (NoDocumentImages).hashCode;
+}
 
 /// The image at [url] of a document, as [images] finds it, at most as wide as
 /// the document and not too tall; its [alt] text where it can't show.
@@ -26,7 +44,7 @@ class DocumentImage extends StatelessWidget {
       alt.isEmpty ? url : alt,
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
     );
-    final image = images(url);
+    final image = images.of(url);
     if (image == null) return altText;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: _maxHeight),

@@ -69,11 +69,11 @@ class _VisualEditViewState extends State<VisualEditView> {
   );
   late final StreamSubscription<md.EditorEvent> _notices;
 
-  /// The look in the current theme and metrics. Kept between builds:
-  /// the library lays the whole document out anew for each new
-  /// stylesheet.
+  /// The look in the current theme and metrics, with the document's
+  /// images. Kept between builds: the library lays the whole document out
+  /// anew for each new stylesheet.
   EditorLook? _look;
-  (ThemeData, DocumentMetrics)? _lookFor;
+  (ThemeData, DocumentMetrics, DocumentImages)? _lookFor;
 
   @override
   void initState() {
@@ -87,15 +87,21 @@ class _VisualEditViewState extends State<VisualEditView> {
   void didUpdateWidget(VisualEditView old) {
     super.didUpdateWidget(old);
     _adapter.addItems = widget.addItems;
+    _updateLook();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final key = (Theme.of(context), DocumentMetrics.of(context));
+    _updateLook();
+  }
+
+  /// Builds the look again once what it shows by changed.
+  void _updateLook() {
+    final key = (Theme.of(context), DocumentMetrics.of(context), widget.images);
     if (key == _lookFor) return;
     _lookFor = key;
-    _look = visualLook(key.$1, metrics: key.$2, images: widget.images);
+    _look = visualLook(key.$1, metrics: key.$2, images: key.$3);
   }
 
   @override
