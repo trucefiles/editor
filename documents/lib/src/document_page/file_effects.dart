@@ -172,6 +172,10 @@ final class FileEffects {
       path: where.pathFor(text),
       base: base,
       text: text,
+      newSubfolder: switch (where) {
+        NewFile(:final newSubfolder) => newSubfolder,
+        ExistingFile() => false,
+      },
     );
     _draft = draft;
     return _draftsOf(where.folder).keep(draft);

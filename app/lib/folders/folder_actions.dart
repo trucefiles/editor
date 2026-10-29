@@ -43,6 +43,11 @@ final class FolderActions {
   Future<Result<void, FolderError>> change(DocumentFolder changed) =>
       _folders.change(changed);
 
+  /// How many documents have edits kept only on this device that
+  /// [remove] would delete.
+  Future<int> draftsLostByRemoving(DocumentFolder folder) =>
+      _folders.draftsLostByRemoving(folder);
+
   /// Forgets [folder] (its files stay untouched), stops filtering the
   /// documents by it, and deletes its drafts: no edit is recovered into it.
   Future<Result<void, FolderError>> remove(DocumentFolder folder) {

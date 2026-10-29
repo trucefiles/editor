@@ -306,6 +306,30 @@ void main() {
       );
     });
 
+    test('counts the drafts it would delete first', () async {
+      final folders = container();
+      final work = (await add(
+        folders,
+        '/sync',
+        selection: subfolders(['work']),
+      )).value;
+      final home = (await add(
+        folders,
+        '/sync',
+        selection: subfolders(['home']),
+      )).value;
+      final drafts = folders.read(draftsProvider).of(work.base.id);
+      await drafts.keep(draft('1', 'work/a.md'));
+      await drafts.keep(draft('2', 'work/b.md'));
+      await drafts.keep(draft('3', 'elsewhere/a.md'));
+      final controller = folders.read(foldersProvider.notifier);
+
+      expect(await controller.draftsLostByRemoving(work), 2);
+      expect(await controller.draftsLostByRemoving(home), 0);
+      await controller.remove(home);
+      expect(await controller.draftsLostByRemoving(work), 3);
+    });
+
     test("with its base folder's last folder, all of its drafts go", () async {
       final folders = container();
       final work = (await add(

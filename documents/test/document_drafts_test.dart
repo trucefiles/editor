@@ -32,6 +32,24 @@ void main() {
     expect(await drafts.all(before: later), isEmpty);
   });
 
+  test("keeps a new document's new subfolder", () async {
+    await drafts.keep(
+      DocumentDraft(
+        id: '1',
+        path: path('new/b.md'),
+        text: 'b',
+        newSubfolder: true,
+      ),
+    );
+    await drafts.keep(DocumentDraft(id: '2', path: path('b.md'), text: 'b'));
+
+    final kept = {
+      for (final draft in await drafts.all(before: later))
+        draft.id: draft.newSubfolder,
+    };
+    expect(kept, {'1': true, '2': false});
+  });
+
   test('keeps the last of two drafts written at once', () async {
     final both = await Future.wait([
       drafts.keep(draft('1', 'one')),
