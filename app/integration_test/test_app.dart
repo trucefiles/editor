@@ -10,11 +10,11 @@ import 'package:truce_editor/app.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
-import 'package:truce_editor/refresh/refresh_settings_store.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -42,17 +42,17 @@ final class TestApp {
 
   final AppStorage _storage;
 
-  /// Starts the app, with the locale data and text zooms that `main`
+  /// Starts the app, with the locale data and device settings that `main`
   /// loads.
   Future<void> launch(WidgetTester tester) async {
     await initializeDateFormatting();
-    final textZooms = await SavedTextZooms.load(_storage);
+    final settings = await deviceSettingsStoreIn(_storage).load();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appStorageProvider.overrideWithValue(_storage),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
-          savedTextZoomsProvider.overrideWithValue(textZooms),
+          loadedDeviceSettingsProvider.overrideWithValue(settings),
           systemTrayProvider.overrideWithValue(null),
           folderPickerProvider.overrideWithValue(
             _QueuedPicker([documents.path, work.path]),
@@ -65,13 +65,23 @@ final class TestApp {
 
   /// Starts the app with [mode] as the refresh setting, e.g. manual for
   /// tests of what refreshes without live updates.
-  Future<void> useRefresh(RefreshMode mode) =>
-      RefreshSettingsStore(File('${_storage.settingsPath}/refresh.json'))
-          .save(RefreshSettings.standard.copyWith(mode: mode));
+  Future<void> useRefresh(RefreshMode mode) => _useSettings(
+    (settings) => settings.copyWith(
+      refresh: RefreshSettings.standard.copyWith(mode: mode),
+    ),
+  );
 
   /// Starts the app with [zoom] saved for [target].
   Future<void> useTextZoom(TextZoomTarget target, TextZoom zoom) =>
-      textZoomStoreIn(_storage, target).save(zoom);
+      _useSettings((settings) => settings.withTextZoom(target, zoom));
+
+  /// Starts the app with the saved device settings changed by [change].
+  Future<void> _useSettings(
+    DeviceSettings Function(DeviceSettings settings) change,
+  ) async {
+    final store = deviceSettingsStoreIn(_storage);
+    await store.save(change(await store.load()));
+  }
 
   /// Starts the app with a saved folder list it can't read.
   void damageFolderList() =>

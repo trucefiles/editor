@@ -6,6 +6,7 @@ import '../folder_state/folder_state_controller.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_selection.dart';
 import '../reach/folder_reach_controller.dart';
+import '../settings/device_settings_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
 import 'deleted_document.dart';
@@ -16,7 +17,6 @@ import 'document_text.dart';
 import 'documents_owner.dart';
 import 'move_failure.dart';
 import 'new_file_place/new_file_place.dart';
-import 'new_file_place/new_file_place_controller.dart';
 
 final documentActionsProvider = Provider<DocumentActions>(DocumentActions.new);
 
@@ -49,7 +49,10 @@ final class DocumentActions {
   /// if its folder is one of [folders], else the [defaultFolder] of
   /// [folders].
   DocumentPlace newFilePlace(List<DocumentFolder> folders) =>
-      resolveNewFilePlace(_ref.read(newFilePlaceProvider).value, folders) ??
+      resolveNewFilePlace(
+        _ref.read(deviceSettingsProvider).requireValue.newFilePlace,
+        folders,
+      ) ??
       topOf(defaultFolder(folders));
 
   /// The subfolders of [folder], as last seen.

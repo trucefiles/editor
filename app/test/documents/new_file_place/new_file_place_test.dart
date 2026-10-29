@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
-import 'package:truce_editor/documents/new_file_place/new_file_place_store.dart';
 
 import '../../support.dart';
 
@@ -30,28 +29,18 @@ void main() {
     });
   });
 
-  group('NewFilePlaceStore', () {
-    late File file;
-    late NewFilePlaceStore store;
+  test('reads back what it writes, also the choice of none', () {
+    for (final place in [
+      (folderId: 'f1', subfolder: path('a/b')),
+      (folderId: 'f1', subfolder: null),
+      null,
+    ]) {
+      expect(newFilePlaceFromJson(newFilePlaceToJson(place)), place);
+    }
+  });
 
-    setUp(() {
-      file = File('${tempFolder().path}/settings/new_file_place.json');
-      store = NewFilePlaceStore(file);
-    });
-
-    test('loads nothing before the first save', () async {
-      expect(await store.load(), isNull);
-    });
-
-    test('saves and loads a place, and the choice of none', () async {
-      await store.save((folderId: 'f1', subfolder: path('a/b')));
-      expect(await store.load(), (folderId: 'f1', subfolder: path('a/b')));
-
-      await store.save((folderId: 'f1', subfolder: null));
-      expect(await store.load(), (folderId: 'f1', subfolder: null));
-
-      await store.save(null);
-      expect(await store.load(), isNull);
-    });
+  test('reads nothing from JSON it did not write', () {
+    expect(newFilePlaceFromJson({'folder': 1}), isNull);
+    expect(newFilePlaceFromJson('f1'), isNull);
   });
 }

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/editor/add_item_place/add_item_place.dart';
-import 'package:truce_editor/editor/add_item_place/add_item_place_controller.dart';
 import 'package:truce_editor/editor/add_item_place/ui/add_item_place_tile.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
 import '../../../support.dart';
@@ -13,8 +14,9 @@ void main() {
 
   AddItemPlace? place(WidgetTester tester) =>
       ProviderScope.containerOf(tester.element(tile))
-          .read(addItemPlaceProvider)
-          .value;
+          .read(deviceSettingsProvider)
+          .requireValue
+          .addItemPlace;
 
   /// Lets file reads and writes finish, which complete outside the test's
   /// fake time, until [until] holds; then renders the result.
@@ -36,12 +38,16 @@ void main() {
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
-          overrides: [appStorageProvider.overrideWithValue(storage)],
+          overrides: [
+            appStorageProvider.overrideWithValue(storage),
+            loadedDeviceSettingsProvider.overrideWithValue(
+              DeviceSettings.standard,
+            ),
+          ],
           child: const MaterialApp(home: Scaffold(body: AddItemPlaceTile())),
         ),
       ),
     );
-    await settle(tester, until: () => place(tester) != null);
     expect(place(tester), AddItemPlace.top);
 
     await tester.tap(find.text('Show "Add item" below lists'));

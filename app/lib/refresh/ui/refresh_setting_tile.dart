@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../settings/device_settings_controller.dart';
 import '../refresh_settings.dart';
-import '../refresh_settings_controller.dart';
 import 'refresh_dialog.dart';
 
 /// Settings row that shows the refresh setting and opens its dialog.
@@ -11,12 +11,13 @@ class RefreshSettingTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(refreshSettingsProvider).value;
+    final settings = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.refresh),
+    );
     return ListTile(
-      enabled: settings != null,
       title: const Text('Refresh changes in folders'),
-      subtitle: Text(_modeName(settings?.mode)),
-      onTap: () => _change(context, ref, settings!),
+      subtitle: Text(_modeName(settings.mode)),
+      onTap: () => _change(context, ref, settings),
     );
   }
 }
@@ -28,13 +29,14 @@ Future<void> _change(
 ) async {
   final chosen = await showRefreshDialog(context, current: current);
   if (chosen != null && chosen != current) {
-    await ref.read(refreshSettingsProvider.notifier).set(chosen);
+    await ref
+        .read(deviceSettingsProvider.notifier)
+        .change((settings) => settings.copyWith(refresh: chosen));
   }
 }
 
-String _modeName(RefreshMode? mode) => switch (mode) {
+String _modeName(RefreshMode mode) => switch (mode) {
   RefreshMode.live => 'Live',
   RefreshMode.periodic => 'Periodic',
   RefreshMode.manual => 'Manual',
-  null => '…',
 };

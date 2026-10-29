@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/screen_shortcuts.dart';
+import '../../settings/device_settings_controller.dart';
 import '../text_zoom.dart';
-import '../text_zoom_controller.dart';
 import '../text_zoom_target.dart';
 import 'document_text_zoom.dart';
 import 'pinch_to_zoom.dart';
@@ -36,28 +36,36 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
   /// Counts the zoom gestures, so the toast shows after each.
   final _gestures = ValueNotifier(0);
 
-  TextZoomController get _zoom =>
-      ref.read(textZoomProvider(_gestured).notifier);
-
   @override
   void dispose() {
     _gestures.dispose();
     super.dispose();
   }
 
-  void _zoomTo(TextZoom zoom) {
-    unawaited(_zoom.set(zoom));
+  void _zoomTo(TextZoom zoom) => _zoomBy((_) => zoom);
+
+  /// Changes the zoom from the one the change before left.
+  void _zoomBy(TextZoom Function(TextZoom zoom) next) {
+    unawaited(
+      ref
+          .read(deviceSettingsProvider.notifier)
+          .change(
+            (settings) => settings.withTextZoom(
+              _gestured,
+              next(settings.textZoomOf(_gestured)),
+            ),
+          ),
+    );
     _gestures.value++;
   }
 
-  void _zoomBy(TextZoom Function(TextZoom zoom) next) {
-    unawaited(_zoom.change(next));
-    _gestures.value++;
-  }
+  TextZoom _watch(TextZoomTarget target) => ref.watch(
+    deviceSettingsProvider.select((s) => s.requireValue.textZoomOf(target)),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final zoom = ref.watch(textZoomProvider(_gestured));
+    final zoom = _watch(_gestured);
     return ScreenShortcuts(
       bindings: {
         for (final MapEntry(key: key, value: next) in textZoomKeys.entries)
@@ -77,7 +85,7 @@ class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
             child: DocumentTextZoomScope(
               zoom: zoom,
               child: TextZoomScale(
-                zoom: ref.watch(textZoomProvider(TextZoomTarget.app)),
+                zoom: _watch(TextZoomTarget.app),
                 child: widget.child,
               ),
             ),

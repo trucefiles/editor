@@ -6,7 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
 import '../refresh/refresh_settings.dart';
-import '../refresh/refresh_settings_controller.dart';
+import '../settings/device_settings_controller.dart';
 import '../sync_tool/base_folder_following.dart';
 import 'folder_state_controller.dart';
 
@@ -40,8 +40,9 @@ class FollowingChanges extends AsyncNotifier<void> {
     });
     final active = ref.watch(appActiveProvider);
     owner.send(Active(active: active));
-    final settings = await ref.watch(refreshSettingsProvider.future);
-    if (disposed) return;
+    final settings = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.refresh),
+    );
     final settingChanged = _lastSettings != null && _lastSettings != settings;
     _lastSettings = settings;
     if (settingChanged) {

@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../folders/base_folder.dart';
 import '../refresh/refresh_settings.dart';
-import '../refresh/refresh_settings_controller.dart';
+import '../settings/device_settings_controller.dart';
 import 'base_folder_services.dart';
 
 /// How a base folder's changes are found (`null`: not looked for), and how
@@ -17,7 +17,9 @@ typedef FolderFollowing = ({FolderChanges? changes, Duration? pollsInstead});
 /// listing, which tells its reach how it went, like every other access.
 final folderFollowingProvider =
     FutureProvider.family<FolderFollowing, BaseFolder>((ref, base) async {
-      final refresh = await ref.watch(refreshSettingsProvider.future);
+      final refresh = ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.refresh),
+      );
       final live = ref.watch(baseFolderServicesProvider(base)).changes;
       final polled = PolledFolderChanges(interval: refresh.interval);
       return switch (refresh.mode) {
