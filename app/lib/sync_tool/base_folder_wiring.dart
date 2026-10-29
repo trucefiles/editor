@@ -55,7 +55,9 @@ final baseFolderStacksProvider = Provider<BaseFolderStacks>((ref) {
 });
 
 /// Counts the times the stacks built or retired services, so whatever
-/// watches a base folder's services gets the new ones.
+/// watches a base folder's services gets the new ones. Counted a
+/// microtask later: the stacks may hear of a change while a provider
+/// builds, and a provider may not change another one then.
 final _stacksBuiltProvider = NotifierProvider<_StacksBuilt, int>(
   _StacksBuilt.new,
 );
@@ -66,7 +68,11 @@ class _StacksBuilt extends Notifier<int> {
     final built = ref
         .watch(baseFolderStacksProvider)
         .changes
-        .listen((_) => state++);
+        .listen(
+          (_) => scheduleMicrotask(() {
+            if (ref.mounted) state++;
+          }),
+        );
     ref.onDispose(() => unawaited(built.cancel()));
     return 0;
   }

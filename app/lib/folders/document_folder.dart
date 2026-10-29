@@ -4,8 +4,9 @@ import 'package:truce_core/truce_core.dart';
 import 'base_folder.dart';
 
 /// A folder the user added on this device, as the app shows it: a name
-/// and a color name ([color], from the app's palette) for one part of a [base] folder, the whole of it or some of
-/// its subfolders ([selection]). A view: changing it moves no file and
+/// and a color name ([color], from the app's palette) for one part of a
+/// [base] folder, the whole of it or some of its subfolders
+/// ([selection]). A view: changing it moves no file and
 /// none of the app's own data.
 ///
 /// Per device and never synced: another device may name, color and

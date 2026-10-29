@@ -48,6 +48,7 @@ final class BaseFolderStacks {
   final _shown = <String, _Stack>{};
 
   /// Services that touch nothing, of base folders no folder shows, by id.
+  /// Kept until the app ends: one per base folder the user removed.
   final _gone = <String, BaseFolderServices>{};
 
   /// The list [_shown] was last built for.

@@ -1,6 +1,5 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document_type.dart';
 import '../folders/base_folder.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_lookup.dart';
@@ -13,6 +12,7 @@ import 'document_files.dart';
 import 'document_place.dart';
 import 'document_settings_keeper.dart';
 import 'document_text.dart';
+import 'document_type.dart';
 import 'document_types.dart';
 import 'draft_recovery.dart';
 import 'move_failure.dart';

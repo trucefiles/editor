@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document_type.dart';
 import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../folders/base_folder.dart';
@@ -15,6 +14,7 @@ import 'deleted_document.dart';
 import 'document.dart';
 import 'document_place.dart';
 import 'document_text.dart';
+import 'document_type.dart';
 import 'documents_owner.dart';
 import 'documents_wiring.dart';
 import 'move_failure.dart';

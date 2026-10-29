@@ -5,12 +5,12 @@ library;
 
 import 'package:truce_core/truce_core.dart';
 
-import '../documents/document_type.dart';
 import 'delete_failure.dart';
 import 'deleted_document.dart';
 import 'document.dart';
 import 'document_place.dart';
 import 'document_text.dart';
+import 'document_type.dart';
 import 'move_failure.dart';
 
 // Inputs.
