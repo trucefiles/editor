@@ -23,8 +23,12 @@ void main() {
 
   String read(String name) => File('${dir.path}/$name').readAsStringSync();
 
-  test('creates a document with a title heading', () async {
-    final document = (await files.create('Shopping', type: markdown)).value;
+  test('creates a document named after its title', () async {
+    final document = (await files.create(
+      'Shopping',
+      type: markdown,
+      text: '# Shopping\n',
+    )).value;
 
     expect(document.path.value, 'Shopping.md');
     expect(read('Shopping.md'), '# Shopping\n');
@@ -37,6 +41,7 @@ void main() {
     final document = (await files.create(
       'Shopping',
       type: markdown,
+      text: '# Shopping\n',
       subfolder: path('a/b/c'),
     )).value;
 
@@ -88,6 +93,7 @@ void main() {
       final created = (await files.create(
         'Milk',
         type: markdown,
+        text: '# Milk\n',
         subfolder: path('gone'),
       )).value;
 
@@ -97,7 +103,11 @@ void main() {
   );
 
   test('never copies into a subfolder deleted meanwhile', () async {
-    final document = (await files.create('Milk', type: markdown)).value;
+    final document = (await files.create(
+      'Milk',
+      type: markdown,
+      text: '# Milk\n',
+    )).value;
 
     final copied = await files.copyIn(
       document,
@@ -110,15 +120,23 @@ void main() {
   });
 
   test('picks a free name', () async {
-    await files.create('Shopping', type: markdown);
+    await files.create('Shopping', type: markdown, text: '# Shopping\n');
 
-    final document = (await files.create('Shopping', type: markdown)).value;
+    final document = (await files.create(
+      'Shopping',
+      type: markdown,
+      text: '# Shopping\n',
+    )).value;
 
     expect(document.path.value, 'Shopping 2.md');
   });
 
   test('saves in the file\'s line break style', () async {
-    final created = (await files.create('a', type: markdown)).value;
+    final created = (await files.create(
+      'a',
+      type: markdown,
+      text: '# a\n',
+    )).value;
     File('${dir.path}/a.md').writeAsStringSync('a\r\n');
     final document = (await files.reload(created.document)).value;
 
@@ -129,7 +147,11 @@ void main() {
   });
 
   test('refuses to save over a change from elsewhere', () async {
-    final document = (await files.create('a', type: markdown)).value;
+    final document = (await files.create(
+      'a',
+      type: markdown,
+      text: '# a\n',
+    )).value;
     File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
     expect(
@@ -140,7 +162,11 @@ void main() {
   });
 
   test('restores a deleted document', () async {
-    final document = (await files.create('a', type: markdown)).value;
+    final document = (await files.create(
+      'a',
+      type: markdown,
+      text: '# a\n',
+    )).value;
     await files.delete(document.document);
 
     await files.restore(document, '# a\nback');
@@ -175,6 +201,7 @@ void main() {
       final created = (await work.create(
         'Milk',
         type: markdown,
+        text: '# Milk\n',
         subfolder: path('work/gone'),
       )).value;
 
@@ -187,6 +214,7 @@ void main() {
       final created = (await work.create(
         'Milk',
         type: markdown,
+        text: '# Milk\n',
         subfolder: path('work/2026/q1'),
         newSubfolder: true,
       )).value;
@@ -199,6 +227,7 @@ void main() {
       final created = await work.create(
         'Milk',
         type: markdown,
+        text: '# Milk\n',
         subfolder: path('home/new'),
         newSubfolder: true,
       );
@@ -213,6 +242,7 @@ void main() {
       final created = await work.create(
         'Milk',
         type: markdown,
+        text: '# Milk\n',
         subfolder: path('work'),
       );
 
@@ -278,7 +308,11 @@ void main() {
     });
 
     test('moves nothing once the file changed elsewhere', () async {
-      final document = (await files.create('a', type: markdown)).value;
+      final document = (await files.create(
+        'a',
+        type: markdown,
+        text: '# a\n',
+      )).value;
       File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
       final moved = await files.moveIn(document, title: 'b');

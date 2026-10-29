@@ -64,8 +64,8 @@ final class DocumentFiles {
   }
 
   /// New document of [type] in [subfolder] (the base folder's top level
-  /// if `null`), named after [title], holding [text]; by default a
-  /// `# title` line; [newSubfolder] makes [subfolder] first. If
+  /// if `null`), named after [title], holding [text]; [newSubfolder]
+  /// makes [subfolder] first. If
   /// [subfolder] is gone, the document goes to the top of the folder's
   /// part that held it: it is kept, and the deleted folder never comes
   /// back.
@@ -73,10 +73,10 @@ final class DocumentFiles {
     String title, {
     required DocumentType type,
     RelPath? subfolder,
+    required String text,
     bool newSubfolder = false,
-    String? text,
   }) async {
-    final file = TextFile.empty().withText(text ?? '# ${title.trim()}\n');
+    final file = TextFile.empty().withText(text);
     final extension = type.newFileExtension;
     final created = await _createNamed(title, extension, (
       folder: subfolder,

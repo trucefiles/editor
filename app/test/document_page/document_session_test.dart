@@ -191,6 +191,7 @@ void main() {
     final inSub = (await fixture.files['f1']!.create(
       'b',
       type: appDocumentTypes().forNew,
+      text: '# b\n',
       subfolder: path('sub'),
     )).value;
     final session = fixture.session(ExistingFile(inSub));

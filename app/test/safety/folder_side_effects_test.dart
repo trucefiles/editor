@@ -74,7 +74,7 @@ void main() {
   test('creating a document adds only that document', () async {
     final before = snapshot();
 
-    await files.create('New', type: appDocumentTypes().forNew);
+    await files.create('New', type: appDocumentTypes().forNew, text: '# New\n');
 
     expect(changed(before, snapshot()), {'Documents/New.md'});
   });
@@ -165,7 +165,11 @@ void main() {
 
     test('creating a document does not bring it back', () async {
       expect(
-        (await files.create('New', type: appDocumentTypes().forNew)).error,
+        (await files.create(
+          'New',
+          type: appDocumentTypes().forNew,
+          text: '# New\n',
+        )).error,
         StoreError.notFound,
       );
       expect(changed(before, snapshot()), isEmpty);
