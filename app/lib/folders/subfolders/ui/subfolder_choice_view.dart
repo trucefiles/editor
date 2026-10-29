@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../subfolder_choice.dart';
 import 'subfolder_tree.dart';
 
 /// The choice between the whole base folder and some subfolders, with the

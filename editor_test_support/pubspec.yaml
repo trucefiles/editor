@@ -1,0 +1,22 @@
+name: truce_editor_test_support
+description: Test helpers shared by the tests of the editor and the app, which need Flutter. Never a regular dependency.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  super_editor: 0.3.0-dev.52
+  truce_core: any
+  truce_document_editor: any
+  truce_markdown: any
+  truce_test_support: any
+
+dev_dependencies:
+  truce_lints: any

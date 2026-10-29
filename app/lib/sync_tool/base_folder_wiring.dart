@@ -2,17 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../file_types/document_types.dart';
-import '../folders/base_folder.dart';
 import '../folders/folders_controller.dart';
-import '../refresh/refresh_settings.dart';
 import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
-import 'app_writes.dart';
-import 'base_folder_following.dart';
-import 'base_folder_services.dart';
-import 'base_folder_stacks.dart';
 import 'sync_tools_wiring.dart';
 
 final appWritesProvider = Provider<AppWrites>((ref) {

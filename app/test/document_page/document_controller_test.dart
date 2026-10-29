@@ -3,14 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/document_page/document_controller.dart';
-import 'package:truce_editor/document_page/document_session.dart';
-import 'package:truce_editor/document_page/file_effects.dart';
-import 'package:truce_editor/document_page/save_state.dart';
-import 'package:truce_editor/documents/delete_failure.dart';
-import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/documents/document_settings.dart';
-import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_markdown/truce_markdown.dart' hide Selection;
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -38,7 +32,7 @@ void main() {
   DocumentController controllerOn(
     DocumentSession session, {
     BackUpText? backUp,
-    DeleteDocument? delete,
+    DeleteForUndo? delete,
   }) {
     final controller = DocumentController(
       session,
@@ -221,7 +215,7 @@ void main() {
         },
       );
 
-      expect(await controller.deleteDocument(), isA<DocumentDeleted>());
+      expect(await controller.deleteDocument(), isA<DeletedForUndo>());
       expect(deleted, ['mine one\n']);
     });
 

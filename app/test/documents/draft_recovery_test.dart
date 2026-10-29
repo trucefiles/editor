@@ -2,11 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_draft.dart';
-import 'package:truce_editor/documents/document_drafts.dart';
-import 'package:truce_editor/documents/document_files.dart';
-import 'package:truce_editor/documents/draft_recovery.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 

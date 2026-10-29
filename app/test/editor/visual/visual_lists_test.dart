@@ -6,12 +6,11 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart' show UndoOffered, UndoStep;
-import 'package:truce_editor/editor/visual/ui/line_drag.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, Request;
-
-import '../editor_robot.dart';
 
 /// List rows in Visual edit: joining lines, indenting, moving and
 /// deleting items.

@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../platform/platform_wiring.dart';
 import '../platform/storage_access.dart';
-import 'document_folder.dart';
-import 'folder_error.dart';
 import 'folder_selection.dart';
 import 'folders_controller.dart';
 

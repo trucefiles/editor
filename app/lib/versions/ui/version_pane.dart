@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/time_texts.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
-import '../compared_lines.dart';
 import 'diff_colors.dart';
 import 'selectable_lines.dart';
 

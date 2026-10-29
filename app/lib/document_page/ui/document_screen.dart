@@ -5,41 +5,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../../common/error_text.dart';
 import '../../common/open_link.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
-import '../../documents/deleted_document.dart';
-import '../../documents/document.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
-import '../../documents/document_images.dart';
-import '../../documents/document_place.dart';
-import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
-import '../../documents/document_text.dart';
-import '../../documents/document_title.dart';
 import '../../documents/documents_wiring.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
-import '../../editor/ui/history_buttons.dart';
 import '../../folder_state/folder_state_controller.dart';
-import '../../folders/document_folder.dart';
 import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
-import '../../theme/touch.dart';
 import '../document_controller.dart';
-import '../document_file.dart';
 import '../document_page_wiring.dart';
 import '../document_pages.dart';
-import '../document_session.dart';
 import 'document_backups.dart';
 import 'document_place_chip.dart';
 import 'edit_state_banner.dart';
@@ -251,7 +241,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     switch (outcome) {
       case NewDropped():
         Navigator.pop(context);
-      case DocumentDeleted(:final deleted):
+      case DeletedForUndo(:final deleted):
         _offerUndo(ref.read(documentActionsProvider), deleted);
         Navigator.pop(context);
       case DeleteRefused(:final failure):
@@ -484,9 +474,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
                       ),
                     ),
                     openLink: (link) => openLink(context, ref, link),
+                    hint: (message) => showSnack(context, message),
                     images: documentImages(
                       ref.read(folderFilesProvider).of(_folder),
-                      folder: _folder,
+                      baseId: _folder.base.id,
                       document: path,
                     ),
                   ),

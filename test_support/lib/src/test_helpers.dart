@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:test/test.dart' show addTearDown;
 import 'package:truce_core/truce_core.dart';
 
 RelPath path(String raw) => RelPath.parse(raw)!;
@@ -19,4 +20,11 @@ extension WriteCreatingFolders on File {
   void writeCreatingFolders(String text) => this
     ..createSync(recursive: true)
     ..writeAsStringSync(text);
+}
+
+/// A fresh temp folder, deleted after the test.
+Directory tempFolder() {
+  final dir = Directory.systemTemp.createTempSync('truce_test');
+  addTearDown(() => dir.deleteSync(recursive: true));
+  return dir;
 }

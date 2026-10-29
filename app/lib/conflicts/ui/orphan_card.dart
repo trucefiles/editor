@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../folders/ui/folder_badge.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
-import '../folder_conflicts.dart';
 
 /// A document deleted on one device while edited on another: only the edited
 /// version is left, shown at the document text zoom like other document cards.

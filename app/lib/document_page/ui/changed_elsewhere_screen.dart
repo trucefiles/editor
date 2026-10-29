@@ -2,14 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../../backups/backup_retention.dart';
 import '../../common/snack.dart';
-import '../../documents/document_version.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../document_controller.dart';
-import '../document_session.dart';
 
 /// Shows the open document's edits next to the version from elsewhere,
 /// in the same view as a sync conflict, so the user sees both before

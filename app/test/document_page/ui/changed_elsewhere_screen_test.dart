@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/document_page/document_controller.dart';
-import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/ui/edit_state_banner.dart';
-import 'package:truce_editor/documents/delete_failure.dart';
-import 'package:truce_editor/documents/document_settings.dart';
 
 import '../../support.dart';
 import '../document_fixture.dart';

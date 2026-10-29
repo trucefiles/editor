@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../document_folder.dart';
 import '../folder_colors.dart';
 
 /// The folder's color dot and name, so it is always clear where a document

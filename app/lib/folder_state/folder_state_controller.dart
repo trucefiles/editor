@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../file_types/document_types.dart';
 import '../folders/folders_controller.dart';
-import 'folder_contents.dart';
 import 'folder_state_wiring.dart';
 
 final folderContentsProvider =

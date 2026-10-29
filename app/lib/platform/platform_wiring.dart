@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../tray/app_window.dart';
 import '../tray/hosted_tray.dart';
 import '../tray/native_tray_icon.dart';
 import '../tray/system_tray.dart';
 import 'android/android_storage_access.dart';
-import 'host_paths.dart';
 import 'linux/document_portal.dart';
 import 'linux/document_portal_paths.dart';
 import 'linux/gtk_app_window.dart';

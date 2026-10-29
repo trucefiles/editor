@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../../folder_state/folder_state_controller.dart';
 import '../../../folders/folders_controller.dart';
 import '../../../folders/ui/folder_badge.dart';
 import '../../../settings/device_settings_controller.dart';
 import '../../document_actions.dart';
-import '../../document_place.dart';
 import '../../ui/document_place_dialog.dart';
-import '../new_file_place.dart';
 
 /// Settings row with where new documents go; opens a dialog to pick a folder
 /// and subfolder, and can go back to the default.

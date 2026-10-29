@@ -4,10 +4,10 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/host_paths.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/platform/storage_access.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 

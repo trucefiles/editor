@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document_title.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../support.dart';
 

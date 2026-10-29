@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../document.dart';
 import '../document_colors.dart';
-import '../previews/card_preview.dart';
 import 'document_grid.dart';
 import 'listed_document.dart';
 import 'pin_or_color_sheet.dart';

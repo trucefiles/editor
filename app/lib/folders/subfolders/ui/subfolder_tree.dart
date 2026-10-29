@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
-
-import '../../../common/error_text.dart';
-import '../subfolder_choice.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// The base folder's subfolders as a tree to pick from, one level read
 /// at a time as the user opens a folder. Not scrollable itself: it goes

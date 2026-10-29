@@ -1,12 +1,8 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import '../document_page/editor_part.dart';
-import '../documents/document_card_summary.dart';
-import '../documents/document_title.dart';
-import '../editor/markdown/markdown_editor_part.dart';
-import '../editor/markdown/markdown_editor_view.dart';
-import '../editor/markdown/markdown_view.dart';
 import 'editable_type.dart';
 
 /// Markdown documents and checklists: cards leave checked items out

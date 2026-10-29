@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:truce_editor/refresh/refresh_settings.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import 'app_steps.dart';
 import 'test_app.dart';

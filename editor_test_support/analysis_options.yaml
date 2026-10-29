@@ -1,0 +1,4 @@
+analyzer:
+  exclude:
+    - build/**
+include: package:truce_lints/flutter.yaml

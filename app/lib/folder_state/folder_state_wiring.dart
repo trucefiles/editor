@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../documents/documents_wiring.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
 import '../settings/device_settings_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
-import 'following_changes.dart';
 
 /// The app's folder state owner, wired: it lists the base folders the
 /// stacks show, by their sync tools, the first time once the edits left by

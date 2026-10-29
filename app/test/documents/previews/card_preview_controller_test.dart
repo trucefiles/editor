@@ -2,10 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/document.dart';
-import 'package:truce_editor/documents/previews/card_preview.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/documents/previews/card_preview_controller.dart';
-import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../save_state.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 /// App bar icon telling where an open document's edits are: being
 /// edited, saved on this device, or saved in its file in the folder.

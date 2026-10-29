@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../../settings/device_settings_controller.dart';
-import '../home_settings.dart';
 
 /// Settings row with how many documents Recent shows besides the pinned
 /// ones; tapping it asks for another number.

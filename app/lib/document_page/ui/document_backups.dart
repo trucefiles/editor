@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../../backups/folder_backups.dart';
 import '../../backups/ui/document_backups_screen.dart';
 import '../../backups/ui/restore_into_document_screen.dart';
 import '../../common/snack.dart';
-import '../../documents/document.dart';
 import '../document_controller.dart';
 
 /// Opens the backups of the open [document], whose title is [title];

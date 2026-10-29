@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import '../../support.dart';
 

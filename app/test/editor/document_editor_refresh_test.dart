@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/editor/document_editor.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor/refresh/ui/pull_to_refresh.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import 'editor_robot.dart';
 
 /// Pulling an open document down refreshes, in every mode: the editor
 /// scrolls inside the pull.

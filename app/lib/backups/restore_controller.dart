@@ -1,14 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
 
-import '../documents/document.dart';
-import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import '../versions/compare_controller.dart';
 import 'all_backups.dart';
-import 'folder_backups.dart';
-import 'restore_compare.dart';
 
 /// What the restore screen shows.
 typedef RestoreState = CompareState<FolderBackup, RestoreChoice>;

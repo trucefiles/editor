@@ -3,15 +3,12 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../documents/documents_wiring.dart';
 import '../platform/platform_wiring.dart';
 import '../storage/app_storage.dart';
 import '../sync_tool/sync_tools_wiring.dart';
-import 'document_folder.dart';
-import 'folder_error.dart';
-import 'folder_list_owner.dart';
-import 'folder_list_store.dart';
 
 final folderListStoreProvider = Provider<FolderListStore>(
   (ref) => FolderListStore(

@@ -2,13 +2,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor/common/open_link.dart';
-import 'package:truce_editor/editor/markdown/markdown_links.dart';
-import 'package:truce_editor/editor/read/read_view.dart';
+import 'package:truce_editor/common/snack.dart';
 import 'package:truce_editor/platform/link_opener.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import '../editor_robot.dart';
 
 /// A document in Read: formatted, and its links open.
 void main() {
@@ -31,9 +30,9 @@ void main() {
               builder: (context, ref, _) => ReadView(
                 markdown,
                 onLink: (url) => openMarkdownLink(
-                  context,
                   url,
                   open: (link) => openLink(context, ref, link),
+                  hint: (message) => showSnack(context, message),
                 ),
                 images: (_) => null,
               ),

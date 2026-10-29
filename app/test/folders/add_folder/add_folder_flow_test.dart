@@ -1,9 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/add_folder/add_folder_flow.dart';
-import 'package:truce_editor/folders/base_folder.dart';
-import 'package:truce_editor/folders/document_folder.dart';
-import 'package:truce_editor/folders/folder_error.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import '../../support.dart' show hostSyncthing;

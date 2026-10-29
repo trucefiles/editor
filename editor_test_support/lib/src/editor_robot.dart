@@ -1,0 +1,233 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:super_editor/super_editor.dart';
+import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_core/truce_core.dart'
+    show
+        Edited,
+        EditorNotice,
+        FromFile,
+        HistoryEnd,
+        Replaced,
+        SecureEditor,
+        SecureReason,
+        Ticket,
+        ToFile,
+        UndoOffered,
+        Undo,
+        UndoRefused,
+        Version;
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show
+        AskLink,
+        CheckedItems,
+        EditMode,
+        EditorEvent,
+        Notice,
+        Request,
+        editorOwner;
+import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+
+/// An open document's editor owner in memory, as the editor views get it:
+/// records the text it sends to be kept, and the links opened.
+final class TestDocument {
+  TestDocument(
+    String text, {
+    EditMode mode = EditMode.visual,
+    CheckedItems checkedItems = CheckedItems.doneSection,
+  }) : _text = text,
+       gate = EditorGate(
+         editorOwner(
+           text,
+           version: const Version(1),
+           mode: mode,
+           checkedItems: checkedItems,
+           // Never fire: the text is sent as the tests ask.
+           startTimer: ManualTimers().start,
+         ),
+       ) {
+    final outputs = gate.events.listen(_onOutput);
+    addTearDown(outputs.cancel);
+    addTearDown(gate.dispose);
+  }
+
+  final EditorGate gate;
+
+  /// Each text sent to be kept, in order.
+  final edits = <String>[];
+
+  /// What the owner told the user, e.g. [UndoOffered].
+  final notices = <EditorNotice>[];
+
+  /// The links the user opened.
+  final links = <String>[];
+
+  String _text;
+  int _rev = 0;
+  int _version = 1;
+
+  /// The text as the owner keeps it now, every edit sent.
+  String get text {
+    gate.external(Request(SecureEditor(Ticket(), SecureReason.hide)));
+    return _text;
+  }
+
+  /// Undo, as the buttons and keys ask.
+  void undo() => gate.external(const Request(Undo()));
+
+  /// The text as last sent, without asking for more.
+  String get sent => _text;
+
+  /// The file changed elsewhere to [text]; shown unless edited since the
+  /// last text sent.
+  void changeElsewhere(String text) {
+    _text = text;
+    gate.external(
+      Request(
+        FromFile(Replaced(text, version: Version(++_version), ackRev: _rev)),
+      ),
+    );
+  }
+
+  void _onOutput(EditorEvent output) {
+    switch (output) {
+      case Notice(notice: ToFile(input: Edited(:final text, :final rev))):
+        edits.add(text);
+        _text = text;
+        _rev = rev;
+      case Notice(
+        notice: final notice &&
+            (UndoOffered() || UndoRefused() || HistoryEnd()),
+      ):
+        notices.add(notice);
+      case AskLink() || Notice():
+        break;
+    }
+  }
+}
+
+/// Shows [document] in its editor, in the mode it is in, in [theme] and
+/// in what [around] puts around the app's screens.
+Future<void> pumpDocument(
+  WidgetTester tester,
+  TestDocument document, {
+  AddItemPlace addItems = AddItemPlace.top,
+  ThemeData? theme,
+  TransitionBuilder? around,
+}) => tester.pumpWidget(
+  MaterialApp(
+    theme: theme,
+    builder: around,
+    home: Scaffold(
+      body: ListenableBuilder(
+        listenable: document.gate,
+        builder: (context, _) => DocumentEditor(
+          document.gate,
+          text: document.sent,
+          notices: document.gate.events,
+          addItems: addItems,
+          onLink: document.links.add,
+          images: (_) => null,
+        ),
+      ),
+    ),
+  ),
+);
+
+/// The id of the [index]th node of type [T] in the editor.
+String nodeOf<T extends DocumentNode>({int index = 0}) =>
+    SuperEditorInspector.findDocument()!.whereType<T>().elementAt(index).id;
+
+/// The frames of the row [node] shows in Visual edit.
+List<Frame> framesOf(DocumentNode node) => switch (lookOf(node)) {
+  TextLook(:final frames) ||
+  BlockLook(:final frames) ||
+  RawTextLook(:final frames) => frames,
+  _ => const [],
+};
+
+/// The item whose marker shows beside [node], if any.
+ItemFrame? markedItemOf(DocumentNode node) =>
+    switch (framesOf(node).whereType<ItemFrame>().lastOrNull) {
+      final item? when item.starts => item,
+      _ => null,
+    };
+
+/// The id of the [index]th text node that starts a checkbox item.
+String checkboxNodeOf({int index = 0}) =>
+    _textNodeOf(index, (item) => item?.marker is BoxMarker);
+
+/// The id of the [index]th text node that starts a bullet or numbered
+/// item.
+String listItemNodeOf({int index = 0}) =>
+    _textNodeOf(index, (item) => item != null && item.marker is! BoxMarker);
+
+/// The id of the [index]th text node that starts no item.
+String paragraphNodeOf({int index = 0}) =>
+    _textNodeOf(index, (item) => item == null);
+
+String _textNodeOf(int index, bool Function(ItemFrame? item) test) =>
+    SuperEditorInspector.findDocument()!
+        .whereType<TextNode>()
+        .where((node) => test(markedItemOf(node)))
+        .elementAt(index)
+        .id;
+
+/// The id of the node of line [index] in Markdown edit.
+String lineNodeOf(int index) =>
+    SuperEditorInspector.findDocument()!.getNodeAt(index)!.id;
+
+/// A user's taps in the editor.
+extension EditorRobot on WidgetTester {
+  /// Where a finger taps the line [nodeId] at [offset]: the middle of the
+  /// line. The library robot's own taps hit the line's top edge.
+  Offset tapPointIn(String nodeId, int offset) {
+    final layout = SuperEditorInspector.findDocumentLayout();
+    final rect = layout.getRectForPosition(
+      DocumentPosition(
+        nodeId: nodeId,
+        nodePosition: TextNodePosition(offset: offset),
+      ),
+    )!;
+    return layout.getAncestorOffsetFromDocumentOffset(rect.center);
+  }
+
+  Future<void> caretIn(String nodeId, int offset) async {
+    await tapAt(tapPointIn(nodeId, offset));
+    await pump(kTapTimeout);
+    await pumpAndSettle();
+  }
+
+  Future<void> selectWordIn(String nodeId, int offset) async {
+    final point = tapPointIn(nodeId, offset);
+    await tapAt(point);
+    await pump(kTapMinTime + const Duration(milliseconds: 1));
+    await tapAt(point);
+    await pump(kTapTimeout);
+    await pumpAndSettle();
+  }
+
+  /// The clipboard holds [text] for the rest of the test.
+  void clipboardHolds(String text) {
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': text}
+          : null,
+    );
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+  }
+
+  /// Lets box taps wait out their time, so they are sent.
+  Future<void> boxTapsSent(TestDocument document) async {
+    await pump(document.gate.checkDelay);
+    await pumpAndSettle();
+  }
+}

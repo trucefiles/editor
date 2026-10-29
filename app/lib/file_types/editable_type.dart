@@ -1,6 +1,5 @@
-import '../document_page/editor_part.dart';
-import '../documents/document_type.dart';
-import '../editor/editor_view.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 /// A document type as the app wires it: the type itself, and its editor
 /// on the one text document page.

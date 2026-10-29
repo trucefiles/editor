@@ -1,6 +1,6 @@
-import '../../common/error_text.dart';
+import 'package:truce_documents/truce_documents.dart';
+
 import '../../folders/ui/folder_badge.dart';
-import '../move_failure.dart';
 
 /// What to tell the user about [failure].
 String moveFailureText(MoveFailure failure) => switch (failure) {

@@ -1,26 +1,12 @@
 import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/document.dart';
-import '../documents/document_drafts.dart';
-import '../documents/document_files.dart';
-import '../documents/document_place.dart';
-import '../documents/document_settings.dart';
-import '../documents/document_text.dart';
-import '../documents/document_types.dart';
-import '../documents/document_version.dart';
-import '../documents/view_settings.dart';
-import '../editor/editor_view.dart';
 import '../file_types/editable_type.dart';
-import '../folders/base_folder.dart';
-import '../folders/document_folder.dart';
 import 'document_controller.dart';
-import 'document_file.dart';
-import 'document_session.dart';
-import 'editor_part.dart';
-import 'file_effects.dart';
-import 'open_documents.dart';
 
 /// Runs an action on the open document's file, created first for a new
 /// document; if there is none, the action doesn't run and the user is told
@@ -88,7 +74,7 @@ final class DocumentPages {
 
   final DocumentTypes<EditableType> types;
   final CreateDocumentFile create;
-  final DeleteDocument delete;
+  final DeleteForUndo delete;
   final DocumentSettings Function(DocumentKey document) settingsOf;
   final EditSettings editSettings;
   final DocumentFiles Function(DocumentFolder folder) filesOf;

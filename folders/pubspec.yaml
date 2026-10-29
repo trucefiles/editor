@@ -1,0 +1,17 @@
+name: truce_folders
+description: The folders the user adds, their files through each sync tool, and how their changes are followed. Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  collection: ^1.19.1
+  meta: ^1.19.0
+  truce_core: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any
+  truce_test_support: any

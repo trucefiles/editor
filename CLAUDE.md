@@ -9,7 +9,8 @@ Prefer the simpler option when in doubt.
 - Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
 
 ## Architecture
-- `core` is pure Dart with no UI; `app` is a thin Flutter layer that uses only core's public interfaces.
+- `core`, `folders`, `documents` and the type and tool packages are pure Dart with no UI; `document_editor` is the Flutter package that edits text; `app` holds screens, view models, providers as wiring, platform code and the wiring of tools and types, and uses only the packages' public interfaces.
+- Direction: `app` → `document_editor` → `documents` → `folders` → `core`; a package only imports the ones below it.
 - Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`, `plain_folder`); `core` never knows one, and in the app only the sync-tool wiring imports it.
 - Each document type's support (reading, editing, writing) lives in a pure-Dart package of its own (`markdown`, `plain_text`); `core` never knows one.
 - Lower layers never know upper ones; they receive what they need from above.
@@ -54,9 +55,9 @@ Prefer the simpler option when in doubt.
 - Small files and units; split when a unit does two jobs.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.
-- Unit tests for core and controllers; UI tests for user flows.
+- Unit tests for every pure package and the view models; UI tests for user flows.
 - Changes that affect how the UI looks (layout, theme, visuals; not animations or behavior) are also checked with a few screenshots, at least locally (e.g. a UI test on Linux saving the view's layer as PNG), on desktop and touch looks and at a larger text size where it matters.
 - Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
-- Shared test doubles live in the test-only `test_support` package, never in a production `lib`.
+- Shared test doubles live in the test-only packages (`test_support`; `editor_test_support` for Flutter helpers), never in a production `lib`.
 - Structural refactors change no behavior unless a better one is agreed (see Best behavior): the existing tests are the guard and keep their checks; move files with `git mv` instead of rewriting them.
 - Adversarial self-review of the diff before asking for review.

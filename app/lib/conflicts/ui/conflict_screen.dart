@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_folders/truce_folders.dart';
 
-import '../../backups/backup_retention.dart';
-import '../../common/error_text.dart';
 import '../../common/snack.dart';
-import '../../folders/document_folder.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
-import '../../versions/resolve_error_text.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../conflict_controller.dart';
-import '../conflict_sides.dart';
-import '../folder_conflicts.dart';
 
 /// Shows both versions of a conflicting document side by side; the user keeps
 /// one. Several conflict copies are resolved one by one, oldest first.

@@ -1,0 +1,20 @@
+name: truce_documents
+description: The documents in the folders, their drafts, settings, backups and conflicts, and the open document's page. Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  characters: ^1.4.1
+  collection: ^1.19.1
+  diffutil_dart: ^5.0.0
+  meta: ^1.19.0
+  truce_core: any
+  truce_folders: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any
+  truce_test_support: any

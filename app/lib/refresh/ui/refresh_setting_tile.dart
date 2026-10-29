@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../settings/device_settings_controller.dart';
-import '../refresh_settings.dart';
 import 'refresh_dialog.dart';
 
 /// Settings row that shows the refresh setting and opens its dialog.

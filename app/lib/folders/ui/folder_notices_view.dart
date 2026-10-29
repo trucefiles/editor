@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../sync_tool/base_folder_wiring.dart';
-import '../document_folder.dart';
 import 'folder_notice_text.dart';
 
 /// Everything the sync tool has to tell about [folder], one line each:

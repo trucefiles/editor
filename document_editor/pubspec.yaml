@@ -1,0 +1,29 @@
+name: truce_document_editor
+description: Editing documents on super_editor, for every document type that edits on it (Visual edit, Markdown edit, plain text, Read).
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  collection: ^1.19.1
+  flutter:
+    sdk: flutter
+  flutter_markdown_plus: ^1.0.12
+  markdown: ^7.3.1
+  super_editor: 0.3.0-dev.52
+  truce_core: any
+  truce_documents: any
+  truce_markdown: any
+  truce_plain_text: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # The key robots super_editor's own tests use; already in its graph.
+  flutter_test_robots: 0.0.24
+  truce_editor_test_support: any
+  truce_lints: any
+  truce_test_support: any

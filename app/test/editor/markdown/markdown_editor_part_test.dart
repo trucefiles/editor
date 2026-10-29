@@ -2,10 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/document_page/editor_part.dart';
-import 'package:truce_editor/documents/view_settings.dart';
-import 'package:truce_editor/editor/markdown/markdown_editor_part.dart';
-import 'package:truce_editor/editor/markdown/markdown_view.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../../support.dart';
