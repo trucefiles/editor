@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../common/open_link.dart';
-import '../common/snack.dart';
+import '../../common/open_link.dart';
+import '../../common/snack.dart';
 
 /// Kinds of links a tap in a document opens. Others (local files, relative
 /// paths, app schemes) could run things the reader didn't expect.

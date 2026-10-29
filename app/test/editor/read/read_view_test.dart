@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/editor/read/read_view.dart';
-import 'package:truce_editor/markdown/markdown_links.dart';
+import 'package:truce_editor/editor/markdown/markdown_links.dart';
 import 'package:truce_editor/platform/link_opener.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 

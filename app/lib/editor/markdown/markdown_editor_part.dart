@@ -7,7 +7,7 @@ import '../../document_page/editor_part.dart';
 import '../../documents/document_files.dart';
 import '../../documents/document_images.dart';
 import '../../documents/view_settings.dart';
-import '../../markdown/markdown_links.dart';
+import 'markdown_links.dart';
 import '../add_item_place/add_item_place.dart';
 import '../add_item_place/add_item_place_controller.dart';
 import '../document_editor.dart';
