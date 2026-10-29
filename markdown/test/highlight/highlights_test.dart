@@ -7,10 +7,11 @@ import '../support/document_corpus.dart';
 /// The highlights of each line of [text], as `kind:shown` strings.
 List<List<String>> _shown(String text) {
   final tree = DocumentTree.read(text);
+  final highlights = highlightsOf(tree);
   return [
-    for (final line in tree.lines)
+    for (final (index, line) in tree.lines.indexed)
       [
-        for (final span in highlightsOf(tree, line.id))
+        for (final span in highlights[index])
           '${_name(span.highlight)}:'
               '${line.text.substring(span.start, span.end)}',
       ],
@@ -81,8 +82,10 @@ void main() {
   test('every span lies within its line', () {
     for (final text in documentCorpus) {
       final tree = DocumentTree.read(text);
-      for (final line in tree.lines) {
-        for (final span in highlightsOf(tree, line.id)) {
+      final highlights = highlightsOf(tree);
+      expect(highlights, hasLength(tree.lines.length), reason: text);
+      for (final (index, line) in tree.lines.indexed) {
+        for (final span in highlights[index]) {
           expect(span.start, inInclusiveRange(0, span.end), reason: text);
           expect(span.end, lessThanOrEqualTo(line.text.length), reason: text);
         }

@@ -27,7 +27,7 @@ sealed class Frame {
     final part = line.prefix.where((part) => part.container == kept.id);
     // An empty part, as on a blank line, would leave out its marks.
     if (part.isEmpty || part.first.start == part.first.end) return null;
-    if (kept is ItemBlock && (kept.markerLine == line.id) != first) {
+    if (kept is ItemBlock && (kept.markerLine == line.index) != first) {
       return null;
     }
     return line.text.substring(part.first.start, part.first.end);

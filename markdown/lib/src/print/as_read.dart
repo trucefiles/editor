@@ -67,7 +67,7 @@ bool linesTakeNewMarks(
             .contains('\t'),
   );
   final marker = markdown
-      .startsAt(source.lines.first.id)
+      .startsAt(source.lines.first.index)
       .any((PlacedBlock placed) => placed.block is ItemBlock);
   // A lazy line, missing its containers' marks, could read otherwise
   // with them (as a heading's underline).
@@ -82,7 +82,7 @@ bool linesTakeNewMarks(
 bool indentedAsRead(Block source, Origin origin) {
   final leaf = source.leaves.firstOrNull;
   final line = leaf?.lines.first;
-  if (line == null || line.id != lineSpanOf(source).first) return false;
+  if (line == null || line.index != lineSpanOf(source).first) return false;
   final ancestors = {
     for (final container in origin.placeOf(source)?.path ?? <Block>[])
       container.id,

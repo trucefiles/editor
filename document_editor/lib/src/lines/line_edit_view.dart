@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart' show EditableLines;
 
 import '../document_metrics.dart';
 import '../library/editor_look.dart';
@@ -11,31 +10,22 @@ import '../ui/empty_document_hint.dart';
 import 'edited_text.dart';
 import 'library/line_keys.dart';
 import 'library/lines_adapter.dart';
+import 'line_highlighter.dart';
 
-/// How a line editor reads its lines and draws them: the lines read as
-/// [read] reads them, each drawn as [look] says, styled further by the
-/// [phases] (e.g. highlights); [linkAt] finds the link at a position, if
-/// links open at all.
-final class LineEditing<L extends EditableLines<L>> {
-  const LineEditing({
-    required this.read,
-    required this.look,
-    this.phases,
-    this.linkAt,
-  });
+/// How a line editor draws its lines: each as [look] says, styled
+/// further by the [highlighter] made for it (e.g. Markdown's highlights),
+/// if any.
+final class LineEditing {
+  const LineEditing({required this.look, this.highlighter});
 
-  final L Function(String text) read;
   final EditorLook Function(ThemeData theme, DocumentMetrics metrics) look;
-  final List<SingleColumnLayoutStylePhase> Function(LinesAdapter<L> adapter)?
-  phases;
-  final String? Function(LinesAdapter<L> adapter, DocumentPosition position)?
-  linkAt;
+  final LineHighlighter Function(LinesAdapter adapter)? highlighter;
 }
 
 /// A text edited line by line as it is written: Markdown edit, or a plain
-/// text. Links, where [LineEditing.linkAt] finds them, open with [onLink]
+/// text. Links, where its highlighter finds them, open with [onLink]
 /// on a tap with Ctrl (or Cmd) held, so a plain tap places the caret.
-class LineEditView<L extends EditableLines<L>> extends StatefulWidget {
+class LineEditView extends StatefulWidget {
   const LineEditView(
     this.text, {
     required this.editing,
@@ -45,7 +35,7 @@ class LineEditView<L extends EditableLines<L>> extends StatefulWidget {
   });
 
   final EditedText text;
-  final LineEditing<L> editing;
+  final LineEditing editing;
   final void Function(String url) onLink;
 
   static void _ignore(String _) {}
@@ -54,13 +44,13 @@ class LineEditView<L extends EditableLines<L>> extends StatefulWidget {
   final bool autofocus;
 
   @override
-  State<LineEditView<L>> createState() => _LineEditViewState<L>();
+  State<LineEditView> createState() => _LineEditViewState();
 }
 
-class _LineEditViewState<L extends EditableLines<L>>
-    extends State<LineEditView<L>> {
-  late final _adapter = LinesAdapter<L>(widget.text, read: widget.editing.read);
-  late final _phases = widget.editing.phases?.call(_adapter) ?? const [];
+class _LineEditViewState extends State<LineEditView> {
+  late final LinesAdapter _adapter;
+  late final LineHighlighter? _highlighter;
+  late final List<SingleColumnLayoutStylePhase> _phases;
   final _layout = GlobalKey();
   late final _operations = PasteOperations(
     _adapter.editor,
@@ -75,6 +65,14 @@ class _LineEditViewState<L extends EditableLines<L>>
   (ThemeData, DocumentMetrics)? _lookFor;
 
   @override
+  void initState() {
+    super.initState();
+    _adapter = LinesAdapter(widget.text);
+    _highlighter = widget.editing.highlighter?.call(_adapter);
+    _phases = [?_highlighter?.phase];
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final key = (Theme.of(context), DocumentMetrics.of(context));
@@ -85,6 +83,7 @@ class _LineEditViewState<L extends EditableLines<L>>
 
   @override
   void dispose() {
+    _highlighter?.dispose();
     _adapter.dispose();
     super.dispose();
   }
@@ -107,9 +106,9 @@ class _LineEditViewState<L extends EditableLines<L>>
             customStylePhases: _phases,
             keyboardActions: lineKeyboardActions(_adapter.paste),
             contentTapDelegateFactories: [
-              if (widget.editing.linkAt case final linkAt?)
+              if (_highlighter case final highlighter?)
                 (_) => LinkTapHandler(
-                  linkAt: (position) => linkAt(_adapter, position),
+                  linkAt: highlighter.linkAt,
                   onLink: widget.onLink,
                   opens: (position) => editingTapOpens(
                     position,
@@ -121,9 +120,9 @@ class _LineEditViewState<L extends EditableLines<L>>
           ),
         ),
         ListenableBuilder(
-          listenable: _adapter.treeChanged,
+          listenable: _adapter.linesChanged,
           builder: (context, _) => EmptyDocumentHint(
-            empty: _adapter.tree.text.isEmpty,
+            empty: _adapter.text.isEmpty,
             padding: look.firstLinePadding,
           ),
         ),

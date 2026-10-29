@@ -69,7 +69,7 @@ void main() {
         final tree = DocumentTree.read(text);
         final indexes = [
           for (final leaf in tree.leaves)
-            for (final line in leaf.lines) tree.indexOf(line.id),
+            for (final line in leaf.lines) line.index,
         ];
         expect(indexes, indexes.sorted((a, b) => a - b), reason: text);
         expect(indexes.toSet().length, indexes.length, reason: text);
@@ -79,8 +79,8 @@ void main() {
     test('leaves out of leaves only layout: blank, `>` and marker lines', () {
       for (final text in texts) {
         final tree = DocumentTree.read(text);
-        for (final line in tree.lines) {
-          if (tree.leafOf(line.id) != null) continue;
+        for (final (index, line) in tree.lines.indexed) {
+          if (tree.leafOf(index) != null) continue;
           expect(line.text, matches(_layout), reason: text);
         }
       }
@@ -142,7 +142,7 @@ void main() {
     test('quotes with the `>` lines after their last block', () {
       final tree = DocumentTree.read('> a\n>\n\nb');
       final quote = tree.root.children.first as QuoteBlock;
-      expect(tree.indexOf(quote.lastLine), 1);
+      expect(quote.lastLine, 1);
     });
 
     test('indented code without the blank `>` lines after it', () {

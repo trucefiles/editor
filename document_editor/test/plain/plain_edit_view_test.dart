@@ -46,20 +46,15 @@ final class _Plain {
 Future<void> _pumpPlain(WidgetTester tester, _Plain plain) => tester.pumpWidget(
   MaterialApp(
     home: Scaffold(
-      body: LineEditView<TextLines>(
-        PlainText(plain.owner),
-        editing: plainLines,
-      ),
+      body: LineEditView(PlainText(plain.owner), editing: plainLines),
     ),
   ),
 );
 
 /// Editing a plain text document.
 void main() {
-  testWidgets('edits the text as written, its line endings kept', (
-    tester,
-  ) async {
-    final plain = _Plain('# not a heading\r\n- [ ] milk');
+  testWidgets('edits the text as written', (tester) async {
+    final plain = _Plain('# not a heading\n- [ ] milk');
     await _pumpPlain(tester, plain);
 
     await tester.caretIn(lineNodeOf(1), 4);
@@ -67,7 +62,7 @@ void main() {
     await tester.pressEnter();
     await tester.typeImeText('y');
 
-    expect(plain.text, '# not a heading\r\n- [ x\r\ny] milk');
+    expect(plain.text, '# not a heading\n- [ x\ny] milk');
   });
 
   testWidgets('every line shows in the same style', (tester) async {

@@ -16,12 +16,12 @@ final class _Markdown {
           startTimer: ManualTimers().start,
         ),
       ) {
-    adapter = LinesAdapter(MarkdownText(gate), read: md.DocumentTree.read);
+    adapter = LinesAdapter(MarkdownText(gate));
     addTearDown(adapter.dispose);
   }
 
   final EditorGate gate;
-  late final LinesAdapter<md.DocumentTree> adapter;
+  late final LinesAdapter adapter;
 
   Editor get editor => adapter.editor;
   Document get document => adapter.document;
@@ -70,27 +70,28 @@ final class _Markdown {
 
 void main() {
   test('shows one node per line', () {
-    final markdown = _Markdown('# Title\r\n\r\n- [ ] a');
+    final markdown = _Markdown('# Title\n\n- [ ] a');
 
     expect(markdown.lines, ['# Title', '', '- [ ] a']);
   });
 
-  test('typing in a line sends the text, its line endings kept', () {
-    final markdown = _Markdown('a\r\nb\r\nc');
+  test('typing in a line sends the text', () {
+    final markdown = _Markdown('a\nb\nc');
 
     markdown.type(1, 1, 'x');
 
-    expect(markdown.text, 'a\r\nbx\r\nc');
+    expect(markdown.text, 'a\nbx\nc');
+    expect(markdown.adapter.text, 'a\nbx\nc');
     expect(markdown.lines, ['a', 'bx', 'c']);
   });
 
-  test('Enter makes a line, which ends as the others do', () {
-    final markdown = _Markdown('a\r\nbc');
+  test('Enter makes a line', () {
+    final markdown = _Markdown('a\nbc');
     markdown.placeCaret(1, 1);
 
     markdown.editor.execute([InsertNewlineAtCaretRequest()]);
 
-    expect(markdown.text, 'a\r\nb\r\nc');
+    expect(markdown.text, 'a\nb\nc');
     expect(markdown.document.getNodeIndexById(markdown.caret!.nodeId), 2);
   });
 
@@ -142,22 +143,27 @@ void main() {
     expect(markdown.caret, markdown.at(2, 1));
   });
 
-  test('highlights a line as the package reads it', () {
-    final markdown = _Markdown('# Title');
+  test('a text from elsewhere without lines in the middle keeps the nodes '
+      'at both ends', () {
+    final markdown = _Markdown('a\nb\nc\nd');
+    final ids = markdown.ids;
 
-    expect(
-      lineHighlightsOf(
-        markdown.adapter,
-        markdown.ids.single,
-      ).map((span) => span.highlight),
-      contains(const md.HeadingHighlight(1)),
-    );
+    markdown.fromElsewhere('a\nd');
+
+    expect(markdown.lines, ['a', 'd']);
+    expect(markdown.ids, [ids.first, ids.last]);
   });
 
-  test('finds the link at a position', () {
-    final markdown = _Markdown('see [docs](https://x.org)');
+  test('tells of each change of its lines', () {
+    final markdown = _Markdown('a');
+    var changes = 0;
+    markdown.adapter.linesChanged.addListener(() => changes++);
 
-    expect(lineLinkAt(markdown.adapter, markdown.at(0, 6)), 'https://x.org');
-    expect(lineLinkAt(markdown.adapter, markdown.at(0, 1)), isNull);
+    markdown.fromElsewhere('x');
+    expect(markdown.adapter.lastChange, LinesChange.replaced);
+    markdown.type(0, 1, 'b');
+    expect(markdown.adapter.lastChange, LinesChange.edited);
+
+    expect(changes, 2);
   });
 }

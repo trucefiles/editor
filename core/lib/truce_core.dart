@@ -27,8 +27,7 @@
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
-///    ([TextFile]); a text as lines that keep their ids while edited
-///    ([TextLines]).
+///    ([TextFile]); a text's lines with their endings ([splitLines]).
 /// 10. `marks`: colors of documents, synced inside the folder
 ///     ([DocumentMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -74,6 +73,7 @@ export 'src/common/keyed_task_queue.dart';
 export 'src/common/moment.dart';
 export 'src/common/most_used.dart';
 export 'src/common/result.dart';
+export 'src/common/unchanged_ends.dart';
 export 'src/compare/compare_owner.dart';
 export 'src/conflicts/conflict.dart';
 export 'src/conflicts/conflict_handler.dart';
@@ -135,11 +135,7 @@ export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_check.dart';
 export 'src/sync/sync_tool.dart';
-export 'src/text/lines/editable_lines.dart';
-export 'src/text/lines/line.dart';
-export 'src/text/lines/line_change.dart';
-export 'src/text/lines/line_endings.dart';
-export 'src/text/lines/text_lines.dart';
+export 'src/text/line_endings.dart';
 export 'src/text/text_file.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

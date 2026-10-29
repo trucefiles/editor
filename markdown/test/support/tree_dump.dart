@@ -15,9 +15,7 @@ String dumpTree(DocumentTree tree) {
       case RootBlock():
         out.writeln('${pad}root');
       case QuoteBlock(:final firstLine, :final lastLine):
-        out.writeln(
-          '${pad}quote ${tree.indexOf(firstLine)}-${tree.indexOf(lastLine)}',
-        );
+        out.writeln('${pad}quote $firstLine-$lastLine');
       case ListBlock(:final loose, :final numbering):
         out.writeln(
           '${pad}list ${loose ? 'loose' : 'tight'} ${numbering.name}',
@@ -25,7 +23,7 @@ String dumpTree(DocumentTree tree) {
       case ItemBlock():
         out.writeln(
           '${pad}item ${block.marker} ${block.checked} '
-          'at ${tree.indexOf(block.markerLine)} '
+          'at ${block.markerLine} '
           'columns ${block.markerColumn}/${block.contentColumn}',
         );
       case LeafBlock():
@@ -38,7 +36,7 @@ String dumpTree(DocumentTree tree) {
               )
               .join(' ');
           out.writeln(
-            '$pad  | ${tree.indexOf(line.id)} [$parts] ${line.contentStart}'
+            '$pad  | ${line.index} [$parts] ${line.contentStart}'
             '+${line.tabColumns} ${line.text}',
           );
         }

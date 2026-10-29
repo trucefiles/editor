@@ -93,12 +93,10 @@ final class _Printer {
       return (text: markdown.text, lines: _ranges);
     }
     final blocks = markdown.root.children;
-    final leading = blocks.isEmpty
-        ? 0
-        : markdown.indexOf(lineSpanOf(blocks.first).first);
+    final leading = blocks.isEmpty ? 0 : lineSpanOf(blocks.first).first;
     final trailing = blocks.isEmpty
         ? lines.length
-        : markdown.indexOf(lineSpanOf(blocks.last).last) + 1;
+        : lineSpanOf(blocks.last).last + 1;
     // The text ends with a line ending: its last line is empty, and no
     // block took it in.
     final finalNewline =
@@ -221,8 +219,8 @@ final class _Printer {
         ? 1
         : 0;
     if (_readTogether(previous, next)) {
-      final from = _markdown.indexOf(lineSpanOf(previous.source!).last) + 1;
-      final to = _markdown.indexOf(lineSpanOf(next.source!).first);
+      final from = lineSpanOf(previous.source!).last + 1;
+      final to = lineSpanOf(next.source!).first;
       final asRead = _origin.isLoaded(previous) && _origin.isLoaded(next);
       if (asRead || to - from >= minimum) {
         if (_inPlace(previous.source!)) {
@@ -359,8 +357,8 @@ final class _Printer {
 
   void _copy(DocBlock node) {
     final span = lineSpanOf(node.source!);
-    final from = _markdown.indexOf(span.first);
-    final to = _markdown.indexOf(span.last) + 1;
+    final from = span.first;
+    final to = span.last + 1;
     _copiedRanges(node, _out.length, from);
     _copyLines(from, to);
     for (final frame in _frames.whereType<ItemFrame>()) {
@@ -380,8 +378,8 @@ final class _Printer {
     for (final leaf in leavesIn(node)) {
       if (leaf.source case final LeafBlock source) {
         _ranges[leaf.id] = (
-          first: start + _markdown.indexOf(source.lines.first.id) - from,
-          last: start + _markdown.indexOf(source.lines.last.id) - from,
+          first: start + source.lines.first.index - from,
+          last: start + source.lines.last.index - from,
         );
       }
     }
@@ -394,7 +392,7 @@ final class _Printer {
       _emit(
         line.text.substring(line.prefix.isEmpty ? 0 : line.prefix.last.end),
         from: line,
-        ending: _markdown.lines[_markdown.indexOf(line.id)].ending,
+        ending: _markdown.lines[line.index].ending,
       );
     }
     _ranges[leaf.id] = (first: start, last: _out.length - 1);
@@ -408,8 +406,8 @@ final class _Printer {
     final endings = switch (leaf.source) {
       final LeafBlock source => [
         for (final line in source.lines)
-          if (_markdown.lines[_markdown.indexOf(line.id)].ending
-              case final ending when ending.isNotEmpty)
+          if (_markdown.lines[line.index].ending case final ending
+              when ending.isNotEmpty)
             ending,
       ],
       _ => const <String>[],
