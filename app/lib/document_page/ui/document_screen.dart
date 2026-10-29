@@ -161,7 +161,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       editSettings: _settings.edit,
     );
     _partChanges = _part.changes.listen((_) => _onPartChanged());
-    _session
+    _controller
       ..addListener(_showShownMode)
       ..addListener(_tellIfStopped);
     _notices = [
@@ -191,10 +191,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     }
     unawaited(_partChanges.cancel());
     _part.dispose();
-    _session
+    _controller
       ..removeListener(_showShownMode)
-      ..removeListener(_tellIfStopped);
-    _controller.dispose();
+      ..removeListener(_tellIfStopped)
+      ..dispose();
     final session = _session;
     final leaveOpenDocuments = _leaveOpenDocuments;
     // Also after a leave that kept the edits: the screen may also go
@@ -593,7 +593,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
             message: 'Your text is kept on this device.',
           ),
           // Its ways out need the folder.
-          if (!unreachable) EditStateBanner(_session, onClose: _leave),
+          if (!unreachable) EditStateBanner(_controller, onClose: _leave),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Align(

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/delete_failure.dart';
@@ -87,7 +88,8 @@ enum RestoreOutcome {
 /// The open document's view model: whether its edits are kept as the
 /// user leaves or quits, deleting it, its file for the actions that need
 /// one, its settings on this device, and backups restored into it. No UI.
-final class DocumentController {
+/// Listeners hear of every change of the [session].
+final class DocumentController extends ChangeNotifier {
   /// [reachSettled]: the reach of the document's folder once a running
   /// check of it is over. [backUp]: backs up the document's text.
   /// [canEdit]: whether the document can be edited here now. [delete]
@@ -100,7 +102,10 @@ final class DocumentController {
     required this.delete,
     required this.editSettings,
   }) {
-    session.addListener(_keepOnceFiled);
+    _following = session.changes.listen((_) {
+      _keepOnceFiled();
+      notifyListeners();
+    });
   }
 
   final DocumentSession session;
@@ -109,6 +114,7 @@ final class DocumentController {
   final bool Function() canEdit;
   final DeleteDocument delete;
   final EditSettings editSettings;
+  late final StreamSubscription<void> _following;
 
   /// Settings changes made before the document had a file, to keep once
   /// it has, in order.
@@ -191,7 +197,11 @@ final class DocumentController {
   }
 
   /// Stops following the session.
-  void dispose() => session.removeListener(_keepOnceFiled);
+  @override
+  void dispose() {
+    unawaited(_following.cancel());
+    super.dispose();
+  }
 
   /// The document's text with every edit sent, to compare a backup with.
   Future<String> textNow() async {

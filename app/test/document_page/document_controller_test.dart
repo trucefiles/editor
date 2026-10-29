@@ -7,6 +7,7 @@ import 'package:truce_editor/document_page/document_controller.dart';
 import 'package:truce_editor/document_page/document_file.dart';
 import 'package:truce_editor/document_page/document_session.dart';
 import 'package:truce_editor/document_page/file_effects.dart';
+import 'package:truce_editor/document_page/save_state.dart';
 import 'package:truce_editor/documents/delete_failure.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_settings.dart';
@@ -70,6 +71,34 @@ void main() {
     addTearDown(() => away.renameSync(dir.path));
     return controllerOn(session);
   }
+
+  test('listeners hear of each change of the session, at once', () {
+    final session = fixture.session(fixture.newFile);
+    final controller = controllerOn(session);
+    final states = <SaveState>[];
+    controller.addListener(() => states.add(session.saveState));
+
+    session.type('x');
+
+    expect(states, [SaveState.editing]);
+  });
+
+  test('stops hearing of the session once disposed', () {
+    final session = fixture.session(fixture.newFile);
+    DocumentController(
+      session,
+      reachSettled: () async => reach,
+      backUp: (_) async => const Ok(null),
+      canEdit: () => true,
+      delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
+      editSettings: (_, _) async {},
+    ).dispose();
+
+    // A notifier told after its dispose fails.
+    session.type('x');
+
+    expect(session.saveState, SaveState.editing);
+  });
 
   test('edits saved in the file are kept', () async {
     final controller = controllerOn(fixture.session()..type('mine '));
