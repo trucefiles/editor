@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {

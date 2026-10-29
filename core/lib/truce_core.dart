@@ -9,7 +9,7 @@
 ///    shared parts of base folders on this device ([LocalDisk]); the
 ///    app's own files in its private storage: a JSON value in one file
 ///    ([JsonFile]), where a setting is kept ([SettingStore]), this
-///    device's id ([loadDeviceId]).
+///    device's id ([loadDeviceId]), its backups ([fileBackupsAt]).
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
 /// 3. `sync`: a sync tool as one plugin ([SyncTool]) with its access to
@@ -119,6 +119,7 @@ export 'src/search/reading_search.dart';
 export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
 export 'src/storage/device_id.dart';
+export 'src/storage/file_backups_at.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
 export 'src/storage/folders_there.dart';

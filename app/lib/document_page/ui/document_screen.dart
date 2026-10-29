@@ -241,7 +241,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     switch (outcome) {
       case NewDropped():
         Navigator.pop(context);
-      case Deleted(:final deleted):
+      case DeletedForUndo(:final deleted):
         _offerUndo(ref.read(documentActionsProvider), deleted);
         Navigator.pop(context);
       case DeleteRefused(:final failure):

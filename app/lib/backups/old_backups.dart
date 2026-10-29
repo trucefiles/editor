@@ -1,5 +1,4 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../storage/app_storage.dart';
 

@@ -215,7 +215,7 @@ void main() {
         },
       );
 
-      expect(await controller.deleteDocument(), isA<Deleted>());
+      expect(await controller.deleteDocument(), isA<DeletedForUndo>());
       expect(deleted, ['mine one\n']);
     });
 

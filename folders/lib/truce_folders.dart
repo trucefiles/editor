@@ -23,5 +23,4 @@ export 'src/sync_tool/app_writes.dart';
 export 'src/sync_tool/base_folder_following.dart';
 export 'src/sync_tool/base_folder_services.dart';
 export 'src/sync_tool/base_folder_stacks.dart';
-export 'src/sync_tool/file_backups_at.dart';
 export 'src/sync_tool/sync_tools.dart';

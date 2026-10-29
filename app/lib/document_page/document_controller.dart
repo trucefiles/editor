@@ -31,8 +31,8 @@ final class NewDropped extends DeleteOutcome {
 }
 
 /// The document was deleted; [deleted] can write it back.
-final class Deleted extends DeleteOutcome {
-  const Deleted(this.deleted);
+final class DeletedForUndo extends DeleteOutcome {
+  const DeletedForUndo(this.deleted);
 
   final DeletedDocument deleted;
 }
@@ -236,7 +236,7 @@ final class DocumentController extends ChangeNotifier {
     final document = session.document;
     if (document == null) return const AlreadyGone();
     return switch (await delete(document, session.text)) {
-      Ok(:final value) => Deleted(value),
+      Ok(:final value) => DeletedForUndo(value),
       Err(:final error) => DeleteRefused(error),
     };
   }
