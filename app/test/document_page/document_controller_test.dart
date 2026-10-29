@@ -307,6 +307,8 @@ void main() {
               required text,
               newSubfolder = false,
             }) => throw StateError('bug'),
+            moveDocument: (_, _, {required title, required newSubfolder}) =>
+                throw StateError('bug'),
           ),
         );
         addTearDown(session.dispose);

@@ -12,6 +12,7 @@ final class DocumentDraft {
     required this.path,
     required this.text,
     this.base,
+    this.newSubfolder = false,
   });
 
   /// Random, so any document path fits; names the draft in its store.
@@ -29,6 +30,10 @@ final class DocumentDraft {
   /// The edited text.
   final String text;
 
+  /// For a new document: [path]'s folder is a new subfolder the user asked
+  /// for, made right before the file.
+  final bool newSubfolder;
+
   static final _random = Random.secure();
 
   static String newId() =>
@@ -38,32 +43,26 @@ final class DocumentDraft {
     'path': path.value,
     'base': ?base,
     'text': text,
+    if (newSubfolder) 'newSubfolder': true,
   };
 
   /// `null` if [json] is not a draft written by [toJson].
   static DocumentDraft? fromJson(String id, Object? json) => switch (json) {
-    {
-      'path': final String raw,
-      'base': final String? base,
-      'text': final String text,
-    } =>
-      _parsed(id, raw, base, text),
-    {'path': final String raw, 'text': final String text} => _parsed(
-      id,
-      raw,
-      null,
-      text,
-    ),
+    {'path': final String raw, 'text': final String text} => switch ((
+      RelPath.parse(raw),
+      json['base'],
+    )) {
+      (final path?, final String? base) => DocumentDraft(
+        id: id,
+        path: path,
+        base: base,
+        text: text,
+        // An optional field: anything but `true` reads as its default, so
+        // it never makes the draft unreadable.
+        newSubfolder: json['newSubfolder'] == true,
+      ),
+      _ => null,
+    },
     _ => null,
-  };
-
-  static DocumentDraft? _parsed(
-    String id,
-    String raw,
-    String? base,
-    String text,
-  ) => switch (RelPath.parse(raw)) {
-    final path? => DocumentDraft(id: id, path: path, base: base, text: text),
-    null => null,
   };
 }

@@ -178,4 +178,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
+
+  testApp('a picture changed by another app shows anew', (tester) async {
+    app
+      ..write('plan.md', '# Plan\n![p](p.png)\n')
+      ..writePicture('p.png', width: 1);
+    await tester.addFolder(app);
+    await tester.openDocument('Plan');
+    await tester.waitUntil(() => tester.shownPictureWidth == 1);
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    app.writePicture('p.png', width: 2);
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+    await tester.openDocument('Plan');
+    await tester.runFor(const Duration(seconds: 2));
+
+    expect(tester.shownPictureWidth, 2);
+  });
+
+  testApp('a renamed document never shows as deleted elsewhere', (
+    tester,
+  ) async {
+    await app.useRefresh(RefreshMode.manual);
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.openDocument('Plan');
+
+    await tester.placeNote(name: 'Ideas');
+    await tester.runFor(const Duration(seconds: 2));
+    expect(find.textContaining('was deleted on another device'), findsNothing);
+
+    await tester.typeOver('# Plan\nv2');
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    await tester.waitUntil(
+      () => app.file('Ideas.md').readAsStringSync().contains('v2'),
+    );
+    expect(app.conflictCopies(), isEmpty);
+    expect(app.file('plan.md').existsSync(), isFalse);
+  });
 }

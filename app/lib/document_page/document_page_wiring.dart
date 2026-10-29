@@ -30,6 +30,9 @@ final documentPagesProvider = Provider<DocumentPages>(
               text: text,
               newSubfolder: newSubfolder,
             ),
+    move: (document, place, {required title, required newSubfolder}) => ref
+        .read(documentActionsProvider)
+        .move(document, place, title: title, newSubfolder: newSubfolder),
     delete: (document, text) =>
         ref.read(documentActionsProvider).delete(document, text),
     settingsOf: (document) =>

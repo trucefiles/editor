@@ -215,7 +215,7 @@ void main() {
       addItems: AddItemPlace.bottom,
       openLink: (Uri _) async {},
       hint: (String _) {},
-      images: (String _) => null,
+      images: const NoDocumentImages(),
     );
     Future<void> pumpPart() => tester.pumpWidget(
       MaterialApp(

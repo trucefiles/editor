@@ -68,6 +68,12 @@ final class DocumentDrafts {
     }
   }
 
+  /// How many documents [under] covers have readable drafts.
+  Future<int> countUnder(Selection under) async =>
+      (await all(before: DateTime(9999)))
+          .where((draft) => under.covers(draft.path))
+          .length;
+
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
   Future<DocumentDraft?> _read(String id) async =>

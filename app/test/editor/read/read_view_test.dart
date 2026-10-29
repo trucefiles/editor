@@ -34,7 +34,7 @@ void main() {
                   open: (link) => openLink(context, ref, link),
                   hint: (message) => showSnack(context, message),
                 ),
-                images: (_) => null,
+                images: const NoDocumentImages(),
               ),
             ),
           ),

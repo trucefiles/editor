@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart' show Result, StoreError;
+import 'package:truce_core/truce_core.dart' show Err, Ok, Result, StoreError;
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -56,6 +56,7 @@ final class DocumentFixture {
     filesOf: (folder) => files[folder.id]!,
     draftsOf: (folder) => drafts[folder.id]!,
     create: createFile,
+    moveDocument: moveFile,
   );
 
   /// Creates a document's file in the fixture's folders.
@@ -72,6 +73,29 @@ final class DocumentFixture {
     newSubfolder: newSubfolder,
     text: text,
   );
+
+  /// Moves a document's file in the fixture's folders: a copy at [place],
+  /// then the old file removed.
+  Future<Result<DocumentText, MoveFailure>> moveFile(
+    DocumentText document,
+    DocumentPlace place, {
+    required String title,
+    required bool newSubfolder,
+  }) async {
+    final copied = await files[place.folder.id]!.copyIn(
+      document,
+      document.text,
+      subfolder: place.subfolder,
+      newSubfolder: newSubfolder,
+      title: title,
+    );
+    if (copied case Err(:final error)) return Err(MoveNotWritten(error));
+    final copy = copied.value;
+    return switch (await files[document.folder.id]!.delete(document.document)) {
+      Ok() => Ok(copy),
+      Err(:final error) => Err(MoveLeftOriginal(copy, error)),
+    };
+  }
 
   /// A session on [file], by default on [document]; disposed after the test.
   DocumentSession session([DocumentFile? file]) {

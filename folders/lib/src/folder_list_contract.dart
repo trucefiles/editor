@@ -98,6 +98,14 @@ final class RemoveFolder extends FolderListAsking {
   final DocumentFolder removed;
 }
 
+/// How many documents have edits kept only on this device that removing
+/// [folder] would delete.
+final class CountDraftsUnder extends FolderListAsking {
+  const CountDraftsUnder(super.ticket, this.folder);
+
+  final DocumentFolder folder;
+}
+
 // Events: one answer per asking input.
 
 sealed class FolderListAnswer implements Answering {
@@ -124,4 +132,10 @@ final class FolderRemoved extends FolderListAnswer {
   const FolderRemoved(super.ticket, this.result);
 
   final Result<void, FolderError> result;
+}
+
+final class DraftsCounted extends FolderListAnswer {
+  const DraftsCounted(super.ticket, this.count);
+
+  final int count;
 }

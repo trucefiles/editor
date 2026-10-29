@@ -55,6 +55,8 @@ void main() {
             required text,
             newSubfolder = false,
           }) => throw StateError('bug'),
+          moveDocument: (_, _, {required title, required newSubfolder}) =>
+              throw StateError('bug'),
         ),
       );
       session
@@ -97,6 +99,8 @@ void main() {
             required text,
             newSubfolder = false,
           }) => throw StateError('bug'),
+          moveDocument: (_, _, {required title, required newSubfolder}) =>
+              throw StateError('bug'),
         ),
       )..type('a ');
       // Sent at the typing pause: kept as a draft, not yet in the file.
@@ -278,16 +282,17 @@ void main() {
 
   test('a moved document goes on in its copy', () async {
     final session = fixture.session();
-    final copy = (await fixture.files['f2']!.copyIn(
-      fixture.document,
-      'one\n',
-    )).value;
 
-    session
-      ..moved(copy)
-      ..type('x');
+    final moved = await session.move((
+      place: (folder: fixture.folders[1], subfolder: null),
+      title: 'a',
+      newSubfolder: false,
+    ));
+    session.type('x');
     await session.secure(.hide);
 
+    expect(moved, isA<Ok<DocumentText, MoveFailure>>());
+    expect(fixture.onDisk('a.md'), isNull);
     expect(fixture.onDisk('a.md', index: 1), 'xone\n');
   });
 }

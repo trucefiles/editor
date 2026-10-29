@@ -25,6 +25,7 @@ final class FolderListWork {
     required this.isToolFolder,
     required this.secureOpen,
     required this.forgetDrafts,
+    required this.countDrafts,
   });
 
   final FolderListStore store;
@@ -43,6 +44,10 @@ final class FolderListWork {
   /// Deletes the drafts of the documents of a base folder that [Selection]
   /// covers, as the user removes the folder that showed them.
   final Future<void> Function(BaseFolder base, Selection under) forgetDrafts;
+
+  /// How many documents of a base folder that [Selection] covers have
+  /// drafts.
+  final Future<int> Function(BaseFolder base, Selection under) countDrafts;
 }
 
 /// The folder list owner: loads the saved list first, then runs each
@@ -116,6 +121,13 @@ final class _FolderListSteps {
       RemoveFolder(:final ticket, :final removed) => FolderRemoved(
         ticket,
         folders == null ? unsaved : await _remove(folders, removed, out),
+      ),
+      CountDraftsUnder(:final ticket, :final folder) => DraftsCounted(
+        ticket,
+        await _work.countDrafts(
+          folder.base,
+          _draftsGoneWith(folders ?? const [], folder),
+        ),
       ),
     };
   }
@@ -191,17 +203,24 @@ final class _FolderListSteps {
       for (final folder in folders)
         if (folder.id != removed.id) folder,
     ];
+    final dropped = _draftsGoneWith(folders, removed);
     await _work.secureOpen(removed.base);
     final saved = await _save(rest, out);
-    if (saved is Ok) {
-      final baseGoes = !rest.any((folder) => folder.base == removed.base);
-      await _work.forgetDrafts(
-        removed.base,
-        baseGoes ? const WholeFolder() : removed.selection,
-      );
-    }
+    if (saved is Ok) await _work.forgetDrafts(removed.base, dropped);
     return saved;
   }
+
+  /// The drafts of its base folder that go with [removed]: those it
+  /// shows, or all with the base folder's last folder.
+  static Selection _draftsGoneWith(
+    List<DocumentFolder> folders,
+    DocumentFolder removed,
+  ) =>
+      folders.any(
+        (folder) => folder.id != removed.id && folder.base == removed.base,
+      )
+      ? removed.selection
+      : const WholeFolder();
 
   /// Saves [folders], then shows them.
   Future<Result<void, FolderError>> _save(

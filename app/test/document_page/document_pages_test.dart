@@ -18,6 +18,7 @@ void main() {
   DocumentPages pages() => DocumentPages(
     types: appDocumentTypes(),
     create: fixture.createFile,
+    move: fixture.moveFile,
     delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
     settingsOf: (_) => DocumentSettings.defaults,
     editSettings: (_, _) async {},

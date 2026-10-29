@@ -4,6 +4,8 @@ import '../../folders/ui/folder_badge.dart';
 
 /// What to tell the user about [failure].
 String moveFailureText(MoveFailure failure) => switch (failure) {
+  MoveWaitsForSave() =>
+    'Please wait until the document is saved in its folder.',
   MoveBlockedByConflict() => 'This document has a sync conflict. Please resolve it first, then move the document.',
   MoveNotWritten(:final error) => "Couldn't move the document: ${error.text}",
   MoveLeftOriginal(:final copy, :final error) =>

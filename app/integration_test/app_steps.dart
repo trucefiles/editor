@@ -194,6 +194,14 @@ extension AppSteps on WidgetTester {
     );
   }
 
+  /// The width of the picture the open document shows once it has
+  /// loaded; `null` while none shows.
+  int? get shownPictureWidth =>
+      widgetList<RawImage>(find.byType(RawImage))
+          .map((shown) => shown.image?.width)
+          .nonNulls
+          .firstOrNull;
+
   /// Opens the compare view the open document offers.
   Future<void> openCompare() async {
     await waitFor(find.text('Compare'));

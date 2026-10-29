@@ -81,25 +81,39 @@ class FoldersScreen extends ConsumerWidget {
     WidgetRef ref,
     DocumentFolder folder,
   ) async {
-    if (!await _confirmRemove(context, folder)) return;
-    final saved = await ref.read(folderActionsProvider).remove(folder);
+    final actions = ref.read(folderActionsProvider);
+    final lost = await actions.draftsLostByRemoving(folder);
+    if (!context.mounted || !await _confirmRemove(context, folder, lost)) {
+      return;
+    }
+    final saved = await actions.remove(folder);
     if (saved case Err(:final error) when context.mounted) {
       showSnack(context, error.text);
     }
   }
 
-  /// Whether the user wants to remove [folder] from the app.
+  /// Whether the user wants to remove [folder] from the app, which loses
+  /// the edits of [lost] documents kept only on this device.
   Future<bool> _confirmRemove(
     BuildContext context,
     DocumentFolder folder,
+    int lost,
   ) async =>
       await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text('Remove "${folder.name}"?'),
-          content: const Text(
-            'The app stops showing this folder. Its files stay untouched.',
-          ),
+          content: Text(switch (lost) {
+            0 => 'The app stops showing this folder. Its files stay untouched.',
+            1 =>
+              'The app stops showing this folder. Its files stay untouched, '
+                  'but the unsaved edits of 1 document, kept only on this '
+                  'device, will be lost.',
+            _ =>
+              'The app stops showing this folder. Its files stay untouched, '
+                  'but the unsaved edits of $lost documents, kept only on '
+                  'this device, will be lost.',
+          }),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),

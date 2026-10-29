@@ -73,29 +73,20 @@ class DocumentPlaceChip extends ConsumerWidget {
         ),
       );
     }
-    await _move(context, actions, picked);
+    await _move(context, picked);
   }
 
   /// Moves or renames the document's file; an empty [name] names it after
-  /// the first line. Only a document saved in its folder moves, so the
-  /// move takes every edit along.
-  Future<void> _move(
-    BuildContext context,
-    DocumentActions actions,
-    PickedPlace picked,
-  ) async {
+  /// the first line. The file owner moves it only once the file holds
+  /// every edit, so the move takes them along: they are saved first.
+  Future<void> _move(BuildContext context, PickedPlace picked) async {
     final (:place, :name, :newSubfolder) = picked;
     await session.secure(SecureReason.hide);
     if (!context.mounted) return;
     final current = session.document;
-    if (current == null || session.status is! InStep) {
-      return showSnack(
-        context,
-        'Please wait until the document is saved in its folder.',
-      );
+    if (current == null) {
+      return showSnack(context, moveFailureText(const MoveWaitsForSave()));
     }
-    // The saved document moves: read after the dialog and the save, so no
-    // edit is left behind.
     final title = name.trim().isEmpty
         ? documentTitleLine(current.text, current.type)
         : name.trim();
@@ -104,26 +95,17 @@ class DocumentPlaceChip extends ConsumerWidget {
         isNamedAfter(current.path.name, title)) {
       return;
     }
-    final moved = await actions.move(
-      current,
-      place,
+    final moved = await session.move((
+      place: place,
       title: title,
       newSubfolder: newSubfolder,
-    );
+    ));
     if (!context.mounted) return;
-    switch (moved) {
-      case Ok(value: final copy):
-        session.moved(copy);
-        showSnack(
-          context,
-          'Saved as ${placeName(copy.folder, copy.path.parent)}/'
-          '${copy.path.name}',
-        );
-      case Err(error: MoveLeftOriginal(:final copy) && final error):
-        session.moved(copy);
-        showSnack(context, moveFailureText(error));
-      case Err(:final error):
-        showSnack(context, moveFailureText(error));
-    }
+    showSnack(context, switch (moved) {
+      Ok(value: final copy) =>
+        'Saved as ${placeName(copy.folder, copy.path.parent)}/'
+            '${copy.path.name}',
+      Err(:final error) => moveFailureText(error),
+    });
   }
 }

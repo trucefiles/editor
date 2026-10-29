@@ -107,6 +107,30 @@ void main() {
     expect(await fixture.draftsIn('f1'), isEmpty);
   });
 
+  test("a new document's draft, recovered at the next start, goes into the "
+      'new subfolder the user asked for', () async {
+    final effects = fixture.effects(
+      NewFile(
+        (folder: fixture.folders[0], subfolder: path('2026')),
+        type: appDocumentTypes().forNew,
+        newSubfolder: true,
+      ),
+    );
+    await effects.run(
+      const KeepDraft(id, base: null, text: 'Milk', file: null),
+    );
+
+    final recovery = DraftRecovery(
+      fixture.drafts['f1']!,
+      filesFor: (_) => fixture.files['f1'],
+      types: appDocumentTypes(),
+    );
+    expect(await recovery.recover(before: fixture.later), 1);
+
+    expect(fixture.onDisk('2026/Milk.md'), 'Milk');
+    expect(fixture.onDisk('Milk.md'), isNull);
+  });
+
   test('a dropped draft is not moved along', () async {
     final effects = fixture.effects(fixture.newFile);
     await effects.run(

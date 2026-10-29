@@ -97,4 +97,29 @@ void main() {
 
     expect(find.text('other 59'), findsOne);
   });
+
+  // Skipped: home builds Pinned and Recent at once until the own masonry
+  // grid replaces the at-once grid, planned right after release 0.9.0.
+  testWidgets('builds only the cards near the screen', skip: true, (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Widget card(String name) => SizedBox(height: 150, child: Text(name));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DocumentSections(
+            pinned: [for (var i = 0; i < 40; i++) card('pinned $i')],
+            others: [for (var i = 0; i < 200; i++) card('other $i')],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('pinned 0'), findsOne);
+    expect(find.text('pinned 39', skipOffstage: false), findsNothing);
+    expect(find.text('other 199', skipOffstage: false), findsNothing);
+  });
 }

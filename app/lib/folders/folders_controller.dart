@@ -27,6 +27,8 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
       secureOpen: ref.read(openDocumentsProvider).secureIn,
       forgetDrafts: (base, under) =>
           ref.read(draftsProvider).of(base.id).removeUnder(under),
+      countDrafts: (base, under) =>
+          ref.read(draftsProvider).of(base.id).countUnder(under),
     ),
   );
   ref.onDispose(() => unawaited(owner.close()));
@@ -86,6 +88,15 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
     (ticket) => ChangeFolder(ticket, changed),
     read: (FolderChanged answer) => answer.result,
     orElse: const Err(FolderError.notSaved),
+  );
+
+  /// How many documents have edits kept only on this device that
+  /// removing [folder] would delete.
+  Future<int> draftsLostByRemoving(DocumentFolder folder) => answerOf(
+    _owner,
+    (ticket) => CountDraftsUnder(ticket, folder),
+    read: (DraftsCounted answer) => answer.count,
+    orElse: 0,
   );
 
   /// Forgets the folder; its files stay untouched.

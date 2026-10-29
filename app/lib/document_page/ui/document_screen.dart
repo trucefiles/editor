@@ -63,6 +63,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
+  /// When the document was opened: its pictures are read anew each open.
+  final _openedAt = DateTime.now();
+
   DocumentSession get _session => _page.session;
   DocumentController get _controller => _page.controller;
   PageEditor get _editor => _session.editor;
@@ -478,10 +481,11 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
                       ),
                       openLink: (link) => openLink(context, ref, link),
                       hint: (message) => showSnack(context, message),
-                      images: documentImages(
+                      images: FolderImages(
                         ref.read(folderFilesProvider).of(_folder),
                         baseId: _folder.base.id,
                         document: path,
+                        openedAt: _openedAt,
                       ),
                     ),
                     // A new document is for typing right away.

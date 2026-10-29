@@ -80,6 +80,15 @@ final class _Run {
     send(Wrote(id, outcome, endedAt: Moment.now()));
   }
 
+  /// Asks to move the file; the app moves it, as the move asked last, to
+  /// [copy] (`null`: it did not move).
+  void move(Seen? copy) {
+    send(Move(Ticket()));
+    if (machine.effects.lastOrNull case MoveFile(:final id)) {
+      send(MovedTo(id, copy, endedAt: Moment.now()));
+    }
+  }
+
   /// A scan found the file in [seen]'s version, holding [seen]'s text
   /// for the reads that follow.
   void found(Seen seen, {Moment? startedAt}) {
@@ -131,40 +140,46 @@ void main() {
       expect(run.last<Write>().text, 'abc');
     });
 
-    test('a move during a write goes on with the copy, written again', () {
-      const copy = Seen('a', Version(9));
+    test('a move asked during a write runs once the edits are in', () {
       final run = _Run.opened('a')
         ..save('ab', 1)
-        ..send(const Moved(copy))
-        ..wrote(const Written(Seen('ab', _v2)));
-      final write = run.last<Write>();
-      expect((write.text, write.over), ('ab', copy));
-    });
-
-    test('a write that finds the file gone after a move goes on with the '
-        'copy, written again', () {
-      const copy = Seen('a', Version(9));
-      final run = _Run.opened('a')
-        ..save('ab', 1)
-        ..send(const Moved(copy))
-        ..wrote(const WriteGone());
-      expect(run.status, const Editing(EditPhase.writing).matcher);
-      final write = run.last<Write>();
-      expect((write.text, write.over), ('ab', copy));
+        ..send(Move(Ticket()));
+      expect(run.all<MoveFile>(), isEmpty);
       run.wrote(const Written(Seen('ab', _v2)));
-      expect(run.status, isA<InStep>());
+      expect(run.last<MoveFile>().from.version, _v2);
     });
 
-    test('a write that finds the file gone after a move, with edits back '
-        'to the copy, is in step', () {
-      const copy = Seen('a', Version(9));
+    test('edits not in the file yet refuse a move', () {
       final run = _Run.opened('a')
-        ..save('ab', 1)
-        ..send(const Moved(copy))
-        ..edit('a', 2)
-        ..wrote(const WriteGone());
+        ..edit('ab', 1)
+        ..keep()
+        ..send(Move(Ticket()));
+      expect(run.all<MoveFile>(), isEmpty);
+      expect(run.last<MoveAnswer>().started, isFalse);
+    });
+
+    test('edits made during a move are written over the copy', () {
+      const copy = Seen('a', Version(9));
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      final move = run.last<MoveFile>();
+      run
+        ..edit('ab', 1)
+        ..send(MovedTo(move.id, copy, endedAt: Moment.now()))
+        ..keep()
+        ..send(const SaveNow());
+      expect(run.last<MoveAnswer>().started, isTrue);
+      final write = run.last<Write>();
+      expect((write.text, write.over), ('ab', copy));
+    });
+
+    test('a scan during a move changes nothing', () {
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      final move = run.last<MoveFile>();
+      run
+        ..send(Observed(const Gone(), startedAt: Moment.now()))
+        ..send(MovedTo(move.id, const Seen('a', _v2), endedAt: Moment.now()));
       expect(run.status, isA<InStep>());
-      expect(run.all<Write>(), hasLength(1));
+      expect(run.state.file, _v2);
     });
 
     test('edits made during a write are kept after it, then written when '
@@ -302,18 +317,28 @@ void main() {
       expect((run.status as ChangedElsewhere).theirs.version, _v3);
     });
 
-    test('a read of the file before a move is dropped', () {
-      const copy = Seen('a', Version(9));
+    test('a version found is read before a move', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..found(const Seen('b', _v2))
+        ..edit('a', 2)
+        ..send(Move(Ticket()))
+        ..keep();
+      expect(run.last<Replaced>().text, 'b');
+      expect(run.last<MoveFile>().from.version, _v2);
+    });
+
+    test('a move waits for a read under way', () {
       final run = _Run.opened('a');
       run.machine.send(Observed(const Found(_v2), startedAt: Moment.now()));
       final read = run.last<ReadLatest>();
 
       run
-        ..send(const Moved(copy))
+        ..send(Move(Ticket()))
         ..send(LatestRead(read.id, const Seen('b', _v2)));
 
-      expect(run.state.text, 'a');
-      expect(run.status, isA<InStep>());
+      expect(run.state.text, 'b');
+      expect(run.last<MoveFile>().from.version, _v2);
     });
 
     test('replace the text when there are no edits', () {
@@ -537,10 +562,11 @@ void main() {
       expect(run.all<Picked>(), isEmpty);
     });
 
-    test('discard takes the file\'s text', () {
+    test('discard while changed elsewhere takes their version', () {
       final run = changed()..send(const Discard());
-      expect(run.last<Picked>().text, 'a');
-      expect(run.status, isA<InStep>());
+      final picked = run.last<Picked>();
+      expect((picked.text, picked.version), ('x', _v2));
+      expect(run.state.file, _v2);
     });
 
     test('discard after a delete elsewhere leaves the file deleted', () {
@@ -569,7 +595,7 @@ void main() {
       final picked = run.last<Picked>();
       // Typed on the same version before the editor took the pick.
       run.edit('abz', picked.rev + 1, picks: 0);
-      expect(run.state.text, 'a');
+      expect(run.state.text, 'x');
       expect(run.status, isA<InStep>());
       // The editor goes on from the pick's rev, so a change takes.
       run.found(const Seen('a!', _v3));
@@ -761,10 +787,65 @@ void main() {
       expect(run.last<Answer>().kept, isFalse);
       expect(run.all<KeepAsConflict>(), isEmpty);
     });
+
+    test('dropped by the user, it is not created when it closes', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Discard())
+        ..secure(SecureReason.close);
+      expect(run.all<Create>(), isEmpty);
+      expect(run.state.text, isEmpty);
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
+    group('created, then changed elsewhere before the editor took it', () {
+      /// A new document created as [_v1] holding 'a', then written as
+      /// [_v2] elsewhere; the editor typed 'ac' over 'a' before it could
+      /// show [_v2], so its lineage is still the new document's.
+      _Run changedElsewhere() {
+        final run = _Run.unwritten()
+          ..edit('a', 1, lineage: null)
+          ..keep()
+          ..secure(SecureReason.hide)
+          ..wrote(const Written(Seen('a', _v1)))
+          ..found(const Seen('b', _v2));
+        expect(run.last<Replaced>().version, _v2);
+        run
+          ..edit('ac', 2, lineage: null)
+          ..keep();
+        expect(run.status, isA<ChangedElsewhere>());
+        return run;
+      }
+
+      test('the draft builds on the text the edits were made over', () {
+        final run = changedElsewhere();
+        expect(run.last<KeepDraft>().base, 'a');
+      });
+
+      test('seeing the same version again keeps the user\'s pick', () {
+        final run = changedElsewhere()
+          ..found(const Seen('b', _v2))
+          ..send(const SaveNow());
+        expect(run.status, isA<ChangedElsewhere>());
+        expect(run.all<Write>(), isEmpty, reason: 'b must not be overwritten');
+      });
+
+      test('after the user keeps mine, typing on is plain editing', () {
+        final run = changedElsewhere()
+          ..send(const Pick(PickChoice.mine, seen: _v2, rev: 2));
+        run
+          ..send(BackedUp(run.last<BackUpBoth>().id, ok: true))
+          ..wrote(const Written(Seen('ac', _v3)));
+        expect(run.status, isA<InStep>());
+        run.edit('acd', 3, lineage: null);
+        expect(run.status, isA<Editing>());
+      });
+    });
   });
 
   test('a move goes on with the copy', () {
-    final run = _Run.opened('a')..send(const Moved(Seen('a', _v2)));
+    final run = _Run.opened('a')..move(const Seen('a', _v2));
     expect(run.state.file, _v2);
     run.save('ab', 1);
     expect(run.last<Write>().over.version, _v2);
@@ -780,15 +861,14 @@ void main() {
     expect(_Run.unwritten().state.file, isNull);
   });
 
-  test('a move during a write names the copy at once', () {
-    final run = _Run.opened('a')
-      ..save('ab', 1)
-      ..send(const Moved(Seen('a', _v3)));
-    expect(run.state.file, _v3);
+  test('a move that failed changes nothing', () {
+    final run = _Run.opened('a')..move(null);
+    expect(run.state.file, _v1);
+    expect(run.last<MoveAnswer>().started, isTrue);
   });
 
   test('drafts name the file the edits go over', () {
-    final run = _Run.opened('a')..send(const Moved(Seen('a', _v2)));
+    final run = _Run.opened('a')..move(const Seen('a', _v2));
     run.edit('ab', 1);
     expect(run.last<KeepDraft>().file, _v2);
     run
@@ -805,20 +885,5 @@ void main() {
       ..keep()
       ..edit('', 2, lineage: null);
     expect(run.last<DropDraft>().file, isNull);
-  });
-
-  test('a copy that changed before the move is a change elsewhere', () {
-    final run = _Run.opened('a')
-      ..edit('ab', 1)
-      ..send(const Moved(Seen('x', _v2)))
-      ..keep()
-      ..send(const SaveNow());
-    // The write goes over what the edits were made on, and finds the change.
-    expect(run.last<Write>().over.version, _v1);
-    run.wrote(const Changed(Seen('x', _v2)));
-    expect(run.status, isA<ChangedElsewhere>());
-    // Its drafts stay with the file the edits were made on.
-    run.edit('abc', 2);
-    expect(run.last<KeepDraft>().file, _v1);
   });
 }

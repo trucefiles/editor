@@ -8,6 +8,7 @@ import '../document_place.dart';
 import '../document_text.dart';
 import '../document_type.dart';
 import '../document_version.dart';
+import '../move_failure.dart';
 import '../open_failure.dart';
 import 'document_file.dart';
 
@@ -21,10 +22,23 @@ typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
   bool newSubfolder,
 });
 
+/// Moves a document's file, as last saved, to [place], named after
+/// [title]; first [place]'s subfolder if it is new ([newSubfolder]).
+typedef MoveDocumentFile = Future<Result<DocumentText, MoveFailure>> Function(
+  DocumentText document,
+  DocumentPlace place, {
+  required String title,
+  required bool newSubfolder,
+});
+
+/// Where the user moves an open document: to [place], named after
+/// [title]; [newSubfolder]: [place]'s subfolder is a new one to make.
+typedef MoveTarget = ({DocumentPlace place, String title, bool newSubfolder});
+
 /// The effect handler of one open document's file owner (see
 /// `file_contract.dart`): keeps and drops its draft on this device,
-/// reads, writes, creates and restores its file, backs it up and keeps
-/// conflict copies; answers each effect with the result the owner gets.
+/// reads, writes, creates, moves and restores its file, backs it up and
+/// keeps conflict copies; answers each effect with the result the owner gets.
 /// Each effect names the file it acts on; where it names none (a new
 /// document's), it acts where the new document's file goes.
 final class FileEffects {
@@ -35,11 +49,13 @@ final class FileEffects {
     required this._filesOf,
     required this._draftsOf,
     required this._create,
+    required this._moveDocument,
   });
 
   final DocumentFiles Function(DocumentFolder folder) _filesOf;
   final DocumentDrafts Function(DocumentFolder folder) _draftsOf;
   final CreateDocumentFile _create;
+  final MoveDocumentFile _moveDocument;
 
   /// One draft per open document; names it in its folder's drafts.
   final _draftId = DocumentDraft.newId();
@@ -47,6 +63,11 @@ final class FileEffects {
   /// Where a new document's file goes: the place the user last gave;
   /// `null` for a document opened from its file.
   NewFile? _newFile;
+
+  /// Where each move the user asked goes, by its ask's ticket, and how it
+  /// went once it ran.
+  final _moves =
+      <Ticket, ({MoveTarget to, Result<DocumentText, MoveFailure>? result})>{};
 
   /// The draft kept last, until it is dropped: moved along when a new
   /// document's place changes, and what the last draft builds on once the
@@ -76,6 +97,11 @@ final class FileEffects {
       _restore(text, where.version.read),
     ),
     ReadLatest(:final id, :final at) => _readLatest(id, at.version.read),
+    MoveFile(:final id, :final ticket, :final from) => _moveFile(
+      id,
+      ticket,
+      from.version.read,
+    ),
     BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
       id,
       theirs.version.read,
@@ -101,6 +127,16 @@ final class FileEffects {
     }
     _keep(draft.base, draft.text, to);
   }
+
+  /// The user moves the document to [to], by the [Move] with [ticket]:
+  /// where its [MoveFile] goes.
+  void aimMove(Ticket ticket, MoveTarget to) =>
+      _moves[ticket] = (to: to, result: null);
+
+  /// How the move asked with [ticket] went, once; `null` if it did not
+  /// run.
+  Result<DocumentText, MoveFailure>? takeMoveResult(Ticket ticket) =>
+      _moves.remove(ticket)?.result;
 
   /// Keeps [text] as the draft without the file owner, once it stopped
   /// (a bug): over the base of the draft before, else of [file], the
@@ -140,6 +176,10 @@ final class FileEffects {
       path: where.pathFor(text),
       base: base,
       text: text,
+      newSubfolder: switch (where) {
+        NewFile(:final newSubfolder) => newSubfolder,
+        ExistingFile() => false,
+      },
     );
     _draft = draft;
     return _draftsOf(where.folder).keep(draft);
@@ -219,6 +259,29 @@ final class FileEffects {
       },
       Err() => const WriteFailed(),
     };
+  }
+
+  Future<FileResult<DocumentVersion>> _moveFile(
+    EffectId id,
+    Ticket ticket,
+    DocumentText from,
+  ) async {
+    final to =
+        _moves[ticket]?.to ??
+        (throw StateError('A move without a place to go.'));
+    final moved = await _moveDocument(
+      from,
+      to.place,
+      title: to.title,
+      newSubfolder: to.newSubfolder,
+    );
+    _moves[ticket] = (to: to, result: moved);
+    final copy = switch (moved) {
+      Ok(:final value) ||
+      Err(error: MoveLeftOriginal(copy: final value)) => value,
+      Err() => null,
+    };
+    return MovedTo(id, copy?.seen, endedAt: Moment.now());
   }
 
   /// The file now holds [document].

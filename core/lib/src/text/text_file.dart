@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import '../common/unchanged_ends.dart';
+import 'package:collection/collection.dart';
+
+import 'line_match.dart';
 import 'lines.dart';
 
 /// A UTF-8 text file decoded for editing.
@@ -94,20 +96,18 @@ final class TextFile {
     breaks: _breaksFor(newText.split('\n')),
   );
 
-  /// The breaks between [lines]: the unchanged lines before and after the
-  /// edited part keep theirs, on both sides; other breaks get [lineBreak].
+  /// The breaks between [lines]: a line the old text had keeps the break
+  /// after it; a line that follows one it didn't have gets the break it
+  /// had before it; only breaks between added lines get [lineBreak].
   List<String> _breaksFor(List<String> lines) {
-    final old = text.split('\n');
-    final same = unchangedEnds(old, lines);
-    final shift = old.length - lines.length;
+    final old = oldLinesOf(text.split('\n'), lines);
     return [
-      for (var i = 0; i < lines.length - 1; i++)
-        if (i < same.start && i < _breaks.length)
-          _breaks[i]
-        else if (i + 1 >= lines.length - same.end && i + shift >= 0)
-          _breaks[i + shift]
-        else
-          lineBreak,
+      for (final [before, after] in IterableZip([old, old.skip(1)]))
+        switch ((before, after)) {
+          (final before?, _) when before < _breaks.length => _breaks[before],
+          (_, final after?) when after > 0 => _breaks[after - 1],
+          _ => lineBreak,
+        },
     ];
   }
 }

@@ -83,6 +83,7 @@ final class DraftRecovery {
       splitFileName(draft.path.name).base,
       type: type,
       subfolder: draft.path.parent,
+      newSubfolder: draft.newSubfolder,
       text: draft.text,
     );
     return created is Ok;
