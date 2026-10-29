@@ -10,10 +10,10 @@ import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../folders/ui/folder_filter_bar.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
+import '../../settings/device_settings_controller.dart';
 import '../document.dart';
 import '../home/home_lists.dart';
 import '../home/home_settings.dart';
-import '../home/home_settings_controller.dart';
 import 'document_grid.dart';
 import 'document_sections.dart';
 import 'listed_document_card.dart';
@@ -33,9 +33,12 @@ class AllDocumentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings =
-        ref.watch(homeSettingsProvider).value ?? HomeSettings.standard;
-    final home = ref.read(homeSettingsProvider.notifier);
+    final settings = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.home),
+    );
+    final device = ref.read(deviceSettingsProvider.notifier);
+    Future<void> changeHome(HomeSettings Function(HomeSettings) change) =>
+        device.change((s) => s.copyWith(home: change(s.home)));
     final contents = ref.watch(folderContentsProvider).value;
     final documents = filteredBy(
       ref.watch(selectedFolderIdProvider),
@@ -51,7 +54,7 @@ class AllDocumentsScreen extends ConsumerWidget {
             icon: const Icon(Icons.sort),
             initialValue: settings.order,
             onSelected: (order) =>
-                home.change((settings) => settings.copyWith(order: order)),
+                changeHome((settings) => settings.copyWith(order: order)),
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: DocumentOrder.time,
@@ -63,7 +66,7 @@ class AllDocumentsScreen extends ConsumerWidget {
           IconButton(
             tooltip: asCards ? 'Show as list' : 'Show as cards',
             icon: Icon(asCards ? Icons.view_list : Icons.grid_view),
-            onPressed: () => home.change(
+            onPressed: () => changeHome(
               (settings) => settings.copyWith(
                 view: asCards ? DocumentView.list : DocumentView.cards,
               ),

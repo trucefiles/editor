@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scope.dart';
@@ -22,7 +23,9 @@ void main() {
     TextZoomTarget of = TextZoomTarget.documents,
   ]) =>
       ProviderScope.containerOf(tester.element(page))
-          .read(textZoomProvider(of));
+          .read(deviceSettingsProvider)
+          .requireValue
+          .textZoomOf(of);
 
   double scaled(WidgetTester tester, Finder text) =>
       MediaQuery.textScalerOf(tester.element(text)).scale(10);
@@ -33,17 +36,17 @@ void main() {
   Future<void> show(WidgetTester tester) async {
     taps = 0;
     final storage = AppStorage(tempFolder().path);
-    final zooms = (await tester.runAsync(
-      () => savedTextZoomsIn(storage, {
-        TextZoomTarget.app: TextZoom.closestTo(150),
-      }),
-    ))!;
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
           overrides: [
             appStorageProvider.overrideWithValue(storage),
-            savedTextZoomsProvider.overrideWithValue(zooms),
+            loadedDeviceSettingsProvider.overrideWithValue(
+              DeviceSettings.standard.withTextZoom(
+                TextZoomTarget.app,
+                TextZoom.closestTo(150),
+              ),
+            ),
           ],
           child: MaterialApp(
             builder: (context, child) => TextZoomScope(child: child!),

@@ -9,7 +9,9 @@ import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
-import 'package:truce_editor/refresh/refresh_settings_controller.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
 
 import '../support.dart';
@@ -42,7 +44,8 @@ void main() {
         ),
         appActiveProvider.overrideWith(() => _FixedActivity(active)),
         folderStateOwnerProvider.overrideWithValue(owner),
-        refreshSettingsProvider.overrideWith(_FixedSettings.new),
+        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
     );
     addTearDown(container.dispose);
@@ -145,9 +148,15 @@ void main() {
   test('lists again once when the refresh setting changes', () async {
     await start();
 
-    (container.read(refreshSettingsProvider.notifier) as _FixedSettings).show(
-      RefreshSettings.standard.copyWith(mode: RefreshMode.periodic),
-    );
+    await container
+        .read(deviceSettingsProvider.notifier)
+        .change(
+          (settings) => settings.copyWith(
+            refresh: RefreshSettings.standard.copyWith(
+              mode: RefreshMode.periodic,
+            ),
+          ),
+        );
     await container.read(followingChangesProvider.future);
 
     await settle();
@@ -176,13 +185,6 @@ class _FixedFolders extends FoldersController {
     await _loaded;
     return _folders;
   }
-}
-
-class _FixedSettings extends RefreshSettingsController {
-  @override
-  Future<RefreshSettings> build() async => RefreshSettings.standard;
-
-  void show(RefreshSettings settings) => state = AsyncData(settings);
 }
 
 class _FixedActivity extends AppActivity {

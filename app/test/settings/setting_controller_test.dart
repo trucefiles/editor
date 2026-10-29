@@ -18,16 +18,21 @@ final class _Store implements SettingStore<int> {
 
 final _storeProvider = Provider<SettingStore<int>>((_) => _Store());
 
-/// A number setting; odd numbers count as the even one below.
-final class _Even extends SettingController<int> {
+/// A number setting.
+final class _Number extends SettingController<int> {
   @override
   Provider<SettingStore<int>> get store => _storeProvider;
-
-  @override
-  int fit(int value) => value - value % 2;
 }
 
-final _evenProvider = AsyncNotifierProvider<_Even, int>(_Even.new);
+final _numberProvider = AsyncNotifierProvider<_Number, int>(_Number.new);
+
+/// A number setting that starts from a value loaded already.
+final class _Loaded extends _Number {
+  @override
+  int initial() => 5;
+}
+
+final _loadedProvider = AsyncNotifierProvider<_Number, int>(_Loaded.new);
 
 void main() {
   late ProviderContainer container;
@@ -37,16 +42,16 @@ void main() {
     container = ProviderContainer();
     addTearDown(container.dispose);
     store = container.read(_storeProvider) as _Store;
-    container.listen(_evenProvider, (_, _) {});
+    container.listen(_numberProvider, (_, _) {});
   });
 
-  _Even setting() => container.read(_evenProvider.notifier);
+  _Number setting() => container.read(_numberProvider.notifier);
 
-  int? shown() => container.read(_evenProvider).value;
+  int? shown() => container.read(_numberProvider).value;
 
   test('shows a new value at once, then saves it', () async {
     store.loading.complete(0);
-    await container.read(_evenProvider.future);
+    await container.read(_numberProvider.future);
 
     final saving = setting().set(4);
     expect(shown(), 4);
@@ -65,7 +70,7 @@ void main() {
 
   test('each change starts from the one before', () async {
     store.loading.complete(0);
-    await container.read(_evenProvider.future);
+    await container.read(_numberProvider.future);
 
     await Future.wait([
       setting().change((value) => value + 2),
@@ -75,19 +80,20 @@ void main() {
     expect(store.saves, [2, 4]);
   });
 
-  test('fits what it loads and what it is set to', () async {
-    store.loading.complete(3);
-    expect(await container.read(_evenProvider.future), 2);
+  test('a value loaded already shows at once, and changes are saved', () async {
+    expect(container.read(_loadedProvider).value, 5);
 
-    await setting().set(7);
-    expect(shown(), 6);
+    await container.read(_loadedProvider.notifier).change((value) => value + 1);
+
+    expect(container.read(_loadedProvider).value, 6);
+    expect(store.saves, [6]);
   });
 
   test('the same value again saves nothing', () async {
     store.loading.complete(2);
-    await container.read(_evenProvider.future);
+    await container.read(_numberProvider.future);
 
-    await setting().set(3);
+    await setting().set(2);
 
     expect(store.saves, isEmpty);
   });

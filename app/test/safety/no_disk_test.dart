@@ -11,6 +11,8 @@ import 'package:truce_editor/folder_state/following_changes.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
@@ -37,6 +39,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         syncToolsProvider.overrideWithValue(SyncTools([tool])),
         appActiveProvider.overrideWith(_Active.new),

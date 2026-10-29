@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/settings/ui/settings_screen.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/tray/close_to_tray_controller.dart';
+import 'package:truce_editor/tray/ui/close_to_tray_tile.dart';
 
 import '../../support.dart';
 import '../fakes.dart';
@@ -19,7 +20,7 @@ void main() {
     window = FakeWindow();
   });
 
-  final settings = find.byType(SettingsScreen);
+  final tile = find.byType(CloseToTrayTile);
 
   /// Lets file reads and writes finish, which complete outside the test's
   /// fake time, until [until] holds; then renders the result.
@@ -36,27 +37,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pumpSettings(WidgetTester tester, {bool withTray = true}) async {
+  Future<void> pumpTile(WidgetTester tester, {bool withTray = true}) async {
     final storage = AppStorage(tempFolder().path);
-    final zooms = (await tester.runAsync(() => savedTextZoomsIn(storage)))!;
     await tester.runAsync(
       () => tester.pumpWidget(
         ProviderScope(
           overrides: [
             appStorageProvider.overrideWithValue(storage),
-            savedTextZoomsProvider.overrideWithValue(zooms),
+            loadedDeviceSettingsProvider.overrideWithValue(
+              DeviceSettings.standard,
+            ),
             systemTrayProvider.overrideWithValue(withTray ? tray : null),
             appWindowProvider.overrideWithValue(window),
           ],
-          child: const MaterialApp(home: SettingsScreen()),
+          child: const MaterialApp(home: Scaffold(body: CloseToTrayTile())),
         ),
       ),
     );
     await settle(
       tester,
       until: () =>
-          settings.evaluate().isNotEmpty &&
-          ProviderScope.containerOf(tester.element(settings))
+          tile.evaluate().isNotEmpty &&
+          ProviderScope.containerOf(tester.element(tile))
               .read(closeToTrayProvider)
               .hasValue,
     );
@@ -77,7 +79,7 @@ void main() {
       .value;
 
   testWidgets('turns keeping running in the tray off and on', (tester) async {
-    await pumpSettings(tester);
+    await pumpTile(tester);
     expect(switchedOn(tester), isTrue);
 
     await toggle(tester, hideOnClose: false);
@@ -91,7 +93,7 @@ void main() {
 
   testWidgets('says when no tray can take the icon', (tester) async {
     tray.hasTray = false;
-    await pumpSettings(tester);
+    await pumpTile(tester);
 
     expect(find.text('No tray on this desktop: closing quits'), findsOneWidget);
   });
@@ -99,7 +101,7 @@ void main() {
   testWidgets('has no tray setting where the platform has no tray', (
     tester,
   ) async {
-    await pumpSettings(tester, withTray: false);
+    await pumpTile(tester, withTray: false);
 
     expect(find.text('Keep running in tray'), findsNothing);
   });

@@ -4,9 +4,9 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'platform/app_log.dart';
+import 'settings/device_settings_controller.dart';
 import 'storage/app_storage.dart';
 import 'storage/device_id.dart';
-import 'text_zoom/text_zoom_controller.dart';
 import 'theme/font_licenses.dart';
 import 'tray/start_in_background.dart';
 
@@ -16,16 +16,19 @@ Future<void> main(List<String> args) async {
   registerFontLicenses();
   await initializeDateFormatting();
   final storage = await AppStorage.resolve();
-  final (deviceId, textZooms) = await (
+  // One store for the file, so its writes stay one at a time.
+  final settingsStore = deviceSettingsStoreIn(storage);
+  final (deviceId, settings) = await (
     loadDeviceId(storage),
-    SavedTextZooms.load(storage),
+    settingsStore.load(),
   ).wait;
   runApp(
     ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
         deviceIdProvider.overrideWithValue(deviceId),
-        savedTextZoomsProvider.overrideWithValue(textZooms),
+        deviceSettingsStoreProvider.overrideWithValue(settingsStore),
+        loadedDeviceSettingsProvider.overrideWithValue(settings),
         startInBackgroundProvider.overrideWithValue(
           args.contains(backgroundFlag),
         ),

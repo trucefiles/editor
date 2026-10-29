@@ -14,13 +14,14 @@ import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/documents/document_text.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/new_file_place/new_file_place.dart';
-import 'package:truce_editor/documents/new_file_place/new_file_place_controller.dart';
 import 'package:truce_editor/documents/view_settings.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
@@ -46,6 +47,7 @@ void main() {
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
     );
     addTearDown(container.dispose);
@@ -150,12 +152,11 @@ void main() {
   });
 
   group('newFilePlace', () {
-    Future<void> setPlace(NewFilePlaceSetting? place) =>
-        container.read(newFilePlaceProvider.notifier).set(place);
+    Future<void> setPlace(NewFilePlaceSetting? place) => container
+        .read(deviceSettingsProvider.notifier)
+        .change((settings) => settings.copyWith(newFilePlace: () => place));
 
     test('is the default folder without a setting', () async {
-      await container.read(newFilePlaceProvider.future);
-
       expect(actions.newFilePlace(folders), (
         folder: folders[0],
         subfolder: null,

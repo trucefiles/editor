@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/tray/close_to_tray_controller.dart';
 import 'package:truce_editor/tray/start_in_background.dart';
@@ -19,10 +21,15 @@ void main() {
     storage = AppStorage(tempFolder().path);
   });
 
-  ProviderContainer container({bool background = true, bool withTray = true}) {
+  ProviderContainer container({
+    DeviceSettings settings = DeviceSettings.standard,
+    bool background = true,
+    bool withTray = true,
+  }) {
     final container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
+        loadedDeviceSettingsProvider.overrideWithValue(settings),
         systemTrayProvider.overrideWithValue(withTray ? tray : null),
         appWindowProvider.overrideWithValue(window),
         startInBackgroundProvider.overrideWithValue(background),

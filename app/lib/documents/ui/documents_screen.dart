@@ -24,14 +24,12 @@ import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../search/ui/search_screen.dart';
+import '../../settings/device_settings_controller.dart';
 import '../document.dart';
 import '../document_actions.dart';
 import '../document_settings_controller.dart';
 import '../document_settings_pruning.dart';
 import '../home/home_lists.dart';
-import '../home/home_settings.dart';
-import '../home/home_settings_controller.dart';
-import '../new_file_place/new_file_place_controller.dart';
 import 'all_documents_screen.dart';
 import 'document_sections.dart';
 import 'home_menu.dart';
@@ -69,14 +67,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final folders = ref.watch(folderListStateProvider);
-    // Loaded up front, so a document opens in its remembered view and a new
-    // one goes to the place set.
+    // Loaded up front, so a document opens in its remembered view.
     ref
       ..watch(documentSettingsProvider)
-      ..watch(newFilePlaceProvider)
       ..watch(backupPruningProvider)
       ..watch(documentSettingsPruningProvider)
-      ..watch(homeSettingsProvider)
       ..watch(followingChangesProvider);
     return Scaffold(
       appBar: AppBar(
@@ -166,9 +161,9 @@ class _DocumentsBody extends ConsumerWidget {
     final recent = recentOf(
       documents,
       isPinned: (document) => settings.settingsOf(document.key).pinned,
-      count:
-          ref.watch(homeSettingsProvider).value?.recentCount ??
-          HomeSettings.standard.recentCount,
+      count: ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
+      ),
     );
     final orphans = [
       for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])

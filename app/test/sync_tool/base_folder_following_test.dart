@@ -6,7 +6,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
-import 'package:truce_editor/refresh/refresh_settings_controller.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/storage/device_id.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
@@ -24,12 +25,14 @@ Future<({ProviderContainer container, BaseFolder base})> _start(
     overrides: [
       appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
       deviceIdProvider.overrideWithValue('0123456789abcdef'),
+      loadedDeviceSettingsProvider.overrideWithValue(
+        DeviceSettings.standard.copyWith(refresh: refresh),
+      ),
     ],
   );
   addTearDown(container.dispose);
   final folder = folderAt(Directory(basePath), selection: selection);
   await container.read(folderListStoreProvider).save([folder]);
-  await container.read(refreshSettingsStoreProvider).save(refresh);
   await container.read(foldersProvider.future);
   container.listen(folderFollowingProvider(folder.base), (_, _) {});
   return (container: container, base: folder.base);

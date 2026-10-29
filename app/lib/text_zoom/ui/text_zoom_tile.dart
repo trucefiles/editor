@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../settings/device_settings_controller.dart';
 import '../text_zoom.dart';
-import '../text_zoom_controller.dart';
 import '../text_zoom_target.dart';
 import 'text_zoom_title.dart';
 
@@ -15,7 +15,9 @@ class TextZoomTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zoom = ref.watch(textZoomProvider(target));
+    final zoom = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.textZoomOf(target)),
+    );
     return ListTile(
       title: Text(textZoomTitle(target)),
       trailing: Text('$zoom'),
@@ -25,8 +27,11 @@ class TextZoomTile extends ConsumerWidget {
         max: TextZoom.max.toDouble(),
         divisions: (TextZoom.max - TextZoom.min) ~/ TextZoom.step,
         onChanged: (percent) => ref
-            .read(textZoomProvider(target).notifier)
-            .set(TextZoom.closestTo(percent)),
+            .read(deviceSettingsProvider.notifier)
+            .change(
+              (settings) =>
+                  settings.withTextZoom(target, TextZoom.closestTo(percent)),
+            ),
       ),
     );
   }

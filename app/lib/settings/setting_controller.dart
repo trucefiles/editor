@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,18 +7,18 @@ import '../storage/setting_store.dart';
 
 export '../storage/setting_store.dart';
 
-/// One setting of this device, loaded from its store: each change starts
-/// from the value the change before left, shows at once, and is saved.
+/// One setting of this device, kept in its store: each change starts from
+/// the value the change before left, shows at once, and is saved.
 abstract class SettingController<T> extends AsyncNotifier<T> {
   /// The setting's store.
   Provider<SettingStore<T>> get store;
 
-  /// What [value] counts as here; the value itself unless a setting says
-  /// otherwise (e.g. a choice this platform can't do).
-  T fit(T value) => value;
+  /// The value it starts from: what [store] holds, unless the setting was
+  /// loaded already (then it shows at once, never "still loading").
+  FutureOr<T> initial() => ref.watch(store).load();
 
   @override
-  Future<T> build() async => fit(await ref.watch(store).load());
+  FutureOr<T> build() => initial();
 
   /// Sets the value to [value] (see [change]).
   Future<void> set(T value) => change((_) => value);
@@ -27,7 +29,7 @@ abstract class SettingController<T> extends AsyncNotifier<T> {
     // While it (re)loads, an old value may still show.
     if (state.isLoading || !state.hasValue) await future;
     final before = state.requireValue;
-    final after = fit(change(before));
+    final after = change(before);
     if (const DeepCollectionEquality().equals(before, after)) return;
     state = AsyncData(after);
     await ref.read(store).save(after);

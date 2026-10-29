@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_tile.dart';
 
@@ -14,7 +15,9 @@ void main() {
 
   TextZoom size(WidgetTester tester, TextZoomTarget target) =>
       ProviderScope.containerOf(tester.element(tile.first))
-          .read(textZoomProvider(target));
+          .read(deviceSettingsProvider)
+          .requireValue
+          .textZoomOf(target);
 
   /// Lets file reads and writes finish, which complete outside the test's
   /// fake time, until [until] holds; then renders the result.
@@ -39,12 +42,13 @@ void main() {
       tester,
     ) async {
       final storage = AppStorage(tempFolder().path);
-      final zooms = (await tester.runAsync(() => savedTextZoomsIn(storage)))!;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             appStorageProvider.overrideWithValue(storage),
-            savedTextZoomsProvider.overrideWithValue(zooms),
+            loadedDeviceSettingsProvider.overrideWithValue(
+              DeviceSettings.standard,
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(

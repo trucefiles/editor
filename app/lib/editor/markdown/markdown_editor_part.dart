@@ -7,8 +7,7 @@ import '../../document_page/editor_part.dart';
 import '../../documents/document_files.dart';
 import '../../documents/document_images.dart';
 import '../../documents/view_settings.dart';
-import '../add_item_place/add_item_place.dart';
-import '../add_item_place/add_item_place_controller.dart';
+import '../../settings/device_settings_controller.dart';
 import '../document_editor.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
@@ -184,7 +183,9 @@ class _MarkdownView extends ConsumerWidget {
     gate,
     text: place.kept,
     notices: gate.events,
-    addItems: ref.watch(addItemPlaceProvider).value ?? AddItemPlace.top,
+    addItems: ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.addItemPlace),
+    ),
     onLink: (url) => openMarkdownLink(context, ref, url),
     images: documentImages(
       ref.read(documentFilesProvider(place.folder)),

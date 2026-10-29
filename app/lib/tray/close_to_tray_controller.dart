@@ -1,18 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pool/pool.dart';
 
 import '../platform/platform_wiring.dart';
-import '../storage/app_storage.dart';
-import 'close_to_tray_store.dart';
-
-final closeToTrayStoreProvider = Provider<CloseToTrayStore>(
-  (ref) => CloseToTrayStore(
-    File('${ref.watch(appStorageProvider).settingsPath}/tray.json'),
-  ),
-);
+import '../settings/device_settings_controller.dart';
 
 final closeToTrayProvider =
     AsyncNotifierProvider<CloseToTrayController, CloseToTray>(
@@ -51,7 +43,8 @@ class CloseToTrayController extends AsyncNotifier<CloseToTray> {
       tray.visible.removeListener(_apply);
       unawaited(tray.hide());
     });
-    final enabled = await ref.watch(closeToTrayStoreProvider).load();
+    // Read once: a change goes through [setEnabled].
+    final enabled = ref.read(deviceSettingsProvider).requireValue.closeToTray;
     await _showTray(enabled: enabled);
     return _passOn(enabled: enabled);
   }
@@ -65,7 +58,9 @@ class CloseToTrayController extends AsyncNotifier<CloseToTray> {
       );
     }
     return _changes.withResource(() async {
-      await ref.read(closeToTrayStoreProvider).save(enabled: enabled);
+      await ref
+          .read(deviceSettingsProvider.notifier)
+          .change((settings) => settings.copyWith(closeToTray: enabled));
       await _showTray(enabled: enabled);
       final settled = await _passOn(enabled: enabled);
       if (ref.mounted) state = AsyncData(settled);

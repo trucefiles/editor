@@ -13,28 +13,12 @@ import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/base_folder_services.dart';
 import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
-import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/text_zoom_controller.dart';
-import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_test_support/truce_test_support.dart' show path;
 
 export 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, WriteCreatingFolders, bytesOf, path;
-
-/// The zooms `main` loads from [storage], once [zooms] are saved there.
-/// In a widget test, call it inside `runAsync`: it reads real files.
-Future<SavedTextZooms> savedTextZoomsIn(
-  AppStorage storage, [
-  Map<TextZoomTarget, TextZoom> zooms = const {},
-]) async {
-  for (final MapEntry(key: target, value: zoom) in zooms.entries) {
-    await textZoomStoreIn(storage, target).save(zoom);
-  }
-  return SavedTextZooms.load(storage);
-}
 
 /// Waits until [holds], for work whose end the test cannot see (files
 /// written after a timer); fails once [timeout] has passed. Fixed waits

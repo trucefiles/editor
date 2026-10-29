@@ -9,7 +9,7 @@ import '../folders/base_folder.dart';
 import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
 import '../refresh/refresh_settings.dart';
-import '../refresh/refresh_settings_controller.dart';
+import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
 import '../storage/device_id.dart';
 import 'app_writes.dart';
@@ -109,8 +109,9 @@ final baseFolderServicesProvider =
         // Read at each wait; an old build's changes may still be followed
         // for a moment after it is replaced.
         checkEvery: () =>
-            ((ref.mounted ? ref.read(refreshSettingsProvider).value : null) ??
-                    RefreshSettings.standard)
+            (ref.mounted
+                    ? ref.read(deviceSettingsProvider).requireValue.refresh
+                    : RefreshSettings.standard)
                 .interval,
         wrote: (paths) => ref.read(appWritesProvider).wrote(base.id, paths),
       );
