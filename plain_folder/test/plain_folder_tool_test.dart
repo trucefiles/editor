@@ -27,7 +27,7 @@ void main() {
 
       expect(await tool.recognize(address), SyncStatus.unknown);
       expect(await tool.missesOldVersions(address), isFalse);
-      expect(tool.isToolFolder(['.stversions']), isFalse);
+      expect(tool.isToolFolder(Uri.file('${dir.path}/.stversions')), isFalse);
     });
 
     test('writes atomically with its own temp files', () async {
@@ -36,6 +36,14 @@ void main() {
       await place.files.create(path('a.md'), bytesOf('text'));
 
       expect(File('${dir.path}/a.md').readAsStringSync(), 'text');
+    });
+
+    test('shows no hidden folder, nor what is in it', () {
+      final place = tool.place(Uri.file(dir.path));
+
+      expect(place.showsFolder(path('docs/new')), isTrue);
+      expect(place.showsFolder(path('.git')), isFalse);
+      expect(place.showsFolder(path('.git/docs')), isFalse);
     });
   });
 

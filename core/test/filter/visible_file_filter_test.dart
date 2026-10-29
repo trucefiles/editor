@@ -28,6 +28,13 @@ void main() {
     expect(filter.includesFile(path('photo.jpg')), isTrue);
   });
 
+  test('includes a folder path only if every folder on it is included', () {
+    expect(filter.includesFolderPath(path('a/b/c')), isTrue);
+    expect(filter.includesFolderPath(path('a/.git/c')), isFalse);
+    expect(filter.includesFolderPath(path('.fake/b')), isFalse);
+    expect(filter.includesFolderPath(path('a/.fake')), isFalse);
+  });
+
   test("leaves out the sync tool's own files", () {
     expect(filter.includesFile(path('todo.md.1234.fake-tmp')), isFalse);
   });

@@ -49,9 +49,11 @@ void main() {
       expect(await tool.missesOldVersions(elsewhere), isFalse);
     });
 
-    test('knows its own folders', () {
-      expect(tool.isToolFolder(['.stversions']), isTrue);
-      expect(tool.isToolFolder(['docs']), isFalse);
+    test('knows its own folders by their address', () {
+      expect(tool.isToolFolder(at('synced/.stversions')), isTrue);
+      expect(tool.isToolFolder(at('synced/.stversions/docs')), isTrue);
+      expect(tool.isToolFolder(at('synced/docs')), isFalse);
+      expect(tool.isToolFolder(Uri.parse('fake://x/.stversions')), isFalse);
     });
 
     test('works on the folder at an address with its temp files, '
@@ -62,6 +64,15 @@ void main() {
 
       expect(File('${dir.path}/synced/a.md').readAsStringSync(), 'text');
       expect((await place.subfolders.namesIn(null)).value, ['docs']);
+    });
+
+    test('shows no hidden folder and none of its own, nor what is in them', () {
+      final place = tool.place(at('synced'));
+
+      expect(place.showsFolder(path('docs/new')), isTrue);
+      expect(place.showsFolder(path('.stversions')), isFalse);
+      expect(place.showsFolder(path('.stversions/docs')), isFalse);
+      expect(place.showsFolder(path('docs/.git')), isFalse);
     });
   });
 

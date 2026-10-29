@@ -20,8 +20,8 @@ final class PlainFolderTool implements SyncTool {
   String get name => 'Plain folder';
 
   @override
-  bool isToolFolder(List<String> names) =>
-      PlainFolderPlace.rules.isInternalFolder(names);
+  bool isToolFolder(Uri address) =>
+      PlainFolderPlace.rules.isInternalFolder(address.pathSegments);
 
   @override
   Future<SyncStatus> recognize(Uri address) async => SyncStatus.unknown;

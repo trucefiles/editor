@@ -1,10 +1,10 @@
 import '../changes/folder_changes.dart';
 import '../changes/live_changes.dart';
 import '../conflicts/conflict_source.dart';
-import '../filter/file_filter.dart';
 import '../place/bounded_place.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import '../storage/subfolder_names.dart';
 import 'folder_notices.dart';
 import 'sync_check.dart';
@@ -25,10 +25,11 @@ abstract interface class SyncTool {
   /// The tool's name, for the UI.
   String get name;
 
-  /// Whether the folder whose path has the segments [names], outermost
-  /// first, is the tool's own (e.g. its version folder) or lies inside it.
-  /// Such a folder never holds the user's documents.
-  bool isToolFolder(List<String> names);
+  /// Whether the folder at [address] is the tool's own (e.g. its version
+  /// folder) or lies inside one. Such a folder never holds the user's
+  /// documents. Any address is asked, also one the tool can't open:
+  /// `false` then.
+  bool isToolFolder(Uri address);
 
   /// Whether this tool syncs the base folder at [address], as far as it
   /// can tell. Any address is asked, also one the tool can't open:
@@ -60,8 +61,14 @@ abstract interface class ToolPlace {
   /// followed live.
   LiveChanges? get changes;
 
-  /// The folder names in the base folder, for the user to pick subfolders.
+  /// The folder names in the base folder, for the user to pick subfolders:
+  /// only the folders it shows.
   SubfolderNames get subfolders;
+
+  /// Whether the tool shows the folder at [folder], and each folder on the
+  /// way to it: e.g. none of its own and no hidden one. A folder it doesn't
+  /// show never holds the user's documents.
+  bool showsFolder(RelPath folder);
 
   /// The base folder's files by the tool's rules, on [bounded]: only what
   /// the app may touch there (the handled file types and the app's own
@@ -77,7 +84,6 @@ final class SyncedFolder {
     required this.conflicts,
     required this.notices,
     required this.changes,
-    required this.shown,
   });
 
   /// The folder's files, read and written by the tool's rules.
@@ -90,8 +96,4 @@ final class SyncedFolder {
   /// The folder's changes as they happen, without the tool's own files;
   /// `null` where they can't be followed live.
   final FolderChanges? changes;
-
-  /// Which files and folders the tool shows: none of its own and no
-  /// hidden ones.
-  final FileFilter shown;
 }

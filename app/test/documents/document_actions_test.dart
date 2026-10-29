@@ -151,6 +151,16 @@ void main() {
     );
   });
 
+  test('can hold documents only in folders the sync tool shows, '
+      'inside the selection', () {
+    final docs = folders[0].copyWith(selection: Selection.of([path('docs')]));
+
+    expect(actions.canHold(docs, path('docs/new')), isTrue);
+    expect(actions.canHold(docs, path('other')), isFalse);
+    expect(actions.canHold(docs, path('docs/.hidden/new')), isFalse);
+    expect(actions.canHold(docs, path('docs/.stversions')), isFalse);
+  });
+
   group('newFilePlace', () {
     Future<void> setPlace(NewFilePlaceSetting? place) => container
         .read(deviceSettingsProvider.notifier)

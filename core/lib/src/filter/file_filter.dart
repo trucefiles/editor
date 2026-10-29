@@ -18,4 +18,8 @@ extension FileFilterPaths on FileFilter {
   /// Whether [file] is included and every folder it is in is walked.
   bool includesPath(RelPath file) =>
       file.folders.every(includesFolder) && includesFile(file);
+
+  /// Whether [folder] and every folder it is in are walked.
+  bool includesFolderPath(RelPath folder) =>
+      includesFolder(folder) && folder.folders.every(includesFolder);
 }

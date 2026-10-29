@@ -19,8 +19,9 @@ final class SyncthingTool implements SyncTool {
   String get name => 'Syncthing';
 
   @override
-  bool isToolFolder(List<String> names) =>
-      SyncthingPlace.rules.isInternalFolder(names);
+  bool isToolFolder(Uri address) =>
+      _disk.serves(address) &&
+      SyncthingPlace.rules.isInternalFolder(address.pathSegments);
 
   @override
   Future<SyncStatus> recognize(Uri address) async => _disk.serves(address)

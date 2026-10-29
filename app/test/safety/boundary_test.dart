@@ -214,7 +214,7 @@ final class _SpiedTool implements SyncTool {
   String get name => _tool.name;
 
   @override
-  bool isToolFolder(List<String> names) => _tool.isToolFolder(names);
+  bool isToolFolder(Uri address) => _tool.isToolFolder(address);
 
   @override
   Future<SyncStatus> recognize(Uri address) => _tool.recognize(address);
@@ -241,6 +241,9 @@ final class _SpiedPlace implements ToolPlace {
 
   @override
   SubfolderNames get subfolders => _place.subfolders;
+
+  @override
+  bool showsFolder(RelPath folder) => _place.showsFolder(folder);
 
   @override
   SyncedFolder open(BoundedPlace bounded) => _place.open(bounded);

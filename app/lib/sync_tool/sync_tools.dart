@@ -26,8 +26,8 @@ final class SyncTools {
     orElse: () => throw StateError('No sync tool $id'),
   );
 
-  /// Whether the folder whose path has the segments [segments] belongs to
-  /// any of the tools itself (e.g. its version folder).
-  bool isToolFolder(List<String> segments) =>
-      all.any((tool) => tool.isToolFolder(segments));
+  /// Whether the folder at [address] belongs to any of the tools itself
+  /// (e.g. its version folder).
+  bool isToolFolder(Uri address) =>
+      all.any((tool) => tool.isToolFolder(address));
 }

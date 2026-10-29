@@ -32,9 +32,9 @@ final class FolderListWork {
   /// Where base folders lie on the host, to tell whether they overlap.
   final HostPaths hostPaths;
 
-  /// Whether the folder whose path has these segments belongs to a sync
-  /// tool itself (e.g. its version folder).
-  final bool Function(List<String> segments) isToolFolder;
+  /// Whether the folder at an address belongs to a sync tool itself (e.g.
+  /// its version folder).
+  final bool Function(Uri address) isToolFolder;
 
   /// Keeps the edits of the documents open in a base folder where they
   /// last, before what the app may touch there changes.
@@ -112,7 +112,7 @@ final class _FolderListSteps {
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
     final host = await _work.hostPaths.of(add.address);
-    if (_work.isToolFolder(_segments(host))) {
+    if (_work.isToolFolder(host)) {
       return const Err(FolderError.syncToolInternal);
     }
     BaseFolder? same;
