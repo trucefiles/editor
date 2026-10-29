@@ -24,11 +24,7 @@ final class TextFile {
   /// The first one found is the file's style, for new lines; `\n` if there
   /// is none.
   static TextFile? decode(Uint8List bytes) {
-    final hasBom =
-        bytes.length >= 3 &&
-        bytes[0] == 0xEF &&
-        bytes[1] == 0xBB &&
-        bytes[2] == 0xBF;
+    final hasBom = _startsWithBom(bytes);
     final String raw;
     try {
       raw = utf8.decode(hasBom ? bytes.sublist(3) : bytes);
@@ -43,6 +39,23 @@ final class TextFile {
       breaks: breaks,
     );
   }
+
+  /// [bytes] as text to show and compare, as [decode] gives it: `\n`
+  /// line breaks, no byte order mark. Only to show: bytes that are not
+  /// valid UTF-8 show as replacement characters, so such text is never
+  /// written.
+  static String textToShow(Uint8List bytes) => utf8
+      .decode(
+        _startsWithBom(bytes) ? bytes.sublist(3) : bytes,
+        allowMalformed: true,
+      )
+      .replaceAll(anyLineBreak, '\n');
+
+  static bool _startsWithBom(Uint8List bytes) =>
+      bytes.length >= 3 &&
+      bytes[0] == 0xEF &&
+      bytes[1] == 0xBB &&
+      bytes[2] == 0xBF;
 
   /// A new file's style: no byte order mark, `\n` line breaks.
   const TextFile.empty()

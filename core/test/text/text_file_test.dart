@@ -77,4 +77,15 @@ void main() {
 
     expect(utf8.decode(saved.encode('a\nb\nc\nd')), 'a\nb\r\nc\nd');
   });
+
+  test('text to show drops the byte order mark and breaks as decode does', () {
+    final bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8Of('a\r\nb')]);
+
+    expect(TextFile.textToShow(bytes), 'a\nb');
+    expect(TextFile.textToShow(bytes), TextFile.decode(bytes)!.text);
+  });
+
+  test('text to show shows invalid UTF-8 as replacement characters', () {
+    expect(TextFile.textToShow(Uint8List.fromList([0x61, 0xFF])), 'a\uFFFD');
+  });
 }
