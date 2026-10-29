@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/document.dart';
-import '../documents/document_files.dart';
+import '../documents/documents_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 import 'document_search.dart';
 import 'text_search_wiring.dart';
@@ -30,7 +30,7 @@ class DocumentSearchController extends Notifier<SearchResults> {
     final search = _search = ref.read(openTextSearchProvider)(
       searchablesOf(
         ref.read(folderContentsProvider).value?.documents ?? const [],
-        filesOf: (folder) => ref.read(documentFilesProvider(folder)),
+        filesOf: (folder) => ref.read(folderFilesProvider).of(folder),
       ),
     );
     final changes = search.changes.listen((_) => find(state.query));

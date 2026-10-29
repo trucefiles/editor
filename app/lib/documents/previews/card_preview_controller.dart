@@ -5,7 +5,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../../file_types/document_types.dart';
 import '../document.dart';
-import '../document_files.dart';
+import '../documents_wiring.dart';
 import '../open_failure.dart';
 import 'card_preview.dart';
 import 'card_previews.dart';
@@ -15,7 +15,8 @@ import 'card_previews.dart';
 final cardPreviewsProvider = Provider<CardPreviews>(
   (ref) => CardPreviews(
     (document) async => switch (await ref
-        .read(documentFilesProvider(document.folder))
+        .read(folderFilesProvider)
+        .of(document.folder)
         .reload(document)) {
       Ok(value: final read) => Previewed(
         ref

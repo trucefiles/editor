@@ -2,9 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../documents/document.dart';
+import '../folders/folder_list_owner.dart';
 import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
-import '../sync_tool/base_folder_services.dart';
+import '../sync_tool/base_folder_wiring.dart';
 import 'all_backups.dart';
 
 /// The backups of one document, newest first; read again each time they
@@ -13,7 +14,7 @@ final documentBackupsProvider = FutureProvider.autoDispose
     .family<List<FolderBackup>, DocumentKey>((ref, key) async {
       // Built again as the list changes; none if it can't be read.
       ref.watch(folderListStateProvider);
-      final folders = await settledFolders(ref);
+      final folders = await settledFolders(ref.read(folderListOwnerProvider));
       final folder = folders.folderOf(key.baseId, key.path);
       if (folder == null) return const [];
       final backups = ref

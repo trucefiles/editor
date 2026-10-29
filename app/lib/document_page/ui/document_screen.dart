@@ -14,14 +14,13 @@ import '../../documents/deleted_document.dart';
 import '../../documents/document.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
-import '../../documents/document_drafts.dart';
-import '../../documents/document_files.dart';
 import '../../documents/document_place.dart';
 import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
 import '../../documents/document_text.dart';
 import '../../documents/document_title.dart';
 import '../../documents/document_version.dart';
+import '../../documents/documents_wiring.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
@@ -42,7 +41,6 @@ import '../document_file.dart';
 import '../document_session.dart';
 import '../editor_part.dart';
 import '../file_effects.dart';
-import '../open_documents.dart';
 import 'document_backups.dart';
 import 'document_place_chip.dart';
 import 'edit_state_banner.dart';
@@ -138,9 +136,9 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     _session = DocumentSession(
       FileEffects(
         file,
-        filesOf: (folder) => _container.read(documentFilesProvider(folder)),
+        filesOf: (folder) => _container.read(folderFilesProvider).of(folder),
         draftsOf: (folder) =>
-            _container.read(documentDraftsProvider(folder.base.id)),
+            _container.read(draftsProvider).of(folder.base.id),
         create: ref.read(documentActionsProvider).create,
       ),
       _part.editor,
@@ -209,7 +207,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       switch (_session.document) {
         final document? =>
           await _container
-              .read(documentFilesProvider(document.folder))
+              .read(folderFilesProvider)
+              .of(document.folder)
               .backUpCurrent(document, text),
         null => const Err(StoreError.notFound),
       };

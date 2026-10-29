@@ -10,7 +10,7 @@ import 'package:truce_editor/backups/restore_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 
 import '../support.dart';
 

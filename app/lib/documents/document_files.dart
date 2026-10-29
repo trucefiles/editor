@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../file_types/document_type.dart';
 import '../file_types/document_types.dart';
+import '../folders/base_folder.dart';
 import '../folders/document_folder.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
@@ -329,10 +329,15 @@ final class DocumentFiles {
 /// made right before the document's file.
 typedef _Subfolder = ({RelPath? folder, bool isNew});
 
-final documentFilesProvider = Provider.family<DocumentFiles, DocumentFolder>(
-  (ref, folder) => DocumentFiles(
-    folder,
-    ref.watch(baseFolderServicesProvider(folder.base)),
-    ref.watch(documentTypesProvider),
-  ),
-);
+/// The document files of every folder, each through its base folder's
+/// services as its folders show it now.
+final class FolderFiles {
+  const FolderFiles(this._servicesOf, this._types);
+
+  final BaseFolderServices Function(BaseFolder base) _servicesOf;
+  final DocumentTypes _types;
+
+  /// The files of [folder].
+  DocumentFiles of(DocumentFolder folder) =>
+      DocumentFiles(folder, _servicesOf(folder.base), _types);
+}

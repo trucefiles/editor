@@ -4,12 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
-import 'package:truce_editor/document_page/open_documents.dart';
 import 'package:truce_editor/documents/document_actions.dart';
 import 'package:truce_editor/documents/document_draft.dart';
-import 'package:truce_editor/documents/document_drafts.dart';
-import 'package:truce_editor/documents/document_files.dart';
-import 'package:truce_editor/documents/document_steps.dart';
+import 'package:truce_editor/documents/documents_wiring.dart';
 import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/documents/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
@@ -22,6 +19,7 @@ import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
+import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
 
 import '../support.dart';
@@ -88,7 +86,7 @@ void main() {
     final folder = folderAt(dir, selection: work);
     await start([folder]);
     final actions = container.read(documentActionsProvider);
-    final files = container.read(documentFilesProvider(folder));
+    final files = container.read(folderFilesProvider).of(folder);
     final markdown = appDocumentTypes().forNew;
 
     final found = await scanned();
@@ -144,7 +142,7 @@ void main() {
       final both = Selection.of([path('notes/work'), path('home')]);
       final folder = folderAt(dir, selection: both);
       await start([folder]);
-      final files = container.read(documentFilesProvider(folder));
+      final files = container.read(folderFilesProvider).of(folder);
       final b = (await files.open(path('home/b.md'))).value;
       final saved = (await files.save(b, '# B\nfirst')).value;
       // The open document's last edits, kept as the folder changes.
@@ -157,7 +155,7 @@ void main() {
               secured = (await files.save(saved, '# B\nlast')) is Ok;
             },
           );
-      final drafts = container.read(documentDraftsProvider(folder.base.id));
+      final drafts = container.read(draftsProvider).of(folder.base.id);
       await drafts.keep(
         DocumentDraft(id: 'left', path: path('home/b.md'), base: '', text: 'x'),
       );
@@ -175,7 +173,8 @@ void main() {
       final narrowed = container.read(foldersProvider).value!.single;
       expect(
         (await container
-                .read(documentFilesProvider(narrowed))
+                .read(folderFilesProvider)
+                .of(narrowed)
                 .open(path('home/b.md')))
             .error,
         const NotRead(StoreError.outside),

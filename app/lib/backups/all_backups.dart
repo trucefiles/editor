@@ -2,9 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../folders/document_folder.dart';
+import '../folders/folder_list_owner.dart';
 import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
-import '../sync_tool/base_folder_services.dart';
+import '../sync_tool/base_folder_wiring.dart';
 
 /// A backup and the folder its document is in.
 typedef FolderBackup = ({DocumentFolder folder, Backup backup});
@@ -19,7 +20,7 @@ final allBackupsProvider = FutureProvider.autoDispose<List<FolderBackup>>((
 ) async {
   // Built again as the list changes; none if it can't be read.
   ref.watch(folderListStateProvider);
-  final folders = await settledFolders(ref);
+  final folders = await settledFolders(ref.read(folderListOwnerProvider));
   final sources = [
     for (final base in {for (final folder in folders) folder.base})
       (base, ref.watch(baseFolderServicesProvider(base)).backups),

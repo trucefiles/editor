@@ -8,8 +8,7 @@ import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
-import 'package:truce_editor/sync_tool/base_folder_following.dart';
-import 'package:truce_editor/sync_tool/base_folder_services.dart';
+import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 
 import '../../support.dart';
 

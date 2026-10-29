@@ -1,12 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../file_types/document_type.dart';
 import '../file_types/document_types.dart';
-import '../folder_state/folder_state_controller.dart';
+import '../folders/base_folder.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_lookup.dart';
-import '../folders/folders_controller.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'delete_failure.dart';
 import 'deleted_document.dart';
@@ -14,31 +12,57 @@ import 'document.dart';
 import 'document_drafts.dart';
 import 'document_files.dart';
 import 'document_place.dart';
-import 'document_settings_controller.dart';
+import 'document_settings_keeper.dart';
 import 'document_text.dart';
 import 'draft_recovery.dart';
 import 'move_failure.dart';
 
-final documentStepsProvider = Provider<DocumentSteps>(DocumentSteps.new);
+/// What the document steps work with, from the app's wiring.
+final class DocumentsWork {
+  const DocumentsWork({
+    required this.files,
+    required this.servicesOf,
+    required this.settings,
+    required this.conflictWaits,
+    required this.folders,
+    required this.drafts,
+    required this.types,
+  });
+
+  final FolderFiles files;
+
+  /// A base folder's services, as its folders show it now.
+  final BaseFolderServices Function(BaseFolder base) servicesOf;
+
+  final DocumentSettingsKeeper settings;
+
+  /// Whether a sync conflict of a document waits, as last seen.
+  final bool Function(DocumentKey key) conflictWaits;
+
+  /// The folders once their list loaded; none if it can't be read.
+  final Future<List<DocumentFolder>> Function() folders;
+
+  final DraftsByBase drafts;
+  final DocumentTypes types;
+}
 
 /// The steps of the user's actions on documents: create, new subfolder,
 /// move or rename, delete and undo, color, and recovering the drafts of
 /// the last run. Run one at a time by the documents owner, so their side
 /// steps (mark, settings, backups) never mix.
 base class DocumentSteps {
-  DocumentSteps(this._ref);
+  DocumentSteps(this._work);
 
-  final Ref _ref;
+  final DocumentsWork _work;
 
-  DocumentSettingsController get _settings =>
-      _ref.read(documentSettingsProvider.notifier);
+  FolderFiles get _files => _work.files;
+  DocumentSettingsKeeper get _settings => _work.settings;
 
-  BaseFolderServices _servicesOf(DocumentFolder folder) =>
-      _ref.read(baseFolderServicesProvider(folder.base));
+  DocumentMarks _marksOf(DocumentFolder folder) =>
+      _work.servicesOf(folder.base).marks;
 
-  DocumentMarks _marksOf(DocumentFolder folder) => _servicesOf(folder).marks;
-
-  FileBackups _backupsOf(DocumentFolder folder) => _servicesOf(folder).backups;
+  FileBackups _backupsOf(DocumentFolder folder) =>
+      _work.servicesOf(folder.base).backups;
 
   /// [from]'s backups become [to]'s: the document moved there. Best
   /// effort, as its color: a backup left behind still shows in Backups.
@@ -56,8 +80,8 @@ base class DocumentSteps {
     required String title,
     required String text,
     bool newSubfolder = false,
-  }) => _ref
-      .read(documentFilesProvider(place.folder))
+  }) => _files
+      .of(place.folder)
       .create(
         title,
         type: type,
@@ -81,12 +105,12 @@ base class DocumentSteps {
     String? title,
     bool newSubfolder = false,
   }) async {
-    if (_conflictWaits(document.key)) {
+    if (_work.conflictWaits(document.key)) {
       return const Err(MoveBlockedByConflict());
     }
     final mark = await _markOf(document.folder, document.path);
     final settings = _settings.settingsOf(document.key);
-    final files = _ref.read(documentFilesProvider(place.folder));
+    final files = _files.of(place.folder);
     final sameBase = place.folder.base == document.folder.base;
     final written = sameBase
         ? await files.moveIn(
@@ -115,8 +139,8 @@ base class DocumentSteps {
     }
     await _settings.edit(moved.key, (_) => settings);
     if (!sameBase) {
-      final deleted = await _ref
-          .read(documentFilesProvider(document.folder))
+      final deleted = await _files
+          .of(document.folder)
           .delete(document.document);
       if (deleted case Err(:final error)) {
         return Err(MoveLeftOriginal(moved, error));
@@ -135,14 +159,12 @@ base class DocumentSteps {
     DocumentText document,
     String text,
   ) async {
-    if (_conflictWaits(document.key)) {
+    if (_work.conflictWaits(document.key)) {
       return const Err(DeleteBlockedByConflict());
     }
     final mark = await _markOf(document.folder, document.path);
     final settings = _settings.settingsOf(document.key);
-    final deleted = await _ref
-        .read(documentFilesProvider(document.folder))
-        .delete(document.document);
+    final deleted = await _files.of(document.folder).delete(document.document);
     if (deleted case Err(:final error)) return Err(DeleteNotDone(error));
     // Best effort: the next write of the marks drops it anyway.
     await _marksOf(document.folder).remove(document.path);
@@ -156,7 +178,7 @@ base class DocumentSteps {
   /// backups go with it.
   Future<Result<void, StoreError>> undoDelete(DeletedDocument deleted) async {
     final DeletedDocument(:document, :text, :mark, :settings) = deleted;
-    final files = _ref.read(documentFilesProvider(document.folder));
+    final files = _files.of(document.folder);
     final restored = switch (await files.restore(document, text)) {
       Err(error: StoreError.alreadyExists) => await files.copyIn(
         document,
@@ -180,24 +202,18 @@ base class DocumentSteps {
   /// Recovers the drafts of every base folder written before [before]
   /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
-    final folders = await settledFolders(_ref);
-    final types = _ref.read(documentTypesProvider);
+    final folders = await _work.folders();
     for (final base in {for (final folder in folders) folder.base}) {
       await DraftRecovery(
-        _ref.read(documentDraftsProvider(base.id)),
+        _work.drafts.of(base.id),
         filesFor: (path) => switch (folders.folderOf(base.id, path)) {
-          final folder? => _ref.read(documentFilesProvider(folder)),
+          final folder? => _files.of(folder),
           null => null,
         },
-        types: types,
+        types: _work.types,
       ).recover(before: before);
     }
   }
-
-  /// Whether a sync conflict of the document at [key] waits, as last seen.
-  bool _conflictWaits(DocumentKey key) =>
-      _ref.read(folderContentsProvider).value?.conflicts.forDocument(key) !=
-      null;
 
   /// The color of the document at [path] in [folder] as it is now: read
   /// from its marks, as the folder state may not have seen a color just

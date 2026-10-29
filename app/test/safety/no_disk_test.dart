@@ -2,11 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_actions.dart';
-import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/documents_wiring.dart';
 import 'package:truce_editor/documents/move_failure.dart';
 import 'package:truce_editor/documents/open_failure.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folder_state/following_changes.dart';
+import 'package:truce_editor/folder_state/folder_state_wiring.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
@@ -14,6 +14,7 @@ import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/sync_tools.dart';
+import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakePlace, FakeSyncTool;
 
@@ -69,7 +70,7 @@ void main() {
   test('lists, opens, saves, creates and moves documents, into a new '
       'subfolder too', () async {
     final actions = container.read(documentActionsProvider);
-    final files = container.read(documentFilesProvider(folder));
+    final files = container.read(folderFilesProvider).of(folder);
 
     expect(await listed(), ['work/a.md']);
     final a = (await files.open(path('work/a.md'))).value;
@@ -109,7 +110,7 @@ void main() {
 
   test('follows the tool\'s live changes of what the folder shows', () async {
     container.listen(followingChangesProvider, (_, _) {});
-    await container.read(followingChangesProvider.future);
+    container.read(followingChangesProvider);
     await listed();
     await eventually(() => place.changes.follows(path('work')));
 

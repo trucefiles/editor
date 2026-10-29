@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
-import 'package:truce_editor/documents/document_files.dart';
+import 'package:truce_editor/documents/documents_wiring.dart';
 import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
@@ -234,7 +234,8 @@ void main() {
     final shown = container.listen(folderContentsProvider, (_, _) {});
 
     await container
-        .read(documentFilesProvider(folder))
+        .read(folderFilesProvider)
+        .of(folder)
         .create(
           'New',
           type: container.read(documentTypesProvider).forNew,

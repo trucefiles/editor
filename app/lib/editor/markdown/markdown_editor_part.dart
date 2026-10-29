@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../../document_page/editor_part.dart';
-import '../../documents/document_files.dart';
 import '../../documents/document_images.dart';
+import '../../documents/documents_wiring.dart';
 import '../../documents/view_settings.dart';
 import '../../settings/device_settings_controller.dart';
 import '../document_editor.dart';
@@ -188,7 +188,7 @@ class _MarkdownView extends ConsumerWidget {
     ),
     onLink: (url) => openMarkdownLink(context, ref, url),
     images: documentImages(
-      ref.read(documentFilesProvider(place.folder)),
+      ref.read(folderFilesProvider).of(place.folder),
       folder: place.folder,
       document: place.path,
     ),

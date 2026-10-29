@@ -1,8 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../folders/base_folder.dart';
-
-final openDocumentsProvider = Provider<OpenDocuments>((_) => OpenDocuments());
 
 /// The documents open on screen right now, so that a change to what the
 /// app may touch in a base folder first keeps their edits where they last.

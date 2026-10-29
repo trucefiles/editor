@@ -110,7 +110,7 @@ BaseFolderServices servicesFor(
     syncToolName: tool.name,
     reach: folderReach(place.files),
     selection: folder.selection,
-    types: appDocumentTypes(),
+    handles: appDocumentTypes().handles,
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',

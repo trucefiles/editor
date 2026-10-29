@@ -1,13 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-
-final appWritesProvider = Provider<AppWrites>((ref) {
-  final writes = AppWrites();
-  ref.onDispose(writes.close);
-  return writes;
-});
 
 /// The app's own writes into the base folders, as they happen: told by
 /// each base folder's services, heard by whoever keeps what the folders

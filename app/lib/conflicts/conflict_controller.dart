@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import '../documents/document.dart';
 import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
-import '../sync_tool/base_folder_services.dart';
+import '../sync_tool/base_folder_wiring.dart';
 import '../versions/compare_controller.dart';
 import 'conflict_compare.dart';
 import 'conflict_sides.dart';

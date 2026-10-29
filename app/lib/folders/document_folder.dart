@@ -36,14 +36,17 @@ final class DocumentFolder {
   /// Whether the file or folder at [path] in [base] belongs to it.
   bool covers(RelPath path) => selection.covers(path);
 
-  DocumentFolder copyWith({String? name, String? color, Selection? selection}) =>
-      DocumentFolder(
-        id: id,
-        base: base,
-        selection: selection ?? this.selection,
-        name: name ?? this.name,
-        color: color ?? this.color,
-      );
+  DocumentFolder copyWith({
+    String? name,
+    String? color,
+    Selection? selection,
+  }) => DocumentFolder(
+    id: id,
+    base: base,
+    selection: selection ?? this.selection,
+    name: name ?? this.name,
+    color: color ?? this.color,
+  );
 
   @override
   bool operator ==(Object other) =>

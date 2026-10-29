@@ -6,7 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import '../folders/base_folder.dart';
 import '../folders/document_folder.dart';
 import '../folders/folders_controller.dart';
-import '../sync_tool/base_folder_services.dart';
+import '../sync_tool/base_folder_wiring.dart';
 
 final folderReachProvider =
     NotifierProvider.family<FolderReachController, Reach, BaseFolder>(
