@@ -73,6 +73,11 @@ final class TestApp {
   Future<void> useTextZoom(TextZoomTarget target, TextZoom zoom) =>
       textZoomStoreIn(_storage, target).save(zoom);
 
+  /// Starts the app with a saved folder list it can't read.
+  void damageFolderList() =>
+      File('${_storage.settingsPath}/folder_list.json')
+          .writeCreatingFolders('{"broken": true}');
+
   /// [name] may lead through subfolders; [write] creates them.
   File file(String name) => File('${documents.path}/$name');
 

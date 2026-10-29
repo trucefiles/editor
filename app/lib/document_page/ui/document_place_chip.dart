@@ -47,9 +47,7 @@ class DocumentPlaceChip extends ConsumerWidget {
     await ref.read(folderContentsProvider.notifier).refresh();
     if (!context.mounted) return;
     final actions = ref.read(documentActionsProvider);
-    final folders = actions.reachableOf(
-      ref.read(loadedFoldersProvider).value ?? [],
-    );
+    final folders = actions.reachableOf(ref.read(foldersProvider).value ?? []);
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }

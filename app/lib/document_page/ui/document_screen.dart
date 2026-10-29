@@ -481,7 +481,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       ..listen(folderContentsProvider, (_, next) {
         if (next.value case final contents?) _session.observe(contents);
       })
-      ..listen(loadedFoldersProvider, (_, next) {
+      ..listen(foldersProvider, (_, next) {
         if (next.value case final folders?) _closeIfNotShown(folders);
       });
     return PopScope(

@@ -68,7 +68,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final folders = ref.watch(foldersProvider);
+    final folders = ref.watch(folderListStateProvider);
     // Loaded up front, so a document opens in its remembered view and a new
     // one goes to the place set.
     ref

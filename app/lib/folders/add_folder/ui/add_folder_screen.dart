@@ -23,7 +23,7 @@ class AddFolderScreen extends ConsumerStatefulWidget {
 class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
   late final AddFolderFlow _flow = AddFolderFlow(
     ref.read(addFolderWorkProvider),
-    ref.read(loadedFoldersProvider).value ?? const [],
+    ref.read(foldersProvider).value ?? const [],
   );
   bool _busy = false;
 

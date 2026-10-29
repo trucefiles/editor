@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
-import 'package:truce_editor/folders/folder_list_contract.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
 import 'package:truce_editor/sync_tool/base_folder_following.dart';
@@ -61,7 +60,7 @@ void main() {
                 ),
               ),
               child: Text(
-                ref.watch(loadedFoldersProvider).hasValue ? 'home' : 'loading',
+                ref.watch(foldersProvider).hasValue ? 'home' : 'loading',
               ),
             ),
           ),
@@ -163,7 +162,7 @@ final class _Folders extends FoldersController {
   Result<void, FolderError> answer = const Ok(null);
 
   @override
-  FolderListState build() => FoldersLoaded(folders);
+  Future<List<DocumentFolder>> build() async => folders;
 
   @override
   Future<Result<void, FolderError>> change(DocumentFolder changed) async {

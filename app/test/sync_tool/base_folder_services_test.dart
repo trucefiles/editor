@@ -49,7 +49,7 @@ void main() {
     File('${dir.path}/home/b.md').writeCreatingFolders('b');
     final folder = folderAt(dir, selection: Selection.of([path('work')]));
     await container.read(folderListStoreProvider).save([folder]);
-    await container.read(loadedFoldersProvider.future);
+    await container.read(foldersProvider.future);
     container.listen(baseFolderServicesProvider(folder.base), (_, _) {});
     final before = container.read(baseFolderServicesProvider(folder.base));
 

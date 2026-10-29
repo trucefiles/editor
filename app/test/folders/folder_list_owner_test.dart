@@ -67,7 +67,7 @@ void main() {
     expect(added.base.address, Uri.file('/sync'));
     expect(added.base.toolId, 'syncthing');
     expect(added.selection, subfolders(['work']));
-    expect(await container().read(loadedFoldersProvider.future), [added]);
+    expect(await container().read(foldersProvider.future), [added]);
   });
 
   test('folders of one base folder share it', () async {
@@ -147,7 +147,7 @@ void main() {
       (await add(folders, '/doc/1/Documents')).error,
       FolderError.syncToolInternal,
     );
-    expect(await folders.read(loadedFoldersProvider.future), isEmpty);
+    expect(await folders.read(foldersProvider.future), isEmpty);
   });
 
   test('tells base folders apart by their host paths', () async {
@@ -182,7 +182,7 @@ void main() {
     await controller.change(a.copyWith(name: 'Work'));
     await controller.remove(b);
 
-    final loaded = await container().read(loadedFoldersProvider.future);
+    final loaded = await container().read(foldersProvider.future);
     expect(loaded.map((f) => (f.id, f.name)), [(a.id, 'Work')]);
   });
 
@@ -200,7 +200,7 @@ void main() {
         .change(work.copyWith(selection: subfolders(['home/notes'])));
 
     expect(changed.error, FolderError.overlaps);
-    expect((await folders.read(loadedFoldersProvider.future)).first, work);
+    expect((await folders.read(foldersProvider.future)).first, work);
   });
 
   test('changes made at the same time all land', () async {
@@ -215,7 +215,7 @@ void main() {
       add(first, '/sync/c', name: 'c'),
     ]);
 
-    final loaded = await container().read(loadedFoldersProvider.future);
+    final loaded = await container().read(foldersProvider.future);
     expect(loaded.map((f) => f.name), ['Work', 'c']);
   });
 
@@ -234,9 +234,7 @@ void main() {
           base: () => work.base,
           secure: () async {
             secured.add(
-              (await folders.read(loadedFoldersProvider.future))
-                  .single
-                  .selection
+              (await folders.read(foldersProvider.future)).single.selection
                   .toString(),
             );
           },
@@ -316,8 +314,8 @@ void main() {
         .read(folderListOwnerProvider)
         .changes
         .firstWhere((list) => list is! FoldersLoading);
-    expect(folders.read(foldersProvider), isA<FoldersUnreadable>());
-    expect(folders.read(loadedFoldersProvider).isLoading, isTrue);
+    expect(folders.read(folderListStateProvider), isA<FoldersUnreadable>());
+    expect(folders.read(foldersProvider).isLoading, isTrue);
 
     expect((await add(folders, '/sync')).error, FolderError.notSaved);
     expect(file.readAsStringSync(), '{"broken": true}');

@@ -37,6 +37,24 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
   }
 
+  testApp('a damaged folder list says so and offers nothing to do on it', (
+    tester,
+  ) async {
+    app.damageFolderList();
+    await app.launch(tester);
+
+    await tester.waitFor(find.text('The saved folder list is damaged.'));
+    expect(find.byTooltip('New document'), findsNothing);
+    expect(
+      tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.refresh)),
+      isA<IconButton>().having(
+        (button) => button.onPressed,
+        'onPressed',
+        isNull,
+      ),
+    );
+  });
+
   testApp('deletes a document and undoes it', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
@@ -242,7 +260,7 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
-      final folder = container.read(loadedFoldersProvider).value!.single;
+      final folder = container.read(foldersProvider).value!.single;
       return container
           .read(folderActionsProvider)
           .change(folder.copyWith(selection: Selection.of([path('notes')])));
@@ -276,7 +294,7 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
-      final folder = container.read(loadedFoldersProvider).value!.single;
+      final folder = container.read(foldersProvider).value!.single;
 
       await tester.runAsync(
         () => container.read(folderActionsProvider).remove(folder),

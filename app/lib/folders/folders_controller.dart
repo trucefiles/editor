@@ -38,32 +38,33 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
   return owner;
 });
 
-final foldersProvider = NotifierProvider<FoldersController, FolderListState>(
-  FoldersController.new,
-);
+final foldersProvider =
+    AsyncNotifierProvider<FoldersController, List<DocumentFolder>>(
+      FoldersController.new,
+    );
 
-/// The folders added on this device, once loaded. Waits while the list
-/// loads, and keeps waiting if it can't be read: nothing may act on
-/// folders it doesn't know (the home screen tells the user instead).
-final loadedFoldersProvider = FutureProvider<List<DocumentFolder>>(
-  (ref) => switch (ref.watch(foldersProvider)) {
-    FoldersLoaded(:final folders) => folders,
-    FoldersLoading() ||
-    FoldersUnreadable() => Completer<List<DocumentFolder>>().future,
-  },
-);
-
-/// The folder list as its owner shows it; every change is saved before
-/// it shows.
-class FoldersController extends Notifier<FolderListState> {
+/// The folders added on this device, as the folder list owner shows them;
+/// every change is saved before it shows. Loading while the list loads,
+/// and still loading if it can't be read: nothing may act on folders it
+/// doesn't know ([folderListStateProvider] tells the screens why).
+class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   FolderListOwner get _owner => ref.read(folderListOwnerProvider);
 
   @override
-  FolderListState build() {
+  Future<List<DocumentFolder>> build() async {
     final owner = ref.watch(folderListOwnerProvider);
-    final changes = owner.changes.listen((list) => state = list);
+    final changes = owner.changes.listen((list) {
+      if (list case FoldersLoaded(:final folders)) state = AsyncData(folders);
+    });
     ref.onDispose(() => unawaited(changes.cancel()));
-    return owner.state;
+    final settled = owner.state is FoldersLoading
+        ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
+        : owner.state;
+    return switch (settled) {
+      FoldersLoaded(:final folders) => folders,
+      FoldersUnreadable() ||
+      FoldersLoading() => Completer<List<DocumentFolder>>().future,
+    };
   }
 
   /// Adds a folder showing [selection] of the base folder at [address],
@@ -109,4 +110,21 @@ class FoldersController extends Notifier<FolderListState> {
   Future<A?> _ask<A extends FolderListAnswer>(
     FolderListInput Function(Ticket ticket) asking,
   ) => ask<FolderListInput, A>(_owner.send, _owner.events, asking);
+}
+
+final folderListStateProvider =
+    NotifierProvider<FolderListStateController, FolderListState>(
+      FolderListStateController.new,
+    );
+
+/// The folder list owner's state as it changes, for the screens: still
+/// loading, loaded, or unreadable and why.
+class FolderListStateController extends Notifier<FolderListState> {
+  @override
+  FolderListState build() {
+    final owner = ref.watch(folderListOwnerProvider);
+    final changes = owner.changes.listen((list) => state = list);
+    ref.onDispose(() => unawaited(changes.cancel()));
+    return owner.state;
+  }
 }
