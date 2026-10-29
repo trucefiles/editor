@@ -126,8 +126,9 @@ final class MarkdownEditorPart extends ChangeNotifier implements EditorPart {
     ViewSettings view,
   ) => [
     if (_hasCheckboxes) ...[
-      // In Visual edit and Read.
-      if (_gate.state.mode != EditMode.markdown) ...[
+      // Only Visual edit acts on the document from its menu; Read shows
+      // the standard reading, which the editor's commands don't act on.
+      if (_gate.state.mode == EditMode.visual) ...[
         PopupMenuItem(
           value: () => _gate.run(MoveToEnd.new),
           child: const Text('Move checked items to end now'),

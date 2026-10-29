@@ -74,10 +74,9 @@ void main() {
     expect(shown(tester), contains('Title'));
     expect(shown(tester), contains('Some bold text.'));
     expect(shown(tester), isNot(contains('#')));
-    expect(
-      find.byWidgetPredicate((widget) => widget is Checkbox && widget.value!),
-      findsOne,
-    );
+    // The renderer's own checkbox, not the editors' marker.
+    expect(find.byIcon(Icons.check_box), findsOne);
+    expect(find.byType(Checkbox), findsNothing);
   });
 
   testWidgets('lays out small text on touch, items wider apart', (

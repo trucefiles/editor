@@ -4,9 +4,9 @@ import '../document_metrics.dart';
 import '../document_text_styles.dart';
 import '../marker.dart';
 
-/// The [marker] of a list item, the same in every mode: its box, checked
-/// or not, which [onToggle] checks or unchecks; its bullet; or its
-/// number; text in [style]. Every kind ends the same gap before the
+/// The [marker] of a list item, the same wherever the editor draws one:
+/// its box, checked or not, which [onToggle] checks or unchecks; its
+/// bullet; or its number; text in [style]. Every kind ends the same gap before the
 /// text (a box where it is drawn), as lists are drawn on the web, so
 /// numbers line up on their dot; centered on the item's first line of
 /// text. Sized by the [DocumentMetrics] of its context, the box too.
@@ -55,7 +55,7 @@ class ListMarker extends StatelessWidget {
   }
 
   /// The box, in the same colors whether or not it toggles: where it
-  /// can't (Read, a dragged copy), it shows its state, it isn't disabled.
+  /// can't (a dragged copy), it shows its state, it isn't disabled.
   Widget _box(ColorScheme colors, {required bool checked}) => Checkbox(
     value: checked,
     // As high as a line of text, so lists stay compact.

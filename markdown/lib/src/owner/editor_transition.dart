@@ -123,15 +123,6 @@ final class _Step with EditorSteps<Snapshot> {
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
-      // Read takes its menu's commands on all checked items; the text is
-      // sent at once, as Read shows the text kept.
-      case (
-            Run(command: final command && (MoveToEnd() || ClearChecked())),
-            FormattedContent(),
-          )
-          when state.mode == EditMode.read:
-        _run(command);
-        send();
       case (EditText(:final text), MarkdownContent(text: final old))
           when text != old:
         _show(MarkdownContent(text));
