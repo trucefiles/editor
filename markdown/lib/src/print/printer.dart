@@ -3,8 +3,6 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:truce_core/truce_core.dart'
-    show byteOrderMarkCharacter, dominantEnding;
 
 import '../doc/definitions.dart';
 import '../doc/doc_nodes.dart';
@@ -62,10 +60,6 @@ DocTree writableMarkdown(DocTree doc, Origin origin) => writableOf(
   ),
 );
 
-/// A printed line and the line ending after it; an empty ending is the
-/// document's.
-typedef _Line = ({String text, String ending});
-
 final class _Printer {
   _Printer(this._origin, this._layouts, {required this.definitionsChanged});
 
@@ -75,7 +69,8 @@ final class _Printer {
   /// Whether the document's link definitions are other than as read.
   final bool definitionsChanged;
 
-  final _out = <_Line>[];
+  /// The printed lines, without their breaks.
+  final _out = <String>[];
   final _ranges = <NodeId, LineRange>{};
   final _frames = <Frame>[];
   final _path = <DocContainer>[];
@@ -100,7 +95,7 @@ final class _Printer {
     // The text ends with a line ending: its last line is empty, and no
     // block took it in.
     final finalNewline =
-        lines.length > 1 && lines.last.text.isEmpty && trailing < lines.length;
+        lines.length > 1 && lines.last.isEmpty && trailing < lines.length;
     final count = finalNewline ? lines.length - 1 : lines.length;
     // A new text ends with one too, as most tools expect.
     final endsWithNewline = finalNewline || markdown.text.isEmpty;
@@ -114,16 +109,10 @@ final class _Printer {
       _path.removeLast();
       _copyLines(trailing, count);
     }
-    final text = StringBuffer(
-      markdown.byteOrderMark ? byteOrderMarkCharacter : '',
+    return (
+      text: [..._out, if (endsWithNewline) ''].join('\n'),
+      lines: _ranges,
     );
-    for (final (index, line) in _out.indexed) {
-      text.write(line.text);
-      if (index < _out.length - 1 || endsWithNewline) {
-        text.write(line.ending.isEmpty ? markdown.lineEnding : line.ending);
-      }
-    }
-    return (text: text.toString(), lines: _ranges);
   }
 
   /// [children] without empty paragraphs, which print nothing (unless
@@ -367,9 +356,7 @@ final class _Printer {
   }
 
   void _copyLines(int from, int to) {
-    for (final line in _origin.markdown.lines.sublist(from, to)) {
-      _out.add((text: line.text, ending: line.ending));
-    }
+    _out.addAll(_origin.markdown.lines.sublist(from, to));
   }
 
   /// Documents the lines of [node]'s leaves, copied to [start] from source
@@ -392,7 +379,6 @@ final class _Printer {
       _emit(
         line.text.substring(line.prefix.isEmpty ? 0 : line.prefix.last.end),
         from: line,
-        ending: _markdown.lines[line.index].ending,
       );
     }
     _ranges[leaf.id] = (first: start, last: _out.length - 1);
@@ -402,18 +388,7 @@ final class _Printer {
 
   void _printed(DocLeaf leaf, DocBlock? previous) {
     final start = _out.length;
-    // Its lines end as its source's mostly do; else as the document's.
-    final endings = switch (leaf.source) {
-      final LeafBlock source => [
-        for (final line in source.lines)
-          if (_markdown.lines[line.index].ending case final ending
-              when ending.isNotEmpty)
-            ending,
-      ],
-      _ => const <String>[],
-    };
-    final ending = endings.isEmpty ? '' : dominantEnding(endings);
-    void emit(String content) => _emit(content, ending: ending);
+    void emit(String content) => _emit(content);
     switch (leaf) {
       case ParagraphNode():
         _textLines(leaf).forEach(emit);
@@ -468,12 +443,7 @@ final class _Printer {
   /// Adds a line of [content] after the containers' marks: those as read
   /// on [from] where kept, else written anew. A line with no content
   /// ends at its marks, without trailing spaces unless [keepTrailing].
-  void _emit(
-    String content, {
-    SourceLine? from,
-    String ending = '',
-    bool keepTrailing = false,
-  }) {
+  void _emit(String content, {SourceLine? from, bool keepTrailing = false}) {
     final firsts = [
       for (final frame in _frames) frame is ItemFrame && frame.pending,
     ];
@@ -486,9 +456,6 @@ final class _Printer {
       frame.pending = false;
     }
     final text = '${parts.join()}$content';
-    _out.add((
-      text: content.isEmpty && !keepTrailing ? text.trimRight() : text,
-      ending: ending,
-    ));
+    _out.add(content.isEmpty && !keepTrailing ? text.trimRight() : text);
   }
 }

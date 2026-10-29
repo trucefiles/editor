@@ -4,6 +4,7 @@ library;
 
 import 'package:collection/collection.dart';
 import 'package:diffutil_dart/diffutil.dart';
+import 'package:truce_core/truce_core.dart' show splitLines;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
@@ -12,7 +13,6 @@ import '../doc/origin.dart';
 import '../edit/change.dart';
 import '../edit/selection.dart';
 import '../print/printer.dart';
-import '../tree/inlines.dart';
 import '../view/rows.dart';
 
 /// A document read from text: its doc tree, where it was read from, and
@@ -31,8 +31,8 @@ Loaded loaded(String text) {
 final class ReloadMap {
   ReloadMap(this.before, this.after)
     : _newLines = _newLinesOf(
-        before.text.split(lineEnd),
-        after.printed.text.split(lineEnd),
+        splitLines(before.text),
+        splitLines(after.printed.text),
       );
 
   final PrintedMarkdown before;

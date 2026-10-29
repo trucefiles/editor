@@ -14,7 +14,7 @@ final class PlainSummary implements TextSummary<PlainPreview> {
   /// The lines with words, without spaces at their ends.
   late final List<String> _lines = [
     for (final line in splitLines(_text))
-      if (line.text.trim().isNotEmpty) line.text.trimRight(),
+      if (line.trim().isNotEmpty) line.trimRight(),
   ];
 
   @override

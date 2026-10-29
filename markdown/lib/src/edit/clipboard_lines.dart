@@ -4,6 +4,7 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:truce_core/truce_core.dart' show splitLines;
 
 import '../view/rows.dart';
 import '../visible/formatting.dart';
@@ -14,7 +15,7 @@ import 'selection.dart';
 /// Plain [text] as lines in [formatting] (the typing style), split at
 /// each line break.
 List<VisibleText> plainLines(String text, Formatting formatting) => [
-  for (final line in text.split(_lineBreak))
+  for (final line in splitLines(text))
     line.isEmpty
         ? VisibleText.empty
         : VisibleText([TextPiece(line, formatting)]),
@@ -68,5 +69,3 @@ Iterable<VisiblePiece?> _pieces(VisibleText text) => text.pieces.expand(
     ObjectPiece() => const [],
   },
 );
-
-final _lineBreak = RegExp(r'\r\n?|\n');

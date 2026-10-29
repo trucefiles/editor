@@ -27,7 +27,7 @@
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
-///    ([TextFile]); a text's lines with their endings ([splitLines]).
+///    ([TextFile]); a text's lines ([splitLines]).
 /// 10. `marks`: colors of documents, synced inside the folder
 ///     ([DocumentMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -135,7 +135,7 @@ export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_check.dart';
 export 'src/sync/sync_tool.dart';
-export 'src/text/line_endings.dart';
+export 'src/text/lines.dart';
 export 'src/text/text_file.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

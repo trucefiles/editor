@@ -13,7 +13,7 @@ List<List<String>> _shown(String text) {
       [
         for (final span in highlights[index])
           '${_name(span.highlight)}:'
-              '${line.text.substring(span.start, span.end)}',
+              '${line.substring(span.start, span.end)}',
       ],
   ];
 }
@@ -87,7 +87,7 @@ void main() {
       for (final (index, line) in tree.lines.indexed) {
         for (final span in highlights[index]) {
           expect(span.start, inInclusiveRange(0, span.end), reason: text);
-          expect(span.end, lessThanOrEqualTo(line.text.length), reason: text);
+          expect(span.end, lessThanOrEqualTo(line.length), reason: text);
         }
       }
     }

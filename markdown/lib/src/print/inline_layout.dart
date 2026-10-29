@@ -3,6 +3,8 @@
 /// take a text's layout, so they agree by construction.
 library;
 
+import 'package:truce_core/truce_core.dart' show anyLineBreak;
+
 import '../read/syntax/block_starts.dart';
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';
@@ -252,7 +254,7 @@ bool _startsHtmlBlock(List<Cell> cells, int index) {
 /// else: if [source] goes on in lines of its own, or it is [alone] in
 /// the text's first line.
 bool startsHtmlBlock(String source, {required bool alone}) {
-  final first = source.split(lineEnd).first;
+  final first = source.split(anyLineBreak).first;
   final ownLine = alone || first.length < source.length;
   return htmlBlockStarts.entries.any(
     (start) =>

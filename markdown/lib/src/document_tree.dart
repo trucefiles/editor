@@ -1,5 +1,4 @@
-import 'package:truce_core/truce_core.dart'
-    show TextLine, byteOrderMarkCharacter, dominantEnding, splitLines;
+import 'package:truce_core/truce_core.dart' show splitLines;
 
 import 'read/document_reading.dart';
 import 'tree/blocks.dart';
@@ -8,33 +7,25 @@ import 'tree/document_style.dart';
 /// A Markdown document: its lines as in the file, and the block tree read
 /// from them.
 ///
-/// Lines keep their own line endings, and a byte order mark is kept apart
-/// from them; the tree is what CommonMark and GitHub Flavored Markdown
-/// read in them, with front matter as the one extension. Blocks name
-/// their lines by index. Immutable: a changed text is read anew.
-/// Questions are lookups, derived once per tree when first asked.
+/// The text's lines are broken by `\n`, as the file's text model gives
+/// them (it keeps the file's own line breaks and byte order mark); a
+/// `\r\n` or lone `\r` breaks a line too, as CommonMark reads them. The
+/// tree is what CommonMark and GitHub Flavored Markdown read in the
+/// lines, with front matter as the one extension. Blocks name their lines
+/// by index. Immutable: a changed text is read anew. Questions are
+/// lookups, derived once per tree when first asked.
 final class DocumentTree {
-  DocumentTree._(this.text, this.lines, {required this.byteOrderMark})
-    : _reading = readDocument([for (final line in lines) line.text]);
+  DocumentTree._(this.text, this.lines) : _reading = readDocument(lines);
 
-  /// [text], with its lines ended by `\n`, `\r\n` or `\r`.
-  factory DocumentTree.read(String text) {
-    final mark = text.startsWith(byteOrderMarkCharacter);
-    return DocumentTree._(
-      text,
-      splitLines(mark ? text.substring(1) : text),
-      byteOrderMark: mark,
-    );
-  }
+  /// The tree [text] reads as.
+  factory DocumentTree.read(String text) =>
+      DocumentTree._(text, splitLines(text));
 
   /// The text it was read from.
   final String text;
 
-  /// Its lines, at least one; the last one has no ending.
-  final List<TextLine> lines;
-
-  /// Whether the text starts with a byte order mark.
-  final bool byteOrderMark;
+  /// Its lines, without their breaks; at least one.
+  final List<String> lines;
 
   final DocumentReading _reading;
 
@@ -47,19 +38,9 @@ final class DocumentTree {
   /// The text after its front matter, for readers that don't know front
   /// matter; the whole text if it has none.
   late final String textAfterFrontMatter = switch (root.children.firstOrNull) {
-    final FrontMatterBlock front => [
-      for (final line in lines.skip(front.lines.length)) ...[
-        line.text,
-        line.ending,
-      ],
-    ].join(),
+    final FrontMatterBlock front => lines.skip(front.lines.length).join('\n'),
     _ => text,
   };
-
-  /// The ending most of its lines have, for lines it gets.
-  late final String lineEnding = dominantEnding(
-    lines.map((line) => line.ending),
-  );
 
   /// How the document writes what it holds, for new content.
   late final DocumentStyle style = DocumentStyle.of(root);

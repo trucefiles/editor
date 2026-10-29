@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../common/unchanged_ends.dart';
+import 'lines.dart';
 
 /// A UTF-8 text file decoded for editing.
 ///
@@ -34,9 +35,9 @@ final class TextFile {
     } on FormatException {
       return null;
     }
-    final breaks = [for (final m in _anyBreak.allMatches(raw)) m[0]!];
+    final breaks = [for (final m in anyLineBreak.allMatches(raw)) m[0]!];
     return TextFile._(
-      raw.replaceAll(_anyBreak, '\n'),
+      raw.replaceAll(anyLineBreak, '\n'),
       hasBom: hasBom,
       lineBreak: breaks.firstOrNull ?? '\n',
       breaks: breaks,
@@ -46,8 +47,6 @@ final class TextFile {
   /// A new file's style: no byte order mark, `\n` line breaks.
   const TextFile.empty()
     : this._('', hasBom: false, lineBreak: '\n', breaks: const []);
-
-  static final _anyBreak = RegExp('\r\n|\r|\n');
 
   /// Content with `\n` line breaks.
   final String text;
