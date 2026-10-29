@@ -180,12 +180,7 @@ base class DocumentSteps {
   /// Recovers the drafts of every base folder written before [before]
   /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
-    final folders = await _ref
-        .read(foldersProvider.future)
-        .then<List<DocumentFolder>>(
-          (folders) => folders,
-          onError: (_) => <DocumentFolder>[],
-        );
+    final folders = await settledFolders(_ref);
     final types = _ref.read(documentTypesProvider);
     for (final base in {for (final folder in folders) folder.base}) {
       await DraftRecovery(

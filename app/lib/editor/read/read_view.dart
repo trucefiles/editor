@@ -62,6 +62,9 @@ MarkdownStyleSheet _styleSheet(ThemeData theme, DocumentMetrics metrics) {
     h4: DocumentTextStyles.heading(body, 4),
     h5: DocumentTextStyles.heading(body, 5),
     h6: DocumentTextStyles.heading(body, 6),
+    // The renderer's own box, in the theme's color, so it shows in dark
+    // mode too.
+    checkbox: sheet.checkbox?.copyWith(color: theme.colorScheme.primary),
     blockSpacing: metrics.blockGap,
     pPadding: below,
     h1Padding: below,

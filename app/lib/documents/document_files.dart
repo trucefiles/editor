@@ -65,10 +65,9 @@ final class DocumentFiles {
 
   /// New document of [type] in [subfolder] (the base folder's top level
   /// if `null`), named after [title], holding [text]; [newSubfolder]
-  /// makes [subfolder] first. If
-  /// [subfolder] is gone, the document goes to the top of the folder's
-  /// part that held it: it is kept, and the deleted folder never comes
-  /// back.
+  /// makes [subfolder] first. If [subfolder] is gone, the document goes
+  /// to the top of the folder's part that held it: it is kept, and the
+  /// deleted folder never comes back.
   Future<Result<DocumentText, StoreError>> create(
     String title, {
     required DocumentType type,

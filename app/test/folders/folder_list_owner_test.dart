@@ -4,9 +4,11 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/document_page/open_documents.dart';
 import 'package:truce_editor/documents/document_draft.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
+import 'package:truce_editor/documents/document_steps.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
 import 'package:truce_editor/folders/folder_list_contract.dart';
@@ -319,6 +321,18 @@ void main() {
 
     expect((await add(folders, '/sync')).error, FolderError.notSaved);
     expect(file.readAsStringSync(), '{"broken": true}');
+  });
+
+  test('a list it could not load leaves nothing to act on, and nothing '
+      'waits on it', () async {
+    File('${storage.settingsPath}/folder_list.json')
+        .writeCreatingFolders('{"broken": true}');
+    final folders = container();
+
+    await folders
+        .read(documentStepsProvider)
+        .recoverDrafts(before: DateTime.now());
+    expect(await folders.read(allBackupsProvider.future), isEmpty);
   });
 }
 

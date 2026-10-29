@@ -57,10 +57,7 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
       if (list case FoldersLoaded(:final folders)) state = AsyncData(folders);
     });
     ref.onDispose(() => unawaited(changes.cancel()));
-    final settled = owner.state is FoldersLoading
-        ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
-        : owner.state;
-    return switch (settled) {
+    return switch (await _settled(owner)) {
       FoldersLoaded(:final folders) => folders,
       FoldersUnreadable() ||
       FoldersLoading() => Completer<List<DocumentFolder>>().future,
@@ -128,3 +125,18 @@ class FolderListStateController extends Notifier<FolderListState> {
     return owner.state;
   }
 }
+
+/// The folders once the list has loaded, as [foldersProvider] has them;
+/// none if it can't be read, so a caller that must go on goes on with
+/// nothing to act on.
+Future<List<DocumentFolder>> settledFolders(Ref ref) async =>
+    switch (await _settled(ref.read(folderListOwnerProvider))) {
+      FoldersLoaded() => ref.read(foldersProvider.future),
+      FoldersUnreadable() || FoldersLoading() => const [],
+    };
+
+/// [owner]'s list once it is no longer loading.
+Future<FolderListState> _settled(FolderListOwner owner) async =>
+    owner.state is FoldersLoading
+    ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
+    : owner.state;

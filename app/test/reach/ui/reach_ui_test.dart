@@ -7,6 +7,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/reach/ui/reach_overlay.dart';
 import 'package:truce_editor/reach/ui/unreachable_banner.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_editor/storage/device_id.dart';
 
 import '../../support.dart';
 
@@ -54,18 +56,23 @@ void main() {
   });
 
   group('banner', () {
-    Future<void> pumpBanner(WidgetTester tester, Reach reach) =>
-        tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              folderReachProvider(folder.base)
-                  .overrideWith(() => _FixedReach(folder.base, reach)),
-            ],
-            child: MaterialApp(
-              home: Scaffold(body: UnreachableBanner(folder, message: 'Wait.')),
-            ),
-          ),
-        );
+    Future<void> pumpBanner(
+      WidgetTester tester,
+      Reach reach,
+    ) => tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          // The Retry button reaches the real folder stack.
+          appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+          deviceIdProvider.overrideWithValue('0123456789abcdef'),
+          folderReachProvider(folder.base)
+              .overrideWith(() => _FixedReach(folder.base, reach)),
+        ],
+        child: MaterialApp(
+          home: Scaffold(body: UnreachableBanner(folder, message: 'Wait.')),
+        ),
+      ),
+    );
 
     testWidgets('tells that the folder cannot be reached', (tester) async {
       await pumpBanner(tester, Reach.unreachable);
