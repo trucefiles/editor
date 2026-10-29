@@ -5,7 +5,7 @@ library;
 
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_type.dart';
+import '../documents/document_type.dart';
 import 'delete_failure.dart';
 import 'deleted_document.dart';
 import 'document.dart';

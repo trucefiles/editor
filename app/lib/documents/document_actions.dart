@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_type.dart';
+import '../documents/document_type.dart';
 import '../folder_state/folder_contents.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../folders/base_folder.dart';

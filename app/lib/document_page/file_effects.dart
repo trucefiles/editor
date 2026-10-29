@@ -5,9 +5,9 @@ import '../documents/document_drafts.dart';
 import '../documents/document_files.dart';
 import '../documents/document_place.dart';
 import '../documents/document_text.dart';
+import '../documents/document_type.dart';
 import '../documents/document_version.dart';
 import '../documents/open_failure.dart';
-import '../file_types/document_type.dart';
 import '../folders/document_folder.dart';
 import 'document_file.dart';
 

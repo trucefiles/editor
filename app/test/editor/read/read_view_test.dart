@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_editor/common/open_link.dart';
 import 'package:truce_editor/editor/markdown/markdown_links.dart';
 import 'package:truce_editor/editor/read/read_view.dart';
 import 'package:truce_editor/platform/link_opener.dart';
@@ -29,7 +30,11 @@ void main() {
             body: Consumer(
               builder: (context, ref, _) => ReadView(
                 markdown,
-                onLink: (url) => openMarkdownLink(context, ref, url),
+                onLink: (url) => openMarkdownLink(
+                  context,
+                  url,
+                  open: (link) => openLink(context, ref, link),
+                ),
                 images: (_) => null,
               ),
             ),

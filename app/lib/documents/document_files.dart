@@ -2,14 +2,14 @@ import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_type.dart';
-import '../file_types/document_types.dart';
+import '../documents/document_type.dart';
 import '../folders/base_folder.dart';
 import '../folders/document_folder.dart';
 import '../sync_tool/base_folder_services.dart';
 import 'document.dart';
 import 'document_file_name.dart';
 import 'document_text.dart';
+import 'document_types.dart';
 import 'open_failure.dart';
 
 /// Reads and writes single document files in one folder, through its base

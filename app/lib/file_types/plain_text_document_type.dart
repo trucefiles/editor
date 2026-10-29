@@ -5,10 +5,11 @@ import '../document_page/editor_part.dart';
 import '../documents/document_card_summary.dart';
 import '../documents/document_title.dart';
 import '../editor/plain/plain_editor_part.dart';
-import 'document_type.dart';
+import '../editor/plain/plain_editor_view.dart';
+import 'editable_type.dart';
 
 /// Plain text documents: the first line names one; edited as text.
-final class PlainTextDocumentType implements DocumentType {
+final class PlainTextDocumentType implements EditableType {
   const PlainTextDocumentType();
 
   @override
@@ -31,6 +32,8 @@ final class PlainTextDocumentType implements DocumentType {
   }
 
   @override
-  EditorPart editorPart(EditorStart start, EditorPage page) =>
-      PlainEditorPart(start);
+  OpenedEditor openEditor(EditorStart start, EditorPage page) {
+    final part = PlainEditorPart(start);
+    return (part: part, view: PlainEditorView(part));
+  }
 }

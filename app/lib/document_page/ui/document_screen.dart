@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../../common/error_text.dart';
+import '../../common/open_link.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
@@ -14,6 +15,7 @@ import '../../documents/deleted_document.dart';
 import '../../documents/document.dart';
 import '../../documents/document_actions.dart';
 import '../../documents/document_colors.dart';
+import '../../documents/document_images.dart';
 import '../../documents/document_place.dart';
 import '../../documents/document_settings.dart';
 import '../../documents/document_settings_controller.dart';
@@ -24,9 +26,10 @@ import '../../documents/documents_wiring.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
+import '../../editor/editor_view.dart';
 import '../../editor/ui/history_buttons.dart';
-import '../../file_types/document_type.dart';
 import '../../file_types/document_types.dart';
+import '../../file_types/editable_type.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/document_folder.dart';
 import '../../folders/folder_lookup.dart';
@@ -34,6 +37,7 @@ import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
+import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../theme/touch.dart';
 import '../document_controller.dart';
@@ -71,8 +75,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   late final FolderStateController _folderState;
   late final ProviderContainer _container;
   late final DocumentSettingsController _settings;
-  late final DocumentType _type;
+  late final EditableType _type;
   late final EditorPart _part;
+  late final EditorView _view;
+  late final StreamSubscription<void> _partChanges;
   late final DocumentSession _session;
   late final DocumentController _controller;
   late final AppLifecycleListener _lifecycle;
@@ -116,7 +122,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       _ => throw StateError('A document or a place is needed.'),
     };
     final opened = document?.seen;
-    _part = _type.editorPart(
+    final editor = _type.openEditor(
       (
         text: opened?.text ?? '',
         version: opened?.version,
@@ -133,6 +139,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         withFile: _withFile,
       ),
     );
+    _part = editor.part;
+    _view = editor.view;
     _session = DocumentSession(
       FileEffects(
         file,
@@ -152,7 +160,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       delete: ref.read(documentActionsProvider).delete,
       editSettings: _settings.edit,
     );
-    _part.addListener(_onPartChanged);
+    _partChanges = _part.changes.listen((_) => _onPartChanged());
     _session
       ..addListener(_showShownMode)
       ..addListener(_tellIfStopped);
@@ -181,9 +189,8 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     for (final notices in _notices) {
       unawaited(notices.cancel());
     }
-    _part
-      ..removeListener(_onPartChanged)
-      ..dispose();
+    unawaited(_partChanges.cancel());
+    _part.dispose();
     _session
       ..removeListener(_showShownMode)
       ..removeListener(_tellIfStopped);
@@ -382,20 +389,17 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   }
 
   /// Runs [action] on the document's file (see
-  /// [DocumentController.withFile]). [context] is this screen's, below
-  /// its own messenger.
+  /// [DocumentController.withFile]).
   Future<void> _withFile(
-    BuildContext context,
     FutureOr<void> Function(Document document) action,
   ) async {
     final file = await _controller.withFile();
-    if (!context.mounted) return;
+    if (!mounted) return;
     switch (file) {
       case Ok(value: final document):
         await action(document.document);
       case Err(error: NoFile.empty):
-        showSnack(
-          context,
+        _messenger.currentState?.showHint(
           "Write something first. An empty document isn't saved.",
         );
       case Err(error: NoFile.notCreated):
@@ -428,12 +432,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
-          ..._part.menu(context, settings.view),
+          ..._view.menu(context, settings.view),
           PopupMenuItem(
-            value: () => _withFile(
-              context,
-              (document) => editPinOrColor(context, ref, document),
-            ),
+            value: () =>
+                _withFile((document) => editPinOrColor(context, ref, document)),
             child: const Text('Pin or color'),
           ),
           if (_session.document != null)
@@ -511,7 +513,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
       if (_isEdited) _editor.send(const Redo());
     },
-    for (final MapEntry(key: keys, value: action) in _part.keys.entries)
+    for (final MapEntry(key: keys, value: action) in _view.keys.entries)
       keys: () {
         if (!_isReadOnly) action();
       },
@@ -576,7 +578,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               onPressed: _refresh,
             ),
           if (!readOnly) ...[
-            ..._part.actions(context),
+            ..._view.actions(context),
             _menu(context, settings),
           ],
         ],
@@ -609,8 +611,21 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               key: _pull,
               onRefresh: _folderState.refresh,
               child: DocumentTextZoom(
-                child: _part.view(
-                  (folder: _folder, path: path, kept: text),
+                child: _view.view(
+                  (
+                    kept: text,
+                    addItems: ref.watch(
+                      deviceSettingsProvider.select(
+                        (s) => s.requireValue.addItemPlace,
+                      ),
+                    ),
+                    openLink: (link) => openLink(context, ref, link),
+                    images: documentImages(
+                      ref.read(folderFilesProvider).of(_folder),
+                      folder: _folder,
+                      document: path,
+                    ),
+                  ),
                   // A new document is for typing right away.
                   autofocus: widget.document == null,
                 ),

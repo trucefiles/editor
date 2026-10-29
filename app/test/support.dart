@@ -7,6 +7,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/documents/document.dart';
 import 'package:truce_editor/documents/document_drafts.dart';
 import 'package:truce_editor/documents/document_text.dart';
+import 'package:truce_editor/documents/document_types.dart';
 import 'package:truce_editor/file_types/document_types.dart';
 import 'package:truce_editor/folder_state/folder_contents.dart';
 import 'package:truce_editor/folders/base_folder.dart';

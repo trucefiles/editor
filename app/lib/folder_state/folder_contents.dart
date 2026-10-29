@@ -2,8 +2,8 @@ import 'package:truce_core/truce_core.dart';
 
 import '../conflicts/folder_conflicts.dart';
 import '../documents/document.dart';
+import '../documents/document_types.dart';
 import '../documents/document_version.dart';
-import '../file_types/document_types.dart';
 import '../folders/document_folder.dart';
 import '../folders/folder_lookup.dart';
 

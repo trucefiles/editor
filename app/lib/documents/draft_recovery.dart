@@ -1,10 +1,10 @@
 import 'package:truce_core/truce_core.dart';
 
-import '../file_types/document_types.dart';
 import 'document_draft.dart';
 import 'document_drafts.dart';
 import 'document_file_name.dart';
 import 'document_files.dart';
+import 'document_types.dart';
 import 'open_failure.dart';
 
 /// Puts edits kept on this device into their documents' files, for drafts left
