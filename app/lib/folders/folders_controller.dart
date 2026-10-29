@@ -70,7 +70,8 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
     required Selection selection,
     required String name,
     required String color,
-  }) async => switch (await _ask<FolderAdded>(
+  }) => answerOf(
+    _owner,
     (ticket) => AddFolder(
       ticket,
       address: address,
@@ -79,32 +80,24 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
       name: name,
       color: color,
     ),
-  )) {
-    final answer? => answer.result,
-    null => const Err(FolderError.notSaved),
-  };
+    read: (FolderAdded answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 
-  Future<Result<void, FolderError>> change(DocumentFolder changed) async =>
-      switch (await _ask<FolderChanged>(
-        (ticket) => ChangeFolder(ticket, changed),
-      )) {
-        final answer? => answer.result,
-        null => const Err(FolderError.notSaved),
-      };
+  Future<Result<void, FolderError>> change(DocumentFolder changed) => answerOf(
+    _owner,
+    (ticket) => ChangeFolder(ticket, changed),
+    read: (FolderChanged answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 
   /// Forgets the folder; its files stay untouched.
-  Future<Result<void, FolderError>> remove(DocumentFolder removed) async =>
-      switch (await _ask<FolderRemoved>(
-        (ticket) => RemoveFolder(ticket, removed),
-      )) {
-        final answer? => answer.result,
-        null => const Err(FolderError.notSaved),
-      };
-
-  /// The owner's answer to [asking]; `null` once it ended.
-  Future<A?> _ask<A extends FolderListAnswer>(
-    FolderListInput Function(Ticket ticket) asking,
-  ) => ask<FolderListInput, A>(_owner.send, _owner.events, asking);
+  Future<Result<void, FolderError>> remove(DocumentFolder removed) => answerOf(
+    _owner,
+    (ticket) => RemoveFolder(ticket, removed),
+    read: (FolderRemoved answer) => answer.result,
+    orElse: const Err(FolderError.notSaved),
+  );
 }
 
 final folderListStateProvider =
