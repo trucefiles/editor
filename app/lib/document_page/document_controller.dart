@@ -9,11 +9,10 @@ import 'package:truce_folders/truce_folders.dart';
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
 /// Deletes a document holding a text, so it can be undone.
-typedef DeleteForUndo =
-    Future<Result<DeletedDocument, DeleteFailure>> Function(
-      DocumentText document,
-      String text,
-    );
+typedef DeleteForUndo = Future<Result<DeletedDocument, DeleteFailure>> Function(
+  DocumentText document,
+  String text,
+);
 
 /// Changes the settings of a document on this device.
 typedef EditSettings = Future<void> Function(
