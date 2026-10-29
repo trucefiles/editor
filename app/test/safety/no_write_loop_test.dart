@@ -120,6 +120,9 @@ final class _Device {
               newSubfolder: newSubfolder,
               text: text,
             ),
+        // Never moved here.
+        moveDocument: (_, _, {required title, required newSubfolder}) =>
+            throw StateError('not moved in this test'),
       ),
       mode: EditMode.markdown,
     );

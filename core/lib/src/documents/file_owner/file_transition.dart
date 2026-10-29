@@ -60,7 +60,7 @@ final class _Step<V extends Version> {
 
   /// The version of the file the edits go over; `null` while a new
   /// document has no file.
-  V? get _file => (work.moved ?? work.expected)?.version;
+  V? get _file => work.expected?.version;
 
   void handle(FileMessage<V> message) {
     switch (message) {
@@ -78,8 +78,8 @@ final class _Step<V extends Version> {
         _restoreMine();
       case Discard():
         _discard();
-      case Moved(:final copy):
-        _moved(copy);
+      case Move():
+        _move(message);
       case DraftKept(:final id, :final kept):
         _draftKept(id, kept: kept);
       case Wrote(:final id, :final outcome, :final endedAt):
@@ -90,6 +90,8 @@ final class _Step<V extends Version> {
         _conflictKept(id, ok: ok);
       case LatestRead(:final id, :final seen):
         _latestRead(id, seen);
+      case MovedTo(:final id, :final copy, :final endedAt):
+        _movedTo(id, copy, endedAt);
     }
     _next();
   }
@@ -97,14 +99,15 @@ final class _Step<V extends Version> {
   // The next I/O.
 
   /// Starts the next I/O once none is under way: a pick waiting, the
-  /// next step of a [Secure], a version found to read, the draft, then
-  /// the file.
+  /// next step of a [Secure], a move waiting, a version found to read,
+  /// the draft, then the file.
   void _next() {
     if (work.io != null) return;
     if (work.pick case final pick?) _startPick(pick);
     if (work.securing case final securing? when work.io == null) {
       _secureStep(securing);
     }
+    if (work.move case final move? when work.io == null) _startMove(move);
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
     if (!_hasEdits && work.draft != null) _dropDraft();
@@ -118,11 +121,11 @@ final class _Step<V extends Version> {
     // Made before a pick the editor shows instead.
     if (_done || edited.picks < work.picks) return;
     final sent = work.sent;
-    final over = work.offered.indexWhere(
-      (seen) => seen.version == edited.lineage,
-    );
+    // Edits that name no version build on the file this owner created.
+    final lineage = edited.lineage ?? work.created;
+    final over = work.offered.indexWhere((seen) => seen.version == lineage);
     if (over >= 0) _work(work.copyWith(offered: work.offered.sublist(over)));
-    if (sent != null && edited.lineage != sent.version) {
+    if (sent != null && lineage != sent.version) {
       // Made on a version the editor did not take: the user picks.
       if (over >= 0) _work(work.copyWith(editsOver: work.offered.first));
       _set(text: edited.text, rev: edited.rev);
@@ -265,11 +268,8 @@ final class _Step<V extends Version> {
         _cameBack(there);
       case Taken():
         throw StateError('a new document takes the next free name');
-      case WriteGone() when work.moved == null:
-        _goneElsewhere();
       case WriteGone():
-        // The move took the file: the edits go to the copy next.
-        break;
+        _goneElsewhere();
       case WriteFailed():
         // Tried again only when asked again.
         _set(status: const SaveFailed());
@@ -278,10 +278,13 @@ final class _Step<V extends Version> {
           _work(work.copyWith(securing: (asks: asks, rung: SecureRung.device)));
         }
     }
-    _takeMove();
   }
 
   void _written(WritingFile writing, Seen<V> seen) {
+    if (writing.kind == WriteKind.create) {
+      // The editor builds on the created file until it takes another.
+      _work(work.copyWith(offered: [seen], created: seen.version));
+    }
     _work(
       work.copyWith(
         expected: seen,
@@ -310,7 +313,11 @@ final class _Step<V extends Version> {
     if (_done || work.expected == null) return;
     // A scan during our write, or one that started before it ended, may
     // hold the old version.
-    if (work.io is WritingFile || work.io is KeepingConflict) return;
+    if (work.io is WritingFile ||
+        work.io is KeepingConflict ||
+        work.io is MovingFile) {
+      return;
+    }
     if (work.lastWriteEnd case final end? when startedAt.isBefore(end)) {
       return;
     }
@@ -420,34 +427,39 @@ final class _Step<V extends Version> {
     _settle(const InStep());
   }
 
-  void _moved(Seen<V> copy) {
-    // A copy that differs changed before the move: writes stay over the
-    // version expected, so they find that change, as a scan does.
-    if (copy.text != work.expected?.text) return;
-    // A write under way answers for the file before the move.
-    _work(
-      work.io is WritingFile
-          ? work.copyWith(moved: copy)
-          : work.copyWith(expected: copy),
-    );
+  // Moves.
+
+  /// Takes [move] once no I/O is under way; one at a time.
+  void _move(Move move) {
+    if (work.move != null || work.io is MovingFile) {
+      return events.add(MoveAnswer(move.ticket, ran: false));
+    }
+    _work(work.copyWith(move: move));
   }
 
-  /// The copy a move left while a write was under way, now that it ended:
-  /// what writes go over, and written again where it lacks the edits.
-  void _takeMove() {
-    final copy = work.moved;
-    if (copy == null) return;
-    _work(work.copyWith(moved: null, expected: copy));
-    switch (status) {
-      case InStep() when copy.text != state.text:
-        _set(status: const Editing(EditPhase.inMemory));
-        _askFolder();
-      case Editing() when copy.text == state.text:
-        // Back to the copy's text: nothing to write.
-        _settle(const InStep());
-      case _:
-        break;
+  /// Moves the file, only while it holds the edits.
+  void _startMove(Move move) {
+    _work(work.copyWith(move: null));
+    final from = work.expected;
+    if (status is! InStep || from == null) {
+      return events.add(MoveAnswer(move.ticket, ran: false));
     }
+    final id = _id();
+    _work(work.copyWith(io: MovingFile(id, move)));
+    effects.add(MoveFile(id, from: from));
+  }
+
+  /// The move ended: writes go over the [copy] it left, edits made
+  /// meanwhile too.
+  void _movedTo(EffectId id, Seen<V>? copy, Moment endedAt) {
+    final ask = switch (work.io) {
+      MovingFile(id: final moving, :final ask) when moving == id => ask,
+      _ => null,
+    };
+    if (ask == null) return;
+    _work(work.copyWith(io: null, lastWriteEnd: endedAt));
+    if (copy != null) _work(work.copyWith(expected: copy));
+    events.add(MoveAnswer(ask.ticket, ran: true));
   }
 
   // Picks.
@@ -514,22 +526,27 @@ final class _Step<V extends Version> {
     }
   }
 
-  /// Drops the edits that could be kept nowhere: the text goes back to
-  /// the file's. Not while they may still reach the file or a pick.
+  /// Drops the edits that are in no file: the text goes back to the
+  /// file's, as it is now. Not while they may still reach the file or a
+  /// pick.
   void _discard() {
-    final keptNowhere = switch (status) {
+    final inNoFile = switch (status) {
       SaveFailed() || ChangedElsewhere() || DeletedElsewhere() => true,
+      Editing() => work.expected == null,
       _ => false,
     };
     final mayReachFile = work.io is WritingFile || work.io is BackingUp;
-    if (!keptNowhere || mayReachFile || work.pick != null) return;
-    final expected = work.expected;
-    _work(work.copyWith(offered: [?expected]));
-    _set(text: expected?.text ?? '');
-    _picked(state.text, expected?.version);
+    if (!inNoFile || mayReachFile || work.pick != null) return;
+    final file = switch (status) {
+      ChangedElsewhere(:final theirs) => theirs,
+      _ => work.expected,
+    };
+    _work(work.copyWith(expected: file, offered: [?file]));
+    _set(text: file?.text ?? '');
+    _picked(state.text, file?.version);
     _settle(switch (status) {
       DeletedElsewhere() => const DeletedElsewhere(),
-      _ when expected == null => const Unwritten(),
+      _ when file == null => const Unwritten(),
       _ => const InStep(),
     });
   }
@@ -609,7 +626,6 @@ final class _Step<V extends Version> {
     };
     if (before == null) return;
     _work(work.copyWith(io: null));
-    _takeMove();
     // Not kept: on the device at least, and the next start tries again.
     if (!ok) _set(status: before);
     if (work.securing != null) _answer(kept: ok);

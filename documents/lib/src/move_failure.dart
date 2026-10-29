@@ -7,6 +7,12 @@ sealed class MoveFailure {
   const MoveFailure();
 }
 
+/// The document has edits its file does not hold yet: it moves only
+/// once they are in; nothing changed.
+final class MoveWaitsForSave extends MoveFailure {
+  const MoveWaitsForSave();
+}
+
 /// A sync conflict of the document waits to be resolved; nothing changed.
 final class MoveBlockedByConflict extends MoveFailure {
   const MoveBlockedByConflict();

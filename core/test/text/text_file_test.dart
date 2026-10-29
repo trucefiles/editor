@@ -65,6 +65,12 @@ void main() {
     expect(utf8.decode(file.encode('a\nB\nc\nD\ne')), 'a\r\nB\nc\r\nD\ne');
   });
 
+  test('lines around a removed one keep their breaks', () {
+    final file = TextFile.decode(utf8Of('a\r\nb\nc\r\nd\ne'))!;
+
+    expect(utf8.decode(file.encode('a\nc\nd\ne')), 'a\r\nc\r\nd\ne');
+  });
+
   test('new lines in a mixed file get its first break style', () {
     final file = TextFile.decode(utf8Of('a\r\nb\nc'))!;
 

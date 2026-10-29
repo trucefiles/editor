@@ -109,19 +109,23 @@ final class RestoreMine extends FileInput<Never> {
   const RestoreMine();
 }
 
-/// Drop the edits that could be kept nowhere (a failed write, a change
-/// or deletion elsewhere), while no write or pick is under way; the text
-/// goes back to the file's.
+/// Drop the edits that are in no file: those that could be kept nowhere
+/// (a failed write, a change or deletion elsewhere), or a new document's
+/// before its file is created; not while a write or pick is under way.
+/// The text goes back to the file's: after a change elsewhere, the
+/// version the file holds now.
 final class Discard extends FileInput<Never> {
   const Discard();
 }
 
-/// The user moved or renamed the document in the app: the owner goes on
-/// with [copy].
-final class Moved<V extends Version> extends FileInput<V> {
-  const Moved(this.copy);
+/// Move or rename the document where the app was told; answered by
+/// [MoveAnswer]. Only a document the file holds moves, so the move takes
+/// every edit along.
+final class Move extends FileInput<Never> implements Asking {
+  const Move(this.ticket);
 
-  final Seen<V> copy;
+  @override
+  final Ticket ticket;
 }
 
 // Results.
@@ -191,6 +195,16 @@ final class LatestRead<V extends Version> extends FileResult<V> {
   final Seen<V>? seen;
 }
 
+/// How [MoveFile] went, ended at [endedAt]: the file now is [copy];
+/// `null` if it did not move.
+final class MovedTo<V extends Version> extends FileResult<V> {
+  const MovedTo(this.id, this.copy, {required this.endedAt});
+
+  final EffectId id;
+  final Seen<V>? copy;
+  final Moment endedAt;
+}
+
 /// Whether [BackUpBoth] backed up both versions.
 final class BackedUp extends FileResult<Never> {
   const BackedUp(this.id, {required this.ok});
@@ -248,6 +262,16 @@ final class Answer extends FileEvent implements Answering {
   @override
   final Ticket ticket;
   final bool kept;
+}
+
+/// The answer to [Move]: whether the move ran ([MoveFile]); not while
+/// the file does not hold the edits.
+final class MoveAnswer extends FileEvent implements Answering {
+  const MoveAnswer(this.ticket, {required this.ran});
+
+  @override
+  final Ticket ticket;
+  final bool ran;
 }
 
 /// A pick changed nothing: no backup could be made, the version from
@@ -335,6 +359,15 @@ final class ReadLatest<V extends Version> extends FileEffect<V> {
 
   final EffectId id;
   final Seen<V> at;
+}
+
+/// Move the file, as it is at [from], where the app was told; answered
+/// by [MovedTo].
+final class MoveFile<V extends Version> extends FileEffect<V> {
+  const MoveFile(this.id, {required this.from});
+
+  final EffectId id;
+  final Seen<V> from;
 }
 
 /// Back up [theirs] and the edits [mine] before a pick; answered by

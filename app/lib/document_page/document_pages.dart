@@ -53,7 +53,8 @@ final class DocumentPage {
 /// one place that puts a page together.
 final class DocumentPages {
   /// [filesOf] and [draftsOf] give a folder's document files and drafts.
-  /// [create] and [delete] create and delete a document's file;
+  /// [create], [move] and [delete] create, move and delete a document's
+  /// file;
   /// [settingsOf] gives a document's settings, [editSettings] changes
   /// them. [reachOf] tells a base folder's reach now, [reachSettled] once
   /// a running check of it is over. [refreshFolders] lists the folders
@@ -61,6 +62,7 @@ final class DocumentPages {
   DocumentPages({
     required this.types,
     required this.create,
+    required this.move,
     required this.delete,
     required this.settingsOf,
     required this.editSettings,
@@ -74,6 +76,7 @@ final class DocumentPages {
 
   final DocumentTypes<EditableType> types;
   final CreateDocumentFile create;
+  final MoveDocumentFile move;
   final DeleteForUndo delete;
   final DocumentSettings Function(DocumentKey document) settingsOf;
   final EditSettings editSettings;
@@ -144,6 +147,7 @@ final class DocumentPages {
         filesOf: filesOf,
         draftsOf: draftsOf,
         create: create,
+        moveDocument: move,
       ),
       editor.part.editor,
     );

@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
+import 'package:diffutil_dart/diffutil.dart';
+
 import '../common/unchanged_ends.dart';
+
 import 'lines.dart';
 
 /// A UTF-8 text file decoded for editing.
@@ -94,20 +98,52 @@ final class TextFile {
     breaks: _breaksFor(newText.split('\n')),
   );
 
-  /// The breaks between [lines]: the unchanged lines before and after the
-  /// edited part keep theirs, on both sides; other breaks get [lineBreak].
+  /// The breaks between [lines]: a line the old text had keeps the break
+  /// after it; a line that follows one it didn't have gets the break it
+  /// had before it; only breaks between added lines get [lineBreak].
   List<String> _breaksFor(List<String> lines) {
+    final old = _oldLinesOf(lines);
+    return [
+      for (final [before, after] in IterableZip([old, old.skip(1)]))
+        switch ((before, after)) {
+          (final before?, _) when before < _breaks.length => _breaks[before],
+          (_, final after?) when after > 0 => _breaks[after - 1],
+          _ => lineBreak,
+        },
+    ];
+  }
+
+  /// For each of [lines], the line of [text] it is: the same lines at
+  /// the start and the end, and a line diff between them; `null` for a
+  /// line it didn't have.
+  List<int?> _oldLinesOf(List<String> lines) {
     final old = text.split('\n');
     final same = unchangedEnds(old, lines);
-    final shift = old.length - lines.length;
+    final oldEnd = old.length - same.end;
+    final middle = List<int?>.generate(
+      oldEnd - same.start,
+      (line) => same.start + line,
+    );
+    // The script turns the old middle into the new one, applied in order.
+    final script = calculateListDiff(
+      old.sublist(same.start, oldEnd),
+      lines.sublist(same.start, lines.length - same.end),
+      detectMoves: false,
+    ).getUpdatesWithData();
+    for (final update in script) {
+      switch (update) {
+        case DataRemove(:final position):
+          middle.removeAt(position);
+        case DataInsert(:final position):
+          middle.insert(position, null);
+        case DataChange() || DataMove():
+          throw StateError('A list diff without moves has no changes or moves');
+      }
+    }
     return [
-      for (var i = 0; i < lines.length - 1; i++)
-        if (i < same.start && i < _breaks.length)
-          _breaks[i]
-        else if (i + 1 >= lines.length - same.end && i + shift >= 0)
-          _breaks[i + shift]
-        else
-          lineBreak,
+      ...List.generate(same.start, (line) => line),
+      ...middle,
+      ...List.generate(same.end, (line) => oldEnd + line),
     ];
   }
 }

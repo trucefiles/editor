@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../document_text.dart';
 import '../document_version.dart';
 import '../folder_state/folder_contents.dart';
+import '../move_failure.dart';
 import 'document_file.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
@@ -161,8 +162,17 @@ final class DocumentSession {
   /// Drops the edits that could be kept nowhere.
   void discard() => _file.send(const Discard());
 
-  /// The user moved or renamed the document to [copy].
-  void moved(DocumentText copy) => _file.send(Moved(copy.seen));
+  /// Moves or renames the document to [to], only once its file holds
+  /// every edit; how it went.
+  Future<Result<DocumentText, MoveFailure>> move(MoveTarget to) async {
+    _effects.aimMove(to);
+    await ask<FileInput<DocumentVersion>, MoveAnswer>(
+      _file.send,
+      _file.events,
+      Move.new,
+    );
+    return _effects.takeMoveResult() ?? const Err(MoveWaitsForSave());
+  }
 
   /// The user picked where a new document's file goes.
   void place(NewFile to) {
@@ -228,7 +238,7 @@ final class DocumentSession {
         if (event is Replaced) _fileNotices.add(event);
       case PickNotKept():
         _fileNotices.add(event);
-      case Answer():
+      case Answer() || MoveAnswer():
         // [ask] hears it.
         break;
     }

@@ -57,6 +57,13 @@ final class ReadingFile<V extends Version> extends Io<V> {
   final Seen<V> at;
 }
 
+/// Moving the file where the app was told, for [ask].
+final class MovingFile extends Io<Never> {
+  const MovingFile(super.id, this.ask);
+
+  final Move ask;
+}
+
 /// Backing up both versions for [pick].
 final class BackingUp extends Io<Never> {
   const BackingUp(super.id, this.pick);
@@ -120,7 +127,8 @@ final class FileWork<V extends Version> {
     this.securing,
     this.lastWriteEnd,
     this.backedUp,
-    this.moved,
+    this.created,
+    this.move,
     this.toRead,
   });
 
@@ -167,8 +175,13 @@ final class FileWork<V extends Version> {
   /// File text that needs no backup before a write over it.
   final String? backedUp;
 
-  /// The copy a move left while a write was under way.
-  final Seen<V>? moved;
+  /// The version this owner created the new document's file in: the
+  /// lineage of edits that name none, made before the editor took a
+  /// version.
+  final Version? created;
+
+  /// A move waiting for the I/O under way.
+  final Move? move;
 
   /// A version of the file an observation found, not seen yet: read once
   /// no I/O is under way.
@@ -187,7 +200,8 @@ final class FileWork<V extends Version> {
     Object? securing = _same,
     Object? lastWriteEnd = _same,
     Object? backedUp = _same,
-    Object? moved = _same,
+    Object? created = _same,
+    Object? move = _same,
     Object? toRead = _same,
   }) => FileWork(
     expected: _or(expected, this.expected),
@@ -202,7 +216,8 @@ final class FileWork<V extends Version> {
     securing: _or(securing, this.securing),
     lastWriteEnd: _or(lastWriteEnd, this.lastWriteEnd),
     backedUp: _or(backedUp, this.backedUp),
-    moved: _or(moved, this.moved),
+    created: _or(created, this.created),
+    move: _or(move, this.move),
     toRead: _or(toRead, this.toRead),
   );
 }

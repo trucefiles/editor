@@ -154,7 +154,7 @@ final class _World {
         effects.add(effect);
       case final Answer answer:
         answers.add(answer);
-      case PickNotKept():
+      case PickNotKept() || MoveAnswer():
         break;
     }
   }
@@ -235,18 +235,12 @@ final class _World {
             _ => false,
           }:
         owner.send(const Discard());
-      case 13 when file != null && !effects.any(_writesTheFile):
-        // The app moves the file; scans follow it to its new place.
-        file = Seen(file!.text, _version());
-        scans.clear();
-        owner.send(Moved(file!));
+      case 13:
+        owner.send(Move(Ticket()));
       case _:
         break;
     }
   }
-
-  static bool _writesTheFile(FileEffect effect) =>
-      effect is Write || effect is Create || effect is Restore;
 
   /// The editor shows the document read-only once its edits are kept as
   /// a conflict copy.
@@ -295,6 +289,14 @@ final class _World {
         owner.send(ConflictKept(id, ok: ok));
       case ReadLatest(:final id):
         owner.send(LatestRead(id, file));
+      case MoveFile(:final id, :final from):
+        // Moves only the file as it was; scans follow it to its new place.
+        final moved = file?.version == from.version;
+        if (moved) {
+          file = Seen(file!.text, _version());
+          scans.clear();
+        }
+        owner.send(MovedTo(id, moved ? file : null, endedAt: endedAt));
       case DropDraft():
         break;
     }
@@ -335,6 +337,9 @@ void main() {
     for (final isNew in [false, true])
       for (final elsewhere in [false, true]) (isNew, elsewhere, false),
     (false, true, true),
+    // A new document, created, then changed elsewhere before the editor
+    // took the change.
+    (true, true, true),
   ]) {
     {
       test('random events never lose an edit '
