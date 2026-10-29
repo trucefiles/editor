@@ -134,6 +134,22 @@ void main() {
     text.dispose();
   });
 
+  testWidgets('a text from elsewhere ends a pause already running', (
+    tester,
+  ) async {
+    final text = _Highlighted('Title');
+    var reads = 0;
+    text.highlighter.phase.dirtyCallback = () => reads++;
+
+    text.type(0, 0, 'x');
+    text.text.replace('# Title');
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(reads, 1);
+    expect(text.on(0), contains(_heading));
+    text.dispose();
+  });
+
   testWidgets('pasted lines leave the lines below their highlights, and '
       'each line gets its own after the pause', (tester) async {
     final text = _Highlighted('x\n# Below');

@@ -48,9 +48,9 @@ class LineEditView extends StatefulWidget {
 }
 
 class _LineEditViewState extends State<LineEditView> {
-  late final _adapter = LinesAdapter(widget.text);
-  late final _highlighter = widget.editing.highlighter?.call(_adapter);
-  late final _phases = [?_highlighter?.phase];
+  late final LinesAdapter _adapter;
+  late final LineHighlighter? _highlighter;
+  late final List<SingleColumnLayoutStylePhase> _phases;
   final _layout = GlobalKey();
   late final _operations = PasteOperations(
     _adapter.editor,
@@ -63,6 +63,14 @@ class _LineEditViewState extends State<LineEditView> {
   /// stylesheet.
   EditorLook? _look;
   (ThemeData, DocumentMetrics)? _lookFor;
+
+  @override
+  void initState() {
+    super.initState();
+    _adapter = LinesAdapter(widget.text);
+    _highlighter = widget.editing.highlighter?.call(_adapter);
+    _phases = [?_highlighter?.phase];
+  }
 
   @override
   void didChangeDependencies() {
