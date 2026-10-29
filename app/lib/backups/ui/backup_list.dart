@@ -8,8 +8,8 @@ import '../../common/snack.dart';
 import '../../common/time_texts.dart';
 import '../../documents/ui/listed_document.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../all_backups.dart';
 import '../backup_actions.dart';
+import '../folder_backups.dart';
 import 'backup_kind_text.dart';
 
 /// A screen listing [backups] under [title], newest first, rows built as

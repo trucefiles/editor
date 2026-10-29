@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'all_backups.dart';
+import 'folder_backups.dart';
 
 /// Compares a backup with its document as it is now, through [_restore];
 /// [_rescan] scans after a keep.

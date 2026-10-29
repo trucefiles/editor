@@ -1,6 +1,11 @@
+import 'package:truce_core/truce_core.dart';
+
+import '../../file_types/document_types.dart';
 import '../document.dart';
 import '../document_card_summary.dart';
+import '../document_files.dart';
 import '../document_title.dart';
+import '../open_failure.dart';
 
 /// What a card shows of a document's text.
 sealed class CardPreview {
@@ -37,4 +42,18 @@ String cardTitle(Document document, CardPreview preview) => switch (preview) {
   PreviewReading() ||
   PreviewNotText() ||
   PreviewUnreadable() => nameTitle(document.path),
+};
+
+/// [document]'s preview, read from its file in [files] and worked out by
+/// its type in [types]; never throws.
+Future<CardPreview> readPreview(
+  Document document,
+  FolderFiles files,
+  DocumentTypes types,
+) async => switch (await files.of(document.folder).reload(document)) {
+  Ok(value: final read) => Previewed(
+    types.ofFile(read.type).cardSummary(read.text, read.path),
+  ),
+  Err(error: NotText()) => const PreviewNotText(),
+  Err(error: NotRead()) => const PreviewUnreadable(),
 };

@@ -7,6 +7,7 @@ import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import '../versions/compare_controller.dart';
 import 'all_backups.dart';
+import 'folder_backups.dart';
 import 'restore_compare.dart';
 
 /// What the restore screen shows.

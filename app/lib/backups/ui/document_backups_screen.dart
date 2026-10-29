@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../documents/document.dart';
-import '../all_backups.dart';
 import '../backup_retention.dart';
 import '../document_backups.dart';
+import '../folder_backups.dart';
 import 'backup_list.dart';
 
 /// The backups of one document, newest first; tapping one calls [onOpen].

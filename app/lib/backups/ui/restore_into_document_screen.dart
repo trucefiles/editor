@@ -9,9 +9,9 @@ import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/version_text.dart';
-import '../all_backups.dart';
 import '../backup_bytes.dart';
 import '../backup_retention.dart';
+import '../folder_backups.dart';
 import 'backup_kind_text.dart';
 
 /// Shows a backup next to the open document's text [current], in the same

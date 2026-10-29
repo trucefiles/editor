@@ -1,29 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
 
 import '../documents/document.dart';
 import '../folders/folder_list_owner.dart';
-import '../folders/folder_lookup.dart';
 import '../folders/folders_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
-import 'all_backups.dart';
+import 'folder_backups.dart';
 
-/// The backups of one document, newest first; read again each time they
-/// are shown. None if no folder shows it or its backups can't be read.
+/// The backups of one document (see [backupsOfDocument]); read again each
+/// time they are shown.
 final documentBackupsProvider = FutureProvider.autoDispose
     .family<List<FolderBackup>, DocumentKey>((ref, key) async {
       // Built again as the list changes; none if it can't be read.
       ref.watch(folderListStateProvider);
-      final folders = await settledFolders(ref.read(folderListOwnerProvider));
-      final folder = folders.folderOf(key.baseId, key.path);
-      if (folder == null) return const [];
-      final backups = ref
-          .watch(baseFolderServicesProvider(folder.base))
-          .backups;
-      return switch (await backups.listOf(key.path)) {
-        Ok(:final value) => [
-          for (final backup in value) (folder: folder, backup: backup),
-        ],
-        Err() => const [],
-      };
+      final stacks = ref.watch(baseFolderStacksProvider);
+      return backupsOfDocument(
+        key,
+        await settledFolders(ref.read(folderListOwnerProvider)),
+        (base) => stacks.servicesOf(base).backups,
+      );
     });

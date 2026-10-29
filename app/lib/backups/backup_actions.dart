@@ -6,6 +6,7 @@ import '../sync_tool/base_folder_services.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import 'all_backups.dart';
 import 'document_backups.dart';
+import 'folder_backups.dart';
 
 final backupActionsProvider = Provider<BackupActions>(
   (ref) => BackupActions(
