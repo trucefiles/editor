@@ -155,7 +155,7 @@ void main() {
         ..keep()
         ..send(Move(Ticket()));
       expect(run.all<MoveFile>(), isEmpty);
-      expect(run.last<MoveAnswer>().ran, isFalse);
+      expect(run.last<MoveAnswer>().started, isFalse);
     });
 
     test('edits made during a move are written over the copy', () {
@@ -167,7 +167,7 @@ void main() {
         ..send(MovedTo(move.id, copy, endedAt: Moment.now()))
         ..keep()
         ..send(const SaveNow());
-      expect(run.last<MoveAnswer>().ran, isTrue);
+      expect(run.last<MoveAnswer>().started, isTrue);
       final write = run.last<Write>();
       expect((write.text, write.over), ('ab', copy));
     });
@@ -315,6 +315,17 @@ void main() {
 
       expect(run.all<ReadLatest>(), hasLength(1));
       expect((run.status as ChangedElsewhere).theirs.version, _v3);
+    });
+
+    test('a version found is read before a move', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..found(const Seen('b', _v2))
+        ..edit('a', 2)
+        ..send(Move(Ticket()))
+        ..keep();
+      expect(run.last<Replaced>().text, 'b');
+      expect(run.last<MoveFile>().from.version, _v2);
     });
 
     test('a move waits for a read under way', () {
@@ -850,10 +861,10 @@ void main() {
     expect(_Run.unwritten().state.file, isNull);
   });
 
-  test('a move that did not run changes nothing', () {
+  test('a move that failed changes nothing', () {
     final run = _Run.opened('a')..move(null);
     expect(run.state.file, _v1);
-    expect(run.last<MoveAnswer>().ran, isTrue);
+    expect(run.last<MoveAnswer>().started, isTrue);
   });
 
   test('drafts name the file the edits go over', () {

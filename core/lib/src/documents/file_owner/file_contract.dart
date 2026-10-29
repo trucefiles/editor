@@ -196,7 +196,8 @@ final class LatestRead<V extends Version> extends FileResult<V> {
 }
 
 /// How [MoveFile] went, ended at [endedAt]: the file now is [copy];
-/// `null` if it did not move.
+/// `null` if it did not move. Scans that started before a move that
+/// moved the file are ignored, as after a write.
 final class MovedTo<V extends Version> extends FileResult<V> {
   const MovedTo(this.id, this.copy, {required this.endedAt});
 
@@ -264,14 +265,15 @@ final class Answer extends FileEvent implements Answering {
   final bool kept;
 }
 
-/// The answer to [Move]: whether the move ran ([MoveFile]); not while
-/// the file does not hold the edits.
+/// The answer to [Move]: whether the move was started ([MoveFile]), and
+/// so has ended; not while the file does not hold the edits, or another
+/// move waits.
 final class MoveAnswer extends FileEvent implements Answering {
-  const MoveAnswer(this.ticket, {required this.ran});
+  const MoveAnswer(this.ticket, {required this.started});
 
   @override
   final Ticket ticket;
-  final bool ran;
+  final bool started;
 }
 
 /// A pick changed nothing: no backup could be made, the version from
@@ -361,12 +363,13 @@ final class ReadLatest<V extends Version> extends FileEffect<V> {
   final Seen<V> at;
 }
 
-/// Move the file, as it is at [from], where the app was told; answered
-/// by [MovedTo].
+/// Move the file, as it is at [from], where the app was told for the
+/// [Move] with [ticket]; answered by [MovedTo].
 final class MoveFile<V extends Version> extends FileEffect<V> {
-  const MoveFile(this.id, {required this.from});
+  const MoveFile(this.id, {required this.ticket, required this.from});
 
   final EffectId id;
+  final Ticket ticket;
   final Seen<V> from;
 }
 

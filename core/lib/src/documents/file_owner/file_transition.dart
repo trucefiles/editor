@@ -99,7 +99,7 @@ final class _Step<V extends Version> {
   // The next I/O.
 
   /// Starts the next I/O once none is under way: a pick waiting, the
-  /// next step of a [Secure], a move waiting, a version found to read,
+  /// next step of a [Secure], a version found to read, a move waiting,
   /// the draft, then the file.
   void _next() {
     if (work.io != null) return;
@@ -107,9 +107,11 @@ final class _Step<V extends Version> {
     if (work.securing case final securing? when work.io == null) {
       _secureStep(securing);
     }
-    if (work.move case final move? when work.io == null) _startMove(move);
     if (work.io != null) return;
+    // A version found is read first: a move goes only from the file now.
     if (work.toRead != null && !_done) return _readLatest();
+    if (work.move case final move?) _startMove(move);
+    if (work.io != null) return;
     if (!_hasEdits && work.draft != null) _dropDraft();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
     if (work.folderRev != null) _write();
@@ -432,7 +434,7 @@ final class _Step<V extends Version> {
   /// Takes [move] once no I/O is under way; one at a time.
   void _move(Move move) {
     if (work.move != null || work.io is MovingFile) {
-      return events.add(MoveAnswer(move.ticket, ran: false));
+      return events.add(MoveAnswer(move.ticket, started: false));
     }
     _work(work.copyWith(move: move));
   }
@@ -442,11 +444,11 @@ final class _Step<V extends Version> {
     _work(work.copyWith(move: null));
     final from = work.expected;
     if (status is! InStep || from == null) {
-      return events.add(MoveAnswer(move.ticket, ran: false));
+      return events.add(MoveAnswer(move.ticket, started: false));
     }
     final id = _id();
     _work(work.copyWith(io: MovingFile(id, move)));
-    effects.add(MoveFile(id, from: from));
+    effects.add(MoveFile(id, ticket: move.ticket, from: from));
   }
 
   /// The move ended: writes go over the [copy] it left, edits made
@@ -457,9 +459,11 @@ final class _Step<V extends Version> {
       _ => null,
     };
     if (ask == null) return;
-    _work(work.copyWith(io: null, lastWriteEnd: endedAt));
-    if (copy != null) _work(work.copyWith(expected: copy));
-    events.add(MoveAnswer(ask.ticket, ran: true));
+    _work(work.copyWith(io: null));
+    if (copy != null) {
+      _work(work.copyWith(expected: copy, lastWriteEnd: endedAt));
+    }
+    events.add(MoveAnswer(ask.ticket, started: true));
   }
 
   // Picks.

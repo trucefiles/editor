@@ -165,13 +165,17 @@ final class DocumentSession {
   /// Moves or renames the document to [to], only once its file holds
   /// every edit; how it went.
   Future<Result<DocumentText, MoveFailure>> move(MoveTarget to) async {
-    _effects.aimMove(to);
+    late final Ticket asked;
     await ask<FileInput<DocumentVersion>, MoveAnswer>(
       _file.send,
       _file.events,
-      Move.new,
+      (ticket) {
+        asked = ticket;
+        _effects.aimMove(ticket, to);
+        return Move(ticket);
+      },
     );
-    return _effects.takeMoveResult() ?? const Err(MoveWaitsForSave());
+    return _effects.takeMoveResult(asked) ?? const Err(MoveWaitsForSave());
   }
 
   /// The user picked where a new document's file goes.

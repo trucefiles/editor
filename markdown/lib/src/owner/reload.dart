@@ -3,8 +3,7 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:diffutil_dart/diffutil.dart';
-import 'package:truce_core/truce_core.dart' show splitLines;
+import 'package:truce_core/truce_core.dart' show newLinesOf, splitLines;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
@@ -30,7 +29,7 @@ Loaded loaded(String text) {
 /// [after].
 final class ReloadMap {
   ReloadMap(this.before, this.after)
-    : _newLines = _newLinesOf(
+    : _newLines = newLinesOf(
         splitLines(before.text),
         splitLines(after.printed.text),
       );
@@ -115,38 +114,3 @@ int? _firstLine(ListNode list, PrintedMarkdown printed) =>
       final leaf? => printed.lines[leaf.id]?.first,
       null => null,
     };
-
-/// For each line of [old], the index of the same line in [updated]; `null`
-/// for a line [updated] doesn't keep.
-///
-/// Relies on diffutil's edit script without moves running from the end
-/// of the old list, so every position is one in the old list (pinned by
-/// the reload tests, as in the app's `diffutil_order_test.dart`).
-List<int?> _newLinesOf(List<String> old, List<String> updated) {
-  final script = calculateListDiff(
-    old,
-    updated,
-    detectMoves: false,
-  ).getUpdates(batch: false).toList();
-  final removed = {
-    for (final update in script.whereType<Remove>())
-      for (var line = 0; line < update.count; line++) update.position + line,
-  };
-  final insertedAt = [
-    for (final update in script.whereType<Insert>())
-      for (var line = 0; line < update.count; line++) update.position,
-  ];
-  final kept = [
-    for (var line = 0; line < old.length; line++)
-      if (!removed.contains(line)) line,
-  ];
-  final keptBefore = {for (final (index, line) in kept.indexed) line: index};
-  return [
-    for (var line = 0; line < old.length; line++)
-      switch (keptBefore[line]) {
-        final index? =>
-          index + insertedAt.where((position) => position <= line).length,
-        null => null,
-      },
-  ];
-}

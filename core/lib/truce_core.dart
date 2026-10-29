@@ -135,6 +135,7 @@ export 'src/storage/write_reporting_store.dart';
 export 'src/sync/folder_notices.dart';
 export 'src/sync/sync_check.dart';
 export 'src/sync/sync_tool.dart';
+export 'src/text/line_match.dart';
 export 'src/text/lines.dart';
 export 'src/text/text_file.dart';
 export 'src/versions/resolution.dart';

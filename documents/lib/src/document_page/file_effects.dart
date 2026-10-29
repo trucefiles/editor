@@ -64,9 +64,10 @@ final class FileEffects {
   /// `null` for a document opened from its file.
   NewFile? _newFile;
 
-  /// Where the move the user asked last goes, and how it went once it
-  /// ran.
-  ({MoveTarget to, Result<DocumentText, MoveFailure>? result})? _move;
+  /// Where each move the user asked goes, by its ask's ticket, and how it
+  /// went once it ran.
+  final _moves =
+      <Ticket, ({MoveTarget to, Result<DocumentText, MoveFailure>? result})>{};
 
   /// The draft kept last, until it is dropped: moved along when a new
   /// document's place changes, and what the last draft builds on once the
@@ -96,7 +97,11 @@ final class FileEffects {
       _restore(text, where.version.read),
     ),
     ReadLatest(:final id, :final at) => _readLatest(id, at.version.read),
-    MoveFile(:final id, :final from) => _moveFile(id, from.version.read),
+    MoveFile(:final id, :final ticket, :final from) => _moveFile(
+      id,
+      ticket,
+      from.version.read,
+    ),
     BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
       id,
       theirs.version.read,
@@ -123,16 +128,15 @@ final class FileEffects {
     _keep(draft.base, draft.text, to);
   }
 
-  /// The user moves the document to [to]: where the next [MoveFile]
-  /// goes.
-  void aimMove(MoveTarget to) => _move = (to: to, result: null);
+  /// The user moves the document to [to], by the [Move] with [ticket]:
+  /// where its [MoveFile] goes.
+  void aimMove(Ticket ticket, MoveTarget to) =>
+      _moves[ticket] = (to: to, result: null);
 
-  /// How the move aimed last went, once; `null` if it did not run.
-  Result<DocumentText, MoveFailure>? takeMoveResult() {
-    final result = _move?.result;
-    _move = null;
-    return result;
-  }
+  /// How the move asked with [ticket] went, once; `null` if it did not
+  /// run.
+  Result<DocumentText, MoveFailure>? takeMoveResult(Ticket ticket) =>
+      _moves.remove(ticket)?.result;
 
   /// Keeps [text] as the draft without the file owner, once it stopped
   /// (a bug): over the base of the draft before, else of [file], the
@@ -259,16 +263,19 @@ final class FileEffects {
 
   Future<FileResult<DocumentVersion>> _moveFile(
     EffectId id,
+    Ticket ticket,
     DocumentText from,
   ) async {
-    final to = _move?.to ?? (throw StateError('A move without a place to go.'));
+    final to =
+        _moves[ticket]?.to ??
+        (throw StateError('A move without a place to go.'));
     final moved = await _moveDocument(
       from,
       to.place,
       title: to.title,
       newSubfolder: to.newSubfolder,
     );
-    _move = (to: to, result: moved);
+    _moves[ticket] = (to: to, result: moved);
     final copy = switch (moved) {
       Ok(:final value) ||
       Err(error: MoveLeftOriginal(copy: final value)) => value,
