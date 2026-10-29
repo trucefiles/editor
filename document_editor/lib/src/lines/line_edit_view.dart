@@ -50,6 +50,7 @@ class LineEditView extends StatefulWidget {
 class _LineEditViewState extends State<LineEditView> {
   late final _adapter = LinesAdapter(widget.text);
   late final _highlighter = widget.editing.highlighter?.call(_adapter);
+  late final _phases = [?_highlighter?.phase];
   final _layout = GlobalKey();
   late final _operations = PasteOperations(
     _adapter.editor,
@@ -94,7 +95,7 @@ class _LineEditViewState extends State<LineEditView> {
             stylesheet: look.stylesheet,
             selectionStyle: look.selection,
             documentOverlayBuilders: look.overlays,
-            customStylePhases: [?_highlighter?.phase],
+            customStylePhases: _phases,
             keyboardActions: lineKeyboardActions(_adapter.paste),
             contentTapDelegateFactories: [
               if (_highlighter case final highlighter?)

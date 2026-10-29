@@ -231,7 +231,7 @@ final _libraryHandlers = defaultRequestHandlers.cast<EditRequestHandler>();
 /// A caret on line [line], at [offset] in it.
 typedef _Caret = ({int line, int offset});
 
-/// Shows the tree's lines; see [PatchCommand].
+/// Shows the lines; see [PatchCommand].
 final class _PatchRequest implements EditRequest {
   const _PatchRequest(this.nodes, {required this.selection});
 

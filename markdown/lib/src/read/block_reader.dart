@@ -11,7 +11,8 @@ import 'syntax/table_rows.dart';
 /// goes to the innermost block that takes lines. Every line that is not
 /// blank or an empty item's marker lands in exactly one leaf.
 ///
-/// Front matter may start it. The one reader of block structure.
+/// [lines] are the lines' texts, without their endings; front matter may
+/// start them. The one reader of block structure.
 OpenRoot readOpenBlocks(List<String> lines) => _Reader(lines).read();
 
 const _codeIndent = 4;
