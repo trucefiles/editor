@@ -761,6 +761,61 @@ void main() {
       expect(run.last<Answer>().kept, isFalse);
       expect(run.all<KeepAsConflict>(), isEmpty);
     });
+
+    test('dropped by the user, it is not created when it closes', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Discard())
+        ..secure(SecureReason.close);
+      expect(run.all<Create>(), isEmpty);
+      expect(run.state.text, isEmpty);
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
+    group('created, then changed elsewhere before the editor took it', () {
+      /// A new document created as [_v1] holding 'a', then written as
+      /// [_v2] elsewhere; the editor typed 'ac' over 'a' before it could
+      /// show [_v2], so its lineage is still the new document's.
+      _Run changedElsewhere() {
+        final run = _Run.unwritten()
+          ..edit('a', 1, lineage: null)
+          ..keep()
+          ..secure(SecureReason.hide)
+          ..wrote(const Written(Seen('a', _v1)))
+          ..found(const Seen('b', _v2));
+        expect(run.last<Replaced>().version, _v2);
+        run
+          ..edit('ac', 2, lineage: null)
+          ..keep();
+        expect(run.status, isA<ChangedElsewhere>());
+        return run;
+      }
+
+      test('the draft builds on the text the edits were made over', () {
+        final run = changedElsewhere();
+        expect(run.last<KeepDraft>().base, 'a');
+      });
+
+      test('seeing the same version again keeps the user\'s pick', () {
+        final run = changedElsewhere()
+          ..found(const Seen('b', _v2))
+          ..send(const SaveNow());
+        expect(run.status, isA<ChangedElsewhere>());
+        expect(run.all<Write>(), isEmpty, reason: 'b must not be overwritten');
+      });
+
+      test('after the user keeps mine, typing on is plain editing', () {
+        final run = changedElsewhere()
+          ..send(const Pick(PickChoice.mine, seen: _v2, rev: 2));
+        run
+          ..send(BackedUp(run.last<BackUpBoth>().id, ok: true))
+          ..wrote(const Written(Seen('ac', _v3)));
+        expect(run.status, isA<InStep>());
+        run.edit('acd', 3, lineage: null);
+        expect(run.status, isA<Editing>());
+      });
+    });
   });
 
   test('a move goes on with the copy', () {

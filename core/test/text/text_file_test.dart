@@ -59,6 +59,12 @@ void main() {
     expect(utf8.decode(file.encode('a\nB\nc\nd\n')), 'a\r\nB\nc\r\nd\n');
   });
 
+  test('unchanged lines between two edits keep their breaks', () {
+    final file = TextFile.decode(utf8Of('a\r\nb\nc\r\nd\ne'))!;
+
+    expect(utf8.decode(file.encode('a\nB\nc\nD\ne')), 'a\r\nB\nc\r\nD\ne');
+  });
+
   test('new lines in a mixed file get its first break style', () {
     final file = TextFile.decode(utf8Of('a\r\nb\nc'))!;
 
