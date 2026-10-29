@@ -51,7 +51,7 @@ void main() {
     );
     addTearDown(container.dispose);
     await container.read(folderListStoreProvider).save(folders);
-    await container.read(foldersProvider.future);
+    await container.read(loadedFoldersProvider.future);
   }
 
   void write(String name, String text) =>
@@ -173,7 +173,7 @@ void main() {
       // The second save came within Syncthing's window: the old stack writes
       // the same bytes once more, as the user's own write.
       await Future<void>.delayed(const Duration(milliseconds: 2500));
-      final narrowed = container.read(foldersProvider).value!.single;
+      final narrowed = container.read(loadedFoldersProvider).value!.single;
       expect(
         (await container
                 .read(documentFilesProvider(narrowed))

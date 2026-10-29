@@ -11,7 +11,7 @@ import 'all_backups.dart';
 /// are shown. None if no folder shows it or its backups can't be read.
 final documentBackupsProvider = FutureProvider.autoDispose
     .family<List<FolderBackup>, DocumentKey>((ref, key) async {
-      final folders = await ref.watch(foldersProvider.future);
+      final folders = await ref.watch(loadedFoldersProvider.future);
       final folder = folders.folderOf(key.baseId, key.path);
       if (folder == null) return const [];
       final backups = ref

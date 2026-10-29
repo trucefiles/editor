@@ -8,6 +8,7 @@ import 'package:truce_editor/folders/add_folder/ui/add_folder_screen.dart';
 import 'package:truce_editor/folders/base_folder.dart';
 import 'package:truce_editor/folders/document_folder.dart';
 import 'package:truce_editor/folders/folder_error.dart';
+import 'package:truce_editor/folders/folder_list_contract.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
@@ -78,7 +79,7 @@ void main() {
                 ),
               ),
               child: Text(
-                ref.watch(foldersProvider).hasValue ? 'home' : 'loading',
+                ref.watch(loadedFoldersProvider).hasValue ? 'home' : 'loading',
               ),
             ),
           ),
@@ -204,7 +205,7 @@ final class _Folders extends FoldersController {
   final List<DocumentFolder> folders;
 
   @override
-  Future<List<DocumentFolder>> build() async => folders;
+  FolderListState build() => FoldersLoaded(folders);
 }
 
 final class _Picker implements FolderPicker {

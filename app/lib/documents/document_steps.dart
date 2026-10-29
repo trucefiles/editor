@@ -181,7 +181,7 @@ base class DocumentSteps {
   /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
     final folders = await _ref
-        .read(foldersProvider.future)
+        .read(loadedFoldersProvider.future)
         .then<List<DocumentFolder>>(
           (folders) => folders,
           onError: (_) => <DocumentFolder>[],

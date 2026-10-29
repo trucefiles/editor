@@ -17,7 +17,7 @@ class NewFilePlaceTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final folders = ref.watch(foldersProvider).value ?? const [];
+    final folders = ref.watch(loadedFoldersProvider).value ?? const [];
     final setting = ref.watch(newFilePlaceProvider);
     ref.watch(folderContentsProvider);
     final actions = ref.read(documentActionsProvider);

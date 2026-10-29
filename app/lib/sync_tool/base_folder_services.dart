@@ -93,7 +93,7 @@ final _baseFolderPlaceProvider =
 final baseFolderServicesProvider =
     Provider.family<BaseFolderServices, BaseFolder>((ref, base) {
       final selection = ref.watch(
-        foldersProvider.select(
+        loadedFoldersProvider.select(
           (folders) => (folders.value ?? const []).selectionOf(base),
         ),
       );

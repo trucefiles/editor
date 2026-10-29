@@ -48,7 +48,7 @@ class FollowingChanges extends AsyncNotifier<void> {
       unawaited(ref.read(folderContentsProvider.notifier).refresh());
     }
     if (!active) return;
-    final folders = await ref.watch(foldersProvider.future);
+    final folders = await ref.watch(loadedFoldersProvider.future);
     if (disposed) return;
     final bases = {for (final folder in folders) folder.base};
     final changes = await Future.wait([

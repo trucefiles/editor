@@ -15,6 +15,7 @@ import '../../document_page/ui/document_screen.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folder_state/following_changes.dart';
 import '../../folders/document_folder.dart';
+import '../../folders/folder_list_contract.dart';
 import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_filter_bar.dart';
@@ -86,7 +87,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             icon: const Icon(Icons.refresh),
             // Only while there are documents to show, with the pull's indicator.
             onPressed: switch (folders) {
-              AsyncData(value: final list) when list.isNotEmpty =>
+              FoldersLoaded(folders: final list) when list.isNotEmpty =>
                 () => _pull.currentState!.refresh(),
               _ => null,
             },
@@ -108,24 +109,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           const HomeMenu(),
         ],
       ),
-      floatingActionButton: switch (folders.value) {
-        final list? when list.isNotEmpty => FloatingActionButton(
-          tooltip: 'New document',
-          onPressed: () => _create(list),
-          child: const Icon(Icons.edit),
-        ),
+      floatingActionButton: switch (folders) {
+        FoldersLoaded(folders: final list) when list.isNotEmpty =>
+          FloatingActionButton(
+            tooltip: 'New document',
+            onPressed: () => _create(list),
+            child: const Icon(Icons.edit),
+          ),
         _ => null,
       },
       body: switch (folders) {
-        AsyncData(value: final list) when list.isEmpty => const _NoFolders(),
-        AsyncData(value: final list) => _DocumentsBody(list, pull: _pull),
-        AsyncError(error: FolderSettingsException(:final error)) => Center(
-          child: Text(error.text),
-        ),
-        AsyncError() => const Center(
-          child: Text("Your documents couldn't be loaded."),
-        ),
-        _ => const Center(child: CircularProgressIndicator()),
+        FoldersLoaded(folders: final list) when list.isEmpty =>
+          const _NoFolders(),
+        FoldersLoaded(folders: final list) => _DocumentsBody(list, pull: _pull),
+        FoldersUnreadable(:final error) => Center(child: Text(error.text)),
+        FoldersLoading() => const Center(child: CircularProgressIndicator()),
       },
     );
   }

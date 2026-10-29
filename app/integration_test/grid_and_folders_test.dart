@@ -242,7 +242,7 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
-      final folder = container.read(foldersProvider).value!.single;
+      final folder = container.read(loadedFoldersProvider).value!.single;
       return container
           .read(folderActionsProvider)
           .change(folder.copyWith(selection: Selection.of([path('notes')])));
@@ -276,7 +276,7 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
-      final folder = container.read(foldersProvider).value!.single;
+      final folder = container.read(loadedFoldersProvider).value!.single;
 
       await tester.runAsync(
         () => container.read(folderActionsProvider).remove(folder),

@@ -31,7 +31,7 @@ final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
   unawaited(
     ref.read(documentsProvider).draftsRecovered.then((_) {
       if (!ref.mounted) return;
-      ref.listen(foldersProvider, (_, folders) {
+      ref.listen(loadedFoldersProvider, (_, folders) {
         if (folders.value case final folders?) {
           // Every base folder a listing may still ask for stays known.
           bases = {
@@ -66,7 +66,7 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
   @override
   Future<FolderContents> build() async {
     final owner = ref.watch(folderStateOwnerProvider);
-    final folders = await ref.watch(foldersProvider.future);
+    final folders = await ref.watch(loadedFoldersProvider.future);
     final types = ref.watch(documentTypesProvider);
     FolderContents contentsOf(FolderState state) =>
         FolderContents(state, folders: folders, types: types);

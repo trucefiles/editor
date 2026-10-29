@@ -43,7 +43,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(foldersProvider.future);
+    await container.read(loadedFoldersProvider.future);
     folder =
         (await container
                 .read(foldersProvider.notifier)

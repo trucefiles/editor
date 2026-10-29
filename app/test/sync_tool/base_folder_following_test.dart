@@ -30,7 +30,7 @@ Future<({ProviderContainer container, BaseFolder base})> _start(
   final folder = folderAt(Directory(basePath), selection: selection);
   await container.read(folderListStoreProvider).save([folder]);
   await container.read(refreshSettingsStoreProvider).save(refresh);
-  await container.read(foldersProvider.future);
+  await container.read(loadedFoldersProvider.future);
   container.listen(folderFollowingProvider(folder.base), (_, _) {});
   return (container: container, base: folder.base);
 }

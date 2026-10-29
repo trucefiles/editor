@@ -29,7 +29,7 @@ class FoldersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final folders = ref.watch(foldersProvider).value ?? const [];
+    final folders = ref.watch(loadedFoldersProvider).value ?? const [];
     return Scaffold(
       appBar: AppBar(title: const Text('Manage folders')),
       floatingActionButton: FloatingActionButton.extended(

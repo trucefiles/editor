@@ -44,7 +44,8 @@ class FolderReachController extends Notifier<Reach> {
 /// The folders that are [Reach.retrying] right now.
 final retryingFoldersProvider = Provider<List<DocumentFolder>>(
   (ref) => [
-    for (final folder in ref.watch(foldersProvider).value ?? <DocumentFolder>[])
+    for (final folder
+        in ref.watch(loadedFoldersProvider).value ?? <DocumentFolder>[])
       if (ref.watch(folderReachProvider(folder.base)) == Reach.retrying) folder,
   ],
 );

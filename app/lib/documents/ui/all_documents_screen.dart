@@ -75,7 +75,7 @@ class AllDocumentsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FolderFilterBar(
-            ref.watch(foldersProvider).value ?? const [],
+            ref.watch(loadedFoldersProvider).value ?? const [],
             conflictCount: (folder) =>
                 contents?.conflicts.countIn(folder.id) ?? 0,
           ),

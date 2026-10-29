@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/following_changes.dart';
 import 'package:truce_editor/folders/document_folder.dart';
+import 'package:truce_editor/folders/folder_list_contract.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/refresh/refresh_settings.dart';
@@ -172,9 +173,10 @@ class _FixedFolders extends FoldersController {
   final Future<void>? _loaded;
 
   @override
-  Future<List<DocumentFolder>> build() async {
-    await _loaded;
-    return _folders;
+  FolderListState build() {
+    if (_loaded == null) return FoldersLoaded(_folders);
+    _loaded.then((_) => state = FoldersLoaded(_folders));
+    return const FoldersLoading();
   }
 }
 

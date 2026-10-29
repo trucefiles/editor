@@ -53,7 +53,7 @@ void main() {
   test('remove stops filtering the documents by that folder', () async {
     await add('/sync/a');
     await add('/sync/b');
-    final [a, b] = await container.read(foldersProvider.future);
+    final [a, b] = await container.read(loadedFoldersProvider.future);
     final selection = container.read(selectedFolderIdProvider.notifier);
 
     selection.choose(b.id);
@@ -62,16 +62,16 @@ void main() {
 
     await actions.remove(b);
     expect(container.read(selectedFolderIdProvider), isNull);
-    expect(await container.read(foldersProvider.future), isEmpty);
+    expect(await container.read(loadedFoldersProvider.future), isEmpty);
   });
 
   test('change saves the folder', () async {
     await add('/sync/a');
-    final [a] = await container.read(foldersProvider.future);
+    final [a] = await container.read(loadedFoldersProvider.future);
 
     await actions.change(a.copyWith(name: 'Work'));
 
-    final [changed] = await container.read(foldersProvider.future);
+    final [changed] = await container.read(loadedFoldersProvider.future);
     expect(changed.name, 'Work');
   });
 }

@@ -38,42 +38,33 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
   return owner;
 });
 
-final foldersProvider =
-    AsyncNotifierProvider<FoldersController, List<DocumentFolder>>(
-      FoldersController.new,
-    );
+final foldersProvider = NotifierProvider<FoldersController, FolderListState>(
+  FoldersController.new,
+);
 
-/// The folders added on this device, as the folder list owner shows them;
-/// every change is saved before it shows.
-class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
+/// The folders added on this device, once loaded. Waits while the list
+/// loads, and keeps waiting if it can't be read: nothing may act on
+/// folders it doesn't know (the home screen tells the user instead).
+final loadedFoldersProvider = FutureProvider<List<DocumentFolder>>(
+  (ref) => switch (ref.watch(foldersProvider)) {
+    FoldersLoaded(:final folders) => folders,
+    FoldersLoading() ||
+    FoldersUnreadable() => Completer<List<DocumentFolder>>().future,
+  },
+);
+
+/// The folder list as its owner shows it; every change is saved before
+/// it shows.
+class FoldersController extends Notifier<FolderListState> {
   FolderListOwner get _owner => ref.read(folderListOwnerProvider);
 
   @override
-  Future<List<DocumentFolder>> build() async {
+  FolderListState build() {
     final owner = ref.watch(folderListOwnerProvider);
-    final changes = owner.changes.listen((list) {
-      if (_shown(list) case final shown?) state = shown;
-    });
+    final changes = owner.changes.listen((list) => state = list);
     ref.onDispose(() => unawaited(changes.cancel()));
-    final loaded = owner.state is FoldersLoading
-        ? await owner.changes.firstWhere((list) => list is! FoldersLoading)
-        : owner.state;
-    return switch (loaded) {
-      FoldersLoaded(:final folders) => folders,
-      FoldersUnreadable(:final error) => throw FolderSettingsException(error),
-      FoldersLoading() => throw StateError('still loading'),
-    };
+    return owner.state;
   }
-
-  static AsyncValue<List<DocumentFolder>>? _shown(FolderListState list) =>
-      switch (list) {
-        FoldersLoaded(:final folders) => AsyncData(folders),
-        FoldersUnreadable(:final error) => AsyncError(
-          FolderSettingsException(error),
-          StackTrace.current,
-        ),
-        FoldersLoading() => null,
-      };
 
   /// Adds a folder showing [selection] of the base folder at [address],
   /// synced by the tool [toolId]; the folder added.
@@ -118,11 +109,4 @@ class FoldersController extends AsyncNotifier<List<DocumentFolder>> {
   Future<A?> _ask<A extends FolderListAnswer>(
     FolderListInput Function(Ticket ticket) asking,
   ) => ask<FolderListInput, A>(_owner.send, _owner.events, asking);
-}
-
-/// The saved folder list could not be loaded; shown instead of the documents.
-final class FolderSettingsException implements Exception {
-  const FolderSettingsException(this.error);
-
-  final SettingsError error;
 }
