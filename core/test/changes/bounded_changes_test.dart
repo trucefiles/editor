@@ -104,8 +104,8 @@ void main() {
     expect(live.follows(path('work')), isTrue);
   });
 
-  test('a follow that keeps failing while its folder is there lists once '
-      'per wait', () async {
+  test('a follow that keeps failing while its folder is there tries again '
+      'once per wait', () async {
     files.put('work/a.md', 'x');
     final hints = follow(
       Selection.of([path('work')]),
@@ -120,12 +120,12 @@ void main() {
 
     final follows = live.followed.where((root) => root == path('work'));
     final listings = hints.whereType<ListAgain>();
-    // The first follow's end and the return list once each; then each
-    // follow started again lists once, as it ends (the last one maybe not
+    // The first follow's end lists once; then each follow started again
+    // lists twice: as it starts and as it ends (the last one maybe not
     // yet).
     expect(
       listings.length,
-      inInclusiveRange(follows.length, follows.length + 1),
+      inInclusiveRange(2 * follows.length - 2, 2 * follows.length - 1),
     );
     expect(follows.length, greaterThan(3));
   });
