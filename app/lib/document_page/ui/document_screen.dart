@@ -465,24 +465,28 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               key: _pull,
               onRefresh: ref.read(folderContentsProvider.notifier).refresh,
               child: DocumentTextZoom(
-                child: _page.view.view(
-                  (
-                    kept: text,
-                    addItems: ref.watch(
-                      deviceSettingsProvider.select(
-                        (s) => s.requireValue.addItemPlace,
+                // Only the editor shows the add-item setting, so only it
+                // builds again when the setting changes.
+                child: Consumer(
+                  builder: (context, ref, _) => _page.view.view(
+                    (
+                      kept: text,
+                      addItems: ref.watch(
+                        deviceSettingsProvider.select(
+                          (s) => s.requireValue.addItemPlace,
+                        ),
+                      ),
+                      openLink: (link) => openLink(context, ref, link),
+                      hint: (message) => showSnack(context, message),
+                      images: documentImages(
+                        ref.read(folderFilesProvider).of(_folder),
+                        baseId: _folder.base.id,
+                        document: path,
                       ),
                     ),
-                    openLink: (link) => openLink(context, ref, link),
-                    hint: (message) => showSnack(context, message),
-                    images: documentImages(
-                      ref.read(folderFilesProvider).of(_folder),
-                      baseId: _folder.base.id,
-                      document: path,
-                    ),
+                    // A new document is for typing right away.
+                    autofocus: widget.document == null,
                   ),
-                  // A new document is for typing right away.
-                  autofocus: widget.document == null,
                 ),
               ),
             ),

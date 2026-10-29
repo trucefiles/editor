@@ -117,6 +117,8 @@ final class DocumentPages {
       ExistingFile(:final document) => (document, null),
       NewFile() => (null, file),
     };
+    // Made below, over the session; the editor tells view changes only
+    // once the page is open, so after it is made.
     late final DocumentController controller;
     final editor = type.openEditor(
       (

@@ -150,7 +150,7 @@ void main() {
     expect(actions.canHold(docs, path('docs/new')), isTrue);
     expect(actions.canHold(docs, path('other')), isFalse);
     expect(actions.canHold(docs, path('docs/.hidden/new')), isFalse);
-    expect(actions.canHold(docs, path('docs/.stversions')), isFalse);
+    expect(actions.canHold(docs, path('docs/.fake')), isFalse);
   });
 
   group('newFilePlace', () {
