@@ -78,9 +78,9 @@ void main() {
 
     expect(find.text('Current version'), findsOneWidget);
     expect(find.text('Your edits'), findsOneWidget);
-    // Each version's pane shows the other's lines too, as removed.
-    expect(find.textContaining('mine'), findsNWidgets(2));
-    expect(find.textContaining('theirs'), findsNWidgets(2));
+    // Each version's pane shows only its own lines.
+    expect(find.textContaining('mine'), findsOneWidget);
+    expect(find.textContaining('theirs'), findsOneWidget);
   });
 
   testWidgets('keeping the current version closes the comparison', (
@@ -152,7 +152,8 @@ void main() {
 
     await changedAgain(tester, 'theirs, newer\n');
 
-    // In both panes: as this version's line and as the other's.
-    expect(find.textContaining('theirs, newer'), findsNWidgets(2));
+    // In the current version's pane, its own line.
+    expect(find.textContaining('theirs, newer'), findsOneWidget);
+    expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
   });
 }
