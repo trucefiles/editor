@@ -116,8 +116,8 @@ void main() {
     await tester.tapAndSettle(find.byTooltip('Refresh'));
 
     await tester.openCompare();
-    // In both panes: as one version's line and as the other's.
-    expect(find.textContaining('v2 from elsewhere'), findsNWidgets(2));
+    // Only in the current version's pane: each shows its own lines.
+    expect(find.textContaining('v2 from elsewhere'), findsOne);
     await tester.keep(find.text('Keep this').last);
 
     await tester.waitForFile(app.file('plan.md'), '# Plan\nmine\n');

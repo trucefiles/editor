@@ -99,7 +99,7 @@ void main() {
     await tester.tapAndSettle(find.byTooltip('Refresh'));
 
     await tester.openCompare();
-    expect(find.textContaining('v2 from elsewhere'), findsNWidgets(2));
+    expect(find.textContaining('v2 from elsewhere'), findsOne);
     await tester.keep(find.text('Keep this').last);
 
     await tester.waitForFile(app.file('plan.txt'), 'Plan\nmine\n');
