@@ -162,8 +162,8 @@ final class DocumentSession {
   /// Drops the edits that could be kept nowhere.
   void discard() => _file.send(const Discard());
 
-  /// Moves or renames the document to [to], only once its file holds
-  /// every edit; how it went.
+  /// Moves or renames the document to [to], with every edit: those not in
+  /// its file yet are saved first; how it went.
   Future<Result<DocumentText, MoveFailure>> move(MoveTarget to) async {
     late final Ticket asked;
     await ask<FileInput<DocumentVersion>, MoveAnswer>(
@@ -175,7 +175,7 @@ final class DocumentSession {
         return Move(ticket);
       },
     );
-    return _effects.takeMoveResult(asked) ?? const Err(MoveWaitsForSave());
+    return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
   /// The user picked where a new document's file goes.
