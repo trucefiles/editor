@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart' show FileTypeSupport;
 import 'package:truce_documents/truce_documents.dart';
 
 import '../support.dart';
@@ -18,22 +19,22 @@ void main() {
     expect(titleOf('## Sub\ntext', 'lists/Groceries.md'), 'Groceries');
   });
 
-  test('documentTitleLine takes the first line as plain words', () {
+  String firstLine(String text, FileTypeSupport<Object?> support) =>
+      support.summary(text, maxLines: 0).firstLine;
+
+  test('the first line names a document, as plain words', () {
     expect(
-      documentTitleLine('\n  Milk and eggs \nmore', types.forNew.support),
+      firstLine('\n  Milk and eggs \nmore', types.forNew.support),
       'Milk and eggs',
     );
-    expect(documentTitleLine(' \n', types.forNew.support), '');
+    expect(firstLine(' \n', types.forNew.support), '');
   });
 
-  test('documentTitleLine reads the text by its type', () {
+  test('the first line is read by the type', () {
     const text = '# Shopping\nmilk';
 
-    expect(documentTitleLine(text, types.forNew.support), 'Shopping');
-    expect(
-      documentTitleLine(text, types.of(path('a.txt'))!.support),
-      '# Shopping',
-    );
+    expect(firstLine(text, types.forNew.support), 'Shopping');
+    expect(firstLine(text, types.of(path('a.txt'))!.support), '# Shopping');
   });
 
   test('documentTitle of a text file is its first line as written', () {

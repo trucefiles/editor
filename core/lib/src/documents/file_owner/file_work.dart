@@ -130,6 +130,7 @@ final class FileWork<V extends Version> {
     this.created,
     this.move,
     this.toRead,
+    this.newName,
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -187,6 +188,10 @@ final class FileWork<V extends Version> {
   /// no I/O is under way.
   final Version? toRead;
 
+  /// The name a new document's file gets from the text, as the last
+  /// [NewEdited] said with it; `null` once it has a file.
+  final String? newName;
+
   FileWork<V> copyWith({
     Object? expected = _same,
     Object? offered = _same,
@@ -203,6 +208,7 @@ final class FileWork<V extends Version> {
     Object? created = _same,
     Object? move = _same,
     Object? toRead = _same,
+    Object? newName = _same,
   }) => FileWork(
     expected: _or(expected, this.expected),
     offered: _or(offered, this.offered),
@@ -219,6 +225,7 @@ final class FileWork<V extends Version> {
     created: _or(created, this.created),
     move: _or(move, this.move),
     toRead: _or(toRead, this.toRead),
+    newName: _or(newName, this.newName),
   );
 }
 

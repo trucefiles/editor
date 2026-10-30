@@ -19,8 +19,3 @@ String titleOf(TextSummary<Object?> summary, RelPath path) =>
 /// The title of the document at [path] from its name only, while its text
 /// is not read: the file name without its extension.
 String nameTitle(RelPath path) => splitFileName(path.name).base;
-
-/// The first line with words of [text], the content of a document of
-/// [type], as plain words; empty if there is none. Names documents.
-String documentTitleLine(String text, FileTypeSupport<Object?> type) =>
-    type.summary(text, maxLines: 0).firstLine;

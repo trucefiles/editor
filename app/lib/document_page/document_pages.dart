@@ -140,16 +140,23 @@ final class DocumentPages {
         withFile: withFile,
       ),
     );
+    final summaries = SentSummary(
+      type.support,
+      text: opened?.text ?? '',
+      summary: editor.part.opened,
+    );
     final session = DocumentSession(
       opened,
       FileEffects(
         newFile: newFile,
+        summaries: summaries,
         filesOf: filesOf,
         draftsOf: draftsOf,
         create: create,
         moveDocument: move,
       ),
       editor.part.editor,
+      summaries: summaries,
     );
     BaseFolder base() => session.file.folder.base;
     controller = DocumentController(

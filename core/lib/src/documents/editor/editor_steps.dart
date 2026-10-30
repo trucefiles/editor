@@ -1,3 +1,4 @@
+import '../../filetypes/file_type_support.dart';
 import '../../owners/effects.dart';
 import '../file_owner/file_contract.dart';
 import 'editor_book.dart';
@@ -9,7 +10,7 @@ import 'save_clock.dart';
 /// step of its own machine: the page's requests, the save timing, and
 /// undo and redo. The type keeps its [book] and gives what differs: what
 /// shows ([snapshot], [restore], [reload], [replaceText]) and the text it
-/// sends ([text]).
+/// sends, with its summary ([sent]).
 mixin EditorSteps<S> {
   EditorBook<S> get book;
   set book(EditorBook<S> book);
@@ -33,8 +34,9 @@ mixin EditorSteps<S> {
   /// [text] shows instead, from its start (a backup restored).
   void replaceText(String text);
 
-  /// What the file says once the edits are sent.
-  String get text;
+  /// What the file says once the edits are sent, and what lists show of
+  /// it.
+  SentText get sent;
 
   /// Whether each change is sent at once, e.g. while the text is only
   /// read, which shows the text kept.
@@ -78,7 +80,7 @@ mixin EditorSteps<S> {
               ? book.history
               : book.history.cleared(HistoryStart.changedElsewhere),
         );
-        reload(text);
+        _reloaded(text);
       case FromFile(message: Replaced()):
         // Not on the edits the editor holds: news to come is on them.
         break;
@@ -90,7 +92,7 @@ mixin EditorSteps<S> {
           picks: book.picks + 1,
           history: book.history.cleared(HistoryStart.replacedHere),
         );
-        reload(text);
+        _reloaded(text);
       case SecureEditor(:final ticket, :final reason):
         send();
         book = book.copyWith(clock: book.clock.left);
@@ -124,12 +126,20 @@ mixin EditorSteps<S> {
   /// The text to the file owner, unless it has it.
   void send() {
     if (book.sentRev == book.rev) return;
+    final SentText(:text, :summary) = sent;
     notify(
       ToFile(
         Edited(text, rev: book.rev, lineage: book.lineage, picks: book.picks),
       ),
     );
-    book = book.copyWith(sentRev: book.rev);
+    book = book.copyWith(sentRev: book.rev, summary: summary);
+  }
+
+  /// The file's [text] shows instead, as the file owner has it, so the
+  /// summary is of it.
+  void _reloaded(String text) {
+    reload(text);
+    book = book.copyWith(summary: sent.summary);
   }
 
   void _undoLatest() {
@@ -167,4 +177,13 @@ mixin EditorSteps<S> {
         break;
     }
   }
+}
+
+/// The [text] an editor sends to be kept, and what lists show of it
+/// ([summary]), worked out from what printed the text, not read anew.
+final class SentText {
+  const SentText(this.text, this.summary);
+
+  final String text;
+  final TextSummary<Object?> summary;
 }

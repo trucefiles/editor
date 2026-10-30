@@ -65,7 +65,10 @@ final class _Step<V extends Version> {
   void handle(FileMessage<V> message) {
     switch (message) {
       case Edited():
+        assert(work.expected != null, 'a new document saved without a name');
         _edited(message);
+      case NewEdited(:final edited, :final name):
+        _edited(edited, name: name);
       case SaveNow():
         _saveNow();
       case Secure():
@@ -120,9 +123,12 @@ final class _Step<V extends Version> {
 
   // Edits.
 
-  void _edited(Edited edited) {
+  /// [name]: the one a new document's file gets from [edited]'s text.
+  void _edited(Edited edited, {String? name}) {
     // Made before a pick the editor shows instead.
     if (_done || edited.picks < work.picks) return;
+    // Set with the text it is the name of.
+    if (name != null) _work(work.copyWith(newName: name));
     final sent = work.sent;
     // Edits that name no version build on the file this owner created.
     final lineage = edited.lineage ?? work.created;
@@ -171,6 +177,7 @@ final class _Step<V extends Version> {
         base: (work.editsOver ?? work.expected)?.text,
         text: state.text,
         file: _file,
+        name: _file == null ? work.newName : null,
       ),
     );
   }
@@ -230,7 +237,7 @@ final class _Step<V extends Version> {
       ),
     );
     effects.add(switch ((kind, expected)) {
-      (WriteKind.create, _) => Create(id, text),
+      (WriteKind.create, _) => Create(id, text, name: work.newName!),
       (WriteKind.restore, final where?) => Restore(id, text, where: where),
       (WriteKind.restore, null) => throw StateError(
         'a restore needs the file it was',
@@ -286,7 +293,9 @@ final class _Step<V extends Version> {
   void _written(WritingFile writing, Seen<V> seen) {
     if (writing.kind == WriteKind.create) {
       // The editor builds on the created file until it takes another.
-      _work(work.copyWith(offered: [seen], created: seen.version));
+      _work(
+        work.copyWith(offered: [seen], created: seen.version, newName: null),
+      );
     }
     _work(
       work.copyWith(

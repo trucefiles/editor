@@ -6,9 +6,11 @@ import '../view/rows.dart';
 import 'editor_contract.dart';
 import 'editor_transition.dart';
 import 'editor_work.dart';
-import 'reload.dart';
+import 'history/snapshot.dart';
+import 'markdown_start.dart';
 
 export 'editor_contract.dart';
+export 'markdown_start.dart';
 
 /// The owner of what one open Markdown document's editor shows (see
 /// `editor_contract.dart`).
@@ -18,11 +20,11 @@ typedef EditorOwner = Owner<EditorInput, EditorState, EditorEvent>;
 typedef EditorMachine =
     Machine<EditorMessage, EditorState, EditorWork, EditorEvent, EditorEffect>;
 
-/// The editor owner of a document holding [text], read as [version]
+/// The editor owner of a document starting as [start], read as [version]
 /// (`null` for a new document); its only effects are the save timers,
 /// which [startTimer] starts (a fake clock in tests).
 EditorOwner editorOwner(
-  String text, {
+  MarkdownStart start, {
   required Version? version,
   EditMode mode = EditMode.visual,
   CheckedItems checkedItems = CheckedItems.moveToEnd,
@@ -38,7 +40,7 @@ EditorOwner editorOwner(
       EditorEffect
     >(
       editorMachine(
-        text,
+        start,
         version: version,
         mode: mode,
         checkedItems: checkedItems,
@@ -46,32 +48,31 @@ EditorOwner editorOwner(
       startTimer: startTimer,
     );
 
-/// The editor machine of a document holding [text], read as [version]
+/// The editor machine of a document starting as [start], read as [version]
 /// (`null` for a new document).
 EditorMachine editorMachine(
-  String text, {
+  MarkdownStart start, {
   required Version? version,
   EditMode mode = EditMode.visual,
   CheckedItems checkedItems = CheckedItems.moveToEnd,
 }) {
-  final document = loaded(text);
+  final document = start.document;
   final view = ViewRows(
     document.doc,
     done: checkedItems == CheckedItems.doneSection ? DoneSections() : null,
   );
+  final book = EditorBook<Snapshot>(lineage: version, summary: start.summary);
   return Machine(
     state: EditorState(
       content: mode == EditMode.markdown
-          ? MarkdownContent(text)
+          ? MarkdownContent(start.text)
           : FormattedContent(view: view, selection: startOf(view)),
       mode: mode,
       checkedItems: checkedItems,
       revision: 0,
+      status: book.status,
     ),
-    work: EditorWork(
-      origin: document.origin,
-      book: EditorBook(lineage: version),
-    ),
+    work: EditorWork(origin: document.origin, book: book),
     step: editorStep,
   );
 }

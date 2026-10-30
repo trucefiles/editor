@@ -47,17 +47,20 @@ final class DocumentFixture {
   /// A time after every draft written during the test.
   final later = DateTime.now().add(const Duration(days: 1));
 
-  /// The effects of a session that starts at [file].
-  FileEffects effects(DocumentFile file) => FileEffects(
-    newFile: switch (file) {
-      NewFile() => file,
-      ExistingFile() => null,
-    },
-    filesOf: (folder) => files[folder.id]!,
-    draftsOf: (folder) => drafts[folder.id]!,
-    create: createFile,
-    moveDocument: moveFile,
-  );
+  /// The effects of a session that starts at [file], naming files from
+  /// [summaries].
+  FileEffects effects(DocumentFile file, [SentSummary? summaries]) =>
+      FileEffects(
+        newFile: switch (file) {
+          NewFile() => file,
+          ExistingFile() => null,
+        },
+        summaries: summaries ?? markdownSummaries(),
+        filesOf: (folder) => files[folder.id]!,
+        draftsOf: (folder) => drafts[folder.id]!,
+        create: createFile,
+        moveDocument: moveFile,
+      );
 
   /// Creates a document's file in the fixture's folders.
   Future<Result<DocumentText, StoreError>> createFile(
@@ -103,7 +106,7 @@ final class DocumentFixture {
     final session = markdownSession(switch (start) {
       ExistingFile(:final document) => document,
       NewFile() => null,
-    }, effects(start));
+    }, (summaries) => effects(start, summaries));
     addTearDown(session.dispose);
     return session;
   }

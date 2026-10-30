@@ -17,7 +17,7 @@ void main() {
         final random = Random(seed * 1000 + index);
         final owner = MachineRun.of(
           editorMachine(
-            text,
+            MarkdownStart.read(text),
             version: const Version(0),
             checkedItems: CheckedItems.values[random.nextInt(3)],
           ),

@@ -1,4 +1,5 @@
 import '../tree/blocks.dart';
+import 'front_matter.dart';
 import 'open_blocks.dart';
 import 'syntax/block_starts.dart';
 import 'syntax/characters.dart';
@@ -60,20 +61,19 @@ final class _Reader {
     _tip = _root;
     _oldTip = _root;
     _lastMatched = _root;
-    final first = _lines.firstOrNull;
-    if (first == null || !frontMatterFence.hasMatch(first)) {
-      return 0;
-    }
-    final end = _lines.indexWhere(frontMatterEnd.hasMatch, 1);
-    if (end < 0) return 0;
+    final length = frontMatterLength(_lines);
+    if (length == 0) return 0;
     final front = OpenFrontMatter()
       ..open = false
       ..parent = _root;
-    for (var index = 0; index <= end; index++) {
-      front.lines.add(ReadLine(index, contentStart: 0, prefix: const []));
-    }
+    front.lines.addAll(
+      Iterable.generate(
+        length,
+        (index) => ReadLine(index, contentStart: 0, prefix: const []),
+      ),
+    );
     _root.children.add(front);
-    return end + 1;
+    return length;
   }
 
   void _readLine() {

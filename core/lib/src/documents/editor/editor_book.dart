@@ -1,3 +1,4 @@
+import '../../filetypes/file_type_support.dart';
 import '../version.dart';
 import 'editor_contract.dart';
 import 'history/edit_history.dart';
@@ -9,6 +10,7 @@ import 'save_clock.dart';
 final class EditorBook<S> {
   EditorBook({
     required this.lineage,
+    required this.summary,
     this.rev = 0,
     this.sentRev = 0,
     this.picks = 0,
@@ -19,6 +21,10 @@ final class EditorBook<S> {
   /// The file version the text descends from; `null` for a new document.
   /// Moves only with a change elsewhere or a pick taken.
   final Version? lineage;
+
+  /// What lists show of the text as the file owner has it (see
+  /// [EditorStatus.summary]).
+  final TextSummary<Object?> summary;
 
   /// Counts the text changes, going on from a pick's.
   final int rev;
@@ -36,6 +42,7 @@ final class EditorBook<S> {
 
   /// What the state tells of the edits.
   EditorStatus get status => EditorStatus(
+    summary: summary,
     unsent: sentRev != rev,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
@@ -43,6 +50,7 @@ final class EditorBook<S> {
 
   EditorBook<S> copyWith({
     Object? lineage = _same,
+    TextSummary<Object?>? summary,
     int? rev,
     int? sentRev,
     int? picks,
@@ -50,6 +58,7 @@ final class EditorBook<S> {
     EditHistory<S>? history,
   }) => EditorBook(
     lineage: identical(lineage, _same) ? this.lineage : lineage as Version?,
+    summary: summary ?? this.summary,
     rev: rev ?? this.rev,
     sentRev: sentRev ?? this.sentRev,
     picks: picks ?? this.picks,

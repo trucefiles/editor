@@ -10,7 +10,10 @@ final class _FakeEditor with EditorSteps<String> {
   String shown;
 
   @override
-  EditorBook<String> book = EditorBook(lineage: const Version(1));
+  late EditorBook<String> book = EditorBook(
+    lineage: const Version(1),
+    summary: _Summary(shown),
+  );
 
   @override
   bool sendsAtOnce;
@@ -39,7 +42,7 @@ final class _FakeEditor with EditorSteps<String> {
   void replaceText(String text) => shown = text;
 
   @override
-  String get text => shown;
+  SentText get sent => SentText(shown, _Summary(shown));
 
   /// The user changed the text to [text], as the type's own step does.
   void edit(String text) {
@@ -53,7 +56,7 @@ final class _FakeEditor with EditorSteps<String> {
   void type(List<String> texts) => texts.forEach(edit);
 
   /// The texts sent to the file owner.
-  List<String> get sent => [
+  List<String> get sentTexts => [
     for (final notice in notices)
       if (notice case ToFile(input: Edited(:final text))) text,
   ];
@@ -127,7 +130,7 @@ void main() {
 
       expect(editor.book.rev, rev + 1);
       expect(editor.book.status.unsent, isTrue);
-      expect(editor.sent, isEmpty);
+      expect(editor.sentTexts, isEmpty);
     });
 
     test('sends at once where changes are', () {
@@ -135,7 +138,7 @@ void main() {
         ..edit('ab')
         ..handleRequest(const Undo());
 
-      expect(editor.sent, ['a']);
+      expect(editor.sentTexts, ['a']);
     });
   });
 
@@ -263,15 +266,44 @@ void main() {
     expect(editor.book.status.unsent, isFalse);
   });
 
+  group('the summary', () {
+    String summaryOf(_FakeEditor editor) =>
+        (editor.book.status.summary as _Summary).text;
+
+    test('is of the start text, then of each text sent, not of typing', () {
+      final editor = _FakeEditor('a');
+      expect(summaryOf(editor), 'a');
+
+      editor.edit('ab');
+      expect(summaryOf(editor), 'a', reason: 'typing is not sent yet');
+
+      editor.fire(SaveTimer.pause.delay);
+      expect(summaryOf(editor), 'ab');
+    });
+
+    test('is of the text taken from the file', () {
+      final editor = _FakeEditor('a')
+        ..handleRequest(
+          const FromFile(Replaced('theirs', version: Version(2), ackRev: 0)),
+        );
+      expect(summaryOf(editor), 'theirs');
+
+      editor.handleRequest(
+        const FromFile(Picked('picked', version: Version(3), rev: 7)),
+      );
+      expect(summaryOf(editor), 'picked');
+    });
+  });
+
   group('save timing', () {
     test('typing starts the timers; the pause sends the text as a draft', () {
       final editor = _FakeEditor('a')..edit('ab');
       expect(editor.timers.values, contains(SaveTimer.pause.delay));
-      expect(editor.sent, isEmpty);
+      expect(editor.sentTexts, isEmpty);
 
       editor.fire(SaveTimer.pause.delay);
 
-      expect(editor.sent, ['ab']);
+      expect(editor.sentTexts, ['ab']);
       expect(editor.notices.whereType<ToFile>().last.input, isA<Edited>());
     });
 
@@ -291,7 +323,23 @@ void main() {
         ..send()
         ..send();
 
-      expect(editor.sent, ['ab']);
+      expect(editor.sentTexts, ['ab']);
     });
   });
+}
+
+/// A summary that tells which text it is of.
+final class _Summary implements TextSummary<Object?> {
+  const _Summary(this.text);
+
+  final String text;
+
+  @override
+  String? get title => null;
+
+  @override
+  String get firstLine => text;
+
+  @override
+  String preview(Object? options) => '';
 }

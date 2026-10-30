@@ -30,7 +30,7 @@ class ReadView extends StatelessWidget {
     // Selectable as a whole: text selectable block by block would make
     // each block a scroll view of its own, which takes the page's drags.
     child: Markdown(
-      data: DocumentTree.read(text).textAfterFrontMatter,
+      data: textAfterFrontMatter(text),
       extensionSet: md.ExtensionSet.gitHubWeb,
       styleSheet: _styleSheet(Theme.of(context), DocumentMetrics.of(context)),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),

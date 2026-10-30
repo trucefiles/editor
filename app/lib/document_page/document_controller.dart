@@ -165,7 +165,7 @@ final class DocumentController extends ChangeNotifier {
   DocumentShown shownIn(List<DocumentFolder> folders) {
     final file = session.file;
     final folder = file.folder;
-    if (folders.folderOf(folder.base.id, file.pathFor(session.text)) != null) {
+    if (folders.folderOf(folder.base.id, session.path) != null) {
       return DocumentShown.shown;
     }
     return folders.any((shown) => shown.id == folder.id)

@@ -39,6 +39,10 @@ abstract interface class EditorPart {
   /// The page's way into the editor owner.
   PageEditor get editor;
 
+  /// What lists show of the text the editor opened with, from the read
+  /// the editor started with.
+  TextSummary<Object?> get opened;
+
   /// Shows the document only to read while [readOnly] (it can't be
   /// edited here now), else as the user picked.
   void showReadOnly({required bool readOnly});

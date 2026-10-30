@@ -87,8 +87,8 @@ final class PlainState {
   const PlainState(
     this.text, {
     required this.revision,
+    required this.status,
     this.caret,
-    this.status = const EditorStatus(),
   });
 
   final String text;

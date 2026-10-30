@@ -326,15 +326,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final document = _session.document;
     final messenger = _messenger.currentState;
     if (document == null || messenger == null) return;
-    final text = _session.text;
     await openDocumentBackups(
       context,
       document: document.document,
-      title: documentTitle(
-        text,
-        _session.file.pathFor(text),
-        _page.type.support,
-      ),
+      title: _session.title,
       controller: _controller,
       messenger: messenger,
     );
@@ -415,13 +410,13 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final settings = _controller.settings;
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
-    final path = _session.file.pathFor(text);
+    final path = _session.path;
     return Scaffold(
       backgroundColor: tint,
       appBar: AppBar(
         backgroundColor: tint,
         title: DocumentHeading(
-          title: documentTitle(text, path, _page.type.support),
+          title: _session.title,
           edited: _session.document?.document.modified,
         ),
         actions: [

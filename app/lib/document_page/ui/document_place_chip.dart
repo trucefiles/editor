@@ -27,11 +27,7 @@ class DocumentPlaceChip extends ConsumerWidget {
     return Tooltip(
       message: 'Place and name',
       child: ActionChip(
-        label: FolderBadge(
-          file.folder,
-          file: file.pathFor(session.text),
-          withName: true,
-        ),
+        label: FolderBadge(file.folder, file: session.path, withName: true),
         onPressed: enabled ? () => _edit(context, ref) : null,
       ),
     );
@@ -48,13 +44,13 @@ class DocumentPlaceChip extends ConsumerWidget {
       return showSnack(context, 'No folder can be reached right now.');
     }
     final file = session.file;
-    final path = file.pathFor(session.text);
+    final path = session.path;
     final picked = await showDocumentFileDialog(
       context,
       folders: folders,
       initial: (folder: file.folder, subfolder: path.parent),
       name: switch (file) {
-        NewFile() => file.titleFor(session.text),
+        NewFile() => file.titleFor(session.summary),
         ExistingFile() => splitFileName(path.name).base,
       },
       subfoldersOf: actions.subfoldersOf,
@@ -85,9 +81,7 @@ class DocumentPlaceChip extends ConsumerWidget {
     if (current == null) {
       return showSnack(context, moveFailureText(const MoveNotSaved()));
     }
-    final title = name.trim().isEmpty
-        ? documentTitleLine(session.text, current.type)
-        : name.trim();
+    final title = name.trim().isEmpty ? session.summary.firstLine : name.trim();
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&
         isNamedAfter(current.path.name, title)) {

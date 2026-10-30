@@ -194,7 +194,13 @@ final class _World {
       case 0 || 1 || 2 when !_readOnly:
         text = '$text${String.fromCharCode(98 + random.nextInt(3))}';
         rev++;
-        owner.send(Edited(text, rev: rev, lineage: lineage, picks: picks));
+        final edited = Edited(text, rev: rev, lineage: lineage, picks: picks);
+        // As the session sends it: with its name while there is no file.
+        owner.send(
+          owner.state.file == null
+              ? NewEdited(edited, name: _nameOf(text))
+              : edited,
+        );
       case 3 when elsewhere && file != null && random.nextInt(3) == 0:
         file = Seen('${file!.text}!', _version());
         changedElsewhere = true;
@@ -259,7 +265,8 @@ final class _World {
   void _finish(FileEffect effect) {
     final endedAt = Moment.now();
     switch (effect) {
-      case KeepDraft(:final id, :final text):
+      case KeepDraft(:final id, :final text, :final file, :final name):
+        expect(name, file == null ? _nameOf(text) : null, reason: 'its name');
         final kept = random.nextInt(6) > 0;
         if (kept) {
           draft = text;
@@ -276,7 +283,8 @@ final class _World {
         };
         if (outcome is Written) taken.add(text);
         owner.send(Wrote(id, outcome, endedAt: endedAt));
-      case Create(:final id, :final text):
+      case Create(:final id, :final text, :final name):
+        expect(name, _nameOf(text), reason: 'named from its own text');
         taken.add(text);
         owner.send(
           Wrote(id, Written(file = Seen(text, _version())), endedAt: endedAt),
@@ -447,3 +455,6 @@ final class _Owner {
     }
   }
 }
+
+/// The name a new document's file gets from [text], in these tests.
+String _nameOf(String text) => 'named $text';

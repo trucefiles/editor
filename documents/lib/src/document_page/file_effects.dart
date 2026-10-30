@@ -11,6 +11,7 @@ import '../document_version.dart';
 import '../move_failure.dart';
 import '../open_failure.dart';
 import 'document_file.dart';
+import 'sent_summary.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named
 /// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
@@ -43,15 +44,18 @@ typedef MoveTarget = ({DocumentPlace place, String title, bool newSubfolder});
 /// document's), it acts where the new document's file goes.
 final class FileEffects {
   /// [newFile]: where a new document's file goes; `null` for a document
-  /// opened from its file.
+  /// opened from its file. Files are named from [summaries].
   FileEffects({
     this._newFile,
+    required this._summaries,
     required this._filesOf,
     required this._draftsOf,
     required this._create,
     required this._moveDocument,
   });
 
+  /// The summary of each text a file is named from.
+  final SentSummary _summaries;
   final DocumentFiles Function(DocumentFolder folder) _filesOf;
   final DocumentDrafts Function(DocumentFolder folder) _draftsOf;
   final CreateDocumentFile _create;
@@ -173,7 +177,7 @@ final class FileEffects {
   Future<bool> _keep(String? base, String text, DocumentFile where) {
     final draft = DocumentDraft(
       id: _draftId,
-      path: where.pathFor(text),
+      path: where.pathFor(_summaries.of(text)),
       base: base,
       text: text,
       newSubfolder: switch (where) {
@@ -235,7 +239,7 @@ final class FileEffects {
     return switch (await _create(
       file.place,
       type: file.type,
-      title: file.titleFor(text),
+      title: file.titleFor(_summaries.of(text)),
       text: text,
       newSubfolder: file.newSubfolder,
     )) {

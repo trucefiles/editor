@@ -23,7 +23,7 @@ final class _Gate {
   _Gate._(String text, CheckedItems checkedItems, this.clock)
     : gate = EditorGate(
         editorOwner(
-          text,
+          MarkdownStart.read(text),
           version: const Version(1),
           checkedItems: checkedItems,
           startTimer: clock.start,
@@ -66,8 +66,7 @@ final class _Gate {
   /// The texts the editor sent so far.
   List<Edited> get edits => [
     for (final output in outputs)
-      if (output case Notice(notice: ToFile(input: final Edited edited)))
-        edited,
+      if (output case Notice(notice: ToFile(input: final Edited edited))) edited,
   ];
 
   /// The text the editor sends when it is secured.

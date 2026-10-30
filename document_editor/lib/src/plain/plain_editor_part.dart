@@ -12,7 +12,11 @@ import 'plain_page_editor.dart';
 final class PlainEditorPart implements EditorPart {
   PlainEditorPart(EditorStart start)
     : owner = plainOwner(start.text, version: start.version),
+      opened = PlainSummary(start.text, maxLines: 0),
       _readOnly = start.readOnly;
+
+  @override
+  final TextSummary<Object?> opened;
 
   /// The editor owner.
   final PlainOwner owner;

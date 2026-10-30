@@ -35,13 +35,6 @@ final class DocumentTree {
   /// label counts.
   Map<String, LinkDefinition> get definitions => _reading.definitions;
 
-  /// The text after its front matter, for readers that don't know front
-  /// matter; the whole text if it has none.
-  late final String textAfterFrontMatter = switch (root.children.firstOrNull) {
-    final FrontMatterBlock front => lines.skip(front.lines.length).join('\n'),
-    _ => text,
-  };
-
   /// How the document writes what it holds, for new content.
   late final DocumentStyle style = DocumentStyle.of(root);
 

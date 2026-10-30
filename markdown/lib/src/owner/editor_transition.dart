@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart'
         EditorNotice,
         EditorSteps,
         EffectId,
+        SentText,
         OfferedUndo,
         Step,
         UndoOffered,
@@ -20,6 +21,7 @@ import '../edit/selection.dart';
 import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
 import '../print/printer.dart';
+import '../summary/document_summary.dart';
 import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
@@ -69,8 +71,16 @@ final class _Step with EditorSteps<Snapshot> {
   @override
   Snapshot snapshot() => snapshotOf(state.content, work.origin);
 
+  /// In Visual edit and Read, the summary is of the tree that printed the
+  /// text; in Markdown edit, of the text, read only if asked.
   @override
-  String get text => _printed().text;
+  SentText get sent {
+    final (:printed, :doc) = _printedFrom();
+    return SentText(printed.text, switch (doc) {
+      final doc? => DocumentSummary.ofTree(doc, maxLines: 0),
+      null => DocumentSummary.of(printed.text, maxLines: 0),
+    });
+  }
 
   /// Read shows the text kept.
   @override
@@ -424,13 +434,19 @@ final class _Step with EditorSteps<Snapshot> {
 
   /// What the file says once the text is sent: the document printed,
   /// with the open raw block as typed.
-  PrintedMarkdown _printed() => switch (state.content) {
-    FormattedContent(:final selection) => printMarkdown(
-      _closedRaw(selection).view.doc,
-      work.origin,
-    ),
-    MarkdownContent(:final text) => (text: text, lines: const {}),
-  };
+  PrintedMarkdown _printed() => _printedFrom().printed;
+
+  /// [_printed], and the doc tree that printed it (none in Markdown edit,
+  /// which edits the text itself).
+  ({PrintedMarkdown printed, DocTree? doc}) _printedFrom() {
+    switch (state.content) {
+      case FormattedContent(:final selection):
+        final doc = _closedRaw(selection).view.doc;
+        return (printed: printMarkdown(doc, work.origin), doc: doc);
+      case MarkdownContent(:final text):
+        return (printed: (text: text, lines: const {}), doc: null);
+    }
+  }
 
   // Changes from the file owner.
 

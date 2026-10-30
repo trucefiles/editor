@@ -6,6 +6,7 @@
 /// `save_clock.dart`).
 library;
 
+import '../../filetypes/file_type_support.dart';
 import '../../owners/ask.dart';
 import '../../owners/owner.dart';
 import '../file_owner/file_contract.dart';
@@ -127,10 +128,15 @@ enum HistoryStart {
 /// What any editor's state tells of the edits.
 final class EditorStatus {
   const EditorStatus({
+    required this.summary,
     this.unsent = false,
     this.canUndo = false,
     this.canRedo = false,
   });
+
+  /// What lists show of the text as the file owner has it: the text last
+  /// sent, or last taken from the file; never of edits not sent yet.
+  final TextSummary<Object?> summary;
 
   /// Whether there are edits only in memory, not yet sent to be kept.
   final bool unsent;
@@ -142,10 +148,12 @@ final class EditorStatus {
   @override
   bool operator ==(Object other) =>
       other is EditorStatus &&
+      identical(other.summary, summary) &&
       other.unsent == unsent &&
       other.canUndo == canUndo &&
       other.canRedo == canRedo;
 
   @override
-  int get hashCode => Object.hash(unsent, canUndo, canRedo);
+  int get hashCode =>
+      Object.hash(identityHashCode(summary), unsent, canUndo, canRedo);
 }
