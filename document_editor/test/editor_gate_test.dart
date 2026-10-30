@@ -66,7 +66,8 @@ final class _Gate {
   /// The texts the editor sent so far.
   List<Edited> get edits => [
     for (final output in outputs)
-      if (output case Notice(notice: ToFile(input: final Edited edited))) edited,
+      if (output case Notice(notice: ToFile(input: final Edited edited)))
+        edited,
   ];
 
   /// The text the editor sends when it is secured.

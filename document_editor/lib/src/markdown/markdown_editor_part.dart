@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:truce_core/truce_core.dart' show TextSummary;
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -18,8 +17,7 @@ final class MarkdownEditorPart implements EditorPart {
     : this._read(MarkdownStart.read(start.text), start, page);
 
   MarkdownEditorPart._read(MarkdownStart read, EditorStart start, this._page)
-    : opened = read.summary,
-      _mode =
+    : _mode =
           MarkdownView.of(start.view).mode ??
           firstMode(
             hasCheckboxes: !start.isNew && read.hasCheckboxes,
@@ -39,9 +37,6 @@ final class MarkdownEditorPart implements EditorPart {
   }
 
   final EditorPage _page;
-
-  @override
-  final TextSummary<Object?> opened;
 
   @override
   late final MarkdownPageEditor editor;

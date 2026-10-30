@@ -45,8 +45,7 @@ void main() {
     await runZonedGuarded(() async {
       session = markdownSession(
         fixture.document,
-        (summaries) => FileEffects(
-          summaries: summaries,
+        FileEffects(
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
           create: (
@@ -89,8 +88,7 @@ void main() {
     await runZonedGuarded(() async {
       session = markdownSession(
         fixture.document,
-        (summaries) => FileEffects(
-          summaries: summaries,
+        FileEffects(
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
           draftsOf: (folder) => fixture.drafts[folder.id]!,
@@ -118,6 +116,68 @@ void main() {
     expect(session.state, isA<Stopped>());
     expect(session.text, 'a mine one\n');
   });
+
+  test("a new document's title and path follow its saves, not each "
+      'keystroke', () async {
+    final session = fixture.session(fixture.newFile);
+    final before = (session.title, session.path);
+
+    session.type('Milk');
+    expect((session.title, session.path), before);
+
+    session.saveNow();
+    await eventually(() => session.title == 'Milk');
+    expect(session.path, path('Milk.md'));
+  });
+
+  test("a new document's draft is named after its latest save", () async {
+    Future<bool> draftAt(String name) async =>
+        (await fixture.draftsIn('f1')).singleOrNull?.path == path(name);
+    final session = fixture.session(fixture.newFile)..type('Milk');
+    // Sent at the typing pause: kept as a draft, not yet in a file.
+    await eventually(() => draftAt('Milk.md'));
+
+    session.type('y');
+
+    await eventually(() => draftAt('Milky.md'));
+    expect(fixture.onDisk('Milky.md'), isNull);
+  });
+
+  test(
+    "once stopped, a new document's draft is named after its edits",
+    () async {
+      late DocumentSession session;
+
+      await runZonedGuarded(() async {
+        session = markdownSession(
+          null,
+          FileEffects(
+            newFile: fixture.newFile,
+            filesOf: (folder) => fixture.files[folder.id]!,
+            draftsOf: (folder) => fixture.drafts[folder.id]!,
+            create: (
+              _, {
+              required type,
+              required title,
+              required text,
+              newSubfolder = false,
+            }) => throw StateError('bug'),
+            moveDocument: (_, _, {required title, required newSubfolder}) =>
+                throw StateError('bug'),
+          ),
+        )..type('Milk');
+        await session.secure(.close);
+        await eventually(() => session.state is Stopped);
+      }, (_, _) {});
+      addTearDown(session.dispose);
+
+      await eventually(
+        () async =>
+            (await fixture.draftsIn('f1')).singleOrNull?.path ==
+            path('Milk.md'),
+      );
+    },
+  );
 
   test('typing tells of the edits being edited, at once', () {
     final session = fixture.session(fixture.newFile);

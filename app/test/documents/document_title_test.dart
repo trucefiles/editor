@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart' show FileTypeSupport;
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_documents/truce_documents.dart' as documents;
 
 import '../support.dart';
 
@@ -8,14 +8,16 @@ import '../support.dart';
 // package (`DocumentSummary`); here only what the app adds.
 void main() {
   final types = appDocumentTypes();
-  String titleOf(String text, String name) =>
-      documentTitle(text, path(name), types.of(path(name))!.support);
+  String titleOf(String text, String name) => documents.titleOf(
+    types.of(path(name))!.support.summary(text, maxLines: 0),
+    path(name),
+  );
 
-  test('documentTitle takes the first level-1 heading', () {
+  test('the title takes the first level-1 heading', () {
     expect(titleOf('intro\n## Sub\n# Shopping \n# Later', 'a.md'), 'Shopping');
   });
 
-  test('documentTitle falls back to the file name without extension', () {
+  test('the title falls back to the file name without extension', () {
     expect(titleOf('## Sub\ntext', 'lists/Groceries.md'), 'Groceries');
   });
 
@@ -37,7 +39,7 @@ void main() {
     expect(firstLine(text, types.of(path('a.txt'))!.support), '# Shopping');
   });
 
-  test('documentTitle of a text file is its first line as written', () {
+  test('the title of a text file is its first line as written', () {
     expect(titleOf('# Shopping\nmilk', 'a.txt'), '# Shopping');
   });
 }

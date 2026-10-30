@@ -297,8 +297,7 @@ void main() {
       await runZonedGuarded(() async {
         final session = markdownSession(
           fixture.document,
-          (summaries) => FileEffects(
-            summaries: summaries,
+          FileEffects(
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,
             create: (

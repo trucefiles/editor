@@ -50,7 +50,7 @@ class DocumentPlaceChip extends ConsumerWidget {
       folders: folders,
       initial: (folder: file.folder, subfolder: path.parent),
       name: switch (file) {
-        NewFile() => file.titleFor(session.summary),
+        NewFile() => file.titleFor(session.summary.firstLine),
         ExistingFile() => splitFileName(path.name).base,
       },
       subfoldersOf: actions.subfoldersOf,

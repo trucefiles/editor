@@ -103,8 +103,7 @@ final class _Device {
     final drafts = tempDrafts();
     final session = markdownSession(
       document,
-      (summaries) => FileEffects(
-        summaries: summaries,
+      FileEffects(
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
         create:

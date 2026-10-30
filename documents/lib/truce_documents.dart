@@ -26,7 +26,6 @@ export 'src/document_page/editor_part.dart';
 export 'src/document_page/file_effects.dart';
 export 'src/document_page/open_documents.dart';
 export 'src/document_page/save_state.dart';
-export 'src/document_page/sent_summary.dart';
 export 'src/document_place.dart';
 export 'src/document_settings.dart';
 export 'src/document_settings_keeper.dart';

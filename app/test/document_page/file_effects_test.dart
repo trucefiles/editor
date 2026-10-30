@@ -87,7 +87,7 @@ void main() {
 
     expect(
       await effects.run(
-        const KeepDraft(id, base: null, text: 'Milk', file: null),
+        const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
       ),
       isA<DraftKept>().having((kept) => kept.kept, 'kept', isTrue),
     );
@@ -117,7 +117,7 @@ void main() {
       ),
     );
     await effects.run(
-      const KeepDraft(id, base: null, text: 'Milk', file: null),
+      const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
     );
 
     final recovery = DraftRecovery(
@@ -134,7 +134,7 @@ void main() {
   test('a dropped draft is not moved along', () async {
     final effects = fixture.effects(fixture.newFile);
     await effects.run(
-      const KeepDraft(id, base: null, text: 'Milk', file: null),
+      const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
     );
     await effects.run(const DropDraft(file: null));
 

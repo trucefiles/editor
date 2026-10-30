@@ -14,13 +14,14 @@ import '../../support.dart';
   String text, {
   bool readOnly = false,
   bool hasFile = true,
+  ViewSettings? view,
 }) {
   final kept = <ViewSettings>[ViewSettings.none];
   final part = MarkdownEditorPart(
     (
       text: text,
       version: const Version(1),
-      view: MarkdownView(mode: EditMode.markdown).settings,
+      view: view ?? MarkdownView(mode: EditMode.markdown).settings,
       readOnly: readOnly,
       isNew: false,
     ),
@@ -52,6 +53,15 @@ void main() {
     expect(part.gate.state.mode, EditMode.visual);
     expect(MarkdownView.of(kept.last).mode, EditMode.visual);
     expect(heard, 1);
+  });
+
+  test('without a picked mode, opens a checklist in Visual edit and other '
+      'text in Read', () {
+    final checklist = _part('- [ ] milk', view: ViewSettings.none).part;
+    final text = _part('# Notes', view: ViewSettings.none).part;
+
+    expect(checklist.gate.state.mode, EditMode.visual);
+    expect(text.gate.state.mode, EditMode.read);
   });
 
   test('picking the mode that shows changes nothing', () {

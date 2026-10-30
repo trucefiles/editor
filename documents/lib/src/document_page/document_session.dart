@@ -10,7 +10,6 @@ import '../move_failure.dart';
 import 'document_file.dart';
 import 'file_effects.dart';
 import 'save_state.dart';
-import 'sent_summary.dart';
 
 /// Whether an open document takes edits.
 sealed class SessionState {
@@ -48,15 +47,11 @@ final class DocumentSession {
   /// The document [opened] (`null` for a new one, which goes where
   /// [effects] say), its file read and written by [effects], edited by
   /// [editor], which opened with [opened]'s text.
-  DocumentSession(
-    DocumentText? opened,
-    this._effects,
-    this.editor, {
-    required this._summaries,
-  }) : _file = fileOwner(switch (opened) {
-         final opened? => openedFile(opened.seen),
-         null => newFile(),
-       }, _effects.run) {
+  DocumentSession(DocumentText? opened, this._effects, this.editor)
+    : _file = fileOwner(switch (opened) {
+        final opened? => openedFile(opened.seen),
+        null => newFile(),
+      }, _effects.run) {
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
       editor.changes.listen(_onEditorChanged),
@@ -67,7 +62,6 @@ final class DocumentSession {
 
   final FileEffects _effects;
   final FileOwner<DocumentVersion> _file;
-  final SentSummary _summaries;
 
   /// The way into the editor owner.
   final PageEditor editor;
@@ -78,8 +72,12 @@ final class DocumentSession {
   final _changes = StreamController<void>.broadcast(sync: true);
   final _stopNotices = StreamController<bool>.broadcast(sync: true);
 
-  /// Whether the editor held edits not yet sent, as listeners last heard.
-  bool _unsent = false;
+  /// Whether the editor held edits not yet sent, and the summary it told,
+  /// as listeners last heard.
+  late ({bool unsent, TextSummary<Object?> summary}) _heard = (
+    unsent: false,
+    summary: summary,
+  );
 
   /// Whether the document takes edits.
   SessionState get state => _state;
@@ -104,11 +102,14 @@ final class DocumentSession {
   };
   int get rev => _file.state.rev;
 
-  /// What lists show of [text].
-  TextSummary<Object?> get summary => _summaries.of(text);
+  /// What lists show of [text], as the editor tells it.
+  TextSummary<Object?> get summary => editor.state.summary;
 
   /// Where [file] is, or goes, for [text].
-  RelPath get path => file.pathFor(summary);
+  RelPath get path => switch (file) {
+    ExistingFile(:final path) => path,
+    final NewFile file => file.pathFor(summary.firstLine),
+  };
 
   /// The document's title, for [text] at [path].
   String get title => titleOf(summary, path);
@@ -200,26 +201,25 @@ final class DocumentSession {
     _changed();
   }
 
-  void _onEditorEvent(EditorNotice event) {
-    switch ((event, _state)) {
-      case (ToFile(input: Edited()), _):
-        throw StateError('Edits sent without their summary.');
-      case (SentEdits(:final edits, :final summary), Running()):
-        // Kept before the file owner hears the edits: its effects, which
-        // name the file, start as it does.
-        _summaries.keep(edits.text, summary);
-        _file.send(edits);
-      case (SentEdits(:final edits, :final summary), Stopped()):
-        _summaries.keep(edits.text, summary);
-        _keepLastDraft(edits.text);
-      case (ToFile(:final input), Running()):
-        _file.send(input);
-      case (SentEdits() || ToFile(), _):
-        break;
-      case (UndoOffered() || UndoRefused() || HistoryEnd(), _):
-        _editorNotices.add(event);
-    }
-  }
+  void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
+    (ToFile(input: final Edited edited), Running()) => _file.send(
+      _toFile(edited),
+    ),
+    (ToFile(input: Edited(:final text)), Stopped()) => _keepLastDraft(text),
+    (ToFile(:final input), Running()) => _file.send(input),
+    (ToFile(), Stopped() || Ended()) => null,
+    (UndoOffered() || UndoRefused() || HistoryEnd(), _) => _editorNotices.add(
+      event,
+    ),
+  };
+
+  /// [edited] as the file owner takes it: while the document has no
+  /// file, with the name its file gets. The editor told the summary of
+  /// [edited]'s text with it.
+  FileInput<DocumentVersion> _toFile(Edited edited) => switch (file) {
+    NewFile() => NewEdited(edited, name: summary.firstLine),
+    ExistingFile() => edited,
+  };
 
   /// The file owner ended before [dispose]: it stopped by a bug. The
   /// edits it holds, and those the editor still holds, are kept as the
@@ -241,11 +241,13 @@ final class DocumentSession {
     final keeping = Stopped(text, kept: known);
     _setState(keeping);
     unawaited(
-      _effects.keepLastDraft(text, file: _file.state.file).then((kept) {
-        if (!identical(_state, keeping)) return;
-        _setState(Stopped(text, kept: kept));
-        if (known == null) _stopNotices.add(kept);
-      }),
+      _effects
+          .keepLastDraft(text, file: _file.state.file, name: summary.firstLine)
+          .then((kept) {
+            if (!identical(_state, keeping)) return;
+            _setState(Stopped(text, kept: kept));
+            if (known == null) _stopNotices.add(kept);
+          }),
     );
   }
 
@@ -255,11 +257,14 @@ final class DocumentSession {
   }
 
   /// Edits held in the editor change where the edits are, before they
-  /// reach the file owner.
+  /// reach the file owner; a new summary changes the title and path.
   void _onEditorChanged(EditorStatus status) {
-    final unsent = status.unsent;
-    if (unsent == _unsent) return;
-    _unsent = unsent;
+    final heard = (unsent: status.unsent, summary: status.summary);
+    if (heard.unsent == _heard.unsent &&
+        identical(heard.summary, _heard.summary)) {
+      return;
+    }
+    _heard = heard;
     _changed();
   }
 

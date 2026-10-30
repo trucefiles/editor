@@ -3,6 +3,7 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../document_draft.dart';
 import '../document_drafts.dart';
+import '../document_file_name.dart';
 import '../document_files.dart';
 import '../document_place.dart';
 import '../document_text.dart';
@@ -11,7 +12,6 @@ import '../document_version.dart';
 import '../move_failure.dart';
 import '../open_failure.dart';
 import 'document_file.dart';
-import 'sent_summary.dart';
 
 /// Creates a document's file of [type] holding [text] at [place], named
 /// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
@@ -44,18 +44,15 @@ typedef MoveTarget = ({DocumentPlace place, String title, bool newSubfolder});
 /// document's), it acts where the new document's file goes.
 final class FileEffects {
   /// [newFile]: where a new document's file goes; `null` for a document
-  /// opened from its file. Files are named from [summaries].
+  /// opened from its file.
   FileEffects({
     this._newFile,
-    required this._summaries,
     required this._filesOf,
     required this._draftsOf,
     required this._create,
     required this._moveDocument,
   });
 
-  /// The summary of each text a file is named from.
-  final SentSummary _summaries;
   final DocumentFiles Function(DocumentFolder folder) _filesOf;
   final DocumentDrafts Function(DocumentFolder folder) _draftsOf;
   final CreateDocumentFile _create;
@@ -84,18 +81,17 @@ final class FileEffects {
   Future<FileResult<DocumentVersion>?> run(
     FileEffect<DocumentVersion> effect,
   ) => switch (effect) {
-    KeepDraft(:final id, :final base, :final text, :final file) => _keepDraft(
-      id,
-      base,
-      text,
-      whereOf(file),
-    ),
+    KeepDraft(:final id, :final base, :final text, :final file, :final name) =>
+      _keepDraft(id, base, text, whereOf(file), name: name),
     DropDraft(:final file) => _dropDraft(whereOf(file)),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
       _write(text, over.version.read, backUpFirst: backUpFirst),
     ),
-    Create(:final id, :final text) => _wrote(id, _createFile(text)),
+    Create(:final id, :final text, :final name) => _wrote(
+      id,
+      _createFile(text, name: name),
+    ),
     Restore(:final id, :final text, :final where) => _wrote(
       id,
       _restore(text, where.version.read),
@@ -129,7 +125,13 @@ final class FileEffects {
       // Not awaited: the queue of the draft's id keeps the order.
       _draftsOf(from.folder).remove(_draftId);
     }
-    _keep(draft.base, draft.text, to);
+    // Under the name it was kept with, as its text has not changed.
+    _keep(
+      draft.base,
+      draft.text,
+      to,
+      name: splitFileName(draft.path.name).base,
+    );
   }
 
   /// The user moves the document to [to], by the [Move] with [ticket]:
@@ -144,16 +146,17 @@ final class FileEffects {
 
   /// Keeps [text] as the draft without the file owner, once it stopped
   /// (a bug): over the base of the draft before, else of [file], the
-  /// version the owner last named (`null` for a new document). It goes
-  /// into the file at the next start.
+  /// version the owner last named (`null` for a new document, whose file
+  /// gets [name] from [text]). It goes into the file at the next start.
   /// Whether they are kept, or there was nothing to keep.
   Future<bool> keepLastDraft(
     String text, {
     required DocumentVersion? file,
+    required String name,
   }) async {
     final base = _draft?.base ?? file?.read.text;
     if (text == (base ?? '')) return true;
-    return _keep(base, text, whereOf(file));
+    return _keep(base, text, whereOf(file), name: name);
   }
 
   /// Where the effects on [file] act: the file, or where a new document's
@@ -169,15 +172,29 @@ final class FileEffects {
     EffectId id,
     String? base,
     String text,
-    DocumentFile where,
-  ) => _keep(base, text, where).then((kept) => DraftKept(id, kept: kept));
+    DocumentFile where, {
+    required String? name,
+  }) => _keep(
+    base,
+    text,
+    where,
+    name: name,
+  ).then((kept) => DraftKept(id, kept: kept));
 
-  /// Keeps [text] over [base] as the draft of the document [where] is;
-  /// whether it is kept.
-  Future<bool> _keep(String? base, String text, DocumentFile where) {
+  /// Keeps [text] over [base] as the draft of the document [where] is; a
+  /// new document's under the [name] its file gets. Whether it is kept.
+  Future<bool> _keep(
+    String? base,
+    String text,
+    DocumentFile where, {
+    required String? name,
+  }) {
     final draft = DocumentDraft(
       id: _draftId,
-      path: where.pathFor(_summaries.of(text)),
+      path: switch (where) {
+        ExistingFile(:final path) => path,
+        NewFile() => where.pathFor(name!),
+      },
       base: base,
       text: text,
       newSubfolder: switch (where) {
@@ -233,13 +250,16 @@ final class FileEffects {
     };
   }
 
-  Future<WriteOutcome<DocumentVersion>> _createFile(String text) async {
+  Future<WriteOutcome<DocumentVersion>> _createFile(
+    String text, {
+    required String name,
+  }) async {
     final file = _newFile;
     if (file == null) return const WriteFailed();
     return switch (await _create(
       file.place,
       type: file.type,
-      title: file.titleFor(_summaries.of(text)),
+      title: file.titleFor(name),
       text: text,
       newSubfolder: file.newSubfolder,
     )) {

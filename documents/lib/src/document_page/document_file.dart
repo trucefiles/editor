@@ -12,9 +12,6 @@ sealed class DocumentFile {
   const DocumentFile();
 
   DocumentFolder get folder;
-
-  /// The file in [folder] for a document whose text has [summary].
-  RelPath pathFor(TextSummary<Object?> summary);
 }
 
 /// The file exists, as [document] was last read or written.
@@ -26,8 +23,8 @@ final class ExistingFile extends DocumentFile {
   @override
   DocumentFolder get folder => document.folder;
 
-  @override
-  RelPath pathFor(TextSummary<Object?> summary) => document.path;
+  /// The file in [folder].
+  RelPath get path => document.path;
 }
 
 /// A new document of [type]: its file goes to [place], named [name], or
@@ -54,13 +51,14 @@ final class NewFile extends DocumentFile {
   DocumentFolder get folder => place.folder;
 
   /// The file's name without its extension, for a document whose text
-  /// has [summary].
-  String titleFor(TextSummary<Object?> summary) => name ?? summary.firstLine;
+  /// starts with [firstLine] (as its type reads it).
+  String titleFor(String firstLine) => name ?? firstLine;
 
-  @override
-  RelPath pathFor(TextSummary<Object?> summary) {
+  /// The file in [folder] for a document whose text starts with
+  /// [firstLine].
+  RelPath pathFor(String firstLine) {
     final name = documentFileName(
-      titleFor(summary),
+      titleFor(firstLine),
       extension: type.newFileExtension,
     );
     return place.subfolder?.child(name) ?? RelPath.parse(name)!;
