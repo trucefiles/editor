@@ -133,9 +133,9 @@ class AllDocumentsScreen extends ConsumerWidget {
       itemCount: documents.length,
       itemBuilder: (_, index) => ListedDocumentRow(documents[index]),
     ),
-    // A lazy grid that something follows breaks scrolling (see
-    // documentGrid), so each section's cards come in boxes of a few rows,
-    // each built only near the screen.
+    // Each section's cards come in boxes of a few rows, each built only
+    // near the screen: a grid per section would build some cards of every
+    // section at once.
     (DocumentOrder.name, DocumentView.cards) => _rows([
       for (final section in sectionsByName(documents)) ...[
         DocumentsHeading(_placeOf(section)),

@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
+import 'package:truce_editor/documents/ui/document_grid.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
@@ -23,44 +25,77 @@ void main() {
     appDocumentTypes().ofFile(document.type).cardSummary(text, document.path),
   );
 
-  Future<double> heightWith(WidgetTester tester, int lines) async {
-    final text = ['# Title', for (var i = 1; i <= lines; i++) 'line $i'];
+  /// Shows the card of a document with [title] and [lines] lines, as tall
+  /// as in a grid at [zoom].
+  Future<void> show(
+    WidgetTester tester, {
+    String title = 'Title',
+    int lines = 20,
+    TextZoom zoom = TextZoom.normal,
+  }) async {
+    final text = ['# $title', for (var i = 1; i <= lines; i++) 'line $i'];
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: 240,
-              child: DocumentCard(
-                document,
-                preview: read(text.join('\n')),
-                onTap: () {},
-                onMark: () {},
+        home: DocumentTextZoomScope(
+          zoom: zoom,
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: Builder(
+                builder: (context) => SizedBox(
+                  width: 240,
+                  height: cardHeight(context),
+                  child: DocumentCard(
+                    document,
+                    preview: read(text.join('\n')),
+                    onTap: () {},
+                    onMark: () {},
+                  ),
+                ),
               ),
             ),
           ),
         ),
       ),
     );
-    return tester.getSize(find.byType(DocumentCard)).height;
   }
 
-  testWidgets('grows with the document up to the preview limit', (
+  /// Lines the preview shows at most.
+  int previewLines(WidgetTester tester) =>
+      tester.widget<Text>(find.textContaining('line 1')).maxLines!;
+
+  testWidgets('shows as many whole preview lines as fit under the title', (
     tester,
   ) async {
-    final short = await heightWith(tester, 1);
-    final full = await heightWith(tester, DocumentCardSummary.previewLines);
-    final long = await heightWith(tester, DocumentCardSummary.previewLines * 4);
+    await show(tester);
+    expect(previewLines(tester), cardBodyLines);
 
-    expect(short, lessThan(full));
-    expect(long, full);
+    await show(tester, title: 'A title long enough for two lines');
+    expect(previewLines(tester), lessThan(cardBodyLines));
+  });
+
+  testWidgets('grows with the document text zoom, keeping its lines', (
+    tester,
+  ) async {
+    await show(tester);
+    final normal = tester.getSize(find.byType(DocumentCard)).height;
+
+    await show(tester, zoom: TextZoom.closestTo(150));
+
+    expect(
+      tester.getSize(find.byType(DocumentCard)).height,
+      greaterThan(normal),
+    );
+    expect(previewLines(tester), cardBodyLines);
   });
 
   testWidgets('shows only the title for a document without text', (
     tester,
   ) async {
-    expect(await heightWith(tester, 0), lessThan(await heightWith(tester, 1)));
+    await show(tester, lines: 0);
+
+    expect(find.text('Title'), findsOne);
+    expect(find.textContaining('line'), findsNothing);
   });
 
   testWidgets('labels a document with a sync conflict', (tester) async {
@@ -141,5 +176,46 @@ void main() {
     await show(const PreviewUnreadable());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
+  });
+
+  testWidgets('in a grid, shows its lines and follows a zoom change', (
+    tester,
+  ) async {
+    Future<void> show(TextZoom zoom) => tester.pumpWidget(
+      MaterialApp(
+        home: DocumentTextZoomScope(
+          zoom: zoom,
+          child: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                documentGrid(
+                  1,
+                  (_) => DocumentCard(
+                    document,
+                    preview: read(
+                      [
+                        '# Title',
+                        for (var i = 1; i <= 20; i++) 'line $i',
+                      ].join('\n'),
+                    ),
+                    onTap: () {},
+                    onMark: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    double height() => tester.getSize(find.byType(DocumentCard)).height;
+
+    await show(TextZoom.normal);
+    final normal = height();
+    expect(previewLines(tester), cardBodyLines);
+
+    await show(TextZoom.closestTo(150));
+    expect(height(), greaterThan(normal));
+    expect(previewLines(tester), cardBodyLines);
   });
 }
