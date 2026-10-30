@@ -728,6 +728,30 @@ void main() {
       expect(document.text, '- a\n  - y| x |\n    \\|---|\n- b');
     });
 
+    testWidgets('closed by a toolbar button, shows itself selected', (
+      tester,
+    ) async {
+      await pumpDocument(tester, TestDocument(list));
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Heading'));
+      await tester.pumpAndSettle();
+
+      final shade = tester.widget<DecoratedBox>(
+        find
+            .ancestor(
+              of: find.byType(DrawnTable),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      expect(
+        (shade.decoration as BoxDecoration).color,
+        isNot(Colors.transparent),
+      );
+    });
+
     testWidgets('typed in, the Separator button adds one after it', (
       tester,
     ) async {

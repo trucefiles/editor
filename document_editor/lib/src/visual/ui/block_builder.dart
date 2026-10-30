@@ -67,19 +67,19 @@ class BlockBuilder implements ComponentBuilder {
     final selection =
         viewModel.selection?.nodeSelection as UpstreamDownstreamNodeSelection?;
     final selected = selection != null && !selection.isCollapsed;
-    final block = switch (leaf) {
+    final shown = switch (leaf) {
       // Takes no hits: a tap on it goes to the editor, which selects it.
-      md.DividerNode() => IgnorePointer(
-        child: DecoratedBox(
-          position: DecorationPosition.foreground,
-          decoration: BoxDecoration(
-            color: selected ? viewModel.selectionColor : Colors.transparent,
-          ),
-          child: _block(leaf, context),
-        ),
-      ),
+      md.DividerNode() => IgnorePointer(child: _block(leaf, context)),
       _ => _block(leaf, context),
     };
+    // Every block selected whole shows it alike.
+    final block = DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        color: selected ? viewModel.selectionColor : Colors.transparent,
+      ),
+      child: shown,
+    );
     return FramedRow(
       frames: frames,
       content: block,
