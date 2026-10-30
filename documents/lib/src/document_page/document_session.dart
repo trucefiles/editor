@@ -226,6 +226,9 @@ final class DocumentSession {
     if (_state is! Running) return;
     _keepLastDraft(_file.state.text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
+    // That second keep also names a new document's draft after the first
+    // line of what it holds, so a stale first line from the first keep
+    // never stays.
     editor.send(SecureEditor(Ticket(), SecureReason.hide));
   }
 

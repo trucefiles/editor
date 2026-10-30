@@ -136,6 +136,8 @@ final class EditorStatus {
 
   /// What lists show of the text as the file owner has it: the text last
   /// sent, or last taken from the file; never of edits not sent yet.
+  /// Statuses compare it by identity: a new summary is made only for a new
+  /// text, and comparing its contents would read a lazy one.
   final TextSummary<Object?> summary;
 
   /// Whether there are edits only in memory, not yet sent to be kept.

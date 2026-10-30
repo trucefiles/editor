@@ -74,7 +74,9 @@ final class FileEffects {
   /// owner stopped.
   DocumentDraft? _draft;
 
-  /// The first line of a new document's [_draft], which names it.
+  /// The first line of a new document's [_draft], which names it. Kept,
+  /// not taken from the draft's path: that holds the user's name when
+  /// they gave one.
   String? _draftFirstLine;
 
   /// Does [effect]; its result for the file owner, `null` for an effect

@@ -359,7 +359,8 @@ final class Create extends FileEffect<Never> {
   final EffectId id;
   final String text;
 
-  /// The first line of [text] (see [NewEdited]).
+  /// The first line of [text] (see [NewEdited]); names the file only
+  /// when the user gave no name.
   final String firstLine;
 }
 

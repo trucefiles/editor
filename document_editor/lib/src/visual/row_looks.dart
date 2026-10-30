@@ -273,7 +273,8 @@ final class RowLooks {
     final done = rows.where((row) => row.done);
     final sections = _view.done;
     final checked = list.items.where((item) => item.checked ?? false).length;
-    // The list's own rows show in the blocks the list is in.
+    // The list's own rows show in the blocks the list is in; the list
+    // node itself, last on the path, gives no frame.
     final path = [..._doc.pathOf(list.id), list];
     _Shown own(RowLook Function(List<Frame> frames) look) =>
         (path: path, leaf: null, look: look);
