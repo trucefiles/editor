@@ -8,6 +8,7 @@ import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
 import '../change.dart';
 import '../selection.dart';
+import 'add_divider.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
@@ -154,11 +155,21 @@ final class DeleteItem extends EditCommand {
   final NodeId item;
 }
 
-/// Backspace or Delete on [block], a selected divider: it goes.
+/// Backspace ([backward]) or Delete on [block], a selected divider: it
+/// goes.
 final class RemoveBlock extends EditCommand {
-  const RemoveBlock(this.block);
+  const RemoveBlock(this.block, {required this.backward});
 
   final NodeId block;
+  final bool backward;
+}
+
+/// The toolbar's Separator: a divider after the block [after] (the
+/// caret's, or a selected divider), or after its item.
+final class AddDivider extends EditCommand {
+  const AddDivider(this.after);
+
+  final NodeId after;
 }
 
 /// The Add item button of [list]: a new empty item, [at] its place.
@@ -239,14 +250,15 @@ final class RemoveLink extends EditCommand {
   final Place at;
 }
 
-/// A raw block closed (the caret left it) with [raw] typed in it (see
-/// `closeRaw`); [selection] stays where its text stays.
+/// A raw block closed (the caret left it, or a command comes) with [raw]
+/// typed in it (see `closeRaw`); [selection] stays where its text stays,
+/// or, if `null`, what [raw] reads as is selected.
 final class CloseRaw extends EditCommand {
   const CloseRaw(this.block, this.raw, this.selection);
 
   final NodeId block;
   final String raw;
-  final Selection selection;
+  final Selection? selection;
 }
 
 /// What [view] shows after [command], with the selection after it.
@@ -299,8 +311,13 @@ Change _change(ViewRows view, EditCommand command) {
       selection,
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
-    RemoveBlock(:final block) => removeBlock(view, block),
+    RemoveBlock(:final block, :final backward) => removeBlock(
+      view,
+      block,
+      backward: backward,
+    ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
+    AddDivider(:final after) => addDivider(view, after),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

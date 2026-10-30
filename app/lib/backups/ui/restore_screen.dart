@@ -9,6 +9,7 @@ import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../../versions/ui/version_content.dart';
 import '../restore_controller.dart';
 import 'backup_kind_text.dart';
 
@@ -85,8 +86,13 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
     return VersionChooser(
       current: ShownVersion(
         label: 'Current version',
-        modified: current?.modified,
-        text: current == null ? null : versionText(current.bytes),
+        content: switch (current) {
+          final current? => SavedText(
+            versionText(current.bytes),
+            current.modified,
+          ),
+          null => const DeletedFile(),
+        },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
             ? 'The document stays deleted.'
@@ -94,8 +100,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       ),
       other: ShownVersion(
         label: 'Backup',
-        modified: choice.backup.savedAt,
-        text: versionText(choice.bytes),
+        content: SavedText(versionText(choice.bytes), choice.backup.savedAt),
         keepLabel: 'Restore',
         keptMessage: deleted
             ? 'The document is restored from this backup.'

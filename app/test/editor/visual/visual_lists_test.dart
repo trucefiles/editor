@@ -330,7 +330,7 @@ void main() {
     await gesture.moveBy(const Offset(0, 20));
     await tester.pumpAndSettle();
 
-    expect(shows('b  +2'), isTrue, reason: 'the copy counts them');
+    expect(find.text('  +2'), findsOne, reason: 'the copy counts them');
     expect(shows('s1'), isFalse);
     expect(shows('s2'), isFalse);
 

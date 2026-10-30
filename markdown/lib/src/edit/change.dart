@@ -45,25 +45,41 @@ Selection endOf(ViewRows view) =>
 
 /// Where the caret goes once the rows that [gone] says go are gone: at
 /// the start of the next text after the first of them, else at the end
-/// of the text above; `null` (the end) if neither stays.
-Selection? caretPast(ViewRows view, bool Function(Row row) gone) {
+/// of the text above; the other way round if [above]; `null` (the end)
+/// if neither stays.
+Selection? caretPast(
+  ViewRows view,
+  bool Function(Row row) gone, {
+  bool above = false,
+}) {
   bool stays(Row row) => row is TextRow && !gone(row);
   final first = view.rows.indexWhere(gone);
-  return switch ((
-    view.rows.skip(first).firstWhereOrNull(stays),
-    view.rows.take(first).lastWhereOrNull(stays),
-  )) {
-    (TextRow(:final leaf), _) => TextSelection.caret(Place(leaf.id, 0)),
-    (_, TextRow(:final leaf)) => TextSelection.caret(
+  final next = caretAfter(view, gone);
+  final previous = switch (view.rows.take(first).lastWhereOrNull(stays)) {
+    TextRow(:final leaf) => TextSelection.caret(
       Place(leaf.id, textOf(leaf).length),
     ),
     _ => null,
   };
+  return above ? previous ?? next : next ?? previous;
 }
 
+/// A caret at the start of the first text after the first row [past]
+/// says, that [past] doesn't say too; `null` if there is none.
+TextSelection? caretAfter(ViewRows view, bool Function(Row row) past) =>
+    switch (view.rows
+        .skip(view.rows.indexWhere(past))
+        .firstWhereOrNull((row) => row is TextRow && !past(row))) {
+      TextRow(:final leaf) => TextSelection.caret(Place(leaf.id, 0)),
+      _ => null,
+    };
+
 /// Where the caret goes once the nodes [gone] go (see [caretPast]).
-Selection? caretOnceGone(ViewRows view, Set<NodeId> gone) =>
-    caretPast(view, (row) => goesWith(view.doc, row, gone));
+Selection? caretOnceGone(
+  ViewRows view,
+  Set<NodeId> gone, {
+  bool above = false,
+}) => caretPast(view, (row) => goesWith(view.doc, row, gone), above: above);
 
 /// [selection] once the nodes [gone] go: kept where all it is on stays,
 /// else as [caretOnceGone].

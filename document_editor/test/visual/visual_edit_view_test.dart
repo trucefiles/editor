@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -120,6 +121,140 @@ void main() {
     document.gate.send((_) => Request(UndoStep(removed.id)));
     await tester.pumpAndSettle();
     expect(document.text, '- [ ] milk\n- [ ] eggs');
+  });
+
+  group('a separator item', () {
+    const shop = '- [ ] milk\n- [ ] ------\n- [ ] eggs';
+
+    testWidgets('has a drag handle like every item', (tester) async {
+      await pumpDocument(tester, TestDocument(shop));
+
+      expect(find.byIcon(Icons.drag_indicator), findsNWidgets(3));
+    });
+
+    testWidgets('selects with a tap, showing its delete button', (
+      tester,
+    ) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      final delete = find.byTooltip('Delete item').hitTestable();
+      expect(delete, findsOneWidget);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] eggs');
+    });
+
+    testWidgets('Backspace on it leaves the item empty, with the caret in '
+        'it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.pressBackspace();
+      await tester.typeImeText('bread');
+
+      expect(document.text, '- [ ] milk\n- [ ] bread\n- [ ] eggs');
+    });
+
+    testWidgets("a soft keyboard's Backspace on it leaves the item empty", (
+      tester,
+    ) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.ime.backspace(getter: imeClientGetter);
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
+    });
+
+    testWidgets('lets the right arrow pass it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.caretIn(checkboxNodeOf(), 4);
+      await tester.pressRightArrow();
+      await tester.pressRightArrow();
+      await tester.typeImeText('x');
+
+      expect(document.text, '- [ ] milk\n- [ ] ------\n- [ ] exggs');
+    });
+
+    testWidgets('lets the left arrow pass it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
+      await tester.pressLeftArrow();
+      await tester.pressLeftArrow();
+      await tester.typeImeText('x');
+
+      expect(document.text, '- [ ] milxk\n- [ ] ------\n- [ ] eggs');
+    });
+  });
+
+  testWidgets("a soft keyboard's Backspace removes a tapped separator", (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.tap(find.byType(Divider), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.ime.backspace(getter: imeClientGetter);
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'milk\n\neggs');
+  });
+
+  testWidgets('the arrow keys pass a separator between paragraphs', (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.caretIn(paragraphNodeOf(), 4);
+    await tester.pressRightArrow();
+    await tester.typeImeText('x');
+    await tester.pressLeftArrow();
+    await tester.pressLeftArrow();
+    await tester.typeImeText('y');
+
+    expect(document.text, 'milky\n\n---\n\nxeggs');
+  });
+
+  testWidgets('Separator adds a separator item after the caret\'s item', (
+    tester,
+  ) async {
+    final document = TestDocument('- [ ] milk\n- [ ] eggs');
+    await pumpDocument(tester, document);
+
+    await tester.caretIn(checkboxNodeOf(), 2);
+    await tester.tap(find.byTooltip('Separator'));
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] milk\n- [ ] ***\n- [ ] eggs');
+  });
+
+  testWidgets('Separator with a separator selected adds one after it', (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.tap(find.byType(Divider), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Separator'));
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'milk\n\n---\n\n---\n\neggs');
   });
 
   testWidgets('a change from elsewhere shows right away', (tester) async {
@@ -516,6 +651,119 @@ void main() {
 
     await tester.caretIn(paragraphNodeOf(index: 1), 0);
     expect(find.byType(DrawnTable), findsOneWidget);
+  });
+
+  group('a table that starts an item', () {
+    const list = '- a\n- | x |\n  |---|\n- b';
+
+    testWidgets('tapped, shows its text and the delete button', (tester) async {
+      final document = TestDocument(list);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Delete item').hitTestable());
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- a\n- b');
+    });
+
+    testWidgets('open as text, moves by its handle and is drawn again', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      final handles = find.byIcon(Icons.drag_indicator);
+      final from = tester.getCenter(handles.at(1));
+      final to = tester.getCenter(handles.at(2));
+      final gesture = await tester.startGesture(
+        from,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      for (final _ in Iterable<int>.generate(20)) {
+        await gesture.moveBy((to - from + const Offset(0, 20)) / 20);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- a\n- b\n- | x |\n  |---|');
+      expect(find.byType(DrawnTable), findsOneWidget);
+    });
+  });
+
+  group('a table open as text in an item', () {
+    const list = '- a\n- | x |\n  |---|\n- b';
+
+    Future<void> openAndType(WidgetTester tester, TestDocument document) async {
+      await pumpDocument(tester, document);
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      await tester.typeImeText('y');
+    }
+
+    testWidgets('typed in, then shifted by its handle, closes and indents', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await openAndType(tester, document);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.drag_indicator).at(1)),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      for (final _ in Iterable<int>.generate(20)) {
+        await gesture.moveBy(const Offset(3, 0));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Typed at its start, the table reads as text now.
+      expect(document.text, '- a\n  - y| x |\n    \\|---|\n- b');
+    });
+
+    testWidgets('closed by a toolbar button, shows itself selected', (
+      tester,
+    ) async {
+      await pumpDocument(tester, TestDocument(list));
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Heading'));
+      await tester.pumpAndSettle();
+
+      final shade = tester.widget<DecoratedBox>(
+        find
+            .ancestor(
+              of: find.byType(DrawnTable),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      expect(
+        (shade.decoration as BoxDecoration).color,
+        isNot(Colors.transparent),
+      );
+    });
+
+    testWidgets('typed in, the Separator button adds one after it', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await openAndType(tester, document);
+
+      await tester.tap(find.byTooltip('Separator'));
+      await tester.pumpAndSettle();
+
+      expect(document.text, contains('y'));
+      expect(document.text, endsWith('|---|\n- ***\n- b'));
+    });
   });
 
   final linux = TargetPlatformVariant.only(TargetPlatform.linux);

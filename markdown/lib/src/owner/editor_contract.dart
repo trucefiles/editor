@@ -94,6 +94,13 @@ final class Run extends ShownInput {
   final Command command;
 }
 
+/// A command comes: the open raw block, if one is, closes with what was
+/// typed in it, and what it reads as is selected, so the command is made
+/// on the blocks as they then are.
+final class CloseRawBlock extends ShownInput {
+  const CloseRawBlock({required super.revision});
+}
+
 /// The user moved the caret or the selection to [selection].
 final class CaretMoved extends ShownInput {
   const CaretMoved(this.selection, {required super.revision});

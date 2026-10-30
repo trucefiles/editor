@@ -37,6 +37,12 @@ where it can. Everything else in the file stays exactly as it was.
     Truce adds a blank line between them.
 - **Paste** turns each pasted line into its own item in a list, or its
   own paragraph elsewhere, like pressing Enter.
+- **Separator.** The toolbar's separator button adds a line after the
+  block you are in, or after a selected line. In a list it adds an item that holds only a line,
+  saved as `- [ ] ***` in a checklist (`***`, not `---`, where the list
+  marker is `-`: `- ---` would be a line that ends the list). Click or
+  tap a line to select it; Backspace or Delete removes it, and the arrow
+  keys move past it.
 - **List buttons** turn lines into a list, or change its kind. Pressed
   again where the lines already have that kind (or a checkbox), they make
   the lines text again.
@@ -53,6 +59,9 @@ where it can. Everything else in the file stays exactly as it was.
 
 ## Where Truce differs
 
+- **A line right after a box is a separator item.** `- [ ] ***` shows a
+  box with a line beside it, in Visual edit and Read alike. GitHub shows
+  a box with the text `***`.
 - **A box at the line end is a checklist item.** `- [ ]` with nothing
   after it shows as an empty checklist item. The standard's own tool
   needs a space after the box, so Truce saves empty items that way.

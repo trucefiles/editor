@@ -48,6 +48,13 @@ extension EditorSteps on WidgetTester {
     await pumpAndSettle();
   }
 
+  /// Clicks the middle of what [finder] finds in the editor, e.g. a
+  /// separator, which takes no hits itself: the editor does.
+  Future<void> clickOn(Finder finder) async {
+    await tap(finder, kind: PointerDeviceKind.mouse, warnIfMissed: false);
+    await pumpAndSettle();
+  }
+
   /// Whether the editor shows a line reading exactly [text].
   bool showsLine(String text) =>
       find.text(text, findRichText: true).evaluate().isNotEmpty;

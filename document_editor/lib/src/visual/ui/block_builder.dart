@@ -10,12 +10,13 @@ import '../visual_actions.dart';
 import 'add_item_button.dart';
 import 'done_heading.dart';
 import 'drawn_table.dart';
-import 'frames.dart';
+import 'framed_row.dart';
 
 /// Builds the components of rows shown whole: dividers, drawn tables and
 /// raw blocks inside their frames (a tap on a table or raw block opens
-/// its raw text), Done headings and Add item buttons; each does what it
-/// offers by [actions].
+/// its raw text; a divider selects whole and shows it), Done headings
+/// and Add item buttons; each does what it offers by [actions]. One that
+/// starts an item has the item's row, as a text does.
 class BlockBuilder implements ComponentBuilder {
   const BlockBuilder(this.actions);
 
@@ -40,23 +41,7 @@ class BlockBuilder implements ComponentBuilder {
       key: componentContext.componentKey,
       isVisuallySelectable: look is BlockLook,
       child: switch (look) {
-        BlockLook(:final leaf, :final frames) => framed(
-          frames,
-          _block(leaf, context),
-          metrics: metrics,
-          row: (item, child) => Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: metrics.handleWidth),
-              MarkerView(
-                item,
-                style: DocumentTextStyles.body(Theme.of(context)),
-                onToggle: () => actions.toggle(item.item),
-              ),
-              Expanded(child: child),
-            ],
-          ),
-        ),
+        BlockLook() => _shownWhole(look, componentViewModel, context),
         DoneHeadingLook(:final list, :final count, :final collapsed) =>
           DoneHeading(
             count: count,
@@ -69,6 +54,39 @@ class BlockBuilder implements ComponentBuilder {
         ),
         TextLook() || RawTextLook() => throw StateError('a row with text'),
       },
+    );
+  }
+
+  /// [look]'s block as a [FramedRow], active while selected whole.
+  Widget _shownWhole(
+    BlockLook look,
+    BlockViewModel viewModel,
+    BuildContext context,
+  ) {
+    final BlockLook(:leaf, :frames) = look;
+    final selection =
+        viewModel.selection?.nodeSelection as UpstreamDownstreamNodeSelection?;
+    final selected = selection != null && !selection.isCollapsed;
+    // Every block selected whole shows it alike.
+    final shaded = DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        color: selected ? viewModel.selectionColor : Colors.transparent,
+      ),
+      child: _block(leaf, context),
+    );
+    final block = switch (leaf) {
+      // Takes no hits: a tap on it goes to the editor, which selects it.
+      md.DividerNode() => IgnorePointer(child: shaded),
+      _ => shaded,
+    };
+    return FramedRow(
+      frames: frames,
+      content: block,
+      copy: _block(leaf, context),
+      active: selected,
+      style: DocumentTextStyles.body(Theme.of(context)),
+      actions: actions,
     );
   }
 
@@ -93,8 +111,9 @@ class BlockBuilder implements ComponentBuilder {
 }
 
 /// The view model of a row shown whole: its [look], which says all it
-/// shows.
-class BlockViewModel extends SingleColumnLayoutComponentViewModel {
+/// shows, and the selection on it.
+class BlockViewModel extends SingleColumnLayoutComponentViewModel
+    with SelectionAwareViewModelMixin {
   BlockViewModel(String nodeId, this.look, {super.padding = EdgeInsets.zero})
     : super(nodeId: nodeId, createdAt: null);
 
@@ -103,7 +122,9 @@ class BlockViewModel extends SingleColumnLayoutComponentViewModel {
   @override
   BlockViewModel copy() => BlockViewModel(nodeId, look, padding: padding)
     ..maxWidth = maxWidth
-    ..opacity = opacity;
+    ..opacity = opacity
+    ..selection = selection
+    ..selectionColor = selectionColor;
 
   @override
   bool operator ==(Object other) =>

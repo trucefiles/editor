@@ -5,6 +5,7 @@ import '../../visible/visible_text.dart';
 import '../change.dart';
 import '../selection.dart';
 import '../text_places.dart';
+import 'items.dart';
 import 'text_commands.dart';
 
 /// Enter at [at]: the text place split there (see [splitWith]).
@@ -88,7 +89,7 @@ DocTree _splitItem(
   int kept,
 ) {
   final index = item.children.indexOf(leaf);
-  final box = _newBox(view, item, at);
+  final box = newBox(view, item, at.leaf);
   final rest = kept == 0 && textOf(leaves.last).isEmpty ? 0 : leaves.length - 1;
   final items = [
     for (final (part, text) in leaves.indexed)
@@ -119,8 +120,3 @@ VisibleText _joinedLines(List<VisibleText> lines) => _joined([
 /// [texts] one after another.
 VisibleText _joined(List<VisibleText> texts) =>
     VisibleText([for (final text in texts) ...text.pieces]);
-
-/// The box of an item made from [item]'s row at [at]: none if it has
-/// none; checked in a Done section, else open.
-bool? _newBox(ViewRows view, ItemNode item, Place at) =>
-    item.hasBox ? view.row(at.leaf)!.done : null;

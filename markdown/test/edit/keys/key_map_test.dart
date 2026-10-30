@@ -149,14 +149,21 @@ void main() {
       expect(joined.document.text, text);
     });
 
-    test('on a selected rule removes it', () {
+    test('on a selected rule removes it, Backspace backward, Delete '
+        'forward', () {
       final document = _document('a\n\n---');
       final rule = document.doc.root.children.last.id;
       expect(
         _command(
           keyAction(document.view, BlockSelection(rule), EditKey.backspace),
         ),
-        isA<RemoveBlock>(),
+        isA<RemoveBlock>().having((it) => it.backward, 'backward', isTrue),
+      );
+      expect(
+        _command(
+          keyAction(document.view, BlockSelection(rule), EditKey.delete),
+        ),
+        isA<RemoveBlock>().having((it) => it.backward, 'backward', isFalse),
       );
     });
 

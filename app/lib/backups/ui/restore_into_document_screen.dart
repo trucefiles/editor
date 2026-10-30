@@ -8,6 +8,7 @@ import 'package:truce_documents/truce_documents.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../../versions/ui/version_content.dart';
 import '../backup_bytes.dart';
 import 'backup_kind_text.dart';
 
@@ -40,14 +41,13 @@ class RestoreIntoDocumentScreen extends ConsumerWidget {
         AsyncData(value: Ok(value: final bytes)) => VersionChooser(
           current: ShownVersion(
             label: 'This document now',
-            text: current,
+            content: EditorText(current),
             keepLabel: 'Keep this',
             keptMessage: 'The document stays as it is.',
           ),
           other: ShownVersion(
             label: 'Backup',
-            modified: shown.savedAt,
-            text: versionText(bytes),
+            content: SavedText(versionText(bytes), shown.savedAt),
             keepLabel: 'Restore',
             keptMessage:
                 'The document shows the backup instead; Undo takes it '

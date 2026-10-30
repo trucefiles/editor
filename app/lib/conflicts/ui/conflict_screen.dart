@@ -10,6 +10,7 @@ import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../../versions/ui/version_content.dart';
 import '../conflict_controller.dart';
 
 /// Shows both versions of a conflicting document side by side; the user keeps
@@ -92,8 +93,10 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     return VersionChooser(
       current: ShownVersion(
         label: 'Current version',
-        modified: conflict.main?.modified,
-        text: sides.current,
+        content: switch ((sides.current, conflict.main)) {
+          (final text?, final main?) => SavedText(text, main.modified),
+          _ => const DeletedFile(),
+        },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
             ? 'The document stays deleted and the other version is removed. '
@@ -102,8 +105,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       ),
       other: ShownVersion(
         label: 'Other version',
-        modified: sides.copy.createdAt,
-        text: sides.other,
+        content: SavedText(sides.other, sides.copy.createdAt),
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
             ? 'The document is restored from this version. $bothBackedUp'

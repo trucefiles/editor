@@ -28,33 +28,39 @@ class ListedDocumentRow extends ConsumerWidget {
     // Right click with a mouse asks for a pin or color, as on cards.
     return GestureDetector(
       onSecondaryTap: onMark,
-      child: ListTile(
-        tileColor: documentTint(mark.color, theme.colorScheme),
-        title: Text(
-          cardTitle(document, preview),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: FolderBadge(document.folder, file: document.path),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 6,
-          children: [
-            Text(
-              TimeTexts.of(context)
-                  .edited(document.modified, now: DateTime.now()),
-              style: theme.textTheme.labelSmall,
-            ),
-            if (settings.pinned)
-              const Tooltip(
-                message: 'Pinned',
-                child: Icon(Icons.push_pin, size: 18),
+      // The row's own Material holds its color: a tile color is drawn on
+      // the screen's Material, behind the filter bar too, so it showed
+      // there while the list scrolled.
+      child: Material(
+        color:
+            documentTint(mark.color, theme.colorScheme) ?? Colors.transparent,
+        child: ListTile(
+          title: Text(
+            cardTitle(document, preview),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: FolderBadge(document.folder, file: document.path),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 6,
+            children: [
+              Text(
+                TimeTexts.of(context)
+                    .edited(document.modified, now: DateTime.now()),
+                style: theme.textTheme.labelSmall,
               ),
-            if (hasConflict) const ConflictLabel(),
-          ],
+              if (settings.pinned)
+                const Tooltip(
+                  message: 'Pinned',
+                  child: Icon(Icons.push_pin, size: 18),
+                ),
+              if (hasConflict) const ConflictLabel(),
+            ],
+          ),
+          onTap: () => openDocument(context, ref, document),
+          onLongPress: onMark,
         ),
-        onTap: () => openDocument(context, ref, document),
-        onLongPress: onMark,
       ),
     );
   }

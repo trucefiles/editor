@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/services.dart' show TextAffinity;
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
@@ -10,16 +9,17 @@ import 'node_ids.dart';
 /// Where a selection is, in the library's document and in the editor
 /// owner's terms: the one mapping, both ways. Text positions are the
 /// same offsets in both; a divider selected whole is a block selection;
-/// an end on any other node without text goes to the nearest text on its
-/// side.
+/// an end on any other node without text goes on past it, the way it
+/// moved, to the nearest text there.
 final class Positions {
   const Positions(this._document, this._ids);
 
   final Document _document;
   final NodeIds _ids;
 
-  /// [selection] in the owner's terms; `null` where no text is near.
-  md.Selection? toOwner(DocumentSelection selection) {
+  /// [selection] in the owner's terms, moved from [was]; `null` where no
+  /// text is near.
+  md.Selection? toOwner(DocumentSelection selection, {DocumentSelection? was}) {
     final DocumentSelection(:base, :extent) = selection;
     if (base.nodeId == extent.nodeId) {
       if (_lookAt(base.nodeId)
@@ -28,26 +28,43 @@ final class Positions {
         return md.BlockSelection(divider.id);
       }
     }
-    return switch ((placeOf(base), placeOf(extent))) {
+    return switch ((
+      placeOf(base, was: was?.base),
+      placeOf(extent, was: was?.extent),
+    )) {
       (final base?, final extent?) => md.TextSelection(base, extent),
       _ => null,
     };
   }
 
-  /// [position] as a text place: on a node without text, the nearest
-  /// one on its side; `null` if there is none.
-  md.Place? placeOf(DocumentPosition position) {
+  /// [position] as a text place: on a node without text, the nearest one
+  /// past it, coming from [was]; `null` if there is none.
+  md.Place? placeOf(DocumentPosition position, {DocumentPosition? was}) {
     final node = _document.getNodeById(position.nodeId);
     if (node == null) return null;
-    return switch ((lookOf(node), position.nodePosition)) {
-      (TextLook(:final leaf), TextNodePosition(:final offset)) => md.Place(
-        leaf.id,
-        offset,
-      ),
-      (_, UpstreamDownstreamNodePosition(affinity: TextAffinity.upstream)) =>
-        _nearest(node, before: true) ?? _nearest(node, before: false),
-      _ => _nearest(node, before: false) ?? _nearest(node, before: true),
+    return switch (lookOf(node)) {
+      TextLook(:final leaf) => switch (position.nodePosition) {
+        TextNodePosition(:final offset) => md.Place(leaf.id, offset),
+        _ => null,
+      },
+      _ when _cameFromAbove(position, was) =>
+        _nearest(node, before: false) ?? _nearest(node, before: true),
+      _ => _nearest(node, before: true) ?? _nearest(node, before: false),
     };
+  }
+
+  /// Whether a move to [position] came from above it: from a node before
+  /// it, or, from the node itself or nowhere, onto its end.
+  bool _cameFromAbove(DocumentPosition position, DocumentPosition? was) {
+    final from = switch (was) {
+      final was? => _document.getNodeIndexById(was.nodeId),
+      null => -1,
+    };
+    final to = _document.getNodeIndexById(position.nodeId);
+    return from >= 0 && from != to
+        ? from < to
+        : position.nodePosition !=
+              const UpstreamDownstreamNodePosition.upstream();
   }
 
   /// The end of the nearest text before [node], or the start of the

@@ -9,7 +9,6 @@ environment:
 dependencies:
   characters: ^1.4.1
   collection: ^1.19.1
-  diffutil_dart: ^5.0.0
   meta: ^1.19.0
   truce_core: any
   truce_folders: any

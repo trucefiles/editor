@@ -16,8 +16,8 @@ typedef _Place = ({_LineDropTargetState row, double top, double bottom});
 /// one owner of a drag from lift to settle: where the item goes (the row,
 /// a [LineDropTarget] in [child], nearest to the dragged copy's middle,
 /// above or below its middle), the one gap open there, and the glide of
-/// the copy on release, into the gap or, for a drag dropped nowhere,
-/// back to its row.
+/// the copy on release, into the gap while the row's old place closes,
+/// or, for a drag dropped nowhere, back to its row.
 class LineDropZone extends StatefulWidget {
   const LineDropZone({
     required this.step,
@@ -66,6 +66,9 @@ class LineDropZoneState extends State<LineDropZone> {
   final _gap = ValueNotifier<LineGap?>(null);
 
   final _lifted = ValueNotifier<NodeId?>(null);
+
+  /// The item whose old place closes while its copy glides to the gap.
+  final _leaving = ValueNotifier<NodeId?>(null);
 
   /// The copy gliding into place, if any.
   OverlayEntry? _glide;
@@ -144,12 +147,14 @@ class LineDropZoneState extends State<LineDropZone> {
     }
     final target = place.row.widget.item;
     final below = _isBelow(place, copy.middle);
+    final moves = target != drag.item;
+    if (moves) _leaving.value = drag.item;
     _glideTo(
       drag,
       from: details.offset,
-      to: target == drag.item
-          ? _rowOrigin(drag)
-          : _gapOrigin(drag, place.row, below: below, height: copy.height),
+      to: moves
+          ? _gapOrigin(drag, place, below: below, height: copy.height)
+          : _rowOrigin(drag),
       then: () => widget.onDrop(
         drag,
         target: target,
@@ -162,20 +167,29 @@ class LineDropZoneState extends State<LineDropZone> {
   /// Where [drag]'s row is on screen; `null` once it is gone.
   Offset? _rowOrigin(LineDrag drag) => drag.rowBox?.localToGlobal(Offset.zero);
 
-  /// Where the gap open next to [row] is on screen, at the dragged row's
-  /// indent.
+  /// Where the gap open next to [place] is on screen once the dragged
+  /// row's old place has closed, at the dragged row's indent.
   Offset? _gapOrigin(
     LineDrag drag,
-    _LineDropTargetState row, {
+    _Place place, {
     required bool below,
     required double height,
-  }) => switch ((_rowOrigin(drag), row._contentBox)) {
+  }) => switch ((_rowOrigin(drag), place.row._contentBox)) {
     (final origin?, final content?) => Offset(
       origin.dx,
       content.localToGlobal(Offset.zero).dy +
-          (below ? content.size.height : -height),
+          (below ? content.size.height : -height) -
+          _closingAbove(drag, place),
     ),
     _ => null,
+  };
+
+  /// How far [place] moves up as [drag]'s old place closes: the old
+  /// row's height if it is above.
+  double _closingAbove(LineDrag drag, _Place place) => switch (_places()
+      .firstWhereOrNull((old) => old.row.widget.item == drag.item)) {
+    final old? when old.top < place.top => old.bottom - old.top,
+    _ => 0,
   };
 
   /// [drag]'s copy glides from [from] to [to], then [then] happens and
@@ -224,6 +238,7 @@ class LineDropZoneState extends State<LineDropZone> {
     then();
     _gap.value = null;
     _lifted.value = null;
+    _leaving.value = null;
     widget.onSettled();
   }
 
@@ -233,6 +248,7 @@ class LineDropZoneState extends State<LineDropZone> {
     _glide?.remove();
     _gap.dispose();
     _lifted.dispose();
+    _leaving.dispose();
     super.dispose();
   }
 
@@ -247,7 +263,8 @@ class LineDropZoneState extends State<LineDropZone> {
 
 /// The row of [item], [child], inside a [LineDropZone]: items dropped
 /// next to it go above or below it, as the zone says; meanwhile a gap
-/// opens there, as large as the dragged row.
+/// opens there, as large as the dragged row. Once [item] itself is
+/// dropped elsewhere, its row closes while the copy glides.
 class LineDropTarget extends StatefulWidget {
   const LineDropTarget({required this.item, required this.child, super.key});
 
@@ -318,8 +335,35 @@ class _LineDropTargetState extends State<LineDropTarget> {
               : EdgeInsets.only(top: height),
         _ => EdgeInsets.zero,
       },
-      child: content,
+      child: ValueListenableBuilder(
+        valueListenable: _zone._leaving,
+        builder: (_, leaving, content) =>
+            leaving == widget.item ? _Closing(child: content!) : content!,
+        child: content,
+      ),
     ),
     child: KeyedSubtree(key: _content, child: widget.child),
+  );
+}
+
+/// [child] shrinking to no height over the glide's time.
+class _Closing extends StatelessWidget {
+  const _Closing({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 1, end: 0),
+    duration: LineDropZoneState._glideTime,
+    curve: Curves.easeOut,
+    builder: (_, height, child) => ClipRect(
+      child: Align(
+        alignment: Alignment.topCenter,
+        heightFactor: height,
+        child: child,
+      ),
+    ),
+    child: child,
   );
 }

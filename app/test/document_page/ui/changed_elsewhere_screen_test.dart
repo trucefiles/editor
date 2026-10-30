@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/document_page/document_controller.dart';
 import 'package:truce_editor/document_page/ui/edit_state_banner.dart';
+import 'package:truce_editor/versions/ui/version_pane.dart';
 
 import '../../support.dart';
 import '../document_fixture.dart';
@@ -78,9 +79,25 @@ void main() {
 
     expect(find.text('Current version'), findsOneWidget);
     expect(find.text('Your edits'), findsOneWidget);
-    // Each version's pane shows the other's lines too, as removed.
-    expect(find.textContaining('mine'), findsNWidgets(2));
-    expect(find.textContaining('theirs'), findsNWidgets(2));
+    // Each version's pane shows only its own lines.
+    expect(find.textContaining('mine'), findsOneWidget);
+    expect(find.textContaining('theirs'), findsOneWidget);
+  });
+
+  testWidgets("this device's edits are the base: their own lines show as "
+      'added, the other version\'s as removed', (tester) async {
+    await pumpCompare(tester);
+
+    OwnLines ownLinesOf(String label) => tester
+        .widget<VersionPane>(
+          find.ancestor(
+            of: find.text(label),
+            matching: find.byType(VersionPane),
+          ),
+        )
+        .ownLines;
+    expect(ownLinesOf('Your edits'), OwnLines.added);
+    expect(ownLinesOf('Current version'), OwnLines.removed);
   });
 
   testWidgets('keeping the current version closes the comparison', (
@@ -152,7 +169,8 @@ void main() {
 
     await changedAgain(tester, 'theirs, newer\n');
 
-    // In both panes: as this version's line and as the other's.
-    expect(find.textContaining('theirs, newer'), findsNWidgets(2));
+    // In the current version's pane, its own line.
+    expect(find.textContaining('theirs, newer'), findsOneWidget);
+    expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
   });
 }
