@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_documents/truce_documents.dart';
 
-import '../../documents/ui/card_frame.dart';
+import '../../common/card_frame.dart';
 import '../../folders/ui/folder_badge.dart';
 
 /// A document deleted on one device while edited on another: only the edited

@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../text_zoom/ui/document_text_zoom.dart';
+import '../text_zoom/ui/document_text_zoom.dart';
 
 /// The frame every card in a document grid shares: the title and [body] at
 /// the document text zoom, [footer] at the bottom. It fills the height it
@@ -74,20 +74,19 @@ class CardFrame extends StatelessWidget {
   );
 }
 
-/// [text] in as many whole lines as fit the height it gets, the last one
-/// ending in "…" if more is left.
+/// [text] in the cards' body style, in as many whole lines as fit the
+/// height it gets, the last one ending in "…" if more is left.
 class CardLines extends StatelessWidget {
-  const CardLines(this.text, {this.style, super.key});
+  const CardLines(this.text, {this.italic = false, super.key});
 
   final String text;
-  final TextStyle? style;
+  final bool italic;
 
   @override
   Widget build(BuildContext context) {
-    final line = _lineHeight(
-      DefaultTextStyle.of(context).style.merge(style),
-      MediaQuery.textScalerOf(context),
-    );
+    final style = _bodyStyle(context)
+        ?.copyWith(fontStyle: italic ? FontStyle.italic : null);
+    final line = _lineHeight(style, MediaQuery.textScalerOf(context));
     return LayoutBuilder(
       builder: (_, constraints) {
         final lines = (constraints.maxHeight / line).floor();
@@ -113,7 +112,7 @@ double cardHeight(BuildContext context) {
   return 2 * (_margin + _padding) +
       _lineHeight(text.titleMedium, document) +
       _titleGap +
-      cardBodyLines * _lineHeight(text.bodySmall, document) +
+      cardBodyLines * _lineHeight(_bodyStyle(context), document) +
       _footerGap +
       _footerHeight(context);
 }
@@ -121,14 +120,20 @@ double cardHeight(BuildContext context) {
 /// Lines of preview a card has room for under a one-line title.
 const cardBodyLines = 6;
 
+/// Size of an icon in a card's footer.
+const cardFooterIconSize = 18.0;
+
+TextStyle? _bodyStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodySmall;
+
 const _margin = 4.0;
 const _padding = 12.0;
 const _titleGap = 6.0;
 const _footerGap = 8.0;
 
-/// Fits a line of small labels, a label with a background or an 18 px icon.
+/// Fits a line of small labels, a label with a background or an icon.
 double _footerHeight(BuildContext context) => max(
-  18,
+  cardFooterIconSize,
   _lineHeight(
         Theme.of(context).textTheme.labelSmall,
         MediaQuery.textScalerOf(context),

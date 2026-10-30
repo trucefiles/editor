@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
+import '../../common/card_frame.dart';
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../document_colors.dart';
-import 'card_frame.dart';
 
 /// A document in the grid: title and first lines at the document text zoom
 /// (as its [preview] has them, as many as fit); folder, last edit, pin and
@@ -57,10 +57,10 @@ class DocumentCard extends StatelessWidget {
       body: switch (preview) {
         Previewed(:final summary)
             when summary.preview(settings.view).isNotEmpty =>
-          CardLines(summary.preview(settings.view), style: textTheme.bodySmall),
-        PreviewNotText() => CardLines(
+          CardLines(summary.preview(settings.view)),
+        PreviewNotText() => const CardLines(
           "Can't be shown as text.",
-          style: textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+          italic: true,
         ),
         Previewed() || PreviewReading() || PreviewUnreadable() => null,
       },
@@ -76,7 +76,7 @@ class DocumentCard extends StatelessWidget {
           if (settings.pinned)
             const Tooltip(
               message: 'Pinned',
-              child: Icon(Icons.push_pin, size: 18),
+              child: Icon(Icons.push_pin, size: cardFooterIconSize),
             ),
           if (hasConflict) const ConflictLabel(),
         ],

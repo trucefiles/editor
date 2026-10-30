@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
+import '../../common/card_frame.dart';
 import '../../common/snack.dart';
 import '../../document_page/ui/document_screen.dart';
 import '../documents_wiring.dart';
-import 'card_frame.dart';
 
 /// [count] cards, each built by [card], in columns up to 240 wide, all
 /// [cardHeight] tall: the layout shared by every document grid. Only cards

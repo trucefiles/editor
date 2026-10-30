@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_documents/truce_documents.dart';
-import 'package:truce_editor/documents/ui/card_frame.dart';
+import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
+import 'package:truce_editor/documents/ui/document_grid.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
@@ -175,5 +176,46 @@ void main() {
     await show(const PreviewUnreadable());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
+  });
+
+  testWidgets('in a grid, shows its lines and follows a zoom change', (
+    tester,
+  ) async {
+    Future<void> show(TextZoom zoom) => tester.pumpWidget(
+      MaterialApp(
+        home: DocumentTextZoomScope(
+          zoom: zoom,
+          child: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                documentGrid(
+                  1,
+                  (_) => DocumentCard(
+                    document,
+                    preview: read(
+                      [
+                        '# Title',
+                        for (var i = 1; i <= 20; i++) 'line $i',
+                      ].join('\n'),
+                    ),
+                    onTap: () {},
+                    onMark: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    double height() => tester.getSize(find.byType(DocumentCard)).height;
+
+    await show(TextZoom.normal);
+    final normal = height();
+    expect(previewLines(tester), cardBodyLines);
+
+    await show(TextZoom.closestTo(150));
+    expect(height(), greaterThan(normal));
+    expect(previewLines(tester), cardBodyLines);
   });
 }
