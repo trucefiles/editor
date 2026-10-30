@@ -9,10 +9,10 @@ import '../../view/rows.dart';
 import '../change.dart';
 import '../selection.dart';
 
-/// The box of a new item next to [item], made from its row at [at]: none
-/// if it has none; checked in a Done section, else open.
-bool? newBox(ViewRows view, ItemNode item, Place at) =>
-    item.hasBox ? view.row(at.leaf)!.done : null;
+/// The box of a new item next to [item], made from its row of [leaf]:
+/// none if it has none; checked in a Done section, else open.
+bool? newBox(ViewRows view, ItemNode item, NodeId leaf) =>
+    item.hasBox ? view.row(leaf)!.done : null;
 
 /// [item]'s box checked or unchecked; [selection] stays.
 Change toggle(ViewRows view, ItemNode item, Selection selection) => (

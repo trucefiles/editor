@@ -32,7 +32,10 @@ class VersionPane extends StatelessWidget {
 
   final String label;
   final VersionContent content;
-  final String compareTo;
+
+  /// The other side's text; `null` where it has none (a deleted file), so
+  /// every line is this side's own.
+  final String? compareTo;
   final OwnLines ownLines;
   final String keepLabel;
 
@@ -79,7 +82,7 @@ class _HighlightedText extends StatelessWidget {
   const _HighlightedText(this.text, this.compareTo, this.ownLines);
 
   final String text;
-  final String compareTo;
+  final String? compareTo;
   final OwnLines ownLines;
 
   @override
@@ -89,7 +92,10 @@ class _HighlightedText extends StatelessWidget {
       OwnLines.added => colors.added,
       OwnLines.removed => colors.removed,
     };
-    final lines = compareLines(text.split('\n'), compareTo.split('\n'));
+    final lines = compareLines(
+      text.split('\n'),
+      compareTo?.split('\n') ?? const [],
+    );
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: SelectionArea(

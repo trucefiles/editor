@@ -124,7 +124,7 @@ Command? _randomCommand(Random random, Shown document) {
     },
     6 =>
       random.nextInt(4) == 0
-          ? AddDivider(caret.base)
+          ? AddDivider(caret.base.leaf)
           : SetHeading(caret.base, pick([null, 1, 2, 3])),
     7 => ToggleStyle(range, pick(TextFormat.values)),
     8 => switch (random.nextBool()) {

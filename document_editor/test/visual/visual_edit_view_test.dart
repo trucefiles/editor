@@ -242,6 +242,20 @@ void main() {
     expect(document.text, '- [ ] milk\n- [ ] ***\n- [ ] eggs');
   });
 
+  testWidgets('Separator with a separator selected adds one after it', (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.tap(find.byType(Divider), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Separator'));
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'milk\n\n---\n\n---\n\neggs');
+  });
+
   testWidgets('a change from elsewhere shows right away', (tester) async {
     final document = TestDocument('- [ ] milk');
     await pumpDocument(tester, document);

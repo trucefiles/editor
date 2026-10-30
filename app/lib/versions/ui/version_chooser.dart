@@ -76,7 +76,7 @@ class VersionChooser extends StatelessWidget {
     return VersionPane(
       label: shown.label,
       content: shown.content,
-      compareTo: compared.content.text ?? '',
+      compareTo: compared.content.text,
       ownLines: ownLines,
       keepLabel: shown.keepLabel,
       onKeep: enabled ? () => _keep(context, side) : null,

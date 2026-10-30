@@ -160,12 +160,13 @@ final class VisualActions {
     },
   );
 
-  /// A separator after the caret's block, or as an item after its item.
+  /// A separator after the caret's block or the selected one, or as an
+  /// item after its item.
   void separator() => _gate.run(
-    (selection) => switch (selection) {
-      TextSelection(:final extent) => AddDivider(extent),
-      BlockSelection() => null,
-    },
+    (selection) => AddDivider(switch (selection) {
+      TextSelection(:final extent) => extent.leaf,
+      BlockSelection(:final block) => block,
+    }),
   );
 
   /// The selected blocks put in a quote, or taken out of it.

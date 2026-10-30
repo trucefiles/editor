@@ -164,12 +164,12 @@ final class RemoveBlock extends EditCommand {
   final bool backward;
 }
 
-/// The toolbar's Separator at [at]: a divider after the caret's block or
-/// item.
+/// The toolbar's Separator: a divider after the block [after] (the
+/// caret's, or a selected divider), or after its item.
 final class AddDivider extends EditCommand {
-  const AddDivider(this.at);
+  const AddDivider(this.after);
 
-  final Place at;
+  final NodeId after;
 }
 
 /// The Add item button of [list]: a new empty item, [at] its place.
@@ -316,7 +316,7 @@ Change _change(ViewRows view, EditCommand command) {
       backward: backward,
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
-    AddDivider(:final at) => addDivider(view, at),
+    AddDivider(:final after) => addDivider(view, after),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

@@ -87,6 +87,35 @@ void main() {
     });
   }
 
+  testWidgets('against a deleted file, every line is its own, blank ones '
+      'too', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: VersionPane(
+            label: 'Mine',
+            content: const EditorText('\na\n'),
+            compareTo: null,
+            ownLines: OwnLines.added,
+            keepLabel: 'Keep',
+            onKeep: null,
+          ),
+        ),
+      ),
+    );
+
+    final tints = tester
+        .widgetList<ColoredBox>(
+          find.descendant(
+            of: find.byType(SelectionArea),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .map((box) => box.color);
+    expect(tints, hasLength(3));
+    expect(tints, everyElement(DiffColors.of(Brightness.light).added));
+  });
+
   testWidgets('every kind of version has a second header line, so both '
       'texts start at one height', (tester) async {
     Future<double> textTop(VersionContent content) async {

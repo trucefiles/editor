@@ -38,7 +38,7 @@ where it can. Everything else in the file stays exactly as it was.
 - **Paste** turns each pasted line into its own item in a list, or its
   own paragraph elsewhere, like pressing Enter.
 - **Separator.** The toolbar's separator button adds a line after the
-  paragraph you are in. In a list it adds an item that holds only a line,
+  block you are in, or after a selected line. In a list it adds an item that holds only a line,
   saved as `- [ ] ***` in a checklist (`***`, not `---`, where the list
   marker is `-`: `- ---` would be a line that ends the list). Click or
   tap a line to select it; Backspace or Delete removes it, and the arrow

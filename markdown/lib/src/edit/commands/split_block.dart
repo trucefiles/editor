@@ -89,7 +89,7 @@ DocTree _splitItem(
   int kept,
 ) {
   final index = item.children.indexOf(leaf);
-  final box = newBox(view, item, at);
+  final box = newBox(view, item, at.leaf);
   final rest = kept == 0 && textOf(leaves.last).isEmpty ? 0 : leaves.length - 1;
   final items = [
     for (final (part, text) in leaves.indexed)

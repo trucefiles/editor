@@ -9,7 +9,7 @@ import '../support/shown.dart';
 /// [offset]; and the row the caret is at the start of after.
 (String, int) _added(String text, int index, int offset) {
   final document = Shown.read(text);
-  final edited = document.run(AddDivider(document.place(index, offset)));
+  final edited = document.run(AddDivider(document.place(index, offset).leaf));
   final caret = edited.selection as TextSelection;
   expect(caret.isCaret, isTrue);
   expect(caret.extent.offset, 0);
@@ -49,7 +49,7 @@ void main() {
   test("in a Done section is a checked item, so it stays by the caret's "
       'item', () {
     final document = Shown.read('- [x] a\n- [ ] b', done: DoneSections());
-    final edited = document.run(AddDivider(document.place(1, 1)));
+    final edited = document.run(AddDivider(document.place(1, 1).leaf));
     expect(edited.document.text, '- [x] a\n- [x] ***\n- [ ] b');
     expect(edited.document.rows, ['b', 'done a', '[DividerNode]']);
   });
@@ -58,6 +58,21 @@ void main() {
     final (text, _) = _added('* a\n* b', 0, 1);
     expect(text, '* a\n* ---\n* b');
     expect(Shown.read(text).rows, ['a', '[DividerNode]', 'b']);
+  });
+
+  test('after a selected divider is another one right after it', () {
+    final document = Shown.read('a\n\n---\n\nb');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(AddDivider(divider.id));
+    expect(edited.document.text, 'a\n\n---\n\n---\n\nb');
+    expect(edited.selection, edited.document.caret(3, 0));
+  });
+
+  test('after a selected separator item is another separator item', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n- [ ] b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(AddDivider(divider.id));
+    expect(edited.document.text, '- [ ] a\n- [ ] ***\n- [ ] ***\n- [ ] b');
   });
 
   test('after an item with subitems goes after its subitems', () {
