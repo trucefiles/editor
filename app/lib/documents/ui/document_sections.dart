@@ -4,8 +4,7 @@ import 'document_grid.dart';
 
 /// Cards in a grid: [leading] first, then [pinned] and [others] under a
 /// "Pinned" and a "Recent" heading, then [footer]. Headings show only if
-/// something is pinned. Built at once: Recent is short, and a lazy grid
-/// that something follows breaks scrolling (see [documentGrid]).
+/// something is pinned. Only cards near the screen are built.
 class DocumentSections extends StatelessWidget {
   const DocumentSections({
     required this.pinned,
@@ -30,13 +29,13 @@ class DocumentSections extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
           sliver: SliverMainAxisGroup(
             slivers: [
-              documentGridAtOnce(leading),
+              _grid(leading),
               if (pinned.isNotEmpty) ...[
                 const _Heading('Pinned'),
-                documentGridAtOnce(pinned),
+                _grid(pinned),
                 if (others.isNotEmpty) const _Heading('Recent'),
               ],
-              documentGridAtOnce(others),
+              _grid(others),
               if (footer case final footer?) SliverToBoxAdapter(child: footer),
             ],
           ),
@@ -45,6 +44,9 @@ class DocumentSections extends StatelessWidget {
     );
   }
 }
+
+Widget _grid(List<Widget> cards) =>
+    documentGrid(cards.length, (index) => cards[index]);
 
 class _Heading extends StatelessWidget {
   const _Heading(this.label);

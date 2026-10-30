@@ -99,20 +99,21 @@ final class _Step<V extends Version> {
   // The next I/O.
 
   /// Starts the next I/O once none is under way: a pick waiting, the
-  /// next step of a [Secure], a version found to read, a move waiting,
-  /// the draft, then the file.
+  /// next step of a move waiting, the next step of a [Secure], a version
+  /// found to read, the draft, then the file.
   void _next() {
     if (work.io != null) return;
     if (work.pick case final pick?) _startPick(pick);
-    if (work.securing case final securing? when work.io == null) {
+    // Dropped while it still names the file it was kept for, before a move.
+    if (work.io == null && !_hasEdits && work.draft != null) _dropDraft();
+    if (work.move case final move? when work.io == null) _moveStep(move);
+    // Secures waiting are answered once the move ran.
+    if (work.securing case final securing?
+        when work.io == null && work.move == null) {
       _secureStep(securing);
     }
     if (work.io != null) return;
-    // A version found is read first: a move goes only from the file now.
     if (work.toRead != null && !_done) return _readLatest();
-    if (work.move case final move?) _startMove(move);
-    if (work.io != null) return;
-    if (!_hasEdits && work.draft != null) _dropDraft();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
     if (work.folderRev != null) _write();
   }
@@ -431,24 +432,38 @@ final class _Step<V extends Version> {
 
   // Moves.
 
-  /// Takes [move] once no I/O is under way; one at a time.
+  /// Takes [move], one at a time; a failed write is tried once more.
   void _move(Move move) {
     if (work.move != null || work.io is MovingFile) {
       return events.add(MoveAnswer(move.ticket, started: false));
     }
     _work(work.copyWith(move: move));
+    _saveNow();
   }
 
-  /// Moves the file, only while it holds the edits.
-  void _startMove(Move move) {
-    _work(work.copyWith(move: null));
+  /// The next step of [move]: the file holds the edits, so it moves; or
+  /// the edits are written first; or they can't reach the file, so it
+  /// stays.
+  void _moveStep(Move move) {
     final from = work.expected;
-    if (status is! InStep || from == null) {
-      return events.add(MoveAnswer(move.ticket, started: false));
+    switch (status) {
+      // A version found is read first: a move goes only from the file now.
+      case InStep() when work.toRead != null:
+        break;
+      case InStep() when from != null:
+        _work(work.copyWith(move: null));
+        final id = _id();
+        _work(work.copyWith(io: MovingFile(id, move)));
+        effects.add(MoveFile(id, ticket: move.ticket, from: from));
+      case Editing() when from != null:
+        _askFolder();
+      // Tried once more when the move was asked.
+      case SaveFailed() when work.folderRev != null:
+        break;
+      case _:
+        _work(work.copyWith(move: null));
+        events.add(MoveAnswer(move.ticket, started: false));
     }
-    final id = _id();
-    _work(work.copyWith(io: MovingFile(id, move)));
-    effects.add(MoveFile(id, ticket: move.ticket, from: from));
   }
 
   /// The move ended: writes go over the [copy] it left, edits made

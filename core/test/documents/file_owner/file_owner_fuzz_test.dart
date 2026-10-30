@@ -66,6 +66,10 @@ final class _World {
 
   /// How many [Secure]s were sent.
   var secures = 0;
+
+  /// How many [Move]s were sent, and answered.
+  var moves = 0;
+  var moveAnswers = 0;
   String? deletedText;
   final conflicts = <String>[];
   final effects = <FileEffect>[];
@@ -154,7 +158,9 @@ final class _World {
         effects.add(effect);
       case final Answer answer:
         answers.add(answer);
-      case PickNotKept() || MoveAnswer():
+      case MoveAnswer():
+        moveAnswers++;
+      case PickNotKept():
         break;
     }
   }
@@ -236,6 +242,7 @@ final class _World {
           }:
         owner.send(const Discard());
       case 13:
+        moves++;
         owner.send(Move(Ticket()));
       case _:
         break;
@@ -374,6 +381,11 @@ void main() {
             world.answers,
             hasLength(world.secures),
             reason: 'every secure is answered, seed $seed',
+          );
+          expect(
+            world.moveAnswers,
+            world.moves,
+            reason: 'every move is answered, seed $seed',
           );
           final answer = world.answers.last;
           final kept = {

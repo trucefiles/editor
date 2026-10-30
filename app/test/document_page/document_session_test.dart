@@ -295,4 +295,27 @@ void main() {
     expect(fixture.onDisk('a.md'), isNull);
     expect(fixture.onDisk('a.md', index: 1), 'xone\n');
   });
+
+  test(
+    'a move with unsaved edits, then leaving at once, takes them along',
+    () async {
+      final session = fixture.session()..type('x');
+      // The edits are kept as a draft on this device first.
+      await eventually(() async => (await fixture.draftsIn('f1')).isNotEmpty);
+
+      final moved = session.move((
+        place: (folder: fixture.folders[1], subfolder: null),
+        title: 'a',
+        newSubfolder: false,
+      ));
+      final kept = await session.secure(.close);
+
+      expect(kept, isTrue);
+      expect(await moved, isA<Ok<DocumentText, MoveFailure>>());
+      expect(fixture.onDisk('a.md'), isNull);
+      expect(fixture.onDisk('a.md', index: 1), 'xone\n');
+      await eventually(() async => (await fixture.draftsIn('f1')).isEmpty);
+      expect(await fixture.draftsIn('f2'), isEmpty);
+    },
+  );
 }

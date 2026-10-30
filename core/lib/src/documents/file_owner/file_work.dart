@@ -180,7 +180,7 @@ final class FileWork<V extends Version> {
   /// version.
   final Version? created;
 
-  /// A move waiting for the I/O under way.
+  /// A move waiting for the I/O under way or for its edits to be written.
   final Move? move;
 
   /// A version of the file an observation found, not seen yet: read once
