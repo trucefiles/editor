@@ -1,0 +1,6 @@
+- Separators in a list are items like any other; new Separator button
+- Dragging an item: its old place closes while it glides into the gap
+- Compare views show each side's own text only, your version as the base
+- Home cards all have one height and load faster
+- Quoted lists show Add item and Done inside the quote
+- A move right before leaving keeps the edits; colored documents color their lines
