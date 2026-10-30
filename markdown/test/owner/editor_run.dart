@@ -18,7 +18,7 @@ final class EditorRun {
     this.onOutputs,
   }) : owner = MachineRun.of(
          editorMachine(
-           text,
+           MarkdownStart.read(text),
            version: v1,
            checkedItems: checkedItems,
            mode: mode,

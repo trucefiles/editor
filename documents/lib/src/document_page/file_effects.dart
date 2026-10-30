@@ -74,24 +74,34 @@ final class FileEffects {
   /// owner stopped.
   DocumentDraft? _draft;
 
+  /// The first line of a new document's [_draft], which names it. Kept,
+  /// not taken from the draft's path: that holds the user's name when
+  /// they gave one.
+  String? _draftFirstLine;
+
   /// Does [effect]; its result for the file owner, `null` for an effect
   /// without one. Draft work starts before this returns, so drafts are
   /// kept and dropped in the order asked.
   Future<FileResult<DocumentVersion>?> run(
     FileEffect<DocumentVersion> effect,
   ) => switch (effect) {
-    KeepDraft(:final id, :final base, :final text, :final file) => _keepDraft(
-      id,
-      base,
-      text,
-      whereOf(file),
-    ),
+    KeepDraft(
+      :final id,
+      :final base,
+      :final text,
+      :final file,
+      :final firstLine,
+    ) =>
+      _keepDraft(id, base, text, whereOf(file), firstLine: firstLine),
     DropDraft(:final file) => _dropDraft(whereOf(file)),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
       _write(text, over.version.read, backUpFirst: backUpFirst),
     ),
-    Create(:final id, :final text) => _wrote(id, _createFile(text)),
+    Create(:final id, :final text, :final firstLine) => _wrote(
+      id,
+      _createFile(text, firstLine: firstLine),
+    ),
     Restore(:final id, :final text, :final where) => _wrote(
       id,
       _restore(text, where.version.read),
@@ -125,7 +135,8 @@ final class FileEffects {
       // Not awaited: the queue of the draft's id keeps the order.
       _draftsOf(from.folder).remove(_draftId);
     }
-    _keep(draft.base, draft.text, to);
+    // With the first line it was kept with, as its text has not changed.
+    _keep(draft.base, draft.text, to, firstLine: _draftFirstLine);
   }
 
   /// The user moves the document to [to], by the [Move] with [ticket]:
@@ -140,16 +151,17 @@ final class FileEffects {
 
   /// Keeps [text] as the draft without the file owner, once it stopped
   /// (a bug): over the base of the draft before, else of [file], the
-  /// version the owner last named (`null` for a new document). It goes
-  /// into the file at the next start.
+  /// version the owner last named (`null` for a new document, whose file
+  /// is named after [firstLine]). It goes into the file at the next start.
   /// Whether they are kept, or there was nothing to keep.
   Future<bool> keepLastDraft(
     String text, {
     required DocumentVersion? file,
+    required String firstLine,
   }) async {
     final base = _draft?.base ?? file?.read.text;
     if (text == (base ?? '')) return true;
-    return _keep(base, text, whereOf(file));
+    return _keep(base, text, whereOf(file), firstLine: firstLine);
   }
 
   /// Where the effects on [file] act: the file, or where a new document's
@@ -165,15 +177,29 @@ final class FileEffects {
     EffectId id,
     String? base,
     String text,
-    DocumentFile where,
-  ) => _keep(base, text, where).then((kept) => DraftKept(id, kept: kept));
+    DocumentFile where, {
+    required String? firstLine,
+  }) => _keep(
+    base,
+    text,
+    where,
+    firstLine: firstLine,
+  ).then((kept) => DraftKept(id, kept: kept));
 
-  /// Keeps [text] over [base] as the draft of the document [where] is;
-  /// whether it is kept.
-  Future<bool> _keep(String? base, String text, DocumentFile where) {
+  /// Keeps [text] over [base] as the draft of the document [where] is; a
+  /// new document's named after its [firstLine]. Whether it is kept.
+  Future<bool> _keep(
+    String? base,
+    String text,
+    DocumentFile where, {
+    required String? firstLine,
+  }) {
     final draft = DocumentDraft(
       id: _draftId,
-      path: where.pathFor(text),
+      path: switch (where) {
+        ExistingFile(:final path) => path,
+        NewFile() => where.pathFor(firstLine!),
+      },
       base: base,
       text: text,
       newSubfolder: switch (where) {
@@ -182,11 +208,13 @@ final class FileEffects {
       },
     );
     _draft = draft;
+    _draftFirstLine = firstLine;
     return _draftsOf(where.folder).keep(draft);
   }
 
   Future<FileResult<DocumentVersion>?> _dropDraft(DocumentFile where) async {
     _draft = null;
+    _draftFirstLine = null;
     await _draftsOf(where.folder).remove(_draftId);
     return null;
   }
@@ -229,13 +257,16 @@ final class FileEffects {
     };
   }
 
-  Future<WriteOutcome<DocumentVersion>> _createFile(String text) async {
+  Future<WriteOutcome<DocumentVersion>> _createFile(
+    String text, {
+    required String firstLine,
+  }) async {
     final file = _newFile;
     if (file == null) return const WriteFailed();
     return switch (await _create(
       file.place,
       type: file.type,
-      title: file.titleFor(text),
+      title: file.titleFor(firstLine),
       text: text,
       newSubfolder: file.newSubfolder,
     )) {

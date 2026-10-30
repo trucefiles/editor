@@ -13,20 +13,24 @@ sealed class Frame {
   const Frame();
 }
 
-/// A quote: a bar beside its rows; it [starts] at its first row and
-/// [ends] at its last.
+/// [quote]: a bar beside its rows; it [starts] at its first row as shown
+/// and [ends] at its last.
 final class QuoteFrame extends Frame {
-  const QuoteFrame({required this.starts, required this.ends});
+  const QuoteFrame(this.quote, {required this.starts, required this.ends});
 
+  final NodeId quote;
   final bool starts;
   final bool ends;
 
   @override
   bool operator ==(Object other) =>
-      other is QuoteFrame && other.starts == starts && other.ends == ends;
+      other is QuoteFrame &&
+      other.quote == quote &&
+      other.starts == starts &&
+      other.ends == ends;
 
   @override
-  int get hashCode => Object.hash(QuoteFrame, starts, ends);
+  int get hashCode => Object.hash(quote, starts, ends);
 }
 
 /// A list item: its rows indented; its [marker] beside the row that
@@ -140,17 +144,20 @@ final class RawTextLook extends RowLook {
   int get hashCode => Object.hash(raw.block, raw.text, _frames.hash(frames));
 }
 
-/// The heading of [list]'s Done section, over its [count] checked items.
+/// The heading of [list]'s Done section, over its [count] checked items,
+/// inside the list's [frames].
 final class DoneHeadingLook extends RowLook {
   const DoneHeadingLook(
     this.list, {
     required this.count,
     required this.collapsed,
+    required this.frames,
   });
 
   final NodeId list;
   final int count;
   final bool collapsed;
+  final List<Frame> frames;
 
   @override
   (Symbol, NodeId) get key => (#done, list);
@@ -160,37 +167,44 @@ final class DoneHeadingLook extends RowLook {
       other is DoneHeadingLook &&
       other.list == list &&
       other.count == count &&
-      other.collapsed == collapsed;
+      other.collapsed == collapsed &&
+      _frames.equals(other.frames, frames);
 
   @override
-  int get hashCode => Object.hash(list, count, collapsed);
+  int get hashCode => Object.hash(list, count, collapsed, _frames.hash(frames));
 }
 
 /// The button that adds an item to [list]: as its [first] item, else its
-/// last.
+/// last; inside the list's [frames].
 final class AddItemLook extends RowLook {
-  const AddItemLook(this.list, {required this.first});
+  const AddItemLook(this.list, {required this.first, required this.frames});
 
   final NodeId list;
   final bool first;
+  final List<Frame> frames;
 
   @override
   (Symbol, NodeId) get key => (#add, list);
 
   @override
   bool operator ==(Object other) =>
-      other is AddItemLook && other.list == list && other.first == first;
+      other is AddItemLook &&
+      other.list == list &&
+      other.first == first &&
+      _frames.equals(other.frames, frames);
 
   @override
-  int get hashCode => Object.hash(list, first);
+  int get hashCode => Object.hash(list, first, _frames.hash(frames));
 }
 
 const _frames = ListEquality<Frame>();
 
 /// What Visual edit shows of [shown], in order. A box shows [showsChecked]
 /// (a tap may be waiting); lists at the top level get an Add item button
-/// at [addItems], and their Done heading when [shown] has Done sections;
-/// the subitems of [folded] (an item being dragged) don't show.
+/// at [addItems], and their Done heading when [shown] has Done sections,
+/// both in the quotes the list is in; the subitems of [folded] (an item
+/// being dragged) don't show. A quote's bar runs from its first row as
+/// shown to its last.
 @immutable
 final class RowLooks {
   RowLooks(
@@ -209,7 +223,12 @@ final class RowLooks {
   ViewRows get _view => shown.view;
 
   /// The looks, in the order they show.
-  late final List<RowLook> looks = _of(_doc.root).toList();
+  late final List<RowLook> looks = [
+    for (final (index, row) in _shown.indexed) row.look(_framesOf(index)),
+  ];
+
+  /// What shows, in order, each row still without its frames.
+  late final List<_Shown> _shown = _of(_doc.root).toList();
 
   /// The rows of each list at the top level, in the order they show.
   late final Map<NodeId?, List<Row>> _rowsOfList = _view.rows.groupListsBy(
@@ -223,23 +242,30 @@ final class RowLooks {
       .expand((item) => [item, ..._doc.pathOf(item.id).whereType<ItemNode>()])
       .groupFoldBy((item) => item.id, (int? count, _) => (count ?? 0) + 1);
 
-  /// The first and last leaf of each quote that has leaves.
-  late final Map<NodeId, ({NodeId first, NodeId last})> _quoteEnds = {
-    for (final quote in nodesIn(_doc.root).whereType<QuoteNode>())
-      if (leavesIn(quote).toList() case final leaves when leaves.isNotEmpty)
-        quote.id: (first: leaves.first.id, last: leaves.last.id),
-  };
+  /// The first and last row each quote shows, by their place in
+  /// [_shown]: its bar runs from the one to the other.
+  late final Map<NodeId, ({int first, int last})> _quoteEnds = _shown.indexed
+      .expand(
+        (shown) => shown.$2.path.whereType<QuoteNode>().map(
+          (quote) => (quote: quote.id, index: shown.$1),
+        ),
+      )
+      .groupFoldBy(
+        (row) => row.quote,
+        (({int first, int last})? ends, row) =>
+            (first: ends?.first ?? row.index, last: row.index),
+      );
 
   ListNode? _topList(NodeId leaf) =>
       _doc.pathOf(leaf).whereType<ListNode>().firstOrNull;
 
-  Iterable<RowLook> _of(DocBlock node) => switch (node) {
+  Iterable<_Shown> _of(DocBlock node) => switch (node) {
     final ListNode list => _list(list),
     DocContainer(:final children) => children.expand(_of),
     final DocLeaf leaf => [?_row(leaf)],
   };
 
-  Iterable<RowLook> _list(ListNode list) {
+  Iterable<_Shown> _list(ListNode list) {
     final rows = (_rowsOfList[list.id] ?? const <Row>[])
         .where((row) => !_isFolded(row.leaf.id))
         .toList();
@@ -247,36 +273,47 @@ final class RowLooks {
     final done = rows.where((row) => row.done);
     final sections = _view.done;
     final checked = list.items.where((item) => item.checked ?? false).length;
+    // The list's own rows show in the blocks the list is in; the list
+    // node itself, last on the path, gives no frame.
+    final path = [..._doc.pathOf(list.id), list];
+    _Shown own(RowLook Function(List<Frame> frames) look) =>
+        (path: path, leaf: null, look: look);
     return [
-      if (addItems == AddItemPlace.top) AddItemLook(list.id, first: true),
-      ...open.map(_look),
-      if (addItems == AddItemPlace.bottom) AddItemLook(list.id, first: false),
+      if (addItems == AddItemPlace.top)
+        own((frames) => AddItemLook(list.id, first: true, frames: frames)),
+      ...open.map(_shownOf),
+      if (addItems == AddItemPlace.bottom)
+        own((frames) => AddItemLook(list.id, first: false, frames: frames)),
       if (sections != null && checked > 0)
-        DoneHeadingLook(
-          list.id,
-          count: checked,
-          collapsed: sections.collapsed.contains(list.id),
+        own(
+          (frames) => DoneHeadingLook(
+            list.id,
+            count: checked,
+            collapsed: sections.collapsed.contains(list.id),
+            frames: frames,
+          ),
         ),
-      ...done.map(_look),
+      ...done.map(_shownOf),
     ];
   }
 
-  RowLook? _row(DocLeaf leaf) => switch (_view.row(leaf.id)) {
-    final row? when !_isFolded(leaf.id) => _look(row),
+  _Shown? _row(DocLeaf leaf) => switch (_view.row(leaf.id)) {
+    final row? when !_isFolded(leaf.id) => _shownOf(row),
     _ => null,
   };
 
-  RowLook _look(Row row) {
-    final frames = _framesOf(row.leaf.id);
-    return switch (row) {
+  _Shown _shownOf(Row row) => (
+    path: _doc.pathOf(row.leaf.id),
+    leaf: row.leaf.id,
+    look: (frames) => switch (row) {
       _ when shown.raw?.block == row.leaf.id => RawTextLook(
         shown.raw!,
         frames: frames,
       ),
       TextRow(:final leaf) => TextLook(leaf, frames: frames, done: row.done),
       BlockRow(:final leaf) => BlockLook(leaf, frames: frames, done: row.done),
-    };
-  }
+    },
+  );
 
   /// Whether [leaf] is in a subitem of the [folded] item.
   bool _isFolded(NodeId leaf) {
@@ -287,21 +324,23 @@ final class RowLooks {
     return index >= 0 && path.skip(index + 1).any((node) => node is ItemNode);
   }
 
-  List<Frame> _framesOf(NodeId leaf) {
-    final path = _doc.pathOf(leaf);
+  /// The frames of the row at [index] in [_shown].
+  List<Frame> _framesOf(int index) {
+    final (:path, :leaf, look: _) = _shown[index];
     return [
-      for (final (index, node) in path.indexed)
+      for (final (at, node) in path.indexed)
         ...switch (node) {
           final QuoteNode quote => [
             QuoteFrame(
-              starts: _quoteEnds[quote.id]!.first == leaf,
-              ends: _quoteEnds[quote.id]!.last == leaf,
+              quote.id,
+              starts: _quoteEnds[quote.id]!.first == index,
+              ends: _quoteEnds[quote.id]!.last == index,
             ),
           ],
           final ItemNode item => [
             ItemFrame(
               item.id,
-              marker: _markerOf(item, path[index - 1] as ListNode),
+              marker: _markerOf(item, path[at - 1] as ListNode),
               starts: leavesIn(item).first.id == leaf,
               subitems: _itemsIn[item.id]! - 1,
             ),
@@ -319,3 +358,12 @@ final class RowLooks {
     },
   };
 }
+
+/// A row of what shows, before its frames are known: the blocks it is in
+/// ([path], outermost first), the [leaf] it shows (none for a list's own
+/// rows), and its [look] in the frames it gets.
+typedef _Shown = ({
+  List<DocContainer> path,
+  NodeId? leaf,
+  RowLook Function(List<Frame> frames) look,
+});

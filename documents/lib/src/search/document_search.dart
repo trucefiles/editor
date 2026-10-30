@@ -24,7 +24,7 @@ List<Searchable<Document>> searchablesOf(
       read: () async =>
           switch (await filesOf(document.folder).reload(document)) {
             Ok(value: final read) => (
-              title: documentTitle(read.text, read.path, read.type),
+              title: titleOf(read.summary, read.path),
               text: read.text,
             ),
             Err() => null,

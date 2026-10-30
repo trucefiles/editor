@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
@@ -22,7 +23,11 @@ void main() {
 
   /// [text] as the card's preview, read.
   CardPreview read(String text) => Previewed(
-    appDocumentTypes().ofFile(document.type).cardSummary(text, document.path),
+    appDocumentTypes()
+        .ofFile(document.type)
+        .cardSummary(
+          DocumentText(document, const TextFile.empty().withText(text)),
+        ),
   );
 
   /// Shows the card of a document with [title] and [lines] lines, as tall

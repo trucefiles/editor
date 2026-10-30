@@ -103,7 +103,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
     return Scaffold(
       appBar: compareAppBar(
         folder: file.folder,
-        file: file.pathFor(_session.text),
+        file: _session.path,
         reason: 'Changed on another device or app while you edited',
       ),
       body: theirs == null

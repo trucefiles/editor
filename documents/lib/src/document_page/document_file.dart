@@ -4,7 +4,6 @@ import 'package:truce_folders/truce_folders.dart';
 import '../document_file_name.dart';
 import '../document_place.dart';
 import '../document_text.dart';
-import '../document_title.dart';
 import '../document_type.dart';
 
 /// Where an open document's file is: one that exists, or the place a new
@@ -13,9 +12,6 @@ sealed class DocumentFile {
   const DocumentFile();
 
   DocumentFolder get folder;
-
-  /// The file in [folder] for a document holding [text].
-  RelPath pathFor(String text);
 }
 
 /// The file exists, as [document] was last read or written.
@@ -27,8 +23,8 @@ final class ExistingFile extends DocumentFile {
   @override
   DocumentFolder get folder => document.folder;
 
-  @override
-  RelPath pathFor(String text) => document.path;
+  /// The file in [folder].
+  RelPath get path => document.path;
 }
 
 /// A new document of [type]: its file goes to [place], named [name], or
@@ -54,14 +50,15 @@ final class NewFile extends DocumentFile {
   @override
   DocumentFolder get folder => place.folder;
 
-  /// The file's name without its extension, for a document holding
-  /// [text].
-  String titleFor(String text) => name ?? documentTitleLine(text, type.support);
+  /// The file's name without its extension, for a document whose text
+  /// starts with [firstLine] (as its type reads it).
+  String titleFor(String firstLine) => name ?? firstLine;
 
-  @override
-  RelPath pathFor(String text) {
+  /// The file in [folder] for a document whose text starts with
+  /// [firstLine].
+  RelPath pathFor(String firstLine) {
     final name = documentFileName(
-      titleFor(text),
+      titleFor(firstLine),
       extension: type.newFileExtension,
     );
     return place.subfolder?.child(name) ?? RelPath.parse(name)!;

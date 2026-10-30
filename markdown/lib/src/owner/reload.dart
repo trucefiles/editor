@@ -16,10 +16,10 @@ import '../view/rows.dart';
 
 /// A document read from text: its doc tree, where it was read from, and
 /// its print (the text, with the lines each leaf is on).
-typedef Loaded = ({DocTree doc, Origin origin, PrintedMarkdown printed});
+typedef ReadDocument = ({DocTree doc, Origin origin, PrintedMarkdown printed});
 
 /// [text] read as a document.
-Loaded loaded(String text) {
+ReadDocument loaded(String text) {
   final (:doc, :origin) = loadMarkdown(text);
   return (doc: doc, origin: origin, printed: printMarkdown(doc, origin));
 }
@@ -35,7 +35,7 @@ final class ReloadMap {
       );
 
   final PrintedMarkdown before;
-  final Loaded after;
+  final ReadDocument after;
 
   /// For each old line, its line in the new print; `null` if gone.
   final List<int?> _newLines;

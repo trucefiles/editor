@@ -4,10 +4,13 @@ import 'package:truce_core/truce_core.dart'
         EditorNotice,
         EditorSteps,
         EffectId,
+        SentText,
+        TextSummary,
         Step,
         textChange,
         typingIn;
 
+import '../plain_summary.dart';
 import 'plain_contract.dart';
 
 /// The plain editor owner's decision on [message] in [state], with its
@@ -85,7 +88,12 @@ final class _Step with EditorSteps<String> {
   void replaceText(String text) => _show(text, caret: 0);
 
   @override
-  String get text => state.text;
+  SentText get sent =>
+      SentText(state.text, PlainSummary(state.text, maxLines: 0));
+
+  @override
+  TextSummary<Object?> summaryOfShown(String text) =>
+      PlainSummary(text, maxLines: 0);
 
   /// Only the editor shows the text; nothing shows the text kept.
   @override

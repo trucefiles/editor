@@ -13,19 +13,21 @@ import 'markdown_view.dart';
 /// or in Read while it can't be edited; and the commands on checked
 /// items.
 final class MarkdownEditorPart implements EditorPart {
-  MarkdownEditorPart(EditorStart start, this._page)
+  MarkdownEditorPart(EditorStart start, EditorPage page)
+    : this._read(MarkdownStart.read(start.text), start, page);
+
+  MarkdownEditorPart._read(MarkdownStart read, EditorStart start, this._page)
     : _mode =
           MarkdownView.of(start.view).mode ??
           firstMode(
-            hasCheckboxes:
-                !start.isNew && DocumentSummary.of(start.text).hasCheckboxes,
+            hasCheckboxes: !start.isNew && read.hasCheckboxes,
             typing: start.isNew,
           ),
       _readOnly = start.readOnly {
     editor = MarkdownPageEditor(
       EditorGate(
         editorOwner(
-          start.text,
+          read,
           version: start.version,
           mode: _shown,
           checkedItems: MarkdownView.of(start.view).checkedItems,

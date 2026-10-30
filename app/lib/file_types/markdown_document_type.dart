@@ -1,4 +1,3 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -18,15 +17,12 @@ final class MarkdownDocumentType implements EditableType {
   String get newFileExtension => '.md';
 
   @override
-  DocumentCardSummary cardSummary(String text, RelPath path) {
-    final summary = support.summary(
-      text,
-      maxLines: DocumentCardSummary.previewLines,
-    );
+  DocumentCardSummary cardSummary(DocumentText read) {
+    final summary = read.summary;
     final all = summary.preview(const MarkdownPreview(hideChecked: false));
     final open = summary.preview(const MarkdownPreview(hideChecked: true));
     return DocumentCardSummary(
-      title: titleOf(summary, path),
+      title: titleOf(summary, read.path),
       preview: (view) => switch (MarkdownView.of(view).checkedItems) {
         CheckedItems.inPlace => all,
         CheckedItems.doneSection || CheckedItems.moveToEnd => open,

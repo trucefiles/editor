@@ -267,7 +267,7 @@ final class EditorState {
     required this.mode,
     required this.checkedItems,
     required this.revision,
-    this.status = const EditorStatus(),
+    required this.status,
   });
 
   /// What shows: [MarkdownContent] in Markdown edit, else

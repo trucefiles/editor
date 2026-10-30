@@ -13,7 +13,7 @@ final class _Visual {
   _Visual(String text)
     : gate = EditorGate(
         md.editorOwner(
-          text,
+          md.MarkdownStart.read(text),
           version: const Version(1),
           startTimer: ManualTimers().start,
         ),

@@ -23,7 +23,7 @@ final class _Gate {
   _Gate._(String text, CheckedItems checkedItems, this.clock)
     : gate = EditorGate(
         editorOwner(
-          text,
+          MarkdownStart.read(text),
           version: const Version(1),
           checkedItems: checkedItems,
           startTimer: clock.start,

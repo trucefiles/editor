@@ -14,7 +14,7 @@ DocumentSession markdownSession(
   MarkdownPageEditor(
     EditorGate(
       editorOwner(
-        opened?.text ?? '',
+        MarkdownStart.read(opened?.text ?? ''),
         version: opened?.seen.version,
         mode: mode,
       ),

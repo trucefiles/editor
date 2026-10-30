@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/document_tree.dart';
+import 'package:truce_markdown/src/read/front_matter.dart';
 import 'package:truce_markdown/src/tree/blocks.dart';
 import 'package:truce_markdown/src/visible/visible_text.dart';
 
@@ -103,11 +104,11 @@ void main() {
     });
 
     test('the text after front matter', () {
-      expect(
-        DocumentTree.read('---\na: b\n---\n# A\ntext').textAfterFrontMatter,
-        '# A\ntext',
-      );
-      expect(DocumentTree.read('# A\ntext').textAfterFrontMatter, '# A\ntext');
+      expect(textAfterFrontMatter('---\na: b\n---\n# A\ntext'), '# A\ntext');
+      expect(textAfterFrontMatter('---\na: b\n...\ntext'), 'text');
+      expect(textAfterFrontMatter('# A\ntext'), '# A\ntext');
+      expect(textAfterFrontMatter('---\na: b\ntext'), '---\na: b\ntext');
+      expect(textAfterFrontMatter('a\n---\nb\n---'), 'a\n---\nb\n---');
     });
 
     test('character references only by their whole name', () {

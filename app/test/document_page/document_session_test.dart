@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode, EditText;
 
 import '../support.dart';
 import 'document_fixture.dart';
@@ -116,6 +117,94 @@ void main() {
     expect(session.state, isA<Stopped>());
     expect(session.text, 'a mine one\n');
   });
+
+  test("a new document's title and path follow its saves, not each "
+      'keystroke', () async {
+    final session = fixture.session(fixture.newFile);
+    final before = (session.title, session.path);
+
+    session.type('Milk');
+    expect((session.title, session.path), before);
+
+    session.saveNow();
+    await eventually(() => session.title == 'Milk');
+    expect(session.path, path('Milk.md'));
+  });
+
+  test('in Markdown edit, the title follows a save too', () async {
+    final session = markdownSession(
+      null,
+      fixture.effects(fixture.newFile),
+      mode: EditMode.markdown,
+    );
+    addTearDown(session.dispose);
+
+    session.gate.send((now) => EditText('# Milk', revision: now.revision));
+    session.saveNow();
+
+    await eventually(() => session.title == 'Milk');
+    expect(session.path, path('Milk.md'));
+  });
+
+  test('a change elsewhere as the first change tells the new title', () async {
+    final session = fixture.session();
+    final titles = <String>[];
+    session.changes.listen((_) => titles.add(session.title));
+    final theirs = await fixture.editElsewhere('# Two\n');
+
+    session.observe(contentsFinding([theirs.document]));
+
+    await eventually(() => titles.contains('Two'));
+  });
+
+  test("a new document's draft is named after its latest save", () async {
+    Future<bool> draftAt(String name) async =>
+        (await fixture.draftsIn('f1')).singleOrNull?.path == path(name);
+    final session = fixture.session(fixture.newFile)..type('Milk');
+    // Sent at the typing pause: kept as a draft, not yet in a file.
+    await eventually(() => draftAt('Milk.md'));
+
+    session.type('y');
+
+    await eventually(() => draftAt('Milky.md'));
+    expect(fixture.onDisk('Milky.md'), isNull);
+  });
+
+  test(
+    "once stopped, a new document's draft is named after its edits",
+    () async {
+      late DocumentSession session;
+
+      await runZonedGuarded(() async {
+        session = markdownSession(
+          null,
+          FileEffects(
+            newFile: fixture.newFile,
+            filesOf: (folder) => fixture.files[folder.id]!,
+            draftsOf: (folder) => fixture.drafts[folder.id]!,
+            create: (
+              _, {
+              required type,
+              required title,
+              required text,
+              newSubfolder = false,
+            }) => throw StateError('bug'),
+            moveDocument: (_, _, {required title, required newSubfolder}) =>
+                throw StateError('bug'),
+          ),
+        )..type('Milk');
+        await session.secure(.close);
+        await eventually(() => session.state is Stopped);
+      }, (_, _) {});
+      addTearDown(session.dispose);
+
+      await eventually(
+        () async =>
+            (await fixture.draftsIn('f1')).singleOrNull?.path ==
+            path('Milk.md'),
+      );
+    },
+  );
 
   test('typing tells of the edits being edited, at once', () {
     final session = fixture.session(fixture.newFile);

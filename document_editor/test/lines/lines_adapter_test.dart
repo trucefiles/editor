@@ -10,7 +10,7 @@ final class _Markdown {
   _Markdown(String text)
     : gate = EditorGate(
         md.editorOwner(
-          text,
+          md.MarkdownStart.read(text),
           version: const Version(1),
           mode: md.EditMode.markdown,
           startTimer: ManualTimers().start,

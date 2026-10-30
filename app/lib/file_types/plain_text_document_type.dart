@@ -1,4 +1,3 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
@@ -16,14 +15,10 @@ final class PlainTextDocumentType implements EditableType {
   String get newFileExtension => '.txt';
 
   @override
-  DocumentCardSummary cardSummary(String text, RelPath path) {
-    final summary = support.summary(
-      text,
-      maxLines: DocumentCardSummary.previewLines,
-    );
-    final preview = summary.preview(const PlainPreview());
+  DocumentCardSummary cardSummary(DocumentText read) {
+    final preview = read.summary.preview(const PlainPreview());
     return DocumentCardSummary(
-      title: titleOf(summary, path),
+      title: titleOf(read.summary, read.path),
       preview: (_) => preview,
     );
   }

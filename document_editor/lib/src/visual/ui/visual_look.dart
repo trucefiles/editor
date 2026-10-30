@@ -22,12 +22,9 @@ EditorLook visualLook(
   return EditorLook(
     theme,
     metrics: metrics,
-    // Rows in frames space themselves, inside the bars of the quotes they
-    // go on in.
-    spacesItself: (node) => switch (lookOf(node)) {
-      TextLook() || BlockLook() || RawTextLook() => true,
-      DoneHeadingLook() || AddItemLook() => false,
-    },
+    // Every row is in its frames and spaces itself, inside the bars of
+    // the quotes it goes on in.
+    spacesItself: (_) => true,
     textStyleOf: (node) => switch (lookOf(node)) {
       TextLook(leaf: md.HeadingNode(:final level)) =>
         DocumentTextStyles.heading(body, level),

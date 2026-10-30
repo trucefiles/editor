@@ -51,9 +51,7 @@ Future<CardPreview> readPreview(
   FolderFiles files,
   DocumentTypes types,
 ) async => switch (await files.of(document.folder).reload(document)) {
-  Ok(value: final read) => Previewed(
-    types.ofFile(read.type).cardSummary(read.text, read.path),
-  ),
+  Ok(value: final read) => Previewed(types.ofFile(read.type).cardSummary(read)),
   Err(error: NotText()) => const PreviewNotText(),
   Err(error: NotRead()) => const PreviewUnreadable(),
 };

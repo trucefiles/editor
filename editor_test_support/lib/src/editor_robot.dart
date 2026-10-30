@@ -25,6 +25,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         CheckedItems,
         EditMode,
         EditorEvent,
+        MarkdownStart,
         Notice,
         Request,
         editorOwner;
@@ -40,7 +41,7 @@ final class TestDocument {
   }) : _text = text,
        gate = EditorGate(
          editorOwner(
-           text,
+           MarkdownStart.read(text),
            version: const Version(1),
            mode: mode,
            checkedItems: checkedItems,

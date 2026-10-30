@@ -65,7 +65,13 @@ final class _Step<V extends Version> {
   void handle(FileMessage<V> message) {
     switch (message) {
       case Edited():
+        assert(
+          work.expected != null,
+          'a new document saved without its first line',
+        );
         _edited(message);
+      case NewEdited(:final edited, :final firstLine):
+        _edited(edited, firstLine: firstLine);
       case SaveNow():
         _saveNow();
       case Secure():
@@ -120,9 +126,15 @@ final class _Step<V extends Version> {
 
   // Edits.
 
-  void _edited(Edited edited) {
+  /// [firstLine]: that of [edited]'s text, while there is no file.
+  void _edited(Edited edited, {String? firstLine}) {
     // Made before a pick the editor shows instead.
     if (_done || edited.picks < work.picks) return;
+    // Set with the text it is the first line of; a save sent before the
+    // file was created brings one too, which the file no longer needs.
+    if (firstLine != null && work.expected == null) {
+      _work(work.copyWith(firstLine: firstLine));
+    }
     final sent = work.sent;
     // Edits that name no version build on the file this owner created.
     final lineage = edited.lineage ?? work.created;
@@ -171,6 +183,7 @@ final class _Step<V extends Version> {
         base: (work.editsOver ?? work.expected)?.text,
         text: state.text,
         file: _file,
+        firstLine: _file == null ? work.firstLine : null,
       ),
     );
   }
@@ -230,7 +243,7 @@ final class _Step<V extends Version> {
       ),
     );
     effects.add(switch ((kind, expected)) {
-      (WriteKind.create, _) => Create(id, text),
+      (WriteKind.create, _) => Create(id, text, firstLine: work.firstLine!),
       (WriteKind.restore, final where?) => Restore(id, text, where: where),
       (WriteKind.restore, null) => throw StateError(
         'a restore needs the file it was',
@@ -286,7 +299,9 @@ final class _Step<V extends Version> {
   void _written(WritingFile writing, Seen<V> seen) {
     if (writing.kind == WriteKind.create) {
       // The editor builds on the created file until it takes another.
-      _work(work.copyWith(offered: [seen], created: seen.version));
+      _work(
+        work.copyWith(offered: [seen], created: seen.version, firstLine: null),
+      );
     }
     _work(
       work.copyWith(

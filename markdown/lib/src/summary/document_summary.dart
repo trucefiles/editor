@@ -8,14 +8,22 @@ import '../tree/inlines.dart';
 import '../visible/visible_text.dart';
 
 /// What lists of documents show of one: its title and a preview of its
-/// first lines, as plain words. Read from one load of the text; each
-/// part is worked out when first asked.
+/// first lines, as plain words. Each part is worked out when first
+/// asked, from one doc tree.
 final class DocumentSummary implements TextSummary<MarkdownPreview> {
-  /// The summary of [text], with previews of up to [maxLines] lines.
+  /// The summary of [text], with previews of up to [maxLines] lines; the
+  /// text is read once, when a part is first asked.
   DocumentSummary.of(String text, {this.maxLines = 10})
-    : _doc = loadMarkdown(text).doc;
+    : _tree = (() => loadMarkdown(text).doc);
 
-  final DocTree _doc;
+  /// The summary of the text [doc] prints as, with previews of up to
+  /// [maxLines] lines; reads nothing.
+  DocumentSummary.ofTree(DocTree doc, {this.maxLines = 10})
+    : _tree = (() => doc);
+
+  final DocTree Function() _tree;
+
+  late final DocTree _doc = _tree();
 
   /// Whether it has a checklist item anywhere.
   bool get hasCheckboxes => _doc.hasCheckboxes;

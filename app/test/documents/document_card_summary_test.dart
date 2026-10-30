@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
@@ -9,8 +11,18 @@ void main() {
   final shown = const MarkdownView(checkedItems: CheckedItems.inPlace).settings;
   const hidden = ViewSettings.none;
 
-  DocumentCardSummary summaryOf(String text, String name) =>
-      appDocumentTypes().of(path(name))!.cardSummary(text, path(name));
+  DocumentCardSummary summaryOf(String text, String name) => appDocumentTypes()
+      .of(path(name))!
+      .cardSummary(
+        documentTextOf(folderAt(Directory.systemTemp), text, name: name),
+      );
+
+  test('a read document holds one summary for its title and preview', () {
+    final read = documentTextOf(folderAt(Directory.systemTemp), '# A\nb');
+
+    expect(identical(read.summary, read.summary), isTrue);
+    expect(read.summary.title, 'A');
+  });
 
   group('Markdown', () {
     test('holds the title and the preview as the settings say', () {

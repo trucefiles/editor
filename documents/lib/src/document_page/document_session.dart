@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../document_text.dart';
+import '../document_title.dart';
 import '../document_version.dart';
 import '../folder_state/folder_contents.dart';
 import '../move_failure.dart';
@@ -41,7 +42,7 @@ final class Ended extends SessionState {
 /// its file owner (where the edits are kept), joined: each one's events
 /// become the other's inputs. Their effects run inside the owners. No UI.
 /// [changes] tells of every change of where the edits are ([status],
-/// [saveState]) and of [state].
+/// [saveState]), of [summary], and of [state].
 final class DocumentSession {
   /// The document [opened] (`null` for a new one, which goes where
   /// [effects] say), its file read and written by [effects], edited by
@@ -51,6 +52,7 @@ final class DocumentSession {
         final opened? => openedFile(opened.seen),
         null => newFile(),
       }, _effects.run) {
+    _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
       editor.changes.listen(_onEditorChanged),
@@ -71,8 +73,9 @@ final class DocumentSession {
   final _changes = StreamController<void>.broadcast(sync: true);
   final _stopNotices = StreamController<bool>.broadcast(sync: true);
 
-  /// Whether the editor held edits not yet sent, as listeners last heard.
-  bool _unsent = false;
+  /// Whether the editor held edits not yet sent, and the summary it told,
+  /// as listeners last heard.
+  late ({bool unsent, TextSummary<Object?> summary}) _heard;
 
   /// Whether the document takes edits.
   SessionState get state => _state;
@@ -97,6 +100,18 @@ final class DocumentSession {
   };
   int get rev => _file.state.rev;
 
+  /// What lists show of [text], as the editor tells it.
+  TextSummary<Object?> get summary => editor.state.summary;
+
+  /// Where [file] is, or goes, for [text].
+  RelPath get path => switch (file) {
+    ExistingFile(:final path) => path,
+    final NewFile file => file.pathFor(summary.firstLine),
+  };
+
+  /// The document's title, for [text] at [path].
+  String get title => titleOf(summary, path);
+
   SaveState get saveState => saveStateOf(status, unsent: editor.state.unsent);
 
   /// What the editor tells the user: [UndoOffered], [UndoRefused],
@@ -107,7 +122,7 @@ final class DocumentSession {
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
 
   /// Fires on every change of where the edits are, of where the file is,
-  /// and of [state].
+  /// of [summary] (so of [title] and [path]), and of [state].
   Stream<void> get changes => _changes.stream;
 
   /// Fires once after the document [Stopped], as it is first known
@@ -185,12 +200,23 @@ final class DocumentSession {
   }
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
+    (ToFile(input: final Edited edited), Running()) => _file.send(
+      _toFile(edited),
+    ),
     (ToFile(input: Edited(:final text)), Stopped()) => _keepLastDraft(text),
     (ToFile(:final input), Running()) => _file.send(input),
     (ToFile(), Stopped() || Ended()) => null,
     (UndoOffered() || UndoRefused() || HistoryEnd(), _) => _editorNotices.add(
       event,
     ),
+  };
+
+  /// [edited] as the file owner takes it: while the document has no
+  /// file, with its first line, which names the file. The editor told the summary of
+  /// [edited]'s text with it.
+  FileInput<DocumentVersion> _toFile(Edited edited) => switch (file) {
+    NewFile() => NewEdited(edited, firstLine: summary.firstLine),
+    ExistingFile() => edited,
   };
 
   /// The file owner ended before [dispose]: it stopped by a bug. The
@@ -200,6 +226,9 @@ final class DocumentSession {
     if (_state is! Running) return;
     _keepLastDraft(_file.state.text);
     // The editor sends what it still holds; [_keepLastDraft] keeps it.
+    // That second keep also names a new document's draft after the first
+    // line of what it holds, so a stale first line from the first keep
+    // never stays.
     editor.send(SecureEditor(Ticket(), SecureReason.hide));
   }
 
@@ -213,11 +242,17 @@ final class DocumentSession {
     final keeping = Stopped(text, kept: known);
     _setState(keeping);
     unawaited(
-      _effects.keepLastDraft(text, file: _file.state.file).then((kept) {
-        if (!identical(_state, keeping)) return;
-        _setState(Stopped(text, kept: kept));
-        if (known == null) _stopNotices.add(kept);
-      }),
+      _effects
+          .keepLastDraft(
+            text,
+            file: _file.state.file,
+            firstLine: summary.firstLine,
+          )
+          .then((kept) {
+            if (!identical(_state, keeping)) return;
+            _setState(Stopped(text, kept: kept));
+            if (known == null) _stopNotices.add(kept);
+          }),
     );
   }
 
@@ -227,11 +262,14 @@ final class DocumentSession {
   }
 
   /// Edits held in the editor change where the edits are, before they
-  /// reach the file owner.
+  /// reach the file owner; a new summary changes the title and path.
   void _onEditorChanged(EditorStatus status) {
-    final unsent = status.unsent;
-    if (unsent == _unsent) return;
-    _unsent = unsent;
+    final heard = (unsent: status.unsent, summary: status.summary);
+    if (heard.unsent == _heard.unsent &&
+        identical(heard.summary, _heard.summary)) {
+      return;
+    }
+    _heard = heard;
     _changed();
   }
 

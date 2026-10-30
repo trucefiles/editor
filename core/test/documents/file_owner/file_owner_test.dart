@@ -49,14 +49,21 @@ final class _Run {
 
   /// The editor's text at [rev], on [lineage], after [picks] picks (by
   /// default all sent so far).
-  void edit(String text, int rev, {Version? lineage = _v1, int? picks}) => send(
-    Edited(
+  /// While there is no file, it comes with its first line, as the session sends
+  /// it.
+  void edit(String text, int rev, {Version? lineage = _v1, int? picks}) {
+    final edited = Edited(
       text,
       rev: rev,
       lineage: lineage,
       picks: picks ?? all<Picked>().length,
-    ),
-  );
+    );
+    send(
+      state.file == null
+          ? NewEdited(edited, firstLine: firstLineOf(text))
+          : edited,
+    );
+  }
 
   /// The device keeps the last draft asked (or refuses it).
   void keep({bool kept = true}) =>
@@ -844,6 +851,31 @@ void main() {
       expect(run.status, isA<Editing>());
     });
 
+    test('its draft and file get the first line of the text they hold', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..edit('ab', 2, lineage: null);
+      expect(run.last<KeepDraft>().firstLine, firstLineOf('ab'));
+      run
+        ..keep()
+        ..secure(SecureReason.hide);
+      expect(run.last<Create>().text, 'ab');
+      expect(run.last<Create>().firstLine, firstLineOf('ab'));
+      run
+        ..wrote(const Written(Seen('ab', _v1)))
+        ..edit('abc', 3);
+      expect(run.last<KeepDraft>().firstLine, isNull, reason: 'it has a file');
+    });
+
+    test('edits without their first line are a bug while it has no file', () {
+      final run = _Run.unwritten();
+      expect(
+        () => run.send(const Edited('a', rev: 1, lineage: null, picks: 0)),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
     test('kept on the device when it cannot be created', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
@@ -973,3 +1005,6 @@ void main() {
     expect(run.last<DropDraft>().file, isNull);
   });
 }
+
+/// The first line of [text], in these tests.
+String firstLineOf(String text) => 'first of $text';

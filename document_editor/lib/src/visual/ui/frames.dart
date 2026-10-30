@@ -8,14 +8,16 @@ import '../row_looks.dart';
 /// beside it per quote, indented under the items it is in, as far as the
 /// text of the item it is right in. If it starts that item, [row] puts
 /// the item's row beside it. A line gap above and below it, and outside
-/// items a blank line's space below it too, so blocks stand apart as in
-/// Read. Each space goes beside the bars of the quotes that go on past
-/// it, so their bars run through it, and past the others.
+/// items, unless it is one of a list's own rows ([ofList]: Add item, the
+/// Done heading), a blank line's space below it too, so blocks stand
+/// apart as in Read. Each space goes beside the bars of the quotes that
+/// go on past it, so their bars run through it, and past the others.
 Widget framed(
   List<Frame> frames,
   Widget child, {
   required DocumentMetrics metrics,
   required Widget Function(ItemFrame item, Widget child) row,
+  bool ofList = false,
 }) {
   final item = frames.whereType<ItemFrame>().lastOrNull;
   // Space stays outside an item's row, so its marker stays beside its
@@ -31,7 +33,8 @@ Widget framed(
       1;
   final above = insideQuotes((quote) => !quote.starts);
   final below = insideQuotes((quote) => !quote.ends);
-  final gapBelow = metrics.lineGap + (item == null ? metrics.blankLine : 0);
+  final standsApart = item == null && !ofList;
+  final gapBelow = metrics.lineGap + (standsApart ? metrics.blankLine : 0);
   return Iterable.generate(frames.length + 1, (i) => frames.length - i).fold(
     child,
     (child, depth) {
@@ -50,6 +53,20 @@ Widget framed(
     },
   );
 }
+
+/// [child], one of a list's own rows, inside the list's [frames] (only
+/// quotes: a list with such rows is in no item); see [framed].
+Widget framedListRow(
+  List<Frame> frames,
+  Widget child, {
+  required DocumentMetrics metrics,
+}) => framed(
+  frames,
+  child,
+  metrics: metrics,
+  row: (_, child) => child,
+  ofList: true,
+);
 
 Widget _inFrame(
   Frame frame,

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_document_editor/truce_document_editor.dart'
+    show AddItemPlace;
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -115,11 +117,53 @@ void main() {
     expect(second.top, moreOrLessEquals(first.bottom), reason: 'no break');
   });
 
+  testWidgets("a quoted list's Add item and Done rows show in the quote", (
+    tester,
+  ) async {
+    for (final addItems in [AddItemPlace.top, AddItemPlace.bottom]) {
+      await tester.pumpWidget(const SizedBox());
+      await pumpDocument(
+        tester,
+        TestDocument('> - [ ] a\n> - [x] b\n\nafter'),
+        addItems: addItems,
+      );
+      await tester.pumpAndSettle();
+
+      final bars = [
+        for (final bar in quoteBars().evaluate())
+          tester.getRect(find.byWidget(bar.widget)),
+      ]..sort((one, other) => one.top.compareTo(other.top));
+      for (final (index, below) in bars.skip(1).indexed) {
+        expect(
+          below.top,
+          moreOrLessEquals(bars[index].bottom),
+          reason: 'no break',
+        );
+      }
+      final quote = Rect.fromLTRB(
+        bars.first.left,
+        bars.first.top,
+        bars.first.right,
+        bars.last.bottom,
+      );
+      for (final row in ['Add item', 'Done (1)', 'a', 'b']) {
+        final shown = tester.getRect(find.text(row, findRichText: true));
+        expect(shown.top, greaterThanOrEqualTo(quote.top), reason: row);
+        expect(shown.bottom, lessThanOrEqualTo(quote.bottom), reason: row);
+        expect(shown.left, greaterThan(quote.right), reason: row);
+      }
+      final after = tester.getRect(find.text('after', findRichText: true));
+      expect(after.top, greaterThan(quote.bottom), reason: '$addItems');
+    }
+  });
+
   testWidgets('quotes and items nest as the file says', (tester) async {
     await pumpDocument(tester, TestDocument('> - [ ] a\n>   > b'));
     await tester.pumpAndSettle();
 
-    expect(quoteBars(), findsNWidgets(3));
+    // The outer quote's bar beside the Add item row, item a and the inner
+    // quote; the inner one's beside b.
+    expect(quoteBars(), findsNWidgets(4));
     expect(find.byType(Checkbox), findsOneWidget);
   });
 
