@@ -126,6 +126,8 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                     'The current version is replaced by your edits. '
                     '$bothBackedUp',
               ),
+              // This device's edits are the base: their own lines green.
+              base: VersionSide.other,
               enabled: _picking == null,
               // This build's version: the one shown when the user taps.
               onKeep: (side) => _keep(side, theirs),

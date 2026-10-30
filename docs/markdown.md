@@ -40,8 +40,9 @@ where it can. Everything else in the file stays exactly as it was.
 - **Separator.** The toolbar's separator button adds a line after the
   paragraph you are in. In a list it adds an item that holds only a line,
   saved as `- [ ] ***` in a checklist (`***`, not `---`, where the list
-  marker is `-`: `- ---` would be a line that ends the list). Click a
-  line to select it; Backspace or Delete removes it.
+  marker is `-`: `- ---` would be a line that ends the list). Click or
+  tap a line to select it; Backspace or Delete removes it, and the arrow
+  keys move past it.
 - **List buttons** turn lines into a list, or change its kind. Pressed
   again where the lines already have that kind (or a checkbox), they make
   the lines text again.

@@ -34,9 +34,9 @@ final class ShownVersion {
 }
 
 /// The one view for every clash between two versions of a document: shows both
-/// and asks before keeping one. The current version is the base of the
-/// diff: lines only it has show as added, lines only the other has as
-/// removed, each on its own side. The owner of [onKeep] makes the backups
+/// and asks before keeping one. The [base] side, the version this device
+/// has now, is the base of the diff: lines only it has show as added,
+/// lines only the other has as removed, each on its own side. The owner of [onKeep] makes the backups
 /// its versions' [ShownVersion.keptMessage] tells of, before it changes
 /// anything.
 class VersionChooser extends StatelessWidget {
@@ -45,11 +45,15 @@ class VersionChooser extends StatelessWidget {
     required this.other,
     required this.enabled,
     required this.onKeep,
+    this.base = VersionSide.current,
     super.key,
   });
 
   final ShownVersion current;
   final ShownVersion other;
+
+  /// The side the other is compared against.
+  final VersionSide base;
 
   /// `false` while a choice is being carried out.
   final bool enabled;
@@ -64,10 +68,11 @@ class VersionChooser extends StatelessWidget {
   }
 
   Widget _pane(BuildContext context, VersionSide side) {
-    final (shown, compared, ownLines) = switch (side) {
-      VersionSide.current => (current, other, OwnLines.added),
-      VersionSide.other => (other, current, OwnLines.removed),
+    final (shown, compared) = switch (side) {
+      VersionSide.current => (current, other),
+      VersionSide.other => (other, current),
     };
+    final ownLines = side == base ? OwnLines.added : OwnLines.removed;
     return VersionPane(
       label: shown.label,
       content: shown.content,

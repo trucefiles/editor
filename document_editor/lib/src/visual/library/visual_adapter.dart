@@ -179,9 +179,14 @@ final class VisualAdapter {
     };
   }
 
+  /// A deletion over [selection]; over a block selected whole (a soft
+  /// keyboard's Backspace on a tapped divider), that block goes.
   md.EditorInput? Function(md.EditorState) _deleteRange(
     DocumentSelection? selection,
   ) {
+    if (_shown?.selection is md.BlockSelection) {
+      return _pressed(md.EditKey.backspace);
+    }
     final range = _rangeOf(selection);
     return (now) => switch (range) {
       final range? => md.Run(md.DeleteRange(range), revision: now.revision),

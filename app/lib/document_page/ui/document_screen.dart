@@ -416,7 +416,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
     final path = _session.file.pathFor(text);
-    final page = Scaffold(
+    return Scaffold(
       backgroundColor: tint,
       appBar: AppBar(
         backgroundColor: tint,
@@ -470,26 +470,29 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
               child: DocumentTextZoom(
                 // Only the editor shows the add-item setting, so only it
                 // builds again when the setting changes.
-                child: Consumer(
-                  builder: (context, ref, _) => _page.view.view(
-                    (
-                      kept: text,
-                      addItems: ref.watch(
-                        deviceSettingsProvider.select(
-                          (s) => s.requireValue.addItemPlace,
+                child: _tinted(
+                  tint,
+                  Consumer(
+                    builder: (context, ref, _) => _page.view.view(
+                      (
+                        kept: text,
+                        addItems: ref.watch(
+                          deviceSettingsProvider.select(
+                            (s) => s.requireValue.addItemPlace,
+                          ),
+                        ),
+                        openLink: (link) => openLink(context, ref, link),
+                        hint: (message) => showSnack(context, message),
+                        images: FolderImages(
+                          ref.read(folderFilesProvider).of(_folder),
+                          baseId: _folder.base.id,
+                          document: path,
+                          openedAt: _openedAt,
                         ),
                       ),
-                      openLink: (link) => openLink(context, ref, link),
-                      hint: (message) => showSnack(context, message),
-                      images: FolderImages(
-                        ref.read(folderFilesProvider).of(_folder),
-                        baseId: _folder.base.id,
-                        document: path,
-                        openedAt: _openedAt,
-                      ),
+                      // A new document is for typing right away.
+                      autofocus: widget.document == null,
                     ),
-                    // A new document is for typing right away.
-                    autofocus: widget.document == null,
                   ),
                 ),
               ),
@@ -498,12 +501,15 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         ],
       ),
     );
-    return switch (tint) {
-      final tint? => Theme(
-        data: tintedTheme(Theme.of(context), tint),
-        child: page,
-      ),
-      null => page,
-    };
   }
+
+  /// [child] with its lines in [tint]'s colors: only the document's own
+  /// view, so menus and dialogs on plain surfaces keep the plain colors.
+  Widget _tinted(Color? tint, Widget child) => switch (tint) {
+    final tint? => Theme(
+      data: tintedTheme(Theme.of(context), tint),
+      child: child,
+    ),
+    null => child,
+  };
 }

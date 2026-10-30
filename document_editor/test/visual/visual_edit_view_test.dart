@@ -160,6 +160,20 @@ void main() {
       expect(document.text, '- [ ] milk\n- [ ] bread\n- [ ] eggs');
     });
 
+    testWidgets("a soft keyboard's Backspace on it leaves the item empty", (
+      tester,
+    ) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.ime.backspace(getter: imeClientGetter);
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
+    });
+
     testWidgets('lets the right arrow pass it', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
@@ -183,6 +197,20 @@ void main() {
 
       expect(document.text, '- [ ] milxk\n- [ ] ------\n- [ ] eggs');
     });
+  });
+
+  testWidgets("a soft keyboard's Backspace removes a tapped separator", (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.tap(find.byType(Divider), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.ime.backspace(getter: imeClientGetter);
+    await tester.pumpAndSettle();
+
+    expect(document.text, 'milk\n\neggs');
   });
 
   testWidgets('the arrow keys pass a separator between paragraphs', (
