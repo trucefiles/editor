@@ -49,13 +49,13 @@ final class Edited extends FileInput<Never> {
 }
 
 /// The editor's text of a document that has no file yet, as [edited],
-/// with the [name] its file gets from that text (its first line, as the
-/// document's type reads it), unless the user names it.
+/// with that text's [firstLine], as the document's type reads it: its
+/// file is named after it unless the user names the document.
 final class NewEdited extends FileInput<Never> {
-  const NewEdited(this.edited, {required this.name});
+  const NewEdited(this.edited, {required this.firstLine});
 
   final Edited edited;
-  final String name;
+  final String firstLine;
 }
 
 /// Write the edits into the file once the device keeps them. A new
@@ -312,7 +312,7 @@ final class KeepDraft<V extends Version> extends FileEffect<V> {
     required this.base,
     required this.text,
     required this.file,
-    this.name,
+    this.firstLine,
   });
 
   final EffectId id;
@@ -320,9 +320,9 @@ final class KeepDraft<V extends Version> extends FileEffect<V> {
   final String text;
   final V? file;
 
-  /// The name a new document's file gets from [text] (see [NewEdited]);
-  /// `null` while it has a [file].
-  final String? name;
+  /// The first line of [text] (see [NewEdited]), for a new document's
+  /// draft; `null` while it has a [file].
+  final String? firstLine;
 }
 
 /// The edits are in the file, in a conflict copy, or dropped: remove the
@@ -354,13 +354,13 @@ final class Write<V extends Version> extends FileEffect<V> {
 /// one: a name already taken gets the next free one (" 2"). Answered by
 /// [Wrote]: [Written] or [WriteFailed].
 final class Create extends FileEffect<Never> {
-  const Create(this.id, this.text, {required this.name});
+  const Create(this.id, this.text, {required this.firstLine});
 
   final EffectId id;
   final String text;
 
-  /// The name the file gets from [text] (see [NewEdited]).
-  final String name;
+  /// The first line of [text] (see [NewEdited]).
+  final String firstLine;
 }
 
 /// Write [text] as the file again where it was deleted, [where] it was

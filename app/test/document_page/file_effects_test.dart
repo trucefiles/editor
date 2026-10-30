@@ -87,7 +87,13 @@ void main() {
 
     expect(
       await effects.run(
-        const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
+        const KeepDraft(
+          id,
+          base: null,
+          text: 'Milk',
+          file: null,
+          firstLine: 'Milk',
+        ),
       ),
       isA<DraftKept>().having((kept) => kept.kept, 'kept', isTrue),
     );
@@ -117,7 +123,13 @@ void main() {
       ),
     );
     await effects.run(
-      const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
+      const KeepDraft(
+        id,
+        base: null,
+        text: 'Milk',
+        file: null,
+        firstLine: 'Milk',
+      ),
     );
 
     final recovery = DraftRecovery(
@@ -131,10 +143,44 @@ void main() {
     expect(fixture.onDisk('Milk.md'), isNull);
   });
 
+  test("a new document's draft, named by the user, goes back to its first "
+      'line once the name is cleared', () async {
+    final effects = fixture.effects(
+      NewFile(
+        (folder: fixture.folders[0], subfolder: null),
+        type: appDocumentTypes().forNew,
+        name: 'Foo',
+      ),
+    );
+    await effects.run(
+      const KeepDraft(
+        id,
+        base: null,
+        text: 'Milk',
+        file: null,
+        firstLine: 'Milk',
+      ),
+    );
+    expect((await fixture.draftsIn('f1')).single.path, path('Foo.md'));
+
+    effects.place(fixture.newFile);
+
+    await eventually(
+      () async =>
+          (await fixture.draftsIn('f1')).singleOrNull?.path == path('Milk.md'),
+    );
+  });
+
   test('a dropped draft is not moved along', () async {
     final effects = fixture.effects(fixture.newFile);
     await effects.run(
-      const KeepDraft(id, base: null, text: 'Milk', file: null, name: 'Milk'),
+      const KeepDraft(
+        id,
+        base: null,
+        text: 'Milk',
+        file: null,
+        firstLine: 'Milk',
+      ),
     );
     await effects.run(const DropDraft(file: null));
 

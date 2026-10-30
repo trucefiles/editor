@@ -11,7 +11,7 @@ final class MarkdownStart {
   final String text;
 
   /// The text read as a document.
-  final Loaded document;
+  final ReadDocument document;
 
   DocTree get _doc => document.doc;
 

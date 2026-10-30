@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_markdown/truce_markdown.dart' show EditMode, EditText;
 
 import '../support.dart';
 import 'document_fixture.dart';
@@ -128,6 +129,32 @@ void main() {
     session.saveNow();
     await eventually(() => session.title == 'Milk');
     expect(session.path, path('Milk.md'));
+  });
+
+  test('in Markdown edit, the title follows a save too', () async {
+    final session = markdownSession(
+      null,
+      fixture.effects(fixture.newFile),
+      mode: EditMode.markdown,
+    );
+    addTearDown(session.dispose);
+
+    session.gate.send((now) => EditText('# Milk', revision: now.revision));
+    session.saveNow();
+
+    await eventually(() => session.title == 'Milk');
+    expect(session.path, path('Milk.md'));
+  });
+
+  test('a change elsewhere as the first change tells the new title', () async {
+    final session = fixture.session();
+    final titles = <String>[];
+    session.changes.listen((_) => titles.add(session.title));
+    final theirs = await fixture.editElsewhere('# Two\n');
+
+    session.observe(contentsFinding([theirs.document]));
+
+    await eventually(() => titles.contains('Two'));
   });
 
   test("a new document's draft is named after its latest save", () async {

@@ -7,6 +7,7 @@ import 'package:truce_core/truce_core.dart'
         SentText,
         OfferedUndo,
         Step,
+        TextSummary,
         UndoOffered,
         textChange;
 
@@ -81,6 +82,17 @@ final class _Step with EditorSteps<Snapshot> {
       null => DocumentSummary.of(printed.text, maxLines: 0),
     });
   }
+
+  /// The tree read from [text] in Visual edit and Read; in Markdown edit,
+  /// [text], read only if asked.
+  @override
+  TextSummary<Object?> summaryOfShown(String text) => switch (state.content) {
+    FormattedContent(:final view) => DocumentSummary.ofTree(
+      view.doc,
+      maxLines: 0,
+    ),
+    MarkdownContent() => DocumentSummary.of(text, maxLines: 0),
+  };
 
   /// Read shows the text kept.
   @override
@@ -473,7 +485,7 @@ final class _Step with EditorSteps<Snapshot> {
   }
 
   /// What showed [before], with [raw] open, as it falls in [next].
-  FormattedContent _mapped(Left before, RawRegion? raw, Loaded next) {
+  FormattedContent _mapped(Left before, RawRegion? raw, ReadDocument next) {
     final map = ReloadMap(before.printed, next);
     final done = switch (before.view.done) {
       final done? => DoneSections(

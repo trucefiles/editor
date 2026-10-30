@@ -44,6 +44,9 @@ final class _FakeEditor with EditorSteps<String> {
   @override
   SentText get sent => SentText(shown, _Summary(shown));
 
+  @override
+  TextSummary<Object?> summaryOfShown(String text) => _Summary(text);
+
   /// The user changed the text to [text], as the type's own step does.
   void edit(String text) {
     final before = shown;

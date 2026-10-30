@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart'
         EditorSteps,
         EffectId,
         SentText,
+        TextSummary,
         Step,
         textChange,
         typingIn;
@@ -89,6 +90,10 @@ final class _Step with EditorSteps<String> {
   @override
   SentText get sent =>
       SentText(state.text, PlainSummary(state.text, maxLines: 0));
+
+  @override
+  TextSummary<Object?> summaryOfShown(String text) =>
+      PlainSummary(text, maxLines: 0);
 
   /// Only the editor shows the text; nothing shows the text kept.
   @override

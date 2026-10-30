@@ -42,7 +42,7 @@ final class Ended extends SessionState {
 /// its file owner (where the edits are kept), joined: each one's events
 /// become the other's inputs. Their effects run inside the owners. No UI.
 /// [changes] tells of every change of where the edits are ([status],
-/// [saveState]) and of [state].
+/// [saveState]), of [summary], and of [state].
 final class DocumentSession {
   /// The document [opened] (`null` for a new one, which goes where
   /// [effects] say), its file read and written by [effects], edited by
@@ -52,6 +52,7 @@ final class DocumentSession {
         final opened? => openedFile(opened.seen),
         null => newFile(),
       }, _effects.run) {
+    _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
       editor.changes.listen(_onEditorChanged),
@@ -74,10 +75,7 @@ final class DocumentSession {
 
   /// Whether the editor held edits not yet sent, and the summary it told,
   /// as listeners last heard.
-  late ({bool unsent, TextSummary<Object?> summary}) _heard = (
-    unsent: false,
-    summary: summary,
-  );
+  late ({bool unsent, TextSummary<Object?> summary}) _heard;
 
   /// Whether the document takes edits.
   SessionState get state => _state;
@@ -124,7 +122,7 @@ final class DocumentSession {
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
 
   /// Fires on every change of where the edits are, of where the file is,
-  /// and of [state].
+  /// of [summary] (so of [title] and [path]), and of [state].
   Stream<void> get changes => _changes.stream;
 
   /// Fires once after the document [Stopped], as it is first known
@@ -214,10 +212,10 @@ final class DocumentSession {
   };
 
   /// [edited] as the file owner takes it: while the document has no
-  /// file, with the name its file gets. The editor told the summary of
+  /// file, with its first line, which names the file. The editor told the summary of
   /// [edited]'s text with it.
   FileInput<DocumentVersion> _toFile(Edited edited) => switch (file) {
-    NewFile() => NewEdited(edited, name: summary.firstLine),
+    NewFile() => NewEdited(edited, firstLine: summary.firstLine),
     ExistingFile() => edited,
   };
 
@@ -242,7 +240,11 @@ final class DocumentSession {
     _setState(keeping);
     unawaited(
       _effects
-          .keepLastDraft(text, file: _file.state.file, name: summary.firstLine)
+          .keepLastDraft(
+            text,
+            file: _file.state.file,
+            firstLine: summary.firstLine,
+          )
           .then((kept) {
             if (!identical(_state, keeping)) return;
             _setState(Stopped(text, kept: kept));

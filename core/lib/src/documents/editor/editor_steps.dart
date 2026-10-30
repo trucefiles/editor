@@ -38,6 +38,9 @@ mixin EditorSteps<S> {
   /// it.
   SentText get sent;
 
+  /// What lists show of [text], which shows now as taken from the file.
+  TextSummary<Object?> summaryOfShown(String text);
+
   /// Whether each change is sent at once, e.g. while the text is only
   /// read, which shows the text kept.
   bool get sendsAtOnce;
@@ -139,7 +142,7 @@ mixin EditorSteps<S> {
   /// summary is of it.
   void _reloaded(String text) {
     reload(text);
-    book = book.copyWith(summary: sent.summary);
+    book = book.copyWith(summary: summaryOfShown(text));
   }
 
   void _undoLatest() {

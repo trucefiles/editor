@@ -49,7 +49,7 @@ final class _Run {
 
   /// The editor's text at [rev], on [lineage], after [picks] picks (by
   /// default all sent so far).
-  /// While there is no file, it comes with its name, as the session sends
+  /// While there is no file, it comes with its first line, as the session sends
   /// it.
   void edit(String text, int rev, {Version? lineage = _v1, int? picks}) {
     final edited = Edited(
@@ -58,7 +58,11 @@ final class _Run {
       lineage: lineage,
       picks: picks ?? all<Picked>().length,
     );
-    send(state.file == null ? NewEdited(edited, name: nameOf(text)) : edited);
+    send(
+      state.file == null
+          ? NewEdited(edited, firstLine: firstLineOf(text))
+          : edited,
+    );
   }
 
   /// The device keeps the last draft asked (or refuses it).
@@ -847,24 +851,24 @@ void main() {
       expect(run.status, isA<Editing>());
     });
 
-    test('its draft and file are named from the text they hold', () {
+    test('its draft and file get the first line of the text they hold', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
         ..keep()
         ..edit('ab', 2, lineage: null);
-      expect(run.last<KeepDraft>().name, nameOf('ab'));
+      expect(run.last<KeepDraft>().firstLine, firstLineOf('ab'));
       run
         ..keep()
         ..secure(SecureReason.hide);
       expect(run.last<Create>().text, 'ab');
-      expect(run.last<Create>().name, nameOf('ab'));
+      expect(run.last<Create>().firstLine, firstLineOf('ab'));
       run
         ..wrote(const Written(Seen('ab', _v1)))
         ..edit('abc', 3);
-      expect(run.last<KeepDraft>().name, isNull, reason: 'it has a file');
+      expect(run.last<KeepDraft>().firstLine, isNull, reason: 'it has a file');
     });
 
-    test('edits without a name are a bug while it has no file', () {
+    test('edits without their first line are a bug while it has no file', () {
       final run = _Run.unwritten();
       expect(
         () => run.send(const Edited('a', rev: 1, lineage: null, picks: 0)),
@@ -1002,5 +1006,5 @@ void main() {
   });
 }
 
-/// The name a new document's file gets from [text], in these tests.
-String nameOf(String text) => 'named $text';
+/// The first line of [text], in these tests.
+String firstLineOf(String text) => 'first of $text';

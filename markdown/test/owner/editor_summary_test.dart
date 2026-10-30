@@ -65,4 +65,12 @@ void main() {
       );
     expect(summaryOf(run).title, 'Theirs');
   });
+
+  test('in Markdown edit, follows a change elsewhere', () {
+    final run = EditorRun('one', mode: EditMode.markdown)
+      ..request(
+        const FromFile(Replaced('# Theirs', version: Version(2), ackRev: 0)),
+      );
+    expect(summaryOf(run).title, 'Theirs');
+  });
 }

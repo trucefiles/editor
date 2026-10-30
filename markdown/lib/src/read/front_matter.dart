@@ -14,10 +14,8 @@ int frontMatterLength(List<String> lines) => switch (lines.firstOrNull) {
 };
 
 /// [text] without its front matter, for readers that don't know front
-/// matter; the whole text if it has none. Reads no more than the lines
-/// at the top.
+/// matter; the whole text if it has none.
 String textAfterFrontMatter(String text) {
-  if (!text.startsWith('---')) return text;
   final lines = splitLines(text);
   return switch (frontMatterLength(lines)) {
     0 => text,
