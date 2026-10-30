@@ -13,20 +13,24 @@ sealed class Frame {
   const Frame();
 }
 
-/// A quote: a bar beside its rows; it [starts] at its first row and
-/// [ends] at its last.
+/// [quote]: a bar beside its rows; it [starts] at its first row as shown
+/// and [ends] at its last.
 final class QuoteFrame extends Frame {
-  const QuoteFrame({required this.starts, required this.ends});
+  const QuoteFrame(this.quote, {required this.starts, required this.ends});
 
+  final NodeId quote;
   final bool starts;
   final bool ends;
 
   @override
   bool operator ==(Object other) =>
-      other is QuoteFrame && other.starts == starts && other.ends == ends;
+      other is QuoteFrame &&
+      other.quote == quote &&
+      other.starts == starts &&
+      other.ends == ends;
 
   @override
-  int get hashCode => Object.hash(QuoteFrame, starts, ends);
+  int get hashCode => Object.hash(quote, starts, ends);
 }
 
 /// A list item: its rows indented; its [marker] beside the row that
@@ -327,6 +331,7 @@ final class RowLooks {
         ...switch (node) {
           final QuoteNode quote => [
             QuoteFrame(
+              quote.id,
               starts: _quoteEnds[quote.id]!.first == index,
               ends: _quoteEnds[quote.id]!.last == index,
             ),
