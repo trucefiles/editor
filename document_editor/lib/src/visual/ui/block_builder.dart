@@ -11,11 +11,13 @@ import 'add_item_button.dart';
 import 'done_heading.dart';
 import 'drawn_table.dart';
 import 'framed_row.dart';
+import 'frames.dart';
 
 /// Builds the components of rows shown whole: dividers, drawn tables and
 /// raw blocks inside their frames (a tap on a table or raw block opens
-/// its raw text; a divider selects whole and shows it), Done headings
-/// and Add item buttons; each does what it offers by [actions]. One that
+/// its raw text; a divider selects whole and shows it), and Done
+/// headings and Add item buttons inside their list's frames; each does
+/// what it offers by [actions]. One that
 /// starts an item has the item's row, as a text does.
 class BlockBuilder implements ComponentBuilder {
   const BlockBuilder(this.actions);
@@ -42,15 +44,28 @@ class BlockBuilder implements ComponentBuilder {
       isVisuallySelectable: look is BlockLook,
       child: switch (look) {
         BlockLook() => _shownWhole(look, componentViewModel, context),
-        DoneHeadingLook(:final list, :final count, :final collapsed) =>
-          DoneHeading(
-            count: count,
-            collapsed: collapsed,
-            onTap: () => actions.setCollapsed(list, collapsed: !collapsed),
+        DoneHeadingLook(
+          :final list,
+          :final count,
+          :final collapsed,
+          :final frames,
+        ) =>
+          framedListRow(
+            frames,
+            DoneHeading(
+              count: count,
+              collapsed: collapsed,
+              onTap: () => actions.setCollapsed(list, collapsed: !collapsed),
+            ),
+            metrics: metrics,
           ),
-        AddItemLook(:final list, :final first) => AddItemButton(
-          indent: metrics.handleWidth,
-          onAdd: () => actions.addItem(list, first: first),
+        AddItemLook(:final list, :final first, :final frames) => framedListRow(
+          frames,
+          AddItemButton(
+            indent: metrics.handleWidth,
+            onAdd: () => actions.addItem(list, first: first),
+          ),
+          metrics: metrics,
         ),
         TextLook() || RawTextLook() => throw StateError('a row with text'),
       },
