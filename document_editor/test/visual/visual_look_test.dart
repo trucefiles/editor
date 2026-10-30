@@ -161,7 +161,9 @@ void main() {
     await pumpDocument(tester, TestDocument('> - [ ] a\n>   > b'));
     await tester.pumpAndSettle();
 
-    expect(quoteBars(), findsNWidgets(3));
+    // The outer quote's bar beside the Add item row, item a and the inner
+    // quote; the inner one's beside b.
+    expect(quoteBars(), findsNWidgets(4));
     expect(find.byType(Checkbox), findsOneWidget);
   });
 
