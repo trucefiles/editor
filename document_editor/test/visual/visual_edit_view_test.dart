@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -650,6 +651,49 @@ void main() {
 
     await tester.caretIn(paragraphNodeOf(index: 1), 0);
     expect(find.byType(DrawnTable), findsOneWidget);
+  });
+
+  group('a table that starts an item', () {
+    const list = '- a\n- | x |\n  |---|\n- b';
+
+    testWidgets('tapped, shows its text and the delete button', (tester) async {
+      final document = TestDocument(list);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Delete item').hitTestable());
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- a\n- b');
+    });
+
+    testWidgets('open as text, moves by its handle and is drawn again', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      final handles = find.byIcon(Icons.drag_indicator);
+      final from = tester.getCenter(handles.at(1));
+      final to = tester.getCenter(handles.at(2));
+      final gesture = await tester.startGesture(
+        from,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      for (final _ in Iterable<int>.generate(20)) {
+        await gesture.moveBy((to - from + const Offset(0, 20)) / 20);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- a\n- b\n- | x |\n  |---|');
+      expect(find.byType(DrawnTable), findsOneWidget);
+    });
   });
 
   final linux = TargetPlatformVariant.only(TargetPlatform.linux);

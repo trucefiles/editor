@@ -52,7 +52,7 @@ class _ItemRowState extends State<ItemRow> {
     return Stack(
       key: _rowKey,
       children: [
-        MarkedRow(
+        _MarkedRow(
           item,
           style: widget.style,
           onToggle: () => widget.actions.toggle(item.item),
@@ -137,13 +137,12 @@ class _ItemRowState extends State<ItemRow> {
 /// [child] beside [item]'s marker (in [style]; its box checks or
 /// unchecks by [onToggle]), with room for the handle and delete button
 /// on its sides.
-class MarkedRow extends StatelessWidget {
-  const MarkedRow(
+class _MarkedRow extends StatelessWidget {
+  const _MarkedRow(
     this.item, {
     required this.style,
     required this.onToggle,
     required this.child,
-    super.key,
   });
 
   final ItemFrame item;

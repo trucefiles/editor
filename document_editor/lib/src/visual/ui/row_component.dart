@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-import '../../document_metrics.dart';
 import '../../library/child_text.dart';
 import '../row_looks.dart';
 import '../visual_actions.dart';
-import 'frames.dart';
-import 'item_row.dart';
+import 'framed_row.dart';
 import 'row_builder.dart';
 
-/// One row with text inside its frames (see [framed]). Beside the text
-/// that starts an item, its [ItemRow], the delete button shown while the
-/// caret is in it; the whole row is a [MovableItem]. Text in a checked
-/// item shows struck through.
+/// One row with text (also a raw block open as text) as a [FramedRow],
+/// active while the caret is in it. Text in a checked item shows struck
+/// through.
 class RowComponent extends StatefulWidget {
   const RowComponent({
     required this.viewModel,
@@ -61,42 +58,23 @@ class _RowComponentState extends State<RowComponent>
       highlightWhenEmpty: _row.highlightWhenEmpty,
       underlines: _row.createUnderlines(),
     );
-    final look = _row.look;
-    final framedText = framed(
-      _row.frames,
-      text,
-      metrics: DocumentMetrics.of(context),
-      row: (item, text) => switch (look) {
-        TextLook(:final leaf) => ItemRow(
-          item: item,
-          leaf: leaf.id,
-          content: text,
-          copy: Text(
-            _row.text.toPlainText(),
-            style: _style(const {}),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          active: _row.selection != null,
-          style: _row.textStyleBuilder(const {}),
-          actions: _actions,
-        ),
-        // A raw block open as text shows only its marker.
-        _ => MarkedRow(
-          item,
-          style: _row.textStyleBuilder(const {}),
-          onToggle: () => _actions.toggle(item.item),
-          child: text,
-        ),
+    return FramedRow(
+      frames: _row.frames,
+      leaf: switch (_row.look) {
+        TextLook(:final leaf) => leaf.id,
+        RawTextLook(:final raw) => raw.block,
+        final look => throw StateError('a row without text: $look'),
       },
-    );
-    final item = _row.item;
-    if (item == null || !item.starts || look is! TextLook) return framedText;
-    return MovableItem(
-      item: item.item,
-      leaf: look.leaf.id,
+      content: text,
+      copy: Text(
+        _row.text.toPlainText(),
+        style: _style(const {}),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      active: _row.selection != null,
+      style: _row.textStyleBuilder(const {}),
       actions: _actions,
-      child: framedText,
     );
   }
 }

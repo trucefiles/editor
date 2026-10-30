@@ -10,8 +10,7 @@ import '../visual_actions.dart';
 import 'add_item_button.dart';
 import 'done_heading.dart';
 import 'drawn_table.dart';
-import 'frames.dart';
-import 'item_row.dart';
+import 'framed_row.dart';
 
 /// Builds the components of rows shown whole: dividers, drawn tables and
 /// raw blocks inside their frames (a tap on a table or raw block opens
@@ -58,8 +57,7 @@ class BlockBuilder implements ComponentBuilder {
     );
   }
 
-  /// [look]'s block inside its frames, beside its item's row where it
-  /// starts one.
+  /// [look]'s block as a [FramedRow], active while selected whole.
   Widget _shownWhole(
     BlockLook look,
     BlockViewModel viewModel,
@@ -82,29 +80,15 @@ class BlockBuilder implements ComponentBuilder {
       ),
       _ => _block(leaf, context),
     };
-    final shown = framed(
-      frames,
-      block,
-      metrics: DocumentMetrics.of(context),
-      row: (item, child) => ItemRow(
-        item: item,
-        leaf: leaf.id,
-        content: child,
-        copy: _block(leaf, context),
-        active: selected,
-        style: DocumentTextStyles.body(Theme.of(context)),
-        actions: actions,
-      ),
+    return FramedRow(
+      frames: frames,
+      leaf: leaf.id,
+      content: block,
+      copy: _block(leaf, context),
+      active: selected,
+      style: DocumentTextStyles.body(Theme.of(context)),
+      actions: actions,
     );
-    return switch (frames.whereType<ItemFrame>().lastOrNull) {
-      final item? when item.starts => MovableItem(
-        item: item.item,
-        leaf: leaf.id,
-        actions: actions,
-        child: shown,
-      ),
-      _ => shown,
-    };
   }
 
   /// [leaf], a block without text, as it shows.
