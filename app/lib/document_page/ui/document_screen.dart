@@ -416,7 +416,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final tint = documentTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
     final path = _session.file.pathFor(text);
-    return Scaffold(
+    final page = Scaffold(
       backgroundColor: tint,
       appBar: AppBar(
         backgroundColor: tint,
@@ -498,5 +498,12 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
         ],
       ),
     );
+    return switch (tint) {
+      final tint? => Theme(
+        data: tintedTheme(Theme.of(context), tint),
+        child: page,
+      ),
+      null => page,
+    };
   }
 }

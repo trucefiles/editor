@@ -27,3 +27,20 @@ Color? documentTint(String? name, ColorScheme scheme) =>
       },
       null => null,
     };
+
+/// [theme] on a document's [tint]: its line colors (separators, quote bars,
+/// table lines) mixed from the text color onto the tint, so lines show on
+/// every tint as text does.
+ThemeData tintedTheme(ThemeData theme, Color tint) {
+  final scheme = theme.colorScheme;
+  Color line(double share) =>
+      Color.alphaBlend(scheme.onSurface.withValues(alpha: share), tint);
+  final outlineVariant = line(0.25);
+  return theme.copyWith(
+    dividerColor: outlineVariant,
+    colorScheme: scheme.copyWith(
+      outline: line(0.55),
+      outlineVariant: outlineVariant,
+    ),
+  );
+}

@@ -85,8 +85,12 @@ KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
       ),
       (final TextSelection range, EditKey.bold) => _style(range, .strong),
       (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
-      (BlockSelection(:final block), EditKey.backspace || EditKey.delete) =>
-        RunCommand(RemoveBlock(block)),
+      (BlockSelection(:final block), EditKey.backspace) => RunCommand(
+        RemoveBlock(block, backward: true),
+      ),
+      (BlockSelection(:final block), EditKey.delete) => RunCommand(
+        RemoveBlock(block, backward: false),
+      ),
       (BlockSelection(), _) => const Consumed(),
       (final TextSelection range, _) => _Keys(view, range).action(key),
     };

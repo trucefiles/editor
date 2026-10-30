@@ -7,6 +7,7 @@ import 'package:truce_documents/truce_documents.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
+import '../../versions/ui/version_content.dart';
 import '../document_controller.dart';
 
 /// Shows the open document's edits next to the version from elsewhere,
@@ -110,14 +111,16 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
           : VersionChooser(
               current: ShownVersion(
                 label: 'Current version',
-                modified: theirs.version.read.document.modified,
-                text: theirs.text,
+                content: SavedText(
+                  theirs.text,
+                  theirs.version.read.document.modified,
+                ),
                 keepLabel: 'Keep this',
                 keptMessage: 'Your edits are dropped. $bothBackedUp',
               ),
               other: ShownVersion(
                 label: 'Your edits',
-                text: _session.text,
+                content: EditorText(_session.text),
                 keepLabel: 'Keep this',
                 keptMessage:
                     'The current version is replaced by your edits. '

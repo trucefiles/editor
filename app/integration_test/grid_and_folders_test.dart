@@ -195,8 +195,40 @@ void main() {
     expect(app.namesIn('a/b/c'), ['plan.md']);
   });
 
-  testApp('an open document shows its color and last edit', (tester) async {
+  testApp("a listed row's color scrolls inside the list, not under the "
+      'folder filter', (tester) async {
     app.write('plan.md', '# Plan\n');
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Plan'));
+    await tester.tap(
+      find.text('Plan'),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.byTooltip('teal'));
+    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.byTooltip('Show as list'));
+
+    final row = find.byType(ListTile);
+    final tint = documentTint(
+      'teal',
+      Theme.of(tester.element(row)).colorScheme,
+    );
+    // The color is drawn on the nearest Material: inside the scroll view
+    // it is clipped there, outside it would show under the filter bar.
+    final material = find
+        .ancestor(of: row, matching: find.byType(Material))
+        .first;
+    expect(tester.widget<Material>(material).color, tint);
+    expect(
+      find.ancestor(of: material, matching: find.byType(CustomScrollView)),
+      findsOne,
+    );
+  });
+
+  testApp('an open document shows its color and last edit', (tester) async {
+    app.write('plan.md', '# Plan\n\n---\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
     // Right click, as with a mouse.
@@ -212,12 +244,26 @@ void main() {
 
     final screen = find.byType(DocumentScreen);
     await tester.waitFor(screen);
+    await tester.chooseMode('Visual edit');
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),
     );
-    expect(scaffold.backgroundColor, documentTint('teal', scheme));
+    final tint = documentTint('teal', scheme)!;
+    expect(scaffold.backgroundColor, tint);
     expect(find.textContaining('Edited '), findsOne);
+    // The separator's line follows the tint, as the text does.
+    final separator = find.descendant(
+      of: screen,
+      matching: find.byType(Divider),
+    );
+    expect(
+      Theme.of(tester.element(separator)).colorScheme.outlineVariant,
+      tintedTheme(
+        Theme.of(tester.element(screen)),
+        tint,
+      ).colorScheme.outlineVariant,
+    );
   });
 
   testApp('warns about an unsynced folder in full only in Folders', (

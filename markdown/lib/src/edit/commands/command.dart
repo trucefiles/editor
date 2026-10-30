@@ -8,6 +8,7 @@ import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
 import '../change.dart';
 import '../selection.dart';
+import 'add_divider.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
@@ -154,11 +155,21 @@ final class DeleteItem extends EditCommand {
   final NodeId item;
 }
 
-/// Backspace or Delete on [block], a selected divider: it goes.
+/// Backspace ([backward]) or Delete on [block], a selected divider: it
+/// goes.
 final class RemoveBlock extends EditCommand {
-  const RemoveBlock(this.block);
+  const RemoveBlock(this.block, {required this.backward});
 
   final NodeId block;
+  final bool backward;
+}
+
+/// The toolbar's Separator at [at]: a divider after the caret's block or
+/// item.
+final class AddDivider extends EditCommand {
+  const AddDivider(this.at);
+
+  final Place at;
 }
 
 /// The Add item button of [list]: a new empty item, [at] its place.
@@ -299,8 +310,13 @@ Change _change(ViewRows view, EditCommand command) {
       selection,
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
-    RemoveBlock(:final block) => removeBlock(view, block),
+    RemoveBlock(:final block, :final backward) => removeBlock(
+      view,
+      block,
+      backward: backward,
+    ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
+    AddDivider(:final at) => addDivider(view, at),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

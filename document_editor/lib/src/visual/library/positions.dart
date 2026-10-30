@@ -9,9 +9,9 @@ import 'node_ids.dart';
 
 /// Where a selection is, in the library's document and in the editor
 /// owner's terms: the one mapping, both ways. Text positions are the
-/// same offsets in both; a divider selected whole is a block selection;
-/// an end on any other node without text goes to the nearest text on its
-/// side.
+/// same offsets in both; a selection on a divider alone (a tap on it, or
+/// it selected whole) selects it as a block; an end on any other node
+/// without text goes to the nearest text on its side.
 final class Positions {
   const Positions(this._document, this._ids);
 
@@ -22,9 +22,9 @@ final class Positions {
   md.Selection? toOwner(DocumentSelection selection) {
     final DocumentSelection(:base, :extent) = selection;
     if (base.nodeId == extent.nodeId) {
-      if (_lookAt(base.nodeId)
-          case BlockLook(leaf: final md.DividerNode divider)
-          when base.nodePosition != extent.nodePosition) {
+      if (_lookAt(base.nodeId) case BlockLook(
+        leaf: final md.DividerNode divider,
+      )) {
         return md.BlockSelection(divider.id);
       }
     }

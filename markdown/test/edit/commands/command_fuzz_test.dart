@@ -122,7 +122,10 @@ Command? _randomCommand(Random random, Shown document) {
       2 => AddItem(view.doc.parentOf(pick(items).id)!.id),
       _ => _move(random, items, caret),
     },
-    6 => SetHeading(caret.base, pick([null, 1, 2, 3])),
+    6 =>
+      random.nextInt(4) == 0
+          ? AddDivider(caret.base)
+          : SetHeading(caret.base, pick([null, 1, 2, 3])),
     7 => ToggleStyle(range, pick(TextFormat.values)),
     8 => switch (random.nextBool()) {
       true when canRemoveLink(view, caret.base) => RemoveLink(caret.base),
@@ -131,7 +134,10 @@ Command? _randomCommand(Random random, Shown document) {
     },
     9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
     10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
-    11 when dividers.isNotEmpty => RemoveBlock(pick(dividers).leaf.id),
+    11 when dividers.isNotEmpty => RemoveBlock(
+      pick(dividers).leaf.id,
+      backward: random.nextBool(),
+    ),
     _ => switch (keyAction(view, range, pick(EditKey.values))) {
       RunCommand(:final command) => command,
       _ => null,

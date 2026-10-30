@@ -209,6 +209,65 @@ void main() {
     await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n- [ ] eggs\n');
   });
 
+  group('a separator item', () {
+    const shop = '# Shop\n- [ ] milk\n- [ ] ------\n- [ ] eggs\n';
+
+    testApp('has a drag handle like every item', (tester) async {
+      await tester.openVisual(app, 'Shop', shop);
+
+      expect(find.byIcon(Icons.drag_indicator), findsNWidgets(3));
+    });
+
+    testApp('selects with a tap and deletes with its button', (tester) async {
+      await tester.openVisual(app, 'Shop', shop);
+      await tester.clickOn(find.byType(Divider));
+
+      await tester.tapAndSettle(find.byTooltip('Delete item').hitTestable());
+
+      await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n- [ ] eggs\n');
+    });
+
+    testApp('Backspace on it leaves the item empty, with the caret in it', (
+      tester,
+    ) async {
+      await tester.openVisual(app, 'Shop', shop);
+      await tester.clickOn(find.byType(Divider));
+
+      await tester.pressBackspace();
+      await tester.typeImeText('bread');
+
+      await tester.leaveExpecting(
+        app,
+        '# Shop\n- [ ] milk\n- [ ] bread\n- [ ] eggs\n',
+      );
+    });
+
+    testApp('comes after the caret\'s item from the Separator button', (
+      tester,
+    ) async {
+      await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n- [ ] eggs\n');
+      await tester.clickLine('milk', 1);
+
+      await tester.pressTool('Separator');
+
+      await tester.leaveExpecting(
+        app,
+        '# Shop\n- [ ] milk\n- [ ] ***\n- [ ] eggs\n',
+      );
+    });
+  });
+
+  testApp('the Separator button adds a separator after the paragraph, the '
+      'caret in the text after it', (tester) async {
+    await tester.openVisual(app, 'Plan', '# Plan\nab\n');
+    await tester.clickLine('ab', 1);
+
+    await tester.pressTool('Separator');
+    await tester.typeImeText('cd');
+
+    await tester.leaveExpecting(app, '# Plan\nab\n\n---\n\ncd\n');
+  });
+
   testApp('typing in a quote keeps it a quote', (tester) async {
     await tester.openVisual(app, 'Quote', '# Quote\n> said\n');
     await tester.clickLine('said', 4);

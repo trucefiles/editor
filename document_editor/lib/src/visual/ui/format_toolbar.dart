@@ -5,7 +5,8 @@ import '../visual_actions.dart';
 
 /// The toolbar of Visual edit: outdent and indent the caret's item (each
 /// only where it can), format the selected text, make it a heading, a
-/// list of a kind or a quote, and break the line within its block. Each
+/// list of a kind or a quote, add a separator, and break the line within
+/// its block. Each
 /// button does what [actions] says, then [onDone]. A bar at the bottom
 /// of the screen: its buttons stay clear of the system's bottom edge
 /// (e.g. Android's gesture line), its color goes under it.
@@ -64,6 +65,7 @@ class FormatToolbar extends StatelessWidget {
             for (final (key, icon, label) in _lists)
               _button(icon, label, () => actions.press(key)),
             _button(Icons.format_quote, 'Quote', actions.quote),
+            _button(Icons.horizontal_rule, 'Separator', actions.separator),
             _button(
               Icons.keyboard_return,
               'Line break (Shift+Enter)',

@@ -122,6 +122,58 @@ void main() {
     expect(document.text, '- [ ] milk\n- [ ] eggs');
   });
 
+  group('a separator item', () {
+    const shop = '- [ ] milk\n- [ ] ------\n- [ ] eggs';
+
+    testWidgets('has a drag handle like every item', (tester) async {
+      await pumpDocument(tester, TestDocument(shop));
+
+      expect(find.byIcon(Icons.drag_indicator), findsNWidgets(3));
+    });
+
+    testWidgets('selects with a tap, showing its delete button', (
+      tester,
+    ) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      final delete = find.byTooltip('Delete item').hitTestable();
+      expect(delete, findsOneWidget);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] eggs');
+    });
+
+    testWidgets('Backspace on it leaves the item empty, with the caret in '
+        'it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.pressBackspace();
+      await tester.typeImeText('bread');
+
+      expect(document.text, '- [ ] milk\n- [ ] bread\n- [ ] eggs');
+    });
+  });
+
+  testWidgets('Separator adds a separator item after the caret\'s item', (
+    tester,
+  ) async {
+    final document = TestDocument('- [ ] milk\n- [ ] eggs');
+    await pumpDocument(tester, document);
+
+    await tester.caretIn(checkboxNodeOf(), 2);
+    await tester.tap(find.byTooltip('Separator'));
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] milk\n- [ ] ***\n- [ ] eggs');
+  });
+
   testWidgets('a change from elsewhere shows right away', (tester) async {
     final document = TestDocument('- [ ] milk');
     await pumpDocument(tester, document);

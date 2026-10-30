@@ -228,6 +228,47 @@ void main() {
     expect(drops, hasLength(1));
   });
 
+  testWidgets("a dropped row's old place closes while its copy glides into "
+      'the gap', (tester) async {
+    await showRows(tester);
+    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.4));
+    await gesture.up();
+    await tester.pump();
+    double oldPlace() => tester
+        .getSize(
+          find.ancestor(
+            of: find.text('item 0'),
+            matching: find.byType(LineDropTarget),
+          ),
+        )
+        .height;
+
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(oldPlace(), inExclusiveRange(0, 48), reason: 'closing');
+
+    // Just before the copy lands: right in the gap below item 1, which
+    // moved up as the old place closed.
+    await tester.pump(const Duration(milliseconds: 85));
+    expect(oldPlace(), lessThan(2));
+    final copyTop = tester
+        .getTopLeft(
+          find
+              .ancestor(
+                of: find.text('copy 0'),
+                matching: find.byType(Material),
+              )
+              .first,
+        )
+        .dy;
+    final gapTop = tester
+        .getBottomLeft(
+          find.ancestor(of: find.text('item 1'), matching: find.byType(Row)),
+        )
+        .dy;
+    expect(copyTop, closeTo(gapTop, 1));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('a copy dropped right where it was lifted settles at once', (
     tester,
   ) async {

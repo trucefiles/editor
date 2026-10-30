@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'keep_version_dialog.dart';
 import 'version_comparison.dart';
+import 'version_content.dart';
 import 'version_pane.dart';
 
 /// Which of the two versions the user keeps.
@@ -17,28 +18,25 @@ enum VersionSide {
 final class ShownVersion {
   const ShownVersion({
     required this.label,
-    required this.text,
+    required this.content,
     required this.keepLabel,
     required this.keptMessage,
-    this.modified,
   });
 
   final String label;
-
-  /// `null` if this version is a deleted file.
-  final String? text;
+  final VersionContent content;
 
   final String keepLabel;
 
   /// What keeping this version does, including which backup is kept
   /// (e.g. that both are backed up), to confirm it.
   final String keptMessage;
-
-  final DateTime? modified;
 }
 
 /// The one view for every clash between two versions of a document: shows both
-/// and asks before keeping one. The owner of [onKeep] makes the backups
+/// and asks before keeping one. The current version is the base of the
+/// diff: lines only it has show as added, lines only the other has as
+/// removed, each on its own side. The owner of [onKeep] makes the backups
 /// its versions' [ShownVersion.keptMessage] tells of, before it changes
 /// anything.
 class VersionChooser extends StatelessWidget {
@@ -66,14 +64,15 @@ class VersionChooser extends StatelessWidget {
   }
 
   Widget _pane(BuildContext context, VersionSide side) {
-    final (shown, compared) = side == VersionSide.current
-        ? (current, other)
-        : (other, current);
+    final (shown, compared, ownLines) = switch (side) {
+      VersionSide.current => (current, other, OwnLines.added),
+      VersionSide.other => (other, current, OwnLines.removed),
+    };
     return VersionPane(
       label: shown.label,
-      modified: shown.modified,
-      text: shown.text,
-      compareTo: compared.text ?? '',
+      content: shown.content,
+      compareTo: compared.content.text ?? '',
+      ownLines: ownLines,
       keepLabel: shown.keepLabel,
       onKeep: enabled ? () => _keep(context, side) : null,
     );

@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-/// One line of [SelectableLines]: its text and whether it selects.
-typedef SelectableLine = ({String text, bool selectable});
-
 /// [lines] one below the other, each drawn by [row] around its text, and
 /// selected as one text: a selection over several lines copies them
-/// with a line break between each, blank lines included; lines that
-/// don't select are left out. Needs a [SelectionArea] above it.
+/// with a line break between each, blank lines included. Needs a
+/// [SelectionArea] above it.
 class SelectableLines extends StatefulWidget {
   const SelectableLines({required this.lines, required this.row, super.key});
 
-  final List<SelectableLine> lines;
+  final List<String> lines;
   final Widget Function(int index, Widget text) row;
 
   @override
@@ -40,15 +37,7 @@ class _SelectableLinesState extends State<SelectableLines> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (index, line) in widget.lines.indexed)
-          switch (line.selectable) {
-            true => widget.row(
-              index,
-              Text(line.text.isEmpty ? _blank : line.text),
-            ),
-            false => SelectionContainer.disabled(
-              child: widget.row(index, Text(line.text)),
-            ),
-          },
+          widget.row(index, Text(line.isEmpty ? _blank : line)),
       ],
     ),
   );
