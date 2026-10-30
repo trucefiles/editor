@@ -19,6 +19,18 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.10.0" date="2026-10-30">
+      <description>
+        <ul>
+          <li>Separators in a list are items like any other, and a new Separator button adds one.</li>
+          <li>Dragging a list item: its old place closes while the item glides into the gap.</li>
+          <li>Compare views show each side's own text only, your version as the base.</li>
+          <li>Document cards on Home all have one height and load faster.</li>
+          <li>Quoted lists show Add item and Done inside the quote.</li>
+          <li>Moving a document right before leaving it keeps its edits; colored documents color their lines too.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.9.0" date="2026-10-29">
       <description>
         <ul>
