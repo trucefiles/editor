@@ -120,8 +120,9 @@ final class Discard extends FileInput<Never> {
 
 /// Move or rename the document where the app was told; answered by
 /// [MoveAnswer]. Edits not in the file yet are written first, so the move
-/// takes every edit along; if they can't reach the file, it stays. Every
-/// [Secure] waiting is answered once it ran.
+/// takes every edit along; if they can't reach the file, it stays. The
+/// draft goes before the move. Every [Secure] waiting is answered once it
+/// ran.
 final class Move extends FileInput<Never> implements Asking {
   const Move(this.ticket);
 

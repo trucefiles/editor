@@ -104,15 +104,16 @@ final class _Step<V extends Version> {
   void _next() {
     if (work.io != null) return;
     if (work.pick case final pick?) _startPick(pick);
+    // Dropped while it still names the file it was kept for, before a move.
+    if (work.io == null && !_hasEdits && work.draft != null) _dropDraft();
     if (work.move case final move? when work.io == null) _moveStep(move);
-    // Asked after the move: answered once it ran.
+    // Secures waiting are answered once the move ran.
     if (work.securing case final securing?
         when work.io == null && work.move == null) {
       _secureStep(securing);
     }
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
-    if (!_hasEdits && work.draft != null) _dropDraft();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
     if (work.folderRev != null) _write();
   }

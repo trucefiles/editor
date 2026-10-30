@@ -160,6 +160,21 @@ void main() {
       expect(run.last<MoveFile>().from.version, _v2);
     });
 
+    test('the draft goes before the move, named by the file it was for', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..keep()
+        ..send(Move(Ticket()))
+        ..wrote(const Written(Seen('ab', _v2)));
+      final effects = run.machine.effects;
+      final drop = effects.whereType<DropDraft>().single;
+      expect(drop.file, _v2);
+      expect(
+        effects.indexOf(drop),
+        lessThan(effects.indexOf(run.last<MoveFile>())),
+      );
+    });
+
     test('a close asked after a move is answered once the move ran', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)
