@@ -7,10 +7,11 @@ sealed class MoveFailure {
   const MoveFailure();
 }
 
-/// The document has edits its file does not hold yet: it moves only
-/// once they are in; nothing changed.
-final class MoveWaitsForSave extends MoveFailure {
-  const MoveWaitsForSave();
+/// The document is not saved in its file, so it can't move now (the
+/// save failed, the file changed elsewhere, or another move waits);
+/// nothing changed.
+final class MoveNotSaved extends MoveFailure {
+  const MoveNotSaved();
 }
 
 /// A sync conflict of the document waits to be resolved; nothing changed.

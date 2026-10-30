@@ -149,11 +149,82 @@ void main() {
       expect(run.last<MoveFile>().from.version, _v2);
     });
 
-    test('edits not in the file yet refuse a move', () {
+    test('a move writes the edits not in the file yet first', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)
         ..keep()
         ..send(Move(Ticket()));
+      expect(run.all<MoveFile>(), isEmpty);
+      expect(run.last<Write>().text, 'ab');
+      run.wrote(const Written(Seen('ab', _v2)));
+      expect(run.last<MoveFile>().from.version, _v2);
+    });
+
+    test('a close asked after a move is answered once the move ran', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..send(Move(Ticket()))
+        ..secure(SecureReason.close)
+        ..keep()
+        ..wrote(const Written(Seen('ab', _v2)));
+      expect(run.all<Answer>(), isEmpty);
+      final move = run.last<MoveFile>();
+      run.send(MovedTo(move.id, const Seen('ab', _v3), endedAt: Moment.now()));
+      expect(run.last<MoveAnswer>().started, isTrue);
+      expect(run.last<Answer>().kept, isTrue);
+      expect(run.status, isA<Closed>());
+    });
+
+    test('edits that could not be written refuse a move', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..keep()
+        ..send(Move(Ticket()))
+        ..wrote(const WriteFailed());
+      expect(run.all<MoveFile>(), isEmpty);
+      expect(run.last<MoveAnswer>().started, isFalse);
+    });
+
+    test('a move after a failed write tries the write once more', () {
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..wrote(const WriteFailed())
+        ..send(Move(Ticket()));
+      expect(run.all<Write>(), hasLength(2));
+      run.wrote(const Written(Seen('ab', _v2)));
+      expect(run.last<MoveFile>().from.version, _v2);
+    });
+
+    test('a close waiting behind a refused move still keeps the edits', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..send(Move(Ticket()))
+        ..secure(SecureReason.close)
+        ..keep()
+        ..wrote(const WriteFailed());
+      expect(run.last<MoveAnswer>().started, isFalse);
+      // The secure tries the file once more, then keeps a conflict copy.
+      run
+        ..wrote(const WriteFailed())
+        ..send(ConflictKept(run.last<KeepAsConflict>().id, ok: true));
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
+    test('a new document without a file refuses a move', () {
+      final run = _Run.unwritten()
+        ..edit('ab', 1)
+        ..send(Move(Ticket()))
+        ..keep();
+      expect(run.all<MoveFile>(), isEmpty);
+      expect(run.last<MoveAnswer>().started, isFalse);
+    });
+
+    test('a change elsewhere refuses a move', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..keep()
+        ..send(Move(Ticket()))
+        ..wrote(const Changed(Seen('b', _v2)));
       expect(run.all<MoveFile>(), isEmpty);
       expect(run.last<MoveAnswer>().started, isFalse);
     });

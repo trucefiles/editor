@@ -295,4 +295,23 @@ void main() {
     expect(fixture.onDisk('a.md'), isNull);
     expect(fixture.onDisk('a.md', index: 1), 'xone\n');
   });
+
+  test(
+    'a move with unsaved edits, then leaving at once, takes them along',
+    () async {
+      final session = fixture.session()..type('x');
+
+      final moved = session.move((
+        place: (folder: fixture.folders[1], subfolder: null),
+        title: 'a',
+        newSubfolder: false,
+      ));
+      final kept = await session.secure(.close);
+
+      expect(kept, isTrue);
+      expect(await moved, isA<Ok<DocumentText, MoveFailure>>());
+      expect(fixture.onDisk('a.md'), isNull);
+      expect(fixture.onDisk('a.md', index: 1), 'xone\n');
+    },
+  );
 }

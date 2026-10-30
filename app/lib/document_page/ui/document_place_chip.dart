@@ -77,18 +77,16 @@ class DocumentPlaceChip extends ConsumerWidget {
   }
 
   /// Moves or renames the document's file; an empty [name] names it after
-  /// the first line. The file owner moves it only once the file holds
-  /// every edit, so the move takes them along: they are saved first.
+  /// the first line. Asked at once, so leaving right after still moves it;
+  /// the file owner saves the edits first, so the move takes them along.
   Future<void> _move(BuildContext context, PickedPlace picked) async {
     final (:place, :name, :newSubfolder) = picked;
-    await session.secure(SecureReason.hide);
-    if (!context.mounted) return;
     final current = session.document;
     if (current == null) {
-      return showSnack(context, moveFailureText(const MoveWaitsForSave()));
+      return showSnack(context, moveFailureText(const MoveNotSaved()));
     }
     final title = name.trim().isEmpty
-        ? documentTitleLine(current.text, current.type)
+        ? documentTitleLine(session.text, current.type)
         : name.trim();
     if (place.folder.id == current.folder.id &&
         place.subfolder == current.path.parent &&
