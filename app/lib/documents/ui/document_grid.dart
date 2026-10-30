@@ -1,56 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/snack.dart';
 import '../../document_page/ui/document_screen.dart';
 import '../documents_wiring.dart';
+import 'card_frame.dart';
 
-/// [count] cards, each built by [card], in columns up to 240 wide, each
-/// card as tall as its content: the layout shared by every document grid.
-/// Only cards near the screen are built.
-///
-/// BUG (flutter_staggered_grid_view 0.7.0): once this grid has scrolled
-/// fully off the top, it reports a wrong height, so whatever follows it
-/// jumps and the scroll snaps back. Only use it as the last sliver; put
-/// grids that something follows in [documentGridAtOnce].
-Widget documentGrid(int count, Widget Function(int index) card) =>
-    SliverMasonryGrid(
-      gridDelegate: _columns,
-      crossAxisSpacing: _spacing,
-      mainAxisSpacing: _spacing,
-      delegate: SliverChildBuilderDelegate(
-        (_, index) => card(index),
-        childCount: count,
-      ),
-    );
-
-/// [cards] laid out as [documentGrid], all built at once.
-///
-/// TODO(etv): WORKAROUND, TEMPORARY. Exists only to avoid the bug noted
-/// on [documentGrid]: a grid built at once never scrolls inside, so it never
-/// hits it. Remove it, and the library, when our own masonry sliver
-/// replaces flutter_staggered_grid_view (todo, after Phase 1).
-Widget documentGridAtOnce(List<Widget> cards) =>
-    SliverToBoxAdapter(child: documentGridBox(cards));
+/// [count] cards, each built by [card], in columns up to 240 wide, all
+/// [cardHeight] tall: the layout shared by every document grid. Only cards
+/// near the screen are built.
+Widget documentGrid(int count, Widget Function(int index) card) => Builder(
+  builder: (context) => SliverGrid(
+    gridDelegate: _columns(context),
+    delegate: SliverChildBuilderDelegate(
+      (_, index) => card(index),
+      childCount: count,
+    ),
+  ),
+);
 
 /// [cards] laid out as [documentGrid], all built at once, as a box: for a
 /// part of a list that is built only near the screen, such as a section.
-Widget documentGridBox(List<Widget> cards) => MasonryGridView.custom(
-  gridDelegate: _columns,
-  crossAxisSpacing: _spacing,
-  mainAxisSpacing: _spacing,
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  padding: EdgeInsets.zero,
-  childrenDelegate: SliverChildListDelegate(cards),
+Widget documentGridBox(List<Widget> cards) => Builder(
+  builder: (context) => GridView(
+    gridDelegate: _columns(context),
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: EdgeInsets.zero,
+    children: cards,
+  ),
 );
 
-const _columns = SliverSimpleGridDelegateWithMaxCrossAxisExtent(
-  maxCrossAxisExtent: 240,
-);
+SliverGridDelegate _columns(BuildContext context) =>
+    SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: 240,
+      mainAxisSpacing: _spacing,
+      crossAxisSpacing: _spacing,
+      mainAxisExtent: cardHeight(context),
+    );
+
 const _spacing = 8.0;
 
 /// Opens [document] in the editor, with its text as it is now; tells the

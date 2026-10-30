@@ -5,11 +5,12 @@ import 'package:truce_documents/truce_documents.dart';
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../../text_zoom/ui/document_text_zoom.dart';
 import '../document_colors.dart';
+import 'card_frame.dart';
 
 /// A document in the grid: title and first lines at the document text zoom
-/// (as its [preview] has them); folder, last edit, pin and color.
+/// (as its [preview] has them, as many as fit); folder, last edit, pin and
+/// color.
 class DocumentCard extends StatelessWidget {
   const DocumentCard(
     this.document, {
@@ -42,8 +43,7 @@ class DocumentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return CardFrame(
       color: documentTint(mark.color, theme.colorScheme),
       // An outline makes a conflict stand out in a full grid.
       shape: hasConflict
@@ -51,77 +51,35 @@ class DocumentCard extends StatelessWidget {
               side: BorderSide(color: theme.colorScheme.error, width: 2),
             )
           : null,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onMark,
-        onSecondaryTap: onMark,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DocumentTextZoom(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 6,
-                  children: [
-                    Text(
-                      cardTitle(document, preview),
-                      style: textTheme.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    ...switch (preview) {
-                      Previewed(:final summary)
-                          when summary.preview(settings.view).isNotEmpty =>
-                        [
-                          Text(
-                            summary.preview(settings.view),
-                            style: textTheme.bodySmall,
-                            maxLines: DocumentCardSummary.previewLines,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      PreviewNotText() => [
-                        Text(
-                          "Can't be shown as text.",
-                          style: textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                      Previewed() ||
-                      PreviewReading() ||
-                      PreviewUnreadable() => const <Widget>[],
-                    },
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                spacing: 6,
-                children: [
-                  Expanded(
-                    child: FolderBadge(document.folder, file: document.path),
-                  ),
-                  Text(
-                    TimeTexts.of(context)
-                        .edited(document.modified, now: DateTime.now()),
-                    style: textTheme.labelSmall,
-                  ),
-                  if (settings.pinned)
-                    const Tooltip(
-                      message: 'Pinned',
-                      child: Icon(Icons.push_pin, size: 18),
-                    ),
-                  if (hasConflict) const ConflictLabel(),
-                ],
-              ),
-            ],
-          ),
+      onTap: onTap,
+      onMark: onMark,
+      title: cardTitle(document, preview),
+      body: switch (preview) {
+        Previewed(:final summary)
+            when summary.preview(settings.view).isNotEmpty =>
+          CardLines(summary.preview(settings.view), style: textTheme.bodySmall),
+        PreviewNotText() => CardLines(
+          "Can't be shown as text.",
+          style: textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
         ),
+        Previewed() || PreviewReading() || PreviewUnreadable() => null,
+      },
+      footer: Row(
+        spacing: 6,
+        children: [
+          Expanded(child: FolderBadge(document.folder, file: document.path)),
+          Text(
+            TimeTexts.of(context)
+                .edited(document.modified, now: DateTime.now()),
+            style: textTheme.labelSmall,
+          ),
+          if (settings.pinned)
+            const Tooltip(
+              message: 'Pinned',
+              child: Icon(Icons.push_pin, size: 18),
+            ),
+          if (hasConflict) const ConflictLabel(),
+        ],
       ),
     );
   }

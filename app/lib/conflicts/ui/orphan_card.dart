@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_documents/truce_documents.dart';
 
+import '../../documents/ui/card_frame.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../../text_zoom/ui/document_text_zoom.dart';
 
 /// A document deleted on one device while edited on another: only the edited
 /// version is left, shown at the document text zoom like other document cards.
@@ -14,44 +14,19 @@ class OrphanCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DocumentTextZoom(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 6,
-                  children: [
-                    Text(
-                      conflict.conflict.mainPath.name,
-                      style: theme.textTheme.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Text(
-                      'Deleted on one device, edited on another. '
-                      'Tap to restore or discard.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              FolderBadge(conflict.folder, file: conflict.conflict.mainPath),
-            ],
-          ),
+  Widget build(BuildContext context) => CardFrame(
+    color: Theme.of(context).colorScheme.errorContainer,
+    onTap: onTap,
+    title: conflict.conflict.mainPath.name,
+    body: const CardLines(
+      'Deleted on one device, edited on another. Tap to restore or discard.',
+    ),
+    footer: Row(
+      children: [
+        Flexible(
+          child: FolderBadge(conflict.folder, file: conflict.conflict.mainPath),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }

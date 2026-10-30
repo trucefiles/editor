@@ -21,7 +21,7 @@ void main() {
   );
 
   double top(WidgetTester tester, String text) =>
-      tester.getTopLeft(find.text(text)).dy;
+      tester.getTopLeft(find.text(text, skipOffstage: false)).dy;
 
   testWidgets('shows pinned cards under their own heading first', (
     tester,
@@ -50,7 +50,7 @@ void main() {
     expect(find.text('Recent'), findsNothing);
   });
 
-  testWidgets('cards keep their own height', (tester) async {
+  testWidgets('cards are all one height', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -65,8 +65,10 @@ void main() {
       ),
     );
 
-    expect(tester.getSize(find.byType(SizedBox).at(0)).height, 50);
-    expect(tester.getSize(find.byType(SizedBox).at(1)).height, 300);
+    expect(
+      tester.getSize(find.byType(SizedBox).at(0)).height,
+      tester.getSize(find.byType(SizedBox).at(1)).height,
+    );
   });
 
   testWidgets('scrolls past the pinned cards to the end', (tester) async {
@@ -98,11 +100,7 @@ void main() {
     expect(find.text('other 59'), findsOne);
   });
 
-  // Skipped: home builds Pinned and Recent at once until the own masonry
-  // grid replaces the at-once grid, planned right after release 0.9.0.
-  testWidgets('builds only the cards near the screen', skip: true, (
-    tester,
-  ) async {
+  testWidgets('builds only the cards near the screen', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -121,5 +119,35 @@ void main() {
     expect(find.text('pinned 0'), findsOne);
     expect(find.text('pinned 39', skipOffstage: false), findsNothing);
     expect(find.text('other 199', skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('a jump past the pinned cards keeps every section in place', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(520, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DocumentSections(
+            pinned: [for (var i = 0; i < 10; i++) Text('pinned $i')],
+            others: [for (var i = 0; i < 80; i++) Text('other $i')],
+          ),
+        ),
+      ),
+    );
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable))
+        .position;
+    final recent = top(tester, 'Recent');
+
+    position.jumpTo(3000);
+    await tester.pump();
+    position.jumpTo(0);
+    await tester.pump();
+
+    expect(top(tester, 'Recent'), recent);
+    expect(find.text('pinned 0'), findsOne);
   });
 }
