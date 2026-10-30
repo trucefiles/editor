@@ -159,6 +159,46 @@ void main() {
 
       expect(document.text, '- [ ] milk\n- [ ] bread\n- [ ] eggs');
     });
+
+    testWidgets('lets the right arrow pass it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.caretIn(checkboxNodeOf(), 4);
+      await tester.pressRightArrow();
+      await tester.pressRightArrow();
+      await tester.typeImeText('x');
+
+      expect(document.text, '- [ ] milk\n- [ ] ------\n- [ ] exggs');
+    });
+
+    testWidgets('lets the left arrow pass it', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.caretIn(checkboxNodeOf(index: 1), 0);
+      await tester.pressLeftArrow();
+      await tester.pressLeftArrow();
+      await tester.typeImeText('x');
+
+      expect(document.text, '- [ ] milxk\n- [ ] ------\n- [ ] eggs');
+    });
+  });
+
+  testWidgets('the arrow keys pass a separator between paragraphs', (
+    tester,
+  ) async {
+    final document = TestDocument('milk\n\n---\n\neggs');
+    await pumpDocument(tester, document);
+
+    await tester.caretIn(paragraphNodeOf(), 4);
+    await tester.pressRightArrow();
+    await tester.typeImeText('x');
+    await tester.pressLeftArrow();
+    await tester.pressLeftArrow();
+    await tester.typeImeText('y');
+
+    expect(document.text, 'milky\n\n---\n\nxeggs');
   });
 
   testWidgets('Separator adds a separator item after the caret\'s item', (

@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/selection.dart';
+import 'package:truce_markdown/src/view/rows.dart';
 
 import '../support/shown.dart';
 
@@ -42,6 +43,20 @@ void main() {
   test('in a bulleted list is an item of its own, read back as one', () {
     final (text, _) = _added('- a\n- b', 0, 1);
     expect(text, '- a\n- ***\n- b');
+    expect(Shown.read(text).rows, ['a', '[DividerNode]', 'b']);
+  });
+
+  test("in a Done section is a checked item, so it stays by the caret's "
+      'item', () {
+    final document = Shown.read('- [x] a\n- [ ] b', done: DoneSections());
+    final edited = document.run(AddDivider(document.place(1, 1)));
+    expect(edited.document.text, '- [x] a\n- [x] ***\n- [ ] b');
+    expect(edited.document.rows, ['b', 'done a', '[DividerNode]']);
+  });
+
+  test('in a list with * markers is written so it reads back as one', () {
+    final (text, _) = _added('* a\n* b', 0, 1);
+    expect(text, '* a\n* ---\n* b');
     expect(Shown.read(text).rows, ['a', '[DividerNode]', 'b']);
   });
 

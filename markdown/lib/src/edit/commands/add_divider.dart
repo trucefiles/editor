@@ -4,11 +4,12 @@ import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../change.dart';
 import '../selection.dart';
+import 'items.dart';
 
 /// A divider after the block the caret [at] is in: in an item, as a new
-/// item of its own right after it (with an open box where the list's
-/// items have boxes); elsewhere right after the caret's block. The caret
-/// goes to the start of the text after it.
+/// item of its own right after it, with the box Enter would give it;
+/// elsewhere right after the caret's block. The caret goes to the start
+/// of the text after it.
 Change addDivider(ViewRows view, Place at) {
   final doc = view.doc;
   final fresh = doc.freshIds;
@@ -19,9 +20,7 @@ Change addDivider(ViewRows view, Place at) {
       .lastOrNull) {
     final item? => (
       item,
-      ItemNode(fresh.take(), [
-        divider,
-      ], checked: _hasBoxes(doc.parentOf(item.id)) ? false : null),
+      ItemNode(fresh.take(), [divider], checked: newBox(view, item, at)),
     ),
     null => (doc.nodeOf(at.leaf)!, divider),
   };
@@ -32,6 +31,3 @@ Change addDivider(ViewRows view, Place at) {
     selection: caretAfter(view, (row) => goesWith(doc, row, {anchor.id})),
   );
 }
-
-bool _hasBoxes(DocContainer? list) =>
-    list is ListNode && list.items.any((item) => item.hasBox);

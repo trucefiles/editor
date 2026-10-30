@@ -227,6 +227,20 @@ void main() {
       await tester.leaveExpecting(app, '# Shop\n- [ ] milk\n- [ ] eggs\n');
     });
 
+    testApp('lets the arrow keys pass it', (tester) async {
+      await tester.openVisual(app, 'Shop', shop);
+      await tester.clickLine('milk', 4);
+
+      await tester.pressRightArrow();
+      await tester.pressRightArrow();
+      await tester.typeImeText('x');
+
+      await tester.leaveExpecting(
+        app,
+        '# Shop\n- [ ] milk\n- [ ] ------\n- [ ] exggs\n',
+      );
+    });
+
     testApp('Backspace on it leaves the item empty, with the caret in it', (
       tester,
     ) async {

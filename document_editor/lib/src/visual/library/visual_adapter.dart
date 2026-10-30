@@ -87,6 +87,20 @@ final class VisualAdapter {
     _ => null,
   };
 
+  /// A tap at [position]: a divider there is selected whole, as a block;
+  /// whether there was one.
+  bool selectDividerAt(DocumentPosition position) {
+    final node = _document.getNodeById(position.nodeId);
+    if (node == null) return false;
+    if (lookOf(node) case BlockLook(leaf: md.DividerNode(:final id))) {
+      _gate.send(
+        (now) => md.CaretMoved(md.BlockSelection(id), revision: now.revision),
+      );
+      return true;
+    }
+    return false;
+  }
+
   // Library requests.
 
   /// Our command for [request]: an owner input for a content request,
@@ -350,8 +364,9 @@ final class VisualAdapter {
       }
       return;
     }
-    if (selection == _positions.toLibrary(shown.selection, raw: raw)) return;
-    if (_positions.toOwner(selection) case final moved?) {
+    final was = _positions.toLibrary(shown.selection, raw: raw);
+    if (selection == was) return;
+    if (_positions.toOwner(selection, was: was) case final moved?) {
       _gate.send((now) => md.CaretMoved(moved, revision: now.revision));
     }
   }

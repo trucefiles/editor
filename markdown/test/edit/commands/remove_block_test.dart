@@ -56,6 +56,15 @@ void main() {
     });
   }
 
+  test("a separator item's divider above its subitems leaves an empty "
+      'text with the caret, the subitems kept', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n  - [ ] b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(RemoveBlock(divider.id, backward: true));
+    expect(edited.document.text, '- [ ] a\n- [ ] \n  - [ ] b');
+    expect(edited.selection, edited.document.caret(1, 0));
+  });
+
   test('a last divider leaves the caret in the empty text after it', () {
     final (text, caret) = _removed('ab\n\n---');
     expect(text, 'ab');

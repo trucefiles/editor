@@ -12,6 +12,7 @@ import '../library/own_paste.dart';
 import '../library/touch_controls.dart';
 import '../ui/document_image.dart';
 import '../ui/empty_document_hint.dart';
+import 'library/divider_tap_handler.dart';
 import 'library/ime_batches.dart';
 import 'library/visual_adapter.dart';
 import 'library/visual_keys.dart';
@@ -123,6 +124,13 @@ class _VisualEditViewState extends State<VisualEditView> {
     _focus.requestFocus();
   }
 
+  /// A tap on a divider selects it, with the keyboard here as for text.
+  bool _selectDividerAt(DocumentPosition position) {
+    final selected = _adapter.selectDividerAt(position);
+    if (selected) _focus.requestFocus();
+    return selected;
+  }
+
   @override
   Widget build(BuildContext context) {
     final look = _look!;
@@ -139,6 +147,7 @@ class _VisualEditViewState extends State<VisualEditView> {
       componentBuilders: [RowBuilder(_actions), BlockBuilder(_actions)],
       keyboardActions: visualKeyboardActions(_adapter),
       contentTapDelegateFactories: [
+        (_) => DividerTapHandler(_selectDividerAt),
         (_) => LinkTapHandler(
           linkAt: _adapter.linkAt,
           onLink: widget.onLink,

@@ -6,11 +6,12 @@ import '../selection.dart';
 
 /// [block], one without text (a selected divider), gone: the caret at
 /// the end of the text above it if [backward], else at the start of the
-/// next text, or the other way where there is none. As an item's only
+/// next text, or the other way where there is none. As an item's first
 /// block, an empty text takes its place, with the caret, so the item
 /// stays as an empty one.
 Change removeBlock(ViewRows view, NodeId block, {required bool backward}) {
-  if (view.doc.parentOf(block) case ItemNode(children: [_])) {
+  if (view.doc.parentOf(block) case ItemNode(children: [final first, ...])
+      when first.id == block) {
     final fresh = view.doc.freshIds;
     final text = emptyParagraph(fresh);
     return (
