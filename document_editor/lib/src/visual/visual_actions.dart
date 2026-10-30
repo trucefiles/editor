@@ -41,11 +41,11 @@ final class VisualActions {
 
   void deleteItem(NodeId item) => _gate.run((_) => DeleteItem(item));
 
-  /// The item whose text [leaf] is, one level deeper or shallower, where
-  /// it can go; the user's selection stays where it is.
-  void indent(NodeId leaf) => _gate.run(
-    (selection) => switch (_shown?.view) {
-      final view? when canIndent(view, leaf) => Indent(
+  /// [item] one level deeper or shallower, where it can go; the user's
+  /// selection stays where it is.
+  void indent(NodeId item) => _gate.run(
+    (selection) => switch ((_shown?.view, _leafOf(item))) {
+      (final view?, final leaf?) when canIndent(view, leaf) => Indent(
         TextSelection.caret(Place(leaf, 0)),
         after: selection,
       ),
@@ -53,15 +53,21 @@ final class VisualActions {
     },
   );
 
-  void outdent(NodeId leaf) => _gate.run(
-    (selection) => switch (_shown?.view) {
-      final view? when canOutdent(view, leaf) => Outdent(
+  void outdent(NodeId item) => _gate.run(
+    (selection) => switch ((_shown?.view, _leafOf(item))) {
+      (final view?, final leaf?) when canOutdent(view, leaf) => Outdent(
         TextSelection.caret(Place(leaf, 0)),
         after: selection,
       ),
       _ => null,
     },
   );
+
+  /// The block that starts [item], as the blocks are now.
+  NodeId? _leafOf(NodeId item) => switch (_shown?.view.doc.nodeOf(item)) {
+    final ItemNode item => leavesIn(item).first.id,
+    _ => null,
+  };
 
   /// [item] lifted to be dragged: taps waiting go first; its subitems
   /// fold.
@@ -72,12 +78,10 @@ final class VisualActions {
 
   void dragEnded() => onFold(null);
 
-  /// [item], whose text is [leaf], dropped right next to [target]'s row,
-  /// [below] it or above; dropped on itself, it goes [levels] deeper
-  /// (shallower if negative).
+  /// [item] dropped right next to [target]'s row, [below] it or above;
+  /// dropped on itself, it goes [levels] deeper (shallower if negative).
   void drop(
     NodeId item, {
-    required NodeId leaf,
     required NodeId target,
     required bool below,
     required int levels,
@@ -99,7 +103,7 @@ final class VisualActions {
     }
     final step = levels > 0 ? indent : outdent;
     for (final _ in Iterable<void>.generate(levels.abs())) {
-      step(leaf);
+      step(item);
     }
   }
 

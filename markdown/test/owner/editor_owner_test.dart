@@ -394,6 +394,32 @@ void main() {
       expect(run.rows, ['abc', '[RawNode]', '']);
     });
 
+    test('closes before a command, what it reads as selected', () {
+      final run = EditorRun('ab\n\n<div>\n\nc')..caret(0, 1);
+      run.owner
+        ..send(OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision))
+        ..send(CloseRawBlock(revision: run.revision));
+      expect(run.shown.raw, isNull);
+      expect(run.shown.selection, BlockSelection(run.leaf(1)));
+    });
+
+    test('closes before a command, typed text read anew and selected', () {
+      final run = EditorRun('ab\n\n<div>\n\nc')..caret(0, 1);
+      run.owner
+        ..send(OpenRawBlock(run.leaf(1), atEnd: true, revision: run.revision))
+        ..send(EditRaw('# T', base: 3, extent: 3, revision: run.revision))
+        ..send(CloseRawBlock(revision: run.revision));
+      expect(run.rows, ['ab', 'T', 'c']);
+      expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 0)));
+    });
+
+    test('a close with none open changes nothing', () {
+      final run = EditorRun('ab')..caret(0, 1);
+      final before = run.shown.selection;
+      run.owner.send(CloseRawBlock(revision: run.revision));
+      expect(run.shown.selection, before);
+    });
+
     test('closes before another raw block opens', () {
       final run = EditorRun('<div>\n\na\n\n<p>');
       run.owner

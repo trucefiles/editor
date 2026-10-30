@@ -250,14 +250,15 @@ final class RemoveLink extends EditCommand {
   final Place at;
 }
 
-/// A raw block closed (the caret left it) with [raw] typed in it (see
-/// `closeRaw`); [selection] stays where its text stays.
+/// A raw block closed (the caret left it, or a command comes) with [raw]
+/// typed in it (see `closeRaw`); [selection] stays where its text stays,
+/// or, if `null`, what [raw] reads as is selected.
 final class CloseRaw extends EditCommand {
   const CloseRaw(this.block, this.raw, this.selection);
 
   final NodeId block;
   final String raw;
-  final Selection selection;
+  final Selection? selection;
 }
 
 /// What [view] shows after [command], with the selection after it.

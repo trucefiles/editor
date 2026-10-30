@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../../library/child_text.dart';
-import '../row_looks.dart';
 import '../visual_actions.dart';
 import 'framed_row.dart';
 import 'row_builder.dart';
@@ -60,11 +59,6 @@ class _RowComponentState extends State<RowComponent>
     );
     return FramedRow(
       frames: _row.frames,
-      leaf: switch (_row.look) {
-        TextLook(:final leaf) => leaf.id,
-        RawTextLook(:final raw) => raw.block,
-        final look => throw StateError('a row without text: $look'),
-      },
       content: text,
       copy: Text(
         _row.text.toPlainText(),

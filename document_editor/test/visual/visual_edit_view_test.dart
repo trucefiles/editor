@@ -696,6 +696,52 @@ void main() {
     });
   });
 
+  group('a table open as text in an item', () {
+    const list = '- a\n- | x |\n  |---|\n- b';
+
+    Future<void> openAndType(WidgetTester tester, TestDocument document) async {
+      await pumpDocument(tester, document);
+      await tester.tap(find.byType(DrawnTable));
+      await tester.pumpAndSettle();
+      await tester.typeImeText('y');
+    }
+
+    testWidgets('typed in, then shifted by its handle, closes and indents', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await openAndType(tester, document);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.drag_indicator).at(1)),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      for (final _ in Iterable<int>.generate(20)) {
+        await gesture.moveBy(const Offset(3, 0));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Typed at its start, the table reads as text now.
+      expect(document.text, '- a\n  - y| x |\n    \\|---|\n- b');
+    });
+
+    testWidgets('typed in, the Separator button adds one after it', (
+      tester,
+    ) async {
+      final document = TestDocument(list);
+      await openAndType(tester, document);
+
+      await tester.tap(find.byTooltip('Separator'));
+      await tester.pumpAndSettle();
+
+      expect(document.text, contains('y'));
+      expect(document.text, endsWith('|---|\n- ***\n- b'));
+    });
+  });
+
   final linux = TargetPlatformVariant.only(TargetPlatform.linux);
 
   testWidgets('keypad keys move the caret with NumLock off', (tester) async {

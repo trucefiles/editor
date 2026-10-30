@@ -41,19 +41,13 @@ class LineDragHandle extends StatelessWidget {
   }
 }
 
-/// The item [item] being dragged, the text that starts it [leaf]; its
-/// row is [row], which looks like [look] while dragged.
+/// The item [item] being dragged; its row is [row], which looks like
+/// [look] while dragged.
 @immutable
 final class LineDrag {
-  const LineDrag(
-    this.item, {
-    required this.leaf,
-    required this.row,
-    required this.look,
-  });
+  const LineDrag(this.item, {required this.row, required this.look});
 
   final NodeId item;
-  final NodeId leaf;
   final GlobalKey row;
   final Widget look;
 

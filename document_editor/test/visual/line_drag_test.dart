@@ -24,12 +24,7 @@ Widget _handle(int index, GlobalKey row, {String? copy}) => SizedBox(
   width: 48,
   height: 48,
   child: LineDragHandle(
-    LineDrag(
-      NodeId(index),
-      leaf: NodeId(100 + index),
-      row: row,
-      look: Text(copy ?? 'copy $index'),
-    ),
+    LineDrag(NodeId(index), row: row, look: Text(copy ?? 'copy $index')),
     icon: const Icon(Icons.drag_indicator),
   ),
 );

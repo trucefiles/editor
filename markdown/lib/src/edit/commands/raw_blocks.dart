@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../../doc/definitions.dart';
 import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
 import '../../doc/load.dart';
 import '../../tree/blocks.dart';
 import '../../view/rows.dart';
@@ -13,14 +14,16 @@ import '../selection.dart';
 /// with [raw] typed in it: what [raw] reads as (any blocks, or none)
 /// takes its place; a changed raw text that changes the link definitions
 /// leads reference links where they now say. [selection] stays where
-/// its text stays.
-Change closeRaw(ViewRows view, NodeId block, String raw, Selection selection) {
+/// its text stays; without one, what [raw] reads as is selected (see
+/// [_startOfRead]).
+Change closeRaw(ViewRows view, NodeId block, String raw, Selection? selection) {
   final doc = view.doc;
   if ((doc.nodeOf(block)! as RawLeaf).raw == raw) {
-    return (doc: doc, selection: selection);
+    return (doc: doc, selection: selection ?? BlockSelection(block));
   }
   final fresh = doc.freshIds;
-  final read = doc.edited({block: newBlocksOf(raw, fresh)}, fresh: fresh);
+  final blocks = newBlocksOf(raw, fresh);
+  final read = doc.edited({block: blocks}, fresh: fresh);
   final definitions = definitionsOf(read.root);
   final changed = !const MapEquality<String, LinkDefinition>().equals(
     definitionsOf(doc.root),
@@ -28,6 +31,21 @@ Change closeRaw(ViewRows view, NodeId block, String raw, Selection selection) {
   );
   return (
     doc: changed ? withResolvedReferences(read, definitions) : read,
-    selection: selectionOnceGone(view, selection, {block}),
+    selection: switch (selection) {
+      final selection? => selectionOnceGone(view, selection, {block}),
+      null =>
+        _startOfRead(read, {for (final block in blocks) block.id}) ??
+            caretOnceGone(view, {block}),
+    },
   );
 }
+
+/// The start of [blocks] in [doc]: a caret at the start of its first row
+/// if that has text, else that block selected; `null` if none shows.
+Selection? _startOfRead(DocTree doc, Set<NodeId> blocks) =>
+    switch (ViewRows(doc).rows
+        .firstWhereOrNull((row) => goesWith(doc, row, blocks))) {
+      TextRow(:final leaf) => TextSelection.caret(Place(leaf.id, 0)),
+      BlockRow(:final leaf) => BlockSelection(leaf.id),
+      null => null,
+    };

@@ -10,7 +10,7 @@ import 'line_drop_zone.dart';
 import 'swipe_to_indent.dart';
 
 /// The row of [item] beside [content], the block that starts it (text,
-/// or a block without text, [leaf]): drag handle, marker and, while
+/// or a block without text): drag handle, marker and, while
 /// [active], a delete button, spaced by the document's metrics. The
 /// handle and delete button take the whole row's height, so a finger
 /// hits them anywhere beside the row. While dragged, the copy shows the
@@ -18,7 +18,6 @@ import 'swipe_to_indent.dart';
 class ItemRow extends StatefulWidget {
   const ItemRow({
     required this.item,
-    required this.leaf,
     required this.content,
     required this.copy,
     required this.active,
@@ -28,7 +27,6 @@ class ItemRow extends StatefulWidget {
   });
 
   final ItemFrame item;
-  final NodeId leaf;
   final Widget content;
   final Widget copy;
   final bool active;
@@ -72,12 +70,7 @@ class _ItemRowState extends State<ItemRow> {
           width: metrics.handleWidth,
           child: SwipeToIndent.keepMouseDrags(
             LineDragHandle(
-              LineDrag(
-                item.item,
-                leaf: widget.leaf,
-                row: _rowKey,
-                look: _dragged(metrics),
-              ),
+              LineDrag(item.item, row: _rowKey, look: _dragged(metrics)),
               icon: _slotIcon(Icons.drag_indicator, metrics),
             ),
           ),
@@ -172,20 +165,18 @@ class _MarkedRow extends StatelessWidget {
   }
 }
 
-/// The whole row of [item], [child] with its indent, whose content is
-/// [leaf]: a drop or swipe anywhere on it counts (swipe right or left to
-/// indent or outdent); while [item] is dragged, it fades where it was.
+/// The whole row of [item], [child] with its indent: a drop or swipe
+/// anywhere on it counts (swipe right or left to indent or outdent);
+/// while [item] is dragged, it fades where it was.
 class MovableItem extends StatelessWidget {
   const MovableItem({
     required this.item,
-    required this.leaf,
     required this.actions,
     required this.child,
     super.key,
   });
 
   final NodeId item;
-  final NodeId leaf;
   final VisualActions actions;
   final Widget child;
 
@@ -194,8 +185,8 @@ class MovableItem extends StatelessWidget {
     item: item,
     child: SwipeToIndent(
       step: DocumentMetrics.of(context).levelIndent,
-      onIndent: () => actions.indent(leaf),
-      onOutdent: () => actions.outdent(leaf),
+      onIndent: () => actions.indent(item),
+      onOutdent: () => actions.outdent(item),
       child: ValueListenableBuilder(
         valueListenable: LineDropZone.of(context).lifted,
         builder: (_, dragged, child) =>

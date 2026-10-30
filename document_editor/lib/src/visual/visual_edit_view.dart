@@ -180,7 +180,6 @@ class _VisualEditViewState extends State<VisualEditView> {
                           required levels,
                         }) => _actions.drop(
                           drag.item,
-                          leaf: drag.leaf,
                           target: target,
                           below: below,
                           levels: levels,

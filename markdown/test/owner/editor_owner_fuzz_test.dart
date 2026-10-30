@@ -177,6 +177,7 @@ EditorMessage? _randomInput(
       atEnd: random.nextBool(),
       revision: revision,
     ),
+    13 when random.nextBool() => CloseRawBlock(revision: revision),
     13 => const Request(Undo()),
     14 => const Request(Redo()),
     _ => SetMode(EditMode.visual),

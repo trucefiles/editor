@@ -107,7 +107,10 @@ final class _Step with EditorSteps<Snapshot> {
         if (offered case final what?) {
           notify(UndoOffered(book.history.latestId!, what));
         }
-      case CaretMoved() || RawCaretMoved() || TextCaretMoved():
+      case CaretMoved() ||
+          RawCaretMoved() ||
+          TextCaretMoved() ||
+          CloseRawBlock():
         // Typing after a caret move starts a new step.
         endTypingRun();
       case _:
@@ -167,6 +170,10 @@ final class _Step with EditorSteps<Snapshot> {
         );
       case (CaretMoved(:final selection), _):
         _show(_closedRaw(selection));
+      case (CloseRawBlock(), _?):
+        _show(_closedRaw(null));
+      case (CloseRawBlock(), null):
+        break;
       case (_, _?):
         // Any other input closes the raw block first.
         final closed = _closedRaw(shown.selection);
@@ -364,7 +371,7 @@ final class _Step with EditorSteps<Snapshot> {
   /// What shows once the open raw block, if one is, takes what was typed
   /// in it (which the text sent holds already), [selection] where it
   /// stays.
-  FormattedContent _closedRaw(Selection selection) {
+  FormattedContent _closedRaw(Selection? selection) {
     final shown = state.content as FormattedContent;
     final closed = rawClosed(shown, selection);
     return FormattedContent(

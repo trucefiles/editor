@@ -82,7 +82,6 @@ class BlockBuilder implements ComponentBuilder {
     };
     return FramedRow(
       frames: frames,
-      leaf: leaf.id,
       content: block,
       copy: _block(leaf, context),
       active: selected,
