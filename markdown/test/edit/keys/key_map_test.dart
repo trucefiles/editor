@@ -143,6 +143,22 @@ void main() {
       );
     });
 
+    test('removes a separator within a Done section', () {
+      final done = DoneSections();
+      expect(
+        _command(
+          _action(
+            '- [x] a\n- [x] ***\n- [x] b',
+            2,
+            0,
+            EditKey.backspace,
+            done: done,
+          ),
+        ),
+        isA<RemoveBlock>(),
+      );
+    });
+
     test('right after Enter in a Done section joins the split back', () {
       final done = DoneSections();
       final text = '- [ ] c\n- [x] ab';
@@ -208,6 +224,19 @@ void main() {
       final edited = document.run(_command(action));
       expect(edited.document.text, 'a\n\nb');
       expect(edited.selection, edited.document.caret(0, 1));
+    });
+
+    test('before a separator in the Done section does nothing', () {
+      expect(
+        _action(
+          '- [ ] a\n- [x] ***',
+          0,
+          1,
+          EditKey.delete,
+          done: DoneSections(),
+        ),
+        isA<Consumed>(),
+      );
     });
 
     test('before a separator item leaves that item empty', () {

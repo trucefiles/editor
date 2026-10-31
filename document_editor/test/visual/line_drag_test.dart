@@ -12,6 +12,10 @@ typedef Drop = (NodeId item, NodeId target, bool below, int levels);
 /// [child] in a drop zone a level 24 wide; drops go to [onDrop].
 Widget _zone(Widget child, {void Function(Drop drop)? onDrop}) => LineDropZone(
   step: 24,
+  // Rows are items of one list, in the order of their ids.
+  staysInPlace: (item, target, {required below}) =>
+      target == item ||
+      _ids.indexOf(target) == _ids.indexOf(item) + (below ? -1 : 1),
   onLift: (_) {},
   onDrop: (drag, {required target, required below, required levels}) =>
       onDrop?.call((drag.item, target, below, levels)),
@@ -28,6 +32,9 @@ Widget _handle(int index, GlobalKey row, {String? copy}) => SizedBox(
     icon: const Icon(Icons.drag_indicator),
   ),
 );
+
+/// The rows' items, top to bottom.
+final _ids = [for (final index in Iterable<int>.generate(20)) NodeId(index)];
 
 void main() {
   testWidgets('the dragged copy shows its text as the row does', (
@@ -188,11 +195,9 @@ void main() {
       );
       await gesture.up();
 
-      // As high as the room a row takes: its height and the space below.
-      final step = 48 + spacing;
-      final open = seen.skipWhile((gap) => gap < step - 0.01).toList();
+      final open = seen.skipWhile((gap) => gap < 48).toList();
       expect(open, isNotEmpty);
-      expect(open, everyElement(closeTo(step, 0.01)), reason: 'gap: $seen');
+      expect(open, everyElement(closeTo(48, 0.01)), reason: 'gap: $seen');
     });
   }
 

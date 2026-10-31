@@ -2,6 +2,8 @@
 /// removing them.
 library;
 
+import 'package:collection/collection.dart';
+
 import '../../doc/doc_nodes.dart';
 import '../../doc/doc_tree.dart';
 import '../../doc/normalized.dart';
@@ -14,19 +16,63 @@ import '../selection.dart';
 bool? newBox(ViewRows view, ItemNode item, NodeId leaf) =>
     item.hasBox ? view.row(leaf)!.done : null;
 
-/// A new empty item for right after [item], with the box Enter would
-/// give it from its row of [leaf], and the item's text.
-(ItemNode, ParagraphNode) newItemAfter(
+/// [view]'s tree with [block] right after the block [leaf]; in an item,
+/// as a new item of its own right after that item, with the box Enter
+/// would give it.
+DocTree withBlockAfter(
   ViewRows view,
-  ItemNode item,
   NodeId leaf,
+  DocBlock block,
   FreshIds fresh,
 ) {
-  final text = emptyParagraph(fresh);
-  return (
-    ItemNode(fresh.take(), [text], checked: newBox(view, item, leaf)),
-    text,
-  );
+  final doc = view.doc;
+  final (anchor, added) = switch (doc
+      .pathOf(leaf)
+      .whereType<ItemNode>()
+      .lastOrNull) {
+    final item? => (
+      item as DocBlock,
+      ItemNode(fresh.take(), [block], checked: newBox(view, item, leaf)),
+    ),
+    null => (doc.nodeOf(leaf)!, block),
+  };
+  return doc.edited({
+    anchor.id: [anchor, added],
+  }, fresh: fresh);
+}
+
+/// Whether [leaf] is [item]'s own line: its first block, with nothing
+/// after it but its subitems.
+bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
+  [final first, ...final rest] =>
+    first.id == leaf && (rest.isEmpty || rest.first is ListNode),
+  _ => false,
+};
+
+/// Whether [item] moved right next to [target], [below] it or above,
+/// stays where it is: [target] is the item itself, the item's neighbor
+/// in its list on that side (one without subitems shown under it, for
+/// below), or the item's parent with the item as its first subitem.
+bool staysInPlace(
+  DocTree doc,
+  NodeId item,
+  NodeId target, {
+  required bool below,
+}) {
+  if (item == target) return true;
+  final list = doc.parentOf(item);
+  if (list is! ListNode) return false;
+  final siblings = list.items.map((node) => node.id).toList();
+  final neighbor = siblings.indexOf(item) + (below ? -1 : 1);
+  return switch (doc.nodeOf(target)) {
+    ItemNode(children: [_, ListNode(:final items), ...]) when below =>
+      items.first.id == item,
+    ItemNode() =>
+      neighbor >= 0 &&
+          neighbor < siblings.length &&
+          siblings[neighbor] == target,
+    _ => false,
+  };
 }
 
 /// [item]'s box checked or unchecked; [selection] stays.

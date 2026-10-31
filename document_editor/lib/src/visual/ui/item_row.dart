@@ -79,35 +79,34 @@ class _ItemRowState extends State<ItemRow> {
     );
   }
 
-  /// The copy, laid out as the row is, so its text lies where the row's
-  /// does when it lifts and lands.
-  Widget _dragged(DocumentMetrics metrics) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
+  /// The copy: the handle, and the marker with [ItemRow.copy] laid out
+  /// as the row is, so its text lies where the row's does when it lifts
+  /// and lands; then how many subitems move with it.
+  Widget _dragged(DocumentMetrics metrics) => Stack(
     children: [
-      SizedBox(
+      _MarkedRow(
+        widget.item,
+        style: widget.style,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: widget.copy),
+            if (widget.item.subitems case final subitems when subitems > 0)
+              Text(
+                '  +$subitems',
+                style: widget.style.copyWith(
+                  color: Theme.of(context).disabledColor,
+                ),
+              ),
+          ],
+        ),
+      ),
+      Positioned(
+        left: 0,
+        top: 0,
         width: metrics.handleWidth,
         child: _slotIcon(Icons.drag_indicator, metrics),
       ),
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: metrics.itemRowInset),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MarkerView(widget.item, style: widget.style),
-              Expanded(child: widget.copy),
-              if (widget.item.subitems case final subitems when subitems > 0)
-                Text(
-                  '  +$subitems',
-                  style: widget.style.copyWith(
-                    color: Theme.of(context).disabledColor,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-      SizedBox(width: metrics.handleWidth),
     ],
   );
 
@@ -142,19 +141,19 @@ class _ItemRowState extends State<ItemRow> {
 }
 
 /// [child] beside [item]'s marker (in [style]; its box checks or
-/// unchecks by [onToggle]), with room for the handle and delete button
-/// on its sides.
+/// unchecks by [onToggle], if given), with room for the handle and
+/// delete button on its sides.
 class _MarkedRow extends StatelessWidget {
   const _MarkedRow(
     this.item, {
     required this.style,
-    required this.onToggle,
     required this.child,
+    this.onToggle,
   });
 
   final ItemFrame item;
   final TextStyle style;
-  final VoidCallback onToggle;
+  final VoidCallback? onToggle;
   final Widget child;
 
   @override

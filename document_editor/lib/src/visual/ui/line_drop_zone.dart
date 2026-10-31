@@ -24,6 +24,7 @@ typedef _Target = ({_Place place, bool below});
 class LineDropZone extends StatefulWidget {
   const LineDropZone({
     required this.step,
+    required this.staysInPlace,
     required this.onLift,
     required this.onDrop,
     required this.onSettled,
@@ -33,6 +34,12 @@ class LineDropZone extends StatefulWidget {
 
   /// Width of one level.
   final double step;
+
+  /// Whether [item] dropped right next to [target], [below] it or above,
+  /// stays where it is: no gap opens there, and a drop there is one on
+  /// its own row.
+  final bool Function(NodeId item, NodeId target, {required bool below})
+  staysInPlace;
 
   /// A drag started.
   final ValueChanged<LineDrag> onLift;
@@ -113,13 +120,12 @@ class LineDropZoneState extends State<LineDropZone> {
     return places;
   }
 
-  /// Where [item]'s copy goes with its middle at [middle]: next to the
-  /// row nearest to it, below it if past its middle; `null` where no row
-  /// is, or for the item's own place (its own row, or right next to it,
-  /// where it already is), so room opens only once the copy's middle
-  /// passes a neighbor's middle.
-  _Target? _targetAt(NodeId item, double middle) {
-    final places = _places();
+  /// Where [item]'s copy goes with its middle at [middle], among
+  /// [places]: next to the row nearest to it, below it if past its
+  /// middle; `null` where no row is, or where the item would stay where it
+  /// is (its own row, or right next to it), so room opens only once the
+  /// copy's middle passes a neighbor's middle.
+  _Target? _targetAt(List<_Place> places, NodeId item, double middle) {
     final place = minBy(
       places,
       (place) => middle < place.top
@@ -130,32 +136,48 @@ class LineDropZoneState extends State<LineDropZone> {
     );
     if (place == null) return null;
     final below = middle > (place.top + place.bottom) / 2;
-    final slot = places.indexOf(place) + (below ? 1 : 0);
-    final own = places.indexWhere((place) => place.row.widget.item == item);
-    return own >= 0 && (slot == own || slot == own + 1)
+    return widget.staysInPlace(item, place.row.widget.item, below: below)
         ? null
         : (place: place, below: below);
   }
 
+  /// [item]'s own row among [places]; `null` once it is gone.
+  static _Place? _ownPlace(List<_Place> places, NodeId item) =>
+      places.firstWhereOrNull((place) => place.row.widget.item == item);
+
+  /// The room the dragged row at [own] takes: its target's height, which
+  /// holds the row's spacing too.
+  double _roomOf(_Place own) => own.bottom - own.top;
+
   void _hover(DragTargetDetails<LineDrag> details) {
     final drag = details.data;
-    _gap.value = switch (drag.at(details.offset)) {
-      final copy? => switch (_targetAt(drag.item, copy.middle)) {
+    final places = _places();
+    _gap.value = switch ((
+      drag.at(details.offset),
+      _ownPlace(places, drag.item),
+    )) {
+      (final copy?, final own?) => switch (_targetAt(
+        places,
+        drag.item,
+        copy.middle,
+      )) {
         (:final place, :final below) => (
           item: place.row.widget.item,
           below: below,
-          height: _stepOf(drag.item) ?? copy.height,
+          height: _roomOf(own),
         ),
         null => null,
       },
-      null => null,
+      _ => null,
     };
   }
 
   void _drop(DragTargetDetails<LineDrag> details) {
     final drag = details.data;
+    final places = _places();
     final copy = drag.at(details.offset);
-    if (copy == null) {
+    final own = _ownPlace(places, drag.item);
+    if (copy == null || own == null) {
       return _glideTo(
         drag,
         from: details.offset,
@@ -164,7 +186,7 @@ class LineDropZoneState extends State<LineDropZone> {
       );
     }
     final levels = (copy.shift / widget.step).truncate();
-    final target = _targetAt(drag.item, copy.middle);
+    final target = _targetAt(places, drag.item, copy.middle);
     if (target == null) {
       return _glideTo(
         drag,
@@ -179,12 +201,11 @@ class LineDropZoneState extends State<LineDropZone> {
       );
     }
     final (:place, :below) = target;
-    final step = _stepOf(drag.item) ?? copy.height;
     _leaving.value = drag.item;
     _glideTo(
       drag,
       from: details.offset,
-      to: _gapOrigin(drag, place, below: below, step: step),
+      to: _landing(drag, own, place, below: below),
       then: () => widget.onDrop(
         drag,
         target: place.row.widget.item,
@@ -194,53 +215,27 @@ class LineDropZoneState extends State<LineDropZone> {
     );
   }
 
-  /// How much room [item]'s row takes in the list: its height and the
-  /// space to the row after it (or before it, for the last row); `null`
-  /// once its row is gone.
-  double? _stepOf(NodeId item) {
-    final places = _places();
-    final own = places.indexWhere((place) => place.row.widget.item == item);
-    if (own < 0) return null;
-    final place = places[own];
-    return switch ((places.elementAtOrNull(own + 1), own > 0)) {
-      (final next?, _) => next.top - place.top,
-      (null, true) => place.bottom - places[own - 1].bottom,
-      (null, false) => place.bottom - place.top,
-    };
-  }
-
   /// Where [drag]'s row is on screen; `null` once it is gone.
   Offset? _rowOrigin(LineDrag drag) => drag.rowBox?.localToGlobal(Offset.zero);
 
-  /// Where [drag]'s row will be once it lands in the gap open next to
-  /// [place], [step] high, at its indent: rows below its old place move
-  /// up by its [step] as that place closes.
-  Offset? _gapOrigin(
+  /// Where [drag]'s row lands next to [place], [below] it or above, from
+  /// places measured without gaps: rows below its old place [own] move up
+  /// by its room as that place closes. `null` once the row is gone.
+  Offset? _landing(
     LineDrag drag,
+    _Place own,
     _Place place, {
     required bool below,
-    required double step,
   }) {
-    final places = _places();
-    final old = places.firstWhereOrNull(
-      (old) => old.row.widget.item == drag.item,
-    );
     final origin = _rowOrigin(drag);
-    final content = place.row._contentBox;
-    final own = old?.row._contentBox;
-    if (old == null || origin == null || content == null || own == null) {
-      return null;
-    }
-    // The copy lies where the row does, which may sit lower in its
-    // target's content.
-    final inset = origin.dy - own.localToGlobal(Offset.zero).dy;
-    final height = old.bottom - old.top;
+    final content = own.row._contentBox;
+    if (origin == null || content == null) return null;
+    // The row may sit lower in its target than the target's top.
+    final inset = origin.dy - content.localToGlobal(Offset.zero).dy;
+    final top = below ? place.bottom : place.top;
     return Offset(
       origin.dx,
-      content.localToGlobal(Offset.zero).dy +
-          inset +
-          (below ? content.size.height + step - height : -step) -
-          (old.top < place.top ? step : 0),
+      top + inset - (own.top < place.top ? _roomOf(own) : 0),
     );
   }
 

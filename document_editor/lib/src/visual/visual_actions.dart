@@ -78,6 +78,19 @@ final class VisualActions {
 
   void dragEnded() => onFold(null);
 
+  /// Whether [item] dropped right next to [target]'s row, [below] it or
+  /// above, stays where it is.
+  bool staysWhereItIs(NodeId item, NodeId target, {required bool below}) =>
+      switch (_shown) {
+        final shown? => staysInPlace(
+          shown.view.doc,
+          item,
+          target,
+          below: below,
+        ),
+        null => true,
+      };
+
   /// [item] dropped right next to [target]'s row, [below] it or above;
   /// dropped on itself, it goes [levels] deeper (shallower if negative).
   void drop(
@@ -90,7 +103,6 @@ final class VisualActions {
       return _gate.run(
         (selection) => switch (_firstSubitem(target)) {
           // Right below the row, above the subitems shown under it.
-          final first? when below && first == item => null,
           final first? when below => MoveItem(
             item,
             first,

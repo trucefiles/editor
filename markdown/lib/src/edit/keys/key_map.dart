@@ -4,6 +4,7 @@ import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../commands/command.dart';
+import '../commands/items.dart';
 import '../commands/text_commands.dart';
 import '../selection.dart';
 
@@ -146,24 +147,24 @@ final class _Keys {
 
   Command _enter() => switch (_frame) {
     _ when !range.isCaret || _row.done || _text.isNotEmpty => SplitBlock(range),
-    final ItemNode item when _isOwnPlace(item) => Outdent(range),
+    final ItemNode item when isOwnLine(item, at.leaf) => Outdent(range),
     QuoteNode() => RemoveFrame(at.leaf),
     _ => SplitBlock(range),
   };
 
-  /// Whether the caret's text is [item]'s own place: the empty paragraph
-  /// an empty item, or one that starts with a list, shows.
-  bool _isOwnPlace(ItemNode item) => switch (item.children) {
-    [final first, ...final rest] =>
-      first.id == at.leaf && (rest.isEmpty || rest.first is ListNode),
-    _ => false,
-  };
-
   KeyAction _backspace() => switch (_rowAbove) {
     _ when at.offset > 0 => _deleteTo(graphemeBefore(_text, at.offset)),
-    _ when _row.done => _joinInSection(_rowAbove, JoinWithPrevious(at)),
+    _ when _row.done => _inSection(
+      _rowAbove,
+      JoinWithPrevious(at),
+      backward: true,
+    ),
     _ when _firstOfFrame => RunCommand(RemoveFrame(at.leaf)),
-    final BlockRow above => _into(above, backward: true),
+    final BlockRow above => _inSection(
+      above,
+      JoinWithPrevious(at),
+      backward: true,
+    ),
     _ when _inCode && _text.isNotEmpty => const Consumed(),
     null => const Consumed(),
     TextRow() => RunCommand(JoinWithPrevious(at)),
@@ -173,9 +174,8 @@ final class _Keys {
     _ when at.offset < _text.length => _deleteTo(
       graphemeAfter(_text, at.offset),
     ),
-    final BlockRow below => _into(below, backward: false),
     null => const Consumed(),
-    final TextRow below => _joinInSection(below, JoinWithNext(at)),
+    final below => _inSection(below, JoinWithNext(at), backward: false),
   };
 
   /// Whether the caret's text is the first that its innermost item or
@@ -191,12 +191,16 @@ final class _Keys {
           index,
   };
 
-  /// [join] with [neighbor] if it shows in the same Done section or
-  /// outside of both.
-  KeyAction _joinInSection(Row? neighbor, Command join) =>
-      neighbor is TextRow && neighbor.done == _row.done
-      ? RunCommand(join)
-      : const Consumed();
+  /// Backspace ([backward]) or Delete into [neighbor], if it shows in
+  /// the same Done section or outside of both: a text is joined by
+  /// [join], a block entered (see [_into]); else nothing happens.
+  KeyAction _inSection(Row? neighbor, Command join, {required bool backward}) =>
+      switch (neighbor) {
+        final row? when row.done != _row.done => const Consumed(),
+        final BlockRow block => _into(block, backward: backward),
+        TextRow() => RunCommand(join),
+        null => const Consumed(),
+      };
 
   /// Backspace ([backward]) or Delete into [row], a block next to the
   /// caret: a divider goes, as one character; any other opens as its raw

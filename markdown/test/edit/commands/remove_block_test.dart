@@ -114,4 +114,13 @@ void main() {
     expect(edited.document.text, '- [ ] a\n- [ ] \n- [ ] b');
     expect(edited.selection, edited.document.caret(0, 1));
   });
+
+  test('a selected separator above more of its item\'s lines goes; the '
+      'caret to the start of the next line', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n  b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(RemoveBlock(divider.id, backward: false));
+    expect(edited.document.text, '- [ ] a\n- [ ] b');
+    expect(edited.selection, edited.document.caret(1, 0));
+  });
 }

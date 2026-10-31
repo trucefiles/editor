@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
+import 'package:truce_markdown/src/edit/commands/items.dart';
 
 import '../support/shown.dart';
 
@@ -101,5 +102,32 @@ void main() {
       'Title\n---',
     );
     expect(_after('# a', (n) => SetHeading(n.place(0, 0), null)), 'a');
+  });
+
+  group('an item dropped right next to', () {
+    final document = Shown.read('- a\n  - b\n  - c\n- d\n\n1. e');
+    final [a, b, c, d, e] = _items(document);
+    bool stays(ItemNode item, ItemNode target, {required bool below}) =>
+        staysInPlace(document.doc, item.id, target.id, below: below);
+
+    test('itself, its next item from above or its previous one from below '
+        'stays in place', () {
+      expect(stays(b, b, below: true), isTrue);
+      expect(stays(b, c, below: false), isTrue);
+      expect(stays(c, b, below: true), isTrue);
+    });
+
+    test('its parent from below, as its first subitem, stays in place', () {
+      expect(stays(b, a, below: true), isTrue);
+      expect(stays(c, a, below: true), isFalse);
+    });
+
+    test('a previous item with subitems, from below, moves', () {
+      expect(stays(d, a, below: true), isFalse);
+    });
+
+    test('an item of another list moves', () {
+      expect(stays(d, e, below: false), isFalse);
+    });
   });
 }

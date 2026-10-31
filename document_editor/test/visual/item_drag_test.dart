@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_document_editor/src/visual/ui/item_row.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 
 /// Dragging an item in Visual edit, frame by frame: what the user sees
@@ -107,4 +108,79 @@ void main() {
       expect(landing, closeTo(rowTextTop(tester, moved), 1));
     });
   }
+
+  /// Takes the item showing [text] by its handle and moves it until its
+  /// copy's middle is [fraction] down the row showing [onto].
+  Future<TestGesture> dragOnto(
+    WidgetTester tester,
+    String text,
+    String onto, {
+    double fraction = 0.3,
+  }) async {
+    Offset handleOf(String text) => tester.getCenter(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(text, findRichText: true),
+          matching: find.byType(ItemRow),
+        ),
+        matching: find.byIcon(Icons.drag_indicator),
+      ),
+    );
+    final from = handleOf(text);
+    final target = tester.getRect(
+      find.ancestor(
+        of: find.text(onto, findRichText: true),
+        matching: find.byType(ItemRow),
+      ),
+    );
+    final to = Offset(from.dx, target.top + target.height * fraction);
+    final gesture = await tester.startGesture(
+      from,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    for (final _ in Iterable<int>.generate(24)) {
+      await gesture.moveBy((to - from) / 24);
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.pumpAndSettle();
+    return gesture;
+  }
+
+  testWidgets('an item moves onto the top of the next list', (tester) async {
+    final document = TestDocument('- [ ] aaa\n- [ ] bbb\n\n1. ccc\n2. ddd');
+    await pumpDocument(tester, document);
+
+    final gesture = await dragOnto(tester, 'bbb', 'ccc');
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] aaa\n\n1. [ ] bbb\n2. ccc\n3. ddd');
+  });
+
+  testWidgets('the gap is as high as the dragged row, also with other '
+      'blocks below it, and the copy lands on its row', (tester) async {
+    final document = TestDocument(
+      '- [ ] aaa\n- [ ] bbb\n\npara\n\nmore\n\n- [ ] ccc\n- [ ] ddd',
+    );
+    await pumpDocument(tester, document);
+    final before = rowTextTop(tester, 'ddd');
+    final step = rowTextTop(tester, 'bbb') - rowTextTop(tester, 'aaa');
+
+    final gesture = await dragOnto(tester, 'bbb', 'ccc', fraction: 0.7);
+    expect(rowTextTop(tester, 'ddd') - before, closeTo(step, 1));
+    await gesture.up();
+    var landing = 0.0;
+    for (final _ in Iterable<int>.generate(20)) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (copy.evaluate().isNotEmpty) landing = copyTextTop(tester, 'bbb');
+    }
+    await tester.pumpAndSettle();
+
+    expect(
+      document.text,
+      '- [ ] aaa\n\npara\n\nmore\n\n- [ ] ccc\n- [ ] bbb\n- [ ] ddd',
+    );
+    expect(landing, closeTo(rowTextTop(tester, 'bbb'), 1));
+  });
 }

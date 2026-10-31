@@ -99,4 +99,16 @@ void main() {
     expect(text, '- [ ] a\n- [ ] ***\n- [ ] ');
     expect(row, 2);
   });
+
+  test('on the last open empty item, with checked items below, the caret '
+      'goes into a new open item', () {
+    final document = Shown.read(
+      '- [ ] a\n- [ ] \n- [x] b',
+      done: DoneSections(),
+    );
+    final edited = document.run(AddDivider(document.place(1, 0).leaf));
+    expect(edited.document.text, '- [ ] a\n- [ ] ***\n- [ ] \n- [x] b');
+    final caret = edited.selection as TextSelection;
+    expect(edited.document.view.row(caret.extent.leaf)!.done, isFalse);
+  });
 }
