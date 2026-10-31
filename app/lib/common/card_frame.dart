@@ -1,12 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart' show DocumentCardSummary;
 
 import '../text_zoom/ui/document_text_zoom.dart';
 
 /// The frame every card in a document grid shares: the title and [body] at
-/// the document text zoom, [footer] at the bottom. It fills the height it
-/// gets; in a grid that is [cardHeight].
+/// the document text zoom, [footer] at the bottom; as tall as they are.
 class CardFrame extends StatelessWidget {
   const CardFrame({
     required this.title,
@@ -34,23 +34,26 @@ class CardFrame extends StatelessWidget {
   final ShapeBorder? shape;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.all(_margin),
-    clipBehavior: Clip.antiAlias,
-    color: color,
-    shape: shape,
-    child: InkWell(
-      onTap: onTap,
-      onLongPress: onMark,
-      onSecondaryTap: onMark,
-      child: Padding(
-        padding: const EdgeInsets.all(_padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: DocumentTextZoom(
+  // A grid moves its cards as it scrolls; each repaints on its own.
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Card(
+      margin: const EdgeInsets.all(_margin),
+      clipBehavior: Clip.antiAlias,
+      color: color,
+      shape: shape,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onMark,
+        onSecondaryTap: onMark,
+        child: Padding(
+          padding: const EdgeInsets.all(_padding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DocumentTextZoom(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: _titleGap,
                   children: [
@@ -60,22 +63,22 @@ class CardFrame extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (body case final body?) Expanded(child: body),
+                    ?body,
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: _footerGap),
-            SizedBox(height: _footerHeight(context), child: footer),
-          ],
+              const SizedBox(height: _footerGap),
+              SizedBox(height: _footerHeight(context), child: footer),
+            ],
+          ),
         ),
       ),
     ),
   );
 }
 
-/// [text] in the cards' body style, in as many whole lines as fit the
-/// height it gets, the last one ending in "…" if more is left.
+/// [text] in the cards' body style, in at most as many lines as a preview
+/// has, the last one ending in "…" if more is left.
 class CardLines extends StatelessWidget {
   const CardLines(this.text, {this.italic = false, super.key});
 
@@ -83,48 +86,17 @@ class CardLines extends StatelessWidget {
   final bool italic;
 
   @override
-  Widget build(BuildContext context) {
-    final style = _bodyStyle(context)
-        ?.copyWith(fontStyle: italic ? FontStyle.italic : null);
-    final line = _lineHeight(style, MediaQuery.textScalerOf(context));
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        final lines = (constraints.maxHeight / line).floor();
-        return lines < 1
-            ? const SizedBox.shrink()
-            : Text(
-                text,
-                style: style,
-                maxLines: lines,
-                overflow: TextOverflow.ellipsis,
-              );
-      },
-    );
-  }
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.bodySmall
+        ?.copyWith(fontStyle: italic ? FontStyle.italic : null),
+    maxLines: DocumentCardSummary.previewLines,
+    overflow: TextOverflow.ellipsis,
+  );
 }
-
-/// How tall each card in a document grid is: room for a one-line title,
-/// [cardBodyLines] lines of preview and the footer, at the text zooms
-/// in effect here.
-double cardHeight(BuildContext context) {
-  final text = Theme.of(context).textTheme;
-  final document = DocumentTextZoom.scalerOf(context);
-  return 2 * (_margin + _padding) +
-      _lineHeight(text.titleMedium, document) +
-      _titleGap +
-      cardBodyLines * _lineHeight(_bodyStyle(context), document) +
-      _footerGap +
-      _footerHeight(context);
-}
-
-/// Lines of preview a card has room for under a one-line title.
-const cardBodyLines = 6;
 
 /// Size of an icon in a card's footer.
 const cardFooterIconSize = 18.0;
-
-TextStyle? _bodyStyle(BuildContext context) =>
-    Theme.of(context).textTheme.bodySmall;
 
 const _margin = 4.0;
 const _padding = 12.0;

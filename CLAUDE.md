@@ -9,7 +9,7 @@ Prefer the simpler option when in doubt.
 - Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
 
 ## Architecture
-- `core`, `folders`, `documents` and the type and tool packages are pure Dart with no UI; `document_editor` is the Flutter package that edits text; `app` holds screens, view models, providers as wiring, platform code and the wiring of tools and types, and uses only the packages' public interfaces.
+- `core`, `folders`, `documents` and the type and tool packages are pure Dart with no UI; `document_editor` is the Flutter package that edits text; `masonry` is a Flutter layout package with no domain; `app` holds screens, view models, providers as wiring, platform code and the wiring of tools and types, and uses only the packages' public interfaces.
 - Direction: `app` → `document_editor` → `documents` → `folders` → `core`; a package only imports the ones below it.
 - Each sync tool's conventions live in a pure-Dart package of their own (`syncthing`, `plain_folder`); `core` never knows one, and in the app only the sync-tool wiring imports it.
 - Each document type's support (reading, editing, writing) lives in a pure-Dart package of its own (`markdown`, `plain_text`); `core` never knows one.
