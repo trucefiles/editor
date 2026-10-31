@@ -8,9 +8,13 @@ import 'node_ids.dart';
 
 /// Where a selection is, in the library's document and in the editor
 /// owner's terms: the one mapping, both ways. Text positions are the
-/// same offsets in both; a divider selected whole is a block selection;
-/// an end on any other node without text goes on past it, the way it
-/// moved, to the nearest text there.
+/// same offsets in both. A block selected whole is, for the library, a
+/// caret at its end: a soft keyboard sees one character before the caret
+/// and no range, so it can't move the caret off the block before it
+/// deletes (keyboards first collapse a range to its end). A divider
+/// selected as a range by the library is a block selection; an end on
+/// any other node without text goes on past it, the way it moved, to the
+/// nearest text there.
 final class Positions {
   const Positions(this._document, this._ids);
 
@@ -109,12 +113,8 @@ final class Positions {
         _ => null,
       },
       md.BlockSelection(:final block) => switch (_shown(block)) {
-        final id? => DocumentSelection(
-          base: DocumentPosition(
-            nodeId: id,
-            nodePosition: const UpstreamDownstreamNodePosition.upstream(),
-          ),
-          extent: DocumentPosition(
+        final id? => DocumentSelection.collapsed(
+          position: DocumentPosition(
             nodeId: id,
             nodePosition: const UpstreamDownstreamNodePosition.downstream(),
           ),

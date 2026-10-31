@@ -228,10 +228,6 @@ final class _Step with EditorSteps<Snapshot> {
     switch (keyAction(shown.view, shown.selection, key)) {
       case RunCommand(:final command):
         _run(command);
-      case SelectBlock(:final block):
-        _show(
-          FormattedContent(view: shown.view, selection: BlockSelection(block)),
-        );
       case OpenRaw(:final block, :final atEnd):
         _openRaw(shown, block, atEnd: atEnd);
       case ToggleTypingStyle(:final format):

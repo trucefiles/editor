@@ -225,10 +225,15 @@ final class VisualAdapter {
     };
   }
 
+  /// [selection] as a text range in the owner's terms; `null` while a
+  /// block is selected whole (text typed or pasted then goes nowhere).
   md.TextSelection? _rangeOf(DocumentSelection? selection) =>
-      switch (selection == null ? null : _positions.toOwner(selection)) {
-        final md.TextSelection range => range,
-        _ => null,
+      switch ((_shown?.selection, selection)) {
+        (md.BlockSelection(), _) || (_, null) => null,
+        (_, final selection?) => switch (_positions.toOwner(selection)) {
+          final md.TextSelection range => range,
+          _ => null,
+        },
       };
 
   // Keys and actions.

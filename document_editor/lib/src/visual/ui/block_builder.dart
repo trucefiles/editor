@@ -79,10 +79,9 @@ class BlockBuilder implements ComponentBuilder {
     BuildContext context,
   ) {
     final BlockLook(:leaf, :frames) = look;
-    final selection =
-        viewModel.selection?.nodeSelection as UpstreamDownstreamNodeSelection?;
-    final selected = selection != null && !selection.isCollapsed;
-    // Every block selected whole shows it alike.
+    // Selected whole, a block holds the library's caret (see `Positions`)
+    // or lies in a selected range; every block shows it alike.
+    final selected = viewModel.selection != null;
     final shaded = DecoratedBox(
       position: DecorationPosition.foreground,
       decoration: BoxDecoration(

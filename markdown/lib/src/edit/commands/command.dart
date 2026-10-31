@@ -12,6 +12,7 @@ import 'add_divider.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
+import 'line_after.dart';
 import 'links.dart';
 import 'over_range.dart';
 import 'paste.dart';
@@ -155,13 +156,22 @@ final class DeleteItem extends EditCommand {
   final NodeId item;
 }
 
-/// Backspace ([backward]) or Delete on [block], a selected divider: it
-/// goes.
+/// Backspace ([backward]) or Delete on [block], a divider: it goes, as
+/// one character. Pressed right next to it, [caret] is where the caret
+/// was, and it stays there; `null` for a selected divider.
 final class RemoveBlock extends EditCommand {
-  const RemoveBlock(this.block, {required this.backward});
+  const RemoveBlock(this.block, {required this.backward, this.caret});
 
   final NodeId block;
   final bool backward;
+  final Place? caret;
+}
+
+/// Enter on [block], selected whole: an empty line after it.
+final class LineAfter extends EditCommand {
+  const LineAfter(this.block);
+
+  final NodeId block;
 }
 
 /// The toolbar's Separator: a divider after the block [after] (the
@@ -311,13 +321,15 @@ Change _change(ViewRows view, EditCommand command) {
       selection,
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
-    RemoveBlock(:final block, :final backward) => removeBlock(
+    RemoveBlock(:final block, :final backward, :final caret) => removeBlock(
       view,
       block,
       backward: backward,
+      caret: caret,
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),
+    LineAfter(:final block) => lineAfter(view, block),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

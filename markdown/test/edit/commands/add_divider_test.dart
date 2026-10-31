@@ -79,4 +79,24 @@ void main() {
     final (text, _) = _added('- a\n  - b\n- c', 0, 0);
     expect(text, '- a\n  - b\n- ***\n- c');
   });
+
+  test('on an empty paragraph takes its place', () {
+    final document = Shown.read('---');
+    final edited = document.run(AddDivider(document.place(1, 0).leaf));
+    expect(edited.document.text, startsWith('---\n\n---'));
+    expect(edited.document.rows, ['[DividerNode]', '[DividerNode]', '']);
+  });
+
+  test('on an empty item takes its place; the caret to the next item', () {
+    final (text, row) = _added('- [ ] a\n- [ ] \n- [ ] b', 1, 0);
+    expect(text, '- [ ] a\n- [ ] ***\n- [ ] b');
+    expect(row, 2);
+  });
+
+  test('on an empty last item takes its place; the caret into a new empty '
+      'item after it', () {
+    final (text, row) = _added('- [ ] a\n- [ ] ', 1, 0);
+    expect(text, '- [ ] a\n- [ ] ***\n- [ ] ');
+    expect(row, 2);
+  });
 }

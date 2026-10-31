@@ -14,6 +14,21 @@ import '../selection.dart';
 bool? newBox(ViewRows view, ItemNode item, NodeId leaf) =>
     item.hasBox ? view.row(leaf)!.done : null;
 
+/// A new empty item for right after [item], with the box Enter would
+/// give it from its row of [leaf], and the item's text.
+(ItemNode, ParagraphNode) newItemAfter(
+  ViewRows view,
+  ItemNode item,
+  NodeId leaf,
+  FreshIds fresh,
+) {
+  final text = emptyParagraph(fresh);
+  return (
+    ItemNode(fresh.take(), [text], checked: newBox(view, item, leaf)),
+    text,
+  );
+}
+
 /// [item]'s box checked or unchecked; [selection] stays.
 Change toggle(ViewRows view, ItemNode item, Selection selection) => (
   doc: view.doc.withNode(item.withBox(!(item.checked ?? false))),

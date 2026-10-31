@@ -188,9 +188,11 @@ void main() {
       );
       await gesture.up();
 
-      final open = seen.skipWhile((gap) => gap < 48).toList();
+      // As high as the room a row takes: its height and the space below.
+      final step = 48 + spacing;
+      final open = seen.skipWhile((gap) => gap < step - 0.01).toList();
       expect(open, isNotEmpty);
-      expect(open, everyElement(closeTo(48, 0.01)), reason: 'gap: $seen');
+      expect(open, everyElement(closeTo(step, 0.01)), reason: 'gap: $seen');
     });
   }
 
@@ -262,6 +264,49 @@ void main() {
         .dy;
     expect(copyTop, closeTo(gapTop, 1));
     await tester.pumpAndSettle();
+  });
+
+  /// The top of the row showing [text].
+  double topOf(WidgetTester tester, String text) => tester
+      .getTopLeft(
+        find.ancestor(of: find.text(text), matching: find.byType(Row)).first,
+      )
+      .dy;
+
+  for (final (direction, from, by) in [('down', 1, 48.0), ('up', 2, -48.0)]) {
+    testWidgets('dragged $direction, no room opens until the copy passes the '
+        "next row's middle", (tester) async {
+      await showRows(tester);
+      final before = [
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ];
+      final gesture = await drag(tester, from, Offset(0, by * 0.9), steps: 9);
+      await tester.pumpAndSettle();
+      expect([
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ], before);
+
+      await gesture.moveBy(Offset(0, by * 0.2));
+      await tester.pumpAndSettle();
+      final after = [
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ];
+      expect(after, isNot(before));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+  }
+
+  testWidgets('a copy dropped right next to its own row stays there', (
+    tester,
+  ) async {
+    final drops = <Drop>[];
+    await showRows(tester, onDrop: drops.add);
+    final gesture = await drag(tester, 1, const Offset(0, 48 * 0.8));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(drops, [(const NodeId(1), const NodeId(1), false, 0)]);
   });
 
   testWidgets('a copy dropped right where it was lifted settles at once', (

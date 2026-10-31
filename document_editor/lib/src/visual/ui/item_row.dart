@@ -79,6 +79,8 @@ class _ItemRowState extends State<ItemRow> {
     );
   }
 
+  /// The copy, laid out as the row is, so its text lies where the row's
+  /// does when it lifts and lands.
   Widget _dragged(DocumentMetrics metrics) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -86,13 +88,25 @@ class _ItemRowState extends State<ItemRow> {
         width: metrics.handleWidth,
         child: _slotIcon(Icons.drag_indicator, metrics),
       ),
-      MarkerView(widget.item, style: widget.style),
-      Expanded(child: widget.copy),
-      if (widget.item.subitems case final subitems when subitems > 0)
-        Text(
-          '  +$subitems',
-          style: widget.style.copyWith(color: Theme.of(context).disabledColor),
+      Expanded(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: metrics.itemRowInset),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MarkerView(widget.item, style: widget.style),
+              Expanded(child: widget.copy),
+              if (widget.item.subitems case final subitems when subitems > 0)
+                Text(
+                  '  +$subitems',
+                  style: widget.style.copyWith(
+                    color: Theme.of(context).disabledColor,
+                  ),
+                ),
+            ],
+          ),
         ),
+      ),
       SizedBox(width: metrics.handleWidth),
     ],
   );
