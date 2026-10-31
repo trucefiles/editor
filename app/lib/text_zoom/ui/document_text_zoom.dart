@@ -10,10 +10,6 @@ class DocumentTextZoom extends StatelessWidget {
 
   final Widget child;
 
-  /// The text scaling document text gets here.
-  static TextScaler scalerOf(BuildContext context) =>
-      TextZoomScale.scalerFor(context, DocumentTextZoomScope.of(context));
-
   @override
   Widget build(BuildContext context) =>
       TextZoomScale(zoom: DocumentTextZoomScope.of(context), child: child);

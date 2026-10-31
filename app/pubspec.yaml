@@ -26,6 +26,7 @@ dependencies:
   truce_documents: any
   truce_folders: any
   truce_markdown: any
+  truce_masonry: any
   truce_plain_folder: any
   truce_plain_text: any
   truce_syncthing: any
