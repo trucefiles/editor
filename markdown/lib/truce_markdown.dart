@@ -13,6 +13,7 @@ export 'src/doc/doc_tree.dart' show DocTree;
 export 'src/document_tree.dart' show DocumentTree;
 export 'src/edit/clipboard_lines.dart';
 export 'src/edit/commands/command.dart';
+export 'src/edit/commands/items.dart' show dropPlace;
 export 'src/edit/keys/key_map.dart';
 export 'src/edit/selection.dart';
 export 'src/edit/typing_style.dart';

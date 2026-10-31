@@ -2,6 +2,8 @@
 /// removing them.
 library;
 
+import 'package:collection/collection.dart';
+
 import '../../doc/doc_nodes.dart';
 import '../../doc/doc_tree.dart';
 import '../../doc/normalized.dart';
@@ -13,6 +15,84 @@ import '../selection.dart';
 /// none if it has none; checked in a Done section, else open.
 bool? newBox(ViewRows view, ItemNode item, NodeId leaf) =>
     item.hasBox ? view.row(leaf)!.done : null;
+
+/// [view]'s tree with [block] right after the block [leaf]; in an item,
+/// as a new item of its own right after that item, with the box Enter
+/// would give it.
+DocTree withBlockAfter(
+  ViewRows view,
+  NodeId leaf,
+  DocBlock block,
+  FreshIds fresh,
+) {
+  final doc = view.doc;
+  final (anchor, added) = switch (doc
+      .pathOf(leaf)
+      .whereType<ItemNode>()
+      .lastOrNull) {
+    final item? => (
+      item as DocBlock,
+      ItemNode(fresh.take(), [block], checked: newBox(view, item, leaf)),
+    ),
+    null => (doc.nodeOf(leaf)!, block),
+  };
+  return doc.edited({
+    anchor.id: [anchor, added],
+  }, fresh: fresh);
+}
+
+/// Whether [leaf] is [item]'s own line: its first block, with nothing
+/// after it but its subitems.
+bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
+  [final first, ...final rest] =>
+    first.id == leaf && (rest.isEmpty || rest.first is ListNode),
+  _ => false,
+};
+
+/// Where [item], dropped right next to [target]'s row, [below] it or
+/// above, goes in the tree: the item it goes next to, and whether below
+/// it; below a row whose subitems show under it, that is above its first
+/// subitem. `null` where the item stays where it shows: on its own row,
+/// or right next to it among the rows as shown, in its own list.
+({NodeId item, bool below})? dropPlace(
+  ViewRows view,
+  NodeId item,
+  NodeId target, {
+  required bool below,
+}) {
+  final doc = view.doc;
+  final place = switch (doc.nodeOf(target)) {
+    ItemNode(children: [_, ListNode(:final items), ...]) when below => (
+      item: items.first.id,
+      below: false,
+    ),
+    _ => (item: target, below: below),
+  };
+  if (place.item == item) return null;
+  final sameList = doc.parentOf(place.item)?.id == doc.parentOf(item)?.id;
+  return sameList && _shownNextTo(view, item, place.item, below: place.below)
+      ? null
+      : place;
+}
+
+/// Whether [item]'s rows show right [below] [other]'s rows, or right
+/// above them.
+bool _shownNextTo(
+  ViewRows view,
+  NodeId item,
+  NodeId other, {
+  required bool below,
+}) {
+  final (upper, lower) = below ? (other, item) : (item, other);
+  bool inside(Row row, NodeId node) =>
+      view.doc.pathOf(row.leaf.id).any((container) => container.id == node);
+  final rows = view.rows;
+  final last = rows.lastIndexWhere((row) => inside(row, upper));
+  return last >= 0 &&
+      last + 1 < rows.length &&
+      inside(rows[last + 1], lower) &&
+      rows.indexWhere((row) => inside(row, lower)) == last + 1;
+}
 
 /// [item]'s box checked or unchecked; [selection] stays.
 Change toggle(ViewRows view, ItemNode item, Selection selection) => (

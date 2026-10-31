@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart'
@@ -230,6 +231,25 @@ extension EditorRobot on WidgetTester {
   /// Lets box taps wait out their time, so they are sent.
   Future<void> boxTapsSent(TestDocument document) async {
     await pump(document.gate.checkDelay);
+    await pumpAndSettle();
+  }
+
+  /// A soft keyboard's Backspace, as Android keyboards send it: a range
+  /// selected is first collapsed to its end, then the character before
+  /// the caret is deleted, each as its own change.
+  Future<void> softBackspace() async {
+    final value = imeClientGetter().currentTextEditingValue!;
+    if (!value.selection.isCollapsed) {
+      await ime.sendDeltas([
+        TextEditingDeltaNonTextUpdate(
+          oldText: value.text,
+          selection: TextSelection.collapsed(offset: value.selection.end),
+          composing: TextRange.empty,
+        ),
+      ], getter: imeClientGetter);
+      await pumpAndSettle();
+    }
+    await ime.backspace(getter: imeClientGetter);
     await pumpAndSettle();
   }
 }

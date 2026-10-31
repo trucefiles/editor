@@ -90,9 +90,7 @@ void main() {
     });
 
     test('a selected divider stays selected through a change elsewhere', () {
-      final run = EditorRun('a\n\n---\n\nb')
-        ..caret(2, 0)
-        ..press(EditKey.backspace);
+      final run = EditorRun('a\n\n---\n\nb')..select(1);
       run.request(
         const FromFile(Replaced('x\n\na\n\n---\n\nb', version: v2, ackRev: 0)),
       );

@@ -4,6 +4,7 @@ import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../commands/command.dart';
+import '../commands/items.dart';
 import '../commands/text_commands.dart';
 import '../selection.dart';
 
@@ -36,13 +37,6 @@ final class RunCommand extends KeyAction {
   final Command command;
 }
 
-/// The key selects [block], a divider, whole.
-final class SelectBlock extends KeyAction {
-  const SelectBlock(this.block);
-
-  final NodeId block;
-}
-
 /// The key opens [block], a raw block, as its raw text, the caret at its
 /// end if [atEnd], else at its start.
 final class OpenRaw extends KeyAction {
@@ -71,29 +65,30 @@ final class Consumed extends KeyAction {
 
 /// What [key] does with [selection] in what [view] shows: the key map,
 /// its rules in priority order.
-KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
-    switch ((selection, key)) {
-      (final TextSelection range, EditKey.link)
-          when range.base.leaf == range.extent.leaf =>
-        const OpenLinkDialog(),
-      (_, EditKey.link) => const Consumed(),
-      (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
-      (final TextSelection range, EditKey.bullet) => _frame(range, .bullet),
-      (final TextSelection range, EditKey.checklist) => _frame(
-        range,
-        .checkbox,
-      ),
-      (final TextSelection range, EditKey.bold) => _style(range, .strong),
-      (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
-      (BlockSelection(:final block), EditKey.backspace) => RunCommand(
-        RemoveBlock(block, backward: true),
-      ),
-      (BlockSelection(:final block), EditKey.delete) => RunCommand(
-        RemoveBlock(block, backward: false),
-      ),
-      (BlockSelection(), _) => const Consumed(),
-      (final TextSelection range, _) => _Keys(view, range).action(key),
-    };
+KeyAction keyAction(
+  ViewRows view,
+  Selection selection,
+  EditKey key,
+) => switch ((selection, key)) {
+  (final TextSelection range, EditKey.link)
+      when range.base.leaf == range.extent.leaf =>
+    const OpenLinkDialog(),
+  (_, EditKey.link) => const Consumed(),
+  (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
+  (final TextSelection range, EditKey.bullet) => _frame(range, .bullet),
+  (final TextSelection range, EditKey.checklist) => _frame(range, .checkbox),
+  (final TextSelection range, EditKey.bold) => _style(range, .strong),
+  (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
+  (BlockSelection(:final block), EditKey.backspace) => RunCommand(
+    RemoveBlock(block, backward: true),
+  ),
+  (BlockSelection(:final block), EditKey.delete) => RunCommand(
+    RemoveBlock(block, backward: false),
+  ),
+  (BlockSelection(:final block), EditKey.enter) => RunCommand(LineAfter(block)),
+  (BlockSelection(), _) => const Consumed(),
+  (final TextSelection range, _) => _Keys(view, range).action(key),
+};
 
 KeyAction _frame(TextSelection range, FrameKind kind) =>
     RunCommand(SetFrame(range, kind));
@@ -152,24 +147,24 @@ final class _Keys {
 
   Command _enter() => switch (_frame) {
     _ when !range.isCaret || _row.done || _text.isNotEmpty => SplitBlock(range),
-    final ItemNode item when _isOwnPlace(item) => Outdent(range),
+    final ItemNode item when isOwnLine(item, at.leaf) => Outdent(range),
     QuoteNode() => RemoveFrame(at.leaf),
     _ => SplitBlock(range),
   };
 
-  /// Whether the caret's text is [item]'s own place: the empty paragraph
-  /// an empty item, or one that starts with a list, shows.
-  bool _isOwnPlace(ItemNode item) => switch (item.children) {
-    [final first, ...final rest] =>
-      first.id == at.leaf && (rest.isEmpty || rest.first is ListNode),
-    _ => false,
-  };
-
   KeyAction _backspace() => switch (_rowAbove) {
     _ when at.offset > 0 => _deleteTo(graphemeBefore(_text, at.offset)),
-    _ when _row.done => _joinInSection(_rowAbove, JoinWithPrevious(at)),
+    _ when _row.done => _inSection(
+      _rowAbove,
+      JoinWithPrevious(at),
+      backward: true,
+    ),
     _ when _firstOfFrame => RunCommand(RemoveFrame(at.leaf)),
-    final BlockRow above => _into(above, atEnd: true),
+    final BlockRow above => _inSection(
+      above,
+      JoinWithPrevious(at),
+      backward: true,
+    ),
     _ when _inCode && _text.isNotEmpty => const Consumed(),
     null => const Consumed(),
     TextRow() => RunCommand(JoinWithPrevious(at)),
@@ -179,9 +174,8 @@ final class _Keys {
     _ when at.offset < _text.length => _deleteTo(
       graphemeAfter(_text, at.offset),
     ),
-    final BlockRow below => _into(below, atEnd: false),
     null => const Consumed(),
-    final TextRow below => _joinInSection(below, JoinWithNext(at)),
+    final below => _inSection(below, JoinWithNext(at), backward: false),
   };
 
   /// Whether the caret's text is the first that its innermost item or
@@ -197,16 +191,25 @@ final class _Keys {
           index,
   };
 
-  /// [join] with [neighbor] if it shows in the same Done section or
-  /// outside of both.
-  KeyAction _joinInSection(Row? neighbor, Command join) =>
-      neighbor is TextRow && neighbor.done == _row.done
-      ? RunCommand(join)
-      : const Consumed();
+  /// Backspace ([backward]) or Delete into [neighbor], if it shows in
+  /// the same Done section or outside of both: a text is joined by
+  /// [join], a block entered (see [_into]); else nothing happens.
+  KeyAction _inSection(Row? neighbor, Command join, {required bool backward}) =>
+      switch (neighbor) {
+        final row? when row.done != _row.done => const Consumed(),
+        final BlockRow block => _into(block, backward: backward),
+        TextRow() => RunCommand(join),
+        null => const Consumed(),
+      };
 
-  KeyAction _into(BlockRow row, {required bool atEnd}) => switch (row.leaf) {
-    DividerNode(:final id) => SelectBlock(id),
-    final leaf => OpenRaw(leaf.id, atEnd: atEnd),
+  /// Backspace ([backward]) or Delete into [row], a block next to the
+  /// caret: a divider goes, as one character; any other opens as its raw
+  /// text, the caret at the side it came from.
+  KeyAction _into(BlockRow row, {required bool backward}) => switch (row.leaf) {
+    DividerNode(:final id) => RunCommand(
+      RemoveBlock(id, backward: backward, caret: at),
+    ),
+    final leaf => OpenRaw(leaf.id, atEnd: backward),
   };
 
   KeyAction _deleteTo(int offset) =>

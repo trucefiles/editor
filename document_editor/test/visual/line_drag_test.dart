@@ -12,6 +12,10 @@ typedef Drop = (NodeId item, NodeId target, bool below, int levels);
 /// [child] in a drop zone a level 24 wide; drops go to [onDrop].
 Widget _zone(Widget child, {void Function(Drop drop)? onDrop}) => LineDropZone(
   step: 24,
+  // Rows are items of one list, in the order of their ids.
+  staysInPlace: (item, target, {required below}) =>
+      target == item ||
+      _ids.indexOf(target) == _ids.indexOf(item) + (below ? -1 : 1),
   onLift: (_) {},
   onDrop: (drag, {required target, required below, required levels}) =>
       onDrop?.call((drag.item, target, below, levels)),
@@ -28,6 +32,9 @@ Widget _handle(int index, GlobalKey row, {String? copy}) => SizedBox(
     icon: const Icon(Icons.drag_indicator),
   ),
 );
+
+/// The rows' items, top to bottom.
+final _ids = [for (final index in Iterable<int>.generate(20)) NodeId(index)];
 
 void main() {
   testWidgets('the dragged copy shows its text as the row does', (
@@ -262,6 +269,49 @@ void main() {
         .dy;
     expect(copyTop, closeTo(gapTop, 1));
     await tester.pumpAndSettle();
+  });
+
+  /// The top of the row showing [text].
+  double topOf(WidgetTester tester, String text) => tester
+      .getTopLeft(
+        find.ancestor(of: find.text(text), matching: find.byType(Row)).first,
+      )
+      .dy;
+
+  for (final (direction, from, by) in [('down', 1, 48.0), ('up', 2, -48.0)]) {
+    testWidgets('dragged $direction, no room opens until the copy passes the '
+        "next row's middle", (tester) async {
+      await showRows(tester);
+      final before = [
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ];
+      final gesture = await drag(tester, from, Offset(0, by * 0.9), steps: 9);
+      await tester.pumpAndSettle();
+      expect([
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ], before);
+
+      await gesture.moveBy(Offset(0, by * 0.2));
+      await tester.pumpAndSettle();
+      final after = [
+        for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
+      ];
+      expect(after, isNot(before));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+  }
+
+  testWidgets('a copy dropped right next to its own row stays there', (
+    tester,
+  ) async {
+    final drops = <Drop>[];
+    await showRows(tester, onDrop: drops.add);
+    final gesture = await drag(tester, 1, const Offset(0, 48 * 0.8));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(drops, [(const NodeId(1), const NodeId(1), false, 0)]);
   });
 
   testWidgets('a copy dropped right where it was lifted settles at once', (

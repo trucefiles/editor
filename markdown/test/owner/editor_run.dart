@@ -75,6 +75,10 @@ final class EditorRun {
     ),
   );
 
+  /// The block of row [row] selected whole, as a tap selects it.
+  void select(int row) =>
+      send(CaretMoved(BlockSelection(leaf(row)), revision: revision));
+
   void type(String text) => send(
     Typed(text, over: shown.selection as TextSelection, revision: revision),
   );
