@@ -140,7 +140,9 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
       return false;
     }
     while (indexOf(firstChild!) > range.first) {
-      insertAndLayoutLeadingChild(box, parentUsesSize: true);
+      if (insertAndLayoutLeadingChild(box, parentUsesSize: true) == null) {
+        break;
+      }
     }
     while (indexOf(lastChild!) < range.last) {
       if (insertAndLayoutChild(box, after: lastChild, parentUsesSize: true) ==
