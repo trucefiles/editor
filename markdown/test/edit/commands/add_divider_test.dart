@@ -111,4 +111,16 @@ void main() {
     final caret = edited.selection as TextSelection;
     expect(edited.document.view.row(caret.extent.leaf)!.done, isFalse);
   });
+
+  test('on the last empty checked item, in a Done section, the new item is '
+      'checked too', () {
+    final document = Shown.read(
+      '- [ ] a\n- [x] b\n- [x] ',
+      done: DoneSections(),
+    );
+    final edited = document.run(AddDivider(document.place(2, 0).leaf));
+    expect(edited.document.text, '- [ ] a\n- [x] b\n- [x] ***\n- [x] ');
+    final caret = edited.selection as TextSelection;
+    expect(edited.document.view.row(caret.extent.leaf)!.done, isTrue);
+  });
 }

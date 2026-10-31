@@ -183,4 +183,19 @@ void main() {
     );
     expect(landing, closeTo(rowTextTop(tester, 'bbb'), 1));
   });
+
+  testWidgets('with a Done section, dragged onto the top of the next row '
+      'shown, no room opens and nothing moves', (tester) async {
+    const text = '- [ ] aaa\n- [x] bbb\n- [ ] ccc';
+    final document = TestDocument(text);
+    await pumpDocument(tester, document);
+    final before = rowTextTop(tester, 'ccc');
+
+    final gesture = await dragOnto(tester, 'aaa', 'ccc');
+    expect(rowTextTop(tester, 'ccc'), before);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(document.text, text);
+  });
 }

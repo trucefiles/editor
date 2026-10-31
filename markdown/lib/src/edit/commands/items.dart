@@ -49,30 +49,49 @@ bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
   _ => false,
 };
 
-/// Whether [item] moved right next to [target], [below] it or above,
-/// stays where it is: [target] is the item itself, the item's neighbor
-/// in its list on that side (one without subitems shown under it, for
-/// below), or the item's parent with the item as its first subitem.
-bool staysInPlace(
-  DocTree doc,
+/// Where [item], dropped right next to [target]'s row, [below] it or
+/// above, goes in the tree: the item it goes next to, and whether below
+/// it; below a row whose subitems show under it, that is above its first
+/// subitem. `null` where the item stays where it shows: on its own row,
+/// or right next to it among the rows as shown, in its own list.
+({NodeId item, bool below})? dropPlace(
+  ViewRows view,
   NodeId item,
   NodeId target, {
   required bool below,
 }) {
-  if (item == target) return true;
-  final list = doc.parentOf(item);
-  if (list is! ListNode) return false;
-  final siblings = list.items.map((node) => node.id).toList();
-  final neighbor = siblings.indexOf(item) + (below ? -1 : 1);
-  return switch (doc.nodeOf(target)) {
-    ItemNode(children: [_, ListNode(:final items), ...]) when below =>
-      items.first.id == item,
-    ItemNode() =>
-      neighbor >= 0 &&
-          neighbor < siblings.length &&
-          siblings[neighbor] == target,
-    _ => false,
+  final doc = view.doc;
+  final place = switch (doc.nodeOf(target)) {
+    ItemNode(children: [_, ListNode(:final items), ...]) when below => (
+      item: items.first.id,
+      below: false,
+    ),
+    _ => (item: target, below: below),
   };
+  if (place.item == item) return null;
+  final sameList = doc.parentOf(place.item)?.id == doc.parentOf(item)?.id;
+  return sameList && _shownNextTo(view, item, place.item, below: place.below)
+      ? null
+      : place;
+}
+
+/// Whether [item]'s rows show right [below] [other]'s rows, or right
+/// above them.
+bool _shownNextTo(
+  ViewRows view,
+  NodeId item,
+  NodeId other, {
+  required bool below,
+}) {
+  final (upper, lower) = below ? (other, item) : (item, other);
+  bool inside(Row row, NodeId node) =>
+      view.doc.pathOf(row.leaf.id).any((container) => container.id == node);
+  final rows = view.rows;
+  final last = rows.lastIndexWhere((row) => inside(row, upper));
+  return last >= 0 &&
+      last + 1 < rows.length &&
+      inside(rows[last + 1], lower) &&
+      rows.indexWhere((row) => inside(row, lower)) == last + 1;
 }
 
 /// [item]'s box checked or unchecked; [selection] stays.

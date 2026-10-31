@@ -77,10 +77,6 @@ class LineDropZoneState extends State<LineDropZone> {
 
   final _lifted = ValueNotifier<NodeId?>(null);
 
-  /// Whether the drop just landed: the gap closes at once, in the frame
-  /// the row shows in its new place, so no row moves twice.
-  bool _landed = false;
-
   /// The item whose old place closes while its copy glides to the gap.
   final _leaving = ValueNotifier<NodeId?>(null);
 
@@ -94,7 +90,6 @@ class LineDropZoneState extends State<LineDropZone> {
 
   /// [drag] started.
   void lift(LineDrag drag) {
-    _landed = false;
     _lifted.value = drag.item;
     widget.onLift(drag);
   }
@@ -283,9 +278,10 @@ class LineDropZoneState extends State<LineDropZone> {
   /// The drop happens: [then], the gap closes, the row shows again.
   void _settle(VoidCallback then) {
     then();
-    _landed = true;
-    _gap.value = null;
+    // No longer lifted first: the gap then closes at once, in the frame
+    // the row shows in its new place, so no row moves twice.
     _lifted.value = null;
+    _gap.value = null;
     _leaving.value = null;
     widget.onSettled();
   }
@@ -375,7 +371,8 @@ class _LineDropTargetState extends State<LineDropTarget> {
   Widget build(BuildContext context) => ValueListenableBuilder(
     valueListenable: _zone._gap,
     builder: (context, gap, content) => AnimatedPadding(
-      duration: _zone._landed
+      // Animated while an item is lifted; once it settled, at once.
+      duration: _zone._lifted.value == null
           ? Duration.zero
           : const Duration(milliseconds: 120),
       padding: switch (gap) {
