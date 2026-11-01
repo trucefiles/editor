@@ -8,11 +8,19 @@ import 'package:truce_documents/truce_documents.dart';
 /// whether the calendar can be edited here now. Keeps nothing of how the
 /// calendar shows.
 final class CalendarEditorPart implements EditorPart {
-  /// [now] tells the time each edit is made at (a fixed clock in tests).
-  CalendarEditorPart(EditorStart start, {DateTime Function()? now})
-    : owner = calendarOwner(start.text, version: start.version),
-      _now = now ?? DateTime.now,
-      _readOnly = start.readOnly;
+  /// [now] tells the time each edit is made at, and [startTimer] starts
+  /// the editor's save clock (both fixed in tests).
+  CalendarEditorPart(
+    EditorStart start, {
+    DateTime Function()? now,
+    StartTimer? startTimer,
+  }) : owner = calendarOwner(
+         start.text,
+         version: start.version,
+         startTimer: startTimer,
+       ),
+       _now = now ?? DateTime.now,
+       _readOnly = start.readOnly;
 
   /// The editor owner.
   final CalendarOwner owner;

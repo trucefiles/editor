@@ -72,6 +72,11 @@ runs:
       working-directory: document_editor
       run: flutter test
 
+    - name: Test calendar editor
+      shell: bash
+      working-directory: calendar_editor
+      run: flutter test
+
     - name: Test app
       shell: bash
       working-directory: app

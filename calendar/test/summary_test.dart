@@ -44,4 +44,50 @@ void main() {
       'day 3',
     );
   });
+
+  CalendarPreview at(DateTime now) => CalendarPreview(
+    now: now,
+    occurrenceLine: (_) => '',
+    cycleLine: (_, _) => '',
+  );
+
+  test('a card holds until the first occurrence it shows ends', () {
+    final summary = const CalendarSupport().summary(birthday, maxLines: 5);
+    expect(summary.holdsUntil(at(DateTime(2026, 11))), DateTime(2027, 3, 13));
+    expect(
+      const CalendarSupport()
+          .summary(newCalendarText('Empty'), maxLines: 5)
+          .holdsUntil(at(DateTime(2026, 11))),
+      isNull,
+      reason: 'nothing it shows passes',
+    );
+  });
+
+  test("a health calendar's card holds until the next day", () {
+    final summary = const CalendarSupport().summary(
+      newCalendarText('Me', health: true),
+      maxLines: 5,
+    );
+    expect(
+      summary.holdsUntil(at(DateTime(2026, 11, 1, 15))),
+      DateTime(2026, 11, 2),
+    );
+  });
+
+  test('search finds the name and the events, not the file words', () {
+    final calendar = Calendar.read(exported)!;
+    final summary = const CalendarSupport().summary(
+      applyEdit(calendar, DeleteEvent('dentist@example.com', at: _at)).text,
+      maxLines: 5,
+    );
+    expect(summary.searchText, contains('Family'));
+    expect(summary.searchText, contains('Swimming (late)'));
+    expect(summary.searchText, contains('blue bag'));
+    expect(summary.searchText, isNot(contains('Dentist')));
+    expect(summary.searchText, isNot(contains('VEVENT')));
+    expect(
+      const CalendarSupport().summary('not a calendar', maxLines: 5).searchText,
+      'not a calendar',
+    );
+  });
 }

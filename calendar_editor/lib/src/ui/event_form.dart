@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
@@ -152,23 +153,24 @@ class _EventFormState extends State<EventForm> {
             ),
           },
           const SizedBox(height: 8),
-          DropdownButtonFormField<List<Duration>>(
-            initialValue: _alerts,
+          DropdownButtonFormField<_Alerts>(
+            initialValue: _Alerts(_alerts),
             decoration: const InputDecoration(labelText: 'Alert'),
             items: [
-              const DropdownMenuItem(value: <Duration>[], child: Text('None')),
+              const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
               if (_alerts.isNotEmpty && !_offered(_alerts))
                 DropdownMenuItem(
-                  value: _alerts,
+                  value: _Alerts(_alerts),
                   child: Text(_alerts.map(alertText).join(', ')),
                 ),
               for (final before in alertChoices)
                 DropdownMenuItem(
-                  value: [before],
+                  value: _Alerts([before]),
                   child: Text(alertText(before)),
                 ),
             ],
-            onChanged: (alerts) => setState(() => _alerts = alerts ?? const []),
+            onChanged: (alerts) =>
+                setState(() => _alerts = alerts?.before ?? const []),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -201,6 +203,23 @@ class _EventFormState extends State<EventForm> {
   /// Whether [alerts] is one the list offers.
   bool _offered(List<Duration> alerts) =>
       alerts.length == 1 && alertChoices.contains(alerts.single);
+}
+
+/// The alerts a choice of the form's list stands for, equal by their
+/// times (a list alone is equal only to itself).
+final class _Alerts {
+  const _Alerts(this.before);
+
+  final List<Duration> before;
+
+  static const _equality = ListEquality<Duration>();
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Alerts && _equality.equals(other.before, before);
+
+  @override
+  int get hashCode => _equality.hash(before);
 }
 
 /// How an alert [before] the start reads.

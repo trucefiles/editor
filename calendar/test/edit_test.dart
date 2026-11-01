@@ -133,6 +133,21 @@ void main() {
     expect(shown.single.start, DateTime(2027, 3, 13));
   });
 
+  test('a draft for one occurrence keeps all but the repeat', () {
+    final series = EventDraft.of(
+      Calendar.read(birthday)!.eventOf('ann@truce')!.series,
+    );
+    final one = series.occurrenceAt(
+      AllDay(DateTime(2027, 3, 12)),
+      AllDay(DateTime(2027, 3, 13)),
+    );
+    expect(series.repeat, isNotNull);
+    expect(one.repeat, isNull);
+    expect(one.summary, 'Ann');
+    expect(one.start, AllDay(DateTime(2027, 3, 12)));
+    expect(one.end, AllDay(DateTime(2027, 3, 13)));
+  });
+
   test('one occurrence deleted is left out of its series', () {
     final calendar = _edited(
       birthday,
