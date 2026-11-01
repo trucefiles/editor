@@ -5,6 +5,7 @@ import '../conflicts/folder_conflicts.dart';
 import '../document.dart';
 import '../document_types.dart';
 import '../document_version.dart';
+import 'document_conflicts.dart';
 
 /// What the added folders hold now, as the screens show it: their
 /// documents (listed, never their texts), marks, subfolders, conflicts,
@@ -90,21 +91,15 @@ final class FolderContents {
   /// are read into its document instead ([copiesOf]).
   late final FolderConflicts conflicts = FolderConflicts([
     for (final conflict in _allConflicts)
-      if (conflict.conflict.isOrphaned ||
-          types.mergeOf(conflict.conflict.mainPath) == null)
-        conflict,
+      if (!mergesIn(conflict.conflict, types)) conflict,
   ]);
 
-  late final Map<DocumentKey, List<ConflictCopy>> _copiesByKey = {
-    for (final conflict in _allConflicts)
-      if (!conflict.conflict.isOrphaned &&
-          types.mergeOf(conflict.conflict.mainPath) != null)
-        conflict.key: conflict.conflict.copies,
-  };
-
-  /// The conflict copies read into the document at [key], in the order
-  /// they merge: those of a type that merges, while its file is there.
-  List<ConflictCopy> copiesOf(DocumentKey key) => _copiesByKey[key] ?? const [];
+  /// The conflict copies read into the document at [key], if a folder
+  /// shows it (see [mergedCopiesOf]).
+  List<ConflictCopy> copiesOf(DocumentKey key) =>
+      folders.folderOf(key.baseId, key.path) == null
+      ? const []
+      : mergedCopiesOf(state, types, key);
 
   /// The subfolders of folder [folderId], empty ones too, its selected
   /// subfolders among them, sorted by path.

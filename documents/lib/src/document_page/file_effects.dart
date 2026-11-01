@@ -22,8 +22,9 @@ typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
   bool newSubfolder,
 });
 
-/// Moves a document's file, as last saved, to [place], named after
-/// [title]; first [place]'s subfolder if it is new ([newSubfolder]).
+/// Moves a document's file, as last saved and with the copies merged into
+/// it, to [place], named after [title]; first [place]'s subfolder if it is
+/// new ([newSubfolder]).
 typedef MoveDocumentFile = Future<Result<DocumentText, MoveFailure>> Function(
   DocumentText document,
   DocumentPlace place, {
@@ -241,12 +242,7 @@ final class FileEffects {
     required bool backUpFirst,
   }) async {
     final files = _filesOf(over.folder);
-    // A failed backup never stops the write: the edits matter more. With
-    // copies merged in, the save backs the file up itself.
-    if (backUpFirst && over.mergedCopies.isEmpty) {
-      await files.backUpBeforeEdit(over);
-    }
-    return switch (await files.save(over, text)) {
+    return switch (await files.save(over, text, backUpFirst: backUpFirst)) {
       Ok(value: final written) => _written(written),
       Err(error: StoreError.changedSinceRead) => switch (await files.reload(
         over.document,
@@ -303,18 +299,12 @@ final class FileEffects {
     final to =
         _moves[ticket]?.to ??
         (throw StateError('A move without a place to go.'));
-    // Copies merged in are settled first, so none stays behind.
-    final moved = switch (await _filesOf(from.folder).settled(from)) {
-      Ok(value: final settled) => await _moveDocument(
-        settled,
-        to.place,
-        title: to.title,
-        newSubfolder: to.newSubfolder,
-      ),
-      Err(:final error) => Err<DocumentText, MoveFailure>(
-        MoveNotWritten(error),
-      ),
-    };
+    final moved = await _moveDocument(
+      from,
+      to.place,
+      title: to.title,
+      newSubfolder: to.newSubfolder,
+    );
     _moves[ticket] = (to: to, result: moved);
     final copy = switch (moved) {
       Ok(:final value) ||

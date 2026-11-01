@@ -11,7 +11,7 @@ import 'document_types.dart';
 import 'open_failure.dart';
 
 /// The conflict copies of the document at a key, as last listed, that
-/// its type merges (see `FolderContents.copiesOf`).
+/// its type merges (see `mergedCopiesOf`).
 typedef CopiesOf = List<ConflictCopy> Function(DocumentKey key);
 
 List<ConflictCopy> _noCopies(DocumentKey key) => const [];
@@ -254,18 +254,20 @@ final class DocumentFiles {
       };
 
   /// Writes [text] over [document]; fails with [StoreError.changedSinceRead]
-  /// if the file changed since [document] was read. The copies merged into
-  /// [document] are settled with it: the file's own text is backed up
-  /// first, and once [text] is written each copy is backed up and
-  /// discarded, unless it changed since it was read (then it is merged
-  /// again at the next read). A failed write keeps them all.
+  /// if the file changed since [document] was read. The file's own text is
+  /// backed up first when asked ([backUpFirst], before the first edits
+  /// are saved over it) or when copies are merged into [document]. Those
+  /// copies are settled with it: once [text] is written each copy is
+  /// backed up and discarded, unless it changed since it was read (then it
+  /// is merged again at the next read). A failed write keeps them all.
   Future<Result<DocumentText, StoreError>> save(
     DocumentText document,
-    String text,
-  ) async {
+    String text, {
+    bool backUpFirst = false,
+  }) async {
     final merged = document.mergedCopies;
-    // A failed backup never stops the write, as before every edit.
-    if (merged.isNotEmpty) await backUpBeforeEdit(document);
+    // A failed backup never stops the write: the edits matter more.
+    if (backUpFirst || merged.isNotEmpty) await backUpBeforeEdit(document);
     final written = await _store.replace(
       document.path,
       document.file.encode(text),

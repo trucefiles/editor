@@ -53,9 +53,12 @@ final class DraftRecovery {
       case Ok(value: final document) when document.file.text == draft.text:
         return true;
       case Ok(value: final document) when document.file.text == draft.base:
-        // Best effort, like before an open document's first save.
-        await files.backUpBeforeEdit(document);
-        return switch (await files.save(document, draft.text)) {
+        // Backed up, like before an open document's first save.
+        return switch (await files.save(
+          document,
+          draft.text,
+          backUpFirst: true,
+        )) {
           Ok() => true,
           Err(error: StoreError.changedSinceRead) =>
             await files.saveAsConflict(document, draft.text) is Ok,

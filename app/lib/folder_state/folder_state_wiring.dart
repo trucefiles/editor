@@ -11,10 +11,8 @@ import '../settings/device_settings_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 
 /// The app's folder state owner, wired: it lists the base folders the
-/// stacks show, by their sync tools, the first time once the edits left by
-/// the last run are in their files (so no document shows its old text
-/// while its draft is pending), and again whenever what a base folder's
-/// folders select changes. The app's own writes reach it as they land.
+/// stacks show, by their sync tools, once [folderListingProvider] tells it
+/// which. The app's own writes reach it as they land.
 final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
   final stacks = ref.watch(baseFolderStacksProvider);
   final owner = folderStateOwner((baseId) {
@@ -22,12 +20,23 @@ final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
     return (scanner: services.scanner, marks: services.marks);
   });
   final writes = ref.watch(appWritesProvider).all.listen(owner.send);
-  StreamSubscription<void>? bases;
   ref.onDispose(() {
     unawaited(writes.cancel());
-    unawaited(bases?.cancel());
     unawaited(owner.close());
   });
+  return owner;
+});
+
+/// The listing of the base folders, wired: the first once the edits left
+/// by the last run are in their files (so no document shows its old text
+/// while its draft is pending), and again whenever what a base folder's
+/// folders select changes. Apart from the owner, as the documents read
+/// with the owner's state and this waits for the documents.
+final folderListingProvider = Provider<void>((ref) {
+  final owner = ref.watch(folderStateOwnerProvider);
+  final stacks = ref.watch(baseFolderStacksProvider);
+  StreamSubscription<void>? bases;
+  ref.onDispose(() => unawaited(bases?.cancel()));
   unawaited(
     ref.read(documentsProvider).draftsRecovered.then((_) {
       if (!ref.mounted) return;
@@ -36,7 +45,6 @@ final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
       tell();
     }),
   );
-  return owner;
 });
 
 /// The app's following of changes, wired: what each base folder's

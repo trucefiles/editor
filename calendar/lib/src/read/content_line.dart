@@ -3,6 +3,11 @@ import 'dart:convert';
 /// One property line of an iCalendar text, `NAME;PARAM=VALUE:VALUE`, read
 /// whole (unfolded). Keeps the [raw] lines it was read from, so it prints
 /// back as it was; a line an edit made has none and prints fresh.
+///
+/// Own code, not a library: block-exact edits need each line's raw bytes,
+/// and no maintained iCalendar package for Dart keeps them (they parse
+/// into values and print anew). Repeats (`rrule`) and time zones
+/// (`timezone`) do use trusted packages.
 final class ContentLine {
   const ContentLine(this.name, this.value, {this.params = const {}, this.raw});
 
