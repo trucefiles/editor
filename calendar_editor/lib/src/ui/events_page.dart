@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
@@ -29,14 +28,7 @@ class _EventsPageState extends State<EventsPage> {
   Widget build(BuildContext context) {
     final words = MaterialLocalizations.of(context);
     final (:first, :end) = gridDays(_month, words.firstDayOfWeekIndex);
-    final shown = occurrences(widget.calendar, first, end);
-    final counts = {
-      for (final MapEntry(:key, :value) in groupBy(
-        shown.expand(daysOf),
-        (DateTime day) => day,
-      ).entries)
-        key: value.length,
-    };
+    final counts = countsByDay(occurrences(widget.calendar, first, end));
     final ofDay = occurrences(widget.calendar, _day, nextDay(_day));
     final edit = widget.edit;
     return ListView(

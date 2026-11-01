@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
@@ -33,3 +34,12 @@ List<DateTime> daysOf(Occurrence occurrence) {
   );
   return daysFrom(first, nextDay(last));
 }
+
+/// How many of [occurrences] show on each day, as a month grid marks it.
+Map<DateTime, int> countsByDay(Iterable<Occurrence> occurrences) => {
+  for (final MapEntry(key: day, value: shown) in groupBy(
+    occurrences.expand(daysOf),
+    (DateTime day) => day,
+  ).entries)
+    day: shown.length,
+};

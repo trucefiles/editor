@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -38,17 +37,9 @@ class _CalendarTabScreenState extends ConsumerState<CalendarTabScreen> {
     };
     final words = MaterialLocalizations.of(context);
     final (:first, :end) = gridDays(_month, words.firstDayOfWeekIndex);
-    final counts = {
-      for (final MapEntry(:key, :value) in groupBy(
-        occurrencesOf(
-          shown,
-          first,
-          end,
-        ).expand((each) => daysOf(each.occurrence)),
-        (DateTime day) => day,
-      ).entries)
-        key: value.length,
-    };
+    final counts = countsByDay(
+      occurrencesOf(shown, first, end).map((each) => each.occurrence),
+    );
     final ofDay = occurrencesOf(
       shown,
       _day,
