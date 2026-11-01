@@ -75,6 +75,15 @@ void main() {
       expect(backupTexts(), {'current', 'other'});
     });
 
+    test('KeepMerged writes both merged to the main file', () async {
+      final result = await resolve(scan(), KeepMerged(bytesOf('both')));
+
+      expect(result, isA<Ok<void, ResolveError>>());
+      expect(folder.textOf('todo.md'), 'both');
+      expect(source.copies, isEmpty);
+      expect(backupTexts(), {'current', 'other'});
+    });
+
     test('fails and changes nothing if the main file changed', () async {
       final conflict = scan();
       folder.put('todo.md', 'edited');

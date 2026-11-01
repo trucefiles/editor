@@ -82,6 +82,7 @@ final class DefaultConflictService implements ConflictService {
     final written = switch (resolution) {
       KeepCurrent() => const Ok<void, StoreError>(null),
       KeepOther() => await _writeMain(conflict, other),
+      KeepMerged(:final bytes) => await _writeMain(conflict, bytes),
     };
     if (written case Err(:final error)) return Err(ResolveError.ofStore(error));
 

@@ -49,8 +49,9 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       setState(() => _picking = null);
       showSnack(
         context,
-        "Nothing was changed: a backup couldn't be made, or the document "
-        'changed again. Please choose again.',
+        "Nothing was changed: a backup couldn't be made, the document "
+        "changed again, or the versions can't be merged. Please choose "
+        'again.',
       );
     });
   }
@@ -83,17 +84,17 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 
   /// Only while the choice is still open: it may have been settled while
   /// the user confirmed. [seen]: the version shown when the user tapped.
-  void _keep(VersionSide side, Seen<DocumentVersion> seen) {
-    if (_theirs == null) return;
-    setState(() => _picking = seen);
-    _session.pick(
-      switch (side) {
+  void _keep(VersionSide side, Seen<DocumentVersion> seen) =>
+      _pick(switch (side) {
         VersionSide.current => PickChoice.theirs,
         VersionSide.other => PickChoice.mine,
-      },
-      theirs: seen,
-      rev: _session.rev,
-    );
+      }, seen);
+
+  /// Sends [choice] against [seen], only while the choice is still open.
+  void _pick(PickChoice choice, Seen<DocumentVersion> seen) {
+    if (_theirs == null) return;
+    setState(() => _picking = seen);
+    _session.pick(choice, theirs: seen, rev: _session.rev);
   }
 
   @override
@@ -131,6 +132,9 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
               enabled: _picking == null,
               // This build's version: the one shown when the user taps.
               onKeep: (side) => _keep(side, theirs),
+              onMerge: _session.merges
+                  ? () => _pick(PickChoice.merged, theirs)
+                  : null,
             ),
     );
   }

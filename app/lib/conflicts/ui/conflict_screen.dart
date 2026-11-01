@@ -7,14 +7,19 @@ import 'package:truce_folders/truce_folders.dart';
 import '../../common/snack.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
+import '../../versions/merge_outcome.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';
 import '../conflict_controller.dart';
 
+/// How a conflict screen ended, to tell where the user lands: [text], and
+/// whether it stays until the user closes it (how a merge went).
+typedef ConflictOutcome = ({String text, bool untilDismissed});
+
 /// Shows both versions of a conflicting document side by side; the user keeps
-/// one. Several conflict copies are resolved one by one, oldest first.
+/// one, or both merged where the document's type merges. Several conflict copies are resolved one by one, oldest first.
 /// Closes once no copy is left, with the outcome to tell as its result.
 class ConflictScreen extends ConsumerStatefulWidget {
   const ConflictScreen(this.initial, {super.key});
@@ -29,23 +34,36 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
   ConflictController get _controller =>
       ref.read(conflictProvider(widget.initial).notifier);
 
-  Future<void> _keep(VersionSide side) async {
-    final answer = await _controller.keep(switch (side) {
-      VersionSide.current => const KeepCurrent(),
-      VersionSide.other => const KeepOther(),
-    });
+  Future<void> _keep(VersionSide side) => _resolve(switch (side) {
+    VersionSide.current => const KeepCurrent(),
+    VersionSide.other => const KeepOther(),
+  });
+
+  /// Keeps [merged], both versions as one.
+  Future<void> _merge(MergedSides merged) =>
+      _resolve(KeepMerged(merged.bytes), merged: merged);
+
+  /// Keeps [choice]; [merged]: the merge it keeps, if it is one.
+  Future<void> _resolve(Resolution choice, {MergedSides? merged}) async {
+    final answer = await _controller.keep(choice);
     if (!mounted || answer == null || !answer.taken) return;
-    final outcome = switch (answer.error) {
-      final error? => error.text,
-      null =>
+    final outcome = switch ((answer.error, merged)) {
+      (final error?, _) => error.text,
+      (null, final merged?) => mergeOutcome(merged.lost),
+      (null, null) =>
         'Conflict resolved. A backup is kept for '
             '${backupRetention.inDays} days.',
     };
+    final untilDismissed = answer.error == null && merged != null;
     if (answer.done) {
       // The opener tells it, where the user lands.
-      Navigator.pop(context, outcome);
-    } else if (answer.error != null) {
-      showSnack(context, outcome);
+      Navigator.pop<ConflictOutcome>(context, (
+        text: outcome,
+        untilDismissed: untilDismissed,
+      ));
+    } else if (answer.error != null || merged != null) {
+      // A merge says how it went; the next copy shows meanwhile.
+      showSnack(context, outcome, untilDismissed: untilDismissed);
     }
   }
 
@@ -114,6 +132,10 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       ),
       enabled: !busy,
       onKeep: _keep,
+      onMerge: switch (sides.merged) {
+        final merged? => () => _merge(merged),
+        null => null,
+      },
     );
   }
 }

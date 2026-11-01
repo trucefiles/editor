@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_documents/truce_documents.dart';
 
 import 'keep_version_dialog.dart';
 import 'version_comparison.dart';
@@ -38,16 +39,23 @@ final class ShownVersion {
 /// has now, is the base of the diff: lines only it has show as added,
 /// lines only the other has as removed, each on its own side. The owner of [onKeep] makes the backups
 /// its versions' [ShownVersion.keptMessage] tells of, before it changes
-/// anything.
+/// anything. Where the document's type merges, [onMerge] keeps both
+/// merged instead, after a backup of both.
 class VersionChooser extends StatelessWidget {
   const VersionChooser({
     required this.current,
     required this.other,
     required this.enabled,
     required this.onKeep,
+    this.onMerge,
     this.base = VersionSide.current,
     super.key,
   });
+
+  /// What keeping both merged does, to confirm it.
+  static final mergeMessage =
+      'Both versions become one. Where both changed the same part, the '
+      'newer change is kept. $bothBackedUp';
 
   final ShownVersion current;
   final ShownVersion other;
@@ -60,6 +68,19 @@ class VersionChooser extends StatelessWidget {
 
   /// Called once the user confirmed keeping a side.
   final ValueChanged<VersionSide> onKeep;
+
+  /// Called once the user confirmed keeping both merged; `null` where
+  /// the two don't merge.
+  final VoidCallback? onMerge;
+
+  Future<void> _merge(BuildContext context, VoidCallback onMerge) async {
+    final confirmed = await confirmKeepVersion(
+      context,
+      mergeMessage,
+      title: 'Merge both versions?',
+    );
+    if (confirmed) onMerge();
+  }
 
   Future<void> _keep(BuildContext context, VersionSide side) async {
     final kept = side == VersionSide.current ? current : other;
@@ -84,8 +105,25 @@ class VersionChooser extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => VersionComparison(
-    first: _pane(context, VersionSide.current),
-    second: _pane(context, VersionSide.other),
-  );
+  Widget build(BuildContext context) {
+    final comparison = VersionComparison(
+      first: _pane(context, VersionSide.current),
+      second: _pane(context, VersionSide.other),
+    );
+    final onMerge = this.onMerge;
+    if (onMerge == null) return comparison;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: FilledButton.icon(
+            icon: const Icon(Icons.merge),
+            label: const Text('Merge both'),
+            onPressed: enabled ? () => _merge(context, onMerge) : null,
+          ),
+        ),
+        Expanded(child: comparison),
+      ],
+    );
+  }
 }

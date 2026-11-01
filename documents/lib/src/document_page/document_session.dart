@@ -47,13 +47,15 @@ final class DocumentSession {
   /// The document [opened] (`null` for a new one, which goes where
   /// [effects] say), its file read and written by [effects], edited by
   /// [editor], which opened with [opened]'s text. [merge]: how its type
-  /// merges edits into a change elsewhere; without one, the user picks.
+  /// merges two texts, if it does; then a change elsewhere can be picked
+  /// merged with the edits ([merges]).
   DocumentSession(
     DocumentText? opened,
     this._effects,
     this.editor, {
     TextMerge? merge,
-  }) : _file = fileOwner(switch (opened) {
+  }) : merges = merge != null,
+       _file = fileOwner(switch (opened) {
          final opened? => openedFile(opened.seen, merge: merge),
          null => newFile(merge: merge),
        }, _effects.run) {
@@ -71,6 +73,10 @@ final class DocumentSession {
 
   /// The way into the editor owner.
   final PageEditor editor;
+
+  /// Whether the document's type merges, so a change elsewhere can be
+  /// picked merged with the edits ([PickChoice.merged]).
+  final bool merges;
 
   late final List<StreamSubscription<Object>> _subscriptions;
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
@@ -123,8 +129,8 @@ final class DocumentSession {
   /// [HistoryEnd].
   Stream<EditorNotice> get editorNotices => _editorNotices.stream;
 
-  /// What the user is told of the file: [Replaced], [PickNotKept], and
-  /// [Merged] where own edits lost.
+  /// What the user is told of the file: [Replaced], [PickNotKept],
+  /// [PickMerged].
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
 
   /// Fires on every change of where the edits are, of where the file is,
@@ -283,10 +289,8 @@ final class DocumentSession {
     switch (event) {
       case ToEditor():
         editor.send(FromFile(event));
-        if (event is Replaced || event is Merged && event.lost.isNotEmpty) {
-          _fileNotices.add(event);
-        }
-      case PickNotKept():
+        if (event is Replaced) _fileNotices.add(event);
+      case PickNotKept() || PickMerged():
         _fileNotices.add(event);
       case Answer() || MoveAnswer():
         // [ask] hears it.

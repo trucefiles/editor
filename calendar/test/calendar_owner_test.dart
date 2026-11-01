@@ -109,7 +109,7 @@ void main() {
     expect(run.state.status.canUndo, isFalse);
   });
 
-  test('what the file merged in shows', () {
+  test('both merged, as the user picked, show', () {
     final run = _run(birthday)
       ..send(EditCalendar(_gym))
       ..send(
@@ -121,7 +121,7 @@ void main() {
     );
     run.send(
       CalendarRequest(
-        FromFile(Merged(merged.text, version: const Version(2), ackRev: 1)),
+        FromFile(Picked(merged.text, version: const Version(2), rev: 1)),
         at: _at,
       ),
     );

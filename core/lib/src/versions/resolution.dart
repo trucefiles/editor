@@ -1,8 +1,9 @@
+import 'dart:typed_data';
+
 /// The user's choice between a file's current version and another one,
 /// e.g. a conflict copy or a backup.
 ///
-/// Phase 0 has only pick-a-side. Later choices (merged text, keep both) are
-/// added as further subclasses.
+/// Pick a side, or keep both merged into one by the document's type.
 sealed class Resolution {
   const Resolution();
 }
@@ -17,4 +18,12 @@ final class KeepCurrent extends Resolution {
 /// For an orphaned conflict: restore the copy as the main file.
 final class KeepOther extends Resolution {
   const KeepOther();
+}
+
+/// Replace the main file with both versions merged into [bytes], as the
+/// document's type merged them.
+final class KeepMerged extends Resolution {
+  const KeepMerged(this.bytes);
+
+  final Uint8List bytes;
 }

@@ -56,6 +56,16 @@ void main() {
     expect(keptBackups(), {'now'});
   });
 
+  test('keeps both merged over the document, after a backup of it', () async {
+    folder.put('todo.md', 'now');
+
+    final kept = await restore.keep(await load(), KeepMerged(bytesOf('both')));
+
+    expect(kept, isA<Ok<void, ResolveError>>());
+    expect(folder.textOf('todo.md'), 'both');
+    expect(keptBackups(), {'now'});
+  });
+
   test('restores a deleted document', () async {
     final choice = await load();
     expect(choice.current, isNull);

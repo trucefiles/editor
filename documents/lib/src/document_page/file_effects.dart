@@ -22,9 +22,8 @@ typedef CreateDocumentFile = Future<Result<DocumentText, StoreError>> Function(
   bool newSubfolder,
 });
 
-/// Moves a document's file, as last saved and with the copies merged into
-/// it, to [place], named after [title]; first [place]'s subfolder if it is
-/// new ([newSubfolder]).
+/// Moves a document's file, as last saved, to [place], named after
+/// [title]; first [place]'s subfolder if it is new ([newSubfolder]).
 typedef MoveDocumentFile = Future<Result<DocumentText, MoveFailure>> Function(
   DocumentText document,
   DocumentPlace place, {
@@ -242,7 +241,9 @@ final class FileEffects {
     required bool backUpFirst,
   }) async {
     final files = _filesOf(over.folder);
-    return switch (await files.save(over, text, backUpFirst: backUpFirst)) {
+    // A failed backup never stops the write: the edits matter more.
+    if (backUpFirst) await files.backUpBeforeEdit(over);
+    return switch (await files.save(over, text)) {
       Ok(value: final written) => _written(written),
       Err(error: StoreError.changedSinceRead) => switch (await files.reload(
         over.document,

@@ -10,26 +10,12 @@ import 'document_type.dart';
 import 'document_types.dart';
 import 'open_failure.dart';
 
-/// The conflict copies of the document at a key, as last listed, that
-/// its type merges (see `mergedCopiesOf`).
-typedef CopiesOf = List<ConflictCopy> Function(DocumentKey key);
-
-List<ConflictCopy> _noCopies(DocumentKey key) => const [];
-
 /// Reads and writes single document files in one folder, through its base
 /// folder's services. Every write is atomic and checks that the file did
 /// not change since it was read. A path the folder doesn't show, or of a
 /// type the app doesn't handle, is refused with [StoreError.outside].
-/// A document of a type that merges is read merged with its conflict
-/// copies ([CopiesOf]); writing over it settles them (see [save]).
 final class DocumentFiles {
-  /// [copiesOf]: the copies each document is read with; none by default.
-  const DocumentFiles(
-    this._folder,
-    this._services,
-    this._types, {
-    this._copiesOf = _noCopies,
-  });
+  const DocumentFiles(this._folder, this._services, this._types);
 
   /// Gives up on a unique name after this many tries.
   static const _maxAttempts = 100;
@@ -37,7 +23,6 @@ final class DocumentFiles {
   final DocumentFolder _folder;
   final BaseFolderServices _services;
   final DocumentTypes _types;
-  final CopiesOf _copiesOf;
 
   FileStore get _store => _services.store;
 
@@ -55,8 +40,7 @@ final class DocumentFiles {
 
   /// The document in the file at [path], with its text, e.g. kept from
   /// before its folder changed: refused if the folder doesn't show it;
-  /// [NotText] if it is not text. Of a type that merges, with its conflict
-  /// copies merged in.
+  /// [NotText] if it is not text.
   Future<Result<DocumentText, OpenFailure>> open(RelPath path) async {
     final type = _types.of(path)?.support;
     if (type == null || !_folder.covers(path)) {
@@ -66,7 +50,7 @@ final class DocumentFiles {
     return switch (read) {
       Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
         final file? => Ok(
-          await _withCopies(
+          DocumentText(
             _document(path, type, content.version, content.modified),
             file,
           ),
@@ -76,35 +60,6 @@ final class DocumentFiles {
       Err(:final error) => Err(NotRead(error)),
     };
   }
-
-  /// [document], its file holding [file], merged with the conflict copies
-  /// its type merges, in their order. A copy that can't be read or merged
-  /// is left out of the text; it waits next to the file.
-  Future<DocumentText> _withCopies(Document document, TextFile file) async {
-    final merge = _types.mergeOf(document.path);
-    final copies = merge == null
-        ? const <ConflictCopy>[]
-        : _copiesOf(document.key);
-    if (merge == null || copies.isEmpty) return DocumentText(document, file);
-    var text = file.text;
-    final reads = <CopyRead>[];
-    for (final copy in copies) {
-      final merged = switch (await _copyText(copy)) {
-        final copyText? => merge.merge(text, copyText),
-        null => const CantMerge(),
-      };
-      if (merged case MergedText(text: final mergedText)) text = mergedText;
-      reads.add(CopyRead(copy, merged: merged is MergedText));
-    }
-    return DocumentText.merged(document, file, copies: reads, text: text);
-  }
-
-  /// The text of conflict [copy]; `null` if it can't be read as text.
-  Future<String?> _copyText(ConflictCopy copy) async =>
-      switch (await _services.conflicts.readCopy(copy)) {
-        Ok(:final value) => TextFile.decode(value)?.text,
-        Err() => null,
-      };
 
   /// New document of [type] in [subfolder] (the base folder's top level
   /// if `null`), named after [title], holding [text]; [newSubfolder]
@@ -254,50 +209,22 @@ final class DocumentFiles {
       };
 
   /// Writes [text] over [document]; fails with [StoreError.changedSinceRead]
-  /// if the file changed since [document] was read. The file's own text is
-  /// backed up first when asked ([backUpFirst], before the first edits
-  /// are saved over it) or when copies are merged into [document]. Those
-  /// copies are settled with it: once [text] is written each copy is
-  /// backed up and discarded, unless it changed since it was read (then it
-  /// is merged again at the next read). A failed write keeps them all.
+  /// if the file changed since [document] was read.
   Future<Result<DocumentText, StoreError>> save(
     DocumentText document,
-    String text, {
-    bool backUpFirst = false,
-  }) async {
-    final merged = document.mergedCopies;
-    // A failed backup never stops the write: the edits matter more.
-    if (backUpFirst || merged.isNotEmpty) await backUpBeforeEdit(document);
+    String text,
+  ) async {
     final written = await _store.replace(
       document.path,
       document.file.encode(text),
       ifUnchanged: document.document.version,
     );
-    switch (written) {
-      case Ok(value: final entry):
-        await _settle(entry, merged);
-        return Ok(_documentAt(entry, document.file.withText(text)));
-      case Err(:final error):
-        return Err(error);
-    }
-  }
-
-  /// [document] with the copies merged into it settled: written once into
-  /// its file (see [save]) if it has some; else as it is.
-  Future<Result<DocumentText, StoreError>> settled(DocumentText document) =>
-      document.mergedCopies.isNotEmpty
-      ? save(document, document.text)
-      : Future.value(Ok(document));
-
-  /// Backs up and discards each of [copies], now in the file [main].
-  Future<void> _settle(FileEntry main, List<ConflictCopy> copies) async {
-    for (final copy in copies) {
-      await _services.conflicts.resolve(
-        Conflict(mainPath: main.path, main: main, copies: [copy]),
-        copy,
-        const KeepCurrent(),
-      );
-    }
+    return switch (written) {
+      Ok(value: final entry) => Ok(
+        _documentAt(entry, document.file.withText(text)),
+      ),
+      Err(:final error) => Err(error),
+    };
   }
 
   /// Writes [text] as [document]'s file again, e.g. after it was deleted
@@ -358,13 +285,12 @@ final class DocumentFiles {
     other: current.file.encode(edited),
   );
 
-  /// Keeps a backup of [document]'s file, its own text without copies,
-  /// before edits are first saved over it.
+  /// Keeps a backup of [document]'s file before edits are first saved over it.
   Future<Result<void, StoreError>> backUpBeforeEdit(DocumentText document) =>
       _services.backups.saveBeforeEdit(
         at: DateTime.now(),
         filePath: document.path,
-        bytes: document.file.encode(document.file.text),
+        bytes: document.file.encode(document.text),
       );
 
   Future<Result<void, StoreError>> delete(Document document) =>
@@ -404,19 +330,12 @@ typedef _Subfolder = ({RelPath? folder, bool isNew});
 /// The document files of every folder, each through its base folder's
 /// services as its folders show it now.
 final class FolderFiles {
-  /// [copiesOf]: the conflict copies a document is read with, as last
-  /// listed.
-  const FolderFiles(this._servicesOf, this._types, {required this._copiesOf});
+  const FolderFiles(this._servicesOf, this._types);
 
   final BaseFolderServices Function(BaseFolder base) _servicesOf;
   final DocumentTypes _types;
-  final CopiesOf _copiesOf;
 
   /// The files of [folder].
-  DocumentFiles of(DocumentFolder folder) => DocumentFiles(
-    folder,
-    _servicesOf(folder.base),
-    _types,
-    copiesOf: _copiesOf,
-  );
+  DocumentFiles of(DocumentFolder folder) =>
+      DocumentFiles(folder, _servicesOf(folder.base), _types);
 }

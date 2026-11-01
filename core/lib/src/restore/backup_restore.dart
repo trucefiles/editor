@@ -55,15 +55,20 @@ final class BackupRestore {
     };
   }
 
-  /// Keeps the file as it is ([KeepCurrent]: changes nothing) or
-  /// puts the backup in its place ([KeepOther]), after a backup of the
-  /// file. Fails with [ResolveError.changedSinceScan] if the file changed
-  /// since [choice] was loaded.
+  /// Keeps the file as it is ([KeepCurrent]: changes nothing), or puts
+  /// the backup ([KeepOther]) or both merged ([KeepMerged]) in its place,
+  /// after a backup of the file. Fails with [ResolveError.changedSinceScan]
+  /// if the file changed since [choice] was loaded.
   Future<Result<void, ResolveError>> keep(
     RestoreChoice choice,
     Resolution resolution,
   ) async {
-    if (resolution is KeepCurrent) return const Ok(null);
+    final bytes = switch (resolution) {
+      KeepCurrent() => null,
+      KeepOther() => choice.bytes,
+      KeepMerged(:final bytes) => bytes,
+    };
+    if (bytes == null) return const Ok(null);
     final path = choice.backup.filePath;
     final current = choice.current;
     if (current != null) {
@@ -76,10 +81,10 @@ final class BackupRestore {
     }
 
     final written = switch (current) {
-      null => await _folder.create(path, choice.bytes),
+      null => await _folder.create(path, bytes),
       final current => await _folder.replace(
         path,
-        choice.bytes,
+        bytes,
         ifUnchanged: current.version,
       ),
     };

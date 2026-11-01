@@ -15,8 +15,9 @@ import '../version.dart';
 /// (and may be ended), or the app exits.
 enum SecureReason { close, hide, exit }
 
-/// Which version a pick keeps: the edits, or the file's from elsewhere.
-enum PickChoice { mine, theirs }
+/// Which version a pick keeps: the edits, the file's from elsewhere, or
+/// both merged into one (only for a type that merges).
+enum PickChoice { mine, theirs, merged }
 
 /// What the file owner handles: inputs anyone may send, and the results
 /// of its effects.
@@ -255,31 +256,11 @@ final class Replaced extends ToEditor {
   final int ackRev;
 }
 
-/// The file changed elsewhere while there were unsaved edits, and the
-/// document's type merged them: the editor shows [text] (the edits and
-/// [version] as one) unless it changed its text after [ackRev]; then its
-/// next edits are merged again. Unsaved, it is saved as the edits are.
-/// [lost]: the user's own edits that lost to newer ones from elsewhere,
-/// named for the user; they were backed up first.
-final class Merged extends ToEditor {
-  const Merged(
-    this.text, {
-    required this.version,
-    required this.ackRev,
-    this.lost = const [],
-  });
-
-  final String text;
-  final Version version;
-  final int ackRev;
-  final List<String> lost;
-}
-
 /// [text] to show, descending from [version]: the version from elsewhere
 /// the user picked, or the file's after the edits were discarded. Always
 /// shown, the editor's rev going on from [rev]; edits the editor made
 /// before it are dropped. (Picking the edits changes nothing the editor
-/// shows.)
+/// shows.) Both merged: the merged text, saved as the edits are.
 final class Picked extends ToEditor {
   const Picked(this.text, {required this.version, required this.rev});
 
@@ -309,10 +290,19 @@ final class MoveAnswer extends FileEvent implements Answering {
 }
 
 /// A pick changed nothing: no backup could be made, the version from
-/// elsewhere changed again, or theirs was picked and the edits changed
-/// since.
+/// elsewhere changed again, theirs or both merged was picked and the
+/// edits changed since, or the two can't be merged.
 final class PickNotKept extends FileEvent {
   const PickNotKept();
+}
+
+/// Both versions were merged into one, as the user picked. [lost]: the
+/// user's own edits that lost to newer ones from elsewhere, named for the
+/// user (e.g. an event's title); both versions were backed up first.
+final class PickMerged extends FileEvent {
+  const PickMerged({this.lost = const []});
+
+  final List<String> lost;
 }
 
 // Effects.
@@ -414,8 +404,8 @@ final class MoveFile<V extends Version> extends FileEffect<V> {
   final Seen<V> from;
 }
 
-/// Back up [theirs] and the edits [mine] before a pick, or before a
-/// merge drops some of the edits; answered by [BackedUp].
+/// Back up [theirs] and the edits [mine] before a pick; answered by
+/// [BackedUp].
 final class BackUpBoth<V extends Version> extends FileEffect<V> {
   const BackUpBoth(this.id, {required this.theirs, required this.mine});
 

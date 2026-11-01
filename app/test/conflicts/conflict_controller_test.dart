@@ -72,6 +72,15 @@ void main() {
     return container.read(provider.notifier);
   }
 
+  test('a type that does not merge offers no merge', () async {
+    write('todo.md', 'a:1\n');
+    write(first, 'b:1\n');
+
+    await open();
+
+    expect(sides().merged, isNull);
+  });
+
   test('loads both sides of the oldest copy', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');

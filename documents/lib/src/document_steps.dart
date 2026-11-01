@@ -93,8 +93,6 @@ base class DocumentSteps {
   /// made first.
   /// Refused while a sync conflict of the document waits, and if its file
   /// changed since [document] was read: the user saves their edits first.
-  /// Conflict copies merged into [document] are written into its file
-  /// first, so they move with it.
   /// Within one base folder the file itself moves; to another one it is
   /// copied, then the old file is removed. If that fails, e.g. as it
   /// changed meanwhile, both stay: never lose data.
@@ -107,24 +105,6 @@ base class DocumentSteps {
     if (_work.conflictWaits(document.key)) {
       return const Err(MoveBlockedByConflict());
     }
-    return switch (await _files.of(document.folder).settled(document)) {
-      Ok(value: final settled) => _move(
-        settled,
-        place,
-        title: title,
-        newSubfolder: newSubfolder,
-      ),
-      Err(:final error) => Err(MoveNotWritten(error)),
-    };
-  }
-
-  /// [move] once [document] holds every edit and copy.
-  Future<Result<DocumentText, MoveFailure>> _move(
-    DocumentText document,
-    DocumentPlace place, {
-    String? title,
-    required bool newSubfolder,
-  }) async {
     final mark = await _markOf(document.folder, document.path);
     final settings = _settings.settingsOf(document.key);
     final files = _files.of(place.folder);
@@ -171,9 +151,7 @@ base class DocumentSteps {
 
   /// Deletes [document] with its mark and settings, keeping them and its
   /// [text] for [undoDelete]. Refused while a sync conflict of the document
-  /// waits. Fails if the file changed since [document] was read. Conflict
-  /// copies merged into [document] are settled first (written, backed up,
-  /// discarded), so none stays behind as a document of its own.
+  /// waits. Fails if the file changed since [document] was read.
   Future<Result<DeletedDocument, DeleteFailure>> delete(
     DocumentText document,
     String text,
@@ -181,17 +159,9 @@ base class DocumentSteps {
     if (_work.conflictWaits(document.key)) {
       return const Err(DeleteBlockedByConflict());
     }
-    final files = _files.of(document.folder);
-    final DocumentText settled;
-    switch (await files.settled(document)) {
-      case Ok(:final value):
-        settled = value;
-      case Err(:final error):
-        return Err(DeleteNotDone(error));
-    }
     final mark = await _markOf(document.folder, document.path);
     final settings = _settings.settingsOf(document.key);
-    final deleted = await files.delete(settled.document);
+    final deleted = await _files.of(document.folder).delete(document.document);
     if (deleted case Err(:final error)) return Err(DeleteNotDone(error));
     // Best effort: the next write of the marks drops it anyway.
     await _marksOf(document.folder).remove(document.path);
