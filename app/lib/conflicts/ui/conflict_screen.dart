@@ -18,9 +18,11 @@ import '../conflict_controller.dart';
 /// [notice] that stays until dismissed (how a merge went) or a short hint.
 typedef ConflictOutcome = ({String text, bool notice});
 
-/// Shows both versions of a conflicting document side by side; the user keeps
-/// one, or both merged where the document's type merges. Several conflict copies are resolved one by one, oldest first.
-/// Closes once no copy is left, with the outcome to tell as its result.
+/// Shows both versions of a conflicting document side by side; the user
+/// keeps one, or both merged where the document's type merges. Several
+/// conflict copies are resolved one by one, oldest first. Closes once no
+/// copy is left, with the outcome to tell as its result; what it tells
+/// meanwhile stays on this screen.
 class ConflictScreen extends ConsumerStatefulWidget {
   const ConflictScreen(this.initial, {super.key});
 
@@ -31,6 +33,9 @@ class ConflictScreen extends ConsumerStatefulWidget {
 }
 
 class _ConflictScreenState extends ConsumerState<ConflictScreen> {
+  /// This screen's own messenger: what it tells goes away with it.
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+
   ConflictController get _controller =>
       ref.read(conflictProvider(widget.initial).notifier);
 
@@ -60,9 +65,9 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       Navigator.pop<ConflictOutcome>(context, (text: outcome, notice: notice));
     } else if (notice) {
       // How the merge went; the next copy shows meanwhile.
-      ScaffoldMessenger.of(context).showNotice(outcome);
+      _messenger.currentState?.showNotice(outcome);
     } else if (answer.error != null) {
-      showSnack(context, outcome);
+      _messenger.currentState?.showHint(outcome);
     }
   }
 
@@ -71,36 +76,42 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     final shown = ref.watch(conflictProvider(widget.initial));
     final conflict = shown.target;
     final count = conflict.conflict.copies.length;
-    return Scaffold(
-      appBar: compareAppBar(
-        folder: conflict.folder,
-        file: conflict.conflict.mainPath,
-        reason: count > 1 ? '$count other versions, oldest first' : null,
-      ),
-      body: Column(
-        children: [
-          UnreachableBanner(conflict.folder, message: waitMessage),
-          Expanded(
-            child: switch (shown) {
-              CompareLoading() => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              CompareLoadFailed(:final error) => Center(
-                child: Text(error.text),
-              ),
-              CompareShowing(:final sides) => _chooser(
-                conflict.conflict,
-                sides,
-                _unreachable(conflict.folder),
-              ),
-              CompareKeeping(:final sides) || CompareDone(:final sides) =>
-                _chooser(conflict.conflict, sides, true),
-            },
-          ),
-        ],
-      ),
+    return ScaffoldMessenger(
+      key: _messenger,
+      child: _scaffold(conflict, shown, count),
     );
   }
+
+  Widget _scaffold(FolderConflict conflict, ConflictState shown, int count) =>
+      Scaffold(
+        appBar: compareAppBar(
+          folder: conflict.folder,
+          file: conflict.conflict.mainPath,
+          reason: count > 1 ? '$count other versions, oldest first' : null,
+        ),
+        body: Column(
+          children: [
+            UnreachableBanner(conflict.folder, message: waitMessage),
+            Expanded(
+              child: switch (shown) {
+                CompareLoading() => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                CompareLoadFailed(:final error) => Center(
+                  child: Text(error.text),
+                ),
+                CompareShowing(:final sides) => _chooser(
+                  conflict.conflict,
+                  sides,
+                  _unreachable(conflict.folder),
+                ),
+                CompareKeeping(:final sides) || CompareDone(:final sides) =>
+                  _chooser(conflict.conflict, sides, true),
+              },
+            ),
+          ],
+        ),
+      );
 
   bool _unreachable(DocumentFolder folder) =>
       ref.watch(folderReachProvider(folder.base)) == Reach.unreachable;

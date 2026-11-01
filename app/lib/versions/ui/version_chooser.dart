@@ -54,8 +54,8 @@ class VersionChooser extends StatelessWidget {
 
   /// What keeping both merged does, to confirm it.
   static final mergeMessage =
-      'Both versions become one. Where both changed the same part, the '
-      'newer change is kept. $bothBackedUp';
+      'Both versions become one; where they clash, one change is kept. '
+      '$bothBackedUp';
 
   final ShownVersion current;
   final ShownVersion other;

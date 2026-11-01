@@ -48,14 +48,13 @@ final class DocumentSession {
   /// [effects] say), its file read and written by [effects], edited by
   /// [editor], which opened with [opened]'s text. [merge]: how its type
   /// merges two texts, if it does; then a change elsewhere can be picked
-  /// merged with the edits ([merges]).
+  /// merged with the edits ([ChangedElsewhere.merges]).
   DocumentSession(
     DocumentText? opened,
     this._effects,
     this.editor, {
     TextMerge? merge,
-  }) : merges = merge != null,
-       _file = fileOwner(switch (opened) {
+  }) : _file = fileOwner(switch (opened) {
          final opened? => openedFile(opened.seen, merge: merge),
          null => newFile(merge: merge),
        }, _effects.run) {
@@ -73,10 +72,6 @@ final class DocumentSession {
 
   /// The way into the editor owner.
   final PageEditor editor;
-
-  /// Whether the document's type merges, so a change elsewhere can be
-  /// picked merged with the edits ([PickChoice.merged]).
-  final bool merges;
 
   late final List<StreamSubscription<Object>> _subscriptions;
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);

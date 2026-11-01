@@ -297,8 +297,8 @@ final class PickNotKept extends FileEvent {
 }
 
 /// Both versions were merged into one, as the user picked. [lost]: the
-/// user's own edits that lost to newer ones from elsewhere, named for the
-/// user (e.g. an event's title); both versions were backed up first.
+/// older versions, of either side, that newer ones replaced, named for
+/// the user (e.g. an event's title); both versions were backed up first.
 final class PickMerged extends FileEvent {
   const PickMerged({this.lost = const []});
 
@@ -476,18 +476,23 @@ enum EditPhase {
 }
 
 /// The file changed elsewhere while there were unsaved edits; edits go
-/// on into the draft until the user picks against [theirs].
+/// on into the draft until the user picks against [theirs]. [merges]:
+/// whether the edits and [theirs] can be picked merged
+/// ([PickChoice.merged]), as the document's type merges them now.
 final class ChangedElsewhere<V extends Version> extends FileStatus<V> {
-  const ChangedElsewhere(this.theirs);
+  const ChangedElsewhere(this.theirs, {this.merges = false});
 
   final Seen<V> theirs;
+  final bool merges;
 
   @override
   bool operator ==(Object other) =>
-      other is ChangedElsewhere && other.theirs == theirs;
+      other is ChangedElsewhere &&
+      other.theirs == theirs &&
+      other.merges == merges;
 
   @override
-  int get hashCode => theirs.hashCode;
+  int get hashCode => Object.hash(theirs, merges);
 }
 
 /// The file was deleted elsewhere; edits (if any) go on into the draft

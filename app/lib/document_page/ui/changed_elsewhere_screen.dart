@@ -40,6 +40,12 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
     _ => null,
   };
 
+  /// Whether the edits and the version from elsewhere can be merged.
+  bool get _merges => switch (_session.status) {
+    ChangedElsewhere(:final merges) => merges,
+    _ => false,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -132,9 +138,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
               enabled: _picking == null,
               // This build's version: the one shown when the user taps.
               onKeep: (side) => _keep(side, theirs),
-              onMerge: _session.merges
-                  ? () => _pick(PickChoice.merged, theirs)
-                  : null,
+              onMerge: _merges ? () => _pick(PickChoice.merged, theirs) : null,
             ),
     );
   }

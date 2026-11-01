@@ -30,10 +30,11 @@ final class CalendarMerge implements TextMerge {
       ]).text,
       lost: [
         for (final unit in others.units)
-          if (winners[unit.key] case final winner?
-              when winner.text != unit.text &&
-                  bases?.unitOf(unit.key)?.text != unit.text)
-            nameOfUnit(unit),
+          if (winners[unit.key] case final winner?)
+            for (final side in [mains.unitOf(unit.key)!, unit])
+              if (side.text != winner.text &&
+                  bases?.unitOf(unit.key)?.text != side.text)
+                nameOfUnit(side),
       ],
     );
   }

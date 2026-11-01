@@ -59,6 +59,10 @@ final class _Step<V extends Version> {
           EditPhase.onDevice,
         _ => EditPhase.inMemory,
       }),
+      ChangedElsewhere(:final theirs) => ChangedElsewhere(
+        theirs,
+        merges: _merge(theirs) != null,
+      ),
       _ => status,
     },
     text: state.text,
@@ -574,10 +578,17 @@ final class _Step<V extends Version> {
         _settle(const InStep());
       case PickChoice.merged:
         final MergedText(:text, :lost) = merged!;
+        events.add(PickMerged(lost: lost));
+        if (text == state.text) {
+          // The edits hold both already: kept as they show.
+          _work(work.copyWith(offered: work.offered.take(1).toList()));
+          _set(status: const Editing(EditPhase.inMemory));
+          _askFolder();
+          return;
+        }
         _work(work.copyWith(offered: [theirs]));
         _set(text: text);
         _picked(text, theirs.version);
-        events.add(PickMerged(lost: lost));
         if (text == theirs.text) {
           _settle(const InStep());
         } else {

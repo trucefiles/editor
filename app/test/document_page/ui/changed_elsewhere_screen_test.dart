@@ -18,6 +18,15 @@ final class _BothMerge implements TextMerge {
       MergedText('$main$other', lost: const ['Swim']);
 }
 
+/// A type that merges, though never these two texts.
+final class _NeverMerge implements TextMerge {
+  const _NeverMerge();
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) =>
+      const CantMerge();
+}
+
 void main() {
   late DocumentFixture fixture;
   late DocumentSession session;
@@ -187,6 +196,14 @@ void main() {
     tester,
   ) async {
     await pumpCompare(tester);
+
+    expect(find.text('Merge both'), findsNothing);
+  });
+
+  testWidgets('no merge is offered for texts that do not merge', (
+    tester,
+  ) async {
+    await pumpCompare(tester, merge: const _NeverMerge());
 
     expect(find.text('Merge both'), findsNothing);
   });
