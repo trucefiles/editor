@@ -50,10 +50,30 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         null => '',
       };
     }
-    return occurrences(
-      calendar,
-      options.now,
-      options.now.add(previewAhead),
-    ).take(options.count).map(options.occurrenceLine).join('\n');
+    return _shown(calendar, options).map(options.occurrenceLine).join('\n');
   }
+
+  /// When [preview] with [options] may change though the text doesn't:
+  /// once the first of the occurrences it shows ends, or for a health
+  /// calendar the next day; `null` if nothing it shows passes.
+  DateTime? holdsUntil(CalendarPreview options) {
+    final calendar = this.calendar;
+    if (calendar == null) return null;
+    final now = options.now;
+    if (calendar.isHealth) return DateTime(now.year, now.month, now.day + 1);
+    return _shown(calendar, options)
+        .map((occurrence) => occurrence.end)
+        .fold<DateTime?>(
+          null,
+          (first, end) => first == null || end.isBefore(first) ? end : first,
+        );
+  }
+
+  /// The occurrences a preview with [options] shows.
+  List<Occurrence> _shown(Calendar calendar, CalendarPreview options) =>
+      occurrences(
+        calendar,
+        options.now,
+        options.now.add(previewAhead),
+      ).take(options.count).toList();
 }

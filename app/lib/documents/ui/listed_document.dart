@@ -21,7 +21,7 @@ typedef ListedLook = ({
 ListedLook watchListed(WidgetRef ref, Document document) {
   final key = document.key;
   return (
-    preview: ref.watch(cardPreviewProvider(document)),
+    preview: watchPreview(ref, document),
     mark: ref.watch(
       folderContentsProvider.select(
         (contents) => contents.value?.markOf(key) ?? DocumentMark.none,
@@ -45,9 +45,19 @@ String watchTitle(WidgetRef ref, DocumentKey key) => switch (ref.watch(
     (contents) => contents.value?.findDocument(key),
   ),
 )) {
-  final document? => cardTitle(
-    document,
-    ref.watch(cardPreviewProvider(document)),
-  ),
+  final document? => cardTitle(document, watchPreview(ref, document)),
   null => nameTitle(key.path),
 };
+
+/// The card preview of [document] in its version as listed now.
+CardPreview watchPreview(WidgetRef ref, Document document) => ref.watch(
+  cardPreviewProvider((
+    document: document,
+    version: ref.watch(
+      folderContentsProvider.select(
+        (contents) =>
+            contents.value?.versionOf(document) ?? listedVersion(document),
+      ),
+    ),
+  )),
+);

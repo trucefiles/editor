@@ -83,7 +83,7 @@ class _EventsPageState extends State<EventsPage> {
               leading: Icon(
                 occurrence.recurrence == null ? Icons.event : Icons.repeat,
               ),
-              title: Text(titleOf(occurrence)),
+              title: Text(occurrenceTitle(occurrence)),
               subtitle: Text(
                 [
                   timesOf(words, occurrence),

@@ -101,6 +101,11 @@ final class FolderContents {
       ? const []
       : mergedCopiesOf(state, types, key);
 
+  /// [document]'s version as listed, with the copies read into it: a new
+  /// copy makes a new one.
+  Version versionOf(Document document) =>
+      listedVersion(document, copies: copiesOf(document.key));
+
   /// The subfolders of folder [folderId], empty ones too, its selected
   /// subfolders among them, sorted by path.
   List<RelPath> subfoldersOf(String folderId) =>
@@ -183,7 +188,7 @@ final class FolderContents {
     _ when !folders.any((folder) => folder.base.id == key.baseId) =>
       const Gone(),
     _ when !covers(key) => const Unknown(),
-    final found? => Found(listedVersion(found, copies: copiesOf(key))),
+    final found? => Found(versionOf(found)),
     null => const Gone(),
   };
 

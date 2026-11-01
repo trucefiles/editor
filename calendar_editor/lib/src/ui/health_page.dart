@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../new_uid.dart';
+import 'cycle_text.dart';
 import 'event_actions.dart';
 import 'health_entry_form.dart';
 import 'month_grid.dart';
@@ -177,26 +178,13 @@ class _CycleLine extends StatelessWidget {
   final DateTime today;
 
   @override
-  Widget build(BuildContext context) {
-    final until = cycle.daysUntilNext(today);
-    return ListTile(
-      leading: const Icon(Icons.water_drop_outlined),
-      title: Text(
-        [
-          'Day ${cycle.dayOfCycle(today)} of your cycle',
-          switch (until) {
-            0 => 'next period likely today',
-            1 => 'next period in about 1 day',
-            > 1 => 'next period in about $until days',
-            _ => 'next period ${-until} days later than guessed',
-          },
-        ].join(' · '),
-      ),
-      subtitle: const Text(
-        'An estimate from your entries, not for contraception.',
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ListTile(
+    leading: const Icon(Icons.water_drop_outlined),
+    title: Text(cycleText(cycle, today)),
+    subtitle: const Text(
+      'An estimate from your entries, not for contraception.',
+    ),
+  );
 }
 
 /// What the marks in the grid mean.

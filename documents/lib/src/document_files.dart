@@ -118,7 +118,7 @@ final class DocumentFiles {
     required String text,
     bool newSubfolder = false,
   }) async {
-    final file = TextFile.empty().withText(text);
+    final file = type.newFile.withText(text);
     final extension = type.newFileExtension;
     final created = await _createNamed(title, extension, (
       folder: subfolder,

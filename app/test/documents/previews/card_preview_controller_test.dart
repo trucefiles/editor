@@ -26,9 +26,14 @@ void main() {
     await container.read(folderListStoreProvider).save([folderAt(dir)]);
   });
 
-  Future<Document> listed(String name) async =>
-      (await container.read(folderContentsProvider.future)).documents
-          .singleWhere((document) => document.path.value == name);
+  /// The card key of the document [name] as listed now.
+  Future<PreviewKey> listed(String name) async {
+    final contents = await container.read(folderContentsProvider.future);
+    final document = contents.documents.singleWhere(
+      (document) => document.path.value == name,
+    );
+    return (document: document, version: contents.versionOf(document));
+  }
 
   test('a card shows the title and preview of the text read', () async {
     File('${dir.path}/plan.md').writeAsStringSync('# Plan\nsteps');

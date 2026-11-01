@@ -89,7 +89,10 @@ void main() {
       for (final document in found.documents) document.path.value,
     ], unorderedEquals(['notes/work/a.md', 'notes/work/inbox/c.md']));
     for (final document in found.documents) {
-      await container.read(cardPreviewsProvider).read(document);
+      await container.read(cardPreviewsProvider).read((
+        document: document,
+        version: found.versionOf(document),
+      ));
     }
     final search = container.listen(searchProvider, (_, _) {});
     await eventually(() => search.read().complete);

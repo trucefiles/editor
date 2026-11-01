@@ -1,21 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../../file_types/document_types.dart';
 import '../documents_wiring.dart';
 
+/// What a card shows a preview of: a listed [document] in its [version]
+/// with the copies read into it, so a new copy is read again.
+typedef PreviewKey = ({Document document, Version version});
+
 /// The app's card previews: each read from the document's file and worked
 /// out by its type.
-final cardPreviewsProvider = Provider<CardPreviews>((ref) {
+final cardPreviewsProvider = Provider<CardPreviews<PreviewKey>>((ref) {
   final files = ref.watch(folderFilesProvider);
   final types = ref.watch(documentTypesProvider);
-  return CardPreviews((document) => readPreview(document, files, types));
+  return CardPreviews((key) => readPreview(key.document, files, types));
 });
 
 final cardPreviewProvider = NotifierProvider.autoDispose
-    .family<CardPreviewController, CardPreview, Document>(
+    .family<CardPreviewController, CardPreview, PreviewKey>(
       CardPreviewController.new,
     );
 
@@ -24,7 +29,7 @@ final cardPreviewProvider = NotifierProvider.autoDispose
 class CardPreviewController extends Notifier<CardPreview> {
   CardPreviewController(this.document);
 
-  final Document document;
+  final PreviewKey document;
 
   @override
   CardPreview build() {

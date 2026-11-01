@@ -18,6 +18,9 @@ final class MarkdownDocumentType implements EditableType {
   String get newFileExtension => '.md';
 
   @override
+  TextFile get newFile => const TextFile.empty();
+
+  @override
   DocumentCardSummary cardSummary(DocumentText read) {
     final summary = read.summary;
     final all = summary.preview(const MarkdownPreview(hideChecked: false));

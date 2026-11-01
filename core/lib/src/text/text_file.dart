@@ -59,9 +59,10 @@ final class TextFile {
       bytes[1] == 0xBB &&
       bytes[2] == 0xBF;
 
-  /// A new file's style: no byte order mark, `\n` line breaks.
-  const TextFile.empty()
-    : this._('', hasBom: false, lineBreak: '\n', breaks: const []);
+  /// A new file's style: no byte order mark, [lineBreak] line breaks
+  /// (`\n` unless its format asks for another, e.g. `\r\n`).
+  const TextFile.empty({String lineBreak = '\n'})
+    : this._('', hasBom: false, lineBreak: lineBreak, breaks: const []);
 
   /// Content with `\n` line breaks.
   final String text;

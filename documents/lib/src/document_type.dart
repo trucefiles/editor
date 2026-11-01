@@ -11,6 +11,9 @@ abstract interface class DocumentType {
   /// The extension of a new file of this type, with its dot.
   String get newFileExtension;
 
+  /// The byte style of a new file of this type (e.g. its line breaks).
+  TextFile get newFile;
+
   /// What cards and search show of [read], from its summary.
   DocumentCardSummary cardSummary(DocumentText read);
 

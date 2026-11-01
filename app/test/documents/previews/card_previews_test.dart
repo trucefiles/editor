@@ -19,15 +19,19 @@ void main() {
   late Map<Document, Completer<CardPreview>> reads;
   late List<Document> started;
 
-  CardPreviews previews({int capacity = 500, int readsAtOnce = 4}) =>
-      CardPreviews(
-        (document) {
-          started.add(document);
-          return (reads[document] = Completer()).future;
-        },
-        capacity: capacity,
-        readsAtOnce: readsAtOnce,
-      );
+  CardPreviews<Document> previews({
+    int capacity = 500,
+    int readsAtOnce = 4,
+    DateTime Function()? now,
+  }) => CardPreviews(
+    (document) {
+      started.add(document);
+      return (reads[document] = Completer()).future;
+    },
+    capacity: capacity,
+    readsAtOnce: readsAtOnce,
+    now: now,
+  );
 
   setUp(() {
     reads = {};
@@ -67,6 +71,27 @@ void main() {
     await pumpEventQueue();
 
     expect(cards.known(doc('a.md', version: 1)), isNull);
+  });
+
+  test('reads a preview again once its type says it no longer holds', () async {
+    var now = DateTime(2026, 11, 1, 9);
+    final cards = previews(now: () => now);
+    final a = doc('a.md');
+    unawaited(cards.read(a));
+    reads[a]!.complete(
+      Previewed(
+        DocumentCardSummary(
+          title: 'A',
+          preview: (_) => '',
+          holdsUntil: DateTime(2026, 11, 1, 10),
+        ),
+      ),
+    );
+    await pumpEventQueue();
+    expect(cards.known(a), isA<Previewed>());
+
+    now = DateTime(2026, 11, 1, 10);
+    expect(cards.known(a), isNull);
   });
 
   test('reads a few at a time, the one asked last first', () async {

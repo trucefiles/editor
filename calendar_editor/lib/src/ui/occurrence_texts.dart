@@ -4,7 +4,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'days.dart';
 
 /// What an [occurrence] is called; "(No title)" if it has none.
-String titleOf(Occurrence occurrence) =>
+String occurrenceTitle(Occurrence occurrence) =>
     switch (occurrence.part.summary.trim()) {
       '' => '(No title)',
       final title => title,

@@ -15,6 +15,9 @@ final class _KeyValueType implements DocumentType {
   String get newFileExtension => '.md';
 
   @override
+  TextFile get newFile => const TextFile.empty();
+
+  @override
   DocumentCardSummary cardSummary(DocumentText read) =>
       DocumentCardSummary(title: read.summary.firstLine, preview: (_) => '');
 

@@ -8,7 +8,11 @@ import 'view_settings.dart';
 /// strings shown, never the text.
 @immutable
 final class DocumentCardSummary {
-  const DocumentCardSummary({required this.title, required this.preview});
+  const DocumentCardSummary({
+    required this.title,
+    required this.preview,
+    this.holdsUntil,
+  });
 
   /// Most lines a preview holds.
   static const previewLines = 10;
@@ -18,4 +22,9 @@ final class DocumentCardSummary {
 
   /// The preview as the document's view settings say.
   final String Function(ViewSettings view) preview;
+
+  /// When the preview may change though the text doesn't (e.g. a
+  /// calendar's next events, once the first has passed); `null`: it
+  /// holds as long as the text.
+  final DateTime? holdsUntil;
 }
