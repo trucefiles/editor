@@ -42,7 +42,12 @@ Future<void> openConflict(BuildContext context, FolderConflict conflict) async {
       builder: (_) => ConflictScreen(conflict),
     ),
   );
-  if (outcome case (:final text, :final untilDismissed)) {
-    messenger.showHint(text, untilDismissed: untilDismissed);
+  switch (outcome) {
+    case (:final text, notice: true):
+      messenger.showNotice(text);
+    case (:final text, notice: false):
+      messenger.showHint(text);
+    case null:
+      break;
   }
 }

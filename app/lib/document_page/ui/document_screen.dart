@@ -178,7 +178,7 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
       case Replaced():
         messenger?.showHint('Updated with a change from another device or app');
       case PickMerged(:final lost):
-        messenger?.showHint(mergeOutcome(lost), untilDismissed: true);
+        messenger?.showNotice(mergeOutcome(lost));
       case _:
         break;
     }

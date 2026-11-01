@@ -1,42 +1,52 @@
 import 'package:flutter/material.dart';
 
 /// Shows [message] at the bottom for a few seconds, with an optional
-/// action such as undo; [untilDismissed]: it stays until the user closes
-/// it, for news worth reading in full (e.g. how a merge went).
+/// action such as undo.
 void showSnack(
   BuildContext context,
   String message, {
   String? actionLabel,
   VoidCallback? onAction,
-  bool untilDismissed = false,
-}) => ScaffoldMessenger.of(context).showHint(
-  message,
-  actionLabel: actionLabel,
-  onAction: onAction,
-  untilDismissed: untilDismissed,
-);
+}) =>
+    ScaffoldMessenger.of(context)
+        .showHint(message, actionLabel: actionLabel, onAction: onAction);
 
 extension HintSnackBar on ScaffoldMessengerState {
   /// Like [showSnack]; for when the screen that asked may be gone by then,
   /// e.g. after an undo.
-  void showHint(
-    String message, {
-    String? actionLabel,
-    VoidCallback? onAction,
-    bool untilDismissed = false,
-  }) {
+  void showHint(String message, {String? actionLabel, VoidCallback? onAction}) {
     this
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
           // Flutter keeps snack bars with an action open until dismissed;
-          // short hints go away on their own.
-          persist: untilDismissed,
-          showCloseIcon: untilDismissed,
+          // these are short hints, so they go away on their own.
+          persist: false,
           action: actionLabel == null || onAction == null
               ? null
               : SnackBarAction(label: actionLabel, onPressed: onAction),
+        ),
+      );
+  }
+}
+
+extension NoticeBanner on ScaffoldMessengerState {
+  /// Shows [message] at the top until the user dismisses it, for news
+  /// worth reading in full (e.g. how a merge went); short hints at the
+  /// bottom never hide it.
+  void showNotice(String message) {
+    this
+      ..hideCurrentMaterialBanner()
+      ..showMaterialBanner(
+        MaterialBanner(
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: hideCurrentMaterialBanner,
+              child: const Text('Dismiss'),
+            ),
+          ],
         ),
       );
   }

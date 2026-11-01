@@ -14,9 +14,9 @@ import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';
 import '../conflict_controller.dart';
 
-/// How a conflict screen ended, to tell where the user lands: [text], and
-/// whether it stays until the user closes it (how a merge went).
-typedef ConflictOutcome = ({String text, bool untilDismissed});
+/// How a conflict screen ended, to tell where the user lands: [text], as a
+/// [notice] that stays until dismissed (how a merge went) or a short hint.
+typedef ConflictOutcome = ({String text, bool notice});
 
 /// Shows both versions of a conflicting document side by side; the user keeps
 /// one, or both merged where the document's type merges. Several conflict copies are resolved one by one, oldest first.
@@ -54,16 +54,15 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         'Conflict resolved. A backup is kept for '
             '${backupRetention.inDays} days.',
     };
-    final untilDismissed = answer.error == null && merged != null;
+    final notice = answer.error == null && merged != null;
     if (answer.done) {
       // The opener tells it, where the user lands.
-      Navigator.pop<ConflictOutcome>(context, (
-        text: outcome,
-        untilDismissed: untilDismissed,
-      ));
-    } else if (answer.error != null || merged != null) {
-      // A merge says how it went; the next copy shows meanwhile.
-      showSnack(context, outcome, untilDismissed: untilDismissed);
+      Navigator.pop<ConflictOutcome>(context, (text: outcome, notice: notice));
+    } else if (notice) {
+      // How the merge went; the next copy shows meanwhile.
+      ScaffoldMessenger.of(context).showNotice(outcome);
+    } else if (answer.error != null) {
+      showSnack(context, outcome);
     }
   }
 
