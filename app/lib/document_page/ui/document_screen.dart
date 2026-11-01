@@ -478,8 +478,10 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
                 child: _tinted(
                   tint,
                   Consumer(
+                    // Every view gets the text host; text types use all
+                    // of it.
                     builder: (context, ref, _) => _page.view.view(
-                      (
+                      TextHost(
                         kept: text,
                         addItems: ref.watch(
                           deviceSettingsProvider.select(

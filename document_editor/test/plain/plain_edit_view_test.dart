@@ -210,11 +210,11 @@ void main() {
     ));
     addTearDown(() => unawaited(part.editor.close()));
     final view = PlainEditorView(part);
-    final host = (
+    final host = TextHost(
       kept: 'one\ntwo',
       addItems: AddItemPlace.bottom,
-      openLink: (Uri _) async {},
-      hint: (String _) {},
+      openLink: (_) async {},
+      hint: (_) {},
       images: const NoDocumentImages(),
     );
     Future<void> pumpPart() => tester.pumpWidget(

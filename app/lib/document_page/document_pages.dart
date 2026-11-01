@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_document_page/truce_document_page.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
 

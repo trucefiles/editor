@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:truce_document_page/truce_document_page.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../document_editor.dart';
-import '../editor_view.dart';
 import '../run_command.dart';
+import '../text_host.dart';
 import 'markdown_editor_part.dart';
 import 'markdown_links.dart';
 import 'markdown_view.dart';
@@ -23,7 +24,7 @@ final class MarkdownEditorView implements EditorView {
   /// Lists get Add item buttons where the host says, links open as the
   /// host opens them, images show as the host finds them.
   @override
-  Widget view(EditorHost host, {required bool autofocus}) => DocumentEditor(
+  Widget view(covariant TextHost host, {required bool autofocus}) => DocumentEditor(
     _part.gate,
     text: host.kept,
     notices: _part.gate.events,

@@ -9,6 +9,7 @@ workspace:
   - calendar
   - core
   - document_editor
+  - document_page
   - documents
   - editor_test_support
   - folders

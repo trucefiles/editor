@@ -1,0 +1,16 @@
+name: truce_document_page
+description: What every document type's editor gives the one document page, and what the page gives it. Flutter, no editor library.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  truce_documents: any
+
+dev_dependencies:
+  truce_lints: any

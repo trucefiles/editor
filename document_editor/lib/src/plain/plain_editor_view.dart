@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:truce_document_page/truce_document_page.dart';
 import 'package:truce_documents/truce_documents.dart';
 
-import '../editor_view.dart';
 import '../lines/line_edit_view.dart';
+import '../text_host.dart';
 import 'plain_editor_part.dart';
 import 'plain_text.dart';
 import 'ui/plain_look.dart';
@@ -19,7 +20,7 @@ final class PlainEditorView implements EditorView {
   /// While read only, the editor's text, its latest edits too (they may
   /// not be kept yet).
   @override
-  Widget view(EditorHost host, {required bool autofocus}) => _part.isEditing
+  Widget view(covariant TextHost host, {required bool autofocus}) => _part.isEditing
       ? LineEditView(
           _text,
           key: const ValueKey(#edit),
