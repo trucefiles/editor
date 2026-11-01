@@ -15,10 +15,15 @@ import 'calendar_contract.dart';
 
 /// The calendar editor owner's decision on [message] in [state], with its
 /// [book]; undo steps are snapshots of the calendar.
-Step<CalendarState, EditorBook<Calendar?>, CalendarNotice, CalendarSaveTimer>
+Step<
+  CalendarState,
+  EditorBook<CalendarShown>,
+  CalendarNotice,
+  CalendarSaveTimer
+>
 calendarStep(
   CalendarState state,
-  EditorBook<Calendar?> book,
+  EditorBook<CalendarShown> book,
   CalendarMessage message,
 ) {
   final step = _Step(state, book)..handle(message);
@@ -31,13 +36,13 @@ calendarStep(
 }
 
 /// One message's handling: the state as it changes and what it leads to.
-final class _Step with EditorSteps<Calendar?> {
+final class _Step with EditorSteps<CalendarShown> {
   _Step(this.state, this.book);
 
   CalendarState state;
 
   @override
-  EditorBook<Calendar?> book;
+  EditorBook<CalendarShown> book;
 
   /// When the request handled now was made; set before it is handled.
   late DateTime _requestAt;
@@ -53,7 +58,7 @@ final class _Step with EditorSteps<Calendar?> {
           if (edited.text != calendar.text) {
             _show(edited.text, edited);
             textChanged();
-            record(calendar, null);
+            record((text: calendar.text, calendar: calendar), null);
           }
         }
       case CalendarRequest(:final request, :final at):
@@ -73,18 +78,18 @@ final class _Step with EditorSteps<Calendar?> {
       effects.add(CalendarSaveTimer(id, delay));
 
   @override
-  Calendar? snapshot() => state.calendar;
+  CalendarShown snapshot() => (text: state.text, calendar: state.calendar);
 
-  /// [back] shows again, stamped as an edit made when it was asked.
+  /// [back] shows again: a calendar stamped as an edit made when it was
+  /// asked; a text that is no calendar as it is.
   @override
-  void restore(Calendar? back) {
-    if (back == null) return;
-    final restored = switch (state.calendar) {
-      final now? => broughtBack(back, now, _requestAt),
-      null => back,
-    };
-    _show(restored.text, restored);
-  }
+  void restore(CalendarShown back) => switch ((back.calendar, state.calendar)) {
+    (final back?, final now?) => _showCalendar(
+      broughtBack(back, now, _requestAt),
+    ),
+    (final back?, null) => _showCalendar(back),
+    (null, _) => reload(back.text),
+  };
 
   @override
   void reload(String text) => _show(text, Calendar.read(text));
@@ -92,10 +97,8 @@ final class _Step with EditorSteps<Calendar?> {
   /// A backup restored: stamped as an edit, as an undo is, so a merge with
   /// the text it replaced keeps it.
   @override
-  void replaceText(String text) => switch (Calendar.read(text)) {
-    final restored? => restore(restored),
-    null => reload(text),
-  };
+  void replaceText(String text) =>
+      restore((text: text, calendar: Calendar.read(text)));
 
   @override
   SentText get sent => SentText(state.text, CalendarSummary(state.text));
@@ -106,6 +109,8 @@ final class _Step with EditorSteps<Calendar?> {
   /// Only the page shows the calendar; nothing shows the text kept.
   @override
   bool get sendsAtOnce => false;
+
+  void _showCalendar(Calendar calendar) => _show(calendar.text, calendar);
 
   void _show(String text, Calendar? calendar) => state = CalendarState(
     text,

@@ -18,18 +18,19 @@ final class DocumentReads<T extends Object> {
   final FolderFiles _files;
   final T? Function(DocumentText read) readAs;
 
-  /// What the last [readAll] kept, by key, with the version read.
+  /// What the last [readAll] read, by key, with the version read; a file
+  /// that couldn't be read is not here, so it is tried again.
   var _read = <DocumentKey, ({Version version, T? value})>{};
 
-  /// What each of [listed] reads as, read anew where its version is new; a
-  /// file that can't be read or reads as nothing is left out. Keeps only
-  /// these, so documents gone are dropped.
+  /// What each of [listed] reads as, read anew where its version is new or
+  /// its last read failed; a file that can't be read or reads as nothing
+  /// is left out. Keeps only these, so documents gone are dropped.
   Future<Map<Document, T>> readAll(List<ListedDocument> listed) async {
     final read = {
       for (final (:document, :version) in listed)
-        document.key: switch (_read[document.key]) {
+        document.key: ?switch (_read[document.key]) {
           final known? when known.version == version => known,
-          _ => (version: version, value: await _valueOf(document)),
+          _ => await _readOf(document, version),
         },
     };
     _read = read;
@@ -39,9 +40,12 @@ final class DocumentReads<T extends Object> {
     };
   }
 
-  Future<T?> _valueOf(Document document) async =>
-      switch (await _files.of(document.folder).reload(document)) {
-        Ok(:final value) => readAs(value),
-        Err() => null,
-      };
+  /// [document] read in [version]; `null` if it couldn't be read.
+  Future<({Version version, T? value})?> _readOf(
+    Document document,
+    Version version,
+  ) async => switch (await _files.of(document.folder).reload(document)) {
+    Ok(:final value) => (version: version, value: readAs(value)),
+    Err() => null,
+  };
 }

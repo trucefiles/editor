@@ -16,7 +16,7 @@ final class CalendarEditorView implements EditorView {
 
   @override
   Widget view(EditorHost host, {required bool autofocus}) =>
-      CalendarPage(_part, today: _today());
+      CalendarPage(_part, today: _today(), hint: host.hint);
 
   @override
   List<Widget> actions(BuildContext context) => const [];

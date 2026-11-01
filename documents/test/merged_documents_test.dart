@@ -362,6 +362,24 @@ void main() {
     );
   });
 
+  test(
+    "a gone document's conflict copy is written in its type's style",
+    () async {
+      expect(
+        await (await files()).saveAsConflictOfGone(path('gone.md'), 'a\nb'),
+        isA<Ok<void, StoreError>>(),
+      );
+
+      expect(
+        [
+          for (final MapEntry(:key, :value) in place.files.files.entries)
+            (key.value.startsWith('gone'), String.fromCharCodes(value.bytes)),
+        ],
+        [(true, 'a\r\nb')],
+      );
+    },
+  );
+
   test('documents are read again only once their version changes', () async {
     put('a.md', 'k:1');
     put('b.md', 'not kept');
@@ -394,6 +412,23 @@ void main() {
     expect([for (final text in changed.values) text], ['k:22']);
     expect(reads, ['a.md', 'b.md', 'a.md']);
     expect(await kept.readAll(const []), isEmpty);
+  });
+
+  test('a document that could not be read is read again next time', () async {
+    put('a.md', 'k:1');
+    final copies = await copiesNow();
+    final kept = DocumentReads<String>(
+      FolderFiles((_) => services, _types, copiesOf: copies),
+      readAs: (read) => read.text,
+    );
+    final document = (await (await files()).open(path('a.md'))).value.document;
+    final listed = [(document: document, version: listedVersion(document))];
+
+    place.files.failWith = StoreError.ioFailure;
+    expect(await kept.readAll(listed), isEmpty);
+    place.files.failWith = null;
+
+    expect((await kept.readAll(listed)).values, ['k:1']);
   });
 }
 

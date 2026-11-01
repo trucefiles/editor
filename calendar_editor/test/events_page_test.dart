@@ -161,4 +161,21 @@ void main() {
 
     expect(find.text('17:00 – 18:00'), findsOne);
   });
+
+  testWidgets('a form saved after the calendar turned read only changes '
+      'nothing', (tester) async {
+    final part = calendarPart(_birthday);
+    final hints = <String>[];
+    await pumpPage(tester, part, today: _annsDay, hints: hints);
+    await tester.tap(find.text('Add event'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
+
+    part.showReadOnly(readOnly: true);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(part.owner.state.text, _birthday);
+    expect(hints, ["The calendar can't be edited right now."]);
+  });
 }

@@ -37,9 +37,14 @@ final class CalendarEditorPart implements EditorPart {
 
   bool _readOnly;
 
-  /// The user's [edit], made now.
-  void edit(CalendarEdit Function(DateTime at) edit) =>
-      owner.send(EditCalendar(edit(_at())));
+  /// The user's [edit], made now; dropped while the calendar can't be
+  /// edited (e.g. a form opened before it turned read only). Whether it
+  /// was made.
+  bool edit(CalendarEdit Function(DateTime at) edit) {
+    if (_readOnly) return false;
+    owner.send(EditCalendar(edit(_at())));
+    return true;
+  }
 
   DateTime _at() => _now().toUtc();
 
