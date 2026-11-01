@@ -279,7 +279,14 @@ class _TimeRow extends StatelessWidget {
               );
               if (picked != null) onTime(picked);
             },
-            child: Text(words.formatTimeOfDay(time)),
+            child: Text(
+              words.formatTimeOfDay(
+                time,
+                alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(
+                  context,
+                ),
+              ),
+            ),
           ),
       ],
     );

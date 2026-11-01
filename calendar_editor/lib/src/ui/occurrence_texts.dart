@@ -11,11 +11,19 @@ String occurrenceTitle(Occurrence occurrence) =>
       final title => title,
     };
 
-/// When [occurrence] is, in [words]: "All day", or its times of day
-/// (with the day it ends on if that is another day).
-String timesOf(MaterialLocalizations words, Occurrence occurrence) {
+/// When [occurrence] is, in [words] and on a 24-hour clock if [use24Hour]:
+/// "All day", or its times of day (with the day it ends on if that is
+/// another day).
+String timesOf(
+  MaterialLocalizations words,
+  Occurrence occurrence, {
+  required bool use24Hour,
+}) {
   if (occurrence.allDay) return 'All day';
-  String time(DateTime at) => words.formatTimeOfDay(TimeOfDay.fromDateTime(at));
+  String time(DateTime at) => words.formatTimeOfDay(
+    TimeOfDay.fromDateTime(at),
+    alwaysUse24HourFormat: use24Hour,
+  );
   final (start, end) = (occurrence.start, occurrence.end);
   if (start == end) return time(start);
   return DateUtils.isSameDay(start, end)

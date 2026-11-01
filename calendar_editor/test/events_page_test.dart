@@ -136,4 +136,28 @@ void main() {
     expect(_on(part, _annsDay), ['Ann']);
     expect(part.owner.state.text, contains('LAST-MODIFIED:20261102T080000Z'));
   });
+
+  testWidgets("times show on the system's clock", (tester) async {
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'swim',
+        EventDraft(
+          summary: 'Swimming',
+          start: Floating(DateTime.utc(2026, 11, 2, 17)),
+          end: Floating(DateTime.utc(2026, 11, 2, 18)),
+        ),
+        at: editedAt,
+      ),
+    );
+    tester.platformDispatcher.alwaysUse24HourFormatTestValue = true;
+    addTearDown(tester.platformDispatcher.clearAlwaysUse24HourTestValue);
+    await pumpPage(
+      tester,
+      calendarPart(calendar.text),
+      today: DateTime(2026, 11, 2),
+    );
+
+    expect(find.text('17:00 – 18:00'), findsOne);
+  });
 }

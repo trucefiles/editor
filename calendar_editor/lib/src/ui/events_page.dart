@@ -78,7 +78,11 @@ class _EventsPageState extends State<EventsPage> {
               title: Text(occurrenceTitle(occurrence)),
               subtitle: Text(
                 [
-                  timesOf(words, occurrence),
+                  timesOf(
+                    words,
+                    occurrence,
+                    use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
+                  ),
                   if (occurrence.part.location.isNotEmpty)
                     occurrence.part.location,
                 ].join(' · '),

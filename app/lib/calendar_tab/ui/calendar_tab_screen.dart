@@ -120,7 +120,7 @@ class _CalendarTabScreenState extends ConsumerState<CalendarTabScreen> {
                       ),
                       title: Text(occurrenceTitle(occurrence)),
                       subtitle: Text(
-                        '${timesOf(words, occurrence)} · ${_nameOf(calendar)}',
+                        '${timesOf(words, occurrence, use24Hour: MediaQuery.alwaysUse24HourFormatOf(context))} · ${_nameOf(calendar)}',
                       ),
                       onTap: () =>
                           openDocument(context, ref, calendar.document),

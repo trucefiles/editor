@@ -90,6 +90,9 @@ class MonthGrid extends StatelessWidget {
   }
 }
 
+/// A day's height at the normal text size.
+const _cellHeight = 52.0;
+
 class _DayCell extends StatelessWidget {
   const _DayCell(
     this.day, {
@@ -120,8 +123,10 @@ class _DayCell extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: AspectRatio(
-          aspectRatio: 1,
+        // As high as a touch target, growing with the text; as wide as
+        // the screen gives, so a wide screen still shows the day below.
+        child: SizedBox(
+          height: MediaQuery.textScalerOf(context).scale(_cellHeight),
           child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
