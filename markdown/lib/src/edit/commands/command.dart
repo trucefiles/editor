@@ -39,12 +39,12 @@ sealed class EditCommand extends Command {
   const EditCommand();
 }
 
-/// Paste of [lines] over [range] (see `plainLines`, `copiedLines`); see
-/// `paste`.
+/// Paste of [lines] over [selection] (see `plainLines`, `copiedLines`);
+/// see `paste`.
 final class Paste extends Command {
-  const Paste(this.range, this.lines);
+  const Paste(this.selection, this.lines);
 
-  final TextSelection range;
+  final Selection selection;
   final List<VisibleText> lines;
 }
 
@@ -82,11 +82,12 @@ final class ReplaceText extends EditCommand {
   final String text;
 }
 
-/// Removes the text in [range].
+/// Removes what [selection] holds: its text, or the block selected whole
+/// (the caret then goes up, as by Backspace).
 final class DeleteRange extends EditCommand {
-  const DeleteRange(this.range);
+  const DeleteRange(this.selection);
 
-  final TextSelection range;
+  final Selection selection;
 }
 
 /// Backspace at [at], a text place's start: its text joins the text
@@ -156,15 +157,22 @@ final class DeleteItem extends EditCommand {
   final NodeId item;
 }
 
-/// Backspace ([backward]) or Delete on [block], a divider: it goes, as
-/// one character. Pressed right next to it, [caret] is where the caret
-/// was, and it stays there; `null` for a selected divider.
-final class RemoveBlock extends EditCommand {
-  const RemoveBlock(this.block, {required this.backward, this.caret});
+/// Backspace ([backward]) or Delete on [block], a divider selected
+/// whole: it goes, as one selected character.
+final class RemoveSelectedBlock extends EditCommand {
+  const RemoveSelectedBlock(this.block, {required this.backward});
 
   final NodeId block;
   final bool backward;
-  final Place? caret;
+}
+
+/// Backspace or Delete at [caret], right next to [block], a divider: it
+/// goes, as one character, and the caret stays where it was.
+final class RemoveBlockNextTo extends EditCommand {
+  const RemoveBlockNextTo(this.block, this.caret);
+
+  final NodeId block;
+  final Place caret;
 }
 
 /// Enter on [block], selected whole: an empty line in its place.
@@ -273,7 +281,7 @@ final class CloseRaw extends EditCommand {
 
 /// What [view] shows after [command], with the selection after it.
 Edited run(ViewRows view, Command command) => switch (command) {
-  Paste(:final range, :final lines) => paste(view, range, lines),
+  Paste(:final selection, :final lines) => paste(view, selection, lines),
   LineBreak(:final range) => overRange(view, range, lineBreak),
   SplitBlock(:final range) => overRange(view, range, splitBlock),
   final EditCommand command => settled(_change(view, command)),
@@ -289,7 +297,15 @@ Change _change(ViewRows view, EditCommand command) {
       formatting,
     ),
     ReplaceText(:final range, :final text) => replaceText(view, range, text),
-    DeleteRange(:final range) => deleteRange(view, range),
+    DeleteRange(selection: final TextSelection range) => deleteRange(
+      view,
+      range,
+    ),
+    DeleteRange(selection: BlockSelection(:final block)) => removeSelectedBlock(
+      view,
+      block,
+      backward: true,
+    ),
     JoinWithPrevious(:final at) => joinWithPrevious(view, at),
     JoinWithNext(:final at) => joinWithNext(view, at),
     RemoveFrame(:final leaf) => removeFrame(view, leaf),
@@ -321,11 +337,15 @@ Change _change(ViewRows view, EditCommand command) {
       selection,
     ),
     DeleteItem(:final item) => deleteItem(view, node(item)),
-    RemoveBlock(:final block, :final backward, :final caret) => removeBlock(
+    RemoveSelectedBlock(:final block, :final backward) => removeSelectedBlock(
       view,
       block,
       backward: backward,
-      caret: caret,
+    ),
+    RemoveBlockNextTo(:final block, :final caret) => removeBlockNextTo(
+      view,
+      block,
+      caret,
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),

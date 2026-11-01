@@ -41,6 +41,19 @@ final class Positions {
     };
   }
 
+  /// The owner's selection a request over [selection] acts on, with
+  /// [shown] the owner's selection: [shown] itself where the library
+  /// still has it as it was given (a block selected whole too), else
+  /// [selection] moved from there; `null` where no text is near.
+  md.Selection? actedOn(
+    DocumentSelection selection, {
+    required md.Selection shown,
+    md.RawRegion? raw,
+  }) {
+    final was = toLibrary(shown, raw: raw);
+    return selection == was ? shown : toOwner(selection, was: was);
+  }
+
   /// [position] as a text place: on a node without text, the nearest one
   /// past it, coming from [was]; `null` if there is none.
   md.Place? placeOf(DocumentPosition position, {DocumentPosition? was}) {

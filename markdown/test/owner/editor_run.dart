@@ -79,9 +79,8 @@ final class EditorRun {
   void select(int row) =>
       send(CaretMoved(BlockSelection(leaf(row)), revision: revision));
 
-  void type(String text) => send(
-    Typed(text, over: shown.selection as TextSelection, revision: revision),
-  );
+  void type(String text) =>
+      send(Typed(text, over: shown.selection, revision: revision));
 
   void press(EditKey key) => send(Pressed(key, revision: revision));
 

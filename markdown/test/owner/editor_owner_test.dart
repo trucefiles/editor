@@ -97,6 +97,34 @@ void main() {
       expect(run.shown.selection, BlockSelection(run.leaf(2)));
     });
 
+    group('on a selected separator, as on one selected character', () {
+      test('typed text takes its place', () {
+        final run = EditorRun('a\n\n---\n\nb')
+          ..select(1)
+          ..type('x');
+        expect(run.rows, ['a', 'x', 'b']);
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 1)));
+      });
+
+      test('pasted lines take its place', () {
+        final run = EditorRun('- [ ] a\n- [ ] ***\n- [ ] b')..select(1);
+        run.runCommand(
+          Paste(
+            BlockSelection(run.leaf(1)),
+            plainLines('x\ny', Formatting.plain),
+          ),
+        );
+        expect(run.rows, ['a', 'x', 'y', 'b']);
+      });
+
+      test('a deletion removes it, the caret up', () {
+        final run = EditorRun('a\n\n---\n\nb')..select(1);
+        run.runCommand(DeleteRange(BlockSelection(run.leaf(1))));
+        expect(run.rows, ['a', 'b']);
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
+      });
+    });
+
     test('drops an input on what no longer shows', () {
       final run = EditorRun('- [ ] a\n- [ ] b');
       final tapped = run.revision;

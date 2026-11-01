@@ -172,24 +172,26 @@ final class VisualAdapter {
     String text, {
     DocumentSelection? over,
   }) {
-    final range = _rangeOf(over ?? composer.selection);
-    return (now) => switch (range) {
-      final range? => md.Typed(text, over: range, revision: now.revision),
+    final selection = _actedOn(over ?? composer.selection);
+    return (now) => switch (selection) {
+      final selection? => md.Typed(
+        text,
+        over: selection,
+        revision: now.revision,
+      ),
       null => null,
     };
   }
 
-  /// A deletion over [selection]; over a block selected whole (a soft
-  /// keyboard's Backspace on a tapped divider), that block goes.
   md.EditorInput? Function(md.EditorState) _deleteRange(
-    DocumentSelection? selection,
+    DocumentSelection? over,
   ) {
-    if (_shown?.selection is md.BlockSelection) {
-      return _pressed(md.EditKey.backspace);
-    }
-    final range = _rangeOf(selection);
-    return (now) => switch (range) {
-      final range? => md.Run(md.DeleteRange(range), revision: now.revision),
+    final selection = _actedOn(over);
+    return (now) => switch (selection) {
+      final selection? => md.Run(
+        md.DeleteRange(selection),
+        revision: now.revision,
+      ),
       null => null,
     };
   }
@@ -208,16 +210,14 @@ final class VisualAdapter {
   /// fragment copied here last, with its styles, while the clipboard
   /// still holds its text.
   md.EditorInput? Function(md.EditorState) _paste(String text) {
-    final range = _rangeOf(composer.selection);
+    final selection = _actedOn(composer.selection);
     final copied = _copied;
-    return (now) => switch ((range, copied)) {
-      (final range?, (:final plain, :final lines)) when plain == text => md.Run(
-        md.Paste(range, lines),
-        revision: now.revision,
-      ),
-      (final range?, _) => md.Typed(
+    return (now) => switch ((selection, copied)) {
+      (final selection?, (:final plain, :final lines)) when plain == text =>
+        md.Run(md.Paste(selection, lines), revision: now.revision),
+      (final selection?, _) => md.Typed(
         text,
-        over: range,
+        over: selection,
         pasted: true,
         revision: now.revision,
       ),
@@ -225,17 +225,16 @@ final class VisualAdapter {
     };
   }
 
-  /// [selection] as a text range in the owner's terms; `null` while a
-  /// block is selected whole. (Typing there first runs Enter, which puts
-  /// an empty line in the block's place for the text; a paste by keys
-  /// does nothing.)
-  md.TextSelection? _rangeOf(DocumentSelection? selection) =>
-      switch ((_shown?.selection, selection)) {
-        (md.BlockSelection(), _) || (_, null) => null,
-        (_, final selection?) => switch (_positions.toOwner(selection)) {
-          final md.TextSelection range => range,
-          _ => null,
-        },
+  /// The owner's selection a request over the library's [selection] acts
+  /// on (see [Positions.actedOn]).
+  md.Selection? _actedOn(DocumentSelection? selection) =>
+      switch ((_shown, selection)) {
+        (final shown?, final selection?) => _positions.actedOn(
+          selection,
+          shown: shown.selection,
+          raw: shown.raw,
+        ),
+        _ => null,
       };
 
   // Keys and actions.

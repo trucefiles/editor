@@ -155,7 +155,7 @@ void main() {
             done: done,
           ),
         ),
-        isA<RemoveBlock>(),
+        isA<RemoveBlockNextTo>(),
       );
     });
 
@@ -182,13 +182,21 @@ void main() {
         _command(
           keyAction(document.view, BlockSelection(rule), EditKey.backspace),
         ),
-        isA<RemoveBlock>().having((it) => it.backward, 'backward', isTrue),
+        isA<RemoveSelectedBlock>().having(
+          (it) => it.backward,
+          'backward',
+          isTrue,
+        ),
       );
       expect(
         _command(
           keyAction(document.view, BlockSelection(rule), EditKey.delete),
         ),
-        isA<RemoveBlock>().having((it) => it.backward, 'backward', isFalse),
+        isA<RemoveSelectedBlock>().having(
+          (it) => it.backward,
+          'backward',
+          isFalse,
+        ),
       );
     });
 

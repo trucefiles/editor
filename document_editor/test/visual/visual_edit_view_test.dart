@@ -205,6 +205,19 @@ void main() {
       expect(document.text, '- [ ] milk\n- [ ] x\n- [ ] eggs');
     });
 
+    testWidgets('selected, pasted lines take its place', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+      tester.clipboardHolds('tea\nrice');
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.pressCtlV();
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] tea\n- [ ] rice\n- [ ] eggs');
+    });
+
     testWidgets('selected, Enter puts an empty item in its place', (
       tester,
     ) async {

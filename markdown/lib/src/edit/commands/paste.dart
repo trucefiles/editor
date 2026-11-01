@@ -7,12 +7,12 @@ import '../selection.dart';
 import 'over_range.dart';
 import 'split_block.dart';
 
-/// [lines] pasted over [range] (see `splitWith`); their links are new
-/// links.
-Edited paste(ViewRows view, TextSelection range, List<VisibleText> lines) =>
+/// [lines] pasted over [selection] (see `splitWith`, `overRange`); their
+/// links are new links.
+Edited paste(ViewRows view, Selection selection, List<VisibleText> lines) =>
     overRange(
       view,
-      range,
+      selection,
       (view, at) => splitWith(view, at, _withNewLinks(lines)),
     );
 

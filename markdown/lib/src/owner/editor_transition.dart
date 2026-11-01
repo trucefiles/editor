@@ -207,7 +207,10 @@ final class _Step with EditorSteps<Snapshot> {
         _typed(shown, text, over);
       case (Run(command: Toggle()), null):
         assert(false, 'a box tap is a ToggleItem');
-      case (Run(command: DeleteRange(:final range)), null):
+      case (
+        Run(command: DeleteRange(selection: final TextSelection range)),
+        null,
+      ):
         _deleted(shown, range);
       case (Run(command: AddItem(:final list, at: AddAt.last)), null)
           when state.checkedItems == CheckedItems.moveToEnd:
@@ -247,9 +250,17 @@ final class _Step with EditorSteps<Snapshot> {
     }
   }
 
+  /// [text] typed over [over]: over a block selected whole, the text
+  /// takes its place, plain.
+  void _typed(FormattedContent shown, String text, Selection over) =>
+      switch (over) {
+        final TextSelection range => _typedText(shown, text, range),
+        BlockSelection() => _run(Paste(over, plainLines(text, .plain))),
+      };
+
   /// [text] typed over [range]: the typing style holds only at the
   /// shown caret.
-  void _typed(FormattedContent shown, String text, TextSelection range) {
+  void _typedText(FormattedContent shown, String text, TextSelection range) {
     final at = range.extent;
     final style =
         (range == shown.selection ? shown.typingStyle : null) ??

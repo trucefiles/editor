@@ -80,10 +80,10 @@ KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
       (final TextSelection range, EditKey.bold) => _style(range, .strong),
       (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
       (BlockSelection(:final block), EditKey.backspace) => RunCommand(
-        RemoveBlock(block, backward: true),
+        RemoveSelectedBlock(block, backward: true),
       ),
       (BlockSelection(:final block), EditKey.delete) => RunCommand(
-        RemoveBlock(block, backward: false),
+        RemoveSelectedBlock(block, backward: false),
       ),
       (BlockSelection(:final block), EditKey.enter) => RunCommand(
         LineInPlace(block),
@@ -208,9 +208,7 @@ final class _Keys {
   /// caret: a divider goes, as one character; any other opens as its raw
   /// text, the caret at the side it came from.
   KeyAction _into(BlockRow row, {required bool backward}) => switch (row.leaf) {
-    DividerNode(:final id) => RunCommand(
-      RemoveBlock(id, backward: backward, caret: at),
-    ),
+    DividerNode(:final id) => RunCommand(RemoveBlockNextTo(id, at)),
     final leaf => OpenRaw(leaf.id, atEnd: backward),
   };
 
