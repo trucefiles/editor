@@ -46,6 +46,7 @@ export 'src/home/home_lists.dart';
 export 'src/home/home_settings.dart';
 export 'src/kept_document_settings.dart';
 export 'src/move_failure.dart';
+export 'src/new_document.dart';
 export 'src/new_file_place/new_file_place.dart';
 export 'src/open_failure.dart';
 export 'src/previews/card_preview.dart';

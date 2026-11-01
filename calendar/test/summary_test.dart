@@ -25,7 +25,7 @@ void main() {
         AddEvent(
           'p@t',
           EventDraft.health(
-            const Period(Flow.light),
+            const Period(PeriodFlow.light),
             DateTime.utc(2026, 10, 30),
           ),
           at: _at,

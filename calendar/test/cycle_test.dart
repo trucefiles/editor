@@ -59,7 +59,10 @@ void main() {
     final calendar = [
       AddEvent(
         'p@t',
-        EventDraft.health(const Period(Flow.light), DateTime.utc(2026, 10, 1)),
+        EventDraft.health(
+          const Period(PeriodFlow.light),
+          DateTime.utc(2026, 10, 1),
+        ),
         at: DateTime.utc(2026, 10, 1),
       ),
       AddEvent(

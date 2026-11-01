@@ -1,0 +1,23 @@
+name: truce_calendar_editor
+description: The calendar page of a calendar document (month, day, event form, health view) and the Calendar tab's widgets. Flutter widgets only.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  collection: ^1.19.1
+  flutter:
+    sdk: flutter
+  truce_calendar: any
+  truce_core: any
+  truce_document_page: any
+  truce_documents: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  truce_lints: any
+  truce_test_support: any

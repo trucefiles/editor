@@ -20,6 +20,7 @@ import '../../documents/documents_wiring.dart';
 import '../../documents/ui/delete_failure_text.dart';
 import '../../documents/ui/document_heading.dart';
 import '../../documents/ui/pin_or_color_sheet.dart';
+import '../../file_types/editable_type.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
@@ -41,15 +42,25 @@ import 'save_indicator.dart';
 /// Markdown document). Saves as the user types; a new document's file is
 /// created as the user leaves it or the app is hidden.
 class DocumentScreen extends ConsumerStatefulWidget {
-  const DocumentScreen(DocumentText this.document, {super.key}) : place = null;
+  const DocumentScreen(DocumentText this.document, {super.key})
+    : place = null,
+      made = null,
+      name = '';
 
-  /// A new document, to go into [place].
-  const DocumentScreen.fresh(DocumentPlace this.place, {super.key})
-    : document = null;
+  /// A new document, to go into [place]: [made] (a plain one if `null`),
+  /// named [name] if it is named first.
+  const DocumentScreen.fresh(
+    DocumentPlace this.place, {
+    this.made,
+    this.name = '',
+    super.key,
+  }) : document = null;
 
   /// The document to open, as read just before; `null` for a new one.
   final DocumentText? document;
   final DocumentPlace? place;
+  final NewDocument<EditableType>? made;
+  final String name;
 
   @override
   ConsumerState<DocumentScreen> createState() => _DocumentScreenState();
@@ -80,7 +91,12 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
     final pages = ref.read(documentPagesProvider);
     _page = switch ((widget.document, widget.place)) {
       (final document?, _) => pages.open(document, withFile: _withFile),
-      (_, final place?) => pages.openNew(place, withFile: _withFile),
+      (_, final place?) => pages.openNew(
+        place,
+        made: widget.made,
+        name: widget.name,
+        withFile: _withFile,
+      ),
       _ => throw StateError('A document or a place is needed.'),
     };
     _partChanges = _page.part.changes.listen((_) => _rebuild());

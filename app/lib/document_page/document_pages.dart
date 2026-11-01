@@ -97,24 +97,33 @@ final class DocumentPages {
         withFile: withFile,
       );
 
-  /// The page of a new document, to go into [place].
-  DocumentPage openNew(DocumentPlace place, {required WithFile withFile}) {
-    final type = types.forNew;
+  /// The page of a new document, to go into [place]: [made] (a plain one
+  /// if `null`), named [name] if it is named first.
+  DocumentPage openNew(
+    DocumentPlace place, {
+    NewDocument<EditableType>? made,
+    String name = '',
+    required WithFile withFile,
+  }) {
+    final what = made ?? types.newDocuments.first;
     return _open(
-      type,
-      NewFile(place, type: type),
+      what.type,
+      NewFile(place, type: what.type),
       view: DocumentSettings.defaults.view,
+      startText: what.startText(name),
       withFile: withFile,
     );
   }
 
   /// The page of a document of [type] whose [file] is where it starts,
-  /// shown as [view] keeps.
+  /// shown as [view] keeps; a new one starts with [startText], which is
+  /// written only with the user's first edit.
   DocumentPage _open(
     EditableType type,
     DocumentFile file, {
     required ViewSettings view,
     required WithFile withFile,
+    String startText = '',
   }) {
     final (opened, newFile) = switch (file) {
       ExistingFile(:final document) => (document, null),
@@ -125,7 +134,7 @@ final class DocumentPages {
     late final DocumentController controller;
     final editor = type.openEditor(
       (
-        text: opened?.text ?? '',
+        text: opened?.text ?? startText,
         version: opened?.seen.version,
         view: view,
         // Not yet kept as a conflict copy: only an unreachable folder

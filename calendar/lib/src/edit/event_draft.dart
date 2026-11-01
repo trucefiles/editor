@@ -56,6 +56,18 @@ final class EventDraft {
   final List<Duration> alerts;
   final HealthEntry? health;
 
+  /// This draft for one occurrence, from [start] to [end]: it doesn't
+  /// repeat.
+  EventDraft occurrenceAt(CalendarTime start, CalendarTime end) => EventDraft(
+    summary: summary,
+    start: start,
+    end: end,
+    description: description,
+    location: location,
+    alerts: alerts,
+    health: health,
+  );
+
   /// Whether [alerts] are those of [part].
   bool sameAlertsAs(EventPart part) =>
       const ListEquality<Duration>().equals(alerts, part.alerts);

@@ -1,4 +1,7 @@
+import 'package:collection/collection.dart';
+
 import '../model/calendar.dart';
+import '../model/calendar_event.dart';
 import '../model/health_entry.dart';
 
 /// A guess at the cycle from the period days written so far: derived,
@@ -102,3 +105,15 @@ DateTime _dayOf(DateTime time) => DateTime.utc(time.year, time.month, time.day);
 
 DateTime _days(DateTime day, int count) =>
     DateTime.utc(day.year, day.month, day.day + count);
+
+/// The health entries of [calendar] by their day (a UTC midnight), each
+/// day's in file order; deleted and cancelled ones left out.
+Map<DateTime, List<CalendarEvent>> healthByDay(Calendar calendar) => groupBy([
+  for (final event in calendar.events)
+    if (event.series case final part
+        when part.health != null &&
+            !part.deleted &&
+            !part.cancelled &&
+            part.start != null)
+      event,
+], (CalendarEvent event) => _dayOf(event.series.start!.wall));

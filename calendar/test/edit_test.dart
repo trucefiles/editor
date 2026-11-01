@@ -148,12 +148,15 @@ void main() {
       newCalendarText('Me', health: true),
       AddEvent(
         'p1@truce',
-        EventDraft.health(const Period(Flow.heavy), DateTime.utc(2026, 11, 1)),
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime.utc(2026, 11, 1),
+        ),
         at: _at,
       ),
     );
     final part = calendar.eventOf('p1@truce')!.series;
-    expect(part.health, const Period(Flow.heavy));
+    expect(part.health, const Period(PeriodFlow.heavy));
     expect(part.summary, 'Period: heavy');
     expect(part.allDay, isTrue);
     expect(calendar.text, contains('CATEGORIES:HEALTH,PERIOD\n'));
@@ -213,13 +216,19 @@ void main() {
       text,
       ChangeSeries(
         'h@x',
-        EventDraft.health(const Period(Flow.heavy), DateTime(2026, 11, 1)),
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime(2026, 11, 1),
+        ),
         at: _at,
       ),
     );
     expect(edited.text, contains('CATEGORIES:PRIVATE\n'));
     expect(edited.text, contains('CATEGORIES:HEALTH,PERIOD\n'));
-    expect(edited.eventOf('h@x')!.series.health, const Period(Flow.heavy));
+    expect(
+      edited.eventOf('h@x')!.series.health,
+      const Period(PeriodFlow.heavy),
+    );
   });
 
   test('an alert edit keeps the alarms the form does not show', () {

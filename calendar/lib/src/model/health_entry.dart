@@ -24,10 +24,10 @@ sealed class HealthEntry {
     String text(String name) => unescapeText(event.value(name) ?? '');
     return switch (healthTagsOf(event).kind) {
       'PERIOD' => Period(
-        Flow.values.firstWhereOrNull(
+        PeriodFlow.values.firstWhereOrNull(
               (flow) => flow.name == text('X-TRUCE-FLOW').toLowerCase(),
             ) ??
-            Flow.medium,
+            PeriodFlow.medium,
       ),
       'SYMPTOM' => Symptom(
         text('X-TRUCE-NAME'),
@@ -75,13 +75,13 @@ const healthCategory = 'HEALTH';
 }
 
 /// How strong a period day's flow is.
-enum Flow { spotting, light, medium, heavy }
+enum PeriodFlow { spotting, light, medium, heavy }
 
 /// A day of the period.
 final class Period extends HealthEntry {
   const Period(this.flow);
 
-  final Flow flow;
+  final PeriodFlow flow;
 
   @override
   String get kind => 'PERIOD';

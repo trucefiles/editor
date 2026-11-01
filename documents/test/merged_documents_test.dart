@@ -38,9 +38,10 @@ final class _NoSettings implements DocumentSettingsKeeper {
   Future<void> forget(DocumentKey document) async {}
 }
 
-final _types = DocumentTypes([
-  const _KeyValueType(),
-], forNew: const _KeyValueType());
+final _types = DocumentTypes(
+  [const _KeyValueType()],
+  newDocuments: const [NewDocument('Note', _KeyValueType())],
+);
 
 const _copyName = 'a.fake-copy-20261101-120000.md';
 

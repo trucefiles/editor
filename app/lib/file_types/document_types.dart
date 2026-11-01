@@ -9,8 +9,8 @@ import 'plain_text_document_type.dart';
 /// at compile time; handed down from here to whatever needs them, down to
 /// what the app may touch in a folder.
 final documentTypesProvider = Provider<DocumentTypes<EditableType>>(
-  (_) => DocumentTypes(const [
-    MarkdownDocumentType(),
-    PlainTextDocumentType(),
-  ], forNew: const MarkdownDocumentType()),
+  (_) => DocumentTypes(
+    const [MarkdownDocumentType(), PlainTextDocumentType()],
+    newDocuments: const [NewDocument('Note', MarkdownDocumentType())],
+  ),
 );
