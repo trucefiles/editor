@@ -180,6 +180,78 @@ void main() {
     ]);
   });
 
+  test('a new start of an event with a duration keeps its end', () {
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:d@x\nDTSTART:20261103T180000\n'
+        'DURATION:PT2H\nSUMMARY:Talk\nEND:VEVENT\nEND:VCALENDAR\n';
+    final part = Calendar.read(text)!.eventOf('d@x')!.series;
+    final draft = EventDraft.of(part);
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        'd@x',
+        EventDraft(
+          summary: draft.summary,
+          start: Floating(DateTime(2026, 11, 3, 17)),
+          end: draft.end,
+        ),
+        at: _at,
+      ),
+    );
+    final moved = edited.eventOf('d@x')!.series;
+    expect(moved.end, Floating(DateTime(2026, 11, 3, 20)));
+    expect(edited.text, isNot(contains('DURATION')));
+  });
+
+  test("a health edit keeps the event's other categories", () {
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:h@x\n'
+        'DTSTART;VALUE=DATE:20261101\nSUMMARY:Period: light\n'
+        'CATEGORIES:HEALTH,PERIOD,PRIVATE\nX-TRUCE-FLOW:light\n'
+        'END:VEVENT\nEND:VCALENDAR\n';
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        'h@x',
+        EventDraft.health(const Period(Flow.heavy), DateTime(2026, 11, 1)),
+        at: _at,
+      ),
+    );
+    expect(edited.text, contains('CATEGORIES:PRIVATE\n'));
+    expect(edited.text, contains('CATEGORIES:HEALTH,PERIOD\n'));
+    expect(edited.eventOf('h@x')!.series.health, const Period(Flow.heavy));
+  });
+
+  test('an alert edit keeps the alarms the form does not show', () {
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a@x\nDTSTART:20261103T180000\n'
+        'DTEND:20261103T190000\nSUMMARY:Call\n'
+        'BEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:-PT10M\nEND:VALARM\n'
+        'BEGIN:VALARM\nACTION:AUDIO\nTRIGGER:-PT5M\nEND:VALARM\n'
+        'BEGIN:VALARM\nACTION:DISPLAY\nTRIGGER;VALUE=DATE-TIME:20261103T090000Z\n'
+        'END:VALARM\nEND:VEVENT\nEND:VCALENDAR\n';
+    final part = Calendar.read(text)!.eventOf('a@x')!.series;
+    expect(part.alerts, [const Duration(minutes: 10)]);
+    final draft = EventDraft.of(part);
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        'a@x',
+        EventDraft(
+          summary: draft.summary,
+          start: draft.start,
+          end: draft.end,
+          alerts: const [Duration(minutes: 30)],
+        ),
+        at: _at,
+      ),
+    );
+    expect(edited.text, contains('ACTION:AUDIO\n'));
+    expect(edited.text, contains('TRIGGER;VALUE=DATE-TIME:20261103T090000Z\n'));
+    expect(edited.text, contains('TRIGGER:-PT30M\n'));
+    expect(edited.text, isNot(contains('TRIGGER:-PT10M')));
+  });
+
   test('long lines are folded at 75 octets, never inside a character', () {
     final summary = 'Ü' * 60;
     final calendar = _edited(

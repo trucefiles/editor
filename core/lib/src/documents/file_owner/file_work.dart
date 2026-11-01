@@ -137,7 +137,7 @@ final class FileWork<V extends Version> {
     this.move,
     this.toRead,
     this.firstLine,
-    this.editsBackup,
+    this.editsBackups = const [],
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -199,9 +199,10 @@ final class FileWork<V extends Version> {
   /// said with it; `null` once it has a file.
   final String? firstLine;
 
-  /// The edits a merge dropped some of, with the version they lost to:
-  /// backed up as the next I/O, before any draft goes over them.
-  final ({Seen<V> theirs, String mine})? editsBackup;
+  /// The edits merges dropped some of, each with the version they lost
+  /// to, oldest first: each backed up in turn as the next I/O, before any
+  /// draft goes over them.
+  final List<({Seen<V> theirs, String mine})> editsBackups;
 
   FileWork<V> copyWith({
     Object? expected = _same,
@@ -220,7 +221,7 @@ final class FileWork<V extends Version> {
     Object? move = _same,
     Object? toRead = _same,
     Object? firstLine = _same,
-    Object? editsBackup = _same,
+    Object? editsBackups = _same,
   }) => FileWork(
     expected: _or(expected, this.expected),
     offered: _or(offered, this.offered),
@@ -238,7 +239,7 @@ final class FileWork<V extends Version> {
     move: _or(move, this.move),
     toRead: _or(toRead, this.toRead),
     firstLine: _or(firstLine, this.firstLine),
-    editsBackup: _or(editsBackup, this.editsBackup),
+    editsBackups: _or(editsBackups, this.editsBackups),
   );
 }
 

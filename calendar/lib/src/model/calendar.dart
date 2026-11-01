@@ -12,14 +12,6 @@ import 'calendar_unit.dart';
 /// printed where its first part was. Immutable; questions are lookups on
 /// it.
 final class Calendar {
-  /// A calendar printing each unit's parts together, in order.
-  Calendar(String head, List<CalendarUnit> units, String tail)
-    : this._(head, units, tail, [
-        for (final unit in units)
-          for (final index in Iterable<int>.generate(unit.parts.length))
-            (key: unit.key, part: index),
-      ]);
-
   Calendar._(this.head, this.units, this.tail, this._layout)
     : _byKey = {for (final unit in units) unit.key: unit};
 
@@ -56,10 +48,12 @@ final class Calendar {
     final blocks = _blocks(inside.sublist(headCount));
     if (blocks == null) return null;
     final (:units, :layout) = _units(blocks);
+    final tail = _textOf(lines.sublist(end));
     return Calendar._(
       _textOf(lines.sublist(0, begin + 1 + headCount)),
       units,
-      _textOf(lines.sublist(end)),
+      // Its last line break only if the text has one.
+      text.endsWith('\n') ? tail : tail.substring(0, tail.length - 1),
       layout,
     );
   }
@@ -109,23 +103,40 @@ final class Calendar {
 
   /// This calendar with [unit] in place of the one with its key, or added
   /// at the end.
-  Calendar withUnit(CalendarUnit unit) => _byKey.containsKey(unit.key)
-      ? Calendar._(
-          head,
-          [for (final each in units) each.key == unit.key ? unit : each],
-          tail,
-          _layout,
-        )
-      : Calendar._(
-          head,
-          [...units, unit],
-          tail,
-          [
-            ..._layout,
-            for (final index in Iterable<int>.generate(unit.parts.length))
-              (key: unit.key, part: index),
-          ],
-        );
+  Calendar withUnit(CalendarUnit unit) => withUnits([unit]);
+
+  /// This calendar with each of [changes] in place of the unit with its
+  /// key, where it was; those it doesn't have added at the end, in order.
+  Calendar withUnits(Iterable<CalendarUnit> changes) {
+    final byKey = {for (final unit in changes) unit.key: _fitted(unit)};
+    final added = [
+      for (final unit in byKey.values)
+        if (!_byKey.containsKey(unit.key)) unit,
+    ];
+    return Calendar._(
+      head,
+      [for (final each in units) byKey[each.key] ?? each, ...added],
+      tail,
+      [
+        ..._layout,
+        for (final unit in added)
+          for (final index in Iterable<int>.generate(unit.parts.length))
+            (key: unit.key, part: index),
+      ],
+    );
+  }
+
+  /// [unit] as it fits the places of the unit it replaces: its parts
+  /// there, or, if it has not as many, its whole text where that unit's
+  /// first part was.
+  CalendarUnit _fitted(CalendarUnit unit) => switch (_byKey[unit.key]) {
+    final old? when old.parts.length != unit.parts.length => CalendarUnit.read(
+      unit.key,
+      [unit.text],
+      unit.components,
+    ),
+    _ => unit,
+  };
 }
 
 /// The calendar property that makes a calendar a health calendar.

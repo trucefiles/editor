@@ -62,6 +62,14 @@ void main() {
     expect(_merged(added, renamed), once);
   });
 
+  test('keeps the layout of main: parts of one event that lie apart', () {
+    expect(_merged(exported, exported), exported);
+    final renamed = _apply(exported, [
+      DeleteEvent('dentist@example.com', at: day2),
+    ]);
+    expect(_merged(exported, renamed), _merged(renamed, renamed));
+  });
+
   test("never changes a unit's text: each is one side's", () {
     final inputs = {
       for (final text in [added, renamed])

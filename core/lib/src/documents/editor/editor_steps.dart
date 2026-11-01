@@ -95,6 +95,8 @@ mixin EditorSteps<S> {
           history: book.history.cleared(HistoryStart.changedElsewhere),
         );
         _reloaded(text);
+        // Saved on the clock as a change; the file owner holds the text.
+        _tick(book.clock.typed());
       case FromFile(message: Merged()):
         // Typed since: the next edits are merged again.
         break;

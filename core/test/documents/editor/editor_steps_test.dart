@@ -249,6 +249,18 @@ void main() {
       expect(editor.book.history.start, HistoryStart.changedElsewhere);
     });
 
+    test('a merge is saved on the clock, as a change is', () {
+      final editor = _FakeEditor('a')
+        ..handleRequest(
+          const FromFile(Merged('merged', version: Version(2), ackRev: 0)),
+        )
+        ..fire(SaveTimer.pause.delay)
+        ..fire(SaveTimer.folder.delay);
+
+      expect(editor.book.rev, 0, reason: 'no edit of its own');
+      expect((editor.notices.last as ToFile).input, isA<SaveNow>());
+    });
+
     test('a merge on older edits is left for the next merge', () {
       final editor = _FakeEditor('a')
         ..edit('ab')

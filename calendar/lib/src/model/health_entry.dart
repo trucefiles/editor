@@ -21,16 +21,8 @@ sealed class HealthEntry {
   /// The entry [event] holds; `null` if it is none (or of a kind the app
   /// doesn't know).
   static HealthEntry? of(Component event) {
-    final categories = [
-      for (final line in event.all('CATEGORIES'))
-        for (final category in splitTextList(line.value))
-          category.trim().toUpperCase(),
-    ];
-    if (!categories.contains(healthCategory)) return null;
     String text(String name) => unescapeText(event.value(name) ?? '');
-    return switch (categories.firstWhereOrNull(
-      (category) => category != healthCategory,
-    )) {
+    return switch (healthTagsOf(event).kind) {
       'PERIOD' => Period(
         Flow.values.firstWhereOrNull(
               (flow) => flow.name == text('X-TRUCE-FLOW').toLowerCase(),
@@ -58,6 +50,29 @@ sealed class HealthEntry {
 
 /// The category every health entry has.
 const healthCategory = 'HEALTH';
+
+/// The categories that tag [event] as a health entry, upper case: whether
+/// it has `HEALTH` ([health]), and its [kind], the category after it on
+/// its line (as `CATEGORIES:HEALTH,<KIND>` writes it). Its other
+/// categories are no part of the entry.
+({bool health, String? kind}) healthTagsOf(Component event) {
+  final tagged = event
+      .all('CATEGORIES')
+      .map(
+        (line) => [
+          for (final category in splitTextList(line.value))
+            category.trim().toUpperCase(),
+        ],
+      )
+      .firstWhereOrNull((categories) => categories.contains(healthCategory));
+  return switch (tagged) {
+    final categories? => (
+      health: true,
+      kind: categories.skip(categories.indexOf(healthCategory) + 1).firstOrNull,
+    ),
+    null => (health: false, kind: null),
+  };
+}
 
 /// How strong a period day's flow is.
 enum Flow { spotting, light, medium, heavy }

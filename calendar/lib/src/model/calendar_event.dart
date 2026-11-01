@@ -38,10 +38,17 @@ final class EventPart {
     null => null,
   };
 
-  /// How it repeats; `null` if it doesn't.
-  late final Repeat? repeat = switch (component.value('RRULE')) {
-    final rule? when rule.trim().isNotEmpty => Repeat.of(rule.trim()),
+  /// Its `RRULE` as written, without `RRULE:`; `null` if it doesn't
+  /// repeat.
+  late final String? rule = switch (component.value('RRULE')?.trim()) {
+    final rule? when rule.isNotEmpty => rule,
     _ => null,
+  };
+
+  /// How it repeats, as the form shows it; `null` if it doesn't.
+  late final Repeat? repeat = switch (rule) {
+    final rule? => Repeat.of(rule),
+    null => null,
   };
 
   /// The occurrences of its series left out.
@@ -49,15 +56,9 @@ final class EventPart {
     for (final line in component.all('EXDATE')) ...timesOf(line),
   ];
 
-  /// When its alerts come, before its start; alerts at other times (e.g.
-  /// a fixed time) are kept in the file but not listed.
+  /// When its alerts come, before its start (see [alertBefore]).
   late final List<Duration> alerts = [
-    for (final alarm in component.children)
-      if (alarm.name == 'VALARM')
-        if (alarm.property('TRIGGER') case final trigger?
-            when trigger.param('VALUE') != 'DATE-TIME' &&
-                trigger.param('RELATED') != 'END')
-          if (durationOf(trigger.value) case final offset?) -offset,
+    for (final alarm in component.children) ?alertBefore(alarm),
   ];
 
   late final List<String> categories = [
@@ -92,6 +93,23 @@ final class EventPart {
         : start;
   }
 }
+
+/// How long before its event's start [alarm] comes, if it is an alert the
+/// form shows: one shown on screen at a time from the start. Other alarms
+/// (a fixed time, from the end, a sound or a mail) are kept in the file
+/// but not listed; `null` for them.
+Duration? alertBefore(Component alarm) => switch (alarm.property('TRIGGER')) {
+  final trigger?
+      when alarm.name == 'VALARM' &&
+          alarm.value('ACTION')?.trim().toUpperCase() == 'DISPLAY' &&
+          trigger.param('VALUE') != 'DATE-TIME' &&
+          trigger.param('RELATED') != 'END' =>
+    switch (durationOf(trigger.value)) {
+      final offset? => -offset,
+      null => null,
+    },
+  _ => null,
+};
 
 /// One event of a calendar: all components with its [uid], the [series]
 /// (or single event) and its changed occurrences ([changed]).

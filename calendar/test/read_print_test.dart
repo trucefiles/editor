@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_core/truce_core.dart';
 
 import 'samples.dart';
 
@@ -16,6 +17,15 @@ void main() {
           'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:a\nEND:VEVENT\n'
           'X-STRAY:1\nEND:VCALENDAR\n\n';
       expect(Calendar.read(text)!.text, text);
+    });
+
+    test('a text without a last line break prints back without one', () {
+      final text = birthday.substring(0, birthday.length - 1);
+      expect(Calendar.read(text)!.text, text);
+      expect(
+        (const CalendarMerge().merge(text, text) as MergedText).text,
+        text,
+      );
     });
 
     test('groups a series with its changed occurrences in one unit', () {

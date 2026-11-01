@@ -32,11 +32,13 @@ final class EditCalendar extends CalendarInput {
   final CalendarEdit edit;
 }
 
-/// A request of the document page (see core's editor contract).
+/// A request of the document page (see core's editor contract), made
+/// [at]: what an undo or redo brings back is stamped as an edit then.
 final class CalendarRequest extends CalendarInput {
-  const CalendarRequest(this.request);
+  const CalendarRequest(this.request, {required this.at});
 
   final EditorRequest request;
+  final DateTime at;
 }
 
 // Results.

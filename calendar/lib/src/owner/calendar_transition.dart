@@ -39,6 +39,9 @@ final class _Step with EditorSteps<Calendar?> {
   @override
   EditorBook<Calendar?> book;
 
+  /// When the request handled now was made; set before it is handled.
+  late DateTime _requestAt;
+
   final events = <CalendarNotice>[];
   final effects = <CalendarSaveTimer>[];
 
@@ -53,7 +56,8 @@ final class _Step with EditorSteps<Calendar?> {
             record(calendar, null);
           }
         }
-      case CalendarRequest(:final request):
+      case CalendarRequest(:final request, :final at):
+        _requestAt = at;
         handleRequest(request);
       case CalendarTimerFired(:final id):
         fired(id);
@@ -71,9 +75,15 @@ final class _Step with EditorSteps<Calendar?> {
   @override
   Calendar? snapshot() => state.calendar;
 
+  /// [back] shows again, stamped as an edit made when it was asked.
   @override
   void restore(Calendar? back) {
-    if (back != null) _show(back.text, back);
+    if (back == null) return;
+    final restored = switch (state.calendar) {
+      final now? => broughtBack(back, now, _requestAt),
+      null => back,
+    };
+    _show(restored.text, restored);
   }
 
   @override

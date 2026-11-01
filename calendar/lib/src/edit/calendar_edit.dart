@@ -1,3 +1,7 @@
+import 'dart:math';
+
+import 'package:collection/collection.dart';
+
 import '../model/calendar.dart';
 import '../model/calendar_event.dart';
 import '../model/calendar_time.dart';
@@ -170,33 +174,73 @@ Component _occurrenceOf(Component series, CalendarTime occurrence) {
   ).withProperty('RECURRENCE-ID', timeLine('RECURRENCE-ID', occurrence));
 }
 
+/// [back], the calendar an undo or redo brings back over [now], as an
+/// edit at [at]: each event of [back] that differs from [now]'s is stamped
+/// anew, its `SEQUENCE` above both, and each event only [now] has is
+/// deleted (a marker). So a merge with [now]'s text, e.g. as another
+/// device got it, keeps what came back.
+Calendar broughtBack(Calendar back, Calendar now, DateTime at) =>
+    back.withUnits([
+      for (final event in back.events)
+        if (back.unitOf(event.key)! case final unit
+            when unit.text != now.unitOf(event.key)?.text)
+          CalendarUnit.edited(event.key, [
+            for (final component in unit.components)
+              _stamped(
+                component,
+                at,
+                above:
+                    now
+                        .unitOf(event.key)
+                        ?.components
+                        .map(_sequenceOf)
+                        .fold<int>(-1, max) ??
+                    -1,
+              ),
+          ]),
+      for (final event in now.events)
+        if (back.eventOf(event.uid) == null)
+          CalendarUnit.edited(event.key, [_marker(event, at)]),
+    ]);
+
 /// [event] stamped as edited [at]; a [first] stamp starts its `SEQUENCE`
-/// at 0.
-Component _stamped(Component event, DateTime at, {bool first = false}) {
-  final sequence = int.tryParse(event.value('SEQUENCE')?.trim() ?? '') ?? -1;
-  return event
-      .withProperty('DTSTAMP', stampLine('DTSTAMP', at))
-      .withProperty('LAST-MODIFIED', stampLine('LAST-MODIFIED', at))
-      .withProperty(
+/// at 0, else it goes one above its own and [above].
+Component _stamped(
+  Component event,
+  DateTime at, {
+  bool first = false,
+  int above = -1,
+}) => event
+    .withProperty('DTSTAMP', stampLine('DTSTAMP', at))
+    .withProperty('LAST-MODIFIED', stampLine('LAST-MODIFIED', at))
+    .withProperty(
+      'SEQUENCE',
+      ContentLine(
         'SEQUENCE',
-        ContentLine('SEQUENCE', '${first ? 0 : sequence + 1}'),
-      );
-}
+        '${first ? 0 : max(_sequenceOf(event), above) + 1}',
+      ),
+    );
+
+/// The `SEQUENCE` of [event]; -1 if it has none.
+int _sequenceOf(Component event) =>
+    int.tryParse(event.value('SEQUENCE')?.trim() ?? '') ?? -1;
 
 /// [event] with what [draft] says where it differs; its repeat only if a
 /// [series].
 Component _drafted(Component event, EventDraft draft, {required bool series}) {
   final now = EventPart(event);
   final health = draft.health;
+  // A new start or end is written as DTEND; a DURATION would go on from
+  // the old one.
+  final timesChanged = now.start != draft.start || now.end != draft.end;
+  final endWritten = event.property('DTEND') == null ? null : now.end;
   var edited = event
       .withText('SUMMARY', draft.summary, now.summary)
       .withText('DESCRIPTION', draft.description, now.description)
       .withText('LOCATION', draft.location, now.location)
       .withTime('DTSTART', draft.start, now.start)
-      .withTime('DTEND', draft.end, now.end);
-  if (now.start != draft.start || now.end != draft.end) {
-    edited = edited.withProperty('DURATION', null);
-  }
+      .withTime('DTEND', draft.end, timesChanged ? endWritten : now.end);
+  if (timesChanged) edited = edited.withProperty('DURATION', null);
   if (series && draft.repeat != now.repeat) {
     edited = edited.withProperty('RRULE', switch (draft.repeat) {
       final repeat? => ContentLine('RRULE', repeat.ruleFor(draft.start)),
@@ -209,20 +253,21 @@ Component _drafted(Component event, EventDraft draft, {required bool series}) {
 }
 
 /// [event] holding [entry]'s tag and values instead of any other health
-/// entry's.
+/// entry's; its other categories stay.
 Component _withHealth(Component event, HealthEntry? entry) {
-  bool isHealth(ContentLine line) =>
-      (line.name.startsWith('X-TRUCE-') && line.name != 'X-TRUCE-DELETED') ||
-      (line.name == 'CATEGORIES' &&
-          splitTextList(
-            line.value,
-          ).any((category) => category.trim().toUpperCase() == healthCategory));
-  final kept = [
-    for (final line in event.properties)
-      if (!isHealth(line)) line,
-  ];
+  final tags = healthTagsOf(event);
+  bool isTag(String category) => switch (category.trim().toUpperCase()) {
+    healthCategory => tags.health,
+    final other => other == tags.kind,
+  };
+  bool isValue(ContentLine line) =>
+      line.name.startsWith('X-TRUCE-') && line.name != 'X-TRUCE-DELETED';
   return Component(event.name, [
-    ...kept,
+    for (final line in event.properties)
+      if (line.name == 'CATEGORIES')
+        ?_withoutCategories(line, isTag)
+      else if (!isValue(line))
+        line,
     if (entry != null) ...[
       ContentLine('CATEGORIES', '$healthCategory,${entry.kind}'),
       ...entry.values,
@@ -230,10 +275,28 @@ Component _withHealth(Component event, HealthEntry? entry) {
   ], children: event.children);
 }
 
-/// [event] with an alert for each of [draft]'s, in place of its own.
+/// [line], a `CATEGORIES` line, without the categories [drop] names: as it
+/// is if it has none of them, `null` if nothing is left.
+ContentLine? _withoutCategories(
+  ContentLine line,
+  bool Function(String category) drop,
+) {
+  final categories = splitTextList(line.value);
+  final kept = categories.whereNot(drop).toList();
+  if (kept.length == categories.length) return line;
+  if (kept.isEmpty) return null;
+  return ContentLine(
+    'CATEGORIES',
+    kept.map(escapeText).join(','),
+    params: line.params,
+  );
+}
+
+/// [event] with an alert for each of [draft]'s, in place of the alerts the
+/// form shows; other alarms stay (see [alertBefore]).
 Component _withAlerts(Component event, EventDraft draft) => event.withChildren([
   for (final child in event.children)
-    if (child.name != 'VALARM') child,
+    if (alertBefore(child) == null) child,
   for (final before in draft.alerts)
     Component('VALARM', [
       const ContentLine('ACTION', 'DISPLAY'),

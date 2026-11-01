@@ -121,6 +121,26 @@ void main() {
       expect(run.machine.effects.last, isA<DropDraft>());
     });
 
+    test('each merge that loses own edits backs them up, in turn', () {
+      final run = _Run('a:1\n')
+        ..edit('a:1\nb:2\n', 1)
+        ..keep()
+        ..found(const Seen('a:1\nb:3\n', _v2));
+      final first = run.last<BackUpBoth>();
+      // Typed twice on the first version while its backup runs: each
+      // merge loses b again.
+      run
+        ..edit('a:1\nb:2\nc:1\n', 2)
+        ..edit('a:1\nb:2\nc:2\n', 3);
+      expect(run.all<BackUpBoth>(), [first], reason: 'one I/O at a time');
+
+      run.send(BackedUp(first.id, ok: true));
+      final second = run.last<BackUpBoth>();
+      expect(second.mine, 'a:1\nb:2\nc:1\n');
+      run.send(BackedUp(second.id, ok: true));
+      expect(run.last<BackUpBoth>().mine, 'a:1\nb:2\nc:2\n');
+    });
+
     test('an edit that only lost against its own base is not named', () {
       final run = _Run('b:1\n')
         ..edit('b:1\nc:1\n', 1)

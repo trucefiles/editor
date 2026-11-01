@@ -95,6 +95,29 @@ void main() {
     ]);
   });
 
+  test('a series that starts after the range shows nothing', () {
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:s@x\nDTSTART:20270105T090000\n'
+      'DTEND:20270105T100000\nRRULE:FREQ=DAILY\nEND:VEVENT\n',
+    );
+    expect(
+      occurrences(calendar, DateTime(2026, 11), DateTime(2026, 12)),
+      isEmpty,
+    );
+  });
+
+  test('repeats follow the rule as written, its end time too', () {
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:u@x\nDTSTART:20261102T090000\n'
+      'DTEND:20261102T100000\nRRULE:FREQ=DAILY;UNTIL=20261104T080000\n'
+      'END:VEVENT\n',
+    );
+    expect(_starts(calendar, DateTime(2026, 11), DateTime(2026, 12)), [
+      DateTime(2026, 11, 2, 9),
+      DateTime(2026, 11, 3, 9),
+    ]);
+  });
+
   test('cancelled events do not show', () {
     final calendar = _with(
       'BEGIN:VEVENT\nUID:a\nDTSTART:20261102T080000\nSTATUS:CANCELLED\nEND:VEVENT\n',

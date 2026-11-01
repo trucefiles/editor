@@ -117,7 +117,7 @@ final class _Step<V extends Version> {
   /// the file.
   void _next() {
     if (work.io != null) return;
-    if (work.editsBackup case final backup?) return _backUpEdits(backup);
+    if (work.editsBackups case [final backup, ...]) return _backUpEdits(backup);
     if (work.pick case final pick?) _startPick(pick);
     // Dropped while it still names the file it was kept for, before a move.
     if (work.io == null && !_hasEdits && work.draft != null) _dropDraft();
@@ -455,7 +455,14 @@ final class _Step<V extends Version> {
     final merged = merge?.merge(theirs.text, state.text, base: base);
     if (merged is! MergedText) return false;
     if (merged.lost.isNotEmpty) {
-      _work(work.copyWith(editsBackup: (theirs: theirs, mine: state.text)));
+      _work(
+        work.copyWith(
+          editsBackups: [
+            ...work.editsBackups,
+            (theirs: theirs, mine: state.text),
+          ],
+        ),
+      );
     }
     _work(
       work.copyWith(
@@ -481,10 +488,16 @@ final class _Step<V extends Version> {
     return true;
   }
 
-  /// Backs up the edits a merge dropped some of; nothing waits for it.
+  /// Backs up [backup], the oldest edits a merge dropped some of;
+  /// nothing waits for it.
   void _backUpEdits(({Seen<V> theirs, String mine}) backup) {
     final id = _id();
-    _work(work.copyWith(io: BackingUpEdits(id), editsBackup: null));
+    _work(
+      work.copyWith(
+        io: BackingUpEdits(id),
+        editsBackups: work.editsBackups.skip(1).toList(),
+      ),
+    );
     effects.add(BackUpBoth(id, theirs: backup.theirs, mine: backup.mine));
   }
 

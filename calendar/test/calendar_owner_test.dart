@@ -35,10 +35,41 @@ void main() {
     expect(run.state.status.canUndo, isTrue);
     expect(run.state.status.unsent, isTrue);
 
-    run.send(const CalendarRequest(Undo()));
-    expect(run.state.text, birthday);
-    run.send(const CalendarRequest(Redo()));
-    expect(run.state.calendar!.eventOf('gym@t'), isNotNull);
+    run.send(CalendarRequest(const Undo(), at: _at));
+    expect(
+      run.state.calendar!.eventOf('gym@t')!.series.deleted,
+      isTrue,
+      reason: 'undone as a delete, so a merge does not bring it back',
+    );
+    run.send(CalendarRequest(const Redo(), at: _at));
+    final gym = run.state.calendar!.eventOf('gym@t')!.series;
+    expect((gym.deleted, gym.summary), (false, 'Gym'));
+  });
+
+  test('what an undo brings back wins over the text it undid', () {
+    final rename = ChangeSeries(
+      'ann@truce',
+      EventDraft(
+        summary: 'Ann (birthday)',
+        start: AllDay(DateTime(2020, 3, 12)),
+        end: AllDay(DateTime(2020, 3, 13)),
+        repeat: const SimpleRepeat(Frequency.yearly),
+      ),
+      at: _at,
+    );
+    final run = _run(birthday)..send(EditCalendar(rename));
+    // Saved, then reached another device, before the undo.
+    final undone = run.state.text;
+    run.send(
+      CalendarRequest(const Undo(), at: _at.add(const Duration(minutes: 1))),
+    );
+
+    final merged = (const CalendarMerge().merge(
+      undone,
+      run.state.text,
+    ) as MergedText).text;
+    expect(Calendar.read(merged)!.eventOf('ann@truce')!.series.summary, 'Ann');
+    expect(merged, contains('SEQUENCE:2\n'), reason: 'above both');
   });
 
   test('the text goes to the file owner after the pause, as typing does', () {
@@ -60,7 +91,9 @@ void main() {
   test('what the file merged in shows', () {
     final run = _run(birthday)
       ..send(EditCalendar(_gym))
-      ..send(CalendarRequest(SecureEditor(Ticket(), SecureReason.hide)));
+      ..send(
+        CalendarRequest(SecureEditor(Ticket(), SecureReason.hide), at: _at),
+      );
     final merged = applyEdit(
       Calendar.read(_sent(run).single)!,
       DeleteEvent('ann@truce', at: _at),
@@ -68,6 +101,7 @@ void main() {
     run.send(
       CalendarRequest(
         FromFile(Merged(merged.text, version: const Version(2), ackRev: 1)),
+        at: _at,
       ),
     );
     expect(run.state.calendar!.eventOf('ann@truce')!.series.deleted, isTrue);

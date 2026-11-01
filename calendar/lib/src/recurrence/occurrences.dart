@@ -57,8 +57,8 @@ Iterable<Occurrence> _occurrencesOf(
   if (start == null || end == null || series.cancelled || series.deleted) {
     return;
   }
-  final repeat = series.repeat;
-  if (repeat == null || series.recurrenceId != null) {
+  final rule = series.rule;
+  if (rule == null || series.recurrenceId != null) {
     if (_overlaps(start.local, end.local, from, to)) {
       yield Occurrence(event, series, start: start.local, end: end.local);
     }
@@ -69,13 +69,8 @@ Iterable<Occurrence> _occurrencesOf(
     for (final exdate in series.exdates) exdate.local,
     for (final part in event.changed) ?part.recurrenceId?.local,
   };
-  for (final wall in _instances(
-    repeat.ruleFor(start),
-    start.wall,
-    from,
-    to,
-    length,
-  )) {
+  // The rule as written: the one other apps read too.
+  for (final wall in _instances(rule, start.wall, from, to, length)) {
     final instance = start.at(wall);
     final local = instance.local;
     final localEnd = start.at(wall.add(length)).local;
@@ -105,8 +100,9 @@ Iterable<Occurrence> _occurrencesOf(
 }
 
 /// The wall clocks of [rule]'s occurrences from [start] that may overlap
-/// [from] to [to]: a day more on each side, for time zones. A rule the
-/// library can't read gives none but the first.
+/// [from] to [to]: a day more on each side, for time zones. None if it
+/// starts after them; a rule the library can't read gives none but the
+/// first.
 Iterable<DateTime> _instances(
   String rule,
   DateTime start,
@@ -114,6 +110,9 @@ Iterable<DateTime> _instances(
   DateTime to,
   Duration length,
 ) {
+  const margin = Duration(days: 1);
+  final before = _wallOf(to).add(margin);
+  if (start.isAfter(before)) return const [];
   final RecurrenceRule recurrence;
   try {
     recurrence = RecurrenceRule.fromString('RRULE:$rule');
@@ -121,13 +120,12 @@ Iterable<DateTime> _instances(
     // The library reports a rule it can't read only by throwing.
     return [start];
   }
-  const margin = Duration(days: 1);
   final after = _wallOf(from).subtract(length + margin);
   return recurrence.getInstances(
     start: start,
     after: after.isAfter(start) ? after : null,
     includeAfter: true,
-    before: _wallOf(to).add(margin),
+    before: before,
   );
 }
 
