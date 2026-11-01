@@ -50,6 +50,8 @@ class _CalendarTabScreenState extends ConsumerState<CalendarTabScreen> {
       floatingActionButton: calendars.isEmpty
           ? null
           : FloatingActionButton(
+              // The documents' button is in the same page, beside it.
+              heroTag: null,
               tooltip: 'Add event',
               onPressed: () => _openForAdding(calendars),
               child: const Icon(Icons.add),
