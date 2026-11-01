@@ -1,12 +1,12 @@
 /// What the user is told once both versions were merged: that nothing
-/// clashed, or which parts (e.g. events) kept the newer change, the
-/// first few by name. [lost]: the names of the parts whose older
-/// version was replaced.
+/// clashed, or which older versions (e.g. of events) newer changes
+/// replaced, the first few by name. [lost]: the names of those older
+/// versions.
 String mergeOutcome(List<String> lost) => switch (lost) {
   [] => 'Merged, no clashes.',
   _ =>
-    'Merged. Where both changed the same part, the newer change was kept: '
-        '${_named(lost)}. The older versions are in Backups.',
+    'Merged. Newer changes replaced these older versions, which are in '
+        'Backups: ${_named(lost)}.',
 };
 
 /// Names shown before the rest is counted.

@@ -9,8 +9,8 @@ void main() {
   test('a few lost: all named', () {
     expect(
       mergeOutcome(const ['Dentist', 'Swim']),
-      'Merged. Where both changed the same part, the newer change was '
-      'kept: "Dentist", "Swim". The older versions are in Backups.',
+      'Merged. Newer changes replaced these older versions, which are in '
+      'Backups: "Dentist", "Swim".',
     );
   });
 
