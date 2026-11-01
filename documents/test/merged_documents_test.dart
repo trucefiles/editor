@@ -206,6 +206,40 @@ void main() {
     expect(settled.copies, isEmpty);
   });
 
+  test('a draft left over a document with copies lands in its file', () async {
+    put('a.md', 'a:1\n');
+    put(_copyName, 'b:1\n');
+    final drafts = DocumentDrafts(tempFolder());
+    await drafts.keep(
+      DocumentDraft(
+        id: 'd1',
+        path: path('a.md'),
+        base: 'a:1\nb:1\n',
+        text: 'a:1\nb:1\nc:1\n',
+      ),
+    );
+    final documents = await files();
+    final recovery = DraftRecovery(
+      drafts,
+      filesFor: (_) => documents,
+      types: _types,
+    );
+
+    expect(
+      await recovery.recover(
+        before: DateTime.now().add(const Duration(days: 1)),
+      ),
+      1,
+    );
+    expect(textOf('a.md'), 'a:1\nb:1\nc:1\n');
+    expect(textOf(_copyName), isNull, reason: 'settled');
+    expect(
+      (await services.scanner.scan()).value.conflicts,
+      isEmpty,
+      reason: 'no new copy',
+    );
+  });
+
   test('the folder contents give the copies to the document, not as '
       'conflicts, unless the file is gone', () async {
     put('a.md', 'a:1\n');

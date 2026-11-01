@@ -89,8 +89,13 @@ final class _Step with EditorSteps<Calendar?> {
   @override
   void reload(String text) => _show(text, Calendar.read(text));
 
+  /// A backup restored: stamped as an edit, as an undo is, so a merge with
+  /// the text it replaced keeps it.
   @override
-  void replaceText(String text) => reload(text);
+  void replaceText(String text) => switch (Calendar.read(text)) {
+    final restored? => restore(restored),
+    null => reload(text),
+  };
 
   @override
   SentText get sent => SentText(state.text, CalendarSummary(state.text));

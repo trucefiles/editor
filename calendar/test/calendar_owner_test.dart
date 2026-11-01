@@ -72,6 +72,27 @@ void main() {
     expect(merged, contains('SEQUENCE:2\n'), reason: 'above both');
   });
 
+  test('a restored backup wins over the text it replaced', () {
+    final run = _run(birthday)..send(EditCalendar(_gym));
+    final edited = run.state.text;
+    run.send(
+      CalendarRequest(
+        const ReplaceAll(birthday),
+        at: _at.add(const Duration(minutes: 1)),
+      ),
+    );
+
+    final merged = (const CalendarMerge().merge(
+      edited,
+      run.state.text,
+    ) as MergedText).text;
+    expect(
+      Calendar.read(merged)!.eventOf('gym@t')!.series.deleted,
+      isTrue,
+      reason: 'the backup had no gym',
+    );
+  });
+
   test('the text goes to the file owner after the pause, as typing does', () {
     final run = _run(birthday)..send(EditCalendar(_gym));
     expect(_sent(run), isEmpty);
