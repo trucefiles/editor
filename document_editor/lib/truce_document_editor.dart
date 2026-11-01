@@ -64,6 +64,7 @@ export 'src/visual/ui/drawn_table.dart';
 export 'src/visual/ui/format_toolbar.dart';
 export 'src/visual/ui/frames.dart';
 export 'src/visual/ui/line_drag.dart';
+export 'src/visual/ui/line_drag_state.dart';
 export 'src/visual/ui/line_drop_zone.dart';
 export 'src/visual/ui/link_dialog.dart';
 export 'src/visual/ui/row_builder.dart';

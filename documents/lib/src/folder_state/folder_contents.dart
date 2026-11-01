@@ -5,7 +5,6 @@ import '../conflicts/folder_conflicts.dart';
 import '../document.dart';
 import '../document_types.dart';
 import '../document_version.dart';
-import 'document_conflicts.dart';
 
 /// What the added folders hold now, as the screens show it: their
 /// documents (listed, never their texts), marks, subfolders, conflicts,
@@ -75,36 +74,15 @@ final class FolderContents {
 
   DocumentMark markOf(DocumentKey key) => marks[key] ?? DocumentMark.none;
 
-  /// The pending conflicts of what the folders show, of documents of
-  /// every handled type.
-  late final List<FolderConflict> _allConflicts = [
+  /// The pending conflicts of what the folders show.
+  late final FolderConflicts conflicts = FolderConflicts([
     for (final MapEntry(key: baseId, value: base) in state.bases.entries)
       if (base case Listed(:final conflicts))
         for (final conflict in conflicts.values)
           if (folders.folderOf(baseId, conflict.mainPath) case final folder?
               when types.handles(conflict.mainPath))
             FolderConflict(folder, conflict),
-  ];
-
-  /// The pending conflicts the user resolves: of types that don't merge,
-  /// and those whose main file is gone. The copies of a type that merges
-  /// are read into its document instead ([copiesOf]).
-  late final FolderConflicts conflicts = FolderConflicts([
-    for (final conflict in _allConflicts)
-      if (!mergesIn(conflict.conflict, types)) conflict,
   ]);
-
-  /// The conflict copies read into the document at [key], if a folder
-  /// shows it (see [mergedCopiesOf]).
-  List<ConflictCopy> copiesOf(DocumentKey key) =>
-      folders.folderOf(key.baseId, key.path) == null
-      ? const []
-      : mergedCopiesOf(state, types, key);
-
-  /// [document]'s version as listed, with the copies read into it: a new
-  /// copy makes a new one.
-  Version versionOf(Document document) =>
-      listedVersion(document, copies: copiesOf(document.key));
 
   /// The subfolders of folder [folderId], empty ones too, its selected
   /// subfolders among them, sorted by path.
@@ -188,7 +166,7 @@ final class FolderContents {
     _ when !folders.any((folder) => folder.base.id == key.baseId) =>
       const Gone(),
     _ when !covers(key) => const Unknown(),
-    final found? => Found(versionOf(found)),
+    final found? => Found(listedVersion(found)),
     null => const Gone(),
   };
 

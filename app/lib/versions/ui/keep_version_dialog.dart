@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// Asks whether to keep the version the user picked; [message] tells what
-/// happens to the other one. `true` if confirmed.
-Future<bool> confirmKeepVersion(BuildContext context, String message) async {
+/// Asks whether to keep the version the user picked, or both merged
+/// ([title]); [message] tells what happens to the versions. `true` if
+/// confirmed.
+Future<bool> confirmKeepVersion(
+  BuildContext context,
+  String message, {
+  String title = 'Keep this version?',
+}) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Keep this version?'),
+      title: Text(title),
       content: Text(message),
       actions: [
         TextButton(

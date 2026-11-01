@@ -11,10 +11,6 @@ class TextZoomScale extends StatelessWidget {
   final TextZoom zoom;
   final Widget child;
 
-  /// The text scaling a [TextZoomScale] at [zoom] gives its child here.
-  static TextScaler scalerFor(BuildContext context, TextZoom zoom) =>
-      _TimesScaler(_systemOf(context), zoom.factor);
-
   static TextScaler _systemOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_SystemScaler>()?.scaler ??
       MediaQuery.textScalerOf(context);
@@ -24,7 +20,7 @@ class TextZoomScale extends StatelessWidget {
     _systemOf(context),
     child: MediaQuery(
       data: MediaQuery.of(context)
-          .copyWith(textScaler: scalerFor(context, zoom)),
+          .copyWith(textScaler: _TimesScaler(_systemOf(context), zoom.factor)),
       child: child,
     ),
   );

@@ -47,11 +47,9 @@ class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
     final contents = await ref.watch(folderContentsProvider.future);
     await ref.watch(documentSettingsProvider.future);
     final settings = ref.read(documentSettingsProvider.notifier);
-    final read = await ref.read(calendarReadsProvider).readAll([
-      for (final document in contents.documents)
-        if (isCalendarDocument(document))
-          (document: document, version: contents.versionOf(document)),
-    ]);
+    final read = await ref
+        .read(calendarReadsProvider)
+        .readAll(contents.documents.where(isCalendarDocument).toList());
     return [
       for (final MapEntry(key: document, value: calendar) in read.entries)
         (

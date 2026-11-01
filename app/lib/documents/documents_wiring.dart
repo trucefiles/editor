@@ -5,23 +5,19 @@ import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../file_types/document_types.dart';
-import '../folder_state/folder_state_wiring.dart';
+import '../folder_state/folder_state_controller.dart';
 import '../folders/folders_controller.dart';
 import '../storage/app_storage.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import 'document_settings_controller.dart';
 
-/// The document files of every folder, read with the copies the folder
-/// state holds as last listed.
-final folderFilesProvider = Provider<FolderFiles>((ref) {
-  final folderState = ref.watch(folderStateOwnerProvider);
-  final types = ref.watch(documentTypesProvider);
-  return FolderFiles(
+/// The document files of every folder.
+final folderFilesProvider = Provider<FolderFiles>(
+  (ref) => FolderFiles(
     ref.watch(baseFolderStacksProvider).servicesOf,
-    types,
-    copiesOf: (key) => mergedCopiesOf(folderState.state, types, key),
-  );
-});
+    ref.watch(documentTypesProvider),
+  ),
+);
 
 /// The drafts of every base folder, in app storage.
 final draftsProvider = Provider<DraftsByBase>(
@@ -34,16 +30,18 @@ final openDocumentsProvider = Provider<OpenDocuments>((_) => OpenDocuments());
 /// What the document steps work with.
 final documentsWorkProvider = Provider<DocumentsWork>((ref) {
   final folderList = ref.watch(folderListOwnerProvider);
-  final folderState = ref.watch(folderStateOwnerProvider);
-  final types = ref.watch(documentTypesProvider);
   return DocumentsWork(
     files: ref.watch(folderFilesProvider),
     servicesOf: ref.watch(baseFolderStacksProvider).servicesOf,
     settings: ref.watch(documentSettingsProvider.notifier),
-    conflictWaits: (key) => conflictWaitsIn(folderState.state, types, key),
+    // None known once the app ends.
+    conflictWaits: (key) =>
+        ref.mounted &&
+        ref.read(folderContentsProvider).value?.conflicts.forDocument(key) !=
+            null,
     folders: () => settledFolders(folderList),
     drafts: ref.watch(draftsProvider),
-    types: types,
+    types: ref.watch(documentTypesProvider),
   );
 });
 

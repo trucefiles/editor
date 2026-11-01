@@ -72,6 +72,52 @@ void main() {
     return container.read(provider.notifier);
   }
 
+  test('a type that does not merge offers no merge', () async {
+    write('todo.md', 'a:1\n');
+    write(first, 'b:1\n');
+
+    await open();
+
+    expect(sides().merged, isNull);
+  });
+
+  test('a calendar conflict is kept merged, event by event', () async {
+    String calendar(String events) =>
+        'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n'
+        '${events}END:VCALENDAR\r\n';
+    String event(String uid, String summary, String modified) =>
+        'BEGIN:VEVENT\r\nUID:$uid\r\nDTSTAMP:${modified}Z\r\n'
+        'LAST-MODIFIED:${modified}Z\r\nDTSTART;VALUE=DATE:20261105\r\n'
+        'SUMMARY:$summary\r\nEND:VEVENT\r\n';
+    const copy = 'home.sync-conflict-20261101-120000-ABCDEFG.ics';
+    write(
+      'home.ics',
+      calendar(
+        event('swim', 'Swim', '20261101T100000') +
+            event('gym', 'Gym', '20261101T090000'),
+      ),
+    );
+    write(
+      copy,
+      calendar(
+        event('swim', 'Swim (old)', '20261101T080000') +
+            event('ann', 'Ann', '20261101T080000'),
+      ),
+    );
+
+    final controller = await open();
+    final merged = sides().merged!;
+    expect(merged.lost, ['Swim (old)']);
+    final kept = await controller.keep(KeepMerged(merged.bytes));
+
+    expect(kept!.error, isNull);
+    final text = File('${dir.path}/home.ics').readAsStringSync();
+    expect(text, contains('SUMMARY:Swim\r\n'));
+    expect(text, contains('SUMMARY:Gym\r\n'));
+    expect(text, contains('SUMMARY:Ann\r\n'));
+    expect(files(), ['home.ics']);
+  });
+
   test('loads both sides of the oldest copy', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');

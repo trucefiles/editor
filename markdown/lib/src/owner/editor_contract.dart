@@ -82,7 +82,7 @@ final class Typed extends ShownInput {
   });
 
   final String text;
-  final TextSelection over;
+  final Selection over;
   final bool pasted;
 }
 

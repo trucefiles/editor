@@ -12,8 +12,10 @@ picked day's events: add one, or tap one to edit or delete it, just this
 time or every time for an event that repeats. A health calendar keeps
 period days and other entries, and estimates the next period. Once your
 folders hold a calendar, the **Calendar** tab shows the events of all of
-them in one month, each in its folder's color. Changes from two devices
-merge on their own.
+them in one month, each in its folder's color. When two devices changed
+the same calendar, the compare view offers **Merge both**: events merge
+one by one, and where both changed the same event, the newer change is
+kept.
 
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
 

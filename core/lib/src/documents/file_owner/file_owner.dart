@@ -47,8 +47,8 @@ FileOwner<V> fileOwner<V extends Version>(
     >(machine, handle: handle);
 
 /// The file machine of a document opened as [opened]. [merge]: how its
-/// type merges edits into a file changed elsewhere; without one, the user
-/// picks.
+/// type merges two texts, if it does, for the user's pick of both merged
+/// when the file changed elsewhere.
 FileMachine<V> openedFile<V extends Version>(
   Seen<V> opened, {
   TextMerge? merge,
@@ -71,7 +71,7 @@ FileMachine<V> newFile<V extends Version>({TextMerge? merge}) => Machine(
   step: _stepWith(merge),
 );
 
-/// The file machine's step, merging by [merge].
+/// The file machine's step, picks of both merged by [merge].
 Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>> Function(
   FileState<V>,
   FileWork<V>,

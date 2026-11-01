@@ -140,6 +140,37 @@ void main() {
     expect(visual.secured(), '- [ ] ax\n- [ ] yb');
   });
 
+  group('on a selected divider, as on one selected character', () {
+    _Visual selected() {
+      final visual = _Visual('a\n\n---\n\nb');
+      visual.adapter.selectDividerAt(
+        DocumentPosition(
+          nodeId: visual.document.getNodeAt(1)!.id,
+          nodePosition: const UpstreamDownstreamNodePosition.downstream(),
+        ),
+      );
+      return visual;
+    }
+
+    test('a typed character takes its place', () {
+      final visual = selected();
+      visual.editor.execute([InsertCharacterAtCaretRequest(character: 'x')]);
+      expect(visual.texts, ['a', 'x', 'b']);
+    });
+
+    test('pasted lines take its place', () {
+      final visual = selected();
+      visual.adapter.paste('x\ny');
+      expect(visual.texts, ['a', 'x', 'y', 'b']);
+    });
+
+    test('a deletion removes it', () {
+      final visual = selected();
+      visual.editor.execute([DeleteSelectionRequest(TextAffinity.upstream)]);
+      expect(visual.texts, ['a', 'b']);
+    });
+  });
+
   test('pasted Markdown marks stay text', () {
     final visual = _Visual('ab');
     visual.caret(0, 1);

@@ -27,14 +27,9 @@ void main() {
     await container.read(folderListStoreProvider).save([folderAt(dir)]);
   });
 
-  /// The card key of the document [name] as listed now.
-  Future<PreviewKey> listed(String name) async {
-    final contents = await container.read(folderContentsProvider.future);
-    final document = contents.documents.singleWhere(
-      (document) => document.path.value == name,
-    );
-    return (document: document, version: contents.versionOf(document));
-  }
+  Future<Document> listed(String name) async =>
+      (await container.read(folderContentsProvider.future)).documents
+          .singleWhere((document) => document.path.value == name);
 
   test('a card shows the title and preview of the text read', () async {
     File('${dir.path}/plan.md').writeAsStringSync('# Plan\nsteps');
@@ -91,16 +86,35 @@ void main() {
     );
     addTearDown(previews.dispose);
     final document = listedDocument(folderAt(dir), name: 'home.ics');
-    final shown = previews.listen(
-      cardPreviewProvider((document: document, version: const Version(0))),
-      (_, _) {},
-    );
+    final shown = previews.listen(cardPreviewProvider(document), (_, _) {});
 
     await eventually(
       () => switch (shown.read()) {
         Previewed(:final summary) => summary.title == 'Read 2',
         _ => false,
       },
+    );
+  });
+
+  test('a card of a new version shows the version read before until the '
+      'new one is read', () async {
+    final file = File('${dir.path}/plan.md')..writeAsStringSync('# Plan');
+    final before = await listed('plan.md');
+    await container.read(cardPreviewsProvider).read(before);
+    file.writeAsStringSync('# Plan, longer now');
+    final after = Document(
+      folder: before.folder,
+      path: before.path,
+      type: before.type,
+      version: FileVersion(-1),
+      modified: before.modified,
+    );
+
+    final shown = container.listen(cardPreviewProvider(after), (_, _) {});
+    expect((shown.read() as Previewed).summary.title, 'Plan');
+
+    await eventually(
+      () => (shown.read() as Previewed).summary.title == 'Plan, longer now',
     );
   });
 }

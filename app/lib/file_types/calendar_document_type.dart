@@ -7,8 +7,8 @@ import '../common/time_texts.dart';
 import 'editable_type.dart';
 
 /// Calendars (`.ics`): cards show the name and the next events, or for a
-/// health calendar the cycle; texts merge event by event on their own;
-/// shown on the calendar page.
+/// health calendar the cycle; two versions merge event by event when the
+/// user picks it; shown on the calendar page.
 final class CalendarDocumentType implements EditableType {
   /// [times] writes the days on cards; [now] tells the time.
   CalendarDocumentType({required this.times, DateTime Function()? now})

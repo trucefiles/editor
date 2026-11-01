@@ -78,6 +78,22 @@ final class VisualActions {
 
   void dragEnded() => onFold(null);
 
+  /// Where [item] dropped right next to [target]'s row, [below] it or
+  /// above, goes; `null` where it stays where it shows.
+  ({NodeId item, bool below})? _placeOf(
+    NodeId item,
+    NodeId target, {
+    required bool below,
+  }) => switch (_shown) {
+    final shown? => dropPlace(shown.view, item, target, below: below),
+    null => null,
+  };
+
+  /// Whether [item] dropped right next to [target]'s row, [below] it or
+  /// above, stays where it shows.
+  bool staysWhereItIs(NodeId item, NodeId target, {required bool below}) =>
+      _placeOf(item, target, below: below) == null;
+
   /// [item] dropped right next to [target]'s row, [below] it or above;
   /// dropped on itself, it goes [levels] deeper (shallower if negative).
   void drop(
@@ -88,16 +104,14 @@ final class VisualActions {
   }) {
     if (item != target) {
       return _gate.run(
-        (selection) => switch (_firstSubitem(target)) {
-          // Right below the row, above the subitems shown under it.
-          final first? when below && first == item => null,
-          final first? when below => MoveItem(
+        (selection) => switch (_placeOf(item, target, below: below)) {
+          (item: final next, :final below) => MoveItem(
             item,
-            first,
-            below: false,
+            next,
+            below: below,
             selection: selection,
           ),
-          _ => MoveItem(item, target, below: below, selection: selection),
+          null => null,
         },
       );
     }
@@ -106,12 +120,6 @@ final class VisualActions {
       step(item);
     }
   }
-
-  /// The first subitem of [item], if it shows right under its text.
-  NodeId? _firstSubitem(NodeId item) => switch (_shown?.view.doc.nodeOf(item)) {
-    ItemNode(children: [_, ListNode(:final items), ...]) => items.first.id,
-    _ => null,
-  };
 
   /// [list]'s Done section folded or unfolded.
   void setCollapsed(NodeId list, {required bool collapsed}) =>

@@ -42,7 +42,7 @@
 - Calendars (`.ics`, the format other calendar apps use): a month view,
   events that repeat, a health calendar with a cycle estimate, and a
   Calendar tab with the events of all your calendars. Changes from two
-  devices merge on their own.
+  devices merge event by event, with one tap.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -139,6 +139,9 @@ A Dart pub workspace with these packages:
 - `calendar_editor`: the calendar page (month, day, event form, health
   view) and the Calendar tab's month grid. Flutter; uses core, documents,
   document_page and calendar.
+- `masonry`: a lazy masonry grid (items as tall as their content, in
+  columns) for the document cards. Flutter; layout only, knows nothing of
+  documents.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
   code, and the wiring that picks the document types (`markdown`,
   `plain_text`, `calendar`) and sync tools (`syncthing`, `plain_folder`).
@@ -162,6 +165,7 @@ flutter analyze --fatal-infos
 (cd plain_folder && dart test)
 (cd folders && dart test)
 (cd documents && dart test)
+(cd masonry && flutter test)
 (cd document_editor && flutter test)
 (cd app && flutter test)
 ```

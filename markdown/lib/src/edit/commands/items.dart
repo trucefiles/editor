@@ -2,6 +2,8 @@
 /// removing them.
 library;
 
+import 'package:collection/collection.dart';
+
 import '../../doc/doc_nodes.dart';
 import '../../doc/doc_tree.dart';
 import '../../doc/normalized.dart';
@@ -13,6 +15,39 @@ import '../selection.dart';
 /// none if it has none; checked in a Done section, else open.
 bool? newBox(ViewRows view, ItemNode item, NodeId leaf) =>
     item.hasBox ? view.row(leaf)!.done : null;
+
+/// [view]'s tree with [block] right after the block [leaf]; in an item,
+/// as a new item of its own right after that item, with the box Enter
+/// would give it.
+DocTree withBlockAfter(
+  ViewRows view,
+  NodeId leaf,
+  DocBlock block,
+  FreshIds fresh,
+) {
+  final doc = view.doc;
+  final (anchor, added) = switch (doc
+      .pathOf(leaf)
+      .whereType<ItemNode>()
+      .lastOrNull) {
+    final item? => (
+      item as DocBlock,
+      ItemNode(fresh.take(), [block], checked: newBox(view, item, leaf)),
+    ),
+    null => (doc.nodeOf(leaf)!, block),
+  };
+  return doc.edited({
+    anchor.id: [anchor, added],
+  }, fresh: fresh);
+}
+
+/// Whether [leaf] is [item]'s own line: its first block, with nothing
+/// after it but its subitems.
+bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
+  [final first, ...final rest] =>
+    first.id == leaf && (rest.isEmpty || rest.first is ListNode),
+  _ => false,
+};
 
 /// [item]'s box checked or unchecked; [selection] stays.
 Change toggle(ViewRows view, ItemNode item, Selection selection) => (

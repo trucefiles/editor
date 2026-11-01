@@ -50,16 +50,12 @@ final class DraftRecovery {
   Future<bool> _keep(DocumentDraft draft, DocumentFiles files) async {
     if (draft.base == null) return _create(draft, files);
     switch (await files.open(draft.path)) {
-      // Drafts build on the document's text, its copies merged in.
-      case Ok(value: final document) when document.text == draft.text:
+      case Ok(value: final document) when document.file.text == draft.text:
         return true;
-      case Ok(value: final document) when document.text == draft.base:
-        // Backed up, like before an open document's first save.
-        return switch (await files.save(
-          document,
-          draft.text,
-          backUpFirst: true,
-        )) {
+      case Ok(value: final document) when document.file.text == draft.base:
+        // Best effort, like before an open document's first save.
+        await files.backUpBeforeEdit(document);
+        return switch (await files.save(document, draft.text)) {
           Ok() => true,
           Err(error: StoreError.changedSinceRead) =>
             await files.saveAsConflict(document, draft.text) is Ok,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_documents/truce_documents.dart' show DocumentCardSummary;
 import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/conflicts/ui/conflict_label.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
@@ -18,16 +19,13 @@ void main() {
             child: Scaffold(
               body: Align(
                 alignment: Alignment.topLeft,
-                child: Builder(
-                  builder: (context) => SizedBox(
-                    width: 240,
-                    height: cardHeight(context),
-                    child: CardFrame(
-                      title: 'Title',
-                      body: const CardLines('Some text'),
-                      footer: const Row(children: [ConflictLabel()]),
-                      onTap: () {},
-                    ),
+                child: SizedBox(
+                  width: 240,
+                  child: CardFrame(
+                    title: 'Title',
+                    body: const CardLines('Some text'),
+                    footer: const Row(children: [ConflictLabel()]),
+                    onTap: () {},
                   ),
                 ),
               ),
@@ -48,24 +46,33 @@ void main() {
     );
   });
 
-  testWidgets('shows only whole lines of its body', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Align(
+  testWidgets('is as tall as its text, up to the lines a preview has', (
+    tester,
+  ) async {
+    Future<double> height(int lines) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
-              width: 100,
-              height: 50,
-              child: CardLines(List.filled(40, 'word').join(' ')),
+              width: 240,
+              child: CardFrame(
+                title: 'Title',
+                body: CardLines(List.filled(lines, 'line').join('\n')),
+                footer: const SizedBox(),
+                onTap: () {},
+              ),
             ),
           ),
         ),
-      ),
-    );
-    final text = find.byType(Text);
+      );
+      return tester.getSize(find.byType(CardFrame)).height;
+    }
 
-    expect(tester.widget<Text>(text).maxLines, isPositive);
-    expect(tester.getSize(text).height, lessThanOrEqualTo(50));
+    final short = await height(2);
+    final long = await height(DocumentCardSummary.previewLines);
+
+    expect(long, greaterThan(short));
+    expect(await height(DocumentCardSummary.previewLines + 5), long);
   });
 }

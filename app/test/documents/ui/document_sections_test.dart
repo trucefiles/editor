@@ -50,7 +50,7 @@ void main() {
     expect(find.text('Recent'), findsNothing);
   });
 
-  testWidgets('cards are all one height', (tester) async {
+  testWidgets('cards are as tall as their content', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -65,10 +65,8 @@ void main() {
       ),
     );
 
-    expect(
-      tester.getSize(find.byType(SizedBox).at(0)).height,
-      tester.getSize(find.byType(SizedBox).at(1)).height,
-    );
+    expect(tester.getSize(find.text('short')).height, 50);
+    expect(tester.getSize(find.text('tall')).height, 300);
   });
 
   testWidgets('scrolls past the pinned cards to the end', (tester) async {

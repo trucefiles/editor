@@ -41,7 +41,6 @@ export 'src/documents_contract.dart';
 export 'src/documents_owner.dart';
 export 'src/draft_recovery.dart';
 export 'src/error_text.dart';
-export 'src/folder_state/document_conflicts.dart';
 export 'src/folder_state/folder_contents.dart';
 export 'src/home/home_lists.dart';
 export 'src/home/home_settings.dart';

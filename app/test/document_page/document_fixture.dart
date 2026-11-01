@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart' show Err, Ok, Result, StoreError;
+import 'package:truce_core/truce_core.dart'
+    show Err, Ok, Result, StoreError, TextMerge;
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -98,12 +99,16 @@ final class DocumentFixture {
   }
 
   /// A session on [file], by default on [document]; disposed after the test.
-  DocumentSession session([DocumentFile? file]) {
+  DocumentSession session([DocumentFile? file, TextMerge? merge]) {
     final start = file ?? ExistingFile(document);
-    final session = markdownSession(switch (start) {
-      ExistingFile(:final document) => document,
-      NewFile() => null,
-    }, effects(start));
+    final session = markdownSession(
+      switch (start) {
+        ExistingFile(:final document) => document,
+        NewFile() => null,
+      },
+      effects(start),
+      merge: merge,
+    );
     addTearDown(session.dispose);
     return session;
   }

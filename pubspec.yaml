@@ -15,6 +15,7 @@ workspace:
   - editor_test_support
   - folders
   - markdown
+  - masonry
   - plain_folder
   - plain_text
   - syncthing
