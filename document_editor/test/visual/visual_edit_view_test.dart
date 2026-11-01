@@ -194,9 +194,7 @@ void main() {
       );
     });
 
-    testWidgets('selected, text typed goes into a new item after it', (
-      tester,
-    ) async {
+    testWidgets('selected, text typed takes its place', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
@@ -204,7 +202,21 @@ void main() {
       await tester.pumpAndSettle();
       await tester.typeImeText('x');
 
-      expect(document.text, '- [ ] milk\n- [ ] ------\n- [ ] x\n- [ ] eggs');
+      expect(document.text, '- [ ] milk\n- [ ] x\n- [ ] eggs');
+    });
+
+    testWidgets('selected, Enter puts an empty item in its place', (
+      tester,
+    ) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await tester.tap(find.byType(Divider), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.pressEnter();
+      await tester.pumpAndSettle();
+
+      expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
     });
 
     for (final (keyboard, backspace) in _backspaces) {

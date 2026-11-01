@@ -226,8 +226,9 @@ final class VisualAdapter {
   }
 
   /// [selection] as a text range in the owner's terms; `null` while a
-  /// block is selected whole. (Typing there first runs Enter, which adds
-  /// a line after the block for the text; a paste by keys does nothing.)
+  /// block is selected whole. (Typing there first runs Enter, which puts
+  /// an empty line in the block's place for the text; a paste by keys
+  /// does nothing.)
   md.TextSelection? _rangeOf(DocumentSelection? selection) =>
       switch ((_shown?.selection, selection)) {
         (md.BlockSelection(), _) || (_, null) => null,

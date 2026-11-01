@@ -65,30 +65,32 @@ final class Consumed extends KeyAction {
 
 /// What [key] does with [selection] in what [view] shows: the key map,
 /// its rules in priority order.
-KeyAction keyAction(
-  ViewRows view,
-  Selection selection,
-  EditKey key,
-) => switch ((selection, key)) {
-  (final TextSelection range, EditKey.link)
-      when range.base.leaf == range.extent.leaf =>
-    const OpenLinkDialog(),
-  (_, EditKey.link) => const Consumed(),
-  (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
-  (final TextSelection range, EditKey.bullet) => _frame(range, .bullet),
-  (final TextSelection range, EditKey.checklist) => _frame(range, .checkbox),
-  (final TextSelection range, EditKey.bold) => _style(range, .strong),
-  (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
-  (BlockSelection(:final block), EditKey.backspace) => RunCommand(
-    RemoveBlock(block, backward: true),
-  ),
-  (BlockSelection(:final block), EditKey.delete) => RunCommand(
-    RemoveBlock(block, backward: false),
-  ),
-  (BlockSelection(:final block), EditKey.enter) => RunCommand(LineAfter(block)),
-  (BlockSelection(), _) => const Consumed(),
-  (final TextSelection range, _) => _Keys(view, range).action(key),
-};
+KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
+    switch ((selection, key)) {
+      (final TextSelection range, EditKey.link)
+          when range.base.leaf == range.extent.leaf =>
+        const OpenLinkDialog(),
+      (_, EditKey.link) => const Consumed(),
+      (final TextSelection range, EditKey.numbered) => _frame(range, .numbered),
+      (final TextSelection range, EditKey.bullet) => _frame(range, .bullet),
+      (final TextSelection range, EditKey.checklist) => _frame(
+        range,
+        .checkbox,
+      ),
+      (final TextSelection range, EditKey.bold) => _style(range, .strong),
+      (final TextSelection range, EditKey.italic) => _style(range, .emphasis),
+      (BlockSelection(:final block), EditKey.backspace) => RunCommand(
+        RemoveBlock(block, backward: true),
+      ),
+      (BlockSelection(:final block), EditKey.delete) => RunCommand(
+        RemoveBlock(block, backward: false),
+      ),
+      (BlockSelection(:final block), EditKey.enter) => RunCommand(
+        LineInPlace(block),
+      ),
+      (BlockSelection(), _) => const Consumed(),
+      (final TextSelection range, _) => _Keys(view, range).action(key),
+    };
 
 KeyAction _frame(TextSelection range, FrameKind kind) =>
     RunCommand(SetFrame(range, kind));

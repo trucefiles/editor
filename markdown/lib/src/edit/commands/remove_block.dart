@@ -1,9 +1,9 @@
 import '../../doc/doc_nodes.dart';
-import '../../doc/normalized.dart';
 import '../../view/rows.dart';
 import '../change.dart';
 import '../selection.dart';
 import 'items.dart';
+import 'line_in_place.dart';
 
 /// [block], one without text (a divider), gone, as one character is.
 /// With [caret], a place in a text that stays (Backspace or Delete right
@@ -22,14 +22,8 @@ Change removeBlock(
   final kept = caret == null ? null : TextSelection.caret(caret);
   if (view.doc.parentOf(block) case final ItemNode item
       when isOwnLine(item, block)) {
-    final fresh = view.doc.freshIds;
-    final text = emptyParagraph(fresh);
-    return (
-      doc: view.doc.edited({
-        block: [text],
-      }, fresh: fresh),
-      selection: kept ?? TextSelection.caret(Place(text.id, 0)),
-    );
+    final line = lineInPlace(view, block);
+    return (doc: line.doc, selection: kept ?? line.selection);
   }
   return (
     doc: view.doc.edited({block: const []}),

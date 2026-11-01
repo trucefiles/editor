@@ -12,7 +12,7 @@ import 'add_divider.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
-import 'line_after.dart';
+import 'line_in_place.dart';
 import 'links.dart';
 import 'over_range.dart';
 import 'paste.dart';
@@ -167,9 +167,9 @@ final class RemoveBlock extends EditCommand {
   final Place? caret;
 }
 
-/// Enter on [block], selected whole: an empty line after it.
-final class LineAfter extends EditCommand {
-  const LineAfter(this.block);
+/// Enter on [block], selected whole: an empty line in its place.
+final class LineInPlace extends EditCommand {
+  const LineInPlace(this.block);
 
   final NodeId block;
 }
@@ -329,7 +329,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),
-    LineAfter(:final block) => lineAfter(view, block),
+    LineInPlace(:final block) => lineInPlace(view, block),
     MoveItem(:final item, :final target, :final below, :final selection) =>
       moveItem(
         view,

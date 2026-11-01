@@ -306,14 +306,14 @@ void main() {
     });
   });
 
-  test('Enter on a selected divider adds a line after it', () {
+  test('Enter on a selected divider puts a line in its place', () {
     final document = _document('a\n\n---');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
     expect(
       _command(
         keyAction(document.view, BlockSelection(divider.id), EditKey.enter),
       ),
-      isA<LineAfter>(),
+      isA<LineInPlace>(),
     );
   });
 }

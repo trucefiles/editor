@@ -44,8 +44,8 @@ where it can. Everything else in the file stays exactly as it was.
   list marker is `-`: `- ---` would be a line that ends the list). A line
   acts like one long character: Backspace right after it or Delete right
   before it removes it; click or tap it to select it, then Backspace or
-  Delete removes it and Enter or typing starts a new line after it; the
-  arrow keys move past it.
+  Delete removes it and Enter or typing replaces it; the arrow keys move
+  past it.
 - **List buttons** turn lines into a list, or change its kind. Pressed
   again where the lines already have that kind (or a checkbox), they make
   the lines text again.
