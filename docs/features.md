@@ -3,6 +3,25 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Calendars
+
+Calendars are `.ics` files, the format other calendar apps use. **New
+document** offers a calendar or a health calendar, named first. A
+calendar's card shows its next events. Its page shows the month and the
+picked day's events: add one, or tap one to edit or delete it, just this
+time or every time for an event that repeats. A health calendar keeps
+period days and other entries, and estimates the next period. Once your
+folders hold a calendar, the **Calendar** tab shows the events of all of
+them in one month, each in its folder's color. Changes from two devices
+merge on their own.
+
+<img src="screenshots/calendar/calendar_cards_desktop.png" width="600" alt="A calendar's card with its next five events, next to a health calendar's card and a document">
+<img src="screenshots/calendar/calendar_page_desktop.png" width="600" alt="A calendar's month, with the picked day's event below">
+<img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
+
+<img src="screenshots/calendar/calendar_event_form_touch.png" width="280" alt="The event form on a phone">
+<img src="screenshots/calendar/calendar_health_touch.png" width="280" alt="A health calendar on a phone: the cycle and the likely next period">
+
 ## Recent, All and search
 
 Home shows your most recent documents from every folder, pinned ones on

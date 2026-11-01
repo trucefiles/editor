@@ -18,6 +18,11 @@ class EditorHost {
 abstract interface class EditorView {
   /// The editor, as it shows now, on [host]; with the caret in it right
   /// away if [autofocus] (e.g. a new document).
+  ///
+  /// The page gives every view the richest host the app has (today a
+  /// text editor's `TextHost`), so a view may take a host of its own
+  /// package's kind (`covariant`); a view that needs a new kind of host
+  /// changes the page to give it.
   Widget view(EditorHost host, {required bool autofocus});
 
   /// What the type adds to the app bar (e.g. the mode menu).

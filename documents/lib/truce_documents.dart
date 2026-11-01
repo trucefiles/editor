@@ -27,6 +27,7 @@ export 'src/document_page/file_effects.dart';
 export 'src/document_page/open_documents.dart';
 export 'src/document_page/save_state.dart';
 export 'src/document_place.dart';
+export 'src/document_reads.dart';
 export 'src/document_settings.dart';
 export 'src/document_settings_keeper.dart';
 export 'src/document_settings_store.dart';

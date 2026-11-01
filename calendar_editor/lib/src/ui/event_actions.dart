@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../new_uid.dart';
 import 'event_form.dart';
 
 /// Makes a calendar edit at the time it is given.

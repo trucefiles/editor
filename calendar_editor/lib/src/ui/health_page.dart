@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../new_uid.dart';
 import 'cycle_text.dart';
 import 'event_actions.dart';
 import 'health_entry_form.dart';

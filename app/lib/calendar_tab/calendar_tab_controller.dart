@@ -6,15 +6,18 @@ import 'package:truce_documents/truce_documents.dart';
 import '../documents/document_settings_controller.dart';
 import '../documents/documents_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
-import 'calendar_reads.dart';
 
 /// One calendar the Calendar tab knows: its listed [document], its
 /// [calendar] as read, and whether the tab shows its events ([shown]).
 typedef TabCalendar = ({Document document, Calendar calendar, bool shown});
 
-/// The calendar reads of the tab, kept while the app runs.
-final calendarReadsProvider = Provider<CalendarReads>(
-  (ref) => CalendarReads(ref.watch(folderFilesProvider)),
+/// The calendars of the tab as read, kept while the app runs; a file
+/// that is no calendar is left out.
+final calendarReadsProvider = Provider<DocumentReads<Calendar>>(
+  (ref) => DocumentReads(
+    ref.watch(folderFilesProvider),
+    readAs: (read) => Calendar.read(read.text),
+  ),
 );
 
 /// Whether the shown folders hold a calendar: the tab shows only then.

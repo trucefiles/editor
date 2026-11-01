@@ -289,4 +289,10 @@ void main() {
       summary,
     );
   });
+
+  test('a new event gets a random uid of its own', () {
+    final [one, other] = [newUid(), newUid()];
+    expect(one, matches(RegExp(r'^[0-9a-f]{32}@truce$')));
+    expect(one, isNot(other));
+  });
 }

@@ -361,6 +361,40 @@ void main() {
       (false, ''),
     );
   });
+
+  test('documents are read again only once their version changes', () async {
+    put('a.md', 'k:1');
+    put('b.md', 'not kept');
+    final copies = await copiesNow();
+    final reads = <String>[];
+    final kept = DocumentReads<String>(
+      FolderFiles((_) => services, _types, copiesOf: copies),
+      readAs: (read) {
+        reads.add(read.path.value);
+        return read.text.startsWith('k:') ? read.text : null;
+      },
+    );
+    Future<ListedDocument> listedOf(String name) async {
+      final document = (await (await files()).open(path(name))).value.document;
+      return (document: document, version: listedVersion(document));
+    }
+
+    Future<List<ListedDocument>> listedNow() async => [
+      await listedOf('a.md'),
+      await listedOf('b.md'),
+    ];
+
+    final first = await kept.readAll(await listedNow());
+    expect([for (final text in first.values) text], ['k:1']);
+    await kept.readAll(await listedNow());
+    expect(reads, ['a.md', 'b.md'], reason: 'nothing changed');
+
+    put('a.md', 'k:22');
+    final changed = await kept.readAll(await listedNow());
+    expect([for (final text in changed.values) text], ['k:22']);
+    expect(reads, ['a.md', 'b.md', 'a.md']);
+    expect(await kept.readAll(const []), isEmpty);
+  });
 }
 
 String _startNamed(String name) => 'name:$name';
