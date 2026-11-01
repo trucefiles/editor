@@ -201,9 +201,9 @@ class MovableItem extends StatelessWidget {
       onIndent: () => actions.indent(item),
       onOutdent: () => actions.outdent(item),
       child: ValueListenableBuilder(
-        valueListenable: LineDropZone.of(context).lifted,
-        builder: (_, dragged, child) =>
-            Opacity(opacity: dragged == item ? 0.3 : 1, child: child),
+        valueListenable: LineDropZone.of(context).drag,
+        builder: (_, drag, child) =>
+            Opacity(opacity: drag.lifted == item ? 0.3 : 1, child: child),
         child: child,
       ),
     ),

@@ -230,6 +230,30 @@ void main() {
     expect(drops, hasLength(1));
   });
 
+  testWidgets('the drag state goes lifted, landing in the gap, then over', (
+    tester,
+  ) async {
+    await showRows(tester);
+    final zone = tester.state<LineDropZoneState>(find.byType(LineDropZone));
+    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.4));
+    expect(
+      zone.drag.value,
+      isA<Lifted>()
+          .having((it) => it.item, 'item', _ids[0])
+          .having((it) => it.gap?.item, 'gap next to', _ids[1]),
+    );
+
+    await gesture.up();
+    await tester.pump();
+    expect(
+      zone.drag.value,
+      isA<Landing>().having((it) => it.gap.below, 'below', isTrue),
+    );
+
+    await tester.pumpAndSettle();
+    expect(zone.drag.value, isA<NoDrag>());
+  });
+
   testWidgets("a dropped row's old place closes while its copy glides into "
       'the gap', (tester) async {
     await showRows(tester);
