@@ -134,10 +134,13 @@ Command? _randomCommand(Random random, Shown document) {
     },
     9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
     10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
-    11 when dividers.isNotEmpty => RemoveBlock(
-      pick(dividers).leaf.id,
-      backward: random.nextBool(),
-    ),
+    11 when dividers.isNotEmpty => switch (pick(dividers).leaf.id) {
+      final block => switch (random.nextInt(3)) {
+        0 => RemoveSelectedBlock(block, backward: random.nextBool()),
+        1 => DeleteRange(BlockSelection(block)),
+        _ => Paste(BlockSelection(block), plainLines('x\ny', .plain)),
+      },
+    },
     _ => switch (keyAction(view, range, pick(EditKey.values))) {
       RunCommand(:final command) => command,
       _ => null,
@@ -161,10 +164,10 @@ Command? _move(Random random, List<ItemNode> items, Selection selection) {
 String _describe(Command command) => switch (command) {
   InsertText(:final at, :final text) => 'InsertText($at, "$text")',
   ReplaceText(:final range, :final text) => 'ReplaceText($range, "$text")',
-  DeleteRange(:final range) => 'DeleteRange($range)',
+  DeleteRange(:final selection) => 'DeleteRange($selection)',
   LineBreak(:final range) => 'LineBreak($range)',
   SplitBlock(:final range) => 'SplitBlock($range)',
-  Paste(:final range) => 'Paste($range)',
+  Paste(:final selection) => 'Paste($selection)',
   ToggleStyle(:final selection, :final format) =>
     'ToggleStyle($selection, ${format.name})',
   SetLink(:final range, :final text) => 'SetLink($range, "$text")',

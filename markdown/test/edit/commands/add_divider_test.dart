@@ -79,4 +79,48 @@ void main() {
     final (text, _) = _added('- a\n  - b\n- c', 0, 0);
     expect(text, '- a\n  - b\n- ***\n- c');
   });
+
+  test('on an empty paragraph takes its place', () {
+    final document = Shown.read('---');
+    final edited = document.run(AddDivider(document.place(1, 0).leaf));
+    expect(edited.document.text, startsWith('---\n\n---'));
+    expect(edited.document.rows, ['[DividerNode]', '[DividerNode]', '']);
+  });
+
+  test('on an empty item takes its place; the caret to the next item', () {
+    final (text, row) = _added('- [ ] a\n- [ ] \n- [ ] b', 1, 0);
+    expect(text, '- [ ] a\n- [ ] ***\n- [ ] b');
+    expect(row, 2);
+  });
+
+  test('on an empty last item takes its place; the caret into a new empty '
+      'item after it', () {
+    final (text, row) = _added('- [ ] a\n- [ ] ', 1, 0);
+    expect(text, '- [ ] a\n- [ ] ***\n- [ ] ');
+    expect(row, 2);
+  });
+
+  test('on the last open empty item, with checked items below, the caret '
+      'goes into a new open item', () {
+    final document = Shown.read(
+      '- [ ] a\n- [ ] \n- [x] b',
+      done: DoneSections(),
+    );
+    final edited = document.run(AddDivider(document.place(1, 0).leaf));
+    expect(edited.document.text, '- [ ] a\n- [ ] ***\n- [ ] \n- [x] b');
+    final caret = edited.selection as TextSelection;
+    expect(edited.document.view.row(caret.extent.leaf)!.done, isFalse);
+  });
+
+  test('on the last empty checked item, in a Done section, the new item is '
+      'checked too', () {
+    final document = Shown.read(
+      '- [ ] a\n- [x] b\n- [x] ',
+      done: DoneSections(),
+    );
+    final edited = document.run(AddDivider(document.place(2, 0).leaf));
+    expect(edited.document.text, '- [ ] a\n- [x] b\n- [x] ***\n- [x] ');
+    final caret = edited.selection as TextSelection;
+    expect(edited.document.view.row(caret.extent.leaf)!.done, isTrue);
+  });
 }

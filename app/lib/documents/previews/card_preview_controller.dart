@@ -20,7 +20,8 @@ final cardPreviewProvider = NotifierProvider.autoDispose
     );
 
 /// What one card shows of its document's text: read once the card shows,
-/// dropped from the reads waiting once it goes away.
+/// dropped from the reads waiting once it goes away. While a new version
+/// is read, the card shows the version read before.
 class CardPreviewController extends Notifier<CardPreview> {
   CardPreviewController(this.document);
 
@@ -36,6 +37,6 @@ class CardPreviewController extends Notifier<CardPreview> {
         if (ref.mounted) state = preview;
       }),
     );
-    return const PreviewReading();
+    return previews.lastKnown(document) ?? const PreviewReading();
   }
 }

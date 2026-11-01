@@ -18,7 +18,7 @@ Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
       ) =>
         null,
       (
-        Typed(:final text, :final over),
+        Typed(:final text, over: final TextSelection over),
         FormattedContent(raw: null, :final view),
         FormattedContent(raw: null, selection: TextSelection(:final extent)),
       )

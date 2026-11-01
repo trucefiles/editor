@@ -97,7 +97,6 @@ void main() {
         ..caret(2, 2)
         ..press(EditKey.backspace)
         ..caret(2, 0)
-        ..press(EditKey.backspace)
         ..press(EditKey.backspace);
       expect(run.rows, ['ab', 'c']);
       final offered = run.outputs.whereType<UndoOffered>().single;
@@ -297,7 +296,6 @@ void main() {
     test('is not told to end by the offered undo of its only step', () {
       final run = EditorRun('ab\n\n---\n\ncd')
         ..caret(2, 0)
-        ..press(EditKey.backspace)
         ..press(EditKey.backspace);
       final offered = run.outputs.whereType<UndoOffered>().single;
       run.request(UndoStep(offered.id));

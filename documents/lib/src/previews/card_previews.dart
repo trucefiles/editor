@@ -20,20 +20,28 @@ final class CardPreviews {
   final int capacity;
   final int readsAtOnce;
 
-  /// The previews read, the one used last at the end. Keyed by the listed
-  /// document, version included: a new version is read again.
-  final _known = <Document, CardPreview>{};
+  /// The previews read, one per file (its newest version read), the one
+  /// used last at the end.
+  final _known = <DocumentKey, ({Document document, CardPreview preview})>{};
 
   /// The reads asked for and not started, the one asked last at the end.
   final _waiting = <Document, Completer<CardPreview>>{};
 
   final _running = <Document, Future<CardPreview>>{};
 
-  /// [document]'s preview if it was read; marks it as used.
-  CardPreview? known(Document document) => switch (_known.remove(document)) {
-    final preview? => _known[document] = preview,
+  /// [document]'s preview if it was read; marks its file as used.
+  CardPreview? known(Document document) => switch (_known.remove(
+    document.key,
+  )) {
+    final read? =>
+      (_known[document.key] = read).document == document ? read.preview : null,
     null => null,
   };
+
+  /// The preview last read of [document]'s file, maybe of an older
+  /// version: what its card shows while the new version is read, so it
+  /// keeps its size until then.
+  CardPreview? lastKnown(Document document) => _known[document.key]?.preview;
 
   /// [document]'s preview, read when a read is free.
   Future<CardPreview> read(Document document) {
@@ -68,7 +76,8 @@ final class CardPreviews {
   /// out of reach), so it is tried again.
   void _keep(Document document, CardPreview preview) {
     if (preview is! Previewed && preview is! PreviewNotText) return;
-    _known[document] = preview;
+    _known.remove(document.key);
+    _known[document.key] = (document: document, preview: preview);
     if (_known.length > capacity) _known.remove(_known.keys.first);
   }
 }

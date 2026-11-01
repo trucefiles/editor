@@ -1,16 +1,17 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart' show NodeId;
 
 import 'line_drag.dart';
-
-/// Where a dragged item goes: next to [item], below or above it; the
-/// gap that opens there is [height] high, as the dragged row.
-typedef LineGap = ({NodeId item, bool below, double height});
+import 'line_drag_state.dart';
 
 /// A row and where it is on screen as without any gap, so a gap opening
 /// never moves what decides where it opens.
 typedef _Place = ({_LineDropTargetState row, double top, double bottom});
+
+/// Where a dragged item goes: next to [place]'s row, below it or above.
+typedef _Target = ({_Place place, bool below});
 
 /// The one drop target for items dragged anywhere over [child], and the
 /// one owner of a drag from lift to settle: where the item goes (the row,
@@ -21,6 +22,7 @@ typedef _Place = ({_LineDropTargetState row, double top, double bottom});
 class LineDropZone extends StatefulWidget {
   const LineDropZone({
     required this.step,
+    required this.staysInPlace,
     required this.onLift,
     required this.onDrop,
     required this.onSettled,
@@ -30,6 +32,12 @@ class LineDropZone extends StatefulWidget {
 
   /// Width of one level.
   final double step;
+
+  /// Whether [item] dropped right next to [target], [below] it or above,
+  /// stays where it is: no gap opens there, and a drop there is one on
+  /// its own row.
+  final bool Function(NodeId item, NodeId target, {required bool below})
+  staysInPlace;
 
   /// A drag started.
   final ValueChanged<LineDrag> onLift;
@@ -61,32 +69,25 @@ class LineDropZone extends StatefulWidget {
 class LineDropZoneState extends State<LineDropZone> {
   final _rows = <_LineDropTargetState>{};
 
-  /// Where the item dragged over [LineDropZone.child] would go; `null`
-  /// while none is, or while it is over its own row.
-  final _gap = ValueNotifier<LineGap?>(null);
-
-  final _lifted = ValueNotifier<NodeId?>(null);
-
-  /// The item whose old place closes while its copy glides to the gap.
-  final _leaving = ValueNotifier<NodeId?>(null);
+  final _drag = ValueNotifier<LineDragState>(const NoDrag());
 
   /// The copy gliding into place, if any.
   OverlayEntry? _glide;
 
   static const _glideTime = Duration(milliseconds: 150);
 
-  /// The item being dragged, from lift until its copy settled.
-  ValueNotifier<NodeId?> get lifted => _lifted;
+  /// Where the drag is, from lift until its copy settled.
+  ValueListenable<LineDragState> get drag => _drag;
 
   /// [drag] started.
   void lift(LineDrag drag) {
-    _lifted.value = drag.item;
+    _drag.value = Lifted(drag.item);
     widget.onLift(drag);
   }
 
   /// [drag] dropped nowhere, its copy at [offset]: it glides back.
   void cancel(LineDrag drag, Offset offset) {
-    _gap.value = null;
+    _drag.value = Lifted(drag.item);
     _glideTo(drag, from: offset, to: _rowOrigin(drag), then: () {});
   }
 
@@ -105,39 +106,72 @@ class LineDropZoneState extends State<LineDropZone> {
     return places;
   }
 
-  /// The row nearest to the copy's middle at [middle], if any.
-  _Place? _placeAt(double middle) => minBy(
-    _places(),
-    (place) => middle < place.top
-        ? place.top - middle
-        : middle > place.bottom
-        ? middle - place.bottom
-        : 0.0,
-  );
+  /// Where [item]'s copy goes with its middle at [middle], among
+  /// [places]: next to the row nearest to it, below it if past its
+  /// middle; `null` where no row is, or where the item would stay where it
+  /// is (its own row, or right next to it), so room opens only once the
+  /// copy's middle passes a neighbor's middle.
+  _Target? _targetAt(List<_Place> places, NodeId item, double middle) {
+    final place = minBy(
+      places,
+      (place) => middle < place.top
+          ? place.top - middle
+          : middle > place.bottom
+          ? middle - place.bottom
+          : 0.0,
+    );
+    if (place == null) return null;
+    final below = middle > (place.top + place.bottom) / 2;
+    return widget.staysInPlace(item, place.row.widget.item, below: below)
+        ? null
+        : (place: place, below: below);
+  }
 
-  static bool _isBelow(_Place place, double middle) =>
-      middle > (place.top + place.bottom) / 2;
+  /// [item]'s own row among [places]; `null` once it is gone.
+  static _Place? _ownPlace(List<_Place> places, NodeId item) =>
+      places.firstWhereOrNull((place) => place.row.widget.item == item);
+
+  /// The room the dragged row at [own] takes: its target's height, which
+  /// holds the row's spacing too.
+  double _roomOf(_Place own) => own.bottom - own.top;
+
+  /// The gap for a drop at [target], as high as the dragged row at [own].
+  LineGap _gapAt(_Target target, _Place own) => (
+    item: target.place.row.widget.item,
+    below: target.below,
+    height: _roomOf(own),
+  );
 
   void _hover(DragTargetDetails<LineDrag> details) {
     final drag = details.data;
-    _gap.value = switch (drag.at(details.offset)) {
-      final copy? => switch (_placeAt(copy.middle)) {
-        final place? when place.row.widget.item != drag.item => (
-          item: place.row.widget.item,
-          below: _isBelow(place, copy.middle),
-          height: copy.height,
-        ),
+    final places = _places();
+    _drag.value = Lifted(
+      drag.item,
+      gap: switch ((drag.at(details.offset), _ownPlace(places, drag.item))) {
+        (final copy?, final own?) => switch (_targetAt(
+          places,
+          drag.item,
+          copy.middle,
+        )) {
+          final target? => _gapAt(target, own),
+          null => null,
+        },
         _ => null,
       },
-      null => null,
-    };
+    );
+  }
+
+  /// The drag left the zone: no gap stays open.
+  void _leave() {
+    if (_drag.value case Lifted(:final item)) _drag.value = Lifted(item);
   }
 
   void _drop(DragTargetDetails<LineDrag> details) {
     final drag = details.data;
+    final places = _places();
     final copy = drag.at(details.offset);
-    final place = copy == null ? null : _placeAt(copy.middle);
-    if (copy == null || place == null) {
+    final own = _ownPlace(places, drag.item);
+    if (copy == null || own == null) {
       return _glideTo(
         drag,
         from: details.offset,
@@ -145,21 +179,33 @@ class LineDropZoneState extends State<LineDropZone> {
         then: () {},
       );
     }
-    final target = place.row.widget.item;
-    final below = _isBelow(place, copy.middle);
-    final moves = target != drag.item;
-    if (moves) _leaving.value = drag.item;
+    final levels = (copy.shift / widget.step).truncate();
+    final target = _targetAt(places, drag.item, copy.middle);
+    if (target == null) {
+      _drag.value = Lifted(drag.item);
+      return _glideTo(
+        drag,
+        from: details.offset,
+        to: _rowOrigin(drag),
+        then: () => widget.onDrop(
+          drag,
+          target: drag.item,
+          below: false,
+          levels: levels,
+        ),
+      );
+    }
+    final (:place, :below) = target;
+    _drag.value = Landing(drag.item, _gapAt(target, own));
     _glideTo(
       drag,
       from: details.offset,
-      to: moves
-          ? _gapOrigin(drag, place, below: below, height: copy.height)
-          : _rowOrigin(drag),
+      to: _landing(drag, own, place, below: below),
       then: () => widget.onDrop(
         drag,
-        target: target,
+        target: place.row.widget.item,
         below: below,
-        levels: (copy.shift / widget.step).truncate(),
+        levels: levels,
       ),
     );
   }
@@ -167,30 +213,26 @@ class LineDropZoneState extends State<LineDropZone> {
   /// Where [drag]'s row is on screen; `null` once it is gone.
   Offset? _rowOrigin(LineDrag drag) => drag.rowBox?.localToGlobal(Offset.zero);
 
-  /// Where the gap open next to [place] is on screen once the dragged
-  /// row's old place has closed, at the dragged row's indent.
-  Offset? _gapOrigin(
+  /// Where [drag]'s row lands next to [place], [below] it or above, from
+  /// places measured without gaps: rows below its old place [own] move up
+  /// by its room as that place closes. `null` once the row is gone.
+  Offset? _landing(
     LineDrag drag,
+    _Place own,
     _Place place, {
     required bool below,
-    required double height,
-  }) => switch ((_rowOrigin(drag), place.row._contentBox)) {
-    (final origin?, final content?) => Offset(
+  }) {
+    final origin = _rowOrigin(drag);
+    final content = own.row._contentBox;
+    if (origin == null || content == null) return null;
+    // The row may sit lower in its target than the target's top.
+    final inset = origin.dy - content.localToGlobal(Offset.zero).dy;
+    final top = below ? place.bottom : place.top;
+    return Offset(
       origin.dx,
-      content.localToGlobal(Offset.zero).dy +
-          (below ? content.size.height : -height) -
-          _closingAbove(drag, place),
-    ),
-    _ => null,
-  };
-
-  /// How far [place] moves up as [drag]'s old place closes: the old
-  /// row's height if it is above.
-  double _closingAbove(LineDrag drag, _Place place) => switch (_places()
-      .firstWhereOrNull((old) => old.row.widget.item == drag.item)) {
-    final old? when old.top < place.top => old.bottom - old.top,
-    _ => 0,
-  };
+      top + inset - (own.top < place.top ? _roomOf(own) : 0),
+    );
+  }
 
   /// [drag]'s copy glides from [from] to [to], then [then] happens and
   /// the drag is settled; at once without [to], or when it is there
@@ -233,12 +275,11 @@ class LineDropZoneState extends State<LineDropZone> {
     overlay.insert(entry);
   }
 
-  /// The drop happens: [then], the gap closes, the row shows again.
+  /// The drop happens: [then], and the drag is over, so the gap closes
+  /// at once, in the frame the row shows in its new place.
   void _settle(VoidCallback then) {
     then();
-    _gap.value = null;
-    _lifted.value = null;
-    _leaving.value = null;
+    _drag.value = const NoDrag();
     widget.onSettled();
   }
 
@@ -246,16 +287,14 @@ class LineDropZoneState extends State<LineDropZone> {
   void dispose() {
     // Left mid-glide (e.g. the editor closed): the drop is not made.
     _glide?.remove();
-    _gap.dispose();
-    _lifted.dispose();
-    _leaving.dispose();
+    _drag.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => DragTarget<LineDrag>(
     onMove: _hover,
-    onLeave: (_) => _gap.value = null,
+    onLeave: (_) => _leave(),
     onAcceptWithDetails: _drop,
     builder: (_, _, _) => widget.child,
   );
@@ -325,22 +364,26 @@ class _LineDropTargetState extends State<LineDropTarget> {
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(
-    valueListenable: _zone._gap,
-    builder: (context, gap, content) => AnimatedPadding(
-      duration: const Duration(milliseconds: 120),
-      padding: switch (gap) {
+    valueListenable: _zone._drag,
+    builder: (context, drag, content) => AnimatedPadding(
+      // Animated during a drag; once it is over, at once.
+      duration: switch (drag) {
+        NoDrag() => Duration.zero,
+        _ => const Duration(milliseconds: 120),
+      },
+      padding: switch (drag.gap) {
         (:final item, :final below, :final height) when item == widget.item =>
           below
               ? EdgeInsets.only(bottom: height)
               : EdgeInsets.only(top: height),
         _ => EdgeInsets.zero,
       },
-      child: ValueListenableBuilder(
-        valueListenable: _zone._leaving,
-        builder: (_, leaving, content) =>
-            leaving == widget.item ? _Closing(child: content!) : content!,
-        child: content,
-      ),
+      child: switch (drag) {
+        Landing(:final item) when item == widget.item => _Closing(
+          child: content!,
+        ),
+        _ => content!,
+      },
     ),
     child: KeyedSubtree(key: _content, child: widget.child),
   );
