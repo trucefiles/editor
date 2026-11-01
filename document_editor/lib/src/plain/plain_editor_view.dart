@@ -20,7 +20,8 @@ final class PlainEditorView implements EditorView {
   /// While read only, the editor's text, its latest edits too (they may
   /// not be kept yet).
   @override
-  Widget view(covariant TextHost host, {required bool autofocus}) => _part.isEditing
+  Widget view(covariant TextHost host, {required bool autofocus}) =>
+      _part.isEditing
       ? LineEditView(
           _text,
           key: const ValueKey(#edit),

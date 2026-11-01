@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/document_page/document_pages.dart';
@@ -58,5 +60,26 @@ void main() {
     expect(file.folder.id, 'f2');
     expect(file.type, appDocumentTypes().forNew);
     expect(page.type, appDocumentTypes().forNew);
+  });
+
+  test("a new calendar's page starts as the calendar it was named", () {
+    final health = appDocumentTypes().newDocuments.firstWhere(
+      (made) => made.label == 'Health calendar',
+    );
+    final page = pages().openNew(
+      (folder: fixture.folders[0], subfolder: null),
+      made: health,
+      name: 'Me',
+      withFile: (_) async {},
+    );
+    addTearDown(page.close);
+
+    expect(page.type, health.type);
+    expect((page.session.file as NewFile).type, health.type);
+    expect(
+      (page.part as CalendarEditorPart).owner.state.text,
+      newCalendarText('Me', health: true),
+    );
+    expect(page.session.path, path('Me.ics'), reason: 'named by its name');
   });
 }

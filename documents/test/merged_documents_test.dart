@@ -14,12 +14,15 @@ final class _KeyValueType implements DocumentType {
   @override
   String get newFileExtension => '.md';
 
+  /// Windows line breaks, as some formats want.
   @override
-  TextFile get newFile => const TextFile.empty();
+  TextFile get newFile => const TextFile.empty(lineBreak: '\r\n');
 
-  /// The whole text.
+  /// The values, not the keys.
   @override
-  String searchText(DocumentText read) => read.text;
+  String searchText(DocumentText read) =>
+      [for (final line in read.text.split('\n')) line.split(':').last]
+          .join('\n');
 
   @override
   DocumentCardSummary cardSummary(DocumentText read) =>
@@ -317,4 +320,47 @@ void main() {
       expect(textOf(_copyName), isNull);
     });
   });
+
+  test('a new document is written in its type\'s style', () async {
+    final created = (await (await files()).create(
+      'New',
+      type: _types.forNew,
+      text: 'a:1\nb:2',
+    )).value;
+
+    expect(textOf(created.path.value), 'a:1\r\nb:2');
+  });
+
+  test("search finds a document by its type's text", () async {
+    put('a.md', 'colour:teal');
+    final listedFiles = await files();
+    final document = (await listedFiles.open(path('a.md'))).value.document;
+
+    final [searchable] = searchablesOf(
+      [document],
+      filesOf: (_) => listedFiles,
+      types: _types,
+    );
+
+    expect((await searchable.read())!.text, 'teal');
+  });
+
+  test('the plain new document is the first one offered', () {
+    const named = NewDocument(
+      'Named',
+      _KeyValueType(),
+      startNamed: _startNamed,
+    );
+    expect(_types.forNew, const _KeyValueType());
+    expect((named.named, named.startText('Home')), (true, 'name:Home'));
+    expect(
+      (
+        _types.newDocuments.single.named,
+        _types.newDocuments.single.startText('x'),
+      ),
+      (false, ''),
+    );
+  });
 }
+
+String _startNamed(String name) => 'name:$name';

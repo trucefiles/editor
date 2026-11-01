@@ -24,16 +24,17 @@ final class MarkdownEditorView implements EditorView {
   /// Lists get Add item buttons where the host says, links open as the
   /// host opens them, images show as the host finds them.
   @override
-  Widget view(covariant TextHost host, {required bool autofocus}) => DocumentEditor(
-    _part.gate,
-    text: host.kept,
-    notices: _part.gate.events,
-    addItems: host.addItems,
-    onLink: (url) =>
-        openMarkdownLink(url, open: host.openLink, hint: host.hint),
-    images: host.images,
-    autofocus: autofocus,
-  );
+  Widget view(covariant TextHost host, {required bool autofocus}) =>
+      DocumentEditor(
+        _part.gate,
+        text: host.kept,
+        notices: _part.gate.events,
+        addItems: host.addItems,
+        onLink: (url) =>
+            openMarkdownLink(url, open: host.openLink, hint: host.hint),
+        images: host.images,
+        autofocus: autofocus,
+      );
 
   @override
   List<Widget> actions(BuildContext context) => [
