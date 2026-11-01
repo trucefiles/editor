@@ -95,6 +95,36 @@ Accepted behavior that is not planned to change, grouped by topic.
   backups of documents left outside. They are deleted after 7 days, like
   every backup.
 
+## Calendars
+
+- **Alerts don't ring yet.** Truce keeps an event's alerts in the
+  calendar, so other calendar apps ring them, but doesn't ring them
+  itself.
+- **New events keep their clock time when you travel.** An event you add
+  in Truce has no time zone: at 9:00 stays at 9:00 wherever you are.
+  Events from other apps keep their own time zone.
+- **An event another app removed can come back.** Truce marks a deleted
+  event as deleted, so other devices learn of it. Some apps remove the
+  event instead; when that file meets a Truce device's copy, the event
+  comes back.
+- **A device with a wrong clock can lose its edits.** When the same event
+  changed on two devices, the newer change wins, by each device's clock.
+  The edit that lost is still in the calendar's Backups.
+- **Changes from another device can wait in a conflict copy.** Truce
+  merges a calendar's conflict copies on its own, but writes the merged
+  calendar only when you edit it. Until then other calendar apps see the
+  file without the copies' changes.
+- **A broken conflict copy is not shown.** A conflict copy of a calendar
+  that can't be read is left out of the calendar and not listed as a
+  conflict. It is never deleted, and shows once the calendar is moved or
+  deleted.
+- **Undoing a new event leaves a deleted mark.** Undo takes the event
+  away, but its file keeps a note that it was deleted, so other devices
+  learn of it too.
+- **A failed backup doesn't stop a merge.** Before a merge drops your
+  edits to an event, Truce backs them up. If that backup fails, the
+  merge still goes ahead.
+
 ## Folders
 
 - **Images from outside a folder don't show.** A document shows an image

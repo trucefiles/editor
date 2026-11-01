@@ -39,6 +39,10 @@
 - Markdown documents and checklists, edited visually (lists, styles,
   drag and drop), as raw Markdown, or read rendered.
 - Plain text files (`.txt`), edited as text.
+- Calendars (`.ics`, the format other calendar apps use): a month view,
+  events that repeat, a health calendar with a cycle estimate, and a
+  Calendar tab with the events of all your calendars. Changes from two
+  devices merge on their own.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -50,7 +54,8 @@
 
 - Assisted merge: Truce suggests a merged version of a conflict for you to
   accept.
-- More kinds of files beyond Markdown and plain text.
+- Calendar alerts that ring.
+- More kinds of files beyond Markdown, plain text and calendars.
 - Windows, macOS and iOS.
 
 Truce is in early development (0.x), so expect changes between versions.
@@ -126,12 +131,17 @@ A Dart pub workspace with these packages:
 - `documents`: the documents in those folders, their drafts, settings,
   backups and conflicts, and the open document's page. Pure Dart, no UI;
   uses core and folders.
-- `document_editor`: editing documents on super_editor (Visual edit,
-  Markdown edit, plain text, Read). Flutter; uses core, documents,
-  markdown and plain_text.
+- `document_page`: what a document type's view gets from the page, and
+  gives it, whatever the type. Flutter; uses documents.
+- `document_editor`: editing text documents on super_editor (Visual
+  edit, Markdown edit, plain text, Read). Flutter; uses core, documents,
+  document_page, markdown and plain_text.
+- `calendar_editor`: the calendar page (month, day, event form, health
+  view) and the Calendar tab's month grid. Flutter; uses core, documents,
+  document_page and calendar.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
   code, and the wiring that picks the document types (`markdown`,
-  `plain_text`) and sync tools (`syncthing`, `plain_folder`).
+  `plain_text`, `calendar`) and sync tools (`syncthing`, `plain_folder`).
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `editor_test_support`: helpers for the editor's widget tests, shared by
