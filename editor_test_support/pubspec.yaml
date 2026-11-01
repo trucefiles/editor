@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
+  flutter_test_robots: 0.0.24
   super_editor: 0.3.0-dev.52
   truce_core: any
   truce_document_editor: any

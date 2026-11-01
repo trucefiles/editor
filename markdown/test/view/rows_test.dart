@@ -26,6 +26,23 @@ void main() {
     ]);
   });
 
+  test("an item's rows are its first and last row, subitems in", () {
+    final view = _view('- a\n  - b\n- c');
+    final [a, c] = (view.doc.root.children.single as ListNode).items;
+    expect(view.rowsOf(a.id), (first: 0, last: 1));
+    expect(view.rowsOf(c.id), (first: 2, last: 2));
+  });
+
+  test(
+    'the rows of a checked item in a Done section come after the open ones',
+    () {
+      final view = _view('- [x] a\n- [ ] b', done: DoneSections());
+      final [a, b] = (view.doc.root.children.single as ListNode).items;
+      expect(view.rowsOf(b.id), (first: 0, last: 0));
+      expect(view.rowsOf(a.id), (first: 1, last: 1));
+    },
+  );
+
   test('Done sections show checked top-level items after the open ones', () {
     const text = '- [x] a\n  - [ ] sub\n- [ ] b\n  - [x] c\n  - [ ] d';
     expect(_shown(_view(text)), ['a', 'sub', 'b', 'c', 'd']);

@@ -10,7 +10,9 @@ import '../support/shown.dart';
 (String, TextSelection) _removed(String text, {bool backward = false}) {
   final document = Shown.read(text);
   final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-  final edited = document.run(RemoveBlock(divider.id, backward: backward));
+  final edited = document.run(
+    RemoveSelectedBlock(divider.id, backward: backward),
+  );
   return (edited.document.text, edited.selection as TextSelection);
 }
 
@@ -26,7 +28,9 @@ void main() {
       'above', () {
     final document = Shown.read('ab\n\n---\n\nc');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(RemoveBlock(divider.id, backward: true));
+    final edited = document.run(
+      RemoveSelectedBlock(divider.id, backward: true),
+    );
     expect(edited.document.text, 'ab\n\nc');
     expect(edited.selection, edited.document.caret(0, 2));
   });
@@ -43,7 +47,9 @@ void main() {
         '(${backward ? 'Backspace' : 'Delete'})', () {
       final document = Shown.read('- [ ] a\n- [ ] ***\n- [ ] b');
       final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-      final edited = document.run(RemoveBlock(divider.id, backward: backward));
+      final edited = document.run(
+        RemoveSelectedBlock(divider.id, backward: backward),
+      );
       expect(edited.document.text, '- [ ] a\n- [ ] \n- [ ] b');
       final caret = edited.selection as TextSelection;
       expect(caret.isCaret, isTrue);
@@ -60,7 +66,9 @@ void main() {
       'text with the caret, the subitems kept', () {
     final document = Shown.read('- [ ] a\n- [ ] ***\n  - [ ] b');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(RemoveBlock(divider.id, backward: true));
+    final edited = document.run(
+      RemoveSelectedBlock(divider.id, backward: true),
+    );
     expect(edited.document.text, '- [ ] a\n- [ ] \n  - [ ] b');
     expect(edited.selection, edited.document.caret(1, 0));
   });
@@ -75,11 +83,56 @@ void main() {
       'text above', () {
     final document = Shown.read('ab\n\n---\n\n<!--');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(RemoveBlock(divider.id, backward: false));
+    final edited = document.run(
+      RemoveSelectedBlock(divider.id, backward: false),
+    );
     expect(edited.selection, edited.document.caret(0, 2));
   });
 
   test('a divider alone in a quote takes the quote with it', () {
     expect(_removed('a\n\n> ---').$1, 'a');
+  });
+
+  test('next to the caret, the caret stays where it was', () {
+    final document = Shown.read('a\n\n---\n\nb');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(
+      RemoveBlockNextTo(divider.id, document.place(2, 0)),
+    );
+    expect(edited.document.text, 'a\n\nb');
+    expect(edited.selection, edited.document.caret(1, 0));
+  });
+
+  test("a separator above more of its item's lines goes; the next line "
+      'takes its place, keeping the box', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n  b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(
+      RemoveBlockNextTo(divider.id, document.place(2, 0)),
+    );
+    expect(edited.document.text, '- [ ] a\n- [ ] b');
+    expect(edited.selection, edited.document.caret(1, 0));
+  });
+
+  test('a separator item next to the caret leaves the item empty and the '
+      'caret where it was', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n- [ ] b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(
+      RemoveBlockNextTo(divider.id, document.place(0, 1)),
+    );
+    expect(edited.document.text, '- [ ] a\n- [ ] \n- [ ] b');
+    expect(edited.selection, edited.document.caret(0, 1));
+  });
+
+  test('a selected separator above more of its item\'s lines goes; the '
+      'caret to the start of the next line', () {
+    final document = Shown.read('- [ ] a\n- [ ] ***\n  b');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
+    final edited = document.run(
+      RemoveSelectedBlock(divider.id, backward: false),
+    );
+    expect(edited.document.text, '- [ ] a\n- [ ] b');
+    expect(edited.selection, edited.document.caret(1, 0));
   });
 }

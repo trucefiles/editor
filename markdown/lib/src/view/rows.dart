@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../visible/visible_text.dart';
@@ -75,6 +77,22 @@ final class ViewRows {
     final index? => rows[index],
     null => null,
   };
+
+  /// The indexes of the first and the last row the leaves in [container]
+  /// show in; `null` if none shows.
+  ({int first, int last})? rowsOf(NodeId container) => _spans[container];
+
+  late final Map<NodeId, ({int first, int last})> _spans = rows.indexed
+      .expand(
+        (entry) => doc
+            .pathOf(entry.$2.leaf.id)
+            .map((container) => (container.id, entry.$1)),
+      )
+      .groupFoldBy(
+        (shown) => shown.$1,
+        (({int first, int last})? span, shown) =>
+            (first: span?.first ?? shown.$2, last: shown.$2),
+      );
 }
 
 /// What text place [leaf] shows: a text node's text, code as plain text.
