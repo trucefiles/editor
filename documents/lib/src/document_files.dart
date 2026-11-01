@@ -263,10 +263,7 @@ final class DocumentFiles {
     DocumentText document,
     String text,
   ) async {
-    final merged = [
-      for (final read in document.copies)
-        if (read.merged) read.copy,
-    ];
+    final merged = document.mergedCopies;
     // A failed backup never stops the write, as before every edit.
     if (merged.isNotEmpty) await backUpBeforeEdit(document);
     final written = await _store.replace(
@@ -286,7 +283,7 @@ final class DocumentFiles {
   /// [document] with the copies merged into it settled: written once into
   /// its file (see [save]) if it has some; else as it is.
   Future<Result<DocumentText, StoreError>> settled(DocumentText document) =>
-      document.copies.any((read) => read.merged)
+      document.mergedCopies.isNotEmpty
       ? save(document, document.text)
       : Future.value(Ok(document));
 

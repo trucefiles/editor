@@ -243,7 +243,9 @@ final class FileEffects {
     final files = _filesOf(over.folder);
     // A failed backup never stops the write: the edits matter more. With
     // copies merged in, the save backs the file up itself.
-    if (backUpFirst && over.copies.isEmpty) await files.backUpBeforeEdit(over);
+    if (backUpFirst && over.mergedCopies.isEmpty) {
+      await files.backUpBeforeEdit(over);
+    }
     return switch (await files.save(over, text)) {
       Ok(value: final written) => _written(written),
       Err(error: StoreError.changedSinceRead) => switch (await files.reload(

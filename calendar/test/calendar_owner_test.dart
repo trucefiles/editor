@@ -1,0 +1,76 @@
+import 'package:test/test.dart';
+import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_test_support/truce_test_support.dart';
+
+import 'samples.dart';
+
+final _at = DateTime.utc(2026, 11, 1, 12);
+
+final _gym = AddEvent(
+  'gym@t',
+  EventDraft(
+    summary: 'Gym',
+    start: Floating(DateTime(2026, 11, 3, 18)),
+    end: Floating(DateTime(2026, 11, 3, 19)),
+  ),
+  at: _at,
+);
+
+MachineRun<CalendarMessage, CalendarState, CalendarNotice, CalendarSaveTimer>
+_run(String text) =>
+    MachineRun.of(calendarMachine(text, version: const Version(1)));
+
+/// The texts sent to the file owner so far.
+List<String> _sent(MachineRun<Object?, Object?, CalendarNotice, Object?> run) =>
+    [
+      for (final notice in run.events)
+        if (notice.notice case ToFile(input: Edited(:final text))) text,
+    ];
+
+void main() {
+  test('an edit shows at once and is one undo step', () {
+    final run = _run(birthday)..send(EditCalendar(_gym));
+    expect(run.state.calendar!.eventOf('gym@t'), isNotNull);
+    expect(run.state.status.canUndo, isTrue);
+    expect(run.state.status.unsent, isTrue);
+
+    run.send(const CalendarRequest(Undo()));
+    expect(run.state.text, birthday);
+    run.send(const CalendarRequest(Redo()));
+    expect(run.state.calendar!.eventOf('gym@t'), isNotNull);
+  });
+
+  test('the text goes to the file owner after the pause, as typing does', () {
+    final run = _run(birthday)..send(EditCalendar(_gym));
+    expect(_sent(run), isEmpty);
+    final pause = run.all<CalendarSaveTimer>().firstWhere(
+      (timer) => timer.delay == SaveTimer.pause.delay,
+    );
+    run.send(pause.done);
+    expect(_sent(run).single, contains('SUMMARY:Gym'));
+  });
+
+  test('a text that is no calendar shows and takes no edits', () {
+    final run = _run('# Notes\n')..send(EditCalendar(_gym));
+    expect((run.state.text, run.state.calendar), ('# Notes\n', null));
+    expect(run.state.status.canUndo, isFalse);
+  });
+
+  test('what the file merged in shows', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_gym))
+      ..send(CalendarRequest(SecureEditor(Ticket(), SecureReason.hide)));
+    final merged = applyEdit(
+      Calendar.read(_sent(run).single)!,
+      DeleteEvent('ann@truce', at: _at),
+    );
+    run.send(
+      CalendarRequest(
+        FromFile(Merged(merged.text, version: const Version(2), ackRev: 1)),
+      ),
+    );
+    expect(run.state.calendar!.eventOf('ann@truce')!.series.deleted, isTrue);
+    expect(run.state.status.canUndo, isFalse);
+  });
+}

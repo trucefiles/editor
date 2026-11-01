@@ -34,6 +34,12 @@ final class DocumentText {
   /// The conflict copies of the file read with it, in the order merged.
   final List<CopyRead> copies;
 
+  /// The [copies] whose text is in [text]: settled when it is written.
+  List<ConflictCopy> get mergedCopies => [
+    for (final read in copies)
+      if (read.merged) read.copy,
+  ];
+
   /// What cards and search show of [text], by its type; read when first
   /// asked, once for title and preview.
   late final TextSummary<Object?> summary = type.summary(
