@@ -102,7 +102,7 @@ void main() {
     final merged = (await sides()).merged!;
 
     expect(String.fromCharCodes(merged.bytes), 'a:2\r\nb:2\r\n');
-    expect(merged.lost, ['b'], reason: "the copy's b lost to the main file");
+    expect(merged.lost, ['a', 'b'], reason: 'each side lost one');
   });
 
   test('keeping both merged writes them once and backs up both', () async {

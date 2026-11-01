@@ -6,7 +6,7 @@
 abstract interface class TextMerge {
   /// [main] and [other] as one text, in [main]'s layout where they agree.
   /// [base]: the text [other] was edited from, if known; then only parts
-  /// [other] changed from it count as lost when they lose.
+  /// a side changed from it count as lost when they lose.
   MergeResult merge(String main, String other, {String? base});
 }
 
@@ -15,8 +15,9 @@ sealed class MergeResult {
   const MergeResult();
 }
 
-/// Both texts merged into [text]. [lost]: what of `other` lost to `main`,
-/// named for the user (e.g. an event's title); empty when nothing did.
+/// Both texts merged into [text]. [lost]: the older versions, of either
+/// side, that newer ones replaced, named for the user (e.g. an event's
+/// title); empty when nothing clashed.
 final class MergedText extends MergeResult {
   const MergedText(this.text, {this.lost = const []});
 

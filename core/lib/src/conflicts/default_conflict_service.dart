@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
+
 import '../backups/file_backups.dart';
 import '../common/result.dart';
 import '../storage/file_store.dart';
@@ -10,7 +12,8 @@ import 'conflict.dart';
 import 'conflict_service.dart';
 import 'conflict_source.dart';
 
-/// [ConflictService] for phase 0: the user picks a side, nothing is merged.
+/// [ConflictService]: the user picks a side, or keeps both as the
+/// document's type merged them.
 final class DefaultConflictService implements ConflictService {
   DefaultConflictService({
     required this._folder,
@@ -82,6 +85,9 @@ final class DefaultConflictService implements ConflictService {
     final written = switch (resolution) {
       KeepCurrent() => const Ok<void, StoreError>(null),
       KeepOther() => await _writeMain(conflict, other),
+      // Merged into what the main file holds already: nothing to write.
+      KeepMerged(:final bytes) when _bytesEqual.equals(bytes, current) =>
+        const Ok<void, StoreError>(null),
       KeepMerged(:final bytes) => await _writeMain(conflict, bytes),
     };
     if (written case Err(:final error)) return Err(ResolveError.ofStore(error));
@@ -110,4 +116,6 @@ final class DefaultConflictService implements ConflictService {
       Err(:final error) => Err(error),
     };
   }
+
+  static const _bytesEqual = ListEquality<int>();
 }

@@ -52,8 +52,8 @@
 
 ## What's coming
 
-- Assisted merge: Truce suggests a merged version of a conflict for you to
-  accept.
+- Assisted merge for Markdown and text: Truce suggests a merged version
+  of a conflict for you to accept (calendars merge with one tap already).
 - Calendar alerts that ring.
 - More kinds of files beyond Markdown, plain text and calendars.
 - Windows, macOS and iOS.

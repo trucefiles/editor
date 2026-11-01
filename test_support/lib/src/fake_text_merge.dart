@@ -3,8 +3,8 @@ import 'package:truce_core/truce_core.dart';
 /// A [TextMerge] over texts of `key:value` lines, one unit per key: a key
 /// on one side only is kept, and on both sides the greater value wins (as
 /// a newer edit would). Order: `main`'s lines, then `other`'s new ones.
-/// A line without `:` can't be merged. [lost] names the keys of `other`
-/// that lost, where `other` changed them from `base`.
+/// A line without `:` can't be merged. [lost] names the keys whose
+/// losing value, of either side, changed from `base`.
 final class FakeTextMerge implements TextMerge {
   const FakeTextMerge();
 
@@ -26,8 +26,12 @@ final class FakeTextMerge implements TextMerge {
     return MergedText(
       [for (final key in keys) '$key:${winner(key)}\n'].join(),
       lost: [
-        for (final MapEntry(:key, :value) in others.entries)
-          if (winner(key) != value && bases?[key] != value) key,
+        for (final key in keys)
+          if ([mains[key], others[key]].any(
+            (value) =>
+                value != null && value != winner(key) && bases?[key] != value,
+          ))
+            key,
       ],
     );
   }

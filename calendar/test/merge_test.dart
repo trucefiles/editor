@@ -116,6 +116,22 @@ void main() {
     expect(quiet.lost, isEmpty);
   });
 
+  test("names the main side's version too when the other's is newer", () {
+    final older = _apply(birthday, [
+      ChangeSeries(
+        'ann@truce',
+        EventDraft(
+          summary: 'Ann (older)',
+          start: AllDay(DateTime(2020, 3, 12)),
+          end: AllDay(DateTime(2020, 3, 13)),
+        ),
+        at: day1,
+      ),
+    ]);
+    final result = _merge.merge(older, renamed) as MergedText;
+    expect(result.lost, ['Ann (older)']);
+  });
+
   test('without stamps, the smaller text wins on every device', () {
     const a =
         'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nSUMMARY:A\nEND:VEVENT\nEND:VCALENDAR\n';

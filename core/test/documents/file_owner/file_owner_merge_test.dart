@@ -82,6 +82,34 @@ void main() {
       expect(run.status, isA<InStep>());
     });
 
+    test('the status tells whether the two merge', () {
+      final merging = _Run('a:1\n')
+        ..edit('a:1\nb:1\n', 1)
+        ..keep()
+        ..found(const Seen('a:2\n', _v2));
+      expect((merging.status as ChangedElsewhere).merges, isTrue);
+      final broken = _Run('a:1\n')
+        ..edit('a:1\nb:1\n', 1)
+        ..keep()
+        ..found(const Seen('not a unit\n', _v2));
+      expect((broken.status as ChangedElsewhere).merges, isFalse);
+    });
+
+    test('both merged into the edits as they are: kept, written over '
+        'theirs', () {
+      final run = _Run('a:1\n')
+        ..edit('a:1\nb:2\n', 1)
+        ..keep()
+        ..found(const Seen('a:0\n', _v2))
+        ..pickMerged(_v2, rev: 1);
+      expect(run.all<Picked>(), isEmpty, reason: 'the editor shows it');
+      expect(run.last<PickMerged>().lost, ['a'], reason: 'theirs lost');
+      expect(run.status, isA<Editing>());
+      run.keep();
+      final write = run.last<Write>();
+      expect((write.text, write.over.version), ('a:1\nb:2\n', _v2));
+    });
+
     test('own edits that lose are named', () {
       final run = _Run('a:1\n')
         ..edit('a:1\nb:2\n', 1)
