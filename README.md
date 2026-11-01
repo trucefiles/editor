@@ -125,6 +125,9 @@ A Dart pub workspace with these packages:
 - `document_editor`: editing documents on super_editor (Visual edit,
   Markdown edit, plain text, Read). Flutter; uses core, documents,
   markdown and plain_text.
+- `masonry`: a lazy masonry grid (items as tall as their content, in
+  columns) for the document cards. Flutter; layout only, knows nothing of
+  documents.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
   code, and the wiring that picks the document types (`markdown`,
   `plain_text`) and sync tools (`syncthing`, `plain_folder`).
@@ -147,6 +150,7 @@ flutter analyze --fatal-infos
 (cd plain_folder && dart test)
 (cd folders && dart test)
 (cd documents && dart test)
+(cd masonry && flutter test)
 (cd document_editor && flutter test)
 (cd app && flutter test)
 ```

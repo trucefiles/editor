@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart' show FileVersion;
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/documents/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
@@ -61,5 +62,27 @@ void main() {
     await container.read(cardPreviewsProvider).read(document);
 
     expect(container.read(cardPreviewProvider(document)), isA<Previewed>());
+  });
+
+  test('a card of a new version shows the version read before until the '
+      'new one is read', () async {
+    final file = File('${dir.path}/plan.md')..writeAsStringSync('# Plan');
+    final before = await listed('plan.md');
+    await container.read(cardPreviewsProvider).read(before);
+    file.writeAsStringSync('# Plan, longer now');
+    final after = Document(
+      folder: before.folder,
+      path: before.path,
+      type: before.type,
+      version: FileVersion(-1),
+      modified: before.modified,
+    );
+
+    final shown = container.listen(cardPreviewProvider(after), (_, _) {});
+    expect((shown.read() as Previewed).summary.title, 'Plan');
+
+    await eventually(
+      () => (shown.read() as Previewed).summary.title == 'Plan, longer now',
+    );
   });
 }

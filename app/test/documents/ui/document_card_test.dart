@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_documents/truce_documents.dart';
-import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/documents/ui/document_card.dart';
 import 'package:truce_editor/documents/ui/document_grid.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
@@ -30,8 +29,8 @@ void main() {
         ),
   );
 
-  /// Shows the card of a document with [title] and [lines] lines, as tall
-  /// as in a grid at [zoom].
+  /// Shows the card of a document with [title] and [lines] lines, as wide
+  /// as in a grid, at [zoom].
   Future<void> show(
     WidgetTester tester, {
     String title = 'Title',
@@ -46,16 +45,13 @@ void main() {
           child: Scaffold(
             body: Align(
               alignment: Alignment.topCenter,
-              child: Builder(
-                builder: (context) => SizedBox(
-                  width: 240,
-                  height: cardHeight(context),
-                  child: DocumentCard(
-                    document,
-                    preview: read(text.join('\n')),
-                    onTap: () {},
-                    onMark: () {},
-                  ),
+              child: SizedBox(
+                width: 240,
+                child: DocumentCard(
+                  document,
+                  preview: read(text.join('\n')),
+                  onTap: () {},
+                  onMark: () {},
                 ),
               ),
             ),
@@ -69,14 +65,17 @@ void main() {
   int previewLines(WidgetTester tester) =>
       tester.widget<Text>(find.textContaining('line 1')).maxLines!;
 
-  testWidgets('shows as many whole preview lines as fit under the title', (
+  testWidgets('is as tall as its text, up to the lines a preview has', (
     tester,
   ) async {
-    await show(tester);
-    expect(previewLines(tester), cardBodyLines);
+    double height() => tester.getSize(find.byType(DocumentCard)).height;
 
-    await show(tester, title: 'A title long enough for two lines');
-    expect(previewLines(tester), lessThan(cardBodyLines));
+    await show(tester, lines: 2);
+    final short = height();
+    await show(tester);
+
+    expect(height(), greaterThan(short));
+    expect(previewLines(tester), DocumentCardSummary.previewLines);
   });
 
   testWidgets('grows with the document text zoom, keeping its lines', (
@@ -91,7 +90,7 @@ void main() {
       tester.getSize(find.byType(DocumentCard)).height,
       greaterThan(normal),
     );
-    expect(previewLines(tester), cardBodyLines);
+    expect(previewLines(tester), DocumentCardSummary.previewLines);
   });
 
   testWidgets('shows only the title for a document without text', (
@@ -217,10 +216,10 @@ void main() {
 
     await show(TextZoom.normal);
     final normal = height();
-    expect(previewLines(tester), cardBodyLines);
+    expect(previewLines(tester), DocumentCardSummary.previewLines);
 
     await show(TextZoom.closestTo(150));
     expect(height(), greaterThan(normal));
-    expect(previewLines(tester), cardBodyLines);
+    expect(previewLines(tester), DocumentCardSummary.previewLines);
   });
 }

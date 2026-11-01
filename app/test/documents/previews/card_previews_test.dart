@@ -69,6 +69,27 @@ void main() {
     expect(cards.known(doc('a.md', version: 1)), isNull);
   });
 
+  test('knows the preview last read of a file while its new version is '
+      'read, and keeps one preview per file', () async {
+    final cards = previews(capacity: 2);
+    unawaited(cards.read(doc('a.md')));
+    reads.values.single.complete(previewed);
+    await pumpEventQueue();
+    final newer = doc('a.md', version: 1);
+    final read = cards.read(newer);
+
+    expect(cards.lastKnown(newer), previewed);
+    reads[newer]!.complete(const PreviewNotText());
+    await read;
+    expect(cards.lastKnown(doc('a.md')), isA<PreviewNotText>());
+    expect(cards.known(doc('a.md')), isNull);
+
+    unawaited(cards.read(doc('b.md')));
+    reads[doc('b.md')]!.complete(previewed);
+    await pumpEventQueue();
+    expect(cards.known(newer), isA<PreviewNotText>(), reason: 'kept: 2 files');
+  });
+
   test('reads a few at a time, the one asked last first', () async {
     final cards = previews(readsAtOnce: 1);
     final [a, b, c] = [doc('a.md'), doc('b.md'), doc('c.md')];
