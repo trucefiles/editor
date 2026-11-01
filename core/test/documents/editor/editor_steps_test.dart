@@ -238,6 +238,28 @@ void main() {
       expect(editor.book.lineage, const Version(1));
     });
 
+    test('a merge shows and clears the history, even before any edit', () {
+      final editor = _FakeEditor('a')
+        ..handleRequest(
+          const FromFile(Merged('merged', version: Version(2), ackRev: 0)),
+        );
+
+      expect(editor.shown, 'merged');
+      expect(editor.book.lineage, const Version(2));
+      expect(editor.book.history.start, HistoryStart.changedElsewhere);
+    });
+
+    test('a merge on older edits is left for the next merge', () {
+      final editor = _FakeEditor('a')
+        ..edit('ab')
+        ..handleRequest(
+          const FromFile(Merged('merged', version: Version(2), ackRev: 0)),
+        );
+
+      expect(editor.shown, 'ab');
+      expect(editor.book.lineage, const Version(1));
+    });
+
     test('a version picked shows and goes on from its rev', () {
       final editor = _FakeEditor('a')
         ..edit('ab')

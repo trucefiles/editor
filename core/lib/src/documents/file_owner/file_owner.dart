@@ -1,3 +1,4 @@
+import '../../conflicts/text_merge.dart';
 import '../../owners/effects.dart';
 import '../../owners/machine.dart';
 import '../../owners/machine_owner.dart';
@@ -45,8 +46,13 @@ FileOwner<V> fileOwner<V extends Version>(
       FileEffect<V>
     >(machine, handle: handle);
 
-/// The file machine of a document opened as [opened].
-FileMachine<V> openedFile<V extends Version>(Seen<V> opened) => Machine(
+/// The file machine of a document opened as [opened]. [merge]: how its
+/// type merges edits into a file changed elsewhere; without one, the user
+/// picks.
+FileMachine<V> openedFile<V extends Version>(
+  Seen<V> opened, {
+  TextMerge? merge,
+}) => Machine(
   state: FileState(
     status: const InStep(),
     text: opened.text,
@@ -54,12 +60,22 @@ FileMachine<V> openedFile<V extends Version>(Seen<V> opened) => Machine(
     file: opened.version,
   ),
   work: FileWork(expected: opened, offered: [opened]),
-  step: fileStep,
+  step: _stepWith(merge),
 );
 
-/// The file machine of a new document, which has no file yet.
-FileMachine<V> newFile<V extends Version>() => Machine(
+/// The file machine of a new document, which has no file yet; [merge] as
+/// for [openedFile].
+FileMachine<V> newFile<V extends Version>({TextMerge? merge}) => Machine(
   state: FileState(status: const Unwritten(), text: '', rev: 0, file: null),
   work: FileWork(expected: null, offered: const []),
-  step: fileStep,
+  step: _stepWith(merge),
 );
+
+/// The file machine's step, merging by [merge].
+Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>> Function(
+  FileState<V>,
+  FileWork<V>,
+  FileMessage<V>,
+)
+_stepWith<V extends Version>(TextMerge? merge) =>
+    (state, work, message) => fileStep(state, work, message, merge: merge);

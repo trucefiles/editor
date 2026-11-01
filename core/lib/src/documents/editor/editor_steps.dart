@@ -87,6 +87,17 @@ mixin EditorSteps<S> {
       case FromFile(message: Replaced()):
         // Not on the edits the editor holds: news to come is on them.
         break;
+      case FromFile(message: Merged(:final text, :final version, :final ackRev))
+          when ackRev == book.rev:
+        // Undo would bring back what lost to the change elsewhere.
+        book = book.copyWith(
+          lineage: version,
+          history: book.history.cleared(HistoryStart.changedElsewhere),
+        );
+        _reloaded(text);
+      case FromFile(message: Merged()):
+        // Typed since: the next edits are merged again.
+        break;
       case FromFile(message: Picked(:final text, :final version, :final rev)):
         book = book.copyWith(
           lineage: version,
