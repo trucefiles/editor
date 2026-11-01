@@ -55,6 +55,11 @@ final class CalendarDocumentType implements EditableType {
     );
   }
 
+  /// The calendar's name and its events' titles, places and notes, not
+  /// the file's other lines.
+  @override
+  String searchText(DocumentText read) => CalendarSummary(read.text).searchText;
+
   @override
   TextMerge get merge => const CalendarMerge();
 

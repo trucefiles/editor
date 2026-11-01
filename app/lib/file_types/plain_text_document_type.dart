@@ -18,6 +18,10 @@ final class PlainTextDocumentType implements EditableType {
   @override
   TextFile get newFile => const TextFile.empty();
 
+  /// The whole text.
+  @override
+  String searchText(DocumentText read) => read.text;
+
   @override
   DocumentCardSummary cardSummary(DocumentText read) {
     final preview = read.summary.preview(const PlainPreview());

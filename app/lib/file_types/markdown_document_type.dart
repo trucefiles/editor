@@ -20,6 +20,10 @@ final class MarkdownDocumentType implements EditableType {
   @override
   TextFile get newFile => const TextFile.empty();
 
+  /// The whole text.
+  @override
+  String searchText(DocumentText read) => read.text;
+
   @override
   DocumentCardSummary cardSummary(DocumentText read) {
     final summary = read.summary;

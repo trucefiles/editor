@@ -17,6 +17,10 @@ abstract interface class DocumentType {
   /// What cards and search show of [read], from its summary.
   DocumentCardSummary cardSummary(DocumentText read);
 
+  /// The words a search finds in [read] (e.g. its whole text, or only
+  /// what shows of it).
+  String searchText(DocumentText read);
+
   /// How two texts of this type merge into one, e.g. a conflict copy into
   /// its file; `null` if they don't (the user compares and picks).
   TextMerge? get merge;

@@ -29,7 +29,9 @@ const previewAhead = Duration(days: 366);
 /// next occurrences (or cycle) as the preview. A text that is no
 /// calendar has no title and an empty preview.
 final class CalendarSummary implements TextSummary<CalendarPreview> {
-  CalendarSummary(String text) : calendar = Calendar.read(text);
+  CalendarSummary(this._text) : calendar = Calendar.read(_text);
+
+  final String _text;
 
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
@@ -39,6 +41,18 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
 
   @override
   late final String firstLine = calendar?.name.trim() ?? '';
+
+  /// What a search finds: the name and each event's title, place and
+  /// notes, deleted events left out; a text that is no calendar as it is.
+  late final String searchText = switch (calendar) {
+    final calendar? => [
+      calendar.name,
+      for (final event in calendar.events)
+        for (final part in [event.series, ...event.changed])
+          if (!part.deleted) ...[part.summary, part.location, part.description],
+    ].where((text) => text.isNotEmpty).join('\n'),
+    null => _text,
+  };
 
   @override
   String preview(CalendarPreview options) {

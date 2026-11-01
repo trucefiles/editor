@@ -17,6 +17,10 @@ final class _KeyValueType implements DocumentType {
   @override
   TextFile get newFile => const TextFile.empty();
 
+  /// The whole text.
+  @override
+  String searchText(DocumentText read) => read.text;
+
   @override
   DocumentCardSummary cardSummary(DocumentText read) =>
       DocumentCardSummary(title: read.summary.firstLine, preview: (_) => '');
