@@ -124,7 +124,7 @@ void main() {
     expect(
       container.read(calendarTabPicksProvider).today,
       DateTime(2026, 11, 2),
-    );    // Ends the next midnight's wake before the test checks for timers.
+    ); // Ends the next midnight's wake before the test checks for timers.
     container.dispose();
   });
 }
