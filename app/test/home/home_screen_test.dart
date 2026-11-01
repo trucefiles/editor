@@ -7,7 +7,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/home/home_screen.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
@@ -33,8 +35,11 @@ Future<void> showsSoon(WidgetTester tester, Finder finder) async {
 void main() {
   setUpAll(initializeDateFormatting);
 
-  /// Starts the app on a folder holding [files].
-  Future<void> start(WidgetTester tester, Map<String, String> files) async {
+  /// Starts the app on a folder holding [files]; the folder.
+  Future<Directory> start(
+    WidgetTester tester,
+    Map<String, String> files,
+  ) async {
     final dir = tempFolder();
     for (final MapEntry(key: name, value: text) in files.entries) {
       File('${dir.path}/$name').writeCreatingFolders(text);
@@ -58,6 +63,7 @@ void main() {
       await tester.pumpWidget(scope);
     });
     await showsSoon(tester, find.text('Notes'));
+    return dir;
   }
 
   testWidgets('no Calendar tab while the folders hold no calendar', (
@@ -91,5 +97,36 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a calendar back after the last went shows the documents', (
+    tester,
+  ) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'home.ics': newCalendarText('Home'),
+    });
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    Future<void> rescan() async {
+      await tester.runAsync(
+        () => container.read(folderContentsProvider.notifier).refresh(),
+      );
+      await tester.pump();
+    }
+
+    await tester.tap(find.text('Calendar'));
+    await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
+    File('${dir.path}/home.ics').deleteSync();
+    await rescan();
+    expect(find.byType(NavigationBar), findsNothing);
+    File('${dir.path}/home.ics').writeAsStringSync(newCalendarText('Home'));
+    await rescan();
+
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      0,
+    );
   });
 }

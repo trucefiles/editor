@@ -62,6 +62,7 @@ Future<void> showOccurrenceActions(
         context,
         _occurrenceDraft(occurrence),
         title: 'Edit this one',
+        repeats: false,
       );
       if (draft != null && one != null) {
         edit((at) => ChangeOccurrence(uid, one, draft, at: at));

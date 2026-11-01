@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' show DateUtils;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -12,7 +14,7 @@ typedef TabPicks = ({
   DateTime month,
   DateTime day,
   DateTime today,
-  Document? lastUsed,
+  DocumentKey? lastUsed,
 });
 
 /// One event of the picked day, with the calendar it is of.
@@ -29,22 +31,47 @@ typedef TabMonth = ({
   List<TabCalendar> forAdding,
 });
 
+/// The time now, for the Calendar tab's today; a fixed clock in tests.
+final calendarClockProvider = Provider<DateTime Function()>(
+  (_) => DateTime.now,
+);
+
 final calendarTabPicksProvider = NotifierProvider<CalendarTabPicks, TabPicks>(
   CalendarTabPicks.new,
 );
 
 /// The month and day the Calendar tab shows, as the user picks them; it
-/// starts at today.
+/// starts at today, and today moves on at each midnight.
 class CalendarTabPicks extends Notifier<TabPicks> {
+  Timer? _midnight;
+
   @override
   TabPicks build() {
-    final today = DateUtils.dateOnly(DateTime.now());
+    ref.onDispose(() => _midnight?.cancel());
+    final today = _today();
     return (
       month: DateTime(today.year, today.month),
       day: today,
       today: today,
       lastUsed: null,
     );
+  }
+
+  /// Today, and a wake at the next midnight to move it on.
+  DateTime _today() {
+    final now = ref.read(calendarClockProvider)();
+    final today = DateUtils.dateOnly(now);
+    _midnight?.cancel();
+    _midnight = Timer(
+      DateTime(today.year, today.month, today.day + 1).difference(now),
+      () => state = (
+        month: state.month,
+        day: state.day,
+        today: _today(),
+        lastUsed: state.lastUsed,
+      ),
+    );
+    return today;
   }
 
   /// Shows [month].
@@ -63,12 +90,13 @@ class CalendarTabPicks extends Notifier<TabPicks> {
     lastUsed: state.lastUsed,
   );
 
-  /// The user adds to [calendar]: offered first next time.
+  /// The user adds to [calendar]: offered first next time, whatever
+  /// version it has then.
   void addTo(Document calendar) => state = (
     month: state.month,
     day: state.day,
     today: state.today,
-    lastUsed: calendar,
+    lastUsed: calendar.key,
   );
 }
 
@@ -107,8 +135,8 @@ TabMonth tabMonth(
       DateTime(day.year, day.month, day.day + 1),
     ),
     forAdding: [
-      ...calendars.where((each) => each.document == picks.lastUsed),
-      ...calendars.where((each) => each.document != picks.lastUsed),
+      ...calendars.where((each) => each.document.key == picks.lastUsed),
+      ...calendars.where((each) => each.document.key != picks.lastUsed),
     ],
   );
 }

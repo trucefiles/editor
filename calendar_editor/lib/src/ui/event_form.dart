@@ -4,16 +4,18 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
-/// they backed out.
+/// they backed out. Offers a repeat unless the event is one of a series
+/// ([repeats] false).
 Future<EventDraft?> showEventForm(
   BuildContext context,
   EventDraft draft, {
   required String title,
+  bool repeats = true,
 }) => Navigator.push(
   context,
   MaterialPageRoute<EventDraft>(
     fullscreenDialog: true,
-    builder: (_) => EventForm(draft, title: title),
+    builder: (_) => EventForm(draft, title: title, repeats: repeats),
   ),
 );
 
@@ -40,10 +42,18 @@ const _frequencyWords = {
 /// and notes. What it doesn't show of the event (e.g. a health entry, a
 /// time zone) stays as it was.
 class EventForm extends StatefulWidget {
-  const EventForm(this.draft, {required this.title, super.key});
+  const EventForm(
+    this.draft, {
+    required this.title,
+    this.repeats = true,
+    super.key,
+  });
 
   final EventDraft draft;
   final String title;
+
+  /// Whether the form offers a repeat: not for one of a series.
+  final bool repeats;
 
   @override
   State<EventForm> createState() => _EventFormState();
@@ -127,31 +137,32 @@ class _EventFormState extends State<EventForm> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           const SizedBox(height: 8),
-          switch (_repeat) {
-            OtherRepeat(:final rule) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Repeats'),
-              subtitle: Text('$rule (kept as it is)'),
-            ),
-            final SimpleRepeat? repeat => DropdownButtonFormField<Frequency?>(
-              initialValue: repeat?.frequency,
-              decoration: const InputDecoration(labelText: 'Repeats'),
-              items: [
-                const DropdownMenuItem(child: Text('Never')),
-                for (final MapEntry(key: frequency, value: text)
-                    in _frequencyWords.entries)
-                  DropdownMenuItem(value: frequency, child: Text(text)),
-              ],
-              onChanged: (frequency) => setState(
-                () => _repeat = switch (frequency) {
-                  null => null,
-                  // The rest of a repeat the form shows stays.
-                  _ when repeat?.frequency == frequency => repeat,
-                  final frequency => SimpleRepeat(frequency),
-                },
+          if (widget.repeats)
+            switch (_repeat) {
+              OtherRepeat(:final rule) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Repeats'),
+                subtitle: Text('$rule (kept as it is)'),
               ),
-            ),
-          },
+              final SimpleRepeat? repeat => DropdownButtonFormField<Frequency?>(
+                initialValue: repeat?.frequency,
+                decoration: const InputDecoration(labelText: 'Repeats'),
+                items: [
+                  const DropdownMenuItem(child: Text('Never')),
+                  for (final MapEntry(key: frequency, value: text)
+                      in _frequencyWords.entries)
+                    DropdownMenuItem(value: frequency, child: Text(text)),
+                ],
+                onChanged: (frequency) => setState(
+                  () => _repeat = switch (frequency) {
+                    null => null,
+                    // The rest of a repeat the form shows stays.
+                    _ when repeat?.frequency == frequency => repeat,
+                    final frequency => SimpleRepeat(frequency),
+                  },
+                ),
+              ),
+            },
           const SizedBox(height: 8),
           DropdownButtonFormField<_Alerts>(
             initialValue: _Alerts(_alerts),

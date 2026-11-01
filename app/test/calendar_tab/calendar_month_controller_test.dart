@@ -38,7 +38,7 @@ void main() {
     month: DateTime(day.year, day.month),
     day: day,
     today: DateTime(2026, 11, 1),
-    lastUsed: lastUsed?.document,
+    lastUsed: lastUsed?.document.key,
   );
 
   final home = calendar('Home', 'Dentist', DateTime(2026, 11, 5));
@@ -90,5 +90,41 @@ void main() {
       (picked.month, picked.day),
       (DateTime(2027, 3), DateTime(2027, 3, 12)),
     );
+  });
+
+  test('the calendar added to stays first once it changed', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(calendarTabPicksProvider.notifier).addTo(work.document);
+    final changed = (
+      document: listedDocument(folder, name: 'work.ics', version: 1),
+      calendar: work.calendar,
+      shown: true,
+    );
+
+    final month = tabMonth(
+      [home, changed],
+      container.read(calendarTabPicksProvider),
+      firstWeekday: 0,
+    );
+
+    expect(tabCalendarName(month.forAdding.first), 'Work');
+  });
+
+  testWidgets('today moves on at midnight', (tester) async {
+    var now = DateTime(2026, 11, 1, 23, 59);
+    final container = ProviderContainer(
+      overrides: [calendarClockProvider.overrideWithValue(() => now)],
+    );
+    expect(container.read(calendarTabPicksProvider).today, DateTime(2026, 11));
+
+    now = DateTime(2026, 11, 2);
+    await tester.pump(const Duration(minutes: 1));
+
+    expect(
+      container.read(calendarTabPicksProvider).today,
+      DateTime(2026, 11, 2),
+    );    // Ends the next midnight's wake before the test checks for timers.
+    container.dispose();
   });
 }

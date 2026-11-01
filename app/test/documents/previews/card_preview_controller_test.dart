@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/documents/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
@@ -66,5 +67,40 @@ void main() {
     await container.read(cardPreviewsProvider).read(document);
 
     expect(container.read(cardPreviewProvider(document)), isA<Previewed>());
+  });
+
+  test('a card shown reads again once its preview passes', () async {
+    var reads = 0;
+    final previews = ProviderContainer(
+      overrides: [
+        cardPreviewsProvider.overrideWithValue(
+          CardPreviews((_) async {
+            reads++;
+            return Previewed(
+              DocumentCardSummary(
+                title: 'Read $reads',
+                preview: (_) => '',
+                holdsUntil: DateTime.now().add(
+                  const Duration(milliseconds: 100),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+    addTearDown(previews.dispose);
+    final document = listedDocument(folderAt(dir), name: 'home.ics');
+    final shown = previews.listen(
+      cardPreviewProvider((document: document, version: const Version(0))),
+      (_, _) {},
+    );
+
+    await eventually(
+      () => switch (shown.read()) {
+        Previewed(:final summary) => summary.title == 'Read 2',
+        _ => false,
+      },
+    );
   });
 }

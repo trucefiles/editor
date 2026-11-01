@@ -94,6 +94,23 @@ void main() {
     expect(cards.known(a), isNull);
   });
 
+  test('a preview holds for as long as its type says', () {
+    var now = DateTime(2026, 11, 1, 9);
+    final cards = previews(now: () => now);
+    final passing = Previewed(
+      DocumentCardSummary(
+        title: 'A',
+        preview: (_) => '',
+        holdsUntil: DateTime(2026, 11, 1, 10),
+      ),
+    );
+
+    expect(cards.holdsFor(previewed), isNull);
+    expect(cards.holdsFor(passing), const Duration(hours: 1));
+    now = DateTime(2026, 11, 1, 11);
+    expect(cards.holdsFor(passing), Duration.zero);
+  });
+
   test('reads a few at a time, the one asked last first', () async {
     final cards = previews(readsAtOnce: 1);
     final [a, b, c] = [doc('a.md'), doc('b.md'), doc('c.md')];

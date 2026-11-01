@@ -41,11 +41,20 @@ final class CardPreviews<K> {
   /// [document]'s preview if it was read and still holds; marks it as
   /// used.
   CardPreview? known(K document) => switch (_known.remove(document)) {
-    Previewed(summary: DocumentCardSummary(:final holdsUntil?))
-        when !_now().isBefore(holdsUntil) =>
-      null,
+    final preview? when holdsFor(preview) == Duration.zero => null,
     final preview? => _known[document] = preview,
     null => null,
+  };
+
+  /// How much longer [preview] holds, as its type says; `null` while its
+  /// text doesn't change; [Duration.zero] once it no longer holds.
+  Duration? holdsFor(CardPreview preview) => switch (preview) {
+    Previewed(summary: DocumentCardSummary(:final holdsUntil?)) =>
+      switch (holdsUntil.difference(_now())) {
+        final left when left > Duration.zero => left,
+        _ => Duration.zero,
+      },
+    _ => null,
   };
 
   /// [document]'s preview, read when a read is free.

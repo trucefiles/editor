@@ -76,6 +76,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit this one'));
     await tester.pumpAndSettle();
+    expect(find.text('Repeats'), findsNothing, reason: 'one of a series');
     await tester.enterText(
       find.widgetWithText(TextField, 'Title'),
       'Ann (party)',

@@ -21,6 +21,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// state when a calendar comes or goes.
   @override
   Widget build(BuildContext context) {
+    // Once the last calendar goes, the tab is gone: a calendar coming back
+    // later shows the documents still.
+    ref.listen(hasCalendarsProvider, (_, calendars) {
+      if (!calendars) setState(() => _tab = 0);
+    });
     final calendars = ref.watch(hasCalendarsProvider);
     final tab = calendars ? _tab : 0;
     return Scaffold(
