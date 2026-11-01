@@ -16,6 +16,10 @@ final folderFilesProvider = Provider<FolderFiles>(
   (ref) => FolderFiles(
     ref.watch(baseFolderStacksProvider).servicesOf,
     ref.watch(documentTypesProvider),
+    // As last listed; none known once the app ends.
+    copiesOf: (key) => ref.mounted
+        ? ref.read(folderContentsProvider).value?.copiesOf(key) ?? const []
+        : const [],
   ),
 );
 

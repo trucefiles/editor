@@ -29,6 +29,10 @@ final class DocumentTypes<T extends DocumentType> {
   /// The app's type of a document whose file is of [type].
   T ofFile(FileTypeSupport<Object?> type) => _byId[type.type]!;
 
+  /// How texts of the file at [path] merge; `null` if they don't, or the
+  /// app doesn't handle it.
+  TextMerge? mergeOf(RelPath path) => of(path)?.merge;
+
   /// Whether the app handles the file at [path].
   bool handles(RelPath path) => of(path) != null;
 }

@@ -156,11 +156,21 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   }
 
   void _onFileNotice(FileEvent notice) {
-    if (notice is Replaced) {
-      _messenger.currentState?.showHint(
-        'Updated with a change from another device or app',
-      );
-    }
+    final hint = switch (notice) {
+      Replaced() => 'Updated with a change from another device or app',
+      Merged(:final lost) when lost.isNotEmpty => _lostHint(lost),
+      _ => null,
+    };
+    if (hint != null) _messenger.currentState?.showHint(hint);
+  }
+
+  /// Tells that the user's edits of [lost] lost to newer ones from
+  /// another device in a merge.
+  static String _lostHint(List<String> lost) {
+    final names = lost.map((name) => '"$name"').join(', ');
+    final were = lost.length == 1 ? 'was' : 'were';
+    return '$names $were changed on another device; the newer change was '
+        'kept, yours is in Backups';
   }
 
   /// Leaves once the edits are kept (see [DocumentController.mayGo]).

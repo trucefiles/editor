@@ -46,12 +46,17 @@ final class Ended extends SessionState {
 final class DocumentSession {
   /// The document [opened] (`null` for a new one, which goes where
   /// [effects] say), its file read and written by [effects], edited by
-  /// [editor], which opened with [opened]'s text.
-  DocumentSession(DocumentText? opened, this._effects, this.editor)
-    : _file = fileOwner(switch (opened) {
-        final opened? => openedFile(opened.seen),
-        null => newFile(),
-      }, _effects.run) {
+  /// [editor], which opened with [opened]'s text. [merge]: how its type
+  /// merges edits into a change elsewhere; without one, the user picks.
+  DocumentSession(
+    DocumentText? opened,
+    this._effects,
+    this.editor, {
+    TextMerge? merge,
+  }) : _file = fileOwner(switch (opened) {
+         final opened? => openedFile(opened.seen, merge: merge),
+         null => newFile(merge: merge),
+       }, _effects.run) {
     _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
@@ -118,7 +123,8 @@ final class DocumentSession {
   /// [HistoryEnd].
   Stream<EditorNotice> get editorNotices => _editorNotices.stream;
 
-  /// What the user is told of the file: [Replaced], [PickNotKept].
+  /// What the user is told of the file: [Replaced], [PickNotKept], and
+  /// [Merged] where own edits lost.
   Stream<FileEvent> get fileNotices => _fileNotices.stream;
 
   /// Fires on every change of where the edits are, of where the file is,
@@ -277,7 +283,9 @@ final class DocumentSession {
     switch (event) {
       case ToEditor():
         editor.send(FromFile(event));
-        if (event is Replaced) _fileNotices.add(event);
+        if (event is Replaced || event is Merged && event.lost.isNotEmpty) {
+          _fileNotices.add(event);
+        }
       case PickNotKept():
         _fileNotices.add(event);
       case Answer() || MoveAnswer():

@@ -241,8 +241,9 @@ final class FileEffects {
     required bool backUpFirst,
   }) async {
     final files = _filesOf(over.folder);
-    // A failed backup never stops the write: the edits matter more.
-    if (backUpFirst) await files.backUpBeforeEdit(over);
+    // A failed backup never stops the write: the edits matter more. With
+    // copies merged in, the save backs the file up itself.
+    if (backUpFirst && over.copies.isEmpty) await files.backUpBeforeEdit(over);
     return switch (await files.save(over, text)) {
       Ok(value: final written) => _written(written),
       Err(error: StoreError.changedSinceRead) => switch (await files.reload(
@@ -300,12 +301,18 @@ final class FileEffects {
     final to =
         _moves[ticket]?.to ??
         (throw StateError('A move without a place to go.'));
-    final moved = await _moveDocument(
-      from,
-      to.place,
-      title: to.title,
-      newSubfolder: to.newSubfolder,
-    );
+    // Copies merged in are settled first, so none stays behind.
+    final moved = switch (await _filesOf(from.folder).settled(from)) {
+      Ok(value: final settled) => await _moveDocument(
+        settled,
+        to.place,
+        title: to.title,
+        newSubfolder: to.newSubfolder,
+      ),
+      Err(:final error) => Err<DocumentText, MoveFailure>(
+        MoveNotWritten(error),
+      ),
+    };
     _moves[ticket] = (to: to, result: moved);
     final copy = switch (moved) {
       Ok(:final value) ||

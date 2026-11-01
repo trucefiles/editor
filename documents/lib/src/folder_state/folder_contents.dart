@@ -74,15 +74,37 @@ final class FolderContents {
 
   DocumentMark markOf(DocumentKey key) => marks[key] ?? DocumentMark.none;
 
-  /// The pending conflicts of what the folders show.
-  late final FolderConflicts conflicts = FolderConflicts([
+  /// The pending conflicts of what the folders show, of documents of
+  /// every handled type.
+  late final List<FolderConflict> _allConflicts = [
     for (final MapEntry(key: baseId, value: base) in state.bases.entries)
       if (base case Listed(:final conflicts))
         for (final conflict in conflicts.values)
           if (folders.folderOf(baseId, conflict.mainPath) case final folder?
               when types.handles(conflict.mainPath))
             FolderConflict(folder, conflict),
+  ];
+
+  /// The pending conflicts the user resolves: of types that don't merge,
+  /// and those whose main file is gone. The copies of a type that merges
+  /// are read into its document instead ([copiesOf]).
+  late final FolderConflicts conflicts = FolderConflicts([
+    for (final conflict in _allConflicts)
+      if (conflict.conflict.isOrphaned ||
+          types.mergeOf(conflict.conflict.mainPath) == null)
+        conflict,
   ]);
+
+  late final Map<DocumentKey, List<ConflictCopy>> _copiesByKey = {
+    for (final conflict in _allConflicts)
+      if (!conflict.conflict.isOrphaned &&
+          types.mergeOf(conflict.conflict.mainPath) != null)
+        conflict.key: conflict.conflict.copies,
+  };
+
+  /// The conflict copies read into the document at [key], in the order
+  /// they merge: those of a type that merges, while its file is there.
+  List<ConflictCopy> copiesOf(DocumentKey key) => _copiesByKey[key] ?? const [];
 
   /// The subfolders of folder [folderId], empty ones too, its selected
   /// subfolders among them, sorted by path.
@@ -166,7 +188,7 @@ final class FolderContents {
     _ when !folders.any((folder) => folder.base.id == key.baseId) =>
       const Gone(),
     _ when !covers(key) => const Unknown(),
-    final found? => Found(listedVersion(found)),
+    final found? => Found(listedVersion(found, copies: copiesOf(key))),
     null => const Gone(),
   };
 
