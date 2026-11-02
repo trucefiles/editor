@@ -49,7 +49,7 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
 /// change never reopens the folders.
 final _refreshIntervalProvider = Provider<Duration Function()>((ref) {
   final refresh = followedSetting(ref, (s) => s.refresh);
-  return () => refresh().interval;
+  return () => refresh.value.interval;
 });
 
 /// The services of the folder with this id (see [OpenFolders]): one

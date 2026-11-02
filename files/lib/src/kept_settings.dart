@@ -6,9 +6,9 @@ import 'folder_state/folder_contents.dart';
 import 'kept_file_settings.dart';
 import 'listed_file.dart';
 
-/// The rules on every file's settings this device keeps, by
-/// [FileSettingsStore.storeKey]: pure, each gives the settings after one
-/// change.
+/// Every file's settings this device keeps, by
+/// [FileSettingsStore.storeKey]. The functions below are the rules on
+/// them: pure, each gives the settings after one change.
 typedef KeptSettings = Map<String, KeptFileSettings>;
 
 /// The settings of [file] in [all]; the defaults if none or not loaded

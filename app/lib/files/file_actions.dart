@@ -52,8 +52,8 @@ final class FileActions {
   final bool Function(FolderId folder, RelPath subfolder) _showsFolder;
   final Future<Result<FileText, OpenFailure>> Function(ListedFile file) _read;
 
-  /// [file] to open, with its text as it is now.
-  Future<Result<FileText, OpenFailure>> open(ListedFile file) => _read(file);
+  /// Reads [file] to open it: its text as it is now.
+  Future<Result<FileText, OpenFailure>> read(ListedFile file) => _read(file);
 
   /// Those of [folders] that new files can go into: the ones that can be
   /// reached.
