@@ -161,9 +161,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
           onAction: () => _editor.send(UndoStep(id)),
         );
       case UndoRefused():
-        messenger.showHint(
-          "Can't undo, because the file has changed since.",
-        );
+        messenger.showHint("Can't undo, because the file has changed since.");
       case HistoryEnd(:final start):
         final context = _messenger.currentContext;
         messenger.showHint(

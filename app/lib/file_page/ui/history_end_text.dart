@@ -4,8 +4,7 @@ import 'package:truce_core/truce_core.dart' show HistoryStart;
 extension HistoryStartText on HistoryStart {
   String get text => switch (this) {
     HistoryStart.opened => 'This is how the file was when you opened it.',
-    HistoryStart.changedElsewhere =>
-      'Here the file changed on another device.',
+    HistoryStart.changedElsewhere => 'Here the file changed on another device.',
     HistoryStart.replacedHere =>
       'Here a version was chosen or edits were discarded.',
     HistoryStart.limit => "Older steps aren't kept.",

@@ -55,7 +55,9 @@ final class FakePlugin implements FolderPlugin {
   Result<List<PluginFolder>, AddRefused> add(
     List<PluginFolderCandidate> candidates,
   ) {
-    final ids = [for (final candidate in candidates) candidate.detail as String];
+    final ids = [
+      for (final candidate in candidates) candidate.detail as String,
+    ];
     if (ids.any(_set.contains) || ids.toSet().length < ids.length) {
       return const Err(AddRefused.overlaps);
     }

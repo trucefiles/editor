@@ -111,7 +111,7 @@ extension AppSteps on WidgetTester {
   /// Picks [subfolder] in the open place dialog: from the list of the
   /// place-and-name dialog, or of the place-only one (Settings).
   Future<void> pickSubfolder(String subfolder) async {
-    await waitFor(find.text('Subfolder'));
+    await waitFor(find.text('Inside the folder'));
     final typed = find.byType(DropdownMenu<String>);
     await tapAndSettle(
       typed.evaluate().isNotEmpty

@@ -143,7 +143,7 @@ final class FileMarks {
       );
 
   /// Applies [apply] to this device's marks of [directory] (`null`: the
-  /// base folder's top level) and writes them, without the marks of gone
+  /// folder's top level) and writes them, without the marks of gone
   /// files, if [apply] or that changed any.
   Future<Result<void, StoreError>> _change(
     RelPath? directory,
@@ -203,7 +203,7 @@ final class FileMarks {
   }
 
   /// The directory whose files the marks file at [path] holds;
-  /// `null` for the base folder's top level.
+  /// `null` for the folder's top level.
   static RelPath? _directoryOf(RelPath path) => path.parent!.parent!.parent;
 
   static RelPath? _inDirectory(RelPath? directory, String name) =>
@@ -248,7 +248,7 @@ final class _MarksFiles implements FileFilter {
 /// file name in its directory.
 typedef ReadMarksFile = ({FileVersion version, Map<String, StampedMark> marks});
 
-/// The marks files of all devices in a base folder, as read, by path;
+/// The marks files of all devices in a folder, as read, by path;
 /// see [FileMarks].
 final class MarksFiles {
   MarksFiles(this.files);

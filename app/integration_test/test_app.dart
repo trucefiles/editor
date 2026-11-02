@@ -116,9 +116,12 @@ final class TestApp {
   Iterable<File> get topFiles => files.listSync().whereType<File>();
 
   /// The names of what [name] holds, files and folders; the documents folder
-  /// itself if [name] is empty.
+  /// itself if [name] is empty. Without Syncthing's marker folder.
   List<String> namesIn([String name = '']) => [
-    for (final entry in folder(name).listSync()) entry.uri.pathSegments.last,
+    for (final entry in folder(name).listSync())
+      if (entry.path.split('/').last case final entryName
+          when entryName != '.stfolder')
+        entryName,
   ];
 
   /// The sync conflict copies in [name], or in the documents folder itself.

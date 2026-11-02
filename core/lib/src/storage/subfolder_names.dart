@@ -40,7 +40,7 @@ final class _Shown implements SubfolderNames {
       folder == null ? RelPath.parse(name) : folder.child(name);
 }
 
-/// [SubfolderNames] of a base folder on the local file system, at the
+/// [SubfolderNames] of a folder on the local file system, at the
 /// absolute [basePath]. Symbolic links are never followed, so they are no
 /// folders here.
 final class LocalSubfolderNames implements SubfolderNames {

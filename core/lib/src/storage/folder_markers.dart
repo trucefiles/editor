@@ -1,7 +1,7 @@
 import 'dart:io';
 
-/// A sync tool's only look outside a base folder's selection: whether the
-/// base folder, or a folder above it, holds an entry of a given name (a
+/// A sync tool's only look outside a folder's selection: whether the
+/// folder, or a folder above it, holds an entry of a given name (a
 /// marker such as Syncthing's `.stfolder`). Asks for that name only, never
 /// for what else a folder holds.
 abstract interface class FolderMarkers {
@@ -9,13 +9,13 @@ abstract interface class FolderMarkers {
   /// folder (not in a sandbox, for example).
   bool get seesParents;
 
-  /// Whether the folder [levelsUp] above the base folder (0: the base
+  /// Whether the folder [levelsUp] above the folder (0: the base
   /// folder itself) holds an entry named [name]; `null` if that folder
   /// can't be read, can't be seen, or lies above the file system root.
   Future<bool?> holds(String name, {int levelsUp = 0});
 }
 
-/// [FolderMarkers] of a base folder on the local file system, at the
+/// [FolderMarkers] of a folder on the local file system, at the
 /// absolute [basePath]. Symbolic links count as entries, never followed.
 final class LocalFolderMarkers implements FolderMarkers {
   const LocalFolderMarkers(this.basePath, {required this.seesParents});

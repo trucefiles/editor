@@ -15,7 +15,9 @@ Future<List<FolderBackup>> backupsShown(
   final all = <FolderBackup>[];
   for (final folder in folders) {
     if (await backupsOf(folder).list() case Ok(:final value)) {
-      all.addAll([for (final backup in value) (folder: folder, backup: backup)]);
+      all.addAll([
+        for (final backup in value) (folder: folder, backup: backup),
+      ]);
     }
   }
   return all..sort((a, b) => b.backup.savedAt.compareTo(a.backup.savedAt));

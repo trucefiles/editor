@@ -31,7 +31,10 @@ void main() {
   });
 
   test('saves and loads settings', () async {
-    final key = FileSettingsStore.storeKey((folder: folderId('b1'), path: path('a.md')));
+    final key = FileSettingsStore.storeKey((
+      folder: folderId('b1'),
+      path: path('a.md'),
+    ));
     final settings = FileSettings(
       pinned: true,
       view: ViewSettings({

@@ -81,7 +81,7 @@ void main() {
     final memory = SyncthingWriteMemory();
     store = storeWith(memory);
     final first = await write('v1', null);
-    // E.g. the user changed what the base folder's folders show.
+    // E.g. the folder was opened again.
     store = storeWith(memory);
     wait(1);
     await write('v2', first);

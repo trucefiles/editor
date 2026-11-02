@@ -28,9 +28,7 @@ class SearchScreen extends ConsumerWidget {
             ? null
             : const PreferredSize(
                 preferredSize: Size.fromHeight(4),
-                child: LinearProgressIndicator(
-                  semanticsLabel: 'Reading files',
-                ),
+                child: LinearProgressIndicator(semanticsLabel: 'Reading files'),
               ),
       ),
       body: switch ((query.trim().isEmpty, found.isEmpty)) {

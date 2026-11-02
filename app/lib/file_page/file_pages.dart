@@ -56,7 +56,7 @@ final class FilePages {
   /// [create], [move] and [delete] create, move and delete a file's
   /// file;
   /// [settingsOf] gives a file's settings, [editSettings] changes
-  /// them. [reachOf] tells a base folder's reach now, [reachSettled] once
+  /// them. [reachOf] tells a folder's reach now, [reachSettled] once
   /// a running check of it is over. [refreshFolders] lists the folders
   /// again.
   FilePages({

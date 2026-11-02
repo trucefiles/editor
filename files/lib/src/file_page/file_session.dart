@@ -216,10 +216,7 @@ final class FileSession {
     (ToFile(input: final Edited edited), Running()) => _file.send(
       _toFile(edited),
     ),
-    (
-      ToFile(input: Edited(:final text)),
-      Stopped(cause: StopCause.bug),
-    ) =>
+    (ToFile(input: Edited(:final text)), Stopped(cause: StopCause.bug)) =>
       _keepLastDraft(text),
     (
       ToFile(input: Edited(:final text)),

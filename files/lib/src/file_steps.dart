@@ -57,8 +57,7 @@ base class FileSteps {
 
   FileMarks _marksOf(Folder folder) => _work.servicesOf(folder.id).marks;
 
-  FileBackups _backupsOf(Folder folder) =>
-      _work.servicesOf(folder.id).backups;
+  FileBackups _backupsOf(Folder folder) => _work.servicesOf(folder.id).backups;
 
   /// [from]'s backups become [to]'s: the file moved there. Best
   /// effort, as its color: a backup left behind still shows in Backups.

@@ -124,7 +124,9 @@ void main() {
     await tester.placeNote(name: 'Notes');
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.runFor(const Duration(seconds: 1));
+    // Past the rewrite Syncthing's rules make of a write just after
+    // another, which goes through a temp file.
+    await tester.runFor(const Duration(seconds: 3));
 
     expect(app.namesIn(), ['Notes.md']);
     expect(app.file('Notes.md').readAsStringSync(), '# Plan\nv2\n');

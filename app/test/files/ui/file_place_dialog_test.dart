@@ -92,7 +92,7 @@ void main() {
       work: [path('x')],
     });
 
-    expect(find.text('Subfolder'), findsNothing);
+    expect(find.text('Inside the folder'), findsNothing);
   });
 
   testWidgets('cancel picks nothing', (tester) async {

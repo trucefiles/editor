@@ -81,7 +81,8 @@ final class FolderContents {
     for (final folder in folders)
       if (state.folders[folder.id] case Listed(:final conflicts))
         for (final conflict in conflicts.values)
-          if (types.handles(conflict.mainPath)) FolderConflict(folder, conflict),
+          if (types.handles(conflict.mainPath))
+            FolderConflict(folder, conflict),
   ]);
 
   /// The subfolders of [folder], empty ones too, sorted by path.
@@ -103,9 +104,8 @@ final class FolderContents {
   /// folders that have some.
   late final Map<FolderId, List<RelPath>> unreadable = {
     for (final folder in folders)
-      if (_listedOf(folder.id) case Listed(
-        :final unreadable,
-      ) when unreadable.isNotEmpty)
+      if (_listedOf(folder.id) case Listed(:final unreadable)
+          when unreadable.isNotEmpty)
         folder.id: unreadable,
   };
 
