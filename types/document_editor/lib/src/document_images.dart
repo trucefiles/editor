@@ -34,12 +34,7 @@ final class FolderImages implements DocumentImages {
     final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
     if (scheme == 'http' || scheme == 'https') return NetworkImage(url);
     return switch (document.linked(url)) {
-      final path? => FolderImage(
-        folder,
-        path,
-        bytesOf,
-        openedAt: openedAt,
-      ),
+      final path? => FolderImage(folder, path, bytesOf, openedAt: openedAt),
       null => null,
     };
   }
