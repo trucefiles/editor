@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:truce_core/truce_core.dart';
 
 import 'syncthing_folder.dart';
@@ -12,7 +10,7 @@ import 'syncthing_state.dart';
 /// areas on [_disk]; one root goes with its last folder.
 final class SyncthingPlugin implements FolderPlugin {
   SyncthingPlugin(this._disk, {String Function()? newId})
-    : _newId = newId ?? _randomId;
+    : _newId = newId ?? newPluginFolderId;
 
   final LocalDisk _disk;
   final String Function() _newId;
@@ -85,12 +83,7 @@ final class SyncthingPlugin implements FolderPlugin {
 
   /// Whether a root at [rootHost] would lie at, inside or around another
   /// plugin's area, or inside or around another root.
-  bool rootClashes(Uri rootHost) =>
-      _disk.areas.clashes(id, rootHost) ||
-      _state.roots.values.any(
-        (root) =>
-            !isSameFolder(root.host, rootHost) && nests(root.host, rootHost),
-      );
+  bool rootClashes(Uri rootHost) => _clashesIn(_state, rootHost);
 
   /// The folder [path] in the root at [root] (on the host: [rootHost]),
   /// to set up.
@@ -175,11 +168,15 @@ final class SyncthingPlugin implements FolderPlugin {
     _disk.areas.claim(id, [for (final root in state.roots.values) root.host]);
   }
 
-  /// Whether a new root at [rootHost] clashes with [state]'s roots or
-  /// another plugin's areas.
+  /// The one clash rule for a root at [rootHost]: it lies at, inside or
+  /// around another plugin's area, or inside or around another of
+  /// [state]'s roots (the same root is no clash).
   bool _clashesIn(SyncthingState state, Uri rootHost) =>
       _disk.areas.clashes(id, rootHost) ||
-      state.roots.values.any((root) => nests(root.host, rootHost));
+      state.roots.values.any(
+        (root) =>
+            !isSameFolder(root.host, rootHost) && nests(root.host, rootHost),
+      );
 
   PluginFolder _pluginFolder(SyncthingDirectory folder) {
     final root = _state.roots[folder.root]!;
@@ -191,20 +188,12 @@ final class SyncthingPlugin implements FolderPlugin {
 
   /// Where a folder is: its directory's host path, and its root.
   static String _location(String rootName, Uri rootHost, RelPath? path) {
-    final directory = addressInside(rootHost, path);
-    final shown = directory.isScheme('file')
-        ? directory.toFilePath()
-        : '$directory';
+    final shown = shownAddress(addressInside(rootHost, path));
     return '$shown (Syncthing folder $rootName)';
   }
 
   static bool _nestedPaths(RelPath? a, RelPath? b) =>
       a == null || b == null || a == b || a.isInside(b) || b.isInside(a);
-
-  static final _random = Random.secure();
-
-  static String _randomId() =>
-      List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();
 }
 
 /// What a candidate holds for the plugin: the root and the path in it.

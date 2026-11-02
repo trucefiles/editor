@@ -5,7 +5,6 @@ import 'package:truce_core/truce_core.dart';
 final class FolderServices {
   const FolderServices({
     required this.open,
-    required this.pluginName,
     required this.conflicts,
     required this.backups,
     required this.restore,
@@ -29,9 +28,6 @@ final class FolderServices {
   /// live.
   FolderChanges? get changes => open.changes;
 
-  /// The plugin's name, for the UI.
-  final String pluginName;
-
   final ConflictService conflicts;
 
   /// Copies of the folder's files in app storage.
@@ -53,7 +49,6 @@ final class FolderServices {
 /// whether it is back.
 FolderServices folderServices(
   RawFolder raw, {
-  required String pluginName,
   required FolderReach reach,
   required bool Function(RelPath file) handles,
   required String backupsPath,
@@ -72,7 +67,6 @@ FolderServices folderServices(
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(
     open: open,
-    pluginName: pluginName,
     conflicts: DefaultConflictService(
       folder: open.store,
       source: open.conflicts,

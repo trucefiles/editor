@@ -23,7 +23,6 @@ void main() {
         overrides: [
           appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
-          folderServicesProvider.overrideWith((ref, _) => servicesFor(folder)),
           folderNoticesProvider.overrideWith((ref, _) async => notices),
         ],
         child: MaterialApp(

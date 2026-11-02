@@ -27,7 +27,6 @@ void main() {
       plugins: FolderPlugins([plugin]),
       build: (folder, raw, reach) => folderServices(
         raw,
-        pluginName: 'Fake',
         reach: reach,
         handles: (_) => true,
         backupsPath: '${tempFolder().path}/backups',

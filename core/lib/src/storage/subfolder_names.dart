@@ -41,18 +41,18 @@ final class _Shown implements SubfolderNames {
 }
 
 /// [SubfolderNames] of a folder on the local file system, at the
-/// absolute [basePath]. Symbolic links are never followed, so they are no
+/// absolute [folderPath]. Symbolic links are never followed, so they are no
 /// folders here.
 final class LocalSubfolderNames implements SubfolderNames {
-  const LocalSubfolderNames(this.basePath);
+  const LocalSubfolderNames(this.folderPath);
 
-  final String basePath;
+  final String folderPath;
 
   @override
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async {
     final path = folder == null
-        ? basePath
-        : '$basePath${Platform.pathSeparator}${folder.value}';
+        ? folderPath
+        : '$folderPath${Platform.pathSeparator}${folder.value}';
     try {
       final names = [
         await for (final entry in Directory(path).list(followLinks: false))

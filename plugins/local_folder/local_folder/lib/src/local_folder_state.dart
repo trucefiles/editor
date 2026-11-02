@@ -1,3 +1,5 @@
+import 'package:truce_core/truce_core.dart';
+
 /// One local folder: where the app sees its directory, and where it lies
 /// on the host, to compare it with other areas.
 final class LocalFolderEntry {
@@ -24,8 +26,9 @@ final class LocalFolderEntry {
       'id': final String id,
       'address': final String address,
       'host': final String host,
-    } =>
-      switch ((_fileUri(address), _fileUri(host))) {
+    }
+        when FolderId.isPart(id) =>
+      switch ((savedFileAddress(address), savedFileAddress(host))) {
         (final address?, final host?) => LocalFolderEntry(
           id: id,
           address: address,
@@ -70,8 +73,3 @@ final class LocalFolderState {
     return null;
   }
 }
-
-Uri? _fileUri(String raw) => switch (Uri.tryParse(raw)) {
-  final uri? when uri.isScheme('file') => uri,
-  _ => null,
-};

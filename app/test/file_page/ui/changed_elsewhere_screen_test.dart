@@ -96,7 +96,7 @@ void main() {
     await pumpCompare(tester);
 
     expect(find.text('Current version'), findsOneWidget);
-    expect(find.text('Your edits'), findsOneWidget);
+    expect(find.text('Edits on this device'), findsOneWidget);
     // Each version's pane shows only its own lines.
     expect(find.textContaining('mine'), findsOneWidget);
     expect(find.textContaining('theirs'), findsOneWidget);
@@ -114,7 +114,7 @@ void main() {
           ),
         )
         .ownLines;
-    expect(ownLinesOf('Your edits'), OwnLines.added);
+    expect(ownLinesOf('Edits on this device'), OwnLines.added);
     expect(ownLinesOf('Current version'), OwnLines.removed);
   });
 
@@ -129,7 +129,7 @@ void main() {
     await settle(tester, until: () => session.text == 'theirs\n');
 
     expect(session.text, 'theirs\n');
-    expect(find.text('Your edits'), findsNothing);
+    expect(find.text('Edits on this device'), findsNothing);
     expect(find.text('Compare'), findsNothing);
   });
 
@@ -143,7 +143,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(session.status, isA<ChangedElsewhere>());
-    expect(find.text('Your edits'), findsOneWidget);
+    expect(find.text('Edits on this device'), findsOneWidget);
   });
 
   testWidgets('settled under the dialog: closes itself, not the dialog', (
@@ -155,7 +155,7 @@ void main() {
 
     // The file now holds the edits: nothing left to choose.
     await changedAgain(tester, 'mine one\n');
-    expect(find.text('Your edits'), findsNothing);
+    expect(find.text('Edits on this device'), findsNothing);
     expect(find.text('Keep this version?'), findsOneWidget);
 
     await tester.tap(find.text('Keep'));
@@ -225,7 +225,7 @@ void main() {
 
     expect(session.text, 'theirs\nmine one\n');
     expect(fixture.onDisk('a.md'), 'theirs\nmine one\n');
-    expect(find.text('Your edits'), findsNothing);
+    expect(find.text('Edits on this device'), findsNothing);
     expect(told.whereType<PickMerged>().single.lost, ['Swim']);
   });
 }

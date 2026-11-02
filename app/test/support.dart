@@ -144,7 +144,6 @@ FolderServices servicesFor(
   final raw = syncthingFolderAt(_directories[folder.id]!);
   return folderServices(
     raw,
-    pluginName: 'Syncthing',
     reach: folderReach(raw.files),
     handles: appFileTypes().handles,
     checkEvery: () => const Duration(seconds: 1),

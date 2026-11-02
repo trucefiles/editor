@@ -45,4 +45,15 @@ void main() {
 
     expect((await store.load()).error, SettingsError.corrupt);
   });
+
+  test('a folder id unsafe as a file name makes the list corrupt', () async {
+    file
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        '{"folders": [{"plugin": "local", "id": "../x", "name": "N", '
+        '"color": "teal"}], "plugins": {}}',
+      );
+
+    expect((await store.load()).error, SettingsError.corrupt);
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../plugins/plugins_wiring.dart';
 import '../open_folders_wiring.dart';
 import 'folder_notice_text.dart';
 
@@ -17,7 +18,7 @@ class FolderNoticesView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notices = ref.watch(folderNoticesProvider(folder.id)).value;
     if (notices == null || notices.isEmpty) return const SizedBox.shrink();
-    final tool = ref.watch(folderServicesProvider(folder.id)).pluginName;
+    final tool = ref.watch(folderPluginsProvider).of(folder.id.plugin).name;
     final error = Theme.of(context).colorScheme.error;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

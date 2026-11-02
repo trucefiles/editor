@@ -32,9 +32,10 @@ final class CopiedOnly extends MoveError {
 /// Never overwrites a file at [to] ([StoreError.alreadyExists]). If [from]
 /// is no longer at version [ifUnchanged], the delete refuses and the copy
 /// is removed again (only if still as created): nothing moved, nothing
-/// doubled. If the delete fails otherwise, both stay. The delete alone
-/// decides whether [from] changed, so a store whose versions hide its own
-/// rewrites keeps moving files it rewrote.
+/// doubled; if the copy can't be removed, both stay ([CopiedOnly]). If the
+/// delete fails otherwise, both stay too. The delete alone decides whether
+/// [from] changed, so a store whose versions hide its own rewrites keeps
+/// moving files it rewrote.
 Future<Result<FileEntry, MoveError>> moveByCopy(
   FileStore source,
   RelPath from, {
@@ -59,25 +60,26 @@ Future<Result<FileEntry, MoveError>> moveByCopy(
   return switch (await source.delete(from, ifUnchanged: ifUnchanged)) {
     Ok() => Ok(copy),
     Err(error: StoreError.changedSinceRead) => Err(
-      NotMoved(await _removed(target, copy, of: from)),
+      await _withoutCopy(target, copy, of: from),
     ),
     Err(:final error) => Err(CopiedOnly(copy, error)),
   };
 }
 
-/// Removes [copy] of [of] again, which changed meanwhile; the copy stays
-/// if that fails, so nothing is lost. Tells why nothing moved.
-Future<StoreError> _removed(
+/// Removes [copy] of [of] again, as [of] changed meanwhile: nothing moved;
+/// if removing fails, both stay.
+Future<MoveError> _withoutCopy(
   FileStore target,
   FileEntry copy, {
   required RelPath of,
 }) async {
-  if (await target.delete(copy.path, ifUnchanged: copy.version) case Err(
-    error: final left,
-  )) {
-    _log.warning(
-      'Kept the copy ${copy.path} of $of: removing it failed ($left)',
-    );
+  switch (await target.delete(copy.path, ifUnchanged: copy.version)) {
+    case Ok():
+      return const NotMoved(StoreError.changedSinceRead);
+    case Err(error: final left):
+      _log.warning(
+        'Kept the copy ${copy.path} of $of: removing it failed ($left)',
+      );
+      return CopiedOnly(copy, StoreError.changedSinceRead);
   }
-  return StoreError.changedSinceRead;
 }

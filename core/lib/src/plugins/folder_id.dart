@@ -2,7 +2,20 @@
 /// that plugin's own id for it. Opaque: only the plugin reads its part.
 /// Stable on this device; keys the folder's files and app storage.
 final class FolderId implements Comparable<FolderId> {
+  /// For ids known to be valid, e.g. made in code; anything read from
+  /// outside goes through [parse].
   const FolderId(this.plugin, this.folder);
+
+  /// The id of [plugin] and [folder] as read, e.g. from a saved list;
+  /// `null` unless both are valid parts ([isPart]).
+  static FolderId? parse(String plugin, String folder) =>
+      isPart(plugin) && isPart(folder) ? FolderId(plugin, folder) : null;
+
+  /// Whether [part] can be a plugin's or folder's id: lowercase letters
+  /// and digits only, so [storageName] is safe as a file name.
+  static bool isPart(String part) => _part.hasMatch(part);
+
+  static final _part = RegExp(r'^[a-z0-9]+$');
 
   /// The id of the plugin that set the folder up.
   final String plugin;
@@ -11,7 +24,7 @@ final class FolderId implements Comparable<FolderId> {
   final String folder;
 
   /// One file-safe name for the folder's app storage (drafts, backups).
-  /// Plugin and folder ids are letters and digits, so it never clashes.
+  /// Its parts are letters and digits ([isPart]), so it never clashes.
   String get storageName => '$plugin-$folder';
 
   @override

@@ -55,7 +55,6 @@ void main() {
     raw = plugin.folder(folder.id.folder);
     services = folderServices(
       raw,
-      pluginName: plugin.name,
       reach: folderReach(raw.files),
       handles: _types.handles,
       checkEvery: () => const Duration(seconds: 1),

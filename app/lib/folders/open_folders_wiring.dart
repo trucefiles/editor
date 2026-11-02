@@ -31,7 +31,6 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
     plugins: plugins,
     build: (folder, raw, reach) => folderServices(
       raw,
-      pluginName: plugins.of(folder.id.plugin).name,
       reach: reach,
       handles: types.handles,
       backupsPath: storage.backupsPath(folder.id),

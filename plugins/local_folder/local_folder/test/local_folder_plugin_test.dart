@@ -77,6 +77,22 @@ void main() {
       expect(plugin.load({'folders': 3}), isFalse);
     });
 
+    test('a blob with a folder id unsafe as a file name is unreadable', () {
+      expect(
+        plugin.load({
+          'folders': [
+            {
+              'id': '../x',
+              'address': 'file:///home/me/Notes',
+              'host': 'file:///home/me/Notes',
+            },
+          ],
+        }),
+        isFalse,
+      );
+      expect(plugin.folders, isEmpty);
+    });
+
     test('writes atomically with its own temp files', () async {
       final [notes] = plugin.add([
         (await plugin.candidateFor(at('Notes'))).value,

@@ -123,6 +123,20 @@ void main() {
       expect(disk.areas.clashes('local', at('Sync')), isFalse);
     });
 
+    test('a blob with a folder id unsafe as a file name is unreadable', () {
+      expect(
+        plugin.load({
+          'roots': [
+            {'id': 'r1', 'address': 'file:///s', 'host': 'file:///s'},
+          ],
+          'folders': [
+            {'id': 'A/B', 'root': 'r1'},
+          ],
+        }),
+        isFalse,
+      );
+    });
+
     test('opens a folder at its directory, with its temp files', () async {
       final [docs] = plugin.add([await pick('Sync/docs')]).value;
 

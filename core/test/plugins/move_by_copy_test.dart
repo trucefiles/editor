@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -60,6 +62,25 @@ void main() {
     expect(target.textOf('sub/b.md'), isNull);
   });
 
+  test('a changed file whose copy can not be removed again says both '
+      'stay', () async {
+    source.put('a.md', 'changed');
+
+    final moved = await moveByCopy(
+      source,
+      path('a.md'),
+      ifUnchanged: version,
+      target: _FailingDelete(target),
+      to: path('b.md'),
+    );
+
+    final error = moved.error as CopiedOnly;
+    expect(error.error, StoreError.changedSinceRead);
+    expect(error.copy.path, path('b.md'));
+    expect(source.textOf('a.md'), 'changed');
+    expect(target.textOf('b.md'), 'changed');
+  });
+
   test('an original that can not be removed stays beside its copy', () async {
     final failing = _FailingDelete(source);
 
@@ -94,6 +115,10 @@ final class _FailingDelete implements FileStore {
   @override
   Future<Result<FileContent, StoreError>> read(RelPath path) =>
       inner.read(path);
+
+  @override
+  Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
+      inner.create(path, bytes);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -4,14 +4,14 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
+import '../../plugins/plugins_wiring.dart';
 import '../folder_actions.dart';
-import '../open_folders_wiring.dart';
 import 'folder_color_picker.dart';
 import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
 
-/// A folder's settings: its name and color; where it is, and what its
-/// plugin tells about it.
+/// A folder's settings: its name and color; where it is, its kind (the
+/// plugin), and what its plugin tells about it.
 class FolderSettingsScreen extends ConsumerStatefulWidget {
   const FolderSettingsScreen(this.folder, {super.key});
 
@@ -53,7 +53,7 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final folder = widget.folder;
-    final plugin = ref.watch(folderServicesProvider(folder.id)).pluginName;
+    final plugin = ref.watch(folderPluginsProvider).of(folder.id.plugin);
     final small = Theme.of(context).textTheme.bodySmall;
     return Scaffold(
       appBar: AppBar(
@@ -69,7 +69,7 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(folder.location, style: small),
-          Text('Synced by: $plugin', style: small),
+          Text('${plugin.name}: ${plugin.helpLine}', style: small),
           FolderNoticesView(folder),
           const SizedBox(height: 12),
           TextField(

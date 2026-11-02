@@ -135,16 +135,16 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       _messenger.currentState?.showHint(switch (stopped) {
         Stopped(cause: StopCause.folderGone) =>
           "This file's folder was removed from the app, so the file is read "
-              'only now, and its latest edits are kept nowhere. Copy them '
-              'elsewhere before leaving.',
+              'only now. Its latest edits are kept only here, until it '
+              'closes.',
         Stopped(kept: true) =>
           'Something went wrong, so this file is read only now. Its edits '
               'are kept on this device and go into the file at the next '
               'start.',
         Stopped() =>
           'Something went wrong, so this file is read only now, and its '
-              "latest edits couldn't be kept. Copy them elsewhere before "
-              'leaving.',
+              "latest edits couldn't be kept. They stay only here, until it "
+              'closes.',
       });
 
   void _onEditorNotice(EditorNotice notice) {
@@ -207,10 +207,10 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Your edits can't be saved"),
+        title: const Text("The edits can't be saved"),
         content: const Text(
           'Neither the file nor a conflict copy could be written. '
-          'Stay to copy your text elsewhere, or discard it.',
+          'Staying keeps the text here, to copy elsewhere.',
         ),
         actions: [
           TextButton(
@@ -459,7 +459,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
-            message: 'Your text is kept on this device.',
+            message: 'The text is kept on this device.',
           ),
           // Its ways out need the folder.
           if (!unreachable) EditStateBanner(_controller, onClose: _leave),

@@ -75,7 +75,7 @@ void main() {
     await tester.pageBack();
 
     await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
-    expect(find.text("Your edits can't be saved"), findsNothing);
+    expect(find.text("The edits can't be saved"), findsNothing);
   });
 
   testApp('a document moved to another folder goes by that folder\'s reach', (
@@ -95,7 +95,7 @@ void main() {
     expect(find.byType(SuperEditor), findsNothing);
     await tester.pageBack();
     await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
-    expect(find.text("Your edits can't be saved"), findsNothing);
+    expect(find.text("The edits can't be saved"), findsNothing);
   });
 
   testApp('back keeps edits that clash as a conflict copy', (tester) async {
@@ -121,7 +121,9 @@ void main() {
     await tester.keep(find.text('Keep this').last);
 
     await tester.waitForFile(app.file('plan.md'), '# Plan\nmine\n');
-    await tester.waitUntil(() => find.text('Your edits').evaluate().isEmpty);
+    await tester.waitUntil(
+      () => find.text('Edits on this device').evaluate().isEmpty,
+    );
   });
 
   testApp('hiding the app keeps clashing edits here to compare, menus stay '

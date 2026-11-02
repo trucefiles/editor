@@ -194,7 +194,7 @@ class _CycleLine extends StatelessWidget {
     leading: const Icon(Icons.water_drop_outlined),
     title: Text(cycleText(cycle, today)),
     subtitle: const Text(
-      'An estimate from your entries, not for contraception.',
+      'An estimate from the entries, not for contraception.',
     ),
   );
 }

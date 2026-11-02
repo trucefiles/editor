@@ -32,7 +32,7 @@ final class SyncthingRoot {
       'address': final String address,
       'host': final String host,
     } =>
-      switch ((_fileUri(address), _fileUri(host))) {
+      switch ((savedFileAddress(address), savedFileAddress(host))) {
         (final address?, final host?) => SyncthingRoot(
           id: id,
           address: address,
@@ -67,14 +67,16 @@ final class SyncthingDirectory {
   };
 
   static SyncthingDirectory? fromJson(Object? json) => switch (json) {
-    {'id': final String id, 'root': final String root} => switch (json) {
-      {'path': final String raw} => switch (RelPath.parse(raw)) {
-        final path? => SyncthingDirectory(id: id, root: root, path: path),
-        null => null,
+    {'id': final String id, 'root': final String root}
+        when FolderId.isPart(id) =>
+      switch (json) {
+        {'path': final String raw} => switch (RelPath.parse(raw)) {
+          final path? => SyncthingDirectory(id: id, root: root, path: path),
+          null => null,
+        },
+        {'path': _} => null,
+        _ => SyncthingDirectory(id: id, root: root, path: null),
       },
-      {'path': _} => null,
-      _ => SyncthingDirectory(id: id, root: root, path: null),
-    },
     _ => null,
   };
 }
@@ -138,12 +140,6 @@ final class SyncthingState {
   }
 }
 
-/// The last non-empty path segment of [address].
-String lastSegment(Uri address) => address.pathSegments.lastWhere(
-  (segment) => segment.isNotEmpty,
-  orElse: () => '$address',
-);
-
 /// The folder [path] inside the folder at [address].
 Uri addressInside(Uri address, RelPath? path) => path == null
     ? address
@@ -154,8 +150,3 @@ Uri addressInside(Uri address, RelPath? path) => path == null
           ...path.value.split('/'),
         ],
       );
-
-Uri? _fileUri(String raw) => switch (Uri.tryParse(raw)) {
-  final uri? when uri.isScheme('file') => uri,
-  _ => null,
-};

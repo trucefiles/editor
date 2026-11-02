@@ -20,7 +20,6 @@ void main() {
       ProviderScope(
         overrides: [
           foldersProvider.overrideWith(() => folders),
-          folderServicesProvider.overrideWith((ref, _) => servicesFor(folder)),
           folderNoticesProvider.overrideWith(
             (ref, _) async => const <FolderNotice>[],
           ),
@@ -47,11 +46,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows where the folder is and what syncs it', (tester) async {
+  testWidgets('shows where the folder is and its kind', (tester) async {
     await open(tester);
 
     expect(find.text(folder.location), findsOne);
-    expect(find.text('Synced by: Syncthing'), findsOne);
+    expect(find.text('Syncthing: Folders synced with Syncthing'), findsOne);
   });
 
   testWidgets('saves the name', (tester) async {

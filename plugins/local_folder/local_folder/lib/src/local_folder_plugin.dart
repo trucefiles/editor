@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:truce_core/truce_core.dart';
 
 import 'local_directory.dart';
@@ -20,7 +18,7 @@ enum LocalPickRefused {
 /// shows those copies as conflicts. Its folders are its areas on [_disk].
 final class LocalFolderPlugin implements FolderPlugin {
   LocalFolderPlugin(this._disk, {String Function()? newId})
-    : _newId = newId ?? _randomId;
+    : _newId = newId ?? newPluginFolderId;
 
   final LocalDisk _disk;
   final String Function() _newId;
@@ -63,8 +61,8 @@ final class LocalFolderPlugin implements FolderPlugin {
     if (_clashesIn(_state, host)) return const Err(LocalPickRefused.overlaps);
     return Ok(
       PluginFolderCandidate(
-        defaultName: _lastSegment(picked),
-        location: _shown(host),
+        defaultName: lastSegment(picked),
+        location: shownAddress(host),
         detail: {'address': '$picked', 'host': '$host'},
       ),
     );
@@ -123,21 +121,8 @@ final class LocalFolderPlugin implements FolderPlugin {
   };
 
   static PluginFolder _pluginFolder(LocalFolderEntry folder) =>
-      PluginFolder(id: folder.id, location: _shown(folder.host));
-
-  static String _shown(Uri address) =>
-      address.isScheme('file') ? address.toFilePath() : '$address';
+      PluginFolder(id: folder.id, location: shownAddress(folder.host));
 
   static bool _inHidden(Uri address) =>
       address.pathSegments.any((segment) => segment.startsWith('.'));
-
-  static String _lastSegment(Uri address) => address.pathSegments.lastWhere(
-    (segment) => segment.isNotEmpty,
-    orElse: () => '$address',
-  );
-
-  static final _random = Random.secure();
-
-  static String _randomId() =>
-      List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();
 }

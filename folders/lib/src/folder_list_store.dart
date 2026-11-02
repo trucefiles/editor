@@ -79,7 +79,10 @@ interface class FolderListStore {
       'name': final String name,
       'color': final String color,
     } =>
-      (id: FolderId(plugin, id), name: name, color: color),
+      switch (FolderId.parse(plugin, id)) {
+        final id? => (id: id, name: name, color: color),
+        null => null,
+      },
     _ => null,
   };
 }

@@ -83,10 +83,10 @@ void main() {
     await tester.typeOver('# Plan\nmine\n');
     app.file('plan.md').deleteSync();
     await tester.tapAndSettle(find.byTooltip('Refresh'));
-    await tester.waitFor(find.text('Restore with my text'));
+    await tester.waitFor(find.text('Restore with this text'));
 
     app.write('plan.md', '# Plan\ntheirs\n');
-    await tester.tapAndSettle(find.text('Restore with my text'));
+    await tester.tapAndSettle(find.text('Restore with this text'));
     await tester.runFor(const Duration(seconds: 2));
     await tester.pageBack();
     await tester.waitForNoteClosed();
