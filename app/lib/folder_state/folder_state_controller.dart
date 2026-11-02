@@ -23,6 +23,7 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
   @override
   Future<FolderContents> build() async {
     final owner = ref.watch(folderStateOwnerProvider);
+    ref.watch(folderListingProvider);
     final folders = await ref.watch(foldersProvider.future);
     final types = ref.watch(documentTypesProvider);
     FolderContents contentsOf(FolderState state) =>

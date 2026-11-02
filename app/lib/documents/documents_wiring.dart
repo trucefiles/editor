@@ -5,7 +5,7 @@ import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../file_types/document_types.dart';
-import '../folder_state/folder_state_controller.dart';
+import '../folder_state/folder_state_wiring.dart';
 import '../folders/folders_controller.dart';
 import '../storage/app_storage.dart';
 import '../sync_tool/base_folder_wiring.dart';
@@ -30,15 +30,12 @@ final openDocumentsProvider = Provider<OpenDocuments>((_) => OpenDocuments());
 /// What the document steps work with.
 final documentsWorkProvider = Provider<DocumentsWork>((ref) {
   final folderList = ref.watch(folderListOwnerProvider);
+  final folderState = ref.watch(folderStateOwnerProvider);
   return DocumentsWork(
     files: ref.watch(folderFilesProvider),
     servicesOf: ref.watch(baseFolderStacksProvider).servicesOf,
     settings: ref.watch(documentSettingsProvider.notifier),
-    // None known once the app ends.
-    conflictWaits: (key) =>
-        ref.mounted &&
-        ref.read(folderContentsProvider).value?.conflicts.forDocument(key) !=
-            null,
+    conflictWaits: (key) => conflictWaitsIn(folderState.state, key),
     folders: () => settledFolders(folderList),
     drafts: ref.watch(draftsProvider),
     types: ref.watch(documentTypesProvider),
