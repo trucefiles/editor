@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_documents/truce_documents.dart' show DocumentCardSummary;
 import 'package:truce_editor/common/card_frame.dart';
 import 'package:truce_editor/conflicts/ui/conflict_label.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
+import 'package:truce_files/truce_files.dart' show FileCardSummary;
 
 void main() {
   testWidgets('the footer fits its tallest label at large app text', (
@@ -70,9 +70,9 @@ void main() {
     }
 
     final short = await height(2);
-    final long = await height(DocumentCardSummary.previewLines);
+    final long = await height(FileCardSummary.previewLines);
 
     expect(long, greaterThan(short));
-    expect(await height(DocumentCardSummary.previewLines + 5), long);
+    expect(await height(FileCardSummary.previewLines + 5), long);
   });
 }

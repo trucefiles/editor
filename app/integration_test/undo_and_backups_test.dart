@@ -9,7 +9,7 @@ import 'editor_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of undo and redo and of a document's own backups, in
+/// End-to-end tests of undo and redo and of a file's own backups, in
 /// the real app on the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/undo_and_backups_test.dart
@@ -26,14 +26,14 @@ void main() {
   Future<void> planWithBackup(WidgetTester tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
     await tester.waitForNoteClosed();
-    // The grid shows the edit, so the document opens as written.
+    // The grid shows the edit, so the file opens as written.
     await tester.waitFor(find.textContaining('broken', findRichText: true));
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
   }
 
   testApp('Ctrl+Z, Ctrl+Y and the buttons undo and redo typing', (

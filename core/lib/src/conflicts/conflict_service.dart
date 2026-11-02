@@ -13,7 +13,7 @@ import 'conflict.dart';
 /// Only orchestrates; never knows how a sync tool records conflicts. Built
 /// from the folder's `FileStore`, the sync tool's `ConflictSource` and
 /// backups in app storage. The user picks a side, or keeps both merged
-/// ([KeepMerged]) where the document's type merges ([TextMerge]).
+/// ([KeepMerged]) where the file's type merges ([TextMerge]).
 abstract interface class ConflictService {
   /// Content of [conflict]'s main file, to show it to the user. Fails with
   /// [StoreError.changedSinceRead] if it changed since the scan, and with

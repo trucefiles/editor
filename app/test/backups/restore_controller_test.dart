@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/backups/restore_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../support.dart';
 
@@ -34,7 +34,7 @@ void main() {
     backups = container.read(baseFolderServicesProvider(folder.base)).backups;
   });
 
-  File document() => File('${dir.path}/todo.md');
+  File diskFile() => File('${dir.path}/todo.md');
 
   late ProviderSubscription<RestoreState> watching;
   late NotifierProvider<RestoreController, RestoreState> provider;
@@ -64,7 +64,7 @@ void main() {
     final other => throw StateError('nothing shows: $other'),
   };
 
-  /// Backs up [text] as the document before editing, then opens that backup
+  /// Backs up [text] as the file before editing, then opens that backup
   /// from the list of all backups and waits until it is loaded.
   Future<RestoreController> open(String text) async {
     await backups.saveBeforeEdit(
@@ -89,18 +89,18 @@ void main() {
   });
 
   test('restores and rescans when the screen closes meanwhile', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
 
     final kept = controller.keep(const KeepOther());
     watching.close();
 
     expect(await kept, isNull, reason: 'the screen closed first');
-    expect(document().readAsStringSync(), '# Todo\nbackup\n');
+    expect(diskFile().readAsStringSync(), '# Todo\nbackup\n');
   });
 
   test('loads again at the next scan after loading failed', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
     await backups.saveBeforeEdit(
       at: DateTime.now(),
       filePath: path('todo.md'),
@@ -131,7 +131,7 @@ void main() {
   });
 
   test('loads the backup next to the document', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
 
     await open('# Todo\nbackup\n');
 
@@ -140,18 +140,18 @@ void main() {
   });
 
   test('restores the backup', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
 
     final kept = await controller.keep(const KeepOther());
 
     expect(kept!.error, isNull);
     expect(kept.done, isTrue);
-    expect(document().readAsStringSync(), '# Todo\nbackup\n');
+    expect(diskFile().readAsStringSync(), '# Todo\nbackup\n');
   });
 
   test('lists the backup of the file it replaced', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
 
     await controller.keep(const KeepOther());
@@ -160,15 +160,15 @@ void main() {
   });
 
   test('loads the document again if it changed meanwhile', () async {
-    document().writeAsStringSync('# Todo\nnow\n');
+    diskFile().writeAsStringSync('# Todo\nnow\n');
     final controller = await open('# Todo\nbackup\n');
-    document().writeAsStringSync('# Todo\nchanged elsewhere\n');
+    diskFile().writeAsStringSync('# Todo\nchanged elsewhere\n');
 
     final kept = await controller.keep(const KeepOther());
 
     expect(kept!.error, ResolveError.changedSinceScan);
     expect(kept.done, isFalse);
-    expect(document().readAsStringSync(), '# Todo\nchanged elsewhere\n');
+    expect(diskFile().readAsStringSync(), '# Todo\nchanged elsewhere\n');
     await loaded();
     expect(
       String.fromCharCodes(choice().current!.bytes),

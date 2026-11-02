@@ -34,15 +34,14 @@ void main() {
   });
 
   /// Opens search and waits until it read every text.
-  Future<DocumentSearchController> open() async {
+  Future<FileSearchController> open() async {
     final shown = container.listen(searchProvider, (_, _) {});
     await eventually(() => shown.read().complete);
     return container.read(searchProvider.notifier);
   }
 
   List<String> found() => [
-    for (final document in container.read(searchProvider).found)
-      document.path.value,
+    for (final file in container.read(searchProvider).found) file.path.value,
   ];
 
   test('finds by title first, then by text', () async {
@@ -68,7 +67,7 @@ void main() {
     expect(found(), ['ideas.txt']);
   });
 
-  test('does not find every document by its extension', () async {
+  test('does not find every file by its extension', () async {
     final search = await open();
 
     search.find('md');
@@ -76,7 +75,7 @@ void main() {
     expect(found(), isEmpty);
   });
 
-  test('finds a document only by every word', () async {
+  test('finds a file only by every word', () async {
     final search = await open();
 
     search.find('milk eggs');

@@ -1,21 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
-import '../documents/document_settings_controller.dart';
-import '../documents/documents_wiring.dart';
+import '../files/file_settings_controller.dart';
+import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 
-/// One calendar the Calendar tab knows: its listed [document], its
+/// One calendar the Calendar tab knows: its listed [file], its
 /// [calendar] as read, and whether the tab shows its events ([shown]).
-typedef TabCalendar = ({Document document, Calendar calendar, bool shown});
+typedef TabCalendar = ({ListedFile file, Calendar calendar, bool shown});
 
 /// The calendars of the tab as read, kept while the app runs; a file
 /// that is no calendar is left out.
-final calendarReadsProvider = Provider<DocumentReads<Calendar>>(
-  (ref) => DocumentReads(
-    ref.watch(folderFilesProvider),
+final calendarReadsProvider = Provider<FileReads<Calendar>>(
+  (ref) => FileReads(
+    ref.watch(fileAccessProvider),
     readAs: (read) => Calendar.read(read.text),
   ),
 );
@@ -24,14 +24,13 @@ final calendarReadsProvider = Provider<DocumentReads<Calendar>>(
 final hasCalendarsProvider = Provider<bool>(
   (ref) => ref.watch(
     folderContentsProvider.select(
-      (contents) => contents.value?.documents.any(isCalendarDocument) ?? false,
+      (contents) => contents.value?.files.any(isCalendarFile) ?? false,
     ),
   ),
 );
 
-/// Whether [document] is a calendar.
-bool isCalendarDocument(Document document) =>
-    document.type.type == calendarType;
+/// Whether [file] is a calendar.
+bool isCalendarFile(ListedFile file) => file.type.type == calendarType;
 
 final calendarTabProvider =
     AsyncNotifierProvider<CalendarTabController, List<TabCalendar>>(
@@ -45,26 +44,26 @@ class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
   @override
   Future<List<TabCalendar>> build() async {
     final contents = await ref.watch(folderContentsProvider.future);
-    await ref.watch(documentSettingsProvider.future);
-    final settings = ref.read(documentSettingsProvider.notifier);
+    await ref.watch(fileSettingsProvider.future);
+    final settings = ref.read(fileSettingsProvider.notifier);
     final read = await ref
         .read(calendarReadsProvider)
-        .readAll(contents.documents.where(isCalendarDocument).toList());
+        .readAll(contents.files.where(isCalendarFile).toList());
     return [
-      for (final MapEntry(key: document, value: calendar) in read.entries)
+      for (final MapEntry(key: file, value: calendar) in read.entries)
         (
-          document: document,
+          file: file,
           calendar: calendar,
-          shown: CalendarView.of(settings.settingsOf(document.key).view).inTab,
+          shown: CalendarView.of(settings.settingsOf(file.key).view).inTab,
         ),
     ]..sort((a, b) => a.calendar.name.compareTo(b.calendar.name));
   }
 
-  /// The tab shows [document]'s events if [shown].
-  Future<void> show(Document document, {required bool shown}) => ref
-      .read(documentSettingsProvider.notifier)
+  /// The tab shows [file]'s events if [shown].
+  Future<void> show(ListedFile file, {required bool shown}) => ref
+      .read(fileSettingsProvider.notifier)
       .edit(
-        document.key,
+        file.key,
         (settings) => settings.withView(CalendarView(inTab: shown).settings),
       );
 }

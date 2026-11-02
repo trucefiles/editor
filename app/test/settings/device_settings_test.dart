@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/settings/calendar_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
@@ -29,8 +29,8 @@ void main() {
     closeToTray: false,
     home: const HomeSettings(
       recentCount: 100,
-      order: DocumentOrder.name,
-      view: DocumentView.list,
+      order: FileOrder.name,
+      view: FileView.list,
     ),
     calendarView: CalendarViewKind.week,
   );

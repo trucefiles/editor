@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:truce_core/truce_core.dart';
 
 import 'base_folder.dart';
-import 'document_folder.dart';
+import 'folder.dart';
 
 /// Keeps the folder list in a JSON file in app storage: each base folder
 /// once, and the folders that show parts of them.
@@ -25,7 +25,7 @@ final class FolderListStore {
   final Set<String> _toolIds;
 
   /// The saved folders; empty before the first [save].
-  Future<Result<List<DocumentFolder>, SettingsError>> load() async =>
+  Future<Result<List<Folder>, SettingsError>> load() async =>
       switch (await _file.read()) {
         Ok(:final value) => switch (_decode(value)) {
           final folders? => Ok(folders),
@@ -37,14 +37,13 @@ final class FolderListStore {
       };
 
   /// Replaces the saved list atomically.
-  Future<Result<void, SettingsError>> save(
-    List<DocumentFolder> folders,
-  ) async => switch (await _file.write(_encode(folders))) {
-    Ok() => const Ok(null),
-    Err() => const Err(SettingsError.unwritable),
-  };
+  Future<Result<void, SettingsError>> save(List<Folder> folders) async =>
+      switch (await _file.write(_encode(folders))) {
+        Ok() => const Ok(null),
+        Err() => const Err(SettingsError.unwritable),
+      };
 
-  static Object _encode(List<DocumentFolder> folders) => {
+  static Object _encode(List<Folder> folders) => {
     'baseFolders': [
       for (final base in {for (final folder in folders) folder.base})
         base.toJson(),
@@ -64,7 +63,7 @@ final class FolderListStore {
 
   /// `null` if [json] is not a list written by [_encode] for the app's
   /// sync tools.
-  List<DocumentFolder>? _decode(Object? json) {
+  List<Folder>? _decode(Object? json) {
     if (json case {
       'baseFolders': final List<Object?> baseList,
       'folders': final List<Object?> folderList,
@@ -84,28 +83,26 @@ final class FolderListStore {
     return null;
   }
 
-  static DocumentFolder? _decodeFolder(
-    Object? json,
-    Map<String, BaseFolder> bases,
-  ) => switch (json) {
-    {
-      'id': final String id,
-      'base': final String baseId,
-      'name': final String name,
-      'color': final Object color,
-    } =>
-      switch ((bases[baseId], _selection(json), _colorName(color))) {
-        (final base?, final selection?, final color?) => DocumentFolder(
-          id: id,
-          base: base,
-          selection: selection,
-          name: name,
-          color: color,
-        ),
+  static Folder? _decodeFolder(Object? json, Map<String, BaseFolder> bases) =>
+      switch (json) {
+        {
+          'id': final String id,
+          'base': final String baseId,
+          'name': final String name,
+          'color': final Object color,
+        } =>
+          switch ((bases[baseId], _selection(json), _colorName(color))) {
+            (final base?, final selection?, final color?) => Folder(
+              id: id,
+              base: base,
+              selection: selection,
+              name: name,
+              color: color,
+            ),
+            _ => null,
+          },
         _ => null,
-      },
-    _ => null,
-  };
+      };
 
   /// The color name kept as [json]; a list saved before color names
   /// kept the color as a number, one of the palette's then. `null` if it

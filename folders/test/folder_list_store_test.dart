@@ -25,14 +25,14 @@ void main() {
       toolId: 'syncthing',
     );
     final folders = [
-      DocumentFolder(
+      Folder(
         id: 'a1',
         base: base,
         selection: const WholeFolder(),
         name: 'Private',
         color: 'indigo',
       ),
-      DocumentFolder(
+      Folder(
         id: 'a2',
         base: BaseFolder(
           id: 'b2',

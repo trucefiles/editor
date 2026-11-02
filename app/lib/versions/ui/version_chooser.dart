@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import 'keep_version_dialog.dart';
 import 'version_comparison.dart';
@@ -8,7 +8,7 @@ import 'version_pane.dart';
 
 /// Which of the two versions the user keeps.
 enum VersionSide {
-  /// The document's file as it is in the folder.
+  /// The file as it is in the folder.
   current,
 
   /// The version that clashes with it.
@@ -34,12 +34,12 @@ final class ShownVersion {
   final String keptMessage;
 }
 
-/// The one view for every clash between two versions of a document: shows both
+/// The one view for every clash between two versions of a file: shows both
 /// and asks before keeping one. The [base] side, the version this device
 /// has now, is the base of the diff: lines only it has show as added,
 /// lines only the other has as removed, each on its own side. The owner of [onKeep] makes the backups
 /// its versions' [ShownVersion.keptMessage] tells of, before it changes
-/// anything. Where the document's type merges, [onMerge] keeps both
+/// anything. Where the file's type merges, [onMerge] keeps both
 /// merged instead, after a backup of both.
 class VersionChooser extends StatelessWidget {
   const VersionChooser({

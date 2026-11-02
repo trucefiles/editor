@@ -18,7 +18,7 @@ void main() {
     DateTime day, {
     bool shown = true,
   }) => (
-    document: listedDocument(folder, name: '${name.toLowerCase()}.ics'),
+    file: listedFile(folder, name: '${name.toLowerCase()}.ics'),
     calendar: applyEdit(
       Calendar.read(newCalendarText(name))!,
       AddEvent(
@@ -40,7 +40,7 @@ void main() {
   test('the calendar added to last is offered first', () {
     expect(
       [
-        for (final each in forAdding([home, work], work.document.key))
+        for (final each in forAdding([home, work], work.file.key))
           tabCalendarName(each),
       ],
       ['Work', 'Home'],
@@ -50,9 +50,9 @@ void main() {
   test('the calendar added to stays first once it changed', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    container.read(lastUsedCalendarProvider.notifier).addTo(work.document);
+    container.read(lastUsedCalendarProvider.notifier).addTo(work.file);
     final changed = (
-      document: listedDocument(folder, name: 'work.ics', version: 1),
+      file: listedFile(folder, name: 'work.ics', version: 1),
       calendar: work.calendar,
       shown: true,
     );

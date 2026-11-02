@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../base_folder.dart';
-import '../document_folder.dart';
+import '../folder.dart';
 import '../folder_color_names.dart';
 import '../folder_error.dart';
 import '../subfolders/subfolder_choice.dart';
@@ -43,7 +43,7 @@ final class AddFolderWork {
   final SubfolderNames Function(BaseFolder base) subfoldersOf;
 
   /// Adds the folder; see `FoldersController.add`.
-  final Future<Result<DocumentFolder, FolderError>> Function({
+  final Future<Result<Folder, FolderError>> Function({
     required Uri address,
     required String toolId,
     required Selection selection,
@@ -61,7 +61,7 @@ final class AddFolderFlow {
   AddFolderFlow(this._work, this._folders);
 
   final AddFolderWork _work;
-  final List<DocumentFolder> _folders;
+  final List<Folder> _folders;
 
   AddFolderStep _step = AddFolderStep.base;
   Uri? _address;
@@ -161,7 +161,7 @@ final class AddFolderFlow {
   };
 
   /// Adds the folder as chosen.
-  Future<Result<DocumentFolder, FolderError>> finish() => _work.add(
+  Future<Result<Folder, FolderError>> finish() => _work.add(
     address: address,
     toolId: tool.id,
     selection: parts.selection!,

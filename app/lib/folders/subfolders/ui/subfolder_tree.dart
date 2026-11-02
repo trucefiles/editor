@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 /// The base folder's subfolders as a tree to pick from, one level read

@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:truce_documents/truce_documents.dart' show DocumentCardSummary;
+import 'package:truce_files/truce_files.dart' show FileCardSummary;
 
 import '../text_zoom/ui/document_text_zoom.dart';
 
-/// The frame every card in a document grid shares: the title and [body] at
+/// The frame every card in a file grid shares: the title and [body] at
 /// the document text zoom, [footer] at the bottom; as tall as they are.
 class CardFrame extends StatelessWidget {
   const CardFrame({
@@ -90,7 +90,7 @@ class CardLines extends StatelessWidget {
     text,
     style: Theme.of(context).textTheme.bodySmall
         ?.copyWith(fontStyle: italic ? FontStyle.italic : null),
-    maxLines: DocumentCardSummary.previewLines,
+    maxLines: FileCardSummary.previewLines,
     overflow: TextOverflow.ellipsis,
   );
 }

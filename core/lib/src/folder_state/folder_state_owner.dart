@@ -1,6 +1,6 @@
 import '../common/moment.dart';
 import '../common/result.dart';
-import '../marks/document_marks.dart';
+import '../marks/file_marks.dart';
 import '../owners/effects.dart';
 import '../owners/machine.dart';
 import '../owners/machine_owner.dart';
@@ -49,7 +49,7 @@ FolderStateMachine folderStateMachine({
 
 /// How the folder state owner reads one base folder: what its sync tool
 /// lists ([scanner]) and the marks of all devices ([marks]).
-typedef BaseFolderReader = ({FolderScanner scanner, DocumentMarks marks});
+typedef BaseFolderReader = ({FolderScanner scanner, FileMarks marks});
 
 /// The folder state owner: reads each base folder through
 /// [readerOf]; changes wait as [folderStateMachine] says, on
@@ -99,7 +99,7 @@ Future<ListingDone> _list(
   MarksFiles known,
 ) async {
   final startedAt = Moment.now();
-  final scan = await reader.scanner.scan(also: DocumentMarks.files);
+  final scan = await reader.scanner.scan(also: FileMarks.files);
   final Result<BaseListing, StoreError> listing = switch (scan) {
     Ok(value: final scan) => Ok((
       scan: scan,

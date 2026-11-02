@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
 /// A folder the user granted the app on this device, e.g. a Syncthing
-/// folder: what [DocumentFolder]s show parts of. One sync tool works on it.
+/// folder: what [Folder]s show parts of. One sync tool works on it.
 ///
 /// Per device and never synced. Value-equal, so everything built for it
 /// (its files, its reach) stays while it is the same.
@@ -14,7 +14,7 @@ final class BaseFolder {
   });
 
   /// Random, stable on this device; names app storage that belongs to the
-  /// base folder (its drafts and backups) and keys its documents.
+  /// base folder (its drafts and backups) and keys its files.
   final String id;
 
   /// Where its sync tool finds it, e.g. `file:` for a folder on this

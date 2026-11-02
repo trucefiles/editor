@@ -26,12 +26,12 @@ dependencies:
   truce_calendar_editor: any
   truce_core: any
   truce_document_editor: any
-  truce_document_page: any
-  truce_documents: any
+  truce_file_page: any
+  truce_files: any
   truce_folders: any
   truce_markdown: any
   truce_masonry: any
-  truce_plain_folder: any
+  truce_local_folder: any
   truce_plain_text: any
   truce_syncthing: any
   url_launcher: ^6.3.3

@@ -20,7 +20,7 @@ final folderActionsProvider = Provider<FolderActions>(
 /// step by step (see `AddFolderFlow`). No UI: screens ask the user, then
 /// call these and show the result.
 final class FolderActions {
-  /// [_selectedFolderId] tells which folder the documents are filtered
+  /// [_selectedFolderId] tells which folder the files are filtered
   /// to; [_chooseFolder] filters them to another one (`null`: all).
   FolderActions({
     required this._folders,
@@ -40,17 +40,17 @@ final class FolderActions {
   /// Opens the system page where the user grants access to folders.
   Future<void> requestAccess() => _access.request();
 
-  Future<Result<void, FolderError>> change(DocumentFolder changed) =>
+  Future<Result<void, FolderError>> change(Folder changed) =>
       _folders.change(changed);
 
-  /// How many documents have edits kept only on this device that
+  /// How many files have edits kept only on this device that
   /// [remove] would delete.
-  Future<int> draftsLostByRemoving(DocumentFolder folder) =>
+  Future<int> draftsLostByRemoving(Folder folder) =>
       _folders.draftsLostByRemoving(folder);
 
   /// Forgets [folder] (its files stay untouched), stops filtering the
-  /// documents by it, and deletes its drafts: no edit is recovered into it.
-  Future<Result<void, FolderError>> remove(DocumentFolder folder) {
+  /// files by it, and deletes its drafts: no edit is recovered into it.
+  Future<Result<void, FolderError>> remove(Folder folder) {
     if (_selectedFolderId() == folder.id) _chooseFolder(null);
     return _folders.remove(folder);
   }

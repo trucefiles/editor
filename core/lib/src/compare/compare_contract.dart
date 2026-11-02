@@ -37,7 +37,7 @@ final class Keep<Target, Sides> extends CompareInput<Target, Sides>
 }
 
 /// A scan that started at [startedAt] found [next] to compare (e.g. the
-/// document's oldest conflict copy left), or nothing.
+/// file's oldest conflict copy left), or nothing.
 final class ScanSeen<Target, Sides> extends CompareInput<Target, Sides> {
   const ScanSeen(this.next, {required this.startedAt});
 

@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../text_zoom/text_zoom.dart';
 import '../text_zoom/text_zoom_target.dart';
 
-/// All settings of this device that are not about one document or the
+/// All settings of this device that are not about one file or the
 /// folder list. Kept in app storage, never synced.
 @immutable
 final class DeviceSettings {
@@ -37,8 +37,8 @@ final class DeviceSettings {
   final TextZoom documentTextZoom;
   final TextZoom appTextZoom;
 
-  /// Where new documents go; `null` for the default (see
-  /// `DocumentActions.defaultFolder`).
+  /// Where new files go; `null` for the default (see
+  /// `FileActions.defaultFolder`).
   final NewFilePlaceSetting? newFilePlace;
 
   final RefreshSettings refresh;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
@@ -18,8 +18,8 @@ import '../conflict_controller.dart';
 /// [notice] that stays until dismissed (how a merge went) or a short hint.
 typedef ConflictOutcome = ({String text, bool notice});
 
-/// Shows both versions of a conflicting document side by side; the user
-/// keeps one, or both merged where the document's type merges. Several
+/// Shows both versions of a conflicting file side by side; the user
+/// keeps one, or both merged where the file's type merges. Several
 /// conflict copies are resolved one by one, oldest first. Closes once no
 /// copy is left, with the outcome to tell as its result; what it tells
 /// meanwhile stays on this screen.
@@ -113,7 +113,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         ),
       );
 
-  bool _unreachable(DocumentFolder folder) =>
+  bool _unreachable(Folder folder) =>
       ref.watch(folderReachProvider(folder.base)) == Reach.unreachable;
 
   Widget _chooser(Conflict conflict, ConflictSides sides, bool busy) {

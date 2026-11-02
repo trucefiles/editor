@@ -6,7 +6,7 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart' show RelPath;
-import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -38,21 +38,21 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text('Add'));
   }
 
-  /// Opens the document titled [title] from the grid.
-  Future<void> openDocument(String title) async {
+  /// Opens the file titled [title] from the grid.
+  Future<void> openFile(String title) async {
     await waitFor(find.text(title));
     await tapAndSettle(find.text(title));
   }
 
-  /// Waits until the open document has closed.
+  /// Waits until the open file has closed.
   Future<void> waitForNoteClosed({
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(
-    () => find.byType(DocumentScreen).evaluate().isEmpty,
+    () => find.byType(FileScreen).evaluate().isEmpty,
     timeout: timeout,
   );
 
-  /// Switches the open document to the mode labeled [mode], e.g. 'Read'.
+  /// Switches the open file to the mode labeled [mode], e.g. 'Read'.
   Future<void> chooseMode(String mode) async {
     await tapAndSettle(
       find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
@@ -60,8 +60,8 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(mode).last);
   }
 
-  /// Types [text] over the open document's whole text, as written: in
-  /// Markdown edit for a document that has modes.
+  /// Types [text] over the open file's whole text, as written: in
+  /// Markdown edit for a file that has modes.
   Future<void> typeOver(String text) async {
     final hasModes = find
         .byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>)
@@ -91,7 +91,7 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(item));
   }
 
-  /// Sets the open document's "Checked items" choice, from the default.
+  /// Sets the open file's "Checked items" choice, from the default.
   Future<void> chooseCheckedItems(String choice) async {
     await chooseInMenu('Checked items: Move to end');
     await tapAndSettle(find.text(choice));
@@ -103,7 +103,7 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text('Note'));
   }
 
-  /// Starts a new document and types [text] into it, where the caret waits.
+  /// Starts a new file and types [text] into it, where the caret waits.
   Future<void> typeNewNote(String text) async {
     await startNewNote();
     await waitFor(find.byTooltip(placeAndName));
@@ -146,7 +146,7 @@ extension AppSteps on WidgetTester {
 
   /// Picks [folder] in the open place-and-name dialog.
   Future<void> pickFolder(String folder) async {
-    await tapAndSettle(find.byType(DropdownButtonFormField<DocumentFolder>));
+    await tapAndSettle(find.byType(DropdownButtonFormField<Folder>));
     await tapAndSettle(find.text(folder).last);
   }
 
@@ -164,7 +164,7 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text('OK'));
   }
 
-  /// Sets the open document's place and name.
+  /// Sets the open file's place and name.
   Future<void> placeNote({
     String? folder,
     String? subfolder,
@@ -200,7 +200,7 @@ extension AppSteps on WidgetTester {
     );
   }
 
-  /// The width of the picture the open document shows once it has
+  /// The width of the picture the open file shows once it has
   /// loaded; `null` while none shows.
   int? get shownPictureWidth =>
       widgetList<RawImage>(find.byType(RawImage))
@@ -208,7 +208,7 @@ extension AppSteps on WidgetTester {
           .nonNulls
           .firstOrNull;
 
-  /// Opens the compare view the open document offers.
+  /// Opens the compare view the open file offers.
   Future<void> openCompare() async {
     await waitFor(find.text('Compare'));
     await tapAndSettle(find.text('Compare'));

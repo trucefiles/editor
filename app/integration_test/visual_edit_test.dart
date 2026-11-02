@@ -127,7 +127,7 @@ void main() {
       '# Shop\n- [ ] milk\n  - [ ] eggs\n',
     );
     await tester.waitForNoteClosed();
-    await tester.openDocument('Shop');
+    await tester.openFile('Shop');
 
     await tester.dragItem('eggs', const Offset(-40, 0));
 
@@ -360,7 +360,7 @@ void main() {
       ..writePicture('a/p.png', width: 1)
       ..writePicture('b/p.png', width: 2);
     await tester.addFolder(app);
-    await tester.openDocument('Doc');
+    await tester.openFile('Doc');
     if (find.byTooltip('Mode: Visual edit').evaluate().isEmpty) {
       await tester.chooseMode('Visual edit');
     }

@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
-import 'package:truce_editor/documents/document_actions.dart';
-import 'package:truce_editor/documents/documents_wiring.dart';
+import 'package:truce_editor/files/file_actions.dart';
+import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_wiring.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -12,6 +11,7 @@ import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakePlace, FakeSyncTool;
@@ -25,7 +25,7 @@ void main() {
   late FakeSyncTool tool;
   late FakePlace place;
   late ProviderContainer container;
-  late DocumentFolder folder;
+  late Folder folder;
 
   setUp(() async {
     tool = FakeSyncTool('fake');
@@ -62,20 +62,20 @@ void main() {
     final contents = (await container
         .read(folderContentsProvider.notifier)
         .refresh())!;
-    return [for (final document in contents.documents) document.path.value];
+    return [for (final file in contents.files) file.path.value];
   }
 
   test('lists, opens, saves, creates and moves documents, into a new '
       'subfolder too', () async {
-    final actions = container.read(documentActionsProvider);
-    final files = container.read(folderFilesProvider).of(folder);
+    final actions = container.read(fileActionsProvider);
+    final files = container.read(fileAccessProvider).of(folder);
 
     expect(await listed(), ['work/a.md']);
     final a = (await files.open(path('work/a.md'))).value;
     await files.save(a, '# A\nmore');
     final created = (await actions.create(
       (folder: folder, subfolder: path('work')),
-      type: appDocumentTypes().forNew,
+      type: appFileTypes().forNew,
       title: 'New',
       text: '# New',
     )).value;
@@ -116,10 +116,8 @@ void main() {
     place.changes.hint(path('work'), PathChanged(path('work/c.md')));
 
     await eventually(
-      () async =>
-          (container.read(folderContentsProvider).value?.documents ?? []).any(
-            (document) => document.path.value == 'work/c.md',
-          ),
+      () async => (container.read(folderContentsProvider).value?.files ?? [])
+          .any((file) => file.path.value == 'work/c.md'),
     );
     expect(place.changes.followed, [path('work')]);
   });

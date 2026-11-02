@@ -22,12 +22,12 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  /// Opens the document Plan in [tester], as text, with mine typed in and a
+  /// Opens the file Plan in [tester], as text, with mine typed in and a
   /// change from elsewhere in its file.
   Future<void> clashInPlan(WidgetTester tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
   }
@@ -37,12 +37,12 @@ void main() {
   ) async {
     await tester.addFolder(app);
     await tester.waitFor(find.byTooltip('New document'));
-    await tester.loseFolder(app.documents);
+    await tester.loseFolder(app.files);
 
     await tester.tapAndSettle(find.byTooltip('New document'));
 
     await tester.waitFor(find.text('No folder can be reached right now.'));
-    expect(app.documents.existsSync(), isFalse);
+    expect(app.files.existsSync(), isFalse);
   });
 
   testApp('an open document is read-only while its folder is unreachable', (
@@ -50,14 +50,14 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.chooseMode('Markdown edit');
-    await tester.loseFolder(app.documents);
+    await tester.loseFolder(app.files);
 
     await tester.waitFor(find.textContaining("Documents can't be reached."));
     expect(find.byType(SuperEditor), findsNothing);
 
-    Directory('${app.documents.path}-away').renameSync(app.documents.path);
+    Directory('${app.files.path}-away').renameSync(app.files.path);
     await tester.tapAndSettle(find.text('Retry'));
     await tester.waitFor(find.byType(SuperEditor));
     expect(find.textContaining("can't be reached"), findsNothing);
@@ -68,9 +68,9 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
-    app.documents.renameSync('${app.documents.path}-away');
+    app.files.renameSync('${app.files.path}-away');
 
     await tester.pageBack();
 
@@ -84,7 +84,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.addWorkFolder();
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.chooseMode('Markdown edit');
     await tester.placeNote(folder: 'Work');
     await tester.waitUntil(() => File('${app.work.path}/plan.md').existsSync());
@@ -145,7 +145,7 @@ void main() {
   testApp('restores the version from before editing', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.md'), '# Plan\nbroken\n');
@@ -166,7 +166,7 @@ void main() {
   ) async {
     app.write('a/b/c/plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.write('a/b/c/plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.pageBack();
@@ -187,7 +187,7 @@ void main() {
       '# Todo\nfirst\n',
     );
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
     await tester.openCompare();
     expect(find.text('Documents/a/b/c'), findsOne);
@@ -226,7 +226,7 @@ void main() {
       '# Todo\nsecond\n',
     );
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
     await tester.openCompare();
     await tester.waitFor(find.text('2 other versions, oldest first'));
@@ -246,9 +246,9 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
-    app.documents.renameSync('${app.documents.path}-away');
+    app.files.renameSync('${app.files.path}-away');
     await tester.pageBack();
     await tester.waitForNoteClosed(timeout: const Duration(seconds: 20));
 

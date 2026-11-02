@@ -60,26 +60,23 @@ class FoldersScreen extends ConsumerWidget {
   }
 
   /// Where [folder] is, and what it shows there.
-  static String _shownOf(DocumentFolder folder) => switch (folder.selection) {
+  static String _shownOf(Folder folder) => switch (folder.selection) {
     WholeFolder() => folder.base.shownAddress,
     Subfolders(:final roots) => [
       for (final root in roots) '${folder.base.shownAddress}/${root.value}',
     ].join('\n'),
   };
 
-  Future<void> _edit(
-    BuildContext context,
-    WidgetRef ref,
-    DocumentFolder folder,
-  ) => Navigator.push(
-    context,
-    MaterialPageRoute<void>(builder: (_) => FolderSettingsScreen(folder)),
-  );
+  Future<void> _edit(BuildContext context, WidgetRef ref, Folder folder) =>
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => FolderSettingsScreen(folder)),
+      );
 
   Future<void> _remove(
     BuildContext context,
     WidgetRef ref,
-    DocumentFolder folder,
+    Folder folder,
   ) async {
     final actions = ref.read(folderActionsProvider);
     final lost = await actions.draftsLostByRemoving(folder);
@@ -93,10 +90,10 @@ class FoldersScreen extends ConsumerWidget {
   }
 
   /// Whether the user wants to remove [folder] from the app, which loses
-  /// the edits of [lost] documents kept only on this device.
+  /// the edits of [lost] files kept only on this device.
   Future<bool> _confirmRemove(
     BuildContext context,
-    DocumentFolder folder,
+    Folder folder,
     int lost,
   ) async =>
       await showDialog<bool>(

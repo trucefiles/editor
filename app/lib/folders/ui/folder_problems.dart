@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../folder_state/folder_state_controller.dart';
@@ -16,7 +16,7 @@ class FolderProblems extends ConsumerWidget {
 
   /// The folders the user added, for the names of [FolderContents.unreadable]
   /// and [FolderContents.gone].
-  final List<DocumentFolder> folders;
+  final List<Folder> folders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(

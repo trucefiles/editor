@@ -9,7 +9,7 @@ void main() {
   late int refreshes;
   late ScrollController scroll;
 
-  /// Shows a list of [lines], the first one 'document'; [physics] as the
+  /// Shows a list of [lines], the first one 'file'; [physics] as the
   /// list sets them.
   Future<void> show(
     WidgetTester tester, {

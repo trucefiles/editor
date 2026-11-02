@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/empty_state.dart';
-import '../../documents/ui/document_grid.dart';
-import '../../documents/ui/listed_document_card.dart';
+import '../../files/ui/file_grid.dart';
+import '../../files/ui/listed_file_card.dart';
 import '../search_controller.dart';
 
 /// Search across all folders, updated as the user types and as texts are
@@ -44,9 +44,9 @@ class SearchScreen extends ConsumerWidget {
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.all(12),
-              sliver: documentGrid(
+              sliver: fileGrid(
                 found.length,
-                (index) => ListedDocumentCard(found[index]),
+                (index) => ListedFileCard(found[index]),
               ),
             ),
           ],

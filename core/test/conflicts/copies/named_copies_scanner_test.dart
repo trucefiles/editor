@@ -26,7 +26,7 @@ void main() {
         ..put('.truce/marks/note.md', 'not shown')
         ..put('lists/.truce/marks/laptop.json', '{}');
 
-      final scan = (await scanner.scan(also: DocumentMarks.files)).value;
+      final scan = (await scanner.scan(also: FileMarks.files)).value;
 
       expect(scan.files.map((e) => e.path), [path('todo.md')]);
       expect(scan.subfolders, [path('lists')]);

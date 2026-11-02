@@ -3,7 +3,7 @@ import 'dart:typed_data';
 /// The user's choice between a file's current version and another one,
 /// e.g. a conflict copy or a backup.
 ///
-/// Pick a side, or keep both merged into one by the document's type.
+/// Pick a side, or keep both merged into one by the file's type.
 sealed class Resolution {
   const Resolution();
 }
@@ -21,7 +21,7 @@ final class KeepOther extends Resolution {
 }
 
 /// Replace the main file with both versions merged into [bytes], as the
-/// document's type merged them.
+/// file's type merged them.
 final class KeepMerged extends Resolution {
   const KeepMerged(this.bytes);
 

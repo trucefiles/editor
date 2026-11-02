@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
 import 'conflict_screen.dart';
 
-/// Tells that an open document has another version from a sync conflict.
+/// Tells that an open file has another version from a sync conflict.
 class ConflictBanner extends StatelessWidget {
   const ConflictBanner(this.conflict, {super.key});
 

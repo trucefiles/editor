@@ -58,21 +58,21 @@ void main() {
   });
 
   test('RelPath.linked resolves a relative link from the file', () {
-    final document = RelPath.parse('documents/b.md')!;
-    expect(document.linked('img/a.png')?.value, 'documents/img/a.png');
-    expect(document.linked('./a.png')?.value, 'documents/a.png');
-    expect(document.linked('../img/a.png')?.value, 'img/a.png');
-    expect(document.linked('a%20b.png')?.value, 'documents/a b.png');
+    final file = RelPath.parse('documents/b.md')!;
+    expect(file.linked('img/a.png')?.value, 'documents/img/a.png');
+    expect(file.linked('./a.png')?.value, 'documents/a.png');
+    expect(file.linked('../img/a.png')?.value, 'img/a.png');
+    expect(file.linked('a%20b.png')?.value, 'documents/a b.png');
     expect(RelPath.parse('b.md')!.linked('x/y.png')?.value, 'x/y.png');
   });
 
   test('RelPath.linked is null for a link that leaves the folder', () {
-    final document = RelPath.parse('documents/b.md')!;
-    expect(document.linked('../../x.png'), isNull);
-    expect(document.linked('/x.png'), isNull);
-    expect(document.linked('https://example.com/x.png'), isNull);
-    expect(document.linked('//example.com/x.png'), isNull);
-    expect(document.linked(''), isNull);
-    expect(document.linked('#top'), isNull);
+    final file = RelPath.parse('documents/b.md')!;
+    expect(file.linked('../../x.png'), isNull);
+    expect(file.linked('/x.png'), isNull);
+    expect(file.linked('https://example.com/x.png'), isNull);
+    expect(file.linked('//example.com/x.png'), isNull);
+    expect(file.linked(''), isNull);
+    expect(file.linked('#top'), isNull);
   });
 }

@@ -238,7 +238,7 @@ final class LocalFileStore implements FileStore {
   }
 
   /// Creates [temp] with [file]'s permissions, if [file] exists, so the
-  /// rename keeps them (e.g. a private document stays private). A copy is the
+  /// rename keeps them (e.g. a private file stays private). A copy is the
   /// only way `dart:io` creates a file with a given mode; the process's
   /// umask still applies, so permissions can only get stricter.
   Future<void> _copyModeOf(File file, File temp) async {

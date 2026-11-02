@@ -13,7 +13,7 @@ import 'conflict_service.dart';
 import 'conflict_source.dart';
 
 /// [ConflictService]: the user picks a side, or keeps both as the
-/// document's type merged them.
+/// file's type merged them.
 final class DefaultConflictService implements ConflictService {
   DefaultConflictService({
     required this._folder,

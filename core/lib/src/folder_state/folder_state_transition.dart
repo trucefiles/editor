@@ -1,7 +1,7 @@
 import '../changes/folder_changes.dart';
 import '../common/moment.dart';
 import '../common/result.dart';
-import '../marks/document_marks.dart';
+import '../marks/file_marks.dart';
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../owners/machine.dart';
@@ -386,7 +386,7 @@ final class _Step {
 
   void _check(String baseId) {
     final paths = work.checkDue[baseId]!;
-    final marksFiles = paths.where(DocumentMarks.files.includesFile).toSet();
+    final marksFiles = paths.where(FileMarks.files.includesFile).toSet();
     final folders = {
       for (final path in paths)
         if (!marksFiles.contains(path)) path.parent,

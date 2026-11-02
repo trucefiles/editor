@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/documents/document_actions.dart';
+import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
@@ -19,8 +19,8 @@ import '../support.dart';
 void main() {
   late ProviderContainer container;
   late Directory work;
-  late DocumentFolder workFolder;
-  late DocumentFolder homeFolder;
+  late Folder workFolder;
+  late Folder homeFolder;
 
   setUp(() async {
     work = tempFolder();
@@ -40,11 +40,11 @@ void main() {
     await container.read(folderContentsProvider.future);
   });
 
-  Reach reachOf(DocumentFolder folder) =>
+  Reach reachOf(Folder folder) =>
       container.read(folderReachProvider(folder.base));
 
   /// Once [folder]'s reach is [reach].
-  Future<void> reached(DocumentFolder folder, Reach reach) async {
+  Future<void> reached(Folder folder, Reach reach) async {
     final done = Completer<void>();
     final listening = container.listen(folderReachProvider(folder.base), (
       _,
@@ -80,10 +80,7 @@ void main() {
     expect(reachOf(homeFolder), Reach.reachable);
     expect(container.read(retryingFoldersProvider), isEmpty);
     expect(
-      container.read(documentActionsProvider).reachableOf([
-        workFolder,
-        homeFolder,
-      ]),
+      container.read(fileActionsProvider).reachableOf([workFolder, homeFolder]),
       [homeFolder],
     );
 
@@ -95,17 +92,17 @@ void main() {
   });
 
   test('a deleted document changes nothing', () async {
-    final document =
+    final file =
         (await container
-                .read(documentActionsProvider)
+                .read(fileActionsProvider)
                 .create(
                   (folder: workFolder, subfolder: null),
-                  type: appDocumentTypes().forNew,
+                  type: appFileTypes().forNew,
                   title: 'b',
                   text: '# b\n',
                 ))
             .value;
-    File('${work.path}/${document.path.value}').deleteSync();
+    File('${work.path}/${file.path.value}').deleteSync();
 
     await container.read(folderContentsProvider.notifier).refresh();
     await pumpEventQueue();

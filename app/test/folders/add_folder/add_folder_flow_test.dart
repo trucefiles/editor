@@ -10,7 +10,7 @@ void main() {
   final plain = Uri.parse('fake://host/plain');
   late FakeSyncTool syncthing;
   late FakeSyncTool other;
-  late FakeSyncTool plainFolder;
+  late FakeSyncTool localFolder;
   late List<
     ({
       Uri address,
@@ -28,7 +28,7 @@ void main() {
     keptNames = {};
     syncthing = FakeSyncTool('syncthing', recognizes: {synced});
     other = FakeSyncTool('other');
-    plainFolder = FakeSyncTool('plain');
+    localFolder = FakeSyncTool('plain');
     syncthing.place(synced).files
       ..emptyFolders.add(path('notes/work'))
       ..emptyFolders.add(path('home'));
@@ -37,24 +37,19 @@ void main() {
 
   /// A folder showing [selection] of the base folder at [address], synced
   /// by `syncthing`.
-  DocumentFolder folderOn(
-    Uri address, {
-    Selection selection = const WholeFolder(),
-  }) => DocumentFolder(
-    id: 'f1',
-    base: BaseFolder(id: 'b1', address: address, toolId: syncthing.id),
-    selection: selection,
-    name: 'Documents',
-    color: 'teal',
-  );
+  Folder folderOn(Uri address, {Selection selection = const WholeFolder()}) =>
+      Folder(
+        id: 'f1',
+        base: BaseFolder(id: 'b1', address: address, toolId: syncthing.id),
+        selection: selection,
+        name: 'Documents',
+        color: 'teal',
+      );
 
-  AddFolderFlow flow([
-    List<DocumentFolder> folders = const [],
-    List<SyncTool>? tools,
-  ]) {
+  AddFolderFlow flow([List<Folder> folders = const [], List<SyncTool>? tools]) {
     final flow = AddFolderFlow(
       AddFolderWork(
-        tools: tools ?? [other, syncthing, plainFolder],
+        tools: tools ?? [other, syncthing, localFolder],
         colors: const ['teal', 'pink', 'green'],
         subfoldersOf: (base) => keptNames[base]!,
         add:
@@ -114,10 +109,10 @@ void main() {
 
     await adding.pickBase(plain);
     expect(adding.step, AddFolderStep.tool);
-    adding.chooseTool(plainFolder);
+    adding.chooseTool(localFolder);
 
     expect(adding.step, AddFolderStep.parts);
-    expect(adding.tool, plainFolder);
+    expect(adding.tool, localFolder);
   });
 
   test('a base folder added before keeps its tool, and what its folders '

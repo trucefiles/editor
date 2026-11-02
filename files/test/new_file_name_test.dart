@@ -1,0 +1,75 @@
+import 'package:test/test.dart';
+import 'package:truce_files/truce_files.dart';
+
+void main() {
+  test('uses the title and .md', () {
+    expect(newFileName('Shopping list', extension: '.md'), 'Shopping list.md');
+  });
+
+  test('numbers later attempts', () {
+    expect(
+      newFileName('Shopping', attempt: 3, extension: '.md'),
+      'Shopping 3.md',
+    );
+  });
+
+  test('replaces unsafe characters and collapses spaces', () {
+    expect(newFileName('a/b: c?  d', extension: '.md'), 'a b c d.md');
+  });
+
+  test('drops leading and trailing dots', () {
+    expect(newFileName('..hidden.. ', extension: '.md'), 'hidden.md');
+  });
+
+  test('falls back to Untitled', () {
+    expect(newFileName(' /?. ', extension: '.md'), 'Untitled.md');
+  });
+
+  test('limits the length without splitting characters', () {
+    expect(newFileName('a' * 100, extension: '.md'), '${'a' * 80}.md');
+  });
+
+  test('leaves room for a conflict copy in 255 bytes', () {
+    // 4 bytes each: 50 fit in 200 bytes.
+    expect(newFileName('😀' * 100, extension: '.md'), '${'😀' * 50}.md');
+  });
+
+  test('never cuts a character made of several code points', () {
+    // A family emoji: 7 code points, 25 bytes. After 5 bytes of `a`, 7
+    // fit in 200 bytes; cut by code points, part of an 8th would stay.
+    const family = '👨‍👩‍👧‍👦';
+    expect(
+      newFileName('aaaaa${family * 10}', extension: '.md'),
+      'aaaaa${family * 7}.md',
+    );
+  });
+
+  test('counts a character made of several code points as one', () {
+    // e with a combining accent: 2 code points, 3 bytes; 66 fit in 200.
+    const accented = 'e\u0301';
+    expect(
+      newFileName(accented * 100, extension: '.md'),
+      '${accented * 66}.md',
+    );
+  });
+
+  test('ends in the extension given', () {
+    expect(newFileName('plan', extension: '.MD'), 'plan.MD');
+    expect(newFileName('plan', attempt: 2, extension: ''), 'plan 2');
+  });
+
+  test('splitFileName splits before the extension', () {
+    expect(splitFileName('todo.md'), (base: 'todo', extension: '.md'));
+    expect(splitFileName('a.b.md'), (base: 'a.b', extension: '.md'));
+    expect(splitFileName('README'), (base: 'README', extension: ''));
+    expect(splitFileName('.hidden'), (base: '.hidden', extension: ''));
+  });
+
+  test('isNamedAfter ignores an added number and the case', () {
+    expect(isNamedAfter('Milk 2.md', 'Milk'), isTrue);
+    expect(isNamedAfter('milk.md', 'Milk'), isTrue);
+    expect(isNamedAfter('a b.md', 'a/b'), isTrue);
+    expect(isNamedAfter('Milk 2.md', 'Eggs'), isFalse);
+    expect(isNamedAfter('Milky.md', 'Milk'), isFalse);
+  });
+}

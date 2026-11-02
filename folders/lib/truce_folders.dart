@@ -2,13 +2,13 @@
 /// stack through each sync tool, the folder list owner, subfolder choices,
 /// the add-folder steps, and how changes in them are followed.
 ///
-/// Pure Dart, no UI; knows no sync tool and no document type, which the
+/// Pure Dart, no UI; knows no sync tool and no file type, which the
 /// app wires in.
 library;
 
 export 'src/add_folder/add_folder_flow.dart';
 export 'src/base_folder.dart';
-export 'src/document_folder.dart';
+export 'src/folder.dart';
 export 'src/folder_color_names.dart';
 export 'src/folder_error.dart';
 export 'src/folder_list_contract.dart';

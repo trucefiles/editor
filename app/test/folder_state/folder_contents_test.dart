@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
@@ -20,12 +20,12 @@ void main() {
   );
 
   FolderContents scans({
-    List<DocumentFolder>? folders,
-    List<Document> documents = const [],
-    Map<DocumentFolder, StoreError> failed = const {},
+    List<Folder>? folders,
+    List<ListedFile> files = const [],
+    Map<Folder, StoreError> failed = const {},
     Map<String, List<RelPath>> unreadable = const {},
   }) => contentsFinding(
-    documents,
+    files,
     folders: folders ?? [work, home],
     failed: failed,
     unreadable: unreadable,
@@ -78,14 +78,14 @@ void main() {
 
   group('observe', () {
     test('a document found in its listed version', () {
-      final document = listedDocument(work, version: 3);
+      final file = listedFile(work, version: 3);
 
       expect(
-        scans(documents: [document]).observe(document.key),
+        scans(files: [file]).observe(file.key),
         isA<Found>().having(
           (found) => found.version,
           'version',
-          listedVersion(document),
+          listedVersion(file),
         ),
       );
     });
@@ -110,29 +110,24 @@ void main() {
 
   group('documents', () {
     test('newest first, the same time by base folder and path', () {
-      final old = listedDocument(work, name: 'old.md', modified: DateTime(1));
-      final b = listedDocument(work, name: 'b.md', modified: DateTime(2));
-      final a = listedDocument(work, name: 'a.md', modified: DateTime(2));
-      final atHome = listedDocument(home, name: 'z.md', modified: DateTime(2));
+      final old = listedFile(work, name: 'old.md', modified: DateTime(1));
+      final b = listedFile(work, name: 'b.md', modified: DateTime(2));
+      final a = listedFile(work, name: 'a.md', modified: DateTime(2));
+      final atHome = listedFile(home, name: 'z.md', modified: DateTime(2));
 
-      expect(scans(documents: [old, b, atHome, a]).documents, [
-        atHome,
-        a,
-        b,
-        old,
-      ]);
+      expect(scans(files: [old, b, atHome, a]).files, [atHome, a, b, old]);
     });
 
     test('only files of a handled type that a folder shows', () {
       final narrowed = work.copyWith(selection: Selection.of([path('kept')]));
-      final kept = listedDocument(narrowed, name: 'kept/a.md');
+      final kept = listedFile(narrowed, name: 'kept/a.md');
 
       final contents = contentsFinding(
         [
           kept,
-          listedDocument(narrowed, name: 'other/a.md'),
+          listedFile(narrowed, name: 'other/a.md'),
           // Listed as a Markdown file would be, but not one by its name.
-          Document(
+          ListedFile(
             folder: narrowed,
             path: path('kept/photo.png'),
             type: kept.type,
@@ -143,7 +138,7 @@ void main() {
         folders: [narrowed],
       );
 
-      expect(contents.documents, [kept]);
+      expect(contents.files, [kept]);
     });
   });
 
@@ -153,7 +148,7 @@ void main() {
       FolderContents(
         FolderState({'work': const NotListed()}),
         folders: [work],
-        types: appDocumentTypes(),
+        types: appFileTypes(),
       ).loaded,
       isFalse,
     );
@@ -171,7 +166,7 @@ void main() {
         ...contentsFinding(const [], folders: [home]).state.bases,
       }),
       folders: [work, home],
-      types: appDocumentTypes(),
+      types: appFileTypes(),
     );
 
     expect(contents.listedAt, early);

@@ -1,14 +1,14 @@
-import 'package:truce_document_page/truce_document_page.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_files/truce_files.dart';
 
-/// A document type as the app wires it: the type itself, and its editor
-/// on the one text document page.
-abstract interface class EditableType implements DocumentType {
-  /// Opens the editor of a document of this type, starting at [start], on
+/// A file type as the app wires it: the type itself, and its editor
+/// on the one file page.
+abstract interface class EditableType implements ShownFileType {
+  /// Opens the editor of a file of this type, starting at [start], on
   /// [page]: its part the page model drives, and the view the page shows
   /// of it.
   OpenedEditor openEditor(EditorStart start, EditorPage page);
 }
 
-/// An open document's editor: its [part] and the [view] of it.
+/// An open file's editor: its [part] and the [view] of it.
 typedef OpenedEditor = ({EditorPart part, EditorView view});

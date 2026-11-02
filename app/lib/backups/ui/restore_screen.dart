@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
 import '../../reach/folder_reach_controller.dart';
@@ -13,7 +13,7 @@ import '../../versions/ui/version_content.dart';
 import '../restore_controller.dart';
 import 'backup_kind_text.dart';
 
-/// Shows a backup next to its document as it is now, in the same view as a
+/// Shows a backup next to its file as it is now, in the same view as a
 /// conflict; the user keeps one. Closes once a version is kept, with the
 /// outcome to tell as its result.
 class RestoreScreen extends ConsumerStatefulWidget {

@@ -12,10 +12,10 @@ import 'folder_warning_icon.dart';
 class FolderFilterBar extends ConsumerWidget {
   const FolderFilterBar(this.folders, {required this.conflictCount, super.key});
 
-  final List<DocumentFolder> folders;
+  final List<Folder> folders;
 
   /// Pending sync conflicts in a folder, shown on its chip.
-  final int Function(DocumentFolder folder) conflictCount;
+  final int Function(Folder folder) conflictCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
