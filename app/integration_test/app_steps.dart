@@ -26,14 +26,12 @@ extension AppSteps on WidgetTester {
     await waitUntil(() => find.text('Add folder').evaluate().isEmpty);
   }
 
-  /// Adds the next folder the picker gives, whole and synced by
-  /// Syncthing, step by step, from a screen with an Add folder button.
+  /// Adds the next folder the picker gives, a Syncthing folder, whole,
+  /// step by step, from a screen with an Add folder button.
   Future<void> addPickedFolder() async {
     await tapAndSettle(find.text('Add folder').last);
-    await tapAndSettle(find.text('Pick a folder'));
-    await waitFor(find.text('Syncthing'));
     await tapAndSettle(find.text('Syncthing'));
-    await tapAndSettle(find.text('Whole folder'));
+    await waitFor(find.text('Folders to add'));
     await tapAndSettle(find.text('Next'));
     await tapAndSettle(find.text('Add'));
   }
@@ -113,7 +111,7 @@ extension AppSteps on WidgetTester {
   /// Picks [subfolder] in the open place dialog: from the list of the
   /// place-and-name dialog, or of the place-only one (Settings).
   Future<void> pickSubfolder(String subfolder) async {
-    await waitFor(find.text('Subfolder'));
+    await waitFor(find.text('Inside the folder'));
     final typed = find.byType(DropdownMenu<String>);
     await tapAndSettle(
       typed.evaluate().isNotEmpty

@@ -28,8 +28,8 @@ final class FilesWork {
 
   final FileAccess files;
 
-  /// A base folder's services, as its folders show it now.
-  final BaseFolderServices Function(BaseFolder base) servicesOf;
+  /// A folder's services.
+  final FolderServices Function(FolderId folder) servicesOf;
 
   final FileSettingsKeeper settings;
 
@@ -39,7 +39,7 @@ final class FilesWork {
   /// The folders once their list loaded; none if it can't be read.
   final Future<List<Folder>> Function() folders;
 
-  final DraftsByBase drafts;
+  final DraftsByFolder drafts;
   final ShownFileTypes types;
 }
 
@@ -55,10 +55,9 @@ base class FileSteps {
   FileAccess get _files => _work.files;
   FileSettingsKeeper get _settings => _work.settings;
 
-  FileMarks _marksOf(Folder folder) => _work.servicesOf(folder.base).marks;
+  FileMarks _marksOf(Folder folder) => _work.servicesOf(folder.id).marks;
 
-  FileBackups _backupsOf(Folder folder) =>
-      _work.servicesOf(folder.base).backups;
+  FileBackups _backupsOf(Folder folder) => _work.servicesOf(folder.id).backups;
 
   /// [from]'s backups become [to]'s: the file moved there. Best
   /// effort, as its color: a backup left behind still shows in Backups.
@@ -92,9 +91,9 @@ base class FileSteps {
   /// made first.
   /// Refused while a sync conflict of the file waits, and if its file
   /// changed since [file] was read: the user saves their edits first.
-  /// Within one base folder the file itself moves; to another one it is
-  /// copied, then the old file is removed. If that fails, e.g. as it
-  /// changed meanwhile, both stay: never lose data.
+  /// Its folder decides how it moves ([FilesOfFolder.moveTo]); if the old
+  /// file stays beside its copy, e.g. as it can't be removed, both stay
+  /// with their color and settings: never lose data.
   Future<Result<FileText, MoveFailure>> move(
     FileText file,
     FilePlace place, {
@@ -106,40 +105,27 @@ base class FileSteps {
     }
     final mark = await _markOf(file.folder, file.path);
     final settings = _settings.settingsOf(file.key);
-    final files = _files.of(place.folder);
-    final sameBase = place.folder.base == file.folder.base;
-    final written = sameBase
-        ? await files.moveIn(
-            file,
-            subfolder: place.subfolder,
-            newSubfolder: newSubfolder,
-            title: title,
-          )
-        : await files.copyIn(
-            file,
-            file.text,
-            subfolder: place.subfolder,
-            newSubfolder: newSubfolder,
-            title: title,
-          );
-    final FileText moved;
-    switch (written) {
-      case Ok(:final value):
-        moved = value;
-      case Err(:final error):
-        return Err(MoveNotWritten(error));
-    }
+    final written = await _files
+        .of(file.folder)
+        .moveTo(
+          _files.of(place.folder),
+          file,
+          subfolder: place.subfolder,
+          newSubfolder: newSubfolder,
+          title: title,
+        );
+    final moved = switch (written) {
+      Ok(:final value) => value,
+      Err(error: MoveLeftOriginal(:final copy)) => copy,
+      Err() => null,
+    };
+    if (moved == null) return written;
     // Best effort, as the color of a new file.
     if (mark != FileMark.none) {
       await _marksOf(moved.folder).set(moved.path, mark);
     }
     await _settings.edit(moved.key, (_) => settings);
-    if (!sameBase) {
-      final deleted = await _files.of(file.folder).delete(file.listed);
-      if (deleted case Err(:final error)) {
-        return Err(MoveLeftOriginal(moved, error));
-      }
-    }
+    if (written is Err) return written;
     await _marksOf(file.folder).remove(file.path);
     await _settings.forget(file.key);
     await _moveBackups(file, moved);
@@ -193,17 +179,13 @@ base class FileSteps {
     };
   }
 
-  /// Recovers the drafts of every base folder written before [before]
-  /// (see [DraftRecovery]). Recovers none if the folders can't be loaded.
+  /// Recovers the drafts of every folder written before [before] (see
+  /// [DraftRecovery]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
-    final folders = await _work.folders();
-    for (final base in {for (final folder in folders) folder.base}) {
+    for (final folder in await _work.folders()) {
       await DraftRecovery(
-        _work.drafts.of(base.id),
-        filesFor: (path) => switch (folders.folderOf(base.id, path)) {
-          final folder? => _files.of(folder),
-          null => null,
-        },
+        _work.drafts.of(folder.id),
+        files: _files.of(folder),
         types: _work.types,
       ).recover(before: before);
     }

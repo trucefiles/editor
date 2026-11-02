@@ -46,13 +46,6 @@ final class ReachReportingStore implements FileStore {
   Future<Result<void, StoreError>> createFolder(RelPath folder) =>
       _reported(_inner.createFolder(folder));
 
-  @override
-  Future<Result<FileEntry, StoreError>> move(
-    RelPath from,
-    RelPath to, {
-    required FileVersion ifUnchanged,
-  }) => _reported(_inner.move(from, to, ifUnchanged: ifUnchanged));
-
   Future<Result<T, StoreError>> _reported<T>(
     Future<Result<T, StoreError>> access,
   ) async {

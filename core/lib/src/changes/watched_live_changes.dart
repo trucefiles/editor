@@ -20,25 +20,18 @@ final _log = Logger('WatchedLiveChanges');
 final class WatchedLiveChanges implements LiveChanges {
   const WatchedLiveChanges(this.rootPath);
 
-  /// Absolute path of the base folder.
+  /// Absolute path of the folder.
   final String rootPath;
 
   @override
-  Stream<ChangeHint> below(RelPath? folder) {
-    final watcher = DirectoryWatcher(
-      folder == null
-          ? rootPath
-          : p.joinAll([rootPath, ...folder.value.split('/')]),
-    );
-    return watcher.events
-        .expand<ChangeHint>(
-          (event) => [
-            if (_relative(event.path, rootPath) case final path?)
-              PathChanged(path),
-          ],
-        )
-        .transform(_endOnError);
-  }
+  Stream<ChangeHint> follow() => DirectoryWatcher(rootPath).events
+      .expand<ChangeHint>(
+        (event) => [
+          if (_relative(event.path, rootPath) case final path?)
+            PathChanged(path),
+        ],
+      )
+      .transform(_endOnError);
 
   /// [path] relative to [root], '/'-separated on every platform.
   static RelPath? _relative(String path, String root) => p.isWithin(root, path)

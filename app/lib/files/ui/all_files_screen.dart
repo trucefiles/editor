@@ -45,7 +45,7 @@ class AllFilesScreen extends ConsumerWidget {
     final asCards = settings.view == FileView.cards;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All documents'),
+        title: const Text('All files'),
         actions: [
           PopupMenuButton<FileOrder>(
             tooltip: 'Sort',
@@ -87,7 +87,7 @@ class AllFilesScreen extends ConsumerWidget {
                 _ when files.isEmpty => const FilledScrollView(
                   child: EmptyState(
                     icon: Icons.sticky_note_2_outlined,
-                    text: 'No documents yet.',
+                    text: 'No files yet.',
                   ),
                 ),
                 _ => CustomScrollView(

@@ -6,14 +6,12 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../files/files_wiring.dart';
-import '../platform/platform_wiring.dart';
+import '../plugins/plugins_wiring.dart';
 import '../storage/app_storage.dart';
-import '../sync_tool/sync_tools_wiring.dart';
 
 final folderListStoreProvider = Provider<FolderListStore>(
   (ref) => FolderListStore(
-    File('${ref.watch(appStorageProvider).settingsPath}/folder_list.json'),
-    toolIds: {for (final tool in ref.watch(syncToolsProvider).all) tool.id},
+    File('${ref.watch(appStorageProvider).settingsPath}/folders.json'),
   ),
 );
 
@@ -22,13 +20,10 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
   final owner = folderListOwner(
     FolderListWork(
       store: ref.watch(folderListStoreProvider),
-      hostPaths: ref.watch(hostPathsProvider),
-      isToolFolder: ref.watch(syncToolsProvider).isToolFolder,
+      plugins: ref.watch(folderPluginsProvider),
       secureOpen: ref.read(openFilesProvider).secureIn,
-      forgetDrafts: (base, under) =>
-          ref.read(draftsProvider).of(base.id).removeUnder(under),
-      countDrafts: (base, under) =>
-          ref.read(draftsProvider).of(base.id).countUnder(under),
+      forgetDrafts: (folder) => ref.read(draftsProvider).of(folder).forget(),
+      countDrafts: (folder) => ref.read(draftsProvider).of(folder).count(),
     ),
   );
   ref.onDispose(() => unawaited(owner.close()));
@@ -60,25 +55,15 @@ class FoldersController extends AsyncNotifier<List<Folder>> {
     };
   }
 
-  /// Adds a folder showing [selection] of the base folder at [address],
-  /// synced by the tool [toolId]; the folder added.
-  Future<Result<Folder, FolderError>> add({
-    required Uri address,
-    required String toolId,
-    required Selection selection,
-    required String name,
-    required String color,
-  }) => answerOf(
+  /// Adds the folders [candidates] name, from [plugin]'s add page, all
+  /// together or none; the folders added.
+  Future<Result<List<Folder>, FolderError>> add(
+    FolderPlugin plugin,
+    List<NamedCandidate> candidates,
+  ) => answerOf(
     _owner,
-    (ticket) => AddFolder(
-      ticket,
-      address: address,
-      toolId: toolId,
-      selection: selection,
-      name: name,
-      color: color,
-    ),
-    read: (FolderAdded answer) => answer.result,
+    (ticket) => AddFolders(ticket, plugin: plugin.id, candidates: candidates),
+    read: (FoldersAdded answer) => answer.result,
     orElse: const Err(FolderError.notSaved),
   );
 
@@ -93,7 +78,7 @@ class FoldersController extends AsyncNotifier<List<Folder>> {
   /// removing [folder] would delete.
   Future<int> draftsLostByRemoving(Folder folder) => answerOf(
     _owner,
-    (ticket) => CountDraftsUnder(ticket, folder),
+    (ticket) => CountDrafts(ticket, folder),
     read: (DraftsCounted answer) => answer.count,
     orElse: 0,
   );

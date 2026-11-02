@@ -56,7 +56,7 @@ final class FilePages {
   /// [create], [move] and [delete] create, move and delete a file's
   /// file;
   /// [settingsOf] gives a file's settings, [editSettings] changes
-  /// them. [reachOf] tells a base folder's reach now, [reachSettled] once
+  /// them. [reachOf] tells a folder's reach now, [reachSettled] once
   /// a running check of it is over. [refreshFolders] lists the folders
   /// again.
   FilePages({
@@ -82,8 +82,8 @@ final class FilePages {
   final EditSettings editSettings;
   final FilesOfFolder Function(Folder folder) filesOf;
   final FileDrafts Function(Folder folder) draftsOf;
-  final Reach Function(BaseFolder base) reachOf;
-  final Future<Reach> Function(BaseFolder base) reachSettled;
+  final Reach Function(FolderId folder) reachOf;
+  final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
   final Future<void> Function() refreshFolders;
 
@@ -138,7 +138,7 @@ final class FilePages {
         view: view,
         // Not yet kept as a conflict copy: only an unreachable folder
         // makes it read only.
-        readOnly: reachOf(file.folder.base) == Reach.unreachable,
+        readOnly: reachOf(file.folder.id) == Reach.unreachable,
         isNew: opened == null,
       ),
       EditorPage(
@@ -160,11 +160,11 @@ final class FilePages {
       editor.part.editor,
       merge: type.merge,
     );
-    BaseFolder base() => session.file.folder.base;
+    FolderId folder() => session.file.folder.id;
     controller = FileController(
       session,
-      reach: () => reachOf(base()),
-      reachSettled: () => reachSettled(base()),
+      reach: () => reachOf(folder()),
+      reachSettled: () => reachSettled(folder()),
       backUp: (text) async => switch (session.read) {
         final file? => await filesOf(file.folder).backUpCurrent(file, text),
         null => const Err(StoreError.notFound),
@@ -178,8 +178,8 @@ final class FilePages {
       () => editor.part.showReadOnly(readOnly: controller.readOnly),
     );
     final leaveOpenFiles = openFiles.add(
-      base: base,
-      secure: () => session.secure(SecureReason.hide),
+      folder: folder,
+      secure: session.secure,
     );
     // Opening a file lists the folders again, as the refresh setting
     // promises; its own text was read just before.

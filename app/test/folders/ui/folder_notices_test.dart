@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/folders/ui/folder_notices_view.dart';
 import 'package:truce_editor/folders/ui/folder_warning_icon.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 
 import '../../support.dart';
 
@@ -18,10 +18,12 @@ void main() {
     final folder = folderAt(tempFolder());
     await tester.pumpWidget(
       ProviderScope(
+        // A new scope each time, so the overrides of each call hold.
+        key: UniqueKey(),
         overrides: [
           appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
-          folderNoticesProvider.overrideWith((ref, location) async => notices),
+          folderNoticesProvider.overrideWith((ref, _) async => notices),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -42,7 +44,7 @@ void main() {
       PolledNotice(Duration(seconds: 10)),
     ], asIs);
 
-    expect(find.textContaining('Not inside a Syncthing folder.'), findsOne);
+    expect(find.textContaining('Not inside a Syncthing folder,'), findsOne);
     expect(find.textContaining('checked for changes every 10 s'), findsOne);
   });
 

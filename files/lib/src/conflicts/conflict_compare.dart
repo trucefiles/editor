@@ -11,7 +11,7 @@ final class ConflictCompare
     implements CompareSource<FolderConflict, ConflictSides> {
   ConflictCompare(this._services, this._rescan, {this._merge});
 
-  final BaseFolderServices _services;
+  final FolderServices _services;
   final Future<void> Function() _rescan;
   final TextMerge? _merge;
 

@@ -9,5 +9,6 @@ extension StoreErrorText on StoreError {
     StoreError.accessDenied => 'The app has no access to this folder.',
     StoreError.ioFailure => 'The file could not be read or written.',
     StoreError.outside => "The app doesn't show this file.",
+    StoreError.closed => 'The folder was removed from the app.',
   };
 }

@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_draft.dart';
 
-/// The drafts of one base folder's files, one JSON file each in app
+/// The drafts of one folder's files, one JSON file each in app
 /// storage. Per device and never synced.
 final class FileDrafts {
   FileDrafts(this._folder);
@@ -13,6 +13,9 @@ final class FileDrafts {
 
   /// Work on one draft's file runs one at a time.
   final _turns = KeyedTaskQueue<String>();
+
+  /// Whether the user removed the folder: no draft is kept after that.
+  var _forgotten = false;
 
   static const _extension = '.json';
 
@@ -35,11 +38,14 @@ final class FileDrafts {
   }
 
   /// Writes [draft] over any earlier one with its id, atomically, after
-  /// every earlier write of it. Returns `false` if it could not be written.
-  Future<bool> keep(FileDraft draft) async => await _turns.run(
+  /// every earlier write of it. Returns `false` if it could not be written,
+  /// or the folder is [forget]ten.
+  Future<bool> keep(FileDraft draft) => _turns.run(
     draft.id,
-    () => writeJsonAtomically(_file(draft.id), draft.toJson()),
-  ) is Ok;
+    () async =>
+        !_forgotten &&
+        await writeJsonAtomically(_file(draft.id), draft.toJson()) is Ok,
+  );
 
   /// Deletes the draft [id], once its edits are kept elsewhere. A draft
   /// that stays by failure is only tried again later.
@@ -51,28 +57,21 @@ final class FileDrafts {
     }
   });
 
-  /// Deletes the drafts of the files [under] covers, as the user
-  /// removes the folder that showed them: no edit is recovered into it.
-  /// With the whole base folder, every draft goes, also unreadable ones.
-  Future<void> removeUnder(Selection under) async {
-    if (under is WholeFolder) {
-      try {
-        await _folder.delete(recursive: true);
-      } on FileSystemException {
-        // None yet, or tried again when the folder is removed again.
-      }
-      return;
-    }
-    for (final draft in await all(before: DateTime(9999))) {
-      if (under.covers(draft.path)) await remove(draft.id);
+  /// Deletes every draft, unreadable ones too, once the writes already
+  /// asked for have ended, as the user removes the folder: no edit is
+  /// recovered into it, and no draft is kept after.
+  Future<void> forget() async {
+    _forgotten = true;
+    await _turns.idle();
+    try {
+      await _folder.delete(recursive: true);
+    } on FileSystemException {
+      // None yet, or left unseen in app storage.
     }
   }
 
-  /// How many files [under] covers have readable drafts.
-  Future<int> countUnder(Selection under) async =>
-      (await all(before: DateTime(9999)))
-          .where((draft) => under.covers(draft.path))
-          .length;
+  /// How many files have readable drafts.
+  Future<int> count() async => (await all(before: DateTime(9999))).length;
 
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
@@ -83,19 +82,18 @@ final class FileDrafts {
       };
 }
 
-/// The drafts of every base folder, one [FileDrafts] each, so the
-/// work on each draft's file runs one at a time.
-final class DraftsByBase {
-  /// The drafts of a base folder are in the folder [folderOf] tells by its
-  /// id.
-  DraftsByBase(this._folderOf);
+/// The drafts of every folder, one [FileDrafts] each, so the work on
+/// each draft's file runs one at a time.
+final class DraftsByFolder {
+  /// The drafts of a folder are in the app storage folder [pathOf] tells.
+  DraftsByFolder(this._pathOf);
 
-  final String Function(String baseId) _folderOf;
-  final _byBase = <String, FileDrafts>{};
+  final String Function(FolderId folder) _pathOf;
+  final _byFolder = <FolderId, FileDrafts>{};
 
-  /// The drafts of the base folder with the id [baseId].
-  FileDrafts of(String baseId) => _byBase.putIfAbsent(
-    baseId,
-    () => FileDrafts(Directory(_folderOf(baseId))),
+  /// The drafts of [folder].
+  FileDrafts of(FolderId folder) => _byFolder.putIfAbsent(
+    folder,
+    () => FileDrafts(Directory(_pathOf(folder))),
   );
 }

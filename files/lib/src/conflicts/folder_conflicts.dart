@@ -12,7 +12,7 @@ final class FolderConflict {
   final Folder folder;
   final Conflict conflict;
 
-  FileKey get key => (baseId: folder.base.id, path: conflict.mainPath);
+  FileKey get key => (folder: folder.id, path: conflict.mainPath);
 }
 
 /// The pending conflicts of all folders.
@@ -29,7 +29,7 @@ final class FolderConflicts {
     return null;
   }
 
-  int countIn(String folderId) =>
+  int countIn(FolderId folderId) =>
       all.where((conflict) => conflict.folder.id == folderId).length;
 
   /// Conflicts whose main file is gone, shown as recoverable files.

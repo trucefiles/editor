@@ -1,5 +1,5 @@
 /// The folder state owner's contract: what reaches it, what it decides,
-/// what it leads to. One per app; it keeps what the base folders hold
+/// what it leads to. One per app; it keeps what the folders hold
 /// (their listings, conflicts, subfolders and marks, never file texts) in
 /// step with changes, working only on what changed. Knows nothing of
 /// files, file types or sync tools.
@@ -11,10 +11,10 @@ import '../common/result.dart';
 import '../marks/file_marks.dart';
 import '../owners/ask.dart';
 import '../owners/effects.dart';
+import '../plugins/folder_id.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
-import '../storage/selection.dart';
 
 /// What the folder state owner handles: inputs anyone may send, and the
 /// results of its effects.
@@ -28,11 +28,11 @@ sealed class FolderStateInput extends FolderStateMessage {
   const FolderStateInput();
 }
 
-/// List every base folder again now, e.g. when the user asks or a
+/// List every folder again now, e.g. when the user asks or a
 /// file opens; answered by [Fresh] once each was listed by a listing
 /// that started after this, so the state shows every write made before.
 /// Lists even while the app is not in use; waits for the first
-/// [BasesChanged].
+/// [FoldersChanged].
 final class Refresh extends FolderStateInput implements Asking {
   const Refresh(this.ticket);
 
@@ -40,35 +40,34 @@ final class Refresh extends FolderStateInput implements Asking {
   final Ticket ticket;
 }
 
-/// The base folders to follow are now [bases], by id, each with what is
-/// selected in it. A new base folder, or one whose selection changed, is
-/// listed at once; the state of those no longer named goes. Nothing is
-/// listed before the first.
-final class BasesChanged extends FolderStateInput {
-  BasesChanged(Map<String, Selection> bases) : bases = Map.unmodifiable(bases);
+/// The folders to follow are now [folders]. A new one is listed at once;
+/// the state of those no longer named goes. Nothing is listed before the
+/// first.
+final class FoldersChanged extends FolderStateInput {
+  FoldersChanged(Set<FolderId> folders) : folders = Set.unmodifiable(folders);
 
-  final Map<String, Selection> bases;
+  final Set<FolderId> folders;
 }
 
-/// What base folder [baseId]'s changes hint: paths that changed are
+/// What [folder]'s changes hint: paths that changed are
 /// checked once changes pause; [ListAgain] lists it at once. Ignored while
 /// the app is not in use.
 final class Hinted extends FolderStateInput {
-  const Hinted(this.baseId, this.hint);
+  const Hinted(this.folder, this.hint);
 
-  final String baseId;
+  final FolderId folder;
   final ChangeHint hint;
 }
 
-/// The app wrote or deleted [paths] in base folder [baseId] at [at] (the
+/// The app wrote or deleted [paths] in [folder] at [at] (the
 /// wall clock): they are checked at once, and until a listing shows a
 /// later time for one, it shows [at] (some file systems report a stale
 /// time right after a write).
 final class AppWrote extends FolderStateInput {
-  AppWrote(this.baseId, Set<RelPath> paths, {required this.at})
+  AppWrote(this.folder, Set<RelPath> paths, {required this.at})
     : paths = Set.unmodifiable(paths);
 
-  final String baseId;
+  final FolderId folder;
   final Set<RelPath> paths;
   final DateTime at;
 }
@@ -86,16 +85,16 @@ sealed class FolderStateResult extends FolderStateMessage {
   const FolderStateResult();
 }
 
-/// [ListBase] found [listing], listing from [startedAt].
+/// [ListWhole] found [listing], listing from [startedAt].
 final class ListingDone extends FolderStateResult {
   const ListingDone(this.id, this.listing, {required this.startedAt});
 
   final EffectId id;
-  final Result<BaseListing, StoreError> listing;
+  final Result<WholeListing, StoreError> listing;
   final Moment startedAt;
 }
 
-/// [CheckBase] found [part] and the marks [marks] (`null`: none asked),
+/// [CheckPart] found [part] and the marks [marks] (`null`: none asked),
 /// checking from [startedAt].
 final class CheckDone extends FolderStateResult {
   const CheckDone(
@@ -118,13 +117,13 @@ final class ChangesWaited extends FolderStateResult {
   final EffectId id;
 }
 
-/// A whole base folder as listed: what its sync tool lists, and the
+/// A whole folder as listed: what its plugin lists, and the
 /// marks of all devices.
-typedef BaseListing = ({FolderScan scan, MarksFiles marks});
+typedef WholeListing = ({FolderScan scan, MarksFiles marks});
 
 // Events.
 
-/// The answer to [Refresh]: every base folder was listed since.
+/// The answer to [Refresh]: every folder was listed since.
 final class Fresh implements Answering {
   const Fresh(this.ticket);
 
@@ -138,30 +137,30 @@ sealed class FolderStateEffect {
   const FolderStateEffect();
 }
 
-/// List base folder [baseId] whole, reading only the marks files that
+/// List [folder] whole, reading only the marks files that
 /// changed since [marks]; answered by [ListingDone].
-final class ListBase extends FolderStateEffect {
-  const ListBase(this.id, this.baseId, {required this.marks});
+final class ListWhole extends FolderStateEffect {
+  const ListWhole(this.id, this.folder, {required this.marks});
 
   final EffectId id;
-  final String baseId;
+  final FolderId folder;
   final MarksFiles marks;
 }
 
-/// Check what lies directly in [folders] of base folder [baseId], and
+/// Check what lies directly in [folders] of [folder], and
 /// read the marks files [marksFiles] again over [marks]; answered by
 /// [CheckDone].
-final class CheckBase extends FolderStateEffect {
-  const CheckBase(
+final class CheckPart extends FolderStateEffect {
+  const CheckPart(
     this.id,
-    this.baseId, {
+    this.folder, {
     required this.folders,
     required this.marksFiles,
     required this.marks,
   });
 
   final EffectId id;
-  final String baseId;
+  final FolderId folder;
   final Set<RelPath?> folders;
   final Set<RelPath> marksFiles;
   final MarksFiles marks;

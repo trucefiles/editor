@@ -20,7 +20,7 @@ void main() {
   final changed = DeviceSettings(
     documentTextZoom: TextZoom.closestTo(130),
     appTextZoom: TextZoom.closestTo(150),
-    newFilePlace: (folderId: 'f1', subfolder: path('inbox')),
+    newFilePlace: (folderId: folderId('f1'), subfolder: path('inbox')),
     refresh: const RefreshSettings(
       mode: RefreshMode.manual,
       interval: Duration(seconds: 30),

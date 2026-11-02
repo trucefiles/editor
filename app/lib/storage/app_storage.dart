@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:truce_core/truce_core.dart' show loadDeviceId;
+import 'package:truce_core/truce_core.dart' show FolderId, loadDeviceId;
 
 /// Where the app keeps its own files, private to this device.
 final class AppStorage {
@@ -20,16 +20,18 @@ final class AppStorage {
   /// `android/app/src/main/res/xml`).
   String get deviceIdPath => '$settingsPath/device_id';
 
-  /// Holds one backup folder per base folder.
+  /// Holds one backup folder per folder.
   String get _backupsRootPath => '$rootPath/backups';
 
-  /// Backups of one base folder's files, by [baseId].
-  String backupsPath(String baseId) => '$_backupsRootPath/$baseId';
+  /// Backups of one folder's files.
+  String backupsPath(FolderId folder) =>
+      '$_backupsRootPath/${folder.storageName}';
 
-  /// Edits not yet in one base folder's files, by [baseId].
-  String draftsPath(String baseId) => '$rootPath/drafts/$baseId';
+  /// Edits not yet in one folder's files.
+  String draftsPath(FolderId folder) =>
+      '$rootPath/drafts/${folder.storageName}';
 
-  /// Every backup folder, also of base folders removed from the app since.
+  /// Every backup folder, also of folders removed from the app since.
   Future<List<String>> allBackupsPaths() async {
     try {
       return await Directory(_backupsRootPath)

@@ -23,12 +23,14 @@ void main() {
     addTearDown(following.close);
   });
 
-  Map<String, FolderChanges> base1() => {'b1': _StreamChanges(changes)};
+  Map<FolderId, FolderChanges> folder1() => {
+    folderId('b1'): _StreamChanges(changes),
+  };
 
   Future<void> settle() => pumpEventQueue();
 
-  test('passes every hint on, with its base folder', () async {
-    following.follow(active: true, changes: base1());
+  test('passes every hint on, with its folder', () async {
+    following.follow(active: true, changes: folder1());
 
     changes
       ..add(PathChanged(path('a.md')))
@@ -38,17 +40,20 @@ void main() {
     expect(
       [
         for (final input in owner.inputs)
-          if (input case Hinted(:final baseId, :final hint)) (baseId, hint),
+          if (input case Hinted(:final folder, :final hint)) (folder, hint),
       ],
-      [('b1', PathChanged(path('a.md'))), ('b1', const ListAgain())],
+      [
+        (folderId('b1'), PathChanged(path('a.md'))),
+        (folderId('b1'), const ListAgain()),
+      ],
     );
   });
 
   test('tells the owner whether the app is in use', () {
     following
-      ..follow(active: true, changes: base1())
-      ..follow(active: true, changes: base1())
-      ..follow(active: false, changes: base1());
+      ..follow(active: true, changes: folder1())
+      ..follow(active: true, changes: folder1())
+      ..follow(active: false, changes: folder1());
 
     expect(
       [
@@ -60,7 +65,7 @@ void main() {
   });
 
   test('does not look for changes while the app is not in use', () {
-    following.follow(active: false, changes: base1());
+    following.follow(active: false, changes: folder1());
 
     expect(changes.hasListener, isFalse);
   });
@@ -72,10 +77,10 @@ void main() {
   });
 
   test('stops looking once the app is no longer in use', () async {
-    following.follow(active: true, changes: base1());
+    following.follow(active: true, changes: folder1());
     expect(changes.hasListener, isTrue);
 
-    following.follow(active: false, changes: base1());
+    following.follow(active: false, changes: folder1());
     await settle();
 
     expect(changes.hasListener, isFalse);
@@ -84,8 +89,8 @@ void main() {
   test('looks for the changes it is given once more, only', () async {
     final first = _StreamChanges(changes);
     following
-      ..follow(active: true, changes: {'b1': first})
-      ..follow(active: true, changes: {'b1': first});
+      ..follow(active: true, changes: {folderId('b1'): first})
+      ..follow(active: true, changes: {folderId('b1'): first});
     changes.add(PathChanged(path('a.md')));
     await settle();
 
@@ -94,9 +99,9 @@ void main() {
 
   test('leaves catching up after a pause to the screens', () async {
     following
-      ..follow(active: true, changes: base1())
-      ..follow(active: false, changes: base1())
-      ..follow(active: true, changes: base1());
+      ..follow(active: true, changes: folder1())
+      ..follow(active: false, changes: folder1())
+      ..follow(active: true, changes: folder1());
     await settle();
 
     expect(owner.inputs.whereType<Hinted>(), isEmpty);
@@ -106,7 +111,7 @@ void main() {
 
   test('stops looking once closed', () async {
     following
-      ..follow(active: true, changes: base1())
+      ..follow(active: true, changes: folder1())
       ..close();
     await settle();
 

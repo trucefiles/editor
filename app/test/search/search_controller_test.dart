@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
@@ -29,7 +28,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save([folderAt(dir)]);
+    await saveFolders(container, [folderAt(dir)]);
     await container.read(folderContentsProvider.future);
   });
 

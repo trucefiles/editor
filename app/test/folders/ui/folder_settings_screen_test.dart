@@ -1,51 +1,27 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
-import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../support.dart';
 
 void main() {
-  final folder = folderAt(
-    Directory('/sync'),
-    selection: Selection.of([path('notes')]),
-  );
-  final other = folderAt(
-    Directory('/sync'),
-    id: 'f2',
-    baseId: folder.base.id,
-    selection: Selection.of([path('home')]),
-  );
+  late Folder folder;
   late _Folders folders;
 
-  Future<void> open(
-    WidgetTester tester, {
-    Folder? shown,
-    bool missesOldVersions = false,
-  }) async {
-    final opened = shown ?? folder;
-    folders = _Folders([opened, other]);
+  Future<void> open(WidgetTester tester) async {
+    folder = folderAt(tempFolder());
+    folders = _Folders([folder]);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           foldersProvider.overrideWith(() => folders),
-          subfolderNamesProvider.overrideWith(
-            (ref, base) => const _Names({
-              null: ['home', 'notes', 'work'],
-              'notes': ['deep'],
-            }),
-          ),
           folderNoticesProvider.overrideWith(
-            (ref, base) async => const <FolderNotice>[],
-          ),
-          missesOldVersionsProvider.overrideWith(
-            (ref, base) async => missesOldVersions,
+            (ref, _) async => const <FolderNotice>[],
           ),
         ],
         child: MaterialApp(
@@ -54,7 +30,7 @@ void main() {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(
-                  builder: (_) => FolderSettingsScreen(opened),
+                  builder: (_) => FolderSettingsScreen(folder),
                 ),
               ),
               child: Text(
@@ -70,53 +46,29 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder checkboxOf(String folder) => find.descendant(
-    of: find.widgetWithText(ListTile, folder),
-    matching: find.byType(Checkbox),
-  );
-
-  testWidgets('saves the name and what the folder shows', (tester) async {
+  testWidgets('shows where the folder is and its kind', (tester) async {
     await open(tester);
-    expect(find.text('Synced by: Syncthing'), findsOne);
-    expect(tester.widget<Checkbox>(checkboxOf('notes')).value, isTrue);
+
+    expect(find.text(folder.location), findsOne);
+    expect(find.text('Syncthing: Folders synced with Syncthing'), findsOne);
+  });
+
+  testWidgets('saves the name', (tester) async {
+    await open(tester);
 
     await tester.enterText(find.byType(TextField), ' Work ');
-    await tester.tap(checkboxOf('work'));
-    await tester.tap(checkboxOf('notes'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(folders.changed.single.name, 'Work');
-    expect(folders.changed.single.selection, Selection.of([path('work')]));
     expect(find.byType(FolderSettingsScreen), findsNothing);
   });
 
-  testWidgets('opens the folders on the way to a subfolder it shows', (
-    tester,
-  ) async {
-    await open(
-      tester,
-      shown: folder.copyWith(selection: Selection.of([path('notes/deep')])),
-    );
-
-    expect(tester.widget<Checkbox>(checkboxOf('deep')).value, isTrue);
-  });
-
-  testWidgets("another folder's part can't be picked, nor the whole", (
-    tester,
-  ) async {
+  testWidgets('a blank name can not be saved', (tester) async {
     await open(tester);
 
-    expect(find.text('Another folder shows part of it.'), findsOne);
-    expect(tester.widget<Checkbox>(checkboxOf('home')).onChanged, isNull);
-  });
-
-  testWidgets('can only save once something is shown', (tester) async {
-    await open(tester);
-
-    await tester.tap(checkboxOf('notes'));
-    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
 
     expect(
       tester
@@ -130,24 +82,16 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    folders.answer = const Err(FolderError.overlaps);
+    folders.answer = const Err(FolderError.notSaved);
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('overlaps with a folder'), findsOne);
-    expect(find.byType(FolderSettingsScreen), findsOne);
-  });
-
-  testWidgets('hints at the synced folder itself for more history', (
-    tester,
-  ) async {
-    await open(tester, missesOldVersions: true);
-
     expect(
-      find.text('Pick the Syncthing folder itself to get more history.'),
+      find.text('The folder list could not be saved, so nothing changed.'),
       findsOne,
     );
+    expect(find.byType(FolderSettingsScreen), findsOne);
   });
 }
 
@@ -167,15 +111,4 @@ final class _Folders extends FoldersController {
     this.changed.add(changed);
     return answer;
   }
-}
-
-/// Folder names by the path of their parent (`null` for the top).
-final class _Names implements SubfolderNames {
-  const _Names(this.byParent);
-
-  final Map<String?, List<String>> byParent;
-
-  @override
-  Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
-      Ok(byParent[folder?.value] ?? const []);
 }

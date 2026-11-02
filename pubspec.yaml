@@ -13,7 +13,9 @@ workspace:
   - folders
   - masonry
   - plugins/local_folder/local_folder
+  - plugins/local_folder/local_folder_ui
   - plugins/syncthing/syncthing
+  - plugins/syncthing/syncthing_ui
   - test_support
   - types/calendar/calendar
   - types/calendar/calendar_editor

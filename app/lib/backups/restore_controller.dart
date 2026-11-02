@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../folder_state/folder_state_controller.dart';
-import '../sync_tool/base_folder_wiring.dart';
+import '../folders/open_folders_wiring.dart';
 import '../versions/compare_controller.dart';
 import 'all_backups.dart';
 
@@ -28,7 +28,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
   CompareSource<FolderBackup, RestoreChoice> source() {
     final folderState = ref.read(folderContentsProvider.notifier);
     return RestoreCompare(
-      ref.read(baseFolderServicesProvider(start.folder.base)).restore,
+      ref.read(folderServicesProvider(start.folder.id)).restore,
       () {
         // The list behind this screen shows the backup of the file replaced.
         if (ref.mounted) ref.invalidate(allBackupsProvider);
@@ -38,8 +38,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
   }
 
   @override
-  FileKey get file =>
-      (baseId: start.folder.base.id, path: start.backup.filePath);
+  FileKey get file => (folder: start.folder.id, path: start.backup.filePath);
 
   /// The same backup, as it is now.
   @override

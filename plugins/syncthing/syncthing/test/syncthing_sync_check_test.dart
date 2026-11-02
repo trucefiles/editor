@@ -1,11 +1,10 @@
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  /// A check of a base folder whose [levels] hold these entry names, the
-  /// base folder first; `null` cannot be read. Parents are visible unless
+  /// A check of a folder whose [levels] hold these entry names, the
+  /// folder first; `null` cannot be read. Parents are visible unless
   /// [hidden].
   Future<SyncStatus> check(List<Set<String>?> levels, {bool hidden = false}) =>
       SyncthingSyncCheck(FakeFolderMarkers(levels, seesParents: !hidden))

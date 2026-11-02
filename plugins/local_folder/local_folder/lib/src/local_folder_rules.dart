@@ -20,10 +20,6 @@ final class LocalFolderRules {
       _isTempFile(path.name) ||
       const LocalConflictNames().parse(path.name) != null;
 
-  /// Whether the folder with the segments [names], outermost first, is
-  /// the tool's own or lies inside it.
-  bool isInternalFolder(List<String> names) => false;
-
   /// The temp file name of an atomic write; [randomToken] keeps
   /// concurrent writes apart.
   String tempFileName(String randomToken) =>

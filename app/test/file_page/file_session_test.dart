@@ -39,7 +39,7 @@ void main() {
 
   test('a bug in writing stops the session; edits stay a draft', () async {
     final errors = <Object>[];
-    final notices = <bool>[];
+    final notices = <Stopped>[];
     late FileSession session;
 
     // Made in the zone, so the error of its file owner is heard there.
@@ -77,8 +77,25 @@ void main() {
     );
     // Told once, as it is known that the edits are kept.
     await eventually(() async => notices.isNotEmpty);
-    expect(notices, [true]);
+    expect(notices.single.kept, isTrue);
+    expect(notices.single.cause, StopCause.bug);
     expect(session.state, isA<Stopped>().having((s) => s.kept, 'kept', true));
+  });
+
+  test('a save into a removed folder stops the session, telling the folder '
+      'is gone', () async {
+    final session = fixture.session();
+    final notices = <Stopped>[];
+    session.stopNotices.listen(notices.add);
+    await fixture.removeFirstFolder();
+
+    session.type('mine ');
+    await session.secure(.hide);
+
+    await eventually(() => notices.isNotEmpty);
+    expect(notices.single.cause, StopCause.folderGone);
+    expect(notices.single.kept, isFalse);
+    expect(session.state, isA<Stopped>());
   });
 
   test('once stopped, its text is the latest edits, also those the editor '
@@ -285,7 +302,7 @@ void main() {
   test('a scan that could not read a subfolder above the file says nothing '
       'of it', () async {
     Directory('${fixture.dirs[0].path}/sub').createSync();
-    final inSub = (await fixture.files['f1']!.create(
+    final inSub = (await fixture.files[folderId('f1')]!.create(
       'b',
       type: appFileTypes().forNew,
       text: '# b\n',
@@ -298,22 +315,10 @@ void main() {
         const [],
         folders: fixture.folders,
         unreadable: {
-          'f1': [path('sub')],
+          folderId('f1'): [path('sub')],
         },
       ),
     );
-
-    expect(session.status, isA<InStep>());
-  });
-
-  test('a scan in which no folder shows the file any more says nothing of '
-      'it', () {
-    final session = fixture.session();
-    final narrowed = fixture.folders[0].copyWith(
-      selection: Selection.of([path('elsewhere')]),
-    );
-
-    session.observe(contentsFinding(const [], folders: [narrowed]));
 
     expect(session.status, isA<InStep>());
   });
@@ -356,6 +361,21 @@ void main() {
 
       await eventually(() => fixture.onDisk('a.md') == 'xone\n');
     });
+  });
+
+  test('as its folder is removed, edits that clash with a change elsewhere '
+      'are kept as a conflict copy', () async {
+    final session = fixture.session()..type('x');
+    await fixture.editElsewhere('two\n');
+
+    expect(await session.secure(.close), isTrue);
+    await fixture.removeFirstFolder();
+
+    final texts = [
+      for (final file in fixture.dirs[0].listSync().whereType<File>())
+        file.readAsStringSync(),
+    ];
+    expect(texts, unorderedEquals(['two\n', 'xone\n']));
   });
 
   test('a file deleted elsewhere comes back with the edits', () async {

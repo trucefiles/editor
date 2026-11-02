@@ -8,15 +8,15 @@ import 'listed_file.dart';
 import 'view_settings.dart';
 
 /// Keeps the [KeptFileSettings] of each file in a JSON file in app storage,
-/// keyed by base folder id and path. Per device and never synced. A
+/// keyed by folder and path. Per device and never synced. A
 /// convenience: read and write failures are ignored. `view` is the
 /// file type's own part, kept as is.
 ///
 /// ```json
-/// {"b1/todo.md": {"pinned": true,
-///                 "view": {"mode": "visual", "checked": "moveToEnd"}},
-///  "b1/old.md": {"pinned": true, "view": {},
-///                "missingSince": "2026-10-21T09:00:00.000Z"}}
+/// {"syncthing-f1/todo.md": {"pinned": true,
+///                           "view": {"mode": "visual"}},
+///  "syncthing-f1/old.md": {"pinned": true, "view": {},
+///                          "missingSince": "2026-10-21T09:00:00.000Z"}}
 /// ```
 final class FileSettingsStore
     implements SettingStore<Map<String, KeptFileSettings>> {
@@ -44,14 +44,22 @@ final class FileSettingsStore
   });
 
   /// Key of [file] in the saved map.
-  static String storeKey(FileKey file) => '${file.baseId}/${file.path.value}';
+  static String storeKey(FileKey file) =>
+      '${file.folder.storageName}/${file.path.value}';
 
   /// The file [storeKey] names; `null` if it names none.
   static FileKey? keyOf(String storeKey) {
-    final at = storeKey.indexOf('/');
-    if (at < 0) return null;
-    return switch (RelPath.parse(storeKey.substring(at + 1))) {
-      final path? => (baseId: storeKey.substring(0, at), path: path),
+    final slash = storeKey.indexOf('/');
+    final dash = storeKey.indexOf('-');
+    if (slash < 0 || dash < 0 || dash > slash) return null;
+    return switch (RelPath.parse(storeKey.substring(slash + 1))) {
+      final path? => (
+        folder: FolderId(
+          storeKey.substring(0, dash),
+          storeKey.substring(dash + 1, slash),
+        ),
+        path: path,
+      ),
       null => null,
     };
   }

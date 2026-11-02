@@ -1,7 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 
 /// [FolderMarkers] over made-up folders for tests: [levels] holds the
-/// entry names of the base folder (first), then of each folder above it,
+/// entry names of the folder (first), then of each folder above it,
 /// up to the file system root; `null` for a folder that can't be read.
 final class FakeFolderMarkers implements FolderMarkers {
   const FakeFolderMarkers(this.levels, {this.seesParents = true});

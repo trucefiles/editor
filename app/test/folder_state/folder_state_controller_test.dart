@@ -27,7 +27,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save(folders);
+    await saveFolders(container, folders);
   }
 
   Future<FolderContents> scans() =>
@@ -55,7 +55,7 @@ void main() {
 
     expect(names(found), unorderedEquals(['plan.md', 'todo.md']));
     final conflict = found.conflicts.all.single;
-    expect(conflict.folder.id, 'home');
+    expect(conflict.folder.id, folderId('home'));
     expect(conflict.conflict.mainPath, path('todo.md'));
     expect(found.failedFolders, isEmpty);
   });
@@ -90,7 +90,7 @@ void main() {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');
     await start([folderAt(dir, id: 'f1')]);
-    final drafts = FileDrafts(Directory(storage.draftsPath('f1')));
+    final drafts = FileDrafts(Directory(storage.draftsPath(folderId('f1'))));
     await drafts.keep(
       FileDraft(
         id: '1',
@@ -100,7 +100,7 @@ void main() {
       ),
     );
     // Written before this run started.
-    File('${storage.draftsPath('f1')}/1.json')
+    File('${storage.draftsPath(folderId('f1'))}/1.json')
         .setLastModifiedSync(DateTime(2000));
 
     final found = await scans();
@@ -127,8 +127,8 @@ void main() {
       found.files.map((n) => n.path.value),
       unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
     );
-    final deep = (baseId: folder.base.id, path: path('a/b/c/todo.md'));
-    final shallow = (baseId: folder.base.id, path: path('a/todo.md'));
+    final deep = (folder: folder.id, path: path('a/b/c/todo.md'));
+    final shallow = (folder: folder.id, path: path('a/todo.md'));
     expect(found.markOf(deep).color, 'teal');
     expect(found.markOf(shallow), FileMark.none);
     expect(found.conflicts.forFile(deep), isNotNull);
@@ -150,7 +150,7 @@ void main() {
 
     final found = await scans();
 
-    expect(found.subfoldersOf('one').map((p) => p.value), [
+    expect(found.subfoldersOf(folderId('one')).map((p) => p.value), [
       'a',
       'a/b',
       'a/b/c',
@@ -159,7 +159,7 @@ void main() {
       'x',
       'y',
     ]);
-    expect(found.subfoldersOf('two').map((p) => p.value), ['z']);
+    expect(found.subfoldersOf(folderId('two')).map((p) => p.value), ['z']);
   });
 
   test('lists documents newest first', () async {
@@ -200,7 +200,7 @@ void main() {
 
       expect(names(found), ['new.md', 'old.md']);
       expect(
-        found.markOf((baseId: folder.base.id, path: path('new.md'))),
+        found.markOf((folder: folder.id, path: path('new.md'))),
         const FileMark(color: 'teal'),
       );
     },

@@ -114,7 +114,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       );
 
   bool _unreachable(Folder folder) =>
-      ref.watch(folderReachProvider(folder.base)) == Reach.unreachable;
+      ref.watch(folderReachProvider(folder.id)) == Reach.unreachable;
 
   Widget _chooser(Conflict conflict, ConflictSides sides, bool busy) {
     final deleted = sides.current == null;
@@ -127,7 +127,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
-            ? 'The document stays deleted and the other version is removed. '
+            ? 'The file stays deleted and the other version is removed. '
                   '$bothBackedUp'
             : 'The other version is removed. $bothBackedUp',
       ),
@@ -136,7 +136,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         content: SavedText(sides.other, sides.copy.createdAt),
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
-            ? 'The document is restored from this version. $bothBackedUp'
+            ? 'The file is restored from this version. $bothBackedUp'
             : 'The current version is replaced by the other one. '
                   '$bothBackedUp',
       ),

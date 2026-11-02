@@ -14,21 +14,18 @@ import 'shown_file_types.dart';
 /// it still holds the text they started from, else into a conflict copy.
 /// A new file is created, as `FilesOfFolder.create` does.
 ///
-/// Works on one base folder's drafts. A draft no folder shows (e.g. after
-/// the user narrowed a folder) stays, neither recovered nor deleted,
-/// until a folder shows it again or its base folder goes.
+/// Works on one folder's drafts.
 final class DraftRecovery {
   const DraftRecovery(
     this._drafts, {
-    required this._filesFor,
+    required this._files,
     required this._types,
   });
 
   final FileDrafts _drafts;
 
-  /// The files of the folder that shows the file at a path; `null`
-  /// if none does.
-  final FilesOfFolder? Function(RelPath path) _filesFor;
+  /// The files of the drafts' folder.
+  final FilesOfFolder _files;
 
   final ShownFileTypes _types;
 
@@ -37,8 +34,7 @@ final class DraftRecovery {
   Future<int> recover({required DateTime before}) async {
     var kept = 0;
     for (final draft in await _drafts.all(before: before)) {
-      final files = _filesFor(draft.path);
-      if (files != null && await _keep(draft, files)) {
+      if (await _keep(draft, _files)) {
         await _drafts.remove(draft.id);
         kept++;
       }

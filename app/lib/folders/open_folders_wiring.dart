@@ -1,0 +1,103 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
+
+import '../file_types/file_types.dart';
+import '../plugins/plugins_wiring.dart';
+import '../settings/device_settings_controller.dart';
+import '../storage/app_storage.dart';
+import 'folders_controller.dart';
+
+final appWritesProvider = Provider<AppWrites>((ref) {
+  final writes = AppWrites();
+  ref.onDispose(writes.close);
+  return writes;
+});
+
+/// The open folders, wired: they follow the folder list owner. Every
+/// write through their services is told to [appWritesProvider]. A folder
+/// that is gone is checked again at the refresh setting's interval, read
+/// at each wait.
+final openFoldersProvider = Provider<OpenFolders>((ref) {
+  final plugins = ref.watch(folderPluginsProvider);
+  final types = ref.watch(fileTypesProvider);
+  final storage = ref.watch(appStorageProvider);
+  final deviceId = ref.watch(deviceIdProvider);
+  final writes = ref.watch(appWritesProvider);
+  final open = OpenFolders(
+    ref.watch(folderListOwnerProvider),
+    plugins: plugins,
+    build: (folder, raw, reach) => folderServices(
+      raw,
+      reach: reach,
+      handles: types.handles,
+      backupsPath: storage.backupsPath(folder.id),
+      deviceId: deviceId,
+      checkEvery: () =>
+          (ref.mounted
+                  ? ref.read(deviceSettingsProvider).requireValue.refresh
+                  : RefreshSettings.standard)
+              .interval,
+      wrote: (paths) => writes.wrote(folder.id, paths),
+    ),
+  );
+  ref.onDispose(() => unawaited(open.close()));
+  return open;
+});
+
+/// Counts the times open folders closed, so whatever watches a folder's
+/// services gets its closed ones. Counted a microtask later: the open
+/// folders may hear of a change while a provider builds, and a provider
+/// may not change another one then.
+final _foldersClosedProvider = NotifierProvider<_FoldersClosed, int>(
+  _FoldersClosed.new,
+);
+
+class _FoldersClosed extends Notifier<int> {
+  @override
+  int build() {
+    final closed = ref
+        .watch(openFoldersProvider)
+        .changes
+        .listen(
+          (_) => scheduleMicrotask(() {
+            if (ref.mounted) state++;
+          }),
+        );
+    ref.onDispose(() => unawaited(closed.cancel()));
+    return 0;
+  }
+}
+
+/// The services of the folder with this id (see [OpenFolders]).
+final folderServicesProvider = Provider.family<FolderServices, FolderId>((
+  ref,
+  folder,
+) {
+  ref.watch(_foldersClosedProvider);
+  return ref.watch(openFoldersProvider).servicesOf(folder);
+});
+
+/// How changes to the folder with this id are found, as the refresh
+/// setting asks (see [folderFollowing]).
+final folderFollowingProvider = Provider.family<FolderFollowing, FolderId>(
+  (ref, folder) => folderFollowing(
+    ref.watch(deviceSettingsProvider.select((s) => s.requireValue.refresh)),
+    ref.watch(folderServicesProvider(folder)).changes,
+  ),
+);
+
+/// What the user should know about the folder with this id: what its
+/// plugin tells, and whether its changes are polled as they can't be
+/// followed live. Checked once; invalidate to check again.
+final folderNoticesProvider =
+    FutureProvider.family<List<FolderNotice>, FolderId>((ref, folder) async {
+      final polled = ref.watch(folderFollowingProvider(folder)).pollsInstead;
+      final notices = ref.watch(folderServicesProvider(folder)).notices;
+      return [
+        ...await notices.check(),
+        if (polled case final interval?) PolledNotice(interval),
+      ];
+    });

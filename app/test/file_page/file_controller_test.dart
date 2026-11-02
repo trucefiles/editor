@@ -110,6 +110,17 @@ void main() {
       );
     });
 
+    test('read only once the file closed and takes no more edits', () async {
+      final session = fixture.session();
+      final controller = controllerOn(session);
+      session.type('x');
+
+      expect(await session.secure(.close), isTrue);
+
+      expect(session.status, isA<Closed>());
+      expect(controller.readOnly, isTrue);
+    });
+
     test('leaves at once only with nothing left to keep', () async {
       final session = fixture.session();
       final controller = controllerOn(session);
@@ -133,18 +144,30 @@ void main() {
       );
     });
 
-    test('whether the folders still show the document', () {
+    test("whether the folders still hold the file's folder", () {
       final controller = controllerOn(fixture.session());
-      final shown = fixture.folders[0];
 
-      expect(controller.shownIn(fixture.folders), FileShown.shown);
+      expect(controller.folderShownIn(fixture.folders), isTrue);
+      expect(controller.folderShownIn([fixture.folders[1]]), isFalse);
+    });
+
+    test('a removed folder closes a file with nothing unsaved', () {
+      final controller = controllerOn(fixture.session());
+
+      expect(controller.folderRemoved(), isTrue);
+    });
+
+    test('a removed folder keeps a file with unsaved edits open, read '
+        'only', () {
+      final session = fixture.session()..type('mine ');
+      final controller = controllerOn(session);
+
+      expect(controller.folderRemoved(), isFalse);
       expect(
-        controller.shownIn([
-          shown.copyWith(selection: Selection.of([RelPath.parse('sub')!])),
-        ]),
-        FileShown.narrowedAway,
+        session.state,
+        isA<Stopped>().having((s) => s.cause, 'cause', StopCause.folderGone),
       );
-      expect(controller.shownIn([fixture.folders[1]]), FileShown.folderRemoved);
+      expect(controller.folderRemoved(), isFalse);
     });
   });
 

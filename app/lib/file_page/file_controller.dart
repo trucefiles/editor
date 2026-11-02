@@ -66,18 +66,6 @@ enum NoFile {
   stopped,
 }
 
-/// Whether the folders still show the open file.
-enum FileShown {
-  /// A folder shows it.
-  shown,
-
-  /// Its folder no longer shows the place it is in.
-  narrowedAway,
-
-  /// Its folder was removed.
-  folderRemoved,
-}
-
 /// How restoring a backup into the open file ended.
 enum RestoreOutcome {
   /// The backup's text shows, as one edit undo takes back.
@@ -132,9 +120,11 @@ final class FileController extends ChangeNotifier {
   bool get unreachable => reach() == Reach.unreachable;
 
   /// Whether the file is only shown to read: its edits were kept as a
-  /// conflict copy, its folder can't be reached, or it stopped (a bug).
+  /// conflict copy, it closed and takes no more edits (its folder is
+  /// being removed), its folder can't be reached, or it stopped.
   bool get readOnly =>
       session.status is KeptAsConflict ||
+      session.status is Closed ||
       unreachable ||
       session.state is! Running;
 
@@ -161,17 +151,22 @@ final class FileController extends ChangeNotifier {
     null => FileMark.none,
   };
 
-  /// Whether [folders] still show the file, where it is now.
-  FileShown shownIn(List<Folder> folders) {
-    final file = session.file;
-    final folder = file.folder;
-    if (folders.folderOf(folder.base.id, session.path) != null) {
-      return FileShown.shown;
+  /// The file's folder left the app. `true` if the page may close, as
+  /// nothing is unsaved; else the file stops taking edits and keeps
+  /// showing them, so they can be copied before it closes. A file that
+  /// stopped before stays as it is.
+  bool folderRemoved() {
+    if (session.state is! Running) return false;
+    if (session.saveState case SaveState.inFolder || SaveState.none) {
+      return true;
     }
-    return folders.any((shown) => shown.id == folder.id)
-        ? FileShown.narrowedAway
-        : FileShown.folderRemoved;
+    session.folderRemoved();
+    return false;
   }
+
+  /// Whether [folders] still hold the file's folder.
+  bool folderShownIn(List<Folder> folders) =>
+      folders.any((shown) => shown.id == session.file.folder.id);
 
   /// Settings changes made before the file had a file, to keep once
   /// it has, in order.

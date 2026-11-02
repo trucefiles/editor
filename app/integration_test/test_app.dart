@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,9 +28,15 @@ final class TestApp {
   factory TestApp.create() {
     final root = Directory.systemTemp.createTempSync('truce_ui_test');
     addTearDown(() => root.deleteSync(recursive: true));
-    final files = Directory('${root.path}/Documents')..createSync();
-    final work = Directory('${root.path}/Work')..createSync();
+    final files = _syncthingFolder('${root.path}/Documents');
+    final work = _syncthingFolder('${root.path}/Work');
     return TestApp._(files, work, AppStorage('${root.path}/app'));
+  }
+
+  /// A directory Syncthing syncs, as its marker folder tells.
+  static Directory _syncthingFolder(String path) {
+    Directory('$path/.stfolder').createSync(recursive: true);
+    return Directory(path);
   }
 
   /// The folder the picker hands to the app.
@@ -39,6 +44,10 @@ final class TestApp {
 
   /// The folder the picker hands to the app the second time.
   final Directory work;
+
+  /// The folders the picker hands to the app next, in turn; the last
+  /// one again and again.
+  late final picks = [files, work];
 
   final AppStorage _storage;
 
@@ -54,9 +63,7 @@ final class TestApp {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
           loadedDeviceSettingsProvider.overrideWithValue(settings),
           systemTrayProvider.overrideWithValue(null),
-          folderPickerProvider.overrideWithValue(
-            _QueuedPicker([files.path, work.path]),
-          ),
+          folderPickerProvider.overrideWithValue(_QueuedPicker(picks)),
         ],
         child: const TruceApp(),
       ),
@@ -85,7 +92,7 @@ final class TestApp {
 
   /// Starts the app with a saved folder list it can't read.
   void damageFolderList() =>
-      File('${_storage.settingsPath}/folder_list.json')
+      File('${_storage.settingsPath}/folders.json')
           .writeCreatingFolders('{"broken": true}');
 
   /// [name] may lead through subfolders; [write] creates them.
@@ -109,9 +116,12 @@ final class TestApp {
   Iterable<File> get topFiles => files.listSync().whereType<File>();
 
   /// The names of what [name] holds, files and folders; the documents folder
-  /// itself if [name] is empty.
+  /// itself if [name] is empty. Without Syncthing's marker folder.
   List<String> namesIn([String name = '']) => [
-    for (final entry in folder(name).listSync()) entry.uri.pathSegments.last,
+    for (final entry in folder(name).listSync())
+      if (entry.path.split('/').last case final entryName
+          when entryName != '.stfolder')
+        entryName,
   ];
 
   /// The sync conflict copies in [name], or in the documents folder itself.
@@ -133,14 +143,14 @@ const _pictures = {
 
 /// Picks [_paths] in turn, then the last one again.
 final class _QueuedPicker implements FolderPicker {
-  _QueuedPicker(this._paths);
+  _QueuedPicker(this._picks);
 
-  final List<String> _paths;
-  int _picks = 0;
+  final List<Directory> _picks;
 
   @override
-  Future<Result<Uri?, PickError>> pick() async =>
-      Ok(Uri.file(_paths[min(_picks++, _paths.length - 1)]));
+  Future<Result<Uri?, PickError>> pick() async => Ok(
+    Uri.file((_picks.length > 1 ? _picks.removeAt(0) : _picks.single).path),
+  );
 }
 
 /// A test of the app, [body]; then closes the screens still open and

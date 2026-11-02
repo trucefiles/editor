@@ -17,7 +17,7 @@ void main() {
   });
 
   Future<StreamQueue<ChangeHint>> watch() async {
-    final queue = StreamQueue(WatchedLiveChanges(root.path).below(null));
+    final queue = StreamQueue(WatchedLiveChanges(root.path).follow());
     addTearDown(queue.cancel);
     // Lets the watcher start before files change.
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -44,22 +44,8 @@ void main() {
     expect(await queue.next, PathChanged(path('new/deep/b.md')));
   });
 
-  test('watches only its subfolder, with paths in the folder', () async {
-    Directory('${root.path}/work').createSync();
-    final queue = StreamQueue(
-      WatchedLiveChanges(root.path).below(path('work')),
-    );
-    addTearDown(queue.cancel);
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-
-    write('other.md');
-    write('work/a.md');
-
-    expect(await queue.next, PathChanged(path('work/a.md')));
-  });
-
   test('ends when the folder is deleted', () async {
-    final all = WatchedLiveChanges(root.path).below(null).toList();
+    final all = WatchedLiveChanges(root.path).follow().toList();
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     await root.delete(recursive: true);
@@ -70,7 +56,7 @@ void main() {
   test('ends at once if the folder is missing', () async {
     await root.delete();
 
-    final changes = WatchedLiveChanges(root.path).below(null);
+    final changes = WatchedLiveChanges(root.path).follow();
 
     expect(await changes.toList(), isEmpty);
   });

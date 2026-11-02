@@ -299,12 +299,19 @@ final class _Step<V extends Version> {
       case WriteGone():
         _goneElsewhere();
       case WriteFailed():
-        // Tried again only when asked again.
-        _set(status: const SaveFailed());
-        _work(work.copyWith(folderRev: null));
-        if (work.securing case (:final asks, rung: SecureRung.file)) {
-          _work(work.copyWith(securing: (asks: asks, rung: SecureRung.device)));
-        }
+        _writeFailed();
+      case FolderClosed():
+        _writeFailed();
+        events.add(const FolderGone());
+    }
+  }
+
+  /// The write did not land; it is tried again only when asked again.
+  void _writeFailed() {
+    _set(status: const SaveFailed());
+    _work(work.copyWith(folderRev: null));
+    if (work.securing case (:final asks, rung: SecureRung.file)) {
+      _work(work.copyWith(securing: (asks: asks, rung: SecureRung.device)));
     }
   }
 

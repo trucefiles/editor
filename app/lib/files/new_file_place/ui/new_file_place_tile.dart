@@ -26,7 +26,7 @@ class NewFilePlaceTile extends ConsumerWidget {
     final device = ref.read(deviceSettingsProvider.notifier);
     return ListTile(
       enabled: folders.isNotEmpty,
-      title: const Text('Default folder for new documents'),
+      title: const Text('Default folder for new files'),
       subtitle: place == null
           ? const Text('Folder selected on home, else the first reachable one')
           : Align(
@@ -49,7 +49,7 @@ class NewFilePlaceTile extends ConsumerWidget {
         if (!context.mounted) return;
         final picked = await showFilePlaceDialog(
           context,
-          title: 'Default folder for new documents',
+          title: 'Default folder for new files',
           action: 'OK',
           folders: folders,
           initial: place ?? topOf(folders.first),

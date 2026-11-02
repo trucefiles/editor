@@ -27,9 +27,8 @@ import 'package:truce_core/truce_core.dart';
 /// first, is not retried: the content may then stay unseen until the
 /// file's next write. Each rewrite is logged.
 ///
-/// What it knows of earlier writes lives in [_memory], which outlasts the
-/// store: a new store over the same base folder (e.g. after the user
-/// changed what its folders show) goes on from it.
+/// What it knows of earlier writes lives in [_memory], kept by the
+/// folder; [SyncthingWriteMemory.settled] waits for the rewrites due.
 final class SyncthingMtimeWindowStore implements FileStore {
   SyncthingMtimeWindowStore(
     this._inner,
@@ -111,15 +110,6 @@ final class SyncthingMtimeWindowStore implements FileStore {
     return deleted;
   });
 
-  /// By copy through this store, so the copy is a write like any other
-  /// and the original's delete keeps its newest time.
-  @override
-  Future<Result<FileEntry, StoreError>> move(
-    RelPath from,
-    RelPath to, {
-    required FileVersion ifUnchanged,
-  }) => moveByCopy(this, from, to, ifUnchanged: ifUnchanged);
-
   _FileState _stateOf(RelPath path) =>
       _memory._files.putIfAbsent(path, _FileState.new);
 
@@ -131,10 +121,11 @@ final class SyncthingMtimeWindowStore implements FileStore {
     // An earlier time can be ahead of the clock: Syncthing keeps the mtimes
     // of other devices. Far enough ahead, it is outside the window too.
     if (earlier == null || now.difference(earlier).abs() >= window) return;
-    state.due = _timer(earlier.add(window + margin).difference(now), () {
-      state.due = null;
-      unawaited(_rewrite(path, bytes, entry.version));
-    });
+    state.plan(
+      _timer,
+      earlier.add(window + margin).difference(now),
+      () => _rewrite(path, bytes, entry.version),
+    );
   }
 
   /// Writes [bytes] again if [written] is still the last write to [path]
@@ -181,11 +172,16 @@ final class SyncthingMtimeWindowStore implements FileStore {
   }
 }
 
-/// What [SyncthingMtimeWindowStore] knows of one base folder's writes:
-/// kept as long as the base folder, by its place.
+/// What [SyncthingMtimeWindowStore] knows of one folder's writes: kept as
+/// long as the folder is open.
 final class SyncthingWriteMemory {
   final Map<RelPath, _FileState> _files = {};
   final _writes = KeyedTaskQueue<RelPath>();
+
+  /// Done once every rewrite due now is done, at most a window and its
+  /// margin from now.
+  Future<void> settled() =>
+      Future.wait([for (final state in _files.values) state.settled]);
 }
 
 /// What the store knows about one file.
@@ -201,7 +197,36 @@ final class _FileState {
   FileVersion? rewrittenAs;
 
   /// The pending rewrite.
-  Timer? due;
+  Timer? _due;
+
+  /// Done once the pending rewrite is, or is dropped.
+  Completer<void>? _dueDone;
+
+  /// The rewrite that runs now, once its time came.
+  Future<void>? _rewriting;
+
+  Future<void> get settled => Future.wait([?_dueDone?.future, ?_rewriting]);
+
+  /// Runs [rewrite] after [delay], in place of a rewrite still pending.
+  void plan(
+    Timer Function(Duration, void Function()) timer,
+    Duration delay,
+    Future<void> Function() rewrite,
+  ) {
+    _cancelDue();
+    final done = _dueDone = Completer<void>();
+    _due = timer(delay, () {
+      _due = null;
+      _dueDone = null;
+      final running = _rewriting = rewrite();
+      unawaited(
+        running.whenComplete(() {
+          if (identical(_rewriting, running)) _rewriting = null;
+          done.complete();
+        }),
+      );
+    });
+  }
 
   /// The version on disk for a caller's [held] version.
   FileVersion onDisk(FileVersion held) =>
@@ -230,7 +255,9 @@ final class _FileState {
   }
 
   void _cancelDue() {
-    due?.cancel();
-    due = null;
+    _due?.cancel();
+    _due = null;
+    _dueDone?.complete();
+    _dueDone = null;
   }
 }

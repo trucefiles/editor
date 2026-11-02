@@ -10,7 +10,7 @@ import '../support.dart';
 void main() {
   late Directory dir;
   late FileDrafts drafts;
-  late BaseFolderServices services;
+  late FolderServices services;
   late DraftRecovery recovery;
   final later = DateTime.now().add(const Duration(days: 1));
 
@@ -20,11 +20,7 @@ void main() {
     drafts = tempDrafts();
     services = servicesFor(folder);
     final files = FilesOfFolder(folder, services, appFileTypes());
-    recovery = DraftRecovery(
-      drafts,
-      filesFor: (path) => folder.covers(path) ? files : null,
-      types: appFileTypes(),
-    );
+    recovery = DraftRecovery(drafts, files: files, types: appFileTypes());
   });
 
   File diskFile() => File('${dir.path}/a.md');
@@ -101,22 +97,6 @@ void main() {
     expect(await recovery.recover(before: DateTime(2000)), 0);
 
     expect(diskFile().readAsStringSync(), '# a\nv1\n');
-    expect(await drafts.all(before: later), hasLength(1));
-  });
-
-  test('keeps a draft no folder shows, untouched', () async {
-    diskFile().writeAsStringSync('# a\nv1\n');
-    await leaveDraft('# a\nmine\n');
-    recovery = DraftRecovery(
-      drafts,
-      filesFor: (_) => null,
-      types: appFileTypes(),
-    );
-
-    expect(await recovery.recover(before: later), 0);
-
-    expect(diskFile().readAsStringSync(), '# a\nv1\n');
-    expect(conflictCopies(), isEmpty);
     expect(await drafts.all(before: later), hasLength(1));
   });
 

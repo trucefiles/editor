@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:pool/pool.dart';
 
 /// One queue per key, e.g. per file: tasks for the same key run one at a
@@ -6,16 +8,26 @@ import 'package:pool/pool.dart';
 final class KeyedTaskQueue<K> {
   final Map<K, _Queue> _queues = {};
 
+  /// Ends as each task added so far ends, for any key.
+  final Set<Future<void>> _unfinished = {};
+
   /// Runs [task] after every task added before for [key].
   Future<T> run<T>(K key, Future<T> Function() task) async {
     final queue = _queues.putIfAbsent(key, _Queue.new);
     queue.pending++;
+    final ended = Completer<void>();
+    _unfinished.add(ended.future);
     try {
       return await queue.turns.withResource(task);
     } finally {
       if (--queue.pending == 0) _queues.remove(key);
+      _unfinished.remove(ended.future);
+      ended.complete();
     }
   }
+
+  /// Ends once every task added before, for any key, has ended.
+  Future<void> idle() => Future.wait([..._unfinished]);
 
   /// How many keys have tasks waiting or running.
   int get busyKeys => _queues.length;

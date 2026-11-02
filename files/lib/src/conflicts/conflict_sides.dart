@@ -35,7 +35,7 @@ final class ConflictSides {
   /// Reads both sides of [conflict]'s oldest copy, as [versionText], and
   /// merges them by [merge] if given.
   static Future<Result<ConflictSides, StoreError>> load(
-    BaseFolderServices services,
+    FolderServices services,
     Conflict conflict, {
     TextMerge? merge,
   }) async {

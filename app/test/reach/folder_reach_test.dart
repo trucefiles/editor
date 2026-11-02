@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_folders/truce_folders.dart';
@@ -33,20 +32,17 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save([
-      workFolder,
-      homeFolder,
-    ]);
+    await saveFolders(container, [workFolder, homeFolder]);
     await container.read(folderContentsProvider.future);
   });
 
   Reach reachOf(Folder folder) =>
-      container.read(folderReachProvider(folder.base));
+      container.read(folderReachProvider(folder.id));
 
   /// Once [folder]'s reach is [reach].
   Future<void> reached(Folder folder, Reach reach) async {
     final done = Completer<void>();
-    final listening = container.listen(folderReachProvider(folder.base), (
+    final listening = container.listen(folderReachProvider(folder.id), (
       _,
       next,
     ) {
@@ -59,7 +55,7 @@ void main() {
   test('a folder that is gone is retried, then unreachable', () async {
     final seen = <Reach>[];
     container.listen(
-      folderReachProvider(workFolder.base),
+      folderReachProvider(workFolder.id),
       (_, next) => seen.add(next),
     );
     work.renameSync('${work.path}-away');
@@ -72,7 +68,7 @@ void main() {
 
     expect(
       await container
-          .read(folderReachProvider(workFolder.base).notifier)
+          .read(folderReachProvider(workFolder.id).notifier)
           .settled(),
       Reach.unreachable,
     );

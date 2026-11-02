@@ -275,7 +275,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openFile('Plan');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('Undo'));
 
     app.write('plan.md', '# Plan\nother\n');
@@ -323,7 +323,7 @@ void main() {
     await tester.tapAndSettle(find.text('latin'));
     await tester.runFor(const Duration(seconds: 1));
 
-    expect(find.textContaining("This document can't be opened."), findsOne);
+    expect(find.textContaining("This file can't be opened."), findsOne);
 
     expect(app.file('latin.md').readAsBytesSync(), [
       0x23,
@@ -377,17 +377,23 @@ void main() {
     await tester.leaveExpecting(app, '# Steps\n1. one\n2. three\n');
   });
 
-  testApp('a folder added before cannot be added whole again', (tester) async {
+  testApp('a folder added before cannot be added again', (tester) async {
     app.write('plan.md', '# Plan\n');
+    app.picks.insert(0, app.files);
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
 
     await tester.tapAndSettle(find.byTooltip('Manage folders'));
     await tester.tapAndSettle(find.text('Add folder').last);
-    await tester.tapAndSettle(find.text(app.files.path));
-    await tester.tapAndSettle(find.text('Whole folder'));
-    expect(find.text('Another folder shows part of it.'), findsOneWidget);
-    for (final _ in ['parts', 'add folder', 'folders']) {
+    await tester.tapAndSettle(find.text('Syncthing'));
+    expect(find.text('Added before'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'))
+          .onPressed,
+      isNull,
+    );
+    for (final _ in ['tree', 'add folder', 'folders']) {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
@@ -517,7 +523,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
 
     await tester.openFile('Plan');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));
     await tester.waitForFile(app.file('plan.md'), '# Plan\n');

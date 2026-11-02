@@ -361,6 +361,14 @@ void main() {
         ..send(const SaveNow());
       expect(run.last<Write>().text, 'abc');
     });
+
+    test('a write into a removed folder tells the folder is gone', () {
+      final run = _Run.opened('a')
+        ..save('ab', 1)
+        ..wrote(const FolderClosed());
+      expect(run.status, isA<SaveFailed>());
+      expect(run.all<FolderGone>(), hasLength(1));
+    });
   });
 
   group('changes elsewhere', () {

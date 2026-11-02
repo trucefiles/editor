@@ -53,8 +53,8 @@ class _RefreshDialogState extends State<_RefreshDialog> {
             value: RefreshMode.manual,
             title: Text('Manual'),
             subtitle: Text(
-              'Only with Refresh or pull-down, when a document opens, or when '
-              'you come back to the app.',
+              'Only with Refresh or pull-down, when a file opens, or when '
+              'the app comes back to the front.',
             ),
           ),
           Padding(

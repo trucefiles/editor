@@ -66,7 +66,7 @@ void main() {
     await tester.waitForNoteClosed();
 
     expect(
-      find.text('This document changed on another device or app.'),
+      find.text('This file changed on another device or app.'),
       findsNothing,
     );
     expect(app.conflictCopies(), isEmpty);
@@ -83,10 +83,10 @@ void main() {
     await tester.typeOver('# Plan\nmine\n');
     app.file('plan.md').deleteSync();
     await tester.tapAndSettle(find.byTooltip('Refresh'));
-    await tester.waitFor(find.text('Restore with my text'));
+    await tester.waitFor(find.text('Restore with this text'));
 
     app.write('plan.md', '# Plan\ntheirs\n');
-    await tester.tapAndSettle(find.text('Restore with my text'));
+    await tester.tapAndSettle(find.text('Restore with this text'));
     await tester.runFor(const Duration(seconds: 2));
     await tester.pageBack();
     await tester.waitForNoteClosed();
@@ -104,7 +104,7 @@ void main() {
     await tester.openFile('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.runFor(const Duration(seconds: 2));
 
     expect(app.file('plan.md').existsSync(), isTrue);
@@ -124,7 +124,9 @@ void main() {
     await tester.placeNote(name: 'Notes');
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.runFor(const Duration(seconds: 1));
+    // Past the rewrite Syncthing's rules make of a write just after
+    // another, which goes through a temp file.
+    await tester.runFor(const Duration(seconds: 3));
 
     expect(app.namesIn(), ['Notes.md']);
     expect(app.file('Notes.md').readAsStringSync(), '# Plan\nv2\n');

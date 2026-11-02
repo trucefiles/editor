@@ -11,9 +11,9 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A conflict copy can bring back a deleted subfolder.** If a document's
   subfolder is deleted on another device while the document has unsaved edits
   here, the edits are kept as a conflict copy in that subfolder, which
-  recreates it, so the edits stay visible. A subfolder you chose for a
-  folder is never made again: there the edits stay on this device, not
-  shown, until the subfolder is back.
+  recreates it, so the edits stay visible. A folder's own directory is never
+  made again: if it is gone, the edits stay on this device, not shown, until
+  it is back.
 
 - **A new subfolder can stay empty.** A subfolder you type in "Place and
   name" is made right before the document goes in. If that then fails (for
@@ -90,10 +90,6 @@ Accepted behavior that is not planned to change, grouped by topic.
   treats the re-added folder as a new one, so the Backups screen doesn't
   list its earlier backups. They are deleted after 7 days, like every
   backup.
-- **Backups outside what a folder shows stay hidden.** If you change a
-  folder to show fewer subfolders, the Backups screen no longer lists the
-  backups of documents left outside. They are deleted after 7 days, like
-  every backup.
 
 ## Calendars
 
@@ -136,8 +132,7 @@ Accepted behavior that is not planned to change, grouped by topic.
 ## Folders
 
 - **Images from outside a folder don't show.** A document shows an image
-  only if the image file is in a part of the base folder that one of your
-  folders shows. Pick the image's subfolder too to see it.
+  only if the image file is inside the document's folder.
 - **A local folder can keep temp files after a crash.** In a folder no sync
   app syncs, Truce saves through a temp file named `.truce-….tmp`. If the
   app stops in the middle of a save, the temp file stays. Truce hides it but

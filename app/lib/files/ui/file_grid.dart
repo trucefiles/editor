@@ -49,6 +49,6 @@ Future<void> openFile(
         MaterialPageRoute<void>(builder: (_) => FileScreen(opened)),
       );
     case Err(:final error):
-      showSnack(context, "This document can't be opened. ${error.text}");
+      showSnack(context, "This file can't be opened. ${error.text}");
   }
 }

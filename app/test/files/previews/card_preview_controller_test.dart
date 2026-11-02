@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/files/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
 
@@ -24,7 +23,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save([folderAt(dir)]);
+    await saveFolders(container, [folderAt(dir)]);
   });
 
   Future<ListedFile> listed(String name) async =>

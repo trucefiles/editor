@@ -53,7 +53,7 @@ void main() {
 
   test('a draft goes to the file it names', () async {
     final effects = fixture.effects(ExistingFile(fixture.file));
-    final copy = (await fixture.files['f2']!.create(
+    final copy = (await fixture.files[folderId('f2')]!.create(
       'b',
       type: appFileTypes().forNew,
       text: 'one\n',
@@ -133,8 +133,8 @@ void main() {
     );
 
     final recovery = DraftRecovery(
-      fixture.drafts['f1']!,
-      filesFor: (_) => fixture.files['f1'],
+      fixture.drafts[folderId('f1')]!,
+      files: fixture.files[folderId('f1')]!,
       types: appFileTypes(),
     );
     expect(await recovery.recover(before: fixture.later), 1);

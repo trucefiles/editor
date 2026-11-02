@@ -57,6 +57,16 @@ runs:
       working-directory: plugins/local_folder/local_folder
       run: dart test
 
+    - name: Test Syncthing add page
+      shell: bash
+      working-directory: plugins/syncthing/syncthing_ui
+      run: flutter test
+
+    - name: Test local folder add page
+      shell: bash
+      working-directory: plugins/local_folder/local_folder_ui
+      run: flutter test
+
     - name: Test folders
       shell: bash
       working-directory: folders

@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/conflicts/ui/conflict_banner.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
 import '../../support.dart';
@@ -55,7 +54,7 @@ void main() {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
         ],
       );
-      await container.read(folderListStoreProvider).save([folderAt(dir)]);
+      await saveFolders(container, [folderAt(dir)]);
       return (await container.read(folderContentsProvider.future))
           .conflicts
           .all

@@ -98,7 +98,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         name: widget.name,
         withFile: _withFile,
       ),
-      _ => throw StateError('A document or a place is needed.'),
+      _ => throw StateError('A file or a place is needed.'),
     };
     _partChanges = _page.part.changes.listen((_) => _rebuild());
     _controller.addListener(_rebuild);
@@ -129,17 +129,23 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Tells that the file stopped taking edits (a bug), and whether
-  /// its edits are [kept].
-  void _onStopped(bool kept) => _messenger.currentState?.showHint(
-    kept
-        ? 'Something went wrong, so this document is read only now. Your '
-              'edits are kept on this device and go into the file at the '
-              'next start.'
-        : 'Something went wrong, so this document is read only now, and '
-              "your latest edits couldn't be kept. Copy them elsewhere "
-              'before you leave.',
-  );
+  /// Tells that the file stopped taking edits, why, and whether its
+  /// edits are kept.
+  void _onStopped(Stopped stopped) =>
+      _messenger.currentState?.showHint(switch (stopped) {
+        Stopped(cause: StopCause.folderGone) =>
+          "This file's folder was removed from the app, so the file is read "
+              'only now. Its latest edits are kept only here, until it '
+              'closes.',
+        Stopped(kept: true) =>
+          'Something went wrong, so this file is read only now. Its edits '
+              'are kept on this device and go into the file at the next '
+              'start.',
+        Stopped() =>
+          'Something went wrong, so this file is read only now, and its '
+              "latest edits couldn't be kept. They stay only here, until it "
+              'closes.',
+      });
 
   void _onEditorNotice(EditorNotice notice) {
     final messenger = _messenger.currentState;
@@ -155,9 +161,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
           onAction: () => _editor.send(UndoStep(id)),
         );
       case UndoRefused():
-        messenger.showHint(
-          "Can't undo, because the document has changed since.",
-        );
+        messenger.showHint("Can't undo, because the file has changed since.");
       case HistoryEnd(:final start):
         final context = _messenger.currentContext;
         messenger.showHint(
@@ -203,10 +207,10 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Your edits can't be saved"),
+        title: const Text("The edits can't be saved"),
         content: const Text(
-          'Neither the document nor a conflict copy could be written. '
-          'Stay to copy your text elsewhere, or discard it.',
+          'Neither the file nor a conflict copy could be written. '
+          'Staying keeps the text here, to copy elsewhere.',
         ),
         actions: [
           TextButton(
@@ -223,21 +227,15 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     return discard ?? false;
   }
 
-  /// Closes once no folder shows the file any more: its edits were
-  /// saved before (see `FolderListWork.secureOpen`). As the user narrowed
-  /// its folder, what is left stays on this device; as they removed it,
-  /// its drafts go with it, so the hint promises nothing.
+  /// Once the file's folder was removed: closes if nothing is unsaved
+  /// (its edits were saved before, see `FolderListWork.secureOpen`);
+  /// else the file stays open, read only, so its edits never vanish with
+  /// the page ([_onStopped] tells).
   void _closeIfNotShown(List<Folder> folders) {
-    final hint = switch (_controller.shownIn(folders)) {
-      FileShown.shown => null,
-      FileShown.narrowedAway =>
-        'The document is no longer in a folder shown here. Your edits are '
-            'kept.',
-      FileShown.folderRemoved =>
-        'The folder was removed, so the document closed.',
-    };
-    if (hint == null) return;
-    ScaffoldMessenger.of(context).showHint(hint);
+    if (_controller.folderShownIn(folders)) return;
+    if (!_controller.folderRemoved()) return;
+    ScaffoldMessenger.of(context)
+        .showHint('The folder was removed, so the file closed.');
     _closeWithAllOnTop();
   }
 
@@ -287,7 +285,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         await action(file.listed);
       case Err(error: NoFile.empty):
         _messenger.currentState?.showHint(
-          "Write something first. An empty document isn't saved.",
+          "Write something first. An empty file isn't saved.",
         );
       case Err(error: NoFile.notCreated):
         // The banner tells why.
@@ -303,7 +301,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _offerUndo(FileActions actions, UndoableDelete deleted) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showHint(
-      'Document deleted',
+      'File deleted',
       actionLabel: 'Undo',
       onAction: () async {
         if (await actions.undoDelete(deleted) case Err(:final error)) {
@@ -334,7 +332,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             PopupMenuItem(value: _refresh, child: const Text('Refresh')),
           PopupMenuItem(
             value: () => _delete(context),
-            child: const Text('Delete document'),
+            child: const Text('Delete file'),
           ),
         ],
       );
@@ -359,7 +357,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   @override
   Widget build(BuildContext context) {
     ref
-      ..listen(folderReachProvider(_folder.base), (_, _) {
+      ..listen(folderReachProvider(_folder.id), (_, _) {
         _controller.reachChanged();
       })
       ..listen(fileSettingsProvider, (_, _) {
@@ -421,7 +419,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
-    ref.watch(folderReachProvider(_folder.base));
+    ref.watch(folderReachProvider(_folder.id));
     final unreachable = _controller.unreachable;
     final readOnly = _controller.readOnly;
     final contents = ref.watch(folderContentsProvider).value;
@@ -463,7 +461,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
-            message: 'Your text is kept on this device.',
+            message: 'The text is kept on this device.',
           ),
           // Its ways out need the folder.
           if (!unreachable) EditStateBanner(_controller, onClose: _leave),
@@ -503,7 +501,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                         hint: (message) => showSnack(context, message),
                         images: FolderImages(
                           ref.read(fileAccessProvider).of(_folder),
-                          baseId: _folder.base.id,
+                          folder: _folder.id,
                           document: path,
                           openedAt: _openedAt,
                         ),

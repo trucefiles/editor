@@ -81,7 +81,7 @@ void main() {
     await tester.pressCtrl(LogicalKeyboardKey.keyZ);
 
     await tester.waitFor(
-      find.textContaining('This is how the document was when you opened it.'),
+      find.textContaining('This is how the file was when it was opened.'),
     );
     await tester.tapAndSettle(find.text('Backups'));
     expect(find.text('Backups of Plan'), findsOne);

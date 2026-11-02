@@ -10,10 +10,10 @@ import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -30,10 +30,7 @@ void main() {
   setUp(() async {
     work = tempFolder();
     home = tempFolder();
-    folders = [
-      folderAt(work, id: 'work', baseId: 'work'),
-      folderAt(home, id: 'home', baseId: 'home'),
-    ];
+    folders = [folderAt(work, id: 'work'), folderAt(home, id: 'home')];
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
@@ -42,7 +39,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save(folders);
+    await saveFolders(container, folders);
     actions = container.read(fileActionsProvider);
   });
 
@@ -73,25 +70,24 @@ void main() {
   }
 
   group('defaultFolder', () {
-    void choose(
-      NotifierProvider<FolderIdChoice, String?> choice,
-      String? folderId,
-    ) => container.read(choice.notifier).choose(folderId);
+    void choose(String name) => container
+        .read(selectedFolderIdProvider.notifier)
+        .choose(FolderId('syncthing', name));
 
     test('is the first folder at first', () {
-      expect(actions.defaultFolder(folders).id, 'work');
+      expect(actions.defaultFolder(folders), folders[0]);
     });
 
     test('is the folder the grid is filtered to', () {
-      choose(selectedFolderIdProvider, 'home');
+      choose('home');
 
-      expect(actions.defaultFolder(folders).id, 'home');
+      expect(actions.defaultFolder(folders), folders[1]);
     });
 
     test('is the first one offered if the filtered one is not', () {
-      choose(selectedFolderIdProvider, 'work');
+      choose('work');
 
-      expect(actions.defaultFolder([folders[1]]).id, 'home');
+      expect(actions.defaultFolder([folders[1]]), folders[1]);
     });
   });
 
@@ -136,14 +132,11 @@ void main() {
     expect((await scans()).findFile(file.key)?.path, path('a/b/Plan.md'));
   });
 
-  test('can hold documents only in folders the sync tool shows, '
-      'inside the selection', () {
-    final docs = folders[0].copyWith(selection: Selection.of([path('docs')]));
-
-    expect(actions.canHold(docs, path('docs/new')), isTrue);
-    expect(actions.canHold(docs, path('other')), isFalse);
-    expect(actions.canHold(docs, path('docs/.hidden/new')), isFalse);
-    expect(actions.canHold(docs, path('docs/.fake')), isFalse);
+  test('can hold files only in folders the plugin shows', () async {
+    await container.read(foldersProvider.future);
+    expect(actions.canHold(folders[0], path('docs/new')), isTrue);
+    expect(actions.canHold(folders[0], path('docs/.hidden/new')), isFalse);
+    expect(actions.canHold(folders[0], path('.stversions')), isFalse);
   });
 
   group('newFilePlace', () {
@@ -160,7 +153,7 @@ void main() {
 
     test('is the place set, with a subfolder that is there', () async {
       await fileIn(home, 'inbox/a.md', 'a');
-      await setPlace((folderId: 'home', subfolder: path('inbox')));
+      await setPlace((folderId: folders[1].id, subfolder: path('inbox')));
 
       expect(actions.newFilePlace(folders), (
         folder: folders[1],
@@ -169,7 +162,7 @@ void main() {
     });
 
     test('falls back to the default for a folder not offered', () async {
-      await setPlace((folderId: 'home', subfolder: null));
+      await setPlace((folderId: folders[1].id, subfolder: null));
 
       expect(actions.newFilePlace([folders[0]]), (
         folder: folders[0],
@@ -264,7 +257,7 @@ void main() {
       expect(home.listSync(), isEmpty);
     });
 
-    test('keeps both if the old file changed meanwhile', () async {
+    test('moves nothing once the old file changed meanwhile', () async {
       final file = await fileIn(work, 'plan.md', 'a');
       diskFile(work, 'plan.md').writeAsStringSync('changed elsewhere');
 
@@ -273,46 +266,30 @@ void main() {
         subfolder: null,
       ));
 
-      expect(moved.error, isA<MoveLeftOriginal>());
+      expect(
+        moved.error,
+        isA<MoveNotWritten>().having(
+          (failure) => failure.error,
+          'error',
+          StoreError.changedSinceRead,
+        ),
+      );
       expect(diskFile(work, 'plan.md').readAsStringSync(), 'changed elsewhere');
-      expect(diskFile(home, 'plan.md').readAsStringSync(), 'a');
+      expect(diskFile(home, 'plan.md').existsSync(), isFalse);
     });
   });
 
-  group('move within one base folder', () {
-    late List<Folder> parts;
-
-    setUp(() async {
-      parts = [
-        folderAt(
-          work,
-          id: 'a',
-          baseId: 'shared',
-          selection: Selection.of([path('a')]),
-        ),
-        folderAt(
-          work,
-          id: 'b',
-          baseId: 'shared',
-          selection: Selection.of([path('b')]),
-        ),
-      ];
-      Directory('${work.path}/b').createSync();
-      await container.read(folderListStoreProvider).save(parts);
-      container.invalidate(folderListOwnerProvider);
-      actions = container.read(fileActionsProvider);
-    });
-
-    test('moves the file itself to the other folder', () async {
+  group('move within one folder', () {
+    test('moves the file itself, byte for byte', () async {
       final file = await fileIn(work, 'a/plan.md', '\uFEFF# Plan\r\n');
+      Directory('${work.path}/b').createSync();
 
       final moved = (await actions.move(file, (
-        folder: parts[1],
+        folder: folders[0],
         subfolder: path('b'),
       ))).value;
 
-      expect(moved.key, (baseId: 'shared', path: path('b/plan.md')));
-      expect(moved.folder.id, 'b');
+      expect(moved.key, (folder: folders[0].id, path: path('b/plan.md')));
       expect(diskFile(work, 'b/plan.md').readAsBytesSync(), [
         ...[0xEF, 0xBB, 0xBF],
         ...'# Plan\r\n'.codeUnits,
@@ -322,10 +299,11 @@ void main() {
 
     test('moves nothing once the file changed elsewhere', () async {
       final file = await fileIn(work, 'a/plan.md', 'a');
+      Directory('${work.path}/b').createSync();
       diskFile(work, 'a/plan.md').writeAsStringSync('changed elsewhere');
 
       final moved = await actions.move(file, (
-        folder: parts[1],
+        folder: folders[0],
         subfolder: path('b'),
       ));
 
@@ -397,7 +375,7 @@ void main() {
     () async {
       final file = await fileIn(work, 'plan.md', '# Plan\n');
       final laptop = FileMarks(
-        container.read(baseFolderServicesProvider(folders[0].base)).store,
+        container.read(folderServicesProvider(folders[0].id)).store,
         deviceId: 'laptop',
         now: () => DateTime.utc(2000),
       );

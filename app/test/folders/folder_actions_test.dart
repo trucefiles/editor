@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/platform/storage_access.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 
@@ -23,22 +21,13 @@ void main() {
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         storageAccessProvider.overrideWithValue(access),
-        hostPathsProvider.overrideWithValue(const SameHostPaths()),
       ],
     );
     addTearDown(container.dispose);
     actions = container.read(folderActionsProvider);
   });
 
-  Future<void> add(String basePath) => container
-      .read(foldersProvider.notifier)
-      .add(
-        address: Uri.file(basePath),
-        toolId: 'syncthing',
-        selection: const WholeFolder(),
-        name: basePath,
-        color: 'teal',
-      );
+  Future<void> add() => addSyncthingFolder(container, tempFolder());
 
   test('asks the platform for access', () async {
     expect(await actions.hasAccess(), isFalse);
@@ -49,8 +38,8 @@ void main() {
   });
 
   test('remove stops filtering the documents by that folder', () async {
-    await add('/sync/a');
-    await add('/sync/b');
+    await add();
+    await add();
     final [a, b] = await container.read(foldersProvider.future);
     final selection = container.read(selectedFolderIdProvider.notifier);
 
@@ -64,7 +53,7 @@ void main() {
   });
 
   test('change saves the folder', () async {
-    await add('/sync/a');
+    await add();
     final [a] = await container.read(foldersProvider.future);
 
     await actions.change(a.copyWith(name: 'Work'));

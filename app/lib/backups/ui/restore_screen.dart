@@ -68,8 +68,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
               ),
               CompareShowing(sides: final choice) => _chooser(
                 choice,
-                ref.watch(folderReachProvider(folder.base)) ==
-                    Reach.unreachable,
+                ref.watch(folderReachProvider(folder.id)) == Reach.unreachable,
               ),
               CompareKeeping(sides: final choice) ||
               CompareDone(sides: final choice) => _chooser(choice, true),
@@ -95,15 +94,15 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
         keptMessage: deleted
-            ? 'The document stays deleted.'
-            : 'The document stays as it is.',
+            ? 'The file stays deleted.'
+            : 'The file stays as it is.',
       ),
       other: ShownVersion(
         label: 'Backup',
         content: SavedText(versionText(choice.bytes), choice.backup.savedAt),
         keepLabel: 'Restore',
         keptMessage: deleted
-            ? 'The document is restored from this backup.'
+            ? 'The file is restored from this backup.'
             : 'The current version is replaced by the backup. A backup of '
                   'the current version stays on this device for '
                   '${backupRetention.inDays} days.',

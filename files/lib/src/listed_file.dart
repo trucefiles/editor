@@ -14,10 +14,10 @@ final class ListedFile {
     required this.modified,
   });
 
-  /// The folder it shows in, found from its path.
+  /// The folder it is in.
   final Folder folder;
 
-  /// Where it is in [folder]'s base folder.
+  /// Where it is in [folder].
   final RelPath path;
 
   /// Its file type, as the type's support reads it.
@@ -29,7 +29,7 @@ final class ListedFile {
   /// When the file was last changed, for showing and sorting.
   final DateTime modified;
 
-  FileKey get key => (baseId: folder.base.id, path: path);
+  FileKey get key => (folder: folder.id, path: path);
 
   @override
   bool operator ==(Object other) =>
@@ -44,6 +44,6 @@ final class ListedFile {
   int get hashCode => Object.hash(folder, path, type, version, modified);
 }
 
-/// Identifies a file across rescans and folder changes: its base
-/// folder, by id, and its path there.
-typedef FileKey = ({String baseId, RelPath path});
+/// Identifies a file across rescans and folder changes: its folder, by
+/// id, and its path there.
+typedef FileKey = ({FolderId folder, RelPath path});

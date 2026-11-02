@@ -55,7 +55,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       setState(() => _picking = null);
       showSnack(
         context,
-        "Nothing was changed: a backup couldn't be made, the document "
+        "Nothing was changed: a backup couldn't be made, the file "
         "changed again, or the versions can't be merged. Please choose "
         'again.',
       );
@@ -110,7 +110,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       appBar: compareAppBar(
         folder: file.folder,
         file: _session.path,
-        reason: 'Changed on another device or app while you edited',
+        reason: 'Changed on another device or app during the edits',
       ),
       body: theirs == null
           ? const SizedBox.shrink()
@@ -122,14 +122,14 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                   theirs.version.read.listed.modified,
                 ),
                 keepLabel: 'Keep this',
-                keptMessage: 'Your edits are dropped. $bothBackedUp',
+                keptMessage: 'The edits are dropped. $bothBackedUp',
               ),
               other: ShownVersion(
-                label: 'Your edits',
+                label: 'Edits on this device',
                 content: EditorText(_session.text),
                 keepLabel: 'Keep this',
                 keptMessage:
-                    'The current version is replaced by your edits. '
+                    'The current version is replaced by the edits. '
                     '$bothBackedUp',
               ),
               // This device's edits are the base: their own lines green.

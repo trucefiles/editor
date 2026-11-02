@@ -92,7 +92,7 @@ void main() {
       work: [path('x')],
     });
 
-    expect(find.text('Subfolder'), findsNothing);
+    expect(find.text('Inside the folder'), findsNothing);
   });
 
   testWidgets('cancel picks nothing', (tester) async {
@@ -228,12 +228,12 @@ void main() {
       await tester.enterText(subfolderField(), 'home');
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      expect(find.text("Documents of this folder can't go there."), findsOne);
+      expect(find.text("Files of this folder can't go there."), findsOne);
 
       await tester.enterText(subfolderField(), '../up');
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      expect(find.text("Documents of this folder can't go there."), findsOne);
+      expect(find.text("Files of this folder can't go there."), findsOne);
       expect(find.byType(AlertDialog), findsOne);
     });
 
@@ -297,23 +297,7 @@ void main() {
       await tester.enterText(subfolderField(), 'work');
       await tester.pumpAndSettle();
 
-      expect(
-        find.text("Documents of this folder can't go there."),
-        findsNothing,
-      );
-    });
-
-    testWidgets('a folder of some subfolders has no top level', (tester) async {
-      await openFile(
-        tester,
-        folderAt(Directory('/w'), selection: Selection.of([path('work')])),
-      );
-
-      await tester.enterText(subfolderField(), '');
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pick or type a subfolder.'), findsOne);
+      expect(find.text("Files of this folder can't go there."), findsNothing);
     });
   });
 }

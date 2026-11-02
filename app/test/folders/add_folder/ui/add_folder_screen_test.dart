@@ -2,72 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/add_folder/add_folder_wiring.dart';
 import 'package:truce_editor/folders/add_folder/ui/add_folder_screen.dart';
-import 'package:truce_editor/folders/folder_colors.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/folder_picker.dart';
+import 'package:truce_editor/plugins/plugins_wiring.dart';
+import 'package:truce_editor/plugins/wired_plugin.dart';
 import 'package:truce_folders/truce_folders.dart';
-import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
-
-import '../../../support.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
-  final picked = Uri.parse('fake://host/sync');
-  late List<({Uri address, String toolId, Selection selection})> added;
-  late Result<Folder, FolderError> answer;
-  late FakeSyncTool syncthing;
-  late FakeSyncTool plain;
+  late List<(String, List<NamedCandidate>)> added;
+  late Result<List<Folder>, FolderError> answer;
+  late List<PluginFolderCandidate>? given;
 
   setUp(() {
     added = [];
-    answer = const Err(FolderError.notSaved);
-    syncthing = FakeSyncTool('syncthing');
-    plain = FakeSyncTool('plain');
-    for (final tool in [syncthing, plain]) {
-      tool.place(picked).files.emptyFolders.addAll([
-        path('home'),
-        path('notes/work'),
-      ]);
-    }
+    answer = const Ok([]);
+    given = [FakePlugin.candidate('notes')];
   });
 
-  /// Opens the screen over a home page, with [folders] added before; the
-  /// picker picks `fake://host/sync`, which no tool recognizes.
-  Future<void> open(
-    WidgetTester tester, {
-    List<Folder> folders = const [],
-  }) async {
+  /// Opens the screen over a home page; the plugin `fake`'s add page gives
+  /// [given].
+  Future<void> open(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          foldersProvider.overrideWith(() => _Folders(folders)),
-          folderPickerProvider.overrideWithValue(_Picker(picked)),
-          addFolderWorkProvider.overrideWith(
-            (ref) => AddFolderWork(
-              tools: [syncthing, plain],
-              colors: folderColors.keys.toList(),
-              subfoldersOf: (base) => syncthing.place(base.address).subfolders,
-              add:
-                  ({
-                    required address,
-                    required toolId,
-                    required selection,
-                    required name,
-                    required color,
-                  }) async {
-                    added.add((
-                      address: address,
-                      toolId: toolId,
-                      selection: selection,
-                    ));
-                    return answer;
-                  },
-            ),
-          ),
+          foldersProvider.overrideWith(() => _Folders(added, () => answer)),
+          wiredPluginsProvider.overrideWithValue([
+            WiredPlugin(FakePlugin(), (_) async => given),
+            WiredPlugin(FakePlugin('other'), (_) async => null),
+          ]),
         ],
         child: MaterialApp(
-          // Watches the folders, as the app has them loaded.
           home: Consumer(
             builder: (context, ref, _) => TextButton(
               onPressed: () => Navigator.push(
@@ -89,128 +54,108 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder checkboxOf(String folder) => find.descendant(
-    of: find.widgetWithText(ListTile, folder),
-    matching: find.byType(Checkbox),
-  );
-
-  Future<void> pickSyncFolder(WidgetTester tester) async {
-    await tester.tap(find.text('Pick a folder'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Fake plain'));
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('adds the subfolders picked, named after the one', (
-    tester,
-  ) async {
-    answer = Ok(folderAt(tempFolder()));
+  testWidgets('shows the plugins with their help lines', (tester) async {
     await open(tester);
 
-    await tester.tap(find.text('Pick a folder'));
+    expect(find.text('Fake fake'), findsOne);
+    expect(find.text('Fake other'), findsOne);
+    expect(find.text('Folders in memory'), findsNWidgets(2));
+  });
+
+  testWidgets('adds the folders the page gave, named in turn', (tester) async {
+    given = [FakePlugin.candidate('notes'), FakePlugin.candidate('work')];
+    await open(tester);
+
+    await tester.tap(find.text('Fake fake'));
     await tester.pumpAndSettle();
-    expect(find.text('How is fake://host/sync synced?'), findsOne);
-    expect(find.text('Fake syncthing'), findsOne);
-    await tester.tap(find.text('Fake plain'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'))
-          .onPressed,
-      isNull,
-    );
-    await tester.tap(find.text('notes'));
-    await tester.pumpAndSettle();
-    await tester.tap(checkboxOf('work'));
-    await tester.pumpAndSettle();
+    expect(find.text('Folder 1 of 2'), findsOne);
+    expect(find.widgetWithText(TextFormField, 'notes'), findsOne);
+    await tester.enterText(find.byType(TextFormField), 'Notes');
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextFormField, 'work'), findsOne);
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 
-    expect(added.single, (
-      address: picked,
-      toolId: 'plain',
-      selection: Selection.of([path('notes/work')]),
-    ));
+    final (plugin, candidates) = added.single;
+    expect(plugin, 'fake');
+    expect([for (final named in candidates) named.name], ['Notes', 'work']);
     expect(find.byType(AddFolderScreen), findsNothing);
   });
 
-  testWidgets('a refused folder stays on the screen and says why', (
-    tester,
-  ) async {
+  testWidgets('a blank name can not be added', (tester) async {
     await open(tester);
-    await pickSyncFolder(tester);
-    await tester.tap(find.text('Whole folder'));
+    await tester.tap(find.text('Fake fake'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
+
+    await tester.enterText(find.byType(TextFormField), '  ');
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('a page cancelled stays at the plugins', (tester) async {
+    await open(tester);
+
+    await tester.tap(find.text('Fake other'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fake fake'), findsOne);
+    expect(added, isEmpty);
+  });
+
+  testWidgets('a refused add stays on the screen and says why', (tester) async {
+    answer = const Err(FolderError.notSaved);
+    await open(tester);
+    await tester.tap(find.text('Fake fake'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 
-    expect(find.text('The folder list could not be saved.'), findsOne);
+    expect(
+      find.text('The folder list could not be saved, so nothing changed.'),
+      findsOne,
+    );
     expect(find.byType(AddFolderScreen), findsOne);
   });
 
   testWidgets('back goes one step back, then leaves', (tester) async {
     await open(tester);
-    await pickSyncFolder(tester);
+    await tester.tap(find.text('Fake fake'));
+    await tester.pumpAndSettle();
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Pick a folder'), findsOne);
+    expect(find.text('Fake fake'), findsOne);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.byType(AddFolderScreen), findsNothing);
   });
-
-  testWidgets('shows more of a folder added before, never what it shows', (
-    tester,
-  ) async {
-    final base = BaseFolder(id: 'b1', address: picked, toolId: syncthing.id);
-    await open(
-      tester,
-      folders: [
-        Folder(
-          id: 'f1',
-          base: base,
-          selection: Selection.of([path('notes/work')]),
-          name: 'Work',
-          color: 'teal',
-        ),
-      ],
-    );
-
-    await tester.tap(find.text(base.shownAddress));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('notes'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Another folder shows part of it.'), findsOne);
-    expect(find.text('In another folder'), findsNWidgets(2));
-    expect(tester.widget<Checkbox>(checkboxOf('home')).onChanged, isNotNull);
-    expect(tester.widget<Checkbox>(checkboxOf('work')).onChanged, isNull);
-  });
 }
 
-/// The folders added before.
+/// No folders added before; adds go to [added], answered by [answer].
 final class _Folders extends FoldersController {
-  _Folders(this.folders);
+  _Folders(this.added, this.answer);
 
-  final List<Folder> folders;
-
-  @override
-  Future<List<Folder>> build() async => folders;
-}
-
-final class _Picker implements FolderPicker {
-  const _Picker(this.address);
-
-  final Uri address;
+  final List<(String, List<NamedCandidate>)> added;
+  final Result<List<Folder>, FolderError> Function() answer;
 
   @override
-  Future<Result<Uri?, PickError>> pick() async => Ok(address);
+  Future<List<Folder>> build() async => const [];
+
+  @override
+  Future<Result<List<Folder>, FolderError>> add(
+    FolderPlugin plugin,
+    List<NamedCandidate> candidates,
+  ) async {
+    added.add((plugin.id, candidates));
+    return answer();
+  }
 }

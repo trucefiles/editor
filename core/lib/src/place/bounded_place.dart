@@ -2,44 +2,44 @@ import '../changes/bounded_changes.dart';
 import '../changes/folder_changes.dart';
 import '../changes/live_changes.dart';
 import '../storage/bounded_store.dart';
+import '../storage/closing_store.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
-import '../storage/selection.dart';
 
-/// What the app may touch in one base folder, its files and their changes,
-/// bounded alike by one [selection] and one [handles] rule, so nothing
-/// outside is listed, read, written, deleted or followed.
+/// What the app may touch in one folder, its files and their changes,
+/// bounded alike by one [handles] rule, so no other file is listed,
+/// written, deleted or followed; and closed alike by [close].
 ///
-/// Sits between a sync tool's access to the place and the tool's rules on
-/// top; see `SyncTool`.
+/// Sits between a plugin's raw access to the folder and the plugin's rules
+/// on top; see `RawFolder`.
 final class BoundedPlace {
-  BoundedPlace(
+  factory BoundedPlace(
     FileStore files,
-    LiveChanges? live,
-    this.selection, {
-    required this.handles,
+    LiveChanges? live, {
+    required bool Function(RelPath file) handles,
     required Duration Function() checkEvery,
-  }) : files = BoundedStore(files, selection, handles: handles),
-       changes = live == null
-           ? null
-           : BoundedChanges(
-               live,
-               files,
-               selection,
-               counts: handles,
-               checkEvery: checkEvery,
-             );
+  }) {
+    final gate = ClosingStore(files);
+    return BoundedPlace._(
+      gate,
+      BoundedStore(gate, handles: handles),
+      live == null
+          ? null
+          : BoundedChanges(live, gate, counts: handles, checkEvery: checkEvery),
+    );
+  }
 
-  final Selection selection;
+  BoundedPlace._(this._gate, this.files, this.changes);
 
-  /// Whether a file inside [selection] is listed, written and followed:
-  /// the handled file types and the app's own files.
-  final bool Function(RelPath file) handles;
+  final ClosingStore _gate;
 
   /// See [BoundedStore].
   final FileStore files;
 
-  /// See [BoundedChanges]; `null` where the place can't follow changes
-  /// live.
+  /// See [BoundedChanges]; `null` where the folder can't be followed live.
   final FolderChanges? changes;
+
+  /// From now on, [files] answers [StoreError.closed]; done once what is
+  /// under way is.
+  Future<void> close() => _gate.close();
 }

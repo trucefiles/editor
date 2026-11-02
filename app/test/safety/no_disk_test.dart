@@ -5,56 +5,42 @@ import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_wiring.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
-import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
-    show FakePlace, FakeSyncTool;
+    show FakeFolder, FakePlugin;
 
 import '../support.dart';
 
-/// The app's generic code works unchanged for a sync tool with no files on
-/// disk: a fake one keeps its places in memory, at `fake:` addresses.
+/// The app's generic code works unchanged for a plugin with no files on
+/// disk: a fake one keeps its folders in memory.
 void main() {
-  final address = Uri.parse('fake://host/docs');
-  late FakeSyncTool tool;
-  late FakePlace place;
+  late FakePlugin plugin;
+  late FakeFolder place;
   late ProviderContainer container;
   late Folder folder;
 
   setUp(() async {
-    tool = FakeSyncTool('fake');
-    place = tool.place(address);
+    plugin = FakePlugin();
+    place = plugin.folder('docs');
     place.files
-      ..put('work/a.md', '# A')
-      ..put('home/b.md', '# B');
+      ..put('a.md', '# A')
+      ..put('notes/b.md', '# B');
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
-        syncToolsProvider.overrideWithValue(SyncTools([tool])),
+        folderPluginsProvider.overrideWithValue(FolderPlugins([plugin])),
         appActiveProvider.overrideWith(_Active.new),
       ],
     );
     addTearDown(container.dispose);
-    await container.read(foldersProvider.future);
-    folder =
-        (await container
-                .read(foldersProvider.notifier)
-                .add(
-                  address: address,
-                  toolId: tool.id,
-                  selection: Selection.of([path('work')]),
-                  name: 'Docs',
-                  color: 'teal',
-                ))
-            .value;
+    folder = await addFolderOf(container, plugin, FakePlugin.candidate('docs'));
   });
 
   Future<List<String>> listed() async {
@@ -65,61 +51,48 @@ void main() {
     return [for (final file in contents.files) file.path.value];
   }
 
-  test('lists, opens, saves, creates and moves documents, into a new '
-      'subfolder too', () async {
+  test('lists, opens, saves, creates and moves files, into a new folder '
+      'inside too', () async {
     final actions = container.read(fileActionsProvider);
     final files = container.read(fileAccessProvider).of(folder);
 
-    expect(await listed(), ['work/a.md']);
-    final a = (await files.open(path('work/a.md'))).value;
+    expect(await listed(), unorderedEquals(['a.md', 'notes/b.md']));
+    final a = (await files.open(path('a.md'))).value;
     await files.save(a, '# A\nmore');
     final created = (await actions.create(
-      (folder: folder, subfolder: path('work')),
+      (folder: folder, subfolder: null),
       type: appFileTypes().forNew,
       title: 'New',
       text: '# New',
     )).value;
     final moved = await actions.move(created, (
       folder: folder,
-      subfolder: path('work/inbox'),
+      subfolder: path('inbox'),
     ), newSubfolder: true);
 
-    expect(place.files.textOf('work/a.md'), '# A\nmore');
-    expect(moved.value.path, path('work/inbox/New.md'));
-    expect(place.files.textOf('work/inbox/New.md'), '# New');
-    expect(await listed(), unorderedEquals(['work/a.md', 'work/inbox/New.md']));
+    expect(place.files.textOf('a.md'), '# A\nmore');
+    expect(moved.value.path, path('inbox/New.md'));
+    expect(place.files.textOf('inbox/New.md'), '# New');
     expect(
-      (await files.open(path('home/b.md'))).error,
-      const NotRead(StoreError.outside),
+      await listed(),
+      unorderedEquals(['a.md', 'notes/b.md', 'inbox/New.md']),
     );
-    expect(
-      (await actions.move(moved.value, (
-        folder: folder,
-        subfolder: path('home/new'),
-      ), newSubfolder: true)).error,
-      isA<MoveNotWritten>().having(
-        (failure) => failure.error,
-        'error',
-        StoreError.outside,
-      ),
-    );
-    expect(place.files.textOf('work/inbox/New.md'), '# New');
   });
 
-  test('follows the tool\'s live changes of what the folder shows', () async {
+  test("follows the plugin's live changes of the folder", () async {
     container.listen(followingChangesProvider, (_, _) {});
     container.read(followingChangesProvider);
     await listed();
-    await eventually(() => place.changes.follows(path('work')));
+    await eventually(() => place.changes.follows);
 
-    place.files.put('work/c.md', '# C');
-    place.changes.hint(path('work'), PathChanged(path('work/c.md')));
+    place.files.put('c.md', '# C');
+    place.changes.hint(PathChanged(path('c.md')));
 
     await eventually(
       () async => (container.read(folderContentsProvider).value?.files ?? [])
-          .any((file) => file.path.value == 'work/c.md'),
+          .any((file) => file.path.value == 'c.md'),
     );
-    expect(place.changes.followed, [path('work')]);
+    expect(place.changes.followed, 1);
   });
 }
 

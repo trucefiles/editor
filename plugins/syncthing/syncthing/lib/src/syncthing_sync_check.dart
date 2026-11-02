@@ -1,6 +1,8 @@
 import 'package:truce_core/truce_core.dart';
 
-/// Checks a base folder for Syncthing's `.stfolder` marker, which Syncthing
+import 'sync_check.dart';
+
+/// Checks a folder for Syncthing's `.stfolder` marker, which Syncthing
 /// creates in the root of every folder it syncs: the folder is synced if
 /// it or one of its parents has one.
 final class SyncthingSyncCheck implements SyncCheck {

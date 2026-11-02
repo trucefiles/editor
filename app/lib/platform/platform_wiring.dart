@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../tray/app_window.dart';
 import '../tray/hosted_tray.dart';
@@ -28,8 +27,9 @@ final _reportsChanges =
     FileSystemEntity.isWatchSupported &&
     (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
 
-/// The shared parts of folders on this device, with this platform's facts,
-/// for the sync tools.
+/// The local-disk service, with this platform's facts, for the plugins
+/// with folders on this device. One for the app: it holds the areas they
+/// claim.
 final localDiskProvider = Provider<LocalDisk>(
   (ref) => LocalDisk(
     // On Android shared storage, a renamed-over file soon shows other apps
@@ -40,6 +40,7 @@ final localDiskProvider = Provider<LocalDisk>(
     // the picked folder, not what lies above it.
     followsLive: (path) => _reportsChanges && !isInDocumentPortal(path),
     seesParents: (path) => !isInDocumentPortal(path),
+    hostPaths: Platform.isLinux ? DocumentPortalPaths() : const SameHostPaths(),
   ),
 );
 
@@ -48,11 +49,6 @@ final storageAccessProvider = Provider<StorageAccess>(
   (ref) => Platform.isAndroid
       ? const AndroidStorageAccess()
       : const GrantedStorageAccess(),
-);
-
-/// Where folders lie on the host system.
-final hostPathsProvider = Provider<HostPaths>(
-  (ref) => Platform.isLinux ? DocumentPortalPaths() : const SameHostPaths(),
 );
 
 /// Tells this device's time zone, for new calendar events.

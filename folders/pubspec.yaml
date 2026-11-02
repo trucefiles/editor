@@ -1,5 +1,5 @@
 name: truce_folders
-description: The folders the user adds, their files through each sync tool, and how their changes are followed. Pure Dart, no UI.
+description: The folders the user adds, their files through each plugin, and how their changes are followed. Pure Dart, no UI.
 publish_to: none
 resolution: workspace
 

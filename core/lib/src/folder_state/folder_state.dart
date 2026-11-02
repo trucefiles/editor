@@ -1,39 +1,41 @@
 import '../common/moment.dart';
 import '../conflicts/conflict.dart';
 import '../marks/file_marks.dart';
+import '../plugins/folder_id.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 
-/// What the base folders hold, by base folder id: the folder state
-/// owner's state. Holds every base folder it follows.
+/// What the folders hold, by folder: the folder state owner's state.
+/// Holds every folder it follows.
 final class FolderState {
-  FolderState(Map<String, BaseState> bases) : bases = Map.unmodifiable(bases);
+  FolderState(Map<FolderId, ListingState> folders)
+    : folders = Map.unmodifiable(folders);
 
   static final none = FolderState(const {});
 
-  final Map<String, BaseState> bases;
+  final Map<FolderId, ListingState> folders;
 }
 
-/// What one base folder holds, as far as is known.
-sealed class BaseState {
-  const BaseState();
+/// What one folder holds, as far as is known.
+sealed class ListingState {
+  const ListingState();
 }
 
 /// Not listed yet.
-final class NotListed extends BaseState {
+final class NotListed extends ListingState {
   const NotListed();
 }
 
 /// The last listing failed with [error] (e.g. the folder is out of
 /// reach): what it holds is unknown.
-final class ListingFailed extends BaseState {
+final class ListingFailed extends ListingState {
   const ListingFailed(this.error);
 
   final StoreError error;
 }
 
 /// Listed: its files and what is known of them, kept in step with changes.
-final class Listed extends BaseState {
+final class Listed extends ListingState {
   Listed({
     required Map<RelPath, FileEntry> files,
     required Map<RelPath, Conflict> conflicts,

@@ -6,7 +6,7 @@ import 'package:truce_folders/truce_folders.dart';
 import '../../folders/ui/folder_badge.dart';
 
 /// Asks for a folder of [folders] and, if [subfoldersOf] the folder offers
-/// any, one of its subfolders, starting at [initial]; titled [title], with
+/// any, a folder inside it, starting at [initial]; titled [title], with
 /// [action] on the confirming button. The chosen place, or `null` if
 /// cancelled.
 Future<FilePlace?> showFilePlaceDialog(
@@ -23,8 +23,8 @@ Future<FilePlace?> showFilePlaceDialog(
 ))?.place;
 
 /// Like [showFilePlaceDialog], also asking for a file name without
-/// its extension, starting at [name]. A subfolder may also be typed, a new
-/// one too, if [canHold] says files of the folder can go there. The
+/// its extension, starting at [name]. A folder inside may also be typed, a
+/// new one too, if [canHold] says files of the folder can go there. The
 /// chosen place and name; `null` if cancelled.
 Future<PickedPlace?> showFileNameDialog(
   BuildContext context, {
@@ -94,7 +94,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
       : widget.folders.first;
   late RelPath? _subfolder = _offers(widget.initial.subfolder)
       ? widget.initial.subfolder
-      : _top;
+      : null;
 
   late final _name = TextEditingController(text: widget.name);
 
@@ -115,16 +115,8 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
 
   List<RelPath> get _subfolders => widget.subfoldersOf(_folder);
 
-  /// Whether the base folder's top level can be picked in [_folder].
-  bool get _offersTopLevel => _folder.selection is WholeFolder;
-
   bool _offers(RelPath? subfolder) =>
-      subfolder == null ? _offersTopLevel : _subfolders.contains(subfolder);
-
-  /// Where [_folder] starts: its top as the last scan found it.
-  RelPath? get _top => _offersTopLevel
-      ? null
-      : _subfolders.firstOrNull ?? topOf(_folder).subfolder;
+      subfolder == null || _subfolders.contains(subfolder);
 
   @override
   void dispose() {
@@ -153,15 +145,11 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
   /// for the user; the folder's files refuse a place outside it anyway.
   (RelPath?, String?) _typedSubfolder() {
     final text = _typed.text.trim().replaceFirst(RegExp(r'/+$'), '');
-    if (text.isEmpty || _topLevelPicked) {
-      return _offersTopLevel
-          ? (null, null)
-          : (null, 'Pick or type a subfolder.');
-    }
+    if (text.isEmpty || _topLevelPicked) return (null, null);
     final subfolder = RelPath.parse(text);
     return subfolder != null && widget.canHold!(_folder, subfolder)
         ? (subfolder, null)
-        : (null, "Documents of this folder can't go there.");
+        : (null, "Files of this folder can't go there.");
   }
 
   static const _topLevel = 'Top level';
@@ -182,7 +170,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
             ],
             onChanged: (folder) => setState(() {
               _folder = folder ?? _folder;
-              _subfolder = _top;
+              _subfolder = null;
               _typed.text = _subfolder?.value ?? '';
               _typedError = null;
               _topLevelPicked = false;
@@ -194,7 +182,6 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
               // A new key per folder resets the field to the folder's top.
               key: ValueKey(_folder.id),
               controller: _typed,
-              offersTopLevel: _offersTopLevel,
               subfolders: _subfolders,
               topLevel: _topLevel,
               errorText: _typedError,
@@ -208,10 +195,9 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
               key: ValueKey(_folder.id),
               initialValue: _subfolder,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Subfolder'),
+              decoration: const InputDecoration(labelText: 'Inside the folder'),
               items: [
-                if (_offersTopLevel)
-                  const DropdownMenuItem(child: Text(_topLevel)),
+                const DropdownMenuItem(child: Text(_topLevel)),
                 for (final subfolder in subfolders)
                   DropdownMenuItem(
                     value: subfolder,
@@ -248,11 +234,10 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
   }
 }
 
-/// A subfolder to pick from those offered, or to type, a new one too.
+/// A folder inside to pick from those offered, or to type, a new one too.
 class _TypedSubfolder extends StatelessWidget {
   const _TypedSubfolder({
     required this.controller,
-    required this.offersTopLevel,
     required this.subfolders,
     required this.topLevel,
     required this.errorText,
@@ -261,12 +246,11 @@ class _TypedSubfolder extends StatelessWidget {
   });
 
   final TextEditingController controller;
-  final bool offersTopLevel;
   final List<RelPath> subfolders;
   final String topLevel;
   final String? errorText;
 
-  /// Called with the value of an entry picked: the subfolder's path, or
+  /// Called with the value of an entry picked: the folder's path, or
   /// empty for the top level.
   final void Function(String value) onPicked;
 
@@ -285,8 +269,8 @@ class _TypedSubfolder extends StatelessWidget {
     // A plain arrow at the field's end, where the other fields have theirs;
     // a tap anywhere on the field opens the list.
     decorationBuilder: (context, menu) => InputDecoration(
-      label: const Text('Subfolder'),
-      hintText: offersTopLevel ? topLevel : null,
+      label: const Text('Inside the folder'),
+      hintText: topLevel,
       helperText: 'Pick one, or type a new one',
       errorText: errorText,
       suffixIcon: Icon(
@@ -296,7 +280,7 @@ class _TypedSubfolder extends StatelessWidget {
     ),
     onSelected: (value) => onPicked(value ?? ''),
     dropdownMenuEntries: [
-      if (offersTopLevel) DropdownMenuEntry(value: '', label: topLevel),
+      DropdownMenuEntry(value: '', label: topLevel),
       for (final subfolder in subfolders)
         DropdownMenuEntry(value: subfolder.value, label: subfolder.value),
     ],

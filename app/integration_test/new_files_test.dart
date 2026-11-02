@@ -173,7 +173,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Default folder for new documents'));
+    await tester.tapAndSettle(find.text('Default folder for new files'));
     await tester.fillPlace(subfolder: 'inbox');
     await tester.waitFor(find.text('Documents/inbox'));
     await tester.pageBack();

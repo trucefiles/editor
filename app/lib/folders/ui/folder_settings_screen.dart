@@ -4,27 +4,14 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
-import '../../sync_tool/base_folder_wiring.dart';
-import '../../sync_tool/sync_tools_wiring.dart';
+import '../../plugins/plugins_wiring.dart';
 import '../folder_actions.dart';
-import '../folders_controller.dart';
-import '../subfolders/ui/subfolder_choice_view.dart';
 import 'folder_color_picker.dart';
 import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
 
-/// Whether the sync tool of [BaseFolder] keeps old versions the app can't
-/// reach from it, for a hint to pick the synced folder itself.
-final missesOldVersionsProvider = FutureProvider.autoDispose
-    .family<bool, BaseFolder>(
-      (ref, base) => ref
-          .watch(syncToolsProvider)
-          .of(base.toolId)
-          .missesOldVersions(base.address),
-    );
-
-/// A folder's settings: its name, color and what it shows of its base
-/// folder; and what its sync tool tells about it.
+/// A folder's settings: its name and color; where it is, its kind (the
+/// plugin), and what its plugin tells about it.
 class FolderSettingsScreen extends ConsumerStatefulWidget {
   const FolderSettingsScreen(this.folder, {super.key});
 
@@ -38,38 +25,21 @@ class FolderSettingsScreen extends ConsumerStatefulWidget {
 class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late final _name = TextEditingController(text: widget.folder.name);
   late String _color = widget.folder.color;
-  late final _parts = SubfolderChoice(
-    names: ref.read(subfolderNamesProvider(widget.folder.base)),
-    taken: [
-      for (final other in ref.read(foldersProvider).value ?? const <Folder>[])
-        if (other.base == widget.folder.base && other.id != widget.folder.id)
-          other.selection,
-    ],
-    initial: widget.folder.selection,
-  );
   bool _busy = false;
 
   @override
   void dispose() {
     _name.dispose();
-    _parts.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final name = _name.text.trim();
-    final selection = _parts.selection;
-    if (name.isEmpty || selection == null) return;
+    final name = Folder.nameFrom(_name.text);
+    if (name == null) return;
     setState(() => _busy = true);
     final saved = await ref
         .read(folderActionsProvider)
-        .change(
-          widget.folder.copyWith(
-            name: name,
-            color: _color,
-            selection: selection,
-          ),
-        );
+        .change(widget.folder.copyWith(name: name, color: _color));
     if (!mounted) return;
     setState(() => _busy = false);
     switch (saved) {
@@ -82,18 +52,19 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final base = widget.folder.base;
-    final tool = ref.watch(syncToolsProvider).of(base.toolId);
-    final hint = ref.watch(missesOldVersionsProvider(base)).value ?? false;
+    final folder = widget.folder;
+    final plugin = ref.watch(folderPluginsProvider).of(folder.id.plugin);
     final small = Theme.of(context).textTheme.bodySmall;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folder'),
         actions: [
-          StreamBuilder<void>(
-            stream: _parts.changes,
-            builder: (context, _) => TextButton(
-              onPressed: _busy || _parts.selection == null ? null : _save,
+          ValueListenableBuilder(
+            valueListenable: _name,
+            builder: (context, typed, _) => TextButton(
+              onPressed: _busy || Folder.nameFrom(typed.text) == null
+                  ? null
+                  : _save,
               child: const Text('Save'),
             ),
           ),
@@ -102,15 +73,9 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(base.shownAddress, style: small),
-          Text('Synced by: ${tool.name}', style: small),
-          FolderNoticesView(widget.folder),
-          if (hint)
-            Text(
-              'Pick the ${tool.name} folder itself to get more '
-              'history.',
-              style: small,
-            ),
+          Text(folder.location, style: small),
+          Text('${plugin.name}: ${plugin.helpLine}', style: small),
+          FolderNoticesView(folder),
           const SizedBox(height: 12),
           TextField(
             controller: _name,
@@ -121,8 +86,6 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
             selected: _color,
             onPicked: (color) => setState(() => _color = color),
           ),
-          const SizedBox(height: 16),
-          SubfolderChoiceView(_parts),
         ],
       ),
     );

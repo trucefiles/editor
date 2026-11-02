@@ -1,6 +1,6 @@
 /// Test doubles and helpers for tests of code built on `truce_core`.
 ///
-/// The fake sync tool ([FakeSyncTool] with files in memory, its rules
+/// The fake plugin ([FakePlugin] with folders in memory, its rules
 /// [FakeSyncRules], [FakeConflictSource]) lets generic code be tested
 /// without any real sync tool or files on disk; the fake file
 /// type ([FakeFileType]) without any real file type.
@@ -11,8 +11,8 @@ export 'src/fake_copy_names.dart';
 export 'src/fake_file_type.dart';
 export 'src/fake_folder_markers.dart';
 export 'src/fake_live_changes.dart';
+export 'src/fake_plugin.dart';
 export 'src/fake_sync_rules.dart';
-export 'src/fake_sync_tool.dart';
 export 'src/fake_text_merge.dart';
 export 'src/machine_run.dart';
 export 'src/manual_timers.dart';

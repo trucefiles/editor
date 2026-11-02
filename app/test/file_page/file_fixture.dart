@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Err, Ok, Result, StoreError, TextMerge;
+    show Err, FolderId, Ok, Result, StoreError, TextMerge;
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -13,7 +13,15 @@ import 'markdown_session.dart';
 /// Two folders on disk, `f1` holding the file `a.md`, with their files,
 /// drafts and backups. Everything is removed after the test.
 final class FileFixture {
-  FileFixture._(this.dirs, this.folders, this.files, this.drafts);
+  FileFixture._(this.dirs, this.folders, this._services, this.drafts)
+    : files = {
+        for (final folder in folders)
+          folder.id: FilesOfFolder(
+            folder,
+            _services[folder.id]!,
+            appFileTypes(),
+          ),
+      };
 
   static Future<FileFixture> create() async {
     final dirs = [tempFolder(), tempFolder()];
@@ -21,13 +29,10 @@ final class FileFixture {
     final fixture = FileFixture._(
       dirs,
       folders,
-      {
-        for (final folder in folders)
-          folder.id: FilesOfFolder(folder, servicesFor(folder), appFileTypes()),
-      },
+      {for (final folder in folders) folder.id: servicesFor(folder)},
       {for (final folder in folders) folder.id: tempDrafts()},
     );
-    fixture.file = (await fixture.files['f1']!.create(
+    fixture.file = (await fixture.files[folderId('f1')]!.create(
       'a',
       type: appFileTypes().forNew,
       text: 'one\n',
@@ -37,9 +42,14 @@ final class FileFixture {
 
   final List<Directory> dirs;
   final List<Folder> folders;
-  final Map<String, FilesOfFolder> files;
-  final Map<String, FileDrafts> drafts;
+  final Map<FolderId, FolderServices> _services;
+  final Map<FolderId, FilesOfFolder> files;
+  final Map<FolderId, FileDrafts> drafts;
   late final FileText file;
+
+  /// Closes folder `f1`, as when the user removes it: from then on its
+  /// files refuse every read and write.
+  Future<void> removeFirstFolder() => _services[folderId('f1')]!.open.close();
 
   /// A time after every draft written during the test.
   final later = DateTime.now().add(const Duration(days: 1));
@@ -122,12 +132,13 @@ final class FileFixture {
   }
 
   /// The drafts kept in folder [id].
-  Future<List<FileDraft>> draftsIn(String id) => drafts[id]!.all(before: later);
+  Future<List<FileDraft>> draftsIn(String id) =>
+      drafts[folderId(id)]!.all(before: later);
 
   /// The file as another device or app changed it to [text].
   Future<FileText> editElsewhere(String text) async {
     File('${dirs[0].path}/a.md').writeAsStringSync(text);
-    return (await files['f1']!.reload(file.listed)).value;
+    return (await files[folderId('f1')]!.reload(file.listed)).value;
   }
 }
 

@@ -39,10 +39,10 @@ final filePagesProvider = Provider<FilePages>(
     editSettings: (file, change) =>
         ref.read(fileSettingsProvider.notifier).edit(file, change),
     filesOf: (folder) => ref.read(fileAccessProvider).of(folder),
-    draftsOf: (folder) => ref.read(draftsProvider).of(folder.base.id),
-    reachOf: (base) => ref.read(folderReachProvider(base)),
-    reachSettled: (base) =>
-        ref.read(folderReachProvider(base).notifier).settled(),
+    draftsOf: (folder) => ref.read(draftsProvider).of(folder.id),
+    reachOf: (folder) => ref.read(folderReachProvider(folder)),
+    reachSettled: (folder) =>
+        ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
     refreshFolders: () => ref.read(folderContentsProvider.notifier).refresh(),
   ),

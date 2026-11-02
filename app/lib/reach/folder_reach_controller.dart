@@ -5,23 +5,23 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../folders/folders_controller.dart';
-import '../sync_tool/base_folder_wiring.dart';
+import '../folders/open_folders_wiring.dart';
 
 final folderReachProvider =
-    NotifierProvider.family<FolderReachController, Reach, BaseFolder>(
+    NotifierProvider.family<FolderReachController, Reach, FolderId>(
       FolderReachController.new,
     );
 
-/// Whether a [BaseFolder] can be reached, kept current
-/// as its file accesses go. No UI.
+/// Whether a folder can be reached, kept current as its file accesses
+/// go. No UI.
 class FolderReachController extends Notifier<Reach> {
-  FolderReachController(this._base);
+  FolderReachController(this._folder);
 
-  final BaseFolder _base;
+  final FolderId _folder;
 
   @override
   Reach build() {
-    final reach = ref.watch(baseFolderServicesProvider(_base)).reach;
+    final reach = ref.watch(folderServicesProvider(_folder)).reach;
     final changes = reach.changes.listen((reach) => state = reach);
     ref.onDispose(() => unawaited(changes.cancel()));
     return reach.state;
@@ -29,7 +29,7 @@ class FolderReachController extends Notifier<Reach> {
 
   /// The reach once a running check and its retries are over.
   Future<Reach> settled() async {
-    final reach = ref.read(baseFolderServicesProvider(_base)).reach;
+    final reach = ref.read(folderServicesProvider(_folder)).reach;
     final settled = await ask<ReachInput, Settled>(
       reach.send,
       reach.events,
@@ -44,6 +44,6 @@ class FolderReachController extends Notifier<Reach> {
 final retryingFoldersProvider = Provider<List<Folder>>(
   (ref) => [
     for (final folder in ref.watch(foldersProvider).value ?? <Folder>[])
-      if (ref.watch(folderReachProvider(folder.base)) == Reach.retrying) folder,
+      if (ref.watch(folderReachProvider(folder.id)) == Reach.retrying) folder,
   ],
 );

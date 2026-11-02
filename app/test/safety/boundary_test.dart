@@ -10,53 +10,74 @@ import 'package:truce_editor/files/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
+import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
 
 import '../support.dart';
 
-/// The boundary: the app touches nothing in a base folder outside what its
-/// folders show. A spy at the file layer, below every other layer, sees
-/// every path the app lists, reads, writes or deletes there.
+/// The boundary: the app touches nothing on disk outside a folder's own
+/// directory, and inside it only the files of the types it handles, their
+/// conflict copies and the marks. A spy at the file layer, below every
+/// other layer, sees every path the app lists, reads, writes or deletes.
 void main() {
   late Directory dir;
   late ProviderContainer container;
   late SpyFileStore spy;
+  late SyncthingPlugin syncthing;
 
-  /// Starts the app's providers with [folders] added.
-  Future<void> start(List<Folder> folders) async {
+  /// Starts the app's providers with the folder [inside] the directory
+  /// [dir] added, its files seen through [spy]; the folder.
+  Future<Folder> start(String inside) async {
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
-        hostPathsProvider.overrideWithValue(const SameHostPaths()),
-        syncToolsProvider.overrideWith(
-          (ref) => SyncTools([
-            _SpiedTool(hostSyncthing(), (files) => spy = SpyFileStore(files)),
+        folderPluginsProvider.overrideWith(
+          (ref) => FolderPlugins([
+            _SpiedPlugin(
+              syncthing = SyncthingPlugin(ref.watch(localDiskProvider)),
+              (files) => spy = SpyFileStore(files),
+            ),
           ]),
         ),
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save(folders);
-    await container.read(foldersProvider.future);
+    final plugins = container.read(folderPluginsProvider);
+    return addFolderOf(
+      container,
+      plugins.of('syncthing'),
+      syncthing.candidate(
+        Uri.directory(dir.path),
+        Uri.directory(dir.path),
+        path(inside),
+      ),
+    );
   }
 
   void write(String name, String text) =>
       File('${dir.path}/$name').writeCreatingFolders(text);
 
-  /// The paths touched that [selection] does not cover, without the
-  /// folders a listing only walked through to reach it.
-  Set<String> touchedOutside(Selection selection) => {
+  /// The paths touched that are none of a handled file, a conflict copy,
+  /// the marks, or a folder a listing walked through.
+  Set<String> touchedBeyondFiles() => {
     for (final touched in spy.touched)
-      if (!selection.covers(touched) &&
-          !(Directory('${dir.path}/${touched.value}').existsSync() &&
-              selection.reaches(touched)))
+      if (!appFileTypes().handles(touched) &&
+          !touched.value.split('/').contains('.truce') &&
+          !Directory('${dir.path}/notes/work/${touched.value}').existsSync())
         touched.value,
+  };
+
+  /// The bytes of every file outside the folder's directory.
+  Map<String, String> outside() => {
+    for (final file in Directory(dir.path).listSync(recursive: true))
+      if (file is File && !file.path.contains('/notes/work/'))
+        file.path: file.readAsStringSync(),
   };
 
   Future<FolderContents> scanned() async {
@@ -75,11 +96,9 @@ void main() {
     write('notes/private/d.md', '# D');
   });
 
-  final work = Selection.of([path('notes/work')]);
-
   test('every flow touches only what the folder shows', () async {
-    final folder = folderAt(dir, selection: work);
-    await start([folder]);
+    final before = outside();
+    final folder = await start('notes/work');
     final actions = container.read(fileActionsProvider);
     final files = container.read(fileAccessProvider).of(folder);
     final markdown = appFileTypes().forNew;
@@ -87,7 +106,7 @@ void main() {
     final found = await scanned();
     expect([
       for (final file in found.files) file.path.value,
-    ], unorderedEquals(['notes/work/a.md', 'notes/work/inbox/c.md']));
+    ], unorderedEquals(['a.md', 'inbox/c.md']));
     for (final file in found.files) {
       await container.read(cardPreviewsProvider).read(file);
     }
@@ -95,13 +114,12 @@ void main() {
     await eventually(() => search.read().complete);
     search.close();
     final a = (await files.reload(
-      found.files.firstWhere((file) => file.path.value == 'notes/work/a.md'),
+      found.files.firstWhere((file) => file.path.value == 'a.md'),
     )).value;
     final saved = (await files.save(a, '# A\nmore')).value;
     await files.backUpBeforeEdit(saved);
-    expect(await files.bytesOf(path('home/picture.png')), isNull);
     final created = (await actions.create(
-      (folder: folder, subfolder: path('notes/work')),
+      (folder: folder, subfolder: null),
       type: markdown,
       title: 'New',
       text: '# New',
@@ -109,133 +127,98 @@ void main() {
     await actions.setMark(created.listed, const FileMark(color: 'teal'));
     final moved = (await actions.move(created, (
       folder: folder,
-      subfolder: path('notes/work/inbox'),
+      subfolder: path('inbox'),
     ))).value;
     final deleted = (await actions.delete(moved, '# New')).value;
     await actions.undoDelete(deleted);
     await container.read(allBackupsProvider.future);
-    expect(
-      (await files.open(path('home/b.md'))).error,
-      const NotRead(StoreError.outside),
-    );
-    expect(
-      (await files.open(path('top.md'))).error,
-      const NotRead(StoreError.outside),
-    );
     await scanned();
 
-    expect(touchedOutside(work), isEmpty);
-    expect(spy.touched, contains(path('notes/work/a.md')));
+    expect(touchedBeyondFiles(), isEmpty);
+    expect(spy.touched, contains(path('a.md')));
+    expect(outside(), before);
   });
 
-  test(
-    'narrowing a folder while a document is open keeps its edits, then '
-    'touches nothing it no longer shows but the save the user made',
-    () async {
-      final both = Selection.of([path('notes/work'), path('home')]);
-      final folder = folderAt(dir, selection: both);
-      await start([folder]);
-      final files = container.read(fileAccessProvider).of(folder);
-      final b = (await files.open(path('home/b.md'))).value;
-      final saved = (await files.save(b, '# B\nfirst')).value;
-      // The open file's last edits, kept as the folder changes.
-      var secured = false;
-      container
-          .read(openFilesProvider)
-          .add(
-            base: () => folder.base,
-            secure: () async {
-              secured = (await files.save(saved, '# B\nlast')) is Ok;
-            },
-          );
-      final drafts = container.read(draftsProvider).of(folder.base.id);
-      await drafts.keep(
-        FileDraft(id: 'left', path: path('home/b.md'), base: '', text: 'x'),
-      );
+  test('removing a folder while a file is open keeps its edits first, then '
+      'the folder takes no write', () async {
+    final folder = await start('notes/work');
+    final files = container.read(fileAccessProvider).of(folder);
+    final a = (await files.open(path('a.md'))).value;
+    var secured = false;
+    container
+        .read(openFilesProvider)
+        .add(
+          folder: () => folder.id,
+          secure: (_) async {
+            secured = (await files.save(a, '# A\nlast')) is Ok;
+          },
+        );
 
-      final changed = await container
-          .read(foldersProvider.notifier)
-          .change(folder.copyWith(selection: work));
-      expect(changed, isA<Ok<void, FolderError>>());
-      expect(secured, isTrue);
-      spy.touched.clear();
+    final removed = await container
+        .read(foldersProvider.notifier)
+        .remove(folder);
+    expect(removed, isA<Ok<void, FolderError>>());
+    expect(secured, isTrue);
+    // Syncthing may write the same bytes once more, as the user's own.
+    await Future<void>.delayed(const Duration(milliseconds: 2500));
+    spy.touched.clear();
 
-      // The second save came within Syncthing's window: the old stack writes
-      // the same bytes once more, as the user's own write.
-      await Future<void>.delayed(const Duration(milliseconds: 2500));
-      final narrowed = container.read(foldersProvider).value!.single;
-      expect(
-        (await container
-                .read(fileAccessProvider)
-                .of(narrowed)
-                .open(path('home/b.md')))
-            .error,
-        const NotRead(StoreError.outside),
-      );
-      await scanned();
-      await container
-          .read(fileStepsProvider)
-          .recoverDrafts(before: DateTime.now().add(const Duration(days: 1)));
-
-      expect(File('${dir.path}/home/b.md').readAsStringSync(), '# B\nlast');
-      expect(touchedOutside(work), anyOf(isEmpty, {'home/b.md'}));
-      expect(
-        [
-          for (final draft in await drafts.all(before: DateTime(9999)))
-            draft.id,
-        ],
-        ['left'],
-      );
-    },
-  );
+    expect((await files.save(a, '# A\nlate')).error, StoreError.closed);
+    expect(spy.touched, isEmpty);
+    expect(File('${dir.path}/notes/work/a.md').readAsStringSync(), '# A\nlast');
+  });
 }
 
-/// [_tool] with each place's files seen through [_spy], below every other
-/// layer.
-final class _SpiedTool implements SyncTool {
-  _SpiedTool(this._tool, this._spy);
+/// [_plugin] with each folder's files seen through [_spy], below every
+/// other layer.
+final class _SpiedPlugin implements FolderPlugin {
+  _SpiedPlugin(this._plugin, this._spy);
 
-  final SyncTool _tool;
+  final FolderPlugin _plugin;
   final FileStore Function(FileStore files) _spy;
 
   @override
-  String get id => _tool.id;
+  String get id => _plugin.id;
 
   @override
-  String get name => _tool.name;
+  String get name => _plugin.name;
 
   @override
-  bool isToolFolder(Uri address) => _tool.isToolFolder(address);
+  String get helpLine => _plugin.helpLine;
 
   @override
-  Future<SyncStatus> recognize(Uri address) => _tool.recognize(address);
+  bool load(Object? blob) => _plugin.load(blob);
 
   @override
-  Future<bool> missesOldVersions(Uri address) =>
-      _tool.missesOldVersions(address);
+  Object? get blob => _plugin.blob;
 
   @override
-  ToolPlace place(Uri address) => _SpiedPlace(_tool.place(address), _spy);
+  List<PluginFolder> get folders => _plugin.folders;
+
+  @override
+  Result<List<PluginFolder>, AddRefused> add(
+    List<PluginFolderCandidate> candidates,
+  ) => _plugin.add(candidates);
+
+  @override
+  void forget(String id) => _plugin.forget(id);
+
+  @override
+  RawFolder open(String id) => _SpiedFolder(_plugin.open(id), _spy);
 }
 
-final class _SpiedPlace implements ToolPlace {
-  _SpiedPlace(this._place, FileStore Function(FileStore files) spy)
-    : files = spy(_place.files);
+final class _SpiedFolder implements RawFolder {
+  _SpiedFolder(this._folder, FileStore Function(FileStore files) spy)
+    : files = spy(_folder.files);
 
-  final ToolPlace _place;
+  final RawFolder _folder;
 
   @override
   final FileStore files;
 
   @override
-  LiveChanges? get changes => _place.changes;
+  LiveChanges? get changes => _folder.changes;
 
   @override
-  SubfolderNames get subfolders => _place.subfolders;
-
-  @override
-  bool showsFolder(RelPath folder) => _place.showsFolder(folder);
-
-  @override
-  SyncedFolder open(BoundedPlace bounded) => _place.open(bounded);
+  OpenFolder open(BoundedPlace bounded) => _folder.open(bounded);
 }

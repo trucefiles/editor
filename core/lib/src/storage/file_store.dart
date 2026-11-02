@@ -54,17 +54,6 @@ abstract interface class FileStore {
     RelPath path, {
     required FileVersion ifUnchanged,
   });
-
-  /// Moves the file at [from] to [to] with its bytes; returns the moved
-  /// file's entry. Like [create], never overwrites a file at [to]
-  /// ([StoreError.alreadyExists]) and never brings back a gone root; like
-  /// [replace], moves nothing if [from] is no longer at version
-  /// [ifUnchanged] ([StoreError.changedSinceRead]).
-  Future<Result<FileEntry, StoreError>> move(
-    RelPath from,
-    RelPath to, {
-    required FileVersion ifUnchanged,
-  });
 }
 
 /// What [FileStore.list] found.
@@ -144,9 +133,11 @@ enum StoreError {
   accessDenied,
   ioFailure,
 
-  /// The path lies outside what the store may touch: outside the folder's
-  /// selection, or a file the app doesn't handle. An expected answer, e.g.
-  /// for a path the user typed, a link in a file or a key kept from
-  /// before a folder changed.
+  /// The path lies outside what the store may touch: a file the app
+  /// doesn't handle. An expected answer, e.g. for a path the user typed.
   outside,
+
+  /// The folder is closed, e.g. the user removed it: nothing reaches its
+  /// files any more.
+  closed,
 }

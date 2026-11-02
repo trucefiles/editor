@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/file_settings_pruning.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/app_activity.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
@@ -30,10 +29,10 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    await container.read(folderListStoreProvider).save([folderAt(dir)]);
+    await saveFolders(container, [folderAt(dir)]);
   });
 
-  FileKey key(String name) => (baseId: 'f1', path: path(name));
+  FileKey key(String name) => (folder: folderId('f1'), path: path(name));
 
   test(
     'marks the settings of gone documents missing as the app comes into use',
@@ -52,8 +51,8 @@ void main() {
 
       // Forgotten once missing for a while (see the controller's tests).
       final kept = container.read(fileSettingsProvider).value!;
-      expect(kept['f1/gone.md']!.missingSince, isNotNull);
-      expect(kept['f1/kept.md']!.missingSince, isNull);
+      expect(kept['syncthing-f1/gone.md']!.missingSince, isNotNull);
+      expect(kept['syncthing-f1/kept.md']!.missingSince, isNull);
       expect(views.settingsOf(key('gone.md')).view, _viewIn('markdown'));
     },
   );

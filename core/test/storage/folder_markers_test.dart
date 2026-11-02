@@ -11,7 +11,7 @@ void main() {
     addTearDown(() => dir.deleteSync(recursive: true));
   });
 
-  test('tells whether the base folder or a parent holds a name', () async {
+  test('tells whether the folder or a parent holds a name', () async {
     Directory('${dir.path}/.stfolder').createSync();
     Directory('${dir.path}/notes').createSync();
     final markers = LocalFolderMarkers('${dir.path}/notes', seesParents: true);

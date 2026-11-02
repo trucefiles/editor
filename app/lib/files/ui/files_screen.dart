@@ -194,7 +194,7 @@ class _FilesBody extends ConsumerWidget {
                 ? const FilledScrollView(
                     child: EmptyState(
                       icon: Icons.sticky_note_2_outlined,
-                      text: 'No documents yet.',
+                      text: 'No files yet.',
                     ),
                   )
                 : FileSections(
@@ -265,7 +265,7 @@ class _NoFolders extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return EmptyState(
       icon: Icons.folder_open_outlined,
-      text: 'Add a synced folder to see its documents.',
+      text: 'Add a synced folder to see its files.',
       action: FilledButton.icon(
         onPressed: () => addFolder(context, ref),
         icon: const Icon(Icons.create_new_folder_outlined),
