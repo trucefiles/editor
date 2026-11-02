@@ -7,16 +7,22 @@ first. They show sample documents only.
 
 Calendars are `.ics` files, the format other calendar apps use. **New
 document** offers a calendar or a health calendar, named first. A
-calendar's card shows its next events. Its page shows the month and the
-picked day's events: add one, or tap one to edit or delete it, just this
-time or every time for an event that repeats. A health calendar keeps
-period days and other entries, and estimates the next period. Once your
-folders hold a calendar, the **Calendar** tab shows the events of all of
-them in one month, each in its folder's color. When two devices changed
+calendar's card shows its next events. Its page shows a month, a week,
+a day or a schedule, the one you picked last. Tap a free time or day to
+add an event there, or drag over a few hours; drag an event to move it,
+or its edge to make it longer (for an event that repeats, that moves just
+this one). Tap an event to edit or delete it, just this time or every
+time. A health calendar keeps period days and other entries, and
+estimates the next period. Once your folders hold a calendar, the
+**Calendar** tab shows the events of all of them in the same views, each
+in its folder's color. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.
 
+<img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
+<img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
+<img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
 
 ## Recent, All and search

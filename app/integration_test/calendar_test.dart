@@ -8,7 +8,7 @@ import 'ui_driver.dart';
 
 /// End-to-end test of a new calendar in the real app on the desktop,
 /// against a real folder: made, given an event, written, opened again and
-/// shown in the Calendar tab.
+/// shown in the Calendar tab, whose event opens the calendar again.
 ///
 /// Run on Linux with `flutter test integration_test/calendar_test.dart -d
 /// linux` (in CI under `xvfb-run`), one file per run.
@@ -28,7 +28,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Family');
     await tester.pump();
     await tester.tapAndSettle(find.text('Create'));
-    await tester.tapAndSettle(find.text('Add event'));
+    await tester.tapAndSettle(find.byTooltip('Add event'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
     expect(find.text('Dentist'), findsOneWidget);
@@ -50,6 +50,11 @@ void main() {
 
     await tester.tapAndSettle(find.text('Calendar'));
     await tester.waitFor(find.widgetWithText(FilterChip, 'Family'));
+    expect(find.text('Dentist'), findsOneWidget);
+
+    // An event in the tab opens its calendar.
+    await tester.tapAndSettle(find.text('Dentist'));
+    expect(find.byTooltip('Add event'), findsOneWidget);
     expect(find.text('Dentist'), findsOneWidget);
   });
 }

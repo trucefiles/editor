@@ -108,10 +108,25 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
       );
     case ChangeSeries(:final uid, :final draft):
       return _changed(calendar, uid, (event) {
-        final series = _drafted(event.series.component, draft, series: true);
+        // A repeat turned off leaves a single event: its left-out, extra
+        // and changed dates mean nothing any more.
+        if (event.series.repeat != null && draft.repeat == null) {
+          final series = _drafted(
+            _withoutDates(event.series.component),
+            draft,
+            series: true,
+          );
+          return [_stamped(series, at)];
+        }
+        final moved = _slotsMoved(event.series, draft);
+        final series = _drafted(
+          _withSkippedMoved(event.series.component, moved),
+          draft,
+          series: true,
+        );
         return [
           _stamped(series, at),
-          for (final part in event.changed) part.component,
+          for (final part in event.changed) _withIdMoved(part.component, moved),
         ];
       });
     case ChangeOccurrence(:final uid, :final occurrence, :final draft):
@@ -134,7 +149,7 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
       });
     case DeleteOccurrence(:final uid, :final occurrence):
       return _changed(calendar, uid, (event) {
-        if (event.series.repeat == null) return [_marker(event, at)];
+        if (!event.series.repeats) return [_marker(event, at)];
         final series = event.series.component;
         return [
           _stamped(
@@ -164,6 +179,79 @@ Calendar _changed(
   ),
   null => calendar,
 };
+
+/// Where a slot of [series] (a date it leaves out, or the occurrence a
+/// changed one replaces) goes when the series becomes as [draft] says:
+/// moved as its start moves, in wall clock, so it stays on the same
+/// occurrence; by the start's time of day always, by its days only where
+/// the repeat doesn't pick its days itself (a weekly one on Mondays keeps
+/// its Mondays); of the new start's kind. `null` where nothing moves.
+CalendarTime Function(CalendarTime slot)? _slotsMoved(
+  EventPart series,
+  EventDraft draft,
+) {
+  final (before, after) = (series.start, draft.start);
+  if (before == null || before == after || !series.repeats) return null;
+  final days = draft.repeat?.fixesDays ?? false
+      ? 0
+      : _dayOf(after.wall).difference(_dayOf(before.wall)).inDays;
+  final time = _sinceMidnight(after.wall) - _sinceMidnight(before.wall);
+  return (slot) {
+    // A slot written another way than the start is read on its clock.
+    final wall = before.at(slot.wall) == slot
+        ? slot.wall
+        : before.sameKindAt(slot.local).wall;
+    return after.at(
+      DateTime.utc(
+        wall.year,
+        wall.month,
+        wall.day + days,
+        wall.hour,
+        wall.minute,
+        wall.second,
+      ).add(time),
+    );
+  };
+}
+
+DateTime _dayOf(DateTime wall) => DateTime.utc(wall.year, wall.month, wall.day);
+
+Duration _sinceMidnight(DateTime wall) => wall.difference(_dayOf(wall));
+
+/// [series] with the dates it leaves out moved by [moved]; as it is if
+/// [moved] is `null`. A line that can't be read stays as written.
+Component _withSkippedMoved(
+  Component series,
+  CalendarTime Function(CalendarTime slot)? moved,
+) => moved == null
+    ? series
+    : Component(series.name, [
+        for (final line in series.properties)
+          if (line.name == 'EXDATE' && timesOf(line).isNotEmpty)
+            timesLine('EXDATE', timesOf(line).map(moved).toList())
+          else
+            line,
+      ], children: series.children);
+
+/// A changed occurrence [part] naming the occurrence it replaces where
+/// [moved] puts it; as it is if [moved] is `null`.
+Component _withIdMoved(
+  Component part,
+  CalendarTime Function(CalendarTime slot)? moved,
+) => switch ((moved, EventPart(part).recurrenceId)) {
+  (final moved?, final id?) => part.withProperty(
+    'RECURRENCE-ID',
+    timeLine('RECURRENCE-ID', moved(id)),
+  ),
+  _ => part,
+};
+
+/// [series] without the dates of a repeat: those it leaves out and those
+/// it adds.
+Component _withoutDates(Component series) => Component(series.name, [
+  for (final line in series.properties)
+    if (line.name != 'EXDATE' && line.name != 'RDATE') line,
+], children: series.children);
 
 /// A deleted [event]'s marker: its id, stamps, start and title, and that
 /// it is deleted.

@@ -18,6 +18,10 @@ sealed class Repeat {
   /// midnight; `null` if it has none.
   DateTime? get until;
 
+  /// Whether the rule picks its days itself (e.g. on Mondays), rather
+  /// than going on from the start's day.
+  bool get fixesDays;
+
   /// The repeat [rule] says for a series starting at [start]: a
   /// [SimpleRepeat] where the form can show it, else kept as it is.
   static Repeat of(String rule, CalendarTime start) =>
@@ -52,6 +56,9 @@ final class SimpleRepeat extends Repeat {
   @override
   final DateTime? until;
   final int? count;
+
+  @override
+  bool get fixesDays => days.isNotEmpty;
 
   /// The parts a simple repeat may have.
   static const _parts = {'FREQ', 'INTERVAL', 'BYDAY', 'UNTIL', 'COUNT'};
@@ -159,6 +166,19 @@ final class OtherRepeat extends Repeat {
 
   @override
   final DateTime? until;
+
+  /// Whether it has a part that picks days, weeks or months.
+  @override
+  bool get fixesDays => _partsOf(rule).keys.any(
+    const {
+      'BYDAY',
+      'BYMONTHDAY',
+      'BYYEARDAY',
+      'BYWEEKNO',
+      'BYMONTH',
+      'BYSETPOS',
+    }.contains,
+  );
 
   @override
   String ruleFor(CalendarTime start) => switch (until) {

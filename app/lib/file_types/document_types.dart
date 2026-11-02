@@ -5,6 +5,7 @@ import 'package:truce_documents/truce_documents.dart';
 
 import '../common/time_texts.dart';
 import '../platform/platform_wiring.dart';
+import '../settings/calendar_view_setting.dart';
 import 'calendar_document_type.dart';
 import 'editable_type.dart';
 import 'markdown_document_type.dart';
@@ -22,6 +23,7 @@ final documentTypesProvider = Provider<DocumentTypes<EditableType>>((ref) {
       use24Hour: system.alwaysUse24HourFormat,
     ),
     deviceZone: ref.watch(deviceZoneProvider),
+    viewChoice: ref.watch(calendarViewChoiceProvider),
   );
   return DocumentTypes(
     [const MarkdownDocumentType(), const PlainTextDocumentType(), calendars],

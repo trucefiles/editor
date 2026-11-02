@@ -1,8 +1,5 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-
-import 'days.dart';
 
 /// What an [occurrence] is called; "(No title)" if it has none.
 String occurrenceTitle(Occurrence occurrence) =>
@@ -30,24 +27,3 @@ String timesOf(
       ? '${time(start)} – ${time(end)}'
       : '${time(start)} – ${words.formatShortMonthDay(end)} ${time(end)}';
 }
-
-/// The days [occurrence] shows on, each at midnight: from its start's day
-/// to the day of its end (an end at midnight or a day's end is not one).
-List<DateTime> daysOf(Occurrence occurrence) {
-  final first = DateUtils.dateOnly(occurrence.start);
-  final last = DateUtils.dateOnly(
-    occurrence.end.isAfter(occurrence.start)
-        ? occurrence.end.subtract(const Duration(microseconds: 1))
-        : occurrence.start,
-  );
-  return daysFrom(first, nextDay(last));
-}
-
-/// How many of [occurrences] show on each day, as a month grid marks it.
-Map<DateTime, int> countsByDay(Iterable<Occurrence> occurrences) => {
-  for (final MapEntry(key: day, value: shown) in groupBy(
-    occurrences.expand(daysOf),
-    (DateTime day) => day,
-  ).entries)
-    day: shown.length,
-};

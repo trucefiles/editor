@@ -13,6 +13,7 @@ library;
 export 'src/edit/calendar_edit.dart';
 export 'src/edit/event_draft.dart';
 export 'src/edit/new_uid.dart';
+export 'src/edit/occurrence_edits.dart';
 export 'src/health/cycle.dart';
 export 'src/merge/calendar_merge.dart';
 export 'src/model/calendar.dart';

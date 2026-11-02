@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_editor/settings/calendar_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -30,6 +32,7 @@ void main() {
       order: DocumentOrder.name,
       view: DocumentView.list,
     ),
+    calendarView: CalendarViewKind.week,
   );
 
   group('value', () {
@@ -149,6 +152,22 @@ void main() {
 
       final next = await start();
       expect(next.read(deviceSettingsProvider).requireValue.closeToTray, false);
+    });
+
+    test('the calendar view picked last is kept for the next start', () async {
+      final first = await start();
+      final choice = first.read(calendarViewChoiceProvider);
+      expect(choice.last(), CalendarViewKind.month);
+
+      final keeping = choice.keep(CalendarViewKind.day);
+      expect(choice.last(), CalendarViewKind.day);
+      await keeping;
+
+      final next = await start();
+      expect(
+        next.read(calendarViewChoiceProvider).last(),
+        CalendarViewKind.day,
+      );
     });
 
     test('changes made at once each start from the one before', () async {

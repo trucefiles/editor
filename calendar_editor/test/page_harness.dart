@@ -30,18 +30,31 @@ CalendarEditorPart calendarPart(
   startTimer: ManualTimers().start,
 );
 
-/// Shows [part]'s calendar page as of [today] on a device in [deviceZone],
-/// its hints added to [hints]; closes the part's editor once the test ends.
+/// The view a device keeps for calendars, as a test sets and reads it.
+final class KeptView {
+  KeptView([this.kind = CalendarViewKind.month]);
+
+  CalendarViewKind kind;
+
+  CalendarViewChoice get choice => CalendarViewChoice(
+    last: () => kind,
+    keep: (kind) async => this.kind = kind,
+  );
+}
+
+/// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
+/// that keeps the view in [kept] (by default the month), its hints added
+/// to [hints]; closes the part's editor once the test ends.
 Future<void> pumpPage(
   WidgetTester tester,
   CalendarEditorPart part, {
   required DateTime today,
   List<String>? hints,
   String? deviceZone,
+  KeptView? kept,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
-  // Tall enough that the picked day's events show below the month.
   tester.view.physicalSize = const Size(800, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -52,7 +65,8 @@ Future<void> pumpPage(
             CalendarEditorView(
               part,
               deviceZone: () async => deviceZone,
-              today: () => today,
+              viewChoice: (kept ?? KeptView()).choice,
+              now: () => today,
             ).view(
               EditorHost(kept: part.owner.state.text, hint: (hints ?? []).add),
               autofocus: false,
@@ -60,6 +74,8 @@ Future<void> pumpPage(
       ),
     ),
   );
+  // The views show their events after the first frame.
+  await tester.pumpAndSettle();
 }
 
 /// The calendar [part] holds now.

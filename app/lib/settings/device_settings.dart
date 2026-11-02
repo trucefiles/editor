@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_folders/truce_folders.dart';
@@ -18,6 +19,7 @@ final class DeviceSettings {
     required this.addItemPlace,
     required this.closeToTray,
     required this.home,
+    required this.calendarView,
   });
 
   /// What a device starts with.
@@ -29,6 +31,7 @@ final class DeviceSettings {
     addItemPlace: AddItemPlace.top,
     closeToTray: true,
     home: HomeSettings.standard,
+    calendarView: CalendarViewKind.month,
   );
 
   final TextZoom documentTextZoom;
@@ -47,6 +50,9 @@ final class DeviceSettings {
   final bool closeToTray;
 
   final HomeSettings home;
+
+  /// The view calendars open in: the one picked last.
+  final CalendarViewKind calendarView;
 
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
@@ -71,6 +77,7 @@ final class DeviceSettings {
     AddItemPlace? addItemPlace,
     bool? closeToTray,
     HomeSettings? home,
+    CalendarViewKind? calendarView,
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
@@ -79,6 +86,7 @@ final class DeviceSettings {
     addItemPlace: addItemPlace ?? this.addItemPlace,
     closeToTray: closeToTray ?? this.closeToTray,
     home: home ?? this.home,
+    calendarView: calendarView ?? this.calendarView,
   );
 
   Map<String, Object?> toJson() => {
@@ -89,6 +97,7 @@ final class DeviceSettings {
     'addItemPlace': addItemPlace.name,
     'closeToTray': closeToTray,
     'home': home.toJson(),
+    'calendarView': calendarView.name,
   };
 
   /// The settings [json] holds, each read on its own: one missing or not
@@ -113,6 +122,9 @@ final class DeviceSettings {
         _ => standard.closeToTray,
       },
       home: HomeSettings.fromJson(fields['home']) ?? standard.home,
+      calendarView:
+          CalendarViewKind.values.asNameMap()[fields['calendarView']] ??
+          standard.calendarView,
     );
   }
 
@@ -125,7 +137,8 @@ final class DeviceSettings {
       other.refresh == refresh &&
       other.addItemPlace == addItemPlace &&
       other.closeToTray == closeToTray &&
-      other.home == home;
+      other.home == home &&
+      other.calendarView == calendarView;
 
   @override
   int get hashCode => Object.hash(
@@ -136,5 +149,6 @@ final class DeviceSettings {
     addItemPlace,
     closeToTray,
     home,
+    calendarView,
   );
 }

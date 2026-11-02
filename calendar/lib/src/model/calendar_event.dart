@@ -56,6 +56,9 @@ final class EventPart {
     for (final line in component.all('RDATE')) ...timesOf(line),
   ];
 
+  /// Whether it repeats: by a rule, or by extra dates alone.
+  bool get repeats => rule != null || rdates.isNotEmpty;
+
   /// The occurrences of its series left out.
   late final List<CalendarTime> exdates = [
     for (final line in component.all('EXDATE')) ...timesOf(line),
