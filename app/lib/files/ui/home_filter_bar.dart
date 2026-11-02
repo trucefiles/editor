@@ -6,8 +6,8 @@ import 'file_type_chips.dart';
 
 /// The chips that filter the files grid: by folder, then by file type;
 /// scrolls sideways when they don't fit.
-class FileFilterBar extends StatelessWidget {
-  const FileFilterBar(this.folders, {required this.conflictCount, super.key});
+class HomeFilterBar extends StatelessWidget {
+  const HomeFilterBar(this.folders, {required this.conflictCount, super.key});
 
   final List<Folder> folders;
 

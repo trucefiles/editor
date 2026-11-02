@@ -24,13 +24,13 @@ import '../../refresh/ui/pull_to_refresh.dart';
 import '../../search/ui/search_screen.dart';
 import '../../settings/device_settings_controller.dart';
 import '../file_actions.dart';
-import '../file_filter_provider.dart';
 import '../file_settings_controller.dart';
 import '../file_settings_pruning.dart';
+import '../home_filter_provider.dart';
 import '../new_file/pick_new_file.dart';
 import 'all_files_screen.dart';
-import 'file_filter_bar.dart';
 import 'file_sections.dart';
+import 'home_filter_bar.dart';
 import 'home_menu.dart';
 import 'listed_file_card.dart';
 
@@ -156,7 +156,7 @@ class _FilesBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(fileFilterProvider);
+    final filter = ref.watch(homeFilterProvider);
     final types = ref.watch(fileTypesProvider);
     final contents = ref.watch(folderContentsProvider).value;
     final conflicts = contents?.conflicts;
@@ -170,18 +170,14 @@ class _FilesBody extends ConsumerWidget {
         deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
       ),
     );
-    final orphans = [
-      for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
-        if (filter.shows(
-          orphan.folder.id,
-          types.of(orphan.conflict.mainPath)?.support.type,
-        ))
-          orphan,
-    ];
+    final orphans = filter.orphansOf(
+      conflicts?.orphans ?? const [],
+      typeOf: (path) => types.of(path)?.support.type,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FileFilterBar(
+        HomeFilterBar(
           folders,
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),

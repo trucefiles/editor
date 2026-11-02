@@ -5,8 +5,8 @@ import '../folders/folder_selection.dart';
 import 'file_type_selection.dart';
 
 /// Which files home and All show: the folder and the file type picked.
-final fileFilterProvider = Provider<FileFilter>(
-  (ref) => FileFilter(
+final homeFilterProvider = Provider<HomeFilter>(
+  (ref) => HomeFilter(
     folder: ref.watch(selectedFolderIdProvider),
     type: ref.watch(selectedFileTypeProvider),
   ),

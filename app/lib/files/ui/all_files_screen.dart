@@ -10,10 +10,10 @@ import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
-import '../file_filter_provider.dart';
-import 'file_filter_bar.dart';
+import '../home_filter_provider.dart';
 import 'file_grid.dart';
 import 'file_sections.dart';
+import 'home_filter_bar.dart';
 import 'listed_file_card.dart';
 import 'listed_file_row.dart';
 
@@ -39,7 +39,7 @@ class AllFilesScreen extends ConsumerWidget {
         device.change((s) => s.copyWith(home: change(s.home)));
     final contents = ref.watch(folderContentsProvider).value;
     final files = ref
-        .watch(fileFilterProvider)
+        .watch(homeFilterProvider)
         .of(contents?.files ?? const <ListedFile>[]);
     final asCards = settings.view == FileView.cards;
     return Scaffold(
@@ -71,7 +71,7 @@ class AllFilesScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          FileFilterBar(
+          HomeFilterBar(
             ref.watch(foldersProvider).value ?? const [],
             conflictCount: (folder) =>
                 contents?.conflicts.countIn(folder.id) ?? 0,
