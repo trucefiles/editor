@@ -11,15 +11,18 @@ import 'editable_type.dart';
 /// user picks it; shown on the calendar page.
 final class CalendarDocumentType implements EditableType {
   /// [times] writes the days on cards; [deviceZone] tells this device's
-  /// time zone, for new events; [now] tells the time.
+  /// time zone, for new events; [viewChoice] the view calendars open in;
+  /// [now] tells the time.
   CalendarDocumentType({
     required this.times,
     required this.deviceZone,
+    required this.viewChoice,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
   final TimeTexts times;
   final DeviceZone deviceZone;
+  final CalendarViewChoice viewChoice;
   final DateTime Function() _now;
 
   /// The new calendars the user can make.
@@ -71,6 +74,13 @@ final class CalendarDocumentType implements EditableType {
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {
     final part = CalendarEditorPart(start);
-    return (part: part, view: CalendarEditorView(part, deviceZone: deviceZone));
+    return (
+      part: part,
+      view: CalendarEditorView(
+        part,
+        deviceZone: deviceZone,
+        viewChoice: viewChoice,
+      ),
+    );
   }
 }

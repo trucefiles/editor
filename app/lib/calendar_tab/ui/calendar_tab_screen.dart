@@ -1,106 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../../common/empty_state.dart';
 import '../../documents/ui/document_grid.dart';
 import '../../folders/folder_colors.dart';
-import '../calendar_month_controller.dart';
+import '../../settings/calendar_view_setting.dart';
 import '../calendar_tab_controller.dart';
+import '../calendar_tab_picks.dart';
 
 /// The Calendar tab: the events of every calendar of the shown folders in
-/// one month grid and the picked day's list, each in its folder's color;
-/// chips turn a calendar's events on and off. Tap an event to open its
-/// calendar; + opens a calendar to add one there.
+/// the calendar views, each in its folder's color; chips turn a
+/// calendar's events on and off. Tap an event to open its calendar; +
+/// opens a calendar to add one there. Nothing is dragged here: each
+/// calendar is edited on its own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final words = MaterialLocalizations.of(context);
-    final month = ref.watch(
-      calendarTabMonthProvider(words.firstDayOfWeekIndex),
-    );
-    final picks = ref.read(calendarTabPicksProvider.notifier);
-    final use24Hour = MediaQuery.alwaysUse24HourFormatOf(context);
+    final calendars = ref.watch(calendarTabProvider).value ?? const [];
+    // Rebuilt at midnight, so today moves on.
+    final picks = ref.watch(calendarTabPicksProvider);
+    final viewChoice = ref.watch(calendarViewChoiceProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
-      floatingActionButton: month.calendars.isEmpty
+      floatingActionButton: calendars.isEmpty
           ? null
           : FloatingActionButton(
               // The documents' button is in the same page, beside it.
               heroTag: null,
               tooltip: 'Add event',
-              onPressed: () => _openForAdding(context, ref, month.forAdding),
+              onPressed: () => _openForAdding(
+                context,
+                ref,
+                forAdding(calendars, picks.lastUsed),
+              ),
               child: const Icon(Icons.add),
             ),
-      body: month.calendars.isEmpty
+      body: calendars.isEmpty
           ? const EmptyState(
               icon: Icons.calendar_month_outlined,
               text: 'No calendars yet.',
             )
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          : Column(
               children: [
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final calendar in month.calendars)
-                      FilterChip(
-                        avatar: CircleAvatar(
-                          backgroundColor: folderColor(
-                            calendar.document.folder.color,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final calendar in calendars)
+                        FilterChip(
+                          avatar: CircleAvatar(
+                            backgroundColor: folderColor(
+                              calendar.document.folder.color,
+                            ),
                           ),
+                          label: Text(tabCalendarName(calendar)),
+                          selected: calendar.shown,
+                          onSelected: (on) => ref
+                              .read(calendarTabProvider.notifier)
+                              .show(calendar.document, shown: on),
                         ),
-                        label: Text(tabCalendarName(calendar)),
-                        selected: calendar.shown,
-                        onSelected: (on) => ref
-                            .read(calendarTabProvider.notifier)
-                            .show(calendar.document, shown: on),
-                      ),
-                  ],
-                ),
-                MonthHeader(month: month.picks.month, onMonth: picks.showMonth),
-                MonthGrid(
-                  month: month.picks.month,
-                  selected: month.picks.day,
-                  today: month.picks.today,
-                  lookOf: (day) => (
-                    marked: month.counts[day] ?? 0,
-                    filled: false,
-                    hatched: false,
-                    tinted: false,
-                  ),
-                  onPick: picks.pickDay,
-                ),
-                const Divider(),
-                ListTile(
-                  title: Text(
-                    words.formatFullDate(month.picks.day),
-                    style: Theme.of(context).textTheme.titleMedium,
+                    ],
                   ),
                 ),
-                if (month.ofDay.isEmpty)
-                  const ListTile(title: Text('Nothing on this day.'))
-                else
-                  for (final (:calendar, :occurrence) in month.ofDay)
-                    ListTile(
-                      leading: Icon(
-                        Icons.circle,
-                        size: 14,
-                        color: folderColor(calendar.document.folder.color),
-                      ),
-                      title: Text(occurrenceTitle(occurrence)),
-                      subtitle: Text(
-                        [
-                          timesOf(words, occurrence, use24Hour: use24Hour),
-                          tabCalendarName(calendar),
-                        ].join(' · '),
-                      ),
-                      onTap: () =>
-                          openDocument(context, ref, calendar.document),
-                    ),
+                Expanded(
+                  child: CalendarViews<Document>(
+                    calendars: <Document, Calendar>{
+                      for (final calendar in calendars)
+                        if (calendar.shown)
+                          calendar.document: calendar.calendar,
+                    },
+                    colorOf: (document) => folderColor(document.folder.color),
+                    kind: viewChoice.last(),
+                    onKind: viewChoice.keep,
+                    now: ref.watch(calendarClockProvider),
+                    onTap: (document, _) =>
+                        openDocument(context, ref, document),
+                  ),
+                ),
               ],
             ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
@@ -33,7 +35,7 @@ class EventsPage extends StatelessWidget {
       calendars: {(): calendar},
       colorOf: (_) => Theme.of(context).colorScheme.primary,
       kind: viewChoice.last(),
-      onKind: viewChoice.keep,
+      onKind: (kind) => unawaited(viewChoice.keep(kind)),
       now: now,
       onTap: edit == null
           ? null

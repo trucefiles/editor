@@ -36,8 +36,10 @@ final class KeptView {
 
   CalendarViewKind kind;
 
-  CalendarViewChoice get choice =>
-      CalendarViewChoice(last: () => kind, keep: (kind) => this.kind = kind);
+  CalendarViewChoice get choice => CalendarViewChoice(
+    last: () => kind,
+    keep: (kind) async => this.kind = kind,
+  );
 }
 
 /// Shows [part]'s calendar page as of [today] on a device in [deviceZone]

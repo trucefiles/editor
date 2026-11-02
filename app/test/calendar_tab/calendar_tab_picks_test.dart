@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-import 'package:truce_editor/calendar_tab/calendar_month_controller.dart';
 import 'package:truce_editor/calendar_tab/calendar_tab_controller.dart';
+import 'package:truce_editor/calendar_tab/calendar_tab_picks.dart';
 
 import '../support.dart';
 
@@ -34,61 +34,16 @@ void main() {
     shown: shown,
   );
 
-  TabPicks picks(DateTime day, {TabCalendar? lastUsed}) => (
-    month: DateTime(day.year, day.month),
-    day: day,
-    today: DateTime(2026, 11, 1),
-    lastUsed: lastUsed?.document.key,
-  );
-
   final home = calendar('Home', 'Dentist', DateTime(2026, 11, 5));
   final work = calendar('Work', 'Review', DateTime(2026, 11, 5));
-  final hidden = calendar('Club', 'Match', DateTime(2026, 11, 5), shown: false);
-
-  test("the month joins the shown calendars' events by day", () {
-    final month = tabMonth(
-      [home, work, hidden],
-      picks(DateTime(2026, 11, 5)),
-      firstWeekday: 0,
-    );
-
-    expect(month.counts, {DateTime(2026, 11, 5): 2});
-    expect([
-      for (final (:calendar, :occurrence) in month.ofDay)
-        (tabCalendarName(calendar), occurrence.part.summary),
-    ], unorderedEquals([('Home', 'Dentist'), ('Work', 'Review')]));
-  });
 
   test('the calendar added to last is offered first', () {
-    final month = tabMonth(
-      [home, work],
-      picks(DateTime(2026, 11, 5), lastUsed: work),
-      firstWeekday: 0,
-    );
-
     expect(
-      [for (final each in month.forAdding) tabCalendarName(each)],
+      [
+        for (final each in forAdding([home, work], work.document.key))
+          tabCalendarName(each),
+      ],
       ['Work', 'Home'],
-    );
-  });
-
-  test('picking a day shows its month; it starts at today', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final today = DateTime.now();
-    expect(
-      container.read(calendarTabPicksProvider).day,
-      (DateTime(today.year, today.month, today.day)),
-    );
-
-    container
-        .read(calendarTabPicksProvider.notifier)
-        .pickDay(DateTime(2027, 3, 12));
-
-    final picked = container.read(calendarTabPicksProvider);
-    expect(
-      (picked.month, picked.day),
-      (DateTime(2027, 3), DateTime(2027, 3, 12)),
     );
   });
 
@@ -102,13 +57,11 @@ void main() {
       shown: true,
     );
 
-    final month = tabMonth(
-      [home, changed],
-      container.read(calendarTabPicksProvider),
-      firstWeekday: 0,
-    );
-
-    expect(tabCalendarName(month.forAdding.first), 'Work');
+    final first = forAdding([
+      home,
+      changed,
+    ], container.read(calendarTabPicksProvider).lastUsed).first;
+    expect(tabCalendarName(first), 'Work');
   });
 
   testWidgets('today moves on at midnight', (tester) async {

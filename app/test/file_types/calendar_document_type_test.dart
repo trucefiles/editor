@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/common/time_texts.dart';
 import 'package:truce_editor/file_types/calendar_document_type.dart';
@@ -36,6 +37,10 @@ void main() {
   CalendarDocumentType calendars() => CalendarDocumentType(
     times: TimeTexts(locale: 'en', use24Hour: true),
     deviceZone: () async => null,
+    viewChoice: CalendarViewChoice(
+      last: () => CalendarViewKind.month,
+      keep: (_) async {},
+    ),
     now: () => DateTime(2026, 11),
   );
   final read = documentTextOf(folder, _birthday, name: 'birthdays.ics');
