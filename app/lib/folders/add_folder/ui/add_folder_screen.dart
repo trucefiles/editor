@@ -145,7 +145,7 @@ class _NameStep extends StatelessWidget {
         child: Align(
           alignment: AlignmentDirectional.centerEnd,
           child: FilledButton(
-            onPressed: onDone,
+            onPressed: naming.hasName ? onDone : null,
             child: Text(naming.isLast ? 'Add' : 'Next'),
           ),
         ),

@@ -55,7 +55,7 @@ final class LocalFolderPlugin implements FolderPlugin {
     Uri picked,
   ) async {
     final host = await _disk.hostPathOf(picked);
-    if ([picked, host].any(_inHidden)) {
+    if ([picked, host].any(liesInHidden)) {
       return const Err(LocalPickRefused.hidden);
     }
     if (_clashesIn(_state, host)) return const Err(LocalPickRefused.overlaps);
@@ -122,7 +122,4 @@ final class LocalFolderPlugin implements FolderPlugin {
 
   static PluginFolder _pluginFolder(LocalFolderEntry folder) =>
       PluginFolder(id: folder.id, location: shownAddress(folder.host));
-
-  static bool _inHidden(Uri address) =>
-      address.pathSegments.any((segment) => segment.startsWith('.'));
 }

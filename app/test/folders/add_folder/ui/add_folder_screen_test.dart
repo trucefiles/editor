@@ -83,6 +83,22 @@ void main() {
     expect(find.byType(AddFolderScreen), findsNothing);
   });
 
+  testWidgets('a blank name can not be added', (tester) async {
+    await open(tester);
+    await tester.tap(find.text('Fake fake'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField), '  ');
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'))
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('a page cancelled stays at the plugins', (tester) async {
     await open(tester);
 

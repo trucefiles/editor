@@ -32,6 +32,10 @@ final class NamingFolder extends AddFolderStep {
 
   /// Whether this is the last folder to name.
   bool get isLast => index == count - 1;
+
+  /// Whether [name] is one a folder can have ([Folder.nameFrom]); the
+  /// flow goes on only then.
+  bool get hasName => Folder.nameFrom(name) != null;
 }
 
 /// Adding folders, step by step: the plugin, its add page's candidates,
@@ -105,9 +109,9 @@ final class AddFolderFlow {
     (named) => (candidate: named.candidate, name: named.name, color: color),
   );
 
-  /// On to the next folder to name.
+  /// On to the next folder to name, once this one has a name.
   void next() {
-    if (step case NamingFolder(isLast: false)) {
+    if (step case NamingFolder(isLast: false, hasName: true)) {
       _index++;
       _changes.add(null);
     }
@@ -130,9 +134,20 @@ final class AddFolderFlow {
     return true;
   }
 
-  /// Adds every named folder, all together or none; the folders added.
+  /// Adds every named folder, all together or none, each by its name as
+  /// [Folder.nameFrom] has it; the folders added. Only once every folder
+  /// has a name ([NamingFolder.hasName]).
   Future<Result<List<Folder>, FolderError>> finish() => switch (_plugin) {
-    final plugin? => _add(plugin, _named),
+    final plugin? => _add(plugin, [
+      for (final named in _named)
+        (
+          candidate: named.candidate,
+          name:
+              Folder.nameFrom(named.name) ??
+              (throw StateError('A folder to add has no name')),
+          color: named.color,
+        ),
+    ]),
     null => throw StateError('Nothing to add before a plugin gave folders'),
   };
 

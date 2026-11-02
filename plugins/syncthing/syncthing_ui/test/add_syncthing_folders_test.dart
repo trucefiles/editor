@@ -81,6 +81,24 @@ void main() {
     expect(result!.single.location, contains('(Syncthing folder '));
   });
 
+  testWidgets('never goes on with a pick inside a hidden folder', (
+    tester,
+  ) async {
+    Directory('${root.path}/.stversions/old').createSync(recursive: true);
+
+    await open(tester, Uri.directory('${root.path}/.stversions/old'));
+    await tester.tap(find.text('Continue with this folder'));
+    await _settle(tester);
+
+    expect(find.text('Folders to add'), findsNothing);
+    expect(
+      find.text("Hidden folders and Syncthing's own can't be added."),
+      findsOneWidget,
+    );
+    expect(ended, isTrue);
+    expect(result, isNull);
+  });
+
   testWidgets('gives nothing when the pick is cancelled', (tester) async {
     await open(tester, null);
 

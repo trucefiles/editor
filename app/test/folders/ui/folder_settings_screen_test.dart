@@ -64,6 +64,20 @@ void main() {
     expect(find.byType(FolderSettingsScreen), findsNothing);
   });
 
+  testWidgets('a blank name can not be saved', (tester) async {
+    await open(tester);
+
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Save'))
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('a refused change stays on the screen and says why', (
     tester,
   ) async {

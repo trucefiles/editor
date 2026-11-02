@@ -7,6 +7,11 @@ String lastSegment(Uri address) => address.pathSegments.lastWhere(
   orElse: () => '$address',
 );
 
+/// Whether the folder at [address] lies in a hidden folder (or is one),
+/// e.g. a sync tool's own version folder: never one to add.
+bool liesInHidden(Uri address) =>
+    address.pathSegments.any((segment) => segment.startsWith('.'));
+
 /// [address] as the user reads it: a path for a folder on this device,
 /// else the address as it is.
 String shownAddress(Uri address) =>

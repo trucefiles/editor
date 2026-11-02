@@ -99,7 +99,8 @@ final class RemoveFolder extends FolderListAsking {
 }
 
 /// How many files have edits kept only on this device that removing
-/// [folder] would delete.
+/// [folder] would delete; asked after securing its open files, so the
+/// count is the one the user is warned with.
 final class CountDrafts extends FolderListAsking {
   const CountDrafts(super.ticket, this.folder);
 

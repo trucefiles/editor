@@ -69,7 +69,8 @@ Future<List<PluginFolderCandidate>?> _pickIn(
     );
     return null;
   }
-  if (!plugin.shows(found.pick)) {
+  if (plugin.rootInHidden(found.root, found.rootHost) ||
+      !plugin.shows(found.pick)) {
     _tell(context, "Hidden folders and Syncthing's own can't be added.");
     return null;
   }

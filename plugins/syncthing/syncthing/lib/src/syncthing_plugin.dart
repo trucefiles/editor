@@ -68,6 +68,11 @@ final class SyncthingPlugin implements FolderPlugin {
       .subfoldersAt(root)
       .shownBy(SyncthingFolder.shown.includesFolderPath);
 
+  /// Whether a root at [root] (on the host: [rootHost]) lies in a hidden
+  /// folder, e.g. another root's `.stversions`: never one to add.
+  bool rootInHidden(Uri root, Uri rootHost) =>
+      [root, rootHost].any(liesInHidden);
+
   /// Whether a folder at [path] in a root is one the user may pick: shown
   /// by Syncthing, and none of its own.
   bool shows(RelPath? path) =>

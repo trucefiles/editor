@@ -25,7 +25,10 @@ void main() {
         plugins: FolderPlugins([plugin]),
         secureOpen: (id) async => calls.add('secure $id'),
         forgetDrafts: (id) async => calls.add('forget $id'),
-        countDrafts: (id) async => drafts[id] ?? 0,
+        countDrafts: (id) async {
+          calls.add('count $id');
+          return drafts[id] ?? 0;
+        },
       ),
     );
     addTearDown(owner.close);
@@ -120,7 +123,8 @@ void main() {
     expect((await settledFolders(owner())).map((f) => f.id), [folderId('b')]);
   });
 
-  test('counts the drafts removing would delete', () async {
+  test('counts the drafts removing would delete, once its open files are '
+      'secured', () async {
     final folders = owner();
     final [a] = (await add(folders, ['a'])).value;
     drafts[a.id] = 2;
@@ -131,6 +135,7 @@ void main() {
     );
 
     expect(counted.count, 2);
+    expect(calls, ['secure fake-a', 'count fake-a']);
   });
 
   test('a list and plugin state that disagree are unreadable, and no '

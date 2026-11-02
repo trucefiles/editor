@@ -18,7 +18,15 @@ final class Folder {
 
   final FolderId id;
 
+  /// Never blank, no spaces around it ([nameFrom]).
   final String name;
+
+  /// The one rule for a folder's name: [typed] without spaces around
+  /// it; `null` if nothing is left.
+  static String? nameFrom(String typed) => switch (typed.trim()) {
+    '' => null,
+    final name => name,
+  };
 
   /// The name of its color in the app's palette.
   final String color;

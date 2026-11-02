@@ -81,6 +81,26 @@ void main() {
     );
   });
 
+  test('takes names without spaces around, and no blank one', () async {
+    final adding = flow()
+      ..took(plugin, [
+        FakePlugin.candidate('notes'),
+        FakePlugin.candidate('work'),
+      ])
+      ..rename('   ');
+
+    expect(naming(adding).hasName, isFalse);
+    adding.next();
+    expect(naming(adding).index, 0);
+
+    adding
+      ..rename('  Notes ')
+      ..next();
+    await adding.finish();
+
+    expect([for (final named in added.single) named.name], ['Notes', 'work']);
+  });
+
   test('back goes to the folder before, then to the plugins, then ends', () {
     final adding = flow()
       ..took(plugin, [

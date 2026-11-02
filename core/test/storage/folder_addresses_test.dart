@@ -16,4 +16,10 @@ void main() {
     expect(savedFileAddress('file:///a'), Uri.parse('file:///a'));
     expect(savedFileAddress('cloud://me/a'), isNull);
   });
+
+  test('tells a folder in a hidden folder', () {
+    expect(liesInHidden(Uri.parse('file:///s/.stversions/old')), isTrue);
+    expect(liesInHidden(Uri.parse('file:///s/.hidden')), isTrue);
+    expect(liesInHidden(Uri.parse('file:///s/notes')), isFalse);
+  });
 }

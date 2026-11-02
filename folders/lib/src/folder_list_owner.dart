@@ -166,7 +166,7 @@ final class _FolderListSteps {
       ),
       CountDrafts(:final ticket, :final folder) => DraftsCounted(
         ticket,
-        await _work.countDrafts(folder.id),
+        await _securedThenCounted(folder.id),
       ),
     };
   }
@@ -207,6 +207,13 @@ final class _FolderListSteps {
     return _save([
       for (final folder in folders) folder.id == changed.id ? changed : folder,
     ], out);
+  }
+
+  /// Secures [folder]'s open files first, so a draft a failed save
+  /// leaves is counted too; then counts its files with drafts.
+  Future<int> _securedThenCounted(FolderId folder) async {
+    await _work.secureOpen(folder);
+    return _work.countDrafts(folder);
   }
 
   /// Secures its open files first; its drafts go once the list is saved,

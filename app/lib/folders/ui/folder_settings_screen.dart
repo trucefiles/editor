@@ -34,8 +34,8 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   }
 
   Future<void> _save() async {
-    final name = _name.text.trim();
-    if (name.isEmpty) return;
+    final name = Folder.nameFrom(_name.text);
+    if (name == null) return;
     setState(() => _busy = true);
     final saved = await ref
         .read(folderActionsProvider)
@@ -59,9 +59,14 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
       appBar: AppBar(
         title: const Text('Folder'),
         actions: [
-          TextButton(
-            onPressed: _busy ? null : _save,
-            child: const Text('Save'),
+          ValueListenableBuilder(
+            valueListenable: _name,
+            builder: (context, typed, _) => TextButton(
+              onPressed: _busy || Folder.nameFrom(typed.text) == null
+                  ? null
+                  : _save,
+              child: const Text('Save'),
+            ),
           ),
         ],
       ),
