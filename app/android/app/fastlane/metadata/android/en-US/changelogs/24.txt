@@ -1,0 +1,7 @@
+- Before updating, finish your open edits; after it, add your folders again
+- Calendars: month, week, day and schedule views; add, edit and move events
+- A Calendar tab for all your calendars; health calendars
+- Folders are added through their sync tool: Syncthing or a local folder
+- Home can show only one kind of file
+- Cards on Home are as tall as their text again
+- List separators act as one character; smooth drag drops

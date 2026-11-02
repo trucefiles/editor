@@ -19,6 +19,19 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.0" date="2026-11-03">
+      <description>
+        <ul>
+          <li>Before updating, finish your open edits; after it, add your folders again.</li>
+          <li>Calendars: open .ics files in month, week, day and schedule views, and add, edit and move events.</li>
+          <li>The Calendar tab shows the events of all your calendars; health calendars keep period days and other entries.</li>
+          <li>Folders are added through their sync tool, Syncthing or a local folder.</li>
+          <li>Home can show only one kind of file.</li>
+          <li>Cards on Home are as tall as their text again.</li>
+          <li>List separators act as one character, and drag drops are smooth.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.10.0" date="2026-10-30">
       <description>
         <ul>
