@@ -6,7 +6,6 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../device_zone.dart';
 import '../views/calendar_view_choice.dart';
 import '../views/calendar_views.dart';
-import '../views/occurrence_event.dart';
 import 'event_actions.dart';
 
 /// A calendar in the calendar views: tap an event to edit or delete it;
@@ -47,7 +46,7 @@ class EventsPage extends StatelessWidget {
       onMove: edit == null
           ? null
           : (_, occurrence, start, end) =>
-                edit(movedTo(occurrence, start, end)),
+                edit(occurrenceMovedTo(occurrence, start, end)),
     );
   }
 }

@@ -4,7 +4,6 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../device_zone.dart';
 import '../views/new_event_spot.dart';
 import 'event_form.dart';
-import 'occurrence_draft.dart';
 
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);

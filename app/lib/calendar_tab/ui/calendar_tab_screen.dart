@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -75,7 +77,7 @@ class CalendarTabScreen extends ConsumerWidget {
                     },
                     colorOf: (document) => folderColor(document.folder.color),
                     kind: viewChoice.last(),
-                    onKind: viewChoice.keep,
+                    onKind: (kind) => unawaited(viewChoice.keep(kind)),
                     now: ref.watch(calendarClockProvider),
                     onTap: (document, _) =>
                         openDocument(context, ref, document),

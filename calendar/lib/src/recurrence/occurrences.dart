@@ -72,11 +72,7 @@ Iterable<Occurrence> _occurrencesOf(
     }
     return;
   }
-  // An end before the start (a broken file) counts as no length.
-  final length = switch (end.wall.difference(start.wall)) {
-    final length when length.isNegative => Duration.zero,
-    final length => length,
-  };
+  final length = lengthOn(start, end);
   final skipped = {
     for (final exdate in series.exdates) exdate.local,
     for (final part in event.changed) ?part.recurrenceId?.local,

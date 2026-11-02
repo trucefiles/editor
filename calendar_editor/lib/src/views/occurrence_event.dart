@@ -1,7 +1,6 @@
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../ui/occurrence_draft.dart';
 import 'calendar_views_model.dart';
 
 /// One [occurrence] as kalender shows it, with the key of its
@@ -49,28 +48,3 @@ List<OccurrenceEvent<K>> eventsOf<K>(List<ShownOccurrence<K>> shown) => [
   for (final (:calendar, :occurrence) in shown)
     OccurrenceEvent(calendar, occurrence),
 ];
-
-/// The edit that moves [occurrence] alone to [start] up to [end] (where a
-/// drag or a resize let go): a single event changes, one of a series
-/// becomes a changed one; its times keep their kind (a New York event
-/// stays in New York, a day stays a day, at least one day long).
-CalendarEdit Function(DateTime at) movedTo(
-  Occurrence occurrence,
-  DateTime start,
-  DateTime end,
-) {
-  final draft = occurrenceDraft(occurrence);
-  final newStart = draft.start.sameKindAt(start);
-  final newEnd = switch (draft.end.sameKindAt(end)) {
-    final AllDay day when !day.wall.isAfter(newStart.wall) => AllDay(
-      newStart.wall.add(const Duration(days: 1)),
-    ),
-    final end => end,
-  };
-  final moved = draft.occurrenceAt(newStart, newEnd);
-  final uid = occurrence.event.uid;
-  return switch (occurrence.recurrence) {
-    final one? => (at) => ChangeOccurrence(uid, one, moved, at: at),
-    null => (at) => ChangeSeries(uid, moved, at: at),
-  };
-}

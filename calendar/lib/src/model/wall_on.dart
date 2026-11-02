@@ -14,3 +14,12 @@ DateTime wallOn(CalendarTime start, CalendarTime time) {
     _ => start.sameKindAt(time.local).wall,
   };
 }
+
+/// How long each date of a series from [start] to [end] lasts, on
+/// [start]'s clock (so an end written on another clock counts right); a
+/// broken end before the start lasts no time.
+Duration lengthOn(CalendarTime start, CalendarTime end) =>
+    switch (wallOn(start, end).difference(start.wall)) {
+      final length when length.isNegative => Duration.zero,
+      final length => length,
+    };
