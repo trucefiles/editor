@@ -124,6 +124,11 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A device with a wrong clock can lose its edits.** When the same event
   changed on two devices, the newer change wins, by each device's clock.
   The edit that lost is still in the calendar's Backups.
+- **Hour rows keep their height.** In the week and day views, an hour
+  doesn't grow with larger text, and the title of a short event (15
+  minutes) is cut off. Tap it to see it whole.
+- **The views reach from 1900 to 2100.** Paging stops there; events
+  outside those years still stay in the calendar.
 - **Undoing a new event leaves a deleted mark.** Undo takes the event
   away, but its file keeps a note that it was deleted, so other devices
   learn of it too.

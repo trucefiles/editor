@@ -39,9 +39,10 @@
 - Markdown documents and checklists, edited visually (lists, styles,
   drag and drop), as raw Markdown, or read rendered.
 - Plain text files (`.txt`), edited as text.
-- Calendars (`.ics`, the format other calendar apps use): a month view,
-  events that repeat, a health calendar with a cycle estimate, and a
-  Calendar tab with the events of all your calendars. Changes from two
+- Calendars (`.ics`, the format other calendar apps use): month, week,
+  day and schedule views, tap or drag to add and move events, events
+  that repeat, a health calendar with a cycle estimate, and a Calendar
+  tab with the events of all your calendars. Changes from two
   devices merge event by event, with one tap.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
@@ -136,9 +137,10 @@ A Dart pub workspace with these packages:
 - `document_editor`: editing text documents on super_editor (Visual
   edit, Markdown edit, plain text, Read). Flutter; uses core, documents,
   document_page, markdown and plain_text.
-- `calendar_editor`: the calendar page (month, day, event form, health
-  view) and the Calendar tab's month grid. Flutter; uses core, documents,
-  document_page and calendar.
+- `calendar_editor`: the calendar views (month, week, day and schedule,
+  on `kalender`) for the calendar page and the Calendar tab, the event
+  form and the health view. Flutter; uses core, documents, document_page
+  and calendar.
 - `masonry`: a lazy masonry grid (items as tall as their content, in
   columns) for the document cards. Flutter; layout only, knows nothing of
   documents.

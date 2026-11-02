@@ -247,7 +247,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
 
 /// The kalender view of each kind, for weeks that start on
 /// [firstDayOfWeek] (`DateTime.monday` and on), today from [now]; each
-/// pages over two hundred years.
+/// pages over two hundred years and opens on today when it shows.
 Map<CalendarViewKind, ViewConfiguration> configurationsFor({
   required int firstDayOfWeek,
   required DateTime Function() now,
@@ -258,15 +258,27 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
   );
   const morning = KalenderTime(hour: 8, minute: 0);
   final today = now();
+  // A new view opens on today where the old one showed it, else on the
+  // old one's first day.
+  FloatingDateTime focus(ViewTransitionContext transition) {
+    final shown = transition.oldViewController.floatingVisibleRange.value;
+    final day = FloatingDateTime.fromExternal(now());
+    return day.isBefore(shown.start) || !day.isBefore(shown.end)
+        ? kCarryFocusDate(transition)
+        : day;
+  }
+
   return {
     CalendarViewKind.month: MonthViewConfiguration.singleMonth(
       initialDateTime: today,
+      dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
     ),
     CalendarViewKind.week: MultiDayViewConfiguration.week(
       initialDateTime: today,
+      dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
@@ -274,6 +286,7 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
     ),
     CalendarViewKind.day: MultiDayViewConfiguration.singleDay(
       initialDateTime: today,
+      dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
@@ -281,6 +294,7 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
     ),
     CalendarViewKind.schedule: ScheduleViewConfiguration.paginated(
       initialDateTime: today,
+      dateResolver: focus,
       nowCallback: now,
       displayRange: range,
     ),

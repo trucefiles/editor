@@ -26,60 +26,69 @@ class ViewsBar extends StatelessWidget {
   final VoidCallback? onAdd;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      IconButton(
-        icon: const Icon(Icons.chevron_left),
-        tooltip: 'Previous',
-        onPressed: onPrevious,
-      ),
-      IconButton(
-        icon: const Icon(Icons.chevron_right),
-        tooltip: 'Next',
-        onPressed: onNext,
-      ),
-      Expanded(
-        child: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium,
+  Widget build(BuildContext context) => IconButtonTheme(
+    data: const IconButtonThemeData(
+      style: ButtonStyle(visualDensity: VisualDensity.compact),
+    ),
+    child: Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous',
+          onPressed: onPrevious,
         ),
-      ),
-      IconButton(
-        icon: const Icon(Icons.today_outlined),
-        tooltip: 'Today',
-        onPressed: onToday,
-      ),
-      PopupMenuButton<CalendarViewKind>(
-        tooltip: 'Pick a view',
-        initialValue: kind,
-        onSelected: onKind,
-        itemBuilder: (context) => [
-          for (final each in CalendarViewKind.values)
-            PopupMenuItem(
-              value: each,
-              child: ListTile(
-                leading: Icon(_iconOf(each)),
-                title: Text(_labelOf(each)),
-              ),
-            ),
-        ],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [Text(_labelOf(kind)), const Icon(Icons.arrow_drop_down)],
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next',
+          onPressed: onNext,
+        ),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
-      ),
-      if (onAdd case final onAdd?)
         IconButton(
-          icon: const Icon(Icons.add),
-          tooltip: 'Add event',
-          onPressed: onAdd,
+          icon: const Icon(Icons.today_outlined),
+          tooltip: 'Today',
+          onPressed: onToday,
         ),
-    ],
+        PopupMenuButton<CalendarViewKind>(
+          tooltip: 'Pick a view',
+          initialValue: kind,
+          onSelected: onKind,
+          itemBuilder: (context) => [
+            for (final each in CalendarViewKind.values)
+              PopupMenuItem(
+                value: each,
+                child: ListTile(
+                  leading: Icon(_iconOf(each)),
+                  title: Text(_labelOf(each)),
+                ),
+              ),
+          ],
+          // The view's icon only, so the bar fits a phone at large text.
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_iconOf(kind)),
+                const Icon(Icons.arrow_drop_down),
+              ],
+            ),
+          ),
+        ),
+        if (onAdd case final onAdd?)
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add event',
+            onPressed: onAdd,
+          ),
+      ],
+    ),
   );
 }
 

@@ -325,7 +325,14 @@ void main() {
       today: DateTime(2026, 11, 3),
       kept: kept,
     );
-    expect(find.text('Week'), findsOne);
+    expect(find.byIcon(Icons.calendar_view_week), findsOne);
+    expect(find.text('Call'), findsOne);
+
+    await tester.tap(find.byTooltip('Pick a view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tue, Nov 3'), findsOne, reason: 'on today');
     expect(find.text('Call'), findsOne);
 
     await tester.tap(find.byTooltip('Pick a view'));
