@@ -110,6 +110,17 @@ void main() {
       );
     });
 
+    test('read only once the file closed and takes no more edits', () async {
+      final session = fixture.session();
+      final controller = controllerOn(session);
+      session.type('x');
+
+      expect(await session.secure(.close), isTrue);
+
+      expect(session.status, isA<Closed>());
+      expect(controller.readOnly, isTrue);
+    });
+
     test('leaves at once only with nothing left to keep', () async {
       final session = fixture.session();
       final controller = controllerOn(session);

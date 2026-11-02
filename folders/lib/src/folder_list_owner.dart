@@ -218,24 +218,29 @@ final class _FolderListSteps {
     return _work.countDrafts(folder);
   }
 
-  /// Secures its open files first as they close: edits that can't go
-  /// into their file become conflict copies; once the list is saved, its
-  /// drafts go and no new one is kept, so no edit is recovered into it.
+  /// Writes the list without [removed] first; a failed write changes
+  /// nothing, its open files included. Then secures its open files as
+  /// they close, while its folder is still open: edits that can't go into
+  /// their file become conflict copies. Only then is the list shown, and
+  /// its drafts go and no new one is kept, so no edit is recovered into it.
   Future<Result<void, FolderError>> _remove(
     List<Folder> folders,
     Folder removed,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
     if (folders.byId(removed.id) == null) return const Ok(null);
-    await _work.secureOpen(removed.id, SecureReason.close);
     final plugin = _work.plugins.of(removed.id.plugin);
     final before = plugin.blob;
     plugin.forget(removed.id.folder);
-    final saved = await _save([
+    final kept = [
       for (final folder in folders)
         if (folder.id != removed.id) folder,
-    ], out);
-    if (saved case Err(:final error)) return _undone(plugin, before, error);
+    ];
+    if (await _write(kept) case Err(:final error)) {
+      return _undone(plugin, before, error);
+    }
+    await _work.secureOpen(removed.id, SecureReason.close);
+    out.state = FoldersLoaded(kept);
     await _work.forgetDrafts(removed.id);
     return const Ok(null);
   }
@@ -255,19 +260,22 @@ final class _FolderListSteps {
     List<Folder> folders,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    final saved = await _work.store.save((
-      folders: [
-        for (final folder in folders)
-          (id: folder.id, name: folder.name, color: folder.color),
-      ],
-      blobs: {for (final plugin in _plugins) plugin.id: plugin.blob},
-    ));
-    switch (saved) {
-      case Ok():
-        out.state = FoldersLoaded(folders);
-        return const Ok(null);
-      case Err():
-        return const Err(FolderError.notSaved);
-    }
+    final written = await _write(folders);
+    if (written is Ok) out.state = FoldersLoaded(folders);
+    return written;
   }
+
+  /// Writes [folders] with every plugin's state, in one write, without
+  /// showing them yet.
+  Future<Result<void, FolderError>> _write(List<Folder> folders) async =>
+      switch (await _work.store.save((
+        folders: [
+          for (final folder in folders)
+            (id: folder.id, name: folder.name, color: folder.color),
+        ],
+        blobs: {for (final plugin in _plugins) plugin.id: plugin.blob},
+      ))) {
+        Ok() => const Ok(null),
+        Err() => const Err(FolderError.notSaved),
+      };
 }
