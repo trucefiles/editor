@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -57,7 +56,7 @@ final hostPathsProvider = Provider<HostPaths>(
 );
 
 /// Tells this device's time zone, for new calendar events.
-final deviceZoneProvider = Provider<DeviceZone>(
+final deviceZoneProvider = Provider<Future<String?> Function()>(
   (ref) => Platform.isLinux ? linuxZone(systemZone) : systemZone,
 );
 

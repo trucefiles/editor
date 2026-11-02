@@ -263,7 +263,12 @@ Component _drafted(Component event, EventDraft draft, {required bool series}) {
       .withTime('DTSTART', draft.start, now.start)
       .withTime('DTEND', draft.end, timesChanged ? endWritten : now.end);
   if (timesChanged) edited = edited.withProperty('DURATION', null);
-  if (series && draft.repeat != now.repeat) {
+  // A new start writes the repeat's last day anew, as the start writes
+  // it (RFC 5545 wants an end of the start's kind).
+  final startChanged = now.start != draft.start;
+  if (series &&
+      (draft.repeat != now.repeat ||
+          (startChanged && draft.repeat?.until != null))) {
     edited = edited.withProperty('RRULE', switch (draft.repeat) {
       final repeat? => ContentLine('RRULE', repeat.ruleFor(draft.start)),
       null => null,

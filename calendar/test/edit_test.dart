@@ -19,6 +19,8 @@ Calendar _edited(String text, CalendarEdit edit) =>
     applyEdit(Calendar.read(text)!, edit);
 
 void main() {
+  group('a repeat\'s last day', _repeatEnds);
+
   test('a new event is added at the end, stamped, floating', () {
     final calendar = _edited(
       birthday,
@@ -294,5 +296,68 @@ void main() {
     final [one, other] = [newUid(), newUid()];
     expect(one, matches(RegExp(r'^[0-9a-f]{32}@truce$')));
     expect(one, isNot(other));
+  });
+}
+
+void _repeatEnds() {
+  Calendar series(String rule) => Calendar.read(
+    'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s\nDTSTART;VALUE=DATE:20261102\n'
+    'DTEND;VALUE=DATE:20261103\nRRULE:$rule\nSUMMARY:Run\nEND:VEVENT\n'
+    'END:VCALENDAR\n',
+  )!;
+
+  /// The rule of series `s` after its start becomes 9:00 in Berlin.
+  String timedRule(Calendar calendar) {
+    final draft = EventDraft.of(calendar.eventOf('s')!.series);
+    final edited = applyEdit(
+      calendar,
+      ChangeSeries(
+        's',
+        EventDraft(
+          summary: draft.summary,
+          start: Zoned('Europe/Berlin', DateTime.utc(2026, 11, 2, 9)),
+          end: Zoned('Europe/Berlin', DateTime.utc(2026, 11, 2, 10)),
+          repeat: draft.repeat,
+        ),
+        at: _at,
+      ),
+    );
+    return edited.eventOf('s')!.series.rule!;
+  }
+
+  test('a new start writes the repeat\'s last day as the start does', () {
+    expect(
+      timedRule(series('FREQ=DAILY;UNTIL=20261110')),
+      'FREQ=DAILY;UNTIL=20261110T225959Z',
+    );
+  });
+
+  test('a rule the form does not edit keeps all but its last day', () {
+    expect(
+      timedRule(series('FREQ=MONTHLY;BYDAY=2TU;UNTIL=20271110')),
+      'FREQ=MONTHLY;BYDAY=2TU;UNTIL=20271110T225959Z',
+    );
+  });
+
+  test('a rule stays as written when the start stays', () {
+    final calendar = series('FREQ=DAILY;INTERVAL=1;UNTIL=20261110');
+    final draft = EventDraft.of(calendar.eventOf('s')!.series);
+    final edited = applyEdit(
+      calendar,
+      ChangeSeries(
+        's',
+        EventDraft(
+          summary: 'Long run',
+          start: draft.start,
+          end: draft.end,
+          repeat: draft.repeat,
+        ),
+        at: _at,
+      ),
+    );
+    expect(
+      edited.eventOf('s')!.series.rule,
+      'FREQ=DAILY;INTERVAL=1;UNTIL=20261110',
+    );
   });
 }

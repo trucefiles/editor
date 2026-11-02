@@ -6,7 +6,7 @@ library;
 export 'src/calendar_editor_part.dart';
 export 'src/calendar_editor_view.dart';
 export 'src/calendar_view.dart';
+export 'src/device_zone.dart';
 export 'src/ui/cycle_text.dart';
-export 'src/ui/event_actions.dart' show DeviceZone;
 export 'src/ui/month_grid.dart' show DayLook, MonthGrid, MonthHeader, gridDays;
 export 'src/ui/occurrence_texts.dart';

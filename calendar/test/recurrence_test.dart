@@ -157,6 +157,18 @@ void main() {
     );
   });
 
+  test('a series that ends before it starts shows without a length', () {
+    final calendar = _series(
+      ':20261102T090000',
+      'FREQ=DAILY;COUNT=2',
+      more: 'DTEND:20200101T000000\n',
+    );
+    expect(_walls(calendar, DateTime(2026, 11), DateTime(2026, 12)), [
+      '20261102T090000',
+      '20261103T090000',
+    ]);
+  });
+
   test('extra dates of a series show too', () {
     final calendar = _series(
       ':20261102T090000',

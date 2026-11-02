@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../device_zone.dart';
 import 'event_form.dart';
 
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
-
-/// Tells this device's time zone (an IANA name), asked anew each time so
-/// a trip shows; `null` if it is unknown.
-typedef DeviceZone = Future<String?> Function();
 
 /// Asks for a new event on [day], at 9:00 in the device's zone, and adds
 /// it.

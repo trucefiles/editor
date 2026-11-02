@@ -10,13 +10,19 @@ sealed class Repeat {
   const Repeat();
 
   /// The rule as written for a series starting at [start], without
-  /// `RRULE:`.
+  /// `RRULE:`; its last day ([until]) written as [start] writes it, so a
+  /// new start (e.g. a day turned into a time) keeps the same last day.
   String ruleFor(CalendarTime start);
+
+  /// The last day it may come on, on the series' own clock, as a UTC
+  /// midnight; `null` if it has none.
+  DateTime? get until;
 
   /// The repeat [rule] says for a series starting at [start]: a
   /// [SimpleRepeat] where the form can show it, else kept as it is.
   static Repeat of(String rule, CalendarTime start) =>
-      SimpleRepeat._read(rule, start) ?? OtherRepeat(rule);
+      SimpleRepeat._read(rule, start) ??
+      OtherRepeat(rule, until: _untilOf(_partsOf(rule)['UNTIL'], start));
 }
 
 /// How often a [SimpleRepeat] comes.
@@ -43,8 +49,7 @@ final class SimpleRepeat extends Repeat {
   /// The days of a weekly repeat; empty: the start's day.
   final Set<Weekday> days;
 
-  /// The last day it may come on, on the series' own clock, as a UTC
-  /// midnight.
+  @override
   final DateTime? until;
   final int? count;
 
@@ -52,11 +57,7 @@ final class SimpleRepeat extends Repeat {
   static const _parts = {'FREQ', 'INTERVAL', 'BYDAY', 'UNTIL', 'COUNT'};
 
   static SimpleRepeat? _read(String rule, CalendarTime start) {
-    final parts = {
-      for (final part in rule.split(';'))
-        if (part.split('=') case [final key, final value])
-          key.trim().toUpperCase(): value.trim().toUpperCase(),
-    };
+    final parts = _partsOf(rule);
     final frequency = Frequency.values.firstWhereOrNull(
       (frequency) => frequency.name.toUpperCase() == parts['FREQ'],
     );
@@ -86,14 +87,6 @@ final class SimpleRepeat extends Repeat {
       until: until,
       count: int.tryParse(parts['COUNT'] ?? ''),
     );
-  }
-
-  /// The day of an `UNTIL` value on [start]'s clock (see [wallOn]).
-  static DateTime? _untilOf(String? value, CalendarTime start) {
-    final until = value == null ? null : timeOf(ContentLine('UNTIL', value));
-    if (until == null) return null;
-    final day = wallOn(start, until);
-    return DateTime.utc(day.year, day.month, day.day);
   }
 
   /// [until] is written as [start] is (RFC 5545, 3.3.10): a day; the end
@@ -141,15 +134,40 @@ CalendarTime _endOfDay(DateTime day, CalendarTime start) {
   };
 }
 
-/// A rule the form doesn't edit: kept as written, shown as its text.
+/// The parts of [rule] by name, upper case.
+Map<String, String> _partsOf(String rule) => {
+  for (final part in rule.split(';'))
+    if (part.split('=') case [final key, final value])
+      key.trim().toUpperCase(): value.trim().toUpperCase(),
+};
+
+/// The day of an `UNTIL` value on [start]'s clock (see [wallOn]).
+DateTime? _untilOf(String? value, CalendarTime start) {
+  final until = value == null ? null : timeOf(ContentLine('UNTIL', value));
+  if (until == null) return null;
+  final day = wallOn(start, until);
+  return DateTime.utc(day.year, day.month, day.day);
+}
+
+/// A rule the form doesn't edit: kept as written, shown as its text; only
+/// its last day is written anew for a new start.
 final class OtherRepeat extends Repeat {
-  const OtherRepeat(this.rule);
+  const OtherRepeat(this.rule, {this.until});
 
   /// The rule as written.
   final String rule;
 
   @override
-  String ruleFor(CalendarTime start) => rule;
+  final DateTime? until;
+
+  @override
+  String ruleFor(CalendarTime start) => switch (until) {
+    final until? => rule.replaceFirst(
+      RegExp('UNTIL=[^;]*', caseSensitive: false),
+      'UNTIL=${timeLine('UNTIL', _endOfDay(until, start)).value}',
+    ),
+    null => rule,
+  };
 
   @override
   bool operator ==(Object other) => other is OtherRepeat && other.rule == rule;
