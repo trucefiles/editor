@@ -3,9 +3,10 @@ import 'package:truce_core/truce_core.dart';
 import 'local_conflict_names.dart';
 import 'local_folder_rules.dart';
 
-/// One local base folder, on [_local]: its files by the app's own rules.
-final class LocalFolderPlace implements ToolPlace {
-  const LocalFolderPlace(this._local);
+/// One local folder, on [_local], its directory: its files by the app's
+/// own rules.
+final class LocalDirectory implements RawFolder {
+  const LocalDirectory(this._local);
 
   /// The file-name rules of a local folder.
   static const rules = LocalFolderRules();
@@ -15,7 +16,7 @@ final class LocalFolderPlace implements ToolPlace {
   /// own.
   static final _shown = VisibleFileFilter(rules.isInternal);
 
-  final LocalPlace _local;
+  final LocalFolder _local;
 
   @override
   FileStore get files => _local.files;
@@ -24,15 +25,10 @@ final class LocalFolderPlace implements ToolPlace {
   LiveChanges? get changes => _local.changes;
 
   @override
-  SubfolderNames get subfolders => _local.subfolders.shownBy(showsFolder);
-
-  @override
-  bool showsFolder(RelPath folder) => _shown.includesFolderPath(folder);
-
-  @override
-  SyncedFolder open(BoundedPlace bounded) {
+  OpenFolder open(BoundedPlace bounded) {
     final store = bounded.files;
-    return SyncedFolder(
+    return OpenFolder(
+      bounded,
       store: store,
       scanner: NamedCopiesScanner(store, _shown, _names),
       conflicts: NamedConflictSource(store, _names),
@@ -42,7 +38,7 @@ final class LocalFolderPlace implements ToolPlace {
   }
 }
 
-/// No tool tells anything about a local folder.
+/// Nothing to tell about a local folder.
 final class _NoNotices implements FolderNotices {
   const _NoNotices();
 

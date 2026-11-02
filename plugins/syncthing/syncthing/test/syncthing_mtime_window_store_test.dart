@@ -12,6 +12,7 @@ void main() {
   late SyncthingMtimeWindowStore store;
   late DateTime now;
   late List<_FakeTimer> timers;
+  late SyncthingWriteMemory memory;
 
   /// A store over [inner] that goes on from [memory].
   SyncthingMtimeWindowStore storeWith(SyncthingWriteMemory memory) =>
@@ -30,7 +31,8 @@ void main() {
     inner = MemoryFileStore();
     now = DateTime(2026);
     timers = [];
-    store = storeWith(SyncthingWriteMemory());
+    memory = SyncthingWriteMemory();
+    store = storeWith(memory);
   });
 
   final file = path('a.md');
@@ -146,13 +148,15 @@ void main() {
     await fireTimers();
     wait(3);
 
-    final moved = await store.move(
+    final moved = await moveByCopy(
+      store,
       file,
-      path('b.md'),
       ifUnchanged: second.version,
+      target: store,
+      to: path('b.md'),
     );
 
-    expect(moved, isA<Ok<FileEntry, StoreError>>());
+    expect(moved, isA<Ok<FileEntry, MoveError>>());
     expect(inner.textOf('b.md'), 'v2');
     expect(inner.files, isNot(contains(file)));
   });
@@ -165,13 +169,15 @@ void main() {
       await fireTimers();
       inner.put('a.md', 'theirs');
 
-      final moved = await store.move(
+      final moved = await moveByCopy(
+        store,
         file,
-        path('b.md'),
         ifUnchanged: second.version,
+        target: store,
+        to: path('b.md'),
       );
 
-      expect(moved.error, StoreError.changedSinceRead);
+      expect((moved.error as NotMoved).error, StoreError.changedSinceRead);
       expect(inner.textOf('a.md'), 'theirs');
       expect(inner.files, isNot(contains(path('b.md'))));
     },
@@ -185,6 +191,20 @@ void main() {
     await fireTimers();
 
     expect(versionOnDisk(), theirs.version);
+  });
+
+  test('settles once the rewrite due is done', () async {
+    final first = await write('v1', null);
+    await write('v2', first);
+    var settled = false;
+    unawaited(memory.settled().then((_) => settled = true));
+    await Future<void>.delayed(Duration.zero);
+    expect(settled, isFalse);
+
+    await fireTimers();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(settled, isTrue);
   });
 
   test('a delete cancels the rewrite', () async {
