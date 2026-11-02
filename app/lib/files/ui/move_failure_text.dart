@@ -1,5 +1,6 @@
 import 'package:truce_files/truce_files.dart';
 
+import '../../common/store_error_text.dart';
 import '../../folders/ui/folder_badge.dart';
 
 /// What to tell the user about [failure].

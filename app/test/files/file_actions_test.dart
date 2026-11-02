@@ -69,28 +69,6 @@ void main() {
         .value;
   }
 
-  group('defaultFolder', () {
-    void choose(String name) => container
-        .read(selectedFolderIdProvider.notifier)
-        .choose(FolderId('syncthing', name));
-
-    test('is the first folder at first', () {
-      expect(actions.defaultFolder(folders), folders[0]);
-    });
-
-    test('is the folder the grid is filtered to', () {
-      choose('home');
-
-      expect(actions.defaultFolder(folders), folders[1]);
-    });
-
-    test('is the first one offered if the filtered one is not', () {
-      choose('work');
-
-      expect(actions.defaultFolder([folders[1]]), folders[1]);
-    });
-  });
-
   test('create writes the document', () async {
     await scans();
 
@@ -144,9 +122,18 @@ void main() {
         .read(deviceSettingsProvider.notifier)
         .change((settings) => settings.copyWith(newFilePlace: () => place));
 
-    test('is the default folder without a setting', () async {
+    test('is the first folder without a setting', () async {
       expect(actions.newFilePlace(folders), (
         folder: folders[0],
+        subfolder: null,
+      ));
+    });
+
+    test('is the folder the grid is filtered to', () async {
+      container.read(selectedFolderIdProvider.notifier).choose(folders[1].id);
+
+      expect(actions.newFilePlace(folders), (
+        folder: folders[1],
         subfolder: null,
       ));
     });

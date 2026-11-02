@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
 import '../file_actions.dart';
 import '../file_colors.dart';
 import '../file_settings_controller.dart';

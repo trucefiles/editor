@@ -5,6 +5,7 @@ import 'package:truce_files/truce_files.dart';
 import 'file_card.dart';
 import 'file_grid.dart';
 import 'listed_file.dart';
+import 'open_file.dart';
 import 'pin_or_color_sheet.dart';
 
 /// The card of a listed [file] in a file grid; opens it on tap.

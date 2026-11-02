@@ -5,6 +5,7 @@ import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
 import '../../common/time_texts.dart';
 import '../../files/ui/listed_file.dart';
 import '../../folders/ui/folder_badge.dart';

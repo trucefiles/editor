@@ -7,7 +7,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
-import '../../files/ui/file_grid.dart';
+import '../../files/ui/open_file.dart';
 import '../../folders/folder_colors.dart';
 import '../../settings/calendar_view_setting.dart';
 import '../calendar_tab_controller.dart';

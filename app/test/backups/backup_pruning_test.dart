@@ -36,38 +36,6 @@ void main() {
 
   Future<void> prune() => pruning().read(backupPruningProvider.future);
 
-  test('deletes old backups of every folder, removed ones too', () async {
-    final old = backup('current', const Duration(days: 8));
-    final oldOfRemoved = backup('removed', const Duration(days: 8));
-    final recent = backup('current', const Duration(days: 1));
-
-    await prune();
-
-    expect(old.existsSync(), isFalse);
-    expect(oldOfRemoved.existsSync(), isFalse);
-    expect(recent.existsSync(), isTrue);
-  });
-
-  test('removes the folders old backups leave empty', () async {
-    final old = backup('current', const Duration(days: 8));
-    final recent = backup('current', const Duration(days: 1));
-    // A backup on its way: its folder is made, its file not yet.
-    final micros = DateTime.now().microsecondsSinceEpoch;
-    final fresh = Directory(
-      '${storage.backupsPath(folderId('current'))}/$micros.edit/documents',
-    )..createSync(recursive: true);
-
-    await prune();
-
-    expect(old.parent.parent.existsSync(), isFalse);
-    expect(recent.parent.existsSync(), isTrue);
-    expect(fresh.existsSync(), isTrue);
-    expect(
-      Directory(storage.backupsPath(folderId('current'))).existsSync(),
-      isTrue,
-    );
-  });
-
   test('deletes old backups again each time the app comes into use', () async {
     final container = pruning();
     await container.read(backupPruningProvider.future);

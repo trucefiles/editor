@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -124,21 +123,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     );
   }
 
-  /// Shows every type again if a type other than [type] is picked, so
-  /// a new file of [type] shows on home.
-  void _showType(FileType type) {
-    final picked = ref.read(selectedFileTypeProvider);
-    if (picked != null && picked != type) {
-      ref.read(selectedFileTypeProvider.notifier).choose(null);
-    }
-  }
-
   /// Opens a new file in the place for new files, if any folder can take
-  /// it.
+  /// it; a type filter that would hide it shows every type again.
   Future<void> _create(List<Folder> all) async {
-    final actions = ref.read(fileActionsProvider);
-    final folders = actions.reachableOf(all);
-    if (folders.isEmpty) {
+    final place = ref.read(fileActionsProvider).newFilePlace(all);
+    if (place == null) {
       return showSnack(context, 'No folder can be reached right now.');
     }
     final pick = await pickNewFile(
@@ -146,8 +135,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ref.read(fileTypesProvider).newFileChoices,
     );
     if (pick == null || !mounted) return;
-    _showType(pick.made.type.support.type);
-    final place = actions.newFilePlace(folders);
+    ref
+        .read(selectedFileTypeProvider.notifier)
+        .reveal(pick.made.type.support.type);
     await Navigator.push(
       context,
       MaterialPageRoute<void>(

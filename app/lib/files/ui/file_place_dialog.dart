@@ -53,11 +53,6 @@ Future<PickedPlace?> showFileNameDialog(
   _ => null,
 };
 
-/// A place and name the user picked, the name as typed; [newSubfolder]:
-/// the place's subfolder is a new one, made with the file's first
-/// write there.
-typedef PickedPlace = ({FilePlace place, String name, bool newSubfolder});
-
 typedef _Choice = ({FilePlace place, String? name, bool newSubfolder});
 
 class _FilePlaceDialog extends StatefulWidget {

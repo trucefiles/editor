@@ -140,6 +140,7 @@ export 'src/storage/host_paths.dart';
 export 'src/storage/json_file.dart';
 export 'src/storage/local_disk.dart';
 export 'src/storage/local_file_store.dart';
+export 'src/storage/prune_backups_at.dart';
 export 'src/storage/rel_path.dart';
 export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';

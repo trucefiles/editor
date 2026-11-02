@@ -275,7 +275,7 @@ void main() {
     await tester.tapAndSettle(find.text('Next'));
     await tester.tapAndSettle(find.text('Add'));
 
-    await tester.waitFor(find.byTooltip('Not inside a Syncthing folder'));
+    await tester.waitFor(find.byTooltip('Not synced by Syncthing'));
     expect(find.textContaining('may not reach'), findsNothing);
 
     await tester.tapAndSettle(find.byTooltip('Manage folders'));

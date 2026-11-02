@@ -20,8 +20,9 @@ typedef BuildServices = FolderServices Function(
 /// from the list (its reach ends too) or the app ends. Follows the folder
 /// list owner's state.
 ///
-/// A folder that went keeps its closed services: whoever still holds it,
-/// e.g. a screen about to close, gets [StoreError.closed].
+/// A folder's services are one object for its whole life: a folder that
+/// went keeps its closed services, so whoever still holds them, e.g. a
+/// screen about to close, gets [StoreError.closed].
 final class OpenFolders {
   OpenFolders(this._folders, {required this._plugins, required this._build}) {
     _listening = _folders.changes.listen((_) => _follow());
@@ -39,11 +40,6 @@ final class OpenFolders {
   /// ends.
   final _gone = <FolderId, FolderServices>{};
 
-  final _changes = StreamController<void>.broadcast(sync: true);
-
-  /// Fires each time a folder's services close.
-  Stream<void> get changes => _changes.stream;
-
   /// The services of the folder [id], one the list shows or showed.
   FolderServices servicesOf(FolderId id) {
     _follow();
@@ -59,7 +55,6 @@ final class OpenFolders {
     await _listening.cancel();
     await Future.wait([..._open.values.map(_closed)]);
     _open.clear();
-    await _changes.close();
   }
 
   List<Folder> get _shown => switch (_folders.state) {
@@ -80,7 +75,6 @@ final class OpenFolders {
       final services = _gone[id] = _open.remove(id)!;
       unawaited(_closed(services));
     }
-    if (gone.isNotEmpty && !_changes.isClosed) _changes.add(null);
   }
 
   static Future<void> _closed(FolderServices services) async {

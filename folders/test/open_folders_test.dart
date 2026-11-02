@@ -67,15 +67,13 @@ void main() {
   test('a folder that went is closed, and stays so', () async {
     final a = await added('a');
     final services = open.servicesOf(a.id);
-    final closed = open.changes.first;
 
     await ask<FolderListInput, FolderListAnswer>(
       owner.send,
       owner.events,
       (ticket) => RemoveFolder(ticket, a),
     );
-    await closed;
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(identical(open.servicesOf(a.id), services), isTrue);
     expect((await services.store.list()).error, StoreError.closed);

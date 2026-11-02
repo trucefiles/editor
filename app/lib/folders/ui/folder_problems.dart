@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../common/store_error_text.dart';
 import '../../folder_state/folder_state_controller.dart';
 
 /// One row per folder that could not be seen in full in [contents]: folders that

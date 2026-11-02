@@ -43,55 +43,38 @@ class FilePlaceChip extends ConsumerWidget {
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
-    final file = session.file;
-    final path = session.path;
     final picked = await showFileNameDialog(
       context,
       folders: folders,
-      initial: (folder: file.folder, subfolder: path.parent),
-      name: switch (file) {
-        NewFile() => file.titleFor(session.summary.firstLine),
-        ExistingFile() => splitFileName(path.name).base,
-      },
+      initial: (folder: session.file.folder, subfolder: session.path.parent),
+      name: nameNow(session.file, session.path, session.summary.firstLine),
       subfoldersOf: actions.subfoldersOf,
       canHold: actions.canHold,
     );
     if (picked == null || !context.mounted) return;
     // Read after the dialog: hiding the app meanwhile creates the file.
-    if (session.file case NewFile(:final type)) {
-      final name = picked.name.trim();
-      return session.place(
-        NewFile(
-          picked.place,
-          type: type,
-          name: name.isEmpty ? null : name,
-          newSubfolder: picked.newSubfolder,
-        ),
-      );
+    switch (PlaceChange.of(
+      session.file,
+      saved: session.read,
+      firstLine: session.summary.firstLine,
+      picked: picked,
+    )) {
+      case NewPlace(:final to):
+        session.place(to);
+      case SamePlace():
+        return;
+      case CantMove(:final failure):
+        showSnack(context, moveFailureText(failure));
+      case MoveTo(:final to):
+        await _move(context, to);
     }
-    await _move(context, picked);
   }
 
-  /// Moves or renames the file; an empty [name] names it after
-  /// the first line. Asked at once, so leaving right after still moves it;
-  /// the file owner saves the edits first, so the move takes them along.
-  Future<void> _move(BuildContext context, PickedPlace picked) async {
-    final (:place, :name, :newSubfolder) = picked;
-    final current = session.read;
-    if (current == null) {
-      return showSnack(context, moveFailureText(const MoveNotSaved()));
-    }
-    final title = name.trim().isEmpty ? session.summary.firstLine : name.trim();
-    if (place.folder.id == current.folder.id &&
-        place.subfolder == current.path.parent &&
-        isNamedAfter(current.path.name, title)) {
-      return;
-    }
-    final moved = await session.move((
-      place: place,
-      title: title,
-      newSubfolder: newSubfolder,
-    ));
+  /// Moves or renames the file [to]. Asked at once, so leaving right
+  /// after still moves it; the file owner saves the edits first, so the
+  /// move takes them along.
+  Future<void> _move(BuildContext context, MoveTarget to) async {
+    final moved = await session.move(to);
     if (!context.mounted) return;
     showSnack(context, switch (moved) {
       Ok(value: final copy) =>

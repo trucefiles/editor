@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 
 import '../platform/link_opener.dart';
-import '../settings/device_settings.dart';
-import '../settings/device_settings_controller.dart';
+import '../settings/followed_setting.dart';
 
 /// What Markdown views get from the app: the Add item setting and the
 /// system's link opener.
@@ -16,14 +15,6 @@ final markdownServicesProvider = Provider<MarkdownServices>(
 );
 
 /// Where lists get Add item buttons, as the setting changes.
-final _addItemPlaceProvider = Provider<ValueListenable<AddItemPlace>>((ref) {
-  final place = ValueNotifier(DeviceSettings.standard.addItemPlace);
-  ref
-    ..listen(
-      deviceSettingsProvider.select((s) => s.value?.addItemPlace),
-      (_, now) => place.value = now ?? place.value,
-      fireImmediately: true,
-    )
-    ..onDispose(place.dispose);
-  return place;
-});
+final _addItemPlaceProvider = Provider<ValueListenable<AddItemPlace>>(
+  (ref) => followedSetting(ref, (s) => s.addItemPlace),
+);
