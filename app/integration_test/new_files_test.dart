@@ -40,7 +40,7 @@ void main() {
     expect(find.text('Untitled'), findsWidgets);
 
     await tester.pageBack();
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
 
     expect(app.topFiles, isEmpty);
   });
@@ -55,7 +55,7 @@ void main() {
     await tester.typeOver('Idea\nmore\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('Idea.md'), 'Idea\nmore\n');
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
     expect(app.topFiles, hasLength(1));
   });
 
@@ -126,7 +126,7 @@ void main() {
     await tester.pageBack();
 
     await tester.waitForFile(app.file('a/b/c/Shop.md'), 'Groceries\n\nMilk\n');
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
     expect(app.topFiles.length, 1);
   });
 
@@ -183,7 +183,7 @@ void main() {
     await tester.pageBack();
 
     await tester.waitForFile(app.file('inbox/Idea.md'), 'Idea\n');
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
   });
 
   testApp('moves a document to a subfolder and edits on there', (tester) async {

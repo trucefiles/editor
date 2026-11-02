@@ -36,10 +36,10 @@ void main() {
     tester,
   ) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
     await tester.loseFolder(app.files);
 
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.tapAndSettle(find.byTooltip('New file'));
 
     await tester.waitFor(find.text('No folder can be reached right now.'));
     expect(app.files.existsSync(), isFalse);
@@ -108,7 +108,7 @@ void main() {
       app.file('plan.md').readAsStringSync(),
       '# Plan\nv2 from elsewhere\n',
     );
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
   });
 
   testApp('compares a change from elsewhere and keeps mine', (tester) async {

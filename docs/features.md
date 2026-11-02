@@ -27,7 +27,7 @@ own, with a name and a color.
 ## Calendars
 
 Calendars are `.ics` files, the format other calendar apps use. **New
-document** offers a calendar or a health calendar, named first. A
+file** offers a calendar or a health calendar, named first. A
 calendar's card shows its next events. Its page shows a month, a week,
 a day or a schedule, the one you picked last. Tap a free time or day to
 add an event there, or drag over a few hours; drag an event to move it,

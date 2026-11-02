@@ -23,7 +23,7 @@ void main() {
       'Calendar tab', (tester) async {
     await tester.addFolder(app);
 
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.tapAndSettle(find.byTooltip('New file'));
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
     await tester.enterText(find.byType(TextField), 'Family');
     await tester.pump();

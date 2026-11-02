@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
@@ -75,6 +76,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Notes'), findsOneWidget);
     expect(find.text('List'), findsOneWidget);
+  });
+
+  testWidgets('a new file of another type than the one picked shows all '
+      'types again', (tester) async {
+    await start(tester, {'notes.md': '# Notes'});
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Plain text'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('New file'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Note'));
+    await showsSoon(tester, find.byType(FileScreen));
+
+    expect(container.read(selectedFileTypeProvider), isNull);
   });
 
   testWidgets('the type chips stay in sight on a narrow screen', (
