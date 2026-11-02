@@ -7,7 +7,7 @@ import '../storage/rel_path.dart';
 import 'file_mark.dart';
 import 'marks_file.dart';
 
-/// Colors of the files in one base folder, kept in the folder itself so
+/// Colors of the files in one folder, kept in the folder itself so
 /// they sync with it.
 ///
 /// Each directory that holds marked files keeps their marks next to

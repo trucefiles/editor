@@ -176,13 +176,23 @@ Future<Folder> addSyncthingFolder(
   final plugin =
       container.read(folderPluginsProvider).of('syncthing') as SyncthingPlugin;
   final address = Uri.directory(root.path);
+  return addFolderOf(
+    container,
+    plugin,
+    plugin.candidate(address, address, inside),
+  );
+}
+
+/// Adds the folder [candidate] names, of [plugin], through the folder list
+/// of [container]; the folder added.
+Future<Folder> addFolderOf(
+  ProviderContainer container,
+  FolderPlugin plugin,
+  PluginFolderCandidate candidate,
+) async {
   await container.read(foldersProvider.future);
   final added = await container.read(foldersProvider.notifier).add(plugin, [
-    (
-      candidate: plugin.candidate(address, address, inside),
-      name: 'Files',
-      color: 'teal',
-    ),
+    (candidate: candidate, name: 'Files', color: 'teal'),
   ]);
   return added.value.single;
 }

@@ -10,7 +10,7 @@ import '../support.dart';
 void main() {
   late Directory dir;
   late FileDrafts drafts;
-  late BaseFolderServices services;
+  late FolderServices services;
   late DraftRecovery recovery;
   final later = DateTime.now().add(const Duration(days: 1));
 

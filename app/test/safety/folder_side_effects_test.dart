@@ -14,7 +14,7 @@ void main() {
   late Directory base;
   late Directory synced;
   late Directory backups;
-  late BaseFolderServices services;
+  late FolderServices services;
   late FilesOfFolder files;
 
   setUp(() {
