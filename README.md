@@ -120,8 +120,8 @@ A Dart pub workspace with these packages:
 - `plain_text`: plain text documents, edited as a whole text, with the
   editor's owner. Pure Dart, no UI; uses core, which knows nothing of it.
 - `calendar`: calendar documents (iCalendar, `.ics`), read and written
-  back block-exact, merged event by event, with repeats, health entries,
-  cycle predictions and the editor's owner. Pure Dart, no UI; uses core,
+  back block-exact, merged event by event, with repeats, time zones,
+  health entries, cycle predictions and the editor's owner. Pure Dart, no UI; uses core,
   which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `plain_folder`: folders no sync tool syncs, or one Truce doesn't know,

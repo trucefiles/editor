@@ -35,7 +35,7 @@ void main() {
     final shown = occurrences(
       calendar,
       DateTime(2026, 10, 1),
-      DateTime(2026, 10, 20),
+      DateTime(2026, 10, 21),
     );
     final swims = shown.where((each) => each.event.uid == 'swim@example.com');
     expect(
@@ -140,9 +140,10 @@ void main() {
 
   test('a simple repeat reads and writes back as the form shows it', () {
     const rule = 'FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261118';
-    final repeat = Repeat.of(rule) as SimpleRepeat;
+    final start = AllDay(DateTime(2026, 11, 2));
+    final repeat = Repeat.of(rule, start) as SimpleRepeat;
     expect(repeat.days, {Weekday.mo, Weekday.we});
-    expect(repeat.ruleFor(AllDay(DateTime(2026, 11, 2))), rule);
-    expect(Repeat.of('FREQ=MONTHLY;BYDAY=2TU'), isA<OtherRepeat>());
+    expect(repeat.ruleFor(start), rule);
+    expect(Repeat.of('FREQ=MONTHLY;BYDAY=2TU', start), isA<OtherRepeat>());
   });
 }

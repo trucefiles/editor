@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../device_zone.dart';
 import 'event_form.dart';
 
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
 
-/// Asks for a new event on [day] and adds it.
-Future<void> addEvent(BuildContext context, DateTime day, MakeEdit edit) async {
+/// Asks for a new event on [day], at 9:00 in the device's zone, and adds
+/// it.
+Future<void> addEvent(
+  BuildContext context,
+  DateTime day,
+  MakeEdit edit,
+  DeviceZone deviceZone,
+) async {
+  final zone = await deviceZone();
+  if (!context.mounted) return;
+  CalendarTime at(int hour) => timeAt(
+    DateTime.utc(day.year, day.month, day.day, hour),
+    allDay: false,
+    deviceZone: zone,
+  );
   final draft = await showEventForm(
     context,
-    EventDraft(
-      summary: '',
-      start: Floating(DateTime(day.year, day.month, day.day, 9)),
-      end: Floating(DateTime(day.year, day.month, day.day, 10)),
-    ),
+    EventDraft(summary: '', start: at(9), end: at(10)),
     title: 'New event',
+    deviceZone: zone,
   );
   if (draft == null) return;
   final uid = newUid();
@@ -28,6 +39,7 @@ Future<void> showOccurrenceActions(
   BuildContext context,
   Occurrence occurrence,
   MakeEdit edit,
+  DeviceZone deviceZone,
 ) async {
   final uid = occurrence.event.uid;
   final one = occurrence.recurrence;
@@ -49,12 +61,18 @@ Future<void> showOccurrenceActions(
     ),
   );
   if (action == null || !context.mounted) return;
+  final zone = switch (action) {
+    _Action.edit || _Action.editAll || _Action.editOne => await deviceZone(),
+    _ => null,
+  };
+  if (!context.mounted) return;
   switch (action) {
     case _Action.edit || _Action.editAll:
       final draft = await showEventForm(
         context,
         EventDraft.of(occurrence.event.series),
         title: 'Edit event',
+        deviceZone: zone,
       );
       if (draft != null) edit((at) => ChangeSeries(uid, draft, at: at));
     case _Action.editOne:
@@ -62,6 +80,7 @@ Future<void> showOccurrenceActions(
         context,
         _occurrenceDraft(occurrence),
         title: 'Edit this one',
+        deviceZone: zone,
         repeats: false,
       );
       if (draft != null && one != null) {

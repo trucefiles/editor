@@ -5,17 +5,23 @@ import 'package:truce_calendar/truce_calendar.dart';
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
 /// they backed out. Offers a repeat unless the event is one of a series
-/// ([repeats] false).
+/// ([repeats] false). [deviceZone] is this device's time zone, if known.
 Future<EventDraft?> showEventForm(
   BuildContext context,
   EventDraft draft, {
   required String title,
+  required String? deviceZone,
   bool repeats = true,
 }) => Navigator.push(
   context,
   MaterialPageRoute<EventDraft>(
     fullscreenDialog: true,
-    builder: (_) => EventForm(draft, title: title, repeats: repeats),
+    builder: (_) => EventForm(
+      draft,
+      title: title,
+      deviceZone: deviceZone,
+      repeats: repeats,
+    ),
   ),
 );
 
@@ -40,17 +46,22 @@ const _frequencyWords = {
 
 /// The event form: title, all day, start and end, repeat, alert, place
 /// and notes. What it doesn't show of the event (e.g. a health entry, a
-/// time zone) stays as it was.
+/// time zone) stays as it was; an event in another zone than the device's
+/// shows its own clock, its zone named below the times.
 class EventForm extends StatefulWidget {
   const EventForm(
     this.draft, {
     required this.title,
+    required this.deviceZone,
     this.repeats = true,
     super.key,
   });
 
   final EventDraft draft;
   final String title;
+
+  /// This device's time zone; `null` if unknown.
+  final String? deviceZone;
 
   /// Whether the form offers a repeat: not for one of a series.
   final bool repeats;
@@ -77,8 +88,8 @@ class _EventFormState extends State<EventForm> {
 
   EventDraft get _drafted => EventDraft(
     summary: _summary.text.trim(),
-    start: _times.start(widget.draft.start),
-    end: _times.end(widget.draft.start),
+    start: _times.start(widget.draft.start, widget.deviceZone),
+    end: _times.end(widget.draft.start, widget.deviceZone),
     description: _notes.text,
     location: _location.text.trim(),
     repeat: _repeat,
@@ -131,6 +142,11 @@ class _EventFormState extends State<EventForm> {
             onTime: (time) =>
                 setState(() => _times = _times.copy(endTime: time)),
           ),
+          if (_otherZone case final zone?)
+            Text(
+              'Times are in $zone.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           if (!ok)
             Text(
               'It ends before it starts.',
@@ -201,15 +217,18 @@ class _EventFormState extends State<EventForm> {
             'Alerts are kept in the calendar; this app does not ring them yet.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          if (widget.draft.start is Zoned)
-            Text(
-              'Times are in ${(widget.draft.start as Zoned).zone}.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
         ],
       ),
     );
   }
+
+  /// The event's zone if its times are of another zone than the device's.
+  String? get _otherZone => switch (widget.draft.start) {
+    _ when _times.allDay => null,
+    Zoned(:final zone) when zone != widget.deviceZone => zone,
+    UtcTime() => 'UTC',
+    _ => null,
+  };
 
   /// Whether [alerts] is one the list offers.
   bool _offered(List<Duration> alerts) =>
@@ -342,18 +361,14 @@ final class _FormTimes {
 
   bool get endsAfterStart => !_endWall.isBefore(_startWall);
 
-  /// The start, of [was]'s kind unless the form changed all day.
-  CalendarTime start(CalendarTime was) => _kindOf(was).at(_startWall);
+  /// The start, of [was]'s kind unless the form changed all day (see
+  /// [timeAt]).
+  CalendarTime start(CalendarTime was, String? deviceZone) =>
+      timeAt(_startWall, allDay: allDay, was: was, deviceZone: deviceZone);
 
   /// The end, of [was]'s kind unless the form changed all day.
-  CalendarTime end(CalendarTime was) => _kindOf(was).at(_endWall);
-
-  CalendarTime _kindOf(CalendarTime was) => switch ((allDay, was)) {
-    (true, AllDay()) => was,
-    (true, _) => AllDay(startDay),
-    (false, AllDay()) => Floating(_startWall),
-    (false, _) => was,
-  };
+  CalendarTime end(CalendarTime was, String? deviceZone) =>
+      timeAt(_endWall, allDay: allDay, was: was, deviceZone: deviceZone);
 
   _FormTimes copy({
     bool? allDay,

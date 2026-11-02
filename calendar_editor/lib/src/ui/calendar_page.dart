@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
+import '../device_zone.dart';
 import 'event_actions.dart';
 import 'events_page.dart';
 import 'health_page.dart';
@@ -14,11 +15,15 @@ class CalendarPage extends StatelessWidget {
     this.part, {
     required this.today,
     required this.hint,
+    required this.deviceZone,
     super.key,
   });
 
   final CalendarEditorPart part;
   final DateTime today;
+
+  /// Tells this device's time zone, for new events.
+  final DeviceZone deviceZone;
 
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
@@ -41,7 +46,12 @@ class CalendarPage extends StatelessWidget {
           edit: edit,
           today: today,
         ),
-        final calendar => EventsPage(calendar, edit: edit, today: today),
+        final calendar => EventsPage(
+          calendar,
+          edit: edit,
+          today: today,
+          deviceZone: deviceZone,
+        ),
       };
     },
   );

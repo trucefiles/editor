@@ -209,6 +209,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: ea36e500cbf0ec18361deabca755434f73e42fe53c5130021c7e2d6b5ebe1702
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -305,6 +313,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+6"
+  firstfloor_calendar:
+    dependency: transitive
+    description:
+      name: firstfloor_calendar
+      sha256: "920b9e1dda6433d68750dd1d5fd7123370e46651959f00c8b94b3be90fbae0d0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.14"
   fixnum:
     dependency: transitive
     description:
@@ -376,6 +392,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.4"
+  flutter_timezone:
+    dependency: transitive
+    description:
+      name: flutter_timezone
+      sha256: "7830bc64bef0b003468fc1f58fc3f3faf54817f8cd6e68fa818b306560410d68"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.1"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -807,14 +831,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.3"
-  rrule:
-    dependency: transitive
-    description:
-      name: rrule
-      sha256: f6f6ad5bf7b19d218d4c985d6055d3c9717f1d6efd5d1c0127b1146f1eb3640c
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.18"
   shelf:
     dependency: transitive
     description:
@@ -988,14 +1004,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.3"
-  time:
-    dependency: transitive
-    description:
-      name: time
-      sha256: "46187cf30bffdab28c56be9a63861b36e4ab7347bf403297595d6a97e10c789f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.6"
   timezone:
     dependency: transitive
     description:

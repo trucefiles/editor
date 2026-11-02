@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../device_zone.dart';
 import 'days.dart';
 import 'event_actions.dart';
 import 'month_grid.dart';
@@ -10,11 +11,18 @@ import 'occurrence_texts.dart';
 /// see it, an event to edit or delete it, Add event to add one there.
 /// Only to read unless [edit] is given.
 class EventsPage extends StatefulWidget {
-  const EventsPage(this.calendar, {this.edit, required this.today, super.key});
+  const EventsPage(
+    this.calendar, {
+    this.edit,
+    required this.today,
+    required this.deviceZone,
+    super.key,
+  });
 
   final Calendar calendar;
   final MakeEdit? edit;
   final DateTime today;
+  final DeviceZone deviceZone;
 
   @override
   State<EventsPage> createState() => _EventsPageState();
@@ -64,7 +72,8 @@ class _EventsPageState extends State<EventsPage> {
               : FilledButton.tonalIcon(
                   icon: const Icon(Icons.add),
                   label: const Text('Add event'),
-                  onPressed: () => addEvent(context, _day, edit),
+                  onPressed: () =>
+                      addEvent(context, _day, edit, widget.deviceZone),
                 ),
         ),
         if (ofDay.isEmpty)
@@ -89,7 +98,12 @@ class _EventsPageState extends State<EventsPage> {
               ),
               onTap: edit == null
                   ? null
-                  : () => showOccurrenceActions(context, occurrence, edit),
+                  : () => showOccurrenceActions(
+                      context,
+                      occurrence,
+                      edit,
+                      widget.deviceZone,
+                    ),
             ),
       ],
     );

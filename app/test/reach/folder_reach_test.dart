@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,6 +43,19 @@ void main() {
   Reach reachOf(DocumentFolder folder) =>
       container.read(folderReachProvider(folder.base));
 
+  /// Once [folder]'s reach is [reach].
+  Future<void> reached(DocumentFolder folder, Reach reach) async {
+    final done = Completer<void>();
+    final listening = container.listen(folderReachProvider(folder.base), (
+      _,
+      next,
+    ) {
+      if (next == reach && !done.isCompleted) done.complete();
+    }, fireImmediately: true);
+    await done.future;
+    listening.close();
+  }
+
   test('a folder that is gone is retried, then unreachable', () async {
     final seen = <Reach>[];
     container.listen(
@@ -51,11 +65,17 @@ void main() {
     work.renameSync('${work.path}-away');
 
     await container.read(folderContentsProvider.notifier).refresh();
-    await pumpEventQueue();
-    expect(reachOf(workFolder), Reach.retrying);
+    // The check that finds it gone reads the disk: wait for it, however
+    // long a busy machine takes.
+    await reached(workFolder, Reach.retrying);
     expect(container.read(retryingFoldersProvider), [workFolder]);
 
-    await Future<void>.delayed(const Duration(seconds: 6));
+    expect(
+      await container
+          .read(folderReachProvider(workFolder.base).notifier)
+          .settled(),
+      Reach.unreachable,
+    );
     expect(reachOf(workFolder), Reach.unreachable);
     expect(reachOf(homeFolder), Reach.reachable);
     expect(container.read(retryingFoldersProvider), isEmpty);

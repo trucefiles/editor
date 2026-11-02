@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/common/time_texts.dart';
 import 'package:truce_editor/file_types/calendar_document_type.dart';
+import 'package:truce_editor/file_types/document_types.dart';
+import 'package:truce_editor/platform/platform_wiring.dart';
 
 import '../support.dart';
 
@@ -32,6 +35,7 @@ void main() {
   final folder = folderAt(Directory('/documents'));
   CalendarDocumentType calendars() => CalendarDocumentType(
     times: TimeTexts(locale: 'en', use24Hour: true),
+    deviceZone: () async => null,
     now: () => DateTime(2026, 11),
   );
   final read = documentTextOf(folder, _birthday, name: 'birthdays.ics');
@@ -43,6 +47,19 @@ void main() {
       for (final made in types.newDocuments) made.label,
     ], containsAllInOrder(['Calendar', 'Health calendar']));
     expect(types.forNew, isNot(isA<CalendarDocumentType>()));
+  });
+
+  test('new events take the zone the platform tells', () {
+    Future<String?> zone() async => 'Europe/Berlin';
+    final container = ProviderContainer(
+      overrides: [deviceZoneProvider.overrideWithValue(zone)],
+    );
+    addTearDown(container.dispose);
+    final types = container.read(documentTypesProvider);
+    expect(
+      (types.of(path('a.ics'))! as CalendarDocumentType).deviceZone,
+      same(zone),
+    );
   });
 
   test('a new calendar starts as its named, empty calendar', () {
