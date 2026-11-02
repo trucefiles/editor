@@ -26,9 +26,8 @@ final class LocalFolderPlugin implements FolderPlugin {
   final String Function() _newId;
   LocalFolderState _state = LocalFolderState.empty;
 
-  /// Kept from when it was called a plain folder: it is saved data.
   @override
-  String get id => 'plain';
+  String get id => 'local';
 
   @override
   String get name => 'Local folder';

@@ -24,11 +24,11 @@ void main() {
   test('saves and loads the folders with every plugin blob', () async {
     final folders = [
       (id: folderId('a'), name: 'Private', color: 'indigo'),
-      (id: const FolderId('plain', 'b'), name: 'Work', color: 'teal'),
+      (id: const FolderId('local', 'b'), name: 'Work', color: 'teal'),
     ];
     final blobs = {
       'fake': ['a'],
-      'plain': {'folders': <Object?>[]},
+      'local': {'folders': <Object?>[]},
     };
 
     await store.save((folders: folders, blobs: blobs));
