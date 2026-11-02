@@ -83,14 +83,29 @@ void main() {
     await drafts.keep(draft('1', 'one'));
     await drafts.keep(draft('2', 'two'));
 
-    await drafts.removeAll();
+    await drafts.forget();
 
     expect(await drafts.all(before: later), isEmpty);
     expect(dir.existsSync(), isFalse);
   });
 
+  test('keeps no draft once the folder is forgotten', () async {
+    await drafts.forget();
+
+    expect(await drafts.keep(draft('1', 'late')), isFalse);
+    expect(dir.existsSync(), isFalse);
+  });
+
+  test('a draft written while forgetting goes too', () async {
+    final writing = drafts.keep(draft('1', 'one'));
+    await drafts.forget();
+
+    await writing;
+    expect(dir.existsSync(), isFalse);
+  });
+
   test('removes nothing before the first draft', () async {
-    await drafts.removeAll();
+    await drafts.forget();
 
     expect(await drafts.all(before: later), isEmpty);
   });

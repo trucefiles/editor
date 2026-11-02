@@ -60,4 +60,28 @@ void main() {
 
     expect(queues.busyKeys, 0);
   });
+
+  test('is idle once every task added before has ended', () async {
+    final queues = KeyedTaskQueue<String>();
+    final slow = Completer<void>();
+    var ended = false;
+    unawaited(queues.run('a', () => slow.future));
+    unawaited(
+      queues
+          .run<void>('b', () async => throw StateError('x'))
+          .catchError((_) {}),
+    );
+
+    final idle = queues.idle().then((_) => ended = true);
+    await pumpEventQueue();
+    expect(ended, isFalse);
+
+    slow.complete();
+    await idle;
+    expect(ended, isTrue);
+  });
+
+  test('is idle at once with no tasks', () async {
+    await KeyedTaskQueue<String>().idle();
+  });
 }

@@ -14,6 +14,9 @@ final class FileDrafts {
   /// Work on one draft's file runs one at a time.
   final _turns = KeyedTaskQueue<String>();
 
+  /// Whether the user removed the folder: no draft is kept after that.
+  var _forgotten = false;
+
   static const _extension = '.json';
 
   /// Every draft that can be read and was last written before [before];
@@ -35,11 +38,14 @@ final class FileDrafts {
   }
 
   /// Writes [draft] over any earlier one with its id, atomically, after
-  /// every earlier write of it. Returns `false` if it could not be written.
-  Future<bool> keep(FileDraft draft) async => await _turns.run(
+  /// every earlier write of it. Returns `false` if it could not be written,
+  /// or the folder is [forget]ten.
+  Future<bool> keep(FileDraft draft) => _turns.run(
     draft.id,
-    () => writeJsonAtomically(_file(draft.id), draft.toJson()),
-  ) is Ok;
+    () async =>
+        !_forgotten &&
+        await writeJsonAtomically(_file(draft.id), draft.toJson()) is Ok,
+  );
 
   /// Deletes the draft [id], once its edits are kept elsewhere. A draft
   /// that stays by failure is only tried again later.
@@ -51,13 +57,16 @@ final class FileDrafts {
     }
   });
 
-  /// Deletes every draft, unreadable ones too, as the user removes the
-  /// folder: no edit is recovered into it.
-  Future<void> removeAll() async {
+  /// Deletes every draft, unreadable ones too, once the writes already
+  /// asked for have ended, as the user removes the folder: no edit is
+  /// recovered into it, and no draft is kept after.
+  Future<void> forget() async {
+    _forgotten = true;
+    await _turns.idle();
     try {
       await _folder.delete(recursive: true);
     } on FileSystemException {
-      // None yet, or tried again when the folder is removed again.
+      // None yet, or left unseen in app storage.
     }
   }
 

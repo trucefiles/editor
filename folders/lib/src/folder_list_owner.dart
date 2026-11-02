@@ -34,7 +34,8 @@ final class FolderListWork {
   /// the rule of the reason, before the folder goes.
   final Future<void> Function(FolderId folder, SecureReason reason) secureOpen;
 
-  /// Deletes the drafts of a folder's files, as the user removes it.
+  /// Deletes the drafts of a folder's files and keeps no new one, as the
+  /// user removes it.
   final Future<void> Function(FolderId folder) forgetDrafts;
 
   /// How many of a folder's files have drafts.
@@ -218,9 +219,8 @@ final class _FolderListSteps {
   }
 
   /// Secures its open files first as they close: edits that can't go
-  /// into their file become conflict copies; its drafts go once the list
-  /// is saved,
-  /// so no edit is recovered into it.
+  /// into their file become conflict copies; once the list is saved, its
+  /// drafts go and no new one is kept, so no edit is recovered into it.
   Future<Result<void, FolderError>> _remove(
     List<Folder> folders,
     Folder removed,
