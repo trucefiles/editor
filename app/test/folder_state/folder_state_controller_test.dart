@@ -232,7 +232,7 @@ void main() {
     final shown = container.listen(folderContentsProvider, (_, _) {});
 
     await container
-        .read(folderFilesProvider)
+        .read(fileAccessProvider)
         .of(folder)
         .create(
           'New',

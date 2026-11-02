@@ -5,7 +5,7 @@ import '../platform/app_activity.dart';
 import 'file_settings_controller.dart';
 
 /// Forgets the settings of files that are gone, e.g. deleted or renamed
-/// outside the app, a while after they went (see `KeptDocumentSettings`),
+/// outside the app, a while after they went (see `KeptFileSettings`),
 /// each time the app comes into use, so the settings file never keeps
 /// growing. Prunes by a listing that started after that.
 final fileSettingsPruningProvider = FutureProvider<void>((ref) async {

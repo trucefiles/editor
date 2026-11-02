@@ -9,7 +9,7 @@ import '../files_wiring.dart';
 /// The app's card previews: each read from the file and worked
 /// out by its type.
 final cardPreviewsProvider = Provider<CardPreviews>((ref) {
-  final files = ref.watch(folderFilesProvider);
+  final files = ref.watch(fileAccessProvider);
   final types = ref.watch(fileTypesProvider);
   return CardPreviews((file) => readPreview(file, files, types));
 });

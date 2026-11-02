@@ -111,7 +111,7 @@ final class FilesOfFolder {
     return _createNamed(title ?? base, extension, (
       folder: subfolder,
       isNew: newSubfolder,
-    ), file.file.withText(text));
+    ), file.textFile.withText(text));
   }
 
   /// Moves [read]'s file, as last saved, from anywhere in this base
@@ -126,7 +126,8 @@ final class FilesOfFolder {
     bool newSubfolder = false,
     String? title,
   }) {
-    final FileText(listed: ListedFile(path: from, :version), :file) = read;
+    final FileText(listed: ListedFile(path: from, :version), textFile: file) =
+        read;
     final (:base, :extension) = splitFileName(from.name);
     return _named(
       title ?? base,
@@ -205,11 +206,13 @@ final class FilesOfFolder {
   Future<Result<FileText, StoreError>> save(FileText file, String text) async {
     final written = await _store.replace(
       file.path,
-      file.file.encode(text),
+      file.textFile.encode(text),
       ifUnchanged: file.listed.version,
     );
     return switch (written) {
-      Ok(value: final entry) => Ok(_fileAt(entry, file.file.withText(text))),
+      Ok(value: final entry) => Ok(
+        _fileAt(entry, file.textFile.withText(text)),
+      ),
       Err(:final error) => Err(error),
     };
   }
@@ -220,9 +223,11 @@ final class FilesOfFolder {
     FileText file,
     String text,
   ) async {
-    final created = await _store.create(file.path, file.file.encode(text));
+    final created = await _store.create(file.path, file.textFile.encode(text));
     return switch (created) {
-      Ok(value: final entry) => Ok(_fileAt(entry, file.file.withText(text))),
+      Ok(value: final entry) => Ok(
+        _fileAt(entry, file.textFile.withText(text)),
+      ),
       Err(:final error) => Err(error),
     };
   }
@@ -230,7 +235,7 @@ final class FilesOfFolder {
   /// Keeps [text] as a conflict copy of [file], for edits that cannot go
   /// into its file. It syncs, and is resolved like any conflict.
   Future<Result<void, StoreError>> saveAsConflict(FileText file, String text) =>
-      _services.conflicts.keepAsConflict(file.path, file.file.encode(text));
+      _services.conflicts.keepAsConflict(file.path, file.textFile.encode(text));
 
   /// Like [saveAsConflict], for a file whose file is gone: [text] is
   /// written in its type's style for a new file (e.g. a calendar's line
@@ -249,7 +254,7 @@ final class FilesOfFolder {
       _services.backups.saveCurrent(
         at: DateTime.now(),
         filePath: file.path,
-        bytes: file.file.encode(text),
+        bytes: file.textFile.encode(text),
       );
 
   /// Keeps a backup of [current], the file, and [edited], text the
@@ -258,8 +263,8 @@ final class FilesOfFolder {
       _services.backups.saveBoth(
         at: DateTime.now(),
         filePath: current.path,
-        current: current.file.encode(current.text),
-        other: current.file.encode(edited),
+        current: current.textFile.encode(current.text),
+        other: current.textFile.encode(edited),
       );
 
   /// Keeps a backup of [file]'s file before edits are first saved over it.
@@ -267,7 +272,7 @@ final class FilesOfFolder {
       _services.backups.saveBeforeEdit(
         at: DateTime.now(),
         filePath: file.path,
-        bytes: file.file.encode(file.text),
+        bytes: file.textFile.encode(file.text),
       );
 
   Future<Result<void, StoreError>> delete(ListedFile file) =>
@@ -306,8 +311,8 @@ typedef _Subfolder = ({RelPath? folder, bool isNew});
 
 /// The files of every folder, each through its base folder's
 /// services as its folders show it now.
-final class FolderFiles {
-  const FolderFiles(this._servicesOf, this._types);
+final class FileAccess {
+  const FileAccess(this._servicesOf, this._types);
 
   final BaseFolderServices Function(BaseFolder base) _servicesOf;
   final ShownFileTypes _types;

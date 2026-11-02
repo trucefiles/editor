@@ -48,7 +48,7 @@ void main() {
     final outcome = (wrote! as Wrote<ReadVersion>).outcome;
     expect(fixture.onDisk('a.md'), 'x\n');
     final written = (outcome as Written<ReadVersion>).seen.version.read;
-    expect((written.path, written.file.text), (path('a.md'), 'x\n'));
+    expect((written.path, written.textFile.text), (path('a.md'), 'x\n'));
   });
 
   test('a draft goes to the file it names', () async {

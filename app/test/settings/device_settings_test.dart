@@ -71,7 +71,7 @@ void main() {
       );
 
       expect(settings.textZoomOf(TextZoomTarget.app), TextZoom.closestTo(120));
-      expect(settings.textZoomOf(TextZoomTarget.files), TextZoom.normal);
+      expect(settings.textZoomOf(TextZoomTarget.documents), TextZoom.normal);
     });
 
     test('copies keep the place for new documents, and can clear it', () {
@@ -176,7 +176,8 @@ void main() {
 
       await Future.wait([
         settings.change(
-          (s) => s.withTextZoom(TextZoomTarget.files, TextZoom.normal.larger),
+          (s) =>
+              s.withTextZoom(TextZoomTarget.documents, TextZoom.normal.larger),
         ),
         settings.change((s) => s.copyWith(addItemPlace: AddItemPlace.bottom)),
       ]);

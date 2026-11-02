@@ -260,7 +260,7 @@ void main() {
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
-    await app.useTextZoom(TextZoomTarget.files, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
     await app.useTextZoom(TextZoomTarget.app, TextZoom.closestTo(130));
     await app.launch(tester);
 

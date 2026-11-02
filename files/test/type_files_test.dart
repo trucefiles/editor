@@ -214,7 +214,7 @@ void main() {
     put('b.md', 'not kept');
     final reads = <String>[];
     final kept = FileReads<String>(
-      FolderFiles((_) => services, _types),
+      FileAccess((_) => services, _types),
       readAs: (read) {
         reads.add(read.path.value);
         return read.text.startsWith('k:') ? read.text : null;
@@ -243,7 +243,7 @@ void main() {
   test('a document that could not be read is read again next time', () async {
     put('a.md', 'k:1');
     final kept = FileReads<String>(
-      FolderFiles((_) => services, _types),
+      FileAccess((_) => services, _types),
       readAs: (read) => read.text,
     );
     final listed = [(await files().open(path('a.md'))).value.listed];

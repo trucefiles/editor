@@ -50,9 +50,9 @@ final class DraftRecovery {
   Future<bool> _keep(FileDraft draft, FilesOfFolder files) async {
     if (draft.base == null) return _create(draft, files);
     switch (await files.open(draft.path)) {
-      case Ok(value: final file) when file.file.text == draft.text:
+      case Ok(value: final file) when file.textFile.text == draft.text:
         return true;
-      case Ok(value: final file) when file.file.text == draft.base:
+      case Ok(value: final file) when file.textFile.text == draft.base:
         // Best effort, like before an open file's first save.
         await files.backUpBeforeEdit(file);
         return switch (await files.save(file, draft.text)) {
@@ -76,7 +76,7 @@ final class DraftRecovery {
     if (type == null) return false;
     // Created already, as the app was ended before it dropped the draft.
     if (await files.open(draft.path) case Ok(value: final file)
-        when file.file.text == draft.text) {
+        when file.textFile.text == draft.text) {
       return true;
     }
     final created = await files.create(

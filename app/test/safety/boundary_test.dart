@@ -81,7 +81,7 @@ void main() {
     final folder = folderAt(dir, selection: work);
     await start([folder]);
     final actions = container.read(fileActionsProvider);
-    final files = container.read(folderFilesProvider).of(folder);
+    final files = container.read(fileAccessProvider).of(folder);
     final markdown = appFileTypes().forNew;
 
     final found = await scanned();
@@ -135,7 +135,7 @@ void main() {
       final both = Selection.of([path('notes/work'), path('home')]);
       final folder = folderAt(dir, selection: both);
       await start([folder]);
-      final files = container.read(folderFilesProvider).of(folder);
+      final files = container.read(fileAccessProvider).of(folder);
       final b = (await files.open(path('home/b.md'))).value;
       final saved = (await files.save(b, '# B\nfirst')).value;
       // The open file's last edits, kept as the folder changes.
@@ -166,7 +166,7 @@ void main() {
       final narrowed = container.read(foldersProvider).value!.single;
       expect(
         (await container
-                .read(folderFilesProvider)
+                .read(fileAccessProvider)
                 .of(narrowed)
                 .open(path('home/b.md')))
             .error,

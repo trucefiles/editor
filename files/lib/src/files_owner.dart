@@ -6,7 +6,7 @@ import 'files_contract.dart';
 export 'files_contract.dart';
 
 /// The owner of the user's actions on files (see
-/// `documents_contract.dart`); it has no state of its own to show.
+/// `files_contract.dart`); it has no state of its own to show.
 typedef FilesOwner = Owner<FilesInput, Null, FilesAnswer>;
 
 /// The app's files owner, and the answer to its first input: putting

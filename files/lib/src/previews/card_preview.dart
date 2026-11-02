@@ -48,7 +48,7 @@ String cardTitle(ListedFile file, CardPreview preview) => switch (preview) {
 /// its type in [types]; never throws.
 Future<CardPreview> readPreview(
   ListedFile file,
-  FolderFiles files,
+  FileAccess files,
   ShownFileTypes types,
 ) async => switch (await files.of(file.folder).reload(file)) {
   Ok(value: final read) => Previewed(types.ofFile(read.type).cardSummary(read)),

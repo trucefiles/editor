@@ -26,7 +26,7 @@ final class FilesWork {
     required this.types,
   });
 
-  final FolderFiles files;
+  final FileAccess files;
 
   /// A base folder's services, as its folders show it now.
   final BaseFolderServices Function(BaseFolder base) servicesOf;
@@ -52,7 +52,7 @@ base class FileSteps {
 
   final FilesWork _work;
 
-  FolderFiles get _files => _work.files;
+  FileAccess get _files => _work.files;
   FileSettingsKeeper get _settings => _work.settings;
 
   FileMarks _marksOf(Folder folder) => _work.servicesOf(folder.base).marks;

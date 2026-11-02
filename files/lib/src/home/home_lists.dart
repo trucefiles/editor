@@ -22,7 +22,7 @@ Recent recentOf(
 typedef FileSection = ({
   Folder folder,
   RelPath? subfolder,
-  List<ListedFile> documents,
+  List<ListedFile> files,
 });
 
 /// [files] by name: a section per folder and subfolder, by folder name
@@ -36,7 +36,7 @@ List<FileSection> sectionsByName(Iterable<ListedFile> files) => [
     (
       folder: folder,
       subfolder: subfolder,
-      documents: files.sorted(
+      files: files.sorted(
         (a, b) => compareAsciiLowerCaseNatural(a.path.name, b.path.name),
       ),
     ),

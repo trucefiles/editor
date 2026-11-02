@@ -9,7 +9,7 @@ import 'ui_driver.dart';
 /// End-to-end tests of new files, saving, and a file's place and name, in
 /// the real app on the desktop, against a real folder.
 ///
-/// Run on Linux with `flutter test integration_test/new_documents_test.dart -d
+/// Run on Linux with `flutter test integration_test/new_files_test.dart -d
 /// linux` (in CI under `xvfb-run`), one file per run.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

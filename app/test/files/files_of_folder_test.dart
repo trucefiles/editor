@@ -138,7 +138,7 @@ void main() {
     final saved = (await files.save(file, 'b\nc\n')).value;
 
     expect(read('a.md'), 'b\r\nc\r\n');
-    expect(saved.file.text, 'b\nc\n');
+    expect(saved.textFile.text, 'b\nc\n');
   });
 
   test('refuses to save over a change from elsewhere', () async {

@@ -56,14 +56,14 @@ final class DeviceSettings {
 
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
-    TextZoomTarget.files => documentTextZoom,
+    TextZoomTarget.documents => documentTextZoom,
     TextZoomTarget.app => appTextZoom,
   };
 
   /// These settings with [zoom] for [target].
   DeviceSettings withTextZoom(TextZoomTarget target, TextZoom zoom) =>
       switch (target) {
-        TextZoomTarget.files => copyWith(documentTextZoom: zoom),
+        TextZoomTarget.documents => copyWith(documentTextZoom: zoom),
         TextZoomTarget.app => copyWith(appTextZoom: zoom),
       };
 

@@ -12,8 +12,8 @@ import '../sync_tool/base_folder_wiring.dart';
 import 'file_settings_controller.dart';
 
 /// The files of every folder.
-final folderFilesProvider = Provider<FolderFiles>(
-  (ref) => FolderFiles(
+final fileAccessProvider = Provider<FileAccess>(
+  (ref) => FileAccess(
     ref.watch(baseFolderStacksProvider).servicesOf,
     ref.watch(fileTypesProvider),
   ),
@@ -32,7 +32,7 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
   final folderList = ref.watch(folderListOwnerProvider);
   final folderState = ref.watch(folderStateOwnerProvider);
   return FilesWork(
-    files: ref.watch(folderFilesProvider),
+    files: ref.watch(fileAccessProvider),
     servicesOf: ref.watch(baseFolderStacksProvider).servicesOf,
     settings: ref.watch(fileSettingsProvider.notifier),
     conflictWaits: (key) => conflictWaitsIn(folderState.state, key),

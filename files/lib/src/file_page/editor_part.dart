@@ -32,7 +32,7 @@ final class EditorPage {
   withFile;
 }
 
-/// The part of the one text document page that differs per file
+/// The part of the one file page that differs per file
 /// type, without its looks: its editor, behind the page's way into it
 /// ([editor]), and what the type keeps of how the file shows.
 abstract interface class EditorPart {

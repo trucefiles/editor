@@ -40,7 +40,7 @@ Future<void> openFile(
   WidgetRef ref,
   ListedFile file,
 ) async {
-  final read = await ref.read(folderFilesProvider).of(file.folder).reload(file);
+  final read = await ref.read(fileAccessProvider).of(file.folder).reload(file);
   if (!context.mounted) return;
   switch (read) {
     case Ok(value: final opened):

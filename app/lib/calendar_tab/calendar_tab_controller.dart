@@ -15,7 +15,7 @@ typedef TabCalendar = ({ListedFile file, Calendar calendar, bool shown});
 /// that is no calendar is left out.
 final calendarReadsProvider = Provider<FileReads<Calendar>>(
   (ref) => FileReads(
-    ref.watch(folderFilesProvider),
+    ref.watch(fileAccessProvider),
     readAs: (read) => Calendar.read(read.text),
   ),
 );

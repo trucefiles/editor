@@ -11,7 +11,7 @@ import 'listed_file.dart';
 final class FileReads<T extends Object> {
   FileReads(this._files, {required this.readAs});
 
-  final FolderFiles _files;
+  final FileAccess _files;
   final T? Function(FileText read) readAs;
 
   /// What the last [readAll] read, by key, as the file was listed; a

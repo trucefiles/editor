@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'local_conflict_names.dart';
 import 'local_folder_rules.dart';
 
-/// One plain base folder, on [_local]: its files by the app's own rules.
+/// One local base folder, on [_local]: its files by the app's own rules.
 final class LocalFolderPlace implements ToolPlace {
   const LocalFolderPlace(this._local);
 

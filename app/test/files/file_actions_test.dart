@@ -66,7 +66,7 @@ void main() {
       (each) => each.path.value == name,
     );
     return (await container
-            .read(folderFilesProvider)
+            .read(fileAccessProvider)
             .of(listed.folder)
             .reload(listed))
         .value;

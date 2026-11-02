@@ -16,11 +16,11 @@ import '../../support.dart';
 void main() {
   final page = find.text('page');
   final file = find.text('document');
-  final toast = find.text(textZoomTitle(TextZoomTarget.files));
+  final toast = find.text(textZoomTitle(TextZoomTarget.documents));
 
   TextZoom zoom(
     WidgetTester tester, [
-    TextZoomTarget of = TextZoomTarget.files,
+    TextZoomTarget of = TextZoomTarget.documents,
   ]) =>
       ProviderScope.containerOf(tester.element(page))
           .read(deviceSettingsProvider)

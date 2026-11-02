@@ -7,7 +7,7 @@ import 'local_folder_place.dart';
 /// its file (`LocalConflictNames`), and shows those copies as
 /// conflicts.
 ///
-/// Recognizes nothing: any folder can be plain, so the user picks it.
+/// Recognizes nothing: any folder can be a local folder, so the user picks it.
 final class LocalFolderTool implements SyncTool {
   const LocalFolderTool(this._disk);
 

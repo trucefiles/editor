@@ -2,7 +2,7 @@
 enum TextZoomTarget {
   /// Document text wherever documents show: the open document in every mode, card
   /// previews, the compare view.
-  files,
+  documents,
 
   /// All other text of the app: titles, menus, dialogs, buttons.
   app,

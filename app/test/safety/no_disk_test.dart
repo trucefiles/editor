@@ -68,7 +68,7 @@ void main() {
   test('lists, opens, saves, creates and moves documents, into a new '
       'subfolder too', () async {
     final actions = container.read(fileActionsProvider);
-    final files = container.read(folderFilesProvider).of(folder);
+    final files = container.read(fileAccessProvider).of(folder);
 
     expect(await listed(), ['work/a.md']);
     final a = (await files.open(path('work/a.md'))).value;

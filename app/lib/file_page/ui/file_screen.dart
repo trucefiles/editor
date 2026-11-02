@@ -502,7 +502,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                         openLink: (link) => openLink(context, ref, link),
                         hint: (message) => showSnack(context, message),
                         images: FolderImages(
-                          ref.read(folderFilesProvider).of(_folder),
+                          ref.read(fileAccessProvider).of(_folder),
                           baseId: _folder.base.id,
                           document: path,
                           openedAt: _openedAt,

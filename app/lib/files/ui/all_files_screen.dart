@@ -134,7 +134,7 @@ class AllFilesScreen extends ConsumerWidget {
         (FileOrder.name, FileView.cards) => _rows([
           for (final section in sectionsByName(files)) ...[
             FilesHeading(_placeOf(section)),
-            for (final cards in section.documents.slices(_cardsPerBox))
+            for (final cards in section.files.slices(_cardsPerBox))
               fileGridBox([for (final file in cards) ListedFileCard(file)]),
           ],
         ]),
@@ -145,7 +145,7 @@ class AllFilesScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: FilesHeading(_placeOf(section)),
             ),
-            for (final file in section.documents) ListedFileRow(file),
+            for (final file in section.files) ListedFileRow(file),
           ],
         ]),
       };

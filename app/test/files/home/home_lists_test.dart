@@ -51,7 +51,7 @@ void main() {
         ],
         [('home', null), ('work', null), ('work', 'work')],
       );
-      expect(sections.last.documents, [a9, a10, b]);
+      expect(sections.last.files, [a9, a10, b]);
     });
   });
 

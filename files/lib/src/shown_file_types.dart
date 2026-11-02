@@ -5,7 +5,7 @@ import 'shown_file_type.dart';
 
 /// The file types the app handles, and which one a file is.
 final class ShownFileTypes<T extends ShownFileType> {
-  /// [newDocuments]: what the user can make new, a plain new file
+  /// [newFileChoices]: what the user can make new, a plain new file
   /// first; never empty.
   ShownFileTypes(List<T> types, {required this.newFileChoices})
     : assert(newFileChoices.isNotEmpty, 'Nothing to make new.'),
