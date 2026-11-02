@@ -1,19 +1,20 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_editor/common/open_link.dart';
-import 'package:truce_editor/common/snack.dart';
-import 'package:truce_editor/platform/link_opener.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
-/// A document in Read: formatted, and its links open.
+/// A document in Read: formatted, and its links open as the Markdown
+/// view opens them.
 void main() {
-  late _FakeLinkOpener links;
+  late List<Uri> opened;
+  late bool opens;
 
-  setUp(() => links = _FakeLinkOpener());
+  setUp(() {
+    opened = [];
+    opens = true;
+  });
 
   Future<void> show(
     WidgetTester tester,
@@ -21,21 +22,24 @@ void main() {
     ThemeData? theme,
   }) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [linkOpenerProvider.overrideWithValue(links)],
-        child: MaterialApp(
-          theme: theme,
-          home: Scaffold(
-            body: Consumer(
-              builder: (context, ref, _) => ReadView(
-                markdown,
-                onLink: (url) => openMarkdownLink(
-                  url,
-                  open: (link) => openLink(context, ref, link),
-                  hint: (message) => showSnack(context, message),
-                ),
-                images: const NoDocumentImages(),
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ReadView(
+              markdown,
+              onLink: (url) => openMarkdownLink(
+                url,
+                open: (link) async {
+                  opened.add(link);
+                  return opens;
+                },
+                // A new hint replaces the one showing, as the page's do.
+                hint: (message) => ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(content: Text(message))),
               ),
+              images: const NoDocumentImages(),
             ),
           ),
         ),
@@ -144,11 +148,11 @@ void main() {
 
     await tapLink(tester, 'the site');
 
-    expect(links.opened, [Uri.parse('https://example.org/a')]);
+    expect(opened, [Uri.parse('https://example.org/a')]);
   });
 
   testWidgets('says so when no app opens a link', (tester) async {
-    links.opens = false;
+    opens = false;
     await show(tester, '[site](https://example.org)');
 
     await tapLink(tester, 'site');
@@ -164,17 +168,6 @@ void main() {
     await tapLink(tester, 'b');
     expect(find.text("Can't open other.md"), findsOne);
 
-    expect(links.opened, isEmpty);
+    expect(opened, isEmpty);
   });
-}
-
-final class _FakeLinkOpener implements LinkOpener {
-  final opened = <Uri>[];
-  bool opens = true;
-
-  @override
-  Future<bool> open(Uri link) async {
-    opened.add(link);
-    return opens;
-  }
 }

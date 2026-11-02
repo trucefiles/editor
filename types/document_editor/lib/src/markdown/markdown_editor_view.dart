@@ -22,6 +22,9 @@ final class MarkdownEditorView implements EditorView {
   final MarkdownEditorPart _part;
   final MarkdownServices _services;
 
+  /// When the document was opened: its pictures are read anew each open.
+  final _openedAt = DateTime.now();
+
   /// Lists get Add item buttons where the setting says, links open as the
   /// app opens them, images show from the file's folder.
   @override
@@ -33,20 +36,13 @@ final class MarkdownEditorView implements EditorView {
           text: host.kept,
           notices: _part.gate.events,
           addItems: addItems,
-          onLink: (url) => openMarkdownLink(
-            url,
-            open: (link) async {
-              if (!await _services.openLink(link)) {
-                host.hint('No app could open $link');
-              }
-            },
-            hint: host.hint,
-          ),
+          onLink: (url) =>
+              openMarkdownLink(url, open: _services.openLink, hint: host.hint),
           images: FolderImages(
             host.bytesOf,
-            folder: host.folder.id,
+            folder: host.folder,
             document: host.path,
-            openedAt: _part.openedAt,
+            openedAt: _openedAt,
           ),
           autofocus: autofocus,
         ),

@@ -13,15 +13,15 @@ import 'calendar_support.dart';
 /// name and the events' words; two versions merge event by event when
 /// the user picks it. Its editor package adds how a file of it opens.
 base class CalendarFileType implements ShownFileType {
-  /// Cards write an event as [occurrenceLine] and a cycle as [cycleLine]
+  /// Cards write an event as [eventLine] and a cycle as [cycleLine]
   /// (texts are the UI's, so they come from above); [now] tells the time.
   CalendarFileType({
-    required this.occurrenceLine,
+    required this.eventLine,
     required this.cycleLine,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
-  final String Function(Occurrence occurrence) occurrenceLine;
+  final String Function(Occurrence occurrence) eventLine;
   final String Function(CyclePrediction cycle, DateTime today) cycleLine;
   final DateTime Function() _now;
 
@@ -40,7 +40,7 @@ base class CalendarFileType implements ShownFileType {
     final summary = CalendarSummary(read.text);
     final options = CalendarPreview(
       now: _now(),
-      occurrenceLine: occurrenceLine,
+      occurrenceLine: eventLine,
       cycleLine: cycleLine,
     );
     final preview = summary.preview(options);

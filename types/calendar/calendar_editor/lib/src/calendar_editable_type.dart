@@ -20,7 +20,7 @@ final class CalendarEditableType extends CalendarFileType
     required this.viewChoice,
     super.now,
   }) : super(
-         occurrenceLine: (occurrence) => occurrenceLine(occurrence, day),
+         eventLine: (occurrence) => occurrenceLine(occurrence, day),
          cycleLine: cycleText,
        );
 

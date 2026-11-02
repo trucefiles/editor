@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 /// What the page gives every editor's view: the file's text as last
 /// [kept] (e.g. for a view that only reads), where the file is now
@@ -21,7 +20,7 @@ final class EditorHost {
   });
 
   final String kept;
-  final Folder folder;
+  final FolderId folder;
   final RelPath path;
   final Future<Uint8List?> Function(RelPath path) bytesOf;
   final void Function(String message) hint;

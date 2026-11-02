@@ -10,7 +10,6 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ManualTimers, folderId, path;
@@ -215,12 +214,7 @@ void main() {
     final view = PlainEditorView(part);
     final host = EditorHost(
       kept: 'one\ntwo',
-      folder: Folder(
-        id: folderId('home'),
-        name: 'Home',
-        color: 'teal',
-        location: 'home',
-      ),
+      folder: folderId('home'),
       path: path('a.txt'),
       bytesOf: (_) async => null,
       hint: (_) {},

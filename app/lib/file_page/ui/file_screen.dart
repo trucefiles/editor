@@ -482,7 +482,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                   _page.view.view(
                     EditorHost(
                       kept: text,
-                      folder: _folder,
+                      folder: _folder.id,
                       path: path,
                       bytesOf: ref.read(fileAccessProvider).of(_folder).bytesOf,
                       hint: (message) => showSnack(context, message),

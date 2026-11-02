@@ -22,8 +22,7 @@ final class MarkdownEditorPart implements EditorPart {
             hasCheckboxes: !start.isNew && read.hasCheckboxes,
             typing: start.isNew,
           ),
-      _readOnly = start.readOnly,
-      openedAt = DateTime.now() {
+      _readOnly = start.readOnly {
     editor = MarkdownPageEditor(
       EditorGate(
         editorOwner(
@@ -37,9 +36,6 @@ final class MarkdownEditorPart implements EditorPart {
   }
 
   final EditorPage _page;
-
-  /// When the document was opened: its pictures are read anew each open.
-  final DateTime openedAt;
 
   @override
   late final MarkdownPageEditor editor;

@@ -25,7 +25,7 @@ END:VCALENDAR
 
 void main() {
   CalendarFileType calendars() => CalendarFileType(
-    occurrenceLine: (occurrence) =>
+    eventLine: (occurrence) =>
         '${occurrence.start.month}/${occurrence.start.day} '
         '${occurrence.part.summary}',
     cycleLine: (cycle, today) => 'day ${cycle.dayOfCycle(today)}',

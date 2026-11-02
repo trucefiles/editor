@@ -7,7 +7,6 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ManualTimers, folderId, path;
 
@@ -72,12 +71,7 @@ Future<void> pumpPage(
             ).view(
               EditorHost(
                 kept: part.owner.state.text,
-                folder: Folder(
-                  id: folderId('home'),
-                  name: 'Home',
-                  color: 'teal',
-                  location: 'home',
-                ),
+                folder: folderId('home'),
                 path: path('a.ics'),
                 bytesOf: (_) async => null,
                 hint: (hints ?? []).add,

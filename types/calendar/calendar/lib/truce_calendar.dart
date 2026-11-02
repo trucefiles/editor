@@ -31,6 +31,6 @@ export 'src/recurrence/occurrences.dart';
 export 'src/support/calendar_file_type.dart';
 export 'src/support/calendar_summary.dart';
 export 'src/support/calendar_support.dart';
-export 'src/support/calendar_view.dart';
+export 'src/views/calendar_view.dart';
 export 'src/views/calendar_view_choice.dart';
 export 'src/views/calendar_view_kind.dart';
