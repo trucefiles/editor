@@ -199,6 +199,11 @@ final class WriteFailed extends WriteOutcome<Never> {
   const WriteFailed();
 }
 
+/// The file's folder was removed from the app, so it takes no writes.
+final class FolderClosed extends WriteOutcome<Never> {
+  const FolderClosed();
+}
+
 /// What [ReadLatest] read: the file now; `null` if it could not be read
 /// (e.g. gone or no access), so nothing is learned.
 final class LatestRead<V extends Version> extends FileResult<V> {
@@ -287,6 +292,12 @@ final class MoveAnswer extends FileEvent implements Answering {
   @override
   final Ticket ticket;
   final bool started;
+}
+
+/// The file's folder was removed from the app: the file takes no more
+/// writes. Told once per write that found it so.
+final class FolderGone extends FileEvent {
+  const FolderGone();
 }
 
 /// A pick changed nothing: no backup could be made, the version from

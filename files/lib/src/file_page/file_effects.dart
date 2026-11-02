@@ -125,7 +125,7 @@ final class FileEffects {
     _newFile = to;
     final draft = _draft;
     if (draft == null) return;
-    if (from != null && from.folder.base != to.folder.base) {
+    if (from != null && from.folder.id != to.folder.id) {
       // Not awaited: the queue of the draft's id keeps the order.
       _draftsOf(from.folder).remove(_draftId);
     }
@@ -242,9 +242,11 @@ final class FileEffects {
       )) {
         Ok(value: final theirs) => Changed(theirs.seen),
         Err(error: NotRead(error: StoreError.notFound)) => const WriteGone(),
+        Err(error: NotRead(error: StoreError.closed)) => const FolderClosed(),
         Err() => const WriteFailed(),
       },
       Err(error: StoreError.notFound) => const WriteGone(),
+      Err(error: StoreError.closed) => const FolderClosed(),
       Err() => const WriteFailed(),
     };
   }
@@ -263,6 +265,7 @@ final class FileEffects {
       newSubfolder: file.newSubfolder,
     )) {
       Ok(value: final created) => _written(created),
+      Err(error: StoreError.closed) => const FolderClosed(),
       Err() => const WriteFailed(),
     };
   }
@@ -280,6 +283,7 @@ final class FileEffects {
         Ok(value: final there) => Taken(there.seen),
         Err() => const WriteFailed(),
       },
+      Err(error: StoreError.closed) => const FolderClosed(),
       Err() => const WriteFailed(),
     };
   }

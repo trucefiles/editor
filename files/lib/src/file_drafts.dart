@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_draft.dart';
 
-/// The drafts of one base folder's files, one JSON file each in app
+/// The drafts of one folder's files, one JSON file each in app
 /// storage. Per device and never synced.
 final class FileDrafts {
   FileDrafts(this._folder);
@@ -51,28 +51,18 @@ final class FileDrafts {
     }
   });
 
-  /// Deletes the drafts of the files [under] covers, as the user
-  /// removes the folder that showed them: no edit is recovered into it.
-  /// With the whole base folder, every draft goes, also unreadable ones.
-  Future<void> removeUnder(Selection under) async {
-    if (under is WholeFolder) {
-      try {
-        await _folder.delete(recursive: true);
-      } on FileSystemException {
-        // None yet, or tried again when the folder is removed again.
-      }
-      return;
-    }
-    for (final draft in await all(before: DateTime(9999))) {
-      if (under.covers(draft.path)) await remove(draft.id);
+  /// Deletes every draft, unreadable ones too, as the user removes the
+  /// folder: no edit is recovered into it.
+  Future<void> removeAll() async {
+    try {
+      await _folder.delete(recursive: true);
+    } on FileSystemException {
+      // None yet, or tried again when the folder is removed again.
     }
   }
 
-  /// How many files [under] covers have readable drafts.
-  Future<int> countUnder(Selection under) async =>
-      (await all(before: DateTime(9999)))
-          .where((draft) => under.covers(draft.path))
-          .length;
+  /// How many files have readable drafts.
+  Future<int> count() async => (await all(before: DateTime(9999))).length;
 
   File _file(String id) => File('${_folder.path}/$id$_extension');
 
@@ -83,19 +73,18 @@ final class FileDrafts {
       };
 }
 
-/// The drafts of every base folder, one [FileDrafts] each, so the
-/// work on each draft's file runs one at a time.
-final class DraftsByBase {
-  /// The drafts of a base folder are in the folder [folderOf] tells by its
-  /// id.
-  DraftsByBase(this._folderOf);
+/// The drafts of every folder, one [FileDrafts] each, so the work on
+/// each draft's file runs one at a time.
+final class DraftsByFolder {
+  /// The drafts of a folder are in the app storage folder [pathOf] tells.
+  DraftsByFolder(this._pathOf);
 
-  final String Function(String baseId) _folderOf;
-  final _byBase = <String, FileDrafts>{};
+  final String Function(FolderId folder) _pathOf;
+  final _byFolder = <FolderId, FileDrafts>{};
 
-  /// The drafts of the base folder with the id [baseId].
-  FileDrafts of(String baseId) => _byBase.putIfAbsent(
-    baseId,
-    () => FileDrafts(Directory(_folderOf(baseId))),
+  /// The drafts of [folder].
+  FileDrafts of(FolderId folder) => _byFolder.putIfAbsent(
+    folder,
+    () => FileDrafts(Directory(_pathOf(folder))),
   );
 }

@@ -129,16 +129,23 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Tells that the file stopped taking edits (a bug), and whether
-  /// its edits are [kept].
-  void _onStopped(bool kept) => _messenger.currentState?.showHint(
-    kept
-        ? 'Something went wrong, so this document is read only now. Your '
-              'edits are kept on this device and go into the file at the '
-              'next start.'
-        : 'Something went wrong, so this document is read only now, and '
-              "your latest edits couldn't be kept. Copy them elsewhere "
-              'before you leave.',
+  /// Tells that the file stopped taking edits, why, and whether its
+  /// edits are kept.
+  void _onStopped(Stopped stopped) => _messenger.currentState?.showHint(
+    switch (stopped) {
+      Stopped(cause: StopCause.folderGone) =>
+        "This file's folder was removed from the app, so the file is read "
+            'only now, and its latest edits are kept nowhere. Copy them '
+            'elsewhere before leaving.',
+      Stopped(kept: true) =>
+        'Something went wrong, so this file is read only now. Its edits '
+            'are kept on this device and go into the file at the next '
+            'start.',
+      Stopped() =>
+        'Something went wrong, so this file is read only now, and its '
+            "latest edits couldn't be kept. Copy them elsewhere before "
+            'leaving.',
+    },
   );
 
   void _onEditorNotice(EditorNotice notice) {

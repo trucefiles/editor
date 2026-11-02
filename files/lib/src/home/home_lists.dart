@@ -56,7 +56,7 @@ int _byPlace(
 
 /// Those of [files] the folder filter shows: the ones in the folder
 /// with id [folderId], or all if `null`.
-List<ListedFile> filteredBy(String? folderId, List<ListedFile> files) => [
+List<ListedFile> filteredBy(FolderId? folderId, List<ListedFile> files) => [
   for (final file in files)
     if (folderId == null || file.folder.id == folderId) file,
 ];

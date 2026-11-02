@@ -6,13 +6,15 @@ import '../file_place.dart';
 /// The user's choice of where new files go: a folder by id and one of
 /// its subfolders, `null` for its top level. Kept by id, so it outlives
 /// renames of the folder.
-typedef NewFilePlaceSetting = ({String folderId, RelPath? subfolder});
+typedef NewFilePlaceSetting = ({FolderId folderId, RelPath? subfolder});
 
-/// [place] as JSON, e.g. `{"folder": "f1", "subfolder": "inbox"}`; `null`
+/// [place] as JSON, e.g.
+/// `{"plugin": "syncthing", "folder": "f1", "subfolder": "inbox"}`; `null`
 /// for none chosen.
 Object? newFilePlaceToJson(NewFilePlaceSetting? place) => switch (place) {
   (:final folderId, :final subfolder) => {
-    'folder': folderId,
+    'plugin': folderId.plugin,
+    'folder': folderId.folder,
     if (subfolder != null) 'subfolder': subfolder.value,
   },
   null => null,
@@ -21,19 +23,28 @@ Object? newFilePlaceToJson(NewFilePlaceSetting? place) => switch (place) {
 /// The place [json] holds; `null` if none, or not one written by
 /// [newFilePlaceToJson].
 NewFilePlaceSetting? newFilePlaceFromJson(Object? json) => switch (json) {
-  {'folder': final String folderId, 'subfolder': final String raw} =>
+  {
+    'plugin': final String plugin,
+    'folder': final String folder,
+    'subfolder': final String raw,
+  } =>
     switch (RelPath.parse(raw)) {
-      final subfolder? => (folderId: folderId, subfolder: subfolder),
+      final subfolder? => (
+        folderId: FolderId(plugin, folder),
+        subfolder: subfolder,
+      ),
       null => null,
     },
-  {'folder': final String folderId} => (folderId: folderId, subfolder: null),
+  {'plugin': final String plugin, 'folder': final String folder} => (
+    folderId: FolderId(plugin, folder),
+    subfolder: null,
+  ),
   _ => null,
 };
 
 /// [place] among [folders]: `null` if its folder is not one of them. Its
 /// subfolder as set, also one a scan missed: creating the file checks it
-/// (see `FilesOfFolder.create`); the folder's top if the folder doesn't
-/// show it any more.
+/// and falls back to the folder's top (see `FilesOfFolder.create`).
 FilePlace? resolveNewFilePlace(
   NewFilePlaceSetting? place,
   List<Folder> folders,
@@ -41,7 +52,5 @@ FilePlace? resolveNewFilePlace(
   if (place == null) return null;
   final folder = folders.where((f) => f.id == place.folderId).firstOrNull;
   if (folder == null) return null;
-  return showsPlace(folder, place.subfolder)
-      ? (folder: folder, subfolder: place.subfolder)
-      : topOf(folder);
+  return (folder: folder, subfolder: place.subfolder);
 }

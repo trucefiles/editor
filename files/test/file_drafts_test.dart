@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -73,41 +72,35 @@ void main() {
     expect(await drafts.all(before: later), isEmpty);
   });
 
-  test("keeps a new document's draft, without a base", () async {
+  test("keeps a new document's draft, without a folder", () async {
     await drafts.keep(FileDraft(id: '1', path: path('Milk.md'), text: 'Milk'));
 
     final [kept] = await drafts.all(before: later);
     expect((kept.path, kept.base, kept.text), (path('Milk.md'), null, 'Milk'));
   });
 
-  test('removes all drafts of the whole base folder', () async {
+  test('removes all drafts of the folder', () async {
     await drafts.keep(draft('1', 'one'));
     await drafts.keep(draft('2', 'two'));
 
-    await drafts.removeUnder(const WholeFolder());
+    await drafts.removeAll();
 
     expect(await drafts.all(before: later), isEmpty);
     expect(dir.existsSync(), isFalse);
   });
 
-  test('removes only the drafts of the documents under subfolders', () async {
-    await drafts.keep(FileDraft(id: '1', path: path('work/a.md'), text: 'a'));
-    await drafts.keep(
-      FileDraft(id: '2', path: path('workshop/a.md'), text: 'b'),
-    );
-
-    await drafts.removeUnder(Selection.of([path('work')]));
-
-    expect(
-      [for (final kept in await drafts.all(before: later)) kept.id],
-      ['2'],
-    );
-  });
-
   test('removes nothing before the first draft', () async {
-    await drafts.removeUnder(const WholeFolder());
+    await drafts.removeAll();
 
     expect(await drafts.all(before: later), isEmpty);
+  });
+
+  test('counts the drafts of the folder', () async {
+    expect(await drafts.count(), 0);
+    await drafts.keep(draft('1', 'one'));
+    await drafts.keep(draft('2', 'two'));
+
+    expect(await drafts.count(), 2);
   });
 
   test('has none before the first draft', () async {

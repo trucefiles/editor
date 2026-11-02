@@ -21,15 +21,26 @@ final class Running extends SessionState {
   const Running();
 }
 
-/// The file owner stopped by a bug: the file takes no more edits. The
-/// latest ones, [text], are kept on this device as the draft and go into
-/// the file at the next start. [kept]: whether the device keeps them, as
-/// last known; `null` until first known.
+/// Why a file stopped taking edits.
+enum StopCause {
+  /// The file owner stopped by a bug.
+  bug,
+
+  /// The file's folder was removed from the app.
+  folderGone,
+}
+
+/// The file takes no more edits, for [cause]; [text] is the latest. After
+/// a bug they are kept on this device as the draft and go into the file
+/// at the next start; [kept]: whether the device keeps them, as last
+/// known, `null` until first known. Once the folder is gone they are
+/// kept nowhere (`kept: false`): the editor still shows them.
 final class Stopped extends SessionState {
-  const Stopped(this.text, {this.kept});
+  const Stopped(this.text, {this.kept, this.cause = StopCause.bug});
 
   final String text;
   final bool? kept;
+  final StopCause cause;
 }
 
 /// The page is gone: both owners are closed.
@@ -73,7 +84,7 @@ final class FileSession {
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
   final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
   final _changes = StreamController<void>.broadcast(sync: true);
-  final _stopNotices = StreamController<bool>.broadcast(sync: true);
+  final _stopNotices = StreamController<Stopped>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, and the summary it told,
   /// as listeners last heard.
@@ -128,9 +139,10 @@ final class FileSession {
   /// of [summary] (so of [title] and [path]), and of [state].
   Stream<void> get changes => _changes.stream;
 
-  /// Fires once after the file [Stopped], as it is first known
-  /// whether its edits are kept on this device.
-  Stream<bool> get stopNotices => _stopNotices.stream;
+  /// Fires once after the file [Stopped]: after a bug, as it is first
+  /// known whether its edits are kept on this device; once its folder is
+  /// gone, at once.
+  Stream<Stopped> get stopNotices => _stopNotices.stream;
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new file is created now, unless it is empty.
@@ -204,7 +216,16 @@ final class FileSession {
     (ToFile(input: final Edited edited), Running()) => _file.send(
       _toFile(edited),
     ),
-    (ToFile(input: Edited(:final text)), Stopped()) => _keepLastDraft(text),
+    (
+      ToFile(input: Edited(:final text)),
+      Stopped(cause: StopCause.bug),
+    ) =>
+      _keepLastDraft(text),
+    (
+      ToFile(input: Edited(:final text)),
+      Stopped(cause: StopCause.folderGone),
+    ) =>
+      _setState(_folderGone(text)),
     (ToFile(:final input), Running()) => _file.send(input),
     (ToFile(), Stopped() || Ended()) => null,
     (UndoOffered() || UndoRefused() || HistoryEnd(), _) => _editorNotices.add(
@@ -251,11 +272,26 @@ final class FileSession {
           )
           .then((kept) {
             if (!identical(_state, keeping)) return;
-            _setState(Stopped(text, kept: kept));
-            if (known == null) _stopNotices.add(kept);
+            final stopped = Stopped(text, kept: kept);
+            _setState(stopped);
+            if (known == null) _stopNotices.add(stopped);
           }),
     );
   }
+
+  /// The file's folder was removed from the app: the file takes no more
+  /// edits, and they are kept nowhere; the editor still shows them. The
+  /// file owner closes, so nothing waits on it.
+  void _onFolderGone() {
+    if (_state is! Running) return;
+    final stopped = _folderGone(_file.state.text);
+    _setState(stopped);
+    _stopNotices.add(stopped);
+    unawaited(_file.close());
+  }
+
+  static Stopped _folderGone(String text) =>
+      Stopped(text, kept: false, cause: StopCause.folderGone);
 
   void _setState(SessionState state) {
     _state = state;
@@ -281,6 +317,8 @@ final class FileSession {
         if (event is Replaced) _fileNotices.add(event);
       case PickNotKept() || PickMerged():
         _fileNotices.add(event);
+      case FolderGone():
+        _onFolderGone();
       case Answer() || MoveAnswer():
         // [ask] hears it.
         break;

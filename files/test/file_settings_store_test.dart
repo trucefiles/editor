@@ -19,8 +19,8 @@ void main() {
       key: value.settings,
   };
 
-  test('a store key names its document again', () {
-    final key = (baseId: 'b1', path: path('a/b.md'));
+  test('a store key names its file again', () {
+    final key = (folder: folderId('b1'), path: path('a/b.md'));
 
     expect(FileSettingsStore.keyOf(FileSettingsStore.storeKey(key)), key);
     expect(FileSettingsStore.keyOf('no-path'), isNull);
@@ -31,7 +31,7 @@ void main() {
   });
 
   test('saves and loads settings', () async {
-    final key = FileSettingsStore.storeKey((baseId: 'b1', path: path('a.md')));
+    final key = FileSettingsStore.storeKey((folder: folderId('b1'), path: path('a.md')));
     final settings = FileSettings(
       pinned: true,
       view: ViewSettings({

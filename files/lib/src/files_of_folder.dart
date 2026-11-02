@@ -5,15 +5,17 @@ import 'package:truce_folders/truce_folders.dart';
 
 import 'file_text.dart';
 import 'listed_file.dart';
+import 'move_failure.dart';
 import 'new_file_name.dart';
 import 'open_failure.dart';
 import 'shown_file_type.dart';
 import 'shown_file_types.dart';
 
-/// Reads and writes single files in one folder, through its base
-/// folder's services. Every write is atomic and checks that the file did
-/// not change since it was read. A path the folder doesn't show, or of a
-/// type the app doesn't handle, is refused with [StoreError.outside].
+/// Reads and writes single files in one folder, through its services.
+/// Every write is atomic and checks that the file did not change since it
+/// was read. A path of a type the app doesn't handle is refused with
+/// [StoreError.outside]; once the folder is removed, everything with
+/// [StoreError.closed].
 final class FilesOfFolder {
   const FilesOfFolder(this._folder, this._services, this._types);
 
@@ -21,7 +23,7 @@ final class FilesOfFolder {
   static const _maxAttempts = 100;
 
   final Folder _folder;
-  final BaseFolderServices _services;
+  final FolderServices _services;
   final ShownFileTypes _types;
 
   FileStore get _store => _services.store;
@@ -38,12 +40,11 @@ final class FilesOfFolder {
         Err() => null,
       };
 
-  /// The file in the file at [path], with its text, e.g. kept from
-  /// before its folder changed: refused if the folder doesn't show it;
-  /// [NotText] if it is not text.
+  /// The file at [path], with its text: refused if the app doesn't show
+  /// its type; [NotText] if it is not text.
   Future<Result<FileText, OpenFailure>> open(RelPath path) async {
     final type = _types.of(path)?.support;
-    if (type == null || !_folder.covers(path)) {
+    if (type == null) {
       return const Err(NotRead(StoreError.outside));
     }
     final read = await _store.read(path);
@@ -58,11 +59,11 @@ final class FilesOfFolder {
     };
   }
 
-  /// New file of [type] in [subfolder] (the base folder's top level
-  /// if `null`), named after [title], holding [text]; [newSubfolder]
-  /// makes [subfolder] first. If [subfolder] is gone, the file goes
-  /// to the top of the folder's part that held it: it is kept, and the
-  /// deleted folder never comes back.
+  /// New file of [type] in [subfolder] (the folder's top level if
+  /// `null`), named after [title], holding [text]; [newSubfolder] makes
+  /// [subfolder] first. If [subfolder] is gone, the file goes to the
+  /// folder's top level: it is kept, and the deleted subfolder never
+  /// comes back.
   Future<Result<FileText, StoreError>> create(
     String title, {
     required ShownFileType type,
@@ -77,26 +78,13 @@ final class FilesOfFolder {
       isNew: newSubfolder,
     ), file);
     if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      final top = _topOf(subfolder);
-      if (top != subfolder) {
-        return _createNamed(title, extension, (
-          folder: top,
-          isNew: false,
-        ), file);
-      }
+      return _createNamed(title, extension, (folder: null, isNew: false), file);
     }
     return created;
   }
 
-  /// The top of the folder's part that holds [subfolder]: the base
-  /// folder's top level (`null`) or a selected subfolder.
-  RelPath? _topOf(RelPath subfolder) => switch (_folder.selection) {
-    WholeFolder() => null,
-    final Subfolders subfolders => subfolders.rootOf(subfolder),
-  };
-
   /// A copy of [file], from any folder, holding [text] in
-  /// [file]'s byte style, in [subfolder] (the base folder's top level
+  /// [file]'s byte style, in [subfolder] (the folder's top level
   /// if `null`; made first if [newSubfolder]); named after [title] (by
   /// default [file]'s name) with [file]'s extension, and a number
   /// if that name is taken.
@@ -114,28 +102,57 @@ final class FilesOfFolder {
     ), file.textFile.withText(text));
   }
 
-  /// Moves [read]'s file, as last saved, from anywhere in this base
-  /// folder to [subfolder] (its top level if `null`; made first if
-  /// [newSubfolder]); named after [title] (by default [read]'s name)
-  /// with [read]'s extension, and a number if that name is taken.
-  /// Fails with [StoreError.changedSinceRead] if the file changed since
-  /// [read] was read: nothing moved.
-  Future<Result<FileText, StoreError>> moveIn(
+  /// Moves [read]'s file, as last saved, from this folder into [target]
+  /// (this one too), to [subfolder] (its top level if `null`; made first
+  /// if [newSubfolder]); named after [title] (by default [read]'s name)
+  /// with [read]'s extension, and a number if that name is taken. The
+  /// folder decides how ([OpenFolder.moveInto]). Nothing moves if the
+  /// file changed since [read] was read; if its old file can't be
+  /// removed, both stay ([MoveLeftOriginal]).
+  Future<Result<FileText, MoveFailure>> moveTo(
+    FilesOfFolder target,
     FileText read, {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
-  }) {
+  }) async {
     final FileText(listed: ListedFile(path: from, :version), textFile: file) =
         read;
     final (:base, :extension) = splitFileName(from.name);
-    return _named(
+    CopiedOnly? left;
+    // A copy whose old file stays still names the file: it ends the
+    // search for a free name.
+    Future<Result<FileEntry, StoreError>> moveAt(RelPath path) async {
+      switch (await _services.open.moveInto(
+        from,
+        ifUnchanged: version,
+        target: target._services.open,
+        to: path,
+      )) {
+        case Ok(:final value):
+          return Ok(value);
+        case Err(error: NotMoved(:final error)):
+          return Err(error);
+        case Err(error: final CopiedOnly copied):
+          left = copied;
+          return Ok(copied.copy);
+      }
+    }
+
+    final moved = await target._named(
       title ?? base,
       extension,
       (folder: subfolder, isNew: newSubfolder),
-      (path) => _store.move(from, path, ifUnchanged: version),
+      moveAt,
       file,
     );
+    return switch ((moved, left)) {
+      (Ok(:final value), final CopiedOnly left) => Err(
+        MoveLeftOriginal(value, left.error),
+      ),
+      (Ok(:final value), null) => Ok(value),
+      (Err(:final error), _) => Err(MoveNotWritten(error)),
+    };
   }
 
   /// See [_named].
@@ -304,20 +321,19 @@ final class FilesOfFolder {
   );
 }
 
-/// Where a file goes in its base folder: [folder] (its top level if
+/// Where a file goes in its folder: [folder] (its top level if
 /// `null`), and whether it is a new one the user asked for ([isNew]),
 /// made right before the file.
 typedef _Subfolder = ({RelPath? folder, bool isNew});
 
-/// The files of every folder, each through its base folder's
-/// services as its folders show it now.
+/// The files of every folder, each through its services.
 final class FileAccess {
   const FileAccess(this._servicesOf, this._types);
 
-  final BaseFolderServices Function(BaseFolder base) _servicesOf;
+  final FolderServices Function(FolderId folder) _servicesOf;
   final ShownFileTypes _types;
 
   /// The files of [folder].
   FilesOfFolder of(Folder folder) =>
-      FilesOfFolder(folder, _servicesOf(folder.base), _types);
+      FilesOfFolder(folder, _servicesOf(folder.id), _types);
 }

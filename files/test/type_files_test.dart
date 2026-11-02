@@ -41,28 +41,22 @@ const _copyName = 'a.fake-copy-20261101-120000.md';
 
 void main() {
   late Folder folder;
-  late FakePlace place;
-  late BaseFolderServices services;
+  late FakeFolder raw;
+  late FolderServices services;
 
   setUp(() {
-    final tool = FakeSyncTool('fake');
+    final plugin = FakePlugin();
     folder = Folder(
-      id: 'f1',
-      base: BaseFolder(
-        id: 'b1',
-        address: Uri.parse('fake:/f1'),
-        toolId: tool.id,
-      ),
-      selection: const WholeFolder(),
-      name: 'Documents',
+      id: folderId('f1'),
+      name: 'Files',
       color: 'teal',
+      location: 'fake:f1',
     );
-    place = tool.place(folder.base.address);
-    services = baseFolderServices(
-      place,
-      syncToolName: tool.name,
-      reach: folderReach(place.files),
-      selection: folder.selection,
+    raw = plugin.folder(folder.id.folder);
+    services = folderServices(
+      raw,
+      pluginName: plugin.name,
+      reach: folderReach(raw.files),
       handles: _types.handles,
       checkEvery: () => const Duration(seconds: 1),
       backupsPath: tempFolder().path,
@@ -71,8 +65,8 @@ void main() {
     );
   });
 
-  void put(String name, String text) => place.files.put(name, text);
-  String? textOf(String name) => place.files.textOf(name);
+  void put(String name, String text) => raw.files.put(name, text);
+  String? textOf(String name) => raw.files.textOf(name);
 
   /// The files of the folder.
   FilesOfFolder files() => FilesOfFolder(folder, services, _types);
@@ -201,7 +195,7 @@ void main() {
 
       expect(
         [
-          for (final MapEntry(:key, :value) in place.files.files.entries)
+          for (final MapEntry(:key, :value) in raw.files.files.entries)
             (key.value.startsWith('gone'), String.fromCharCodes(value.bytes)),
         ],
         [(true, 'a\r\nb')],
@@ -248,9 +242,9 @@ void main() {
     );
     final listed = [(await files().open(path('a.md'))).value.listed];
 
-    place.files.failWith = StoreError.ioFailure;
+    raw.files.failWith = StoreError.ioFailure;
     expect(await kept.readAll(listed), isEmpty);
-    place.files.failWith = null;
+    raw.files.failWith = null;
 
     expect((await kept.readAll(listed)).values, ['k:1']);
   });
