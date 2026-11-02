@@ -5,17 +5,19 @@ import 'conflict_sides.dart';
 import 'folder_conflicts.dart';
 
 /// Compares a document with its oldest conflict copy, in the folder of
-/// [_services]; [_rescan] scans after a keep.
+/// [_services], merged by [_merge] where the document's type merges;
+/// [_rescan] scans after a keep.
 final class ConflictCompare
     implements CompareSource<FolderConflict, ConflictSides> {
-  ConflictCompare(this._services, this._rescan);
+  ConflictCompare(this._services, this._rescan, {this._merge});
 
   final BaseFolderServices _services;
   final Future<void> Function() _rescan;
+  final TextMerge? _merge;
 
   @override
   Future<Result<ConflictSides, StoreError>> load(FolderConflict target) =>
-      ConflictSides.load(_services, target.conflict);
+      ConflictSides.load(_services, target.conflict, merge: _merge);
 
   @override
   Future<Result<void, ResolveError>> keep(

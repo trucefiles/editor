@@ -27,6 +27,7 @@ import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../versions/merge_outcome.dart';
 import '../document_controller.dart';
 import '../document_page_wiring.dart';
 import '../document_pages.dart';
@@ -156,10 +157,14 @@ class _DocumentScreenState extends ConsumerState<DocumentScreen> {
   }
 
   void _onFileNotice(FileEvent notice) {
-    if (notice is Replaced) {
-      _messenger.currentState?.showHint(
-        'Updated with a change from another device or app',
-      );
+    final messenger = _messenger.currentState;
+    switch (notice) {
+      case Replaced():
+        messenger?.showHint('Updated with a change from another device or app');
+      case PickMerged(:final lost):
+        messenger?.showNotice(mergeOutcome(lost));
+      case _:
+        break;
     }
   }
 

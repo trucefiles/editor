@@ -1,4 +1,5 @@
 import '../../common/moment.dart';
+import '../../conflicts/text_merge.dart';
 import '../../owners/effects.dart';
 import '../../owners/machine.dart';
 import '../version.dart';
@@ -6,11 +7,17 @@ import 'file_contract.dart';
 import 'file_state.dart';
 import 'file_work.dart';
 
-/// The file owner's decision on [message] in [state], with its [work].
-Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>> fileStep<
-  V extends Version
->(FileState<V> state, FileWork<V> work, FileMessage<V> message) {
-  final step = _Step(state, work)..handle(message);
+/// The file owner's decision on [message] in [state], with its [work];
+/// [merge]: how the document's type merges two texts, if it does, for
+/// the user's pick of both merged.
+Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>>
+fileStep<V extends Version>(
+  FileState<V> state,
+  FileWork<V> work,
+  FileMessage<V> message, {
+  TextMerge? merge,
+}) {
+  final step = _Step(state, work, merge)..handle(message);
   return (
     state: step.shown,
     work: step.work,
@@ -23,10 +30,11 @@ Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>> fileStep<
 /// Inputs update what is known and asked; [_next] then starts the next
 /// I/O once none is under way.
 final class _Step<V extends Version> {
-  _Step(this.state, this.work);
+  _Step(this.state, this.work, this.merge);
 
   FileState<V> state;
   FileWork<V> work;
+  final TextMerge? merge;
   final events = <FileEvent>[];
   final effects = <FileEffect<V>>[];
   FileStatus<V> get status => state.status;
@@ -51,6 +59,10 @@ final class _Step<V extends Version> {
           EditPhase.onDevice,
         _ => EditPhase.inMemory,
       }),
+      ChangedElsewhere(:final theirs) => ChangedElsewhere(
+        theirs,
+        merges: _merge(theirs) != null,
+      ),
       _ => status,
     },
     text: state.text,
@@ -535,12 +547,19 @@ final class _Step<V extends Version> {
     if (pick == null) return;
     _work(work.copyWith(io: null));
     final theirs = _theirs(pick);
-    // Theirs would drop edits made since the pick.
-    final dropsEdits =
-        pick.choice == PickChoice.theirs && pick.rev != state.rev;
-    if (!ok || theirs == null || work.toRead != null || dropsEdits) {
-      // No backup, their version changed again (perhaps not read yet), or
-      // the conflict is gone.
+    // Theirs, or both merged, would drop edits made since the pick.
+    final dropsEdits = pick.choice != PickChoice.mine && pick.rev != state.rev;
+    final merged = switch ((pick.choice, theirs)) {
+      (PickChoice.merged, final theirs?) => _merge(theirs),
+      _ => null,
+    };
+    if (!ok ||
+        theirs == null ||
+        work.toRead != null ||
+        dropsEdits ||
+        (pick.choice == PickChoice.merged && merged == null)) {
+      // No backup, their version changed again (perhaps not read yet),
+      // the conflict is gone, or the two don't merge.
       return events.add(const PickNotKept());
     }
     _work(
@@ -557,8 +576,39 @@ final class _Step<V extends Version> {
         _set(text: theirs.text);
         _picked(theirs.text, theirs.version);
         _settle(const InStep());
+      case PickChoice.merged:
+        final MergedText(:text, :lost) = merged!;
+        events.add(PickMerged(lost: lost));
+        if (text == state.text) {
+          // The edits hold both already: kept as they show.
+          _work(work.copyWith(offered: work.offered.take(1).toList()));
+          _set(status: const Editing(EditPhase.inMemory));
+          _askFolder();
+          return;
+        }
+        _work(work.copyWith(offered: [theirs]));
+        _set(text: text);
+        _picked(text, theirs.version);
+        if (text == theirs.text) {
+          _settle(const InStep());
+        } else {
+          // Edits over theirs, written as the user's own.
+          _set(status: const Editing(EditPhase.inMemory));
+          _askFolder();
+        }
     }
   }
+
+  /// The edits and [theirs] merged by the type, if it merges them: the
+  /// edits' base is the version they were made over.
+  MergedText? _merge(Seen<V> theirs) => switch (merge?.merge(
+    theirs.text,
+    state.text,
+    base: (work.editsOver ?? work.expected)?.text,
+  )) {
+    final MergedText merged => merged,
+    _ => null,
+  };
 
   /// Drops the edits that are in no file: the text goes back to the
   /// file's, as it is now. Not while they may still reach the file or a

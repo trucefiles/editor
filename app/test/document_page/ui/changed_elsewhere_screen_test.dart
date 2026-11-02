@@ -9,6 +9,24 @@ import 'package:truce_editor/versions/ui/version_pane.dart';
 import '../../support.dart';
 import '../document_fixture.dart';
 
+/// Merges by keeping both texts, theirs first, and names "Swim" as lost.
+final class _BothMerge implements TextMerge {
+  const _BothMerge();
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) =>
+      MergedText('$main$other', lost: const ['Swim']);
+}
+
+/// A type that merges, though never these two texts.
+final class _NeverMerge implements TextMerge {
+  const _NeverMerge();
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) =>
+      const CantMerge();
+}
+
 void main() {
   late DocumentFixture fixture;
   late DocumentSession session;
@@ -26,10 +44,10 @@ void main() {
 
   /// A session whose edits wait on the device while the file changed
   /// elsewhere; the banner offers to compare, which is opened.
-  Future<void> pumpCompare(WidgetTester tester) async {
+  Future<void> pumpCompare(WidgetTester tester, {TextMerge? merge}) async {
     await tester.runAsync(() async {
       fixture = await DocumentFixture.create();
-      session = fixture.session()..type('mine ');
+      session = fixture.session(null, merge)..type('mine ');
       await fixture.editElsewhere('theirs\n');
       await session.secure(.hide);
     });
@@ -172,5 +190,42 @@ void main() {
     // In the current version's pane, its own line.
     expect(find.textContaining('theirs, newer'), findsOneWidget);
     expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
+  });
+
+  testWidgets('no merge is offered where the type does not merge', (
+    tester,
+  ) async {
+    await pumpCompare(tester);
+
+    expect(find.text('Merge both'), findsNothing);
+  });
+
+  testWidgets('no merge is offered for texts that do not merge', (
+    tester,
+  ) async {
+    await pumpCompare(tester, merge: const _NeverMerge());
+
+    expect(find.text('Merge both'), findsNothing);
+  });
+
+  testWidgets('both merged become the edits, written and told', (tester) async {
+    await pumpCompare(tester, merge: const _BothMerge());
+    final told = <FileEvent>[];
+    final notices = session.fileNotices.listen(told.add);
+    addTearDown(notices.cancel);
+
+    await tester.tap(find.text('Merge both'));
+    await tester.pumpAndSettle();
+    expect(find.text('Merge both versions?'), findsOneWidget);
+    await tester.tap(find.text('Keep'));
+    await settle(
+      tester,
+      until: () => fixture.onDisk('a.md') == 'theirs\nmine one\n',
+    );
+
+    expect(session.text, 'theirs\nmine one\n');
+    expect(fixture.onDisk('a.md'), 'theirs\nmine one\n');
+    expect(find.text('Your edits'), findsNothing);
+    expect(told.whereType<PickMerged>().single.lost, ['Swim']);
   });
 }

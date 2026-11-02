@@ -48,8 +48,8 @@
 
 ## What's coming
 
-- Assisted merge: Truce suggests a merged version of a conflict for you to
-  accept.
+- Assisted merge for Markdown and text: Truce suggests a merged version
+  of a conflict for you to accept (calendars merge with one tap already).
 - More kinds of files beyond Markdown and plain text.
 - Windows, macOS and iOS.
 
@@ -114,6 +114,10 @@ A Dart pub workspace with these packages:
   uses core, which knows nothing of it.
 - `plain_text`: plain text documents, edited as a whole text, with the
   editor's owner. Pure Dart, no UI; uses core, which knows nothing of it.
+- `calendar`: calendar documents (iCalendar, `.ics`), read and written
+  back block-exact, merged event by event, with repeats, health entries,
+  cycle predictions and the editor's owner. Pure Dart, no UI; uses core,
+  which knows nothing of it.
 - `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
 - `plain_folder`: folders no sync tool syncs, or one Truce doesn't know,
   behind core's interfaces. Pure Dart.
@@ -146,6 +150,7 @@ flutter analyze --fatal-infos
 (cd core && dart test)
 (cd markdown && dart test)
 (cd plain_text && dart test)
+(cd calendar && dart test)
 (cd syncthing && dart test)
 (cd plain_folder && dart test)
 (cd folders && dart test)

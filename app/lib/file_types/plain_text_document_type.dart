@@ -1,3 +1,4 @@
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
@@ -22,6 +23,10 @@ final class PlainTextDocumentType implements EditableType {
       preview: (_) => preview,
     );
   }
+
+  /// Texts are compared and picked by the user.
+  @override
+  TextMerge? get merge => null;
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {

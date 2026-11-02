@@ -42,6 +42,11 @@ runs:
       working-directory: plain_text
       run: dart test
 
+    - name: Test calendar
+      shell: bash
+      working-directory: calendar
+      run: dart test
+
     - name: Test Syncthing
       shell: bash
       working-directory: syncthing

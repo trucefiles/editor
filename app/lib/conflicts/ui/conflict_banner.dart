@@ -38,7 +38,16 @@ Future<void> openConflict(BuildContext context, FolderConflict conflict) async {
   final messenger = ScaffoldMessenger.of(context);
   final outcome = await Navigator.push(
     context,
-    MaterialPageRoute<String>(builder: (_) => ConflictScreen(conflict)),
+    MaterialPageRoute<ConflictOutcome>(
+      builder: (_) => ConflictScreen(conflict),
+    ),
   );
-  if (outcome != null) messenger.showHint(outcome);
+  switch (outcome) {
+    case (:final text, notice: true):
+      messenger.showNotice(text);
+    case (:final text, notice: false):
+      messenger.showHint(text);
+    case null:
+      break;
+  }
 }

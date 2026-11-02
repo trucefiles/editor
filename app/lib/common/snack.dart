@@ -30,3 +30,24 @@ extension HintSnackBar on ScaffoldMessengerState {
       );
   }
 }
+
+extension NoticeBanner on ScaffoldMessengerState {
+  /// Shows [message] at the top until the user dismisses it, for news
+  /// worth reading in full (e.g. how a merge went); short hints at the
+  /// bottom never hide it.
+  void showNotice(String message) {
+    this
+      ..hideCurrentMaterialBanner()
+      ..showMaterialBanner(
+        MaterialBanner(
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: hideCurrentMaterialBanner,
+              child: const Text('Dismiss'),
+            ),
+          ],
+        ),
+      );
+  }
+}

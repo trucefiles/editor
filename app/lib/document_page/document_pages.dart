@@ -150,6 +150,7 @@ final class DocumentPages {
         moveDocument: move,
       ),
       editor.part.editor,
+      merge: type.merge,
     );
     BaseFolder base() => session.file.folder.base;
     controller = DocumentController(

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
+import '../file_types/document_types.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
 import '../versions/compare_controller.dart';
@@ -27,6 +28,7 @@ class ConflictController
   CompareSource<FolderConflict, ConflictSides> source() => ConflictCompare(
     ref.read(baseFolderServicesProvider(start.folder.base)),
     ref.read(folderContentsProvider.notifier).refresh,
+    merge: ref.read(documentTypesProvider).mergeOf(start.conflict.mainPath),
   );
 
   @override

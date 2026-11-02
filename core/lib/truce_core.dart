@@ -20,9 +20,9 @@
 /// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
 ///    what each type gives lists ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
-///    whose copies each sync tool keeps in its [ConflictSource], merged per
-///    file type ([ConflictHandler]); copies kept as files next to their
-///    main file, by a tool's names ([ConflictCopyNames]).
+///    whose copies each sync tool keeps in its [ConflictSource]; how a
+///    document type merges two texts ([TextMerge]); copies kept as files
+///    next to their main file, by a tool's names ([ConflictCopyNames]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
@@ -76,7 +76,6 @@ export 'src/common/result.dart';
 export 'src/common/unchanged_ends.dart';
 export 'src/compare/compare_owner.dart';
 export 'src/conflicts/conflict.dart';
-export 'src/conflicts/conflict_handler.dart';
 export 'src/conflicts/conflict_service.dart';
 export 'src/conflicts/conflict_source.dart';
 export 'src/conflicts/copies/conflict_copy_grouping.dart';
@@ -85,6 +84,7 @@ export 'src/conflicts/copies/named_conflict_source.dart';
 export 'src/conflicts/copies/named_copies_scanner.dart';
 export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
+export 'src/conflicts/text_merge.dart';
 export 'src/documents/editor/editor_book.dart';
 export 'src/documents/editor/editor_contract.dart';
 export 'src/documents/editor/editor_steps.dart';
