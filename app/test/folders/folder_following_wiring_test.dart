@@ -3,21 +3,20 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 
-/// The app's providers with one folder showing [selection] of the base
-/// folder at [basePath], and [refresh] set.
-Future<({ProviderContainer container, BaseFolder base})> _start(
-  String basePath,
+/// The app's providers with one Syncthing folder [inside] the directory
+/// at [rootPath] (all of it if `null`), and [refresh] set.
+Future<({ProviderContainer container, FolderId folder})> _start(
+  String rootPath,
   RefreshSettings refresh, {
-  Selection selection = const WholeFolder(),
+  RelPath? inside,
 }) async {
   final container = ProviderContainer(
     overrides: [
@@ -29,25 +28,24 @@ Future<({ProviderContainer container, BaseFolder base})> _start(
     ],
   );
   addTearDown(container.dispose);
-  final folder = folderAt(Directory(basePath), selection: selection);
-  await container.read(folderListStoreProvider).save([folder]);
-  await container.read(foldersProvider.future);
-  container.listen(folderFollowingProvider(folder.base), (_, _) {});
-  return (container: container, base: folder.base);
+  final folder = await addSyncthingFolder(
+    container,
+    Directory(rootPath),
+    inside: inside,
+  );
+  container.listen(folderFollowingProvider(folder.id), (_, _) {});
+  return (container: container, folder: folder.id);
 }
 
-/// How changes to the base folder at [basePath] are followed.
+/// How changes to the folder [inside] the directory at [rootPath] are
+/// followed.
 Future<FolderFollowing> _following(
-  String basePath,
+  String rootPath,
   RefreshSettings refresh, {
-  Selection selection = const WholeFolder(),
+  RelPath? inside,
 }) async {
-  final (:container, :base) = await _start(
-    basePath,
-    refresh,
-    selection: selection,
-  );
-  return container.read(folderFollowingProvider(base));
+  final (:container, :folder) = await _start(rootPath, refresh, inside: inside);
+  return container.read(folderFollowingProvider(folder));
 }
 
 void main() {
@@ -120,14 +118,14 @@ void main() {
       });
     });
 
-    test('watched, follow only the chosen subfolders', () async {
-      final folder = tempFolder();
-      Directory('${folder.path}/work').createSync();
-      Directory('${folder.path}/home').createSync();
+    test("watched, follow only the folder's own directory", () async {
+      final root = tempFolder();
+      Directory('${root.path}/work').createSync();
+      Directory('${root.path}/home').createSync();
       final changes = (await _following(
-        folder.path,
+        root.path,
         live,
-        selection: Selection.of([path('work')]),
+        inside: path('work'),
       )).changes!;
       final seen = <RelPath>{};
       final subscription = changes.changes.listen(
@@ -136,12 +134,12 @@ void main() {
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      File('${folder.path}/home/a.md').writeAsStringSync('a');
-      File('${folder.path}/top.md').writeAsStringSync('a');
-      File('${folder.path}/work/a.md').writeAsStringSync('a');
+      File('${root.path}/home/a.md').writeAsStringSync('a');
+      File('${root.path}/top.md').writeAsStringSync('a');
+      File('${root.path}/work/a.md').writeAsStringSync('a');
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      expect(seen, {path('work/a.md')});
+      expect(seen, {path('a.md')});
     });
   });
 
@@ -150,8 +148,8 @@ void main() {
       String path,
       RefreshSettings refresh,
     ) async {
-      final (:container, :base) = await _start(path, refresh);
-      return container.read(folderNoticesProvider(base).future);
+      final (:container, :folder) = await _start(path, refresh);
+      return container.read(folderNoticesProvider(folder).future);
     }
 
     test(
@@ -183,8 +181,11 @@ void main() {
 
     test('say nothing about polling once a watched folder is gone', () async {
       final folder = tempFolder();
-      final (:container, :base) = await _start(folder.path, live);
-      final following = container.read(folderFollowingProvider(base));
+      final (container: container, folder: id) = await _start(
+        folder.path,
+        live,
+      );
+      final following = container.read(folderFollowingProvider(id));
       final subscription = following.changes!.changes.listen((_) {});
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -195,42 +196,37 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
       expect(
-        (await container.refresh(folderNoticesProvider(base).future))
+        (await container.refresh(folderNoticesProvider(id).future))
             .whereType<PolledNotice>(),
         isEmpty,
       );
     }, testOn: 'linux');
 
-    test('a gone chosen subfolder is followed live again once back', () async {
-      final folder = tempFolder();
-      Directory('${folder.path}/work').createSync();
-      Directory('${folder.path}/home').createSync();
-      final (:container, :base) = await _start(
-        folder.path,
+    test('a gone folder is followed live again once back', () async {
+      final root = tempFolder();
+      final work = Directory('${root.path}/work')..createSync();
+      final (:container, :folder) = await _start(
+        root.path,
         live.copyWith(interval: const Duration(seconds: 5)),
-        selection: Selection.of([path('work'), path('home')]),
+        inside: path('work'),
       );
-      final changes = (container.read(folderFollowingProvider(base))).changes!;
+      final changes = (container.read(folderFollowingProvider(folder)))
+          .changes!;
       final seen = <ChangeHint>[];
       final subscription = changes.changes.listen(seen.add);
       addTearDown(subscription.cancel);
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      Directory('${folder.path}/work').deleteSync();
+      work.deleteSync();
       await Future<void>.delayed(const Duration(milliseconds: 500));
-      File('${folder.path}/home/b.md').writeAsStringSync('b');
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      expect(
-        seen,
-        containsAllInOrder([const ListAgain(), PathChanged(path('home/b.md'))]),
-      );
+      expect(seen, contains(const ListAgain()));
 
       // Checked again after the refresh interval.
-      Directory('${folder.path}/work').createSync();
+      work.createSync();
       await eventually(() async {
-        File('${folder.path}/work/a.md').writeAsStringSync('a');
+        File('${work.path}/a.md').writeAsStringSync('a');
         await Future<void>.delayed(const Duration(milliseconds: 200));
-        return seen.contains(PathChanged(path('work/a.md')));
+        return seen.contains(PathChanged(path('a.md')));
       });
     }, testOn: 'linux');
   });

@@ -6,12 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_types/editable_type.dart';
 import 'package:truce_editor/file_types/file_types.dart';
+import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
-import 'package:truce_editor/sync_tool/syncthing/syncthing_wiring.dart';
+import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart'
-    show path, tempFolder;
+    show ResultUnwrap, path, tempFolder;
 
 export 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, WriteCreatingFolders, bytesOf, path, tempFolder;
@@ -30,23 +32,13 @@ Future<void> eventually(
   }
 }
 
-/// A folder showing [selection] of the base folder at [dir], synced by
-/// Syncthing; the base folder's id is [baseId], by default [id].
-Folder folderAt(
-  Directory dir, {
-  String id = 'f1',
-  String? baseId,
-  Selection selection = const WholeFolder(),
-}) => Folder(
-  id: id,
-  base: BaseFolder(
-    id: baseId ?? id,
-    address: Uri.file(dir.path),
-    toolId: hostSyncthing().id,
-  ),
-  selection: selection,
-  name: 'Documents',
+/// A Syncthing folder at [dir], with the plugin id [id]. In tests its
+/// location is [dir]'s path, so [servicesFor] finds the directory.
+Folder folderAt(Directory dir, {String id = 'f1'}) => Folder(
+  id: FolderId('syncthing', id),
+  name: 'Files',
   color: 'teal',
+  location: dir.path,
 );
 
 /// The file types the app handles.
@@ -85,21 +77,19 @@ FileText fileTextOf(
   const TextFile.empty().withText(text),
 );
 
-/// Services for [folder]'s base folder, bounded to [folder], with backups
-/// at [backupsPath], by default in their own temp folder.
-/// [wrote] hears the paths of each write that landed.
-BaseFolderServices servicesFor(
+/// Services for [folder], made by [folderAt], with backups at
+/// [backupsPath], by default in their own temp folder. [wrote] hears the
+/// paths of each write that landed.
+FolderServices servicesFor(
   Folder folder, {
   String? backupsPath,
   void Function(Set<RelPath> paths)? wrote,
 }) {
-  final tool = hostSyncthing();
-  final place = tool.place(folder.base.address);
-  return baseFolderServices(
-    place,
-    syncToolName: tool.name,
-    reach: folderReach(place.files),
-    selection: folder.selection,
+  final raw = syncthingFolderAt(Directory(folder.location));
+  return folderServices(
+    raw,
+    pluginName: 'Syncthing',
+    reach: folderReach(raw.files),
     handles: appFileTypes().handles,
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
@@ -108,8 +98,18 @@ BaseFolderServices servicesFor(
   );
 }
 
-/// The shared parts of folders on this device, as the platform the tests
-/// run on has them.
+/// The directory [dir] as Syncthing's raw folder on this device, its own
+/// Syncthing folder.
+RawFolder syncthingFolderAt(Directory dir) {
+  final disk = hostDisk();
+  final address = Uri.directory(dir.path);
+  return SyncthingFolder(
+    disk.open(address, tempName: SyncthingFolder.rules.tempFileName),
+    disk.markersAt(address),
+  );
+}
+
+/// The local-disk service, as the platform the tests run on has it.
 LocalDisk hostDisk() {
   final container = ProviderContainer();
   try {
@@ -119,20 +119,17 @@ LocalDisk hostDisk() {
   }
 }
 
-/// Syncthing as the app registers it, for folders on this device.
-SyncTool hostSyncthing() => syncthingTool(hostDisk());
-
 /// Drafts in their own temp folder.
 FileDrafts tempDrafts() => FileDrafts(tempFolder());
 
 /// What the folders hold, listed now (or [listedAt]) with [files]:
-/// [folders] (by default those of [files] and [failed]); the base
-/// folders of [failed] could not be listed, and the subfolders
-/// [unreadable] (by base folder id) could not be read.
+/// [folders] (by default those of [files] and [failed]); those of
+/// [failed] could not be listed, and the folders [unreadable] inside
+/// them (by folder) could not be read.
 FolderContents contentsFinding(
   List<ListedFile> files, {
   List<Folder>? folders,
-  Map<String, List<RelPath>> unreadable = const {},
+  Map<FolderId, List<RelPath>> unreadable = const {},
   Map<Folder, StoreError> failed = const {},
   Moment? listedAt,
 }) {
@@ -142,16 +139,13 @@ FolderContents contentsFinding(
   final at = listedAt ?? Moment.now();
   return FolderContents(
     FolderState({
-      for (final base in {for (final folder in shown) folder.base})
-        base.id: switch ([
-          for (final MapEntry(key: folder, value: error) in failed.entries)
-            if (folder.base == base) error,
-        ]) {
-          [final error, ...] => ListingFailed(error),
-          [] => Listed(
+      for (final folder in shown)
+        folder.id: switch (failed[folder]) {
+          final error? => ListingFailed(error),
+          null => Listed(
             files: {
               for (final file in files)
-                if (file.folder.base == base)
+                if (file.folder.id == folder.id)
                   file.path: FileEntry(
                     file.path,
                     version: file.version,
@@ -160,7 +154,7 @@ FolderContents contentsFinding(
             },
             conflicts: const {},
             subfolders: const {},
-            unreadable: unreadable[base.id] ?? const [],
+            unreadable: unreadable[folder.id] ?? const [],
             marks: MarksFiles.none,
             listedAt: at,
           ),
@@ -169,4 +163,26 @@ FolderContents contentsFinding(
     folders: shown,
     types: appFileTypes(),
   );
+}
+
+/// Adds the folder [inside] the directory [root] (all of it if `null`), as
+/// a Syncthing folder with [root] as its Syncthing folder, through the
+/// folder list of [container]; the folder added.
+Future<Folder> addSyncthingFolder(
+  ProviderContainer container,
+  Directory root, {
+  RelPath? inside,
+}) async {
+  final plugin =
+      container.read(folderPluginsProvider).of('syncthing') as SyncthingPlugin;
+  final address = Uri.directory(root.path);
+  await container.read(foldersProvider.future);
+  final added = await container.read(foldersProvider.notifier).add(plugin, [
+    (
+      candidate: plugin.candidate(address, address, inside),
+      name: 'Files',
+      color: 'teal',
+    ),
+  ]);
+  return added.value.single;
 }
