@@ -90,7 +90,9 @@ void main() {
   });
 
   test('a failed save changes nothing, the plugin included', () async {
-    final folders = owner(store: _FailingSave(FolderListStore(file)));
+    final folders = owner(
+      store: _SwitchedStore(FolderListStore(file), calls)..fails = true,
+    );
     await settledList(folders);
 
     expect((await add(folders, ['a'])).error, FolderError.notSaved);
@@ -187,19 +189,6 @@ void main() {
 }
 
 /// [_inner], whose saves fail.
-final class _FailingSave implements FolderListStore {
-  _FailingSave(this._inner);
-
-  final FolderListStore _inner;
-
-  @override
-  Future<Result<SavedFolders, SettingsError>> load() => _inner.load();
-
-  @override
-  Future<Result<void, SettingsError>> save(SavedFolders saved) async =>
-      const Err(SettingsError.unwritable);
-}
-
 /// A folder list store that notes each save, and fails them while [fails].
 final class _SwitchedStore implements FolderListStore {
   _SwitchedStore(this._inner, this._calls);
