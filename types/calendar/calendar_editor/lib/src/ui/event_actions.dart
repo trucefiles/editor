@@ -3,6 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import '../views/new_event_spot.dart';
 import 'event_form.dart';
+import 'occurrence_details.dart';
 
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
@@ -45,15 +46,15 @@ Future<void> addEvent(
   edit((at) => AddEvent(uid, draft, at: at));
 }
 
-/// What the user can do with [occurrence]: edit or delete it, and for one
-/// of a series, just this one or the whole series.
-Future<void> showOccurrenceActions(
+/// Shows [occurrence] in full and, if [edit] is given, what the user can
+/// do with it: edit or delete it, and for one of a series, just this one
+/// or the whole series.
+Future<void> showOccurrence(
   BuildContext context,
   Occurrence occurrence,
-  MakeEdit edit,
+  MakeEdit? edit,
   DeviceZone deviceZone,
 ) async {
-  final uid = occurrence.event.uid;
   final one = occurrence.recurrence;
   final action = await showModalBottomSheet<_Action>(
     context: context,
@@ -61,18 +62,37 @@ Future<void> showOccurrenceActions(
     builder: (context) => SafeArea(
       child: ListView(
         shrinkWrap: true,
+        padding: const EdgeInsets.only(bottom: 16),
         children: [
-          for (final action in one == null ? _Action.single : _Action.ofSeries)
-            ListTile(
-              leading: Icon(action.icon),
-              title: Text(action.label),
-              onTap: () => Navigator.pop(context, action),
-            ),
+          OccurrenceDetails(occurrence),
+          if (edit != null) ...[
+            const Divider(),
+            for (final action
+                in one == null ? _Action.single : _Action.ofSeries)
+              ListTile(
+                leading: Icon(action.icon),
+                title: Text(action.label),
+                onTap: () => Navigator.pop(context, action),
+              ),
+          ],
         ],
       ),
     ),
   );
-  if (action == null || !context.mounted) return;
+  if (action == null || edit == null || !context.mounted) return;
+  await _act(context, occurrence, action, edit, deviceZone);
+}
+
+/// Does [action] on [occurrence].
+Future<void> _act(
+  BuildContext context,
+  Occurrence occurrence,
+  _Action action,
+  MakeEdit edit,
+  DeviceZone deviceZone,
+) async {
+  final uid = occurrence.event.uid;
+  final one = occurrence.recurrence;
   final zone = switch (action) {
     _Action.edit || _Action.editAll || _Action.editOne => await deviceZone(),
     _ => null,

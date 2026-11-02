@@ -6,9 +6,10 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../views/calendar_views.dart';
 import 'event_actions.dart';
 
-/// A calendar in the calendar views: tap an event to edit or delete it;
-/// tap a free time or day, or Add event, to add one; drag an event or its
-/// edge to move that one date. Only to read unless [edit] is given.
+/// A calendar in the calendar views: tap an event to see it whole, and to
+/// edit or delete it; tap a free time or day, or Add event, to add one;
+/// drag an event or its edge to move that one date. Only to read unless
+/// [edit] is given.
 class EventsPage extends StatelessWidget {
   const EventsPage(
     this.calendar, {
@@ -34,10 +35,8 @@ class EventsPage extends StatelessWidget {
       kind: viewChoice.last(),
       onKind: (kind) => unawaited(viewChoice.keep(kind)),
       now: now,
-      onTap: edit == null
-          ? null
-          : (_, occurrence) =>
-                showOccurrenceActions(context, occurrence, edit, deviceZone),
+      onTap: (_, occurrence) =>
+          showOccurrence(context, occurrence, edit, deviceZone),
       onAdd: edit == null
           ? null
           : (spot) => addEvent(context, spot, edit, deviceZone),
