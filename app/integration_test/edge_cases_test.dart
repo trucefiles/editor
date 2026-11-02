@@ -323,7 +323,7 @@ void main() {
     await tester.tapAndSettle(find.text('latin'));
     await tester.runFor(const Duration(seconds: 1));
 
-    expect(find.textContaining("This document can't be opened."), findsOne);
+    expect(find.textContaining("This file can't be opened."), findsOne);
 
     expect(app.file('latin.md').readAsBytesSync(), [
       0x23,
