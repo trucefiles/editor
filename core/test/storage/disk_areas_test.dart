@@ -18,6 +18,14 @@ void main() {
     expect(areas.clashes('local', Uri.file('/home/me/Notes/a')), isFalse);
   });
 
+  test('names the area that clashes', () {
+    expect(
+      areas.clashOf('local', Uri.file('/home/me/Sync/work')),
+      Uri.file('/home/me/Sync'),
+    );
+    expect(areas.clashOf('local', Uri.file('/home/me/Other')), isNull);
+  });
+
   test('a new claim replaces the old one', () {
     final claimed = DiskAreas()
       ..claim('local', [Uri.file('/a')])

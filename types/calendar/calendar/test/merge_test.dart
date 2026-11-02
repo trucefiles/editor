@@ -35,6 +35,7 @@ void main() {
         end: AllDay(DateTime(2020, 3, 13)),
         repeat: const SimpleRepeat(Frequency.yearly),
       ),
+      from: annDraft,
       at: day2,
     ),
   ]);
@@ -90,6 +91,7 @@ void main() {
           start: AllDay(DateTime(2020, 3, 12)),
           end: AllDay(DateTime(2020, 3, 13)),
         ),
+        from: annDraft,
         at: day1,
       ),
     ]);
@@ -106,6 +108,7 @@ void main() {
           start: AllDay(DateTime(2020, 3, 12)),
           end: AllDay(DateTime(2020, 3, 13)),
         ),
+        from: annDraft,
         at: day1,
       ),
     ]);
@@ -125,6 +128,7 @@ void main() {
           start: AllDay(DateTime(2020, 3, 12)),
           end: AllDay(DateTime(2020, 3, 13)),
         ),
+        from: annDraft,
         at: day1,
       ),
     ]);
@@ -141,6 +145,69 @@ void main() {
     expect(_merged(b, a), a);
   });
 
+  group('with the base both came from', () {
+    // Same stamps; the base's text is the smaller one.
+    final base = _calendarWith('VEVENT', 'A');
+    final edited = _calendarWith('VEVENT', 'B');
+
+    test("keeps the one side's change, even without new stamps", () {
+      for (final (main, other) in [(base, edited), (edited, base)]) {
+        final result = _merge.merge(main, other, base: base) as MergedText;
+        expect(result.text, edited);
+        expect(result.lost, isEmpty);
+      }
+    });
+
+    test('takes the newer edit where both sides changed a unit', () {
+      final older = _apply(birthday, [
+        ChangeSeries(
+          'ann@truce',
+          EventDraft(
+            summary: 'Ann (older)',
+            start: AllDay(DateTime(2020, 3, 12)),
+            end: AllDay(DateTime(2020, 3, 13)),
+          ),
+          from: annDraft,
+          at: day1,
+        ),
+      ]);
+      final calendar = Calendar.read(_merged(older, renamed, base: birthday))!;
+      expect(calendar.eventOf('ann@truce')!.series.summary, 'Ann (birthday)');
+    });
+
+    test('merges a task one side changed into one copy of it', () {
+      final (base, edited) = (
+        _calendarWith('VTODO', 'Buy paint'),
+        _calendarWith('VTODO', 'Buy blue paint'),
+      );
+      final result = _merge.merge(base, edited, base: base) as MergedText;
+      expect(result.text, edited);
+      expect(result.lost, isEmpty);
+    });
+  });
+
+  test('without a base, a task changed on both sides is kept once', () {
+    final older = _calendarWith('VTODO', 'Buy paint');
+    final newer = _calendarWith(
+      'VTODO',
+      'Buy blue paint',
+      modified: '20261002T080000Z',
+    );
+    final result = _merge.merge(older, newer) as MergedText;
+    expect(result.text, newer);
+    expect(result.lost, ['Buy paint']);
+  });
+
+  test('keeps a task and an event with the same UID apart', () {
+    const both =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nSUMMARY:Meet\nEND:VEVENT\n'
+        'BEGIN:VTODO\nUID:x\nSUMMARY:Prepare\nEND:VTODO\nEND:VCALENDAR\n';
+    final calendar = Calendar.read(both)!;
+    expect(calendar.units, hasLength(2));
+    expect(calendar.eventOf('x')!.series.summary, 'Meet');
+    expect(_merged(both, both), both);
+  });
+
   test('a text that is no calendar does not merge', () {
     expect(_merge.merge(birthday, '# Notes\n'), isA<CantMerge>());
     expect(_merge.merge('', birthday), isA<CantMerge>());
@@ -154,3 +221,12 @@ void main() {
     expect(merged.name, 'Family', reason: "main's own properties");
   });
 }
+
+/// A calendar of one [component] with `UID:x`.
+String _calendarWith(
+  String component,
+  String summary, {
+  String modified = '20261001T080000Z',
+}) =>
+    'BEGIN:VCALENDAR\nBEGIN:$component\nUID:x\nLAST-MODIFIED:$modified\n'
+    'SUMMARY:$summary\nEND:$component\nEND:VCALENDAR\n';

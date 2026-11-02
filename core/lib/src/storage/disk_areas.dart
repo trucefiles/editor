@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import 'host_paths.dart';
 
 /// The areas of this device's disk each disk plugin claims, as host
@@ -16,9 +18,13 @@ final class DiskAreas {
 
   /// Whether [hostPath] lies at, inside or around an area of another
   /// plugin than [plugin].
-  bool clashes(String plugin, Uri hostPath) => _byPlugin.entries.any(
-    (claimed) =>
-        claimed.key != plugin &&
-        claimed.value.any((area) => nests(area, hostPath)),
-  );
+  bool clashes(String plugin, Uri hostPath) =>
+      clashOf(plugin, hostPath) != null;
+
+  /// The area of another plugin than [plugin] that [hostPath] lies at,
+  /// inside or around; `null` if none.
+  Uri? clashOf(String plugin, Uri hostPath) => [
+    for (final MapEntry(key: owner, value: areas) in _byPlugin.entries)
+      if (owner != plugin) ...areas,
+  ].firstWhereOrNull((area) => nests(area, hostPath));
 }

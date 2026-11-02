@@ -126,12 +126,8 @@ final class CalendarEvent {
 
   /// The event of [unit]; `null` if it holds none.
   static CalendarEvent? of(CalendarUnit unit) {
-    if (unit.key case UidKey(:final uid)) {
-      final parts = [
-        for (final component in unit.components)
-          if (component.name == 'VEVENT') EventPart(component),
-      ];
-      if (parts.isEmpty) return null;
+    if (unit.key case UidKey(component: 'VEVENT', :final uid)) {
+      final parts = unit.components.map(EventPart.new).toList();
       final series =
           parts.where((part) => part.recurrenceId == null).firstOrNull ??
           parts.first;
@@ -147,7 +143,7 @@ final class CalendarEvent {
   final EventPart series;
   final List<EventPart> changed;
 
-  UnitKey get key => UidKey(uid);
+  UnitKey get key => UidKey.event(uid);
 
   /// The changed occurrence of the series' occurrence at [occurrence];
   /// `null` if it is not changed.
@@ -162,9 +158,11 @@ final class CalendarEvent {
   ];
 }
 
-/// What the user calls the event of [unit] (its title), for notices.
-String nameOfUnit(CalendarUnit unit) => switch (CalendarEvent.of(unit)) {
-  final event? when event.series.summary.trim().isNotEmpty =>
-    event.series.summary.trim(),
-  _ => 'An event',
-};
+/// What the user calls [unit] (an event's or a task's title), for
+/// notices.
+String nameOfUnit(CalendarUnit unit) {
+  final event = CalendarEvent.of(unit);
+  final named = event?.series.component ?? unit.components.firstOrNull;
+  final title = unescapeText(named?.value('SUMMARY') ?? '').trim();
+  return title.isNotEmpty ? title : (event != null ? 'An event' : 'An entry');
+}

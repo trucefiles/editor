@@ -31,27 +31,38 @@ final class AddEvent extends CalendarEdit {
   final EventDraft draft;
 }
 
-/// The whole event [uid] (its series) becomes as [draft] says.
+/// The whole event [uid] (its series) becomes as [draft] says, in what
+/// the user changed from [from], the draft the form started from; the
+/// rest stays as the event is now (see [EventDraft.over]).
 final class ChangeSeries extends CalendarEdit {
-  const ChangeSeries(this.uid, this.draft, {required super.at});
+  const ChangeSeries(
+    this.uid,
+    this.draft, {
+    required this.from,
+    required super.at,
+  });
 
   final String uid;
   final EventDraft draft;
+  final EventDraft from;
 }
 
 /// Only the occurrence of series [uid] at [occurrence] becomes as [draft]
-/// says (its repeat is not used).
+/// says, in what the user changed from [from], as for [ChangeSeries]
+/// (its repeat is not used).
 final class ChangeOccurrence extends CalendarEdit {
   const ChangeOccurrence(
     this.uid,
     this.occurrence,
     this.draft, {
+    required this.from,
     required super.at,
   });
 
   final String uid;
   final CalendarTime occurrence;
   final EventDraft draft;
+  final EventDraft from;
 }
 
 /// Only the occurrence of series [uid] at [occurrence] goes.
@@ -97,17 +108,25 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
   final at = edit.at;
   switch (edit) {
     case AddEvent(:final uid, :final draft):
-      if (calendar.unitOf(UidKey(uid)) != null) return calendar;
+      if (calendar.unitOf(UidKey.event(uid)) != null) return calendar;
       final event = _drafted(
         Component('VEVENT', [ContentLine('UID', uid)]),
         draft,
         series: true,
       );
       return calendar.withUnit(
-        CalendarUnit.edited(UidKey(uid), [_stamped(event, at, first: true)]),
+        CalendarUnit.edited(UidKey.event(uid), [
+          _stamped(event, at, first: true),
+        ]),
       );
-    case ChangeSeries(:final uid, :final draft):
+    case ChangeSeries(:final uid, :final from):
       return _changed(calendar, uid, (event) {
+        final now = event.series;
+        final draft = _wanted(
+          edit.draft,
+          from,
+          now.start == null ? null : EventDraft.of(now),
+        );
         // A repeat turned off leaves a single event: its left-out, extra
         // and changed dates mean nothing any more.
         if (event.series.repeat != null && draft.repeat == null) {
@@ -129,9 +148,16 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
           for (final part in event.changed) _withIdMoved(part.component, moved),
         ];
       });
-    case ChangeOccurrence(:final uid, :final occurrence, :final draft):
+    case ChangeOccurrence(:final uid, :final occurrence, :final from):
       return _changed(calendar, uid, (event) {
         final old = event.changedAt(occurrence);
+        final draft = _wanted(
+          edit.draft,
+          from,
+          (old ?? event.series).start == null
+              ? null
+              : EventDraft.at(event, occurrence),
+        );
         final changed = _stamped(
           _drafted(
             old?.component ?? _occurrenceOf(event.series.component, occurrence),
@@ -167,6 +193,12 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
       return _changed(calendar, uid, (event) => [_marker(event, at)]);
   }
 }
+
+/// What [draft], from a form started from [from], writes over [now], the
+/// event or occurrence as it is now; [draft] itself if [now]'s times
+/// can't be read.
+EventDraft _wanted(EventDraft draft, EventDraft from, EventDraft? now) =>
+    now == null ? draft : draft.over(from, now);
 
 /// [calendar] with event [uid]'s components replaced by [change]'s.
 Calendar _changed(

@@ -9,19 +9,25 @@ String occurrenceTitle(Occurrence occurrence) =>
     };
 
 /// When [occurrence] is, in [words] and on a 24-hour clock if [use24Hour]:
-/// "All day", or its times of day (with the day it ends on if that is
-/// another day).
+/// "All day" (with its last day if that is another day), or its times of
+/// day (with the day it ends on if that is another day).
 String timesOf(
   MaterialLocalizations words,
   Occurrence occurrence, {
   required bool use24Hour,
 }) {
-  if (occurrence.allDay) return 'All day';
+  final (start, end) = (occurrence.start, occurrence.end);
+  if (occurrence.allDay) {
+    // Its end is the day after its last.
+    final last = DateTime(end.year, end.month, end.day - 1);
+    return last.isAfter(start)
+        ? 'All day, until ${words.formatShortMonthDay(last)}'
+        : 'All day';
+  }
   String time(DateTime at) => words.formatTimeOfDay(
     TimeOfDay.fromDateTime(at),
     alwaysUse24HourFormat: use24Hour,
   );
-  final (start, end) = (occurrence.start, occurrence.end);
   if (start == end) return time(start);
   return DateUtils.isSameDay(start, end)
       ? '${time(start)} – ${time(end)}'

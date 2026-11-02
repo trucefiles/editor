@@ -99,6 +99,26 @@ void main() {
     expect(result, isNull);
   });
 
+  testWidgets('names the folder added before that a new one lies around', (
+    tester,
+  ) async {
+    final work = Uri.directory('${root.path}/work');
+    plugin.add([plugin.candidate(work, work, null)]);
+    File('${root.path}/.stfolder').createSync();
+
+    await open(tester, Uri.directory('${root.path}/notes'));
+
+    expect(
+      find.text(
+        'This Syncthing folder lies inside or around '
+        '${shownAddress(work)}, added before. To add this one, remove the '
+        'folder there first.',
+      ),
+      findsOneWidget,
+    );
+    expect(result, isNull);
+  });
+
   testWidgets('gives nothing when the pick is cancelled', (tester) async {
     await open(tester, null);
 

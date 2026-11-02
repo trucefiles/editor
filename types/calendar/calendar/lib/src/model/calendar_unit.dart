@@ -6,18 +6,25 @@ sealed class UnitKey {
   const UnitKey();
 }
 
-/// All events with one `UID`: a series with its changed occurrences, or
-/// one event.
+/// All components of one kind ([component]: `VEVENT`, `VTODO`, ...) with
+/// one `UID`: for events a series with its changed occurrences, or one
+/// event.
 final class UidKey extends UnitKey {
-  const UidKey(this.uid);
+  const UidKey(this.component, this.uid);
 
+  /// The key of the event [uid].
+  const UidKey.event(this.uid) : component = 'VEVENT';
+
+  /// The components' name, upper case.
+  final String component;
   final String uid;
 
   @override
-  bool operator ==(Object other) => other is UidKey && other.uid == uid;
+  bool operator ==(Object other) =>
+      other is UidKey && other.component == component && other.uid == uid;
 
   @override
-  int get hashCode => uid.hashCode;
+  int get hashCode => Object.hash(component, uid);
 }
 
 /// A time zone block (`VTIMEZONE`) with one `TZID`: its events' times
@@ -35,8 +42,8 @@ final class ZoneKey extends UnitKey {
   int get hashCode => zone.hashCode;
 }
 
-/// Anything else (a task, an event without `UID`, lines the
-/// app doesn't read): named by its text, and by how many with the same
+/// Anything else (a component without `UID`, lines the app doesn't
+/// read): named by its text, and by how many with the same
 /// text come before it in the same calendar ([nth]).
 final class TextKey extends UnitKey {
   const TextKey(this.text, this.nth);

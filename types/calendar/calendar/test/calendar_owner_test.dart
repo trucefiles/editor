@@ -55,6 +55,7 @@ void main() {
         end: AllDay(DateTime(2020, 3, 13)),
         repeat: const SimpleRepeat(Frequency.yearly),
       ),
+      from: annDraft,
       at: _at,
     );
     final run = _run(birthday)..send(EditCalendar(rename));

@@ -6,7 +6,9 @@ import '../model/calendar_unit.dart';
 import '../read/values.dart';
 
 /// How two texts of one calendar merge: unit by unit (an event with all
-/// its changed occurrences), the newer edit winning whole. A unit on one
+/// its changed occurrences, or a task), winning whole: with a [base], a
+/// unit only one side changed takes that side's change; a unit both
+/// changed, or any unit without a base, takes the newer edit. A unit on one
 /// side only is kept: a deleted event stays as a marker, so a missing one
 /// is never taken as deleted. Order: `main`'s units, then `other`'s new
 /// ones; the calendar's own properties and layout are `main`'s. Time
@@ -24,7 +26,7 @@ final class CalendarMerge implements TextMerge {
     final winners = {
       for (final unit in others.units)
         if (mains.unitOf(unit.key) case final mine?)
-          unit.key: newerOf(mine, unit),
+          unit.key: _keptOf(mine, unit, bases?.unitOf(unit.key)),
     };
     return MergedText(
       mains.withUnits([
@@ -42,10 +44,20 @@ final class CalendarMerge implements TextMerge {
   }
 }
 
+/// The version of one unit a merge keeps, of [a] and [b]: when one
+/// still is [base], the other one (it holds the only change, stamped or
+/// not); else the newer.
+CalendarUnit _keptOf(CalendarUnit a, CalendarUnit b, CalendarUnit? base) =>
+    switch (base?.text) {
+      final text? when a.text == text => b,
+      final text? when b.text == text => a,
+      _ => _newerOf(a, b),
+    };
+
 /// The newer of two versions [a] and [b] of one unit: by its latest
 /// `LAST-MODIFIED` (none is oldest), then its highest `SEQUENCE`, then
 /// the smaller text, so every device picks the same.
-CalendarUnit newerOf(CalendarUnit a, CalendarUnit b) {
+CalendarUnit _newerOf(CalendarUnit a, CalendarUnit b) {
   final (stampA, stampB) = (_stampOf(a), _stampOf(b));
   final byStamp = _compare(stampA, stampB);
   if (byStamp != 0) return byStamp > 0 ? a : b;

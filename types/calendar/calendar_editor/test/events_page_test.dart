@@ -186,6 +186,7 @@ void main() {
 
     await tester.tap(find.text('Ann'));
     await tester.pumpAndSettle();
+    expect(find.text('Friday, March 12, 2027 · All day'), findsOne);
     expect(find.text('Edit all of them'), findsOne);
     await tester.tap(find.text('Delete this one'));
     await tester.pumpAndSettle();
@@ -231,14 +232,19 @@ void main() {
     expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
   });
 
-  testWidgets('a read-only calendar offers no edits', (tester) async {
+  testWidgets('a read-only calendar shows an event and offers no edits', (
+    tester,
+  ) async {
     final part = calendarPart(_birthday, readOnly: true);
     await pumpPage(tester, part, today: _annsDay);
 
     expect(find.byTooltip('Add event'), findsNothing);
     await tester.tap(find.text('Ann'));
     await tester.pumpAndSettle();
+    expect(find.text('Friday, March 12, 2027 · All day'), findsOne);
     expect(find.text('Delete this one'), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(find.text('20')) + const Offset(0, 40));
     await tester.pumpAndSettle();
     expect(find.text('New event'), findsNothing);

@@ -86,9 +86,9 @@ final class SyncthingPlugin implements FolderPlugin {
         for (final folder in _state.foldersIn(root.id)) folder.path,
   };
 
-  /// Whether a root at [rootHost] would lie at, inside or around another
-  /// plugin's area, or inside or around another root.
-  bool rootClashes(Uri rootHost) => _clashesIn(_state, rootHost);
+  /// What a root at [rootHost] would lie at, inside or around: another
+  /// plugin's area or another root, as its host path; `null` if nothing.
+  Uri? rootClash(Uri rootHost) => _clashIn(_state, rootHost);
 
   /// The folder [path] in the root at [root] (on the host: [rootHost]),
   /// to set up.
@@ -110,7 +110,7 @@ final class SyncthingPlugin implements FolderPlugin {
       final known = state.roots.values
           .where((root) => isSameFolder(root.host, pick.rootHost))
           .firstOrNull;
-      if (known == null && _clashesIn(state, pick.rootHost)) {
+      if (known == null && _clashIn(state, pick.rootHost) != null) {
         return const Err(AddRefused.overlaps);
       }
       final root =
@@ -173,15 +173,17 @@ final class SyncthingPlugin implements FolderPlugin {
     _disk.areas.claim(id, [for (final root in state.roots.values) root.host]);
   }
 
-  /// The one clash rule for a root at [rootHost]: it lies at, inside or
-  /// around another plugin's area, or inside or around another of
-  /// [state]'s roots (the same root is no clash).
-  bool _clashesIn(SyncthingState state, Uri rootHost) =>
-      _disk.areas.clashes(id, rootHost) ||
-      state.roots.values.any(
-        (root) =>
-            !isSameFolder(root.host, rootHost) && nests(root.host, rootHost),
-      );
+  /// The one clash rule for a root at [rootHost]: what it lies at, inside
+  /// or around, another plugin's area or another of [state]'s roots (the
+  /// same root is no clash), as its host path; `null` if nothing.
+  Uri? _clashIn(SyncthingState state, Uri rootHost) =>
+      _disk.areas.clashOf(id, rootHost) ??
+      state.roots.values
+          .map((root) => root.host)
+          .where(
+            (host) => !isSameFolder(host, rootHost) && nests(host, rootHost),
+          )
+          .firstOrNull;
 
   PluginFolder _pluginFolder(SyncthingDirectory folder) {
     final root = _state.roots[folder.root]!;

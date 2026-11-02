@@ -28,7 +28,7 @@ void main() {
       birthday,
       AddEvent('new@truce', _draft('Gym', DateTime(2026, 11, 3, 18)), at: _at),
     );
-    final unit = calendar.unitOf(const UidKey('new@truce'))!.text;
+    final unit = calendar.unitOf(const UidKey.event('new@truce'))!.text;
     expect(
       calendar.text,
       startsWith(birthday.replaceAll('END:VCALENDAR\n', '')),
@@ -57,6 +57,7 @@ void main() {
             description: draft.description,
             repeat: draft.repeat,
           ),
+          from: draft,
           at: _at,
         ),
       );
@@ -69,8 +70,8 @@ void main() {
       expect(after, contains(' ip card at the desk'), reason: 'still folded');
       expect(after, contains('SEQUENCE:1'));
       expect(
-        edited.unitOf(const UidKey('dentist@example.com'))!.text,
-        calendar.unitOf(const UidKey('dentist@example.com'))!.text,
+        edited.unitOf(const UidKey.event('dentist@example.com'))!.text,
+        calendar.unitOf(const UidKey.event('dentist@example.com'))!.text,
       );
       expect(
         after.where((line) => line.startsWith('BEGIN:VTODO')),
@@ -89,7 +90,12 @@ void main() {
     final ann = calendar.eventOf('ann@truce')!;
     final edited = applyEdit(
       calendar,
-      ChangeSeries('ann@truce', EventDraft.of(ann.series), at: _at),
+      ChangeSeries(
+        'ann@truce',
+        EventDraft.of(ann.series),
+        from: EventDraft.of(ann.series),
+        at: _at,
+      ),
     );
     final added = edited.text
         .split('\n')
@@ -113,6 +119,77 @@ void main() {
     expect(occurrences(calendar, DateTime(2020), DateTime(2030)), isEmpty);
   });
 
+  group('a form saved after the event changed elsewhere', () {
+    // The form opened on Ann's birthday; then another device renamed it.
+    final elsewhere = _edited(
+      birthday,
+      ChangeSeries(
+        'ann@truce',
+        EventDraft(
+          summary: 'Ann (elsewhere)',
+          start: annDraft.start,
+          end: annDraft.end,
+          repeat: annDraft.repeat,
+        ),
+        from: annDraft,
+        at: _at,
+      ),
+    );
+    final moved = EventDraft(
+      summary: annDraft.summary,
+      start: AllDay(DateTime(2020, 3, 14)),
+      end: AllDay(DateTime(2020, 3, 15)),
+      repeat: annDraft.repeat,
+    );
+
+    test("keeps that change where the user didn't change the field", () {
+      final event = applyEdit(
+        elsewhere,
+        ChangeSeries('ann@truce', moved, from: annDraft, at: _at),
+      ).eventOf('ann@truce')!;
+      expect(event.series.summary, 'Ann (elsewhere)');
+      expect(event.series.start, AllDay(DateTime(2020, 3, 14)));
+    });
+
+    test('of one occurrence, the same', () {
+      final one = AllDay(DateTime(2027, 3, 12));
+      final from = EventDraft.at(
+        Calendar.read(birthday)!.eventOf('ann@truce')!,
+        one,
+      );
+      final event = applyEdit(
+        elsewhere,
+        ChangeOccurrence(
+          'ann@truce',
+          one,
+          from.occurrenceAt(
+            AllDay(DateTime(2027, 3, 14)),
+            AllDay(DateTime(2027, 3, 15)),
+          ),
+          from: from,
+          at: _at,
+        ),
+      ).eventOf('ann@truce')!;
+      final changed = event.changed.single;
+      expect(changed.summary, 'Ann (elsewhere)');
+      expect(changed.start, AllDay(DateTime(2027, 3, 14)));
+    });
+
+    test('writes what the user changed over the change elsewhere', () {
+      final renamed = EventDraft(
+        summary: 'Ann!',
+        start: annDraft.start,
+        end: annDraft.end,
+        repeat: annDraft.repeat,
+      );
+      final event = applyEdit(
+        elsewhere,
+        ChangeSeries('ann@truce', renamed, from: annDraft, at: _at),
+      ).eventOf('ann@truce')!;
+      expect(event.series.summary, 'Ann!');
+    });
+  });
+
   test('one occurrence changed becomes a changed occurrence of the series', () {
     final calendar = _edited(
       birthday,
@@ -123,6 +200,10 @@ void main() {
           summary: 'Ann (party)',
           start: AllDay(DateTime(2027, 3, 13)),
           end: AllDay(DateTime(2027, 3, 14)),
+        ),
+        from: EventDraft.at(
+          Calendar.read(birthday)!.eventOf('ann@truce')!,
+          AllDay(DateTime(2027, 3, 12)),
         ),
         at: _at,
       ),
@@ -217,6 +298,7 @@ void main() {
           start: Floating(DateTime(2026, 11, 3, 17)),
           end: draft.end,
         ),
+        from: draft,
         at: _at,
       ),
     );
@@ -237,6 +319,10 @@ void main() {
         'h@x',
         EventDraft.health(
           const Period(PeriodFlow.heavy),
+          DateTime(2026, 11, 1),
+        ),
+        from: EventDraft.health(
+          const Period(PeriodFlow.light),
           DateTime(2026, 11, 1),
         ),
         at: _at,
@@ -271,6 +357,7 @@ void main() {
           end: draft.end,
           alerts: const [Duration(minutes: 30)],
         ),
+        from: draft,
         at: _at,
       ),
     );
@@ -321,6 +408,7 @@ void _repeatEnds() {
           end: Zoned('Europe/Berlin', DateTime.utc(2026, 11, 2, 10)),
           repeat: draft.repeat,
         ),
+        from: draft,
         at: _at,
       ),
     );
@@ -354,6 +442,7 @@ void _repeatEnds() {
           end: draft.end,
           repeat: draft.repeat,
         ),
+        from: draft,
         at: _at,
       ),
     );
@@ -389,6 +478,7 @@ Calendar _movedTo(String text, CalendarTime start) {
         end: start.at(start.wall.add(const Duration(hours: 1))),
         repeat: draft.repeat,
       ),
+      from: draft,
       at: _at,
     ),
   );
@@ -470,6 +560,7 @@ void _startMoves() {
           end: draft.end,
           repeat: draft.repeat,
         ),
+        from: draft,
         at: _at,
       ),
     );
@@ -502,11 +593,12 @@ void _startMoves() {
       ChangeSeries(
         's@x',
         EventDraft(summary: 'Run', start: draft.start, end: draft.end),
+        from: draft,
         at: _at,
       ),
     );
 
-    final unit = edited.unitOf(const UidKey('s@x'))!.text;
+    final unit = edited.unitOf(const UidKey.event('s@x'))!.text;
     for (final gone in ['RRULE', 'EXDATE', 'RDATE', 'RECURRENCE-ID']) {
       expect(unit, isNot(contains(gone)));
     }
