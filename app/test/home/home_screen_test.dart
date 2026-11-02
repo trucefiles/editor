@@ -77,6 +77,21 @@ void main() {
     expect(find.text('List'), findsOneWidget);
   });
 
+  testWidgets('the type chips stay in sight on a narrow screen', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(360, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes'});
+
+    for (final name in ['Markdown', 'Plain text']) {
+      final chip = tester.getRect(find.widgetWithText(ChoiceChip, name));
+      expect(chip.right, lessThanOrEqualTo(360), reason: name);
+    }
+  });
+
   testWidgets('no Calendar tab while the folders hold no calendar', (
     tester,
   ) async {

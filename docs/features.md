@@ -5,7 +5,7 @@ first. They show sample documents only.
 
 ## Filter by file type
 
-Next to the folder chips, home and **Show all** have one chip per file
+Below the folder chips, home and **Show all** have one chip per file
 type: Markdown, Plain text and Calendar. Pick one to see only files of
 that type; tap it again to see all. It works together with the folder
 picked.
