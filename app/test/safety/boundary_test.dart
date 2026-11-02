@@ -149,7 +149,7 @@ void main() {
         .read(openFilesProvider)
         .add(
           folder: () => folder.id,
-          secure: () async {
+          secure: (_) async {
             secured = (await files.save(a, '# A\nlast')) is Ok;
           },
         );

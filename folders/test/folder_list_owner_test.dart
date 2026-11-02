@@ -23,7 +23,8 @@ void main() {
       FolderListWork(
         store: store ?? FolderListStore(file),
         plugins: FolderPlugins([plugin]),
-        secureOpen: (id) async => calls.add('secure $id'),
+        secureOpen: (id, reason) async =>
+            calls.add('secure $id ${reason.name}'),
         forgetDrafts: (id) async => calls.add('forget $id'),
         countDrafts: (id) async {
           calls.add('count $id');
@@ -117,7 +118,7 @@ void main() {
 
     await asked<FolderRemoved>(folders, (ticket) => RemoveFolder(ticket, a));
 
-    expect(calls, ['secure fake-a', 'forget fake-a']);
+    expect(calls, ['secure fake-a close', 'forget fake-a']);
     expect(plugin.folders.map((folder) => folder.id), ['b']);
     plugin = FakePlugin();
     expect((await settledFolders(owner())).map((f) => f.id), [folderId('b')]);
@@ -135,7 +136,7 @@ void main() {
     );
 
     expect(counted.count, 2);
-    expect(calls, ['secure fake-a', 'count fake-a']);
+    expect(calls, ['secure fake-a hide', 'count fake-a']);
   });
 
   test('a list and plugin state that disagree are unreadable, and no '

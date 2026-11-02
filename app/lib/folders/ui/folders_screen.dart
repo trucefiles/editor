@@ -84,8 +84,8 @@ class FoldersScreen extends ConsumerWidget {
     }
   }
 
-  /// Whether the user wants to remove [folder] from the app, which loses
-  /// the edits of [lost] files kept only on this device.
+  /// Whether the user wants to remove [folder] from the app; the edits
+  /// of [lost] files kept only on this device may be lost.
   Future<bool> _confirmRemove(
     BuildContext context,
     Folder folder,
@@ -99,12 +99,13 @@ class FoldersScreen extends ConsumerWidget {
             0 => 'The app stops showing this folder. Its files stay untouched.',
             1 =>
               'The app stops showing this folder. Its files stay untouched, '
-                  'but the unsaved edits of 1 file, kept only on this '
-                  'device, will be lost.',
+                  'but the edits of 1 file are kept only on this device; '
+                  "those that can't be saved as a conflict copy are lost.",
             _ =>
               'The app stops showing this folder. Its files stay untouched, '
-                  'but the unsaved edits of $lost files, kept only on '
-                  'this device, will be lost.',
+                  'but the edits of $lost files are kept only on this '
+                  "device; those that can't be saved as a conflict copy are "
+                  'lost.',
           }),
           actions: [
             TextButton(

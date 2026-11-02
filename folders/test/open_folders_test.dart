@@ -16,7 +16,7 @@ void main() {
       FolderListWork(
         store: FolderListStore(File('${tempFolder().path}/folders.json')),
         plugins: FolderPlugins([plugin]),
-        secureOpen: (_) async {},
+        secureOpen: (_, _) async {},
         forgetDrafts: (_) async {},
         countDrafts: (_) async => 0,
       ),

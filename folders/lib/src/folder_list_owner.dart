@@ -30,9 +30,9 @@ final class FolderListWork {
   /// list.
   final FolderPlugins plugins;
 
-  /// Keeps the edits of the files open in a folder where they last,
-  /// before the folder goes.
-  final Future<void> Function(FolderId folder) secureOpen;
+  /// Keeps the edits of the files open in a folder where they last, by
+  /// the rule of the reason, before the folder goes.
+  final Future<void> Function(FolderId folder, SecureReason reason) secureOpen;
 
   /// Deletes the drafts of a folder's files, as the user removes it.
   final Future<void> Function(FolderId folder) forgetDrafts;
@@ -209,14 +209,17 @@ final class _FolderListSteps {
     ], out);
   }
 
-  /// Secures [folder]'s open files first, so a draft a failed save
-  /// leaves is counted too; then counts its files with drafts.
+  /// Secures [folder]'s open files first, writing no conflict copy as the
+  /// user hasn't decided yet, so a draft a failed save leaves is counted
+  /// too; then counts its files with drafts.
   Future<int> _securedThenCounted(FolderId folder) async {
-    await _work.secureOpen(folder);
+    await _work.secureOpen(folder, SecureReason.hide);
     return _work.countDrafts(folder);
   }
 
-  /// Secures its open files first; its drafts go once the list is saved,
+  /// Secures its open files first as they close: edits that can't go
+  /// into their file become conflict copies; its drafts go once the list
+  /// is saved,
   /// so no edit is recovered into it.
   Future<Result<void, FolderError>> _remove(
     List<Folder> folders,
@@ -224,7 +227,7 @@ final class _FolderListSteps {
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
     if (folders.byId(removed.id) == null) return const Ok(null);
-    await _work.secureOpen(removed.id);
+    await _work.secureOpen(removed.id, SecureReason.close);
     final plugin = _work.plugins.of(removed.id.plugin);
     final before = plugin.blob;
     plugin.forget(removed.id.folder);

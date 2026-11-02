@@ -149,6 +149,19 @@ final class FileController extends ChangeNotifier {
     null => FileMark.none,
   };
 
+  /// The file's folder left the app. `true` if the page may close, as
+  /// nothing is unsaved; else the file stops taking edits and keeps
+  /// showing them, so they can be copied before it closes. A file that
+  /// stopped before stays as it is.
+  bool folderRemoved() {
+    if (session.state is! Running) return false;
+    if (session.saveState case SaveState.inFolder || SaveState.none) {
+      return true;
+    }
+    session.folderRemoved();
+    return false;
+  }
+
   /// Whether [folders] still hold the file's folder.
   bool folderShownIn(List<Folder> folders) =>
       folders.any((shown) => shown.id == session.file.folder.id);

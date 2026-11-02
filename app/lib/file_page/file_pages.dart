@@ -179,7 +179,7 @@ final class FilePages {
     );
     final leaveOpenFiles = openFiles.add(
       folder: folder,
-      secure: () => session.secure(SecureReason.hide),
+      secure: session.secure,
     );
     // Opening a file lists the folders again, as the refresh setting
     // promises; its own text was read just before.

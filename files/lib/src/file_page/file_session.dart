@@ -276,6 +276,10 @@ final class FileSession {
     );
   }
 
+  /// The user removed the file's folder from the app while edits were
+  /// not in it yet: see [_onFolderGone].
+  void folderRemoved() => _onFolderGone();
+
   /// The file's folder was removed from the app: the file takes no more
   /// edits, and they are kept nowhere; the editor still shows them. The
   /// file owner closes, so nothing waits on it.

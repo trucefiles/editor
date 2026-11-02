@@ -38,7 +38,7 @@ void main() {
     page.session.replaceAll('mine\n');
 
     // A folder change keeps the edits of the open files first.
-    await open.secureIn(fixture.folders[0].id);
+    await open.secureIn(fixture.folders[0].id, SecureReason.hide);
     expect(fixture.onDisk('a.md'), 'mine\n');
 
     page.session.replaceAll('more\n');

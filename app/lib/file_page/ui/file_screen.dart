@@ -227,11 +227,13 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     return discard ?? false;
   }
 
-  /// Closes once the file's folder was removed: its edits were saved
-  /// before (see `FolderListWork.secureOpen`), and its drafts go with the
-  /// folder, so the hint promises nothing.
+  /// Once the file's folder was removed: closes if nothing is unsaved
+  /// (its edits were saved before, see `FolderListWork.secureOpen`);
+  /// else the file stays open, read only, so its edits never vanish with
+  /// the page ([_onStopped] tells).
   void _closeIfNotShown(List<Folder> folders) {
     if (_controller.folderShownIn(folders)) return;
+    if (!_controller.folderRemoved()) return;
     ScaffoldMessenger.of(context)
         .showHint('The folder was removed, so the file closed.');
     _closeWithAllOnTop();
