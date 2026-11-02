@@ -6,7 +6,7 @@ import 'plain_text_support.dart';
 
 /// Plain text documents, as the app shows them: the first line names
 /// one; search reads the whole text; two texts don't merge (the user
-/// picks one). Its editor adds how it opens (`document_editor`).
+/// picks one). Its editor package adds how a file of it opens.
 base class PlainTextFileType implements ShownFileType {
   const PlainTextFileType();
 

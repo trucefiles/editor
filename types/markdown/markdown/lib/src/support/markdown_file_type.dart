@@ -9,7 +9,7 @@ import 'markdown_view.dart';
 /// Markdown documents and checklists, as the app shows them: cards
 /// leave checked items out where the file shows them apart; search reads
 /// the whole text; two texts don't merge (the user picks one). Its
-/// editor adds how it opens (`document_editor`).
+/// editor package adds how a file of it opens.
 base class MarkdownFileType implements ShownFileType {
   const MarkdownFileType();
 

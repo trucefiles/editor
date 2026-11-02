@@ -11,7 +11,7 @@ import 'calendar_support.dart';
 /// Calendars (`.ics`), as the app shows them: cards show the name and
 /// the next events, or for a health calendar the cycle; search reads the
 /// name and the events' words; two versions merge event by event when
-/// the user picks it. Its editor adds how it opens (`calendar_editor`).
+/// the user picks it. Its editor package adds how a file of it opens.
 base class CalendarFileType implements ShownFileType {
   /// Cards write an event as [occurrenceLine] and a cycle as [cycleLine]
   /// (texts are the UI's, so they come from above); [now] tells the time.
