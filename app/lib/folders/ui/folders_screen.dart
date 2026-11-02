@@ -144,10 +144,10 @@ Future<bool> _askForAccess(BuildContext context) async =>
       builder: (context) => AlertDialog(
         title: const Text('Allow file access'),
         content: const Text(
-          'To edit documents in your synced folders, Android needs to allow '
-          'this app access to files. The app only opens the folders you '
-          'add here. Turn on the switch on the next page, then come back '
-          'and add a folder.',
+          'To edit files in synced folders, Android needs to allow this '
+          'app access to files. The app only opens the folders added '
+          'here. The switch on the next page turns it on; then back here, '
+          'a folder can be added.',
         ),
         actions: [
           TextButton(

@@ -40,17 +40,17 @@ class RestoreIntoFileScreen extends ConsumerWidget {
       body: switch (ref.watch(backupBytesProvider(backup))) {
         AsyncData(value: Ok(value: final bytes)) => VersionChooser(
           current: ShownVersion(
-            label: 'This document now',
+            label: 'This file now',
             content: EditorText(current),
             keepLabel: 'Keep this',
-            keptMessage: 'The document stays as it is.',
+            keptMessage: 'The file stays as it is.',
           ),
           other: ShownVersion(
             label: 'Backup',
             content: SavedText(versionText(bytes), shown.savedAt),
             keepLabel: 'Restore',
             keptMessage:
-                'The document shows the backup instead; Undo takes it '
+                'The file shows the backup instead; Undo takes it '
                 'back. A backup of the text now stays on this device for '
                 '${backupRetention.inDays} days.',
           ),

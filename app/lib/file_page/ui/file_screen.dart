@@ -98,7 +98,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         name: widget.name,
         withFile: _withFile,
       ),
-      _ => throw StateError('A document or a place is needed.'),
+      _ => throw StateError('A file or a place is needed.'),
     };
     _partChanges = _page.part.changes.listen((_) => _rebuild());
     _controller.addListener(_rebuild);
@@ -162,7 +162,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         );
       case UndoRefused():
         messenger.showHint(
-          "Can't undo, because the document has changed since.",
+          "Can't undo, because the file has changed since.",
         );
       case HistoryEnd(:final start):
         final context = _messenger.currentContext;
@@ -211,7 +211,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       builder: (context) => AlertDialog(
         title: const Text("Your edits can't be saved"),
         content: const Text(
-          'Neither the document nor a conflict copy could be written. '
+          'Neither the file nor a conflict copy could be written. '
           'Stay to copy your text elsewhere, or discard it.',
         ),
         actions: [
@@ -285,7 +285,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         await action(file.listed);
       case Err(error: NoFile.empty):
         _messenger.currentState?.showHint(
-          "Write something first. An empty document isn't saved.",
+          "Write something first. An empty file isn't saved.",
         );
       case Err(error: NoFile.notCreated):
         // The banner tells why.
@@ -301,7 +301,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _offerUndo(FileActions actions, UndoableDelete deleted) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showHint(
-      'Document deleted',
+      'File deleted',
       actionLabel: 'Undo',
       onAction: () async {
         if (await actions.undoDelete(deleted) case Err(:final error)) {
@@ -332,7 +332,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             PopupMenuItem(value: _refresh, child: const Text('Refresh')),
           PopupMenuItem(
             value: () => _delete(context),
-            child: const Text('Delete document'),
+            child: const Text('Delete file'),
           ),
         ],
       );

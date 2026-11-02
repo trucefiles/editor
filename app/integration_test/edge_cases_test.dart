@@ -275,7 +275,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.openFile('Plan');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('Undo'));
 
     app.write('plan.md', '# Plan\nother\n');
@@ -523,7 +523,7 @@ void main() {
     await tester.waitFor(find.byTooltip('Pinned'));
 
     await tester.openFile('Plan');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));
     await tester.waitForFile(app.file('plan.md'), '# Plan\n');

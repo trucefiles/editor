@@ -30,7 +30,7 @@ Future<void> _show(BuildContext context, WidgetRef ref) async {
     children: [
       const SizedBox(height: 16),
       const Text(
-        'Your documents, shared between your devices and people, '
+        'Your files, shared between your devices and people, '
         'with no server in the middle.',
       ),
       const SizedBox(height: 8),

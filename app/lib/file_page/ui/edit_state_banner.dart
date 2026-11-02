@@ -23,12 +23,12 @@ class EditStateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => switch (_session.status) {
     ChangedElsewhere() => _Banner(
-      message: 'This document changed on another device or app.',
+      message: 'This file changed on another device or app.',
       actions: {'Compare': () => openChangedElsewhere(context, controller)},
     ),
     DeletedElsewhere() => _Banner(
       message:
-          'This document was deleted on another device or app. '
+          'This file was deleted on another device or app. '
           'Your text is kept here; closing keeps it as a conflict.',
       actions: {'Restore with my text': _session.restoreMine, 'Close': onClose},
     ),
@@ -39,7 +39,7 @@ class EditStateBanner extends StatelessWidget {
     KeptAsConflict() => _Banner(
       message:
           'Your edits were kept as a conflict copy, to resolve from the '
-          'documents list.',
+          'files list.',
       actions: {'Close': onClose},
     ),
     Unwritten() || InStep() || Editing() || Closed() => const SizedBox.shrink(),

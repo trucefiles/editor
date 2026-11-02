@@ -15,7 +15,7 @@ class RecentCountTile extends ConsumerWidget {
       deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
     );
     return ListTile(
-      title: const Text('Recent documents on home'),
+      title: const Text('Recent files on home'),
       subtitle: Text('$count'),
       onTap: () async {
         final chosen = await _showRecentCountDialog(context, current: count);
@@ -40,7 +40,7 @@ Future<int?> _showRecentCountDialog(
 }) => showDialog<int>(
   context: context,
   builder: (context) => SimpleDialog(
-    title: const Text('Recent documents on home'),
+    title: const Text('Recent files on home'),
     children: [
       RadioGroup<int>(
         groupValue: current,

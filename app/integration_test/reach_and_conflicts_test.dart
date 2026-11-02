@@ -132,7 +132,7 @@ void main() {
     tester.hideAndComeBack();
 
     await tester.waitFor(find.textContaining('changed on another device'));
-    expect(find.text('Delete document'), findsOneWidget);
+    expect(find.text('Delete file'), findsOneWidget);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
     expect(find.byType(SuperEditor), findsOneWidget);

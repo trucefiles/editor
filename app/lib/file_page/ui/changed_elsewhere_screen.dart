@@ -55,7 +55,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       setState(() => _picking = null);
       showSnack(
         context,
-        "Nothing was changed: a backup couldn't be made, the document "
+        "Nothing was changed: a backup couldn't be made, the file "
         "changed again, or the versions can't be merged. Please choose "
         'again.',
       );

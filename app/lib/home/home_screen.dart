@@ -43,7 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.description_outlined),
-                  label: 'Documents',
+                  label: 'Files',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined),

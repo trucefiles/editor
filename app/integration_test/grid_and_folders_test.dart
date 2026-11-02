@@ -58,7 +58,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openFile('Plan');
 
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('Undo'));
     expect(app.file('plan.md').existsSync(), isFalse);
     await tester.tapAndSettle(find.text('Undo'));
@@ -126,7 +126,7 @@ void main() {
     await tester.waitFor(find.text('Day 21'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Recent documents on home'));
+    await tester.tapAndSettle(find.text('Recent files on home'));
     await tester.tapAndSettle(find.text('20'));
     await tester.pageBack();
     await tester.pumpAndSettle();

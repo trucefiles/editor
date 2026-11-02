@@ -20,7 +20,7 @@ class SearchScreen extends ConsumerWidget {
           autofocus: true,
           onChanged: ref.read(searchProvider.notifier).find,
           decoration: const InputDecoration(
-            hintText: 'Search all documents',
+            hintText: 'Search all files',
             border: InputBorder.none,
           ),
         ),
@@ -29,7 +29,7 @@ class SearchScreen extends ConsumerWidget {
             : const PreferredSize(
                 preferredSize: Size.fromHeight(4),
                 child: LinearProgressIndicator(
-                  semanticsLabel: 'Reading documents',
+                  semanticsLabel: 'Reading files',
                 ),
               ),
       ),

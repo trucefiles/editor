@@ -66,7 +66,7 @@ void main() {
     await tester.waitForNoteClosed();
 
     expect(
-      find.text('This document changed on another device or app.'),
+      find.text('This file changed on another device or app.'),
       findsNothing,
     );
     expect(app.conflictCopies(), isEmpty);
@@ -104,7 +104,7 @@ void main() {
     await tester.openFile('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
-    await tester.chooseInMenu('Delete document');
+    await tester.chooseInMenu('Delete file');
     await tester.runFor(const Duration(seconds: 2));
 
     expect(app.file('plan.md').existsSync(), isTrue);
