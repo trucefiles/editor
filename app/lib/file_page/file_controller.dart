@@ -66,18 +66,6 @@ enum NoFile {
   stopped,
 }
 
-/// Whether the folders still show the open file.
-enum FileShown {
-  /// A folder shows it.
-  shown,
-
-  /// Its folder no longer shows the place it is in.
-  narrowedAway,
-
-  /// Its folder was removed.
-  folderRemoved,
-}
-
 /// How restoring a backup into the open file ended.
 enum RestoreOutcome {
   /// The backup's text shows, as one edit undo takes back.
@@ -161,17 +149,9 @@ final class FileController extends ChangeNotifier {
     null => FileMark.none,
   };
 
-  /// Whether [folders] still show the file, where it is now.
-  FileShown shownIn(List<Folder> folders) {
-    final file = session.file;
-    final folder = file.folder;
-    if (folders.folderOf(folder.base.id, session.path) != null) {
-      return FileShown.shown;
-    }
-    return folders.any((shown) => shown.id == folder.id)
-        ? FileShown.narrowedAway
-        : FileShown.folderRemoved;
-  }
+  /// Whether [folders] still hold the file's folder.
+  bool folderShownIn(List<Folder> folders) =>
+      folders.any((shown) => shown.id == session.file.folder.id);
 
   /// Settings changes made before the file had a file, to keep once
   /// it has, in order.

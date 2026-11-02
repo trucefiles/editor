@@ -94,6 +94,7 @@ final class FakeFolder implements RawFolder {
       bounded,
       store: store,
       scanner: NamedCopiesScanner(store, _shown, const FakeCopyNames()),
+      showsFolder: _shown.includesFolderPath,
       conflicts: NamedConflictSource(store, const FakeCopyNames()),
       notices: const _NoNotices(),
       changes: bounded.changes,

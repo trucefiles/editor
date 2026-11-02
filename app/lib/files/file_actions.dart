@@ -5,20 +5,21 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../folder_state/folder_state_controller.dart';
 import '../folders/folder_selection.dart';
+import '../folders/open_folders_wiring.dart';
 import '../reach/folder_reach_controller.dart';
 import '../settings/device_settings_controller.dart';
-import '../sync_tool/base_folder_wiring.dart';
 import 'files_wiring.dart';
 
 final fileActionsProvider = Provider<FileActions>(
   (ref) => FileActions(
     owner: ref.watch(filesProvider).owner,
     selectedFolderId: () => ref.read(selectedFolderIdProvider),
-    reachOf: (base) => ref.read(folderReachProvider(base)),
+    reachOf: (folder) => ref.read(folderReachProvider(folder)),
     newFilePlace: () =>
         ref.read(deviceSettingsProvider).requireValue.newFilePlace,
     contents: () => ref.read(folderContentsProvider).value,
-    showsFolder: (base) => ref.read(showsFolderProvider(base)),
+    showsFolder: (folder, subfolder) =>
+        ref.read(folderServicesProvider(folder)).open.showsFolder(subfolder),
   ),
 );
 
@@ -27,10 +28,10 @@ final fileActionsProvider = Provider<FileActions>(
 /// action runs in the files [owner], after the ones asked before it.
 final class FileActions {
   /// What the screens show now: [_selectedFolderId], the folder the grid is
-  /// filtered to; [_reachOf], each base folder's reach; [_newFilePlace], the
+  /// filtered to; [_reachOf], each folder's reach; [_newFilePlace], the
   /// place set for new files; [_contents], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
-  /// base folder's sync tool shows a folder.
+  /// folder shows the files in one of its subfolders.
   FileActions({
     required this._owner,
     required this._selectedFolderId,
@@ -41,11 +42,11 @@ final class FileActions {
   });
 
   final FilesOwner _owner;
-  final String? Function() _selectedFolderId;
-  final Reach Function(BaseFolder base) _reachOf;
+  final FolderId? Function() _selectedFolderId;
+  final Reach Function(FolderId folder) _reachOf;
   final NewFilePlaceSetting? Function() _newFilePlace;
   final FolderContents? Function() _contents;
-  final bool Function(RelPath folder) Function(BaseFolder base) _showsFolder;
+  final bool Function(FolderId folder, RelPath subfolder) _showsFolder;
 
   /// Where a new file goes without a place set for new files:
   /// the one of [folders] the grid is filtered to, else the first.
@@ -60,7 +61,7 @@ final class FileActions {
   /// reached.
   List<Folder> reachableOf(List<Folder> folders) => [
     for (final folder in folders)
-      if (_reachOf(folder.base) != Reach.unreachable) folder,
+      if (_reachOf(folder.id) != Reach.unreachable) folder,
   ];
 
   /// Where a new file goes: the place the user set for new files,
@@ -75,11 +76,10 @@ final class FileActions {
       _contents()?.subfoldersOf(folder.id) ?? const [];
 
   /// Whether files of [folder] can go into [subfolder], an existing
-  /// one or a new one: inside what the folder shows, in folders its sync
-  /// tool shows (e.g. none of its own, no hidden one).
+  /// one or a new one: one whose files the folder shows (e.g. none of its
+  /// sync tool's own, no hidden one).
   bool canHold(Folder folder, RelPath subfolder) =>
-      folder.selection.covers(subfolder) &&
-      _showsFolder(folder.base)(subfolder);
+      _showsFolder(folder.id, subfolder);
 
   /// [file]'s color, as last seen.
   FileMark markOf(ListedFile file) =>

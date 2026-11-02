@@ -31,8 +31,8 @@ final class FolderActions {
 
   final FoldersController _folders;
   final StorageAccess _access;
-  final String? Function() _selectedFolderId;
-  final void Function(String? folderId) _chooseFolder;
+  final FolderId? Function() _selectedFolderId;
+  final void Function(FolderId? folderId) _chooseFolder;
 
   /// Whether the app may open folders; if not, [requestAccess] first.
   Future<bool> hasAccess() => _access.isGranted();

@@ -4,14 +4,15 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../../common/snack.dart';
-import '../../../platform/folder_picker.dart';
+import '../../../plugins/plugins_wiring.dart';
+import '../../../plugins/wired_plugin.dart';
+import '../../folder_colors.dart';
 import '../../folders_controller.dart';
-import '../../subfolders/ui/subfolder_choice_view.dart';
 import '../../ui/folder_color_picker.dart';
 import '../../ui/folder_error_text.dart';
-import '../add_folder_wiring.dart';
+import '../add_folder_flow.dart';
 
-/// Adds a folder, step by step (see [AddFolderStep]).
+/// Adds folders, step by step (see [AddFolderFlow]).
 class AddFolderScreen extends ConsumerStatefulWidget {
   const AddFolderScreen({super.key});
 
@@ -21,8 +22,12 @@ class AddFolderScreen extends ConsumerStatefulWidget {
 
 class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
   late final AddFolderFlow _flow = AddFolderFlow(
-    ref.read(addFolderWorkProvider),
-    ref.read(foldersProvider).value ?? const [],
+    colors: folderColors.keys.toList(),
+    usedColors: [
+      for (final folder in ref.read(foldersProvider).value ?? const <Folder>[])
+        folder.color,
+    ],
+    add: ref.read(foldersProvider.notifier).add,
   );
   bool _busy = false;
 
@@ -36,7 +41,7 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
   Widget build(BuildContext context) => StreamBuilder<void>(
     stream: _flow.changes,
     builder: (context, _) => PopScope(
-      canPop: _flow.step == AddFolderStep.base,
+      canPop: _flow.step is ChoosingPlugin,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _flow.back();
       },
@@ -44,12 +49,14 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
         appBar: AppBar(title: const Text('Add folder')),
         body: SafeArea(
           child: switch (_flow.step) {
-            AddFolderStep.base => _BaseStep(_flow, onPick: _pickBase),
-            AddFolderStep.tool => _ToolStep(_flow),
-            AddFolderStep.parts => _PartsStep(_flow),
-            AddFolderStep.name => _NameStep(
-              _flow,
-              onAdd: _busy ? null : _finish,
+            ChoosingPlugin() => _PluginStep(
+              ref.watch(wiredPluginsProvider),
+              onChosen: _openAddPage,
+            ),
+            final NamingFolder naming => _NameStep(
+              naming,
+              flow: _flow,
+              onDone: _busy ? null : _done,
             ),
           },
         ),
@@ -57,24 +64,13 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
     ),
   );
 
-  Future<void> _pickBase() async {
-    switch (await ref.read(folderPickerProvider).pick()) {
-      case Ok(value: final address?):
-        await _flow.pickBase(address);
-      case Ok():
-        break;
-      case Err(error: PickError.unsupportedLocation):
-        if (mounted) {
-          showSnack(
-            context,
-            "This folder can't be opened by the app. Please pick one on "
-            "the device's main storage.",
-          );
-        }
-    }
+  Future<void> _openAddPage(WiredPlugin wired) async {
+    final candidates = await wired.addPage(context);
+    if (candidates != null && mounted) _flow.took(wired.plugin, candidates);
   }
 
-  Future<void> _finish() async {
+  Future<void> _done() async {
+    if (_flow.step case NamingFolder(isLast: false)) return _flow.next();
     setState(() => _busy = true);
     final added = await _flow.finish();
     if (!mounted) return;
@@ -88,128 +84,71 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
   }
 }
 
-/// Pick a folder on the device, or one added before.
-class _BaseStep extends StatelessWidget {
-  const _BaseStep(this.flow, {required this.onPick});
+/// Pick how the folder is synced: the plugins, each with its help line.
+class _PluginStep extends StatelessWidget {
+  const _PluginStep(this.plugins, {required this.onChosen});
 
-  final AddFolderFlow flow;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      const Text('Which folder holds your documents?'),
-      const SizedBox(height: 16),
-      FilledButton.icon(
-        onPressed: onPick,
-        icon: const Icon(Icons.folder_open_outlined),
-        label: const Text('Pick a folder'),
-      ),
-      if (flow.bases.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        const Text('Or show more of a folder added before:'),
-        for (final base in flow.bases)
-          ListTile(
-            leading: const Icon(Icons.folder_outlined),
-            title: Text(base.shownAddress),
-            onTap: () => flow.pickBase(base.address),
-          ),
-      ],
-    ],
-  );
-}
-
-/// Say which sync tool syncs the folder, when the app can't tell.
-class _ToolStep extends StatelessWidget {
-  const _ToolStep(this.flow);
-
-  final AddFolderFlow flow;
+  final List<WiredPlugin> plugins;
+  final void Function(WiredPlugin wired) onChosen;
 
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      Text('How is ${addressText(flow.address)} synced?'),
+      const Text('How is the folder synced?'),
       const SizedBox(height: 8),
-      for (final tool in flow.tools)
+      for (final wired in plugins)
         ListTile(
-          title: Text(tool.name),
+          title: Text(wired.plugin.name),
+          subtitle: Text(wired.plugin.helpLine),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => flow.chooseTool(tool),
+          onTap: () => onChosen(wired),
         ),
-      const SizedBox(height: 8),
-      Text(
-        'Pick Local folder if no sync app syncs it, or one the app '
-        "doesn't know.",
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
     ],
   );
 }
 
-/// The whole folder, or some subfolders.
-class _PartsStep extends StatelessWidget {
-  const _PartsStep(this.flow);
-
-  final AddFolderFlow flow;
-
-  @override
-  Widget build(BuildContext context) => _StepPage(
-    action: StreamBuilder<void>(
-      stream: flow.parts.changes,
-      builder: (context, _) => FilledButton(
-        onPressed: flow.parts.selection == null ? null : flow.toName,
-        child: const Text('Next'),
-      ),
-    ),
-    children: [
-      Text('What should the app show of ${addressText(flow.address)}?'),
-      const SizedBox(height: 8),
-      SubfolderChoiceView(flow.parts),
-    ],
-  );
-}
-
-/// Name and color.
+/// Name and color of one new folder.
 class _NameStep extends StatelessWidget {
-  const _NameStep(this.flow, {required this.onAdd});
+  const _NameStep(this.naming, {required this.flow, required this.onDone});
 
+  final NamingFolder naming;
   final AddFolderFlow flow;
-  final VoidCallback? onAdd;
-
-  @override
-  Widget build(BuildContext context) => _StepPage(
-    action: FilledButton(onPressed: onAdd, child: const Text('Add')),
-    children: [
-      TextFormField(
-        initialValue: flow.name,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: 'Name'),
-        onChanged: flow.rename,
-      ),
-      const SizedBox(height: 16),
-      FolderColorPicker(selected: flow.color, onPicked: flow.recolor),
-    ],
-  );
-}
-
-/// A step's content, scrolling, with its [action] below.
-class _StepPage extends StatelessWidget {
-  const _StepPage({required this.children, required this.action});
-
-  final List<Widget> children;
-  final Widget action;
+  final VoidCallback? onDone;
 
   @override
   Widget build(BuildContext context) => Column(
     children: [
       Expanded(
-        child: ListView(padding: const EdgeInsets.all(16), children: children),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (naming.count > 1)
+              Text('Folder ${naming.index + 1} of ${naming.count}'),
+            Text(naming.location, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            TextFormField(
+              // A new field for each folder, so it starts with its name.
+              key: ValueKey(naming.index),
+              initialValue: naming.name,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Name'),
+              onChanged: flow.rename,
+            ),
+            const SizedBox(height: 16),
+            FolderColorPicker(selected: naming.color, onPicked: flow.recolor),
+          ],
+        ),
       ),
       Padding(
         padding: const EdgeInsets.all(16),
-        child: Align(alignment: AlignmentDirectional.centerEnd, child: action),
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: FilledButton(
+            onPressed: onDone,
+            child: Text(naming.isLast ? 'Add' : 'Next'),
+          ),
+        ),
       ),
     ],
   );

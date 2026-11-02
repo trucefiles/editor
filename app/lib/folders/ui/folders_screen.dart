@@ -4,10 +4,10 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
-import '../../sync_tool/base_folder_wiring.dart';
 import '../add_folder/ui/add_folder_screen.dart';
 import '../folder_actions.dart';
 import '../folders_controller.dart';
+import '../open_folders_wiring.dart';
 import 'folder_badge.dart';
 import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
@@ -32,11 +32,14 @@ class FoldersScreen extends ConsumerWidget {
     final folders = ref.watch(foldersProvider).value ?? const [];
     return Scaffold(
       appBar: AppBar(title: const Text('Manage folders')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => addFolder(context, ref),
-        icon: const Icon(Icons.create_new_folder_outlined),
-        label: const Text('Add folder'),
-      ),
+      // Nothing can be added to a list that can't be read.
+      floatingActionButton: ref.watch(folderListStateProvider) is FoldersLoaded
+          ? FloatingActionButton.extended(
+              onPressed: () => addFolder(context, ref),
+              icon: const Icon(Icons.create_new_folder_outlined),
+              label: const Text('Add folder'),
+            )
+          : null,
       body: ListView(
         children: [
           for (final folder in folders)
@@ -45,7 +48,7 @@ class FoldersScreen extends ConsumerWidget {
               title: Text(folder.name),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(_shownOf(folder)), FolderNoticesView(folder)],
+                children: [Text(folder.location), FolderNoticesView(folder)],
               ),
               onTap: () => _edit(context, ref, folder),
               trailing: IconButton(
@@ -58,14 +61,6 @@ class FoldersScreen extends ConsumerWidget {
       ),
     );
   }
-
-  /// Where [folder] is, and what it shows there.
-  static String _shownOf(Folder folder) => switch (folder.selection) {
-    WholeFolder() => folder.base.shownAddress,
-    Subfolders(:final roots) => [
-      for (final root in roots) '${folder.base.shownAddress}/${root.value}',
-    ].join('\n'),
-  };
 
   Future<void> _edit(BuildContext context, WidgetRef ref, Folder folder) =>
       Navigator.push(
@@ -104,11 +99,11 @@ class FoldersScreen extends ConsumerWidget {
             0 => 'The app stops showing this folder. Its files stay untouched.',
             1 =>
               'The app stops showing this folder. Its files stay untouched, '
-                  'but the unsaved edits of 1 document, kept only on this '
+                  'but the unsaved edits of 1 file, kept only on this '
                   'device, will be lost.',
             _ =>
               'The app stops showing this folder. Its files stay untouched, '
-                  'but the unsaved edits of $lost documents, kept only on '
+                  'but the unsaved edits of $lost files, kept only on '
                   'this device, will be lost.',
           }),
           actions: [

@@ -42,7 +42,7 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
         .firstWhere((contents) => contents.loaded);
   }
 
-  /// Lists every base folder again now, e.g. when a file opens, when
+  /// Lists every folder again now, e.g. when a file opens, when
   /// the app comes back to the foreground, or when the user asks; done
   /// once a listing of each that started after this call has ended, so it
   /// shows every write made before. Waits for the first folders, so it

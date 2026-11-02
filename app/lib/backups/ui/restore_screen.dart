@@ -68,8 +68,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
               ),
               CompareShowing(sides: final choice) => _chooser(
                 choice,
-                ref.watch(folderReachProvider(folder.base)) ==
-                    Reach.unreachable,
+                ref.watch(folderReachProvider(folder.id)) == Reach.unreachable,
               ),
               CompareKeeping(sides: final choice) ||
               CompareDone(sides: final choice) => _chooser(choice, true),

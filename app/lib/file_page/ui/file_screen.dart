@@ -131,22 +131,21 @@ class _FileScreenState extends ConsumerState<FileScreen> {
 
   /// Tells that the file stopped taking edits, why, and whether its
   /// edits are kept.
-  void _onStopped(Stopped stopped) => _messenger.currentState?.showHint(
-    switch (stopped) {
-      Stopped(cause: StopCause.folderGone) =>
-        "This file's folder was removed from the app, so the file is read "
-            'only now, and its latest edits are kept nowhere. Copy them '
-            'elsewhere before leaving.',
-      Stopped(kept: true) =>
-        'Something went wrong, so this file is read only now. Its edits '
-            'are kept on this device and go into the file at the next '
-            'start.',
-      Stopped() =>
-        'Something went wrong, so this file is read only now, and its '
-            "latest edits couldn't be kept. Copy them elsewhere before "
-            'leaving.',
-    },
-  );
+  void _onStopped(Stopped stopped) =>
+      _messenger.currentState?.showHint(switch (stopped) {
+        Stopped(cause: StopCause.folderGone) =>
+          "This file's folder was removed from the app, so the file is read "
+              'only now, and its latest edits are kept nowhere. Copy them '
+              'elsewhere before leaving.',
+        Stopped(kept: true) =>
+          'Something went wrong, so this file is read only now. Its edits '
+              'are kept on this device and go into the file at the next '
+              'start.',
+        Stopped() =>
+          'Something went wrong, so this file is read only now, and its '
+              "latest edits couldn't be kept. Copy them elsewhere before "
+              'leaving.',
+      });
 
   void _onEditorNotice(EditorNotice notice) {
     final messenger = _messenger.currentState;
@@ -230,21 +229,13 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     return discard ?? false;
   }
 
-  /// Closes once no folder shows the file any more: its edits were
-  /// saved before (see `FolderListWork.secureOpen`). As the user narrowed
-  /// its folder, what is left stays on this device; as they removed it,
-  /// its drafts go with it, so the hint promises nothing.
+  /// Closes once the file's folder was removed: its edits were saved
+  /// before (see `FolderListWork.secureOpen`), and its drafts go with the
+  /// folder, so the hint promises nothing.
   void _closeIfNotShown(List<Folder> folders) {
-    final hint = switch (_controller.shownIn(folders)) {
-      FileShown.shown => null,
-      FileShown.narrowedAway =>
-        'The document is no longer in a folder shown here. Your edits are '
-            'kept.',
-      FileShown.folderRemoved =>
-        'The folder was removed, so the document closed.',
-    };
-    if (hint == null) return;
-    ScaffoldMessenger.of(context).showHint(hint);
+    if (_controller.folderShownIn(folders)) return;
+    ScaffoldMessenger.of(context)
+        .showHint('The folder was removed, so the file closed.');
     _closeWithAllOnTop();
   }
 
@@ -366,7 +357,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   @override
   Widget build(BuildContext context) {
     ref
-      ..listen(folderReachProvider(_folder.base), (_, _) {
+      ..listen(folderReachProvider(_folder.id), (_, _) {
         _controller.reachChanged();
       })
       ..listen(fileSettingsProvider, (_, _) {
@@ -428,7 +419,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
-    ref.watch(folderReachProvider(_folder.base));
+    ref.watch(folderReachProvider(_folder.id));
     final unreachable = _controller.unreachable;
     final readOnly = _controller.readOnly;
     final contents = ref.watch(folderContentsProvider).value;
@@ -510,7 +501,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                         hint: (message) => showSnack(context, message),
                         images: FolderImages(
                           ref.read(fileAccessProvider).of(_folder),
-                          baseId: _folder.base.id,
+                          folder: _folder.id,
                           document: path,
                           openedAt: _openedAt,
                         ),

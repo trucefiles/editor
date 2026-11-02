@@ -4,11 +4,9 @@ import 'package:truce_folders/truce_folders.dart';
 extension FolderErrorText on FolderError {
   String get text => switch (this) {
     FolderError.overlaps =>
-      'This overlaps with a folder you already added. Each document can '
+      'This lies at, inside or around a folder added before. Each file can '
           'be in one folder only.',
-    FolderError.syncToolInternal =>
-      "This folder holds the sync tool's own files, such as old versions. "
-          'Please pick the folder with your documents.',
-    FolderError.notSaved => 'The folder list could not be saved.',
+    FolderError.notSaved =>
+      'The folder list could not be saved, so nothing changed.',
   };
 }

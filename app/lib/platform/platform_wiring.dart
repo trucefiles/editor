@@ -40,9 +40,7 @@ final localDiskProvider = Provider<LocalDisk>(
     // the picked folder, not what lies above it.
     followsLive: (path) => _reportsChanges && !isInDocumentPortal(path),
     seesParents: (path) => !isInDocumentPortal(path),
-    hostPaths: Platform.isLinux
-        ? DocumentPortalPaths()
-        : const SameHostPaths(),
+    hostPaths: Platform.isLinux ? DocumentPortalPaths() : const SameHostPaths(),
   ),
 );
 

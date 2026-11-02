@@ -4,7 +4,7 @@ import 'package:truce_files/truce_files.dart';
 
 import '../file_types/file_types.dart';
 import '../folder_state/folder_state_controller.dart';
-import '../sync_tool/base_folder_wiring.dart';
+import '../folders/open_folders_wiring.dart';
 import '../versions/compare_controller.dart';
 
 /// What the conflict screen shows.
@@ -26,7 +26,7 @@ class ConflictController
 
   @override
   CompareSource<FolderConflict, ConflictSides> source() => ConflictCompare(
-    ref.read(baseFolderServicesProvider(start.folder.base)),
+    ref.read(folderServicesProvider(start.folder.id)),
     ref.read(folderContentsProvider.notifier).refresh,
     merge: ref.read(fileTypesProvider).mergeOf(start.conflict.mainPath),
   );

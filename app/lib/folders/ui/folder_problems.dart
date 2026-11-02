@@ -38,20 +38,7 @@ class FolderProblems extends ConsumerWidget {
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),
             subtitle: Text(
-              "${_names(subfolders)} can't be read, so the documents there aren't shown.",
-            ),
-          ),
-      for (final folder in folders)
-        if (contents.gone[folder.id] case final subfolders?)
-          ListTile(
-            leading: const Icon(Icons.folder_off_outlined),
-            title: Text(folder.name),
-            subtitle: Text(
-              subfolders.length == 1
-                  ? '${_names(subfolders)} is gone. Change the folder to '
-                        'pick another one.'
-                  : '${_names(subfolders)} are gone. Change the folder to '
-                        'pick others.',
+              "${_names(subfolders)} can't be read, so the files there aren't shown.",
             ),
           ),
     ],

@@ -31,6 +31,7 @@ final class LocalDirectory implements RawFolder {
       bounded,
       store: store,
       scanner: NamedCopiesScanner(store, _shown, _names),
+      showsFolder: _shown.includesFolderPath,
       conflicts: NamedConflictSource(store, _names),
       notices: const _NoNotices(),
       changes: bounded.changes,

@@ -32,8 +32,10 @@ dependencies:
   truce_markdown: any
   truce_masonry: any
   truce_local_folder: any
+  truce_local_folder_ui: any
   truce_plain_text: any
   truce_syncthing: any
+  truce_syncthing_ui: any
   url_launcher: ^6.3.3
 
 dev_dependencies:

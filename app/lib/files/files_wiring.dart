@@ -7,21 +7,21 @@ import 'package:truce_folders/truce_folders.dart';
 import '../file_types/file_types.dart';
 import '../folder_state/folder_state_wiring.dart';
 import '../folders/folders_controller.dart';
+import '../folders/open_folders_wiring.dart';
 import '../storage/app_storage.dart';
-import '../sync_tool/base_folder_wiring.dart';
 import 'file_settings_controller.dart';
 
 /// The files of every folder.
 final fileAccessProvider = Provider<FileAccess>(
   (ref) => FileAccess(
-    ref.watch(baseFolderStacksProvider).servicesOf,
+    ref.watch(openFoldersProvider).servicesOf,
     ref.watch(fileTypesProvider),
   ),
 );
 
-/// The drafts of every base folder, in app storage.
-final draftsProvider = Provider<DraftsByBase>(
-  (ref) => DraftsByBase(ref.watch(appStorageProvider).draftsPath),
+/// The drafts of every folder, in app storage.
+final draftsProvider = Provider<DraftsByFolder>(
+  (ref) => DraftsByFolder(ref.watch(appStorageProvider).draftsPath),
 );
 
 /// The files open on screen right now.
@@ -33,7 +33,7 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
   final folderState = ref.watch(folderStateOwnerProvider);
   return FilesWork(
     files: ref.watch(fileAccessProvider),
-    servicesOf: ref.watch(baseFolderStacksProvider).servicesOf,
+    servicesOf: ref.watch(openFoldersProvider).servicesOf,
     settings: ref.watch(fileSettingsProvider.notifier),
     conflictWaits: (key) => conflictWaitsIn(folderState.state, key),
     folders: () => settledFolders(folderList),

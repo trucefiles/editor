@@ -38,6 +38,7 @@ final class SyncthingFolder implements RawFolder {
       bounded,
       store: seen,
       scanner: NamedCopiesScanner(seen, shown, _names),
+      showsFolder: shown.includesFolderPath,
       conflicts: NamedConflictSource(seen, _names),
       notices: SyncthingFolderNotices(SyncthingSyncCheck(_rootMarkers)),
       changes: bounded.changes?.without(

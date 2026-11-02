@@ -60,10 +60,7 @@ class _BackupTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (:folder, backup: shown) = backup;
-    final title = watchTitle(ref, (
-      baseId: folder.base.id,
-      path: shown.filePath,
-    ));
+    final title = watchTitle(ref, (folder: folder.id, path: shown.filePath));
     return ListTile(
       leading: const Icon(Icons.history),
       title: Text(title),
