@@ -70,6 +70,9 @@ class _Node extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ExpansionTile(
     controlAffinity: ListTileControlAffinity.leading,
+    // No lines around an open folder: the indent shows the tree.
+    shape: const Border(),
+    collapsedShape: const Border(),
     initiallyExpanded: choice.holdsTicked(folder),
     title: Text(folder.name),
     subtitle: choice.isTaken(folder) ? const Text('Added before') : null,

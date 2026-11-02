@@ -3,6 +3,18 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Adding folders
+
+**Add folder** first asks how the folder is synced: by Syncthing, or not
+at all (a local folder). For Syncthing, pick any folder inside a
+Syncthing folder: the app finds the Syncthing folder and shows its
+folders, to tick each one to add. Each ticked one becomes a folder of its
+own, with a name and a color.
+
+<img src="screenshots/folders/add_folder_plugins_desktop.png" width="600" alt="Add folder: Syncthing or Local folder">
+<img src="screenshots/folders/add_folder_tree_touch.png" width="300" alt="The folders of a Syncthing folder, two of them ticked">
+<img src="screenshots/folders/add_folder_name_desktop.png" width="600" alt="A new folder's name and color">
+
 ## Calendars
 
 Calendars are `.ics` files, the format other calendar apps use. **New
