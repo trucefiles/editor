@@ -30,13 +30,14 @@ CalendarEditorPart calendarPart(
   startTimer: ManualTimers().start,
 );
 
-/// Shows [part]'s calendar page as of [today], its hints added to
-/// [hints]; closes the part's editor once the test ends.
+/// Shows [part]'s calendar page as of [today] on a device in [deviceZone],
+/// its hints added to [hints]; closes the part's editor once the test ends.
 Future<void> pumpPage(
   WidgetTester tester,
   CalendarEditorPart part, {
   required DateTime today,
   List<String>? hints,
+  String? deviceZone,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
@@ -47,10 +48,15 @@ Future<void> pumpPage(
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: CalendarEditorView(part, today: () => today).view(
-          EditorHost(kept: part.owner.state.text, hint: (hints ?? []).add),
-          autofocus: false,
-        ),
+        body:
+            CalendarEditorView(
+              part,
+              deviceZone: () async => deviceZone,
+              today: () => today,
+            ).view(
+              EditorHost(kept: part.owner.state.text, hint: (hints ?? []).add),
+              autofocus: false,
+            ),
       ),
     ),
   );

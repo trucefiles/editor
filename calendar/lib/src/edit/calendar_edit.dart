@@ -11,6 +11,7 @@ import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
 import 'event_draft.dart';
+import 'zone_block.dart';
 
 /// One edit of a calendar, as the user makes it at [at]: what changes,
 /// never file text. Each stamps the event it edits (`LAST-MODIFIED` and
@@ -70,8 +71,29 @@ final class DeleteEvent extends CalendarEdit {
 }
 
 /// [calendar] after [edit]; unchanged if the event it names is not there
-/// (or already there, for [AddEvent]).
+/// (or already there, for [AddEvent]). An edit that puts an event in a
+/// time zone the calendar has no block for adds that zone's block.
 Calendar applyEdit(Calendar calendar, CalendarEdit edit) {
+  final edited = _applied(calendar, edit);
+  final draft = switch (edit) {
+    AddEvent(:final draft) ||
+    ChangeSeries(:final draft) ||
+    ChangeOccurrence(:final draft) => draft,
+    DeleteOccurrence() || DeleteEvent() => null,
+  };
+  if (draft == null || identical(edited, calendar)) return edited;
+  return edited.withUnits([
+    for (final zone in {
+      for (final time in [draft.start, draft.end])
+        if (time case Zoned(:final zone)) zone,
+    })
+      if (!edited.zones.contains(zone))
+        if (zoneBlock(zone) case final block?)
+          CalendarUnit.edited(ZoneKey(zone), [block]),
+  ]);
+}
+
+Calendar _applied(Calendar calendar, CalendarEdit edit) {
   final at = edit.at;
   switch (edit) {
     case AddEvent(:final uid, :final draft):

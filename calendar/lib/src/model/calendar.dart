@@ -82,6 +82,12 @@ final class Calendar {
   /// The event [uid]; `null` if there is none.
   CalendarEvent? eventOf(String uid) => _eventsByUid[uid];
 
+  /// The time zones it holds a block for.
+  late final Set<String> zones = {
+    for (final unit in units)
+      if (unit.key case ZoneKey(:final zone)) zone,
+  };
+
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
     for (final line in logicalLines(head).skip(1))
@@ -108,6 +114,7 @@ final class Calendar {
   /// This calendar with each of [changes] in place of the unit with its
   /// key, where it was; those it doesn't have added at the end, in order.
   Calendar withUnits(Iterable<CalendarUnit> changes) {
+    if (changes.isEmpty) return this;
     final byKey = {for (final unit in changes) unit.key: _fitted(unit)};
     final added = [
       for (final unit in byKey.values)
@@ -199,9 +206,9 @@ int _endOf(List<_Line> lines) {
   return -1;
 }
 
-/// [blocks] as units: events with a `UID` grouped by it, in the order of
-/// their first block; every other block a unit of its own text. And
-/// where each block was.
+/// [blocks] as units: events with a `UID` grouped by it, and time zone
+/// blocks by their `TZID`, in the order of their first block; every other
+/// block a unit of its own text. And where each block was.
 ({List<CalendarUnit> units, List<_Slot> layout}) _units(
   List<List<_Line>> blocks,
 ) {
@@ -212,27 +219,26 @@ int _endOf(List<_Line> lines) {
         component: _begins(block.first) ? readComponent(block) : null,
       ),
   ];
-  final byUid = groupBy([
+  final byKey = groupBy([
     for (final (index, part) in parts.indexed)
-      if (_uidOf(part.component) != null) index,
-  ], (int index) => _uidOf(parts[index].component)!);
+      if (_keyOf(part.component) != null) index,
+  ], (int index) => _keyOf(parts[index].component)!);
   final textsSeen = <String, int>{};
   final units = <CalendarUnit>[];
   final layout = <_Slot>[];
   for (final (index, part) in parts.indexed) {
-    final uid = _uidOf(part.component);
-    if (uid != null) {
-      final group = byUid[uid]!;
+    if (_keyOf(part.component) case final key?) {
+      final group = byKey[key]!;
       if (group.first == index) {
         units.add(
           CalendarUnit.read(
-            UidKey(uid),
+            key,
             [for (final at in group) parts[at].text],
             [for (final at in group) parts[at].component!],
           ),
         );
       }
-      layout.add((key: UidKey(uid), part: group.indexOf(index)));
+      layout.add((key: key, part: group.indexOf(index)));
     } else {
       final nth = textsSeen.update(part.text, (n) => n + 1, ifAbsent: () => 0);
       final key = TextKey(part.text, nth);
@@ -243,8 +249,16 @@ int _endOf(List<_Line> lines) {
   return (units: units, layout: layout);
 }
 
-/// The `UID` of [component] if it is an event that has one.
-String? _uidOf(Component? component) => switch (component) {
-  Component(name: 'VEVENT') => component.value('UID')?.trim(),
+/// The key that groups [component] with others: its `UID` for an event
+/// that has one, its `TZID` for a time zone block; `null` for any other.
+UnitKey? _keyOf(Component? component) => switch (component) {
+  Component(name: 'VEVENT') => switch (component.value('UID')?.trim()) {
+    final uid? => UidKey(uid),
+    null => null,
+  },
+  Component(name: 'VTIMEZONE') => switch (component.value('TZID')?.trim()) {
+    final zone? => ZoneKey(zone),
+    null => null,
+  },
   _ => null,
 };

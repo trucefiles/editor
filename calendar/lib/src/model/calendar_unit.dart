@@ -20,7 +20,22 @@ final class UidKey extends UnitKey {
   int get hashCode => uid.hashCode;
 }
 
-/// Anything else (a time zone, a task, an event without `UID`, lines the
+/// A time zone block (`VTIMEZONE`) with one `TZID`: its events' times
+/// read by it, so a calendar holds one per zone. Never an edit of the
+/// user's: a merge doesn't count it as lost.
+final class ZoneKey extends UnitKey {
+  const ZoneKey(this.zone);
+
+  final String zone;
+
+  @override
+  bool operator ==(Object other) => other is ZoneKey && other.zone == zone;
+
+  @override
+  int get hashCode => zone.hashCode;
+}
+
+/// Anything else (a task, an event without `UID`, lines the
 /// app doesn't read): named by its text, and by how many with the same
 /// text come before it in the same calendar ([nth]).
 final class TextKey extends UnitKey {

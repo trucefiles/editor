@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import '../read/content_line.dart';
 import '../read/values.dart';
 import 'calendar_time.dart';
 
@@ -11,10 +12,10 @@ sealed class Repeat {
   /// `RRULE:`.
   String ruleFor(CalendarTime start);
 
-  /// The repeat [rule] says: a [SimpleRepeat] where the form can show it,
-  /// else kept as it is.
-  static Repeat of(String rule) =>
-      SimpleRepeat._read(rule) ?? OtherRepeat(rule);
+  /// The repeat [rule] says for a series starting at [start]: a
+  /// [SimpleRepeat] where the form can show it, else kept as it is.
+  static Repeat of(String rule, CalendarTime start) =>
+      SimpleRepeat._read(rule, start) ?? OtherRepeat(rule);
 }
 
 /// How often a [SimpleRepeat] comes.
@@ -41,14 +42,15 @@ final class SimpleRepeat extends Repeat {
   /// The days of a weekly repeat; empty: the start's day.
   final Set<Weekday> days;
 
-  /// The last day it may come on, as a UTC midnight.
+  /// The last day it may come on, on the series' own clock, as a UTC
+  /// midnight.
   final DateTime? until;
   final int? count;
 
   /// The parts a simple repeat may have.
   static const _parts = {'FREQ', 'INTERVAL', 'BYDAY', 'UNTIL', 'COUNT'};
 
-  static SimpleRepeat? _read(String rule) {
+  static SimpleRepeat? _read(String rule, CalendarTime start) {
     final parts = {
       for (final part in rule.split(';'))
         if (part.split('=') case [final key, final value])
@@ -65,7 +67,7 @@ final class SimpleRepeat extends Repeat {
         ),
     ];
     final interval = int.tryParse(parts['INTERVAL'] ?? '1');
-    final until = _untilOf(parts['UNTIL']);
+    final until = _untilOf(parts['UNTIL'], start);
     if (frequency == null ||
         !parts.keys.every(_parts.contains) ||
         days.contains(null) ||
@@ -85,19 +87,21 @@ final class SimpleRepeat extends Repeat {
     );
   }
 
-  /// The day of an `UNTIL` value, a day or a time.
-  static DateTime? _untilOf(String? value) =>
-      switch (RegExp(r'^(\d{4})(\d{2})(\d{2})').firstMatch(value ?? '')) {
-        final match? => DateTime.utc(
-          int.parse(match[1]!),
-          int.parse(match[2]!),
-          int.parse(match[3]!),
-        ),
-        null => null,
-      };
+  /// The day of an `UNTIL` value on [start]'s clock: a UTC time is the
+  /// day it falls on in [start]'s zone.
+  static DateTime? _untilOf(String? value, CalendarTime start) {
+    final until = value == null ? null : timeOf(ContentLine('UNTIL', value));
+    if (until == null) return null;
+    final day = switch (until) {
+      AllDay() => until.wall,
+      _ => start.sameKindAt(until.local).wall,
+    };
+    return DateTime.utc(day.year, day.month, day.day);
+  }
 
-  /// [until] is written as [start] is (RFC 5545, 3.3.10): a day, or the
-  /// end of the day.
+  /// [until] is written as [start] is (RFC 5545, 3.3.10): a day; the end
+  /// of the day for a floating start; else the end of the day in
+  /// [start]'s zone, in UTC, so other apps end on the same day.
   @override
   String ruleFor(CalendarTime start) => [
     'FREQ=${frequency.name.toUpperCase()}',
@@ -105,11 +109,7 @@ final class SimpleRepeat extends Repeat {
     if (days.isNotEmpty)
       'BYDAY=${Weekday.values.where(days.contains).map((day) => day.name.toUpperCase()).join(',')}',
     if (until case final until?)
-      'UNTIL=${dayText(until)}${switch (start) {
-        AllDay() => '',
-        Floating() => 'T235959',
-        UtcTime() || Zoned() => 'T235959Z',
-      }}',
+      'UNTIL=${timeLine('UNTIL', _endOfDay(until, start)).value}',
     if (count case final count?) 'COUNT=$count',
   ].join(';');
 
@@ -130,6 +130,18 @@ final class SimpleRepeat extends Repeat {
     until,
     count,
   );
+}
+
+/// The last moment of [day] as [start] writes an `UNTIL`: the day itself
+/// for a day, its end for a floating time, else its end in [start]'s zone
+/// in UTC.
+CalendarTime _endOfDay(DateTime day, CalendarTime start) {
+  final end = DateTime.utc(day.year, day.month, day.day, 23, 59, 59);
+  return switch (start) {
+    AllDay() => AllDay(day),
+    Floating() => Floating(end),
+    UtcTime() || Zoned() => UtcTime(start.at(end).local.toUtc()),
+  };
 }
 
 /// A rule the form doesn't edit: kept as written, shown as its text.

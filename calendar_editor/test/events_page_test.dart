@@ -34,9 +34,8 @@ List<String> _on(CalendarEditorPart part, DateTime day) => [
 ];
 
 void main() {
-  testWidgets('an event added on the picked day, stamped when added', (
-    tester,
-  ) async {
+  testWidgets('an event added on the picked day, stamped when added; '
+      'floating where the device zone is unknown', (tester) async {
     final part = calendarPart(newCalendarText('Home'));
     await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
@@ -51,6 +50,72 @@ void main() {
     final event = calendarOf(part).events.single.series;
     expect(event.start, Floating(DateTime.utc(2026, 11, 3, 9)));
     expect(part.owner.state.text, contains('DTSTAMP:20261101T120000Z'));
+  });
+
+  testWidgets('a new event is in the device zone, its block in the file', (
+    tester,
+  ) async {
+    final part = calendarPart(newCalendarText('Home'));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      deviceZone: 'Europe/Berlin',
+    );
+
+    await tester.tap(find.text('Add event'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Times are in'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Call');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(event.start, Zoned('Europe/Berlin', DateTime.utc(2026, 11, 3, 9)));
+    expect(calendarOf(part).zones, {'Europe/Berlin'});
+  });
+
+  testWidgets('an event of another zone shows and keeps its zone', (
+    tester,
+  ) async {
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'call',
+        EventDraft(
+          summary: 'Call',
+          start: Zoned('America/New_York', DateTime.utc(2026, 11, 3, 9)),
+          end: Zoned('America/New_York', DateTime.utc(2026, 11, 3, 10)),
+        ),
+        at: editedAt,
+      ),
+    );
+    final part = calendarPart(calendar.text);
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      deviceZone: 'Europe/Berlin',
+    );
+
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Times are in America/New_York.'), findsOne);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Title'),
+      'Late call',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(event.summary, 'Late call');
+    expect(
+      event.start,
+      Zoned('America/New_York', DateTime.utc(2026, 11, 3, 9)),
+    );
   });
 
   testWidgets('one of a series deleted; the others stay', (tester) async {

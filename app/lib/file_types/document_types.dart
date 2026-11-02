@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../common/time_texts.dart';
+import '../platform/device_zone.dart';
 import 'calendar_document_type.dart';
 import 'editable_type.dart';
 import 'markdown_document_type.dart';
@@ -20,6 +21,7 @@ final documentTypesProvider = Provider<DocumentTypes<EditableType>>((_) {
       locale: system.locale.toLanguageTag(),
       use24Hour: system.alwaysUse24HourFormat,
     ),
+    deviceZone: deviceZone,
   );
   return DocumentTypes(
     [const MarkdownDocumentType(), const PlainTextDocumentType(), calendars],

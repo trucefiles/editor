@@ -46,10 +46,15 @@ final class EventPart {
   };
 
   /// How it repeats, as the form shows it; `null` if it doesn't.
-  late final Repeat? repeat = switch (rule) {
-    final rule? => Repeat.of(rule),
-    null => null,
+  late final Repeat? repeat = switch ((rule, start)) {
+    (final rule?, final start?) => Repeat.of(rule, start),
+    _ => null,
   };
+
+  /// The occurrences its series has besides its rule's (`RDATE`).
+  late final List<CalendarTime> rdates = [
+    for (final line in component.all('RDATE')) ...timesOf(line),
+  ];
 
   /// The occurrences of its series left out.
   late final List<CalendarTime> exdates = [

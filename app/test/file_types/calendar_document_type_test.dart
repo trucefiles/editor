@@ -7,6 +7,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/common/time_texts.dart';
 import 'package:truce_editor/file_types/calendar_document_type.dart';
+import 'package:truce_editor/platform/device_zone.dart';
 
 import '../support.dart';
 
@@ -32,6 +33,7 @@ void main() {
   final folder = folderAt(Directory('/documents'));
   CalendarDocumentType calendars() => CalendarDocumentType(
     times: TimeTexts(locale: 'en', use24Hour: true),
+    deviceZone: () async => null,
     now: () => DateTime(2026, 11),
   );
   final read = documentTextOf(folder, _birthday, name: 'birthdays.ics');
@@ -43,6 +45,11 @@ void main() {
       for (final made in types.newDocuments) made.label,
     ], containsAllInOrder(['Calendar', 'Health calendar']));
     expect(types.forNew, isNot(isA<CalendarDocumentType>()));
+    expect(
+      (types.of(path('a.ics'))! as CalendarDocumentType).deviceZone,
+      same(deviceZone),
+      reason: 'new events take the zone the system tells',
+    );
   });
 
   test('a new calendar starts as its named, empty calendar', () {

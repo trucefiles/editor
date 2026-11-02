@@ -1,5 +1,6 @@
-import 'package:timezone/data/latest.dart' as zones;
 import 'package:timezone/timezone.dart' as tz;
+
+import 'time_zones.dart';
 
 /// When an event starts or ends, as its file says: a day, or a time of
 /// day in one of three ways. Times of day are wall clocks: their fields
@@ -16,7 +17,28 @@ sealed class CalendarTime {
   /// The same kind of time with [wall] instead (e.g. one occurrence of a
   /// repeating event).
   CalendarTime at(DateTime wall);
+
+  /// The same kind of time at the moment [moment] (e.g. where a drag let
+  /// go): an event in New York moved in Berlin stays in New York. A day
+  /// becomes the day [moment] falls on, on this device's clock.
+  CalendarTime sameKindAt(DateTime moment);
 }
+
+/// The time a new or changed event gets at [wall] (a wall clock): a day
+/// if [allDay]; else of [was]'s kind if that is a time of day, so an event
+/// keeps its zone; else in [deviceZone], this device's time zone, if the
+/// app knows it, else floating.
+CalendarTime timeAt(
+  DateTime wall, {
+  required bool allDay,
+  CalendarTime? was,
+  String? deviceZone,
+}) => switch ((allDay, was, deviceZone)) {
+  (true, _, _) => AllDay(wall),
+  (false, final was?, _) when was is! AllDay => was.at(wall),
+  (false, _, final zone?) when locationOf(zone) != null => Zoned(zone, wall),
+  _ => Floating(wall),
+};
 
 /// A whole day.
 final class AllDay extends CalendarTime {
@@ -32,14 +54,16 @@ final class AllDay extends CalendarTime {
   AllDay at(DateTime wall) => AllDay(wall);
 
   @override
+  AllDay sameKindAt(DateTime moment) => AllDay(moment.toLocal());
+
+  @override
   bool operator ==(Object other) => other is AllDay && other.wall == wall;
 
   @override
   int get hashCode => wall.hashCode;
 }
 
-/// A time of day wherever the device is (no zone): new events are
-/// written so.
+/// A time of day wherever the device is (no zone).
 final class Floating extends CalendarTime {
   Floating(DateTime wall) : wall = _asWall(wall);
 
@@ -51,6 +75,9 @@ final class Floating extends CalendarTime {
 
   @override
   Floating at(DateTime wall) => Floating(wall);
+
+  @override
+  Floating sameKindAt(DateTime moment) => Floating(moment.toLocal());
 
   @override
   bool operator ==(Object other) => other is Floating && other.wall == wall;
@@ -73,6 +100,9 @@ final class UtcTime extends CalendarTime {
   UtcTime at(DateTime wall) => UtcTime(wall);
 
   @override
+  UtcTime sameKindAt(DateTime moment) => UtcTime(moment.toUtc());
+
+  @override
   bool operator ==(Object other) => other is UtcTime && other.wall == wall;
 
   @override
@@ -90,7 +120,7 @@ final class Zoned extends CalendarTime {
   final DateTime wall;
 
   @override
-  DateTime get local => switch (_location(zone)) {
+  DateTime get local => switch (locationOf(zone)) {
     final location? => DateTime.fromMillisecondsSinceEpoch(
       tz.TZDateTime(
         location,
@@ -107,6 +137,12 @@ final class Zoned extends CalendarTime {
 
   @override
   Zoned at(DateTime wall) => Zoned(zone, wall);
+
+  @override
+  Zoned sameKindAt(DateTime moment) => switch (locationOf(zone)) {
+    final location? => Zoned(zone, tz.TZDateTime.from(moment, location)),
+    null => Zoned(zone, moment.toLocal()),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -134,15 +170,3 @@ DateTime _localOf(DateTime wall) => DateTime(
   wall.minute,
   wall.second,
 );
-
-/// The time zone database, loaded once when first needed: the
-/// `timezone` package keeps it in one place for the whole program.
-bool _zonesLoaded = false;
-
-tz.Location? _location(String zone) {
-  if (!_zonesLoaded) {
-    zones.initializeTimeZones();
-    _zonesLoaded = true;
-  }
-  return tz.timeZoneDatabase.locations[zone];
-}

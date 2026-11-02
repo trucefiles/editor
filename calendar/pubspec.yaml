@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   collection: ^1.19.1
-  rrule: ^0.2.18
+  firstfloor_calendar: 1.0.14
   timezone: ^0.11.2
   truce_core: any
 
