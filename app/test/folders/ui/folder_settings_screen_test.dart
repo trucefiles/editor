@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
-import 'package:truce_editor/sync_tool/base_folder_wiring.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../support.dart';
@@ -19,7 +19,7 @@ void main() {
   final other = folderAt(
     Directory('/sync'),
     id: 'f2',
-    baseId: folder.base.id,
+    folder: folder.id,
     selection: Selection.of([path('home')]),
   );
   late _Folders folders;

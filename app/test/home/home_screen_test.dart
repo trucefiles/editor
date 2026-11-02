@@ -58,7 +58,7 @@ void main() {
     );
     await tester.runAsync(() async {
       final container = ProviderContainer(overrides: scope.overrides);
-      await container.read(folderListStoreProvider).save([folderAt(dir)]);
+      await saveFolders(container, [folderAt(dir)]);
       container.dispose();
       await tester.pumpWidget(scope);
     });

@@ -35,7 +35,7 @@ void main() {
 
   /// Starts the app's providers on [dir], as one folder.
   Future<void> start() async {
-    await container.read(folderListStoreProvider).save([folderAt(dir)]);
+    await saveFolders(container, [folderAt(dir)]);
     await container.read(foldersProvider.future);
     await container.read(folderContentsProvider.future);
   }

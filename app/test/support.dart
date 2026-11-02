@@ -16,7 +16,13 @@ import 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, path, tempFolder;
 
 export 'package:truce_test_support/truce_test_support.dart'
-    show ResultUnwrap, WriteCreatingFolders, bytesOf, path, tempFolder;
+    show
+        ResultUnwrap,
+        WriteCreatingFolders,
+        bytesOf,
+        folderId,
+        path,
+        tempFolder;
 
 /// Waits until [holds], for work whose end the test cannot see (files
 /// written after a timer); fails once [timeout] has passed. Fixed waits
@@ -32,14 +38,62 @@ Future<void> eventually(
   }
 }
 
-/// A Syncthing folder at [dir], with the plugin id [id]. In tests its
-/// location is [dir]'s path, so [servicesFor] finds the directory.
-Folder folderAt(Directory dir, {String id = 'f1'}) => Folder(
-  id: FolderId('syncthing', id),
-  name: 'Files',
-  color: 'teal',
-  location: dir.path,
-);
+/// The id of the Syncthing folder [folderAt] makes with [id].
+FolderId folderId(String id) => FolderId('syncthing', id);
+
+/// A Syncthing folder at [dir], its own Syncthing folder, with the
+/// plugin id [id], as the app would show it once added; [saveFolders]
+/// adds it, and [servicesFor] opens it.
+Folder folderAt(Directory dir, {String id = 'f1'}) {
+  final folder = Folder(
+    id: folderId(id),
+    name: 'Files',
+    color: 'teal',
+    location:
+        '${dir.path} (Syncthing folder ${Uri.file(dir.path).pathSegments.last})',
+  );
+  _directories[folder.id] = dir;
+  return folder;
+}
+
+/// The directory of each folder [folderAt] made, by id; the last made.
+final _directories = <FolderId, Directory>{};
+
+/// Saves [folders], made by [folderAt], as the app's folder list, as if
+/// the user had added them; [container]'s folder list loads them.
+Future<void> saveFolders(
+  ProviderContainer container,
+  List<Folder> folders,
+) async {
+  String rootOf(Folder folder) => 'r${folder.id.folder}';
+  final state = SyncthingState(
+    roots: {
+      for (final folder in folders)
+        rootOf(folder): SyncthingRoot(
+          id: rootOf(folder),
+          address: _addressOf(folder),
+          host: _addressOf(folder),
+        ),
+    },
+    folders: {
+      for (final folder in folders)
+        folder.id.folder: SyncthingDirectory(
+          id: folder.id.folder,
+          root: rootOf(folder),
+          path: null,
+        ),
+    },
+  );
+  await container.read(folderListStoreProvider).save((
+    folders: [
+      for (final folder in folders)
+        (id: folder.id, name: folder.name, color: folder.color),
+    ],
+    blobs: {'syncthing': state.toJson()},
+  ));
+}
+
+Uri _addressOf(Folder folder) => Uri.file(_directories[folder.id]!.path);
 
 /// The file types the app handles.
 ShownFileTypes<EditableType> appFileTypes() {
@@ -85,7 +139,7 @@ FolderServices servicesFor(
   String? backupsPath,
   void Function(Set<RelPath> paths)? wrote,
 }) {
-  final raw = syncthingFolderAt(Directory(folder.location));
+  final raw = syncthingFolderAt(_directories[folder.id]!);
   return folderServices(
     raw,
     pluginName: 'Syncthing',
@@ -102,7 +156,7 @@ FolderServices servicesFor(
 /// Syncthing folder.
 RawFolder syncthingFolderAt(Directory dir) {
   final disk = hostDisk();
-  final address = Uri.directory(dir.path);
+  final address = Uri.file(dir.path);
   return SyncthingFolder(
     disk.open(address, tempName: SyncthingFolder.rules.tempFileName),
     disk.markersAt(address),
@@ -175,7 +229,7 @@ Future<Folder> addSyncthingFolder(
 }) async {
   final plugin =
       container.read(folderPluginsProvider).of('syncthing') as SyncthingPlugin;
-  final address = Uri.directory(root.path);
+  final address = Uri.file(root.path);
   return addFolderOf(
     container,
     plugin,

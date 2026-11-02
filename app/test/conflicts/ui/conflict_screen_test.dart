@@ -55,7 +55,7 @@ void main() {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
         ],
       );
-      await container.read(folderListStoreProvider).save([folderAt(dir)]);
+      await saveFolders(container, [folderAt(dir)]);
       return (await container.read(folderContentsProvider.future))
           .conflicts
           .all

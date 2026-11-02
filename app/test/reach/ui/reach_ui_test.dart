@@ -64,7 +64,7 @@ void main() {
           // The Retry button reaches the real folder stack.
           appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
-          folderReachProvider(folder.base)
+          folderReachProvider(folder.id)
               .overrideWith(() => _FixedReach(folder.base, reach)),
         ],
         child: MaterialApp(

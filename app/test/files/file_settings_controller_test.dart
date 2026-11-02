@@ -17,8 +17,8 @@ FileSettings _viewed(String mode) => FileSettings(view: _viewIn(mode));
 void main() {
   late ProviderContainer container;
   late FileSettingsController views;
-  final a = (baseId: 'f1', path: path('a.md'));
-  final b = (baseId: 'f1', path: path('b.md'));
+  final a = (folder: folderId('f1'), path: path('a.md'));
+  final b = (folder: folderId('f1'), path: path('b.md'));
 
   setUp(() {
     final storage = AppStorage(tempFolder().path);
@@ -118,7 +118,10 @@ void main() {
       final kept = fileAt(work, 'kept.md');
       await remember(kept.key, 'visual');
       await remember(fileAt(work, 'gone.md').key, 'markdown');
-      await remember((baseId: 'removed', path: path('a.md')), 'markdown');
+      await remember((
+        folder: folderId('removed'),
+        path: path('a.md'),
+      ), 'markdown');
 
       await pruneAfterGrace(scans([kept]));
 
