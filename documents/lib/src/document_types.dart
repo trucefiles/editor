@@ -1,11 +1,15 @@
 import 'package:truce_core/truce_core.dart';
 
 import 'document_type.dart';
+import 'new_document.dart';
 
 /// The document types the app handles, and which one a file is.
 final class DocumentTypes<T extends DocumentType> {
-  DocumentTypes(List<T> types, {required this.forNew})
-    : detector = ExtensionFileTypeDetector.of([
+  /// [newDocuments]: what the user can make new, a plain new document
+  /// first; never empty.
+  DocumentTypes(List<T> types, {required this.newDocuments})
+    : assert(newDocuments.isNotEmpty, 'Nothing to make new.'),
+      detector = ExtensionFileTypeDetector.of([
         for (final type in types) type.support,
       ]),
       _byId = {for (final type in types) type.support.type: type};
@@ -14,8 +18,11 @@ final class DocumentTypes<T extends DocumentType> {
   /// are not shown.
   final FileTypeDetector detector;
 
-  /// The type new documents are created in.
-  final T forNew;
+  /// What the user can make new, a plain new document first.
+  final List<NewDocument<T>> newDocuments;
+
+  /// The type of a plain new document.
+  T get forNew => newDocuments.first.type;
 
   final Map<FileType, T> _byId;
 

@@ -1,0 +1,401 @@
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+import 'package:truce_calendar/truce_calendar.dart';
+
+/// Opens the event form on [draft] (a new event's, or what an event says
+/// now), titled [title]; the draft as the user saved it, or `null` if
+/// they backed out. Offers a repeat unless the event is one of a series
+/// ([repeats] false).
+Future<EventDraft?> showEventForm(
+  BuildContext context,
+  EventDraft draft, {
+  required String title,
+  bool repeats = true,
+}) => Navigator.push(
+  context,
+  MaterialPageRoute<EventDraft>(
+    fullscreenDialog: true,
+    builder: (_) => EventForm(draft, title: title, repeats: repeats),
+  ),
+);
+
+/// The alerts the form offers, before the start.
+const alertChoices = [
+  Duration.zero,
+  Duration(minutes: 5),
+  Duration(minutes: 10),
+  Duration(minutes: 15),
+  Duration(minutes: 30),
+  Duration(hours: 1),
+  Duration(days: 1),
+];
+
+/// How a form's repeat choice reads.
+const _frequencyWords = {
+  Frequency.daily: 'Every day',
+  Frequency.weekly: 'Every week',
+  Frequency.monthly: 'Every month',
+  Frequency.yearly: 'Every year',
+};
+
+/// The event form: title, all day, start and end, repeat, alert, place
+/// and notes. What it doesn't show of the event (e.g. a health entry, a
+/// time zone) stays as it was.
+class EventForm extends StatefulWidget {
+  const EventForm(
+    this.draft, {
+    required this.title,
+    this.repeats = true,
+    super.key,
+  });
+
+  final EventDraft draft;
+  final String title;
+
+  /// Whether the form offers a repeat: not for one of a series.
+  final bool repeats;
+
+  @override
+  State<EventForm> createState() => _EventFormState();
+}
+
+class _EventFormState extends State<EventForm> {
+  late final _summary = TextEditingController(text: widget.draft.summary);
+  late final _location = TextEditingController(text: widget.draft.location);
+  late final _notes = TextEditingController(text: widget.draft.description);
+  late var _times = _FormTimes.of(widget.draft);
+  late var _repeat = widget.draft.repeat;
+  late var _alerts = widget.draft.alerts;
+
+  @override
+  void dispose() {
+    _summary.dispose();
+    _location.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  EventDraft get _drafted => EventDraft(
+    summary: _summary.text.trim(),
+    start: _times.start(widget.draft.start),
+    end: _times.end(widget.draft.start),
+    description: _notes.text,
+    location: _location.text.trim(),
+    repeat: _repeat,
+    alerts: _alerts,
+    health: widget.draft.health,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final ok = _times.endsAfterStart;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          TextButton(
+            onPressed: ok ? () => Navigator.pop(context, _drafted) : null,
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextField(
+            controller: _summary,
+            autofocus: widget.draft.summary.isEmpty,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(labelText: 'Title'),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('All day'),
+            value: _times.allDay,
+            onChanged: (allDay) =>
+                setState(() => _times = _times.withAllDay(allDay)),
+          ),
+          _TimeRow(
+            label: 'Starts',
+            day: _times.startDay,
+            time: _times.allDay ? null : _times.startTime,
+            onDay: (day) => setState(() => _times = _times.withStartDay(day)),
+            onTime: (time) =>
+                setState(() => _times = _times.withStartTime(time)),
+          ),
+          _TimeRow(
+            label: 'Ends',
+            day: _times.endDay,
+            time: _times.allDay ? null : _times.endTime,
+            onDay: (day) => setState(() => _times = _times.copy(endDay: day)),
+            onTime: (time) =>
+                setState(() => _times = _times.copy(endTime: time)),
+          ),
+          if (!ok)
+            Text(
+              'It ends before it starts.',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          const SizedBox(height: 8),
+          if (widget.repeats)
+            switch (_repeat) {
+              OtherRepeat(:final rule) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Repeats'),
+                subtitle: Text('$rule (kept as it is)'),
+              ),
+              final SimpleRepeat? repeat => DropdownButtonFormField<Frequency?>(
+                initialValue: repeat?.frequency,
+                decoration: const InputDecoration(labelText: 'Repeats'),
+                items: [
+                  const DropdownMenuItem(child: Text('Never')),
+                  for (final MapEntry(key: frequency, value: text)
+                      in _frequencyWords.entries)
+                    DropdownMenuItem(value: frequency, child: Text(text)),
+                ],
+                onChanged: (frequency) => setState(
+                  () => _repeat = switch (frequency) {
+                    null => null,
+                    // The rest of a repeat the form shows stays.
+                    _ when repeat?.frequency == frequency => repeat,
+                    final frequency => SimpleRepeat(frequency),
+                  },
+                ),
+              ),
+            },
+          const SizedBox(height: 8),
+          DropdownButtonFormField<_Alerts>(
+            initialValue: _Alerts(_alerts),
+            decoration: const InputDecoration(labelText: 'Alert'),
+            items: [
+              const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
+              if (_alerts.isNotEmpty && !_offered(_alerts))
+                DropdownMenuItem(
+                  value: _Alerts(_alerts),
+                  child: Text(_alerts.map(alertText).join(', ')),
+                ),
+              for (final before in alertChoices)
+                DropdownMenuItem(
+                  value: _Alerts([before]),
+                  child: Text(alertText(before)),
+                ),
+            ],
+            onChanged: (alerts) =>
+                setState(() => _alerts = alerts?.before ?? const []),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _location,
+            decoration: const InputDecoration(labelText: 'Place'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _notes,
+            minLines: 2,
+            maxLines: null,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(labelText: 'Notes'),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Alerts are kept in the calendar; this app does not ring them yet.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (widget.draft.start is Zoned)
+            Text(
+              'Times are in ${(widget.draft.start as Zoned).zone}.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Whether [alerts] is one the list offers.
+  bool _offered(List<Duration> alerts) =>
+      alerts.length == 1 && alertChoices.contains(alerts.single);
+}
+
+/// The alerts a choice of the form's list stands for, equal by their
+/// times (a list alone is equal only to itself).
+final class _Alerts {
+  const _Alerts(this.before);
+
+  final List<Duration> before;
+
+  static const _equality = ListEquality<Duration>();
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Alerts && _equality.equals(other.before, before);
+
+  @override
+  int get hashCode => _equality.hash(before);
+}
+
+/// How an alert [before] the start reads.
+String alertText(Duration before) => switch (before) {
+  Duration.zero => 'At the start',
+  _ when before.inDays > 0 && before.inHours % 24 == 0 =>
+    before.inDays == 1 ? '1 day before' : '${before.inDays} days before',
+  _ when before.inMinutes % 60 == 0 =>
+    before.inHours == 1 ? '1 hour before' : '${before.inHours} hours before',
+  _ => '${before.inMinutes} minutes before',
+};
+
+/// One row of a day and, unless all day, a time of day, each a button that
+/// asks for a new one.
+class _TimeRow extends StatelessWidget {
+  const _TimeRow({
+    required this.label,
+    required this.day,
+    required this.time,
+    required this.onDay,
+    required this.onTime,
+  });
+
+  final String label;
+  final DateTime day;
+  final TimeOfDay? time;
+  final void Function(DateTime day) onDay;
+  final void Function(TimeOfDay time) onTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = MaterialLocalizations.of(context);
+    final time = this.time;
+    return Row(
+      children: [
+        SizedBox(width: 64, child: Text(label)),
+        Expanded(
+          child: TextButton(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: day,
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2200),
+              );
+              if (picked != null) onDay(picked);
+            },
+            child: Text(words.formatMediumDate(day)),
+          ),
+        ),
+        if (time != null)
+          TextButton(
+            onPressed: () async {
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: time,
+              );
+              if (picked != null) onTime(picked);
+            },
+            child: Text(
+              words.formatTimeOfDay(
+                time,
+                alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(
+                  context,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The start and end as the form shows them: days and times of day on the
+/// event's own clock (its wall clock), the last day of an all-day event
+/// itself (not the day after).
+final class _FormTimes {
+  const _FormTimes({
+    required this.allDay,
+    required this.startDay,
+    required this.startTime,
+    required this.endDay,
+    required this.endTime,
+  });
+
+  factory _FormTimes.of(EventDraft draft) {
+    final (start, end) = (draft.start.wall, draft.end.wall);
+    final allDay = draft.start is AllDay;
+    final lastDay = allDay ? end.subtract(const Duration(days: 1)) : end;
+    return _FormTimes(
+      allDay: allDay,
+      startDay: DateTime(start.year, start.month, start.day),
+      startTime: TimeOfDay(hour: start.hour, minute: start.minute),
+      endDay: DateTime(lastDay.year, lastDay.month, lastDay.day),
+      endTime: TimeOfDay(hour: end.hour, minute: end.minute),
+    );
+  }
+
+  final bool allDay;
+  final DateTime startDay;
+  final TimeOfDay startTime;
+  final DateTime endDay;
+  final TimeOfDay endTime;
+
+  DateTime get _startWall => _wall(startDay, allDay ? null : startTime);
+  DateTime get _endWall => allDay
+      ? DateTime.utc(endDay.year, endDay.month, endDay.day + 1)
+      : _wall(endDay, endTime);
+
+  bool get endsAfterStart => !_endWall.isBefore(_startWall);
+
+  /// The start, of [was]'s kind unless the form changed all day.
+  CalendarTime start(CalendarTime was) => _kindOf(was).at(_startWall);
+
+  /// The end, of [was]'s kind unless the form changed all day.
+  CalendarTime end(CalendarTime was) => _kindOf(was).at(_endWall);
+
+  CalendarTime _kindOf(CalendarTime was) => switch ((allDay, was)) {
+    (true, AllDay()) => was,
+    (true, _) => AllDay(startDay),
+    (false, AllDay()) => Floating(_startWall),
+    (false, _) => was,
+  };
+
+  _FormTimes copy({
+    bool? allDay,
+    DateTime? startDay,
+    TimeOfDay? startTime,
+    DateTime? endDay,
+    TimeOfDay? endTime,
+  }) => _FormTimes(
+    allDay: allDay ?? this.allDay,
+    startDay: startDay ?? this.startDay,
+    startTime: startTime ?? this.startTime,
+    endDay: endDay ?? this.endDay,
+    endTime: endTime ?? this.endTime,
+  );
+
+  _FormTimes withAllDay(bool allDay) => copy(allDay: allDay);
+
+  /// A new start day moves the end along, so the event keeps its length.
+  _FormTimes withStartDay(DateTime day) {
+    final moved = _wall(day, null).difference(_wall(startDay, null)).inDays;
+    return copy(
+      startDay: day,
+      endDay: DateTime(endDay.year, endDay.month, endDay.day + moved),
+    );
+  }
+
+  /// A new start time moves the end along, so the event keeps its length.
+  _FormTimes withStartTime(TimeOfDay time) {
+    final length = _endWall.difference(_startWall);
+    final end = _wall(startDay, time).add(length);
+    return copy(
+      startTime: time,
+      endDay: DateTime(end.year, end.month, end.day),
+      endTime: TimeOfDay(hour: end.hour, minute: end.minute),
+    );
+  }
+
+  static DateTime _wall(DateTime day, TimeOfDay? time) => DateTime.utc(
+    day.year,
+    day.month,
+    day.day,
+    time?.hour ?? 0,
+    time?.minute ?? 0,
+  );
+}

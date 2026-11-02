@@ -97,9 +97,15 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(choice));
   }
 
+  /// Starts a new note: New document, then Note among what it offers.
+  Future<void> startNewNote() async {
+    await tapAndSettle(find.byTooltip('New document'));
+    await tapAndSettle(find.text('Note'));
+  }
+
   /// Starts a new document and types [text] into it, where the caret waits.
   Future<void> typeNewNote(String text) async {
-    await tapAndSettle(find.byTooltip('New document'));
+    await startNewNote();
     await waitFor(find.byTooltip(placeAndName));
     await typeLines(text);
   }

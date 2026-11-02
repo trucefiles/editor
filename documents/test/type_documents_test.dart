@@ -14,6 +14,16 @@ final class _KeyValueType implements DocumentType {
   @override
   String get newFileExtension => '.md';
 
+  /// Windows line breaks, as some formats want.
+  @override
+  TextFile get newFile => const TextFile.empty(lineBreak: '\r\n');
+
+  /// The values, not the keys.
+  @override
+  String searchText(DocumentText read) =>
+      [for (final line in read.text.split('\n')) line.split(':').last]
+          .join('\n');
+
   @override
   DocumentCardSummary cardSummary(DocumentText read) =>
       DocumentCardSummary(title: read.summary.firstLine, preview: (_) => '');
@@ -22,9 +32,10 @@ final class _KeyValueType implements DocumentType {
   TextMerge get merge => const FakeTextMerge();
 }
 
-final _types = DocumentTypes([
-  const _KeyValueType(),
-], forNew: const _KeyValueType());
+final _types = DocumentTypes(
+  [const _KeyValueType()],
+  newDocuments: const [NewDocument('Note', _KeyValueType())],
+);
 
 const _copyName = 'a.fake-copy-20261101-120000.md';
 
@@ -62,6 +73,9 @@ void main() {
 
   void put(String name, String text) => place.files.put(name, text);
   String? textOf(String name) => place.files.textOf(name);
+
+  /// The files of the folder.
+  DocumentFiles files() => DocumentFiles(folder, services, _types);
 
   /// The conflict of `a.md`, as the scanner finds it now.
   Future<Conflict> conflict() async =>
@@ -135,4 +149,111 @@ void main() {
     expect(shown.current, isNull);
     expect(shown.merged, isNull);
   });
+
+  test('a new document is written in its type\'s style', () async {
+    final created = (await files().create(
+      'New',
+      type: _types.forNew,
+      text: 'a:1\nb:2',
+    )).value;
+
+    expect(textOf(created.path.value), 'a:1\r\nb:2');
+  });
+
+  test("search finds a document by its type's text", () async {
+    put('a.md', 'colour:teal');
+    final listedFiles = files();
+    final document = (await listedFiles.open(path('a.md'))).value.document;
+
+    final [searchable] = searchablesOf(
+      [document],
+      filesOf: (_) => listedFiles,
+      types: _types,
+    );
+
+    expect((await searchable.read())!.text, 'teal');
+  });
+
+  test('the plain new document is the first one offered', () {
+    const named = NewDocument(
+      'Named',
+      _KeyValueType(),
+      startNamed: _startNamed,
+    );
+    expect(_types.forNew, const _KeyValueType());
+    expect((named.named, named.startText('Home')), (true, 'name:Home'));
+    expect(
+      (
+        _types.newDocuments.single.named,
+        _types.newDocuments.single.startText('x'),
+      ),
+      (false, ''),
+    );
+  });
+
+  test(
+    "a gone document's conflict copy is written in its type's style",
+    () async {
+      expect(
+        await files().saveAsConflictOfGone(path('gone.md'), 'a\nb'),
+        isA<Ok<void, StoreError>>(),
+      );
+
+      expect(
+        [
+          for (final MapEntry(:key, :value) in place.files.files.entries)
+            (key.value.startsWith('gone'), String.fromCharCodes(value.bytes)),
+        ],
+        [(true, 'a\r\nb')],
+      );
+    },
+  );
+
+  test('documents are read again only once they change', () async {
+    put('a.md', 'k:1');
+    put('b.md', 'not kept');
+    final reads = <String>[];
+    final kept = DocumentReads<String>(
+      FolderFiles((_) => services, _types),
+      readAs: (read) {
+        reads.add(read.path.value);
+        return read.text.startsWith('k:') ? read.text : null;
+      },
+    );
+    Future<Document> listedOf(String name) async =>
+        (await files().open(path(name))).value.document;
+
+    Future<List<Document>> listedNow() async => [
+      await listedOf('a.md'),
+      await listedOf('b.md'),
+    ];
+
+    final first = await kept.readAll(await listedNow());
+    expect([for (final text in first.values) text], ['k:1']);
+    await kept.readAll(await listedNow());
+    expect(reads, ['a.md', 'b.md'], reason: 'nothing changed');
+
+    put('a.md', 'k:22');
+    final changed = await kept.readAll(await listedNow());
+    expect([for (final text in changed.values) text], ['k:22']);
+    expect(reads, ['a.md', 'b.md', 'a.md']);
+    expect(await kept.readAll(const []), isEmpty);
+  });
+
+  test('a document that could not be read is read again next time', () async {
+    put('a.md', 'k:1');
+    final kept = DocumentReads<String>(
+      FolderFiles((_) => services, _types),
+      readAs: (read) => read.text,
+    );
+    final listed = [(await files().open(path('a.md'))).value.document];
+
+    place.files.failWith = StoreError.ioFailure;
+    expect(await kept.readAll(listed), isEmpty);
+    place.files.failWith = null;
+
+    expect((await kept.readAll(listed)).values, ['k:1']);
+  });
 }
+
+String _startNamed(String name) => 'name:$name';

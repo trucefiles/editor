@@ -133,6 +133,21 @@ void main() {
     expect(shown.single.start, DateTime(2027, 3, 13));
   });
 
+  test('a draft for one occurrence keeps all but the repeat', () {
+    final series = EventDraft.of(
+      Calendar.read(birthday)!.eventOf('ann@truce')!.series,
+    );
+    final one = series.occurrenceAt(
+      AllDay(DateTime(2027, 3, 12)),
+      AllDay(DateTime(2027, 3, 13)),
+    );
+    expect(series.repeat, isNotNull);
+    expect(one.repeat, isNull);
+    expect(one.summary, 'Ann');
+    expect(one.start, AllDay(DateTime(2027, 3, 12)));
+    expect(one.end, AllDay(DateTime(2027, 3, 13)));
+  });
+
   test('one occurrence deleted is left out of its series', () {
     final calendar = _edited(
       birthday,
@@ -148,12 +163,15 @@ void main() {
       newCalendarText('Me', health: true),
       AddEvent(
         'p1@truce',
-        EventDraft.health(const Period(Flow.heavy), DateTime.utc(2026, 11, 1)),
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime.utc(2026, 11, 1),
+        ),
         at: _at,
       ),
     );
     final part = calendar.eventOf('p1@truce')!.series;
-    expect(part.health, const Period(Flow.heavy));
+    expect(part.health, const Period(PeriodFlow.heavy));
     expect(part.summary, 'Period: heavy');
     expect(part.allDay, isTrue);
     expect(calendar.text, contains('CATEGORIES:HEALTH,PERIOD\n'));
@@ -213,13 +231,19 @@ void main() {
       text,
       ChangeSeries(
         'h@x',
-        EventDraft.health(const Period(Flow.heavy), DateTime(2026, 11, 1)),
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime(2026, 11, 1),
+        ),
         at: _at,
       ),
     );
     expect(edited.text, contains('CATEGORIES:PRIVATE\n'));
     expect(edited.text, contains('CATEGORIES:HEALTH,PERIOD\n'));
-    expect(edited.eventOf('h@x')!.series.health, const Period(Flow.heavy));
+    expect(
+      edited.eventOf('h@x')!.series.health,
+      const Period(PeriodFlow.heavy),
+    );
   });
 
   test('an alert edit keeps the alarms the form does not show', () {
@@ -264,5 +288,11 @@ void main() {
       Calendar.read(calendar.text)!.eventOf('f@truce')!.series.summary,
       summary,
     );
+  });
+
+  test('a new event gets a random uid of its own', () {
+    final [one, other] = [newUid(), newUid()];
+    expect(one, matches(RegExp(r'^[0-9a-f]{32}@truce$')));
+    expect(one, isNot(other));
   });
 }

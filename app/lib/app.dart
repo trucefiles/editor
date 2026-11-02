@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
-import 'documents/ui/documents_screen.dart';
+import 'home/home_screen.dart';
 import 'reach/ui/reach_overlay.dart';
 import 'text_zoom/ui/text_zoom_scope.dart';
 import 'theme/app_theme.dart';
@@ -44,7 +44,7 @@ class _TruceAppState extends ConsumerState<TruceApp> {
           ),
         ),
       ),
-      home: const DocumentsScreen(),
+      home: const HomeScreen(),
     );
   }
 }

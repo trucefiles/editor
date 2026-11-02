@@ -93,6 +93,18 @@ void main() {
     );
   });
 
+  test('undo and redo over a backup that is no calendar show each text', () {
+    final run = _run(birthday)
+      ..send(CalendarRequest(const ReplaceAll('not a calendar'), at: _at));
+    expect((run.state.text, run.state.calendar), ('not a calendar', null));
+
+    run.send(CalendarRequest(const Undo(), at: _at));
+    expect(run.state.calendar!.name, 'Birthdays');
+    run.send(CalendarRequest(const Redo(), at: _at));
+
+    expect((run.state.text, run.state.calendar), ('not a calendar', null));
+  });
+
   test('the text goes to the file owner after the pause, as typing does', () {
     final run = _run(birthday)..send(EditCalendar(_gym));
     expect(_sent(run), isEmpty);

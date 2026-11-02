@@ -21,7 +21,9 @@ final cardPreviewProvider = NotifierProvider.autoDispose
 
 /// What one card shows of its document's text: read once the card shows,
 /// dropped from the reads waiting once it goes away. While a new version
-/// is read, the card shows the version read before.
+/// is read, the card shows the version read before. Read again while it
+/// shows once its type says the preview no longer holds (e.g. a
+/// calendar's next event has passed).
 class CardPreviewController extends Notifier<CardPreview> {
   CardPreviewController(this.document);
 
@@ -30,13 +32,25 @@ class CardPreviewController extends Notifier<CardPreview> {
   @override
   CardPreview build() {
     final previews = ref.watch(cardPreviewsProvider);
-    if (previews.known(document) case final preview?) return preview;
+    if (previews.known(document) case final preview?) {
+      _readAgainOnceStale(previews, preview);
+      return preview;
+    }
     ref.onDispose(() => previews.drop(document));
     unawaited(
       previews.read(document).then((preview) {
-        if (ref.mounted) state = preview;
+        if (!ref.mounted) return;
+        _readAgainOnceStale(previews, preview);
+        state = preview;
       }),
     );
     return previews.lastKnown(document) ?? const PreviewReading();
+  }
+
+  void _readAgainOnceStale(CardPreviews previews, CardPreview preview) {
+    if (previews.holdsFor(preview) case final left?) {
+      final stale = Timer(left, ref.invalidateSelf);
+      ref.onDispose(stale.cancel);
+    }
   }
 }

@@ -36,7 +36,7 @@ void main() {
 
   testApp('an empty new document leaves no file', (tester) async {
     await tester.addFolder(app);
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.startNewNote();
     expect(find.text('Untitled'), findsWidgets);
 
     await tester.pageBack();
@@ -105,7 +105,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     app.folder('later').createSync();
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.startNewNote();
     await tester.tapAndSettle(find.byTooltip(placeAndName));
     await tester.pickSubfolder('later');
 

@@ -18,7 +18,7 @@ typedef CalendarMachine =
     Machine<
       CalendarMessage,
       CalendarState,
-      EditorBook<Calendar?>,
+      EditorBook<CalendarShown>,
       CalendarNotice,
       CalendarSaveTimer
     >;
@@ -36,7 +36,7 @@ CalendarOwner calendarOwner(
       CalendarInput,
       CalendarTimerFired,
       CalendarState,
-      EditorBook<Calendar?>,
+      EditorBook<CalendarShown>,
       CalendarNotice,
       CalendarSaveTimer
     >(calendarMachine(text, version: version), startTimer: startTimer);
@@ -44,7 +44,7 @@ CalendarOwner calendarOwner(
 /// The calendar editor machine of a document holding [text], read as
 /// [version] (`null` for a new document).
 CalendarMachine calendarMachine(String text, {required Version? version}) {
-  final book = EditorBook<Calendar?>(
+  final book = EditorBook<CalendarShown>(
     lineage: version,
     summary: CalendarSummary(text),
   );

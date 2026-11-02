@@ -15,6 +15,7 @@ dependencies:
   markdown: ^7.3.1
   super_editor: 0.3.0-dev.52
   truce_core: any
+  truce_document_page: any
   truce_documents: any
   truce_markdown: any
   truce_plain_text: any

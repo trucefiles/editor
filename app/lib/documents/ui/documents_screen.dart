@@ -13,6 +13,7 @@ import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
 import '../../document_page/ui/document_screen.dart';
+import '../../file_types/document_types.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folder_state/folder_state_wiring.dart';
 import '../../folders/folder_selection.dart';
@@ -27,6 +28,7 @@ import '../../settings/device_settings_controller.dart';
 import '../document_actions.dart';
 import '../document_settings_controller.dart';
 import '../document_settings_pruning.dart';
+import '../new_document/pick_new_document.dart';
 import 'all_documents_screen.dart';
 import 'document_sections.dart';
 import 'home_menu.dart';
@@ -128,10 +130,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     if (folders.isEmpty) {
       return showSnack(context, 'No folder can be reached right now.');
     }
+    final pick = await pickNewDocument(
+      context,
+      ref.read(documentTypesProvider).newDocuments,
+    );
+    if (pick == null || !mounted) return;
     final place = actions.newFilePlace(folders);
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (_) => DocumentScreen.fresh(place)),
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            DocumentScreen.fresh(place, made: pick.made, name: pick.name),
+      ),
     );
   }
 }

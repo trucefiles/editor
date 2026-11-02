@@ -410,12 +410,12 @@ void main() {
     expect(find.byType(DocumentScreen), findsNothing);
   });
 
-  testApp('a double tap on New document starts one document', (tester) async {
+  testApp('a double tap on Note starts one document', (tester) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New document'));
-    // Both taps where the button is, though the first may have opened the
+    await tester.tapAndSettle(find.byTooltip('New document'));
+    // Both taps where the choice is, though the first may have opened the
     // document already.
-    final newNote = tester.getCenter(find.byTooltip('New document'));
+    final newNote = tester.getCenter(find.text('Note'));
 
     await tester.tapAt(newNote);
     await tester.pump(const Duration(milliseconds: 40));

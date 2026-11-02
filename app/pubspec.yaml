@@ -21,8 +21,11 @@ dependencies:
   path_provider: ^2.1.6
   pool: ^1.5.1
   tray_manager: ^0.8.0
+  truce_calendar: any
+  truce_calendar_editor: any
   truce_core: any
   truce_document_editor: any
+  truce_document_page: any
   truce_documents: any
   truce_folders: any
   truce_markdown: any

@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_documents/truce_documents.dart';
 
 import '../documents/documents_wiring.dart';
+import '../file_types/document_types.dart';
 import '../folder_state/folder_state_controller.dart';
 import 'text_search_wiring.dart';
 
@@ -30,6 +31,7 @@ class DocumentSearchController extends Notifier<SearchResults> {
       searchablesOf(
         ref.read(folderContentsProvider).value?.documents ?? const [],
         filesOf: (folder) => ref.read(folderFilesProvider).of(folder),
+        types: ref.read(documentTypesProvider),
       ),
     );
     final changes = search.changes.listen((_) => find(state.query));

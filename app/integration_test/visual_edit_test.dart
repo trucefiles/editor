@@ -40,7 +40,7 @@ void main() {
 
   testApp('a new document shows it is not saved once typed in', (tester) async {
     await tester.addFolder(app);
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.startNewNote();
     expect(find.byTooltip('Saved in the folder'), findsNothing);
 
     await tester.typeLines('x');

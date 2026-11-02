@@ -38,6 +38,13 @@ final class TimeTexts {
     return '${DateFormat.yMMMMEEEEd(locale).format(at)}, ${_clock(at)}';
   }
 
+  /// When something on a calendar starts: its weekday and day, and its
+  /// clock time unless it lasts [allDay].
+  String day(DateTime start, {required bool allDay}) {
+    final date = DateFormat.MMMEd(locale).format(start);
+    return allDay ? date : '$date, ${_clock(start)}';
+  }
+
   String _clock(DateTime at) =>
       (use24Hour ? DateFormat.Hm(locale) : DateFormat.jm(locale)).format(at);
 }

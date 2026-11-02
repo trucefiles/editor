@@ -73,7 +73,7 @@ final class DocumentFiles {
     required String text,
     bool newSubfolder = false,
   }) async {
-    final file = TextFile.empty().withText(text);
+    final file = type.newFile.withText(text);
     final extension = type.newFileExtension;
     final created = await _createNamed(title, extension, (
       folder: subfolder,
@@ -256,11 +256,15 @@ final class DocumentFiles {
   );
 
   /// Like [saveAsConflict], for a document whose file is gone: [text] is
-  /// written in the default byte style.
+  /// written in its type's style for a new file (e.g. a calendar's line
+  /// breaks).
   Future<Result<void, StoreError>> saveAsConflictOfGone(
     RelPath path,
     String text,
-  ) => _services.conflicts.keepAsConflict(path, TextFile.empty().encode(text));
+  ) => _services.conflicts.keepAsConflict(
+    path,
+    (_types.of(path)?.newFile ?? const TextFile.empty()).encode(text),
+  );
 
   /// Keeps a backup of [text], the document's text now, before the user
   /// replaces it with a backup.

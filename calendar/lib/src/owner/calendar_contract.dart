@@ -12,6 +12,10 @@ import 'package:truce_core/truce_core.dart'
 import '../edit/calendar_edit.dart';
 import '../model/calendar.dart';
 
+/// What the editor shows at one undo step: the [text], and the
+/// [calendar] read from it (`null` if it is no calendar).
+typedef CalendarShown = ({String text, Calendar? calendar});
+
 /// What the calendar editor owner handles: inputs anyone may send, and
 /// the results of its effects.
 sealed class CalendarMessage {
