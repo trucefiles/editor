@@ -30,7 +30,9 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home, 'work': work},
+      now: () => DateTime(2026, 11, 10, 12),
     );
+    addTearDown(model.dispose);
     expect(model.shown, isEmpty, reason: 'no range yet');
 
     model.showRange(DateTime(2026, 11), DateTime(2026, 12));
@@ -44,7 +46,9 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
+      now: () => DateTime(2026, 11, 10, 12),
     )..showRange(DateTime(2026, 11), DateTime(2026, 12));
+    addTearDown(model.dispose);
     var changes = 0;
     model.addListener(() => changes++);
 
@@ -61,7 +65,9 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
+      now: () => DateTime(2026, 11, 10, 12),
     );
+    addTearDown(model.dispose);
     var changes = 0;
     model.addListener(() => changes++);
 
@@ -69,5 +75,40 @@ void main() {
       ..showKind(CalendarViewKind.week)
       ..showKind(CalendarViewKind.week);
     expect((model.kind, changes), (CalendarViewKind.week, 1));
+  });
+
+  test('Add starts today if it shows, else on the first day shown', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => DateTime(2026, 11, 10, 12),
+    );
+    addTearDown(model.dispose);
+
+    model.showRange(DateTime(2026, 11), DateTime(2026, 12));
+    expect(model.dayToAdd, DateTime(2026, 11, 10));
+    model.showRange(DateTime(2026, 12), DateTime(2027));
+    expect(model.dayToAdd, DateTime(2026, 12));
+    model.showRange(DateTime(2026, 11, 3), DateTime(2026, 11, 10));
+    expect(model.dayToAdd, DateTime(2026, 11, 3), reason: 'the end is out');
+  });
+
+  testWidgets('today moves on at midnight', (tester) async {
+    var now = DateTime(2026, 11, 1, 23, 59);
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => now,
+    );
+    var changes = 0;
+    model.addListener(() => changes++);
+    expect(model.today, DateTime(2026, 11));
+
+    now = DateTime(2026, 11, 2);
+    await tester.pump(const Duration(minutes: 1));
+
+    expect((model.today, changes), (DateTime(2026, 11, 2), 1));
+    // Ends the next midnight's wake before the test checks for timers.
+    model.dispose();
   });
 }

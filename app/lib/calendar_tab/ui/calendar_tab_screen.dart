@@ -22,8 +22,6 @@ class CalendarTabScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final calendars = ref.watch(calendarTabProvider).value ?? const [];
-    // Rebuilt at midnight, so today moves on.
-    final picks = ref.watch(calendarTabPicksProvider);
     final viewChoice = ref.watch(calendarViewChoiceProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
@@ -36,7 +34,7 @@ class CalendarTabScreen extends ConsumerWidget {
               onPressed: () => _openForAdding(
                 context,
                 ref,
-                forAdding(calendars, picks.lastUsed),
+                forAdding(calendars, ref.read(lastUsedCalendarProvider)),
               ),
               child: const Icon(Icons.add),
             ),
@@ -110,7 +108,7 @@ class CalendarTabScreen extends ConsumerWidget {
             ),
           );
     if (picked == null || !context.mounted) return;
-    ref.read(calendarTabPicksProvider.notifier).addTo(picked);
+    ref.read(lastUsedCalendarProvider.notifier).addTo(picked);
     await openDocument(context, ref, picked);
   }
 }

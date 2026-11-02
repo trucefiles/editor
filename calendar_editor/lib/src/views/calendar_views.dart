@@ -60,6 +60,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   late final _model = CalendarViewsModel<K>(
     kind: widget.kind,
     calendars: widget.calendars,
+    now: widget.now,
   );
   final _events = DefaultEventsController();
   KalenderController? _kalender;
@@ -117,34 +118,21 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     _model.showRange(range.start, range.end);
   }
 
-  /// Hands the model's state to kalender, which only shows it.
+  /// Hands the model's state to kalender, which only shows it (today
+  /// too, on the rebuild).
   void _showModel() {
     final kalender = _kalender!;
     final configuration = _configurations[_model.kind]!;
     if (kalender.viewConfiguration != configuration) {
       kalender.viewConfiguration = configuration;
     }
-    _events.replaceEvents(
-      eventsOf(_model.shown, movable: widget.onMove != null),
-    );
+    _events.replaceEvents(eventsOf(_model.shown));
     setState(() {});
   }
 
   void _pickKind(CalendarViewKind kind) {
     _model.showKind(kind);
     widget.onKind(kind);
-  }
-
-  /// The day Add event starts on: today if it shows, else the first day
-  /// shown.
-  DateTime _dayToAdd() {
-    final today = DateUtils.dateOnly(widget.now());
-    return switch (_model.range) {
-      (:final from, :final to)
-          when today.isBefore(from) || !today.isBefore(to) =>
-        DateUtils.dateOnly(from),
-      _ => today,
-    };
   }
 
   @override
@@ -198,7 +186,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onPrevious: kalender.animateToPreviousPage,
           onNext: kalender.animateToNextPage,
           onToday: () => kalender.animateToDate(widget.now()),
-          onAdd: onAdd == null ? null : () => onAdd(OnDay(_dayToAdd())),
+          onAdd: onAdd == null ? null : () => onAdd(OnDay(_model.dayToAdd)),
         ),
         Expanded(
           child: KalenderView(

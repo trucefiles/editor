@@ -10,7 +10,6 @@ final class OccurrenceEvent<K> extends KalenderEvent {
   OccurrenceEvent(
     this.calendar,
     this.occurrence, {
-    required bool movable,
     DateTime? start,
     DateTime? end,
   }) : super(
@@ -18,9 +17,6 @@ final class OccurrenceEvent<K> extends KalenderEvent {
          // A broken end before the start shows as no length.
          end: _notBefore(end ?? occurrence.end, start ?? occurrence.start),
          isAllDay: occurrence.allDay,
-         interaction: movable
-             ? EventInteraction.allowAll()
-             : EventInteraction.allowNone(),
        );
 
   final K calendar;
@@ -31,13 +27,7 @@ final class OccurrenceEvent<K> extends KalenderEvent {
   OccurrenceEvent<K> copyWithData({
     required DateTime start,
     required DateTime end,
-  }) => OccurrenceEvent(
-    calendar,
-    occurrence,
-    movable: interaction.allowRescheduling,
-    start: start,
-    end: end,
-  );
+  }) => OccurrenceEvent(calendar, occurrence, start: start, end: end);
 
   @override
   bool operator ==(Object other) =>
@@ -53,13 +43,11 @@ final class OccurrenceEvent<K> extends KalenderEvent {
 DateTime _notBefore(DateTime end, DateTime start) =>
     end.isBefore(start) ? start : end;
 
-/// [shown] as kalender events; dragged only if [movable].
-List<OccurrenceEvent<K>> eventsOf<K>(
-  List<ShownOccurrence<K>> shown, {
-  required bool movable,
-}) => [
+/// [shown] as kalender events (whether they can be dragged is the
+/// views' one rule).
+List<OccurrenceEvent<K>> eventsOf<K>(List<ShownOccurrence<K>> shown) => [
   for (final (:calendar, :occurrence) in shown)
-    OccurrenceEvent(calendar, occurrence, movable: movable),
+    OccurrenceEvent(calendar, occurrence),
 ];
 
 /// The edit that moves [occurrence] alone to [start] up to [end] (where a

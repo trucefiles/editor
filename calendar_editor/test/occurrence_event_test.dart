@@ -29,7 +29,7 @@ void main() {
       final [trip, call] = eventsOf([
         for (final occurrence in _november(calendar))
           (calendar: 'home', occurrence: occurrence),
-      ], movable: true);
+      ]);
 
       expect(
         (trip.isAllDay, trip.start, trip.end),
@@ -51,26 +51,9 @@ void main() {
       );
       final event = eventsOf([
         (calendar: 'home', occurrence: _november(calendar).single),
-      ], movable: true).single;
+      ]).single;
 
       expect(event.end, event.start);
-    });
-
-    test('only movable ones can be dragged', () {
-      final calendar = _read(
-        _calendar(
-          'BEGIN:VEVENT\nUID:b\nDTSTART:20261103T090000\n'
-          'DTEND:20261103T100000\nSUMMARY:Call\nEND:VEVENT\n',
-        ),
-      );
-      final shown = [
-        (calendar: 'home', occurrence: _november(calendar).single),
-      ];
-
-      final fixed = eventsOf(shown, movable: false).single.interaction;
-      final free = eventsOf(shown, movable: true).single.interaction;
-      expect((fixed.allowRescheduling, fixed.allowEndResize), (false, false));
-      expect((free.allowRescheduling, free.allowEndResize), (true, true));
     });
   });
 

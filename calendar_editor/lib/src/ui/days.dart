@@ -8,6 +8,3 @@ List<DateTime> daysFrom(DateTime first, DateTime end) => List.generate(
   ).difference(DateTime.utc(first.year, first.month, first.day)).inDays,
   (index) => DateTime(first.year, first.month, first.day + index),
 );
-
-/// The day after [day], at midnight.
-DateTime nextDay(DateTime day) => DateTime(day.year, day.month, day.day + 1);

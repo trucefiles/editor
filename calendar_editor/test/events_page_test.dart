@@ -478,4 +478,58 @@ void main() {
       ),
     );
   });
+
+  testWidgets('a drag over free times asks for an event over them', (
+    tester,
+  ) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.day),
+    );
+
+    final call = tester.getRect(find.text('Call'));
+    await _drag(
+      tester,
+      call.topCenter + const Offset(0, 3 * _hour + 2),
+      const Offset(0, 2 * _hour),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Lunch');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final lunch = calendarOf(part).events
+        .firstWhere((event) => event.series.summary == 'Lunch')
+        .series;
+    expect(
+      (lunch.start, lunch.end),
+      (
+        Floating(DateTime.utc(2026, 11, 3, 12)),
+        Floating(DateTime.utc(2026, 11, 3, 14)),
+      ),
+    );
+  });
+
+  testWidgets('a drag over days asks for an all-day event over them', (
+    tester,
+  ) async {
+    final part = calendarPart(newCalendarText('Home'));
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+
+    final from = tester.getCenter(find.text('10')) + const Offset(0, 40);
+    final to = tester.getCenter(find.text('12')) + const Offset(0, 40);
+    await _drag(tester, from, to - from, kind: PointerDeviceKind.mouse);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Trip');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final trip = calendarOf(part).events.single.series;
+    expect(
+      (trip.start, trip.end),
+      (AllDay(DateTime(2026, 11, 10)), AllDay(DateTime(2026, 11, 13))),
+    );
+  });
 }

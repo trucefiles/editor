@@ -2,12 +2,11 @@
 sealed class NewEventSpot {
   const NewEventSpot();
 
-  /// The spot of a range the user tapped or dragged over, [start] up to
-  /// [end] (on this device's clock): whole days are [OnDay], the first of
-  /// them; else [AtTimes].
+  /// The spot of a range the user dragged over, [start] up to [end] (on
+  /// this device's clock): whole days are [OnDays]; else [AtTimes].
   factory NewEventSpot.of(DateTime start, DateTime end) =>
       _isMidnight(start) && _isMidnight(end) && end.isAfter(start)
-      ? OnDay(start)
+      ? OnDays(start, end)
       : AtTimes(start, end);
 }
 
@@ -16,6 +15,15 @@ final class AtTimes extends NewEventSpot {
   const AtTimes(this.start, this.end);
 
   final DateTime start;
+  final DateTime end;
+}
+
+/// The whole days from [first] up to [end] (the day after the last): a
+/// drag over days.
+final class OnDays extends NewEventSpot {
+  const OnDays(this.first, this.end);
+
+  final DateTime first;
   final DateTime end;
 }
 

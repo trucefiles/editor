@@ -9,8 +9,9 @@ import 'occurrence_draft.dart';
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
 
-/// Asks for a new event at [spot] and adds it: at its times, else on its
-/// day from 9:00 for an hour; in the device's zone.
+/// Asks for a new event at [spot] and adds it: at its times, over its
+/// whole days, else on its day from 9:00 for an hour; times in the
+/// device's zone.
 Future<void> addEvent(
   BuildContext context,
   NewEventSpot spot,
@@ -32,6 +33,7 @@ Future<void> addEvent(
   );
   final (start, end) = switch (spot) {
     AtTimes(:final start, :final end) => (at(start), at(end)),
+    OnDays(:final first, :final end) => (AllDay(first), AllDay(end)),
     OnDay(:final day) => (at(day, hour: 9), at(day, hour: 10)),
   };
   final draft = await showEventForm(
