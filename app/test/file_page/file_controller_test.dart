@@ -133,18 +133,11 @@ void main() {
       );
     });
 
-    test('whether the folders still show the document', () {
+    test("whether the folders still hold the file's folder", () {
       final controller = controllerOn(fixture.session());
-      final shown = fixture.folders[0];
 
-      expect(controller.shownIn(fixture.folders), FileShown.shown);
-      expect(
-        controller.shownIn([
-          shown.copyWith(selection: Selection.of([RelPath.parse('sub')!])),
-        ]),
-        FileShown.narrowedAway,
-      );
-      expect(controller.shownIn([fixture.folders[1]]), FileShown.folderRemoved);
+      expect(controller.folderShownIn(fixture.folders), isTrue);
+      expect(controller.folderShownIn([fixture.folders[1]]), isFalse);
     });
   });
 

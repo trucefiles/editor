@@ -8,9 +8,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/backups/all_backups.dart';
 import 'package:truce_editor/backups/restore_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/folders/open_folders_wiring.dart';
+import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../support.dart';
@@ -84,7 +83,7 @@ void main() {
 
     final listed = await container.read(allBackupsProvider.future);
 
-    expect(listed.single.folder.base.address, Uri.file(dir.path));
+    expect(listed.single.folder.id, folderId('f1'));
     expect(listed.single.backup.filePath, path('todo.md'));
   });
 

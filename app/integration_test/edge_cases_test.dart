@@ -377,17 +377,23 @@ void main() {
     await tester.leaveExpecting(app, '# Steps\n1. one\n2. three\n');
   });
 
-  testApp('a folder added before cannot be added whole again', (tester) async {
+  testApp('a folder added before cannot be added again', (tester) async {
     app.write('plan.md', '# Plan\n');
+    app.picks.insert(0, app.files);
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
 
     await tester.tapAndSettle(find.byTooltip('Manage folders'));
     await tester.tapAndSettle(find.text('Add folder').last);
-    await tester.tapAndSettle(find.text(app.files.path));
-    await tester.tapAndSettle(find.text('Whole folder'));
-    expect(find.text('Another folder shows part of it.'), findsOneWidget);
-    for (final _ in ['parts', 'add folder', 'folders']) {
+    await tester.tapAndSettle(find.text('Syncthing'));
+    expect(find.text('Added before'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'))
+          .onPressed,
+      isNull,
+    );
+    for (final _ in ['tree', 'add folder', 'folders']) {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }

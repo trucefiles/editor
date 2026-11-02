@@ -13,11 +13,11 @@ void main() {
 
   setUp(() => storage = AppStorage(tempFolder().path));
 
-  /// Writes a backup of `a.md` saved [age] ago into [folderId]'s backups.
-  File backup(String folderId, Duration age) {
+  /// Writes a backup of `a.md` saved [age] ago into the backups of the folder [folder].
+  File backup(String folder, Duration age) {
     final savedAt = DateTime.now().subtract(age).microsecondsSinceEpoch;
     return File(
-      '${storage.backupsPath(folderId)}/$savedAt.other/documents/a.md',
+      '${storage.backupsPath(folderId(folder))}/$savedAt.other/documents/a.md',
     )..writeCreatingFolders('backup');
   }
 
@@ -54,7 +54,7 @@ void main() {
     // A backup on its way: its folder is made, its file not yet.
     final micros = DateTime.now().microsecondsSinceEpoch;
     final fresh = Directory(
-      '${storage.backupsPath('current')}/$micros.edit/documents',
+      '${storage.backupsPath(folderId('current'))}/$micros.edit/documents',
     )..createSync(recursive: true);
 
     await prune();
@@ -62,7 +62,10 @@ void main() {
     expect(old.parent.parent.existsSync(), isFalse);
     expect(recent.parent.existsSync(), isTrue);
     expect(fresh.existsSync(), isTrue);
-    expect(Directory(storage.backupsPath('current')).existsSync(), isTrue);
+    expect(
+      Directory(storage.backupsPath(folderId('current'))).existsSync(),
+      isTrue,
+    );
   });
 
   test('deletes old backups again each time the app comes into use', () async {

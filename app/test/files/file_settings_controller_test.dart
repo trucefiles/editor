@@ -87,8 +87,8 @@ void main() {
     late Folder home;
 
     setUp(() {
-      work = folderAt(tempFolder(), id: 'work', baseId: 'work');
-      home = folderAt(tempFolder(), id: 'home', baseId: 'home');
+      work = folderAt(tempFolder(), id: 'work');
+      home = folderAt(tempFolder(), id: 'home');
     });
 
     final now = DateTime.utc(2026, 10, 21, 9);
@@ -106,7 +106,7 @@ void main() {
     FolderContents scans(
       List<ListedFile> files, {
       Map<Folder, StoreError> failed = const {},
-      Map<String, List<RelPath>> unreadable = const {},
+      Map<FolderId, List<RelPath>> unreadable = const {},
     }) => contentsFinding(
       files,
       folders: [work, home],
@@ -174,16 +174,6 @@ void main() {
       await pruneAfterGrace(scans([], failed: {home: StoreError.ioFailure}));
 
       expect(viewOf(unread.key), 'read');
-    });
-
-    test('keeps the views of documents no folder shows', () async {
-      final narrowed = work.copyWith(selection: Selection.of([path('kept')]));
-      final outside = fileAt(work, 'elsewhere/a.md');
-      await remember(outside.key, 'read');
-
-      await pruneAfterGrace(contentsFinding([], folders: [narrowed, home]));
-
-      expect(viewOf(outside.key), 'read');
     });
 
     test('keeps views below subfolders that could not be read', () async {

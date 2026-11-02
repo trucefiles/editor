@@ -26,14 +26,12 @@ extension AppSteps on WidgetTester {
     await waitUntil(() => find.text('Add folder').evaluate().isEmpty);
   }
 
-  /// Adds the next folder the picker gives, whole and synced by
-  /// Syncthing, step by step, from a screen with an Add folder button.
+  /// Adds the next folder the picker gives, a Syncthing folder, whole,
+  /// step by step, from a screen with an Add folder button.
   Future<void> addPickedFolder() async {
     await tapAndSettle(find.text('Add folder').last);
-    await tapAndSettle(find.text('Pick a folder'));
-    await waitFor(find.text('Syncthing'));
     await tapAndSettle(find.text('Syncthing'));
-    await tapAndSettle(find.text('Whole folder'));
+    await waitFor(find.text('Folders to add'));
     await tapAndSettle(find.text('Next'));
     await tapAndSettle(find.text('Add'));
   }

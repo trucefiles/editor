@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/reach/folder_reach_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_folders/truce_folders.dart';

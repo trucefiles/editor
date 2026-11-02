@@ -8,14 +8,11 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
-import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 
@@ -51,8 +48,6 @@ void main() {
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
-        hostPathsProvider.overrideWithValue(const SameHostPaths()),
-        syncToolsProvider.overrideWith((ref) => SyncTools([hostSyncthing()])),
       ],
       child: const TruceApp(),
     );

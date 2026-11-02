@@ -49,7 +49,11 @@ void main() {
           for (final section in sections)
             (section.folder.id, section.subfolder?.value),
         ],
-        [('home', null), ('work', null), ('work', 'work')],
+        [
+          (folderId('home'), null),
+          (folderId('work'), null),
+          (folderId('work'), 'work'),
+        ],
       );
       expect(sections.last.files, [a9, a10, b]);
     });
@@ -59,7 +63,7 @@ void main() {
     final atWork = doc('a.md');
     final atHome = listedFile(home, name: 'b.md');
 
-    expect(filteredBy('home', [atWork, atHome]), [atHome]);
+    expect(filteredBy(folderId('home'), [atWork, atHome]), [atHome]);
     expect(filteredBy(null, [atWork, atHome]), [atWork, atHome]);
   });
 }

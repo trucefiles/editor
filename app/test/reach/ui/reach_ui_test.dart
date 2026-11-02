@@ -65,7 +65,7 @@ void main() {
           appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
           folderReachProvider(folder.id)
-              .overrideWith(() => _FixedReach(folder.base, reach)),
+              .overrideWith(() => _FixedReach(folder.id, reach)),
         ],
         child: MaterialApp(
           home: Scaffold(body: UnreachableBanner(folder, message: 'Wait.')),
@@ -89,7 +89,7 @@ void main() {
 }
 
 final class _FixedReach extends FolderReachController {
-  _FixedReach(super.base, this._reach);
+  _FixedReach(super.folder, this._reach);
 
   final Reach _reach;
 

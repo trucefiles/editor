@@ -38,7 +38,7 @@ void main() {
     page.session.replaceAll('mine\n');
 
     // A folder change keeps the edits of the open files first.
-    await open.secureIn(fixture.folders[0].base);
+    await open.secureIn(fixture.folders[0].id);
     expect(fixture.onDisk('a.md'), 'mine\n');
 
     page.session.replaceAll('more\n');
@@ -57,7 +57,7 @@ void main() {
     addTearDown(page.close);
 
     final file = page.session.file as NewFile;
-    expect(file.folder.id, 'f2');
+    expect(file.folder.id, folderId('f2'));
     expect(file.type, appFileTypes().forNew);
     expect(page.type, appFileTypes().forNew);
   });

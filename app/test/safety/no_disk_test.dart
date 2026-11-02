@@ -6,10 +6,10 @@ import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_wiring.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakeFolder, FakePlugin;

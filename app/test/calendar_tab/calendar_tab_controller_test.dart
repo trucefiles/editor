@@ -6,10 +6,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/calendar_tab/calendar_tab_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
-import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 
@@ -26,8 +23,6 @@ void main() {
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
-        hostPathsProvider.overrideWithValue(const SameHostPaths()),
-        syncToolsProvider.overrideWith((ref) => SyncTools([hostSyncthing()])),
       ],
     );
     addTearDown(container.dispose);

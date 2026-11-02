@@ -158,91 +158,62 @@ void main() {
     expect(read('a.md'), '# a\nback');
   });
 
-  group('in a folder of some subfolders', () {
-    late FilesOfFolder work;
-
-    setUp(() {
-      Directory('${dir.path}/work/inbox').createSync(recursive: true);
-      work = filesOf(folderAt(dir, selection: Selection.of([path('work')])));
-    });
-
-    test('refuses a file the folder does not show', () async {
-      File('${dir.path}/home.md').writeAsStringSync('home');
-      File('${dir.path}/work/photo.png').writeAsStringSync('png');
-
-      expect(
-        (await work.open(path('home.md'))).error,
-        const NotRead(StoreError.outside),
-      );
-      expect(
-        (await work.open(path('work/photo.png'))).error,
-        const NotRead(StoreError.outside),
-      );
-    });
-
+  group('subfolders', () {
     test('a new document whose subfolder is gone goes to the top of the '
         'folder', () async {
-      final created = (await work.create(
+      final created = (await files.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
-        subfolder: path('work/gone'),
+        subfolder: path('gone'),
       )).value;
 
-      expect(created.path, path('work/Milk.md'));
-      expect(File('${dir.path}/Milk.md').existsSync(), isFalse);
+      expect(created.path, path('Milk.md'));
+      expect(Directory('${dir.path}/gone').existsSync(), isFalse);
     });
 
     test('makes a new subfolder the user asked for, then the document '
         'in it', () async {
-      final created = (await work.create(
+      final created = (await files.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
-        subfolder: path('work/2026/q1'),
+        subfolder: path('2026/q1'),
         newSubfolder: true,
       )).value;
 
-      expect(created.path, path('work/2026/q1/Milk.md'));
-      expect(read('work/2026/q1/Milk.md'), '# Milk\n');
+      expect(created.path, path('2026/q1/Milk.md'));
+      expect(read('2026/q1/Milk.md'), '# Milk\n');
     });
 
-    test('never makes a new subfolder outside what it shows', () async {
-      final created = await work.create(
+    test('never brings back the folder once it is gone', () async {
+      dir.deleteSync(recursive: true);
+      // Back for the clean up after the test.
+      addTearDown(dir.createSync);
+
+      final created = await files.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
-        subfolder: path('home/new'),
-        newSubfolder: true,
-      );
-
-      expect(created.error, StoreError.outside);
-      expect(Directory('${dir.path}/home').existsSync(), isFalse);
-    });
-
-    test('never brings back its chosen subfolder once it is gone', () async {
-      Directory('${dir.path}/work').deleteSync(recursive: true);
-
-      final created = await work.create(
-        'Milk',
-        type: markdown,
-        text: '# Milk\n',
-        subfolder: path('work'),
       );
 
       expect(created.error, StoreError.notFound);
-      expect(Directory('${dir.path}/work').existsSync(), isFalse);
+      expect(dir.existsSync(), isFalse);
     });
   });
 
-  group('moveIn', () {
+  group('moveTo', () {
     test('moves the file as saved, to a free name', () async {
       File('${dir.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
       Directory('${dir.path}/inbox').createSync();
       File('${dir.path}/inbox/Plan.md').writeAsStringSync('taken');
       final file = (await files.open(path('Plan.md'))).value;
 
-      final moved = (await files.moveIn(file, subfolder: path('inbox'))).value;
+      final moved = (await files.moveTo(
+        files,
+        file,
+        subfolder: path('inbox'),
+      )).value;
 
       expect(moved.path, path('inbox/Plan 2.md'));
       expect(File('${dir.path}/inbox/Plan 2.md').readAsBytesSync(), [
@@ -257,7 +228,8 @@ void main() {
       File('${dir.path}/Plan.md').writeAsStringSync('a');
       final file = (await files.open(path('Plan.md'))).value;
 
-      final moved = (await files.moveIn(
+      final moved = (await files.moveTo(
+        files,
         file,
         subfolder: path('inbox/2026'),
         newSubfolder: true,
@@ -271,9 +243,16 @@ void main() {
       File('${dir.path}/Plan.md').writeAsStringSync('a');
       final file = (await files.open(path('Plan.md'))).value;
 
-      final moved = await files.moveIn(file, subfolder: path('gone'));
+      final moved = await files.moveTo(files, file, subfolder: path('gone'));
 
-      expect(moved.error, StoreError.notFound);
+      expect(
+        moved.error,
+        isA<MoveNotWritten>().having(
+          (failure) => failure.error,
+          'error',
+          StoreError.notFound,
+        ),
+      );
       expect(Directory('${dir.path}/gone').existsSync(), isFalse);
       expect(read('Plan.md'), 'a');
     });
@@ -282,7 +261,7 @@ void main() {
       File('${dir.path}/plan.txt').writeAsStringSync('a');
       final file = (await files.open(path('plan.txt'))).value;
 
-      final moved = (await files.moveIn(file, title: 'Ideas')).value;
+      final moved = (await files.moveTo(files, file, title: 'Ideas')).value;
 
       expect(moved.path, path('Ideas.txt'));
       expect(moved.type, file.type);
@@ -296,9 +275,16 @@ void main() {
       )).value;
       File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
-      final moved = await files.moveIn(file, title: 'b');
+      final moved = await files.moveTo(files, file, title: 'b');
 
-      expect(moved.error, StoreError.changedSinceRead);
+      expect(
+        moved.error,
+        isA<MoveNotWritten>().having(
+          (failure) => failure.error,
+          'error',
+          StoreError.changedSinceRead,
+        ),
+      );
       expect(read('a.md'), 'other device, longer');
       expect(File('${dir.path}/b.md').existsSync(), isFalse);
     });

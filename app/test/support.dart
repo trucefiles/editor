@@ -47,7 +47,7 @@ FolderId folderId(String id) => FolderId('syncthing', id);
 Folder folderAt(Directory dir, {String id = 'f1'}) {
   final folder = Folder(
     id: folderId(id),
-    name: 'Files',
+    name: 'Documents',
     color: 'teal',
     location:
         '${dir.path} (Syncthing folder ${Uri.file(dir.path).pathSegments.last})',
@@ -60,7 +60,8 @@ Folder folderAt(Directory dir, {String id = 'f1'}) {
 final _directories = <FolderId, Directory>{};
 
 /// Saves [folders], made by [folderAt], as the app's folder list, as if
-/// the user had added them; [container]'s folder list loads them.
+/// the user had added them; done once [container]'s folder list has
+/// loaded them.
 Future<void> saveFolders(
   ProviderContainer container,
   List<Folder> folders,
@@ -91,6 +92,7 @@ Future<void> saveFolders(
     ],
     blobs: {'syncthing': state.toJson()},
   ));
+  await container.read(foldersProvider.future);
 }
 
 Uri _addressOf(Folder folder) => Uri.file(_directories[folder.id]!.path);
@@ -246,7 +248,7 @@ Future<Folder> addFolderOf(
 ) async {
   await container.read(foldersProvider.future);
   final added = await container.read(foldersProvider.notifier).add(plugin, [
-    (candidate: candidate, name: 'Files', color: 'teal'),
+    (candidate: candidate, name: 'Documents', color: 'teal'),
   ]);
   return added.value.single;
 }
