@@ -20,6 +20,7 @@ Calendar _edited(String text, CalendarEdit edit) =>
 
 void main() {
   group('a repeat\'s last day', _repeatEnds);
+  group("a series' start moved", _startMoves);
 
   test('a new event is added at the end, stamped, floating', () {
     final calendar = _edited(
@@ -359,5 +360,119 @@ void _repeatEnds() {
       edited.eventOf('s')!.series.rule,
       'FREQ=DAILY;INTERVAL=1;UNTIL=20261110',
     );
+  });
+}
+
+/// A daily series at 9:00 from Monday 2 November 2026, with
+/// [lines] added (e.g. a left-out date), and a changed occurrence when
+/// [changed] is given (its `RECURRENCE-ID` and start).
+String _daily({
+  String lines = '',
+  String rule = 'FREQ=DAILY',
+  String? changed,
+}) =>
+    'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s@x\nDTSTART:20261102T090000\n'
+    'DTEND:20261102T100000\nRRULE:$rule\n${lines}SUMMARY:Run\nEND:VEVENT\n'
+    '${changed ?? ''}END:VCALENDAR\n';
+
+/// [text]'s series `s@x` moved to start at [start] (an hour long).
+Calendar _movedTo(String text, CalendarTime start) {
+  final draft = EventDraft.of(Calendar.read(text)!.eventOf('s@x')!.series);
+  return _edited(
+    text,
+    ChangeSeries(
+      's@x',
+      EventDraft(
+        summary: draft.summary,
+        start: start,
+        end: start.at(start.wall.add(const Duration(hours: 1))),
+        repeat: draft.repeat,
+      ),
+      at: _at,
+    ),
+  );
+}
+
+/// The summaries of [calendar]'s occurrences from [from] for [days] days.
+List<(DateTime, String)> _shown(Calendar calendar, DateTime from, int days) => [
+  for (final occurrence in occurrences(
+    calendar,
+    from,
+    from.add(Duration(days: days)),
+  ))
+    (occurrence.start, occurrence.part.summary),
+];
+
+void _startMoves() {
+  test('a left-out date and a changed one move with their slots', () {
+    final text = _daily(
+      lines: 'EXDATE:20261104T090000\n',
+      changed:
+          'BEGIN:VEVENT\nUID:s@x\nRECURRENCE-ID:20261105T090000\n'
+          'DTSTART:20261105T070000\nDTEND:20261105T080000\n'
+          'SUMMARY:Early run\nEND:VEVENT\n',
+    );
+    final moved = _movedTo(text, Floating(DateTime(2026, 11, 3, 10)));
+
+    expect(moved.text, contains('EXDATE:20261105T100000\n'));
+    expect(moved.text, contains('RECURRENCE-ID:20261106T100000\n'));
+    expect(
+      moved.text,
+      contains('DTSTART:20261105T070000\n'),
+      reason: 'a changed one keeps its own times',
+    );
+    expect(_shown(moved, DateTime(2026, 11, 3), 5), [
+      (DateTime(2026, 11, 3, 10), 'Run'),
+      (DateTime(2026, 11, 4, 10), 'Run'),
+      (DateTime(2026, 11, 5, 7), 'Early run'),
+      (DateTime(2026, 11, 7, 10), 'Run'),
+    ], reason: 'the 5th left out, the 6th changed; nothing shows twice');
+  });
+
+  test('a repeat on fixed days keeps their dates; only the time moves', () {
+    final text = _daily(
+      rule: 'FREQ=WEEKLY;BYDAY=MO',
+      lines: 'EXDATE:20261109T090000\n',
+    );
+    final moved = _movedTo(text, Floating(DateTime(2026, 11, 3, 10)));
+
+    expect(moved.text, contains('EXDATE:20261109T100000\n'));
+  });
+
+  test('a series turned from days into times moves its slots to times', () {
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s@x\n'
+        'DTSTART;VALUE=DATE:20261102\nDTEND;VALUE=DATE:20261103\n'
+        'RRULE:FREQ=DAILY\nEXDATE;VALUE=DATE:20261104,20261106\n'
+        'SUMMARY:Run\nEND:VEVENT\nEND:VCALENDAR\n';
+    final moved = _movedTo(
+      text,
+      Zoned('Europe/Berlin', DateTime.utc(2026, 11, 2, 9)),
+    );
+
+    expect(
+      moved.text,
+      contains('EXDATE;TZID=Europe/Berlin:20261104T090000,20261106T090000\n'),
+    );
+  });
+
+  test('an unchanged start leaves the slots as written', () {
+    final text = _daily(lines: 'EXDATE:20261104T090000\n');
+    final draft = EventDraft.of(Calendar.read(text)!.eventOf('s@x')!.series);
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        's@x',
+        EventDraft(
+          summary: 'Long run',
+          start: draft.start,
+          end: draft.end,
+          repeat: draft.repeat,
+        ),
+        at: _at,
+      ),
+    );
+
+    expect(edited.text, contains('EXDATE:20261104T090000\n'));
   });
 }
