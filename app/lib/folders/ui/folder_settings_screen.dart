@@ -28,7 +28,7 @@ final missesOldVersionsProvider = FutureProvider.autoDispose
 class FolderSettingsScreen extends ConsumerStatefulWidget {
   const FolderSettingsScreen(this.folder, {super.key});
 
-  final DocumentFolder folder;
+  final Folder folder;
 
   @override
   ConsumerState<FolderSettingsScreen> createState() =>
@@ -41,8 +41,7 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
   late final _parts = SubfolderChoice(
     names: ref.read(subfolderNamesProvider(widget.folder.base)),
     taken: [
-      for (final other
-          in ref.read(foldersProvider).value ?? const <DocumentFolder>[])
+      for (final other in ref.read(foldersProvider).value ?? const <Folder>[])
         if (other.base == widget.folder.base && other.id != widget.folder.id)
           other.selection,
     ],

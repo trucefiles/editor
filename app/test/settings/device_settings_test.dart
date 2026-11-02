@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/settings/calendar_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
@@ -29,8 +29,8 @@ void main() {
     closeToTray: false,
     home: const HomeSettings(
       recentCount: 100,
-      order: DocumentOrder.name,
-      view: DocumentView.list,
+      order: FileOrder.name,
+      view: FileView.list,
     ),
     calendarView: CalendarViewKind.week,
   );
@@ -71,7 +71,7 @@ void main() {
       );
 
       expect(settings.textZoomOf(TextZoomTarget.app), TextZoom.closestTo(120));
-      expect(settings.textZoomOf(TextZoomTarget.documents), TextZoom.normal);
+      expect(settings.textZoomOf(TextZoomTarget.files), TextZoom.normal);
     });
 
     test('copies keep the place for new documents, and can clear it', () {
@@ -176,8 +176,7 @@ void main() {
 
       await Future.wait([
         settings.change(
-          (s) =>
-              s.withTextZoom(TextZoomTarget.documents, TextZoom.normal.larger),
+          (s) => s.withTextZoom(TextZoomTarget.files, TextZoom.normal.larger),
         ),
         settings.change((s) => s.copyWith(addItemPlace: AddItemPlace.bottom)),
       ]);

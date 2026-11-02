@@ -3,17 +3,17 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/backups/all_backups.dart';
-import 'package:truce_editor/documents/document_actions.dart';
-import 'package:truce_editor/documents/documents_wiring.dart';
-import 'package:truce_editor/documents/previews/card_preview_controller.dart';
+import 'package:truce_editor/files/file_actions.dart';
+import 'package:truce_editor/files/files_wiring.dart';
+import 'package:truce_editor/files/previews/card_preview_controller.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/search/search_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
 
@@ -28,7 +28,7 @@ void main() {
   late SpyFileStore spy;
 
   /// Starts the app's providers with [folders] added.
-  Future<void> start(List<DocumentFolder> folders) async {
+  Future<void> start(List<Folder> folders) async {
     container = ProviderContainer(
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
@@ -80,24 +80,22 @@ void main() {
   test('every flow touches only what the folder shows', () async {
     final folder = folderAt(dir, selection: work);
     await start([folder]);
-    final actions = container.read(documentActionsProvider);
+    final actions = container.read(fileActionsProvider);
     final files = container.read(folderFilesProvider).of(folder);
-    final markdown = appDocumentTypes().forNew;
+    final markdown = appFileTypes().forNew;
 
     final found = await scanned();
     expect([
-      for (final document in found.documents) document.path.value,
+      for (final file in found.files) file.path.value,
     ], unorderedEquals(['notes/work/a.md', 'notes/work/inbox/c.md']));
-    for (final document in found.documents) {
-      await container.read(cardPreviewsProvider).read(document);
+    for (final file in found.files) {
+      await container.read(cardPreviewsProvider).read(file);
     }
     final search = container.listen(searchProvider, (_, _) {});
     await eventually(() => search.read().complete);
     search.close();
     final a = (await files.reload(
-      found.documents.firstWhere(
-        (document) => document.path.value == 'notes/work/a.md',
-      ),
+      found.files.firstWhere((file) => file.path.value == 'notes/work/a.md'),
     )).value;
     final saved = (await files.save(a, '# A\nmore')).value;
     await files.backUpBeforeEdit(saved);
@@ -108,7 +106,7 @@ void main() {
       title: 'New',
       text: '# New',
     )).value;
-    await actions.setMark(created.document, const DocumentMark(color: 'teal'));
+    await actions.setMark(created.listed, const FileMark(color: 'teal'));
     final moved = (await actions.move(created, (
       folder: folder,
       subfolder: path('notes/work/inbox'),
@@ -140,10 +138,10 @@ void main() {
       final files = container.read(folderFilesProvider).of(folder);
       final b = (await files.open(path('home/b.md'))).value;
       final saved = (await files.save(b, '# B\nfirst')).value;
-      // The open document's last edits, kept as the folder changes.
+      // The open file's last edits, kept as the folder changes.
       var secured = false;
       container
-          .read(openDocumentsProvider)
+          .read(openFilesProvider)
           .add(
             base: () => folder.base,
             secure: () async {
@@ -152,7 +150,7 @@ void main() {
           );
       final drafts = container.read(draftsProvider).of(folder.base.id);
       await drafts.keep(
-        DocumentDraft(id: 'left', path: path('home/b.md'), base: '', text: 'x'),
+        FileDraft(id: 'left', path: path('home/b.md'), base: '', text: 'x'),
       );
 
       final changed = await container
@@ -176,7 +174,7 @@ void main() {
       );
       await scanned();
       await container
-          .read(documentStepsProvider)
+          .read(fileStepsProvider)
           .recoverDrafts(before: DateTime.now().add(const Duration(days: 1)));
 
       expect(File('${dir.path}/home/b.md').readAsStringSync(), '# B\nlast');

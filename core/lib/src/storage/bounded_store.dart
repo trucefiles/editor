@@ -12,7 +12,7 @@ import 'selection.dart';
 /// Inside [selection], three kinds of access: the files [handles] (the
 /// handled file types and the app's own files, e.g. marks) are listed,
 /// read and written; every other file is only read, never listed or
-/// written (e.g. an image a document links). Listings walk only folders
+/// written (e.g. an image a file links). Listings walk only folders
 /// inside the selection or on the way to it. Anything else fails with
 /// [StoreError.outside].
 ///

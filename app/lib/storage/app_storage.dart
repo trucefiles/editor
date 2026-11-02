@@ -26,7 +26,7 @@ final class AppStorage {
   /// Backups of one base folder's files, by [baseId].
   String backupsPath(String baseId) => '$_backupsRootPath/$baseId';
 
-  /// Edits not yet in one base folder's document files, by [baseId].
+  /// Edits not yet in one base folder's files, by [baseId].
   String draftsPath(String baseId) => '$rootPath/drafts/$baseId';
 
   /// Every backup folder, also of base folders removed from the app since.

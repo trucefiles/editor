@@ -4,9 +4,9 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../folder_colors.dart';
 
-/// The folder's color dot and name, so it is always clear where a document
-/// lives. With [file], also the subfolders it is in, e.g. `Documents/work/2026`,
-/// and with [withName] its name, e.g. `Documents/work/todo.md`; with
+/// The folder's color dot and name, so it is always clear where a file
+/// lives. With [file], also the subfolders it is in, e.g. `Files/work/2026`,
+/// and with [withName] its name, e.g. `Files/work/todo.md`; with
 /// [subfolder], that subfolder.
 class FolderBadge extends StatelessWidget {
   const FolderBadge(
@@ -17,7 +17,7 @@ class FolderBadge extends StatelessWidget {
     super.key,
   });
 
-  final DocumentFolder folder;
+  final Folder folder;
 
   /// A file in [folder].
   final RelPath? file;
@@ -50,12 +50,11 @@ class FolderBadge extends StatelessWidget {
   }
 }
 
-/// [folder]'s name, followed by [subfolder] if given, e.g. `Documents/work`.
-String placeName(DocumentFolder folder, RelPath? subfolder) =>
-    switch (subfolder) {
-      final subfolder? => '${folder.name}/${subfolder.value}',
-      null => folder.name,
-    };
+/// [folder]'s name, followed by [subfolder] if given, e.g. `Files/work`.
+String placeName(Folder folder, RelPath? subfolder) => switch (subfolder) {
+  final subfolder? => '${folder.name}/${subfolder.value}',
+  null => folder.name,
+};
 
 class FolderDot extends StatelessWidget {
   const FolderDot(this.color, {super.key, this.size = 10});

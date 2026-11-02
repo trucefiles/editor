@@ -11,7 +11,7 @@ import 'folder_notice_text.dart';
 class FolderNoticesView extends ConsumerWidget {
   const FolderNoticesView(this.folder, {super.key});
 
-  final DocumentFolder folder;
+  final Folder folder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

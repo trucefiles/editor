@@ -11,7 +11,7 @@ import '../folder_reach_controller.dart';
 class UnreachableBanner extends ConsumerWidget {
   const UnreachableBanner(this.folder, {required this.message, super.key});
 
-  final DocumentFolder folder;
+  final Folder folder;
   final String message;
 
   @override

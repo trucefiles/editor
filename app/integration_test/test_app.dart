@@ -21,21 +21,21 @@ import 'package:truce_test_support/truce_test_support.dart';
 import 'ui_driver.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
-/// [documents], then [work], instead of opening the system dialog.
+/// [files], then [work], instead of opening the system dialog.
 final class TestApp {
-  TestApp._(this.documents, this.work, this._storage);
+  TestApp._(this.files, this.work, this._storage);
 
   /// Creates the temp folders; both are deleted after the test.
   factory TestApp.create() {
     final root = Directory.systemTemp.createTempSync('truce_ui_test');
     addTearDown(() => root.deleteSync(recursive: true));
-    final documents = Directory('${root.path}/Documents')..createSync();
+    final files = Directory('${root.path}/Documents')..createSync();
     final work = Directory('${root.path}/Work')..createSync();
-    return TestApp._(documents, work, AppStorage('${root.path}/app'));
+    return TestApp._(files, work, AppStorage('${root.path}/app'));
   }
 
   /// The folder the picker hands to the app.
-  final Directory documents;
+  final Directory files;
 
   /// The folder the picker hands to the app the second time.
   final Directory work;
@@ -55,7 +55,7 @@ final class TestApp {
           loadedDeviceSettingsProvider.overrideWithValue(settings),
           systemTrayProvider.overrideWithValue(null),
           folderPickerProvider.overrideWithValue(
-            _QueuedPicker([documents.path, work.path]),
+            _QueuedPicker([files.path, work.path]),
           ),
         ],
         child: const TruceApp(),
@@ -89,7 +89,7 @@ final class TestApp {
           .writeCreatingFolders('{"broken": true}');
 
   /// [name] may lead through subfolders; [write] creates them.
-  File file(String name) => File('${documents.path}/$name');
+  File file(String name) => File('${files.path}/$name');
 
   /// Writes [text] to [name], creating its subfolders.
   void write(String name, String text) =>
@@ -103,10 +103,10 @@ final class TestApp {
   }
 
   /// [name] may lead through subfolders.
-  Directory folder(String name) => Directory('${documents.path}/$name');
+  Directory folder(String name) => Directory('${files.path}/$name');
 
   /// The files at the top of the documents folder.
-  Iterable<File> get topFiles => documents.listSync().whereType<File>();
+  Iterable<File> get topFiles => files.listSync().whereType<File>();
 
   /// The names of what [name] holds, files and folders; the documents folder
   /// itself if [name] is empty.
@@ -144,10 +144,10 @@ final class _QueuedPicker implements FolderPicker {
 }
 
 /// A test of the app, [body]; then closes the screens still open and
-/// lets a closed document finish its last steps (its file written, its
+/// lets a closed file finish its last steps (its file written, its
 /// draft dropped) before the app goes. The screens are popped, not left
 /// the user's way, as that may ask the user (e.g. to discard edits). A
-/// closed document's last steps are file work no widget shows, so the
+/// closed file's last steps are file work no widget shows, so the
 /// app runs a set time for them. One more frame runs for the work
 /// widgets schedule as they go (the editor lets go of the keyboard a
 /// frame later), before Flutter checks that none is left.

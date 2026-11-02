@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
 import 'package:truce_editor/backups/all_backups.dart';
-import 'package:truce_editor/documents/documents_wiring.dart';
+import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_editor/sync_tool/sync_tools_wiring.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart' show FakeSyncTool;
 
@@ -32,7 +32,7 @@ void main() {
     return container;
   }
 
-  Future<Result<DocumentFolder, FolderError>> add(
+  Future<Result<Folder, FolderError>> add(
     ProviderContainer folders,
     String basePath, {
     Selection selection = const WholeFolder(),
@@ -97,7 +97,7 @@ void main() {
     expect((await add(folders, '/sync')).error, FolderError.overlaps);
     expect(
       await add(folders, '/sync', selection: subfolders(['workshop'])),
-      isA<Ok<DocumentFolder, FolderError>>(),
+      isA<Ok<Folder, FolderError>>(),
     );
   });
 
@@ -112,7 +112,7 @@ void main() {
     expect((await add(folders, '/sync')).error, FolderError.overlaps);
     expect(
       await add(folders, '/sync/Documents2'),
-      isA<Ok<DocumentFolder, FolderError>>(),
+      isA<Ok<Folder, FolderError>>(),
     );
   });
 
@@ -122,7 +122,7 @@ void main() {
 
     expect(
       await add(folders, 'fake://host/sync/Documents'),
-      isA<Ok<DocumentFolder, FolderError>>(),
+      isA<Ok<Folder, FolderError>>(),
     );
     expect(
       (await add(folders, 'fake://host/sync')).error,
@@ -245,7 +245,7 @@ void main() {
     )).value;
     final secured = <String>[];
     folders
-        .read(openDocumentsProvider)
+        .read(openFilesProvider)
         .add(
           base: () => work.base,
           secure: () async {
@@ -270,8 +270,8 @@ void main() {
   });
 
   group('removing a folder', () {
-    DocumentDraft draft(String id, String at) =>
-        DocumentDraft(id: id, path: path(at), base: '', text: 'mine');
+    FileDraft draft(String id, String at) =>
+        FileDraft(id: id, path: path(at), base: '', text: 'mine');
 
     Future<List<String>> draftsOf(
       ProviderContainer folders,
@@ -368,9 +368,7 @@ void main() {
         .writeCreatingFolders('{"broken": true}');
     final folders = container();
 
-    await folders
-        .read(documentStepsProvider)
-        .recoverDrafts(before: DateTime.now());
+    await folders.read(fileStepsProvider).recoverDrafts(before: DateTime.now());
     expect(await folders.read(allBackupsProvider.future), isEmpty);
   });
 }

@@ -1,6 +1,6 @@
 import '../common/moment.dart';
 import '../conflicts/conflict.dart';
-import '../marks/document_marks.dart';
+import '../marks/file_marks.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 

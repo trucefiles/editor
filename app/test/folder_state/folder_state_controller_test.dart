@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
-import 'package:truce_editor/documents/documents_wiring.dart';
-import 'package:truce_editor/file_types/document_types.dart';
+import 'package:truce_editor/file_types/file_types.dart';
+import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
@@ -18,7 +18,7 @@ void main() {
   late AppStorage storage;
 
   /// Starts the app's providers with [folders] saved as the folder list.
-  Future<void> start(List<DocumentFolder> folders) async {
+  Future<void> start(List<Folder> folders) async {
     storage = AppStorage(tempFolder().path);
     container = ProviderContainer(
       overrides: [
@@ -33,9 +33,9 @@ void main() {
   Future<FolderContents> scans() =>
       container.read(folderContentsProvider.future);
 
-  /// The file names of [contents]' documents, in order.
+  /// The file names of [contents]' files, in order.
   List<String> names(FolderContents contents) => [
-    for (final document in contents.documents) document.path.name,
+    for (final file in contents.files) file.path.name,
   ];
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
@@ -90,9 +90,9 @@ void main() {
     final dir = tempFolder();
     write(dir, 'plan.md', '# Plan\nv1\n');
     await start([folderAt(dir, id: 'f1')]);
-    final drafts = DocumentDrafts(Directory(storage.draftsPath('f1')));
+    final drafts = FileDrafts(Directory(storage.draftsPath('f1')));
     await drafts.keep(
-      DocumentDraft(
+      FileDraft(
         id: '1',
         path: path('plan.md'),
         base: '# Plan\nv1\n',
@@ -118,21 +118,21 @@ void main() {
     write(dir, 'a/b/c/todo.sync-conflict-20261003-134809-ABCDEFG.md', '# Old');
     final folder = folderAt(dir);
     await servicesFor(folder).marks
-        .set(path('a/b/c/todo.md'), const DocumentMark(color: 'teal'));
+        .set(path('a/b/c/todo.md'), const FileMark(color: 'teal'));
     await start([folder]);
 
     final found = await scans();
 
     expect(
-      found.documents.map((n) => n.path.value),
+      found.files.map((n) => n.path.value),
       unorderedEquals(['todo.md', 'a/todo.md', 'a/b/c/todo.md']),
     );
     final deep = (baseId: folder.base.id, path: path('a/b/c/todo.md'));
     final shallow = (baseId: folder.base.id, path: path('a/todo.md'));
     expect(found.markOf(deep).color, 'teal');
-    expect(found.markOf(shallow), DocumentMark.none);
-    expect(found.conflicts.forDocument(deep), isNotNull);
-    expect(found.conflicts.forDocument(shallow), isNull);
+    expect(found.markOf(shallow), FileMark.none);
+    expect(found.conflicts.forFile(deep), isNotNull);
+    expect(found.conflicts.forFile(shallow), isNull);
   });
 
   test('lists every subfolder per folder, empty ones too', () async {
@@ -178,7 +178,7 @@ void main() {
     }
     await start([folderAt(dir)]);
 
-    expect((await scans()).documents.map((n) => n.path.value), [
+    expect((await scans()).files.map((n) => n.path.value), [
       'a.md',
       'b.md',
       'c.md',
@@ -193,7 +193,7 @@ void main() {
       write(dir, 'new.md', '# New', modified: DateTime(2025));
       final folder = folderAt(dir);
       final marks = servicesFor(folder).marks;
-      await marks.set(path('new.md'), const DocumentMark(color: 'teal'));
+      await marks.set(path('new.md'), const FileMark(color: 'teal'));
       await start([folder]);
 
       final found = await scans();
@@ -201,7 +201,7 @@ void main() {
       expect(names(found), ['new.md', 'old.md']);
       expect(
         found.markOf((baseId: folder.base.id, path: path('new.md'))),
-        const DocumentMark(color: 'teal'),
+        const FileMark(color: 'teal'),
       );
     },
   );
@@ -213,7 +213,7 @@ void main() {
     final found = await scans();
 
     expect(found.failedFolders, {gone: StoreError.notFound});
-    expect(found.documents, isEmpty);
+    expect(found.files, isEmpty);
   });
 
   test('lists a file that is not text, without reading it', () async {
@@ -236,7 +236,7 @@ void main() {
         .of(folder)
         .create(
           'New',
-          type: container.read(documentTypesProvider).forNew,
+          type: container.read(fileTypesProvider).forNew,
           text: '# New',
         );
 
@@ -266,6 +266,6 @@ void main() {
         .change(folder.copyWith(name: 'Renamed'));
     await container.read(folderContentsProvider.notifier).refresh();
 
-    expect((await scans()).documents.single.folder.name, 'Renamed');
+    expect((await scans()).files.single.folder.name, 'Renamed');
   });
 }

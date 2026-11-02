@@ -29,7 +29,7 @@ void main() {
   testApp('a name with % and # saves into its own file', (tester) async {
     app.write('50% #1.md', '# Half\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Half');
+    await tester.openFile('Half');
 
     await tester.typeOver('# Half\nv2\n');
     await tester.pageBack();
@@ -44,7 +44,7 @@ void main() {
       ..write('plan.md', '# Plan\n\n![p](my%20picture.png)\n')
       ..writePicture('my picture.png', width: 2);
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.chooseMode('Read');
 
     await tester.runFor(const Duration(seconds: 2));
@@ -56,7 +56,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nsame\n');
 
     app.write('plan.md', '# Plan\nsame\n');
@@ -79,7 +79,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.file('plan.md').deleteSync();
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -101,7 +101,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.chooseInMenu('Delete document');
@@ -117,7 +117,7 @@ void main() {
   testApp('two renames in a row leave one file with the text', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nv2\n');
 
     await tester.placeNote(name: 'Ideas');
@@ -136,7 +136,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('inbox/plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
 
     app.folder('inbox').renameSync(app.folder('archive').path);
@@ -147,7 +147,7 @@ void main() {
     await tester.runFor(const Duration(seconds: 1));
 
     final texts = [
-      for (final entry in app.documents.listSync(recursive: true))
+      for (final entry in app.files.listSync(recursive: true))
         if (entry is File) entry.readAsStringSync(),
     ];
     expect(texts, contains('# Plan\nmine\n'));
@@ -175,7 +175,7 @@ void main() {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
     await tester.addWorkFolder();
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
 
     await tester.placeNote(folder: 'Work');
@@ -195,7 +195,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -216,7 +216,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('# Plan\nmine\n');
 
     final notText = [0x23, 0x20, 0xFF, 0xFE, 0x0A];

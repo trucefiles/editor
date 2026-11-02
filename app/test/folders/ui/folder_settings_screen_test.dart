@@ -26,7 +26,7 @@ void main() {
 
   Future<void> open(
     WidgetTester tester, {
-    DocumentFolder? shown,
+    Folder? shown,
     bool missesOldVersions = false,
   }) async {
     final opened = shown ?? folder;
@@ -155,15 +155,15 @@ void main() {
 final class _Folders extends FoldersController {
   _Folders(this.folders);
 
-  final List<DocumentFolder> folders;
-  final changed = <DocumentFolder>[];
+  final List<Folder> folders;
+  final changed = <Folder>[];
   Result<void, FolderError> answer = const Ok(null);
 
   @override
-  Future<List<DocumentFolder>> build() async => folders;
+  Future<List<Folder>> build() async => folders;
 
   @override
-  Future<Result<void, FolderError>> change(DocumentFolder changed) async {
+  Future<Result<void, FolderError>> change(Folder changed) async {
     this.changed.add(changed);
     return answer;
   }

@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
-import '../file_types/document_types.dart';
+import '../file_types/file_types.dart';
 import '../folders/folders_controller.dart';
 import 'folder_state_wiring.dart';
 
@@ -25,7 +25,7 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
     final owner = ref.watch(folderStateOwnerProvider);
     ref.watch(folderListingProvider);
     final folders = await ref.watch(foldersProvider.future);
-    final types = ref.watch(documentTypesProvider);
+    final types = ref.watch(fileTypesProvider);
     FolderContents contentsOf(FolderState state) =>
         FolderContents(state, folders: folders, types: types);
     _contentsOf = contentsOf;
@@ -42,7 +42,7 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
         .firstWhere((contents) => contents.loaded);
   }
 
-  /// Lists every base folder again now, e.g. when a document opens, when
+  /// Lists every base folder again now, e.g. when a file opens, when
   /// the app comes back to the foreground, or when the user asks; done
   /// once a listing of each that started after this call has ended, so it
   /// shows every write made before. Waits for the first folders, so it

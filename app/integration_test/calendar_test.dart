@@ -43,7 +43,7 @@ void main() {
     expect(text, contains('SUMMARY:Dentist\r\n'));
     expect(text.replaceAll('\r\n', ''), isNot(contains('\n')));
 
-    await tester.openDocument('Family');
+    await tester.openFile('Family');
     expect(find.text('Dentist'), findsOneWidget);
     await tester.pageBack();
     await tester.waitForNoteClosed();

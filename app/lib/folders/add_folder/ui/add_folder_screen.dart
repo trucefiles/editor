@@ -140,7 +140,7 @@ class _ToolStep extends StatelessWidget {
         ),
       const SizedBox(height: 8),
       Text(
-        'Pick Plain folder if no sync app syncs it, or one the app '
+        'Pick Local folder if no sync app syncs it, or one the app '
         "doesn't know.",
         style: Theme.of(context).textTheme.bodySmall,
       ),

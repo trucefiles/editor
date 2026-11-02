@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../documents/documents_wiring.dart';
+import '../files/files_wiring.dart';
 import '../folders/folders_controller.dart';
 import '../platform/app_activity.dart';
 import '../settings/device_settings_controller.dart';
@@ -28,17 +28,17 @@ final folderStateOwnerProvider = Provider<FolderStateOwner>((ref) {
 });
 
 /// The listing of the base folders, wired: the first once the edits left
-/// by the last run are in their files (so no document shows its old text
+/// by the last run are in their files (so no file shows its old text
 /// while its draft is pending), and again whenever what a base folder's
-/// folders select changes. Apart from the owner, as the document steps
-/// ask the owner's state and this waits for the documents.
+/// folders select changes. Apart from the owner, as the file steps
+/// ask the owner's state and this waits for the files.
 final folderListingProvider = Provider<void>((ref) {
   final owner = ref.watch(folderStateOwnerProvider);
   final stacks = ref.watch(baseFolderStacksProvider);
   StreamSubscription<void>? bases;
   ref.onDispose(() => unawaited(bases?.cancel()));
   unawaited(
-    ref.read(documentsProvider).draftsRecovered.then((_) {
+    ref.read(filesProvider).draftsRecovered.then((_) {
       if (!ref.mounted) return;
       void tell() => owner.send(BasesChanged(stacks.selections));
       bases = stacks.changes.listen((_) => tell());

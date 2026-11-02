@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/document_page/ui/document_screen.dart';
-import 'package:truce_editor/documents/document_colors.dart';
-import 'package:truce_editor/documents/ui/all_documents_screen.dart';
-import 'package:truce_editor/documents/ui/document_sections.dart';
-import 'package:truce_editor/documents/ui/listed_document_card.dart';
+import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/files/file_colors.dart';
+import 'package:truce_editor/files/ui/all_files_screen.dart';
+import 'package:truce_editor/files/ui/file_sections.dart';
+import 'package:truce_editor/files/ui/listed_file_card.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_test_support/truce_test_support.dart' show path;
@@ -17,7 +17,7 @@ import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of the documents grid and the folders, in the real app on
+/// End-to-end tests of the files grid and the folders, in the real app on
 /// the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/grid_and_folders_test.dart
@@ -29,7 +29,7 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  /// Pins the document [title] from the grid.
+  /// Pins the file [title] from the grid.
   Future<void> pin(WidgetTester tester, String title) async {
     await tester.longPress(find.text(title));
     await tester.pumpAndSettle();
@@ -58,7 +58,7 @@ void main() {
   testApp('deletes a document and undoes it', (tester) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
@@ -102,7 +102,7 @@ void main() {
     double heading(String text) => tester
         .getTopLeft(
           find.descendant(
-            of: find.byType(DocumentsHeading),
+            of: find.byType(FilesHeading),
             matching: find.text(text),
           ),
         )
@@ -113,8 +113,8 @@ void main() {
 
     await tester.tapAndSettle(find.byTooltip('Show as list'));
     expect(find.byType(ListTile), findsNWidgets(2));
-    await tester.openDocument('Ant');
-    await tester.waitFor(find.byType(DocumentScreen));
+    await tester.openFile('Ant');
+    await tester.waitFor(find.byType(FileScreen));
   });
 
   testApp('Recent shows as many documents as set, All the rest', (
@@ -133,8 +133,8 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // The documents' own scroll view, not the folder chips'.
-    Finder documents() => find
+    // The files' own scroll view, not the folder chips'.
+    Finder files() => find
         .descendant(
           of: find.byType(CustomScrollView),
           matching: find.byType(Scrollable),
@@ -143,7 +143,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Show all'),
       300,
-      scrollable: documents(),
+      scrollable: files(),
     );
     expect(find.text('Day 2'), findsOne);
     expect(find.text('Day 1'), findsNothing);
@@ -151,7 +151,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Day 1'),
       300,
-      scrollable: documents(),
+      scrollable: files(),
     );
   });
 
@@ -178,8 +178,8 @@ void main() {
 
     expect(find.text('Note 100'), findsOne);
     final built = find.descendant(
-      of: find.byType(AllDocumentsScreen),
-      matching: find.byType(ListedDocumentCard, skipOffstage: false),
+      of: find.byType(AllFilesScreen),
+      matching: find.byType(ListedFileCard, skipOffstage: false),
       skipOffstage: false,
     );
     expect(built.evaluate().length, lessThan(100));
@@ -211,10 +211,7 @@ void main() {
     await tester.tapAndSettle(find.byTooltip('Show as list'));
 
     final row = find.byType(ListTile);
-    final tint = documentTint(
-      'teal',
-      Theme.of(tester.element(row)).colorScheme,
-    );
+    final tint = fileTint('teal', Theme.of(tester.element(row)).colorScheme);
     // The color is drawn on the nearest Material: inside the scroll view
     // it is clipped there, outside it would show under the filter bar.
     final material = find
@@ -240,16 +237,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.byTooltip('teal'));
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
-    final screen = find.byType(DocumentScreen);
+    final screen = find.byType(FileScreen);
     await tester.waitFor(screen);
     await tester.chooseMode('Visual edit');
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     final scaffold = tester.widget<Scaffold>(
       find.descendant(of: screen, matching: find.byType(Scaffold)),
     );
-    final tint = documentTint('teal', scheme)!;
+    final tint = fileTint('teal', scheme)!;
     expect(scaffold.backgroundColor, tint);
     expect(find.textContaining('Edited '), findsOne);
     // The separator's line follows the tint, as the text does.
@@ -315,7 +312,7 @@ void main() {
     testApp('closes a document it no longer shows, with the screen on top, '
         'keeping the edits', (tester) async {
       await tester.addFolder(app);
-      await tester.openDocument('B');
+      await tester.openFile('B');
       await tester.typeOver('# B\nmine');
       await tester.chooseInMenu('Backups');
 
@@ -336,7 +333,7 @@ void main() {
     testApp('removing its folder closes a document without promising its '
         'edits', (tester) async {
       await tester.addFolder(app);
-      await tester.openDocument('B');
+      await tester.openFile('B');
       final container = ProviderScope.containerOf(
         tester.element(find.byType(Navigator).first),
       );
@@ -357,12 +354,12 @@ void main() {
       tester,
     ) async {
       await tester.addFolder(app);
-      await tester.openDocument('B');
+      await tester.openFile('B');
       await tester.typeOver('# B\nmine');
 
       // Gone without leaving, as when its route is removed: its edits are
       // saved as it goes, before the folder changes.
-      final screen = tester.element(find.byType(DocumentScreen));
+      final screen = tester.element(find.byType(FileScreen));
       Navigator.of(screen).removeRoute(ModalRoute.of(screen)!);
       await tester.pump();
       final changed = narrow(tester);

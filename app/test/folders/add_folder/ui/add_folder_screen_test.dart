@@ -15,7 +15,7 @@ import '../../../support.dart';
 void main() {
   final picked = Uri.parse('fake://host/sync');
   late List<({Uri address, String toolId, Selection selection})> added;
-  late Result<DocumentFolder, FolderError> answer;
+  late Result<Folder, FolderError> answer;
   late FakeSyncTool syncthing;
   late FakeSyncTool plain;
 
@@ -36,7 +36,7 @@ void main() {
   /// picker picks `fake://host/sync`, which no tool recognizes.
   Future<void> open(
     WidgetTester tester, {
-    List<DocumentFolder> folders = const [],
+    List<Folder> folders = const [],
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -174,7 +174,7 @@ void main() {
     await open(
       tester,
       folders: [
-        DocumentFolder(
+        Folder(
           id: 'f1',
           base: base,
           selection: Selection.of([path('notes/work')]),
@@ -200,10 +200,10 @@ void main() {
 final class _Folders extends FoldersController {
   _Folders(this.folders);
 
-  final List<DocumentFolder> folders;
+  final List<Folder> folders;
 
   @override
-  Future<List<DocumentFolder>> build() async => folders;
+  Future<List<Folder>> build() async => folders;
 }
 
 final class _Picker implements FolderPicker {

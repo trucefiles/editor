@@ -33,7 +33,7 @@ final class BaseFolderServices {
   /// Puts [backups] back into the base folder.
   final BackupRestore restore;
 
-  final DocumentMarks marks;
+  final FileMarks marks;
 
   /// Whether the base folder can be reached, as accesses through [store]
   /// show.
@@ -42,7 +42,7 @@ final class BaseFolderServices {
   /// What the sync tool tells about the base folder.
   final FolderNotices notices;
 
-  /// The changes of the documents, the sync tool's records of them and the
+  /// The changes of the files, the sync tool's records of them and the
   /// marks of all devices, as they happen; `null` where they can't be
   /// followed live.
   final FolderChanges? changes;
@@ -69,7 +69,7 @@ BaseFolderServices baseFolderServices(
     WriteReportingStore(ReachReportingStore(place.files, reach), wrote),
     place.changes,
     selection,
-    handles: (file) => handles(file) || DocumentMarks.files.includesFile(file),
+    handles: (file) => handles(file) || FileMarks.files.includesFile(file),
     checkEvery: checkEvery,
   );
   final synced = place.open(bounded);
@@ -85,7 +85,7 @@ BaseFolderServices baseFolderServices(
     ),
     backups: backups,
     restore: BackupRestore(folder: synced.store, backups: backups),
-    marks: DocumentMarks(synced.store, deviceId: deviceId),
+    marks: FileMarks(synced.store, deviceId: deviceId),
     reach: reach,
     notices: synced.notices,
     changes: synced.changes,

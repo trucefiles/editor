@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
-import '../../documents/ui/document_grid.dart';
+import '../../files/ui/file_grid.dart';
 import '../../folders/folder_colors.dart';
 import '../../settings/calendar_view_setting.dart';
 import '../calendar_tab_controller.dart';
@@ -30,7 +30,7 @@ class CalendarTabScreen extends ConsumerWidget {
       floatingActionButton: calendars.isEmpty
           ? null
           : FloatingActionButton(
-              // The documents' button is in the same page, beside it.
+              // The files' button is in the same page, beside it.
               heroTag: null,
               tooltip: 'Add event',
               onPressed: () => _openForAdding(
@@ -56,31 +56,29 @@ class CalendarTabScreen extends ConsumerWidget {
                         FilterChip(
                           avatar: CircleAvatar(
                             backgroundColor: folderColor(
-                              calendar.document.folder.color,
+                              calendar.file.folder.color,
                             ),
                           ),
                           label: Text(tabCalendarName(calendar)),
                           selected: calendar.shown,
                           onSelected: (on) => ref
                               .read(calendarTabProvider.notifier)
-                              .show(calendar.document, shown: on),
+                              .show(calendar.file, shown: on),
                         ),
                     ],
                   ),
                 ),
                 Expanded(
-                  child: CalendarViews<Document>(
-                    calendars: <Document, Calendar>{
+                  child: CalendarViews<ListedFile>(
+                    calendars: <ListedFile, Calendar>{
                       for (final calendar in calendars)
-                        if (calendar.shown)
-                          calendar.document: calendar.calendar,
+                        if (calendar.shown) calendar.file: calendar.calendar,
                     },
-                    colorOf: (document) => folderColor(document.folder.color),
+                    colorOf: (file) => folderColor(file.folder.color),
                     kind: viewChoice.last(),
                     onKind: (kind) => unawaited(viewChoice.keep(kind)),
                     now: ref.watch(calendarClockProvider),
-                    onTap: (document, _) =>
-                        openDocument(context, ref, document),
+                    onTap: (file, _) => openFile(context, ref, file),
                   ),
                 ),
               ],
@@ -95,15 +93,15 @@ class CalendarTabScreen extends ConsumerWidget {
     List<TabCalendar> calendars,
   ) async {
     final picked = calendars.length == 1
-        ? calendars.single.document
-        : await showDialog<Document>(
+        ? calendars.single.file
+        : await showDialog<ListedFile>(
             context: context,
             builder: (context) => SimpleDialog(
               title: const Text('Add to which calendar?'),
               children: [
                 for (final calendar in calendars)
                   SimpleDialogOption(
-                    onPressed: () => Navigator.pop(context, calendar.document),
+                    onPressed: () => Navigator.pop(context, calendar.file),
                     child: Text(tabCalendarName(calendar)),
                   ),
               ],
@@ -111,6 +109,6 @@ class CalendarTabScreen extends ConsumerWidget {
           );
     if (picked == null || !context.mounted) return;
     ref.read(lastUsedCalendarProvider.notifier).addTo(picked);
-    await openDocument(context, ref, picked);
+    await openFile(context, ref, picked);
   }
 }

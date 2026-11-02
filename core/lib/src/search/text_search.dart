@@ -1,4 +1,4 @@
-/// Search over the texts of many items (e.g. documents), behind one
+/// Search over the texts of many items (e.g. files), behind one
 /// interface: how the texts are found (read when the search opens, or a
 /// saved index) is each implementation's own business.
 library;

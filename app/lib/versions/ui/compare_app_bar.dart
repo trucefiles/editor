@@ -4,10 +4,10 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../../folders/ui/folder_badge.dart';
 
-/// The app bar of a screen comparing two versions of the document at [file] in
+/// The app bar of a screen comparing two versions of the file at [file] in
 /// [folder]; [reason], if given, tells below why there are two.
 AppBar compareAppBar({
-  required DocumentFolder folder,
+  required Folder folder,
   required RelPath file,
   String? reason,
 }) => AppBar(

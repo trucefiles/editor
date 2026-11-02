@@ -1,0 +1,231 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/file_page/file_controller.dart';
+import 'package:truce_editor/file_page/ui/edit_state_banner.dart';
+import 'package:truce_editor/versions/ui/version_pane.dart';
+import 'package:truce_files/truce_files.dart';
+
+import '../../support.dart';
+import '../file_fixture.dart';
+
+/// Merges by keeping both texts, theirs first, and names "Swim" as lost.
+final class _BothMerge implements TextMerge {
+  const _BothMerge();
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) =>
+      MergedText('$main$other', lost: const ['Swim']);
+}
+
+/// A type that merges, though never these two texts.
+final class _NeverMerge implements TextMerge {
+  const _NeverMerge();
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) =>
+      const CantMerge();
+}
+
+void main() {
+  late FileFixture fixture;
+  late FileSession session;
+
+  /// Lets file work outside the test's fake time finish.
+  Future<void> settle(WidgetTester tester, {bool Function()? until}) async {
+    for (var step = 0; step < 100 && !(until?.call() ?? step > 5); step++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+  }
+
+  /// A session whose edits wait on the device while the file changed
+  /// elsewhere; the banner offers to compare, which is opened.
+  Future<void> pumpCompare(WidgetTester tester, {TextMerge? merge}) async {
+    await tester.runAsync(() async {
+      fixture = await FileFixture.create();
+      session = fixture.session(null, merge)..type('mine ');
+      await fixture.editElsewhere('theirs\n');
+      await session.secure(.hide);
+    });
+    expect(session.status, isA<ChangedElsewhere>());
+    final controller = FileController(
+      session,
+      reach: () => Reach.reachable,
+      reachSettled: () async => Reach.reachable,
+      backUp: (_) async => const Ok(null),
+      delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
+      settingsOf: (_) => FileSettings.defaults,
+      editSettings: (_, _) async {},
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: controller,
+            builder: (_, _) => EditStateBanner(controller, onClose: () {}),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Compare'));
+    await settle(tester);
+  }
+
+  /// The file as changed elsewhere again, found by a scan.
+  Future<void> changedAgain(WidgetTester tester, String text) async {
+    await tester.runAsync(() async {
+      final latest = await fixture.editElsewhere(text);
+      session.observe(contentsFinding([latest.listed]));
+      // The file owner reads the new version itself.
+      await eventually(
+        () => switch (session.status) {
+          ChangedElsewhere(:final theirs) => theirs.text == text,
+          _ => session.text == text,
+        },
+      );
+    });
+    await settle(tester);
+  }
+
+  testWidgets('a change from elsewhere opens both versions', (tester) async {
+    await pumpCompare(tester);
+
+    expect(find.text('Current version'), findsOneWidget);
+    expect(find.text('Your edits'), findsOneWidget);
+    // Each version's pane shows only its own lines.
+    expect(find.textContaining('mine'), findsOneWidget);
+    expect(find.textContaining('theirs'), findsOneWidget);
+  });
+
+  testWidgets("this device's edits are the base: their own lines show as "
+      'added, the other version\'s as removed', (tester) async {
+    await pumpCompare(tester);
+
+    OwnLines ownLinesOf(String label) => tester
+        .widget<VersionPane>(
+          find.ancestor(
+            of: find.text(label),
+            matching: find.byType(VersionPane),
+          ),
+        )
+        .ownLines;
+    expect(ownLinesOf('Your edits'), OwnLines.added);
+    expect(ownLinesOf('Current version'), OwnLines.removed);
+  });
+
+  testWidgets('keeping the current version closes the comparison', (
+    tester,
+  ) async {
+    await pumpCompare(tester);
+
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await settle(tester, until: () => session.text == 'theirs\n');
+
+    expect(session.text, 'theirs\n');
+    expect(find.text('Your edits'), findsNothing);
+    expect(find.text('Compare'), findsNothing);
+  });
+
+  testWidgets('keeps both while the user cancels', (tester) async {
+    await pumpCompare(tester);
+
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('A backup of both stays'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(session.status, isA<ChangedElsewhere>());
+    expect(find.text('Your edits'), findsOneWidget);
+  });
+
+  testWidgets('settled under the dialog: closes itself, not the dialog', (
+    tester,
+  ) async {
+    await pumpCompare(tester);
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+
+    // The file now holds the edits: nothing left to choose.
+    await changedAgain(tester, 'mine one\n');
+    expect(find.text('Your edits'), findsNothing);
+    expect(find.text('Keep this version?'), findsOneWidget);
+
+    await tester.tap(find.text('Keep'));
+    await settle(tester);
+
+    // The choice was settled meanwhile: the late tap changes nothing.
+    expect(session.text, 'mine one\n');
+    expect(session.status, isA<InStep>());
+  });
+
+  testWidgets('a newer version under the dialog is never overwritten', (
+    tester,
+  ) async {
+    await pumpCompare(tester);
+    await tester.tap(find.text('Keep this').last);
+    await tester.pumpAndSettle();
+
+    await changedAgain(tester, 'theirs, newer\n');
+    await tester.tap(find.text('Keep'));
+    await settle(tester);
+
+    expect(session.status, isA<ChangedElsewhere>());
+    expect(fixture.onDisk('a.md'), 'theirs, newer\n');
+    expect(find.text('Keep this'), findsNWidgets(2));
+  });
+
+  testWidgets('shows a newer version from elsewhere', (tester) async {
+    await pumpCompare(tester);
+
+    await changedAgain(tester, 'theirs, newer\n');
+
+    // In the current version's pane, its own line.
+    expect(find.textContaining('theirs, newer'), findsOneWidget);
+    expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
+  });
+
+  testWidgets('no merge is offered where the type does not merge', (
+    tester,
+  ) async {
+    await pumpCompare(tester);
+
+    expect(find.text('Merge both'), findsNothing);
+  });
+
+  testWidgets('no merge is offered for texts that do not merge', (
+    tester,
+  ) async {
+    await pumpCompare(tester, merge: const _NeverMerge());
+
+    expect(find.text('Merge both'), findsNothing);
+  });
+
+  testWidgets('both merged become the edits, written and told', (tester) async {
+    await pumpCompare(tester, merge: const _BothMerge());
+    final told = <FileEvent>[];
+    final notices = session.fileNotices.listen(told.add);
+    addTearDown(notices.cancel);
+
+    await tester.tap(find.text('Merge both'));
+    await tester.pumpAndSettle();
+    expect(find.text('Merge both versions?'), findsOneWidget);
+    await tester.tap(find.text('Keep'));
+    await settle(
+      tester,
+      until: () => fixture.onDisk('a.md') == 'theirs\nmine one\n',
+    );
+
+    expect(session.text, 'theirs\nmine one\n');
+    expect(fixture.onDisk('a.md'), 'theirs\nmine one\n');
+    expect(find.text('Your edits'), findsNothing);
+    expect(told.whereType<PickMerged>().single.lost, ['Swim']);
+  });
+}

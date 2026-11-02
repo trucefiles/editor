@@ -23,7 +23,7 @@ void main() {
           VisibleFileFilter(const FakeSyncRules().isInternal),
           const FakeCopyNames(),
         ),
-        marks: DocumentMarks(store, deviceId: 'phone'),
+        marks: FileMarks(store, deviceId: 'phone'),
       ),
       startTimer: timers.start,
     );
@@ -39,10 +39,10 @@ void main() {
       ask<FolderStateInput, Fresh>(owner.send, owner.events, Refresh.new);
 
   test('lists a base folder, its marks with it', () async {
-    await DocumentMarks(
+    await FileMarks(
       store,
       deviceId: 'laptop',
-    ).set(path('top.md'), const DocumentMark(color: 'teal'));
+    ).set(path('top.md'), const FileMark(color: 'teal'));
     store.listCount = 0;
     owner.send(BasesChanged({'a': _whole}));
 
@@ -52,9 +52,7 @@ void main() {
       base.files.keys,
       unorderedEquals([path('work/plan.md'), path('top.md')]),
     );
-    expect(base.marks.marks, {
-      path('top.md'): const DocumentMark(color: 'teal'),
-    });
+    expect(base.marks.marks, {path('top.md'): const FileMark(color: 'teal')});
     expect(store.listCount, 1, reason: 'one walk for documents and marks');
   });
 

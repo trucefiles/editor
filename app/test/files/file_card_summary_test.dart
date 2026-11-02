@@ -1,0 +1,72 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
+
+import '../support.dart';
+
+void main() {
+  final shown = const MarkdownView(checkedItems: CheckedItems.inPlace).settings;
+  const hidden = ViewSettings.none;
+
+  FileCardSummary summaryOf(String text, String name) => appFileTypes()
+      .of(path(name))!
+      .cardSummary(
+        fileTextOf(folderAt(Directory.systemTemp), text, name: name),
+      );
+
+  test('a read document holds one summary for its title and preview', () {
+    final read = fileTextOf(folderAt(Directory.systemTemp), '# A\nb');
+
+    expect(identical(read.summary, read.summary), isTrue);
+    expect(read.summary.title, 'A');
+  });
+
+  group('Markdown', () {
+    test('holds the title and the preview as the settings say', () {
+      final summary = summaryOf('# Shopping\n- [x] milk\n- [ ] eggs', 'a.md');
+
+      expect(summary.title, 'Shopping');
+      expect(summary.preview(shown), '☑ milk\n☐ eggs');
+      expect(summary.preview(hidden), '☐ eggs\n+ 1 done');
+    });
+
+    test('works out its previews once, holding no text', () {
+      final summary = summaryOf('# A\n- [x] milk', 'a.md');
+
+      expect(
+        identical(summary.preview(hidden), summary.preview(hidden)),
+        isTrue,
+      );
+    });
+
+    test('takes the title from the file name without a heading', () {
+      expect(summaryOf('text', 'lists/Plan.md').title, 'Plan');
+    });
+  });
+
+  group('plain text', () {
+    test('the first line is the title, the later lines the preview', () {
+      final summary = summaryOf('Shopping\n\n- [x] milk\n  eggs  \n', 'a.txt');
+
+      expect(summary.title, 'Shopping');
+      expect(summary.preview(hidden), '- [x] milk\n  eggs');
+      expect(summary.preview(shown), summary.preview(hidden));
+    });
+
+    test('takes the title from the file name without words', () {
+      expect(summaryOf(' \n', 'lists/Plan.txt').title, 'Plan');
+    });
+
+    test('previews hold up to ten lines', () {
+      final lines = [for (var line = 0; line < 12; line++) 'line $line'];
+
+      expect(
+        summaryOf(lines.join('\n'), 'a.txt').preview(hidden),
+        lines.skip(1).take(10).join('\n'),
+      );
+    });
+  });
+}

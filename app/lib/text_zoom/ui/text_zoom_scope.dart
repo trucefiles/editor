@@ -31,7 +31,7 @@ class TextZoomScope extends ConsumerStatefulWidget {
 
 class _TextZoomScopeState extends ConsumerState<TextZoomScope> {
   /// The zoom gestures change.
-  static const _gestured = TextZoomTarget.documents;
+  static const _gestured = TextZoomTarget.files;
 
   /// Counts the zoom gestures, so the toast shows after each.
   final _gestures = ValueNotifier(0);

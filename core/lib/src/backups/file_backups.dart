@@ -97,7 +97,7 @@ final class FileBackups {
 
   /// Moves the backups of [from] to [into] (this store or another
   /// folder's), as backups of [to], each keeping its time and kind: the
-  /// document moved or was renamed. Each one is saved there before it is
+  /// file moved or was renamed. Each one is saved there before it is
   /// deleted here, so a failure leaves it in one place or both, never in
   /// none. Stops at the first failure.
   Future<Result<void, StoreError>> moveAll({

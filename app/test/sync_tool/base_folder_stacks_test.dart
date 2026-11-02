@@ -26,7 +26,7 @@ void main() {
   });
 
   /// [folders] saved as the folder list, loaded.
-  Future<void> listed(List<DocumentFolder> folders) async {
+  Future<void> listed(List<Folder> folders) async {
     await container.read(folderListStoreProvider).save(folders);
     await container.read(foldersProvider.future);
   }

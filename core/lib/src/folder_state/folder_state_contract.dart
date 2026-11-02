@@ -2,13 +2,13 @@
 /// what it leads to. One per app; it keeps what the base folders hold
 /// (their listings, conflicts, subfolders and marks, never file texts) in
 /// step with changes, working only on what changed. Knows nothing of
-/// documents, file types or sync tools.
+/// files, file types or sync tools.
 library;
 
 import '../changes/folder_changes.dart';
 import '../common/moment.dart';
 import '../common/result.dart';
-import '../marks/document_marks.dart';
+import '../marks/file_marks.dart';
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../scan/folder_scanner.dart';
@@ -29,7 +29,7 @@ sealed class FolderStateInput extends FolderStateMessage {
 }
 
 /// List every base folder again now, e.g. when the user asks or a
-/// document opens; answered by [Fresh] once each was listed by a listing
+/// file opens; answered by [Fresh] once each was listed by a listing
 /// that started after this, so the state shows every write made before.
 /// Lists even while the app is not in use; waits for the first
 /// [BasesChanged].

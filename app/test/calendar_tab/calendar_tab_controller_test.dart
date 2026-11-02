@@ -69,7 +69,7 @@ void main() {
         .firstWhere((calendar) => calendar.calendar.name == 'Work');
     await container
         .read(calendarTabProvider.notifier)
-        .show(work.document, shown: false);
+        .show(work.file, shown: false);
 
     expect(await tab(), [('Home', true), ('Work', false)]);
   });

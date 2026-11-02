@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../file_types/document_types.dart';
+import '../file_types/file_types.dart';
 import '../folders/folders_controller.dart';
 import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
@@ -22,7 +22,7 @@ final appWritesProvider = Provider<AppWrites>((ref) {
 /// at the refresh setting's interval, read at each wait.
 final baseFolderStacksProvider = Provider<BaseFolderStacks>((ref) {
   final tools = ref.watch(syncToolsProvider);
-  final types = ref.watch(documentTypesProvider);
+  final types = ref.watch(fileTypesProvider);
   final storage = ref.watch(appStorageProvider);
   final deviceId = ref.watch(deviceIdProvider);
   final writes = ref.watch(appWritesProvider);

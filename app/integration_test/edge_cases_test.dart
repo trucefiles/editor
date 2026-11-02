@@ -9,8 +9,8 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/document_page/ui/document_screen.dart';
-import 'package:truce_editor/documents/document_colors.dart';
+import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/files/file_colors.dart';
 
 import 'app_steps.dart';
 import 'editor_steps.dart';
@@ -80,7 +80,7 @@ void main() {
     app.write('plan.md', '# Plan\n');
     app.write('Ideas.md', '# Ideas\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     await tester.placeNote(name: 'Ideas');
     await tester.runFor(const Duration(seconds: 1));
@@ -99,7 +99,7 @@ void main() {
       await tester.addFolder(app);
 
       for (final mode in ['Visual edit', 'Markdown edit', 'Read']) {
-        await tester.openDocument('Plan');
+        await tester.openFile('Plan');
         await tester.chooseMode(mode);
         await tester.pageBack();
         await tester.waitForNoteClosed();
@@ -225,7 +225,7 @@ void main() {
   testApp('an empty file opens and takes text', (tester) async {
     app.write('blank.md', '');
     await tester.addFolder(app);
-    await tester.openDocument('blank');
+    await tester.openFile('blank');
 
     await tester.typeOver('Now text');
     await tester.pageBack();
@@ -274,7 +274,7 @@ void main() {
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
 
@@ -384,7 +384,7 @@ void main() {
 
     await tester.tapAndSettle(find.byTooltip('Manage folders'));
     await tester.tapAndSettle(find.text('Add folder').last);
-    await tester.tapAndSettle(find.text(app.documents.path));
+    await tester.tapAndSettle(find.text(app.files.path));
     await tester.tapAndSettle(find.text('Whole folder'));
     expect(find.text('Another folder shows part of it.'), findsOneWidget);
     for (final _ in ['parts', 'add folder', 'folders']) {
@@ -407,14 +407,14 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(DocumentScreen), findsNothing);
+    expect(find.byType(FileScreen), findsNothing);
   });
 
   testApp('a double tap on Note starts one document', (tester) async {
     await tester.addFolder(app);
     await tester.tapAndSettle(find.byTooltip('New document'));
     // Both taps where the choice is, though the first may have opened the
-    // document already.
+    // file already.
     final newNote = tester.getCenter(find.text('Note'));
 
     await tester.tapAt(newNote);
@@ -425,7 +425,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(DocumentScreen), findsNothing);
+    expect(find.byType(FileScreen), findsNothing);
     await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
   });
 
@@ -442,14 +442,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.byTooltip('teal'));
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.placeNote(subfolder: 'done');
     await tester.waitForFile(app.file('done/plan.md'), '# Plan\n');
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
-    final screen = find.byType(DocumentScreen);
+    final screen = find.byType(FileScreen);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     // The move writes the mark without a rescan; the next scan shows it.
     await tester.waitUntil(
@@ -459,7 +459,7 @@ void main() {
                 find.descendant(of: screen, matching: find.byType(Scaffold)),
               )
               .backgroundColor ==
-          documentTint('teal', scheme),
+          fileTint('teal', scheme),
     );
   });
 
@@ -469,7 +469,7 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.placeNote(subfolder: 'done');
     await tester.runFor(const Duration(seconds: 1));
     await tester.pageBack();
@@ -516,7 +516,7 @@ void main() {
     await tester.tapAndSettle(find.text('Pin'));
     await tester.waitFor(find.byTooltip('Pinned'));
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.chooseInMenu('Delete document');
     await tester.waitFor(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));

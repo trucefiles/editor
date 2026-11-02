@@ -1,4 +1,4 @@
-/// How one document type merges two texts of the same document into one,
+/// How one file type merges two texts of the same file into one,
 /// e.g. a conflict copy into its main file, or edits into a file that
 /// changed elsewhere. Pure: texts in, result out; knows no files.
 /// Deterministic and idempotent: the same inputs give the same text on

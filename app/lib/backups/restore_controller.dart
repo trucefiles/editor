@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../folder_state/folder_state_controller.dart';
 import '../sync_tool/base_folder_wiring.dart';
@@ -15,7 +15,7 @@ final restoreProvider = NotifierProvider.autoDispose
       RestoreController.new,
     );
 
-/// Shows one backup next to its document's file; the user keeps one of
+/// Shows one backup next to its file; the user keeps one of
 /// them. A keep that worked ends it; after a failed one, both load again,
 /// to show the file as it is now.
 class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
@@ -38,7 +38,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
   }
 
   @override
-  DocumentKey get document =>
+  FileKey get file =>
       (baseId: start.folder.base.id, path: start.backup.filePath);
 
   /// The same backup, as it is now.

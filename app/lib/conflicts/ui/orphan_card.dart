@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/card_frame.dart';
 import '../../folders/ui/folder_badge.dart';
 
-/// A document deleted on one device while edited on another: only the edited
-/// version is left, shown at the document text zoom like other document cards.
+/// A file deleted on one device while edited on another: only the edited
+/// version is left, shown at the document text zoom like other file cards.
 /// Opens the conflict screen to restore or discard it.
 class OrphanCard extends StatelessWidget {
   const OrphanCard(this.conflict, {required this.onTap, super.key});

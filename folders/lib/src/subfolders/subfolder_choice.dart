@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 /// The user's choice of what a folder shows of its base folder: the whole
 /// of it, or some subfolders, picked in a tree of folder names. Parts
-/// another folder of the base folder shows can't be picked: each document
+/// another folder of the base folder shows can't be picked: each file
 /// is in one folder only. [changes] tells of each change of the choice.
 final class SubfolderChoice {
   /// Starts at [initial]; nothing picked if `null`. [taken] are what the

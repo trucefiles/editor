@@ -34,27 +34,27 @@ runs:
 
     - name: Test Markdown
       shell: bash
-      working-directory: markdown
+      working-directory: types/markdown/markdown
       run: dart test
 
     - name: Test plain text
       shell: bash
-      working-directory: plain_text
+      working-directory: types/plain_text/plain_text
       run: dart test
 
     - name: Test calendar
       shell: bash
-      working-directory: calendar
+      working-directory: types/calendar/calendar
       run: dart test
 
     - name: Test Syncthing
       shell: bash
-      working-directory: syncthing
+      working-directory: plugins/syncthing/syncthing
       run: dart test
 
-    - name: Test plain folder
+    - name: Test local folder
       shell: bash
-      working-directory: plain_folder
+      working-directory: plugins/local_folder/local_folder
       run: dart test
 
     - name: Test folders
@@ -62,9 +62,9 @@ runs:
       working-directory: folders
       run: dart test
 
-    - name: Test documents
+    - name: Test files
       shell: bash
-      working-directory: documents
+      working-directory: files
       run: dart test
 
     - name: Test masonry grid
@@ -74,12 +74,12 @@ runs:
 
     - name: Test document editor
       shell: bash
-      working-directory: document_editor
+      working-directory: types/document_editor
       run: flutter test
 
     - name: Test calendar editor
       shell: bash
-      working-directory: calendar_editor
+      working-directory: types/calendar/calendar_editor
       run: flutter test
 
     - name: Test app

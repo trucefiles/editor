@@ -138,7 +138,7 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **Images from outside a folder don't show.** A document shows an image
   only if the image file is in a part of the base folder that one of your
   folders shows. Pick the image's subfolder too to see it.
-- **A plain folder can keep temp files after a crash.** In a folder no sync
+- **A local folder can keep temp files after a crash.** In a folder no sync
   app syncs, Truce saves through a temp file named `.truce-….tmp`. If the
   app stops in the middle of a save, the temp file stays. Truce hides it but
   never deletes it, as it writes into your folders only when you ask. You

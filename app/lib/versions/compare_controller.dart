@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../folder_state/folder_state_controller.dart';
 
@@ -26,8 +26,8 @@ abstract class CompareController<Target, Sides>
   /// so a keep under way when the screen closes still ends and rescans.
   CompareSource<Target, Sides> source();
 
-  /// The document compared.
-  DocumentKey get document;
+  /// The file compared.
+  FileKey get file;
 
   /// What [contents] hold to compare next; `null` if nothing.
   Target? nextIn(FolderContents contents);
@@ -39,7 +39,7 @@ abstract class CompareController<Target, Sides>
     ref
       ..listen(folderContentsProvider, (_, next) {
         if (next.value case final contents?) {
-          if (contents.seenAt(document) case final seenAt?) {
+          if (contents.seenAt(file) case final seenAt?) {
             owner.send(ScanSeen(nextIn(contents), startedAt: seenAt));
           }
         }

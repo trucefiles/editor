@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
-import '../../documents/ui/listed_document.dart';
+import '../../files/ui/listed_file.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 import 'conflict_banner.dart';
@@ -57,7 +57,7 @@ class ConflictsScreen extends ConsumerWidget {
   }
 }
 
-/// The title of [conflict]'s document, as its card shows it.
+/// The title of [conflict]'s file, as its card shows it.
 class _Title extends ConsumerWidget {
   const _Title(this.conflict);
 

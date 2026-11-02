@@ -28,7 +28,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.refocusApp();
@@ -82,7 +82,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -100,7 +100,7 @@ void main() {
     app.write('deep/new.md', '# New\n');
     await tester.waitFor(find.text('New'));
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     app.write('plan.md', '# Plan\nv2 from elsewhere\n');
     await tester.waitFor(fromElsewhere);
   });
@@ -130,11 +130,11 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] milk\n');
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
     final file = app.file('todo.md');
     final from = DateTime(2001);
 
-    /// Changes the document elsewhere, waits until the open document shows it, and
+    /// Changes the file elsewhere, waits until the open file shows it, and
     /// over a few rescans checks that the app leaves the file alone.
     Future<void> changeElsewhere(String text, Finder shown) async {
       file
@@ -171,7 +171,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(RefreshProgressIndicator), findsOne);
 
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(RefreshProgressIndicator), findsOne);
@@ -184,14 +184,14 @@ void main() {
       ..write('plan.md', '# Plan\n![p](p.png)\n')
       ..writePicture('p.png', width: 1);
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.waitUntil(() => tester.shownPictureWidth == 1);
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
     app.writePicture('p.png', width: 2);
     await tester.tapAndSettle(find.byTooltip('Refresh'));
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.runFor(const Duration(seconds: 2));
 
     expect(tester.shownPictureWidth, 2);
@@ -203,7 +203,7 @@ void main() {
     await app.useRefresh(RefreshMode.manual);
     app.write('plan.md', '# Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     await tester.placeNote(name: 'Ideas');
     await tester.runFor(const Duration(seconds: 2));

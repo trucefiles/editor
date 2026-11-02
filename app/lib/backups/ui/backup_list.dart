@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
 import '../../common/time_texts.dart';
-import '../../documents/ui/listed_document.dart';
+import '../../files/ui/listed_file.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../backup_actions.dart';
 import 'backup_kind_text.dart';

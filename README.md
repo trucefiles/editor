@@ -110,43 +110,45 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 ## Development
 
-A Dart pub workspace with these packages:
+A Dart pub workspace. Sync plugins live in `plugins/`, file types in
+`types/`, each in a folder of its own:
 
 - `core`: files, sync-tool interfaces, conflict handling and an open
-  document's file owner. Pure Dart, no UI, nothing specific to one sync
-  tool or document type.
-- `markdown`: Markdown documents, read into a doc tree, edited and
-  written back block-exact, with the editor's owner. Pure Dart, no UI;
-  uses core, which knows nothing of it.
-- `plain_text`: plain text documents, edited as a whole text, with the
-  editor's owner. Pure Dart, no UI; uses core, which knows nothing of it.
-- `calendar`: calendar documents (iCalendar, `.ics`), read and written
-  back block-exact, merged event by event, with repeats, time zones,
-  health entries, cycle predictions and the editor's owner. Pure Dart, no UI; uses core,
-  which knows nothing of it.
-- `syncthing`: Syncthing's conventions behind core's interfaces. Pure Dart.
-- `plain_folder`: folders no sync tool syncs, or one Truce doesn't know,
-  behind core's interfaces. Pure Dart.
+  file's file owner. Pure Dart, no UI, nothing specific to one sync
+  tool or file type.
+- `types/markdown/markdown`: Markdown documents, read into a doc tree,
+  edited and written back block-exact, with the editor's owner. Pure
+  Dart, no UI; uses core, which knows nothing of it.
+- `types/plain_text/plain_text`: plain text documents, edited as a whole
+  text, with the editor's owner. Pure Dart, no UI; uses core, which knows
+  nothing of it.
+- `types/calendar/calendar`: calendars (iCalendar, `.ics`), read and
+  written back block-exact, merged event by event, with repeats, time
+  zones, health entries, cycle predictions and the editor's owner. Pure
+  Dart, no UI; uses core, which knows nothing of it.
+- `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
+  interfaces. Pure Dart.
+- `plugins/local_folder/local_folder`: local folders, which no sync tool
+  syncs or one Truce doesn't know, behind core's interfaces. Pure Dart.
 - `folders`: the folders the user adds, their files through each sync
   tool, and how their changes are followed. Pure Dart, no UI; uses core.
-- `documents`: the documents in those folders, their drafts, settings,
-  backups and conflicts, and the open document's page. Pure Dart, no UI;
-  uses core and folders.
-- `document_page`: what a document type's view gets from the page, and
-  gives it, whatever the type. Flutter; uses documents.
-- `document_editor`: editing text documents on super_editor (Visual
-  edit, Markdown edit, plain text, Read). Flutter; uses core, documents,
-  document_page, markdown and plain_text.
-- `calendar_editor`: the calendar views (month, week, day and schedule,
-  on `kalender`) for the calendar page and the Calendar tab, the event
-  form and the health view. Flutter; uses core, documents, document_page
-  and calendar.
+- `files`: the files in those folders, their drafts, settings, backups
+  and conflicts, and the open file's page. Pure Dart, no UI; uses core
+  and folders.
+- `file_page`: what a file type's view gets from the page, and gives it,
+  whatever the type. Flutter; uses files.
+- `types/document_editor`: editing text documents on super_editor
+  (Visual edit, Markdown edit, plain text, Read). Flutter; uses core,
+  files, file_page, markdown and plain_text.
+- `types/calendar/calendar_editor`: the calendar views (month, week, day
+  and schedule, on `kalender`) for the calendar page and the Calendar
+  tab, the event form and the health view. Flutter; uses core, files,
+  file_page and calendar.
 - `masonry`: a lazy masonry grid (items as tall as their content, in
-  columns) for the document cards. Flutter; layout only, knows nothing of
-  documents.
+  columns) for the cards. Flutter; layout only, knows nothing of files.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
-  code, and the wiring that picks the document types (`markdown`,
-  `plain_text`, `calendar`) and sync tools (`syncthing`, `plain_folder`).
+  code, and the wiring that picks the file types (`markdown`,
+  `plain_text`, `calendar`) and sync tools (`syncthing`, `local_folder`).
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `editor_test_support`: helpers for the editor's widget tests, shared by
@@ -160,14 +162,15 @@ flutter pub get --enforce-lockfile
 dart format .
 flutter analyze --fatal-infos
 (cd core && dart test)
-(cd markdown && dart test)
-(cd plain_text && dart test)
-(cd calendar && dart test)
-(cd syncthing && dart test)
-(cd plain_folder && dart test)
+(cd types/markdown/markdown && dart test)
+(cd types/plain_text/plain_text && dart test)
+(cd types/calendar/calendar && dart test)
+(cd plugins/syncthing/syncthing && dart test)
+(cd plugins/local_folder/local_folder && dart test)
 (cd folders && dart test)
-(cd documents && dart test)
+(cd files && dart test)
 (cd masonry && flutter test)
-(cd document_editor && flutter test)
+(cd types/document_editor && flutter test)
+(cd types/calendar/calendar_editor && flutter test)
 (cd app && flutter test)
 ```

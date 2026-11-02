@@ -1,6 +1,6 @@
 import 'file_type.dart';
 
-/// What the app knows of one document type: its files, by extension, and
+/// What the app knows of one file type: its files, by extension, and
 /// what lists show of a text of it. [Options] say how a preview shows,
 /// the type's own way (e.g. whether checked items show).
 abstract interface class FileTypeSupport<Options> {
@@ -20,7 +20,7 @@ abstract interface class TextSummary<Options> {
   String? get title;
 
   /// The first line with words, as plain words; empty if there is none.
-  /// Names new documents.
+  /// Names new files.
   String get firstLine;
 
   /// The lines after the title, shown as [options] say.

@@ -21,15 +21,15 @@
 ///    what each type gives lists ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
 ///    whose copies each sync tool keeps in its [ConflictSource]; how a
-///    document type merges two texts ([TextMerge]); copies kept as files
+///    file type merges two texts ([TextMerge]); copies kept as files
 ///    next to their main file, by a tool's names ([ConflictCopyNames]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
 ///    ([TextFile]); a text's lines ([splitLines]).
-/// 10. `marks`: colors of documents, synced inside the folder
-///     ([DocumentMarks]).
+/// 10. `marks`: colors of files, synced inside the folder
+///     ([FileMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
 ///     ([FolderChanges]), live from the place ([LiveChanges]).
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
@@ -38,12 +38,12 @@
 /// 13. `folder_state`: what the base folders hold (listings, conflicts,
 ///     marks), kept in step with changes by its owner, working only on
 ///     what changed ([FolderStateOwner]).
-/// 14. `documents`: an open document's file, kept on the device and in
+/// 14. `files`: an open file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
 ///     ([FileOwner]); and what every type's editor shares: the page's
 ///     requests and notices ([EditorRequest], [EditorNotice]), the save
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
-///     ([EditorSteps]); any document type, any sync tool.
+///     ([EditorSteps]); any file type, any sync tool.
 ///
 /// `place` bounds a base folder's files and changes alike to what the app
 /// may touch ([BoundedPlace]).
@@ -85,15 +85,15 @@ export 'src/conflicts/copies/named_copies_scanner.dart';
 export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
 export 'src/conflicts/text_merge.dart';
-export 'src/documents/editor/editor_book.dart';
-export 'src/documents/editor/editor_contract.dart';
-export 'src/documents/editor/editor_steps.dart';
-export 'src/documents/editor/history/edit_history.dart';
-export 'src/documents/editor/history/text_change.dart';
-export 'src/documents/editor/history/typing.dart';
-export 'src/documents/editor/save_clock.dart';
-export 'src/documents/file_owner/file_owner.dart';
-export 'src/documents/version.dart';
+export 'src/files/editor/editor_book.dart';
+export 'src/files/editor/editor_contract.dart';
+export 'src/files/editor/editor_steps.dart';
+export 'src/files/editor/history/edit_history.dart';
+export 'src/files/editor/history/text_change.dart';
+export 'src/files/editor/history/typing.dart';
+export 'src/files/editor/save_clock.dart';
+export 'src/files/file_owner/file_owner.dart';
+export 'src/files/version.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -101,8 +101,8 @@ export 'src/filetypes/file_type_support.dart';
 export 'src/filter/file_filter.dart';
 export 'src/filter/visible_file_filter.dart';
 export 'src/folder_state/folder_state_owner.dart';
-export 'src/marks/document_mark.dart';
-export 'src/marks/document_marks.dart';
+export 'src/marks/file_mark.dart';
+export 'src/marks/file_marks.dart';
 export 'src/owners/ask.dart';
 export 'src/owners/effects.dart';
 export 'src/owners/machine.dart';

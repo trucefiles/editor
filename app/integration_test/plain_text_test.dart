@@ -11,7 +11,7 @@ import 'editor_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of plain text (`.txt`) documents, in the real app on
+/// End-to-end tests of plain text (`.txt`) files, in the real app on
 /// the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/plain_text_test.dart
@@ -38,7 +38,7 @@ void main() {
   ) async {
     app.write('shopping.txt', 'Shopping\r\n# milk\r\n');
     await tester.addFolder(app);
-    await tester.openDocument('Shopping');
+    await tester.openFile('Shopping');
 
     expect(
       find.byWidgetPredicate((widget) => widget is PopupMenuButton<EditMode>),
@@ -58,7 +58,7 @@ void main() {
   testApp('Ctrl+Z and Ctrl+Y undo and redo typing', (tester) async {
     app.write('plan.txt', 'Plan\nab\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.clickLine('ab', 2);
     await tester.typeImeText('cd');
 
@@ -76,7 +76,7 @@ void main() {
   ) async {
     app.write('list.txt', 'List\nmilk\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
     await tester.clickLine('milk', 4);
     await tester.typeImeText(' egg');
     await tester.clickLine('List', 0);
@@ -93,7 +93,7 @@ void main() {
   testApp('compares a change from elsewhere and keeps mine', (tester) async {
     app.write('plan.txt', 'Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('Plan\nmine\n');
     app.write('plan.txt', 'Plan\nv2 from elsewhere\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -108,13 +108,13 @@ void main() {
   testApp('restores a backup into the open document', (tester) async {
     app.write('plan.txt', 'Plan\nv1\n');
     await tester.addFolder(app);
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
     await tester.typeOver('Plan\nbroken\n');
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.txt'), 'Plan\nbroken\n');
     await tester.waitForNoteClosed();
     await tester.waitFor(find.textContaining('broken', findRichText: true));
-    await tester.openDocument('Plan');
+    await tester.openFile('Plan');
 
     await tester.chooseInMenu('Backups');
     await tester.waitFor(find.textContaining('Before editing'));

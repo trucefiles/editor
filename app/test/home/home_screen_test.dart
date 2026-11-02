@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/app.dart';
-import 'package:truce_editor/document_page/ui/document_screen.dart';
+import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
@@ -93,7 +93,7 @@ void main() {
     });
 
     await tester.tap(find.text('Notes').first);
-    await showsSoon(tester, find.byType(DocumentScreen));
+    await showsSoon(tester, find.byType(FileScreen));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

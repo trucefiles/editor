@@ -1,0 +1,205 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/files/file_settings_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
+
+import '../support.dart';
+
+/// A type's view settings showing [mode], opaque to the app.
+ViewSettings _viewIn(String mode) => ViewSettings({'mode': mode});
+
+/// Settings with only a view showing [mode].
+FileSettings _viewed(String mode) => FileSettings(view: _viewIn(mode));
+
+void main() {
+  late ProviderContainer container;
+  late FileSettingsController views;
+  final a = (baseId: 'f1', path: path('a.md'));
+  final b = (baseId: 'f1', path: path('b.md'));
+
+  setUp(() {
+    final storage = AppStorage(tempFolder().path);
+    container = ProviderContainer(
+      overrides: [appStorageProvider.overrideWithValue(storage)],
+    );
+    addTearDown(container.dispose);
+    views = container.read(fileSettingsProvider.notifier);
+  });
+
+  Future<Map<String, FileSettings>> saved() async => {
+    for (final MapEntry(:key, :value)
+        in (await container.read(fileSettingsStoreProvider).load()).entries)
+      key: value.settings,
+  };
+
+  Future<void> remember(FileKey file, String view) =>
+      views.edit(file, (settings) => settings.withView(_viewIn(view)));
+
+  Object? viewOf(FileKey file) => views.settingsOf(file).view.json['mode'];
+
+  test('views remembered at the same time are all kept', () async {
+    await Future.wait([remember(a, 'markdown'), remember(b, 'read')]);
+
+    final expected = {
+      FileSettingsStore.storeKey(a): _viewed('markdown'),
+      FileSettingsStore.storeKey(b): _viewed('read'),
+    };
+    expect(
+      container.read(fileSettingsProvider).value,
+      expected.map((key, value) => MapEntry(key, KeptFileSettings(value))),
+    );
+    expect(await saved(), expected);
+  });
+
+  test('forget drops the view of a document', () async {
+    await remember(a, 'markdown');
+    await remember(b, 'read');
+
+    await views.forget(a);
+
+    expect(viewOf(a), isNull);
+    expect(await saved(), {FileSettingsStore.storeKey(b): _viewed('read')});
+  });
+
+  test('keeps the pin with the view', () async {
+    await remember(a, 'visual');
+    await views.edit(a, (settings) => settings.withPinned(pinned: true));
+
+    final expected = FileSettings(pinned: true, view: _viewIn('visual'));
+    expect(views.settingsOf(a), expected);
+    expect(await saved(), {FileSettingsStore.storeKey(a): expected});
+  });
+
+  test('drops settings changed back to the defaults', () async {
+    await views.edit(a, (settings) => settings.withPinned(pinned: true));
+
+    await views.edit(a, (settings) => settings.withPinned(pinned: false));
+
+    expect(views.settingsOf(a), FileSettings.defaults);
+    expect(await saved(), isEmpty);
+  });
+
+  group('prune', () {
+    late Folder work;
+    late Folder home;
+
+    setUp(() {
+      work = folderAt(tempFolder(), id: 'work', baseId: 'work');
+      home = folderAt(tempFolder(), id: 'home', baseId: 'home');
+    });
+
+    final now = DateTime.utc(2026, 10, 21, 9);
+    final graceLater = now.add(KeptFileSettings.grace);
+
+    ListedFile fileAt(Folder folder, String name) =>
+        listedFile(folder, name: name);
+
+    /// Prunes by [found] now and again once the grace period is over.
+    Future<void> pruneAfterGrace(FolderContents found) async {
+      await views.prune(found, now: now);
+      await views.prune(found, now: graceLater);
+    }
+
+    FolderContents scans(
+      List<ListedFile> files, {
+      Map<Folder, StoreError> failed = const {},
+      Map<String, List<RelPath>> unreadable = const {},
+    }) => contentsFinding(
+      files,
+      folders: [work, home],
+      failed: failed,
+      unreadable: unreadable,
+    );
+
+    test('drops views of documents and folders that are gone', () async {
+      final kept = fileAt(work, 'kept.md');
+      await remember(kept.key, 'visual');
+      await remember(fileAt(work, 'gone.md').key, 'markdown');
+      await remember((baseId: 'removed', path: path('a.md')), 'markdown');
+
+      await pruneAfterGrace(scans([kept]));
+
+      expect(await saved(), {
+        FileSettingsStore.storeKey(kept.key): _viewed('visual'),
+      });
+    });
+
+    test('keeps the settings of a missing document for a while', () async {
+      final gone = fileAt(work, 'gone.md');
+      await views.edit(gone.key, (s) => s.withPinned(pinned: true));
+
+      await views.prune(scans([]), now: now);
+      await views.prune(
+        scans([]),
+        now: graceLater.subtract(const Duration(minutes: 1)),
+      );
+
+      expect(views.settingsOf(gone.key).pinned, isTrue);
+    });
+
+    test('a document found again starts its grace period anew', () async {
+      final back = fileAt(work, 'back.md');
+      await views.edit(back.key, (s) => s.withPinned(pinned: true));
+
+      await views.prune(scans([]), now: now);
+      await views.prune(scans([back]), now: now.add(const Duration(days: 1)));
+      await views.prune(scans([]), now: now.add(const Duration(days: 2)));
+      await views.prune(scans([]), now: graceLater);
+
+      expect(views.settingsOf(back.key).pinned, isTrue);
+    });
+
+    test('keeps the time a document went missing across restarts', () async {
+      final gone = fileAt(work, 'gone.md');
+      await views.edit(gone.key, (s) => s.withPinned(pinned: true));
+      await views.prune(scans([]), now: now);
+
+      container.invalidate(fileSettingsProvider);
+      views = container.read(fileSettingsProvider.notifier);
+      await views.prune(scans([]), now: graceLater);
+
+      expect(views.settingsOf(gone.key).pinned, isFalse);
+    });
+
+    test('keeps views of folders that could not be scanned', () async {
+      final unread = fileAt(home, 'a.md');
+      await remember(unread.key, 'read');
+
+      await pruneAfterGrace(scans([], failed: {home: StoreError.ioFailure}));
+
+      expect(viewOf(unread.key), 'read');
+    });
+
+    test('keeps the views of documents no folder shows', () async {
+      final narrowed = work.copyWith(selection: Selection.of([path('kept')]));
+      final outside = fileAt(work, 'elsewhere/a.md');
+      await remember(outside.key, 'read');
+
+      await pruneAfterGrace(contentsFinding([], folders: [narrowed, home]));
+
+      expect(viewOf(outside.key), 'read');
+    });
+
+    test('keeps views below subfolders that could not be read', () async {
+      final hidden = fileAt(work, 'private/a.md');
+      final gone = fileAt(work, 'privateer.md');
+      await remember(hidden.key, 'read');
+      await remember(gone.key, 'markdown');
+
+      await pruneAfterGrace(
+        scans(
+          [],
+          unreadable: {
+            work.id: [path('private')],
+          },
+        ),
+      );
+
+      expect(viewOf(hidden.key), 'read');
+      expect(viewOf(gone.key), isNull);
+    });
+  });
+}

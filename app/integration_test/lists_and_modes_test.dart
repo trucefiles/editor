@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 
-import 'package:truce_editor/documents/ui/document_card.dart';
+import 'package:truce_editor/files/ui/file_card.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 
@@ -12,7 +12,7 @@ import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
 
-/// End-to-end tests of lists and a document's modes, in the real app on
+/// End-to-end tests of lists and a file's modes, in the real app on
 /// the desktop, against a real folder.
 ///
 /// Run on Linux with `flutter test integration_test/lists_and_modes_test.dart
@@ -27,7 +27,7 @@ void main() {
   testApp('checks a checklist item and saves it', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
@@ -41,7 +41,7 @@ void main() {
     await tester.addFolder(app);
 
     await tester.waitFor(find.text('Documents/a/b/c'));
-    await tester.openDocument('Deep');
+    await tester.openFile('Deep');
     expect(find.text('Documents/a/b/c/todo.md'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));
     await tester.pageBack();
@@ -56,7 +56,7 @@ void main() {
   testApp('an undo in a checklist goes away with the document', (tester) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
     await tester.chooseInMenu('Clear checked items now');
     expect(find.text('Undo'), findsOneWidget);
 
@@ -72,14 +72,14 @@ void main() {
   ) async {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
     expect(find.text('Done (1)'), findsNothing);
 
     await tester.chooseCheckedItems('Show at end');
     await tester.waitFor(find.text('Done (1)'));
     await tester.pageBack();
     await tester.waitForNoteClosed();
-    await tester.openDocument('List');
+    await tester.openFile('List');
 
     expect(find.text('Done (1)'), findsOneWidget);
     expect(app.folder('.truce').existsSync(), isFalse);
@@ -90,7 +90,7 @@ void main() {
   ) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n- [ ] c\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
 
     await tester.tapAndSettle(find.byType(Checkbox).at(1));
     await tester.pageBack();
@@ -104,7 +104,7 @@ void main() {
   testApp('the menu moves checked items to the end now', (tester) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
 
     await tester.chooseInMenu('Move checked items to end now');
     await tester.pageBack();
@@ -116,7 +116,7 @@ void main() {
       'setting', (tester) async {
     app.write('list.md', '# List\n- [x] a\n- [ ] b\n');
     await tester.addFolder(app);
-    await tester.openDocument('List');
+    await tester.openFile('List');
 
     for (final mode in ['Read', 'Markdown edit']) {
       await tester.chooseMode(mode);
@@ -138,13 +138,13 @@ void main() {
   testApp('reopens a document in the mode it was left in', (tester) async {
     app.write('todo.md', '# Todo\n- [ ] Call Bob\n');
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
     expect(find.byType(Checkbox), findsOneWidget);
 
     await tester.chooseMode('Markdown edit');
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
     expect(find.byType(Checkbox), findsNothing);
     expect(find.byTooltip('Mode: Markdown edit'), findsOneWidget);
@@ -154,7 +154,7 @@ void main() {
     app.write('read.md', '# Read me\n\nSome **bold** text.\n');
     await tester.addFolder(app);
 
-    await tester.openDocument('Read me');
+    await tester.openFile('Read me');
 
     expect(find.byTooltip('Mode: Read'), findsOne);
     expect(find.byType(SuperEditor), findsNothing);
@@ -169,7 +169,7 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
     await tester.pressCtrl(LogicalKeyboardKey.digit3);
     expect(find.byTooltip('Mode: Read'), findsOne);
@@ -184,9 +184,9 @@ void main() {
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
     await tester.addFolder(app);
-    await tester.openDocument('Todo');
+    await tester.openFile('Todo');
 
-    /// How large the document shows text of 10 px.
+    /// How large the file shows text of 10 px.
     double scaled() =>
         MediaQuery.textScalerOf(tester.element(find.byType(SuperEditor)))
             .scale(10);
@@ -248,10 +248,7 @@ void main() {
     await tester.waitForNoteClosed();
     double home() => MediaQuery.textScalerOf(
       tester.element(
-        find.descendant(
-          of: find.byType(DocumentCard),
-          matching: find.text('Todo'),
-        ),
+        find.descendant(of: find.byType(FileCard), matching: find.text('Todo')),
       ),
     ).scale(10);
     expect(home(), closeTo(base * 1.4, 0.01));
@@ -263,7 +260,7 @@ void main() {
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
-    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.files, TextZoom.closestTo(150));
     await app.useTextZoom(TextZoomTarget.app, TextZoom.closestTo(130));
     await app.launch(tester);
 
@@ -282,10 +279,7 @@ void main() {
     await tester.waitFor(find.text('Todo'));
     expect(
       scaled(
-        find.descendant(
-          of: find.byType(DocumentCard),
-          matching: find.text('Todo'),
-        ),
+        find.descendant(of: find.byType(FileCard), matching: find.text('Todo')),
       ),
       closeTo(15, 0.01),
     );

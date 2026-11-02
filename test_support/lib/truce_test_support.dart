@@ -2,7 +2,7 @@
 ///
 /// The fake sync tool ([FakeSyncTool] with files in memory, its rules
 /// [FakeSyncRules], [FakeConflictSource]) lets generic code be tested
-/// without any real sync tool or files on disk; the fake document
+/// without any real sync tool or files on disk; the fake file
 /// type ([FakeFileType]) without any real file type.
 library;
 

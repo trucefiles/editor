@@ -1,22 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../sync_tool/base_folder_wiring.dart';
 import 'all_backups.dart';
-import 'document_backups.dart';
+import 'file_backups.dart';
 
 final backupActionsProvider = Provider<BackupActions>(
   (ref) => BackupActions(
     servicesOf: ref.watch(baseFolderStacksProvider).servicesOf,
     changed: () => ref
       ..invalidate(allBackupsProvider)
-      ..invalidate(documentBackupsProvider),
+      ..invalidate(fileBackupsProvider),
   ),
 );
 
-/// The user's actions on backups that change no document. No UI.
+/// The user's actions on backups that change no file. No UI.
 final class BackupActions {
   /// [_servicesOf] gives a base folder's services; [_changed] tells the
   /// lists of backups to read them again.

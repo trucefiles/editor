@@ -6,18 +6,18 @@ environment:
 
 workspace:
   - app
-  - calendar
-  - calendar_editor
   - core
-  - document_editor
-  - document_page
-  - documents
   - editor_test_support
+  - file_page
+  - files
   - folders
-  - markdown
   - masonry
-  - plain_folder
-  - plain_text
-  - syncthing
+  - plugins/local_folder/local_folder
+  - plugins/syncthing/syncthing
   - test_support
+  - types/calendar/calendar
+  - types/calendar/calendar_editor
+  - types/document_editor
+  - types/markdown/markdown
+  - types/plain_text/plain_text
   - lints

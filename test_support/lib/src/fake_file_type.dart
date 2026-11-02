@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-/// A made-up document type for tests of generic code: its files end in
+/// A made-up file type for tests of generic code: its files end in
 /// `.md`; its title is a first line starting with `# `, and its preview
 /// the other lines, the first [FakePreview.lines] of them.
 final class FakeFileType implements FileTypeSupport<FakePreview> {
@@ -48,5 +48,5 @@ final class _FakeSummary implements TextSummary<FakePreview> {
       .join('\n');
 }
 
-/// Detects the fake document type ([FakeFileType]).
+/// Detects the fake file type ([FakeFileType]).
 const fakeFileTypes = ExtensionFileTypeDetector({'md': FakeFileType.id});

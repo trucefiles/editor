@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../base_folder.dart';
-import '../document_folder.dart';
+import '../folder.dart';
 import '../folder_list_owner.dart';
 import '../folder_lookup.dart';
 import 'base_folder_services.dart';
@@ -52,7 +52,7 @@ final class BaseFolderStacks {
   final _gone = <String, BaseFolderServices>{};
 
   /// The list [_shown] was last built for.
-  List<DocumentFolder>? _followed;
+  List<Folder>? _followed;
 
   final _changes = StreamController<void>.broadcast(sync: true);
 
@@ -106,7 +106,7 @@ final class BaseFolderStacks {
   void _follow() {
     final folders = switch (_folders.state) {
       FoldersLoaded(:final folders) => folders,
-      FoldersLoading() || FoldersUnreadable() => const <DocumentFolder>[],
+      FoldersLoading() || FoldersUnreadable() => const <Folder>[],
     };
     if (identical(folders, _followed)) return;
     _followed = folders;

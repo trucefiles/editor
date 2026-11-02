@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
 
 import '../../support.dart';
@@ -29,7 +29,7 @@ import '../../support.dart';
       keepView: (change) => kept.add(change(kept.last)),
       withFile: (action) async {
         if (hasFile) {
-          await action(listedDocument(folderAt(Directory.systemTemp)));
+          await action(listedFile(folderAt(Directory.systemTemp)));
         }
       },
     ),

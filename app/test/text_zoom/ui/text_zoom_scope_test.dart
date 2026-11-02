@@ -15,12 +15,12 @@ import '../../support.dart';
 
 void main() {
   final page = find.text('page');
-  final document = find.text('document');
-  final toast = find.text(textZoomTitle(TextZoomTarget.documents));
+  final file = find.text('document');
+  final toast = find.text(textZoomTitle(TextZoomTarget.files));
 
   TextZoom zoom(
     WidgetTester tester, [
-    TextZoomTarget of = TextZoomTarget.documents,
+    TextZoomTarget of = TextZoomTarget.files,
   ]) =>
       ProviderScope.containerOf(tester.element(page))
           .read(deviceSettingsProvider)
@@ -79,7 +79,7 @@ void main() {
     await show(tester);
 
     expect(scaled(tester, page), 15);
-    expect(scaled(tester, document), 10);
+    expect(scaled(tester, file), 10);
   });
 
   testWidgets('keys zoom document text only', (tester) async {
@@ -87,7 +87,7 @@ void main() {
     await pressCtrlPlus(tester);
 
     expect(zoom(tester).percent, 110);
-    expect(scaled(tester, document), 11);
+    expect(scaled(tester, file), 11);
     expect(scaled(tester, page), 15);
     expect(zoom(tester, TextZoomTarget.app).percent, 150);
   });

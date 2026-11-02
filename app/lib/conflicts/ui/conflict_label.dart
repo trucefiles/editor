@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A small "Conflict" pill: the document has versions from a sync conflict.
+/// A small "Conflict" pill: the file has versions from a sync conflict.
 class ConflictLabel extends StatelessWidget {
   const ConflictLabel({super.key});
 

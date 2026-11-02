@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../documents/home/ui/recent_count_tile.dart';
-import '../../documents/new_file_place/ui/new_file_place_tile.dart';
+import '../../files/home/ui/recent_count_tile.dart';
+import '../../files/new_file_place/ui/new_file_place_tile.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
 import '../../text_zoom/text_zoom_target.dart';
 import '../../text_zoom/ui/text_zoom_tile.dart';
@@ -20,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
         NewFilePlaceTile(),
         RecentCountTile(),
         AddItemPlaceTile(),
-        TextZoomTile(TextZoomTarget.documents),
+        TextZoomTile(TextZoomTarget.files),
         TextZoomTile(TextZoomTarget.app),
         RefreshSettingTile(),
         CloseToTrayTile(),

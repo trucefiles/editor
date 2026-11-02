@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
@@ -12,32 +12,32 @@ import '../support.dart';
 /// folders or anything outside the folder.
 void main() {
   late Directory base;
-  late Directory documents;
+  late Directory synced;
   late Directory backups;
   late BaseFolderServices services;
-  late DocumentFiles files;
+  late FilesOfFolder files;
 
   setUp(() {
     base = tempFolder();
-    documents = Directory('${base.path}/Documents')..createSync();
+    synced = Directory('${base.path}/Documents')..createSync();
     backups = Directory('${base.path}/app/backups/f1');
     _populate(base);
-    final folder = folderAt(documents);
+    final folder = folderAt(synced);
     services = servicesFor(folder, backupsPath: backups.path);
-    files = DocumentFiles(folder, services, appDocumentTypes());
+    files = FilesOfFolder(folder, services, appFileTypes());
   });
 
   /// Every entry below [base], with what a write would change.
   Map<String, String> snapshot() => _snapshot(base);
 
-  /// The document at [name], as the app reads it.
-  Future<DocumentText> documentAt(String name) async {
+  /// The file at [name], as the app reads it.
+  Future<FileText> fileAt(String name) async {
     final scan = (await services.scanner.scan()).value;
     final entry = scan.files.firstWhere((file) => file.path.value == name);
-    final listed = Document(
-      folder: folderAt(documents),
+    final listed = ListedFile(
+      folder: folderAt(synced),
       path: entry.path,
-      type: appDocumentTypes().of(entry.path)!.support,
+      type: appFileTypes().of(entry.path)!.support,
       version: entry.version,
       modified: entry.modified,
     );
@@ -72,37 +72,37 @@ void main() {
   test('creating a document adds only that document', () async {
     final before = snapshot();
 
-    await files.create('New', type: appDocumentTypes().forNew, text: '# New\n');
+    await files.create('New', type: appFileTypes().forNew, text: '# New\n');
 
     expect(changed(before, snapshot()), {'Documents/New.md'});
   });
 
   test('saving a document changes only that document', () async {
-    final document = await documentAt('sub/b.md');
+    final file = await fileAt('sub/b.md');
     final before = snapshot();
 
-    await files.save(document, 'edited');
+    await files.save(file, 'edited');
 
     expect(changed(before, snapshot()), {'Documents/sub/b.md'});
   });
 
   test('deleting a document and undoing it touch only that document', () async {
-    final document = await documentAt('sub/b.md');
+    final file = await fileAt('sub/b.md');
     final before = snapshot();
 
-    await files.delete(document.document);
+    await files.delete(file.listed);
     expect(changed(before, snapshot()), {'Documents/sub/b.md'});
-    expect(Directory('${documents.path}/sub').existsSync(), isTrue);
+    expect(Directory('${synced.path}/sub').existsSync(), isTrue);
 
-    await files.restore(document, document.text);
-    final restored = File('${documents.path}/sub/b.md').readAsStringSync();
-    expect(restored, document.text);
+    await files.restore(file, file.text);
+    final restored = File('${synced.path}/sub/b.md').readAsStringSync();
+    expect(restored, file.text);
   });
 
   test('coloring a document adds only this device\'s marks file', () async {
     final before = snapshot();
 
-    await services.marks.set(path('a.md'), const DocumentMark(color: 'teal'));
+    await services.marks.set(path('a.md'), const FileMark(color: 'teal'));
 
     expect(changed(before, snapshot()), {
       'Documents/.truce',
@@ -112,10 +112,10 @@ void main() {
   });
 
   test('keeping edits as a conflict copy adds only the copy', () async {
-    final document = await documentAt('sub/b.md');
+    final file = await fileAt('sub/b.md');
     final before = snapshot();
 
-    await files.saveAsConflict(document, 'mine');
+    await files.saveAsConflict(file, 'mine');
 
     final added = changed(before, snapshot());
     expect(added, hasLength(1));
@@ -125,7 +125,7 @@ void main() {
   for (final resolution in [const KeepCurrent(), const KeepOther()]) {
     test('resolving a conflict with ${resolution.runtimeType} touches only '
         'the document and its copy', () async {
-      File('${documents.path}/sub/b.sync-conflict-20261003-134809-ABCDEFG.md')
+      File('${synced.path}/sub/b.sync-conflict-20261003-134809-ABCDEFG.md')
           .writeAsStringSync('theirs');
       final scan = (await services.scanner.scan()).value;
       final conflict = scan.conflicts.single;
@@ -152,12 +152,12 @@ void main() {
 
   group('once the folder is gone', () {
     // E.g. moved, deleted, or on a drive that is not mounted.
-    late DocumentText document;
+    late FileText file;
     late Map<String, String> before;
 
     setUp(() async {
-      document = await documentAt('sub/b.md');
-      documents.renameSync('${base.path}/Moved');
+      file = await fileAt('sub/b.md');
+      synced.renameSync('${base.path}/Moved');
       before = snapshot();
     });
 
@@ -165,7 +165,7 @@ void main() {
       expect(
         (await files.create(
           'New',
-          type: appDocumentTypes().forNew,
+          type: appFileTypes().forNew,
           text: '# New\n',
         )).error,
         StoreError.notFound,
@@ -176,7 +176,7 @@ void main() {
     test('coloring a document does not bring it back', () async {
       final colored = await services.marks.set(
         path('a.md'),
-        const DocumentMark(color: 'teal'),
+        const FileMark(color: 'teal'),
       );
 
       expect(colored.error, StoreError.notFound);
@@ -185,28 +185,22 @@ void main() {
 
     test('keeping edits as a conflict copy does not bring it back', () async {
       expect(
-        (await files.saveAsConflict(document, 'mine')).error,
+        (await files.saveAsConflict(file, 'mine')).error,
         StoreError.notFound,
       );
       expect(changed(before, snapshot()), isEmpty);
     });
 
     test('saving, restoring and deleting do not bring it back', () async {
-      expect((await files.save(document, 'mine')).error, StoreError.notFound);
-      expect(
-        (await files.restore(document, 'mine')).error,
-        StoreError.notFound,
-      );
-      expect(
-        (await files.delete(document.document)).error,
-        StoreError.notFound,
-      );
+      expect((await files.save(file, 'mine')).error, StoreError.notFound);
+      expect((await files.restore(file, 'mine')).error, StoreError.notFound);
+      expect((await files.delete(file.listed)).error, StoreError.notFound);
       expect(changed(before, snapshot()), isEmpty);
     });
   });
 }
 
-/// A Syncthing folder `Documents` with the tool's own files, files and folders
+/// A Syncthing folder `Files` with the tool's own files, files and folders
 /// the app does not show, a link to a folder outside, and files next to it.
 void _populate(Directory base) {
   void write(String path, String text) =>

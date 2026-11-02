@@ -27,7 +27,7 @@ abstract interface class SyncTool {
 
   /// Whether the folder at [address] is the tool's own (e.g. its version
   /// folder) or lies inside one. Such a folder never holds the user's
-  /// documents. Any address is asked, also one the tool can't open:
+  /// files. Any address is asked, also one the tool can't open:
   /// `false` then.
   bool isToolFolder(Uri address);
 
@@ -67,7 +67,7 @@ abstract interface class ToolPlace {
 
   /// Whether the tool shows the folder at [folder], and each folder on the
   /// way to it: e.g. none of its own and no hidden one. A folder it doesn't
-  /// show never holds the user's documents.
+  /// show never holds the user's files.
   bool showsFolder(RelPath folder);
 
   /// The base folder's files by the tool's rules, on [bounded]: only what

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../all_backups.dart';
 import 'backup_list.dart';
 import 'restore_screen.dart';
 
-/// Every document backup on this device, newest first; tapping one compares it
-/// with the document to restore it.
+/// Every file backup on this device, newest first; tapping one compares it
+/// with the file to restore it.
 class BackupsScreen extends ConsumerWidget {
   const BackupsScreen({super.key});
 

@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_documents/truce_documents.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import '../document_page/markdown_session.dart';
+import '../file_page/markdown_session.dart';
 import '../support.dart';
 
-/// Proves that open documents never write on their own: a change that
+/// Proves that open files never write on their own: a change that
 /// comes in from another device is never written back, so devices running
 /// the app cannot keep each other writing and use up the sync tool's file
 /// history.
@@ -86,7 +86,7 @@ void main() {
 }
 
 /// One device: its copy of the synced folder, and the app with the
-/// document open in Markdown edit.
+/// file open in Markdown edit.
 final class _Device {
   _Device._(this.dir, this.files, this.session);
 
@@ -94,15 +94,11 @@ final class _Device {
     final dir = tempFolder();
     File('${dir.path}/todo.md').writeAsStringSync(text);
     final folder = folderAt(dir, id: name);
-    final files = DocumentFiles(
-      folder,
-      servicesFor(folder),
-      appDocumentTypes(),
-    );
-    final document = (await files.reload(_placeholder(folder))).value;
+    final files = FilesOfFolder(folder, servicesFor(folder), appFileTypes());
+    final file = (await files.reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = markdownSession(
-      document,
+      file,
       FileEffects(
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
@@ -121,7 +117,7 @@ final class _Device {
               text: text,
             ),
         // Never moved here.
-        moveDocument: (_, _, {required title, required newSubfolder}) =>
+        mover: (_, _, {required title, required newSubfolder}) =>
             throw StateError('not moved in this test'),
       ),
       mode: EditMode.markdown,
@@ -131,8 +127,8 @@ final class _Device {
   }
 
   final Directory dir;
-  final DocumentFiles files;
-  final DocumentSession session;
+  final FilesOfFolder files;
+  final FileSession session;
 
   File get mainFile => File('${dir.path}/todo.md');
 
@@ -151,8 +147,8 @@ final class _Device {
   /// any edits. Returns how many files it wrote.
   Future<int> runApp() async {
     final before = _state();
-    final latest = switch (await files.reload(session.document!.document)) {
-      Ok(:final value) => value.document,
+    final latest = switch (await files.reload(session.read!.listed)) {
+      Ok(:final value) => value.listed,
       Err() => null,
     };
     session.observe(contentsFinding([?latest]));
@@ -164,7 +160,7 @@ final class _Device {
     }.length;
   }
 
-  /// Copies the document to [other] the way Syncthing does: atomically, with
+  /// Copies the file to [other] the way Syncthing does: atomically, with
   /// this device's modification time.
   void syncTo(_Device other) {
     if (!mainFile.existsSync()) return;
@@ -174,7 +170,7 @@ final class _Device {
     temp.renameSync(other.mainFile.path);
   }
 
-  /// Changes only the document's time, as some file systems and tools do.
+  /// Changes only the file's time, as some file systems and tools do.
   void restamp(DateTime time) => mainFile.setLastModifiedSync(time);
 
   Map<String, String> _state() => {
@@ -182,10 +178,10 @@ final class _Device {
       file.path: '${file.readAsBytesSync()} ${file.lastModifiedSync()}',
   };
 
-  static Document _placeholder(DocumentFolder folder) => Document(
+  static ListedFile _placeholder(Folder folder) => ListedFile(
     folder: folder,
     path: RelPath.parse('todo.md')!,
-    type: appDocumentTypes().forNew.support,
+    type: appFileTypes().forNew.support,
     version: const FileVersion(0),
     modified: DateTime(2000),
   );

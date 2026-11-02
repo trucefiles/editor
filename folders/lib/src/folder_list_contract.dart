@@ -7,7 +7,7 @@ library;
 import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'document_folder.dart';
+import 'folder.dart';
 import 'folder_error.dart';
 import 'folder_list_store.dart';
 
@@ -26,12 +26,12 @@ final class FoldersLoading extends FolderListState {
 final class FoldersLoaded extends FolderListState {
   const FoldersLoaded(this.folders);
 
-  final List<DocumentFolder> folders;
+  final List<Folder> folders;
 
   @override
   bool operator ==(Object other) =>
       other is FoldersLoaded &&
-      const ListEquality<DocumentFolder>().equals(other.folders, folders);
+      const ListEquality<Folder>().equals(other.folders, folders);
 
   @override
   int get hashCode => Object.hashAll(folders);
@@ -87,7 +87,7 @@ final class AddFolder extends FolderListAsking {
 final class ChangeFolder extends FolderListAsking {
   const ChangeFolder(super.ticket, this.changed);
 
-  final DocumentFolder changed;
+  final Folder changed;
 }
 
 /// Forget [removed]; its files stay untouched. Its base folder goes with
@@ -95,15 +95,15 @@ final class ChangeFolder extends FolderListAsking {
 final class RemoveFolder extends FolderListAsking {
   const RemoveFolder(super.ticket, this.removed);
 
-  final DocumentFolder removed;
+  final Folder removed;
 }
 
-/// How many documents have edits kept only on this device that removing
+/// How many files have edits kept only on this device that removing
 /// [folder] would delete.
 final class CountDraftsUnder extends FolderListAsking {
   const CountDraftsUnder(super.ticket, this.folder);
 
-  final DocumentFolder folder;
+  final Folder folder;
 }
 
 // Events: one answer per asking input.
@@ -119,7 +119,7 @@ final class FolderAdded extends FolderListAnswer {
   const FolderAdded(super.ticket, this.result);
 
   /// The folder added.
-  final Result<DocumentFolder, FolderError> result;
+  final Result<Folder, FolderError> result;
 }
 
 final class FolderChanged extends FolderListAnswer {

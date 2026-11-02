@@ -146,7 +146,7 @@ enum StoreError {
 
   /// The path lies outside what the store may touch: outside the folder's
   /// selection, or a file the app doesn't handle. An expected answer, e.g.
-  /// for a path the user typed, a link in a document or a key kept from
+  /// for a path the user typed, a link in a file or a key kept from
   /// before a folder changed.
   outside,
 }

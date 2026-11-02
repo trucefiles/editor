@@ -35,7 +35,7 @@ final class FolderScan {
   /// Files the `FileFilter` includes; never the sync tool's own files.
   final List<FileEntry> files;
 
-  /// Every subfolder the `FileFilter` includes, empty ones too, so a document
+  /// Every subfolder the `FileFilter` includes, empty ones too, so a file
   /// can be created there.
   final List<RelPath> subfolders;
 
