@@ -1,14 +1,11 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'base_folder.dart';
 import 'folder.dart';
 import 'folder_error.dart';
 import 'folder_list_contract.dart';
 import 'folder_list_store.dart';
-import 'host_paths.dart';
+import 'folder_plugins.dart';
 
 export 'folder_list_contract.dart';
 
@@ -21,8 +18,7 @@ typedef FolderListOwner =
 final class FolderListWork {
   const FolderListWork({
     required this.store,
-    required this.hostPaths,
-    required this.isToolFolder,
+    required this.plugins,
     required this.secureOpen,
     required this.forgetDrafts,
     required this.countDrafts,
@@ -30,29 +26,26 @@ final class FolderListWork {
 
   final FolderListStore store;
 
-  /// Where base folders lie on the host, to tell whether they overlap.
-  final HostPaths hostPaths;
+  /// The plugins, each with its state, which the owner saves with its
+  /// list.
+  final FolderPlugins plugins;
 
-  /// Whether the folder at an address belongs to a sync tool itself (e.g.
-  /// its version folder).
-  final bool Function(Uri address) isToolFolder;
+  /// Keeps the edits of the files open in a folder where they last,
+  /// before the folder goes.
+  final Future<void> Function(FolderId folder) secureOpen;
 
-  /// Keeps the edits of the files open in a base folder where they
-  /// last, before what the app may touch there changes.
-  final Future<void> Function(BaseFolder base) secureOpen;
+  /// Deletes the drafts of a folder's files, as the user removes it.
+  final Future<void> Function(FolderId folder) forgetDrafts;
 
-  /// Deletes the drafts of the files of a base folder that [Selection]
-  /// covers, as the user removes the folder that showed them.
-  final Future<void> Function(BaseFolder base, Selection under) forgetDrafts;
-
-  /// How many files of a base folder that [Selection] covers have
-  /// drafts.
-  final Future<int> Function(BaseFolder base, Selection under) countDrafts;
+  /// How many of a folder's files have drafts.
+  final Future<int> Function(FolderId folder) countDrafts;
 }
 
-/// The folder list owner: loads the saved list first, then runs each
-/// change by [work]: checks it, keeps the open files of a base folder
-/// whose part shown changes, saves the new list, and only then shows it.
+/// The folder list owner: loads the saved list and every plugin's state
+/// first, then runs each change by [work]: the plugin's state changes,
+/// then the list and every plugin's state are saved in one write, and
+/// only then shown. A save that fails gives the plugin its state back:
+/// nothing changed.
 FolderListOwner folderListOwner(FolderListWork work) {
   final owner = SimpleOwner<FolderListInput, FolderListState, FolderListAnswer>(
     const FoldersLoading(),
@@ -85,18 +78,67 @@ final class _FolderListSteps {
   _FolderListSteps(this._work);
 
   final FolderListWork _work;
-  final _random = Random.secure();
+
+  List<FolderPlugin> get _plugins => _work.plugins.all;
 
   Future<void> run(
     FolderListInput input,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async => switch (input) {
-    LoadFolders() => out.state = switch (await _work.store.load()) {
-      Ok(:final value) => FoldersLoaded(value),
-      Err(:final error) => FoldersUnreadable(error),
-    },
+    LoadFolders() => out.state = await _load(),
     final FolderListAsking asking => out.emit(await _answer(asking, out)),
   };
+
+  /// The saved list, with every plugin's state loaded from it. A list
+  /// and plugins that disagree, or a plugin state that can't be read,
+  /// make the list unreadable: then no plugin holds a folder.
+  Future<FolderListState> _load() async {
+    final saved = await _work.store.load();
+    final folders = switch (saved) {
+      Ok(:final value) => _loaded(value),
+      Err() => null,
+    };
+    if (folders != null) return FoldersLoaded(folders);
+    for (final plugin in _plugins) {
+      plugin.load(null);
+    }
+    return FoldersUnreadable(switch (saved) {
+      Err(:final error) => error,
+      Ok() => SettingsError.corrupt,
+    });
+  }
+
+  List<Folder>? _loaded(SavedFolders saved) {
+    final read = [
+      for (final plugin in _plugins) plugin.load(saved.blobs[plugin.id]),
+    ];
+    if (read.contains(false) ||
+        !saved.blobs.keys.every((id) => _work.plugins.byId(id) != null)) {
+      return null;
+    }
+    final locations = {
+      for (final plugin in _plugins)
+        for (final folder in plugin.folders)
+          FolderId(plugin.id, folder.id): folder.location,
+    };
+    final ids = [for (final entry in saved.folders) entry.id];
+    if (!const UnorderedIterableEquality<FolderId>().equals(
+          ids,
+          locations.keys,
+        ) ||
+        ids.toSet().length != ids.length) {
+      return null;
+    }
+    return [
+      for (final entry in saved.folders)
+        Folder(
+          id: entry.id,
+          name: entry.name,
+          color: entry.color,
+          location: locations[entry.id]!,
+        ),
+    ];
+  }
 
   Future<FolderListAnswer> _answer(
     FolderListAsking input,
@@ -110,7 +152,7 @@ final class _FolderListSteps {
     };
     const unsaved = Err<Never, FolderError>(FolderError.notSaved);
     return switch (input) {
-      AddFolder(:final ticket) => FolderAdded(
+      AddFolders(:final ticket) => FoldersAdded(
         ticket,
         folders == null ? unsaved : await _add(folders, input, out),
       ),
@@ -122,54 +164,38 @@ final class _FolderListSteps {
         ticket,
         folders == null ? unsaved : await _remove(folders, removed, out),
       ),
-      CountDraftsUnder(:final ticket, :final folder) => DraftsCounted(
+      CountDrafts(:final ticket, :final folder) => DraftsCounted(
         ticket,
-        await _work.countDrafts(
-          folder.base,
-          _draftsGoneWith(folders ?? const [], folder),
-        ),
+        await _work.countDrafts(folder.id),
       ),
     };
   }
 
-  /// Refuses a folder of a sync tool's own, a base folder inside an added
-  /// one or holding one (compared by host addresses, as a sandbox may show
-  /// each at its own path), and a selection that clashes. Best effort in a
-  /// sandbox: an address whose host address is unknown is checked as the
-  /// sandbox shows it.
-  Future<Result<Folder, FolderError>> _add(
+  Future<Result<List<Folder>, FolderError>> _add(
     List<Folder> folders,
-    AddFolder add,
+    AddFolders add,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    final host = await _work.hostPaths.of(add.address);
-    if (_work.isToolFolder(host)) {
-      return const Err(FolderError.syncToolInternal);
-    }
-    BaseFolder? same;
-    for (final base in {for (final folder in folders) folder.base}) {
-      final other = await _work.hostPaths.of(base.address);
-      if (!_samePlace(host, other)) continue;
-      if (_sameSegments.equals(_segments(other), _segments(host))) {
-        same = base;
-      } else if (_isWithin(host, other) || _isWithin(other, host)) {
+    final plugin = _work.plugins.of(add.plugin);
+    final before = plugin.blob;
+    switch (plugin.add([for (final named in add.candidates) named.candidate])) {
+      case Err():
         return const Err(FolderError.overlaps);
-      }
+      case Ok(value: final set):
+        final added = [
+          for (final (index, folder) in set.indexed)
+            Folder(
+              id: FolderId(plugin.id, folder.id),
+              name: add.candidates[index].name,
+              color: add.candidates[index].color,
+              location: folder.location,
+            ),
+        ];
+        return switch (await _save([...folders, ...added], out)) {
+          Ok() => Ok(added),
+          Err(:final error) => _undone(plugin, before, error),
+        };
     }
-    final folder = Folder(
-      id: _newId(),
-      base:
-          same ??
-          BaseFolder(id: _newId(), address: add.address, toolId: add.toolId),
-      selection: add.selection,
-      name: add.name,
-      color: add.color,
-    );
-    if (_clashes(folder, folders)) return const Err(FolderError.overlaps);
-    return switch (await _save([...folders, folder], out)) {
-      Ok() => Ok(folder),
-      Err(:final error) => Err(error),
-    };
   }
 
   Future<Result<void, FolderError>> _change(
@@ -177,54 +203,56 @@ final class _FolderListSteps {
     Folder changed,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    final before = folders.where((f) => f.id == changed.id).firstOrNull;
-    if (before == null) return const Ok(null);
-    if (_clashes(changed, folders)) return const Err(FolderError.overlaps);
-    if (changed.selection != before.selection) {
-      await _work.secureOpen(before.base);
-    }
+    if (folders.byId(changed.id) == null) return const Ok(null);
     return _save([
       for (final folder in folders) folder.id == changed.id ? changed : folder,
     ], out);
   }
 
-  /// Its drafts go once the list is saved: no edit is recovered into it.
-  /// With its base folder's last folder, every draft of the base folder
-  /// goes, also those no folder showed.
+  /// Secures its open files first; its drafts go once the list is saved,
+  /// so no edit is recovered into it.
   Future<Result<void, FolderError>> _remove(
     List<Folder> folders,
     Folder removed,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    if (!folders.any((folder) => folder.id == removed.id)) {
-      return const Ok(null);
-    }
-    final rest = [
+    if (folders.byId(removed.id) == null) return const Ok(null);
+    await _work.secureOpen(removed.id);
+    final plugin = _work.plugins.of(removed.id.plugin);
+    final before = plugin.blob;
+    plugin.forget(removed.id.folder);
+    final saved = await _save([
       for (final folder in folders)
         if (folder.id != removed.id) folder,
-    ];
-    final dropped = _draftsGoneWith(folders, removed);
-    await _work.secureOpen(removed.base);
-    final saved = await _save(rest, out);
-    if (saved is Ok) await _work.forgetDrafts(removed.base, dropped);
-    return saved;
+    ], out);
+    if (saved case Err(:final error)) return _undone(plugin, before, error);
+    await _work.forgetDrafts(removed.id);
+    return const Ok(null);
   }
 
-  /// The drafts of its base folder that go with [removed]: those it
-  /// shows, or all with the base folder's last folder.
-  static Selection _draftsGoneWith(List<Folder> folders, Folder removed) =>
-      folders.any(
-        (folder) => folder.id != removed.id && folder.base == removed.base,
-      )
-      ? removed.selection
-      : const WholeFolder();
+  /// Gives [plugin] its state [before] back, as the save failed.
+  Err<T, FolderError> _undone<T>(
+    FolderPlugin plugin,
+    Object? before,
+    FolderError error,
+  ) {
+    plugin.load(before);
+    return Err(error);
+  }
 
-  /// Saves [folders], then shows them.
+  /// Saves [folders] with every plugin's state, then shows them.
   Future<Result<void, FolderError>> _save(
     List<Folder> folders,
     OwnerOutlet<FolderListState, FolderListAnswer> out,
   ) async {
-    switch (await _work.store.save(folders)) {
+    final saved = await _work.store.save((
+      folders: [
+        for (final folder in folders)
+          (id: folder.id, name: folder.name, color: folder.color),
+      ],
+      blobs: {for (final plugin in _plugins) plugin.id: plugin.blob},
+    ));
+    switch (saved) {
       case Ok():
         out.state = FoldersLoaded(folders);
         return const Ok(null);
@@ -232,35 +260,4 @@ final class _FolderListSteps {
         return const Err(FolderError.notSaved);
     }
   }
-
-  /// The one overlap rule: two folders clash when their parts of one base
-  /// folder overlap (their file types, fixed for now, always do).
-  static bool _clashes(Folder folder, List<Folder> folders) => folders.any(
-    (other) =>
-        other.id != folder.id &&
-        other.base.id == folder.base.id &&
-        other.selection.overlaps(folder.selection),
-  );
-
-  static const _sameSegments = ListEquality<String>();
-
-  static List<String> _segments(Uri address) => [
-    for (final segment in address.pathSegments)
-      if (segment.isNotEmpty) segment,
-  ];
-
-  /// Whether [a] and [b] can lie in one another: the same kind of place on
-  /// the same host.
-  static bool _samePlace(Uri a, Uri b) =>
-      a.scheme == b.scheme && a.authority == b.authority;
-
-  /// Whether the folder at [inner] lies inside the one at [outer].
-  static bool _isWithin(Uri inner, Uri outer) {
-    final (inside, around) = (_segments(inner), _segments(outer));
-    return inside.length > around.length &&
-        _sameSegments.equals(inside.sublist(0, around.length), around);
-  }
-
-  String _newId() =>
-      List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join();
 }

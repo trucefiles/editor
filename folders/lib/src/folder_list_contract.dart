@@ -63,35 +63,35 @@ sealed class FolderListAsking extends FolderListInput implements Asking {
   final Ticket ticket;
 }
 
-/// Add a folder showing [selection] of the base folder at [address],
-/// which the sync tool [toolId] works on; an added base folder at the
-/// same place is used again, with its own tool.
-final class AddFolder extends FolderListAsking {
-  const AddFolder(
+/// Add the folders [candidates] name, which [plugin]'s add page returned,
+/// each with the name and color the user gave it: all together or none.
+final class AddFolders extends FolderListAsking {
+  AddFolders(
     super.ticket, {
-    required this.address,
-    required this.toolId,
-    required this.selection,
-    required this.name,
-    required this.color,
-  });
+    required this.plugin,
+    required List<NamedCandidate> candidates,
+  }) : candidates = List.unmodifiable(candidates);
 
-  final Uri address;
-  final String toolId;
-  final Selection selection;
-  final String name;
-  final String color;
+  /// The plugin's id.
+  final String plugin;
+  final List<NamedCandidate> candidates;
 }
 
-/// Change a folder's name, color or selection to [changed]'s.
+/// A folder to add, with the name and color the user gave it.
+typedef NamedCandidate = ({
+  PluginFolderCandidate candidate,
+  String name,
+  String color,
+});
+
+/// Change a folder's name or color to [changed]'s.
 final class ChangeFolder extends FolderListAsking {
   const ChangeFolder(super.ticket, this.changed);
 
   final Folder changed;
 }
 
-/// Forget [removed]; its files stay untouched. Its base folder goes with
-/// its last folder.
+/// Forget [removed]; its files stay untouched.
 final class RemoveFolder extends FolderListAsking {
   const RemoveFolder(super.ticket, this.removed);
 
@@ -100,8 +100,8 @@ final class RemoveFolder extends FolderListAsking {
 
 /// How many files have edits kept only on this device that removing
 /// [folder] would delete.
-final class CountDraftsUnder extends FolderListAsking {
-  const CountDraftsUnder(super.ticket, this.folder);
+final class CountDrafts extends FolderListAsking {
+  const CountDrafts(super.ticket, this.folder);
 
   final Folder folder;
 }
@@ -115,11 +115,11 @@ sealed class FolderListAnswer implements Answering {
   final Ticket ticket;
 }
 
-final class FolderAdded extends FolderListAnswer {
-  const FolderAdded(super.ticket, this.result);
+final class FoldersAdded extends FolderListAnswer {
+  const FoldersAdded(super.ticket, this.result);
 
-  /// The folder added.
-  final Result<Folder, FolderError> result;
+  /// The folders added, in the order asked.
+  final Result<List<Folder>, FolderError> result;
 }
 
 final class FolderChanged extends FolderListAnswer {

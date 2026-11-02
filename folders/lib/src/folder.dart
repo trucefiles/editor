@@ -1,60 +1,52 @@
 import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
 
-import 'base_folder.dart';
-
-/// A folder the user added on this device, as the app shows it: a name
-/// and a color name ([color], from the app's palette) for one part of a
-/// [base] folder, the whole of it or some of its subfolders
-/// ([selection]). A view: changing it moves no file and
-/// none of the app's own data.
+/// A folder the user added on this device: one directory, set up by a
+/// plugin, as the app shows it: a name and a color name ([color], from
+/// the app's palette). Paths of its files count from it.
 ///
-/// Per device and never synced: another device may name, color and
-/// select the same folder differently.
+/// Per device and never synced: another device may name and color the
+/// same directory differently.
 @immutable
 final class Folder {
   const Folder({
     required this.id,
-    required this.base,
-    required this.selection,
     required this.name,
     required this.color,
+    required this.location,
   });
 
-  /// Random, stable on this device.
-  final String id;
-
-  final BaseFolder base;
-
-  /// What it shows of [base]: never empty.
-  final Selection selection;
+  final FolderId id;
 
   final String name;
 
   /// The name of its color in the app's palette.
   final String color;
 
-  /// Whether the file or folder at [path] in [base] belongs to it.
-  bool covers(RelPath path) => selection.covers(path);
+  /// Where it is, for the user, as its plugin tells it.
+  final String location;
 
-  Folder copyWith({String? name, String? color, Selection? selection}) =>
-      Folder(
-        id: id,
-        base: base,
-        selection: selection ?? this.selection,
-        name: name ?? this.name,
-        color: color ?? this.color,
-      );
+  Folder copyWith({String? name, String? color}) => Folder(
+    id: id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    location: location,
+  );
 
   @override
   bool operator ==(Object other) =>
       other is Folder &&
       other.id == id &&
-      other.base == base &&
-      other.selection == selection &&
       other.name == name &&
-      other.color == color;
+      other.color == color &&
+      other.location == location;
 
   @override
-  int get hashCode => Object.hash(id, base, selection, name, color);
+  int get hashCode => Object.hash(id, name, color, location);
+}
+
+/// Questions on the folders added on this device.
+extension FolderLookup on Iterable<Folder> {
+  /// The folder [id]; `null` if none is (any more).
+  Folder? byId(FolderId id) => where((folder) => folder.id == id).firstOrNull;
 }

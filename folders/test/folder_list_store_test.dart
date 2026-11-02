@@ -10,86 +10,39 @@ void main() {
   late FolderListStore store;
 
   setUp(() {
-    file = File('${tempFolder().path}/settings/folder_list.json');
-    store = FolderListStore(file, toolIds: {'syncthing', 'plain'});
+    file = File('${tempFolder().path}/settings/folders.json');
+    store = FolderListStore(file);
   });
 
   test('loads nothing before the first save', () async {
-    expect((await store.load()).value, isEmpty);
+    final saved = (await store.load()).value;
+
+    expect(saved.folders, isEmpty);
+    expect(saved.blobs, isEmpty);
   });
 
-  test('saves and loads folders, each base folder once', () async {
-    final base = BaseFolder(
-      id: 'b1',
-      address: Uri.file('/sync'),
-      toolId: 'syncthing',
-    );
+  test('saves and loads the folders with every plugin blob', () async {
     final folders = [
-      Folder(
-        id: 'a1',
-        base: base,
-        selection: const WholeFolder(),
-        name: 'Private',
-        color: 'indigo',
-      ),
-      Folder(
-        id: 'a2',
-        base: BaseFolder(
-          id: 'b2',
-          address: Uri.parse('fake://host/other'),
-          toolId: 'plain',
-        ),
-        selection: Selection.of([path('work'), path('home/notes')]),
-        name: 'Work',
-        color: 'teal',
-      ),
+      (id: folderId('a'), name: 'Private', color: 'indigo'),
+      (id: const FolderId('plain', 'b'), name: 'Work', color: 'teal'),
     ];
+    final blobs = {
+      'fake': ['a'],
+      'plain': {'folders': <Object?>[]},
+    };
 
-    await store.save(folders);
+    await store.save((folders: folders, blobs: blobs));
+    final loaded = (await store.load()).value;
 
-    expect((await store.load()).value, folders);
+    expect(loaded.folders, folders);
+    expect(loaded.blobs, blobs);
   });
 
-  test('reads a list saved when colors were kept as numbers', () async {
-    file.writeCreatingFolders(
-      '{"baseFolders": [{"id": "b", "address": "file:///x", '
-      '"tool": "syncthing"}], "folders": ['
-      '{"id": "a", "base": "b", "name": "A", "color": 4282339765}, '
-      '{"id": "c", "base": "b", "name": "C", "color": 1, '
-      '"subfolders": ["c"]}]}',
-    );
+  test('a file it did not write is corrupt', () async {
+    file
+      ..createSync(recursive: true)
+      ..writeAsStringSync('{"folders": [{"id": 1}], "plugins": {}}');
 
-    final folders = (await store.load()).value;
-
-    expect([for (final folder in folders) folder.color], ['indigo', 'teal']);
-  });
-
-  test('reports a damaged file instead of losing it', () async {
-    for (final damaged in [
-      '[{"id": 1}]',
-      '{"baseFolders": [], "folders": [{"id": "a", "base": "gone", '
-          '"name": "A", "color": 1}]}',
-      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "syncthing"}], '
-          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1, '
-          '"subfolders": ["../up"]}]}',
-      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "syncthing"}], '
-          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1, '
-          '"subfolders": []}]}',
-      '{"baseFolders": [{"id": "b", "address": "file:///x", "tool": "unknown"}], '
-          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
-      // Written before base folders had addresses.
-      '{"baseFolders": [{"id": "b", "path": "/x", "tool": "syncthing"}], '
-          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
-      '{"baseFolders": [{"id": "b", "address": "/x", "tool": "syncthing"}], '
-          '"folders": [{"id": "a", "base": "b", "name": "A", "color": 1}]}',
-    ]) {
-      file.writeCreatingFolders(damaged);
-
-      expect(
-        (await store.load()).error,
-        SettingsError.corrupt,
-        reason: damaged,
-      );
-    }
+    expect((await store.load()).error, SettingsError.corrupt);
   });
 }
