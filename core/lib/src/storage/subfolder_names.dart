@@ -4,19 +4,18 @@ import '../common/result.dart';
 import 'file_store.dart';
 import 'rel_path.dart';
 
-/// The names of the folders in a folder of a base folder, so the user can
-/// pick which subfolders a folder shows. Tells nothing else: no files,
-/// nothing deeper.
+/// The names of the folders in a folder on a disk, e.g. so the user can
+/// pick folders to add. Tells nothing else: no files, nothing deeper.
 abstract interface class SubfolderNames {
-  /// The names of the folders directly in [folder] (the base folder
-  /// itself if `null`), sorted.
+  /// The names of the folders directly in [folder] (the top level
+  /// if `null`), sorted.
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder);
 }
 
-/// Subfolder names as a sync tool offers them to pick.
+/// Folder names as a plugin offers them to pick.
 extension ShownSubfolderNames on SubfolderNames {
   /// Only the folders [shows] lets through, e.g. no hidden ones and none
-  /// of the tool's own.
+  /// of the sync tool's own.
   SubfolderNames shownBy(bool Function(RelPath folder) shows) =>
       _Shown(this, shows);
 }

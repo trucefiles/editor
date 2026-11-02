@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:dbus/dbus.dart';
-import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// Linux: folders picked through the desktop portal from inside a sandbox
 /// (e.g. Flatpak) show up under the Documents portal's mount point, as

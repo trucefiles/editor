@@ -1,0 +1,20 @@
+name: truce_syncthing_ui
+description: Syncthing's add page for Truce. Flutter.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  truce_core: any
+  truce_syncthing: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  truce_lints: any
+  truce_test_support: any
