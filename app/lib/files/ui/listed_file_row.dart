@@ -6,8 +6,8 @@ import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../file_colors.dart';
-import 'file_grid.dart';
 import 'listed_file.dart';
+import 'open_file.dart';
 import 'pin_or_color_sheet.dart';
 
 /// A listed [file] as one row: title, place, last edit, pin, color

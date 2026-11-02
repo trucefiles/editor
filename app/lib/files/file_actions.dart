@@ -20,6 +20,7 @@ final fileActionsProvider = Provider<FileActions>(
     contents: () => ref.read(folderContentsProvider).value,
     showsFolder: (folder, subfolder) =>
         ref.read(folderServicesProvider(folder)).open.showsFolder(subfolder),
+    read: (file) => ref.read(fileAccessProvider).of(file.folder).reload(file),
   ),
 );
 
@@ -31,7 +32,8 @@ final class FileActions {
   /// filtered to; [_reachOf], each folder's reach; [_newFilePlace], the
   /// place set for new files; [_contents], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
-  /// folder shows the files in one of its subfolders.
+  /// folder shows the files in one of its subfolders; [_read], a file's
+  /// text as it is now.
   FileActions({
     required this._owner,
     required this._selectedFolderId,
@@ -39,6 +41,7 @@ final class FileActions {
     required this._newFilePlace,
     required this._contents,
     required this._showsFolder,
+    required this._read,
   });
 
   final FilesOwner _owner;
@@ -47,15 +50,10 @@ final class FileActions {
   final NewFilePlaceSetting? Function() _newFilePlace;
   final FolderContents? Function() _contents;
   final bool Function(FolderId folder, RelPath subfolder) _showsFolder;
+  final Future<Result<FileText, OpenFailure>> Function(ListedFile file) _read;
 
-  /// Where a new file goes without a place set for new files:
-  /// the one of [folders] the grid is filtered to, else the first.
-  /// [folders] must not be empty.
-  Folder defaultFolder(List<Folder> folders) {
-    final selected = _selectedFolderId();
-    return folders.where((folder) => folder.id == selected).firstOrNull ??
-        folders.first;
-  }
+  /// [file] to open, with its text as it is now.
+  Future<Result<FileText, OpenFailure>> open(ListedFile file) => _read(file);
 
   /// Those of [folders] that new files can go into: the ones that can be
   /// reached.
@@ -64,12 +62,13 @@ final class FileActions {
       if (_reachOf(folder.id) != Reach.unreachable) folder,
   ];
 
-  /// Where a new file goes: the place the user set for new files,
-  /// if its folder is one of [folders], else the [defaultFolder] of
-  /// [folders].
-  FilePlace newFilePlace(List<Folder> folders) =>
-      resolveNewFilePlace(_newFilePlace(), folders) ??
-      topOf(defaultFolder(folders));
+  /// Where a new file goes among [folders] (see [newFilePlaceIn]); `null`
+  /// if none of them can be reached.
+  FilePlace? newFilePlace(List<Folder> folders) => newFilePlaceIn(
+    reachableOf(folders),
+    set: _newFilePlace(),
+    filtered: _selectedFolderId(),
+  );
 
   /// The subfolders of [folder], as last seen.
   List<RelPath> subfoldersOf(Folder folder) =>

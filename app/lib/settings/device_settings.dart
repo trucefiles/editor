@@ -38,7 +38,7 @@ final class DeviceSettings {
   final TextZoom appTextZoom;
 
   /// Where new files go; `null` for the default (see
-  /// `FileActions.defaultFolder`).
+  /// `newFilePlaceIn`).
   final NewFilePlaceSetting? newFilePlace;
 
   final RefreshSettings refresh;

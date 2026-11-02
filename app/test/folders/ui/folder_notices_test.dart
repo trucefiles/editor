@@ -44,7 +44,10 @@ void main() {
       PolledNotice(Duration(seconds: 10)),
     ], asIs);
 
-    expect(find.textContaining('Not inside a Syncthing folder,'), findsOne);
+    expect(
+      find.textContaining("Syncthing doesn't sync this folder,"),
+      findsOne,
+    );
     expect(find.textContaining('checked for changes every 10 s'), findsOne);
   });
 

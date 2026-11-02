@@ -11,6 +11,7 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';

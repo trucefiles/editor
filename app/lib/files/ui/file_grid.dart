@@ -1,12 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
 import 'package:truce_masonry/truce_masonry.dart';
-
-import '../../common/snack.dart';
-import '../../file_page/ui/file_screen.dart';
-import '../files_wiring.dart';
 
 /// [count] cards, each built by [card], in columns up to 240 wide, each as
 /// tall as its text: the layout shared by every file grid. Only cards
@@ -32,23 +25,3 @@ Widget fileGridBox(List<Widget> cards) => CustomScrollView(
 /// height is final, so it never grows on screen.
 Widget gridCard(Widget card, {required bool ready}) =>
     MasonryItem(ready: ready, child: card);
-
-/// Opens [file] in the editor, with its text as it is now; tells the
-/// user if it can't be read.
-Future<void> openFile(
-  BuildContext context,
-  WidgetRef ref,
-  ListedFile file,
-) async {
-  final read = await ref.read(fileAccessProvider).of(file.folder).reload(file);
-  if (!context.mounted) return;
-  switch (read) {
-    case Ok(value: final opened):
-      await Navigator.push(
-        context,
-        MaterialPageRoute<void>(builder: (_) => FileScreen(opened)),
-      );
-    case Err(:final error):
-      showSnack(context, "This file can't be opened. ${error.text}");
-  }
-}

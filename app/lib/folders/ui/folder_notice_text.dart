@@ -8,10 +8,11 @@ extension FolderNoticeText on FolderNotice {
   /// The full text, for the folders screen.
   String text(String tool) => switch (this) {
     NotSyncedNotice() =>
-      'Not inside a $tool folder, so changes may not reach other devices.',
+      "$tool doesn't sync this folder, so changes may not reach other "
+          'devices.',
     SyncUnknownNotice() =>
-      "Can't check whether $tool syncs this folder. Adding the $tool "
-          'folder itself lets the app check.',
+      "Can't check whether $tool syncs this folder: the app can't see "
+          "enough of $tool's setup.",
     PolledNotice(:final interval) =>
       "Live updates aren't possible here; checked for changes every "
           '${intervalText(interval)}.',
@@ -19,7 +20,7 @@ extension FolderNoticeText on FolderNotice {
 
   /// A few words, e.g. for a tooltip.
   String shortText(String tool) => switch (this) {
-    NotSyncedNotice() => 'Not inside a $tool folder',
+    NotSyncedNotice() => 'Not synced by $tool',
     SyncUnknownNotice() => "Can't check whether $tool syncs this folder",
     PolledNotice(:final interval) => 'Checked every ${intervalText(interval)}',
   };

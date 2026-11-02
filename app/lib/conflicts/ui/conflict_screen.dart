@@ -5,10 +5,12 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/merge_outcome.dart';
 import '../../versions/ui/compare_app_bar.dart';
+import '../../versions/ui/resolve_error_text.dart';
 import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';

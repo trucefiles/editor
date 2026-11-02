@@ -7,6 +7,7 @@ import 'package:truce_folders/truce_folders.dart';
 import '../file_types/file_types.dart';
 import '../plugins/plugins_wiring.dart';
 import '../settings/device_settings_controller.dart';
+import '../settings/followed_setting.dart';
 import '../storage/app_storage.dart';
 import 'folders_controller.dart';
 
@@ -26,6 +27,7 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
   final storage = ref.watch(appStorageProvider);
   final deviceId = ref.watch(deviceIdProvider);
   final writes = ref.watch(appWritesProvider);
+  final checkEvery = ref.watch(_refreshIntervalProvider);
   final open = OpenFolders(
     ref.watch(folderListOwnerProvider),
     plugins: plugins,
@@ -35,11 +37,7 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
       handles: types.handles,
       backupsPath: storage.backupsPath(folder.id),
       deviceId: deviceId,
-      checkEvery: () =>
-          (ref.mounted
-                  ? ref.read(deviceSettingsProvider).requireValue.refresh
-                  : RefreshSettings.standard)
-              .interval,
+      checkEvery: checkEvery,
       wrote: (paths) => writes.wrote(folder.id, paths),
     ),
   );
@@ -47,36 +45,20 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
   return open;
 });
 
-/// Counts the times open folders closed, so whatever watches a folder's
-/// services gets its closed ones. Counted a microtask later: the open
-/// folders may hear of a change while a provider builds, and a provider
-/// may not change another one then.
-final _foldersClosedProvider = NotifierProvider<_FoldersClosed, int>(
-  _FoldersClosed.new,
-);
+/// The refresh setting's interval as it is now; read at each wait, so a
+/// change never reopens the folders.
+final _refreshIntervalProvider = Provider<Duration Function()>((ref) {
+  final refresh = followedSetting(ref, (s) => s.refresh);
+  return () => refresh().interval;
+});
 
-class _FoldersClosed extends Notifier<int> {
-  @override
-  int build() {
-    final closed = ref
-        .watch(openFoldersProvider)
-        .changes
-        .listen(
-          (_) => scheduleMicrotask(() {
-            if (ref.mounted) state++;
-          }),
-        );
-    ref.onDispose(() => unawaited(closed.cancel()));
-    return 0;
-  }
-}
-
-/// The services of the folder with this id (see [OpenFolders]).
+/// The services of the folder with this id (see [OpenFolders]): one
+/// object for the folder's whole life, closed once it goes, so nothing
+/// needs to hear of a close.
 final folderServicesProvider = Provider.family<FolderServices, FolderId>((
   ref,
   folder,
 ) {
-  ref.watch(_foldersClosedProvider);
   return ref.watch(openFoldersProvider).servicesOf(folder);
 });
 

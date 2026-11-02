@@ -1,7 +1,5 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'error_text.dart';
-
 /// Why a file can't be opened.
 sealed class OpenFailure {
   const OpenFailure();
@@ -24,12 +22,4 @@ final class NotRead extends OpenFailure {
 
   @override
   int get hashCode => error.hashCode;
-}
-
-/// User-facing text for why a file can't be opened.
-extension OpenFailureText on OpenFailure {
-  String get text => switch (this) {
-    NotText() => "It isn't text.",
-    NotRead(:final error) => error.text,
-  };
 }

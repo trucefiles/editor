@@ -8,9 +8,9 @@ final _unsafe = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 const _maxBaseLength = 80;
 
 /// File names may hold 255 UTF-8 bytes. This leaves room for a number
-/// (` 100`), `.md` and a sync tool's conflict-copy marker (Syncthing's
-/// `.sync-conflict-20261003-134809-4I343AW` takes 38), so a conflict copy
-/// of the file can always be written.
+/// (` 100`), the extension and the longest conflict-copy marker a plugin
+/// adds (about 40 bytes today), so a conflict copy of the file can always
+/// be written.
 const _maxBaseBytes = 200;
 
 /// File name for a new file titled [title], ending in [extension].
