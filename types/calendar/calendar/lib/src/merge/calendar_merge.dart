@@ -44,18 +44,15 @@ final class CalendarMerge implements TextMerge {
   }
 }
 
-/// The version of one unit a merge keeps, of [mine] and [theirs]: when
-/// one side still is [base], the other one (it holds the only change,
-/// stamped or not); else the newer.
-CalendarUnit _keptOf(
-  CalendarUnit mine,
-  CalendarUnit theirs,
-  CalendarUnit? base,
-) => switch (base?.text) {
-  final text? when mine.text == text => theirs,
-  final text? when theirs.text == text => mine,
-  _ => _newerOf(mine, theirs),
-};
+/// The version of one unit a merge keeps, of [a] and [b]: when one
+/// still is [base], the other one (it holds the only change, stamped or
+/// not); else the newer.
+CalendarUnit _keptOf(CalendarUnit a, CalendarUnit b, CalendarUnit? base) =>
+    switch (base?.text) {
+      final text? when a.text == text => b,
+      final text? when b.text == text => a,
+      _ => _newerOf(a, b),
+    };
 
 /// The newer of two versions [a] and [b] of one unit: by its latest
 /// `LAST-MODIFIED` (none is oldest), then its highest `SEQUENCE`, then

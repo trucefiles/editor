@@ -207,8 +207,9 @@ int _endOf(List<_Line> lines) {
 }
 
 /// [blocks] as units: components with a `UID` grouped by their kind and
-/// it, and time zone blocks by their `TZID`, in the order of their first block; every other
-/// block a unit of its own text. And where each block was.
+/// it, and time zone blocks by their `TZID`, in the order of their first
+/// block; every other block a unit of its own text. And where each block
+/// was.
 ({List<CalendarUnit> units, List<_Slot> layout}) _units(
   List<List<_Line>> blocks,
 ) {

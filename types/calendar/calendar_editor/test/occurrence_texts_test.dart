@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/ui/occurrence_texts.dart';
@@ -9,9 +10,11 @@ void main() {
     'DTEND;VALUE=DATE:20261104\nSUMMARY:Trip\nEND:VEVENT\n'
     'BEGIN:VEVENT\nUID:b\nDTSTART;VALUE=DATE:20261105\n'
     'DTEND;VALUE=DATE:20261106\nEND:VEVENT\n'
+    'BEGIN:VEVENT\nUID:c\nDTSTART;VALUE=DATE:20261109\n'
+    'DTEND;VALUE=DATE:20261112\nSUMMARY:Fair\nEND:VEVENT\n'
     'END:VCALENDAR\n',
   )!;
-  final [trip, untitled] = occurrences(
+  final [trip, untitled, fair] = occurrences(
     calendar,
     DateTime(2026, 11),
     DateTime(2026, 12),
@@ -23,5 +26,11 @@ void main() {
     expect(occurrenceLine(trip, day), '3.  Trip');
     expect(occurrenceLine(untitled, day), '5.  (No title)');
     expect(occurrenceTitle(untitled), '(No title)');
+  });
+
+  test('a day says all day; days on end also their last day', () {
+    const words = DefaultMaterialLocalizations();
+    expect(timesOf(words, trip, use24Hour: true), 'All day');
+    expect(timesOf(words, fair, use24Hour: true), 'All day, until Nov 11');
   });
 }
