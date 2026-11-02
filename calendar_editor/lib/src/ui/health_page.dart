@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../day_clock.dart';
 import 'cycle_text.dart';
 import 'event_actions.dart';
 import 'health_entry_form.dart';
@@ -8,29 +9,41 @@ import 'month_grid.dart';
 
 /// A health calendar: a month grid with period days, the next period's
 /// likely days (outlined) and the fertile window (tinted), a line on the
-/// cycle, and the picked day's entries to add, edit or delete. Only to
-/// read unless [edit] is given.
+/// cycle, and the picked day's entries to add, edit or delete; today
+/// from [now], moving on at midnight. Only to read unless [edit] is
+/// given.
 class HealthPage extends StatefulWidget {
-  const HealthPage(this.calendar, {this.edit, required this.today, super.key});
+  const HealthPage(this.calendar, {this.edit, required this.now, super.key});
 
   final Calendar calendar;
   final MakeEdit? edit;
-  final DateTime today;
+  final DateTime Function() now;
 
   @override
   State<HealthPage> createState() => _HealthPageState();
 }
 
 class _HealthPageState extends State<HealthPage> {
-  late var _month = DateTime(widget.today.year, widget.today.month);
-  late var _day = DateUtils.dateOnly(widget.today);
+  late final _clock = DayClock(widget.now)..addListener(_dayChanged);
+  late var _month = DateTime(_today.year, _today.month);
+  late var _day = _today;
+
+  DateTime get _today => _clock.today;
+
+  void _dayChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _clock.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final words = MaterialLocalizations.of(context);
     final byDay = healthByDay(widget.calendar);
     final periods = {for (final day in periodDays(widget.calendar)) _key(day)};
-    final cycle = predictCycle(periodDays(widget.calendar), widget.today);
+    final cycle = predictCycle(periodDays(widget.calendar), _today);
     final predicted = {
       for (final day in cycle?.nextPeriod ?? <DateTime>[]) _key(day),
     };
@@ -42,7 +55,7 @@ class _HealthPageState extends State<HealthPage> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       children: [
-        if (cycle != null) _CycleLine(cycle, today: widget.today),
+        if (cycle != null) _CycleLine(cycle, today: _today),
         MonthHeader(
           month: _month,
           onMonth: (month) => setState(() => _month = month),
@@ -50,7 +63,7 @@ class _HealthPageState extends State<HealthPage> {
         MonthGrid(
           month: _month,
           selected: _day,
-          today: widget.today,
+          today: _today,
           lookOf: (day) {
             final key = _key(day);
             return (

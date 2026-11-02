@@ -168,6 +168,10 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       onEventChanged: onMove == null
           ? null
           : (before, after) {
+              // kalender reports a drop in place too.
+              if (before.start == after.start && before.end == after.end) {
+                return;
+              }
               final shown = before as OccurrenceEvent<K>;
               onMove(
                 shown.calendar,
@@ -223,9 +227,8 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   /// most of the range lies in.
   String _titleOf(BuildContext context) {
     final words = MaterialLocalizations.of(context);
-    final range = _model.range;
-    if (range == null) return '';
-    final middle = range.from.add(range.to.difference(range.from) ~/ 2);
+    final (range, middle) = (_model.range, _model.middle);
+    if (range == null || middle == null) return '';
     return switch (_model.kind) {
       CalendarViewKind.day => words.formatMediumDate(range.from),
       _ => words.formatMonthYear(middle),

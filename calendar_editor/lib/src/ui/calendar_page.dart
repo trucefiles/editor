@@ -51,7 +51,7 @@ class CalendarPage extends StatelessWidget {
         final calendar when calendar.isHealth => HealthPage(
           calendar,
           edit: edit,
-          today: now(),
+          now: now,
         ),
         final calendar => EventsPage(
           calendar,

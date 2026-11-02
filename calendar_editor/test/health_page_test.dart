@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/ui/health_page.dart';
+import 'package:truce_calendar_editor/src/ui/month_grid.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 import 'page_harness.dart';
@@ -79,5 +81,30 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(_entries(part), isEmpty);
+  });
+
+  testWidgets('the health view moves on to the next day at midnight', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 11, 3, 23, 59);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HealthPage(
+            Calendar.read(newCalendarText('Me', health: true))!,
+            now: () => now,
+          ),
+        ),
+      ),
+    );
+    MonthGrid grid() => tester.widget(find.byType(MonthGrid));
+    expect(grid().today, DateTime(2026, 11, 3));
+
+    now = DateTime(2026, 11, 4);
+    await tester.pump(const Duration(minutes: 1));
+
+    expect(grid().today, DateTime(2026, 11, 4));
+    // Ends the next midnight's wake before the test checks for timers.
+    await tester.pumpWidget(const SizedBox());
   });
 }

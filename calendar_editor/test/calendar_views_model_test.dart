@@ -79,7 +79,7 @@ void main() {
 
   test('Add starts today if it shows, else on the first day shown', () {
     final model = CalendarViewsModel(
-      kind: CalendarViewKind.month,
+      kind: CalendarViewKind.week,
       calendars: {'home': home},
       now: () => DateTime(2026, 11, 10, 12),
     );
@@ -91,6 +91,23 @@ void main() {
     expect(model.dayToAdd, DateTime(2026, 12));
     model.showRange(DateTime(2026, 11, 3), DateTime(2026, 11, 10));
     expect(model.dayToAdd, DateTime(2026, 11, 3), reason: 'the end is out');
+  });
+
+  test("a month view's Add starts in its month, not in the weeks around "
+      'it', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => DateTime(2026, 11, 30, 12),
+    );
+    addTearDown(model.dispose);
+
+    // December's grid starts on Sunday 29 November.
+    model.showRange(DateTime(2026, 11, 29), DateTime(2027, 1, 10));
+    expect(model.dayToAdd, DateTime(2026, 12));
+    // November's grid ends on 5 December; today is in November.
+    model.showRange(DateTime(2026, 11), DateTime(2026, 12, 6));
+    expect(model.dayToAdd, DateTime(2026, 11, 30));
   });
 
   testWidgets('today moves on at midnight', (tester) async {

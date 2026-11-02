@@ -532,4 +532,26 @@ void main() {
       (AllDay(DateTime(2026, 11, 10)), AllDay(DateTime(2026, 11, 13))),
     );
   });
+
+  testWidgets('an event dropped where it was changes nothing', (tester) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(
+      tester,
+      part,
+      today: _annsDay,
+      kept: KeptView(CalendarViewKind.week),
+    );
+
+    final ann = tester.getCenter(find.text('Ann'));
+    final gesture = await tester.startGesture(ann);
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.moveBy(const Offset(0, -20));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(part.owner.state.text, _birthday);
+  });
 }

@@ -108,6 +108,16 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
       );
     case ChangeSeries(:final uid, :final draft):
       return _changed(calendar, uid, (event) {
+        // A repeat turned off leaves a single event: its left-out, extra
+        // and changed dates mean nothing any more.
+        if (event.series.repeat != null && draft.repeat == null) {
+          final series = _drafted(
+            _withoutDates(event.series.component),
+            draft,
+            series: true,
+          );
+          return [_stamped(series, at)];
+        }
         final moved = _slotsMoved(event.series, draft);
         final series = _drafted(
           _withSkippedMoved(event.series.component, moved),
@@ -139,7 +149,7 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
       });
     case DeleteOccurrence(:final uid, :final occurrence):
       return _changed(calendar, uid, (event) {
-        if (event.series.repeat == null) return [_marker(event, at)];
+        if (!event.series.repeats) return [_marker(event, at)];
         final series = event.series.component;
         return [
           _stamped(
@@ -180,14 +190,9 @@ CalendarTime Function(CalendarTime slot)? _slotsMoved(
   EventPart series,
   EventDraft draft,
 ) {
-  final (before, after, repeat) = (series.start, draft.start, draft.repeat);
-  if (before == null ||
-      before == after ||
-      series.repeat == null ||
-      repeat == null) {
-    return null;
-  }
-  final days = repeat.fixesDays
+  final (before, after) = (series.start, draft.start);
+  if (before == null || before == after || !series.repeats) return null;
+  final days = draft.repeat?.fixesDays ?? false
       ? 0
       : _dayOf(after.wall).difference(_dayOf(before.wall)).inDays;
   final time = _sinceMidnight(after.wall) - _sinceMidnight(before.wall);
@@ -240,6 +245,13 @@ Component _withIdMoved(
   ),
   _ => part,
 };
+
+/// [series] without the dates of a repeat: those it leaves out and those
+/// it adds.
+Component _withoutDates(Component series) => Component(series.name, [
+  for (final line in series.properties)
+    if (line.name != 'EXDATE' && line.name != 'RDATE') line,
+], children: series.children);
 
 /// A deleted [event]'s marker: its id, stamps, start and title, and that
 /// it is deleted.

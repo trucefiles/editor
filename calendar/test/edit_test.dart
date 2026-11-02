@@ -21,6 +21,7 @@ Calendar _edited(String text, CalendarEdit edit) =>
 void main() {
   group('a repeat\'s last day', _repeatEnds);
   group("a series' start moved", _startMoves);
+  group('a series of extra dates alone', _extraDatesOnly);
 
   test('a new event is added at the end, stamped, floating', () {
     final calendar = _edited(
@@ -474,5 +475,61 @@ void _startMoves() {
     );
 
     expect(edited.text, contains('EXDATE:20261104T090000\n'));
+  });
+
+  test('a series of extra dates alone moves its slots too', () {
+    final text = _daily(
+      rule: 'X',
+      lines: 'RDATE:20261104T090000,20261106T090000\nEXDATE:20261104T090000\n',
+    ).replaceFirst('RRULE:X\n', '');
+    final moved = _movedTo(text, Floating(DateTime(2026, 11, 2, 10)));
+
+    expect(moved.text, contains('EXDATE:20261104T100000\n'));
+  });
+
+  test('a repeat turned off leaves a single event: its left-out, extra and '
+      'changed dates go', () {
+    final text = _daily(
+      lines: 'EXDATE:20261104T090000\nRDATE:20261120T090000\n',
+      changed:
+          'BEGIN:VEVENT\nUID:s@x\nRECURRENCE-ID:20261105T090000\n'
+          'DTSTART:20261105T070000\nDTEND:20261105T080000\n'
+          'SUMMARY:Early run\nEND:VEVENT\n',
+    );
+    final draft = EventDraft.of(Calendar.read(text)!.eventOf('s@x')!.series);
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        's@x',
+        EventDraft(summary: 'Run', start: draft.start, end: draft.end),
+        at: _at,
+      ),
+    );
+
+    final unit = edited.unitOf(const UidKey('s@x'))!.text;
+    for (final gone in ['RRULE', 'EXDATE', 'RDATE', 'RECURRENCE-ID']) {
+      expect(unit, isNot(contains(gone)));
+    }
+    expect(_shown(edited, DateTime(2026, 11), 30), [
+      (DateTime(2026, 11, 2, 9), 'Run'),
+    ]);
+  });
+}
+
+void _extraDatesOnly() {
+  test('one of a series of extra dates alone deleted leaves out that one', () {
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:r@x\nDTSTART:20261102T090000\n'
+        'DTEND:20261102T100000\nRDATE:20261104T090000\nSUMMARY:Class\n'
+        'END:VEVENT\nEND:VCALENDAR\n';
+    final edited = _edited(
+      text,
+      DeleteOccurrence('r@x', Floating(DateTime.utc(2026, 11, 4, 9)), at: _at),
+    );
+
+    expect(edited.text, contains('EXDATE:20261104T090000\n'));
+    expect(_shown(edited, DateTime(2026, 11), 30), [
+      (DateTime(2026, 11, 2, 9), 'Class'),
+    ]);
   });
 }
