@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,7 +266,14 @@ void main() {
   testApp('warns about an unsynced folder in full only in Folders', (
     tester,
   ) async {
-    await tester.addFolder(app);
+    Directory('${app.files.path}/.stfolder').deleteSync();
+    await app.launch(tester);
+    await tester.waitFor(find.text('Add folder'));
+    await tester.tapAndSettle(find.text('Add folder').last);
+    await tester.tapAndSettle(find.text('Syncthing'));
+    await tester.tapAndSettle(find.text('Continue with this folder'));
+    await tester.tapAndSettle(find.text('Next'));
+    await tester.tapAndSettle(find.text('Add'));
 
     await tester.waitFor(find.byTooltip('Not inside a Syncthing folder'));
     expect(find.textContaining('may not reach'), findsNothing);

@@ -92,7 +92,7 @@ final class TestApp {
 
   /// Starts the app with a saved folder list it can't read.
   void damageFolderList() =>
-      File('${_storage.settingsPath}/folder_list.json')
+      File('${_storage.settingsPath}/folders.json')
           .writeCreatingFolders('{"broken": true}');
 
   /// [name] may lead through subfolders; [write] creates them.
