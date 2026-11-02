@@ -15,6 +15,9 @@ final class MarkdownFileType implements EditableType {
   MarkdownSupport get support => const MarkdownSupport();
 
   @override
+  String get name => 'Markdown';
+
+  @override
   String get newFileExtension => '.md';
 
   @override

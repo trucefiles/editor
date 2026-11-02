@@ -16,9 +16,7 @@ import '../../file_page/ui/file_screen.dart';
 import '../../file_types/file_types.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folder_state/folder_state_wiring.dart';
-import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
-import '../../folders/ui/folder_filter_bar.dart';
 import '../../folders/ui/folder_problems.dart';
 import '../../folders/ui/folders_screen.dart';
 import '../../folders/ui/settings_error_text.dart';
@@ -26,16 +24,18 @@ import '../../refresh/ui/pull_to_refresh.dart';
 import '../../search/ui/search_screen.dart';
 import '../../settings/device_settings_controller.dart';
 import '../file_actions.dart';
+import '../file_filter_provider.dart';
 import '../file_settings_controller.dart';
 import '../file_settings_pruning.dart';
 import '../new_file/pick_new_file.dart';
 import 'all_files_screen.dart';
+import 'file_filter_bar.dart';
 import 'file_sections.dart';
 import 'home_menu.dart';
 import 'listed_file_card.dart';
 
 /// Home: the recent files as cards, pinned ones first, filtered by
-/// folder; All shows the rest.
+/// folder and type; All shows the rest.
 class FilesScreen extends ConsumerStatefulWidget {
   const FilesScreen({super.key});
 
@@ -156,13 +156,11 @@ class _FilesBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedId = ref.watch(selectedFolderIdProvider);
+    final filter = ref.watch(fileFilterProvider);
+    final types = ref.watch(fileTypesProvider);
     final contents = ref.watch(folderContentsProvider).value;
     final conflicts = contents?.conflicts;
-    final files = filteredBy(
-      selectedId,
-      contents?.files ?? const <ListedFile>[],
-    );
+    final files = filter.of(contents?.files ?? const <ListedFile>[]);
     ref.watch(fileSettingsProvider);
     final settings = ref.read(fileSettingsProvider.notifier);
     final recent = recentOf(
@@ -174,12 +172,16 @@ class _FilesBody extends ConsumerWidget {
     );
     final orphans = [
       for (final orphan in conflicts?.orphans ?? const <FolderConflict>[])
-        if (selectedId == null || orphan.folder.id == selectedId) orphan,
+        if (filter.shows(
+          orphan.folder.id,
+          types.of(orphan.conflict.mainPath)?.support.type,
+        ))
+          orphan,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FolderFilterBar(
+        FileFilterBar(
           folders,
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),

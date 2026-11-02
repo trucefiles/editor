@@ -39,6 +39,9 @@ final class CalendarFileType implements EditableType {
   CalendarSupport get support => const CalendarSupport();
 
   @override
+  String get name => 'Calendar';
+
+  @override
   String get newFileExtension => '.ics';
 
   /// iCalendar files break lines with CRLF (RFC 5545, 3.1).

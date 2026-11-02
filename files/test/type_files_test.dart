@@ -12,6 +12,9 @@ final class _KeyValueType implements ShownFileType {
   FakeFileType get support => const FakeFileType();
 
   @override
+  String get name => 'Key value';
+
+  @override
   String get newFileExtension => '.md';
 
   /// Windows line breaks, as some formats want.

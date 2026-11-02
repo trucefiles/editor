@@ -6,12 +6,12 @@ import 'package:truce_files/truce_files.dart';
 import '../../common/empty_state.dart';
 import '../../common/filled_scroll_view.dart';
 import '../../folder_state/folder_state_controller.dart';
-import '../../folders/folder_selection.dart';
 import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
-import '../../folders/ui/folder_filter_bar.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
+import '../file_filter_provider.dart';
+import 'file_filter_bar.dart';
 import 'file_grid.dart';
 import 'file_sections.dart';
 import 'listed_file_card.dart';
@@ -23,7 +23,7 @@ Future<void> openAllFiles(BuildContext context) => Navigator.push(
   MaterialPageRoute<void>(builder: (_) => const AllFilesScreen()),
 );
 
-/// All: every file the folders show, filtered by folder, newest
+/// All: every file the folders show, filtered by folder and type, newest
 /// first or by name, as cards or a list, as the user picks. Only what is
 /// near the screen is built.
 class AllFilesScreen extends ConsumerWidget {
@@ -38,10 +38,9 @@ class AllFilesScreen extends ConsumerWidget {
     Future<void> changeHome(HomeSettings Function(HomeSettings) change) =>
         device.change((s) => s.copyWith(home: change(s.home)));
     final contents = ref.watch(folderContentsProvider).value;
-    final files = filteredBy(
-      ref.watch(selectedFolderIdProvider),
-      contents?.files ?? const <ListedFile>[],
-    );
+    final files = ref
+        .watch(fileFilterProvider)
+        .of(contents?.files ?? const <ListedFile>[]);
     final asCards = settings.view == FileView.cards;
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +71,7 @@ class AllFilesScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          FolderFilterBar(
+          FileFilterBar(
             ref.watch(foldersProvider).value ?? const [],
             conflictCount: (folder) =>
                 contents?.conflicts.countIn(folder.id) ?? 0,

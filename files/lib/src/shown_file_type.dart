@@ -8,6 +8,9 @@ import 'file_text.dart';
 abstract interface class ShownFileType {
   FileTypeSupport<Object?> get support;
 
+  /// The type's name as the user sees it, e.g. "Calendar".
+  String get name;
+
   /// The extension of a new file of this type, with its dot.
   String get newFileExtension;
 

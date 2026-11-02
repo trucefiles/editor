@@ -13,6 +13,9 @@ final class PlainTextFileType implements EditableType {
   PlainTextSupport get support => const PlainTextSupport();
 
   @override
+  String get name => 'Plain text';
+
+  @override
   String get newFileExtension => '.txt';
 
   @override

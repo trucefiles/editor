@@ -37,6 +37,7 @@ export 'src/files_of_folder.dart';
 export 'src/files_owner.dart';
 export 'src/folder_state/file_conflicts.dart';
 export 'src/folder_state/folder_contents.dart';
+export 'src/home/file_filter.dart';
 export 'src/home/home_lists.dart';
 export 'src/home/home_settings.dart';
 export 'src/kept_file_settings.dart';

@@ -61,6 +61,22 @@ void main() {
     return dir;
   }
 
+  testWidgets('a type chip shows only files of its type, and all again '
+      'when tapped twice', (tester) async {
+    await start(tester, {'notes.md': '# Notes', 'list.txt': 'List\nmilk'});
+    final textChip = find.widgetWithText(ChoiceChip, 'Plain text');
+
+    await tester.tap(textChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsNothing);
+    expect(find.text('List'), findsOneWidget);
+
+    await tester.tap(textChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsOneWidget);
+    expect(find.text('List'), findsOneWidget);
+  });
+
   testWidgets('no Calendar tab while the folders hold no calendar', (
     tester,
   ) async {
@@ -77,7 +93,7 @@ void main() {
       'home.ics': newCalendarText('Home'),
     });
 
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
   });
 
@@ -111,7 +127,7 @@ void main() {
       await tester.pump();
     }
 
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
     File('${dir.path}/home.ics').deleteSync();
     await rescan();
