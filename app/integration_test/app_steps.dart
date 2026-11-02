@@ -97,7 +97,7 @@ extension AppSteps on WidgetTester {
 
   /// Starts a new note: New document, then Note among what it offers.
   Future<void> startNewNote() async {
-    await tapAndSettle(find.byTooltip('New document'));
+    await tapAndSettle(find.byTooltip('New file'));
     await tapAndSettle(find.text('Note'));
   }
 

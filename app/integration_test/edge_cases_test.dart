@@ -418,7 +418,7 @@ void main() {
 
   testApp('a double tap on Note starts one document', (tester) async {
     await tester.addFolder(app);
-    await tester.tapAndSettle(find.byTooltip('New document'));
+    await tester.tapAndSettle(find.byTooltip('New file'));
     // Both taps where the choice is, though the first may have opened the
     // file already.
     final newNote = tester.getCenter(find.text('Note'));

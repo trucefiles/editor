@@ -55,7 +55,7 @@ void main() {
   testApp('the refresh button shows new documents', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
 
     app.write('new.md', '# New\n');
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -107,7 +107,7 @@ void main() {
 
   testApp('switches to manual refresh in the settings', (tester) async {
     await tester.addFolder(app);
-    await tester.waitFor(find.byTooltip('New document'));
+    await tester.waitFor(find.byTooltip('New file'));
 
     await tester.chooseInMenu('Settings');
     await tester.tapAndSettle(find.text('Refresh changes in folders'));

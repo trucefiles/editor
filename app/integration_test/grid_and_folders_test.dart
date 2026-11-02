@@ -44,7 +44,7 @@ void main() {
     await app.launch(tester);
 
     await tester.waitFor(find.text('The saved folder list is damaged.'));
-    expect(find.byTooltip('New document'), findsNothing);
+    expect(find.byTooltip('New file'), findsNothing);
     expect(
       tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.refresh)),
       isA<IconButton>().having(

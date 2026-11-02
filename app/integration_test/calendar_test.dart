@@ -23,8 +23,8 @@ void main() {
       'Calendar tab', (tester) async {
     await tester.addFolder(app);
 
-    await tester.tapAndSettle(find.byTooltip('New document'));
-    await tester.tapAndSettle(find.text('Calendar'));
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
     await tester.enterText(find.byType(TextField), 'Family');
     await tester.pump();
     await tester.tapAndSettle(find.text('Create'));
@@ -48,7 +48,9 @@ void main() {
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    await tester.tapAndSettle(find.text('Calendar'));
+    await tester.tapAndSettle(
+      find.widgetWithText(NavigationDestination, 'Calendar'),
+    );
     await tester.waitFor(find.widgetWithText(FilterChip, 'Family'));
     expect(find.text('Dentist'), findsOneWidget);
 

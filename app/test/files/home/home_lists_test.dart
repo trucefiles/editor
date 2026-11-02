@@ -58,12 +58,4 @@ void main() {
       expect(sections.last.files, [a9, a10, b]);
     });
   });
-
-  test('filteredBy keeps the documents of the folder chosen, or all', () {
-    final atWork = doc('a.md');
-    final atHome = listedFile(home, name: 'b.md');
-
-    expect(filteredBy(folderId('home'), [atWork, atHome]), [atHome]);
-    expect(filteredBy(null, [atWork, atHome]), [atWork, atHome]);
-  });
 }

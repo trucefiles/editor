@@ -3,6 +3,15 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Filter by file type
+
+Below the folder chips, home and **Show all** have one chip per file
+type: Markdown, Plain text and Calendar. Pick one to see only files of
+that type; tap it again to see all. It works together with the folder
+picked.
+
+<img src="screenshots/home/home_type_filter_desktop.png" width="600" alt="Home showing only Markdown files, the Markdown chip picked">
+
 ## Adding folders
 
 **Add folder** first asks how the folder is synced: by Syncthing, or not
@@ -18,7 +27,7 @@ own, with a name and a color.
 ## Calendars
 
 Calendars are `.ics` files, the format other calendar apps use. **New
-document** offers a calendar or a health calendar, named first. A
+file** offers a calendar or a health calendar, named first. A
 calendar's card shows its next events. Its page shows a month, a week,
 a day or a schedule, the one you picked last. Tap a free time or day to
 add an event there, or drag over a few hours; drag an event to move it,

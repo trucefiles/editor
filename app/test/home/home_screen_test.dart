@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
@@ -61,6 +62,54 @@ void main() {
     return dir;
   }
 
+  testWidgets('a type chip shows only files of its type, and all again '
+      'when tapped twice', (tester) async {
+    await start(tester, {'notes.md': '# Notes', 'list.txt': 'List\nmilk'});
+    final textChip = find.widgetWithText(ChoiceChip, 'Plain text');
+
+    await tester.tap(textChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsNothing);
+    expect(find.text('List'), findsOneWidget);
+
+    await tester.tap(textChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsOneWidget);
+    expect(find.text('List'), findsOneWidget);
+  });
+
+  testWidgets('a new file of another type than the one picked shows all '
+      'types again', (tester) async {
+    await start(tester, {'notes.md': '# Notes'});
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Plain text'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('New file'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Note'));
+    await showsSoon(tester, find.byType(FileScreen));
+
+    expect(container.read(selectedFileTypeProvider), isNull);
+  });
+
+  testWidgets('the type chips stay in sight on a narrow screen', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(360, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes'});
+
+    for (final name in ['Markdown', 'Plain text']) {
+      final chip = tester.getRect(find.widgetWithText(ChoiceChip, name));
+      expect(chip.right, lessThanOrEqualTo(360), reason: name);
+    }
+  });
+
   testWidgets('no Calendar tab while the folders hold no calendar', (
     tester,
   ) async {
@@ -77,7 +126,7 @@ void main() {
       'home.ics': newCalendarText('Home'),
     });
 
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
   });
 
@@ -111,7 +160,7 @@ void main() {
       await tester.pump();
     }
 
-    await tester.tap(find.text('Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
     File('${dir.path}/home.ics').deleteSync();
     await rescan();
