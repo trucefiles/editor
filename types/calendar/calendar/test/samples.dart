@@ -2,6 +2,8 @@
 /// as the app's text model gives them).
 library;
 
+import 'package:truce_calendar/truce_calendar.dart';
+
 /// A calendar as a typical export has it: a time zone, a series with a
 /// changed occurrence (not next to it), a folded line, a task and an
 /// unknown property.
@@ -70,3 +72,8 @@ SUMMARY:Ann
 END:VEVENT
 END:VCALENDAR
 ''';
+
+/// What Ann's birthday in [birthday] says, as a form starts from it.
+final annDraft = EventDraft.of(
+  Calendar.read(birthday)!.eventOf('ann@truce')!.series,
+);

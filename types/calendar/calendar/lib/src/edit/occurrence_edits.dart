@@ -1,5 +1,4 @@
 import '../model/calendar_time.dart';
-import '../model/wall_on.dart';
 import '../recurrence/occurrences.dart';
 import 'calendar_edit.dart';
 import 'event_draft.dart';
@@ -7,14 +6,11 @@ import 'event_draft.dart';
 /// What [occurrence] alone is, to edit it: a changed one as it is, a
 /// single event as it is, else the series at the occurrence's time (it
 /// doesn't repeat).
-EventDraft occurrenceDraft(Occurrence occurrence) {
-  final part = occurrence.part;
-  final draft = EventDraft.of(part);
-  final one = occurrence.recurrence;
-  if (part.recurrenceId != null || one == null) return draft;
-  final length = lengthOn(draft.start, draft.end);
-  return draft.occurrenceAt(one, one.at(one.wall.add(length)));
-}
+EventDraft occurrenceDraft(Occurrence occurrence) =>
+    switch (occurrence.recurrence) {
+      final one? => EventDraft.at(occurrence.event, one),
+      null => EventDraft.of(occurrence.part),
+    };
 
 /// The edit that moves [occurrence] alone to [start] up to [end] (on this
 /// device's clock): a single event changes, one of a series becomes a
@@ -36,7 +32,13 @@ CalendarEdit Function(DateTime at) occurrenceMovedTo(
   final moved = draft.occurrenceAt(newStart, newEnd);
   final uid = occurrence.event.uid;
   return switch (occurrence.recurrence) {
-    final one? => (at) => ChangeOccurrence(uid, one, moved, at: at),
-    null => (at) => ChangeSeries(uid, moved, at: at),
+    final one? => (at) => ChangeOccurrence(
+      uid,
+      one,
+      moved,
+      from: draft,
+      at: at,
+    ),
+    null => (at) => ChangeSeries(uid, moved, from: draft, at: at),
   };
 }

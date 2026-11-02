@@ -80,23 +80,27 @@ Future<void> showOccurrenceActions(
   if (!context.mounted) return;
   switch (action) {
     case _Action.edit || _Action.editAll:
+      final from = EventDraft.of(occurrence.event.series);
       final draft = await showEventForm(
         context,
-        EventDraft.of(occurrence.event.series),
+        from,
         title: 'Edit event',
         deviceZone: zone,
       );
-      if (draft != null) edit((at) => ChangeSeries(uid, draft, at: at));
+      if (draft != null) {
+        edit((at) => ChangeSeries(uid, draft, from: from, at: at));
+      }
     case _Action.editOne:
+      final from = occurrenceDraft(occurrence);
       final draft = await showEventForm(
         context,
-        occurrenceDraft(occurrence),
+        from,
         title: 'Edit this one',
         deviceZone: zone,
         repeats: false,
       );
       if (draft != null && one != null) {
-        edit((at) => ChangeOccurrence(uid, one, draft, at: at));
+        edit((at) => ChangeOccurrence(uid, one, draft, from: from, at: at));
       }
     case _Action.deleteOne:
       if (one != null) edit((at) => DeleteOccurrence(uid, one, at: at));

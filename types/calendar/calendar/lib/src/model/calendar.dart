@@ -206,8 +206,8 @@ int _endOf(List<_Line> lines) {
   return -1;
 }
 
-/// [blocks] as units: events with a `UID` grouped by it, and time zone
-/// blocks by their `TZID`, in the order of their first block; every other
+/// [blocks] as units: components with a `UID` grouped by their kind and
+/// it, and time zone blocks by their `TZID`, in the order of their first block; every other
 /// block a unit of its own text. And where each block was.
 ({List<CalendarUnit> units, List<_Slot> layout}) _units(
   List<List<_Line>> blocks,
@@ -249,16 +249,17 @@ int _endOf(List<_Line> lines) {
   return (units: units, layout: layout);
 }
 
-/// The key that groups [component] with others: its `UID` for an event
-/// that has one, its `TZID` for a time zone block; `null` for any other.
+/// The key that groups [component] with others: its `TZID` for a time
+/// zone block, its kind and `UID` for any other that has one (events,
+/// tasks, journal entries); `null` for the rest.
 UnitKey? _keyOf(Component? component) => switch (component) {
-  Component(name: 'VEVENT') => switch (component.value('UID')?.trim()) {
-    final uid? => UidKey(uid),
-    null => null,
-  },
   Component(name: 'VTIMEZONE') => switch (component.value('TZID')?.trim()) {
     final zone? => ZoneKey(zone),
     null => null,
   },
-  _ => null,
+  Component(:final name) => switch (component.value('UID')?.trim()) {
+    final uid? => UidKey(name, uid),
+    null => null,
+  },
+  null => null,
 };

@@ -1,7 +1,8 @@
 /// Calendar files for Truce: one iCalendar file (`.ics`) per calendar,
 /// read into units (an event with its changed occurrences), edited unit
 /// by unit and printed back block-exact (untouched units keep their
-/// bytes); merged unit by unit, the newer edit winning ([CalendarMerge]);
+/// bytes); merged unit by unit, the one changed or the newer edit winning
+/// ([CalendarMerge]);
 /// repeats expanded into occurrences ([occurrences]); health entries as
 /// tagged all-day events, with cycle predictions derived, never stored
 /// ([predictCycle]).

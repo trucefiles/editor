@@ -176,6 +176,7 @@ class _HealthPageState extends State<HealthPage> {
       (at) => ChangeSeries(
         event.uid,
         EventDraft.health(made.entry, day, note: made.note),
+        from: EventDraft.health(part.health!, day, note: part.description),
         at: at,
       ),
     );
