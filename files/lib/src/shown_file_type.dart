@@ -11,9 +11,6 @@ abstract interface class ShownFileType {
   /// The type's name as the user sees it, e.g. "Calendar".
   String get name;
 
-  /// The extension of a new file of this type, with its dot.
-  String get newFileExtension;
-
   /// The byte style of a new file of this type (e.g. its line breaks).
   TextFile get newFile;
 
@@ -28,4 +25,11 @@ abstract interface class ShownFileType {
   /// e.g. a conflict copy into its file; `null` if they don't (the user
   /// keeps one side).
   TextMerge? get merge;
+}
+
+/// What every file type gives the same way.
+extension NewFileExtension on ShownFileType {
+  /// The extension of a new file of this type, with its dot: its
+  /// support's first.
+  String get newFileExtension => '.${support.extensions.first}';
 }

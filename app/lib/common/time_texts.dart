@@ -1,5 +1,18 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+/// The system's time texts, read once at start: the one source for
+/// every date and time the app writes, on cards and on screens alike.
+final timeTextsProvider = Provider<TimeTexts>((_) {
+  final system = PlatformDispatcher.instance;
+  return TimeTexts(
+    locale: system.locale.toLanguageTag(),
+    use24Hour: system.alwaysUse24HourFormat,
+  );
+});
 
 /// Dates and times as the system shows them: in the formats of its
 /// [locale] (e.g. `de_DE`), with a 24-hour clock where the system is set
@@ -12,12 +25,6 @@ final class TimeTexts {
         DateFormat.localeExists,
         onFailure: (_) => 'en',
       )!;
-
-  /// The texts for [context]: the system's locale and clock.
-  factory TimeTexts.of(BuildContext context) => TimeTexts(
-    locale: View.of(context).platformDispatcher.locale.toLanguageTag(),
-    use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
-  );
 
   final String locale;
   final bool use24Hour;

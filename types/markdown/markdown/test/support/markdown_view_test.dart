@@ -1,7 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:test/test.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
+import 'package:truce_markdown/truce_markdown.dart';
 
 void main() {
   test('reads back what it kept', () {

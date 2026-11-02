@@ -15,6 +15,7 @@ dependencies:
   truce_core: any
   truce_file_page: any
   truce_files: any
+  truce_folders: any
   kalender: 0.33.0
 
 dev_dependencies:

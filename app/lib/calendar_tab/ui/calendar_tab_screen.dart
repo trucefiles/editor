@@ -59,7 +59,7 @@ class CalendarTabScreen extends ConsumerWidget {
                               calendar.file.folder.color,
                             ),
                           ),
-                          label: Text(tabCalendarName(calendar)),
+                          label: Text(calendar.title),
                           selected: calendar.shown,
                           onSelected: (on) => ref
                               .read(calendarTabProvider.notifier)
@@ -102,7 +102,7 @@ class CalendarTabScreen extends ConsumerWidget {
                 for (final calendar in calendars)
                   SimpleDialogOption(
                     onPressed: () => Navigator.pop(context, calendar.file),
-                    child: Text(tabCalendarName(calendar)),
+                    child: Text(calendar.title),
                   ),
               ],
             ),

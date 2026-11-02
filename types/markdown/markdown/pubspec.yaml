@@ -10,9 +10,12 @@ dependencies:
   characters: ^1.4.1
   collection: ^1.19.1
   html: ^0.15.7
+  meta: ^1.19.0
   truce_core: any
+  truce_files: any
 
 dev_dependencies:
   test: ^1.31.0
+  truce_folders: any
   truce_lints: any
   truce_test_support: any

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart' show ChangeNotifier, DateUtils;
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../day_clock.dart';
-import 'calendar_view_kind.dart';
 
 /// One occurrence the views show, with the key of its calendar.
 typedef ShownOccurrence<K> = ({K calendar, Occurrence occurrence});

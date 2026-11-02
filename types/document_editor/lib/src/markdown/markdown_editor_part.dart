@@ -6,7 +6,6 @@ import 'package:truce_markdown/truce_markdown.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
 import 'markdown_page_editor.dart';
-import 'markdown_view.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
 /// behind a gate, in the mode the user picked (remembered on this device)
@@ -23,7 +22,8 @@ final class MarkdownEditorPart implements EditorPart {
             hasCheckboxes: !start.isNew && read.hasCheckboxes,
             typing: start.isNew,
           ),
-      _readOnly = start.readOnly {
+      _readOnly = start.readOnly,
+      openedAt = DateTime.now() {
     editor = MarkdownPageEditor(
       EditorGate(
         editorOwner(
@@ -37,6 +37,9 @@ final class MarkdownEditorPart implements EditorPart {
   }
 
   final EditorPage _page;
+
+  /// When the document was opened: its pictures are read anew each open.
+  final DateTime openedAt;
 
   @override
   late final MarkdownPageEditor editor;

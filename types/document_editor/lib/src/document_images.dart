@@ -3,26 +3,25 @@ import 'dart:ui' show Codec, ImmutableBuffer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
 
 import 'ui/document_image.dart';
 
 /// The images the document at [document] in [folder] shows, for the
 /// open of it at [openedAt]: a web image from its url, and an image in
-/// its folder by its link relative to the document, read through [files].
+/// its folder by its link relative to the document, read by [bytesOf].
 /// Any other image (another scheme, outside the folder) doesn't show.
 /// Equal for the same folder, folder of the document and open: they find
 /// the same images.
 @immutable
 final class FolderImages implements DocumentImages {
   const FolderImages(
-    this.files, {
+    this.bytesOf, {
     required this.folder,
     required this.document,
     required this.openedAt,
   });
 
-  final FilesOfFolder files;
+  final Future<Uint8List?> Function(RelPath path) bytesOf;
   final FolderId folder;
   final RelPath document;
 
@@ -38,7 +37,7 @@ final class FolderImages implements DocumentImages {
       final path? => FolderImage(
         folder,
         path,
-        files.bytesOf,
+        bytesOf,
         openedAt: openedAt,
       ),
       null => null,

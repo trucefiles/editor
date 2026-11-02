@@ -28,10 +28,3 @@ List<TabCalendar> forAdding(List<TabCalendar> calendars, FileKey? lastUsed) => [
   ...calendars.where((each) => each.file.key == lastUsed),
   ...calendars.where((each) => each.file.key != lastUsed),
 ];
-
-/// What [calendar] is called: its own name, else its file's.
-String tabCalendarName(TabCalendar calendar) =>
-    switch (calendar.calendar.name.trim()) {
-      '' => nameTitle(calendar.file.path),
-      final name => name,
-    };

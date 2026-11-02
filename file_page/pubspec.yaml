@@ -10,7 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  truce_core: any
   truce_files: any
+  truce_folders: any
 
 dev_dependencies:
   truce_lints: any

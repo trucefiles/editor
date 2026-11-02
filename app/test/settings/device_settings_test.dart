@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor/settings/calendar_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 
 import 'device_settings_controller.dart';
 

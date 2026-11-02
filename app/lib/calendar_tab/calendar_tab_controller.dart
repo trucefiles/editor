@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../files/file_settings_controller.dart';
@@ -8,15 +7,30 @@ import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 
 /// One calendar the Calendar tab knows: its listed [file], its
-/// [calendar] as read, and whether the tab shows its events ([shown]).
-typedef TabCalendar = ({ListedFile file, Calendar calendar, bool shown});
+/// [calendar] as read, its [title] as its card shows it, and whether the
+/// tab shows its events ([shown]).
+typedef TabCalendar = ({
+  ListedFile file,
+  Calendar calendar,
+  String title,
+  bool shown,
+});
+
+/// A calendar as the tab keeps it read: the [calendar] and its [title].
+typedef ReadCalendar = ({Calendar calendar, String title});
 
 /// The calendars of the tab as read, kept while the app runs; a file
 /// that is no calendar is left out.
-final calendarReadsProvider = Provider<FileReads<Calendar>>(
+final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
   (ref) => FileReads(
     ref.watch(fileAccessProvider),
-    readAs: (read) => Calendar.read(read.text),
+    readAs: (read) => switch (read.summary) {
+      CalendarSummary(:final calendar?) => (
+        calendar: calendar,
+        title: titleOf(read.summary, read.path),
+      ),
+      _ => null,
+    },
   ),
 );
 
@@ -38,7 +52,7 @@ final calendarTabProvider =
     );
 
 /// The Calendar tab's calendars: every calendar the shown folders hold,
-/// read as it is now, by name; each shown in the tab or not, as the user
+/// read as it is now, by title; each shown in the tab or not, as the user
 /// set it on this device.
 class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
   @override
@@ -50,13 +64,15 @@ class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
         .read(calendarReadsProvider)
         .readAll(contents.files.where(isCalendarFile).toList());
     return [
-      for (final MapEntry(key: file, value: calendar) in read.entries)
+      for (final MapEntry(key: file, value: (:calendar, :title))
+          in read.entries)
         (
           file: file,
           calendar: calendar,
+          title: title,
           shown: CalendarView.of(settings.settingsOf(file.key).view).inTab,
         ),
-    ]..sort((a, b) => a.calendar.name.compareTo(b.calendar.name));
+    ]..sort((a, b) => a.title.compareTo(b.title));
   }
 
   /// The tab shows [file]'s events if [shown].

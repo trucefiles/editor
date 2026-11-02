@@ -42,7 +42,8 @@ class ListedFileRow extends ConsumerWidget {
             spacing: 6,
             children: [
               Text(
-                TimeTexts.of(context)
+                ref
+                    .watch(timeTextsProvider)
                     .edited(file.modified, now: DateTime.now()),
                 style: theme.textTheme.labelSmall,
               ),

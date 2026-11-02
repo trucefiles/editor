@@ -19,6 +19,7 @@ void main() {
     bool shown = true,
   }) => (
     file: listedFile(folder, name: '${name.toLowerCase()}.ics'),
+    title: name,
     calendar: applyEdit(
       Calendar.read(newCalendarText(name))!,
       AddEvent(
@@ -40,8 +41,7 @@ void main() {
   test('the calendar added to last is offered first', () {
     expect(
       [
-        for (final each in forAdding([home, work], work.file.key))
-          tabCalendarName(each),
+        for (final each in forAdding([home, work], work.file.key)) each.title,
       ],
       ['Work', 'Home'],
     );
@@ -54,6 +54,7 @@ void main() {
     final changed = (
       file: listedFile(folder, name: 'work.ics', version: 1),
       calendar: work.calendar,
+      title: work.title,
       shown: true,
     );
 
@@ -61,6 +62,6 @@ void main() {
       home,
       changed,
     ], container.read(lastUsedCalendarProvider)).first;
-    expect(tabCalendarName(first), 'Work');
+    expect(first.title, 'Work');
   });
 }

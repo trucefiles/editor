@@ -7,7 +7,9 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_test_support/truce_test_support.dart'
+    show ManualTimers, folderId, path;
 
 /// When the tests' edits are made.
 final editedAt = DateTime.utc(2026, 11, 1, 12);
@@ -68,7 +70,18 @@ Future<void> pumpPage(
               viewChoice: (kept ?? KeptView()).choice,
               now: () => today,
             ).view(
-              EditorHost(kept: part.owner.state.text, hint: (hints ?? []).add),
+              EditorHost(
+                kept: part.owner.state.text,
+                folder: Folder(
+                  id: folderId('home'),
+                  name: 'Home',
+                  color: 'teal',
+                  location: 'home',
+                ),
+                path: path('a.ics'),
+                bytesOf: (_) async => null,
+                hint: (hints ?? []).add,
+              ),
               autofocus: false,
             ),
       ),

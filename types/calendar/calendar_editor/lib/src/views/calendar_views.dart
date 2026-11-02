@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import 'calendar_view_kind.dart';
 import 'calendar_views_model.dart';
 import 'event_tiles.dart';
 import 'new_event_spot.dart';

@@ -17,6 +17,7 @@ dependencies:
   truce_core: any
   truce_file_page: any
   truce_files: any
+  truce_folders: any
   truce_markdown: any
   truce_plain_text: any
 

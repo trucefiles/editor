@@ -3,7 +3,6 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../lines/line_edit_view.dart';
-import '../text_host.dart';
 import 'plain_editor_part.dart';
 import 'plain_text.dart';
 import 'ui/plain_look.dart';
@@ -20,8 +19,7 @@ final class PlainEditorView implements EditorView {
   /// While read only, the editor's text, its latest edits too (they may
   /// not be kept yet).
   @override
-  Widget view(covariant TextHost host, {required bool autofocus}) =>
-      _part.isEditing
+  Widget view(EditorHost host, {required bool autofocus}) => _part.isEditing
       ? LineEditView(
           _text,
           key: const ValueKey(#edit),

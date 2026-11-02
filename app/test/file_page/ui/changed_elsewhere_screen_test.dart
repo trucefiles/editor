@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_controller.dart';
@@ -63,11 +64,13 @@ void main() {
     );
     addTearDown(controller.dispose);
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ListenableBuilder(
-            listenable: controller,
-            builder: (_, _) => EditStateBanner(controller, onClose: () {}),
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: ListenableBuilder(
+              listenable: controller,
+              builder: (_, _) => EditStateBanner(controller, onClose: () {}),
+            ),
           ),
         ),
       ),

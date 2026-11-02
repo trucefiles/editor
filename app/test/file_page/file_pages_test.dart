@@ -50,7 +50,8 @@ void main() {
 
   test("a new document's page goes where it is placed, of the type for new "
       'documents', () {
-    final page = pages().openNew((
+    final made = pages();
+    final page = made.openNew((
       folder: fixture.folders[1],
       subfolder: null,
     ), withFile: (_) async {});
@@ -58,8 +59,8 @@ void main() {
 
     final file = page.session.file as NewFile;
     expect(file.folder.id, folderId('f2'));
-    expect(file.type, appFileTypes().forNew);
-    expect(page.type, appFileTypes().forNew);
+    expect(file.type, same(made.types.forNew));
+    expect(page.type, same(made.types.forNew));
   });
 
   test("a new calendar's page starts as the calendar it was named", () {

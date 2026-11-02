@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
@@ -11,7 +12,7 @@ import '../file_colors.dart';
 /// A file in the grid: title and first lines at the document text zoom
 /// (as its [preview] has them, as many as fit); folder, last edit, pin and
 /// color.
-class FileCard extends StatelessWidget {
+class FileCard extends ConsumerWidget {
   const FileCard(
     this.file, {
     required this.preview,
@@ -40,7 +41,7 @@ class FileCard extends StatelessWidget {
   final VoidCallback onMark;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     return CardFrame(
@@ -69,7 +70,9 @@ class FileCard extends StatelessWidget {
         children: [
           Expanded(child: FolderBadge(file.folder, file: file.path)),
           Text(
-            TimeTexts.of(context).edited(file.modified, now: DateTime.now()),
+            ref
+                .watch(timeTextsProvider)
+                .edited(file.modified, now: DateTime.now()),
             style: textTheme.labelSmall,
           ),
           if (settings.pinned)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/time_texts.dart';
@@ -19,7 +20,7 @@ enum OwnLines {
 /// One side of a conflict: its own text, at the document text zoom, with
 /// the lines the other side lacks marked as [ownLines], and a button to
 /// keep it.
-class VersionPane extends StatelessWidget {
+class VersionPane extends ConsumerWidget {
   const VersionPane({
     required this.label,
     required this.content,
@@ -43,7 +44,7 @@ class VersionPane extends StatelessWidget {
   final VoidCallback? onKeep;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -52,7 +53,8 @@ class VersionPane extends StatelessWidget {
           title: Text(label),
           // Every side has this line, so both texts start at one height.
           subtitle: Text(switch (content) {
-            SavedText(:final modified) => TimeTexts.of(context).full(modified),
+            SavedText(:final modified) =>
+              ref.watch(timeTextsProvider).full(modified),
             EditorText() => 'In the editor now',
             DeletedFile() => 'Deleted',
           }),

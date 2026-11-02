@@ -35,10 +35,10 @@ void main() {
     await container.read(folderContentsProvider.future);
   }
 
-  /// The tab's calendars as their names and whether each is shown.
+  /// The tab's calendars as their titles and whether each is shown.
   Future<List<(String, bool)>> tab() async => [
     for (final calendar in await container.read(calendarTabProvider.future))
-      (calendar.calendar.name, calendar.shown),
+      (calendar.title, calendar.shown),
   ];
 
   test('no tab without a calendar', () async {
@@ -67,6 +67,17 @@ void main() {
         .show(work.file, shown: false);
 
     expect(await tab(), [('Home', true), ('Work', false)]);
+  });
+
+  test('a calendar without a name is titled and sorted by its file, as '
+      'its card', () async {
+    write('home.ics', newCalendarText('Home'));
+    write('apples.ics', newCalendarText(''));
+    write('zoo.ics', newCalendarText('Zoo'));
+    await start();
+
+    // By title, not by the raw name (empty for apples.ics).
+    expect(await tab(), [('Home', true), ('Zoo', true), ('apples', true)]);
   });
 
   test('a calendar changed on disk is read anew', () async {

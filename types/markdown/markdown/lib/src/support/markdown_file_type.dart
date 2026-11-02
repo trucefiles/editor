@@ -1,14 +1,16 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_markdown/truce_markdown.dart';
 
-import 'editable_type.dart';
+import '../owner/editor_contract.dart' show CheckedItems;
+import '../summary/document_summary.dart';
+import 'markdown_support.dart';
+import 'markdown_view.dart';
 
-/// Markdown documents and checklists: cards leave checked items out
-/// where the file shows them apart; edited in Visual edit, Markdown
-/// edit or Read.
-final class MarkdownFileType implements EditableType {
+/// Markdown documents and checklists, as the app shows them: cards
+/// leave checked items out where the file shows them apart; search reads
+/// the whole text; two texts don't merge (the user picks one). Its
+/// editor adds how it opens (`document_editor`).
+base class MarkdownFileType implements ShownFileType {
   const MarkdownFileType();
 
   @override
@@ -16,9 +18,6 @@ final class MarkdownFileType implements EditableType {
 
   @override
   String get name => 'Markdown';
-
-  @override
-  String get newFileExtension => '.md';
 
   @override
   TextFile get newFile => const TextFile.empty();
@@ -44,10 +43,4 @@ final class MarkdownFileType implements EditableType {
   /// Texts are compared and picked by the user.
   @override
   TextMerge? get merge => null;
-
-  @override
-  OpenedEditor openEditor(EditorStart start, EditorPage page) {
-    final part = MarkdownEditorPart(start, page);
-    return (part: part, view: MarkdownEditorView(part));
-  }
 }
