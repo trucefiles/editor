@@ -6,6 +6,7 @@ import '../owners/machine.dart';
 import '../owners/machine_owner.dart';
 import '../owners/owner.dart';
 import '../owners/timers.dart';
+import '../plugins/folder_id.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
@@ -17,7 +18,7 @@ import 'folder_state_work.dart';
 export 'folder_state.dart';
 export 'folder_state_contract.dart';
 
-/// The owner of what the base folders hold (see
+/// The owner of what the folders hold (see
 /// `folder_state_contract.dart`).
 typedef FolderStateOwner = Owner<FolderStateInput, FolderState, Fresh>;
 
@@ -47,15 +48,14 @@ FolderStateMachine folderStateMachine({
   );
 }
 
-/// How the folder state owner reads one base folder: what its sync tool
-/// lists ([scanner]) and the marks of all devices ([marks]).
-typedef BaseFolderReader = ({FolderScanner scanner, FileMarks marks});
+/// How the folder state owner reads one folder: what its plugin lists ([scanner]) and the marks of all devices ([marks]).
+typedef FolderReader = ({FolderScanner scanner, FileMarks marks});
 
-/// The folder state owner: reads each base folder through
+/// The folder state owner: reads each folder through
 /// [readerOf]; changes wait as [folderStateMachine] says, on
 /// [startTimer]'s clock.
 FolderStateOwner folderStateOwner(
-  BaseFolderReader Function(String baseId) readerOf, {
+  FolderReader Function(FolderId folder) readerOf, {
   Duration settle = const Duration(milliseconds: 500),
   Duration longest = const Duration(seconds: 3),
   StartTimer? startTimer,
@@ -71,36 +71,36 @@ FolderStateOwner folderStateOwner(
     >(
       folderStateMachine(settle: settle, longest: longest),
       handle: (effect) => switch (effect) {
-        ListBase(:final id, :final baseId, :final marks) => _list(
+        ListWhole(:final id, :final folder, :final marks) => _list(
           id,
-          readerOf(baseId),
+          readerOf(folder),
           marks,
         ),
-        CheckBase(
+        CheckPart(
           :final id,
-          :final baseId,
+          :final folder,
           :final folders,
           :final marksFiles,
           :final marks,
         ) =>
-          _check(id, readerOf(baseId), folders, marksFiles, marks),
+          _check(id, readerOf(folder), folders, marksFiles, marks),
         // Waits run by the owner's timers.
         WaitForChanges() => throw StateError('a wait reached the handler'),
       },
       startTimer: startTimer,
-      // What the base folders hold matters only while someone listens.
+      // What the folders hold matters only while someone listens.
       dropsNewWorkOnClose: true,
     );
 
-/// Lists [reader]'s base folder whole, its marks files on the same walk.
+/// Lists [reader]'s folder whole, its marks files on the same walk.
 Future<ListingDone> _list(
   EffectId id,
-  BaseFolderReader reader,
+  FolderReader reader,
   MarksFiles known,
 ) async {
   final startedAt = Moment.now();
   final scan = await reader.scanner.scan(also: FileMarks.files);
-  final Result<BaseListing, StoreError> listing = switch (scan) {
+  final Result<WholeListing, StoreError> listing = switch (scan) {
     Ok(value: final scan) => Ok((
       scan: scan,
       marks: await reader.marks.loadListed(scan.alsoListed, known: known),
@@ -110,11 +110,10 @@ Future<ListingDone> _list(
   return ListingDone(id, listing, startedAt: startedAt);
 }
 
-/// Checks [folders] and reads [marksFiles] again in [reader]'s base
-/// folder.
+/// Checks [folders] and reads [marksFiles] again in [reader]'s folder.
 Future<CheckDone> _check(
   EffectId id,
-  BaseFolderReader reader,
+  FolderReader reader,
   Set<RelPath?> folders,
   Set<RelPath> marksFiles,
   MarksFiles known,

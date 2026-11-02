@@ -20,18 +20,12 @@ void main() {
       bytesOf('b'),
       ifUnchanged: created.version,
     )).value;
-    final moved = (await store.move(
-      path('a.md'),
-      path('b.md'),
-      ifUnchanged: replaced.version,
-    )).value;
-    await store.delete(path('b.md'), ifUnchanged: moved.version);
+    await store.delete(path('a.md'), ifUnchanged: replaced.version);
 
     expect(reported, [
       {path('a.md')},
       {path('a.md')},
-      {path('a.md'), path('b.md')},
-      {path('b.md')},
+      {path('a.md')},
     ]);
   });
 

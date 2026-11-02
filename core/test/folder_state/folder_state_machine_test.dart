@@ -39,8 +39,8 @@ Conflict _conflict(String main) => Conflict(
 );
 
 extension on _Run {
-  List<ListBase> get listings => all<ListBase>();
-  List<CheckBase> get checks => all<CheckBase>();
+  List<ListWhole> get listings => all<ListWhole>();
+  List<CheckPart> get checks => all<CheckPart>();
 
   /// The listing last started ends, finding [scan].
   void listed(FolderScan scan, {MarksFiles? marks, Moment? startedAt}) => send(
@@ -76,40 +76,40 @@ extension on _Run {
   void waited(Duration delay) =>
       send(all<WaitForChanges>().lastWhere((wait) => wait.delay == delay).done);
 
-  void changed(String base, String name) =>
-      send(Hinted(base, PathChanged(path(name))));
+  void changed(FolderId folder, String name) =>
+      send(Hinted(folder, PathChanged(path(name))));
 
-  Listed base(String id) => state.bases[id]! as Listed;
+  Listed listedOf(FolderId folder) => state.folders[folder]! as Listed;
 }
 
 const _settle = Duration(milliseconds: 500);
 const _longest = Duration(seconds: 3);
 
-const _whole = WholeFolder();
-final _work = Selection.of([path('work')]);
+final _a = folderId('a');
+final _b = folderId('b');
 
 void main() {
   group('listings', () {
-    test('lists nothing before the base folders are known', () {
+    test('lists nothing before the folders are known', () {
       final run = _run();
       final ticket = run.refresh();
       expect(run.listings, isEmpty);
 
-      run.send(BasesChanged({'a': _whole}));
-      expect(run.state.bases['a'], isA<NotListed>());
-      expect(run.listings.single.baseId, 'a');
+      run.send(FoldersChanged({_a}));
+      expect(run.state.folders[_a], isA<NotListed>());
+      expect(run.listings.single.folder, _a);
       run.listed(_scan([_file('x.md')]));
 
-      expect(run.base('a').files.keys, [path('x.md')]);
+      expect(run.listedOf(_a).files.keys, [path('x.md')]);
       expect(run.fresh, [ticket]);
     });
 
-    test('lists one base folder at a time; a refresh waits for all', () {
-      final run = _run()..send(BasesChanged({'a': _whole, 'b': _whole}));
+    test('lists one folder at a time; a refresh waits for all', () {
+      final run = _run()..send(FoldersChanged({_a, _b}));
       expect(run.listings, hasLength(1));
       run.listed(_scan([]));
       final ticket = run.refresh();
-      expect(run.listings.map((l) => l.baseId), ['a', 'b']);
+      expect(run.listings.map((l) => l.folder), [_a, _b]);
 
       run.listed(_scan([]));
       expect(run.fresh, isEmpty, reason: 'b began before the refresh');
@@ -122,7 +122,7 @@ void main() {
     });
 
     test('a refresh during a listing waits for one more, shared', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       final first = run.refresh();
       final second = run.refresh();
       run.listed(_scan([]));
@@ -134,20 +134,20 @@ void main() {
       expect(run.listings, hasLength(2));
     });
 
-    test('a failed listing leaves the base folder unknown', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+    test('a failed listing leaves the folder unknown', () {
+      final run = _run()..send(FoldersChanged({_a}));
       final ticket = run.refresh();
 
       run.listingFailed(StoreError.accessDenied);
 
-      expect(run.state.bases['a'], isA<ListingFailed>());
+      expect(run.state.folders[_a], isA<ListingFailed>());
       expect(run.fresh, isEmpty, reason: 'the first listing began before');
       run.listingFailed(StoreError.accessDenied);
       expect(run.fresh, [ticket], reason: 'answered all the same');
     });
 
     test('holds the conflicts, subfolders and unreadable subfolders', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
 
       run.listed(
         _scan(
@@ -158,7 +158,7 @@ void main() {
         ),
       );
 
-      final base = run.base('a');
+      final base = run.listedOf(_a);
       expect(base.conflicts.keys, [path('y.md')]);
       expect(base.subfolders, {path('work'), path('work/old')});
       expect(base.sees(path('private/x.md')), isFalse);
@@ -166,48 +166,47 @@ void main() {
     });
 
     test('asks to read the marks files over the ones known', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       final marks = MarksFiles(const {});
       run
         ..listed(_scan([]), marks: marks)
-        ..send(const Hinted('a', ListAgain()));
+        ..send(Hinted(_a, ListAgain()));
 
       expect(run.listings.last.marks, same(marks));
     });
   });
 
-  group('base folders', () {
-    test('a new base folder, or one whose selection changed, is listed', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+  group('folders', () {
+    test('a new folder is listed', () {
+      final run = _run()..send(FoldersChanged({_a}));
       run.listed(_scan([_file('x.md')]));
 
-      run.send(BasesChanged({'a': _work, 'b': _whole}));
-      expect(run.base('a').files.keys, [path('x.md')], reason: 'kept until');
-      expect(run.state.bases['b'], isA<NotListed>());
+      run.send(FoldersChanged({_a, _b}));
+      expect(run.listedOf(_a).files.keys, [path('x.md')]);
+      expect(run.state.folders[_b], isA<NotListed>());
 
       run.listed(_scan([]));
-      run.listed(_scan([]));
-      expect(run.listings.map((l) => l.baseId), ['a', 'a', 'b']);
+      expect(run.listings.map((l) => l.folder), [_a, _b]);
     });
 
-    test('an unchanged base folder is not listed again', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+    test('an unchanged folder is not listed again', () {
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..send(BasesChanged({'a': _whole}));
+        ..send(FoldersChanged({_a}));
 
       expect(run.listings, hasLength(1));
     });
 
     test('one no longer followed goes, and refreshes stop waiting for it', () {
-      final run = _run()..send(BasesChanged({'a': _whole, 'b': _whole}));
+      final run = _run()..send(FoldersChanged({_a, _b}));
       run.listed(_scan([]));
       final ticket = run.refresh();
       run.listed(_scan([]));
-      run.changed('b', 'x.md');
+      run.changed(_b, 'x.md');
 
-      run.send(BasesChanged({'a': _whole}));
-      expect(run.state.bases.keys, ['a']);
+      run.send(FoldersChanged({_a}));
+      expect(run.state.folders.keys, [_a]);
       run.listed(_scan([]));
 
       expect(run.fresh, [ticket]);
@@ -216,25 +215,25 @@ void main() {
       expect(run.violations, isEmpty);
     });
 
-    test('a listing of a base folder that went is dropped', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+    test('a listing of a folder that went is dropped', () {
+      final run = _run()..send(FoldersChanged({_a}));
 
       run
-        ..send(BasesChanged({}))
+        ..send(FoldersChanged(const {}))
         ..listed(_scan([_file('x.md')]));
 
-      expect(run.state.bases, isEmpty);
+      expect(run.state.folders, isEmpty);
     });
   });
 
   group('changes', () {
     test('changed paths are checked once changes pause, by folder', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..changed('a', 'work/x.md')
-        ..changed('a', 'work/y.md')
-        ..changed('a', 'top.md');
+        ..changed(_a, 'work/x.md')
+        ..changed(_a, 'work/y.md')
+        ..changed(_a, 'top.md');
       expect(run.checks, isEmpty);
 
       run.waited(_settle);
@@ -244,21 +243,21 @@ void main() {
     });
 
     test('changes that keep coming are checked after the longest wait', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..changed('a', 'x.md')
-        ..changed('a', 'y.md')
+        ..changed(_a, 'x.md')
+        ..changed(_a, 'y.md')
         ..waited(_longest);
 
       expect(run.checks, hasLength(1));
     });
 
     test('a changed marks file is read again, no folder checked', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..changed('a', 'work/.truce/marks/phone.json')
+        ..changed(_a, 'work/.truce/marks/phone.json')
         ..waited(_settle);
 
       expect(run.checks.single.folders, isEmpty);
@@ -267,25 +266,25 @@ void main() {
       });
     });
 
-    test('list again lists the base folder at once', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+    test('list again lists the folder at once', () {
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..send(const Hinted('a', ListAgain()));
+        ..send(Hinted(_a, ListAgain()));
 
       expect(run.listings, hasLength(2));
     });
 
     test('hints are ignored while not in use, and dropped when it ends', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
+      final run = _run()..send(FoldersChanged({_a}));
       run
         ..listed(_scan([]))
-        ..changed('a', 'x.md')
+        ..changed(_a, 'x.md')
         ..send(const Active(active: false));
       expect(run.violations, isEmpty);
       run
-        ..changed('a', 'y.md')
-        ..send(const Hinted('a', ListAgain()))
+        ..changed(_a, 'y.md')
+        ..send(Hinted(_a, ListAgain()))
         ..send(const Active(active: true))
         ..waited(_settle);
 
@@ -294,10 +293,10 @@ void main() {
     });
 
     test('a whole listing takes the place of the checks due', () {
-      final run = _run()..send(BasesChanged({'a': _whole}));
-      run.changed('a', 'x.md');
+      final run = _run()..send(FoldersChanged({_a}));
+      run.changed(_a, 'x.md');
       run.waited(_settle);
-      run.send(const Hinted('a', ListAgain()));
+      run.send(Hinted(_a, ListAgain()));
       expect(run.checks, isEmpty, reason: 'the first listing runs');
 
       run.listed(_scan([]));
@@ -312,7 +311,7 @@ void main() {
     late _Run run;
 
     setUp(() {
-      run = _run()..send(BasesChanged({'a': _whole}));
+      run = _run()..send(FoldersChanged({_a}));
       run.listed(
         _scan(
           [_file('work/x.md'), _file('work/deep/y.md'), _file('top.md')],
@@ -324,7 +323,7 @@ void main() {
 
     test('replace what lies directly in the folders found', () {
       run
-        ..changed('a', 'work/x.md')
+        ..changed(_a, 'work/x.md')
         ..waited(_settle)
         ..checked(
           PartScan(
@@ -336,34 +335,34 @@ void main() {
         );
 
       expect(
-        run.base('a').files.keys,
+        run.listedOf(_a).files.keys,
         unorderedEquals([
           path('work/deep/y.md'),
           path('top.md'),
           path('work/z.md'),
         ]),
       );
-      expect(run.base('a').conflicts.keys, [path('top.md')]);
+      expect(run.listedOf(_a).conflicts.keys, [path('top.md')]);
     });
 
     test('drop everything in and below a folder that is gone', () {
       run
-        ..changed('a', 'work/x.md')
+        ..changed(_a, 'work/x.md')
         ..waited(_settle)
         ..checked(
           const PartScan(files: [], conflicts: [], found: {}, unknown: {}),
         );
 
-      final base = run.base('a');
+      final base = run.listedOf(_a);
       expect(base.files.keys, [path('top.md')]);
       expect(base.subfolders, {path('other')});
       expect(base.conflicts.keys, [path('top.md')]);
     });
 
     test('keep what is in a folder they could not read', () {
-      final before = run.base('a').files;
+      final before = run.listedOf(_a).files;
       run
-        ..changed('a', 'work/x.md')
+        ..changed(_a, 'work/x.md')
         ..waited(_settle)
         ..checked(
           PartScan(
@@ -374,12 +373,12 @@ void main() {
           ),
         );
 
-      expect(run.base('a').files, before);
+      expect(run.listedOf(_a).files, before);
     });
 
     test('add a new folder found', () {
       run
-        ..changed('a', 'new/x.md')
+        ..changed(_a, 'new/x.md')
         ..waited(_settle)
         ..checked(
           PartScan(
@@ -390,15 +389,15 @@ void main() {
           ),
         );
 
-      expect(run.base('a').subfolders, contains(path('new')));
-      expect(run.base('a').files.keys, contains(path('new/x.md')));
+      expect(run.listedOf(_a).subfolders, contains(path('new')));
+      expect(run.listedOf(_a).files.keys, contains(path('new/x.md')));
     });
 
     test('tell when what they saw was seen', () {
-      final listedAt = run.base('a').listedAt;
+      final listedAt = run.listedOf(_a).listedAt;
       final checkedAt = Moment.now();
       run
-        ..changed('a', 'work/x.md')
+        ..changed(_a, 'work/x.md')
         ..waited(_settle)
         ..checked(
           PartScan(
@@ -410,19 +409,19 @@ void main() {
           startedAt: checkedAt,
         );
 
-      expect(run.base('a').seenAt(path('work/x.md')), same(checkedAt));
+      expect(run.listedOf(_a).seenAt(path('work/x.md')), same(checkedAt));
       expect(
-        run.base('a').seenAt(path('work/deep/y.md')),
+        run.listedOf(_a).seenAt(path('work/deep/y.md')),
         same(listedAt),
         reason: 'a check looks only directly in its folder',
       );
-      expect(run.base('a').seenAt(path('top.md')), same(listedAt));
+      expect(run.listedOf(_a).seenAt(path('top.md')), same(listedAt));
     });
 
     test('that fail leave a whole listing due', () {
       final listings = run.listings.length;
       run
-        ..changed('a', 'work/x.md')
+        ..changed(_a, 'work/x.md')
         ..waited(_settle)
         ..send(
           CheckDone(
@@ -439,18 +438,18 @@ void main() {
     test('put the marks read again in place', () {
       final marks = MarksFiles(const {});
       run
-        ..changed('a', '.truce/marks/phone.json')
+        ..changed(_a, '.truce/marks/phone.json')
         ..waited(_settle)
         ..checked(PartScan.nothing, marks: marks);
 
-      expect(run.base('a').marks, same(marks));
+      expect(run.listedOf(_a).marks, same(marks));
     });
 
-    test('of a base folder whose listing failed wait for a listing', () {
+    test('of a folder whose listing failed wait for a listing', () {
       run
-        ..send(const Hinted('a', ListAgain()))
+        ..send(Hinted(_a, ListAgain()))
         ..listingFailed(StoreError.ioFailure)
-        ..changed('a', 'top.md')
+        ..changed(_a, 'top.md')
         ..waited(_settle)
         ..checked(
           PartScan(
@@ -461,7 +460,7 @@ void main() {
           ),
         );
 
-      expect(run.state.bases['a'], isA<ListingFailed>());
+      expect(run.state.folders[_a], isA<ListingFailed>());
     });
   });
 
@@ -469,7 +468,7 @@ void main() {
     late _Run run;
 
     setUp(() {
-      run = _run()..send(BasesChanged({'a': _whole}));
+      run = _run()..send(FoldersChanged({_a}));
       run.listed(_scan([_file('x.md', time: 1)]));
     });
 
@@ -481,7 +480,7 @@ void main() {
     );
 
     test('are checked at once', () {
-      run.send(AppWrote('a', {path('x.md')}, at: DateTime.utc(2026)));
+      run.send(AppWrote(_a, {path('x.md')}, at: DateTime.utc(2026)));
 
       expect(run.checks.single.folders, {null});
     });
@@ -489,44 +488,44 @@ void main() {
     test('show their time while a listing shows an older one', () {
       final at = DateTime.utc(2026, 10, 28, 0, 0, 10);
       run
-        ..send(AppWrote('a', {path('x.md')}, at: at))
+        ..send(AppWrote(_a, {path('x.md')}, at: at))
         ..checked(part(_file('x.md', version: 2, time: 3)));
 
-      final shown = run.base('a').files[path('x.md')]!;
+      final shown = run.listedOf(_a).files[path('x.md')]!;
       expect(shown.modified, at);
       expect(shown.version, const FileVersion(2));
 
       run
-        ..send(const Hinted('a', ListAgain()))
+        ..send(Hinted(_a, ListAgain()))
         ..listed(_scan([_file('x.md', version: 3, time: 4)]));
-      expect(run.base('a').files[path('x.md')]!.modified, at);
+      expect(run.listedOf(_a).files[path('x.md')]!.modified, at);
     });
 
     test('give way once a later time shows', () {
       final at = DateTime.utc(2026, 10, 28, 0, 0, 10);
       run
-        ..send(AppWrote('a', {path('x.md')}, at: at))
+        ..send(AppWrote(_a, {path('x.md')}, at: at))
         ..checked(part(_file('x.md', version: 2, time: 3)))
-        ..send(const Hinted('a', ListAgain()))
+        ..send(Hinted(_a, ListAgain()))
         ..listed(_scan([_file('x.md', version: 3, time: 20)]))
-        ..send(const Hinted('a', ListAgain()))
+        ..send(Hinted(_a, ListAgain()))
         ..listed(_scan([_file('x.md', version: 4, time: 15)]));
 
       expect(
-        run.base('a').files[path('x.md')]!.modified,
+        run.listedOf(_a).files[path('x.md')]!.modified,
         DateTime.utc(2026, 10, 28, 0, 0, 15),
       );
     });
 
-    test('of another base folder are ignored', () {
-      run.send(AppWrote('b', {path('x.md')}, at: DateTime.utc(2026)));
+    test('of another folder are ignored', () {
+      run.send(AppWrote(_b, {path('x.md')}, at: DateTime.utc(2026)));
 
       expect(run.checks, isEmpty);
     });
   });
 
   test('an old result is ignored', () {
-    final run = _run()..send(BasesChanged({'a': _whole}));
+    final run = _run()..send(FoldersChanged({_a}));
     final old = run.listings.single.id;
     run.listed(_scan([_file('x.md')]));
 
@@ -538,6 +537,6 @@ void main() {
       ),
     );
 
-    expect(run.base('a').files.keys, [path('x.md')]);
+    expect(run.listedOf(_a).files.keys, [path('x.md')]);
   });
 }

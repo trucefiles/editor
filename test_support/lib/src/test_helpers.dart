@@ -6,6 +6,9 @@ import 'package:truce_core/truce_core.dart';
 
 RelPath path(String raw) => RelPath.parse(raw)!;
 
+/// The id of the fake plugin's folder [name].
+FolderId folderId(String name) => FolderId('fake', name);
+
 Uint8List bytesOf(String text) => Uint8List.fromList(text.codeUnits);
 
 /// Unwraps results in tests; a wrong variant fails the test with a cast

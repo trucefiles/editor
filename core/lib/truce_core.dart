@@ -1,21 +1,25 @@
-/// Core of Truce: files, sync-tool interfaces and conflict handling.
+/// Core of Truce: files, the folder plugin interface and conflict
+/// handling.
 ///
 /// Pure Dart, no UI. The app uses only what this library exports.
 ///
 /// Layers, bottom up:
 /// 1. `storage`: byte-level file access under one folder ([FileStore]),
-///    bounded to what the app may touch in it ([BoundedStore] over a
-///    [Selection]); a sync tool's look outside it ([FolderMarkers]); the
-///    shared parts of base folders on this device ([LocalDisk]); the
-///    app's own files in its private storage: a JSON value in one file
-///    ([JsonFile]), where a setting is kept ([SettingStore]), this
-///    device's id ([loadDeviceId]), its backups ([fileBackupsAt]).
+///    bounded to what the app may touch in it ([BoundedStore]) and closed
+///    with it ([ClosingStore]); a plugin's look outside it
+///    ([FolderMarkers]); the local-disk service for folders on this device
+///    ([LocalDisk]) with its host paths ([HostPaths]) and the areas each
+///    plugin claims ([DiskAreas]); the app's own files in its private
+///    storage: a JSON value in one file ([JsonFile]), where a setting is
+///    kept ([SettingStore]), this device's id ([loadDeviceId]), its
+///    backups ([fileBackupsAt]).
 /// 2. `backups`: copies of files in app storage ([FileBackups]), made
 ///    before edits and before the user keeps one of two versions.
-/// 3. `sync`: a sync tool as one plugin ([SyncTool]) with its access to
-///    each base folder ([ToolPlace]); the parts plugins build on: whether a
-///    tool syncs a folder ([SyncCheck]) and what to tell the user about a
-///    folder ([FolderNotices]).
+/// 3. `plugins`: one kind of folder source as one plugin ([FolderPlugin])
+///    with its raw access to each folder ([RawFolder]) and its rules on
+///    top ([OpenFolder]); which folder ([FolderId]); what to tell the user
+///    about a folder ([FolderNotices]); the shared way to move a file
+///    ([moveByCopy]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
 /// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
 ///    what each type gives lists ([FileTypeSupport]).
@@ -35,7 +39,7 @@
 /// 12. `reach`: whether a folder can be reached, from how accesses to its
 ///     files go ([FolderReach]).
 ///
-/// 13. `folder_state`: what the base folders hold (listings, conflicts,
+/// 13. `folder_state`: what the folders hold (listings, conflicts,
 ///     marks), kept in step with changes by its owner, working only on
 ///     what changed ([FolderStateOwner]).
 /// 14. `files`: an open file, kept on the device and in
@@ -43,10 +47,10 @@
 ///     ([FileOwner]); and what every type's editor shares: the page's
 ///     requests and notices ([EditorRequest], [EditorNotice]), the save
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
-///     ([EditorSteps]); any file type, any sync tool.
+///     ([EditorSteps]); any file type, any plugin.
 ///
-/// `place` bounds a base folder's files and changes alike to what the app
-/// may touch ([BoundedPlace]).
+/// `place` bounds a folder's files and changes alike to what the app may
+/// touch, and closes them alike ([BoundedPlace]).
 /// `search` holds search over many texts behind one interface
 /// ([OpenSearch]); today the texts are read when it opens
 /// ([ReadingSearch]).
@@ -58,7 +62,7 @@
 /// ([ResolveError]).
 ///
 /// Implementations sit next to their interface. Nothing here is specific
-/// to one sync tool; each tool's conventions live in a package of their
+/// to one plugin; each plugin's conventions live in a package of their
 /// own (`truce_syncthing`).
 library;
 
@@ -111,6 +115,11 @@ export 'src/owners/owner.dart';
 export 'src/owners/simple_owner.dart';
 export 'src/owners/timers.dart';
 export 'src/place/bounded_place.dart';
+export 'src/plugins/folder_id.dart';
+export 'src/plugins/folder_notices.dart';
+export 'src/plugins/folder_plugin.dart';
+export 'src/plugins/move_by_copy.dart';
+export 'src/plugins/open_folder.dart';
 export 'src/reach/folder_reach.dart';
 export 'src/reach/reach_reporting_store.dart';
 export 'src/restore/backup_restore.dart';
@@ -118,23 +127,21 @@ export 'src/scan/folder_scanner.dart';
 export 'src/search/reading_search.dart';
 export 'src/search/text_search.dart';
 export 'src/storage/bounded_store.dart';
+export 'src/storage/closing_store.dart';
 export 'src/storage/device_id.dart';
+export 'src/storage/disk_areas.dart';
 export 'src/storage/file_backups_at.dart';
 export 'src/storage/file_store.dart';
 export 'src/storage/folder_markers.dart';
 export 'src/storage/folders_there.dart';
+export 'src/storage/host_paths.dart';
 export 'src/storage/json_file.dart';
 export 'src/storage/local_disk.dart';
 export 'src/storage/local_file_store.dart';
-export 'src/storage/move_by_copy.dart';
 export 'src/storage/rel_path.dart';
-export 'src/storage/selection.dart';
 export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
-export 'src/sync/folder_notices.dart';
-export 'src/sync/sync_check.dart';
-export 'src/sync/sync_tool.dart';
 export 'src/text/line_match.dart';
 export 'src/text/lines.dart';
 export 'src/text/text_file.dart';

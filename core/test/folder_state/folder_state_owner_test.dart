@@ -3,8 +3,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 /// The folder state owner on the generic scanner and marks of a made-up
-/// sync tool, over files in memory.
-const _whole = WholeFolder();
+/// plugin, over files in memory.
+final _a = folderId('a');
 
 void main() {
   late MemoryFileStore store;
@@ -31,20 +31,20 @@ void main() {
   });
 
   Future<Listed> next() async =>
-      (await owner.changes.firstWhere((state) => state.bases['a'] is Listed))
-              .bases['a']!
+      (await owner.changes.firstWhere((state) => state.folders[_a] is Listed))
+              .folders[_a]!
           as Listed;
 
   Future<void> refreshed() =>
       ask<FolderStateInput, Fresh>(owner.send, owner.events, Refresh.new);
 
-  test('lists a base folder, its marks with it', () async {
+  test('lists a folder, its marks with it', () async {
     await FileMarks(
       store,
       deviceId: 'laptop',
     ).set(path('top.md'), const FileMark(color: 'teal'));
     store.listCount = 0;
-    owner.send(BasesChanged({'a': _whole}));
+    owner.send(FoldersChanged({_a}));
 
     final base = await next();
 
@@ -57,10 +57,10 @@ void main() {
   });
 
   test('reads no file to list or check', () async {
-    owner.send(BasesChanged({'a': _whole}));
+    owner.send(FoldersChanged({_a}));
     await next();
     store.put('work/new.md', 'new');
-    owner.send(Hinted('a', PathChanged(path('work/new.md'))));
+    owner.send(Hinted(_a, PathChanged(path('work/new.md'))));
     await pumpEventQueue();
     timers.fireAll();
     await refreshed();
@@ -69,15 +69,15 @@ void main() {
   });
 
   test('a changed path is checked with a listing of its folder only', () async {
-    owner.send(BasesChanged({'a': _whole}));
+    owner.send(FoldersChanged({_a}));
     await next();
     store.put('work/new.md', 'new');
 
-    owner.send(Hinted('a', PathChanged(path('work/new.md'))));
+    owner.send(Hinted(_a, PathChanged(path('work/new.md'))));
     await pumpEventQueue();
     timers.fireAll();
     final base = await owner.changes
-        .map((state) => state.bases['a']! as Listed)
+        .map((state) => state.folders[_a]! as Listed)
         .firstWhere((base) => base.files.containsKey(path('work/new.md')));
 
     expect(store.lastListed, [path('work/plan.md'), path('work/new.md')]);
@@ -85,13 +85,13 @@ void main() {
   });
 
   test('a refresh lists again and answers once done', () async {
-    owner.send(BasesChanged({'a': _whole}));
+    owner.send(FoldersChanged({_a}));
     await next();
     store.files.remove(path('top.md'));
 
     await refreshed();
 
-    expect((owner.state.bases['a']! as Listed).files.keys, [
+    expect((owner.state.folders[_a]! as Listed).files.keys, [
       path('work/plan.md'),
     ]);
   });

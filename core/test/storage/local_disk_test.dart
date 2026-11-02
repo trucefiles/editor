@@ -16,29 +16,37 @@ void main() {
     replacesInPlace: false,
     followsLive: (_) => live,
     seesParents: (_) => true,
+    hostPaths: const SameHostPaths(),
   );
 
-  test('opens the folder at a file address', () async {
+  test('opens the directory at a file address', () async {
     Directory('${dir.path}/work').createSync();
     File('${dir.path}/.stfolder').createSync();
-    final place = disk().at(
+    final service = disk();
+    final folder = service.open(
       Uri.file(dir.path),
       tempName: (token) => '$token.tmp',
     );
 
-    await place.files.create(path('a.md'), bytesOf('text'));
+    await folder.files.create(path('a.md'), bytesOf('text'));
 
     expect(File('${dir.path}/a.md').readAsStringSync(), 'text');
-    expect((await place.subfolders.namesIn(null)).value, ['work']);
-    expect(await place.markers.holds('.stfolder'), isTrue);
-    expect(place.changes, isA<WatchedLiveChanges>());
+    expect(
+      (await service.subfoldersAt(Uri.file(dir.path)).namesIn(null)).value,
+      ['work'],
+    );
+    expect(
+      await service.markersAt(Uri.file(dir.path)).holds('.stfolder'),
+      isTrue,
+    );
+    expect(folder.changes, isA<WatchedLiveChanges>());
   });
 
   test('gives no live changes where the platform tells none', () {
-    final place = disk(live: false)
-        .at(Uri.file(dir.path), tempName: (token) => '$token.tmp');
+    final folder = disk(live: false)
+        .open(Uri.file(dir.path), tempName: (token) => '$token.tmp');
 
-    expect(place.changes, isNull);
+    expect(folder.changes, isNull);
   });
 
   test('other kinds of address are a bug', () {

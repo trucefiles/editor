@@ -3,41 +3,42 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 /// [LiveChanges] driven by the test: [hint] and [end] act on the follows
-/// of one folder (`null`: the whole base folder) open right now.
+/// open right now.
 final class FakeLiveChanges implements LiveChanges {
-  final _follows = <RelPath?, List<StreamController<ChangeHint>>>{};
+  final _follows = <StreamController<ChangeHint>>[];
 
-  /// The folders asked for, in order, once per follow.
-  final List<RelPath?> followed = [];
+  /// How many follows were started.
+  int followed = 0;
 
-  /// Folders whose follows end at once, as if gone.
-  final Set<RelPath?> missing = {};
+  /// Whether follows end at once, as if the folder were gone.
+  bool missing = false;
 
   @override
-  Stream<ChangeHint> below(RelPath? folder) {
-    followed.add(folder);
+  Stream<ChangeHint> follow() {
+    followed++;
     final follow = StreamController<ChangeHint>();
-    if (missing.contains(folder)) {
+    if (missing) {
       unawaited(follow.close());
     } else {
-      (_follows[folder] ??= []).add(follow);
-      follow.onCancel = () => _follows[folder]?.remove(follow);
+      _follows.add(follow);
+      follow.onCancel = () => _follows.remove(follow);
     }
     return follow.stream;
   }
 
-  /// Whether [folder] is followed now.
-  bool follows(RelPath? folder) => _follows[folder]?.isNotEmpty ?? false;
+  /// Whether the folder is followed now.
+  bool get follows => _follows.isNotEmpty;
 
-  void hint(RelPath? folder, ChangeHint hint) {
-    for (final follow in [...?_follows[folder]]) {
+  void hint(ChangeHint hint) {
+    for (final follow in [..._follows]) {
       follow.add(hint);
     }
   }
 
-  /// Ends the follows of [folder], as watching does when it is gone.
-  void end(RelPath? folder) {
-    for (final follow in [...?_follows.remove(folder)]) {
+  /// Ends the follows, as watching does when the folder is gone.
+  void end() {
+    for (final follow in [..._follows]) {
+      _follows.remove(follow);
       unawaited(follow.close());
     }
   }

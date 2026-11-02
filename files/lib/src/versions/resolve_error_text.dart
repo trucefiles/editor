@@ -11,6 +11,7 @@ extension ResolveErrorText on ResolveError {
       "A backup couldn't be made, so nothing was changed.",
     ResolveError.accessDenied => 'The app has no access to this folder.',
     ResolveError.ioFailure => 'The files could not be written.',
-    ResolveError.outside => "The app doesn't show these files any more.",
+    ResolveError.outside => "The app doesn't show these files.",
+    ResolveError.folderRemoved => 'The folder was removed from the app.',
   };
 }

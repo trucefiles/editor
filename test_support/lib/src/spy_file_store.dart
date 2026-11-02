@@ -60,16 +60,6 @@ final class SpyFileStore implements FileStore {
     return inner.delete(path, ifUnchanged: ifUnchanged);
   }
 
-  @override
-  Future<Result<FileEntry, StoreError>> move(
-    RelPath from,
-    RelPath to, {
-    required FileVersion ifUnchanged,
-  }) {
-    touched.addAll([from, to]);
-    return inner.move(from, to, ifUnchanged: ifUnchanged);
-  }
-
   /// A listing touches what it walks or lists, not what it only passes.
   bool _record(RelPath path, bool taken) {
     if (taken) touched.add(path);
