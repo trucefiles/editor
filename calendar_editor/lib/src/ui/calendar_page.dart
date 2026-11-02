@@ -3,6 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
 import '../device_zone.dart';
+import '../views/calendar_view_choice.dart';
 import 'event_actions.dart';
 import 'events_page.dart';
 import 'health_page.dart';
@@ -13,14 +14,20 @@ import 'health_page.dart';
 class CalendarPage extends StatelessWidget {
   const CalendarPage(
     this.part, {
-    required this.today,
+    required this.now,
     required this.hint,
     required this.deviceZone,
+    required this.viewChoice,
     super.key,
   });
 
   final CalendarEditorPart part;
-  final DateTime today;
+
+  /// The time now; today shows from it.
+  final DateTime Function() now;
+
+  /// The view event calendars open in, and where a new pick is kept.
+  final CalendarViewChoice viewChoice;
 
   /// Tells this device's time zone, for new events.
   final DeviceZone deviceZone;
@@ -44,13 +51,14 @@ class CalendarPage extends StatelessWidget {
         final calendar when calendar.isHealth => HealthPage(
           calendar,
           edit: edit,
-          today: today,
+          today: now(),
         ),
         final calendar => EventsPage(
           calendar,
           edit: edit,
-          today: today,
+          now: now,
           deviceZone: deviceZone,
+          viewChoice: viewChoice,
         ),
       };
     },

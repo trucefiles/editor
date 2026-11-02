@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -33,13 +34,48 @@ List<String> _on(CalendarEditorPart part, DateTime day) => [
     occurrence.part.summary,
 ];
 
+/// A calendar with one event, "Call", on [start] for an hour.
+String _call(CalendarTime start) => applyEdit(
+  Calendar.read(newCalendarText('Home'))!,
+  AddEvent(
+    'call',
+    EventDraft(
+      summary: 'Call',
+      start: start,
+      end: start.at(start.wall.add(const Duration(hours: 1))),
+    ),
+    at: editedAt,
+  ),
+).text;
+
+/// Drags what [finder] finds by [offset] with [kind] of pointer: held a
+/// moment first (a long press on touch), then moved in small steps.
+Future<void> _drag(
+  WidgetTester tester,
+  Offset from,
+  Offset offset, {
+  PointerDeviceKind kind = PointerDeviceKind.touch,
+}) async {
+  final gesture = await tester.startGesture(from, kind: kind);
+  await tester.pump(const Duration(milliseconds: 600));
+  for (var step = 0; step < 10; step++) {
+    await gesture.moveBy(offset / 10);
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
+
+/// How tall an hour is in the week and day views.
+const _hour = 42.0;
+
 void main() {
-  testWidgets('an event added on the picked day, stamped when added; '
+  testWidgets('an event added on the day shown, stamped when added; '
       'floating where the device zone is unknown', (tester) async {
     final part = calendarPart(newCalendarText('Home'));
     await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
-    await tester.tap(find.text('Add event'));
+    await tester.tap(find.byTooltip('Add event'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tap(find.text('Save'));
@@ -63,7 +99,7 @@ void main() {
       deviceZone: 'Europe/Berlin',
     );
 
-    await tester.tap(find.text('Add event'));
+    await tester.tap(find.byTooltip('Add event'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Times are in'), findsNothing);
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Call');
@@ -156,7 +192,7 @@ void main() {
 
     expect(_on(part, _annsDay), isEmpty);
     expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
-    expect(find.text('Nothing on this day.'), findsOne);
+    expect(find.text('Ann'), findsNothing);
   });
 
   testWidgets('one of a series edited starts at its own day', (tester) async {
@@ -199,10 +235,19 @@ void main() {
     final part = calendarPart(_birthday, readOnly: true);
     await pumpPage(tester, part, today: _annsDay);
 
-    expect(find.text('Add event'), findsNothing);
+    expect(find.byTooltip('Add event'), findsNothing);
     await tester.tap(find.text('Ann'));
     await tester.pumpAndSettle();
     expect(find.text('Delete this one'), findsNothing);
+    await tester.tapAt(tester.getCenter(find.text('20')) + const Offset(0, 40));
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsNothing);
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Ann')),
+      const Offset(120, 0),
+    );
+    expect(part.owner.state.text, _birthday);
   });
 
   testWidgets('a text that is no calendar shows as it is', (tester) async {
@@ -248,6 +293,7 @@ void main() {
       tester,
       calendarPart(calendar.text),
       today: DateTime(2026, 11, 2),
+      kept: KeptView(CalendarViewKind.schedule),
     );
 
     expect(find.text('17:00 – 18:00'), findsOne);
@@ -258,7 +304,7 @@ void main() {
     final part = calendarPart(_birthday);
     final hints = <String>[];
     await pumpPage(tester, part, today: _annsDay, hints: hints);
-    await tester.tap(find.text('Add event'));
+    await tester.tap(find.byTooltip('Add event'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
 
@@ -268,5 +314,161 @@ void main() {
 
     expect(part.owner.state.text, _birthday);
     expect(hints, ["The calendar can't be edited right now."]);
+  });
+
+  testWidgets('the page opens in the view picked last, and keeps a new '
+      'pick', (tester) async {
+    final kept = KeptView(CalendarViewKind.week);
+    await pumpPage(
+      tester,
+      calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9)))),
+      today: DateTime(2026, 11, 3),
+      kept: kept,
+    );
+    expect(find.text('Week'), findsOne);
+    expect(find.text('Call'), findsOne);
+
+    await tester.tap(find.byTooltip('Pick a view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Schedule').last);
+    await tester.pumpAndSettle();
+
+    expect(kept.kind, CalendarViewKind.schedule);
+    expect(find.text('Call'), findsOne);
+    expect(find.text('9:00 AM – 10:00 AM'), findsOne);
+  });
+
+  testWidgets('a tap on a free time asks for an event at that time', (
+    tester,
+  ) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.day),
+    );
+
+    final call = tester.getRect(find.text('Call'));
+    await tester.tapAt(call.topCenter + const Offset(0, 3 * _hour + 2));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Lunch');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final lunch = calendarOf(part).events
+        .firstWhere((event) => event.series.summary == 'Lunch');
+    expect(
+      (lunch.series.start, lunch.series.end),
+      (
+        Floating(DateTime.utc(2026, 11, 3, 12)),
+        Floating(DateTime.utc(2026, 11, 3, 13)),
+      ),
+    );
+  });
+
+  testWidgets('a tap on a day of the month asks for an event that day', (
+    tester,
+  ) async {
+    final part = calendarPart(newCalendarText('Home'));
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+
+    await tester.tapAt(tester.getCenter(find.text('20')) + const Offset(0, 40));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Party');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(_on(part, DateTime(2026, 11, 20)), ['Party']);
+  });
+
+  for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.touch]) {
+    testWidgets('a drag moves an event (${kind.name})', (tester) async {
+      final part = calendarPart(
+        _call(Zoned('America/New_York', DateTime.utc(2026, 11, 3, 9))),
+      );
+      await pumpPage(
+        tester,
+        part,
+        today: DateTime(2026, 11, 3),
+        kept: KeptView(CalendarViewKind.week),
+      );
+
+      await _drag(
+        tester,
+        tester.getCenter(find.text('Call')),
+        const Offset(0, 2 * _hour),
+        kind: kind,
+      );
+
+      final call = calendarOf(part).events.single.series;
+      expect(
+        (call.start, call.end),
+        (
+          Zoned('America/New_York', DateTime.utc(2026, 11, 3, 11)),
+          Zoned('America/New_York', DateTime.utc(2026, 11, 3, 12)),
+        ),
+        reason: 'it stays in its zone',
+      );
+    });
+  }
+
+  testWidgets('a drag of one of a series moves only that date', (tester) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(tester, part, today: _annsDay);
+
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Ann')),
+      tester.getCenter(find.text('14')) - tester.getCenter(find.text('12')),
+    );
+
+    expect(_on(part, _annsDay), isEmpty);
+    expect(_on(part, DateTime(2027, 3, 14)), ['Ann']);
+    expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
+    expect(
+      calendarOf(part).events.single.changed.single.start,
+      AllDay(DateTime(2027, 3, 14)),
+    );
+  });
+
+  testWidgets('a drag of its end makes an event longer', (tester) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.day),
+    );
+
+    final tile = tester.getRect(
+      find
+          .ancestor(of: find.text('Call'), matching: find.byType(Container))
+          .first,
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: tile.center);
+    addTearDown(mouse.removePointer);
+    await tester.pumpAndSettle();
+    final edge = tile.bottomCenter - const Offset(0, 2);
+    await mouse.moveTo(edge);
+    await tester.pumpAndSettle();
+    await mouse.down(edge);
+    await tester.pump(const Duration(milliseconds: 100));
+    for (var step = 0; step < 10; step++) {
+      await mouse.moveBy(const Offset(0, _hour / 10));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await mouse.up();
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(
+      (event.start, event.end),
+      (
+        Floating(DateTime.utc(2026, 11, 3, 9)),
+        Floating(DateTime.utc(2026, 11, 3, 11)),
+      ),
+    );
   });
 }

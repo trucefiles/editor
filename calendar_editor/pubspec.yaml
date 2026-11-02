@@ -15,6 +15,7 @@ dependencies:
   truce_core: any
   truce_document_page: any
   truce_documents: any
+  kalender: 0.33.0
 
 dev_dependencies:
   flutter_test:

@@ -1,0 +1,288 @@
+import 'package:flutter/material.dart';
+import 'package:kalender/kalender.dart';
+import 'package:truce_calendar/truce_calendar.dart';
+
+import 'calendar_view_kind.dart';
+import 'calendar_views_model.dart';
+import 'event_tiles.dart';
+import 'new_event_spot.dart';
+import 'occurrence_event.dart';
+import 'views_bar.dart';
+
+/// What the user does with an occurrence of the calendar keyed [calendar].
+typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
+
+/// Where the user dragged an occurrence: to [start] up to [end].
+typedef OnMove<K> = void Function(
+  K calendar,
+  Occurrence occurrence,
+  DateTime start,
+  DateTime end,
+);
+
+/// [calendars] (by key) in a month, week, day or schedule view, each in
+/// its color ([colorOf]); the user picks the view ([onKind] tells it, to
+/// keep), pages through time and taps an occurrence ([onTap]). Only with
+/// [onAdd] can the user add: by a tap on a free time or day, a drag over
+/// free times or days, or the Add button. Only with [onMove] can the
+/// user drag an occurrence or its edge.
+class CalendarViews<K> extends StatefulWidget {
+  const CalendarViews({
+    required this.calendars,
+    required this.colorOf,
+    required this.kind,
+    required this.onKind,
+    required this.now,
+    this.onTap,
+    this.onAdd,
+    this.onMove,
+    super.key,
+  });
+
+  final Map<K, Calendar> calendars;
+  final Color Function(K calendar) colorOf;
+
+  /// The view it starts in.
+  final CalendarViewKind kind;
+  final ValueChanged<CalendarViewKind> onKind;
+
+  /// The time now; today shows from it.
+  final DateTime Function() now;
+  final OnOccurrence<K>? onTap;
+  final ValueChanged<NewEventSpot>? onAdd;
+  final OnMove<K>? onMove;
+
+  @override
+  State<CalendarViews<K>> createState() => _CalendarViewsState<K>();
+}
+
+class _CalendarViewsState<K> extends State<CalendarViews<K>> {
+  late final _model = CalendarViewsModel<K>(
+    kind: widget.kind,
+    calendars: widget.calendars,
+  );
+  final _events = DefaultEventsController();
+  KalenderController? _kalender;
+  int? _firstDay;
+  late Map<CalendarViewKind, ViewConfiguration> _configurations;
+  late final _tiles = eventTiles<K>(widget.colorOf);
+  late final _scheduleTiles = scheduleTiles<K>(widget.colorOf);
+
+  @override
+  void initState() {
+    super.initState();
+    _model.addListener(_showModel);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final index = MaterialLocalizations.of(context).firstDayOfWeekIndex;
+    final firstDay = index == 0 ? DateTime.sunday : index;
+    if (firstDay == _firstDay) return;
+    _firstDay = firstDay;
+    _configurations = configurationsFor(
+      firstDayOfWeek: firstDay,
+      now: widget.now,
+    );
+    final configuration = _configurations[_model.kind]!;
+    switch (_kalender) {
+      case final kalender?:
+        kalender.viewConfiguration = configuration;
+      case null:
+        _kalender = KalenderController(viewConfiguration: configuration)
+          ..visibleDateTimeRange.addListener(_showRange);
+        _showRange();
+    }
+  }
+
+  @override
+  void didUpdateWidget(CalendarViews<K> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _model.showCalendars(widget.calendars);
+  }
+
+  @override
+  void dispose() {
+    _model
+      ..removeListener(_showModel)
+      ..dispose();
+    _kalender?.dispose();
+    _events.dispose();
+    super.dispose();
+  }
+
+  void _showRange() {
+    final range = _kalender!.visibleDateTimeRange.value;
+    _model.showRange(range.start, range.end);
+  }
+
+  /// Hands the model's state to kalender, which only shows it.
+  void _showModel() {
+    final kalender = _kalender!;
+    final configuration = _configurations[_model.kind]!;
+    if (kalender.viewConfiguration != configuration) {
+      kalender.viewConfiguration = configuration;
+    }
+    _events.replaceEvents(
+      eventsOf(_model.shown, movable: widget.onMove != null),
+    );
+    setState(() {});
+  }
+
+  void _pickKind(CalendarViewKind kind) {
+    _model.showKind(kind);
+    widget.onKind(kind);
+  }
+
+  /// The day Add event starts on: today if it shows, else the first day
+  /// shown.
+  DateTime _dayToAdd() {
+    final today = DateUtils.dateOnly(widget.now());
+    return switch (_model.range) {
+      (:final from, :final to)
+          when today.isBefore(from) || !today.isBefore(to) =>
+        DateUtils.dateOnly(from),
+      _ => today,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kalender = _kalender!;
+    final onAdd = widget.onAdd;
+    final onTap = widget.onTap;
+    final onMove = widget.onMove;
+    final movable = onMove != null;
+    final callbacks = KalenderCallbacks(
+      onEventTapped: onTap == null
+          ? null
+          : (event) {
+              final shown = event as OccurrenceEvent<K>;
+              onTap(shown.calendar, shown.occurrence);
+            },
+      onTappedWithDetail: onAdd == null
+          ? null
+          : (detail) => switch (detail) {
+              DayDetail(:final date) => onAdd(
+                AtTimes(date, date.add(const Duration(hours: 1))),
+              ),
+              MultiDayDetail(:final dateTimeRange) => onAdd(
+                OnDay(dateTimeRange.start),
+              ),
+              _ => null,
+            },
+      onEventCreated: onAdd == null
+          ? null
+          : (event) => onAdd(
+              NewEventSpot.of(event.start.toLocal(), event.end.toLocal()),
+            ),
+      onEventChanged: onMove == null
+          ? null
+          : (before, after) {
+              final shown = before as OccurrenceEvent<K>;
+              onMove(
+                shown.calendar,
+                shown.occurrence,
+                after.start.toLocal(),
+                after.end.toLocal(),
+              );
+            },
+    );
+    return Column(
+      children: [
+        ViewsBar(
+          title: _titleOf(context),
+          kind: _model.kind,
+          onKind: _pickKind,
+          onPrevious: kalender.animateToPreviousPage,
+          onNext: kalender.animateToNextPage,
+          onToday: () => kalender.animateToDate(widget.now()),
+          onAdd: onAdd == null ? null : () => onAdd(OnDay(_dayToAdd())),
+        ),
+        Expanded(
+          child: KalenderView(
+            eventsController: _events,
+            kalenderController: kalender,
+            locale: Localizations.localeOf(context),
+            callbacks: callbacks,
+            interaction: KalenderInteraction(
+              allowResizing: movable,
+              allowRescheduling: movable,
+              // A drag over free times asks for a new event there.
+              allowEventCreation: onAdd != null,
+            ),
+            views: [
+              MultiDayViewParts(
+                header: MultiDayHeader(tileComponents: _tiles),
+                body: MultiDayBody(
+                  tileComponents: _tiles,
+                  snapping: const KalenderSnapping(snapIntervalMinutes: 15),
+                ),
+              ),
+              MonthViewParts(body: MonthBody(tileComponents: _tiles)),
+              ScheduleViewParts(
+                body: ScheduleBody(tileComponents: _scheduleTiles),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// What the bar says is shown: the day in the day view, else the month
+  /// most of the range lies in.
+  String _titleOf(BuildContext context) {
+    final words = MaterialLocalizations.of(context);
+    final range = _model.range;
+    if (range == null) return '';
+    final middle = range.from.add(range.to.difference(range.from) ~/ 2);
+    return switch (_model.kind) {
+      CalendarViewKind.day => words.formatMediumDate(range.from),
+      _ => words.formatMonthYear(middle),
+    };
+  }
+}
+
+/// The kalender view of each kind, for weeks that start on
+/// [firstDayOfWeek] (`DateTime.monday` and on), today from [now]; each
+/// pages over two hundred years.
+Map<CalendarViewKind, ViewConfiguration> configurationsFor({
+  required int firstDayOfWeek,
+  required DateTime Function() now,
+}) {
+  final range = KalenderDateTimeRange(
+    start: DateTime(1900),
+    end: DateTime(2100),
+  );
+  const morning = KalenderTime(hour: 8, minute: 0);
+  final today = now();
+  return {
+    CalendarViewKind.month: MonthViewConfiguration.singleMonth(
+      initialDateTime: today,
+      nowCallback: now,
+      displayRange: range,
+      firstDayOfWeek: firstDayOfWeek,
+    ),
+    CalendarViewKind.week: MultiDayViewConfiguration.week(
+      initialDateTime: today,
+      nowCallback: now,
+      displayRange: range,
+      firstDayOfWeek: firstDayOfWeek,
+      initialTimeOfDay: morning,
+    ),
+    CalendarViewKind.day: MultiDayViewConfiguration.singleDay(
+      initialDateTime: today,
+      nowCallback: now,
+      displayRange: range,
+      firstDayOfWeek: firstDayOfWeek,
+      initialTimeOfDay: morning,
+    ),
+    CalendarViewKind.schedule: ScheduleViewConfiguration.paginated(
+      initialDateTime: today,
+      nowCallback: now,
+      displayRange: range,
+    ),
+  };
+}

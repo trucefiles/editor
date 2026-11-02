@@ -2,29 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../device_zone.dart';
+import '../views/new_event_spot.dart';
 import 'event_form.dart';
+import 'occurrence_draft.dart';
 
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
 
-/// Asks for a new event on [day], at 9:00 in the device's zone, and adds
-/// it.
+/// Asks for a new event at [spot] and adds it: at its times, else on its
+/// day from 9:00 for an hour; in the device's zone.
 Future<void> addEvent(
   BuildContext context,
-  DateTime day,
+  NewEventSpot spot,
   MakeEdit edit,
   DeviceZone deviceZone,
 ) async {
   final zone = await deviceZone();
   if (!context.mounted) return;
-  CalendarTime at(int hour) => timeAt(
-    DateTime.utc(day.year, day.month, day.day, hour),
+  CalendarTime at(DateTime time, {int? hour}) => timeAt(
+    DateTime.utc(
+      time.year,
+      time.month,
+      time.day,
+      hour ?? time.hour,
+      hour == null ? time.minute : 0,
+    ),
     allDay: false,
     deviceZone: zone,
   );
+  final (start, end) = switch (spot) {
+    AtTimes(:final start, :final end) => (at(start), at(end)),
+    OnDay(:final day) => (at(day, hour: 9), at(day, hour: 10)),
+  };
   final draft = await showEventForm(
     context,
-    EventDraft(summary: '', start: at(9), end: at(10)),
+    EventDraft(summary: '', start: start, end: end),
     title: 'New event',
     deviceZone: zone,
   );
@@ -78,7 +90,7 @@ Future<void> showOccurrenceActions(
     case _Action.editOne:
       final draft = await showEventForm(
         context,
-        _occurrenceDraft(occurrence),
+        occurrenceDraft(occurrence),
         title: 'Edit this one',
         deviceZone: zone,
         repeats: false,
@@ -91,17 +103,6 @@ Future<void> showOccurrenceActions(
     case _Action.delete || _Action.deleteAll:
       edit((at) => DeleteEvent(uid, at: at));
   }
-}
-
-/// What the form starts with for [occurrence] alone: a changed one as it
-/// is, else the series at the occurrence's time.
-EventDraft _occurrenceDraft(Occurrence occurrence) {
-  final part = occurrence.part;
-  final draft = EventDraft.of(part);
-  final one = occurrence.recurrence;
-  if (part.recurrenceId != null || one == null) return draft;
-  final length = draft.end.wall.difference(draft.start.wall);
-  return draft.occurrenceAt(one, one.at(one.wall.add(length)));
 }
 
 enum _Action {
