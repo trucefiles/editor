@@ -485,7 +485,11 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                       folder: _folder.id,
                       path: path,
                       bytesOf: ref.read(fileAccessProvider).of(_folder).bytesOf,
-                      hint: (message) => showSnack(context, message),
+                      // The page's own messenger: a hint may come after an
+                      // await (e.g. a link opener's answer), when the page
+                      // may be gone.
+                      hint: (message) =>
+                          _messenger.currentState?.showHint(message),
                     ),
                     // A new file is for typing right away.
                     autofocus: widget.file == null,

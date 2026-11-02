@@ -76,8 +76,8 @@ void main() {
     write('zoo.ics', newCalendarText('Zoo'));
     await start();
 
-    // By title, not by the raw name (empty for apples.ics).
-    expect(await tab(), [('Home', true), ('Zoo', true), ('apples', true)]);
+    // By title, not by the raw name (empty for apples.ics), in any case.
+    expect(await tab(), [('apples', true), ('Home', true), ('Zoo', true)]);
   });
 
   test('a calendar changed on disk is read anew', () async {

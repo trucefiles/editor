@@ -72,7 +72,7 @@ class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
           title: title,
           shown: CalendarView.of(settings.settingsOf(file.key).view).inTab,
         ),
-    ]..sort((a, b) => a.title.compareTo(b.title));
+    ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
   }
 
   /// The tab shows [file]'s events if [shown].
