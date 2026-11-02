@@ -92,6 +92,15 @@ void main() {
       expect(disk.areas.clashes('local', at('plain')), isFalse);
     });
 
+    test('names the root a new root would lie around', () async {
+      // As "continue with this folder" adds a pick as its own root.
+      plugin.add([plugin.candidate(at('Sync/docs'), at('Sync/docs'), null)]);
+
+      expect(plugin.rootClash(at('Sync')), at('Sync/docs'));
+      expect(plugin.rootClash(at('Sync/docs')), isNull, reason: 'same root');
+      expect(plugin.rootClash(at('plain')), isNull);
+    });
+
     test('a root goes with its last folder', () async {
       final [docs] = plugin.add([await pick('Sync/docs')]).value;
 

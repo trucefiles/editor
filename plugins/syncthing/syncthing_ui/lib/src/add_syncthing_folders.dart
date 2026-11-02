@@ -62,10 +62,11 @@ Future<List<PluginFolderCandidate>?> _pickIn(
   SyncthingPlugin plugin,
   RootFound found,
 ) async {
-  if (plugin.rootClashes(found.rootHost)) {
+  if (plugin.rootClash(found.rootHost) case final clash?) {
     _tell(
       context,
-      'This Syncthing folder lies inside or around a folder added before.',
+      'This Syncthing folder lies inside or around ${shownAddress(clash)}, '
+      'added before. To add this one, remove the folder there first.',
     );
     return null;
   }
