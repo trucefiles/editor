@@ -26,6 +26,13 @@ bool nests(Uri a, Uri b) =>
     (_isAtOrInside(_segments(a), _segments(b)) ||
         _isAtOrInside(_segments(b), _segments(a)));
 
+/// Whether [a] and [b] are the same folder, whatever their trailing
+/// slashes.
+bool isSameFolder(Uri a, Uri b) =>
+    a.scheme == b.scheme &&
+    a.authority == b.authority &&
+    _same.equals(_segments(a), _segments(b));
+
 /// The path of the folder at [inner] inside the one at [outer], as
 /// segments; `null` if it doesn't lie there (or is it).
 List<String>? segmentsInside(Uri inner, Uri outer) {

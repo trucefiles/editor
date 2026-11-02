@@ -1,5 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 
+import 'sync_check.dart';
+
 /// The notices of a Syncthing folder: whether Syncthing syncs it (from
 /// [_syncCheck]).
 final class SyncthingFolderNotices implements FolderNotices {
