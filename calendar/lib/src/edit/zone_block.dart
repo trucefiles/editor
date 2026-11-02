@@ -26,8 +26,8 @@ Component? zoneBlock(String zone) => switch (locationOf(zone)) {
 };
 
 /// The first year a zone block covers: fixed, so its bytes don't depend
-/// on when it is written. Events before it show in other apps with the
-/// earliest offset the block names.
+/// on when it is written. Events before it may show an hour off in other
+/// apps.
 const zoneBlocksFrom = 2020;
 
 List<Component> _observances(tz.Location location) {
@@ -141,7 +141,8 @@ Component _observance(_Change change, {required bool yearly}) {
   ]);
 }
 
-/// A zone whose clock doesn't change: one offset from 1970 on.
+/// A zone whose clock doesn't change from [zoneBlocksFrom] on: the
+/// offset it has then, written as from 1970 (older events may differ).
 Component _fixed(tz.TimeZone zone) => Component('STANDARD', [
   const ContentLine('DTSTART', '19700101T000000'),
   ContentLine('TZOFFSETFROM', _offsetText(zone.offset)),

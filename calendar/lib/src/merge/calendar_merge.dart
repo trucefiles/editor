@@ -10,8 +10,8 @@ import '../read/values.dart';
 /// side only is kept: a deleted event stays as a marker, so a missing one
 /// is never taken as deleted. Order: `main`'s units, then `other`'s new
 /// ones; the calendar's own properties and layout are `main`'s. Time
-/// zone blocks merge by zone, the smaller text winning (they have no
-/// stamps; both are right), and never count as lost. Never
+/// zone blocks merge by zone like events (ours carry no stamp, so the
+/// smaller text wins; both are right) and never count as lost. Never
 /// changes a unit's text. Deterministic and idempotent.
 final class CalendarMerge implements TextMerge {
   const CalendarMerge();

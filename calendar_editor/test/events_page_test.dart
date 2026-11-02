@@ -75,6 +75,32 @@ void main() {
     expect(calendarOf(part).zones, {'Europe/Berlin'});
   });
 
+  testWidgets('an event in UTC says so', (tester) async {
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'call',
+        EventDraft(
+          summary: 'Call',
+          start: UtcTime(DateTime.utc(2026, 11, 3, 9)),
+          end: UtcTime(DateTime.utc(2026, 11, 3, 10)),
+        ),
+        at: editedAt,
+      ),
+    );
+    await pumpPage(
+      tester,
+      calendarPart(calendar.text),
+      today: DateTime(2026, 11, 3),
+      deviceZone: 'Europe/Berlin',
+    );
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Times are in UTC.'), findsOne);
+  });
+
   testWidgets('an event of another zone shows and keeps its zone', (
     tester,
   ) async {

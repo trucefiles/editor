@@ -10,6 +10,7 @@ import 'package:firstfloor_calendar/firstfloor_calendar.dart'
 import '../model/calendar.dart';
 import '../model/calendar_event.dart';
 import '../model/calendar_time.dart';
+import '../model/wall_on.dart';
 
 /// One occurrence of an event, as it shows: [part] says what it is (the
 /// series, a single event, or a changed occurrence), from [start] to
@@ -145,7 +146,7 @@ List<DateTime> _instances(
             rdates: [
               for (final extra in series.rdates)
                 RecurrenceDateTime.dateTime(
-                  _calendarTime(_wallOn(start, extra)),
+                  _calendarTime(wallOn(start, extra)),
                 ),
             ],
             maxIterations: _steps,
@@ -173,7 +174,7 @@ RecurrenceRule _onWallClocks(RecurrenceRule rule, CalendarTime start) {
   if (until == null) return rule;
   return RecurrenceRule(
     freq: rule.freq,
-    until: _calendarTime(_wallOn(start, _timeOf(until))),
+    until: _calendarTime(wallOn(start, _timeOf(until))),
     count: rule.count,
     interval: rule.interval,
     bySecond: rule.bySecond,
@@ -188,23 +189,6 @@ RecurrenceRule _onWallClocks(RecurrenceRule rule, CalendarTime start) {
     wkst: rule.wkst,
   );
 }
-
-/// The wall clock of [time] on [start]'s clock: a day on a time of day
-/// is the end of that day; a time of day on a day is its day.
-DateTime _wallOn(CalendarTime start, CalendarTime time) =>
-    switch ((start, time)) {
-      (AllDay(), AllDay()) => time.wall,
-      (AllDay(), _) => start.sameKindAt(time.local).wall,
-      (_, AllDay(:final wall)) => DateTime.utc(
-        wall.year,
-        wall.month,
-        wall.day,
-        23,
-        59,
-        59,
-      ),
-      _ => start.sameKindAt(time.local).wall,
-    };
 
 /// The library's [time] as one of ours.
 CalendarTime _timeOf(CalDateTime time) => switch (time.time) {

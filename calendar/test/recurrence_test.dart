@@ -98,6 +98,35 @@ void main() {
     ]);
   });
 
+  test('a series of days ends on the day its end names, in any zone', () {
+    for (final until in ['20250110T235959Z', '20250110T000000Z']) {
+      final calendar = _series(
+        ';VALUE=DATE:20250106',
+        'FREQ=DAILY;UNTIL=$until',
+      );
+      expect(
+        _walls(calendar, DateTime(2025), DateTime(2025, 2)).last,
+        '20250110',
+      );
+      expect(
+        (calendar.events.single.series.repeat! as SimpleRepeat).until,
+        DateTime.utc(2025, 1, 10),
+      );
+    }
+  });
+
+  test('a floating end on a zoned series is read on its own clock', () {
+    final calendar = _series(
+      ';TZID=Europe/Berlin:20250106T200000',
+      'FREQ=DAILY;UNTIL=20250110T235959',
+    );
+    expect(_walls(calendar, DateTime(2025), DateTime(2025, 2)), hasLength(5));
+    expect(
+      (calendar.events.single.series.repeat! as SimpleRepeat).until,
+      DateTime.utc(2025, 1, 10),
+    );
+  });
+
   test('a rule with a space after a comma shows its first occurrence', () {
     // As Exchange writes it.
     final calendar = _series(':20261102T090000', 'FREQ=WEEKLY;BYDAY=MO, TU');

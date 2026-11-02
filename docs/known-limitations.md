@@ -108,6 +108,12 @@ Accepted behavior that is not planned to change, grouped by topic.
   country later changes its clock rules, newer Truce versions know it,
   but the rules in the calendar stay as written, so other apps may show
   such events an hour off after the change.
+- **Time zone rules cover 2020 on.** The rules a calendar gets for a
+  zone start in 2020. Other apps may show events of that zone from
+  before 2020 an hour off; Truce shows them right.
+- **Very old fast repeats stop showing.** Truce walks a repeating event
+  from its first date, up to a limit. An event that repeats every hour
+  and started more than about 11 years ago stops showing at that limit.
 - **A device without a known time zone saves floating times.** If the
   system doesn't tell Truce its time zone (or names one Truce doesn't
   know), a new event has no zone: 9:00 stays 9:00 wherever you are.

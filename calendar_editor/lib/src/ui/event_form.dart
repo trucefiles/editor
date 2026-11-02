@@ -224,7 +224,9 @@ class _EventFormState extends State<EventForm> {
 
   /// The event's zone if its times are of another zone than the device's.
   String? get _otherZone => switch (widget.draft.start) {
-    Zoned(:final zone) when !_times.allDay && zone != widget.deviceZone => zone,
+    _ when _times.allDay => null,
+    Zoned(:final zone) when zone != widget.deviceZone => zone,
+    UtcTime() => 'UTC',
     _ => null,
   };
 

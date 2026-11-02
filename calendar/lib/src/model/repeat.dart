@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
 import 'calendar_time.dart';
+import 'wall_on.dart';
 
 /// How a series repeats, as its `RRULE` says.
 sealed class Repeat {
@@ -87,15 +88,11 @@ final class SimpleRepeat extends Repeat {
     );
   }
 
-  /// The day of an `UNTIL` value on [start]'s clock: a UTC time is the
-  /// day it falls on in [start]'s zone.
+  /// The day of an `UNTIL` value on [start]'s clock (see [wallOn]).
   static DateTime? _untilOf(String? value, CalendarTime start) {
     final until = value == null ? null : timeOf(ContentLine('UNTIL', value));
     if (until == null) return null;
-    final day = switch (until) {
-      AllDay() => until.wall,
-      _ => start.sameKindAt(until.local).wall,
-    };
+    final day = wallOn(start, until);
     return DateTime.utc(day.year, day.month, day.day);
   }
 
