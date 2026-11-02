@@ -363,6 +363,21 @@ void main() {
     });
   });
 
+  test('as its folder is removed, edits that clash with a change elsewhere '
+      'are kept as a conflict copy', () async {
+    final session = fixture.session()..type('x');
+    await fixture.editElsewhere('two\n');
+
+    expect(await session.secure(.close), isTrue);
+    await fixture.removeFirstFolder();
+
+    final texts = [
+      for (final file in fixture.dirs[0].listSync().whereType<File>())
+        file.readAsStringSync(),
+    ];
+    expect(texts, unorderedEquals(['two\n', 'xone\n']));
+  });
+
   test('a file deleted elsewhere comes back with the edits', () async {
     final session = fixture.session()..type('x');
     File('${fixture.dirs[0].path}/a.md').deleteSync();

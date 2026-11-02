@@ -120,9 +120,11 @@ final class FileController extends ChangeNotifier {
   bool get unreachable => reach() == Reach.unreachable;
 
   /// Whether the file is only shown to read: its edits were kept as a
-  /// conflict copy, its folder can't be reached, or it stopped (a bug).
+  /// conflict copy, it closed and takes no more edits (its folder is
+  /// being removed), its folder can't be reached, or it stopped.
   bool get readOnly =>
       session.status is KeptAsConflict ||
+      session.status is Closed ||
       unreachable ||
       session.state is! Running;
 

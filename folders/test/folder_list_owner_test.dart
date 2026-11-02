@@ -90,7 +90,9 @@ void main() {
   });
 
   test('a failed save changes nothing, the plugin included', () async {
-    final folders = owner(store: _FailingSave(FolderListStore(file)));
+    final folders = owner(
+      store: _SwitchedStore(FolderListStore(file), calls)..fails = true,
+    );
     await settledList(folders);
 
     expect((await add(folders, ['a'])).error, FolderError.notSaved);
@@ -111,17 +113,38 @@ void main() {
     expect((await settledFolders(owner())).single.name, 'Work');
   });
 
-  test('removing secures open files first, then forgets the folder and '
-      'its drafts', () async {
-    final folders = owner();
+  test('removing writes the list first, then secures open files while the '
+      'folder is still shown, then forgets its drafts', () async {
+    final store = _SwitchedStore(FolderListStore(file), calls);
+    final folders = owner(store: store);
     final [a, _] = (await add(folders, ['a', 'b'])).value;
+    calls.clear();
+    folders.changes.listen((_) => calls.add('shown'));
 
     await asked<FolderRemoved>(folders, (ticket) => RemoveFolder(ticket, a));
 
-    expect(calls, ['secure fake-a close', 'forget fake-a']);
+    expect(calls, ['save', 'secure fake-a close', 'shown', 'forget fake-a']);
     expect(plugin.folders.map((folder) => folder.id), ['b']);
     plugin = FakePlugin();
     expect((await settledFolders(owner())).map((f) => f.id), [folderId('b')]);
+  });
+
+  test('a failed remove changes nothing, its open files included', () async {
+    final store = _SwitchedStore(FolderListStore(file), calls);
+    final folders = owner(store: store);
+    final [a] = (await add(folders, ['a'])).value;
+    calls.clear();
+    store.fails = true;
+
+    final removed = await asked<FolderRemoved>(
+      folders,
+      (ticket) => RemoveFolder(ticket, a),
+    );
+
+    expect(removed.result.error, FolderError.notSaved);
+    expect(calls, ['save']);
+    expect((folders.state as FoldersLoaded).folders, [a]);
+    expect(plugin.folders.map((folder) => folder.id), ['a']);
   });
 
   test('counts the drafts removing would delete, once its open files are '
@@ -166,15 +189,20 @@ void main() {
 }
 
 /// [_inner], whose saves fail.
-final class _FailingSave implements FolderListStore {
-  _FailingSave(this._inner);
+/// A folder list store that notes each save, and fails them while [fails].
+final class _SwitchedStore implements FolderListStore {
+  _SwitchedStore(this._inner, this._calls);
 
   final FolderListStore _inner;
+  final List<String> _calls;
+  bool fails = false;
 
   @override
   Future<Result<SavedFolders, SettingsError>> load() => _inner.load();
 
   @override
-  Future<Result<void, SettingsError>> save(SavedFolders saved) async =>
-      const Err(SettingsError.unwritable);
+  Future<Result<void, SettingsError>> save(SavedFolders saved) async {
+    _calls.add('save');
+    return fails ? const Err(SettingsError.unwritable) : _inner.save(saved);
+  }
 }
