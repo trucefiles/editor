@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_editor/files/ui/file_card.dart';
@@ -37,19 +38,21 @@ void main() {
   }) async {
     final text = ['# $title', for (var i = 1; i <= lines; i++) 'line $i'];
     await tester.pumpWidget(
-      MaterialApp(
-        home: DocumentTextZoomScope(
-          zoom: zoom,
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: 240,
-                child: FileCard(
-                  file,
-                  preview: read(text.join('\n')),
-                  onTap: () {},
-                  onMark: () {},
+      ProviderScope(
+        child: MaterialApp(
+          home: DocumentTextZoomScope(
+            zoom: zoom,
+            child: Scaffold(
+              body: Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: 240,
+                  child: FileCard(
+                    file,
+                    preview: read(text.join('\n')),
+                    onTap: () {},
+                    onMark: () {},
+                  ),
                 ),
               ),
             ),
@@ -99,14 +102,16 @@ void main() {
 
   testWidgets('labels a document with a sync conflict', (tester) async {
     Future<void> show({required bool hasConflict}) => tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: FileCard(
-            file,
-            preview: read('# Title'),
-            hasConflict: hasConflict,
-            onTap: () {},
-            onMark: () {},
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: FileCard(
+              file,
+              preview: read('# Title'),
+              hasConflict: hasConflict,
+              onTap: () {},
+              onMark: () {},
+            ),
           ),
         ),
       ),
@@ -123,17 +128,19 @@ void main() {
     "shows the document at the document text zoom, the rest at the app's",
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DocumentTextZoomScope(
-            zoom: TextZoom.closestTo(150),
-            child: TextZoomScale(
-              zoom: TextZoom.closestTo(120),
-              child: Scaffold(
-                body: FileCard(
-                  file,
-                  preview: read('# Title\nline'),
-                  onTap: () {},
-                  onMark: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: DocumentTextZoomScope(
+              zoom: TextZoom.closestTo(150),
+              child: TextZoomScale(
+                zoom: TextZoom.closestTo(120),
+                child: Scaffold(
+                  body: FileCard(
+                    file,
+                    preview: read('# Title\nline'),
+                    onTap: () {},
+                    onMark: () {},
+                  ),
                 ),
               ),
             ),
@@ -152,9 +159,11 @@ void main() {
   testWidgets('shows the file name while the text is read, and says when it '
       "can't be shown", (tester) async {
     Future<void> show(CardPreview preview) => tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: FileCard(file, preview: preview, onTap: () {}, onMark: () {}),
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: FileCard(file, preview: preview, onTap: () {}, onMark: () {}),
+          ),
         ),
       ),
     );
@@ -176,27 +185,29 @@ void main() {
     tester,
   ) async {
     Future<void> show(TextZoom zoom) => tester.pumpWidget(
-      MaterialApp(
-        home: DocumentTextZoomScope(
-          zoom: zoom,
-          child: Scaffold(
-            body: CustomScrollView(
-              slivers: [
-                fileGrid(
-                  1,
-                  (_) => FileCard(
-                    file,
-                    preview: read(
-                      [
-                        '# Title',
-                        for (var i = 1; i <= 20; i++) 'line $i',
-                      ].join('\n'),
+      ProviderScope(
+        child: MaterialApp(
+          home: DocumentTextZoomScope(
+            zoom: zoom,
+            child: Scaffold(
+              body: CustomScrollView(
+                slivers: [
+                  fileGrid(
+                    1,
+                    (_) => FileCard(
+                      file,
+                      preview: read(
+                        [
+                          '# Title',
+                          for (var i = 1; i <= 20; i++) 'line $i',
+                        ].join('\n'),
+                      ),
+                      onTap: () {},
+                      onMark: () {},
                     ),
-                    onTap: () {},
-                    onMark: () {},
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

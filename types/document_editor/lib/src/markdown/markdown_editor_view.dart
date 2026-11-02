@@ -5,11 +5,11 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
 import '../document_editor.dart';
+import '../document_images.dart';
 import '../run_command.dart';
-import '../text_host.dart';
 import 'markdown_editor_part.dart';
 import 'markdown_links.dart';
-import 'markdown_view.dart';
+import 'markdown_services.dart';
 import 'ui/checked_items_dialog.dart';
 import 'ui/edit_mode_button.dart';
 
@@ -17,23 +17,35 @@ import 'ui/edit_mode_button.dart';
 /// the mode menu and Ctrl+1, 2, 3, and the menu's commands on checked
 /// items.
 final class MarkdownEditorView implements EditorView {
-  MarkdownEditorView(this._part);
+  MarkdownEditorView(this._part, this._services);
 
   final MarkdownEditorPart _part;
+  final MarkdownServices _services;
 
-  /// Lists get Add item buttons where the host says, links open as the
-  /// host opens them, images show as the host finds them.
+  /// When the document was opened: its pictures are read anew each open.
+  final _openedAt = DateTime.now();
+
+  /// Lists get Add item buttons where the setting says, links open as the
+  /// app opens them, images show from the file's folder.
   @override
-  Widget view(covariant TextHost host, {required bool autofocus}) =>
-      DocumentEditor(
-        _part.gate,
-        text: host.kept,
-        notices: _part.gate.events,
-        addItems: host.addItems,
-        onLink: (url) =>
-            openMarkdownLink(url, open: host.openLink, hint: host.hint),
-        images: host.images,
-        autofocus: autofocus,
+  Widget view(EditorHost host, {required bool autofocus}) =>
+      ValueListenableBuilder(
+        valueListenable: _services.addItems,
+        builder: (_, addItems, _) => DocumentEditor(
+          _part.gate,
+          text: host.kept,
+          notices: _part.gate.events,
+          addItems: addItems,
+          onLink: (url) =>
+              openMarkdownLink(url, open: _services.openLink, hint: host.hint),
+          images: FolderImages(
+            host.bytesOf,
+            folder: host.folder,
+            document: host.path,
+            openedAt: _openedAt,
+          ),
+          autofocus: autofocus,
+        ),
       );
 
   @override

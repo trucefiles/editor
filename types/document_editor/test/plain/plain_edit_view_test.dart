@@ -8,9 +8,11 @@ import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
-import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+import 'package:truce_test_support/truce_test_support.dart'
+    show ManualTimers, folderId, path;
 
 /// A plain text document's editor owner in memory, as its line editor
 /// gets it: records the texts it sends to be kept.
@@ -210,12 +212,12 @@ void main() {
     ));
     addTearDown(() => unawaited(part.editor.close()));
     final view = PlainEditorView(part);
-    final host = TextHost(
+    final host = EditorHost(
       kept: 'one\ntwo',
-      addItems: AddItemPlace.bottom,
-      openLink: (_) async {},
+      folder: folderId('home'),
+      path: path('a.txt'),
+      bytesOf: (_) async => null,
       hint: (_) {},
-      images: const NoDocumentImages(),
     );
     Future<void> pumpPart() => tester.pumpWidget(
       MaterialApp(

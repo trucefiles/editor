@@ -5,15 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../../common/open_link.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
-import '../../file_types/editable_type.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';
 import '../../files/file_settings_controller.dart';
@@ -26,7 +24,6 @@ import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
-import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../versions/merge_outcome.dart';
 import '../file_controller.dart';
@@ -35,6 +32,7 @@ import '../file_pages.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
 import 'file_place_chip.dart';
+import 'history_buttons.dart';
 import 'history_end_text.dart';
 import 'save_indicator.dart';
 
@@ -74,9 +72,6 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   late final List<StreamSubscription<Object>> _notices;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
-
-  /// When the file was opened: its pictures are read anew each open.
-  final _openedAt = DateTime.now();
 
   FileSession get _session => _page.session;
   FileController get _controller => _page.controller;
@@ -482,33 +477,22 @@ class _FileScreenState extends ConsumerState<FileScreen> {
               key: _pull,
               onRefresh: ref.read(folderContentsProvider.notifier).refresh,
               child: DocumentTextZoom(
-                // Only the editor shows the add-item setting, so only it
-                // builds again when the setting changes.
                 child: _tinted(
                   tint,
-                  Consumer(
-                    // Every view gets the text host; text types use all
-                    // of it.
-                    builder: (context, ref, _) => _page.view.view(
-                      TextHost(
-                        kept: text,
-                        addItems: ref.watch(
-                          deviceSettingsProvider.select(
-                            (s) => s.requireValue.addItemPlace,
-                          ),
-                        ),
-                        openLink: (link) => openLink(context, ref, link),
-                        hint: (message) => showSnack(context, message),
-                        images: FolderImages(
-                          ref.read(fileAccessProvider).of(_folder),
-                          folder: _folder.id,
-                          document: path,
-                          openedAt: _openedAt,
-                        ),
-                      ),
-                      // A new file is for typing right away.
-                      autofocus: widget.file == null,
+                  _page.view.view(
+                    EditorHost(
+                      kept: text,
+                      folder: _folder.id,
+                      path: path,
+                      bytesOf: ref.read(fileAccessProvider).of(_folder).bytesOf,
+                      // The page's own messenger: a hint may come after an
+                      // await (e.g. a link opener's answer), when the page
+                      // may be gone.
+                      hint: (message) =>
+                          _messenger.currentState?.showHint(message),
                     ),
+                    // A new file is for typing right away.
+                    autofocus: widget.file == null,
                   ),
                 ),
               ),

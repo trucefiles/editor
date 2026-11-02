@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../device_zone.dart';
 import '../views/new_event_spot.dart';
 import 'event_form.dart';
 

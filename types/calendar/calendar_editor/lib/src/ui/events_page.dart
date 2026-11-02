@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../device_zone.dart';
-import '../views/calendar_view_choice.dart';
 import '../views/calendar_views.dart';
 import 'event_actions.dart';
 

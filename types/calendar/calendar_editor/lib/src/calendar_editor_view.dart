@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
 import 'calendar_editor_part.dart';
-import 'device_zone.dart';
 import 'ui/calendar_page.dart';
-import 'views/calendar_view_choice.dart';
 
 /// How a calendar file's part shows on the page: its calendar page.
 /// Adds nothing else to the page; undo and redo are the page's.

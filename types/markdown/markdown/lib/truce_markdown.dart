@@ -2,10 +2,11 @@
 /// commands in Visual edit, and printed back block-exact (blocks the user
 /// didn't touch keep their bytes).
 ///
-/// Pure Dart, no UI; `core` knows nothing of it. What the app uses is
-/// exported here: the editor's owner ([EditorOwner]), what its inputs
-/// name and its state shows, and the Markdown tree Markdown edit
-/// highlights by.
+/// Pure Dart, no UI; `core` and `files` know nothing of it. What the
+/// app uses is exported here: the type as the app shows it
+/// ([MarkdownFileType], [MarkdownView]), the editor's owner
+/// ([EditorOwner]), what its inputs name and its state shows, and the
+/// Markdown tree Markdown edit highlights by.
 library;
 
 export 'src/doc/doc_nodes.dart';
@@ -21,7 +22,9 @@ export 'src/highlight/highlights.dart';
 export 'src/owner/editor_owner.dart';
 export 'src/read/front_matter.dart' show textAfterFrontMatter;
 export 'src/summary/document_summary.dart';
+export 'src/support/markdown_file_type.dart';
 export 'src/support/markdown_support.dart';
+export 'src/support/markdown_view.dart';
 export 'src/tree/blocks.dart';
 export 'src/tree/inlines.dart' show HtmlInline, ImageInline, Inline;
 export 'src/view/rows.dart';

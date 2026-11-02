@@ -11,8 +11,10 @@ dependencies:
   firstfloor_calendar: 1.0.14
   timezone: ^0.11.2
   truce_core: any
+  truce_files: any
 
 dev_dependencies:
   test: ^1.31.0
+  truce_folders: any
   truce_lints: any
   truce_test_support: any

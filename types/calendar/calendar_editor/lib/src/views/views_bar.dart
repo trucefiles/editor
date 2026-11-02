@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'calendar_view_kind.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 
 /// The bar above the calendar views: the previous and next page, back to
 /// today, what is shown ([title]), which view, and Add event if [onAdd]

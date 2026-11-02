@@ -14,9 +14,6 @@ final class _KeyValueType implements ShownFileType {
   @override
   String get name => 'Key value';
 
-  @override
-  String get newFileExtension => '.md';
-
   /// Windows line breaks, as some formats want.
   @override
   TextFile get newFile => const TextFile.empty(lineBreak: '\r\n');

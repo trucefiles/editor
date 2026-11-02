@@ -1,12 +1,13 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_plain_text/truce_plain_text.dart';
 
-import 'editable_type.dart';
+import 'plain_summary.dart';
+import 'plain_text_support.dart';
 
-/// Plain text documents: the first line names one; edited as text.
-final class PlainTextFileType implements EditableType {
+/// Plain text documents, as the app shows them: the first line names
+/// one; search reads the whole text; two texts don't merge (the user
+/// picks one). Its editor package adds how a file of it opens.
+base class PlainTextFileType implements ShownFileType {
   const PlainTextFileType();
 
   @override
@@ -14,9 +15,6 @@ final class PlainTextFileType implements EditableType {
 
   @override
   String get name => 'Plain text';
-
-  @override
-  String get newFileExtension => '.txt';
 
   @override
   TextFile get newFile => const TextFile.empty();
@@ -37,10 +35,4 @@ final class PlainTextFileType implements EditableType {
   /// Texts are compared and picked by the user.
   @override
   TextMerge? get merge => null;
-
-  @override
-  OpenedEditor openEditor(EditorStart start, EditorPage page) {
-    final part = PlainEditorPart(start);
-    return (part: part, view: PlainEditorView(part));
-  }
 }

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 
 import 'document_text_styles.dart';
-import 'touch.dart';
 
 /// The sizes around a document's text: gaps between lines, indents, the slots
 /// of an item's row. They grow with the document's text, so the layout keeps

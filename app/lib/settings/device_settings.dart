@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -10,6 +13,7 @@ import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
+import 'package:truce_editor/platform/link_opener.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
@@ -36,8 +40,9 @@ void main() {
   /// Starts the app on a folder holding [files]; the folder.
   Future<Directory> start(
     WidgetTester tester,
-    Map<String, String> files,
-  ) async {
+    Map<String, String> files, {
+    LinkOpener links = const LinkOpener(),
+  }) async {
     final dir = tempFolder();
     for (final MapEntry(key: name, value: text) in files.entries) {
       File('${dir.path}/$name').writeCreatingFolders(text);
@@ -49,6 +54,7 @@ void main() {
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
+        linkOpenerProvider.overrideWithValue(links),
       ],
       child: const TruceApp(),
     );
@@ -143,6 +149,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a link opener answering after the page is gone tells '
+      'nothing', (tester) async {
+    final answer = Completer<bool>();
+    await start(tester, {
+      'notes.md': '# Notes\n\n[site](https://example.org)',
+    }, links: _LateLinkOpener(answer.future));
+    await tester.tap(find.text('Notes').first);
+    await showsSoon(tester, find.byType(FileScreen));
+    await tester.pumpAndSettle();
+    // Read, where a tap opens the link.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    final link = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .expand((text) {
+          final spans = <TextSpan>[];
+          text.text.visitChildren((span) {
+            if (span is TextSpan && span.recognizer != null) spans.add(span);
+            return true;
+          });
+          return spans;
+        })
+        .firstWhere((span) => span.text == 'site');
+    (link.recognizer! as TapGestureRecognizer).onTap!();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(FileScreen), findsNothing);
+
+    answer.complete(false);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No app could open https://example.org'), findsNothing);
+  });
+
   testWidgets('a calendar back after the last went shows the documents', (
     tester,
   ) async {
@@ -173,4 +217,14 @@ void main() {
       0,
     );
   });
+}
+
+/// Opens no link, answering only once [answer] completes.
+final class _LateLinkOpener implements LinkOpener {
+  const _LateLinkOpener(this.answer);
+
+  final Future<bool> answer;
+
+  @override
+  Future<bool> open(Uri link) => answer;
 }

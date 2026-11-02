@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/views/calendar_views_model.dart';
-import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 /// A calendar named [name] with [event] on [day] from 9 to 10.
 Calendar _calendar(String name, String event, DateTime day) => applyEdit(

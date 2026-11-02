@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
-import '../../file_types/editable_type.dart';
 import 'name_dialog.dart';
 
 /// What the user picked to make new, and the name they gave it first if

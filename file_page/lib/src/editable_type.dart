@@ -1,8 +1,10 @@
-import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
-/// A file type as the app wires it: the type itself, and its editor
-/// on the one file page.
+import 'editor_view.dart';
+
+/// A file type with its editor on the one file page: the type's pure
+/// side, and how a file of it opens. Each editor package brings its
+/// types; the app lists them.
 abstract interface class EditableType implements ShownFileType {
   /// Opens the editor of a file of this type, starting at [start], on
   /// [page]: its part the page model drives, and the view the page shows

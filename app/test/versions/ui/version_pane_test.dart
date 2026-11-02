@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
@@ -12,19 +13,21 @@ void main() {
   testWidgets("shows the version's text at the document text zoom, the rest at "
       "the app's", (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: DocumentTextZoomScope(
-          zoom: TextZoom.closestTo(150),
-          child: TextZoomScale(
-            zoom: TextZoom.closestTo(120),
-            child: Scaffold(
-              body: VersionPane(
-                label: 'Mine',
-                content: const EditorText('document text'),
-                compareTo: 'other',
-                ownLines: OwnLines.added,
-                keepLabel: 'Keep',
-                onKeep: () {},
+      ProviderScope(
+        child: MaterialApp(
+          home: DocumentTextZoomScope(
+            zoom: TextZoom.closestTo(150),
+            child: TextZoomScale(
+              zoom: TextZoom.closestTo(120),
+              child: Scaffold(
+                body: VersionPane(
+                  label: 'Mine',
+                  content: const EditorText('document text'),
+                  compareTo: 'other',
+                  ownLines: OwnLines.added,
+                  keepLabel: 'Keep',
+                  onKeep: () {},
+                ),
               ),
             ),
           ),
@@ -48,15 +51,17 @@ void main() {
     testWidgets('shows only its own lines, the ones the other version lacks '
         'as ${ownLines.name}', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: VersionPane(
-              label: 'Mine',
-              content: const EditorText('a\nmine\nc'),
-              compareTo: 'a\ntheirs\nc',
-              ownLines: ownLines,
-              keepLabel: 'Keep',
-              onKeep: null,
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: VersionPane(
+                label: 'Mine',
+                content: const EditorText('a\nmine\nc'),
+                compareTo: 'a\ntheirs\nc',
+                ownLines: ownLines,
+                keepLabel: 'Keep',
+                onKeep: null,
+              ),
             ),
           ),
         ),
@@ -90,15 +95,17 @@ void main() {
   testWidgets('against a deleted file, every line is its own, blank ones '
       'too', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: VersionPane(
-            label: 'Mine',
-            content: const EditorText('\na\n'),
-            compareTo: null,
-            ownLines: OwnLines.added,
-            keepLabel: 'Keep',
-            onKeep: null,
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: VersionPane(
+              label: 'Mine',
+              content: const EditorText('\na\n'),
+              compareTo: null,
+              ownLines: OwnLines.added,
+              keepLabel: 'Keep',
+              onKeep: null,
+            ),
           ),
         ),
       ),
@@ -120,15 +127,17 @@ void main() {
       'texts start at one height', (tester) async {
     Future<double> textTop(VersionContent content) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: VersionPane(
-              label: 'Mine',
-              content: content,
-              compareTo: '',
-              ownLines: OwnLines.added,
-              keepLabel: 'Keep',
-              onKeep: null,
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: VersionPane(
+                label: 'Mine',
+                content: content,
+                compareTo: '',
+                ownLines: OwnLines.added,
+                keepLabel: 'Keep',
+                onKeep: null,
+              ),
             ),
           ),
         ),
@@ -158,15 +167,17 @@ void main() {
       },
     );
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: VersionPane(
-            label: 'Mine',
-            content: EditorText('a\n\nmine\nc'),
-            compareTo: 'a\n\ntheirs\nc',
-            ownLines: OwnLines.added,
-            keepLabel: 'Keep',
-            onKeep: null,
+      ProviderScope(
+        child: const MaterialApp(
+          home: Scaffold(
+            body: VersionPane(
+              label: 'Mine',
+              content: EditorText('a\n\nmine\nc'),
+              compareTo: 'a\n\ntheirs\nc',
+              ownLines: OwnLines.added,
+              keepLabel: 'Keep',
+              onKeep: null,
+            ),
           ),
         ),
       ),

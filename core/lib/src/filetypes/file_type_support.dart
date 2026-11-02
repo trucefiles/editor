@@ -6,7 +6,8 @@ import 'file_type.dart';
 abstract interface class FileTypeSupport<Options> {
   FileType get type;
 
-  /// The extensions of its files, lower case, without the dot (`md`).
+  /// The extensions of its files, lower case, without the dot (`md`);
+  /// a new file takes the first.
   Set<String> get extensions;
 
   /// What lists show of [text], with previews of up to [maxLines] lines.

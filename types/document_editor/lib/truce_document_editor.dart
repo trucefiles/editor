@@ -1,6 +1,7 @@
 /// Editing documents on super_editor, for every document type that edits
 /// on it: the visual editor and its adapter, the line editor, Read, the
-/// input gate, and the Markdown and plain text editor views.
+/// input gate, and the Markdown and plain text editor views, with their
+/// types as the file page opens them.
 library;
 
 export 'src/add_item_place/add_item_place.dart';
@@ -26,15 +27,17 @@ export 'src/lines/line_highlighter.dart';
 export 'src/markdown/library/highlight_phase.dart';
 export 'src/markdown/library/markdown_highlighter.dart';
 export 'src/markdown/markdown_edit_view.dart';
+export 'src/markdown/markdown_editable_type.dart';
 export 'src/markdown/markdown_editor_part.dart';
 export 'src/markdown/markdown_editor_view.dart';
 export 'src/markdown/markdown_links.dart';
 export 'src/markdown/markdown_page_editor.dart';
-export 'src/markdown/markdown_view.dart';
+export 'src/markdown/markdown_services.dart';
 export 'src/markdown/ui/checked_items_dialog.dart';
 export 'src/markdown/ui/edit_mode_button.dart';
 export 'src/markdown/ui/markdown_look.dart';
 export 'src/marker.dart';
+export 'src/plain/plain_editable_type.dart';
 export 'src/plain/plain_editor_part.dart';
 export 'src/plain/plain_editor_view.dart';
 export 'src/plain/plain_page_editor.dart';
@@ -43,11 +46,8 @@ export 'src/plain/ui/plain_look.dart';
 export 'src/plain/ui/plain_read_view.dart';
 export 'src/read/read_view.dart';
 export 'src/run_command.dart';
-export 'src/text_host.dart';
-export 'src/touch.dart';
 export 'src/ui/document_image.dart';
 export 'src/ui/empty_document_hint.dart';
-export 'src/ui/history_buttons.dart';
 export 'src/ui/list_marker.dart';
 export 'src/visual/library/attributed_text.dart';
 export 'src/visual/library/ime_batches.dart';

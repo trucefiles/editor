@@ -5,7 +5,6 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../file_types/editable_type.dart';
 import 'file_controller.dart';
 
 /// Runs an action on the open file, created first for a new

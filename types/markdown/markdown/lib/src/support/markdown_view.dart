@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_markdown/truce_markdown.dart' show CheckedItems, EditMode;
+
+import '../owner/editor_contract.dart' show CheckedItems, EditMode;
 
 /// What a Markdown document keeps of how it shows on this device: the
 /// mode it was last shown in and where its checked items go. Kept as the

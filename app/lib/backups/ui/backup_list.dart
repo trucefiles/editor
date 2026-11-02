@@ -68,7 +68,7 @@ class _BackupTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${shown.kind.text}, ${TimeTexts.of(context).full(shown.savedAt)}',
+            '${shown.kind.text}, ${ref.watch(timeTextsProvider).full(shown.savedAt)}',
           ),
           FolderBadge(folder, file: shown.filePath),
         ],

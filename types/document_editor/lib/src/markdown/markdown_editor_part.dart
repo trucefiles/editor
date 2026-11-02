@@ -6,7 +6,6 @@ import 'package:truce_markdown/truce_markdown.dart';
 import '../editor_gate.dart';
 import '../first_mode.dart';
 import 'markdown_page_editor.dart';
-import 'markdown_view.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
 /// behind a gate, in the mode the user picked (remembered on this device)

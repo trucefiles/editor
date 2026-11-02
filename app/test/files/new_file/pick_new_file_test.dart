@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/file_types/calendar_file_type.dart';
+import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/files/new_file/pick_new_file.dart';
 
 import '../../support.dart';
