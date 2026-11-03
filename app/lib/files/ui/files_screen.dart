@@ -28,15 +28,17 @@ import '../file_settings_controller.dart';
 import '../file_settings_pruning.dart';
 import '../file_type_selection.dart';
 import '../home_filter_provider.dart';
+import '../home_view.dart';
 import '../new_file/pick_new_file.dart';
-import 'all_files_screen.dart';
+import 'all_files_view.dart';
 import 'file_sections.dart';
 import 'home_filter_bar.dart';
 import 'home_menu.dart';
+import 'home_view_button.dart';
 import 'listed_file_card.dart';
 
-/// Home: the recent files as cards, pinned ones first, filtered by
-/// folder and type; All shows the rest.
+/// Home: the recent files as cards, pinned ones first, or all files,
+/// filtered by folder and type.
 class FilesScreen extends ConsumerStatefulWidget {
   const FilesScreen({super.key});
 
@@ -87,6 +89,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               _ => null,
             },
           ),
+          const HomeViewButton(),
           const _ConflictsButton(),
           IconButton(
             tooltip: 'Search',
@@ -163,15 +166,6 @@ class _FilesBody extends ConsumerWidget {
     final contents = ref.watch(folderContentsProvider).value;
     final conflicts = contents?.conflicts;
     final files = filter.of(contents?.files ?? const <ListedFile>[]);
-    ref.watch(fileSettingsProvider);
-    final settings = ref.read(fileSettingsProvider.notifier);
-    final recent = recentOf(
-      files,
-      isPinned: (file) => settings.settingsOf(file.key).pinned,
-      count: ref.watch(
-        deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
-      ),
-    );
     final orphans = filter.orphansOf(
       conflicts?.orphans ?? const [],
       typeOf: (path) => types.of(path)?.support.type,
@@ -197,25 +191,53 @@ class _FilesBody extends ConsumerWidget {
                       text: 'No files yet.',
                     ),
                   )
-                : FileSections(
-                    leading: [
-                      for (final orphan in orphans)
-                        OrphanCard(
-                          orphan,
-                          onTap: () => openConflict(context, orphan),
+                : switch (ref.watch(homeViewProvider)) {
+                    HomeView.recent => _RecentView(files, orphans: orphans),
+                    HomeView.all => AllFilesView(
+                      files,
+                      settings: ref.watch(
+                        deviceSettingsProvider.select(
+                          (s) => s.requireValue.home,
                         ),
-                    ],
-                    pinned: [
-                      for (final file in recent.pinned) ListedFileCard(file),
-                    ],
-                    others: [
-                      for (final file in recent.newest) ListedFileCard(file),
-                    ],
-                    footer: const _ShowAll(),
-                  ),
+                      ),
+                      folders: folders,
+                    ),
+                  },
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Home's Recent view: conflicts without their file first, then the
+/// pinned and the newest of [files], and "Show all" while it leaves
+/// some out.
+class _RecentView extends ConsumerWidget {
+  const _RecentView(this.files, {required this.orphans});
+
+  final List<ListedFile> files;
+  final List<FolderConflict> orphans;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(fileSettingsProvider);
+    final settings = ref.read(fileSettingsProvider.notifier);
+    final recent = recentOf(
+      files,
+      isPinned: (file) => settings.settingsOf(file.key).pinned,
+      count: ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
+      ),
+    );
+    return FileSections(
+      leading: [
+        for (final orphan in orphans)
+          OrphanCard(orphan, onTap: () => openConflict(context, orphan)),
+      ],
+      pinned: [for (final file in recent.pinned) ListedFileCard(file)],
+      others: [for (final file in recent.newest) ListedFileCard(file)],
+      footer: recent.hidesSome ? const _ShowAll() : null,
     );
   }
 }
@@ -241,17 +263,17 @@ class _ConflictsButton extends ConsumerWidget {
   }
 }
 
-/// Opens All, at the end of Recent: everything, sorted and shown as the
-/// user picks.
-class _ShowAll extends StatelessWidget {
+/// Switches home to All, at the end of Recent while Recent leaves files
+/// out.
+class _ShowAll extends ConsumerWidget {
   const _ShowAll();
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context, WidgetRef ref) => Padding(
     padding: const EdgeInsets.only(top: 16),
     child: Center(
       child: OutlinedButton(
-        onPressed: () => openAllFiles(context),
+        onPressed: () => ref.read(homeViewProvider.notifier).show(HomeView.all),
         child: const Text('Show all'),
       ),
     ),
