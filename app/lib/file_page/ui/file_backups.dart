@@ -56,9 +56,10 @@ Future<void> _compare(
   final failure = switch (await controller.restore(restored)) {
     RestoreOutcome.restored => null,
     RestoreOutcome.notEditable =>
-      "The file can't be edited here now, so nothing was restored.",
+      "The file can't be edited right now, so nothing was "
+          'restored.',
     RestoreOutcome.notBackedUp =>
-      "The file's text could not be backed up, so nothing was restored.",
+      "Couldn't back up the file first, so nothing was restored.",
   };
   if (failure != null) {
     messenger.showHint(failure);

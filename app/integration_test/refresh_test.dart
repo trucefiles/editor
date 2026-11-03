@@ -34,10 +34,7 @@ void main() {
     await tester.refocusApp();
 
     await tester.waitFor(fromElsewhere);
-    expect(
-      find.text('Updated with a change from another device or app'),
-      findsOne,
-    );
+    expect(find.text('Updated with a change from elsewhere'), findsOne);
   });
 
   testApp('shows a change made before the document opened', (tester) async {
@@ -207,7 +204,7 @@ void main() {
 
     await tester.placeNote(name: 'Ideas');
     await tester.runFor(const Duration(seconds: 2));
-    expect(find.textContaining('was deleted on another device'), findsNothing);
+    expect(find.textContaining('was deleted elsewhere'), findsNothing);
 
     await tester.typeOver('# Plan\nv2');
     await tester.pageBack();

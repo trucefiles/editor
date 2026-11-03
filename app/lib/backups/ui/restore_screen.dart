@@ -105,9 +105,8 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         keepLabel: 'Restore',
         keptMessage: deleted
             ? 'The file is restored from this backup.'
-            : 'The current version is replaced by the backup. A backup of '
-                  'the current version stays on this device for '
-                  '${backupRetention.inDays} days.',
+            : 'The backup replaces the current version, which is backed '
+                  'up first.',
       ),
       enabled: !busy,
       onKeep: _keep,

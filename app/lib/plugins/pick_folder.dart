@@ -16,8 +16,8 @@ Future<Uri?> pickFolder(BuildContext context, FolderPicker picker) async {
       if (context.mounted) {
         showSnack(
           context,
-          "This folder can't be opened by the app. Folders on the "
-          "device's main storage can.",
+          "The app can't open this folder. Pick one on the device's "
+          'main storage.',
         );
       }
       return null;

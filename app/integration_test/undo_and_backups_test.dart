@@ -81,7 +81,7 @@ void main() {
     await tester.pressCtrl(LogicalKeyboardKey.keyZ);
 
     await tester.waitFor(
-      find.textContaining('This is how the file was when it was opened.'),
+      find.textContaining('This is how the file was when you opened it.'),
     );
     await tester.tapAndSettle(find.text('Backups'));
     expect(find.text('Backups of Plan'), findsOne);
@@ -130,6 +130,6 @@ void main() {
     await tester.tapAndSettle(find.text('Delete backup'));
     await tester.tapAndSettle(find.text('Delete'));
 
-    await tester.waitFor(find.textContaining('No backups.'));
+    await tester.waitFor(find.textContaining('No backups yet.'));
   });
 }

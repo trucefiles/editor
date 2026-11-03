@@ -223,7 +223,7 @@ class _EventFormState extends State<EventForm> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Alerts are kept in the calendar; this app does not ring them yet.',
+            "Alerts are saved, but the app doesn't ring them yet.",
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

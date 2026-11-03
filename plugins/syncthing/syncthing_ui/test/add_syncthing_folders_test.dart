@@ -110,9 +110,8 @@ void main() {
 
     expect(
       find.text(
-        'This Syncthing folder lies inside or around '
-        '${shownAddress(work)}, added before. To add this one, remove the '
-        'folder there first.',
+        'This Syncthing folder overlaps ${shownAddress(work)}, which is '
+        'already in the app. Remove that one first to add this one.',
       ),
       findsOneWidget,
     );

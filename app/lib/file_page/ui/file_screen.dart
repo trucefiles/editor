@@ -130,17 +130,16 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _onStopped(Stopped stopped) =>
       _messenger.currentState?.showHint(switch (stopped) {
         Stopped(cause: StopCause.folderGone) =>
-          "This file's folder was removed from the app, so the file is read "
-              'only now. Its latest edits are kept only here, until it '
-              'closes.',
+          "This file's folder was removed, so the file is read-only "
+              'now. Your latest edits stay here only until you close it.',
         Stopped(kept: true) =>
-          'Something went wrong, so this file is read only now. Its edits '
-              'are kept on this device and go into the file at the next '
-              'start.',
+          'Something went wrong, so this file is read-only for now. '
+              'Your edits are safe on this device and will be saved the '
+              'next time you open the app.',
         Stopped() =>
-          'Something went wrong, so this file is read only now, and its '
-              "latest edits couldn't be kept. They stay only here, until it "
-              'closes.',
+          'Something went wrong, so this file is read-only now, and '
+              "your latest edits couldn't be saved. They stay here only "
+              'until you close it.',
       });
 
   void _onEditorNotice(EditorNotice notice) {
@@ -157,7 +156,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
           onAction: () => _editor.send(UndoStep(id)),
         );
       case UndoRefused():
-        messenger.showHint("Can't undo, because the file has changed since.");
+        messenger.showHint("Can't undo: the file has changed since.");
       case HistoryEnd(:final start):
         final context = _messenger.currentContext;
         messenger.showHint(
@@ -176,7 +175,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final messenger = _messenger.currentState;
     switch (notice) {
       case Replaced():
-        messenger?.showHint('Updated with a change from another device or app');
+        messenger?.showHint('Updated with a change from elsewhere');
       case PickMerged(:final lost):
         messenger?.showNotice(mergeOutcome(lost));
       case _:
@@ -203,10 +202,10 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("The edits can't be saved"),
+        title: const Text("Your edits can't be saved"),
         content: const Text(
           'Neither the file nor a conflict copy could be written. '
-          'Staying keeps the text here, to copy elsewhere.',
+          'Stay to copy your text somewhere else.',
         ),
         actions: [
           TextButton(
@@ -460,7 +459,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
-            message: 'The text is kept on this device.',
+            message: 'Your text is kept on this device.',
           ),
           // Its ways out need the folder.
           if (!unreachable) EditStateBanner(_controller, onClose: _leave),

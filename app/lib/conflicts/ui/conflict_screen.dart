@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
 import '../../reach/folder_reach_controller.dart';
@@ -57,9 +58,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     final outcome = switch ((answer.error, merged)) {
       (final error?, _) => error.text,
       (null, final merged?) => mergeOutcome(merged.lost),
-      (null, null) =>
-        'Conflict resolved. A backup is kept for '
-            '${backupRetention.inDays} days.',
+      (null, null) => 'Conflict resolved.',
     };
     final notice = answer.error == null && merged != null;
     if (answer.done) {
@@ -139,8 +138,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
             ? 'The file is restored from this version. $bothBackedUp'
-            : 'The current version is replaced by the other one. '
-                  '$bothBackedUp',
+            : 'The other version replaces the current one. $bothBackedUp',
       ),
       enabled: !busy,
       onKeep: _keep,

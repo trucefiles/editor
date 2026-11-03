@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
+import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
@@ -55,9 +56,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       setState(() => _picking = null);
       showSnack(
         context,
-        "Nothing was changed: a backup couldn't be made, the file "
-        "changed again, or the versions can't be merged. Please choose "
-        'again.',
+        "That didn't work, so nothing changed. Please try again.",
       );
     });
   }
@@ -110,7 +109,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       appBar: compareAppBar(
         folder: file.folder,
         file: _session.path,
-        reason: 'Changed on another device or app during the edits',
+        reason: 'Changed elsewhere while you were editing',
       ),
       body: theirs == null
           ? const SizedBox.shrink()
@@ -122,15 +121,14 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
                   theirs.version.read.listed.modified,
                 ),
                 keepLabel: 'Keep this',
-                keptMessage: 'The edits are dropped. $bothBackedUp',
+                keptMessage: 'Your edits are dropped. $bothBackedUp',
               ),
               other: ShownVersion(
-                label: 'Edits on this device',
+                label: 'Your edits',
                 content: EditorText(_session.text),
                 keepLabel: 'Keep this',
                 keptMessage:
-                    'The current version is replaced by the edits. '
-                    '$bothBackedUp',
+                    'Your edits replace the current version. $bothBackedUp',
               ),
               // This device's edits are the base: their own lines green.
               base: VersionSide.other,

@@ -16,8 +16,7 @@ class BackupsScreen extends ConsumerWidget {
     title: 'Backups',
     backups: ref.watch(allBackupsProvider),
     empty:
-        'No backups. Files are backed up on this device before '
-        'editing and before keeping a version, for '
+        "No backups yet. They're kept for "
         '${backupRetention.inDays} days.',
     onOpen: openRestore,
   );

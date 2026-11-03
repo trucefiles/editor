@@ -283,9 +283,7 @@ void main() {
     await tester.waitFor(find.textContaining('may not reach'));
   });
 
-  testApp('reorders folders by dragging, and the chips follow', (
-    tester,
-  ) async {
+  testApp('reorders folders by dragging, and the chips follow', (tester) async {
     await tester.addFolder(app);
     await tester.addWorkFolder();
     double left(String chip) =>

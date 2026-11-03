@@ -11,10 +11,10 @@ extension FolderNoticeText on FolderNotice {
       "$tool doesn't sync this folder, so changes may not reach other "
           'devices.',
     SyncUnknownNotice() =>
-      "Can't check whether $tool syncs this folder. Adding the folder "
-          '$tool shares itself, not one inside it, lets the app check.',
+      "Can't check whether $tool syncs this folder. Add the "
+          'folder $tool shares itself to fix that.',
     PolledNotice(:final interval) =>
-      "Live updates aren't possible here; checked for changes every "
+      'No live updates here, so the app checks for changes every '
           '${intervalText(interval)}.',
   };
 

@@ -144,7 +144,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
     final subfolder = RelPath.parse(text);
     return subfolder != null && widget.canHold!(_folder, subfolder)
         ? (subfolder, null)
-        : (null, "Files of this folder can't go there.");
+        : (null, "Files can't go in there.");
   }
 
   static const _topLevel = 'Top level';

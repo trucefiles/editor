@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:truce_files/truce_files.dart';
 
+import '../../backups/ui/both_backed_up_text.dart';
 import 'keep_version_dialog.dart';
 import 'version_comparison.dart';
 import 'version_content.dart';
@@ -54,8 +54,8 @@ class VersionChooser extends StatelessWidget {
 
   /// What keeping both merged does, to confirm it.
   static final mergeMessage =
-      'Both versions become one; where they clash, one change is kept. '
-      '$bothBackedUp';
+      'Both versions become one. Where they clash, one change '
+      'wins. $bothBackedUp';
 
   final ShownVersion current;
   final ShownVersion other;

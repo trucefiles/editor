@@ -4,9 +4,9 @@ import 'package:truce_folders/truce_folders.dart';
 extension FolderErrorText on FolderError {
   String get text => switch (this) {
     FolderError.overlaps =>
-      'This lies at, inside or around a folder added before. Each file can '
-          'be in one folder only.',
+      "This overlaps a folder that's already in the app. A file "
+          'can only belong to one folder.',
     FolderError.notSaved =>
-      'The folder list could not be saved, so nothing changed.',
+      "Couldn't save the folder list, so nothing changed.",
   };
 }

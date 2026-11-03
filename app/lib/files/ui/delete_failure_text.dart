@@ -4,6 +4,7 @@ import '../../common/store_error_text.dart';
 
 /// What to tell the user about [failure].
 String deleteFailureText(DeleteFailure failure) => switch (failure) {
-  DeleteBlockedByConflict() => 'This file has a sync conflict. Please resolve it first, then delete the file.',
+  DeleteBlockedByConflict() =>
+    "Resolve this file's sync conflict first, then delete it.",
   DeleteNotDone(:final error) => error.text,
 };

@@ -5,7 +5,7 @@
 String mergeOutcome(List<String> lost) => switch (lost) {
   [] => 'Merged, no clashes.',
   _ =>
-    'Merged. Newer changes replaced these older versions, which are in '
+    'Merged. Some older changes were replaced and are in '
         'Backups: ${_named(lost)}.',
 };
 

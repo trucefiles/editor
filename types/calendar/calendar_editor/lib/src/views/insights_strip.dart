@@ -42,7 +42,7 @@ class InsightsStrip<K> extends StatelessWidget {
               style: theme.bodyMedium,
             ),
           Text(
-            'An estimate from the entries, not for contraception.',
+            'Just an estimate. Not for contraception.',
             style: theme.bodySmall,
           ),
           const SizedBox(height: 4),

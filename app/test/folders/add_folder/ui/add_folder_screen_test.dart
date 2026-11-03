@@ -119,7 +119,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('The folder list could not be saved, so nothing changed.'),
+      find.text("Couldn't save the folder list, so nothing changed."),
       findsOne,
     );
     expect(find.byType(AddFolderScreen), findsOne);

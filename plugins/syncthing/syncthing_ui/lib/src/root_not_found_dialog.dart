@@ -20,9 +20,9 @@ Future<RootChoice?> showRootNotFound(BuildContext context) =>
           'history',
         ),
         content: const Text(
-          'The Syncthing folder holding this folder could not be found. '
-          "Without it, Syncthing's version history and ignore rules "
-          "aren't used.",
+          "Couldn't find the Syncthing folder this folder belongs "
+          "to. Without it, the app can't use Syncthing's version "
+          'history and ignore rules.',
         ),
         actions: [
           TextButton(

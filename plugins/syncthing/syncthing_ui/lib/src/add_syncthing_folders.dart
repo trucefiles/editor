@@ -65,8 +65,9 @@ Future<List<PluginFolderCandidate>?> _pickIn(
   if (plugin.rootClash(found.rootHost) case final clash?) {
     _tell(
       context,
-      'This Syncthing folder lies inside or around ${shownAddress(clash)}, '
-      'added before. To add this one, remove the folder there first.',
+      'This Syncthing folder overlaps ${shownAddress(clash)}, '
+      'which is already in the app. Remove that one first to add '
+      'this one.',
     );
     return null;
   }

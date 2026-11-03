@@ -127,16 +127,17 @@ class FoldersScreen extends ConsumerWidget {
         builder: (context) => AlertDialog(
           title: Text('Remove "${folder.name}"?'),
           content: Text(switch (lost) {
-            0 => 'The app stops showing this folder. Its files stay untouched.',
+            0 =>
+              'The folder disappears from the app. Its files stay where '
+                  'they are.',
             1 =>
-              'The app stops showing this folder. Its files stay untouched, '
-                  'but the edits of 1 file are kept only on this device; '
-                  "those that can't be saved as a conflict copy are lost.",
+              'The folder disappears from the app. Its files stay where '
+                  'they are, but edits to 1 file that are only on this '
+                  'device may be lost.',
             _ =>
-              'The app stops showing this folder. Its files stay untouched, '
-                  'but the edits of $lost files are kept only on this '
-                  "device; those that can't be saved as a conflict copy are "
-                  'lost.',
+              'The folder disappears from the app. Its files stay where '
+                  'they are, but edits to $lost files that are only on this '
+                  'device may be lost.',
           }),
           actions: [
             TextButton(
@@ -176,10 +177,9 @@ Future<bool> _askForAccess(BuildContext context) async =>
       builder: (context) => AlertDialog(
         title: const Text('Allow file access'),
         content: const Text(
-          'To edit files in synced folders, Android needs to allow this '
-          'app access to files. The app only opens the folders added '
-          'here. The switch on the next page turns it on; then back here, '
-          'a folder can be added.',
+          'To open your synced folders, the app needs access to '
+          'files. It only opens the folders you add. Turn on the '
+          'switch on the next page, then come back to add a folder.',
         ),
         actions: [
           TextButton(
