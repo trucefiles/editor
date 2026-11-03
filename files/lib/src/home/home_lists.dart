@@ -4,8 +4,13 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../listed_file.dart';
 
-/// What Recent shows: the [pinned] files, then the [newest] others.
-typedef Recent = ({List<ListedFile> pinned, List<ListedFile> newest});
+/// What Recent shows: the [pinned] files, then the [newest] others;
+/// [hidesSome] when other files are left out, so All has more to show.
+typedef Recent = ({
+  List<ListedFile> pinned,
+  List<ListedFile> newest,
+  bool hidesSome,
+});
 
 /// Recent of [files], newest first: every pinned one, and the newest
 /// [count] others.
@@ -13,10 +18,14 @@ Recent recentOf(
   List<ListedFile> files, {
   required bool Function(ListedFile file) isPinned,
   required int count,
-}) => (
-  pinned: files.where(isPinned).toList(),
-  newest: files.whereNot(isPinned).take(count).toList(),
-);
+}) {
+  final others = files.whereNot(isPinned).toList();
+  return (
+    pinned: files.where(isPinned).toList(),
+    newest: others.take(count).toList(),
+    hidesSome: others.length > count,
+  );
+}
 
 /// The files of one [subfolder] of a [folder] (its top if `null`).
 typedef FileSection = ({

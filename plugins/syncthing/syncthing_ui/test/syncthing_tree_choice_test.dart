@@ -38,23 +38,37 @@ void main() {
     expect(pick.isLocked(path('work/a')), isTrue);
   });
 
-  test('locks folders at, inside or around a ticked one', () {
-    final pick = choice(initial: path('work'));
+  test('locks folders at, inside or around one added before', () {
+    final pick = choice(taken: {path('work')}, initial: path('notes'));
 
-    expect(pick.isLocked(path('work')), isFalse);
+    expect(pick.isLocked(path('work')), isTrue);
     expect(pick.isLocked(path('work/a')), isTrue);
     expect(pick.isLocked(null), isTrue);
     expect(pick.isLocked(path('notes')), isFalse);
   });
 
   test('picks and unpicks, sorted, the Syncthing folder first', () {
-    final pick = choice(initial: path('work'))
-      ..toggle(path('notes'))
-      ..toggle(path('work/a'));
+    final pick = choice(initial: path('work'))..toggle(path('notes'));
 
     expect(pick.picked, [path('notes'), path('work')]);
     pick.toggle(path('work'));
     expect(pick.picked, [path('notes')]);
+  });
+
+  test('a folder inside a picked one swaps in for it', () {
+    final pick = choice()..toggle(path('work/a'));
+
+    expect(pick.picked, [path('work/a')]);
+    expect(pick.isLocked(path('work/b')), isFalse);
+  });
+
+  test('a folder around picked ones swaps in for all of them', () {
+    final pick = choice(initial: path('work/a'))
+      ..toggle(path('work/b'))
+      ..toggle(path('notes'))
+      ..toggle(path('work'));
+
+    expect(pick.picked, [path('notes'), path('work')]);
   });
 
   test('a Syncthing folder added as a whole locks every folder in it', () {

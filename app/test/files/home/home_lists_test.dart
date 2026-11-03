@@ -25,12 +25,25 @@ void main() {
 
       expect(recent.pinned, [pinned]);
       expect(recent.newest, [files[0], files[1]]);
+      expect(recent.hidesSome, isTrue);
     });
 
-    test('all others when fewer than the count', () {
+    test('all others when fewer than the count, hiding none', () {
       final files = [doc('a.md')];
 
-      expect(recentOf(files, isPinned: (_) => false, count: 50).newest, files);
+      final recent = recentOf(files, isPinned: (_) => false, count: 50);
+
+      expect(recent.newest, files);
+      expect(recent.hidesSome, isFalse);
+    });
+
+    test('hides none when the others fill the count exactly', () {
+      final pinned = doc('old.md');
+      final files = [doc('b.md'), pinned, doc('a.md')];
+
+      final recent = recentOf(files, isPinned: (f) => f == pinned, count: 2);
+
+      expect(recent.hidesSome, isFalse);
     });
   });
 
