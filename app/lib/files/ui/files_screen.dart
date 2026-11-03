@@ -26,7 +26,6 @@ import '../../settings/device_settings_controller.dart';
 import '../file_actions.dart';
 import '../file_settings_controller.dart';
 import '../file_settings_pruning.dart';
-import '../file_type_selection.dart';
 import '../home_filter_provider.dart';
 import '../home_view.dart';
 import '../new_file/pick_new_file.dart';
@@ -127,7 +126,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   }
 
   /// Opens a new file in the place for new files, if any folder can take
-  /// it; a type filter that would hide it shows every type again.
+  /// it; the filters let it through, so it shows once it is written.
   Future<void> _create(List<Folder> all) async {
     final place = ref.read(fileActionsProvider).newFilePlace(all);
     if (place == null) {
@@ -138,9 +137,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ref.read(fileTypesProvider).newFileChoices,
     );
     if (pick == null || !mounted) return;
-    ref
-        .read(pickedFileTypesProvider.notifier)
-        .reveal(pick.made.type.support.type);
+    ref.read(fileActionsProvider).reveal(place, pick.made.type.support.type);
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
