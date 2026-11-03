@@ -163,14 +163,14 @@ void main() {
       final done = DoneSections();
       final text = '- [ ] c\n- [x] ab';
       final document = _document(text, done: done);
-      ({Shown document, Selection selection}) press(
+      ({Shown document, Selection? selection}) press(
         Shown document,
         Selection at,
         EditKey key,
       ) => document.run(_command(keyAction(document.view, at, key)));
       final split = press(document, _caret(document, 1, 1), EditKey.enter);
       expect(split.document.text, '- [ ] c\n- [x] a\n- [x] b');
-      final joined = press(split.document, split.selection, EditKey.backspace);
+      final joined = press(split.document, split.selection!, EditKey.backspace);
       expect(joined.document.text, text);
     });
 

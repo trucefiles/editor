@@ -147,6 +147,20 @@ void main() {
     return gesture;
   }
 
+  testWidgets('the copy of an item that wraps shows all of it, as high as '
+      'its row', (tester) async {
+    final long = List.filled(60, 'word').join(' ');
+    await pumpDocument(tester, TestDocument('- [ ] aaa\n- [ ] $long'));
+    final row = tester.getSize(find.byType(ItemRow).at(1)).height;
+    expect(row, greaterThan(tester.getSize(find.byType(ItemRow).first).height));
+
+    final gesture = await dragItem(tester, 1, -0.2);
+
+    expect(tester.getSize(copy).height, closeTo(row, 1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('an item moves onto the top of the next list', (tester) async {
     final document = TestDocument('- [ ] aaa\n- [ ] bbb\n\n1. ccc\n2. ddd');
     await pumpDocument(tester, document);

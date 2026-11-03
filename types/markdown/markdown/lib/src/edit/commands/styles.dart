@@ -54,7 +54,7 @@ Change toggleStyle(ViewRows view, TextSelection selection, TextFormat format) {
         range.text.replaced(from, to, changed(range.text.slice(from, to))),
       );
     }),
-    selection: selection,
+    caret: CaretAt(selection),
   );
 }
 

@@ -42,7 +42,7 @@ Change replaceText(ViewRows view, TextSelection range, String text) {
     (false, true) => shown.formattingAt(from - 1),
     (false, false) => Formatting.plain,
   };
-  final (:doc, selection: _) = typed(
+  final (:doc, caret: _) = typed(
     view,
     Place(start.leaf, from),
     to,
@@ -53,8 +53,8 @@ Change replaceText(ViewRows view, TextSelection range, String text) {
   // After the whole new text, even where only its middle changed.
   return (
     doc: doc,
-    selection: TextSelection.caret(
-      Place(start.leaf, start.offset + text.length),
+    caret: CaretAt(
+      TextSelection.caret(Place(start.leaf, start.offset + text.length)),
     ),
   );
 }
@@ -88,11 +88,14 @@ Change joinWithNext(ViewRows view, Place at) {
   if (below.leaf case CodeNode(:final code) when code.isNotEmpty) {
     return (
       doc: view.doc,
-      selection: TextSelection.caret(Place(below.leaf.id, 0)),
+      caret: CaretAt(TextSelection.caret(Place(below.leaf.id, 0))),
     );
   }
   if (_emptyGone(view.doc, at.leaf) case final doc?) {
-    return (doc: doc, selection: TextSelection.caret(Place(below.leaf.id, 0)));
+    return (
+      doc: doc,
+      caret: CaretAt(TextSelection.caret(Place(below.leaf.id, 0))),
+    );
   }
   return deleteAcross(
     view,
@@ -156,7 +159,9 @@ Change typed(ViewRows view, Place from, int to, VisibleText insert) => (
     from.leaf,
     textAt(view.doc, from.leaf).replaced(from.offset, to, insert),
   ),
-  selection: TextSelection.caret(Place(from.leaf, from.offset + insert.length)),
+  caret: CaretAt(
+    TextSelection.caret(Place(from.leaf, from.offset + insert.length)),
+  ),
 );
 
 /// [range]'s places, the first shown first.

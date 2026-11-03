@@ -6,7 +6,8 @@ import '../visual_actions.dart';
 /// The toolbar of Visual edit: outdent and indent the caret's item (each
 /// only where it can), format the selected text, make it a heading, a
 /// list of a kind or a quote, add a separator, and break the line within
-/// its block. Each button does what [actions] says, then [onDone]. A bar
+/// its block. Each button does what [actions] says, then [onDone]; all
+/// are off while no caret shows, as they act at the caret. A bar
 /// at the bottom of the screen: its buttons stay clear of the system's
 /// bottom edge (e.g. Android's gesture line), its color goes under it.
 class FormatToolbar extends StatelessWidget {
@@ -81,11 +82,11 @@ class FormatToolbar extends StatelessWidget {
         tooltip: label,
         icon: Icon(icon),
         onPressed: switch (action) {
-          final action? => () {
+          final action? when actions.hasCaret => () {
             action();
             onDone();
           },
-          null => null,
+          _ => null,
         },
       );
 }

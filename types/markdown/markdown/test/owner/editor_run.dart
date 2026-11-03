@@ -79,8 +79,9 @@ final class EditorRun {
   void select(int row) =>
       send(CaretMoved(BlockSelection(leaf(row)), revision: revision));
 
+  /// [text] typed at the caret, which must show.
   void type(String text) =>
-      send(Typed(text, over: shown.selection, revision: revision));
+      send(Typed(text, over: shown.selection!, revision: revision));
 
   void press(EditKey key) => send(Pressed(key, revision: revision));
 

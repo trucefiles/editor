@@ -35,7 +35,10 @@ Change setFrame(ViewRows view, TextSelection selection, FrameKind kind) {
   };
   final fresh = view.doc.freshIds;
   final doc = steps.fold(view.doc, (doc, step) => step(doc, fresh));
-  return (doc: DocTree(doc.root, nextId: fresh.next), selection: selection);
+  return (
+    doc: DocTree(doc.root, nextId: fresh.next),
+    caret: CaretAt(selection),
+  );
 }
 
 /// The text rows [selection] covers, in order.

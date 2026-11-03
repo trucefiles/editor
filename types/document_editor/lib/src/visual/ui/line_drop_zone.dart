@@ -18,7 +18,8 @@ typedef _Target = ({_Place place, bool below});
 /// a [LineDropTarget] in [child], nearest to the dragged copy's middle,
 /// above or below its middle), the one gap open there, and the glide of
 /// the copy on release, into the gap while the row's old place closes,
-/// or, for a drag dropped nowhere, back to its row.
+/// onto its row shifted where it lands (a drop on its own row), or, for a
+/// drag dropped nowhere, back to its row.
 class LineDropZone extends StatefulWidget {
   const LineDropZone({
     required this.step,
@@ -182,18 +183,15 @@ class LineDropZoneState extends State<LineDropZone> {
     final levels = (copy.shift / widget.step).truncate();
     final target = _targetAt(places, drag.item, copy.middle);
     if (target == null) {
+      // On its own row: the shift lands now, the row still faded, and the
+      // copy glides to where the row then shows, however far it went.
       _drag.value = Lifted(drag.item);
-      return _glideTo(
-        drag,
-        from: details.offset,
-        to: _rowOrigin(drag),
-        then: () => widget.onDrop(
-          drag,
-          target: drag.item,
-          below: false,
-          levels: levels,
-        ),
+      widget.onDrop(drag, target: drag.item, below: false, levels: levels);
+      final glide = _glideFrom(drag, details.offset, then: () {});
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => glide(_rowOrigin(drag)),
       );
+      return;
     }
     final (:place, :below) = target;
     _drag.value = Landing(drag.item, _gapAt(target, own));
@@ -235,44 +233,74 @@ class LineDropZoneState extends State<LineDropZone> {
   }
 
   /// [drag]'s copy glides from [from] to [to], then [then] happens and
-  /// the drag is settled; at once without [to], or when it is there
-  /// already (a glide that goes nowhere never ends).
+  /// the drag is settled.
   void _glideTo(
     LineDrag drag, {
     required Offset from,
     required Offset? to,
     required VoidCallback then,
+  }) => _glideFrom(drag, from, then: then)(to);
+
+  /// Shows [drag]'s copy at [from]; the function returned lets it glide
+  /// to a place on screen, then [then] happens and the drag is settled:
+  /// at once without a place, or when it is there already (a glide that
+  /// goes nowhere never ends).
+  void Function(Offset? to) _glideFrom(
+    LineDrag drag,
+    Offset from, {
+    required VoidCallback then,
   }) {
     final overlay = Overlay.maybeOf(context);
     final box = overlay?.context.findRenderObject();
-    if (to == null || to == from || overlay == null || box is! RenderBox) {
-      return _settle(then);
+    if (overlay == null || box is! RenderBox) {
+      _settle(then);
+      return (_) {};
     }
-    final copy = drag.copy(
-      textScaler: MediaQuery.textScalerOf(context),
-      surface: Material.maybeOf(context)?.color,
-    );
+    final start = box.globalToLocal(from);
+    final end = ValueNotifier<Offset?>(null);
     late final OverlayEntry entry;
+    void landed() {
+      entry.remove();
+      end.dispose();
+      _glide = null;
+      _settle(then);
+    }
+
     entry = OverlayEntry(
-      builder: (_) => TweenAnimationBuilder<Offset>(
-        tween: Tween(
-          begin: box.globalToLocal(from),
-          end: box.globalToLocal(to),
-        ),
-        duration: _glideTime,
-        curve: Curves.easeOut,
-        onEnd: () {
-          entry.remove();
-          _glide = null;
-          _settle(then);
+      builder: (_) => ValueListenableBuilder(
+        valueListenable: end,
+        builder: (_, end, copy) => switch (end) {
+          null => Positioned(left: start.dx, top: start.dy, child: copy!),
+          final end => TweenAnimationBuilder<Offset>(
+            tween: Tween(begin: start, end: end),
+            duration: _glideTime,
+            curve: Curves.easeOut,
+            onEnd: landed,
+            builder: (_, offset, copy) =>
+                Positioned(left: offset.dx, top: offset.dy, child: copy!),
+            child: copy,
+          ),
         },
-        builder: (_, offset, child) =>
-            Positioned(left: offset.dx, top: offset.dy, child: child!),
-        child: IgnorePointer(child: copy),
+        child: IgnorePointer(
+          child: drag.copy(
+            textScaler: MediaQuery.textScalerOf(context),
+            surface: Material.maybeOf(context)?.color,
+          ),
+        ),
       ),
     );
     _glide = entry;
     overlay.insert(entry);
+    return (to) {
+      // Left meanwhile (e.g. the editor closed): the glide went with it.
+      if (!mounted || _glide != entry) return;
+      switch (to) {
+        case final to? when to != from:
+          end.value = box.globalToLocal(to);
+        case _:
+          landed();
+      }
+    };
   }
 
   /// The drop happens: [then], and the drag is over, so the gap closes

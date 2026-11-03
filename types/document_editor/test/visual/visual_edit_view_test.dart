@@ -681,7 +681,7 @@ void main() {
     });
 
     testWidgets('in a new document, start a list for typing', (tester) async {
-      final document = TestDocument('');
+      final document = TestDocument('', isNew: true);
       await pumpDocument(tester, document);
 
       await press(tester, 'Checklist (Ctrl+Shift+9)');

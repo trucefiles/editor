@@ -82,6 +82,13 @@ class _VisualEditViewState extends State<VisualEditView> {
     _notices = widget.notices.listen((notice) {
       if (notice case md.AskLink(:final range)) unawaited(_askLink(range));
     });
+    widget.gate.addListener(_keyboardFollowsCaret);
+  }
+
+  /// Without a caret (e.g. after a control), the editor gives up the
+  /// keyboard: nothing to type at.
+  void _keyboardFollowsCaret() {
+    if (!_actions.hasCaret && _focus.hasFocus) _focus.unfocus();
   }
 
   @override
@@ -108,6 +115,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   @override
   void dispose() {
     unawaited(_notices.cancel());
+    widget.gate.removeListener(_keyboardFollowsCaret);
     _adapter.dispose();
     _focus.dispose();
     super.dispose();

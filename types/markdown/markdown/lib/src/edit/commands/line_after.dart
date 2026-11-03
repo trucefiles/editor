@@ -13,6 +13,6 @@ Change lineAfter(ViewRows view, NodeId block) {
   final text = emptyParagraph(fresh);
   return (
     doc: withBlockAfter(view, block, text, fresh),
-    selection: TextSelection.caret(Place(text.id, 0)),
+    caret: CaretAt(TextSelection.caret(Place(text.id, 0))),
   );
 }

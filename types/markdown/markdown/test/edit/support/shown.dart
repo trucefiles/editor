@@ -56,8 +56,9 @@ final class Shown {
   Shown withDone(DoneSections? done) =>
       Shown._(ViewRows(doc, done: done), origin);
 
-  /// This document after [command], and the selection after it.
-  ({Shown document, Selection selection}) run(commands.Command command) {
+  /// This document after [command], and the selection after it (`null`:
+  /// no caret).
+  ({Shown document, Selection? selection}) run(commands.Command command) {
     final edited = commands.run(view, command);
     return (
       document: Shown._(ViewRows(edited.doc, done: view.done), origin),

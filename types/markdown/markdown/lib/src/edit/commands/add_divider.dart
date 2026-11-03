@@ -29,9 +29,8 @@ Change addDivider(ViewRows view, NodeId leaf) {
     ),
     _ => (
       doc: withBlockAfter(view, leaf, divider, fresh),
-      selection: caretAfter(
-        view,
-        (row) => goesWith(doc, row, {item?.id ?? leaf}),
+      caret: caretOrEnd(
+        caretAfter(view, (row) => goesWith(doc, row, {item?.id ?? leaf})),
       ),
     ),
   };
@@ -50,7 +49,7 @@ Change _inPlaceOf(
   }, fresh: fresh);
   final next = caretAfter(view, (row) => row.leaf.id == leaf);
   return item == null || _goesOnInList(view, item, leaf, next)
-      ? (doc: doc, selection: next)
+      ? (doc: doc, caret: caretOrEnd(next))
       : lineAfter(ViewRows(doc, done: view.done), divider.id);
 }
 

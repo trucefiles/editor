@@ -113,23 +113,20 @@ final class RemoveFrame extends EditCommand {
   final NodeId leaf;
 }
 
-/// Tab in the item at [selection]'s caret: it becomes a subitem of the
-/// item above. The selection is [after] then (e.g. the user's, kept while
-/// a swipe indents another row), else [selection].
+/// Tab (or a swipe) in the item at [selection]'s caret: it becomes a
+/// subitem of the item above; the selection stays.
 final class Indent extends EditCommand {
-  const Indent(this.selection, {this.after});
+  const Indent(this.selection);
 
   final TextSelection selection;
-  final Selection? after;
 }
 
-/// Shift+Tab in the item at [selection]'s caret: it goes one level out.
-/// The selection is [after] then, else [selection] (see [Indent]).
+/// Shift+Tab (or a swipe) in the item at [selection]'s caret: it goes one
+/// level out; the selection stays.
 final class Outdent extends EditCommand {
-  const Outdent(this.selection, {this.after});
+  const Outdent(this.selection);
 
   final TextSelection selection;
-  final Selection? after;
 }
 
 /// The heading button or shortcut at [at]: its text a heading of [level],
@@ -142,12 +139,12 @@ final class SetHeading extends EditCommand {
 }
 
 /// A checked item's wait ended, or a box toggled at once: [item]'s box
-/// toggled; [selection] stays.
+/// toggled; no caret after it, as after the other commands on items as a
+/// whole.
 final class Toggle extends EditCommand {
-  const Toggle(this.item, this.selection);
+  const Toggle(this.item);
 
   final NodeId item;
-  final Selection selection;
 }
 
 /// The row delete button on [item]: it goes with its subitems.
@@ -199,37 +196,30 @@ final class AddItem extends EditCommand {
 }
 
 /// A drop: [item] with its subitems right before [target], or after it
-/// if [below]; [selection] stays.
+/// if [below] (no caret after it, see [Toggle]).
 final class MoveItem extends EditCommand {
-  const MoveItem(
-    this.item,
-    this.target, {
-    required this.below,
-    required this.selection,
-  });
+  const MoveItem(this.item, this.target, {required this.below});
 
   final NodeId item;
   final NodeId target;
   final bool below;
-  final Selection selection;
 }
 
 /// "Clear checked items now": the checked items at the top level of
-/// [list], or of every list if `null`, go with their subitems.
+/// [list], or of every list if `null`, go with their subitems (see
+/// [Toggle]: no caret after it).
 final class ClearChecked extends EditCommand {
-  const ClearChecked(this.selection, {this.list});
+  const ClearChecked({this.list});
 
-  final Selection selection;
   final NodeId? list;
 }
 
 /// "Move checked items to end now", or a checked item's wait ending:
 /// [items] (by default every checked item at a list's top level) move to
-/// the end of their lists; [selection] stays.
+/// the end of their lists (no caret after it, see [Toggle]).
 final class MoveToEnd extends EditCommand {
-  const MoveToEnd(this.selection, {this.items});
+  const MoveToEnd({this.items});
 
-  final Selection selection;
   final List<NodeId>? items;
 }
 
@@ -309,14 +299,8 @@ Change _change(ViewRows view, EditCommand command) {
     JoinWithPrevious(:final at) => joinWithPrevious(view, at),
     JoinWithNext(:final at) => joinWithNext(view, at),
     RemoveFrame(:final leaf) => removeFrame(view, leaf),
-    Indent(:final selection, :final after) => _then(
-      indent(view, selection),
-      after,
-    ),
-    Outdent(:final selection, :final after) => _then(
-      outdent(view, selection),
-      after,
-    ),
+    Indent(:final selection) => indent(view, selection),
+    Outdent(:final selection) => outdent(view, selection),
     SetHeading(:final at, :final level) => setHeading(view, at, level),
     SetFrame(:final selection, :final kind) => setFrame(view, selection, kind),
     SetLink(:final range, :final text, :final url) => setLink(
@@ -331,11 +315,7 @@ Change _change(ViewRows view, EditCommand command) {
       selection,
       format,
     ),
-    Toggle(:final item, :final selection) => toggle(
-      view,
-      node(item),
-      selection,
-    ),
+    Toggle(:final item) => toggle(view, node(item)),
     DeleteItem(:final item) => deleteItem(view, node(item)),
     RemoveSelectedBlock(:final block, :final backward) => removeSelectedBlock(
       view,
@@ -350,15 +330,13 @@ Change _change(ViewRows view, EditCommand command) {
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),
     LineInPlace(:final block) => lineInPlace(view, block),
-    MoveItem(:final item, :final target, :final below, :final selection) =>
-      moveItem(
-        view,
-        node(item),
-        node(target),
-        below: below,
-        selection: selection,
-      ),
-    ClearChecked(:final selection, :final list) => clearItems(
+    MoveItem(:final item, :final target, :final below) => moveItem(
+      view,
+      node(item),
+      node(target),
+      below: below,
+    ),
+    ClearChecked(:final list) => clearItems(
       view,
       checkedItems(
         view.doc,
@@ -367,16 +345,11 @@ Change _change(ViewRows view, EditCommand command) {
           final id => node(id),
         },
       ),
-      selection,
     ),
-    MoveToEnd(:final selection, :final items) => moveToEnd(
-      view,
-      switch (items) {
-        null => checkedItems(view.doc),
-        final ids => [for (final id in ids) node<ItemNode>(id)],
-      },
-      selection,
-    ),
+    MoveToEnd(:final items) => moveToEnd(view, switch (items) {
+      null => checkedItems(view.doc),
+      final ids => [for (final id in ids) node<ItemNode>(id)],
+    }),
     CloseRaw(:final block, :final raw, :final selection) => closeRaw(
       view,
       block,
@@ -385,7 +358,3 @@ Change _change(ViewRows view, EditCommand command) {
     ),
   };
 }
-
-/// [change] with the selection [after], if given.
-Change _then(Change change, Selection? after) =>
-    after == null ? change : (doc: change.doc, selection: after);

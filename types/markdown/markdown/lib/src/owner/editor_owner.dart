@@ -66,7 +66,12 @@ EditorMachine editorMachine(
     state: EditorState(
       content: mode == EditMode.markdown
           ? MarkdownContent(start.text)
-          : FormattedContent(view: view, selection: startOf(view)),
+          : FormattedContent(
+              view: view,
+              // A new document starts with the caret in it; an existing
+              // one without, until the user taps into its text.
+              selection: version == null ? startOf(view) : null,
+            ),
       mode: mode,
       checkedItems: checkedItems,
       revision: 0,

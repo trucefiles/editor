@@ -97,6 +97,8 @@ void _expectSound(EditorState state, String fileText) {
           }
         case BlockSelection(:final block):
           expect(view.row(block), isA<BlockRow>(), reason: '$block shows');
+        case null:
+          break;
       }
   }
 }

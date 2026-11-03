@@ -87,11 +87,14 @@ final class Typed extends ShownInput {
 }
 
 /// [command] from the input method, a gesture, the toolbar or a menu;
-/// never a [Toggle], which is a [ToggleItems].
+/// never a [Toggle], which is a [ToggleItems]. One [byControl] (a row's
+/// delete button, drag or swipe, a menu) leaves no caret, so nothing
+/// scrolls to one; the next tap into text places it.
 final class Run extends ShownInput {
-  const Run(this.command, {required super.revision});
+  const Run(this.command, {required super.revision, this.byControl = false});
 
   final Command command;
+  final bool byControl;
 }
 
 /// A command comes: the open raw block, if one is, closes with what was
@@ -110,7 +113,8 @@ final class CaretMoved extends ShownInput {
 
 /// [items]' boxes toggled, in the order tapped, once the view's wait
 /// after the taps ended (see the plan's "checked items wait"); with "Move
-/// to end" the checked ones move, together.
+/// to end" the checked ones move, together. Leaves no caret, as any
+/// control does (see [Run.byControl]).
 final class ToggleItems extends ShownInput {
   ToggleItems(List<NodeId> items, {required super.revision})
     : items = List.unmodifiable(items);
@@ -190,7 +194,14 @@ final class SetCheckedItems extends EditorInput {
   final CheckedItems checkedItems;
 }
 
-/// [list]'s Done section collapsed or opened.
+/// A control was used (e.g. a box tapped, its toggle still waiting): no
+/// caret shows any more, as after any control (see [Run.byControl]).
+final class RemoveCaret extends EditorInput {
+  const RemoveCaret();
+}
+
+/// [list]'s Done section collapsed or opened; leaves no caret, as any
+/// control does (see [Run.byControl]).
 final class SetCollapsed extends EditorInput {
   const SetCollapsed(this.list, {required this.collapsed});
 
@@ -290,7 +301,8 @@ sealed class EditorContent {
   const EditorContent();
 }
 
-/// The document formatted: its [view] rows, the [selection] in them, the
+/// The document formatted: its [view] rows, the [selection] in them
+/// (`null`: no caret shows, e.g. on opening a file or after a control), the
 /// typing style the user set at the caret (`null` while it follows the
 /// text there), and the raw block open, if one is.
 final class FormattedContent extends EditorContent {
@@ -302,7 +314,7 @@ final class FormattedContent extends EditorContent {
   });
 
   final ViewRows view;
-  final Selection selection;
+  final Selection? selection;
   final Formatting? typingStyle;
   final RawRegion? raw;
 }

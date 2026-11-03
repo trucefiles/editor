@@ -23,7 +23,7 @@ TextSelection _range(Shown document, int row, int from, int to) =>
       Place(_text(document, row), to),
     );
 
-({Shown document, Selection selection}) _run(
+({Shown document, Selection? selection}) _run(
   String text,
   Command Function(Shown document) command,
 ) {

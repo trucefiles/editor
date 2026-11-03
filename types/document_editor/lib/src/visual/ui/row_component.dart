@@ -60,11 +60,12 @@ class _RowComponentState extends State<RowComponent>
     return FramedRow(
       frames: _row.frames,
       content: text,
-      copy: Text(
-        _row.text.toPlainText(),
-        style: _style(const {}),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      // The whole text, as the row shows it, so the dragged copy is as
+      // high as the gap it leaves.
+      copy: Text.rich(
+        _row.text.computeInlineSpan(context, _style, _row.inlineWidgetBuilders),
+        textDirection: _row.textDirection,
+        textAlign: _row.textAlignment,
       ),
       active: _row.selection != null,
       style: _row.textStyleBuilder(const {}),

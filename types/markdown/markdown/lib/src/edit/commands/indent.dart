@@ -72,7 +72,7 @@ Change indent(ViewRows view, TextSelection selection) {
         ]),
       ],
     }, fresh: fresh),
-    selection: selection,
+    caret: CaretAt(selection),
   );
 }
 
@@ -92,7 +92,7 @@ Change outdent(ViewRows view, TextSelection selection) {
       doc: doc.edited({
         list.id: liftedOut(list, {item.id}, fresh),
       }, fresh: fresh),
-      selection: selection,
+      caret: CaretAt(selection),
     );
   }
   final index = list.items.indexOf(item);
@@ -122,7 +122,7 @@ Change outdent(ViewRows view, TextSelection selection) {
     doc: doc.edited({
       parent.id: [outer, item.withChildren(children)],
     }, fresh: fresh),
-    selection: selection,
+    caret: CaretAt(selection),
   );
 }
 

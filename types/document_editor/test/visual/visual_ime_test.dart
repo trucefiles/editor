@@ -137,8 +137,10 @@ void main() {
     }, variant: android);
   });
 
-  testWidgets('typing while a box tap waits sends the tap first, and the '
-      'text lands in its item, in one change of the document', (tester) async {
+  testWidgets('a tap into text while a box tap waits sends the tap first, '
+      'and text typed then lands in its item, in one change of the document', (
+    tester,
+  ) async {
     final text = TestDocument(
       '- [ ] a\n- [ ] b',
       checkedItems: CheckedItems.moveToEnd,
@@ -147,6 +149,8 @@ void main() {
     await tester.caretIn(checkboxNodeOf(index: 1), 1);
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump();
+    await tester.tapAt(tester.tapPointIn(checkboxNodeOf(index: 1), 1));
+    await tester.pump(kTapTimeout);
     var changes = 0;
     final listener = FunctionalEditListener((_) => changes++);
     final library = tester.widget<SuperEditor>(find.byType(SuperEditor)).editor

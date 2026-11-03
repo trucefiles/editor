@@ -14,6 +14,6 @@ Change lineInPlace(ViewRows view, NodeId block) {
     doc: view.doc.edited({
       block: [text],
     }, fresh: fresh),
-    selection: TextSelection.caret(Place(text.id, 0)),
+    caret: CaretAt(TextSelection.caret(Place(text.id, 0))),
   );
 }

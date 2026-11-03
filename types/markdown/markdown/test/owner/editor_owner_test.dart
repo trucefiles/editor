@@ -24,6 +24,7 @@ void main() {
 
     test('sends at most every 30 s while it goes on', () {
       final run = EditorRun('ab')
+        ..caret(0, 0)
         ..type('x')
         ..type('y');
       run.fire(SaveTimer.long);
@@ -35,6 +36,7 @@ void main() {
 
     test('writes into the folder 30 s after a pause', () {
       final run = EditorRun('ab')
+        ..caret(0, 0)
         ..type('x')
         ..pause();
       run.fire(SaveTimer.folder);
@@ -138,7 +140,9 @@ void main() {
     });
 
     test('a timer firing leaves what shows as it was', () {
-      final run = EditorRun('ab')..type('x');
+      final run = EditorRun('ab')
+        ..caret(0, 0)
+        ..type('x');
       final revision = run.revision;
       run.pause();
       expect(run.revision, revision);
@@ -162,7 +166,7 @@ void main() {
     });
 
     test('switching to Read sends the edits, so they are what shows', () {
-      final run = EditorRun('a');
+      final run = EditorRun('a')..caret(0, 0);
       run.type('x');
       expect(run.edits, isEmpty);
 
@@ -215,7 +219,9 @@ void main() {
     });
 
     test('a change elsewhere after an edit not sent there is ignored', () {
-      final run = EditorRun('ab')..type('x');
+      final run = EditorRun('ab')
+        ..caret(0, 0)
+        ..type('x');
       run.request(const FromFile(Replaced('z', version: v2, ackRev: 0)));
       expect(run.rows, ['xab']);
       run.pause();
@@ -223,7 +229,9 @@ void main() {
     });
 
     test('a pick always shows, and later edits descend from it', () {
-      final run = EditorRun('ab')..type('x');
+      final run = EditorRun('ab')
+        ..caret(0, 0)
+        ..type('x');
       // The file owner never got the edit at rev 1: revs go on from 0.
       run.request(const FromFile(Picked('z', version: v2, rev: 0)));
       expect(run.rows, ['z']);
@@ -280,9 +288,9 @@ void main() {
       final run = EditorRun('- [x] a\n- [ ] b', mode: EditMode.read);
       final before = run.shown;
       run
-        ..runCommand(MoveToEnd(run.shown.selection))
-        ..runCommand(ClearChecked(run.shown.selection))
-        ..runCommand(Toggle(run.item(0), run.shown.selection));
+        ..runCommand(const MoveToEnd())
+        ..runCommand(const ClearChecked())
+        ..runCommand(Toggle(run.item(0)));
       expect(run.shown, before);
       expect(
         run.edits.map((edit) => edit.text),
@@ -332,7 +340,7 @@ void main() {
     test('are toggled by a box tap only, never a Toggle command', () {
       final run = EditorRun('- [ ] a');
       expect(
-        () => run.runCommand(Toggle(run.item(0), run.shown.selection)),
+        () => run.runCommand(Toggle(run.item(0))),
         throwsA(isA<AssertionError>()),
       );
     });
@@ -474,7 +482,9 @@ void main() {
   });
 
   test('securing sends the text first', () {
-    final run = EditorRun('ab')..type('x');
+    final run = EditorRun('ab')
+      ..caret(0, 0)
+      ..type('x');
     run.request(SecureEditor(Ticket(), SecureReason.hide));
     expect(
       run.outputs.whereType<ToFile>().map((out) => out.input.runtimeType),

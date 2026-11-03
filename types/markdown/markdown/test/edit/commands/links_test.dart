@@ -7,7 +7,7 @@ import '../support/shown.dart';
 
 /// [text] after the link dialog sets [shows] linking [url] over [from]
 /// to [to] of its first row; with the selection after.
-(String, Selection) _linked(
+(String, Selection?) _linked(
   String text,
   int from,
   int to,

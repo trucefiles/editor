@@ -19,13 +19,13 @@ Change removeSelectedBlock(
     _lineInItem(view, block) ??
     (
       doc: view.doc.edited({block: const []}),
-      selection: caretOnceGone(view, {block}, above: backward),
+      caret: caretOnceGone(view, {block}, above: backward),
     );
 
 /// [block] gone by Backspace or Delete pressed right next to it, at
 /// [caret], a place in a text that stays: the caret stays there.
 Change removeBlockNextTo(ViewRows view, NodeId block, Place caret) =>
-    (doc: _gone(view, block), selection: TextSelection.caret(caret));
+    (doc: _gone(view, block), caret: CaretAt(TextSelection.caret(caret)));
 
 /// [view]'s document without [block]; see [_lineInItem].
 DocTree _gone(ViewRows view, NodeId block) =>

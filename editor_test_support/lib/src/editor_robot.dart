@@ -33,17 +33,19 @@ import 'package:truce_markdown/truce_markdown.dart'
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// An open document's editor owner in memory, as the editor views get it:
-/// records the text it sends to be kept, and the links opened.
+/// records the text it sends to be kept, and the links opened. A [isNew]
+/// document was just created: it opens with the caret in it.
 final class TestDocument {
   TestDocument(
     String text, {
     EditMode mode = EditMode.visual,
     CheckedItems checkedItems = CheckedItems.doneSection,
+    bool isNew = false,
   }) : _text = text,
        gate = EditorGate(
          editorOwner(
            MarkdownStart.read(text),
-           version: const Version(1),
+           version: isNew ? null : const Version(1),
            mode: mode,
            checkedItems: checkedItems,
            // Never fire: the text is sent as the tests ask.
