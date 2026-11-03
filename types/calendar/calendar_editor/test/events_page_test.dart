@@ -447,9 +447,8 @@ void main() {
     );
   });
 
-  testWidgets('a tap on a day of the month asks for an event that day', (
-    tester,
-  ) async {
+  testWidgets('a tap on a day of the month asks for an all-day event that '
+      'day', (tester) async {
     final part = calendarPart(newCalendarText('Home'));
     await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
@@ -460,6 +459,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_on(part, DateTime(2026, 11, 20)), ['Party']);
+    final party = calendarOf(part).events.single.series;
+    expect(
+      (party.start, party.end),
+      (AllDay(DateTime(2026, 11, 20)), AllDay(DateTime(2026, 11, 21))),
+    );
   });
 
   for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.touch]) {

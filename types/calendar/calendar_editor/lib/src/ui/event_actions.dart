@@ -8,9 +8,8 @@ import 'occurrence_details.dart';
 /// Makes a calendar edit at the time it is given.
 typedef MakeEdit = void Function(CalendarEdit Function(DateTime at) edit);
 
-/// Asks for a new event at [spot] and adds it: at its times, over its
-/// whole days, else on its day from 9:00 for an hour; times in the
-/// device's zone.
+/// Asks for a new event at [spot] and adds it: at its times, else over
+/// its whole days (a tapped day: that day); times in the device's zone.
 Future<void> addEvent(
   BuildContext context,
   NewEventSpot spot,
@@ -19,21 +18,18 @@ Future<void> addEvent(
 ) async {
   final zone = await deviceZone();
   if (!context.mounted) return;
-  CalendarTime at(DateTime time, {int? hour}) => timeAt(
-    DateTime.utc(
-      time.year,
-      time.month,
-      time.day,
-      hour ?? time.hour,
-      hour == null ? time.minute : 0,
-    ),
+  CalendarTime at(DateTime time) => timeAt(
+    DateTime.utc(time.year, time.month, time.day, time.hour, time.minute),
     allDay: false,
     deviceZone: zone,
   );
   final (start, end) = switch (spot) {
     AtTimes(:final start, :final end) => (at(start), at(end)),
     OnDays(:final first, :final end) => (AllDay(first), AllDay(end)),
-    OnDay(:final day) => (at(day, hour: 9), at(day, hour: 10)),
+    OnDay(:final day) => (
+      AllDay(day),
+      AllDay(DateTime(day.year, day.month, day.day + 1)),
+    ),
   };
   final draft = await showEventForm(
     context,

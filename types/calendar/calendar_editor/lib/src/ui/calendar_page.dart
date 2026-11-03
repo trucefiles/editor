@@ -4,11 +4,9 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../calendar_editor_part.dart';
 import 'event_actions.dart';
 import 'events_page.dart';
-import 'health_page.dart';
 
-/// The calendar [part]'s editor shows, as it changes: a health calendar
-/// as its health view, any other as its events; a text that is no
-/// calendar as it is, to read. Edits only while the part is editing.
+/// The calendar [part]'s editor shows, as it changes: the calendar's
+/// page; a text that is no calendar as it is, to read. Edits only while the part is editing.
 class CalendarPage extends StatelessWidget {
   const CalendarPage(
     this.part, {
@@ -51,11 +49,6 @@ class CalendarPage extends StatelessWidget {
       final MakeEdit? edit = part.isEditing ? _edit : null;
       return switch (state.calendar) {
         null => _NoCalendar(state.text),
-        final calendar when calendar.isHealth => HealthPage(
-          calendar,
-          edit: edit,
-          now: now,
-        ),
         final calendar => EventsPage(
           calendar,
           edit: edit,

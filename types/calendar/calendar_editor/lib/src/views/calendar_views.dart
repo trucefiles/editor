@@ -3,7 +3,9 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import 'calendar_views_model.dart';
+import 'day_cells.dart';
 import 'event_tiles.dart';
+import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
 import 'views_bar.dart';
@@ -20,7 +22,10 @@ typedef OnMove<K> = void Function(
 );
 
 /// [calendars] (by key) in a month, week, day or schedule view, each in
-/// its color ([colorOf]); the user picks the view ([onKind] tells it, to
+/// its color ([colorOf]; an event's own color or health kind comes
+/// first), what they tell above (the insights strip, each named by
+/// [titleOf] if given), the month's days shaded (weekends, health
+/// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time and taps an occurrence ([onTap]). Only with
 /// [onAdd] can the user add: by a tap on a free time or day, a drag over
 /// free times or days, or the Add button. Only with [onMove] can the
@@ -32,6 +37,7 @@ class CalendarViews<K> extends StatefulWidget {
     required this.kind,
     required this.onKind,
     required this.now,
+    this.titleOf,
     this.onTap,
     this.onAdd,
     this.onMove,
@@ -47,6 +53,10 @@ class CalendarViews<K> extends StatefulWidget {
 
   /// The time now; today shows from it.
   final DateTime Function() now;
+
+  /// A calendar's title, to name it above the views; `null` when only one
+  /// shows.
+  final String Function(K calendar)? titleOf;
   final OnOccurrence<K>? onTap;
   final ValueChanged<NewEventSpot>? onAdd;
   final OnMove<K>? onMove;
@@ -189,7 +199,20 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onPrevious: kalender.animateToPreviousPage,
           onNext: kalender.animateToNextPage,
           onToday: () => kalender.animateToDate(widget.now()),
-          onAdd: onAdd == null ? null : () => onAdd(OnDay(_model.dayToAdd)),
+          // Add starts as an hour from 9:00 on the day to add to.
+          onAdd: onAdd == null
+              ? null
+              : () => onAdd(
+                  AtTimes(
+                    _model.dayToAdd.add(const Duration(hours: 9)),
+                    _model.dayToAdd.add(const Duration(hours: 10)),
+                  ),
+                ),
+        ),
+        InsightsStrip<K>(
+          health: _model.health,
+          today: _model.today,
+          titleOf: widget.titleOf,
         ),
         Expanded(
           child: KalenderView(
@@ -197,6 +220,13 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             kalenderController: kalender,
             locale: Localizations.localeOf(context),
             callbacks: callbacks,
+            components: KalenderComponents(
+              monthComponents: MonthComponents(
+                bodyComponents: MonthBodyComponents(
+                  monthDayCellBuilder: dayCells(_model.health),
+                ),
+              ),
+            ),
             interaction: KalenderInteraction(
               allowResizing: movable,
               allowRescheduling: movable,

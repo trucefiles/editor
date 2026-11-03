@@ -5,11 +5,13 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import '../views/calendar_views.dart';
 import 'event_actions.dart';
+import 'health_actions.dart';
 
-/// A calendar in the calendar views: tap an event to see it whole, and to
-/// edit or delete it; tap a free time or day, or Add event, to add one;
-/// drag an event or its edge to move that one date. Only to read unless
-/// [edit] is given.
+/// A calendar's page: the calendar in the calendar views. Tap an event to
+/// see it whole and to edit or delete it (a health entry in its own
+/// form); tap a free time or day, or Add, to add one (to a health
+/// calendar: an entry of a kind picked first); drag an event or its edge
+/// to move that one date. Only to read unless [edit] is given.
 class EventsPage extends StatelessWidget {
   const EventsPage(
     this.calendar, {
@@ -37,11 +39,14 @@ class EventsPage extends StatelessWidget {
       kind: viewChoice.last(),
       onKind: (kind) => unawaited(viewChoice.keep(kind)),
       now: now,
-      onTap: (_, occurrence) =>
-          showOccurrence(context, occurrence, edit, deviceZone),
+      onTap: (_, occurrence) => occurrence.part.health == null
+          ? showOccurrence(context, occurrence, edit, deviceZone)
+          : showHealthEntry(context, occurrence, edit),
       onAdd: edit == null
           ? null
-          : (spot) => addEvent(context, spot, edit, deviceZone),
+          : (spot) => calendar.isHealth
+                ? addHealthEntry(context, spot.firstDay, edit)
+                : addEvent(context, spot, edit, deviceZone),
       onMove: edit == null
           ? null
           : (_, occurrence, start, end) =>
