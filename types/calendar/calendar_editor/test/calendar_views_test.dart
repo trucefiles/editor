@@ -70,4 +70,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(tapped, [('home', 'Dentist')]);
   });
+
+  testWidgets('the schedule keeps showing what is further down and on the '
+      'next page', (tester) async {
+    Calendar on(String event, DateTime day) => applyEdit(
+      Calendar.read(newCalendarText(event))!,
+      AddEvent(
+        event,
+        EventDraft(
+          summary: event,
+          start: Floating(DateTime.utc(day.year, day.month, day.day, 9)),
+          end: Floating(DateTime.utc(day.year, day.month, day.day, 10)),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarViews<String>(
+            calendars: {
+              'a': on('Early', DateTime(2026, 11, 5)),
+              'b': on('Late', DateTime(2026, 11, 20)),
+              'c': on('Party', DateTime(2026, 12, 7)),
+            },
+            colorOf: (_) => Colors.teal,
+            kind: CalendarViewKind.schedule,
+            onKind: (_) {},
+            now: () => DateTime(2026, 11, 3, 8),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Late'), findsOneWidget);
+
+    await tester.drag(find.text('Early'), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(find.text('Late'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Party'), findsOneWidget);
+  });
 }

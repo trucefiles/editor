@@ -37,8 +37,34 @@ void main() {
     model.showRange(DateTime(2026, 11), DateTime(2026, 12));
     expect(_shown(model), [('home', 'Dentist'), ('work', 'Review')]);
 
+    model.showRange(DateTime(2027, 2), DateTime(2027, 3));
+    expect(_shown(model), isEmpty, reason: 'far from them');
+  });
+
+  test('occurrences around the range stay: its months and one on each '
+      'side', () {
+    final december = _calendar('Home', 'Party', DateTime(2026, 12, 7));
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.schedule,
+      calendars: {'home': home, 'party': december},
+      now: () => DateTime(2026, 11, 10, 12),
+    );
+    addTearDown(model.dispose);
+
+    // A schedule tells only the part scrolled to.
     model.showRange(DateTime(2026, 11, 15), DateTime(2026, 11, 22));
-    expect(_shown(model), [('work', 'Review')]);
+    expect(_shown(model), [('home', 'Dentist'), ('party', 'Party')]);
+
+    var changes = 0;
+    model.addListener(() => changes++);
+    final before = model.shown;
+    model.showRange(DateTime(2026, 11, 3), DateTime(2026, 11, 10));
+    expect(changes, 1, reason: 'the range is new');
+    expect(
+      identical(model.shown, before),
+      isTrue,
+      reason: 'not worked out again',
+    );
   });
 
   test('new calendars show; the same ones change nothing', () {
