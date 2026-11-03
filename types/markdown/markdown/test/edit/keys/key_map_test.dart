@@ -70,8 +70,14 @@ void main() {
     });
   });
 
-  test('Shift+Enter is a line break, in code a new line', () {
+  test('Shift+Enter is a line break, in code a new line, in a heading '
+      'as Enter', () {
     expect(_pressed('ab', 0, 1, EditKey.shiftEnter), 'a\\\nb');
+    expect(
+      _pressed('# ab', 0, 1, EditKey.shiftEnter),
+      _pressed('# ab', 0, 1, EditKey.enter),
+      reason: 'a heading holds no line break',
+    );
     expect(
       _pressed('```\nab\n```', 0, 1, EditKey.shiftEnter),
       '```\na\nb\n```',

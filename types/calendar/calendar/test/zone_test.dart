@@ -223,6 +223,25 @@ END:VTIMEZONE
       );
     });
 
+    test('a UTC one is edited on the device clock and stays in UTC', () {
+      final utc = UtcTime(wall);
+      final local = wall.toLocal();
+      expect(
+        utc.editWall,
+        DateTime.utc(local.year, local.month, local.day, local.hour),
+      );
+      expect(
+        timeAt(
+          utc.editWall,
+          allDay: false,
+          was: utc,
+          deviceZone: 'Europe/Berlin',
+        ),
+        utc,
+      );
+      expect(Zoned('America/New_York', wall).editWall, wall);
+    });
+
     test('a day turned into a time takes the device zone', () {
       expect(
         timeAt(

@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../views/new_event_spot.dart';
 import 'color_choice.dart';
 
 /// Opens the event form on [draft] (a new event's, or what an event says
@@ -49,7 +50,8 @@ const _frequencyWords = {
 /// The event form: title, all day, start and end, repeat, alert, color,
 /// place and notes. What it doesn't show of the event (e.g. a health
 /// entry, a time zone) stays as it was; an event in another zone than
-/// the device's shows its own clock, its zone named below the times.
+/// the device's shows its own clock, its zone named below the times; an
+/// event in UTC shows on the device's clock and stays in UTC.
 class EventForm extends StatefulWidget {
   const EventForm(
     this.draft, {
@@ -76,7 +78,8 @@ class _EventFormState extends State<EventForm> {
   late final _summary = TextEditingController(text: widget.draft.summary);
   late final _location = TextEditingController(text: widget.draft.location);
   late final _notes = TextEditingController(text: widget.draft.description);
-  late var _times = _FormTimes.of(widget.draft);
+  late final _openedTimes = _FormTimes.of(widget.draft);
+  late var _times = _openedTimes;
   late var _repeat = widget.draft.repeat;
   late var _alerts = widget.draft.alerts;
   late var _color = widget.draft.color;
@@ -91,8 +94,14 @@ class _EventFormState extends State<EventForm> {
 
   EventDraft get _drafted => EventDraft(
     summary: _summary.text.trim(),
-    start: _times.start(widget.draft.start, widget.deviceZone),
-    end: _times.end(widget.draft.start, widget.deviceZone),
+    // Times the user left as they were keep their own bytes (e.g. seconds,
+    // which the form doesn't show), so they don't count as changed.
+    start: _times == _openedTimes
+        ? widget.draft.start
+        : _times.start(widget.draft.start, widget.deviceZone),
+    end: _times == _openedTimes
+        ? widget.draft.end
+        : _times.end(widget.draft.start, widget.deviceZone),
     description: _notes.text,
     location: _location.text.trim(),
     repeat: _repeat,
@@ -235,7 +244,6 @@ class _EventFormState extends State<EventForm> {
   String? get _otherZone => switch (widget.draft.start) {
     _ when _times.allDay => null,
     Zoned(:final zone) when zone != widget.deviceZone => zone,
-    UtcTime() => 'UTC',
     _ => null,
   };
 
@@ -345,7 +353,7 @@ final class _FormTimes {
   });
 
   factory _FormTimes.of(EventDraft draft) {
-    final (start, end) = (draft.start.wall, draft.end.wall);
+    final (start, end) = (draft.start.editWall, draft.end.editWall);
     final allDay = draft.start is AllDay;
     final lastDay = allDay ? end.subtract(const Duration(days: 1)) : end;
     return _FormTimes(
@@ -393,7 +401,18 @@ final class _FormTimes {
     endTime: endTime ?? this.endTime,
   );
 
-  _FormTimes withAllDay(bool allDay) => copy(allDay: allDay);
+  /// All day on keeps the days; off gives the start day the usual hour
+  /// of a new event, as the days' own times (midnight) mean nothing.
+  _FormTimes withAllDay(bool allDay) => allDay
+      ? copy(allDay: true)
+      : switch (AtTimes.usualOn(startDay)) {
+          AtTimes(:final start, :final end) => copy(
+            allDay: false,
+            startTime: TimeOfDay.fromDateTime(start),
+            endDay: startDay,
+            endTime: TimeOfDay.fromDateTime(end),
+          ),
+        };
 
   /// A new start day moves the end along, so the event keeps its length.
   _FormTimes withStartDay(DateTime day) {
@@ -414,6 +433,18 @@ final class _FormTimes {
       endTime: TimeOfDay(hour: end.hour, minute: end.minute),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is _FormTimes &&
+      other.allDay == allDay &&
+      other.startDay == startDay &&
+      other.startTime == startTime &&
+      other.endDay == endDay &&
+      other.endTime == endTime;
+
+  @override
+  int get hashCode => Object.hash(allDay, startDay, startTime, endDay, endTime);
 
   static DateTime _wall(DateTime day, TimeOfDay? time) => DateTime.utc(
     day.year,

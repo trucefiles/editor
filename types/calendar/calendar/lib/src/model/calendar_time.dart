@@ -14,6 +14,10 @@ sealed class CalendarTime {
   /// When it is on this device's clock.
   DateTime get local;
 
+  /// The wall clock a person edits it on: [wall], but a UTC moment on
+  /// this device's clock, as UTC is no place a person knows.
+  DateTime get editWall => wall;
+
   /// The same kind of time with [wall] instead (e.g. one occurrence of a
   /// repeating event).
   CalendarTime at(DateTime wall);
@@ -24,10 +28,11 @@ sealed class CalendarTime {
   CalendarTime sameKindAt(DateTime moment);
 }
 
-/// The time a new or changed event gets at [wall] (a wall clock): a day
-/// if [allDay]; else of [was]'s kind if that is a time of day, so an event
-/// keeps its zone; else in [deviceZone], this device's time zone, if the
-/// app knows it, else floating.
+/// The time a new or changed event gets at [wall] (a wall clock as a
+/// person edits it, see [CalendarTime.editWall]): a day if [allDay]; else
+/// of [was]'s kind if that is a time of day, so an event keeps its zone;
+/// else in [deviceZone], this device's time zone, if the app knows it,
+/// else floating.
 CalendarTime timeAt(
   DateTime wall, {
   required bool allDay,
@@ -35,6 +40,7 @@ CalendarTime timeAt(
   String? deviceZone,
 }) => switch ((allDay, was, deviceZone)) {
   (true, _, _) => AllDay(wall),
+  (false, UtcTime(), _) => UtcTime(_localOf(wall).toUtc()),
   (false, final was?, _) when was is! AllDay => was.at(wall),
   (false, _, final zone?) when locationOf(zone) != null => Zoned(zone, wall),
   _ => Floating(wall),
@@ -95,6 +101,9 @@ final class UtcTime extends CalendarTime {
 
   @override
   DateTime get local => wall.toLocal();
+
+  @override
+  DateTime get editWall => _asWall(local);
 
   @override
   UtcTime at(DateTime wall) => UtcTime(wall);

@@ -153,4 +153,27 @@ void main() {
     // Ends the next midnight's wake before the test checks for timers.
     model.dispose();
   });
+
+  testWidgets('today moves on within a minute after a sleep past midnight', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 11, 1, 22);
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => now,
+    );
+    var changes = 0;
+    model.addListener(() => changes++);
+
+    await tester.pump(const Duration(minutes: 1));
+    expect(changes, 0, reason: 'the same day');
+
+    // The device slept: the clock went on, the timers didn't.
+    now = DateTime(2026, 11, 2, 7);
+    await tester.pump(const Duration(minutes: 1));
+
+    expect((model.today, changes), (DateTime(2026, 11, 2), 1));
+    model.dispose();
+  });
 }

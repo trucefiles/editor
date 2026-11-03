@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.0" date="2026-11-03">
+      <description>
+        <ul>
+          <li>Visual edit shows no cursor until you tap into text, and indents smoothly.</li>
+          <li>Calendars have one look and event colors; from the Calendar tab you can edit an event or open its calendar.</li>
+          <li>Home can show several folders and kinds of files at once; drag folders to order them.</li>
+          <li>A view menu switches between Recent and All files.</li>
+          <li>Dates and times follow your device's language and region.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.11.0" date="2026-11-03">
       <description>
         <ul>

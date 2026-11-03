@@ -111,7 +111,8 @@ void main() {
     expect(calendarOf(part).zones, {'Europe/Berlin'});
   });
 
-  testWidgets('an event in UTC says so', (tester) async {
+  testWidgets('an event in UTC is edited on the device clock and stays in '
+      'UTC', (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
       AddEvent(
@@ -124,9 +125,10 @@ void main() {
         at: editedAt,
       ),
     );
+    final part = calendarPart(calendar.text);
     await pumpPage(
       tester,
-      calendarPart(calendar.text),
+      part,
       today: DateTime(2026, 11, 3),
       deviceZone: 'Europe/Berlin',
     );
@@ -134,7 +136,47 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    expect(find.text('Times are in UTC.'), findsOne);
+    expect(find.textContaining('Times are in'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(
+      (event.summary, event.start, event.end),
+      (
+        'Late',
+        UtcTime(DateTime.utc(2026, 11, 3, 9)),
+        UtcTime(DateTime.utc(2026, 11, 3, 10)),
+      ),
+    );
+  });
+
+  testWidgets('times left as they were keep their seconds', (tester) async {
+    final (start, end) = (
+      Floating(DateTime.utc(2026, 11, 3, 9, 0, 30)),
+      Floating(DateTime.utc(2026, 11, 3, 10, 0, 30)),
+    );
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'call',
+        EventDraft(summary: 'Call', start: start, end: end),
+        at: editedAt,
+      ),
+    );
+    final part = calendarPart(calendar.text);
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect((event.summary, event.start, event.end), ('Late', start, end));
   });
 
   testWidgets('an event of another zone shows and keeps its zone', (
@@ -230,6 +272,31 @@ void main() {
 
     expect(calendarOf(part).events.single.series.location, 'Home');
     expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
+  });
+
+  testWidgets('All day turned off gives the first day the usual hour', (
+    tester,
+  ) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(tester, part, today: _annsDay);
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit all of them'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All day'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(
+      (event.start, event.end),
+      (
+        Floating(DateTime.utc(2020, 3, 12, 9)),
+        Floating(DateTime.utc(2020, 3, 12, 10)),
+      ),
+    );
   });
 
   testWidgets('a read-only calendar shows an event and offers no edits', (

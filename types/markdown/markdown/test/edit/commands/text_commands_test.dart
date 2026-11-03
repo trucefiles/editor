@@ -86,6 +86,20 @@ void main() {
     expect(edited.selection, edited.document.caret(0, 1));
   });
 
+  test('inline HTML at the start of a heading written with # stays HTML, '
+      'as no HTML block starts after the #', () {
+    final document = Shown.read('# Hi <img src="logo.png"/>\n\nb');
+    final edited = document.run(DeleteRange(_range(document, 0, 0, 3)));
+    expect(edited.document.text, '# <img src="logo.png"/>\n\nb');
+  });
+
+  test('inline HTML at the start of an underlined heading is written as '
+      'text, where it would start an HTML block', () {
+    final document = Shown.read('Hi <div>\n===\n\nb');
+    final edited = document.run(DeleteRange(_range(document, 0, 0, 3)));
+    expect(edited.document.text, '\\<div>\n===\n\nb');
+  });
+
   test('a line break between words drops the space after it', () {
     final document = Shown.read('Hello world');
     final edited = document.run(LineBreak(document.caret(0, 5)));

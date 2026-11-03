@@ -21,9 +21,29 @@ Locale supportedLocaleOf(Locale device) =>
     };
 
 /// The name of the date formats for [locale] (e.g. `de_CH` or `de-CH`),
-/// as `intl` has them: its own, else its language's, else English.
-String dateLocaleOf(String locale) => Intl.verifiedLocale(
+/// as `intl` has them: its own, else the closest one. As in the Unicode
+/// locale data (CLDR), English in a European region intl lacks reads as
+/// British English (day before month, 24-hour clock, weeks from Monday);
+/// any other locale falls back to its language, else to English.
+String dateLocaleOf(String locale) => switch (Intl.verifiedLocale(
   locale,
   DateFormat.localeExists,
   onFailure: (_) => 'en',
-)!;
+)!) {
+  'en' when _isEnglishInEurope(locale) => 'en_GB',
+  final found => found,
+};
+
+bool _isEnglishInEurope(String locale) =>
+    switch (Intl.canonicalizedLocale(locale).split('_')) {
+      ['en', ..., final region] => _europe.contains(region),
+      _ => false,
+    };
+
+/// The regions of Europe, and Europe itself (`150`), as locales name them.
+final _europe =
+    ('150 AD AL AT AX BA BE BG BY CH CY CZ DE DK EE ES FI FO FR GB GG GI GR '
+            'HR HU IE IM IS IT JE LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS '
+            'RU SE SI SJ SK SM UA VA XK')
+        .split(' ')
+        .toSet();

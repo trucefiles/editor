@@ -2,6 +2,7 @@ import '../doc/doc_nodes.dart';
 import '../tree/blocks.dart';
 import '../tree/document_style.dart';
 import 'inline_layout.dart';
+import 'leaf_lines.dart';
 import 'print_style.dart';
 
 /// The layouts of a document's texts for one print: each text laid out
@@ -23,6 +24,7 @@ final class TextLayouts {
     heading: node is HeadingNode,
     definitions: definitions,
     style: spanStyleOf(node.source, style),
+    afterMarker: node is HeadingNode && !isSetext(node),
   );
 
   /// [node] with its text as Markdown can write it: the same node if its

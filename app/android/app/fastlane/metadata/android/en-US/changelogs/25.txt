@@ -1,0 +1,5 @@
+- Visual edit shows no cursor until you tap into text; smooth indent
+- Calendars have one look and event colors; edit an event or open its calendar from the Calendar tab
+- Home shows several folders and kinds of files at once; drag folders to order them
+- A view menu switches between Recent and All files
+- Dates and times follow your device's language and region
