@@ -72,7 +72,7 @@ void main() {
           (folderId('home'), null),
         ],
       );
-      expect(sections.last.files, [a9, a10, b]);
+      expect(sections[1].files, [a9, a10, b]);
     });
   });
 }
