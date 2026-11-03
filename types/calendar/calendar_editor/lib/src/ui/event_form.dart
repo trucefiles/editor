@@ -78,7 +78,8 @@ class _EventFormState extends State<EventForm> {
   late final _summary = TextEditingController(text: widget.draft.summary);
   late final _location = TextEditingController(text: widget.draft.location);
   late final _notes = TextEditingController(text: widget.draft.description);
-  late var _times = _FormTimes.of(widget.draft);
+  late final _openedTimes = _FormTimes.of(widget.draft);
+  late var _times = _openedTimes;
   late var _repeat = widget.draft.repeat;
   late var _alerts = widget.draft.alerts;
   late var _color = widget.draft.color;
@@ -93,8 +94,14 @@ class _EventFormState extends State<EventForm> {
 
   EventDraft get _drafted => EventDraft(
     summary: _summary.text.trim(),
-    start: _times.start(widget.draft.start, widget.deviceZone),
-    end: _times.end(widget.draft.start, widget.deviceZone),
+    // Times the user left as they were keep their own bytes (e.g. seconds,
+    // which the form doesn't show), so they don't count as changed.
+    start: _times == _openedTimes
+        ? widget.draft.start
+        : _times.start(widget.draft.start, widget.deviceZone),
+    end: _times == _openedTimes
+        ? widget.draft.end
+        : _times.end(widget.draft.start, widget.deviceZone),
     description: _notes.text,
     location: _location.text.trim(),
     repeat: _repeat,
@@ -426,6 +433,18 @@ final class _FormTimes {
       endTime: TimeOfDay(hour: end.hour, minute: end.minute),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is _FormTimes &&
+      other.allDay == allDay &&
+      other.startDay == startDay &&
+      other.startTime == startTime &&
+      other.endDay == endDay &&
+      other.endTime == endTime;
+
+  @override
+  int get hashCode => Object.hash(allDay, startDay, startTime, endDay, endTime);
 
   static DateTime _wall(DateTime day, TimeOfDay? time) => DateTime.utc(
     day.year,

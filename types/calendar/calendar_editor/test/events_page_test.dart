@@ -152,6 +152,33 @@ void main() {
     );
   });
 
+  testWidgets('times left as they were keep their seconds', (tester) async {
+    final (start, end) = (
+      Floating(DateTime.utc(2026, 11, 3, 9, 0, 30)),
+      Floating(DateTime.utc(2026, 11, 3, 10, 0, 30)),
+    );
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'call',
+        EventDraft(summary: 'Call', start: start, end: end),
+        at: editedAt,
+      ),
+    );
+    final part = calendarPart(calendar.text);
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect((event.summary, event.start, event.end), ('Late', start, end));
+  });
+
   testWidgets('an event of another zone shows and keeps its zone', (
     tester,
   ) async {
