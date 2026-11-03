@@ -380,6 +380,7 @@ Component _drafted(Component event, EventDraft draft, {required bool series}) {
       .withText('SUMMARY', draft.summary, now.summary)
       .withText('DESCRIPTION', draft.description, now.description)
       .withText('LOCATION', draft.location, now.location)
+      .withText('COLOR', draft.color?.value ?? '', now.color?.value ?? '')
       .withTime('DTSTART', draft.start, now.start)
       .withTime('DTEND', draft.end, timesChanged ? endWritten : now.end);
   if (timesChanged) edited = edited.withProperty('DURATION', null);
