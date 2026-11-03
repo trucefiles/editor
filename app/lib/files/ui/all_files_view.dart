@@ -9,20 +9,23 @@ import 'file_sections.dart';
 import 'listed_file_card.dart';
 import 'listed_file_row.dart';
 
-/// Home's All view: every one of [files], newest first or by name, as
-/// cards or a list, as [settings] say; by name, the sections follow the
-/// order of [folders]. Only what is near the screen is built.
+/// Home's All view: [leading] cards first, then every one of [files],
+/// newest first or by name, as cards or a list, as [settings] say; by
+/// name, the sections follow the order of [folders]. Only what is near
+/// the screen is built.
 class AllFilesView extends StatelessWidget {
   const AllFilesView(
     this.files, {
     required this.settings,
     required this.folders,
+    this.leading = const [],
     super.key,
   });
 
   final List<ListedFile> files;
   final HomeSettings settings;
   final List<Folder> folders;
+  final List<Widget> leading;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +34,11 @@ class AllFilesView extends StatelessWidget {
       // Pulls down even when the files fit, to refresh.
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
+        if (leading.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            sliver: fileGrid(leading.length, (index) => leading[index]),
+          ),
         SliverPadding(
           padding: EdgeInsets.fromLTRB(
             asCards ? 12 : 0,

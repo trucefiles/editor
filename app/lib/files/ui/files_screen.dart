@@ -167,6 +167,11 @@ class _FilesBody extends ConsumerWidget {
       conflicts?.orphans ?? const [],
       typeOf: (path) => types.of(path)?.support.type,
     );
+    // Conflicts without their file come first in either view.
+    final orphanCards = [
+      for (final orphan in orphans)
+        OrphanCard(orphan, onTap: () => openConflict(context, orphan)),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -189,9 +194,10 @@ class _FilesBody extends ConsumerWidget {
                     ),
                   )
                 : switch (ref.watch(homeViewProvider)) {
-                    HomeView.recent => _RecentView(files, orphans: orphans),
+                    HomeView.recent => _RecentView(files, leading: orphanCards),
                     HomeView.all => AllFilesView(
                       files,
+                      leading: orphanCards,
                       settings: ref.watch(
                         deviceSettingsProvider.select(
                           (s) => s.requireValue.home,
@@ -207,14 +213,13 @@ class _FilesBody extends ConsumerWidget {
   }
 }
 
-/// Home's Recent view: conflicts without their file first, then the
-/// pinned and the newest of [files], and "Show all" while it leaves
-/// some out.
+/// Home's Recent view: [leading] cards first, then the pinned and the
+/// newest of [files], and "Show all" while it leaves some out.
 class _RecentView extends ConsumerWidget {
-  const _RecentView(this.files, {required this.orphans});
+  const _RecentView(this.files, {required this.leading});
 
   final List<ListedFile> files;
-  final List<FolderConflict> orphans;
+  final List<Widget> leading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,10 +233,7 @@ class _RecentView extends ConsumerWidget {
       ),
     );
     return FileSections(
-      leading: [
-        for (final orphan in orphans)
-          OrphanCard(orphan, onTap: () => openConflict(context, orphan)),
-      ],
+      leading: leading,
       pinned: [for (final file in recent.pinned) ListedFileCard(file)],
       others: [for (final file in recent.newest) ListedFileCard(file)],
       footer: recent.hidesSome ? const _ShowAll() : null,
