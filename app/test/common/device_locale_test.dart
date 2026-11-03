@@ -13,6 +13,20 @@ void main() {
     expect(dateLocaleOf('de-CH'), 'de_CH');
   });
 
+  test('English in a European region intl lacks reads as British English', () {
+    expect(dateLocaleOf('en_DE'), 'en_GB');
+    expect(dateLocaleOf('en-DK'), 'en_GB');
+    expect(dateLocaleOf('en_150'), 'en_GB');
+    expect(dateLocaleOf('en_IE'), 'en_IE', reason: 'intl has it');
+    expect(dateLocaleOf('en_JP'), 'en', reason: 'not in Europe');
+    expect(dateLocaleOf('de_AT'), 'de_AT');
+    expect(dateLocaleOf('xx_DE'), 'en', reason: 'not English');
+    expect(
+      supportedLocaleOf(const Locale('en', 'NL')),
+      const Locale('en', 'GB'),
+    );
+  });
+
   test('a device locale without date formats becomes one with them', () {
     // intl reads C as English with ISO dates; numbers work for it too,
     // as the calendar's widgets need.

@@ -22,6 +22,13 @@ sealed class NewEventSpot {
 final class AtTimes extends NewEventSpot {
   const AtTimes(this.start, this.end);
 
+  /// The hour a new event on [day] gets when the user picked no times:
+  /// 9 to 10 on the wall clock (also on clock-change days).
+  factory AtTimes.usualOn(DateTime day) => AtTimes(
+    DateTime(day.year, day.month, day.day, 9),
+    DateTime(day.year, day.month, day.day, 10),
+  );
+
   final DateTime start;
   final DateTime end;
 }

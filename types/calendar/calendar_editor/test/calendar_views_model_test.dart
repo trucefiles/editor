@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/views/calendar_views_model.dart';
@@ -22,6 +23,8 @@ List<(String, String)> _shown(CalendarViewsModel<String> model) => [
 ];
 
 void main() {
+  // Each model's day clock listens for the app coming back.
+  TestWidgetsFlutterBinding.ensureInitialized();
   final home = _calendar('Home', 'Dentist', DateTime(2026, 11, 5));
   final work = _calendar('Work', 'Review', DateTime(2026, 11, 20));
 
@@ -151,6 +154,32 @@ void main() {
 
     expect((model.today, changes), (DateTime(2026, 11, 2), 1));
     // Ends the next midnight's wake before the test checks for timers.
+    model.dispose();
+  });
+
+  testWidgets('today moves on when the app comes back after a sleep past '
+      'midnight', (tester) async {
+    var now = DateTime(2026, 11, 1, 22);
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => now,
+    );
+    var changes = 0;
+    model.addListener(() => changes++);
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.paused);
+
+    // The device slept: the clock went on, the midnight wake didn't.
+    now = DateTime(2026, 11, 2, 7);
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+
+    expect((model.today, changes), (DateTime(2026, 11, 2), 1));
     model.dispose();
   });
 }

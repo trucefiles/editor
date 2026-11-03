@@ -232,6 +232,31 @@ void main() {
     expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
   });
 
+  testWidgets('All day turned off gives the first day the usual hour', (
+    tester,
+  ) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(tester, part, today: _annsDay);
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit all of them'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All day'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(
+      (event.start, event.end),
+      (
+        Floating(DateTime.utc(2020, 3, 12, 9)),
+        Floating(DateTime.utc(2020, 3, 12, 10)),
+      ),
+    );
+  });
+
   testWidgets('a read-only calendar shows an event and offers no edits', (
     tester,
   ) async {
