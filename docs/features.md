@@ -51,7 +51,9 @@ kept.
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
+<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period outlined, the cycle line above">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendar tab: its details with Open calendar and Edit">
 
 ## Recent, All and search
 
