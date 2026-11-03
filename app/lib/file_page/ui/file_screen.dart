@@ -428,6 +428,9 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final path = _session.path;
     return Scaffold(
       backgroundColor: tint,
+      floatingActionButton: _isEdited
+          ? _page.view.floatingButton(context)
+          : null,
       appBar: AppBar(
         backgroundColor: tint,
         title: FileHeading(

@@ -136,6 +136,54 @@ void main() {
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
   });
 
+  /// A calendar named Home with "Call" today from 10 for an hour.
+  String homeWithCall() {
+    final now = DateTime.now();
+    return applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'call',
+        EventDraft(
+          summary: 'Call',
+          start: Floating(DateTime.utc(now.year, now.month, now.day, 10)),
+          end: Floating(DateTime.utc(now.year, now.month, now.day, 11)),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    ).text;
+  }
+
+  testWidgets("the Calendar tab's + opens the calendar with adding started", (
+    tester,
+  ) async {
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+    await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Add event'));
+    await showsSoon(tester, find.text('New event'));
+  });
+
+  testWidgets('an event tapped in the Calendar tab shows; Edit opens its '
+      'form on its calendar page', (tester) async {
+    // Tall enough for the month's rows to show their events.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+    await showsSoon(tester, find.text('Call'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open calendar'), findsOne);
+    await tester.tap(find.text('Edit'));
+    await showsSoon(tester, find.text('Edit event'));
+    expect(find.byType(FileScreen), findsOne);
+  });
+
   testWidgets('a document opens beside the Calendar tab', (tester) async {
     await start(tester, {
       'notes.md': '# Notes',

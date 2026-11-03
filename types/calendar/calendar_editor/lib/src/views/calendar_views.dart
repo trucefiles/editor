@@ -28,7 +28,8 @@ typedef OnMove<K> = void Function(
 /// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time and taps an occurrence ([onTap]). Only with
 /// [onAdd] can the user add: by a tap on a free time or day, a drag over
-/// free times or days, or the Add button. Only with [onMove] can the
+/// free times or days, or when [addAsked] fires (e.g. an Add button: an
+/// hour from 9:00 on today, or on the first day shown). Only with [onMove] can the
 /// user drag an occurrence or its edge.
 class CalendarViews<K> extends StatefulWidget {
   const CalendarViews({
@@ -40,6 +41,7 @@ class CalendarViews<K> extends StatefulWidget {
     this.titleOf,
     this.onTap,
     this.onAdd,
+    this.addAsked,
     this.onMove,
     super.key,
   });
@@ -59,6 +61,7 @@ class CalendarViews<K> extends StatefulWidget {
   final String Function(K calendar)? titleOf;
   final OnOccurrence<K>? onTap;
   final ValueChanged<NewEventSpot>? onAdd;
+  final Listenable? addAsked;
   final OnMove<K>? onMove;
 
   @override
@@ -82,6 +85,18 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   void initState() {
     super.initState();
     _model.addListener(_showModel);
+    widget.addAsked?.addListener(_add);
+  }
+
+  /// Asks to add an hour from 9:00 on the day to add to.
+  void _add() {
+    final day = _model.dayToAdd;
+    widget.onAdd?.call(
+      AtTimes(
+        day.add(const Duration(hours: 9)),
+        day.add(const Duration(hours: 10)),
+      ),
+    );
   }
 
   @override
@@ -109,11 +124,16 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   @override
   void didUpdateWidget(CalendarViews<K> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.addAsked != widget.addAsked) {
+      oldWidget.addAsked?.removeListener(_add);
+      widget.addAsked?.addListener(_add);
+    }
     _model.showCalendars(widget.calendars);
   }
 
   @override
   void dispose() {
+    widget.addAsked?.removeListener(_add);
     _model
       ..removeListener(_showModel)
       ..dispose();
@@ -199,15 +219,6 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onPrevious: kalender.animateToPreviousPage,
           onNext: kalender.animateToNextPage,
           onToday: () => kalender.animateToDate(widget.now()),
-          // Add starts as an hour from 9:00 on the day to add to.
-          onAdd: onAdd == null
-              ? null
-              : () => onAdd(
-                  AtTimes(
-                    _model.dayToAdd.add(const Duration(hours: 9)),
-                    _model.dayToAdd.add(const Duration(hours: 10)),
-                  ),
-                ),
         ),
         InsightsStrip<K>(
           health: _model.health,

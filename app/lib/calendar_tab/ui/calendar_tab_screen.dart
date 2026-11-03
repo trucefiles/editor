@@ -13,12 +13,13 @@ import '../../folder_state/folder_state_controller.dart';
 import '../../settings/calendar_view_setting.dart';
 import '../calendar_tab_controller.dart';
 import '../calendar_tab_picks.dart';
+import 'open_calendar.dart';
 
 /// The Calendar tab: the events of every calendar of the shown folders in
-/// the calendar views, each in its folder's color; chips turn a
-/// calendar's events on and off. Tap an event to open its calendar; +
-/// opens a calendar to add one there. Nothing is dragged here: each
-/// calendar is edited on its own page.
+/// the calendar views, each in its calendar's color; chips turn a
+/// calendar's events on and off. It only shows: tap an event to see it,
+/// then open its calendar or edit it there; + picks a calendar and starts
+/// adding on its page. Every edit happens on the calendar's own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 
@@ -80,7 +81,11 @@ class CalendarTabScreen extends ConsumerWidget {
                     kind: viewChoice.last(),
                     onKind: (kind) => unawaited(viewChoice.keep(kind)),
                     now: ref.watch(calendarClockProvider),
-                    onTap: (file, _) => openFile(context, ref, file),
+                    titleOf: (file) => calendars
+                        .firstWhere((calendar) => calendar.file == file)
+                        .title,
+                    onTap: (file, occurrence) =>
+                        _showEvent(context, ref, file, occurrence),
                   ),
                 ),
               ],
@@ -88,7 +93,45 @@ class CalendarTabScreen extends ConsumerWidget {
     );
   }
 
-  /// Asks which of [calendars] to add an event to, and opens it.
+  /// Shows [occurrence] of the calendar [file] whole, with what can be
+  /// done with it: open its calendar, or edit it there.
+  Future<void> _showEvent(
+    BuildContext context,
+    WidgetRef ref,
+    ListedFile file,
+    Occurrence occurrence,
+  ) async {
+    final edit = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            OccurrenceDetails(occurrence),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('Open calendar'),
+              onTap: () => Navigator.pop(context, false),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit'),
+              onTap: () => Navigator.pop(context, true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (edit == null || !context.mounted) return;
+    await (edit
+        ? openCalendar(context, ref, file, EditOccurrence.of(occurrence))
+        : openFile(context, ref, file));
+  }
+
+  /// Asks which of [calendars] to add to, and starts adding on its page.
   Future<void> _openForAdding(
     BuildContext context,
     WidgetRef ref,
@@ -111,6 +154,6 @@ class CalendarTabScreen extends ConsumerWidget {
           );
     if (picked == null || !context.mounted) return;
     ref.read(lastUsedCalendarProvider.notifier).addTo(picked);
-    await openFile(context, ref, picked);
+    await openCalendar(context, ref, picked, const StartAdding());
   }
 }

@@ -77,8 +77,20 @@ Future<void> showHealthEntry(
     ),
   );
   if (delete == null || edit == null || !context.mounted) return;
+  if (delete) {
+    return edit((at) => DeleteEvent(occurrence.event.uid, at: at));
+  }
+  await editHealthEntry(context, occurrence, edit);
+}
+
+/// Opens the health entry [occurrence] in its own form and saves what the
+/// user changes; it keeps its day.
+Future<void> editHealthEntry(
+  BuildContext context,
+  Occurrence occurrence,
+  MakeEdit edit,
+) async {
   final event = occurrence.event;
-  if (delete) return edit((at) => DeleteEvent(event.uid, at: at));
   final part = event.series;
   final made = await showHealthEntryForm(
     context,

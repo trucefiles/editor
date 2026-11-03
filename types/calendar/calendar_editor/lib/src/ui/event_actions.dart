@@ -79,6 +79,17 @@ Future<void> showOccurrence(
   await _act(context, occurrence, action, edit, deviceZone);
 }
 
+/// Opens the form to edit [occurrence]: an event that doesn't repeat
+/// right away; one of a series shows its choices first (this one or all).
+Future<void> editOccurrence(
+  BuildContext context,
+  Occurrence occurrence,
+  MakeEdit edit,
+  DeviceZone deviceZone,
+) => occurrence.recurrence == null
+    ? _act(context, occurrence, _Action.edit, edit, deviceZone)
+    : showOccurrence(context, occurrence, edit, deviceZone);
+
 /// Does [action] on [occurrence].
 Future<void> _act(
   BuildContext context,

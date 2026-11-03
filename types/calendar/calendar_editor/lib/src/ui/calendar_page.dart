@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
+import '../calendar_start.dart';
 import 'event_actions.dart';
 import 'events_page.dart';
 
@@ -15,6 +16,9 @@ class CalendarPage extends StatelessWidget {
     required this.deviceZone,
     required this.viewChoice,
     required this.color,
+    required this.addAsked,
+    required this.starts,
+    required this.start,
     super.key,
   });
 
@@ -32,6 +36,14 @@ class CalendarPage extends StatelessWidget {
   /// The calendar's color: its events show in it unless they have
   /// their own.
   final Color color;
+
+  /// Fires when Add is pressed.
+  final Listenable addAsked;
+
+  /// Fires when a start may have been asked of this page; [start] takes
+  /// it.
+  final Listenable starts;
+  final CalendarStart? Function() start;
 
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
@@ -56,6 +68,10 @@ class CalendarPage extends StatelessWidget {
           deviceZone: deviceZone,
           viewChoice: viewChoice,
           color: color,
+          addAsked: addAsked,
+          starts: starts,
+          start: start,
+          hint: hint,
         ),
       };
     },

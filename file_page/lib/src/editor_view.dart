@@ -51,4 +51,8 @@ abstract interface class EditorView {
 
   /// The type's keys.
   Map<SingleActivator, VoidCallback> get keys;
+
+  /// The type's floating button (e.g. a calendar's Add), shown while the
+  /// file can be edited; `null` for none.
+  Widget? floatingButton(BuildContext context);
 }

@@ -67,6 +67,7 @@ void main() {
         last: () => CalendarViewKind.month,
         keep: (_) async {},
       ),
+      starts: CalendarStarts(),
       now: () => DateTime(2026, 11),
     );
     final card = type.cardSummary(
