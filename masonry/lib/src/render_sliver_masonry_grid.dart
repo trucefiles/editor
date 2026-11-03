@@ -159,14 +159,16 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
   }
 
   /// Shows each built item that is ready, in order, up to the first one
-  /// that is not; an item shown keeps its column.
+  /// that is not. An item keeps its column only once every item before it
+  /// is ready: before that, its column was picked from a height that is
+  /// not final yet.
   void _show(MasonryPlacement placement) {
     for (final child in _children.takeWhile(
       (child) => _dataOf(child).shown || _dataOf(child).ready,
     )) {
       _dataOf(child).shown = true;
     }
-    for (final child in _children.where((child) => _dataOf(child).shown)) {
+    for (final child in _children.takeWhile((child) => _dataOf(child).ready)) {
       placement.keepColumn(indexOf(child));
     }
   }
