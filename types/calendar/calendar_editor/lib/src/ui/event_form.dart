@@ -396,15 +396,16 @@ final class _FormTimes {
 
   /// All day on keeps the days; off gives the start day the usual hour
   /// of a new event, as the days' own times (midnight) mean nothing.
-  _FormTimes withAllDay(bool allDay) => switch (AtTimes.usualOn(startDay)) {
-    _ when allDay => copy(allDay: true),
-    AtTimes(:final start, :final end) => copy(
-      allDay: false,
-      startTime: TimeOfDay.fromDateTime(start),
-      endDay: startDay,
-      endTime: TimeOfDay.fromDateTime(end),
-    ),
-  };
+  _FormTimes withAllDay(bool allDay) => allDay
+      ? copy(allDay: true)
+      : switch (AtTimes.usualOn(startDay)) {
+          AtTimes(:final start, :final end) => copy(
+            allDay: false,
+            startTime: TimeOfDay.fromDateTime(start),
+            endDay: startDay,
+            endTime: TimeOfDay.fromDateTime(end),
+          ),
+        };
 
   /// A new start day moves the end along, so the event keeps its length.
   _FormTimes withStartDay(DateTime day) {

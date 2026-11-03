@@ -17,6 +17,7 @@ void main() {
     expect(dateLocaleOf('en_DE'), 'en_GB');
     expect(dateLocaleOf('en-DK'), 'en_GB');
     expect(dateLocaleOf('en_150'), 'en_GB');
+    expect(dateLocaleOf('en_Latn_DE'), 'en_GB');
     expect(dateLocaleOf('en_IE'), 'en_IE', reason: 'intl has it');
     expect(dateLocaleOf('en_JP'), 'en', reason: 'not in Europe');
     expect(dateLocaleOf('de_AT'), 'de_AT');

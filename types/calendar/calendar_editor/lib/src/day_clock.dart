@@ -1,21 +1,23 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 
-/// Today on [now]'s clock, moving on at each midnight (and telling its
-/// listeners then): the one day tick of the calendar views.
+/// Today on [now]'s clock, moving on with the day (and telling its
+/// listeners then): the one day tick of the calendar views. It checks
+/// the day at each midnight and at least every minute, since timers
+/// stop while the device sleeps and a midnight wake alone could come
+/// hours late.
 final class DayClock extends ChangeNotifier {
   DayClock(this._now) {
     _today = _nextToday();
-    // Timers stop while the device sleeps, so the midnight wake can come
-    // hours late: the day is checked again when the app comes back.
-    _resumes = AppLifecycleListener(onResume: _moveOn);
   }
+
+  static const _check = Duration(minutes: 1);
 
   final DateTime Function() _now;
   late DateTime _today;
-  Timer? _midnight;
-  late final AppLifecycleListener _resumes;
+  Timer? _wake;
 
   /// Today, at midnight.
   DateTime get today => _today;
@@ -28,22 +30,20 @@ final class DayClock extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Today, and a wake at the next midnight to move it on.
+  /// Today, and a wake at the next midnight or check, whichever comes
+  /// first, to move it on.
   DateTime _nextToday() {
     final now = _now();
     final today = DateTime(now.year, now.month, now.day);
-    _midnight?.cancel();
-    _midnight = Timer(
-      DateTime(today.year, today.month, today.day + 1).difference(now),
-      _moveOn,
-    );
+    final midnight = DateTime(today.year, today.month, today.day + 1);
+    _wake?.cancel();
+    _wake = Timer([midnight.difference(now), _check].min, _moveOn);
     return today;
   }
 
   @override
   void dispose() {
-    _midnight?.cancel();
-    _resumes.dispose();
+    _wake?.cancel();
     super.dispose();
   }
 }
