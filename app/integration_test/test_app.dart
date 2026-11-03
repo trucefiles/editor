@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
+import 'package:truce_editor/common/device_locale.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
@@ -52,7 +53,8 @@ final class TestApp {
   final AppStorage _storage;
 
   /// Starts the app, with the locale data and device settings that `main`
-  /// loads.
+  /// loads, in US English whatever the machine's locale, so layouts (e.g.
+  /// which day a month's grid starts on) are the same on every machine.
   Future<void> launch(WidgetTester tester) async {
     await initializeDateFormatting();
     final settings = await deviceSettingsStoreIn(_storage).load();
@@ -63,6 +65,7 @@ final class TestApp {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
           loadedDeviceSettingsProvider.overrideWithValue(settings),
           systemTrayProvider.overrideWithValue(null),
+          deviceLocaleProvider.overrideWithValue(const Locale('en', 'US')),
           folderPickerProvider.overrideWithValue(_QueuedPicker(picks)),
         ],
         child: const TruceApp(),
