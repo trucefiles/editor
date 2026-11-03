@@ -66,6 +66,8 @@ final class CalendarEditorView implements EditorView {
         ? const SizedBox.shrink()
         : FloatingActionButton(
             tooltip: 'Add event',
+            // Not a hero: no flight to other pages' buttons.
+            heroTag: null,
             onPressed: () => _pageStarts.ask(const StartAdding()),
             child: const Icon(Icons.add),
           ),

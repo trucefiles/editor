@@ -36,7 +36,7 @@ class InsightsStrip<K> extends StatelessWidget {
           for (final MapEntry(:key, value: cycle) in health.cycles.entries)
             Text(
               [
-                if (titleOf != null) titleOf(key),
+                if (titleOf != null && health.cycles.length > 1) titleOf(key),
                 cycleText(cycle, today),
               ].join(': '),
               style: theme.bodyMedium,

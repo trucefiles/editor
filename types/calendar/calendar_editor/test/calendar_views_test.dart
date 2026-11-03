@@ -113,4 +113,81 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Party'), findsOneWidget);
   });
+
+  testWidgets("a calendar's new color shows on its events", (tester) async {
+    Future<void> show(Color color) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarViews<String>(
+            calendars: {'home': _calendar('Home', 'Dentist', 9)},
+            colorOf: (_) => color,
+            kind: CalendarViewKind.day,
+            onKind: (_) {},
+            now: () => DateTime(2026, 11, 3, 8),
+          ),
+        ),
+      ),
+    );
+    Color? tileColor() =>
+        (tester
+                    .widget<Container>(
+                      find
+                          .ancestor(
+                            of: find.text('Dentist'),
+                            matching: find.byType(Container),
+                          )
+                          .first,
+                    )
+                    .decoration
+                as BoxDecoration?)
+            ?.color;
+
+    await show(Colors.teal);
+    await tester.pumpAndSettle();
+    expect(tileColor(), Colors.teal);
+
+    await show(Colors.orange);
+    await tester.pumpAndSettle();
+    expect(tileColor(), Colors.orange);
+  });
+
+  testWidgets('one health calendar\'s cycle line goes without its name; '
+      'two are named', (tester) async {
+    Calendar me(String name) => applyEdit(
+      Calendar.read(newCalendarText(name, health: true))!,
+      AddEvent(
+        'p',
+        EventDraft.health(
+          const Period(PeriodFlow.medium),
+          DateTime.utc(2026, 11, 1),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    );
+    Future<void> show(Map<String, Calendar> calendars) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CalendarViews<String>(
+              calendars: calendars,
+              colorOf: (_) => Colors.teal,
+              kind: CalendarViewKind.month,
+              onKind: (_) {},
+              now: () => DateTime(2026, 11, 3, 8),
+              titleOf: (name) => name,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await show({'Me': me('Me'), 'Work': _calendar('Work', 'Review', 14)});
+    expect(find.textContaining('of the cycle'), findsOne);
+    expect(find.textContaining('Me: '), findsNothing);
+
+    await show({'Me': me('Me'), 'Ann': me('Ann')});
+    expect(find.textContaining('Me: '), findsOne);
+    expect(find.textContaining('Ann: '), findsOne);
+  });
 }

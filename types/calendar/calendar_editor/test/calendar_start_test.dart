@@ -152,4 +152,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('New event'), findsOne);
   });
+
+  testWidgets('a later one of a series asked to edit shows its choices', (
+    tester,
+  ) async {
+    final weekly = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'gym',
+        EventDraft(
+          summary: 'Gym',
+          start: Floating(DateTime.utc(2026, 10, 20, 18)),
+          end: Floating(DateTime.utc(2026, 10, 20, 19)),
+          repeat: const SimpleRepeat(Frequency.weekly),
+        ),
+        at: editedAt,
+      ),
+    );
+    final later = occurrences(
+      weekly,
+      DateTime(2026, 11, 3),
+      DateTime(2026, 11, 4),
+    ).single;
+    final starts = CalendarStarts()..ask(pageFile, EditOccurrence.of(later));
+    final hints = <String>[];
+    await pumpPage(
+      tester,
+      calendarPart(weekly.text),
+      today: _today,
+      starts: starts,
+      hints: hints,
+    );
+    expect(hints, isEmpty);
+    expect(find.text('Edit this one'), findsOne);
+  });
 }

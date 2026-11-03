@@ -16,6 +16,10 @@ final class OccurrenceEvent<K> extends KalenderEvent {
          // A broken end before the start shows as no length.
          end: _notBefore(end ?? occurrence.end, start ?? occurrence.start),
          isAllDay: occurrence.allDay,
+         // A health entry is on one day: it moves, but doesn't stretch.
+         interaction: occurrence.part.health == null
+             ? EventInteraction.allowAll()
+             : EventInteraction(allowStartResize: false, allowEndResize: false),
        );
 
   final K calendar;

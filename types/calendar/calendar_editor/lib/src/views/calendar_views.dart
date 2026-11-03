@@ -24,7 +24,7 @@ typedef OnMove<K> = void Function(
 /// [calendars] (by key) in a month, week, day or schedule view, each in
 /// its color ([colorOf]; an event's own color or health kind comes
 /// first), what they tell above (the insights strip, each named by
-/// [titleOf] if given), the month's days shaded (weekends, health
+/// [titleOf] if given and several tell), the month's days shaded (weekends, health
 /// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time and taps an occurrence ([onTap]). Only with
 /// [onAdd] can the user add: by a tap on a free time or day, or a drag
@@ -81,8 +81,11 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
-  late final _tiles = eventTiles<K>(widget.colorOf);
-  late final _scheduleTiles = scheduleTiles<K>(widget.colorOf);
+  // The current widget's colors: a calendar's color can change.
+  late final _tiles = eventTiles<K>(_colorOf);
+  late final _scheduleTiles = scheduleTiles<K>(_colorOf);
+
+  Color _colorOf(K calendar) => widget.colorOf(calendar);
 
   @override
   void initState() {

@@ -81,15 +81,7 @@ class _EventsPageState extends State<EventsPage> {
     if (!mounted || edit == null) return;
     switch (widget.starts.take()) {
       case StartAdding():
-        unawaited(
-          _add(
-            AtTimes(
-              _addDay.add(const Duration(hours: 9)),
-              _addDay.add(const Duration(hours: 10)),
-            ),
-            edit,
-          ),
-        );
+        unawaited(_add(AtTimes(_addDay.atHour(9), _addDay.atHour(10)), edit));
       case final EditOccurrence asked:
         unawaited(_editAsked(asked, edit));
       case null:
@@ -145,4 +137,10 @@ class _EventsPageState extends State<EventsPage> {
                 edit(occurrenceMovedTo(occurrence, start, end)),
     );
   }
+}
+
+extension on DateTime {
+  /// [hour] o'clock on this day, on the wall clock (also on clock-change
+  /// days).
+  DateTime atHour(int hour) => DateTime(year, month, day, hour);
 }
