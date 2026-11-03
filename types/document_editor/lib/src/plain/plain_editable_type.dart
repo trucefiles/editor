@@ -12,7 +12,7 @@ final class PlainTextEditableType extends PlainTextFileType
   const PlainTextEditableType();
 
   @override
-  IconData get icon => Icons.text_snippet_outlined;
+  IconData get icon => Icons.notes;
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {
