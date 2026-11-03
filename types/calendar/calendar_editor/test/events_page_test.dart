@@ -280,6 +280,45 @@ void main() {
     expect(part.owner.state.text, contains('LAST-MODIFIED:20261102T080000Z'));
   });
 
+  testWidgets('each edit from the form or a drag is stamped when it is '
+      'made', (tester) async {
+    var now = editedAt;
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
+      now: () => now,
+    );
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.week),
+    );
+    String stamps() {
+      final call = calendarOf(part).events.single.series.component;
+      return '${call.value('DTSTAMP')} ${call.value('LAST-MODIFIED')} '
+          '${call.value('SEQUENCE')}';
+    }
+
+    now = DateTime.utc(2026, 11, 3, 10, 7);
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Place'), 'Home');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(stamps(), '20261103T100700Z 20261103T100700Z 1');
+
+    now = DateTime.utc(2026, 11, 3, 10, 9);
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Call')),
+      const Offset(0, _hour),
+      kind: PointerDeviceKind.mouse,
+    );
+    expect(stamps(), '20261103T100900Z 20261103T100900Z 2');
+  });
+
   testWidgets("times show on the system's clock", (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
