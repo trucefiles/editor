@@ -227,6 +227,6 @@ void main() {
 
     await tester.waitForFile(app.file('Ideas.md'), '# Plan\n');
     expect(app.file('plan.md').existsSync(), isFalse);
-    expect(find.text('Documents/Ideas.md'), findsOneWidget);
+    await tester.waitFor(find.text('Documents/Ideas.md'));
   });
 }

@@ -38,8 +38,10 @@ extension AppSteps on WidgetTester {
 
   /// Opens the file titled [title] from the grid.
   Future<void> openFile(String title) async {
-    await waitFor(find.text(title));
-    await tapAndSettle(find.text(title));
+    // A card that is laid out but not placed yet can't be tapped.
+    final card = find.text(title).hitTestable();
+    await waitFor(card);
+    await tapAndSettle(card.first);
   }
 
   /// Waits until the open file has closed.
