@@ -8,6 +8,7 @@ import 'package:truce_files/truce_files.dart';
 import '../common/time_texts.dart';
 import '../platform/platform_wiring.dart';
 import '../settings/calendar_view_setting.dart';
+import 'calendar_wiring.dart';
 import 'markdown_wiring.dart';
 
 /// The file types the app handles: the one place that picks them,
@@ -20,6 +21,7 @@ final fileTypesProvider = Provider<ShownFileTypes<EditableType>>((ref) {
     day: ref.watch(timeTextsProvider).day,
     deviceZone: ref.watch(deviceZoneProvider),
     viewChoice: ref.watch(calendarViewChoiceProvider),
+    starts: ref.watch(calendarStartsProvider),
   );
   return ShownFileTypes(
     [markdown, const PlainTextEditableType(), calendars],

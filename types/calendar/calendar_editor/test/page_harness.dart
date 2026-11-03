@@ -43,9 +43,16 @@ final class KeptView {
   );
 }
 
+/// The file the test page shows.
+final pageFolder = folderId('home');
+final pagePath = path('a.ics');
+final FileKey pageFile = (folder: pageFolder, path: pagePath);
+
 /// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
-/// that keeps the view in [kept] (by default the month), its hints added
-/// to [hints]; closes the part's editor once the test ends.
+/// that keeps the view in [kept] (by default the month), with its Add
+/// button while it can be edited, its hints added to [hints], taking
+/// what [starts] asks of it; closes the part's editor once the test
+/// ends.
 Future<void> pumpPage(
   WidgetTester tester,
   CalendarEditorPart part, {
@@ -53,31 +60,40 @@ Future<void> pumpPage(
   List<String>? hints,
   String? deviceZone,
   KeptView? kept,
+  CalendarStarts? starts,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
   tester.view.physicalSize = const Size(800, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+  final view = CalendarEditorView(
+    part,
+    deviceZone: () async => deviceZone,
+    viewChoice: (kept ?? KeptView()).choice,
+    starts: starts ?? CalendarStarts(),
+    now: () => today,
+  );
   await tester.pumpWidget(
     MaterialApp(
-      home: Scaffold(
-        body:
-            CalendarEditorView(
-              part,
-              deviceZone: () async => deviceZone,
-              viewChoice: (kept ?? KeptView()).choice,
-              now: () => today,
-            ).view(
-              EditorHost(
-                kept: part.owner.state.text,
-                folder: folderId('home'),
-                path: path('a.ics'),
-                bytesOf: (_) async => null,
-                hint: (hints ?? []).add,
-              ),
-              autofocus: false,
+      home: Builder(
+        builder: (context) => Scaffold(
+          // As the file page shows it: only while the file can be edited.
+          floatingActionButton: part.isEditing
+              ? view.floatingButton(context)
+              : null,
+          body: view.view(
+            EditorHost(
+              kept: part.owner.state.text,
+              folder: pageFolder,
+              path: pagePath,
+              bytesOf: (_) async => null,
+              hint: (hints ?? []).add,
+              color: Colors.teal,
             ),
+            autofocus: false,
+          ),
+        ),
       ),
     ),
   );

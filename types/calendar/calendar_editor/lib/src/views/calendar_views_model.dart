@@ -3,14 +3,16 @@ import 'package:flutter/material.dart' show ChangeNotifier, DateUtils;
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../day_clock.dart';
+import 'health_days.dart';
 
 /// One occurrence the views show, with the key of its calendar.
 typedef ShownOccurrence<K> = ({K calendar, Occurrence occurrence});
 
 /// The one owner of what the calendar views show: the [kind] of view,
-/// the [range] it shows, the [shown] occurrences of its calendars in that
-/// range, worked out once per change (never while building), and [today],
-/// which moves on at each midnight of [now]'s clock. Calendars are told
+/// the [range] it shows, the [shown] occurrences of its calendars around
+/// that range, worked out once per change (never while building), the
+/// cycle days of its health calendars ([health]), and [today], which
+/// moves on at each midnight of [now]'s clock. Calendars are told
 /// apart by their keys ([K]).
 final class CalendarViewsModel<K> extends ChangeNotifier {
   CalendarViewsModel({
@@ -18,14 +20,17 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     required this._calendars,
     required DateTime Function() now,
   }) : _clock = DayClock(now) {
-    _clock.addListener(notifyListeners);
+    _health = HealthDays.of(_calendars, today);
+    _clock.addListener(_dayChanged);
   }
 
   final DayClock _clock;
   CalendarViewKind _kind;
   Map<K, Calendar> _calendars;
   ({DateTime from, DateTime to})? _range;
+  ({DateTime from, DateTime to})? _window;
   List<ShownOccurrence<K>> _shown = const [];
+  late HealthDays<K> _health;
 
   CalendarViewKind get kind => _kind;
 
@@ -62,8 +67,14 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   /// The range shown, on this device's clock; `null` until it is told.
   ({DateTime from, DateTime to})? get range => _range;
 
-  /// The occurrences of the calendars in [range], by start.
+  /// The occurrences of the calendars by start, in a window around
+  /// [range]: its months and one month on each side. The views get the
+  /// pages next to the one shown (and a schedule its scrolled-to part as
+  /// the range) from it too, so nothing they still show goes empty.
   List<ShownOccurrence<K>> get shown => _shown;
+
+  /// The cycle days of its health calendars as of [today].
+  HealthDays<K> get health => _health;
 
   /// Shows the view [kind].
   void showKind(CalendarViewKind kind) {
@@ -76,6 +87,14 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   void showRange(DateTime from, DateTime to) {
     if (_range == (from: from, to: to)) return;
     _range = (from: from, to: to);
+    if (_window case (from: final start, to: final end)
+        when !from.isBefore(start) && !to.isAfter(end)) {
+      return notifyListeners();
+    }
+    _window = (
+      from: DateTime(from.year, from.month - 1),
+      to: DateTime(to.year, to.month + 2),
+    );
     _update();
   }
 
@@ -87,20 +106,28 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
       return;
     }
     _calendars = calendars;
+    _health = HealthDays.of(calendars, today);
     _update();
+  }
+
+  void _dayChanged() {
+    _health = HealthDays.of(_calendars, today);
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    _clock.dispose();
+    _clock
+      ..removeListener(_dayChanged)
+      ..dispose();
     super.dispose();
   }
 
   void _update() {
-    final range = _range;
-    _shown = range == null
+    final window = _window;
+    _shown = window == null
         ? const []
-        : occurrencesOf(_calendars, range.from, range.to);
+        : occurrencesOf(_calendars, window.from, window.to);
     notifyListeners();
   }
 }

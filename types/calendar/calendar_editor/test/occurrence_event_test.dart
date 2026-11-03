@@ -54,4 +54,31 @@ void main() {
       expect(event.end, event.start);
     });
   });
+
+  test('a health entry moves to another day but does not stretch', () {
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Me', health: true))!,
+      AddEvent(
+        'p',
+        EventDraft.health(
+          const Period(PeriodFlow.medium),
+          DateTime.utc(2026, 11, 3),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    );
+    final [entry] = eventsOf([
+      for (final occurrence in _november(calendar))
+        (calendar: 'me', occurrence: occurrence),
+    ]);
+    final interaction = entry.interaction;
+    expect(
+      (
+        interaction.allowRescheduling,
+        interaction.allowStartResize,
+        interaction.allowEndResize,
+      ),
+      (true, false, false),
+    );
+  });
 }

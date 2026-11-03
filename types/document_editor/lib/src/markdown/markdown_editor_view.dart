@@ -53,6 +53,9 @@ final class MarkdownEditorView implements EditorView {
     EditModeButton(mode: _part.mode, onChanged: _part.pick),
   ];
 
+  @override
+  Widget? floatingButton(BuildContext context) => null;
+
   /// Ctrl+1, 2, 3 pick the modes in the mode menu's order.
   @override
   late final Map<SingleActivator, VoidCallback> keys = {

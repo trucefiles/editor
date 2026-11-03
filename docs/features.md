@@ -29,14 +29,21 @@ own, with a name and a color.
 Calendars are `.ics` files, the format other calendar apps use. **New
 file** offers a calendar or a health calendar, named first. A
 calendar's card shows its next events. Its page shows a month, a week,
-a day or a schedule, the one you picked last. Tap a free time or day to
-add an event there, or drag over a few hours; drag an event to move it,
-or its edge to make it longer (for an event that repeats, that moves just
-this one). Tap an event to edit or delete it, just this time or every
-time. A health calendar keeps period days and other entries, and
-estimates the next period. Once your folders hold a calendar, the
-**Calendar** tab shows the events of all of them in the same views, each
-in its folder's color. When two devices changed
+a day or a schedule, the one you picked last. Tap a free time to add an
+event there, a day in the month for an all-day event, or drag over a few
+hours; **+** adds one too. Drag an event to move it, or its edge to make
+it longer (for an event that repeats, that moves just this one). Tap an
+event to edit or delete it, just this time or every time. An event can
+have its own color; otherwise it shows in its calendar's color (the
+file's color, else its folder's). A health calendar shows in the same
+views: **+** lists its kinds of entry (medication, symptom, measure,
+note, period), each with its own form and color. Once a period is
+written, the month shades period days, the likely next period and
+fertile days, and the line above tells the day of the cycle. Once your
+folders hold a calendar, the **Calendar** tab shows the events of all
+of them in the same views. Tap an event there to see it, then open its
+calendar or edit it on its page; **+** picks a calendar and starts
+adding there. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.
@@ -44,7 +51,9 @@ kept.
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
+<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period outlined, the cycle line above">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendar tab: its details with Open calendar and Edit">
 
 ## Recent, All and search
 

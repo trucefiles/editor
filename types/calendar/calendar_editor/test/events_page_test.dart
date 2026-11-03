@@ -280,6 +280,73 @@ void main() {
     expect(part.owner.state.text, contains('LAST-MODIFIED:20261102T080000Z'));
   });
 
+  testWidgets('each edit from the form or a drag is stamped when it is '
+      'made', (tester) async {
+    var now = editedAt;
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
+      now: () => now,
+    );
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.week),
+    );
+    String stamps() {
+      final call = calendarOf(part).events.single.series.component;
+      return '${call.value('DTSTAMP')} ${call.value('LAST-MODIFIED')} '
+          '${call.value('SEQUENCE')}';
+    }
+
+    now = DateTime.utc(2026, 11, 3, 10, 7);
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Place'), 'Home');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(stamps(), '20261103T100700Z 20261103T100700Z 1');
+
+    now = DateTime.utc(2026, 11, 3, 10, 9);
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Call')),
+      const Offset(0, _hour),
+      kind: PointerDeviceKind.mouse,
+    );
+    expect(stamps(), '20261103T100900Z 20261103T100900Z 2');
+  });
+
+  testWidgets('the form sets an own color, and back to the calendar\'s', (
+    tester,
+  ) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.week),
+    );
+    Future<void> pick(Finder color) async {
+      await tester.tap(find.text('Call'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(color);
+      await tester.tap(color);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+    }
+
+    await pick(find.bySemanticsLabel('teal'));
+    expect(calendarOf(part).events.single.series.color?.value, 'teal');
+
+    await pick(find.text('Calendar color'));
+    expect(calendarOf(part).events.single.series.color, isNull);
+  });
+
   testWidgets("times show on the system's clock", (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
@@ -380,9 +447,8 @@ void main() {
     );
   });
 
-  testWidgets('a tap on a day of the month asks for an event that day', (
-    tester,
-  ) async {
+  testWidgets('a tap on a day of the month asks for an all-day event that '
+      'day', (tester) async {
     final part = calendarPart(newCalendarText('Home'));
     await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
@@ -393,6 +459,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_on(part, DateTime(2026, 11, 20)), ['Party']);
+    final party = calendarOf(part).events.single.series;
+    expect(
+      (party.start, party.end),
+      (AllDay(DateTime(2026, 11, 20)), AllDay(DateTime(2026, 11, 21))),
+    );
   });
 
   for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.touch]) {
@@ -559,5 +630,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(part.owner.state.text, _birthday);
+  });
+
+  testWidgets('a health entry dragged to the next day keeps all it says', (
+    tester,
+  ) async {
+    final written = applyEdit(
+      Calendar.read(newCalendarText('Me', health: true))!,
+      AddEvent(
+        'p',
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime.utc(2026, 11, 10),
+        ),
+        at: editedAt,
+      ),
+    ).text;
+    // What another app may add to the entry.
+    final part = calendarPart(
+      written.replaceFirst(
+        'X-TRUCE-FLOW:heavy\n',
+        'X-TRUCE-FLOW:heavy\nDESCRIPTION:Cramps\\, mild\n'
+            'X-OTHER-APP;A=1:kept\n',
+      ),
+    );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 10));
+
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Period: heavy')),
+      tester.getCenter(find.text('11')) - tester.getCenter(find.text('10')),
+    );
+
+    final moved = calendarOf(part).events.single.series;
+    expect(moved.start, AllDay(DateTime(2026, 11, 11)));
+    final text = part.owner.state.text;
+    for (final line in [
+      'CATEGORIES:HEALTH,PERIOD',
+      'X-TRUCE-FLOW:heavy',
+      r'DESCRIPTION:Cramps\, mild',
+      'X-OTHER-APP;A=1:kept',
+      'SUMMARY:Period: heavy',
+    ]) {
+      expect(text, contains('$line\n'));
+    }
   });
 }

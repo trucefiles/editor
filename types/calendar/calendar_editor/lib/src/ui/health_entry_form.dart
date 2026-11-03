@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-/// The kinds of health entry the user can add, as the Add menu names
-/// them, each with the entry a new one starts as.
+/// The kinds of health entry the user can add, as the Add list names
+/// them, each with the entry a new one starts as: the general ones first.
 const healthKinds = <(String, HealthEntry)>[
-  ('Period', Period(PeriodFlow.medium)),
-  ('Symptom', Symptom('', level: 1)),
   ('Medication', Medication('', dose: '')),
+  ('Symptom', Symptom('', level: 1)),
   ('Measure', Measure('', value: '', unit: '')),
   ('Note', HealthNote()),
+  ('Period', Period(PeriodFlow.medium)),
 ];
 
 /// What a health entry form gives back: the [entry] and its [note].
@@ -104,57 +104,63 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
         );
     return AlertDialog(
       title: Text(widget.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ...switch (widget.entry) {
-              Period() => [
-                SegmentedButton<PeriodFlow>(
-                  segments: [
-                    for (final flow in PeriodFlow.values)
-                      ButtonSegment(value: flow, label: Text(flow.name)),
-                  ],
-                  selected: {_flow},
-                  onSelectionChanged: (picked) =>
-                      setState(() => _flow = picked.single),
-                ),
-              ],
-              Symptom() => [
-                field(_name, 'Symptom'),
-                const SizedBox(height: 8),
-                SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 1, label: Text('Mild')),
-                    ButtonSegment(value: 2, label: Text('Medium')),
-                    ButtonSegment(value: 3, label: Text('Strong')),
-                  ],
-                  selected: {_level},
-                  onSelectionChanged: (picked) =>
-                      setState(() => _level = picked.single),
-                ),
-              ],
-              Medication() => [
-                field(_name, 'Medication'),
-                field(_amount, 'Dose'),
-              ],
-              Measure() => [
-                field(_name, 'What'),
-                field(_amount, 'Value'),
-                field(_unit, 'Unit'),
-              ],
-              HealthNote() => const <Widget>[],
-            },
-            TextField(
-              controller: _note,
-              minLines: 1,
-              maxLines: 4,
-              autofocus: widget.entry is HealthNote,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Note'),
-            ),
-          ],
+      // One width whatever is picked.
+      content: SizedBox(
+        width: 360,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...switch (widget.entry) {
+                Period() => [
+                  SegmentedButton<PeriodFlow>(
+                    showSelectedIcon: false,
+                    segments: [
+                      for (final flow in PeriodFlow.values)
+                        ButtonSegment(value: flow, label: Text(flow.name)),
+                    ],
+                    selected: {_flow},
+                    onSelectionChanged: (picked) =>
+                        setState(() => _flow = picked.single),
+                  ),
+                ],
+                Symptom() => [
+                  field(_name, 'Symptom'),
+                  const SizedBox(height: 8),
+                  SegmentedButton<int>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(value: 1, label: Text('Mild')),
+                      ButtonSegment(value: 2, label: Text('Medium')),
+                      ButtonSegment(value: 3, label: Text('Strong')),
+                    ],
+                    selected: {_level},
+                    onSelectionChanged: (picked) =>
+                        setState(() => _level = picked.single),
+                  ),
+                ],
+                Medication() => [
+                  field(_name, 'Medication'),
+                  field(_amount, 'Dose'),
+                ],
+                Measure() => [
+                  field(_name, 'What'),
+                  field(_amount, 'Value'),
+                  field(_unit, 'Unit'),
+                ],
+                HealthNote() => const <Widget>[],
+              },
+              TextField(
+                controller: _note,
+                minLines: 1,
+                maxLines: 4,
+                autofocus: widget.entry is HealthNote,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Note'),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

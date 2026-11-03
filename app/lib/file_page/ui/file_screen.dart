@@ -428,6 +428,9 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final path = _session.path;
     return Scaffold(
       backgroundColor: tint,
+      floatingActionButton: _isEdited
+          ? _page.view.floatingButton(context)
+          : null,
       appBar: AppBar(
         backgroundColor: tint,
         title: FileHeading(
@@ -491,6 +494,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                       // may be gone.
                       hint: (message) =>
                           _messenger.currentState?.showHint(message),
+                      color: fileColor(mark.color, folder: _folder.color),
                     ),
                     // A new file is for typing right away.
                     autofocus: widget.file == null,

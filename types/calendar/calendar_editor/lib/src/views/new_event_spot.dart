@@ -2,6 +2,13 @@
 sealed class NewEventSpot {
   const NewEventSpot();
 
+  /// The day it starts on.
+  DateTime get firstDay => switch (this) {
+    AtTimes(:final start) => start,
+    OnDays(:final first) => first,
+    OnDay(:final day) => day,
+  };
+
   /// The spot of a range the user dragged over, [start] up to [end] (on
   /// this device's clock): whole days are [OnDays]; else [AtTimes].
   factory NewEventSpot.of(DateTime start, DateTime end) =>
@@ -10,7 +17,8 @@ sealed class NewEventSpot {
       : AtTimes(start, end);
 }
 
-/// From [start] up to [end]: a free time tapped or dragged over.
+/// From [start] up to [end]: a free time tapped or dragged over, or
+/// where Add starts.
 final class AtTimes extends NewEventSpot {
   const AtTimes(this.start, this.end);
 
@@ -27,7 +35,7 @@ final class OnDays extends NewEventSpot {
   final DateTime end;
 }
 
-/// On the day [day] falls on: a day tapped, or Add event.
+/// On the day [day] falls on: a day tapped.
 final class OnDay extends NewEventSpot {
   const OnDay(this.day);
 

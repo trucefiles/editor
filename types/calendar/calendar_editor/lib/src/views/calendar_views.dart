@@ -3,7 +3,9 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import 'calendar_views_model.dart';
+import 'day_cells.dart';
 import 'event_tiles.dart';
+import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
 import 'views_bar.dart';
@@ -20,11 +22,15 @@ typedef OnMove<K> = void Function(
 );
 
 /// [calendars] (by key) in a month, week, day or schedule view, each in
-/// its color ([colorOf]); the user picks the view ([onKind] tells it, to
+/// its color ([colorOf]; an event's own color or health kind comes
+/// first), what they tell above (the insights strip, each named by
+/// [titleOf] if given and several tell), the month's days shaded (weekends, health
+/// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time and taps an occurrence ([onTap]). Only with
-/// [onAdd] can the user add: by a tap on a free time or day, a drag over
-/// free times or days, or the Add button. Only with [onMove] can the
-/// user drag an occurrence or its edge.
+/// [onAdd] can the user add: by a tap on a free time or day, or a drag
+/// over free times or days; [onAddDay] is told the day an Add button
+/// starts on. Only with [onMove] can the user drag an occurrence or its
+/// edge.
 class CalendarViews<K> extends StatefulWidget {
   const CalendarViews({
     required this.calendars,
@@ -32,8 +38,10 @@ class CalendarViews<K> extends StatefulWidget {
     required this.kind,
     required this.onKind,
     required this.now,
+    this.titleOf,
     this.onTap,
     this.onAdd,
+    this.onAddDay,
     this.onMove,
     super.key,
   });
@@ -47,8 +55,16 @@ class CalendarViews<K> extends StatefulWidget {
 
   /// The time now; today shows from it.
   final DateTime Function() now;
+
+  /// A calendar's title, to name it above the views; `null` when only one
+  /// shows.
+  final String Function(K calendar)? titleOf;
   final OnOccurrence<K>? onTap;
   final ValueChanged<NewEventSpot>? onAdd;
+
+  /// Told the day an Add button starts on as it changes: today if it
+  /// shows, else the first day shown.
+  final ValueChanged<DateTime>? onAddDay;
   final OnMove<K>? onMove;
 
   @override
@@ -65,8 +81,11 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
-  late final _tiles = eventTiles<K>(widget.colorOf);
-  late final _scheduleTiles = scheduleTiles<K>(widget.colorOf);
+  // The current widget's colors: a calendar's color can change.
+  late final _tiles = eventTiles<K>(_colorOf);
+  late final _scheduleTiles = scheduleTiles<K>(_colorOf);
+
+  Color _colorOf(K calendar) => widget.colorOf(calendar);
 
   @override
   void initState() {
@@ -126,6 +145,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       kalender.viewConfiguration = configuration;
     }
     _events.replaceEvents(eventsOf(_model.shown));
+    widget.onAddDay?.call(_model.dayToAdd);
     setState(() {});
   }
 
@@ -189,7 +209,11 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onPrevious: kalender.animateToPreviousPage,
           onNext: kalender.animateToNextPage,
           onToday: () => kalender.animateToDate(widget.now()),
-          onAdd: onAdd == null ? null : () => onAdd(OnDay(_model.dayToAdd)),
+        ),
+        InsightsStrip<K>(
+          health: _model.health,
+          today: _model.today,
+          titleOf: widget.titleOf,
         ),
         Expanded(
           child: KalenderView(
@@ -197,6 +221,13 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             kalenderController: kalender,
             locale: Localizations.localeOf(context),
             callbacks: callbacks,
+            components: KalenderComponents(
+              monthComponents: MonthComponents(
+                bodyComponents: MonthBodyComponents(
+                  monthDayCellBuilder: dayCells(_model.health),
+                ),
+              ),
+            ),
             interaction: KalenderInteraction(
               allowResizing: movable,
               allowRescheduling: movable,

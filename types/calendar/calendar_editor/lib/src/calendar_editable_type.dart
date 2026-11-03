@@ -4,6 +4,7 @@ import 'package:truce_files/truce_files.dart';
 
 import 'calendar_editor_part.dart';
 import 'calendar_editor_view.dart';
+import 'calendar_start.dart';
 import 'ui/cycle_text.dart';
 import 'ui/occurrence_texts.dart';
 
@@ -13,11 +14,13 @@ final class CalendarEditableType extends CalendarFileType
     implements EditableType {
   /// [day] writes an event's day on cards; [deviceZone] tells this
   /// device's time zone, for new events; [viewChoice] the view calendars
-  /// open in; [now] tells the time.
+  /// open in; [starts] what calendar pages are asked to start with;
+  /// [now] tells the time.
   CalendarEditableType({
     required DayText day,
     required this.deviceZone,
     required this.viewChoice,
+    required this.starts,
     super.now,
   }) : super(
          eventLine: (occurrence) => occurrenceLine(occurrence, day),
@@ -26,6 +29,7 @@ final class CalendarEditableType extends CalendarFileType
 
   final DeviceZone deviceZone;
   final CalendarViewChoice viewChoice;
+  final CalendarStarts starts;
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {
@@ -36,6 +40,7 @@ final class CalendarEditableType extends CalendarFileType
         part,
         deviceZone: deviceZone,
         viewChoice: viewChoice,
+        starts: starts,
       ),
     );
   }

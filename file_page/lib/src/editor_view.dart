@@ -7,9 +7,9 @@ import 'package:truce_files/truce_files.dart';
 /// [kept] (e.g. for a view that only reads), where the file is now
 /// ([folder], [path]; it changes with a move, or a new file's first
 /// line), how to read another file of its folder ([bytesOf], e.g. an
-/// image it links; `null` if it can't be read), and how a short [hint]
-/// shows (e.g. a link it doesn't open). What a type needs beyond this,
-/// it gets from its own wiring.
+/// image it links; `null` if it can't be read), how a short [hint]
+/// shows (e.g. a link it doesn't open), and the file's [color]. What a
+/// type needs beyond this, it gets from its own wiring.
 final class EditorHost {
   const EditorHost({
     required this.kept,
@@ -17,6 +17,7 @@ final class EditorHost {
     required this.path,
     required this.bytesOf,
     required this.hint,
+    required this.color,
   });
 
   final String kept;
@@ -24,6 +25,10 @@ final class EditorHost {
   final RelPath path;
   final Future<Uint8List?> Function(RelPath path) bytesOf;
   final void Function(String message) hint;
+
+  /// The file's color as the app shows it (its own, else its folder's),
+  /// for a type that draws in it (e.g. a calendar's events).
+  final Color color;
 }
 
 /// How a file type's editor part shows on the page: the editor in
@@ -46,4 +51,8 @@ abstract interface class EditorView {
 
   /// The type's keys.
   Map<SingleActivator, VoidCallback> get keys;
+
+  /// The type's floating button (e.g. a calendar's Add), shown while the
+  /// file can be edited; `null` for none.
+  Widget? floatingButton(BuildContext context);
 }

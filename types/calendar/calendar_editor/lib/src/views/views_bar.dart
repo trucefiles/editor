@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 /// The bar above the calendar views: the previous and next page, back to
-/// today, what is shown ([title]), which view, and Add event if [onAdd]
-/// is given.
+/// today, what is shown ([title]) and which view.
 class ViewsBar extends StatelessWidget {
   const ViewsBar({
     required this.title,
@@ -12,7 +11,6 @@ class ViewsBar extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onToday,
-    this.onAdd,
     super.key,
   });
 
@@ -22,7 +20,6 @@ class ViewsBar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onToday;
-  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) => IconButtonTheme(
@@ -80,12 +77,6 @@ class ViewsBar extends StatelessWidget {
             ),
           ),
         ),
-        if (onAdd case final onAdd?)
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add event',
-            onPressed: onAdd,
-          ),
       ],
     ),
   );

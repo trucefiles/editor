@@ -54,9 +54,10 @@ void main() {
     await tester.waitFor(find.widgetWithText(FilterChip, 'Family'));
     expect(find.text('Dentist'), findsOneWidget);
 
-    // An event in the tab opens its calendar.
+    // An event in the tab shows; Open calendar opens its page.
     await tester.tapAndSettle(find.text('Dentist'));
-    expect(find.byTooltip('Add event'), findsOneWidget);
+    await tester.tapAndSettle(find.text('Open calendar'));
+    expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('Dentist'), findsOneWidget);
   });
 }

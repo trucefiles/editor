@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
+import '../calendar_start.dart';
 import 'event_actions.dart';
 import 'events_page.dart';
-import 'health_page.dart';
 
-/// The calendar [part]'s editor shows, as it changes: a health calendar
-/// as its health view, any other as its events; a text that is no
-/// calendar as it is, to read. Edits only while the part is editing.
+/// The calendar [part]'s editor shows, as it changes: the calendar's
+/// page; a text that is no calendar as it is, to read. Edits only while
+/// the part is editing.
 class CalendarPage extends StatelessWidget {
   const CalendarPage(
     this.part, {
@@ -16,6 +16,8 @@ class CalendarPage extends StatelessWidget {
     required this.hint,
     required this.deviceZone,
     required this.viewChoice,
+    required this.color,
+    required this.starts,
     super.key,
   });
 
@@ -29,6 +31,13 @@ class CalendarPage extends StatelessWidget {
 
   /// Tells this device's time zone, for new events.
   final DeviceZone deviceZone;
+
+  /// The calendar's color: its events show in it unless they have
+  /// their own.
+  final Color color;
+
+  /// What the page is asked to start with: adding, or editing an event.
+  final PageStarts starts;
 
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
@@ -46,17 +55,15 @@ class CalendarPage extends StatelessWidget {
       final MakeEdit? edit = part.isEditing ? _edit : null;
       return switch (state.calendar) {
         null => _NoCalendar(state.text),
-        final calendar when calendar.isHealth => HealthPage(
-          calendar,
-          edit: edit,
-          now: now,
-        ),
         final calendar => EventsPage(
           calendar,
           edit: edit,
           now: now,
           deviceZone: deviceZone,
           viewChoice: viewChoice,
+          color: color,
+          starts: starts,
+          hint: hint,
         ),
       };
     },

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../ui/event_colors.dart';
 import '../ui/occurrence_texts.dart';
 import 'occurrence_event.dart';
 
-/// How occurrences look in the month, week and day views: a tile in the
-/// color of their calendar ([colorOf] its key) with their title; while
+/// How occurrences look in the month, week and day views: a tile in
+/// their color ([occurrenceColor], over their calendar's: [colorOf] its
+/// key) with their title; while
 /// dragged, the same tile where it would land; a range dragged over for
 /// a new event, marked.
 TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
@@ -16,7 +18,7 @@ TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
       size: size,
       child: switch (event) {
         OccurrenceEvent<K>(:final calendar, :final occurrence) => _Tile(
-          colorOf(calendar),
+          occurrenceColor(occurrence, colorOf(calendar)),
           occurrence,
         ),
         // The range a drag over free times marks for a new event.
@@ -41,8 +43,8 @@ TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
   );
 }
 
-/// How occurrences look in the schedule view: a dot in their calendar's
-/// color, their title and their times.
+/// How occurrences look in the schedule view: a dot in their color,
+/// their title and their times.
 ScheduleTileComponents scheduleTiles<K>(Color Function(K calendar) colorOf) =>
     ScheduleTileComponents(
       tileBuilder: (context, event, _) {
@@ -50,7 +52,11 @@ ScheduleTileComponents scheduleTiles<K>(Color Function(K calendar) colorOf) =>
         final occurrence = shown.occurrence;
         return ListTile(
           dense: true,
-          leading: Icon(Icons.circle, size: 14, color: colorOf(shown.calendar)),
+          leading: Icon(
+            Icons.circle,
+            size: 14,
+            color: occurrenceColor(occurrence, colorOf(shown.calendar)),
+          ),
           title: Text(occurrenceTitle(occurrence)),
           subtitle: Text(
             [

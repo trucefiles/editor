@@ -43,6 +43,9 @@ final class PlainEditorView implements EditorView {
 
   @override
   Map<SingleActivator, VoidCallback> get keys => const {};
+
+  @override
+  Widget? floatingButton(BuildContext context) => null;
 }
 
 /// A plain text's lines: drawn as plain text.

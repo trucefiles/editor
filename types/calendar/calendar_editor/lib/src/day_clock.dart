@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 /// Today on [now]'s clock, moving on at each midnight (and telling its
-/// listeners then): the one day tick of the calendar views and the
-/// health view.
+/// listeners then): the one day tick of the calendar views.
 final class DayClock extends ChangeNotifier {
   DayClock(this._now) {
     _today = _nextToday();

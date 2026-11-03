@@ -25,6 +25,7 @@ export 'src/model/calendar.dart';
 export 'src/model/calendar_event.dart' show CalendarEvent, EventPart;
 export 'src/model/calendar_time.dart';
 export 'src/model/calendar_unit.dart';
+export 'src/model/event_color.dart';
 export 'src/model/health_entry.dart';
 export 'src/model/repeat.dart';
 export 'src/owner/calendar_owner.dart';

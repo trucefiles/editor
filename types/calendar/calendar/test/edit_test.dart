@@ -381,6 +381,91 @@ void main() {
     );
   });
 
+  group('an event color', () {
+    final colored = birthday.replaceFirst(
+      'SUMMARY:Ann\n',
+      'SUMMARY:Ann\nCOLOR:Turquoise\n',
+    );
+
+    test('is read as written, with its RGB', () {
+      final ann = Calendar.read(colored)!.eventOf('ann@truce')!.series;
+      expect(ann.color?.value, 'Turquoise');
+      expect(ann.color?.rgb, 0x40E0D0);
+      expect(const EventColor('#0a0').rgb, 0x00AA00);
+      expect(const EventColor('#123456').rgb, 0x123456);
+      expect(const EventColor('no color').rgb, isNull);
+    });
+
+    test('an unknown color stays byte for byte when the form changes '
+        'something else', () {
+      final odd = birthday.replaceFirst(
+        'SUMMARY:Ann\n',
+        'SUMMARY:Ann\nCOLOR;X-A=1:wat\n',
+      );
+      final from = EventDraft.of(
+        Calendar.read(odd)!.eventOf('ann@truce')!.series,
+      );
+      final renamed = EventDraft(
+        summary: 'Ann!',
+        start: from.start,
+        end: from.end,
+        repeat: from.repeat,
+        color: from.color,
+      );
+      final edited = _edited(
+        odd,
+        ChangeSeries('ann@truce', renamed, from: from, at: _at),
+      );
+      expect(edited.text, contains('COLOR;X-A=1:wat\n'));
+    });
+
+    test('is set, and removed only when the user picks none', () {
+      final from = EventDraft.of(
+        Calendar.read(birthday)!.eventOf('ann@truce')!.series,
+      );
+      EventDraft withColor(EventColor? color) => EventDraft(
+        summary: from.summary,
+        start: from.start,
+        end: from.end,
+        repeat: from.repeat,
+        color: color,
+      );
+      final set = _edited(
+        birthday,
+        ChangeSeries(
+          'ann@truce',
+          withColor(const EventColor('teal')),
+          from: from,
+          at: _at,
+        ),
+      );
+      expect(set.text, contains('COLOR:teal\n'));
+      final setFrom = EventDraft.of(set.eventOf('ann@truce')!.series);
+      final removed = applyEdit(
+        set,
+        ChangeSeries('ann@truce', withColor(null), from: setFrom, at: _at),
+      );
+      expect(removed.text, isNot(contains('COLOR')));
+    });
+
+    test('changed elsewhere while the form is open is kept', () {
+      final from = EventDraft.of(
+        Calendar.read(birthday)!.eventOf('ann@truce')!.series,
+      );
+      final renamed = EventDraft(
+        summary: 'Ann!',
+        start: from.start,
+        end: from.end,
+        repeat: from.repeat,
+      );
+      final edited = _edited(
+        colored,
+        ChangeSeries('ann@truce', renamed, from: from, at: _at),
+      ).eventOf('ann@truce')!.series;
+      expect((edited.summary, edited.color?.value), ('Ann!', 'Turquoise'));
+    });
+  });
+
   test('a new event gets a random uid of its own', () {
     final [one, other] = [newUid(), newUid()];
     expect(one, matches(RegExp(r'^[0-9a-f]{32}@truce$')));

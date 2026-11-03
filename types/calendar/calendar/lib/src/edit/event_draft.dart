@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../model/calendar_event.dart';
 import '../model/calendar_time.dart';
+import '../model/event_color.dart';
 import '../model/health_entry.dart';
 import '../model/repeat.dart';
 import '../model/wall_on.dart';
@@ -19,6 +20,7 @@ final class EventDraft {
     this.repeat,
     this.alerts = const [],
     this.health,
+    this.color,
   });
 
   /// A health [entry] on [day], with an optional [note].
@@ -42,6 +44,7 @@ final class EventDraft {
         repeat: part.repeat,
         alerts: part.alerts,
         health: part.health,
+        color: part.color,
       );
 
   /// What [event]'s occurrence at [occurrence] says now, to start a form
@@ -72,6 +75,9 @@ final class EventDraft {
   final List<Duration> alerts;
   final HealthEntry? health;
 
+  /// Its own color; `null` for none (it shows in its calendar's).
+  final EventColor? color;
+
   /// This draft for one occurrence, from [start] to [end]: it doesn't
   /// repeat.
   EventDraft occurrenceAt(CalendarTime start, CalendarTime end) => EventDraft(
@@ -82,6 +88,7 @@ final class EventDraft {
     location: location,
     alerts: alerts,
     health: health,
+    color: color,
   );
 
   /// What is to be written when a form started from [from] ends as this
@@ -103,6 +110,7 @@ final class EventDraft {
           ? now.alerts
           : alerts,
       health: changed((draft) => draft.health),
+      color: changed((draft) => draft.color),
     );
   }
 

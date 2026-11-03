@@ -218,6 +218,7 @@ void main() {
       path: path('a.txt'),
       bytesOf: (_) async => null,
       hint: (_) {},
+      color: Colors.teal,
     );
     Future<void> pumpPart() => tester.pumpWidget(
       MaterialApp(

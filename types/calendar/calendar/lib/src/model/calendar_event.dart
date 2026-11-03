@@ -3,6 +3,7 @@ import '../read/content_line.dart';
 import '../read/values.dart';
 import 'calendar_time.dart';
 import 'calendar_unit.dart';
+import 'event_color.dart';
 import 'health_entry.dart';
 import 'repeat.dart';
 
@@ -73,6 +74,11 @@ final class EventPart {
     for (final line in component.all('CATEGORIES'))
       ...splitTextList(line.value),
   ];
+
+  /// Its own color; `null` if it has none.
+  late final EventColor? color = component.value('COLOR') == null
+      ? null
+      : EventColor(_text('COLOR'));
 
   /// The health entry it is; `null` if it is none.
   late final HealthEntry? health = HealthEntry.of(component);
