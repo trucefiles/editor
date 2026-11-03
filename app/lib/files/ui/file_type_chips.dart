@@ -5,8 +5,7 @@ import '../../file_types/file_types.dart';
 import '../file_type_selection.dart';
 
 /// One chip per file type the app handles, by the type's icon and name;
-/// picks
-/// the types the grid shows, none picked showing all.
+/// picks the types the grid shows, none picked showing all.
 class FileTypeChips extends ConsumerWidget {
   const FileTypeChips({super.key});
 
