@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'common/app_localizations.dart';
 import 'common/device_locale.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';

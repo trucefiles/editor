@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'app_localizations.dart';
 import 'device_locale.dart';
 
 /// The device's time texts, read once at start: the one source for
