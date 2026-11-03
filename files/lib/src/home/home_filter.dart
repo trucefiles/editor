@@ -1,20 +1,21 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
 
 import '../conflicts/folder_conflicts.dart';
 import '../listed_file.dart';
 
-/// Which files home shows: those in one [folder] and of one [type];
-/// `null` for either shows them all.
+/// Which files home shows: those in one of the [folders] picked and of
+/// one of the [types] picked; nothing picked in either shows them all.
 @immutable
 final class HomeFilter {
-  const HomeFilter({this.folder, this.type});
+  const HomeFilter({this.folders = const {}, this.types = const {}});
 
-  /// The folder whose files show; `null`: every folder.
-  final FolderId? folder;
+  /// The folders whose files show; empty: every folder.
+  final Set<FolderId> folders;
 
-  /// The type of the files that show; `null`: every type.
-  final FileType? type;
+  /// The types of the files that show; empty: every type.
+  final Set<FileType> types;
 
   /// Those of [files] that show, in their order.
   List<ListedFile> of(List<ListedFile> files) => [
@@ -35,13 +36,18 @@ final class HomeFilter {
   /// Whether a file in [folder] of [type] shows; a file of no known
   /// type shows only while every type does.
   bool _shows(FolderId folder, FileType? type) =>
-      (this.folder == null || this.folder == folder) &&
-      (this.type == null || this.type == type);
+      (folders.isEmpty || folders.contains(folder)) &&
+      (types.isEmpty || types.contains(type));
 
   @override
   bool operator ==(Object other) =>
-      other is HomeFilter && other.folder == folder && other.type == type;
+      other is HomeFilter &&
+      const SetEquality<FolderId>().equals(other.folders, folders) &&
+      const SetEquality<FileType>().equals(other.types, types);
 
   @override
-  int get hashCode => Object.hash(folder, type);
+  int get hashCode => Object.hash(
+    const SetEquality<FolderId>().hash(folders),
+    const SetEquality<FileType>().hash(types),
+  );
 }

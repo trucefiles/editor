@@ -136,7 +136,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     );
     if (pick == null || !mounted) return;
     ref
-        .read(selectedFileTypeProvider.notifier)
+        .read(pickedFileTypesProvider.notifier)
         .reveal(pick.made.type.support.type);
     await Navigator.push(
       context,

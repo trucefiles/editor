@@ -41,14 +41,15 @@ void main() {
     await add();
     await add();
     final [a, b] = await container.read(foldersProvider.future);
-    final selection = container.read(selectedFolderIdProvider.notifier);
+    container.read(pickedFoldersProvider.notifier)
+      ..toggle(a.id)
+      ..toggle(b.id);
 
-    selection.choose(b.id);
     await actions.remove(a);
-    expect(container.read(selectedFolderIdProvider), b.id);
+    expect(container.read(pickedFoldersProvider), {b.id});
 
     await actions.remove(b);
-    expect(container.read(selectedFolderIdProvider), isNull);
+    expect(container.read(pickedFoldersProvider), isEmpty);
     expect(await container.read(foldersProvider.future), isEmpty);
   });
 

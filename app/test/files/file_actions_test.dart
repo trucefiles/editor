@@ -129,8 +129,8 @@ void main() {
       ));
     });
 
-    test('is the folder the grid is filtered to', () async {
-      container.read(selectedFolderIdProvider.notifier).choose(folders[1].id);
+    test('is the first folder the grid is filtered to', () async {
+      container.read(pickedFoldersProvider.notifier).toggle(folders[1].id);
 
       expect(actions.newFilePlace(folders), (
         folder: folders[1],

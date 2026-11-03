@@ -13,7 +13,7 @@ import 'files_wiring.dart';
 final fileActionsProvider = Provider<FileActions>(
   (ref) => FileActions(
     owner: ref.watch(filesProvider).owner,
-    selectedFolderId: () => ref.read(selectedFolderIdProvider),
+    pickedFolders: () => ref.read(pickedFoldersProvider),
     reachOf: (folder) => ref.read(folderReachProvider(folder)),
     newFilePlace: () =>
         ref.read(deviceSettingsProvider).requireValue.newFilePlace,
@@ -28,15 +28,15 @@ final fileActionsProvider = Provider<FileActions>(
 /// No UI: screens ask the user, then call these and show the result. Each
 /// action runs in the files [owner], after the ones asked before it.
 final class FileActions {
-  /// What the screens show now: [_selectedFolderId], the folder the grid is
-  /// filtered to; [_reachOf], each folder's reach; [_newFilePlace], the
+  /// What the screens show now: [_pickedFolders], the folders the grid
+  /// is filtered to; [_reachOf], each folder's reach; [_newFilePlace], the
   /// place set for new files; [_contents], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
   /// folder shows the files in one of its subfolders; [_read], a file's
   /// text as it is now.
   FileActions({
     required this._owner,
-    required this._selectedFolderId,
+    required this._pickedFolders,
     required this._reachOf,
     required this._newFilePlace,
     required this._contents,
@@ -45,7 +45,7 @@ final class FileActions {
   });
 
   final FilesOwner _owner;
-  final FolderId? Function() _selectedFolderId;
+  final Set<FolderId> Function() _pickedFolders;
   final Reach Function(FolderId folder) _reachOf;
   final NewFilePlaceSetting? Function() _newFilePlace;
   final FolderContents? Function() _contents;
@@ -67,7 +67,7 @@ final class FileActions {
   FilePlace? newFilePlace(List<Folder> folders) => newFilePlaceIn(
     reachableOf(folders),
     set: _newFilePlace(),
-    filtered: _selectedFolderId(),
+    filtered: _pickedFolders(),
   );
 
   /// The subfolders of [folder], as last seen.

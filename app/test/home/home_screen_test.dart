@@ -18,6 +18,8 @@ import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_plain_text/truce_plain_text.dart';
 
 import '../support.dart';
 
@@ -71,7 +73,7 @@ void main() {
   testWidgets('a type chip shows only files of its type, and all again '
       'when tapped twice', (tester) async {
     await start(tester, {'notes.md': '# Notes', 'list.txt': 'List\nmilk'});
-    final textChip = find.widgetWithText(ChoiceChip, 'Plain text');
+    final textChip = find.widgetWithText(FilterChip, 'Plain text');
 
     await tester.tap(textChip);
     await tester.pumpAndSettle();
@@ -84,13 +86,13 @@ void main() {
     expect(find.text('List'), findsOneWidget);
   });
 
-  testWidgets('a new file of another type than the one picked shows all '
-      'types again', (tester) async {
+  testWidgets('a new file of another type than the one picked shows its '
+      'type too', (tester) async {
     await start(tester, {'notes.md': '# Notes'});
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeScreen)),
     );
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Plain text'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Plain text'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('New file'));
@@ -98,7 +100,10 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'Note'));
     await showsSoon(tester, find.byType(FileScreen));
 
-    expect(container.read(selectedFileTypeProvider), isNull);
+    expect(container.read(pickedFileTypesProvider), {
+      plainTextType,
+      markdownType,
+    });
   });
 
   testWidgets('the type chips stay in sight on a narrow screen', (
@@ -111,7 +116,7 @@ void main() {
     await start(tester, {'notes.md': '# Notes'});
 
     for (final name in ['Markdown', 'Plain text']) {
-      final chip = tester.getRect(find.widgetWithText(ChoiceChip, name));
+      final chip = tester.getRect(find.widgetWithText(FilterChip, name));
       expect(chip.right, lessThanOrEqualTo(360), reason: name);
     }
   });
