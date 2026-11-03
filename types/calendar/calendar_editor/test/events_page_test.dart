@@ -631,4 +631,48 @@ void main() {
 
     expect(part.owner.state.text, _birthday);
   });
+
+  testWidgets('a health entry dragged to the next day keeps all it says', (
+    tester,
+  ) async {
+    final written = applyEdit(
+      Calendar.read(newCalendarText('Me', health: true))!,
+      AddEvent(
+        'p',
+        EventDraft.health(
+          const Period(PeriodFlow.heavy),
+          DateTime.utc(2026, 11, 10),
+        ),
+        at: editedAt,
+      ),
+    ).text;
+    // What another app may add to the entry.
+    final part = calendarPart(
+      written.replaceFirst(
+        'X-TRUCE-FLOW:heavy\n',
+        'X-TRUCE-FLOW:heavy\nDESCRIPTION:Cramps\\, mild\n'
+            'X-OTHER-APP;A=1:kept\n',
+      ),
+    );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 10));
+
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Period: heavy')),
+      tester.getCenter(find.text('11')) - tester.getCenter(find.text('10')),
+    );
+
+    final moved = calendarOf(part).events.single.series;
+    expect(moved.start, AllDay(DateTime(2026, 11, 11)));
+    final text = part.owner.state.text;
+    for (final line in [
+      'CATEGORIES:HEALTH,PERIOD',
+      'X-TRUCE-FLOW:heavy',
+      r'DESCRIPTION:Cramps\, mild',
+      'X-OTHER-APP;A=1:kept',
+      'SUMMARY:Period: heavy',
+    ]) {
+      expect(text, contains('$line\n'));
+    }
+  });
 }
