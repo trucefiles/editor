@@ -22,7 +22,7 @@ final class FoldersLoading extends FolderListState {
   const FoldersLoading();
 }
 
-/// The saved folders, in the order added.
+/// The saved folders, in the user's order (new ones last).
 final class FoldersLoaded extends FolderListState {
   const FoldersLoaded(this.folders);
 
@@ -91,6 +91,15 @@ final class ChangeFolder extends FolderListAsking {
   final Folder changed;
 }
 
+/// Move [moved] to place [to] in the list (0 is first), the others
+/// keeping their order.
+final class MoveFolder extends FolderListAsking {
+  const MoveFolder(super.ticket, this.moved, {required this.to});
+
+  final Folder moved;
+  final int to;
+}
+
 /// Forget [removed]; its files stay untouched.
 final class RemoveFolder extends FolderListAsking {
   const RemoveFolder(super.ticket, this.removed);
@@ -125,6 +134,12 @@ final class FoldersAdded extends FolderListAnswer {
 
 final class FolderChanged extends FolderListAnswer {
   const FolderChanged(super.ticket, this.result);
+
+  final Result<void, FolderError> result;
+}
+
+final class FolderMoved extends FolderListAnswer {
+  const FolderMoved(super.ticket, this.result);
 
   final Result<void, FolderError> result;
 }

@@ -23,7 +23,8 @@ Future<void> openFoldersScreen(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Lists the folders on this device: add, change, remove.
+/// Lists the folders on this device in their order: add, change,
+/// reorder by dragging, remove.
 class FoldersScreen extends ConsumerWidget {
   const FoldersScreen({super.key});
 
@@ -40,10 +41,13 @@ class FoldersScreen extends ConsumerWidget {
               label: const Text('Add folder'),
             )
           : null,
-      body: ListView(
+      body: ReorderableListView(
+        buildDefaultDragHandles: false,
+        onReorderItem: (from, to) => _move(context, ref, folders[from], to: to),
         children: [
-          for (final folder in folders)
+          for (final (index, folder) in folders.indexed)
             ListTile(
+              key: ValueKey(folder.id),
               leading: FolderDot(folder.color, size: 16),
               title: Text(folder.name),
               subtitle: Column(
@@ -51,15 +55,42 @@ class FoldersScreen extends ConsumerWidget {
                 children: [Text(folder.location), FolderNoticesView(folder)],
               ),
               onTap: () => _edit(context, ref, folder),
-              trailing: IconButton(
-                tooltip: 'Remove from app',
-                icon: const Icon(Icons.remove_circle_outline),
-                onPressed: () => _remove(context, ref, folder),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Remove from app',
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: () => _remove(context, ref, folder),
+                  ),
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: const Tooltip(
+                      message: 'Drag to reorder',
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.drag_handle),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _move(
+    BuildContext context,
+    WidgetRef ref,
+    Folder folder, {
+    required int to,
+  }) async {
+    final saved = await ref.read(folderActionsProvider).move(folder, to: to);
+    if (saved case Err(:final error) when context.mounted) {
+      showSnack(context, error.text);
+    }
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref, Folder folder) =>

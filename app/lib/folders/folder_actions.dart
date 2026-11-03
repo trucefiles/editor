@@ -16,7 +16,7 @@ final folderActionsProvider = Provider<FolderActions>(
   ),
 );
 
-/// The user's actions on the folder list: change, remove; adding goes
+/// The user's actions on the folder list: change, move, remove; adding goes
 /// step by step (see `AddFolderFlow`). No UI: screens ask the user, then
 /// call these and show the result.
 final class FolderActions {
@@ -42,6 +42,12 @@ final class FolderActions {
 
   Future<Result<void, FolderError>> change(Folder changed) =>
       _folders.change(changed);
+
+  /// Moves [moved] to place [to] in the list (0 is first): the order of
+  /// the folder chips, and the first folder new files go to when nothing
+  /// else decides.
+  Future<Result<void, FolderError>> move(Folder moved, {required int to}) =>
+      _folders.move(moved, to: to);
 
   /// How many files have edits kept only on this device that
   /// [remove] would delete.

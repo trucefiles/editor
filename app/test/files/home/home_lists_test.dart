@@ -48,14 +48,18 @@ void main() {
   });
 
   group('sectionsByName', () {
-    test('a section per folder and subfolder, by name', () {
+    test('a section per folder in the given order, then per subfolder by '
+        'name', () {
       final top = doc('Top.md');
       final b = doc('work/b.md');
       final a10 = doc('work/A 10.md');
       final a9 = doc('work/a 9.md');
       final atHome = listedFile(home, name: 'x.md');
 
-      final sections = sectionsByName([b, top, atHome, a10, a9]);
+      final sections = sectionsByName(
+        [b, top, atHome, a10, a9],
+        folders: [work, home],
+      );
 
       expect(
         [
@@ -63,9 +67,9 @@ void main() {
             (section.folder.id, section.subfolder?.value),
         ],
         [
-          (folderId('home'), null),
           (folderId('work'), null),
           (folderId('work'), 'work'),
+          (folderId('home'), null),
         ],
       );
       expect(sections.last.files, [a9, a10, b]);

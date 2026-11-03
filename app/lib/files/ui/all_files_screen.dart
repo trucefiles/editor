@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/filled_scroll_view.dart';
@@ -41,6 +42,7 @@ class AllFilesScreen extends ConsumerWidget {
     final files = ref
         .watch(homeFilterProvider)
         .of(contents?.files ?? const <ListedFile>[]);
+    final folders = ref.watch(foldersProvider).value ?? const <Folder>[];
     final asCards = settings.view == FileView.cards;
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +74,7 @@ class AllFilesScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HomeFilterBar(
-            ref.watch(foldersProvider).value ?? const [],
+            folders,
             conflictCount: (folder) =>
                 contents?.conflicts.countIn(folder.id) ?? 0,
           ),
@@ -100,7 +102,7 @@ class AllFilesScreen extends ConsumerWidget {
                         asCards ? 12 : 0,
                         24,
                       ),
-                      sliver: _files(files, settings),
+                      sliver: _files(files, settings, folders),
                     ),
                   ],
                 ),
@@ -116,38 +118,42 @@ class AllFilesScreen extends ConsumerWidget {
   /// count.
   static const _cardsPerBox = 24;
 
-  /// [files] in the order and view [settings] say, built lazily.
-  static Widget _files(List<ListedFile> files, HomeSettings settings) =>
-      switch ((settings.order, settings.view)) {
-        (FileOrder.time, FileView.cards) => fileGrid(
-          files.length,
-          (index) => ListedFileCard(files[index]),
+  /// [files] in the order and view [settings] say, built lazily; by
+  /// name, their sections follow the order of [folders].
+  static Widget _files(
+    List<ListedFile> files,
+    HomeSettings settings,
+    List<Folder> folders,
+  ) => switch ((settings.order, settings.view)) {
+    (FileOrder.time, FileView.cards) => fileGrid(
+      files.length,
+      (index) => ListedFileCard(files[index]),
+    ),
+    (FileOrder.time, FileView.list) => SliverList.builder(
+      itemCount: files.length,
+      itemBuilder: (_, index) => ListedFileRow(files[index]),
+    ),
+    // Each section's cards come in boxes of a few rows, each built only
+    // near the screen: a grid per section would build some cards of every
+    // section at once.
+    (FileOrder.name, FileView.cards) => _rows([
+      for (final section in sectionsByName(files, folders: folders)) ...[
+        FilesHeading(_placeOf(section)),
+        for (final cards in section.files.slices(_cardsPerBox))
+          fileGridBox([for (final file in cards) ListedFileCard(file)]),
+      ],
+    ]),
+    (FileOrder.name, FileView.list) => _rows([
+      for (final section in sectionsByName(files, folders: folders)) ...[
+        // Lined up with the rows' text.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: FilesHeading(_placeOf(section)),
         ),
-        (FileOrder.time, FileView.list) => SliverList.builder(
-          itemCount: files.length,
-          itemBuilder: (_, index) => ListedFileRow(files[index]),
-        ),
-        // Each section's cards come in boxes of a few rows, each built only
-        // near the screen: a grid per section would build some cards of every
-        // section at once.
-        (FileOrder.name, FileView.cards) => _rows([
-          for (final section in sectionsByName(files)) ...[
-            FilesHeading(_placeOf(section)),
-            for (final cards in section.files.slices(_cardsPerBox))
-              fileGridBox([for (final file in cards) ListedFileCard(file)]),
-          ],
-        ]),
-        (FileOrder.name, FileView.list) => _rows([
-          for (final section in sectionsByName(files)) ...[
-            // Lined up with the rows' text.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: FilesHeading(_placeOf(section)),
-            ),
-            for (final file in section.files) ListedFileRow(file),
-          ],
-        ]),
-      };
+        for (final file in section.files) ListedFileRow(file),
+      ],
+    ]),
+  };
 
   static Widget _rows(List<Widget> rows) => SliverList.builder(
     itemCount: rows.length,

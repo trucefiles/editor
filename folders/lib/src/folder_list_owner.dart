@@ -161,6 +161,12 @@ final class _FolderListSteps {
         ticket,
         folders == null ? unsaved : await _change(folders, changed, out),
       ),
+      MoveFolder(:final ticket, :final moved, :final to) => FolderMoved(
+        ticket,
+        folders == null
+            ? unsaved
+            : await _save(_moved(folders, moved, to), out),
+      ),
       RemoveFolder(:final ticket, :final removed) => FolderRemoved(
         ticket,
         folders == null ? unsaved : await _remove(folders, removed, out),
@@ -209,6 +215,17 @@ final class _FolderListSteps {
       for (final folder in folders) folder.id == changed.id ? changed : folder,
     ], out);
   }
+
+  /// [folders] with [moved] at place [to], as far as the list reaches;
+  /// unchanged if [moved] is not in it.
+  static List<Folder> _moved(List<Folder> folders, Folder moved, int to) =>
+      switch (folders.byId(moved.id)) {
+        final mine? => [
+          for (final folder in folders)
+            if (folder.id != moved.id) folder,
+        ]..insert(to.clamp(0, folders.length - 1), mine),
+        null => folders,
+      };
 
   /// Secures [folder]'s open files first, writing no conflict copy as the
   /// user hasn't decided yet, so a draft a failed save leaves is counted
