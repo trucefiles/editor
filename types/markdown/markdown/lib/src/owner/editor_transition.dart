@@ -145,14 +145,15 @@ final class _Step with EditorSteps<Snapshot> {
   /// drag or swipe, a Done heading, a menu): it leaves no caret.
   static bool _byControl(EditorInput input) => switch (input) {
     Run(:final byControl) => byControl,
-    ToggleItems() || SetCollapsed() => true,
+    ToggleItems() || SetCollapsed() || RemoveCaret() => true,
     _ => false,
   };
 
   /// No caret shows any more, an open raw block closed too; the next tap
   /// into text places one.
   void _removeCaret() {
-    if (state.content case final FormattedContent shown) {
+    if (state.content case final FormattedContent shown
+        when shown.selection != null || shown.raw != null) {
       final view = shown.raw == null ? shown.view : _closedRaw(null).view;
       _show(FormattedContent(view: view, selection: null));
     }
@@ -362,13 +363,15 @@ final class _Step with EditorSteps<Snapshot> {
         );
       case (
         TreeSnapshot(:final doc, :final origin, :final selection),
-        FormattedContent(:final view),
+        FormattedContent(:final view, selection: final shown),
       ):
         work = work.copyWith(origin: origin);
         _show(
           FormattedContent(
             view: _rows(doc, view.done, state.checkedItems),
-            selection: selection,
+            // A caret comes back only while one shows: after a control,
+            // undo leaves the view where it is.
+            selection: shown == null ? null : selection,
           ),
         );
       case (TextSnapshot(:final text), FormattedContent()):

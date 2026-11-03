@@ -79,13 +79,32 @@ void main() {
       expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 0)));
     });
 
-    test('undo brings back the caret the step started with', () {
+    test('undo and redo bring back no caret while none shows', () {
       final run = EditorRun(list)..caret(2, 1);
       run.send(
         Run(DeleteItem(run.item(0)), revision: run.revision, byControl: true),
       );
       run.request(const Undo());
-      expect(run.shown.selection, TextSelection.caret(Place(run.leaf(2), 1)));
+      expect(run.rows, ['a', 'b', 'c']);
+      expect(run.shown.selection, isNull);
+      run.request(const Redo());
+      expect(run.shown.selection, isNull);
+    });
+
+    test('undo while typing brings back the caret of the step', () {
+      final run = EditorRun('ab')
+        ..caret(0, 2)
+        ..type('c')
+        ..request(const Undo());
+      expect(run.rows, ['ab']);
+      expect(run.shown.selection, isNotNull);
+    });
+
+    test('a removed caret stays removed, without a new revision', () {
+      final run = EditorRun(list)..send(const RemoveCaret());
+      final revision = run.revision;
+      run.send(const RemoveCaret());
+      expect(run.revision, revision);
     });
   });
 

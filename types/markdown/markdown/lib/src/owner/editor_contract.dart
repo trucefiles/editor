@@ -194,6 +194,12 @@ final class SetCheckedItems extends EditorInput {
   final CheckedItems checkedItems;
 }
 
+/// A control was used (e.g. a box tapped, its toggle still waiting): no
+/// caret shows any more, as after any control (see [Run.byControl]).
+final class RemoveCaret extends EditorInput {
+  const RemoveCaret();
+}
+
 /// [list]'s Done section collapsed or opened; leaves no caret, as any
 /// control does (see [Run.byControl]).
 final class SetCollapsed extends EditorInput {

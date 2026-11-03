@@ -66,8 +66,9 @@ final class EditorGate extends ChangeNotifier {
   }
 
   /// A tap on [item]'s box; a second tap on it while it waits takes it
-  /// back.
+  /// back. The caret goes at once, as after any control.
   void tapBox(NodeId item) => _change(() {
+    _owner.send(const RemoveCaret());
     if (_waiting.isEmpty) _tappedAt = _owner.state.revision;
     if (!_waiting.remove(item)) _waiting.add(item);
     _timer?.cancel();

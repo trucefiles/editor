@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
+import 'package:truce_markdown/truce_markdown.dart' show CheckedItems;
 
 /// When Visual edit shows a caret: none on opening a file, none after a
 /// control, so the view never jumps to an old one.
@@ -28,15 +29,21 @@ void main() {
 
   testWidgets('a tap on a box takes the caret and the keyboard away; a tap '
       'into text brings them back', (tester) async {
-    await pumpDocument(tester, TestDocument('- [ ] milk\n- [ ] eggs'));
+    final document = TestDocument(
+      '- [ ] milk\n- [ ] eggs',
+      checkedItems: CheckedItems.moveToEnd,
+    );
+    await pumpDocument(tester, document);
     await tester.caretIn(checkboxNodeOf(index: 1), 2);
     expect(SuperEditorInspector.hasFocus(), isTrue);
 
     await tester.tap(find.byType(Checkbox).first);
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(selection(), isNull);
     expect(SuperEditorInspector.hasFocus(), isFalse);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(document.text, '- [ ] eggs\n- [x] milk');
 
     await tester.caretIn(checkboxNodeOf(index: 1), 2);
     expect(selection(), isNotNull);
