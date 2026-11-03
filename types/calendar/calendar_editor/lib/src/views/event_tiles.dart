@@ -43,7 +43,8 @@ TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
   );
 }
 
-/// How occurrences look in the schedule view: a dot in their color, their title and their times.
+/// How occurrences look in the schedule view: a dot in their color,
+/// their title and their times.
 ScheduleTileComponents scheduleTiles<K>(Color Function(K calendar) colorOf) =>
     ScheduleTileComponents(
       tileBuilder: (context, event, _) {

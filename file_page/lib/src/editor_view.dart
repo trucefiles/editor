@@ -8,8 +8,8 @@ import 'package:truce_files/truce_files.dart';
 /// ([folder], [path]; it changes with a move, or a new file's first
 /// line), how to read another file of its folder ([bytesOf], e.g. an
 /// image it links; `null` if it can't be read), how a short [hint]
-/// shows (e.g. a link it doesn't open), and the file's [color]. What a type needs beyond this,
-/// it gets from its own wiring.
+/// shows (e.g. a link it doesn't open), and the file's [color]. What a
+/// type needs beyond this, it gets from its own wiring.
 final class EditorHost {
   const EditorHost({
     required this.kept,

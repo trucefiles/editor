@@ -7,7 +7,8 @@ import 'event_actions.dart';
 import 'events_page.dart';
 
 /// The calendar [part]'s editor shows, as it changes: the calendar's
-/// page; a text that is no calendar as it is, to read. Edits only while the part is editing.
+/// page; a text that is no calendar as it is, to read. Edits only while
+/// the part is editing.
 class CalendarPage extends StatelessWidget {
   const CalendarPage(
     this.part, {
@@ -16,9 +17,7 @@ class CalendarPage extends StatelessWidget {
     required this.deviceZone,
     required this.viewChoice,
     required this.color,
-    required this.addAsked,
     required this.starts,
-    required this.start,
     super.key,
   });
 
@@ -37,13 +36,8 @@ class CalendarPage extends StatelessWidget {
   /// their own.
   final Color color;
 
-  /// Fires when Add is pressed.
-  final Listenable addAsked;
-
-  /// Fires when a start may have been asked of this page; [start] takes
-  /// it.
-  final Listenable starts;
-  final CalendarStart? Function() start;
+  /// What the page is asked to start with: adding, or editing an event.
+  final PageStarts starts;
 
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
@@ -68,9 +62,7 @@ class CalendarPage extends StatelessWidget {
           deviceZone: deviceZone,
           viewChoice: viewChoice,
           color: color,
-          addAsked: addAsked,
           starts: starts,
-          start: start,
           hint: hint,
         ),
       };

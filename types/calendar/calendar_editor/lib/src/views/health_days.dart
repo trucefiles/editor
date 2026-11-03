@@ -31,9 +31,6 @@ final class HealthDays<K> {
 
   HealthDays._(this._periods, this._likely, this._fertile, this.cycles);
 
-  /// No health calendar with a period.
-  HealthDays.none() : this._({}, {}, {}, {});
-
   final Set<DateTime> _periods;
   final Set<DateTime> _likely;
   final Set<DateTime> _fertile;

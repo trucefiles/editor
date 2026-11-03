@@ -8,8 +8,8 @@ import 'calendar_start.dart';
 import 'ui/calendar_page.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
-/// its Add button; undo and redo are the page's. The page takes what
-/// [_starts] asks of its file once its calendar shows.
+/// its Add button; undo and redo are the page's. What [_starts] asks of
+/// its file and its Add button reach the page as its own [PageStarts].
 final class CalendarEditorView implements EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
   /// [_viewChoice] the view event calendars open in; [_starts] what
@@ -27,20 +27,24 @@ final class CalendarEditorView implements EditorView {
   final CalendarViewChoice _viewChoice;
   final CalendarStarts _starts;
   final DateTime Function() _now;
-  final _addAsks = AddAsks();
+  final _pageStarts = PageStarts();
 
   @override
-  Widget view(EditorHost host, {required bool autofocus}) => CalendarPage(
-    _part,
-    now: _now,
-    hint: host.hint,
-    color: host.color,
-    deviceZone: _deviceZone,
-    viewChoice: _viewChoice,
-    addAsked: _addAsks,
-    starts: _starts,
-    start: () => _starts.take((folder: host.folder, path: host.path)),
-  );
+  Widget view(EditorHost host, {required bool autofocus}) {
+    if (_starts.take((folder: host.folder, path: host.path))
+        case final asked?) {
+      _pageStarts.ask(asked);
+    }
+    return CalendarPage(
+      _part,
+      now: _now,
+      hint: host.hint,
+      color: host.color,
+      deviceZone: _deviceZone,
+      viewChoice: _viewChoice,
+      starts: _pageStarts,
+    );
+  }
 
   @override
   List<Widget> actions(BuildContext context) => const [];
@@ -55,9 +59,15 @@ final class CalendarEditorView implements EditorView {
   Map<SingleActivator, VoidCallback> get keys => const {};
 
   @override
-  Widget? floatingButton(BuildContext context) => FloatingActionButton(
-    tooltip: 'Add event',
-    onPressed: _addAsks.ask,
-    child: const Icon(Icons.add),
+  Widget? floatingButton(BuildContext context) => StreamBuilder(
+    stream: _part.owner.changes,
+    // Only for a calendar: a text that is no calendar has nothing to add.
+    builder: (_, _) => _part.owner.state.calendar == null
+        ? const SizedBox.shrink()
+        : FloatingActionButton(
+            tooltip: 'Add event',
+            onPressed: () => _pageStarts.ask(const StartAdding()),
+            child: const Icon(Icons.add),
+          ),
   );
 }

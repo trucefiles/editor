@@ -121,4 +121,35 @@ void main() {
     expect(find.text('New event'), findsOne);
     expect(find.textContaining('9:00'), findsWidgets);
   });
+
+  testWidgets('a text that is no calendar shows no Add button', (tester) async {
+    await pumpPage(tester, calendarPart('Not a calendar'), today: _today);
+    expect(
+      find.text(
+        "This file can't be read as a calendar. It shows as it "
+        'is, and nothing here changes it.',
+      ),
+      findsOne,
+    );
+    expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
+  testWidgets('after a start from the tab, the Add button still adds', (
+    tester,
+  ) async {
+    final starts = CalendarStarts()..ask(pageFile, const StartAdding());
+    await pumpPage(
+      tester,
+      calendarPart(newCalendarText('Home')),
+      today: _today,
+      starts: starts,
+    );
+    Navigator.pop(tester.element(find.text('New event')));
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsNothing);
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsOne);
+  });
 }

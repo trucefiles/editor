@@ -47,9 +47,9 @@ const _frequencyWords = {
 };
 
 /// The event form: title, all day, start and end, repeat, alert, color,
-/// place and notes. What it doesn't show of the event (e.g. a health entry, a
-/// time zone) stays as it was; an event in another zone than the device's
-/// shows its own clock, its zone named below the times.
+/// place and notes. What it doesn't show of the event (e.g. a health
+/// entry, a time zone) stays as it was; an event in another zone than
+/// the device's shows its own clock, its zone named below the times.
 class EventForm extends StatefulWidget {
   const EventForm(
     this.draft, {

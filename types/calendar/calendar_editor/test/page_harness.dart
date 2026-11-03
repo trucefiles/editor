@@ -50,8 +50,9 @@ final FileKey pageFile = (folder: pageFolder, path: pagePath);
 
 /// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
 /// that keeps the view in [kept] (by default the month), with its Add
-/// button while it can be edited, its hints added to [hints], taking what [starts] asks of it;
-/// closes the part's editor once the test ends.
+/// button while it can be edited, its hints added to [hints], taking
+/// what [starts] asks of it; closes the part's editor once the test
+/// ends.
 Future<void> pumpPage(
   WidgetTester tester,
   CalendarEditorPart part, {
