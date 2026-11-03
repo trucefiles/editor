@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 /// Lets the user swipe [child] right to indent or left to outdent, by
 /// touch or mouse. The child follows the pointer by up to one [step], the
 /// width of one indent level; a swipe that reaches it acts on release.
-/// The child slides back either way.
+/// Where the item moved, its new indent takes the slide's place in the
+/// same frame; else the child slides back.
 ///
 /// A horizontal drag in the gesture arena: the gesture that claims the
 /// pointer first wins, so a scroll, a pinch or a long press that selects
@@ -23,8 +24,11 @@ class SwipeToIndent extends StatefulWidget {
   /// Width of one indent level on screen.
   final double step;
 
-  final VoidCallback onIndent;
-  final VoidCallback onOutdent;
+  /// Indents the item; whether it moved.
+  final bool Function() onIndent;
+
+  /// Outdents the item; whether it moved.
+  final bool Function() onOutdent;
   final Widget child;
 
   /// Leaves mouse drags that start on [child] to it, e.g. text selection
@@ -61,6 +65,10 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   /// How far the pointer moved sideways since the swipe started.
   double _dx = 0;
 
+  /// How long the child takes to its place once [_dx] changed: none while
+  /// it follows the pointer or once the item moved to where it shows.
+  Duration _back = Duration.zero;
+
   /// The mouse pointer that went down in a [SwipeToIndent.keepMouseDrags]
   /// child, if any.
   int? _kept;
@@ -71,16 +79,28 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
     return !kept;
   }
 
-  void _follow(DragUpdateDetails details) =>
-      setState(() => _dx += details.primaryDelta!);
+  void _follow(DragUpdateDetails details) => setState(() {
+    _dx += details.primaryDelta!;
+    _back = Duration.zero;
+  });
 
   void _end(DragEndDetails _) {
-    if (_dx >= widget.step) widget.onIndent();
-    if (_dx <= -widget.step) widget.onOutdent();
-    _slideBack();
+    final moved = switch (_dx) {
+      final dx when dx >= widget.step => widget.onIndent(),
+      final dx when dx <= -widget.step => widget.onOutdent(),
+      _ => false,
+    };
+    _settle(slides: !moved);
   }
 
-  void _slideBack() => setState(() => _dx = 0);
+  /// The child goes back to no offset: sliding, or at once where its row
+  /// lands at the new indent in this frame.
+  void _settle({required bool slides}) => setState(() {
+    _dx = 0;
+    _back = slides ? const Duration(milliseconds: 150) : Duration.zero;
+  });
+
+  void _slideBack() => _settle(slides: true);
 
   @override
   Widget build(BuildContext context) => RawGestureDetector(
@@ -96,8 +116,7 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
       ),
     },
     child: AnimatedContainer(
-      // Follows the pointer at once; slides back after release.
-      duration: _dx == 0 ? const Duration(milliseconds: 150) : Duration.zero,
+      duration: _back,
       transform: Matrix4.translationValues(
         _dx.clamp(-widget.step, widget.step),
         0,
