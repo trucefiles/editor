@@ -12,6 +12,7 @@ import 'folder_badge.dart';
 import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
 import 'folder_settings_screen.dart';
+import 'reorderable_folder_list.dart';
 
 /// Opens the [FoldersScreen]. Notices can change while the app runs (e.g.
 /// watching a folder failed), so they are checked again first.
@@ -41,47 +42,45 @@ class FoldersScreen extends ConsumerWidget {
               label: const Text('Add folder'),
             )
           : null,
-      body: ReorderableListView(
-        buildDefaultDragHandles: false,
-        onReorderItem: (from, to) => _move(context, ref, folders[from], to: to),
-        children: [
-          for (final (index, folder) in folders.indexed)
-            ListTile(
-              key: ValueKey(folder.id),
-              leading: FolderDot(folder.color, size: 16),
-              title: Text(folder.name),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(folder.location), FolderNoticesView(folder)],
+      body: ReorderableFolderList(
+        folders,
+        onMove: (folder, to) => _move(context, ref, folder, to: to),
+        tile: (folder, index) => ListTile(
+          key: ValueKey(folder.id),
+          leading: FolderDot(folder.color, size: 16),
+          title: Text(folder.name),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [Text(folder.location), FolderNoticesView(folder)],
+          ),
+          onTap: () => _edit(context, ref, folder),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Remove from app',
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () => _remove(context, ref, folder),
               ),
-              onTap: () => _edit(context, ref, folder),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Remove from app',
-                    icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: () => _remove(context, ref, folder),
+              ReorderableDragStartListener(
+                index: index,
+                child: const Tooltip(
+                  message: 'Drag to reorder',
+                  child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(Icons.drag_handle),
                   ),
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: const Tooltip(
-                      message: 'Drag to reorder',
-                      child: Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(Icons.drag_handle),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _move(
+  /// Moves [folder] to place [to]; whether it was saved.
+  Future<bool> _move(
     BuildContext context,
     WidgetRef ref,
     Folder folder, {
@@ -91,6 +90,7 @@ class FoldersScreen extends ConsumerWidget {
     if (saved case Err(:final error) when context.mounted) {
       showSnack(context, error.text);
     }
+    return saved is Ok;
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref, Folder folder) =>

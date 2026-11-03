@@ -37,4 +37,20 @@ void main() {
     final american = await wordsFor(tester, const Locale('en', 'US'));
     expect(american.firstDayOfWeekIndex, 0);
   });
+
+  testWidgets("times use the locale's clock", (tester) async {
+    final german = await wordsFor(tester, const Locale('de', 'DE'));
+    expect(german.timeOfDayFormat(), TimeOfDayFormat.HH_colon_mm);
+    expect(
+      german.formatTimeOfDay(const TimeOfDay(hour: 14, minute: 5)),
+      '14:05',
+    );
+
+    final american = await wordsFor(tester, const Locale('en', 'US'));
+    expect(american.timeOfDayFormat(), TimeOfDayFormat.h_colon_mm_space_a);
+    expect(
+      american.timeOfDayFormat(alwaysUse24HourFormat: true),
+      TimeOfDayFormat.HH_colon_mm,
+    );
+  });
 }

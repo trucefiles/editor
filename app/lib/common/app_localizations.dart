@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'device_locale.dart';
 
 /// The app's localizations for any locale: Flutter's own English texts,
-/// with the locale's date formats and first day of the week. The app is
+/// with the locale's date formats, clock and first day of the week. The app is
 /// in English only, so the words never follow the locale.
 const appLocalizations = <LocalizationsDelegate<Object?>>[
   _EnglishMaterialDelegate(),
@@ -26,7 +26,8 @@ final class _EnglishMaterialDelegate
   Future<MaterialLocalizations> load(Locale locale) {
     final name = dateLocaleOf(locale.toString());
     return SynchronousFuture(
-      MaterialLocalizationEn(
+      _EnglishWithLocaleClock(
+        uses24Hour: RegExp('[Hk]').hasMatch(DateFormat.jm(name).pattern!),
         localeName: name,
         fullYearFormat: DateFormat.y(name),
         compactDateFormat: DateFormat.yMd(name),
@@ -43,6 +44,32 @@ final class _EnglishMaterialDelegate
 
   @override
   bool shouldReload(_EnglishMaterialDelegate old) => false;
+}
+
+/// Flutter's English texts, with a 24-hour clock where the locale
+/// [uses24Hour] (e.g. in time pickers), as the system setting also asks.
+final class _EnglishWithLocaleClock extends MaterialLocalizationEn {
+  const _EnglishWithLocaleClock({
+    required this.uses24Hour,
+    required super.localeName,
+    required super.fullYearFormat,
+    required super.compactDateFormat,
+    required super.shortDateFormat,
+    required super.mediumDateFormat,
+    required super.longDateFormat,
+    required super.yearMonthFormat,
+    required super.shortMonthDayFormat,
+    required super.decimalFormat,
+    required super.twoDigitZeroPaddedFormat,
+  });
+
+  final bool uses24Hour;
+
+  @override
+  TimeOfDayFormat timeOfDayFormat({bool alwaysUse24HourFormat = false}) =>
+      super.timeOfDayFormat(
+        alwaysUse24HourFormat: alwaysUse24HourFormat || uses24Hour,
+      );
 }
 
 /// Flutter's English Cupertino texts for any locale; the app shows no
