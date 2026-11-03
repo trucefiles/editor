@@ -319,6 +319,34 @@ void main() {
     expect(stamps(), '20261103T100900Z 20261103T100900Z 2');
   });
 
+  testWidgets('the form sets an own color, and back to the calendar\'s', (
+    tester,
+  ) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      kept: KeptView(CalendarViewKind.week),
+    );
+    Future<void> pick(Finder color) async {
+      await tester.tap(find.text('Call'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(color);
+      await tester.tap(color);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+    }
+
+    await pick(find.bySemanticsLabel('teal'));
+    expect(calendarOf(part).events.single.series.color?.value, 'teal');
+
+    await pick(find.text('Calendar color'));
+    expect(calendarOf(part).events.single.series.color, isNull);
+  });
+
   testWidgets("times show on the system's clock", (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,

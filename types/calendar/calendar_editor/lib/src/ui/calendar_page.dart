@@ -16,6 +16,7 @@ class CalendarPage extends StatelessWidget {
     required this.hint,
     required this.deviceZone,
     required this.viewChoice,
+    required this.color,
     super.key,
   });
 
@@ -29,6 +30,10 @@ class CalendarPage extends StatelessWidget {
 
   /// Tells this device's time zone, for new events.
   final DeviceZone deviceZone;
+
+  /// The calendar's color: its events show in it unless they have
+  /// their own.
+  final Color color;
 
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
@@ -57,6 +62,7 @@ class CalendarPage extends StatelessWidget {
           now: now,
           deviceZone: deviceZone,
           viewChoice: viewChoice,
+          color: color,
         ),
       };
     },

@@ -7,8 +7,9 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
+import '../../files/file_colors.dart';
 import '../../files/ui/open_file.dart';
-import '../../folders/folder_colors.dart';
+import '../../folder_state/folder_state_controller.dart';
 import '../../settings/calendar_view_setting.dart';
 import '../calendar_tab_controller.dart';
 import '../calendar_tab_picks.dart';
@@ -25,6 +26,9 @@ class CalendarTabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final calendars = ref.watch(calendarTabProvider).value ?? const [];
     final viewChoice = ref.watch(calendarViewChoiceProvider);
+    final contents = ref.watch(folderContentsProvider).value;
+    Color colorOf(ListedFile file) =>
+        fileColor(contents?.markOf(file.key).color, folder: file.folder.color);
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
       floatingActionButton: calendars.isEmpty
@@ -55,9 +59,7 @@ class CalendarTabScreen extends ConsumerWidget {
                       for (final calendar in calendars)
                         FilterChip(
                           avatar: CircleAvatar(
-                            backgroundColor: folderColor(
-                              calendar.file.folder.color,
-                            ),
+                            backgroundColor: colorOf(calendar.file),
                           ),
                           label: Text(calendar.title),
                           selected: calendar.shown,
@@ -74,7 +76,7 @@ class CalendarTabScreen extends ConsumerWidget {
                       for (final calendar in calendars)
                         if (calendar.shown) calendar.file: calendar.calendar,
                     },
-                    colorOf: (file) => folderColor(file.folder.color),
+                    colorOf: colorOf,
                     kind: viewChoice.last(),
                     onKind: (kind) => unawaited(viewChoice.keep(kind)),
                     now: ref.watch(calendarClockProvider),

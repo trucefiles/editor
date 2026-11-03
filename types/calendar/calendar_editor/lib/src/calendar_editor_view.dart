@@ -28,6 +28,7 @@ final class CalendarEditorView implements EditorView {
     _part,
     now: _now,
     hint: host.hint,
+    color: host.color,
     deviceZone: _deviceZone,
     viewChoice: _viewChoice,
   );

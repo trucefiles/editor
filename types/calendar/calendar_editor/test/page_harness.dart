@@ -75,6 +75,7 @@ Future<void> pumpPage(
                 path: path('a.ics'),
                 bytesOf: (_) async => null,
                 hint: (hints ?? []).add,
+                color: Colors.teal,
               ),
               autofocus: false,
             ),

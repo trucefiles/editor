@@ -17,6 +17,7 @@ class EventsPage extends StatelessWidget {
     required this.now,
     required this.deviceZone,
     required this.viewChoice,
+    required this.color,
     super.key,
   });
 
@@ -25,13 +26,14 @@ class EventsPage extends StatelessWidget {
   final DateTime Function() now;
   final DeviceZone deviceZone;
   final CalendarViewChoice viewChoice;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final edit = this.edit;
     return CalendarViews<()>(
       calendars: {(): calendar},
-      colorOf: (_) => Theme.of(context).colorScheme.primary,
+      colorOf: (_) => color,
       kind: viewChoice.last(),
       onKind: (kind) => unawaited(viewChoice.keep(kind)),
       now: now,

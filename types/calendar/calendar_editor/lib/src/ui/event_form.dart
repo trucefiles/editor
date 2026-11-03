@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import 'color_choice.dart';
+
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
 /// they backed out. Offers a repeat unless the event is one of a series
@@ -44,8 +46,8 @@ const _frequencyWords = {
   Frequency.yearly: 'Every year',
 };
 
-/// The event form: title, all day, start and end, repeat, alert, place
-/// and notes. What it doesn't show of the event (e.g. a health entry, a
+/// The event form: title, all day, start and end, repeat, alert, color,
+/// place and notes. What it doesn't show of the event (e.g. a health entry, a
 /// time zone) stays as it was; an event in another zone than the device's
 /// shows its own clock, its zone named below the times.
 class EventForm extends StatefulWidget {
@@ -77,6 +79,7 @@ class _EventFormState extends State<EventForm> {
   late var _times = _FormTimes.of(widget.draft);
   late var _repeat = widget.draft.repeat;
   late var _alerts = widget.draft.alerts;
+  late var _color = widget.draft.color;
 
   @override
   void dispose() {
@@ -95,6 +98,7 @@ class _EventFormState extends State<EventForm> {
     repeat: _repeat,
     alerts: _alerts,
     health: widget.draft.health,
+    color: _color,
   );
 
   @override
@@ -198,6 +202,11 @@ class _EventFormState extends State<EventForm> {
             ],
             onChanged: (alerts) =>
                 setState(() => _alerts = alerts?.before ?? const []),
+          ),
+          const SizedBox(height: 16),
+          ColorChoice(
+            color: _color,
+            onColor: (color) => setState(() => _color = color),
           ),
           const SizedBox(height: 8),
           TextField(
