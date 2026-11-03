@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
@@ -30,6 +31,9 @@ final class CalendarEditableType extends CalendarFileType
   final DeviceZone deviceZone;
   final CalendarViewChoice viewChoice;
   final CalendarStarts starts;
+
+  @override
+  IconData get icon => Icons.calendar_month_outlined;
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {

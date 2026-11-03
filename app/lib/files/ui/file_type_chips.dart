@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../file_types/file_types.dart';
 import '../file_type_selection.dart';
 
-/// One chip per file type the app handles, by the type's name; picks
+/// One chip per file type the app handles, by the type's icon and name;
+/// picks
 /// the types the grid shows, none picked showing all.
 class FileTypeChips extends ConsumerWidget {
   const FileTypeChips({super.key});
@@ -20,6 +21,7 @@ class FileTypeChips extends ConsumerWidget {
         for (final type in ref.watch(fileTypesProvider).all)
           FilterChip(
             showCheckmark: false,
+            avatar: Icon(type.icon),
             label: Text(type.name),
             selected: picked.contains(type.support.type),
             onSelected: (_) => picks.toggle(type.support.type),

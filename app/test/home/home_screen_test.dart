@@ -115,10 +115,11 @@ void main() {
     addTearDown(tester.view.reset);
     await start(tester, {'notes.md': '# Notes'});
 
-    for (final name in ['Markdown', 'Plain text']) {
-      final chip = tester.getRect(find.widgetWithText(FilterChip, name));
-      expect(chip.right, lessThanOrEqualTo(360), reason: name);
-    }
+    // Their own row starts at the left edge, whatever the folder chips
+    // take; the rest of the row scrolls sideways.
+    final first = tester.getRect(find.widgetWithText(FilterChip, 'Markdown'));
+    expect(first.left, lessThan(24));
+    expect(first.right, lessThanOrEqualTo(360));
   });
 
   testWidgets('no Calendar tab while the folders hold no calendar', (

@@ -8,10 +8,11 @@ import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../file_colors.dart';
+import 'file_type_icon.dart';
 
 /// A file in the grid: title and first lines at the document text zoom
-/// (as its [preview] has them, as many as fit); folder, last edit, pin and
-/// color.
+/// (as its [preview] has them, as many as fit); folder, its type's icon,
+/// last edit, pin and color.
 class FileCard extends ConsumerWidget {
   const FileCard(
     this.file, {
@@ -69,6 +70,7 @@ class FileCard extends ConsumerWidget {
         spacing: 6,
         children: [
           Expanded(child: FolderBadge(file.folder, file: file.path)),
+          FileTypeIcon(file, size: cardFooterIconSize),
           Text(
             ref
                 .watch(timeTextsProvider)
