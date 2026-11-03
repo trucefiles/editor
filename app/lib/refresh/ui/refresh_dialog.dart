@@ -40,21 +40,21 @@ class _RefreshDialogState extends State<_RefreshDialog> {
             value: RefreshMode.live,
             title: Text('Live'),
             subtitle: Text(
-              'As they happen. Folders where this is not possible are '
-              'checked at the interval below.',
+              'As they happen where possible, otherwise at the interval '
+              'below.',
             ),
           ),
           const RadioListTile(
             value: RefreshMode.periodic,
             title: Text('Periodic'),
-            subtitle: Text('Checks the folders at the interval below.'),
+            subtitle: Text('At the interval below.'),
           ),
           const RadioListTile(
             value: RefreshMode.manual,
             title: Text('Manual'),
             subtitle: Text(
-              'Only with Refresh or pull-down, when a file opens, or when '
-              'the app comes back to the front.',
+              'Only when you refresh, open a file or come back to the '
+              'app.',
             ),
           ),
           Padding(

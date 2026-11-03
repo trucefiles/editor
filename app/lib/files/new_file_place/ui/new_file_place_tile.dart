@@ -28,7 +28,10 @@ class NewFilePlaceTile extends ConsumerWidget {
       enabled: folders.isNotEmpty,
       title: const Text('Default folder for new files'),
       subtitle: place == null
-          ? const Text('Folder selected on home, else the first reachable one')
+          ? const Text(
+              'The first folder picked on home, or else the first one '
+              'available',
+            )
           : Align(
               alignment: AlignmentDirectional.centerStart,
               child: FolderBadge(place.folder, subfolder: place.subfolder),

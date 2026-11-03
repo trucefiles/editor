@@ -83,6 +83,15 @@ class FoldersController extends AsyncNotifier<List<Folder>> {
     orElse: 0,
   );
 
+  /// Moves [moved] to place [to] in the list (0 is first).
+  Future<Result<void, FolderError>> move(Folder moved, {required int to}) =>
+      answerOf(
+        _owner,
+        (ticket) => MoveFolder(ticket, moved, to: to),
+        read: (FolderMoved answer) => answer.result,
+        orElse: const Err(FolderError.notSaved),
+      );
+
   /// Forgets the folder; its files stay untouched.
   Future<Result<void, FolderError>> remove(Folder removed) => answerOf(
     _owner,

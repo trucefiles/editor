@@ -12,6 +12,9 @@ void main() {
   late ValueNotifier<List<double>> heights;
   late ValueNotifier<Set<int>> waiting;
 
+  /// The grid itself, built again on each change, as a new listing does.
+  late ValueNotifier<int> listing;
+
   /// Shows a grid of items as tall as [initial] says, each ready unless in
   /// [notReady], with [after] below it.
   Future<void> show(
@@ -23,8 +26,10 @@ void main() {
   }) {
     heights = ValueNotifier(initial);
     waiting = ValueNotifier(notReady);
+    listing = ValueNotifier(0);
     addTearDown(heights.dispose);
     addTearDown(waiting.dispose);
+    addTearDown(listing.dispose);
     return tester.pumpWidget(
       MaterialApp(
         home: Align(
@@ -32,17 +37,20 @@ void main() {
           child: SizedBox(
             width: _width,
             height: _height,
-            child: CustomScrollView(
-              controller: controller,
-              slivers: [
-                SliverMasonryGrid(
-                  itemCount: initial.length,
-                  itemBuilder: (_, index) => _Item(index, heights, waiting),
-                  maxColumnWidth: 100,
-                  spacing: 10,
-                ),
-                if (after != null) SliverToBoxAdapter(child: after),
-              ],
+            child: ValueListenableBuilder(
+              valueListenable: listing,
+              builder: (_, _, _) => CustomScrollView(
+                controller: controller,
+                slivers: [
+                  SliverMasonryGrid(
+                    itemCount: heights.value.length,
+                    itemBuilder: (_, index) => _Item(index, heights, waiting),
+                    maxColumnWidth: 100,
+                    spacing: 10,
+                  ),
+                  if (after != null) SliverToBoxAdapter(child: after),
+                ],
+              ),
             ),
           ),
         ),
@@ -161,6 +169,27 @@ void main() {
 
     expect(find.text('item 0').hitTestable(), findsOne);
     expect(find.text('item 2').hitTestable(), findsOne);
+  });
+
+  testWidgets('items after a new one settle once it is ready, and a later '
+      'listing moves nothing', (tester) async {
+    await show(tester, [100, 50, 30, 40, 60, 70]);
+
+    // A new item comes first, read with a placeholder height at first.
+    heights.value = [20, ...heights.value];
+    waiting.value = {0};
+    listing.value++;
+    await tester.pump();
+    heights.value = [120, ...heights.value.skip(1)];
+    waiting.value = {};
+    await tester.pump();
+    final settled = rects(tester);
+
+    listing.value++;
+    await tester.pump();
+
+    expect(rects(tester), settled);
+    expectNoOverlap(tester);
   });
 
   testWidgets('keeps what is on screen in place when an item above it '

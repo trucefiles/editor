@@ -81,8 +81,8 @@ class _NoCalendar extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     children: [
       Text(
-        'This file can\'t be read as a calendar. It shows as it is, and '
-        'nothing here changes it.',
+        "This file can't be read as a calendar, so it's shown as "
+        "it is and can't be changed here.",
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       const SizedBox(height: 12),

@@ -497,6 +497,53 @@ void main() {
     });
   }
 
+  testWidgets('a drag lands on whole quarter hours, even next to the '
+      'current time', (tester) async {
+    // kalender reads the real clock: the event lands on the quarter hour
+    // nearest to now, where snapping to now would add its seconds.
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final quarters = (now.difference(today).inSeconds / 900).round();
+    final landing = today.add(Duration(minutes: 15 * quarters));
+    // It ends there, moved down two hours, or up near midnight.
+    final up = landing.hour < 3;
+    final from = landing.add(Duration(hours: up ? 1 : -3));
+    final part = calendarPart(
+      _call(
+        Floating(
+          DateTime.utc(from.year, from.month, from.day, from.hour, from.minute),
+        ),
+      ),
+    );
+    await pumpPage(
+      tester,
+      part,
+      today: today,
+      kept: KeptView(CalendarViewKind.week),
+    );
+
+    await _drag(
+      tester,
+      tester.getCenter(find.text('Call')),
+      Offset(0, up ? -2 * _hour : 2 * _hour),
+      kind: PointerDeviceKind.mouse,
+    );
+
+    final call = calendarOf(part).events.single.series;
+    expect(
+      call.end,
+      Floating(
+        DateTime.utc(
+          landing.year,
+          landing.month,
+          landing.day,
+          landing.hour,
+          landing.minute,
+        ),
+      ),
+    );
+  });
+
   testWidgets('a drag of one of a series moves only that date', (tester) async {
     final part = calendarPart(_birthday);
     await pumpPage(tester, part, today: _annsDay);

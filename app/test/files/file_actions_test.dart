@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
+import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folder_selection.dart';
@@ -129,13 +130,32 @@ void main() {
       ));
     });
 
-    test('is the folder the grid is filtered to', () async {
-      container.read(selectedFolderIdProvider.notifier).choose(folders[1].id);
+    test('is the first folder the grid is filtered to', () async {
+      container.read(pickedFoldersProvider.notifier).toggle(folders[1].id);
 
       expect(actions.newFilePlace(folders), (
         folder: folders[1],
         subfolder: null,
       ));
+    });
+
+    test('a new file in a folder or of a type not picked is let through', () {
+      container.read(pickedFoldersProvider.notifier).toggle(folders[0].id);
+      container
+          .read(pickedFileTypesProvider.notifier)
+          .toggle(markdown.support.type);
+      const other = FileType('other');
+
+      actions.reveal(topOf(folders[1]), other);
+
+      expect(container.read(pickedFoldersProvider), {
+        folders[0].id,
+        folders[1].id,
+      });
+      expect(container.read(pickedFileTypesProvider), {
+        markdown.support.type,
+        other,
+      });
     });
 
     test('is the place set, with a subfolder that is there', () async {

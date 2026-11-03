@@ -26,9 +26,7 @@ Future<List<PluginFolderCandidate>?> addLocalFolder(
 }
 
 String _refusedText(LocalPickRefused refused) => switch (refused) {
-  LocalPickRefused.hidden =>
-    "A folder inside a hidden folder, e.g. a sync app's own, can't be "
-        'added.',
+  LocalPickRefused.hidden => "Folders inside hidden folders can't be added.",
   LocalPickRefused.overlaps =>
-    'This folder lies at, inside or around a folder added before.',
+    "This folder overlaps one that's already in the app.",
 };

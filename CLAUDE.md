@@ -7,6 +7,7 @@ Prefer the simpler option when in doubt.
 ## Language
 - Plain, simple language everywhere: code names and comments, docs, commit and PR text.
 - Short sentences and everyday words; say what something means for the user. No jargon or dense shorthand where a plain word works.
+- UI texts read as if a person wrote them: short, natural, and they may say "you". Don't over-explain; users explore.
 
 ## Architecture
 - `core`, `folders`, `files` and the type and tool packages are pure Dart with no UI; each tool's add page is a Flutter package of its own beside it (`syncthing_ui`, `local_folder_ui`); `file_page` is the Flutter contract between the file page and a type's editor (the type with its editor, its view, what the page gives it); `document_editor` is the Flutter package that edits text, `calendar_editor` the one that shows and edits calendars; `masonry` is a Flutter layout package with no domain; `app` holds screens, view models, providers as wiring, platform code and the wiring of tools and types, and uses only the packages' public interfaces.

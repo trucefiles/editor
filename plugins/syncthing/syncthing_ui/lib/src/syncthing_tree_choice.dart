@@ -5,8 +5,9 @@ import 'package:truce_core/truce_core.dart';
 /// The user's pick of folders to add in one Syncthing folder, in a tree of
 /// its folder names. A folder is its path in the Syncthing folder; `null`
 /// is the Syncthing folder itself. Folders added before are ticked and
-/// locked; a folder at, inside or around a ticked one can't be picked, so
-/// no two folders ever share a file. [changes] tells of each change.
+/// locked, as are the folders inside or around them; picking a folder
+/// inside or around a picked one swaps it in for that one. So no two
+/// folders ever share a file. [changes] tells of each change.
 final class SyncthingTreeChoice {
   /// [_names]: the folders to pick from; [taken]: the folders added
   /// before; [initial]: the folder the user picked to start with, picked
@@ -40,11 +41,9 @@ final class SyncthingTreeChoice {
   /// Whether [folder] was added before.
   bool isTaken(RelPath? folder) => _taken.contains(folder);
 
-  /// Whether [folder] can't be picked or unpicked: added before, or at,
-  /// inside or around another ticked folder.
-  bool isLocked(RelPath? folder) =>
-      _taken.contains(folder) ||
-      _nestsAny(folder, {..._taken, ..._picked}.difference({folder}));
+  /// Whether [folder] can't be picked or unpicked: at, inside or around
+  /// a folder added before.
+  bool isLocked(RelPath? folder) => _nestsAny(folder, _taken);
 
   /// Whether a ticked folder lies below [folder], so it opens to show it.
   bool holdsTicked(RelPath? folder) => {
@@ -52,13 +51,17 @@ final class SyncthingTreeChoice {
     ..._picked,
   }.any((ticked) => ticked != null && _below(ticked, folder));
 
-  /// Picks [folder], or unpicks it if it is picked; nothing if it is
-  /// locked.
+  /// Picks [folder] in place of the picked folders inside or around it,
+  /// or unpicks it if it is picked; nothing if it is locked.
   void toggle(RelPath? folder) {
     if (isLocked(folder)) return;
     _picked = _picked.contains(folder)
         ? _picked.difference({folder})
-        : {..._picked, folder};
+        : {
+            for (final picked in _picked)
+              if (!_nest(picked, folder)) picked,
+            folder,
+          };
     _changes.add(null);
   }
 

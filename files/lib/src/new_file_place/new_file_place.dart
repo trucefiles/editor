@@ -56,16 +56,16 @@ FilePlace? resolveNewFilePlace(
 }
 
 /// Where a new file goes among [reachable], the folders that can be
-/// reached now: the place the user [set] for new files if its folder is
-/// one of them, else the folder the home grid is [filtered] to if it is,
-/// else the first; `null` if none can be reached.
+/// reached now, in the user's order: the place the user [set] for new
+/// files if its folder is one of them, else the first of them the home
+/// grid is [filtered] to, else the first; `null` if none can be reached.
 FilePlace? newFilePlaceIn(
   List<Folder> reachable, {
   required NewFilePlaceSetting? set,
-  required FolderId? filtered,
+  required Set<FolderId> filtered,
 }) =>
     resolveNewFilePlace(set, reachable) ??
-    switch (reachable.where((f) => f.id == filtered).firstOrNull ??
+    switch (reachable.where((f) => filtered.contains(f.id)).firstOrNull ??
         reachable.firstOrNull) {
       final folder? => topOf(folder),
       null => null,

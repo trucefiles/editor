@@ -48,7 +48,7 @@ void main() {
       find.textContaining("Syncthing doesn't sync this folder,"),
       findsOne,
     );
-    expect(find.textContaining('checked for changes every 10 s'), findsOne);
+    expect(find.textContaining('checks for changes every 10 s'), findsOne);
   });
 
   testWidgets('says nothing without notices', (tester) async {

@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:truce_files/truce_files.dart';
 
 import 'editor_view.dart';
@@ -6,6 +7,10 @@ import 'editor_view.dart';
 /// side, and how a file of it opens. Each editor package brings its
 /// types; the app lists them.
 abstract interface class EditableType implements ShownFileType {
+  /// The icon that tells a file of this type apart, e.g. on its card and
+  /// its filter chip.
+  IconData get icon;
+
   /// Opens the editor of a file of this type, starting at [start], on
   /// [page]: its part the page model drives, and the view the page shows
   /// of it.

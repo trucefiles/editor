@@ -19,7 +19,7 @@ class OrphanCard extends StatelessWidget {
     onTap: onTap,
     title: conflict.conflict.mainPath.name,
     body: const CardLines(
-      'Deleted on one device, edited on another. Tap to restore or discard.',
+      'Deleted on one device, edited on another. Tap to decide.',
     ),
     footer: Row(
       children: [

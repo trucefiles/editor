@@ -228,12 +228,12 @@ void main() {
       await tester.enterText(subfolderField(), 'home');
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      expect(find.text("Files of this folder can't go there."), findsOne);
+      expect(find.text("Files can't go in there."), findsOne);
 
       await tester.enterText(subfolderField(), '../up');
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      expect(find.text("Files of this folder can't go there."), findsOne);
+      expect(find.text("Files can't go in there."), findsOne);
       expect(find.byType(AlertDialog), findsOne);
     });
 
@@ -297,7 +297,7 @@ void main() {
       await tester.enterText(subfolderField(), 'work');
       await tester.pumpAndSettle();
 
-      expect(find.text("Files of this folder can't go there."), findsNothing);
+      expect(find.text("Files can't go in there."), findsNothing);
     });
   });
 }

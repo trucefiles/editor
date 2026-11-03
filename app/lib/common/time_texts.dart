@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// The system's time texts, read once at start: the one source for
-/// every date and time the app writes, on cards and on screens alike.
-final timeTextsProvider = Provider<TimeTexts>((_) {
-  final system = PlatformDispatcher.instance;
-  return TimeTexts(
-    locale: system.locale.toLanguageTag(),
-    use24Hour: system.alwaysUse24HourFormat,
-  );
-});
+import 'app_localizations.dart';
+import 'device_locale.dart';
+
+/// The device's time texts, read once at start: the one source for
+/// every date and time the app writes itself, on cards and on screens
+/// alike (Flutter's own, e.g. in date pickers, follow the same locale,
+/// see [appLocalizations]).
+final timeTextsProvider = Provider<TimeTexts>(
+  (ref) => TimeTexts(
+    locale: ref.watch(deviceLocaleProvider).toString(),
+    use24Hour: PlatformDispatcher.instance.alwaysUse24HourFormat,
+  ),
+);
 
 /// Dates and times as the system shows them: in the formats of its
 /// [locale] (e.g. `de_DE`), with a 24-hour clock where the system is set
@@ -20,11 +24,7 @@ final timeTextsProvider = Provider<TimeTexts>((_) {
 /// formats fall back to English.
 final class TimeTexts {
   TimeTexts({required String locale, required this.use24Hour})
-    : locale = Intl.verifiedLocale(
-        locale,
-        DateFormat.localeExists,
-        onFailure: (_) => 'en',
-      )!;
+    : locale = dateLocaleOf(locale);
 
   final String locale;
   final bool use24Hour;

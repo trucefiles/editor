@@ -37,19 +37,28 @@ void main() {
       expect(const HomeFilter().of(files), files);
     });
 
-    test('the files of the folder picked', () {
-      expect(HomeFilter(folder: home.id).of(files), [atHome]);
+    test('the files of the folders picked', () {
+      expect(HomeFilter(folders: {home.id}).of(files), [atHome]);
+      expect(HomeFilter(folders: {home.id, work.id}).of(files), files);
     });
 
-    test('the files of the type picked', () {
-      expect(const HomeFilter(type: FakeFileType.id).of(files), files);
-      expect(const HomeFilter(type: other).of(files), isEmpty);
+    test('the files of the types picked', () {
+      expect(const HomeFilter(types: {FakeFileType.id}).of(files), files);
+      expect(const HomeFilter(types: {other}).of(files), isEmpty);
+      expect(
+        const HomeFilter(types: {other, FakeFileType.id}).of(files),
+        files,
+      );
     });
 
-    test('the files of both the folder and the type picked', () {
-      expect(HomeFilter(folder: work.id, type: FakeFileType.id).of(files), [
-        atWork,
-      ]);
+    test('the files of both a folder and a type picked', () {
+      expect(
+        HomeFilter(
+          folders: {work.id},
+          types: const {FakeFileType.id},
+        ).of(files),
+        [atWork],
+      );
     });
   });
 
@@ -60,7 +69,7 @@ void main() {
 
     test('by the type of their main file; none of no known type', () {
       expect(
-        const HomeFilter(type: FakeFileType.id)
+        const HomeFilter(types: {FakeFileType.id})
             .orphansOf(orphans, typeOf: typeOf),
         [known],
       );
@@ -68,7 +77,7 @@ void main() {
 
     test('by folder', () {
       expect(
-        HomeFilter(folder: home.id).orphansOf(orphans, typeOf: typeOf),
+        HomeFilter(folders: {home.id}).orphansOf(orphans, typeOf: typeOf),
         isEmpty,
       );
     });

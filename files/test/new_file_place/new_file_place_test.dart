@@ -38,22 +38,26 @@ void main() {
     FilePlace? placeIn(
       List<Folder> reachable, {
       NewFilePlaceSetting? set,
-      FolderId? filtered,
+      Set<FolderId> filtered = const {},
     }) => newFilePlaceIn(reachable, set: set, filtered: filtered);
 
     test('is the place set, if its folder can be reached', () {
       final set = (folderId: work.id, subfolder: path('inbox'));
 
-      expect(placeIn([documents, work], set: set, filtered: documents.id), (
+      expect(placeIn([documents, work], set: set, filtered: {documents.id}), (
         folder: work,
         subfolder: path('inbox'),
       ));
       expect(placeIn([documents], set: set), topOf(documents));
     });
 
-    test('else the filtered folder, else the first', () {
-      expect(placeIn([documents, work], filtered: work.id), topOf(work));
-      expect(placeIn([documents], filtered: work.id), topOf(documents));
+    test('else the first filtered folder, else the first', () {
+      expect(placeIn([documents, work], filtered: {work.id}), topOf(work));
+      expect(
+        placeIn([documents, work], filtered: {work.id, documents.id}),
+        topOf(documents),
+      );
+      expect(placeIn([documents], filtered: {work.id}), topOf(documents));
       expect(placeIn([documents, work]), topOf(documents));
     });
 

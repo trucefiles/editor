@@ -7,8 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/files/file_colors.dart';
-import 'package:truce_editor/files/ui/all_files_screen.dart';
+import 'package:truce_editor/files/ui/all_files_view.dart';
 import 'package:truce_editor/files/ui/file_sections.dart';
+import 'package:truce_editor/files/ui/home_view_button.dart';
 import 'package:truce_editor/files/ui/listed_file_card.dart';
 import 'package:truce_editor/folders/folder_actions.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -93,10 +94,11 @@ void main() {
     app.write('work/a.md', '# Ant\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Bee'));
+    // Recent leaves nothing out, so it offers no "Show all".
+    expect(find.text('Show all', skipOffstage: false), findsNothing);
 
-    await tester.tapAndSettle(find.text('Show all'));
-    await tester.tapAndSettle(find.byTooltip('Sort'));
-    await tester.tapAndSettle(find.text('By name'));
+    await pickInView(tester, 'All files');
+    await pickInView(tester, 'By name');
     await tester.waitFor(find.text('Ant'));
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     double heading(String text) => tester
@@ -111,7 +113,7 @@ void main() {
     expect(top('Bee'), lessThan(heading('Documents/work')));
     expect(heading('Documents/work'), lessThan(top('Ant')));
 
-    await tester.tapAndSettle(find.byTooltip('Show as list'));
+    await pickInView(tester, 'As list');
     expect(find.byType(ListTile), findsNWidgets(2));
     await tester.openFile('Ant');
     await tester.waitFor(find.byType(FileScreen));
@@ -173,12 +175,11 @@ void main() {
     );
 
     await tester.tapAndSettle(find.text('Show all'));
-    await tester.tapAndSettle(find.byTooltip('Sort'));
-    await tester.tapAndSettle(find.text('By name'));
+    await pickInView(tester, 'By name');
 
     expect(find.text('Note 100'), findsOne);
     final built = find.descendant(
-      of: find.byType(AllFilesScreen),
+      of: find.byType(AllFilesView),
       matching: find.byType(ListedFileCard, skipOffstage: false),
       skipOffstage: false,
     );
@@ -207,8 +208,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tapAndSettle(find.byTooltip('teal'));
-    await tester.tapAndSettle(find.text('Show all'));
-    await tester.tapAndSettle(find.byTooltip('Show as list'));
+    await pickInView(tester, 'All files');
+    await pickInView(tester, 'As list');
 
     final row = find.byType(ListTile);
     final tint = fileTint('teal', Theme.of(tester.element(row)).colorScheme);
@@ -282,6 +283,27 @@ void main() {
     await tester.waitFor(find.textContaining('may not reach'));
   });
 
+  testApp('reorders folders by dragging, and the chips follow', (tester) async {
+    await tester.addFolder(app);
+    await tester.addWorkFolder();
+    double left(String chip) =>
+        tester.getTopLeft(find.widgetWithText(FilterChip, chip)).dx;
+    expect(left('Documents'), lessThan(left('Work')));
+
+    await tester.tapAndSettle(find.byTooltip('Manage folders'));
+    final handle = find.byIcon(Icons.drag_handle);
+    await tester.timedDrag(
+      handle.last,
+      tester.getCenter(handle.first) - tester.getCenter(handle.last),
+      const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(left('Work'), lessThan(left('Documents')));
+  });
+
   testApp('removes a folder from the app, keeping its files', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
@@ -339,4 +361,10 @@ void main() {
       await tester.waitForFile(app.file('home/b.md'), '# B\nmine');
     });
   });
+}
+
+/// Picks [item] in home's view menu.
+Future<void> pickInView(WidgetTester tester, String item) async {
+  await tester.tapAndSettle(find.byType(HomeViewButton));
+  await tester.tapAndSettle(find.text(item).last);
 }

@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
-import '../common/choice.dart';
+import '../common/picks.dart';
 
-/// The file type the files grid is filtered to; `null` shows all.
-final selectedFileTypeProvider = NotifierProvider<Choice<FileType>, FileType?>(
-  Choice<FileType>.new,
-);
+/// The file types the files grid is filtered to; none shows all.
+final pickedFileTypesProvider =
+    NotifierProvider<Picks<FileType>, Set<FileType>>(Picks<FileType>.new);

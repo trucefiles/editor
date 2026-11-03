@@ -113,6 +113,18 @@ void main() {
     expect((await settledFolders(owner())).single.name, 'Work');
   });
 
+  test('moves a folder to another place, saved for the next start', () async {
+    final folders = owner();
+    final [a, b, c] = (await add(folders, ['a', 'b', 'c'])).value;
+
+    await asked<FolderMoved>(folders, (ticket) => MoveFolder(ticket, c, to: 0));
+    expect((folders.state as FoldersLoaded).folders, [c, a, b]);
+    await asked<FolderMoved>(folders, (ticket) => MoveFolder(ticket, c, to: 9));
+
+    plugin = FakePlugin();
+    expect(await settledFolders(owner()), [a, b, c]);
+  });
+
   test('removing writes the list first, then secures open files while the '
       'folder is still shown, then forgets its drafts', () async {
     final store = _SwitchedStore(FolderListStore(file), calls);

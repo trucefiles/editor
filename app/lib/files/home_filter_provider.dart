@@ -4,10 +4,10 @@ import 'package:truce_files/truce_files.dart';
 import '../folders/folder_selection.dart';
 import 'file_type_selection.dart';
 
-/// Which files home and All show: the folder and the file type picked.
+/// Which files home and All show: the folders and the file types picked.
 final homeFilterProvider = Provider<HomeFilter>(
   (ref) => HomeFilter(
-    folder: ref.watch(selectedFolderIdProvider),
-    type: ref.watch(selectedFileTypeProvider),
+    folders: ref.watch(pickedFoldersProvider),
+    types: ref.watch(pickedFileTypesProvider),
   ),
 );

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -12,6 +13,9 @@ final class MarkdownEditableType extends MarkdownFileType
   const MarkdownEditableType(this.services);
 
   final MarkdownServices services;
+
+  @override
+  IconData get icon => Icons.description_outlined;
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {

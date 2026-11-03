@@ -6,12 +6,13 @@ import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../file_colors.dart';
+import 'file_type_icon.dart';
 import 'listed_file.dart';
 import 'open_file.dart';
 import 'pin_or_color_sheet.dart';
 
-/// A listed [file] as one row: title, place, last edit, pin, color
-/// and conflict; opens it on tap.
+/// A listed [file] as one row: its type's icon, title, place, last
+/// edit, pin, color and conflict; opens it on tap.
 class ListedFileRow extends ConsumerWidget {
   const ListedFileRow(this.file, {super.key});
 
@@ -31,6 +32,7 @@ class ListedFileRow extends ConsumerWidget {
       child: Material(
         color: fileTint(mark.color, theme.colorScheme) ?? Colors.transparent,
         child: ListTile(
+          leading: FileTypeIcon(file, size: 24),
           title: Text(
             cardTitle(file, preview),
             maxLines: 1,

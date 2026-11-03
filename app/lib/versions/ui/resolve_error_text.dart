@@ -7,10 +7,9 @@ extension ResolveErrorText on ResolveError {
       'The files changed in the meantime. Please check again.',
     ResolveError.folderMissing =>
       "The folder can't be found. Is it on a drive that isn't connected?",
-    ResolveError.backupFailed =>
-      "A backup couldn't be made, so nothing was changed.",
+    ResolveError.backupFailed => "Couldn't make a backup, so nothing changed.",
     ResolveError.accessDenied => 'The app has no access to this folder.',
-    ResolveError.ioFailure => 'The files could not be written.',
+    ResolveError.ioFailure => "Couldn't write the files.",
     ResolveError.outside => "The app doesn't show these files.",
     ResolveError.folderRemoved => 'The folder was removed from the app.',
   };

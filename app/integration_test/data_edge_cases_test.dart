@@ -65,10 +65,7 @@ void main() {
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    expect(
-      find.text('This file changed on another device or app.'),
-      findsNothing,
-    );
+    expect(find.text('This file changed elsewhere.'), findsNothing);
     expect(app.conflictCopies(), isEmpty);
     expect(app.file('plan.md').readAsStringSync(), '# Plan\nsame\n');
   });

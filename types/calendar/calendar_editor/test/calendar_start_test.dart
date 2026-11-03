@@ -126,8 +126,8 @@ void main() {
     await pumpPage(tester, calendarPart('Not a calendar'), today: _today);
     expect(
       find.text(
-        "This file can't be read as a calendar. It shows as it "
-        'is, and nothing here changes it.',
+        "This file can't be read as a calendar, so it's shown as it is "
+        "and can't be changed here.",
       ),
       findsOne,
     );

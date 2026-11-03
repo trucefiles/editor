@@ -55,8 +55,8 @@ class _SyncthingTreePageState extends State<SyncthingTreePage> {
               padding: const EdgeInsets.all(16),
               children: [
                 const Text(
-                  'Each ticked folder becomes a folder in the app. Folders '
-                  'inside a ticked one show in it.',
+                  'Tick the folders you want to use. Each one shows up as '
+                  'its own folder, with its subfolders inside.',
                 ),
                 const SizedBox(height: 8),
                 FolderTree(_choice, rootName: widget.rootName),

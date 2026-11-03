@@ -101,7 +101,7 @@ class _BackupTile extends ConsumerWidget {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Delete this backup?'),
-          content: const Text('It is gone for good. The file stays.'),
+          content: const Text("This can't be undone. The file itself stays."),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),

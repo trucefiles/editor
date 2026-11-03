@@ -50,10 +50,7 @@ class RestoreIntoFileScreen extends ConsumerWidget {
             label: 'Backup',
             content: SavedText(versionText(bytes), shown.savedAt),
             keepLabel: 'Restore',
-            keptMessage:
-                'The file shows the backup instead; Undo takes it '
-                'back. A backup of the text now stays on this device for '
-                '${backupRetention.inDays} days.',
+            keptMessage: "The file gets the backup's text. You can undo it.",
           ),
           enabled: canRestore,
           onKeep: (side) => _keep(context, side, bytes),
@@ -73,7 +70,7 @@ class RestoreIntoFileScreen extends ConsumerWidget {
       case final file?:
         Navigator.pop(context, file.text);
       case null:
-        showSnack(context, 'This backup is not text this app can show.');
+        showSnack(context, "This backup can't be shown as text.");
     }
   }
 }

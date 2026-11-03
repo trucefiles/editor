@@ -6,9 +6,9 @@ import '../folder_selection.dart';
 import 'folder_badge.dart';
 import 'folder_warning_icon.dart';
 
-/// "All" plus one chip per folder; picks the folder the grid shows. A
-/// chip shows its folder's conflicts and a sign if its sync tool warns
-/// about it.
+/// One chip per folder, in the user's order; picks the folders the grid
+/// shows, none picked showing all. A chip shows its folder's conflicts
+/// and a sign if its sync tool warns about it.
 class FolderChips extends ConsumerWidget {
   const FolderChips(this.folders, {required this.conflictCount, super.key});
 
@@ -19,19 +19,15 @@ class FolderChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedFolderIdProvider);
-    final selection = ref.read(selectedFolderIdProvider.notifier);
+    final picked = ref.watch(pickedFoldersProvider);
+    final picks = ref.read(pickedFoldersProvider.notifier);
     return Row(
       mainAxisSize: MainAxisSize.min,
       spacing: 8,
       children: [
-        ChoiceChip(
-          label: const Text('All'),
-          selected: selected == null,
-          onSelected: (_) => selection.choose(null),
-        ),
         for (final folder in folders)
-          ChoiceChip(
+          FilterChip(
+            showCheckmark: false,
             avatar: FolderDot(folder.color),
             label: Row(
               mainAxisSize: MainAxisSize.min,
@@ -48,8 +44,8 @@ class FolderChips extends ConsumerWidget {
                 FolderWarningIcon(folder),
               ],
             ),
-            selected: selected == folder.id,
-            onSelected: (_) => selection.choose(folder.id),
+            selected: picked.contains(folder.id),
+            onSelected: (_) => picks.toggle(folder.id),
           ),
       ],
     );

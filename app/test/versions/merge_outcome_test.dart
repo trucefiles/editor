@@ -9,7 +9,7 @@ void main() {
   test('a few lost: all named', () {
     expect(
       mergeOutcome(const ['Dentist', 'Swim']),
-      'Merged. Newer changes replaced these older versions, which are in '
+      'Merged. Some older changes were replaced and are in '
       'Backups: "Dentist", "Swim".',
     );
   });

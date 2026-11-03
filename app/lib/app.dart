@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'common/app_localizations.dart';
+import 'common/device_locale.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'home/home_screen.dart';
@@ -31,9 +33,14 @@ class _TruceAppState extends ConsumerState<TruceApp> {
     ref
       ..listen(closeToTrayProvider, (_, _) {})
       ..listen(backgroundStartProvider, (_, _) {});
+    final deviceLocale = ref.watch(deviceLocaleProvider);
     return MaterialApp(
       title: TruceApp.title,
       navigatorKey: _navigator,
+      // English texts, with the device's date formats and week start.
+      locale: deviceLocale,
+      supportedLocales: [deviceLocale],
+      localizationsDelegates: appLocalizations,
       theme: appTheme(Brightness.light),
       darkTheme: appTheme(Brightness.dark),
       builder: (context, child) => TextZoomScope(

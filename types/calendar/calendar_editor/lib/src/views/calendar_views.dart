@@ -239,7 +239,12 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                 header: MultiDayHeader(tileComponents: _tiles),
                 body: MultiDayBody(
                   tileComponents: _tiles,
-                  snapping: const KalenderSnapping(snapIntervalMinutes: 15),
+                  // Not to the current time: it would carry its minutes
+                  // and seconds into the event.
+                  snapping: const KalenderSnapping(
+                    snapIntervalMinutes: 15,
+                    snapToTimeIndicator: false,
+                  ),
                 ),
               ),
               MonthViewParts(body: MonthBody(tileComponents: _tiles)),

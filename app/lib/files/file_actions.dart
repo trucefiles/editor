@@ -8,12 +8,15 @@ import '../folders/folder_selection.dart';
 import '../folders/open_folders_wiring.dart';
 import '../reach/folder_reach_controller.dart';
 import '../settings/device_settings_controller.dart';
+import 'file_type_selection.dart';
 import 'files_wiring.dart';
 
 final fileActionsProvider = Provider<FileActions>(
   (ref) => FileActions(
     owner: ref.watch(filesProvider).owner,
-    selectedFolderId: () => ref.read(selectedFolderIdProvider),
+    pickedFolders: () => ref.read(pickedFoldersProvider),
+    revealFolder: ref.read(pickedFoldersProvider.notifier).reveal,
+    revealType: ref.read(pickedFileTypesProvider.notifier).reveal,
     reachOf: (folder) => ref.read(folderReachProvider(folder)),
     newFilePlace: () =>
         ref.read(deviceSettingsProvider).requireValue.newFilePlace,
@@ -28,15 +31,18 @@ final fileActionsProvider = Provider<FileActions>(
 /// No UI: screens ask the user, then call these and show the result. Each
 /// action runs in the files [owner], after the ones asked before it.
 final class FileActions {
-  /// What the screens show now: [_selectedFolderId], the folder the grid is
-  /// filtered to; [_reachOf], each folder's reach; [_newFilePlace], the
+  /// What the screens show now: [_pickedFolders], the folders the grid
+  /// is filtered to; [_revealFolder] and [_revealType] make the grid's
+  /// filters let a folder's or a type's files through; [_reachOf], each folder's reach; [_newFilePlace], the
   /// place set for new files; [_contents], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
   /// folder shows the files in one of its subfolders; [_read], a file's
   /// text as it is now.
   FileActions({
     required this._owner,
-    required this._selectedFolderId,
+    required this._pickedFolders,
+    required this._revealFolder,
+    required this._revealType,
     required this._reachOf,
     required this._newFilePlace,
     required this._contents,
@@ -45,7 +51,9 @@ final class FileActions {
   });
 
   final FilesOwner _owner;
-  final FolderId? Function() _selectedFolderId;
+  final Set<FolderId> Function() _pickedFolders;
+  final void Function(FolderId folder) _revealFolder;
+  final void Function(FileType type) _revealType;
   final Reach Function(FolderId folder) _reachOf;
   final NewFilePlaceSetting? Function() _newFilePlace;
   final FolderContents? Function() _contents;
@@ -67,8 +75,15 @@ final class FileActions {
   FilePlace? newFilePlace(List<Folder> folders) => newFilePlaceIn(
     reachableOf(folders),
     set: _newFilePlace(),
-    filtered: _selectedFolderId(),
+    filtered: _pickedFolders(),
   );
+
+  /// Makes the grid show a new file of [type] at [place], which the
+  /// folders or types picked might otherwise hide.
+  void reveal(FilePlace place, FileType type) {
+    _revealFolder(place.folder.id);
+    _revealType(type);
+  }
 
   /// The subfolders of [folder], as last seen.
   List<RelPath> subfoldersOf(Folder folder) =>

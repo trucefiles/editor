@@ -26,7 +26,7 @@ Future<CheckedItems?> showCheckedItemsDialog(
               value: CheckedItems.doneSection,
               title: Text(checkedItemsName(CheckedItems.doneSection)),
               subtitle: const Text(
-                'Shown apart under "Done" at the bottom; the file keeps its '
+                'Shown under "Done" at the bottom. The file keeps its '
                 'order.',
               ),
             ),
@@ -34,8 +34,8 @@ Future<CheckedItems?> showCheckedItemsDialog(
               value: CheckedItems.moveToEnd,
               title: Text(checkedItemsName(CheckedItems.moveToEnd)),
               subtitle: const Text(
-                'Checking moves an item to the end of the list in the file, '
-                'unchecking moves it back below the open items.',
+                'Checked items move to the end of the list. Uncheck one '
+                'and it moves back up.',
               ),
             ),
           ],
