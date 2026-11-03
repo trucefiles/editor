@@ -8,7 +8,7 @@ import '../support/shown.dart';
 
 /// [text] after [pasted] over [from] to [to] of its first row; with the
 /// selection after.
-(String, Selection) _pasted(String text, int from, int to, String pasted) {
+(String, Selection?) _pasted(String text, int from, int to, String pasted) {
   final document = Shown.read(text);
   final edited = document.run(
     Paste(

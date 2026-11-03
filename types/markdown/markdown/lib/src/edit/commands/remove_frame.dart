@@ -28,7 +28,7 @@ Change removeFrame(ViewRows view, NodeId leaf) {
       ),
       final list => _intoItemAbove(view, list, item, caret),
     },
-    _ => (doc: doc, selection: caret),
+    _ => (doc: doc, caret: CaretAt(caret)),
   };
 }
 
@@ -59,7 +59,7 @@ Change leaveList(ViewRows view, ItemNode item) {
                 ),
       ],
     }, fresh: fresh),
-    selection: TextSelection.caret(Place(paragraph.id, 0)),
+    caret: CaretAt(TextSelection.caret(Place(paragraph.id, 0))),
   );
 }
 
@@ -82,7 +82,7 @@ Change _outOfQuote(ViewRows view, QuoteNode quote, NodeId leaf) {
               : QuoteNode(fresh.take(), after),
       ],
     }, fresh: fresh),
-    selection: TextSelection.caret(Place(leaf, 0)),
+    caret: CaretAt(TextSelection.caret(Place(leaf, 0))),
   );
 }
 
@@ -107,7 +107,7 @@ Change _aboveList(
     doc: view.doc.edited({
       list.id: [...lifted, if (joins.isNotEmpty) list.withChildren(joins)],
     }),
-    selection: caret,
+    caret: CaretAt(caret),
   );
 }
 
@@ -143,8 +143,10 @@ Change _intoItemAbove(
           ]),
         ],
       }),
-      selection: TextSelection.caret(
-        Place(last.id, text.isEmpty ? shown.length : shown.length + 1),
+      caret: CaretAt(
+        TextSelection.caret(
+          Place(last.id, text.isEmpty ? shown.length : shown.length + 1),
+        ),
       ),
     );
   }
@@ -155,6 +157,6 @@ Change _intoItemAbove(
         above.withChildren([...above.children, ...item.children]),
       ],
     }),
-    selection: caret,
+    caret: CaretAt(caret),
   );
 }

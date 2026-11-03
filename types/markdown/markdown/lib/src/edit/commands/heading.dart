@@ -31,7 +31,7 @@ Change setHeading(ViewRows view, Place at, int? level) => (
     ),
     _ => view.doc,
   },
-  selection: TextSelection.caret(at),
+  caret: CaretAt(TextSelection.caret(at)),
 );
 
 /// [text] with its line breaks as spaces.

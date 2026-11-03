@@ -7,7 +7,7 @@ import 'package:truce_markdown/src/visible/formatting.dart';
 
 import '../support/shown.dart';
 
-({Shown document, Selection selection}) _enter(
+({Shown document, Selection? selection}) _enter(
   Shown document,
   int row,
   int offset,

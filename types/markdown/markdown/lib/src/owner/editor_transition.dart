@@ -149,10 +149,11 @@ final class _Step with EditorSteps<Snapshot> {
     _ => false,
   };
 
-  /// No caret shows any more; the next tap into text places one.
+  /// No caret shows any more, an open raw block closed too; the next tap
+  /// into text places one.
   void _removeCaret() {
-    // An open raw block keeps its caret: it is text being typed.
-    if (state.content case FormattedContent(:final view, raw: null)) {
+    if (state.content case final FormattedContent shown) {
+      final view = shown.raw == null ? shown.view : _closedRaw(null).view;
       _show(FormattedContent(view: view, selection: null));
     }
   }

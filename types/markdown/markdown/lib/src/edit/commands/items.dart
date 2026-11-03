@@ -49,19 +49,18 @@ bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
   _ => false,
 };
 
-/// [item]'s box checked or unchecked. Like the other commands on items as
-/// a whole, only controls send it, which leave no caret: the caret goes
-/// to the end.
+/// [item]'s box checked or unchecked; no caret after it, as after the
+/// other commands on items as a whole (controls and menus send them).
 Change toggle(ViewRows view, ItemNode item) => (
   doc: view.doc.withNode(item.withBox(!(item.checked ?? false))),
-  selection: null,
+  caret: const NoCaret(),
 );
 
 /// [item] gone with its subitems; the caret at the start of the next
 /// text shown, else at the end of the one above.
 Change deleteItem(ViewRows view, ItemNode item) => (
   doc: view.doc.edited({item.id: const []}),
-  selection: caretOnceGone(view, {item.id}),
+  caret: caretOnceGone(view, {item.id}),
 );
 
 /// Where the Add item button adds an item in its list.
@@ -98,13 +97,13 @@ Change addItem(ViewRows view, ListNode list, {required AddAt at}) {
         ]),
       ],
     }, fresh: fresh),
-    selection: TextSelection.caret(Place(text.id, 0)),
+    caret: CaretAt(TextSelection.caret(Place(text.id, 0))),
   );
 }
 
 /// [item] with its subitems moved right before [target], or after it if
-/// [below], in [target]'s list, taking that list's kind; the caret at
-/// the end (see [toggle]).
+/// [below], in [target]'s list, taking that list's kind; no caret after
+/// it (see [toggle]).
 Change moveItem(
   ViewRows view,
   ItemNode item,
@@ -124,7 +123,7 @@ Change moveItem(
       ...removed,
       target.id: [if (!below) item, staying, if (below) item],
     }),
-    selection: null,
+    caret: const NoCaret(),
   );
 }
 
@@ -136,16 +135,16 @@ List<ItemNode> checkedItems(DocTree doc, {ListNode? list}) => [
     ...top.items.where((item) => item.checked ?? false),
 ];
 
-/// [items] gone with their subitems: "Clear checked items"; the caret
-/// at the end (see [toggle]).
+/// [items] gone with their subitems: "Clear checked items"; no caret
+/// after it (see [toggle]).
 Change clearItems(ViewRows view, List<ItemNode> items) => (
   doc: view.doc.edited({for (final item in items) item.id: const []}),
-  selection: null,
+  caret: const NoCaret(),
 );
 
 /// [items] moved, with their subitems, to the end of their lists in
 /// their order: "Move checked items to end", and a checked item's wait
-/// ending; the caret at the end (see [toggle]).
+/// ending; no caret after it (see [toggle]).
 Change moveToEnd(ViewRows view, List<ItemNode> items) {
   final moving = {for (final item in items) item.id};
   final lists = {for (final item in items) view.doc.parentOf(item.id)!.id};
@@ -162,7 +161,7 @@ Change moveToEnd(ViewRows view, List<ItemNode> items) {
         ]),
       );
     }),
-    selection: null,
+    caret: const NoCaret(),
   );
 }
 

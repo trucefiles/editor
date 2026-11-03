@@ -58,7 +58,7 @@ void main() {
 final _seed = int.parse(Platform.environment['FUZZ_SEED'] ?? '0');
 
 /// Expects [selection] on what [document] shows.
-void _expectShows(Shown document, Selection selection) {
+void _expectShows(Shown document, Selection? selection) {
   switch (selection) {
     case TextSelection(:final base, :final extent):
       for (final place in [base, extent]) {
@@ -72,6 +72,8 @@ void _expectShows(Shown document, Selection selection) {
       }
     case BlockSelection(:final block):
       expect(document.view.row(block), isA<BlockRow>(), reason: '$block');
+    case null:
+      break;
   }
 }
 

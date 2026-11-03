@@ -9,7 +9,7 @@ import '../support/shown.dart';
 
 /// [text] after its first row, a raw block, closes with [raw] typed in
 /// it, the caret in row [caretRow].
-({Shown document, Selection selection}) _closed(
+({Shown document, Selection? selection}) _closed(
   String text,
   String raw, {
   int caretRow = 1,

@@ -19,7 +19,7 @@ import '../selection.dart';
 Change closeRaw(ViewRows view, NodeId block, String raw, Selection? selection) {
   final doc = view.doc;
   if ((doc.nodeOf(block)! as RawLeaf).raw == raw) {
-    return (doc: doc, selection: selection ?? BlockSelection(block));
+    return (doc: doc, caret: CaretAt(selection ?? BlockSelection(block)));
   }
   final fresh = doc.freshIds;
   final blocks = newBlocksOf(raw, fresh);
@@ -31,11 +31,14 @@ Change closeRaw(ViewRows view, NodeId block, String raw, Selection? selection) {
   );
   return (
     doc: changed ? withResolvedReferences(read, definitions) : read,
-    selection: switch (selection) {
+    caret: switch (selection) {
       final selection? => selectionOnceGone(view, selection, {block}),
-      null =>
-        _startOfRead(read, {for (final block in blocks) block.id}) ??
-            caretOnceGone(view, {block}),
+      null => switch (_startOfRead(read, {
+        for (final block in blocks) block.id,
+      })) {
+        final start? => CaretAt(start),
+        null => caretOnceGone(view, {block}),
+      },
     },
   );
 }

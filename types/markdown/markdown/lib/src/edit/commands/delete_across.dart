@@ -50,7 +50,7 @@ Change deleteAcross(ViewRows view, Place start, Place end) {
         start.leaf: [withLeafText(startLeaf, head)],
         if (!codeGoes) end.leaf: [withLeafText(endLeaf, restAfter)],
       }),
-      selection: caret,
+      caret: CaretAt(caret),
     );
   }
   // Items whose start went, holding what follows the end: their blocks
@@ -103,7 +103,7 @@ Change deleteAcross(ViewRows view, Place start, Place end) {
       else
         start.leaf: [joined, ...merged],
     }),
-    selection: caret,
+    caret: CaretAt(caret),
   );
 }
 

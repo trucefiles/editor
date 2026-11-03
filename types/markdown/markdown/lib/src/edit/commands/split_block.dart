@@ -64,7 +64,9 @@ Change splitWith(ViewRows view, Place at, List<VisibleText> lines) {
       ),
       _ => doc.edited({leaf.id: leaves}, fresh: fresh),
     },
-    selection: TextSelection.caret(Place(leaves.last.id, lines.last.length)),
+    caret: CaretAt(
+      TextSelection.caret(Place(leaves.last.id, lines.last.length)),
+    ),
   );
 }
 

@@ -139,8 +139,8 @@ final class SetHeading extends EditCommand {
 }
 
 /// A checked item's wait ended, or a box toggled at once: [item]'s box
-/// toggled. Sent only for controls, which leave no caret: the caret goes
-/// to the end, as for the other commands on items as a whole.
+/// toggled; no caret after it, as after the other commands on items as a
+/// whole.
 final class Toggle extends EditCommand {
   const Toggle(this.item);
 
@@ -196,7 +196,7 @@ final class AddItem extends EditCommand {
 }
 
 /// A drop: [item] with its subitems right before [target], or after it
-/// if [below] (see [Toggle] for the caret).
+/// if [below] (no caret after it, see [Toggle]).
 final class MoveItem extends EditCommand {
   const MoveItem(this.item, this.target, {required this.below});
 
@@ -207,7 +207,7 @@ final class MoveItem extends EditCommand {
 
 /// "Clear checked items now": the checked items at the top level of
 /// [list], or of every list if `null`, go with their subitems (see
-/// [Toggle] for the caret).
+/// [Toggle]: no caret after it).
 final class ClearChecked extends EditCommand {
   const ClearChecked({this.list});
 
@@ -216,7 +216,7 @@ final class ClearChecked extends EditCommand {
 
 /// "Move checked items to end now", or a checked item's wait ending:
 /// [items] (by default every checked item at a list's top level) move to
-/// the end of their lists (see [Toggle] for the caret).
+/// the end of their lists (no caret after it, see [Toggle]).
 final class MoveToEnd extends EditCommand {
   const MoveToEnd({this.items});
 

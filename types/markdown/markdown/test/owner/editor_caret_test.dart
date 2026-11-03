@@ -57,6 +57,22 @@ void main() {
       expect(run.shown.selection, isNull);
     });
 
+    test('folding a Done section closes an open raw block too', () {
+      final run = EditorRun(
+        '- [ ] a\n- [x] b\n\n<div>',
+        checkedItems: CheckedItems.doneSection,
+      );
+      final list = run.shown.view.doc.root.children.first.id;
+      run.owner
+        ..send(OpenRawBlock(run.leaf(2), atEnd: true, revision: run.revision))
+        ..send(EditRaw('<p>', base: 3, extent: 3, revision: run.revision))
+        ..send(SetCollapsed(list, collapsed: true));
+      expect(run.shown.raw, isNull);
+      expect(run.shown.selection, isNull);
+      run.pause();
+      expect(run.sent, '- [ ] a\n- [x] b\n\n<p>');
+    });
+
     test('a command not from a control keeps the caret', () {
       final run = EditorRun(list)..caret(1, 0);
       run.runCommand(Indent(TextSelection.caret(Place(run.leaf(1), 0))));

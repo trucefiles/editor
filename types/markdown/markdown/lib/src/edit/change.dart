@@ -10,18 +10,52 @@ import '../doc/normalized.dart';
 import '../view/rows.dart';
 import 'selection.dart';
 
-/// A document tree after a command, and the selection after it; `null`
-/// for a caret at the end of the document's last text.
-typedef Change = ({DocTree doc, Selection? selection});
+/// A document tree after a command, and where the caret goes in it.
+typedef Change = ({DocTree doc, CaretAfter caret});
 
-/// A document tree as Visual edit shows it, and the selection in it.
-typedef Edited = ({DocTree doc, Selection selection});
+/// Where the caret goes after a command: to a [CaretAt] selection, to
+/// the end of the document as it then shows ([CaretAtEnd], e.g. when
+/// every text went), or nowhere ([NoCaret]).
+sealed class CaretAfter {
+  const CaretAfter();
+}
+
+final class CaretAt extends CaretAfter {
+  const CaretAt(this.selection);
+
+  final Selection selection;
+}
+
+final class CaretAtEnd extends CaretAfter {
+  const CaretAtEnd();
+}
+
+final class NoCaret extends CaretAfter {
+  const NoCaret();
+}
+
+/// A caret at [caret], or at the end of the document if there is none.
+CaretAfter caretOrEnd(Selection? caret) => switch (caret) {
+  final caret? => CaretAt(caret),
+  null => const CaretAtEnd(),
+};
+
+/// A document tree as Visual edit shows it, and the selection in it
+/// (`null`: no caret).
+typedef Edited = ({DocTree doc, Selection? selection});
 
 /// [change] as it shows: its tree normalized (see `normalized`), its
-/// selection resolved.
+/// caret placed.
 Edited settled(Change change) {
   final doc = normalized(change.doc, change.doc.freshIds);
-  return (doc: doc, selection: change.selection ?? endOf(ViewRows(doc)));
+  return (
+    doc: doc,
+    selection: switch (change.caret) {
+      CaretAt(:final selection) => selection,
+      CaretAtEnd() => endOf(ViewRows(doc)),
+      NoCaret() => null,
+    },
+  );
 }
 
 /// A caret at the start of the first text [view] shows; where a block
@@ -45,9 +79,9 @@ Selection endOf(ViewRows view) =>
 
 /// Where the caret goes once the rows that [gone] says go are gone: at
 /// the start of the next text after the first of them, else at the end
-/// of the text above; the other way round if [above]; `null` (the end)
-/// if neither stays.
-Selection? caretPast(
+/// of the text above; the other way round if [above]; the end of the
+/// document if neither stays.
+CaretAfter caretPast(
   ViewRows view,
   bool Function(Row row) gone, {
   bool above = false,
@@ -61,7 +95,10 @@ Selection? caretPast(
     ),
     _ => null,
   };
-  return above ? previous ?? next : next ?? previous;
+  return switch (above ? previous ?? next : next ?? previous) {
+    final caret? => CaretAt(caret),
+    null => const CaretAtEnd(),
+  };
 }
 
 /// A caret at the start of the first text after the first row [past]
@@ -75,7 +112,7 @@ TextSelection? caretAfter(ViewRows view, bool Function(Row row) past) =>
     };
 
 /// Where the caret goes once the nodes [gone] go (see [caretPast]).
-Selection? caretOnceGone(
+CaretAfter caretOnceGone(
   ViewRows view,
   Set<NodeId> gone, {
   bool above = false,
@@ -83,7 +120,7 @@ Selection? caretOnceGone(
 
 /// [selection] once the nodes [gone] go: kept where all it is on stays,
 /// else as [caretOnceGone].
-Selection? selectionOnceGone(
+CaretAfter selectionOnceGone(
   ViewRows view,
   Selection selection,
   Set<NodeId> gone,
@@ -99,7 +136,7 @@ Selection? selectionOnceGone(
         },
       )
       ? caretOnceGone(view, gone)
-      : selection;
+      : CaretAt(selection);
 }
 
 /// Whether [row] of [doc] goes with the nodes [gone]: its leaf or a

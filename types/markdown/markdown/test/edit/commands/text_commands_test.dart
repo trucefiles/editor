@@ -6,7 +6,7 @@ import 'package:truce_markdown/src/visible/formatting.dart';
 
 import '../support/shown.dart';
 
-({Shown document, Selection selection}) _type(
+({Shown document, Selection? selection}) _type(
   Shown document,
   int row,
   int offset,
