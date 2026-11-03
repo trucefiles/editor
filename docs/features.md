@@ -3,14 +3,15 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
-## Filter by file type
+## Filters, folder order and type icons
 
-Below the folder chips, home and **Show all** have one chip per file
-type: Markdown, Plain text and Calendar. Pick one to see only files of
-that type; tap it again to see all. It works together with the folder
-picked.
+Pick as many folder and type chips as you like; tap one again to drop
+it. Each file shows its type's icon. In **Manage folders**, drag a folder
+by its handle to change its place; the chips and All files follow that
+order.
 
-<img src="screenshots/home/home_type_filter_desktop.png" width="600" alt="Home showing only Markdown files, the Markdown chip picked">
+<img src="screenshots/home/home_filters_desktop.png" width="600" alt="Home showing Markdown files and calendars, both chips picked, each card with its type icon">
+<img src="screenshots/folders/folders_order_desktop.png" width="600" alt="Manage folders: each folder with a drag handle">
 
 ## Adding folders
 
@@ -58,12 +59,15 @@ kept.
 ## Recent, All and search
 
 Home shows your most recent documents from every folder, pinned ones on
-top. **Show all** opens every document, newest first or by name (by name,
-under each subfolder), as cards or a list. Settings sets how many recent
+top. The view button at the top switches to **All files**: every
+document, newest first or by name (by name, under each subfolder), as
+cards or a list. When Recent hides some, **Show all** below it does the
+same. Settings sets how many recent
 documents home shows. Search looks through every folder, by title, text,
 file and folder names.
 
-<img src="screenshots/home/home_recent_desktop.png" width="600" alt="Home: a pinned document, then the recent ones, and a Show all button">
+<img src="screenshots/home/home_recent_desktop.png" width="600" alt="Home: the recent documents from every folder, each with its type icon">
+<img src="screenshots/home/view_menu_desktop.png" width="600" alt="The view menu: Recent or All files, the order and cards or list">
 <img src="screenshots/home/all_by_name_desktop.png" width="600" alt="All documents by name, as cards under each subfolder">
 <img src="screenshots/home/all_list_desktop.png" width="600" alt="All documents by name, as a list">
 <img src="screenshots/home/search_desktop.png" width="600" alt="Search for lake finds two documents">
