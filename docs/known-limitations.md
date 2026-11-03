@@ -110,6 +110,11 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **Very old fast repeats stop showing.** Truce walks a repeating event
   from its first date, up to a limit. An event that repeats every hour
   and started more than about 11 years ago stops showing at that limit.
+- **Time zones named the Windows way read as local time.** Outlook and
+  Exchange name zones like `W. Europe Standard Time`. Truce doesn't know
+  these names and shows such times as written, on your device's clock.
+  That is right while you are in the event's zone; an event of another
+  zone shows hours off. The file keeps the zone as it was.
 - **A device without a known time zone saves floating times.** If the
   system doesn't tell Truce its time zone (or names one Truce doesn't
   know), a new event has no zone: 9:00 stays 9:00 wherever you are.

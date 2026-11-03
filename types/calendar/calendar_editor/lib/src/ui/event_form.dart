@@ -50,7 +50,8 @@ const _frequencyWords = {
 /// The event form: title, all day, start and end, repeat, alert, color,
 /// place and notes. What it doesn't show of the event (e.g. a health
 /// entry, a time zone) stays as it was; an event in another zone than
-/// the device's shows its own clock, its zone named below the times.
+/// the device's shows its own clock, its zone named below the times; an
+/// event in UTC shows on the device's clock and stays in UTC.
 class EventForm extends StatefulWidget {
   const EventForm(
     this.draft, {
@@ -236,7 +237,6 @@ class _EventFormState extends State<EventForm> {
   String? get _otherZone => switch (widget.draft.start) {
     _ when _times.allDay => null,
     Zoned(:final zone) when zone != widget.deviceZone => zone,
-    UtcTime() => 'UTC',
     _ => null,
   };
 
@@ -346,7 +346,7 @@ final class _FormTimes {
   });
 
   factory _FormTimes.of(EventDraft draft) {
-    final (start, end) = (draft.start.wall, draft.end.wall);
+    final (start, end) = (draft.start.editWall, draft.end.editWall);
     final allDay = draft.start is AllDay;
     final lastDay = allDay ? end.subtract(const Duration(days: 1)) : end;
     return _FormTimes(

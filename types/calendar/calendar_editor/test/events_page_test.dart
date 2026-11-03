@@ -111,7 +111,8 @@ void main() {
     expect(calendarOf(part).zones, {'Europe/Berlin'});
   });
 
-  testWidgets('an event in UTC says so', (tester) async {
+  testWidgets('an event in UTC is edited on the device clock and stays in '
+      'UTC', (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
       AddEvent(
@@ -124,9 +125,10 @@ void main() {
         at: editedAt,
       ),
     );
+    final part = calendarPart(calendar.text);
     await pumpPage(
       tester,
-      calendarPart(calendar.text),
+      part,
       today: DateTime(2026, 11, 3),
       deviceZone: 'Europe/Berlin',
     );
@@ -134,7 +136,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    expect(find.text('Times are in UTC.'), findsOne);
+    expect(find.textContaining('Times are in'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final event = calendarOf(part).events.single.series;
+    expect(
+      (event.summary, event.start, event.end),
+      (
+        'Late',
+        UtcTime(DateTime.utc(2026, 11, 3, 9)),
+        UtcTime(DateTime.utc(2026, 11, 3, 10)),
+      ),
+    );
   });
 
   testWidgets('an event of another zone shows and keeps its zone', (
