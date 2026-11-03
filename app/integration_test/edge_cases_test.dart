@@ -404,7 +404,8 @@ void main() {
   testApp('a double tap on a card opens the document once', (tester) async {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
-    await tester.waitFor(find.text('Plan'));
+    // Once the card can be tapped, not just laid out.
+    await tester.waitFor(find.text('Plan').hitTestable());
 
     await tester.tap(find.text('Plan'));
     await tester.pump(const Duration(milliseconds: 40));
