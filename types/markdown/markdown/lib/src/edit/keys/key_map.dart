@@ -124,9 +124,12 @@ final class _Keys {
 
   KeyAction action(EditKey key) => switch (key) {
     EditKey.enter => RunCommand(_enter()),
-    EditKey.shiftEnter => RunCommand(
-      _inCode ? SplitBlock(range) : LineBreak(range),
-    ),
+    // A heading holds no line break: there it acts as Enter does.
+    EditKey.shiftEnter => RunCommand(switch (_row.leaf) {
+      CodeNode() => SplitBlock(range),
+      HeadingNode() => _enter(),
+      _ => LineBreak(range),
+    }),
     EditKey.backspace ||
     EditKey.delete when !range.isCaret => RunCommand(DeleteRange(range)),
     EditKey.backspace => _backspace(),

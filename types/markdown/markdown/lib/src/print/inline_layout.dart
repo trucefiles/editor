@@ -50,10 +50,12 @@ final class InlineLayout {
 
 /// The layout of [text], a heading's if [heading], with [definitions]
 /// and [style]: what Markdown can write of it is kept, the rest goes.
+/// [afterMarker] tells that its line starts with a marker of its own
+/// (the `#` of a heading so written), where no HTML block can start.
 ///
 /// A line break, line end character or object has no code format, and a
 /// heading's objects are in one line; inline HTML that would
-/// start an HTML block is text; one at the text's start or end,
+/// start an HTML block is text, unless [afterMarker]; one at the text's start or end,
 /// spaces next to one, a soft break next to another break and spaces at
 /// the end go; a heading's hard breaks are spaces. A link that can't be
 /// written as it was is written inline; one written bare or between `<`
@@ -64,9 +66,10 @@ InlineLayout layoutOf(
   required bool heading,
   required Map<String, LinkDefinition> definitions,
   required SpanStyle style,
+  bool afterMarker = false,
 }) {
   final layout = _laidOut(
-    _writableBreaks(cellsOf(text), heading: heading),
+    _writableBreaks(cellsOf(text), heading: heading, afterMarker: afterMarker),
     definitions: definitions,
     style: style,
   );
@@ -189,7 +192,11 @@ List<LinkForm?> _formsOf(
 
 /// [cells] with the line breaks and spaces Markdown can write: see
 /// [layoutOf].
-List<Cell> _writableBreaks(List<Cell> cells, {required bool heading}) {
+List<Cell> _writableBreaks(
+  List<Cell> cells, {
+  required bool heading,
+  required bool afterMarker,
+}) {
   final breaks = [
     for (final cell in cells.expand(_codeLineEndsOut))
       switch (cell) {
@@ -227,7 +234,7 @@ List<Cell> _writableBreaks(List<Cell> cells, {required bool heading}) {
   final trimmed = kept.sublist(start, end);
   return [
     for (final (index, cell) in trimmed.indexed)
-      if (_startsHtmlBlock(trimmed, index))
+      if (!afterMarker && _startsHtmlBlock(trimmed, index))
         for (final rune in inOneLine(
           (cell as ObjectCell).object.inline,
         ).source.runes)
