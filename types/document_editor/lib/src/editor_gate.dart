@@ -53,11 +53,17 @@ final class EditorGate extends ChangeNotifier {
       (item.checked ?? false) != _waiting.contains(item.id);
 
   /// A user input: sends the waiting taps, then the input [build] makes
-  /// from the state as it is then (`null`: none, e.g. a drag start).
-  void send(EditorInput? Function(EditorState now) build) => _change(() {
-    _flush();
-    if (build(_owner.state) case final input?) _owner.send(input);
-  });
+  /// from the state as it is then (`null`: none, e.g. a drag start);
+  /// whether it made one.
+  bool send(EditorInput? Function(EditorState now) build) {
+    EditorInput? sent;
+    _change(() {
+      _flush();
+      sent = build(_owner.state);
+      if (sent case final input?) _owner.send(input);
+    });
+    return sent != null;
+  }
 
   /// A tap on [item]'s box; a second tap on it while it waits takes it
   /// back.

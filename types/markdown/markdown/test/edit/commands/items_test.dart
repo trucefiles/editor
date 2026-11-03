@@ -15,10 +15,7 @@ String _after(String text, Command Function(Shown document) command) {
 
 void main() {
   test('a tap on a box checks it', () {
-    expect(
-      _after('- [ ] a', (n) => Toggle(_items(n).first.id, n.caret(0, 0))),
-      '- [x] a',
-    );
+    expect(_after('- [ ] a', (n) => Toggle(_items(n).first.id)), '- [x] a');
   });
 
   test('the delete button removes an item with its subitems', () {
@@ -51,7 +48,7 @@ void main() {
     expect(
       _after('- a\n  - b\n- c', (n) {
         final [a, _, c] = _items(n);
-        return MoveItem(a.id, c.id, below: true, selection: n.caret(0, 0));
+        return MoveItem(a.id, c.id, below: true);
       }),
       '- c\n- a\n  - b',
     );
@@ -61,12 +58,7 @@ void main() {
     expect(
       _after('- a\n  - s\n\n  - b\n\n    c', (n) {
         final items = _items(n);
-        return MoveItem(
-          items[2].id,
-          items[0].id,
-          below: true,
-          selection: n.caret(0, 0),
-        );
+        return MoveItem(items[2].id, items[0].id, below: true);
       }),
       '- a\n  - s\n- b\n\n  c',
     );
@@ -74,20 +66,14 @@ void main() {
 
   test('checked items move to the end of their lists', () {
     expect(
-      _after(
-        '- [x] a\n- [ ] b\n- [x] c\n- [ ] d',
-        (n) => MoveToEnd(n.caret(0, 0)),
-      ),
+      _after('- [x] a\n- [ ] b\n- [x] c\n- [ ] d', (_) => const MoveToEnd()),
       '- [ ] b\n- [ ] d\n- [x] a\n- [x] c',
     );
   });
 
   test('clearing checked items removes them', () {
     expect(
-      _after(
-        '- [x] a\n- [ ] b\n\n> - [x] c',
-        (n) => ClearChecked(n.caret(1, 0)),
-      ),
+      _after('- [x] a\n- [ ] b\n\n> - [x] c', (_) => const ClearChecked()),
       '- [ ] b',
     );
   });

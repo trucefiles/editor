@@ -117,10 +117,10 @@ Command? _randomCommand(Random random, Shown document) {
           : copiedLines(view, range),
     ),
     5 when items.isNotEmpty => switch (random.nextInt(4)) {
-      0 => Toggle(pick(items).id, caret),
+      0 => Toggle(pick(items).id),
       1 => DeleteItem(pick(items).id),
       2 => AddItem(view.doc.parentOf(pick(items).id)!.id),
-      _ => _move(random, items, caret),
+      _ => _move(random, items),
     },
     6 =>
       random.nextInt(4) == 0
@@ -132,7 +132,7 @@ Command? _randomCommand(Random random, Shown document) {
       _ when first == second => SetLink(range, pick(['', 'site']), 'u'),
       _ => null,
     },
-    9 => random.nextBool() ? ClearChecked(caret) : MoveToEnd(caret),
+    9 => random.nextBool() ? const ClearChecked() : const MoveToEnd(),
     10 when raws.isNotEmpty => CloseRaw(pick(raws).leaf.id, pick(_raws), caret),
     11 when dividers.isNotEmpty => switch (pick(dividers).leaf.id) {
       final block => switch (random.nextInt(3)) {
@@ -148,7 +148,7 @@ Command? _randomCommand(Random random, Shown document) {
   };
 }
 
-Command? _move(Random random, List<ItemNode> items, Selection selection) {
+Command? _move(Random random, List<ItemNode> items) {
   final item = items[random.nextInt(items.length)];
   final inside = nodesIn(item).map((node) => node.id).toSet();
   final targets = items.where((target) => !inside.contains(target.id)).toList();
@@ -157,7 +157,6 @@ Command? _move(Random random, List<ItemNode> items, Selection selection) {
     item.id,
     targets[random.nextInt(targets.length)].id,
     below: random.nextBool(),
-    selection: selection,
   );
 }
 

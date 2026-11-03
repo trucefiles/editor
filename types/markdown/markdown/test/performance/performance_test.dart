@@ -75,7 +75,7 @@ void main() {
               .join('\n'),
           Formatting.plain,
         );
-        for (final command in [MoveToEnd(caret), Paste(caret, lines)]) {
+        for (final command in [const MoveToEnd(), Paste(caret, lines)]) {
           final times = [
             for (var round = 0; round < 5; round++)
               _timed(() => ViewRows(run(view, command).doc).rows),

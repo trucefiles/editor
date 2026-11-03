@@ -143,12 +143,20 @@ final class FileFixture {
 }
 
 extension Typing on FileSession {
-  /// Types [text] at the caret, as the keyboard does.
+  /// Types [text] at the caret, as the keyboard does; with none yet, at
+  /// the start, as after a tap there.
   void type(String text) => gate.send(
-    (now) => Typed(
-      text,
-      over: (now.content as FormattedContent).selection as TextSelection,
-      revision: now.revision,
-    ),
+    (now) => switch (now.content as FormattedContent) {
+      FormattedContent(:final TextSelection selection) => Typed(
+        text,
+        over: selection,
+        revision: now.revision,
+      ),
+      FormattedContent(:final view) => Typed(
+        text,
+        over: TextSelection.caret(Place(view.rows.first.leaf.id, 0)),
+        revision: now.revision,
+      ),
+    },
   );
 }

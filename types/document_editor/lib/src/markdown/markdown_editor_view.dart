@@ -79,11 +79,11 @@ final class MarkdownEditorView implements EditorView {
         // the standard reading, which the editor's commands don't act on.
         if (gate.state.mode == EditMode.visual) ...[
           PopupMenuItem(
-            value: () => gate.run(MoveToEnd.new),
+            value: () => gate.run((_) => const MoveToEnd(), byControl: true),
             child: const Text('Move checked items to end now'),
           ),
           PopupMenuItem(
-            value: () => gate.run(ClearChecked.new),
+            value: () => gate.run((_) => const ClearChecked(), byControl: true),
             child: const Text('Clear checked items now'),
           ),
         ],

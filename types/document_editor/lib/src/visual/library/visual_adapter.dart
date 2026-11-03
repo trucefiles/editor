@@ -427,6 +427,7 @@ final class VisualAdapter {
     final caret = switch (shown.selection) {
       md.TextSelection(:final extent) => extent.leaf,
       md.BlockSelection(:final block) => block,
+      null => null,
     };
     final index = looks.indexWhere((look) => look.key == caret);
     if (index < 1) return;

@@ -22,7 +22,7 @@ final class TreeSnapshot extends Snapshot {
 
   final DocTree doc;
   final Origin origin;
-  final Selection selection;
+  final Selection? selection;
 
   late final PrintedMarkdown printed = printMarkdown(doc, origin);
 

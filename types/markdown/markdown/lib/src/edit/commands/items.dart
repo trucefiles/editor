@@ -49,10 +49,12 @@ bool isOwnLine(ItemNode item, NodeId leaf) => switch (item.children) {
   _ => false,
 };
 
-/// [item]'s box checked or unchecked; [selection] stays.
-Change toggle(ViewRows view, ItemNode item, Selection selection) => (
+/// [item]'s box checked or unchecked. Like the other commands on items as
+/// a whole, only controls send it, which leave no caret: the caret goes
+/// to the end.
+Change toggle(ViewRows view, ItemNode item) => (
   doc: view.doc.withNode(item.withBox(!(item.checked ?? false))),
-  selection: selection,
+  selection: null,
 );
 
 /// [item] gone with its subitems; the caret at the start of the next
@@ -101,14 +103,13 @@ Change addItem(ViewRows view, ListNode list, {required AddAt at}) {
 }
 
 /// [item] with its subitems moved right before [target], or after it if
-/// [below], in [target]'s list, taking that list's kind; [selection]
-/// stays.
+/// [below], in [target]'s list, taking that list's kind; the caret at
+/// the end (see [toggle]).
 Change moveItem(
   ViewRows view,
   ItemNode item,
   ItemNode target, {
   required bool below,
-  required Selection selection,
 }) {
   final doc = view.doc;
   assert(
@@ -123,7 +124,7 @@ Change moveItem(
       ...removed,
       target.id: [if (!below) item, staying, if (below) item],
     }),
-    selection: selection,
+    selection: null,
   );
 }
 
@@ -135,20 +136,17 @@ List<ItemNode> checkedItems(DocTree doc, {ListNode? list}) => [
     ...top.items.where((item) => item.checked ?? false),
 ];
 
-/// [items] gone with their subitems: "Clear checked items"; [selection]
-/// kept if its text stays, else as for [deleteItem].
-Change clearItems(ViewRows view, List<ItemNode> items, Selection selection) {
-  final gone = {for (final item in items) item.id};
-  return (
-    doc: view.doc.edited({for (final id in gone) id: const []}),
-    selection: selectionOnceGone(view, selection, gone),
-  );
-}
+/// [items] gone with their subitems: "Clear checked items"; the caret
+/// at the end (see [toggle]).
+Change clearItems(ViewRows view, List<ItemNode> items) => (
+  doc: view.doc.edited({for (final item in items) item.id: const []}),
+  selection: null,
+);
 
 /// [items] moved, with their subitems, to the end of their lists in
 /// their order: "Move checked items to end", and a checked item's wait
-/// ending; [selection] stays.
-Change moveToEnd(ViewRows view, List<ItemNode> items, Selection selection) {
+/// ending; the caret at the end (see [toggle]).
+Change moveToEnd(ViewRows view, List<ItemNode> items) {
   final moving = {for (final item in items) item.id};
   final lists = {for (final item in items) view.doc.parentOf(item.id)!.id};
   // One list at a time: one may hold another.
@@ -164,7 +162,7 @@ Change moveToEnd(ViewRows view, List<ItemNode> items, Selection selection) {
         ]),
       );
     }),
-    selection: selection,
+    selection: null,
   );
 }
 

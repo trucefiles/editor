@@ -60,8 +60,9 @@ final class ReloadMap {
   /// [selection] as it falls in [after], shown as [view] shows it: each
   /// place on the leaf its leaf falls on ([leafOf]), keeping its offset,
   /// clamped; a selected divider stays selected; anything else lands at
-  /// the start of a text it falls on, else of the document.
-  Selection selection(Selection selection, ViewRows view) {
+  /// the start of a text it falls on, else of the document; no caret
+  /// stays none.
+  Selection? selection(Selection? selection, ViewRows view) {
     Place? placed(Place place) => switch (leafOf(place.leaf, view)) {
       final leaf? when view.row(leaf) is TextRow => Place(
         leaf,
@@ -70,6 +71,7 @@ final class ReloadMap {
       _ => null,
     };
     return switch (selection) {
+      null => null,
       TextSelection(:final base, :final extent) => switch ((
         placed(base),
         placed(extent),

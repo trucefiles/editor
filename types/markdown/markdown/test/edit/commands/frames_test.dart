@@ -75,18 +75,6 @@ void main() {
       );
     });
 
-    test('keeps the selection given, e.g. the user\'s during a swipe', () {
-      final document = Shown.read('- a\n- b\n\nc');
-      final user = document.caret(2, 1);
-      final indented = document.run(Indent(document.caret(1, 0), after: user));
-      expect(indented.document.text, '- a\n  - b\n\nc');
-      expect(indented.selection, user);
-      expect(
-        document.run(Outdent(document.caret(1, 0), after: user)).selection,
-        user,
-      );
-    });
-
     test('outdent puts an item after its parent with the items after it', () {
       expect(
         _after('- a\n  - b\n  - c', (n) => Outdent(n.caret(1, 0))),

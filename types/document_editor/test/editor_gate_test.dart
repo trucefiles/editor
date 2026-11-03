@@ -55,10 +55,13 @@ final class _Gate {
 
   void tap(int index) => gate.tapBox(items[index].id);
 
+  /// [text] typed at the start of the first row, as after a tap there.
   void type(String text) => gate.send(
     (now) => Typed(
       text,
-      over: (now.content as FormattedContent).selection as TextSelection,
+      over: TextSelection.caret(
+        Place((now.content as FormattedContent).view.rows.first.leaf.id, 0),
+      ),
       revision: now.revision,
     ),
   );

@@ -7,7 +7,9 @@ import '../run_command.dart';
 /// What the user does in Visual edit beside typing: the rows' boxes,
 /// delete buttons, drags and swipes, the Done headings, Add item buttons
 /// and raw blocks, and the toolbar. Each is one input to the editor owner
-/// through the [_gate].
+/// through the [_gate]. The rows' controls (box, delete button, drag,
+/// swipe, Done heading) leave no caret once they acted, so nothing
+/// scrolls to an old one; the next tap into text places it.
 final class VisualActions {
   VisualActions(
     this._gate, {
@@ -30,6 +32,14 @@ final class VisualActions {
     MarkdownContent() => null,
   };
 
+  /// Whether a caret (or selection) shows, in the text or in a raw block
+  /// open as text.
+  bool get hasCaret => switch (_shown) {
+    FormattedContent(:final selection, :final raw) =>
+      selection != null || raw != null,
+    null => false,
+  };
+
   /// The text place the caret is in, if any.
   NodeId? get _caretLeaf => switch (_shown?.selection) {
     TextSelection(:final extent) => extent.leaf,
@@ -39,28 +49,28 @@ final class VisualActions {
   /// A tap on [item]'s box: it waits a moment for more taps.
   void toggle(NodeId item) => _gate.tapBox(item);
 
-  void deleteItem(NodeId item) => _gate.run((_) => DeleteItem(item));
+  void deleteItem(NodeId item) =>
+      _gate.run((_) => DeleteItem(item), byControl: true);
 
-  /// [item] one level deeper or shallower, where it can go; the user's
-  /// selection stays where it is.
-  void indent(NodeId item) => _gate.run(
-    (selection) => switch ((_shown?.view, _leafOf(item))) {
-      (final view?, final leaf?) when canIndent(view, leaf) => Indent(
+  /// [item] one level deeper, by a swipe or drag, where it can go;
+  /// whether it went.
+  bool indent(NodeId item) => _shift(item, canIndent, Indent.new);
+
+  /// [item] one level shallower (see [indent]).
+  bool outdent(NodeId item) => _shift(item, canOutdent, Outdent.new);
+
+  bool _shift(
+    NodeId item,
+    bool Function(ViewRows view, NodeId leaf) can,
+    Command Function(TextSelection at) shift,
+  ) => _gate.run(
+    (_) => switch ((_shown?.view, _leafOf(item))) {
+      (final view?, final leaf?) when can(view, leaf) => shift(
         TextSelection.caret(Place(leaf, 0)),
-        after: selection,
       ),
       _ => null,
     },
-  );
-
-  void outdent(NodeId item) => _gate.run(
-    (selection) => switch ((_shown?.view, _leafOf(item))) {
-      (final view?, final leaf?) when canOutdent(view, leaf) => Outdent(
-        TextSelection.caret(Place(leaf, 0)),
-        after: selection,
-      ),
-      _ => null,
-    },
+    byControl: true,
   );
 
   /// The block that starts [item], as the blocks are now.
@@ -102,23 +112,20 @@ final class VisualActions {
     required bool below,
     required int levels,
   }) {
-    if (item != target) {
-      return _gate.run(
-        (selection) => switch (_placeOf(item, target, below: below)) {
-          (item: final next, :final below) => MoveItem(
-            item,
-            next,
-            below: below,
-            selection: selection,
-          ),
-          null => null,
-        },
-      );
+    if (item == target) {
+      final step = levels > 0 ? indent : outdent;
+      for (final _ in Iterable<void>.generate(levels.abs())) {
+        step(item);
+      }
+      return;
     }
-    final step = levels > 0 ? indent : outdent;
-    for (final _ in Iterable<void>.generate(levels.abs())) {
-      step(item);
-    }
+    _gate.run(
+      (_) => switch (_placeOf(item, target, below: below)) {
+        (item: final next, :final below) => MoveItem(item, next, below: below),
+        null => null,
+      },
+      byControl: true,
+    );
   }
 
   /// [list]'s Done section folded or unfolded.
@@ -175,17 +182,18 @@ final class VisualActions {
   /// A separator after the caret's block or the selected one, or as an
   /// item after its item.
   void separator() => _gate.run(
-    (selection) => AddDivider(switch (selection) {
-      TextSelection(:final extent) => extent.leaf,
-      BlockSelection(:final block) => block,
-    }),
+    (selection) => switch (selection) {
+      TextSelection(:final extent) => AddDivider(extent.leaf),
+      BlockSelection(:final block) => AddDivider(block),
+      null => null,
+    },
   );
 
   /// The selected blocks put in a quote, or taken out of it.
   void quote() => _gate.run(
     (selection) => switch (selection) {
       final TextSelection range => SetFrame(range, FrameKind.quote),
-      BlockSelection() => null,
+      BlockSelection() || null => null,
     },
   );
 

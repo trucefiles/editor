@@ -47,6 +47,7 @@ void main() {
   group('steps', () {
     test('one per word typed', () {
       final run = EditorRun('')
+        ..caret(0, 0)
         ..type('one')
         ..type(' ')
         ..type('two')
@@ -71,6 +72,7 @@ void main() {
       'deleting after typing is a new one, and goes on while it deletes',
       () {
         final run = EditorRun('')
+          ..caret(0, 0)
           ..type('abc')
           ..press(EditKey.backspace)
           ..press(EditKey.backspace)
@@ -153,6 +155,7 @@ void main() {
 
     test('redo goes forward again, with the caret after the step', () {
       final run = EditorRun('')
+        ..caret(0, 0)
         ..type('ab')
         ..undo()
         ..redo();
@@ -163,6 +166,7 @@ void main() {
 
     test('a new edit drops what redo had', () {
       final run = EditorRun('')
+        ..caret(0, 0)
         ..type('ab')
         ..undo()
         ..type('c');
@@ -198,6 +202,7 @@ void main() {
 
     test('a paste is one of its own', () {
       final run = EditorRun('')
+        ..caret(0, 0)
         ..type('a')
         ..paste('bc')
         ..type('d')
@@ -275,7 +280,9 @@ void main() {
 
   group('the history', () {
     test('ends at a change from elsewhere', () {
-      final run = EditorRun('a')..type('x');
+      final run = EditorRun('a')
+        ..caret(0, 0)
+        ..type('x');
       run.pause();
       run.request(
         FromFile(Replaced('b', version: const Version(2), ackRev: 1)),
@@ -313,6 +320,7 @@ void main() {
 
     test('ends at a version picked', () {
       final run = EditorRun('a')
+        ..caret(0, 0)
         ..type('x')
         ..request(const FromFile(Picked('b', version: Version(2), rev: 5)))
         ..undo();
@@ -321,13 +329,14 @@ void main() {
 
     test('tells when undo reaches the start', () {
       final run = EditorRun('')
+        ..caret(0, 0)
         ..type('a')
         ..undo();
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.opened);
     });
 
     test('keeps the latest steps only', () {
-      final run = EditorRun('');
+      final run = EditorRun('')..caret(0, 0);
       for (var step = 0; step <= EditHistory.limit; step++) {
         run.press(EditKey.enter);
       }

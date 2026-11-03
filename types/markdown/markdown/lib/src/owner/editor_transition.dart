@@ -13,7 +13,6 @@ import 'package:truce_core/truce_core.dart'
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
-import '../edit/change.dart' show startOf;
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
 import '../edit/commands/text_commands.dart' show ordered;
@@ -120,6 +119,7 @@ final class _Step with EditorSteps<Snapshot> {
     }
     final (before, origin, rev) = (state, work.origin, book.rev);
     _handle(input);
+    if (_byControl(input)) _removeCaret();
     switch (input) {
       case ShownInput() when book.rev != rev:
         record(
@@ -139,6 +139,22 @@ final class _Step with EditorSteps<Snapshot> {
         break;
     }
     _settleFlags();
+  }
+
+  /// Whether [input] comes from a control (a row's box, delete button,
+  /// drag or swipe, a Done heading, a menu): it leaves no caret.
+  static bool _byControl(EditorInput input) => switch (input) {
+    Run(:final byControl) => byControl,
+    ToggleItems() || SetCollapsed() => true,
+    _ => false,
+  };
+
+  /// No caret shows any more; the next tap into text places one.
+  void _removeCaret() {
+    // An open raw block keeps its caret: it is text being typed.
+    if (state.content case FormattedContent(:final view, raw: null)) {
+      _show(FormattedContent(view: view, selection: null));
+    }
   }
 
   void _handle(EditorInput input) {
@@ -227,14 +243,17 @@ final class _Step with EditorSteps<Snapshot> {
     }
   }
 
+  /// [key] acts at the caret; without one, it does nothing.
   void _pressed(FormattedContent shown, EditKey key) {
-    switch (keyAction(shown.view, shown.selection, key)) {
+    final selection = shown.selection;
+    if (selection == null) return;
+    switch (keyAction(shown.view, selection, key)) {
       case RunCommand(:final command):
         _run(command);
       case OpenRaw(:final block, :final atEnd):
         _openRaw(shown, block, atEnd: atEnd);
       case ToggleTypingStyle(:final format):
-        final caret = (shown.selection as TextSelection).extent;
+        final caret = (selection as TextSelection).extent;
         final style = shown.typingStyle ?? typingStyleAt(shown.view.doc, caret);
         _show(
           _formatted(
@@ -242,7 +261,7 @@ final class _Step with EditorSteps<Snapshot> {
           ),
         );
       case OpenLinkDialog():
-        if (shown.selection case final TextSelection range) {
+        if (selection case final TextSelection range) {
           events.add(AskLink(range));
         }
       case Consumed():
@@ -371,7 +390,7 @@ final class _Step with EditorSteps<Snapshot> {
   /// ones move together.
   void _toggle(List<NodeId> items) {
     for (final item in items) {
-      _run(Toggle(item, (state.content as FormattedContent).selection));
+      _run(Toggle(item));
     }
     if (state.checkedItems != CheckedItems.moveToEnd) return;
     final after = state.content as FormattedContent;
@@ -380,7 +399,7 @@ final class _Step with EditorSteps<Snapshot> {
         if (after.view.doc.nodeOf(item) case ItemNode(checked: true)) item,
     ];
     if (checked.isNotEmpty) {
-      _run(MoveToEnd(after.selection, items: checked));
+      _run(MoveToEnd(items: checked));
     }
   }
 
@@ -511,11 +530,11 @@ final class _Step with EditorSteps<Snapshot> {
     );
   }
 
-  /// [doc] shown from its start.
-  FormattedContent _fresh(DocTree doc) {
-    final view = _rows(doc, null, state.checkedItems);
-    return FormattedContent(view: view, selection: startOf(view));
-  }
+  /// [doc] shown anew, without a caret.
+  FormattedContent _fresh(DocTree doc) => FormattedContent(
+    view: _rows(doc, null, state.checkedItems),
+    selection: null,
+  );
 
   /// [raw] open again on [block] in [view], if that holds its text.
   RawRegion? _reopened(RawRegion raw, NodeId? block, ViewRows view) =>

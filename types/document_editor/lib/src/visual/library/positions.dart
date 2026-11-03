@@ -44,14 +44,18 @@ final class Positions {
   /// The owner's selection a request over [selection] acts on, with
   /// [shown] the owner's selection: [shown] itself where the library
   /// still has it as it was given (a block selected whole too), else
-  /// [selection] moved from there; `null` where no text is near.
+  /// [selection] moved from there (or as it is, if [shown] is none);
+  /// `null` where no text is near.
   md.Selection? actedOn(
     DocumentSelection selection, {
-    required md.Selection shown,
+    required md.Selection? shown,
     md.RawRegion? raw,
   }) {
     final was = toLibrary(shown, raw: raw);
-    return selection == was ? shown : toOwner(selection, was: was);
+    return switch (shown) {
+      final shown? when selection == was => shown,
+      _ => toOwner(selection, was: was),
+    };
   }
 
   /// [position] as a text place: on a node without text, the nearest one
@@ -103,8 +107,9 @@ final class Positions {
   }
 
   /// The owner's [selection] in the library's document; `null` where a
-  /// row it is in doesn't show. In an open [raw] block, its own caret.
-  DocumentSelection? toLibrary(md.Selection selection, {md.RawRegion? raw}) {
+  /// row it is in doesn't show, or for no caret. In an open [raw] block,
+  /// its own caret.
+  DocumentSelection? toLibrary(md.Selection? selection, {md.RawRegion? raw}) {
     if (raw != null) {
       return switch (_ids.find(RawTextLook.keyOf(raw.block))) {
         final id? => DocumentSelection(
@@ -115,6 +120,7 @@ final class Positions {
       };
     }
     return switch (selection) {
+      null => null,
       md.TextSelection(:final base, :final extent) => switch ((
         positionOf(base),
         positionOf(extent),
