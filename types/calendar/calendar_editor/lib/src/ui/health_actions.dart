@@ -3,7 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import 'event_actions.dart';
 import 'health_entry_form.dart';
-import 'occurrence_details.dart';
+import 'occurrence_sheet.dart';
 
 /// Asks which kind of health entry to add on [day], then for the entry,
 /// and adds it.
@@ -50,32 +50,12 @@ Future<void> showHealthEntry(
   Occurrence occurrence,
   MakeEdit? edit,
 ) async {
-  final delete = await showModalBottomSheet<bool>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          OccurrenceDetails(occurrence),
-          if (edit != null) ...[
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
-              onTap: () => Navigator.pop(context, false),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
-              onTap: () => Navigator.pop(context, true),
-            ),
-          ],
-        ],
-      ),
-    ),
-  );
+  final delete = await showOccurrenceSheet(context, occurrence, [
+    if (edit != null) ...[
+      (icon: Icons.edit_outlined, label: 'Edit', value: false),
+      (icon: Icons.delete_outline, label: 'Delete', value: true),
+    ],
+  ]);
   if (delete == null || edit == null || !context.mounted) return;
   if (delete) {
     return edit((at) => DeleteEvent(occurrence.event.uid, at: at));
