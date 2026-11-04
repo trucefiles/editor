@@ -17,20 +17,27 @@ final _gym = AddEvent(
   at: _at,
 );
 
-MachineRun<CalendarMessage, CalendarState, CalendarNotice, CalendarSaveTimer>
+MachineRun<
+  CalendarMessage,
+  CalendarState,
+  CalendarOwnerEvent,
+  CalendarSaveTimer
+>
 _run(String text) =>
     MachineRun.of(calendarMachine(text, version: const Version(1)));
 
 /// The texts sent to the file owner so far.
-List<String> _sent(MachineRun<Object?, Object?, CalendarNotice, Object?> run) =>
-    [
-      for (final notice in run.events)
-        if (notice.notice case ToFile(input: Edited(:final text))) text,
-    ];
+List<String> _sent(
+  MachineRun<Object?, Object?, CalendarOwnerEvent, Object?> run,
+) => [
+  for (final event in run.events)
+    if (event case CalendarNotice(notice: ToFile(input: Edited(:final text))))
+      text,
+];
 
 void main() {
   test('an edit shows at once and is one undo step', () {
-    final run = _run(birthday)..send(EditCalendar(_gym));
+    final run = _run(birthday)..send(EditCalendar(_gym, newUid: 'new@t'));
     expect(run.state.calendar!.eventOf('gym@t'), isNotNull);
     expect(run.state.status.canUndo, isTrue);
     expect(run.state.status.unsent, isTrue);
@@ -58,7 +65,7 @@ void main() {
       from: annDraft,
       at: _at,
     );
-    final run = _run(birthday)..send(EditCalendar(rename));
+    final run = _run(birthday)..send(EditCalendar(rename, newUid: 'new@t'));
     // Saved, then reached another device, before the undo.
     final undone = run.state.text;
     run.send(
@@ -74,7 +81,7 @@ void main() {
   });
 
   test('a restored backup wins over the text it replaced', () {
-    final run = _run(birthday)..send(EditCalendar(_gym));
+    final run = _run(birthday)..send(EditCalendar(_gym, newUid: 'new@t'));
     final edited = run.state.text;
     run.send(
       CalendarRequest(
@@ -107,7 +114,7 @@ void main() {
   });
 
   test('the text goes to the file owner after the pause, as typing does', () {
-    final run = _run(birthday)..send(EditCalendar(_gym));
+    final run = _run(birthday)..send(EditCalendar(_gym, newUid: 'new@t'));
     expect(_sent(run), isEmpty);
     final pause = run.all<CalendarSaveTimer>().firstWhere(
       (timer) => timer.delay == SaveTimer.pause.delay,
@@ -117,14 +124,14 @@ void main() {
   });
 
   test('a text that is no calendar shows and takes no edits', () {
-    final run = _run('# Notes\n')..send(EditCalendar(_gym));
+    final run = _run('# Notes\n')..send(EditCalendar(_gym, newUid: 'new@t'));
     expect((run.state.text, run.state.calendar), ('# Notes\n', null));
     expect(run.state.status.canUndo, isFalse);
   });
 
   test('both merged, as the user picked, show', () {
     final run = _run(birthday)
-      ..send(EditCalendar(_gym))
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
       ..send(
         CalendarRequest(SecureEditor(Ticket(), SecureReason.hide), at: _at),
       );
@@ -140,5 +147,33 @@ void main() {
     );
     expect(run.state.calendar!.eventOf('ann@truce')!.series.deleted, isTrue);
     expect(run.state.status.canUndo, isFalse);
+  });
+
+  test('an edit of an event deleted meanwhile is saved as a new one, '
+      'and says so', () {
+    final run = _run(birthday)
+      ..send(
+        EditCalendar(DeleteEvent('ann@truce', at: _at), newUid: 'unused@t'),
+      );
+    final rename = ChangeSeries(
+      'ann@truce',
+      EventDraft(
+        summary: 'Ann (birthday)',
+        start: annDraft.start,
+        end: annDraft.end,
+        repeat: annDraft.repeat,
+      ),
+      from: annDraft,
+      at: _at,
+    );
+    run.send(EditCalendar(rename, newUid: 'new@t'));
+
+    expect(
+      run.state.calendar!.eventOf('new@t')!.series.summary,
+      'Ann (birthday)',
+    );
+    expect(run.events.whereType<SavedAsNew>().map((saved) => saved.gone), [
+      GoneMeanwhile.event,
+    ]);
   });
 }

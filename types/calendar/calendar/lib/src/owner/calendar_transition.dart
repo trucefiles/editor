@@ -10,6 +10,7 @@ import 'package:truce_core/truce_core.dart'
         TextSummary;
 
 import '../edit/calendar_edit.dart';
+import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
@@ -19,7 +20,7 @@ import 'calendar_contract.dart';
 Step<
   CalendarState,
   EditorBook<CalendarShown>,
-  CalendarNotice,
+  CalendarOwnerEvent,
   CalendarSaveTimer
 >
 calendarStep(
@@ -37,7 +38,7 @@ final class _Step
           CalendarMessage,
           CalendarState,
           EditorBook<CalendarShown>,
-          CalendarNotice,
+          CalendarOwnerEvent,
           CalendarSaveTimer
         >
     with EditorSteps<CalendarShown> {
@@ -55,14 +56,16 @@ final class _Step
   @override
   void handle(CalendarMessage message) {
     switch (message) {
-      case EditCalendar(:final edit):
+      case EditCalendar(:final edit, :final newUid):
         if (state.calendar case final calendar?) {
-          final edited = applyEdit(calendar, edit);
+          final landed = landing(calendar, edit, newUid: newUid);
+          final edited = applyEdit(calendar, landed.edit);
           if (edited.text != calendar.text) {
             _show(edited.text, edited);
             textChanged();
             record((text: calendar.text, calendar: calendar), null);
           }
+          if (landed.gone case final gone?) events.add(SavedAsNew(gone));
         }
       case CalendarRequest(:final request, :final at):
         _requestAt = at;

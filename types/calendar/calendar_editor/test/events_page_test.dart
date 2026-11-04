@@ -288,6 +288,73 @@ void main() {
     expect(_on(part, DateTime(2028, 3, 12)), ['Ann']);
   });
 
+  testWidgets('an event deleted on another device while its form is open '
+      'is saved as a new one, and the user hears why', (tester) async {
+    final part = calendarPart(_birthday);
+    final hints = <String>[];
+    await pumpPage(tester, part, today: _annsDay, hints: hints);
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit all of them'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Anna');
+    part.owner.send(
+      EditCalendar(DeleteEvent('ann@truce', at: editedAt), newUid: 'x'),
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(_on(part, _annsDay), ['Anna']);
+    expect(_on(part, DateTime(2028, 3, 12)), ['Anna'], reason: 'it repeats');
+    expect(hints, [
+      "This event was deleted on another device, so it's saved as a new one.",
+    ]);
+  });
+
+  testWidgets('one date edited while another device moved the series is '
+      'saved as a new event, not next to the moved one', (tester) async {
+    final part = calendarPart(_birthday);
+    final hints = <String>[];
+    await pumpPage(tester, part, today: _annsDay, hints: hints);
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit this one'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Title'),
+      'Ann (party)',
+    );
+    final series = EventDraft.of(calendarOf(part).eventOf('ann@truce')!.series);
+    part.owner.send(
+      EditCalendar(
+        ChangeSeries(
+          'ann@truce',
+          EventDraft(
+            summary: series.summary,
+            start: AllDay(DateTime(2020, 3, 13)),
+            end: AllDay(DateTime(2020, 3, 14)),
+            repeat: series.repeat,
+          ),
+          from: series,
+          at: editedAt,
+        ),
+        newUid: 'x',
+      ),
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(_on(part, _annsDay), ['Ann (party)']);
+    expect(_on(part, DateTime(2027, 3, 13)), ['Ann']);
+    expect(_on(part, DateTime(2028, 3, 12)), isEmpty, reason: 'one date');
+    expect(hints, [
+      "This date of the event changed on another device, so it's saved as "
+          'a new event.',
+    ]);
+  });
+
   testWidgets('a whole series edited', (tester) async {
     final part = calendarPart(_birthday);
     await pumpPage(tester, part, today: _annsDay);

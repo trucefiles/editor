@@ -32,4 +32,26 @@ void main() {
       expect(events, ['added 1', 'added 1', 'added 1']);
     },
   );
+
+  test('leaves out the events it maps to nothing', () async {
+    final inner = SimpleOwner<int, int, int>(0, (input, out) async {
+      out.emit(input);
+    });
+    final view = OwnerView<int, int, String, int, int, int>(
+      inner,
+      input: (input) => input,
+      state: (state) => state,
+      event: (event) => event.isEven ? 'even $event' : null,
+    );
+    final events = <String>[];
+    view.events.listen(events.add);
+
+    view
+      ..send(1)
+      ..send(2)
+      ..send(3);
+    await view.close();
+
+    expect(events, ['even 2']);
+  });
 }

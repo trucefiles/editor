@@ -32,7 +32,15 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     owner,
     input: (request) => CalendarRequest(request, at: _at()),
     state: (state) => state.status,
-    event: (event) => event.notice,
+    event: (event) => switch (event) {
+      CalendarNotice(:final notice) => notice,
+      SavedAsNew() => null,
+    },
+  );
+
+  /// What was gone each time an edit was saved as a new event instead.
+  Stream<GoneMeanwhile> get savedAsNew => owner.events.expand(
+    (event) => [if (event case SavedAsNew(:final gone)) gone],
   );
 
   /// The user's [edit], made now; dropped while the calendar can't be
@@ -40,7 +48,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   /// was made.
   bool edit(CalendarEdit Function(DateTime at) edit) {
     if (!isEditing) return false;
-    owner.send(EditCalendar(edit(_at())));
+    owner.send(EditCalendar(edit(_at()), newUid: newUid()));
     return true;
   }
 

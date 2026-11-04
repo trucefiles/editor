@@ -10,7 +10,7 @@ export 'calendar_contract.dart';
 
 /// The owner of the calendar one open calendar file's page shows (see
 /// `calendar_contract.dart`).
-typedef CalendarOwner = Owner<CalendarInput, CalendarState, CalendarNotice>;
+typedef CalendarOwner = Owner<CalendarInput, CalendarState, CalendarOwnerEvent>;
 
 /// The calendar editor owner's machine; its work is its edits'
 /// bookkeeping, with the calendars undo comes back to.
@@ -19,7 +19,7 @@ typedef CalendarMachine =
       CalendarMessage,
       CalendarState,
       EditorBook<CalendarShown>,
-      CalendarNotice,
+      CalendarOwnerEvent,
       CalendarSaveTimer
     >;
 
@@ -37,7 +37,7 @@ CalendarOwner calendarOwner(
       CalendarTimerFired,
       CalendarState,
       EditorBook<CalendarShown>,
-      CalendarNotice,
+      CalendarOwnerEvent,
       CalendarSaveTimer
     >(calendarMachine(text, version: version), startTimer: startTimer);
 

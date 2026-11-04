@@ -229,3 +229,19 @@ DateTime _wallOf(DateTime local) => DateTime.utc(
 bool _overlaps(DateTime start, DateTime end, DateTime from, DateTime to) =>
     start.isBefore(to) &&
     (end.isAfter(from) || (end == start && !start.isBefore(from)));
+
+/// Whether [event]'s series still has its occurrence at [occurrence] (as
+/// the series writes its start): the series repeats on it, and it is
+/// neither left out nor cancelled.
+bool hasOccurrenceAt(CalendarEvent event, CalendarTime occurrence) {
+  if (event.changedAt(occurrence) case final changed?) {
+    return !changed.cancelled;
+  }
+  final at = occurrence.local;
+  const near = Duration(minutes: 1);
+  return _occurrencesOf(
+    event,
+    at.subtract(near),
+    at.add(near),
+  ).any((each) => each.recurrence?.local == at);
+}

@@ -10,6 +10,7 @@ import 'package:truce_core/truce_core.dart'
     show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
 
 import '../edit/calendar_edit.dart';
+import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 
 /// What the editor shows at one undo step: the [text], and the
@@ -29,11 +30,13 @@ sealed class CalendarInput extends CalendarMessage {
 }
 
 /// The user's [edit]: one undo step. Dropped while the text is no
-/// calendar, or if it changes nothing.
+/// calendar, or if it changes nothing. A change of an event or date that
+/// is gone meanwhile lands as the new event [newUid] (see [landing]).
 final class EditCalendar extends CalendarInput {
-  const EditCalendar(this.edit);
+  const EditCalendar(this.edit, {required this.newUid});
 
   final CalendarEdit edit;
+  final String newUid;
 }
 
 /// A request of the file page (see core's editor contract), made
@@ -71,12 +74,24 @@ final class CalendarSaveTimer implements Wait<CalendarTimerFired> {
 
 // Events.
 
-/// What the file page hears (see core's editor contract): the one
-/// kind of event.
-final class CalendarNotice {
+/// What the owner tells.
+sealed class CalendarOwnerEvent {
+  const CalendarOwnerEvent();
+}
+
+/// What the file page hears (see core's editor contract).
+final class CalendarNotice extends CalendarOwnerEvent {
   const CalendarNotice(this.notice);
 
   final EditorNotice notice;
+}
+
+/// An edit of what was [gone] was saved as a new event, for the user to
+/// hear why.
+final class SavedAsNew extends CalendarOwnerEvent {
+  const SavedAsNew(this.gone);
+
+  final GoneMeanwhile gone;
 }
 
 // State.
