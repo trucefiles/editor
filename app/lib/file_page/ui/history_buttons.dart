@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// Undo and Redo for [editor], each on while it has a step to take;
-/// Undo also takes a tap while off.
+/// Undo and Redo (unless not [redo]) for [editor], each on while it has
+/// a step to take; Undo also takes a tap while off.
 class HistoryButtons extends StatelessWidget {
-  const HistoryButtons(this.editor, {super.key});
+  const HistoryButtons(this.editor, {this.redo = true, super.key});
 
   final PageEditor editor;
+  final bool redo;
 
   @override
   Widget build(BuildContext context) => StreamBuilder(
@@ -22,13 +23,14 @@ class HistoryButtons extends StatelessWidget {
           color: editor.state.canUndo ? null : Theme.of(context).disabledColor,
           onPressed: () => editor.send(const Undo()),
         ),
-        IconButton(
-          tooltip: 'Redo',
-          icon: const Icon(Icons.redo),
-          onPressed: editor.state.canRedo
-              ? () => editor.send(const Redo())
-              : null,
-        ),
+        if (redo)
+          IconButton(
+            tooltip: 'Redo',
+            icon: const Icon(Icons.redo),
+            onPressed: editor.state.canRedo
+                ? () => editor.send(const Redo())
+                : null,
+          ),
       ],
     ),
   );

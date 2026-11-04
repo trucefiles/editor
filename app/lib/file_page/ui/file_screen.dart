@@ -295,6 +295,12 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
+          if (_isEdited && _narrow(context))
+            PopupMenuItem(
+              value: () => _editor.send(const Redo()),
+              enabled: _editor.state.canRedo,
+              child: const Text('Redo'),
+            ),
           ..._page.view.menu(context, settings.view),
           PopupMenuItem(
             value: () =>
@@ -316,6 +322,12 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       );
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
+
+  /// Whether the window is phone-sized at its text size: then Redo goes
+  /// into the menu, so the bar keeps room for the title.
+  static bool _narrow(BuildContext context) =>
+      MediaQuery.sizeOf(context).width <
+      MediaQuery.textScalerOf(context).scale(600);
 
   /// Opens this file's backups; [context] is below this screen's
   /// messenger.
@@ -419,7 +431,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),
-          if (_isEdited) HistoryButtons(_editor),
+          if (_isEdited) HistoryButtons(_editor, redo: !_narrow(context)),
           // On touch, pulling down refreshes, and the menu has it.
           if (readOnly || !usesTouch(Theme.of(context)))
             IconButton(
