@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor_test.dart';
@@ -123,6 +124,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Select all'), findsNothing);
   }, variant: desktop);
+
+  for (final (mode, node) in [
+    (EditMode.visual, paragraphNodeOf),
+    (EditMode.markdown, () => lineNodeOf(0)),
+  ]) {
+    testWidgets('$mode: Escape that closes the menu goes no further; the '
+        'next one does', (tester) async {
+      var screenEscapes = 0;
+      final document = TestDocument('buy milk', mode: mode);
+      await pumpDocument(
+        tester,
+        document,
+        around: (context, child) => CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): () =>
+                screenEscapes++,
+          },
+          child: child!,
+        ),
+      );
+
+      await rightClick(tester, node(), 4);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text('Select all'), findsNothing);
+      expect(screenEscapes, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      expect(screenEscapes, 1);
+    }, variant: desktop);
+  }
 
   testWidgets('Markdown edit: Cut copies and removes the selection', (
     tester,

@@ -25,12 +25,17 @@ class EditingMenu extends StatefulWidget {
 class _EditingMenuState extends State<EditingMenu> {
   final _menu = ContextMenuController();
 
+  /// Around the editor: Esc passes it on its way up the focus tree. Has
+  /// the focus itself while the menu shows and the editor has none.
+  final _keys = FocusNode(skipTraversal: true);
+
   /// The selection watched while the menu shows.
   Listenable? _watched;
 
   @override
   void dispose() {
     _close();
+    _keys.dispose();
     super.dispose();
   }
 
@@ -40,13 +45,29 @@ class _EditingMenuState extends State<EditingMenu> {
     HardwareKeyboard.instance.removeHandler(_keyCloses);
     _watched?.removeListener(_close);
     _watched = null;
+    if (_keys.hasPrimaryFocus) _keys.unfocus();
   }
 
-  /// A key closes the menu; Escape does nothing else.
+  /// A key closes the menu and still does what it does; Esc is left to
+  /// [_escCloses].
   bool _keyCloses(KeyEvent event) {
-    if (event is! KeyDownEvent) return false;
+    if (event is KeyDownEvent &&
+        event.logicalKey != LogicalKeyboardKey.escape) {
+      _close();
+    }
+    return false;
+  }
+
+  /// Esc closes the menu and does nothing else, so it doesn't reach the
+  /// screen (which it would leave).
+  KeyEventResult _escCloses(FocusNode _, KeyEvent event) {
+    if (!_menu.isShown ||
+        event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape) {
+      return KeyEventResult.ignored;
+    }
     _close();
-    return event.logicalKey == LogicalKeyboardKey.escape;
+    return KeyEventResult.handled;
   }
 
   void _open(Offset at) {
@@ -81,18 +102,23 @@ class _EditingMenuState extends State<EditingMenu> {
     );
     HardwareKeyboard.instance.addHandler(_keyCloses);
     _watched = operations.selection..addListener(_close);
+    if (!_keys.hasFocus) _keys.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) => TapRegion(
     groupId: _menu,
     onTapOutside: (_) => _close(),
-    child: Listener(
-      onPointerDown: (_) => _close(),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onSecondaryTapUp: (details) => _open(details.globalPosition),
-        child: widget.child,
+    child: Focus(
+      focusNode: _keys,
+      onKeyEvent: _escCloses,
+      child: Listener(
+        onPointerDown: (_) => _close(),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTapUp: (details) => _open(details.globalPosition),
+          child: widget.child,
+        ),
       ),
     ),
   );
