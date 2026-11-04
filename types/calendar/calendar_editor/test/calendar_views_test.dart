@@ -115,6 +115,33 @@ void main() {
     expect(find.text('Party'), findsOneWidget);
   });
 
+  for (final (kind, sixOn) in [
+    (CalendarViewKind.month, DateTime(2027, 5)),
+    (CalendarViewKind.week, DateTime(2026, 12, 14)),
+    (CalendarViewKind.day, DateTime(2026, 11, 9)),
+  ]) {
+    testWidgets('quick taps on Next in the ${kind.name} view each move a '
+        'page', (tester) async {
+      await _showViews(tester, kind);
+      final shown = tester
+          .widget<KalenderView>(find.byType(KalenderView))
+          .kalenderController;
+
+      for (final _ in Iterable<int>.generate(6)) {
+        await tester.tap(find.byTooltip('Next'));
+        await tester.pump(const Duration(milliseconds: 30));
+      }
+      await tester.pumpAndSettle();
+
+      final range = shown.visibleDateTimeRange.value;
+      expect(
+        !sixOn.isBefore(range.start) && sixOn.isBefore(range.end),
+        isTrue,
+        reason: '$sixOn in ${range.start} to ${range.end}',
+      );
+    });
+  }
+
   for (final kind in [CalendarViewKind.month, CalendarViewKind.week]) {
     testWidgets('Shift and the mouse wheel page the ${kind.name} view one '
         'step per wheel step', (tester) async {

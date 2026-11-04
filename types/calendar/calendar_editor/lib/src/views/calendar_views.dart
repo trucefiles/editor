@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -8,6 +10,7 @@ import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
+import 'page_mover.dart';
 import 'sideways_wheel.dart';
 import 'views_bar.dart';
 import 'week_day_names.dart';
@@ -84,6 +87,10 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
+  late final _pages = PageMover(
+    pageOn: _model.pageOn,
+    animateTo: (date) => _kalender!.animateToDate(date),
+  );
   // The current widget's colors: a calendar's color can change.
   late final _tiles = eventTiles<K>(_colorOf);
   late final _scheduleTiles = scheduleTiles<K>(_colorOf);
@@ -209,14 +216,14 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           title: _titleOf(context),
           kind: _model.kind,
           onKind: _pickKind,
-          onPrevious: kalender.animateToPreviousPage,
-          onNext: kalender.animateToNextPage,
-          onToday: () => kalender.animateToDate(widget.now()),
+          onPrevious: () => unawaited(_pages.step(-1)),
+          onNext: () => unawaited(_pages.step(1)),
+          onToday: () => unawaited(_pages.to(widget.now())),
         ),
         Expanded(
           child: SidewaysWheel(
-            onPrevious: kalender.animateToPreviousPage,
-            onNext: kalender.animateToNextPage,
+            onPrevious: () => _pages.step(-1),
+            onNext: () => _pages.step(1),
             child: KalenderView(
               eventsController: _events,
               kalenderController: kalender,

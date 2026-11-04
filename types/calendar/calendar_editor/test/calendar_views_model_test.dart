@@ -176,4 +176,29 @@ void main() {
     expect((model.today, changes), (DateTime(2026, 11, 2), 1));
     model.dispose();
   });
+
+  test('a page on is a day, a week or a month on, from the page shown or '
+      'from where a move goes', () {
+    CalendarViewsModel<String> model(CalendarViewKind kind) =>
+        CalendarViewsModel(
+            kind: kind,
+            calendars: const {},
+            now: () => DateTime(2026, 11, 10, 12),
+          )
+          ..showRange(DateTime(2026, 10, 26), DateTime(2026, 12, 7))
+          ..showRange(DateTime(2026, 11, 8), DateTime(2026, 11, 15));
+    final day = model(CalendarViewKind.day)
+      ..showRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11));
+    final week = model(CalendarViewKind.week);
+    final month = model(CalendarViewKind.month)
+      ..showRange(DateTime(2026, 10, 26), DateTime(2026, 12, 7));
+    for (final each in [day, week, month]) {
+      addTearDown(each.dispose);
+    }
+
+    expect(day.pageOn(1), DateTime(2026, 11, 11));
+    expect(week.pageOn(-1), DateTime(2026, 11, 4));
+    expect(month.pageOn(1), DateTime(2026, 12));
+    expect(month.pageOn(1, from: DateTime(2027, 3)), DateTime(2027, 4));
+  });
 }
