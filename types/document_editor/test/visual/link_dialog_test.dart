@@ -18,6 +18,7 @@ void main() {
       ('localhost:3000', 'https://localhost:3000'),
       ('www.example.com:8080/x', 'https://www.example.com:8080/x'),
       ('name@example.com', 'mailto:name@example.com'),
+      ('tel:0123456', 'tel:0123456'),
       ('https://me@a.b/x', 'https://me@a.b/x'),
     ]) {
       test('"$typed" leads to "$leads"', () {

@@ -43,9 +43,12 @@ Future<LinkAnswer?> askLink(
 /// (`/`, `./`, `../`, `#`) stays as typed.
 String withScheme(String address) {
   final trimmed = address.trim();
-  // A port's digits after the colon make no scheme.
-  final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:(?!\d)')
+  // localhost:3000 or a dotted host with a port is a host, not a scheme
+  // (unlike tel:0123).
+  final hostAndPort = RegExp(r'^(localhost|[^:/]*\.[^:/]*):\d')
       .hasMatch(trimmed);
+  final hasScheme =
+      !hostAndPort && RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:').hasMatch(trimmed);
   final local = ['/', './', '../', '#'].any(trimmed.startsWith);
   final email = trimmed.contains('@') && !trimmed.contains('/');
   return switch (trimmed) {
