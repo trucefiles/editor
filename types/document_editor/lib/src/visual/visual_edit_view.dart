@@ -7,9 +7,10 @@ import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../document_metrics.dart';
 import '../editor_gate.dart';
+import '../library/editing_menu.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
-import '../library/own_paste.dart';
+import '../library/own_clipboard.dart';
 import '../library/touch_controls.dart';
 import '../ui/document_image.dart';
 import '../ui/empty_document_hint.dart';
@@ -61,10 +62,11 @@ class _VisualEditViewState extends State<VisualEditView> {
   final _focus = FocusNode();
   late final _adapter = VisualAdapter(widget.gate, addItems: widget.addItems);
   final _layout = GlobalKey();
-  late final _operations = PasteOperations(
+  late final _operations = MenuOperations(
     _adapter.editor,
     _adapter.paste,
     layout: _layout,
+    copy: _adapter.ownCopy,
   );
   late final _actions = VisualActions(
     widget.gate,
@@ -226,24 +228,27 @@ class _VisualEditViewState extends State<VisualEditView> {
                   TouchControls(
                     color: look.handleColor,
                     operations: _operations,
-                    child: LineDropZone(
-                      step: metrics.levelIndent,
-                      goesNextTo: _actions.goesNextTo,
-                      onLift: (drag) => _actions.dragStarted(drag.item),
-                      onDrop:
-                          (
-                            drag, {
-                            required target,
-                            required below,
-                            required levels,
-                          }) => _actions.drop(
-                            drag.item,
-                            target: target,
-                            below: below,
-                            levels: levels,
-                          ),
-                      onSettled: _actions.dragEnded,
-                      child: editor!,
+                    child: EditingMenu(
+                      operations: _operations,
+                      child: LineDropZone(
+                        step: metrics.levelIndent,
+                        goesNextTo: _actions.goesNextTo,
+                        onLift: (drag) => _actions.dragStarted(drag.item),
+                        onDrop:
+                            (
+                              drag, {
+                              required target,
+                              required below,
+                              required levels,
+                            }) => _actions.drop(
+                              drag.item,
+                              target: target,
+                              below: below,
+                              levels: levels,
+                            ),
+                        onSettled: _actions.dragEnded,
+                        child: editor!,
+                      ),
                     ),
                   ),
                   EmptyDocumentHint(

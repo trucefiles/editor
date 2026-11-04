@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:super_editor/super_editor.dart';
 
-import 'own_paste.dart';
+import 'own_clipboard.dart';
 
 /// The touch controls of the super_editor [child] (caret handles, the
 /// drag handles of a selection, the toolbar) in [color], whichever touch
@@ -16,7 +16,7 @@ class TouchControls extends StatefulWidget {
   });
 
   final Color color;
-  final PasteOperations operations;
+  final MenuOperations operations;
   final Widget child;
 
   @override

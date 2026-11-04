@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../document_metrics.dart';
+import '../library/editing_menu.dart';
 import '../library/editor_look.dart';
 import '../library/link_tap_handler.dart';
-import '../library/own_paste.dart';
+import '../library/own_clipboard.dart';
 import '../library/touch_controls.dart';
 import '../ui/empty_document_hint.dart';
 import 'edited_text.dart';
@@ -52,7 +53,7 @@ class _LineEditViewState extends State<LineEditView> {
   late final LineHighlighter? _highlighter;
   late final List<SingleColumnLayoutStylePhase> _phases;
   final _layout = GlobalKey();
-  late final _operations = PasteOperations(
+  late final _operations = MenuOperations(
     _adapter.editor,
     _adapter.paste,
     layout: _layout,
@@ -96,23 +97,26 @@ class _LineEditViewState extends State<LineEditView> {
         TouchControls(
           color: look.handleColor,
           operations: _operations,
-          child: SuperEditor(
-            editor: _adapter.editor,
-            documentLayoutKey: _layout,
-            autofocus: widget.autofocus,
-            stylesheet: look.stylesheet,
-            selectionStyle: look.selection,
-            documentOverlayBuilders: look.overlays,
-            customStylePhases: _phases,
-            keyboardActions: lineKeyboardActions(_adapter.paste),
-            contentTapDelegateFactories: [
-              if (_highlighter case final highlighter?)
-                (_) => LinkTapHandler(
-                  linkAt: highlighter.linkAt,
-                  onLink: widget.onLink,
-                  opens: editingTapOpens,
-                ),
-            ],
+          child: EditingMenu(
+            operations: _operations,
+            child: SuperEditor(
+              editor: _adapter.editor,
+              documentLayoutKey: _layout,
+              autofocus: widget.autofocus,
+              stylesheet: look.stylesheet,
+              selectionStyle: look.selection,
+              documentOverlayBuilders: look.overlays,
+              customStylePhases: _phases,
+              keyboardActions: lineKeyboardActions(_adapter.paste),
+              contentTapDelegateFactories: [
+                if (_highlighter case final highlighter?)
+                  (_) => LinkTapHandler(
+                    linkAt: highlighter.linkAt,
+                    onLink: widget.onLink,
+                    opens: editingTapOpens,
+                  ),
+              ],
+            ),
           ),
         ),
         ListenableBuilder(

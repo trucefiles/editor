@@ -4,7 +4,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart' show splitLines, unchangedEnds;
 
 import '../../library/document_patch.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../edited_text.dart';
 
 /// Connects the library's [editor], one plain text node per line, to the

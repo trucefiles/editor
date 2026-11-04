@@ -1,11 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/services.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditKey;
 
 import '../../library/keypad_keys.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../../library/rich_text_keys.dart';
 import 'visual_adapter.dart';
 
@@ -102,9 +100,6 @@ SuperEditorKeyboardAction _copy(VisualAdapter adapter) =>
           (key != LogicalKeyboardKey.keyC && key != LogicalKeyboardKey.keyX)) {
         return ExecutionInstruction.continueExecution;
       }
-      final text = adapter.copySelection();
-      if (text == null) return ExecutionInstruction.haltExecution;
-      unawaited(Clipboard.setData(ClipboardData(text: text)));
-      if (key == LogicalKeyboardKey.keyX) adapter.deleteSelection();
+      copySelection(adapter.ownCopy, cut: key == LogicalKeyboardKey.keyX);
       return ExecutionInstruction.haltExecution;
     };

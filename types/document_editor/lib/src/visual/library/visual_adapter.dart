@@ -4,7 +4,7 @@ import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../row_looks.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
@@ -254,8 +254,8 @@ final class VisualAdapter {
   /// Whether an input method is composing text: keys go to it.
   bool get composing => composer.composingRegion.value != null;
 
-  /// Removes the selected text, after [copySelection].
-  void deleteSelection() => _gate.send(
+  /// Removes the selected text, after [_copySelection].
+  void _deleteSelection() => _gate.send(
     (now) => switch (_shownRange(now)) {
       final range? when !range.isCaret => md.Run(
         md.DeleteRange(range),
@@ -276,9 +276,13 @@ final class VisualAdapter {
   /// The fragment copied here last, and the plain text the clipboard got.
   ({String plain, List<md.VisibleText> lines})? _copied;
 
+  /// Visual edit's own copy: [_copySelection], then [_deleteSelection]
+  /// for a cut.
+  OwnCopy get ownCopy => (text: _copySelection, remove: _deleteSelection);
+
   /// The selected text as lines with their styles, and as the plain text
   /// for the clipboard; remembered for a paste here.
-  String? copySelection() {
+  String? _copySelection() {
     final (shown, range) = (_shown, selectedRange);
     if (shown == null || range == null || range.isCaret) return null;
     final lines = md.copiedLines(shown.view, range);
