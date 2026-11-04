@@ -2,6 +2,7 @@ import '../../common/moment.dart';
 import '../../conflicts/text_merge.dart';
 import '../../owners/effects.dart';
 import '../../owners/machine.dart';
+import '../../owners/step_run.dart';
 import '../version.dart';
 import 'file_contract.dart';
 import 'file_state.dart';
@@ -17,26 +18,24 @@ fileStep<V extends Version>(
   FileMessage<V> message, {
   TextMerge? merge,
 }) {
-  final step = _Step(state, work, merge)..handle(message);
-  return (
-    state: step.shown,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(state, work, merge).run(message);
 }
 
 /// One input's handling: the state as it changes and what it leads to.
 /// Inputs update what is known and asked; [_next] then starts the next
 /// I/O once none is under way.
-final class _Step<V extends Version> {
-  _Step(this.state, this.work, this.merge);
+final class _Step<V extends Version>
+    extends
+        StepRun<
+          FileMessage<V>,
+          FileState<V>,
+          FileWork<V>,
+          FileEvent,
+          FileEffect<V>
+        > {
+  _Step(super.state, super.work, this.merge);
 
-  FileState<V> state;
-  FileWork<V> work;
   final TextMerge? merge;
-  final events = <FileEvent>[];
-  final effects = <FileEffect<V>>[];
   FileStatus<V> get status => state.status;
 
   bool get _done => status is KeptAsConflict || status is Closed;
@@ -50,7 +49,8 @@ final class _Step<V extends Version> {
   };
 
   /// The state with the editing phase and the file the work shows.
-  FileState<V> get shown => FileState(
+  @override
+  FileState<V> get endState => FileState(
     status: switch (status) {
       Editing() => Editing(switch ((work.io, work.draft)) {
         (WritingFile(:final text), _) when text == state.text =>
@@ -74,6 +74,7 @@ final class _Step<V extends Version> {
   /// file has no file.
   V? get _file => work.expected?.version;
 
+  @override
   void handle(FileMessage<V> message) {
     switch (message) {
       case Edited():

@@ -2,6 +2,7 @@ import '../common/result.dart';
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../owners/machine.dart';
+import '../owners/step_run.dart';
 import '../versions/resolution.dart';
 import 'compare_contract.dart';
 import 'compare_work.dart';
@@ -23,13 +24,7 @@ compareStep<Target, Sides>(
   CompareWork work,
   CompareMessage<Target, Sides> message,
 ) {
-  final step = _Step<Target, Sides>(goesOn, state, work)..handle(message);
-  return (
-    state: step.state,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step<Target, Sides>(goesOn, state, work).run(message);
 }
 
 /// Where the compare owner starts: loading [target].
@@ -45,12 +40,7 @@ compareStart<Target, Sides>(Target target) {
     CompareLoading(target),
     const CompareWork(),
   ).._load(target);
-  return (
-    state: step.state,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return step.result;
 }
 
 /// How [state] and [work] break the compare owner's rules.
@@ -64,15 +54,20 @@ List<String> compareViolations<Target, Sides>(
     'a load is under way exactly while loading',
 ];
 
-final class _Step<Target, Sides> {
-  _Step(this.goesOn, this.state, this.work);
+final class _Step<Target, Sides>
+    extends
+        StepRun<
+          CompareMessage<Target, Sides>,
+          CompareState<Target, Sides>,
+          CompareWork,
+          KeepAnswer,
+          CompareEffect<Target, Sides>
+        > {
+  _Step(this.goesOn, super.state, super.work);
 
   final bool goesOn;
-  CompareState<Target, Sides> state;
-  CompareWork work;
-  final events = <KeepAnswer>[];
-  final effects = <CompareEffect<Target, Sides>>[];
 
+  @override
   void handle(CompareMessage<Target, Sides> message) {
     switch ((message, state)) {
       case (

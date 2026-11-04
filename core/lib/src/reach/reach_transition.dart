@@ -1,6 +1,7 @@
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../owners/machine.dart';
+import '../owners/step_run.dart';
 import 'reach_contract.dart';
 import 'reach_work.dart';
 
@@ -18,13 +19,7 @@ Step<Reach, ReachWork, ReachEvent, ReachEffect> reachStep(
   ReachWork work,
   ReachMessage message,
 ) {
-  final step = _Step(timing, state, work)..handle(message);
-  return (
-    state: step.state,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(timing, state, work).run(message);
 }
 
 /// How [state] and [work] break the reach owner's rules.
@@ -35,15 +30,13 @@ List<String> reachViolations(Reach state, ReachWork work) => [
     'a settle waits with no check under way',
 ];
 
-final class _Step {
-  _Step(this.timing, this.state, this.work);
+final class _Step
+    extends StepRun<ReachMessage, Reach, ReachWork, ReachEvent, ReachEffect> {
+  _Step(this.timing, super.state, super.work);
 
   final ReachTiming timing;
-  Reach state;
-  ReachWork work;
-  final events = <ReachEvent>[];
-  final effects = <ReachEffect>[];
 
+  @override
   void handle(ReachMessage message) {
     _handle(message);
     if (work.checking == null) _answerSettles();

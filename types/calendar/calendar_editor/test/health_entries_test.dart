@@ -15,7 +15,8 @@ List<CalendarEvent> _events(CalendarEditorPart part, [DateTime? day]) {
   final on = day ?? _today;
   return [
     for (final event in calendarOf(part).events)
-      if (event.series case EventPart(
+      if (event.series
+          case EventPart(
             health: _?,
             deleted: false,
             cancelled: false,
@@ -141,10 +142,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, 'Note'), 'Rested');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(
-      _events(part, day).single.series.description,
-      'Rested',
-    );
+    expect(_events(part, day).single.series.description, 'Rested');
     expect(_entries(part, day), [const HealthNote()]);
 
     await tester.tap(find.text('Note').last);

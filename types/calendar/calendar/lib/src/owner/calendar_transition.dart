@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart'
         EffectId,
         SentText,
         Step,
+        StepRun,
         TextSummary;
 
 import '../edit/calendar_edit.dart';
@@ -26,30 +27,32 @@ calendarStep(
   EditorBook<CalendarShown> book,
   CalendarMessage message,
 ) {
-  final step = _Step(state, book)..handle(message);
-  return (
-    state: step.state,
-    work: step.book,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(state, book).run(message);
 }
 
 /// One message's handling: the state as it changes and what it leads to.
-final class _Step with EditorSteps<CalendarShown> {
-  _Step(this.state, this.book);
-
-  CalendarState state;
+final class _Step
+    extends
+        StepRun<
+          CalendarMessage,
+          CalendarState,
+          EditorBook<CalendarShown>,
+          CalendarNotice,
+          CalendarSaveTimer
+        >
+    with EditorSteps<CalendarShown> {
+  _Step(super.state, super.work);
 
   @override
-  EditorBook<CalendarShown> book;
+  EditorBook<CalendarShown> get book => work;
+
+  @override
+  set book(EditorBook<CalendarShown> book) => work = book;
 
   /// When the request handled now was made; set before it is handled.
   late DateTime _requestAt;
 
-  final events = <CalendarNotice>[];
-  final effects = <CalendarSaveTimer>[];
-
+  @override
   void handle(CalendarMessage message) {
     switch (message) {
       case EditCalendar(:final edit):

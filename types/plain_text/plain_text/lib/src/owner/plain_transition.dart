@@ -7,6 +7,7 @@ import 'package:truce_core/truce_core.dart'
         SentText,
         TextSummary,
         Step,
+        StepRun,
         textChange,
         typingIn;
 
@@ -20,27 +21,29 @@ Step<PlainState, EditorBook<String>, PlainNotice, PlainSaveTimer> plainStep(
   EditorBook<String> book,
   PlainMessage message,
 ) {
-  final step = _Step(state, book)..handle(message);
-  return (
-    state: step.state,
-    work: step.book,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(state, book).run(message);
 }
 
 /// One message's handling: the state as it changes and what it leads to.
-final class _Step with EditorSteps<String> {
-  _Step(this.state, this.book);
-
-  PlainState state;
+final class _Step
+    extends
+        StepRun<
+          PlainMessage,
+          PlainState,
+          EditorBook<String>,
+          PlainNotice,
+          PlainSaveTimer
+        >
+    with EditorSteps<String> {
+  _Step(super.state, super.work);
 
   @override
-  EditorBook<String> book;
+  EditorBook<String> get book => work;
 
-  final events = <PlainNotice>[];
-  final effects = <PlainSaveTimer>[];
+  @override
+  set book(EditorBook<String> book) => work = book;
 
+  @override
   void handle(PlainMessage message) {
     _caretTold();
     switch (message) {
