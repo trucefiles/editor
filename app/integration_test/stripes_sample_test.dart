@@ -42,7 +42,6 @@ void main() {
   for (final (look, logical, android, dark) in [
     ('desktop', const Size(1000, 760), false, false),
     ('desktop_dark', const Size(1000, 760), false, true),
-    ('touch', const Size(412, 860), true, false),
   ]) {
     testApp('stripes sample, $look', (tester) async {
       if (android) {
@@ -61,7 +60,7 @@ void main() {
       await tester.addFolder(app);
       await tester.waitFor(find.text('Me'));
       await tester.openFile('Me');
-      for (final variant in [0, 1, 2]) {
+      for (final variant in [0, 1]) {
         debugLikelyLook = variant;
         tester.binding.buildOwner!.reassemble(tester.binding.rootElement!);
         await _shot(tester, '${look}_$variant');

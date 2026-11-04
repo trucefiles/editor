@@ -117,15 +117,19 @@ class CycleLegend extends StatelessWidget {
 
 // SAMPLE ONLY: which look the likely period days get.
 var debugLikelyLook = 0;
+// Light: pale error-container fill. Dark: light red (the error color) at low
+// strength, so it reads as light red over the dark background.
 const _looks = [
-  (fill: null, lines: 1.0, gap: 6.0),
-  (fill: 0.5, lines: 0.3, gap: 8.0),
-  (fill: 0.4, lines: 0.2, gap: 12.0),
+  (light: 0.3, dark: 0.5, lines: 0.2, gap: 12.0),
+  (light: 0.3, dark: 0.5, lines: 0.2, gap: 12.0),
 ];
-Color? likelyFill(ColorScheme colors) => switch (_looks[debugLikelyLook].fill) {
-  final double a => Color.alphaBlend(colors.errorContainer.withValues(alpha: a), colors.surface),
-  null => null,
-};
+Color? likelyFill(ColorScheme colors) => Color.alphaBlend(
+  colors.brightness == Brightness.dark
+      ? (debugLikelyLook == 0 ? const Color(0xFFE57373) : colors.error)
+          .withValues(alpha: _looks[debugLikelyLook].dark)
+      : colors.errorContainer.withValues(alpha: _looks[debugLikelyLook].light),
+  colors.surface,
+);
 Stripes likelyStripes(ColorScheme colors) => Stripes(
   colors.error.withValues(alpha: _looks[debugLikelyLook].lines),
   _looks[debugLikelyLook].gap,
