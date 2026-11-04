@@ -450,8 +450,11 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             _folder,
             message: 'Your text is kept on this device.',
           ),
-          // Its ways out need the folder.
-          if (!unreachable) EditStateBanner(_controller, onClose: _leave),
+          EditStateBanner(
+            _controller,
+            onClose: _leave,
+            folderReachable: !unreachable,
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Align(

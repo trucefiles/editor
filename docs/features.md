@@ -103,9 +103,9 @@ Undo, backups, compare and conflict copies work as for Markdown.
 
 Undo and redo take back and redo your edits while a document is open, with
 the buttons at the top or Ctrl+Z and Ctrl+Y. When there is nothing more to
-undo, one more Undo says why and leads to the document's backups. The menu's **Backups**
-lists only this document's backups: open one to compare it, then restore it
-(Undo takes that back too) or delete it.
+undo, one more Undo says why and leads to the document's backups. The
+menu's **Backups** lists only this document's backups: open one to compare
+it, then restore it (Undo takes that back too) or delete it.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">

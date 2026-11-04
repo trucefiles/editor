@@ -12,7 +12,12 @@ import 'changed_elsewhere_screen.dart';
 /// Tells what went wrong with an open file's edits and offers its
 /// ways out. Shows nothing while all is well.
 class EditStateBanner extends StatelessWidget {
-  const EditStateBanner(this.controller, {required this.onClose, super.key});
+  const EditStateBanner(
+    this.controller, {
+    required this.onClose,
+    this.folderReachable = true,
+    super.key,
+  });
 
   /// The open file's view model.
   final FileController controller;
@@ -22,6 +27,11 @@ class EditStateBanner extends StatelessWidget {
   /// Closes the editor, keeping the edits where they can be kept.
   final FutureOr<void> Function() onClose;
 
+  /// Whether the file's folder can be reached: the ways out of a file
+  /// problem need it, so they wait until it can; being read only is told
+  /// either way, as copying needs no folder.
+  final bool folderReachable;
+
   @override
   Widget build(BuildContext context) => switch (_session.state) {
     // Read only wins: editing has ended, so nothing else can be done.
@@ -29,7 +39,8 @@ class EditStateBanner extends StatelessWidget {
       message: _stoppedText(stopped),
       actions: {'Copy text': () => _copy(context, stopped.text)},
     ),
-    Running() || Ended() => _ofStatus(context),
+    Running() || Ended() when folderReachable => _ofStatus(context),
+    Running() || Ended() => const SizedBox.shrink(),
   };
 
   /// Why the file is read only now, and whether its edits are kept.
