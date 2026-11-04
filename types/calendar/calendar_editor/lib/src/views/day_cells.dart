@@ -120,12 +120,12 @@ var debugLikelyLook = 0;
 // Light: pale error-container fill. Dark: light red (the error color) at low
 // strength, so it reads as light red over the dark background.
 const _looks = [
-  (light: 0.3, dark: 0.5, lines: 0.2, gap: 12.0),
-  (light: 0.3, dark: 0.5, lines: 0.2, gap: 12.0),
+  (light: 0.3, dark: 0.75, lines: 0.2, gap: 12.0),
+  (light: 0.3, dark: 0.85, lines: 0.2, gap: 12.0),
 ];
 Color? likelyFill(ColorScheme colors) => Color.alphaBlend(
   colors.brightness == Brightness.dark
-      ? (debugLikelyLook == 0 ? const Color(0xFFE57373) : colors.error)
+      ? (debugLikelyLook == 0 ? const Color(0xFFF48FB1) : const Color(0xFFF8BBD0))
           .withValues(alpha: _looks[debugLikelyLook].dark)
       : colors.errorContainer.withValues(alpha: _looks[debugLikelyLook].light),
   colors.surface,
