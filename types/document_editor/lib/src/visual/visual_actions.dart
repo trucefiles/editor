@@ -105,7 +105,6 @@ final class VisualActions {
           _ => null,
         },
         byControl: true,
-        revision: from.revision,
       );
 
   /// The block that starts [item], as the blocks are now.
@@ -168,7 +167,6 @@ final class VisualActions {
         null => null,
       },
       byControl: true,
-      revision: from.revision,
     );
   }
 

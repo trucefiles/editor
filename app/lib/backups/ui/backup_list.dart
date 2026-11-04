@@ -4,7 +4,6 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
-import '../../common/confirm_dialog.dart';
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';

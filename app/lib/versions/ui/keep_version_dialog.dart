@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/confirm_dialog.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Asks whether to keep the version the user picked, or both merged
 /// ([title]); [message] tells what happens to the versions. `true` if

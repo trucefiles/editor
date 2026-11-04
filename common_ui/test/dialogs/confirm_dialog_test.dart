@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_editor/common/confirm_dialog.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 void main() {
   Future<Future<bool>> open(WidgetTester tester) async {

@@ -4,7 +4,6 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../../common/confirm_dialog.dart';
 import '../../common/floating_button_room.dart';
 import '../../common/snack.dart';
 import '../add_folder/ui/add_folder_screen.dart';

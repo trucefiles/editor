@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Asks before the form [child] closes without saving (back, Esc, a tap
 /// outside) while [changed] tells that the user changed something;
@@ -20,22 +21,10 @@ class LeaveCheck extends StatelessWidget {
     child: child,
   );
 
-  static Future<bool> _discard(BuildContext context) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Discard changes?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep editing'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Discard'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+  static Future<bool> _discard(BuildContext context) => showConfirmDialog(
+    context,
+    title: 'Discard changes?',
+    yes: 'Discard',
+    no: 'Keep editing',
+  );
 }
