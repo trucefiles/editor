@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'common/app_localizations.dart';
 import 'common/device_locale.dart';
+import 'common/escape_navigation.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'home/home_screen.dart';
@@ -47,7 +48,10 @@ class _TruceAppState extends ConsumerState<TruceApp> {
         child: ReachOverlay(
           child: MouseBackNavigation(
             navigator: _navigator,
-            child: KeypadNavigation(child: child!),
+            child: EscapeNavigation(
+              navigator: _navigator,
+              child: KeypadNavigation(child: child!),
+            ),
           ),
         ),
       ),

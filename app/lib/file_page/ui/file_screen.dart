@@ -9,6 +9,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../common/escape_navigation.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
@@ -373,7 +374,8 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     );
   }
 
-  /// Esc leaves the file, as the back arrow does; Ctrl+Z undoes,
+  /// Esc leaves the file, as the back arrow does, even from the editor,
+  /// which keeps Esc to itself; Ctrl+Z undoes,
   /// Ctrl+Shift+Z and Ctrl+Y redo while the file is edited; the
   /// type's own keys work while it can be edited.
   late final Map<SingleActivator, VoidCallback> _keys = {
@@ -405,7 +407,11 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     key: _messenger,
     child: ScreenShortcuts(
       bindings: _keys,
-      child: Builder(builder: _content),
+      // Its own Esc above leaves; the app-wide one would leave twice.
+      child: Actions(
+        actions: {LeaveScreenIntent: DoNothingAction()},
+        child: Builder(builder: _content),
+      ),
     ),
   );
 

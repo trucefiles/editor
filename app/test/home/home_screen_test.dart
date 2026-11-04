@@ -247,6 +247,14 @@ void main() {
 
     await tester.tap(find.byTooltip('Add event'));
     await showsSoon(tester, find.text('New event'));
+    await tester.pumpAndSettle();
+
+    // Esc closes the event form, as on every page, and leaves the
+    // calendar's page under it open.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsNothing);
+    expect(find.byType(FileScreen), findsOne);
   });
 
   testWidgets('an event tapped in the Calendar tab shows; Edit opens its '

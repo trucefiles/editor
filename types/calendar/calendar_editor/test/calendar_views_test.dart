@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -114,6 +115,41 @@ void main() {
     expect(find.text('Party'), findsOneWidget);
   });
 
+  for (final kind in [CalendarViewKind.month, CalendarViewKind.week]) {
+    testWidgets('Shift and the mouse wheel page the ${kind.name} view one '
+        'step per wheel step', (tester) async {
+      await _showViews(tester, kind);
+      final shown = tester
+          .widget<KalenderView>(find.byType(KalenderView))
+          .kalenderController;
+      DateTime start() => shown.visibleDateTimeRange.value.start;
+      final first = start();
+
+      await _shiftWheel(tester, 40);
+      final next = start();
+      expect(next.isAfter(first), isTrue);
+
+      await _shiftWheel(tester, -40);
+      expect(start(), first);
+    });
+  }
+
+  testWidgets('the mouse wheel alone still scrolls the week view, not its '
+      'pages', (tester) async {
+    await _showViews(tester, CalendarViewKind.week);
+    final shown = tester
+        .widget<KalenderView>(find.byType(KalenderView))
+        .kalenderController;
+    final first = shown.visibleDateTimeRange.value.start;
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    final at = tester.getCenter(find.byType(KalenderView));
+    await tester.sendEventToBinding(pointer.hover(at));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 40)));
+    await tester.pumpAndSettle();
+
+    expect(shown.visibleDateTimeRange.value.start, first);
+  });
+
   testWidgets("a calendar's new color shows on its events", (tester) async {
     Future<void> show(Color color) => tester.pumpWidget(
       MaterialApp(
@@ -190,4 +226,34 @@ void main() {
     expect(find.textContaining('Me: '), findsOne);
     expect(find.textContaining('Ann: '), findsOne);
   });
+}
+
+/// Shows [kind] of a calendar on 3 November 2026, as a page does.
+Future<void> _showViews(WidgetTester tester, CalendarViewKind kind) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: CalendarViews<String>(
+          calendars: {'home': _calendar('Home', 'Dentist', 9)},
+          colorOf: (_) => Colors.teal,
+          kind: kind,
+          onKind: (_) {},
+          now: () => DateTime(2026, 11, 3, 8),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Turns the mouse wheel one step down ([dy] > 0) or up over the
+/// calendar while Shift is held.
+Future<void> _shiftWheel(WidgetTester tester, double dy) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  final pointer = TestPointer(1, PointerDeviceKind.mouse);
+  final at = tester.getCenter(find.byType(KalenderView));
+  await tester.sendEventToBinding(pointer.hover(at));
+  await tester.sendEventToBinding(pointer.scroll(Offset(0, dy)));
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.pumpAndSettle();
 }
