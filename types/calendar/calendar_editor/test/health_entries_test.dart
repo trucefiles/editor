@@ -41,6 +41,22 @@ Future<void> _add(WidgetTester tester, String kind) async {
 }
 
 void main() {
+  testWidgets('closing an entry with changes asks first', (tester) async {
+    final part = calendarPart(newCalendarText('Me', health: true));
+    await pumpPage(tester, part, today: _today);
+    await _add(tester, 'Note');
+    await tester.enterText(find.widgetWithText(TextField, 'Note'), 'Tired');
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.text('Discard changes?'), findsOne);
+    await tester.tap(find.text('Discard'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(_entries(part), isEmpty);
+  });
+
   testWidgets('add lists the general kinds first, then the period', (
     tester,
   ) async {

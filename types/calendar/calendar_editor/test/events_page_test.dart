@@ -88,6 +88,36 @@ void main() {
     expect(part.owner.state.text, contains('DTSTAMP:20261101T120000Z'));
   });
 
+  testWidgets('closing the form with changes asks first; unchanged it just '
+      'closes', (tester) async {
+    final part = calendarPart(newCalendarText('Home'));
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+    Future<void> close() async {
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.byTooltip('Add event'));
+    await tester.pumpAndSettle();
+    await close();
+    expect(find.text('New event'), findsNothing, reason: 'nothing typed');
+
+    await tester.tap(find.byTooltip('Add event'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
+    await close();
+    expect(find.text('Discard changes?'), findsOne);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dentist'), findsOne, reason: 'still typed');
+
+    await close();
+    await tester.tap(find.text('Discard'));
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsNothing);
+    expect(calendarOf(part).events, isEmpty);
+  });
+
   testWidgets('a new event is in the device zone, its block in the file', (
     tester,
   ) async {

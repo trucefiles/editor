@@ -23,6 +23,22 @@ void main() {
   group("a series' start moved", _startMoves);
   group('a series of extra dates alone', _extraDatesOnly);
 
+  test('drafts are equal when every field is', () {
+    final draft = _draft('Gym', DateTime(2026, 11, 3, 18));
+    expect(_draft('Gym', DateTime(2026, 11, 3, 18)), draft);
+    expect(_draft('Gym', DateTime(2026, 11, 3, 18)).hashCode, draft.hashCode);
+    expect(_draft('Run', DateTime(2026, 11, 3, 18)), isNot(draft));
+    expect(
+      EventDraft(
+        summary: 'Gym',
+        start: draft.start,
+        end: draft.end,
+        alerts: const [Duration(minutes: 5)],
+      ),
+      isNot(draft),
+    );
+  });
+
   test('a new event is added at the end, stamped, floating', () {
     final calendar = _edited(
       birthday,

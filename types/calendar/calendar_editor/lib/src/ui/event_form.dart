@@ -5,6 +5,7 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../views/new_event_spot.dart';
 import 'color_choice.dart';
+import 'leave_check.dart';
 
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
@@ -85,6 +86,15 @@ class _EventFormState extends State<EventForm> {
   late var _alerts = widget.draft.alerts;
   late var _color = widget.draft.color;
 
+  /// The draft as the form opened, as it reads it back.
+  late final EventDraft _opened;
+
+  @override
+  void initState() {
+    super.initState();
+    _opened = _drafted;
+  }
+
   @override
   void dispose() {
     _summary.dispose();
@@ -114,6 +124,13 @@ class _EventFormState extends State<EventForm> {
   @override
   Widget build(BuildContext context) {
     final ok = _times.endsAfterStart;
+    return LeaveCheck(
+      changed: () => _drafted != _opened,
+      child: _scaffold(context, ok: ok),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, {required bool ok}) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
