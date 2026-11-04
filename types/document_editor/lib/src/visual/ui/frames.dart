@@ -101,8 +101,10 @@ class MarkerView extends StatelessWidget {
       ListMarker(item.marker, style: style, onToggle: onToggle);
 }
 
-/// [child] in a quote: a bar on its left, so it stands apart from the
-/// text around it; the text [indent] right of it.
+/// [child] in a quote: a bar on its left and a light tint behind it, as
+/// Read shows quotes, so it stands apart from the text around it; the
+/// text [indent] right of the bar. The tint lets the page show through,
+/// so a quote inside a quote shows darker.
 class _QuoteBar extends StatelessWidget {
   const _QuoteBar(this.child, {required this.indent});
 
@@ -112,6 +114,14 @@ class _QuoteBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Stack(
     children: [
+      Positioned.fill(
+        child: IgnorePointer(
+          child: ColoredBox(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.6),
+          ),
+        ),
+      ),
       Padding(
         padding: EdgeInsets.only(left: indent),
         child: child,

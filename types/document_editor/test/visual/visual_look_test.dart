@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -115,6 +116,46 @@ void main() {
     final two = tester.getRect(find.text('two', findRichText: true));
     expect(two.top - one.bottom, greaterThan(20), reason: 'a blank line');
     expect(second.top, moreOrLessEquals(first.bottom), reason: 'no break');
+  });
+
+  testWidgets('a quote is tinted as far as its bar runs, a quote in a '
+      'quote twice', (tester) async {
+    await pumpDocument(tester, TestDocument('> one\n>\n> > two\n\nafter'));
+    await tester.pumpAndSettle();
+    final tint = Theme.of(tester.element(find.byType(SuperEditor)))
+        .colorScheme
+        .surfaceContainerHighest
+        .withValues(alpha: 0.6);
+    List<Rect> tints() => [
+      for (final box
+          in find
+              .byWidgetPredicate(
+                (widget) => widget is ColoredBox && widget.color == tint,
+              )
+              .evaluate())
+        tester.getRect(find.byWidget(box.widget)),
+    ];
+    List<Rect> bars() => [
+      for (final bar in quoteBars().evaluate())
+        tester.getRect(find.byWidget(bar.widget)),
+    ];
+
+    expect(tints(), hasLength(bars().length));
+    int byPlace(Rect one, Rect other) => one.top != other.top
+        ? one.top.compareTo(other.top)
+        : one.left.compareTo(other.left);
+    for (final [tint, bar] in IterableZip([
+      tints().sorted(byPlace),
+      bars().sorted(byPlace),
+    ])) {
+      expect(tint.top, bar.top);
+      expect(tint.bottom, bar.bottom);
+      expect(tint.left, bar.left);
+    }
+    final two = tester.getCenter(find.text('two', findRichText: true));
+    expect(tints().where((tint) => tint.contains(two)), hasLength(2));
+    final after = tester.getCenter(find.text('after', findRichText: true));
+    expect(tints().where((tint) => tint.contains(after)), isEmpty);
   });
 
   testWidgets("a quoted list's Add item and Done rows show in the quote", (
