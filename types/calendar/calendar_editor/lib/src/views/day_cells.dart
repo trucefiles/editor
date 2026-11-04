@@ -29,6 +29,13 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   );
 };
 
+/// A day's number in the month view, made smaller where its cell is too
+/// narrow for it (very large text), never broken over two lines.
+Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
+  fit: BoxFit.scaleDown,
+  child: MonthDayHeader(date: date),
+);
+
 /// Thin diagonal lines in [color] over the whole box: a day that is
 /// likely, not known.
 class Stripes extends CustomPainter {
