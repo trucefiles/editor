@@ -152,6 +152,11 @@ void main() {
       expect(tint.bottom, bar.bottom);
       expect(tint.left, bar.left);
     }
+    expect(
+      tints().map((tint) => tint.right).toSet(),
+      hasLength(1),
+      reason: 'every tint runs to the right edge',
+    );
     final two = tester.getCenter(find.text('two', findRichText: true));
     expect(tints().where((tint) => tint.contains(two)), hasLength(2));
     final after = tester.getCenter(find.text('after', findRichText: true));

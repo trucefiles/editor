@@ -98,6 +98,32 @@ void main() {
     }, variant: desktop);
   });
 
+  testWidgets('closes on Escape, a click elsewhere, or a key', (tester) async {
+    final document = TestDocument('buy milk');
+    await pumpDocument(tester, document);
+
+    await rightClick(tester, paragraphNodeOf(), 4);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Select all'), findsNothing);
+    expect(document.text, 'buy milk');
+
+    await rightClick(tester, paragraphNodeOf(), 4);
+    await tester.tapAt(tester.tapPointIn(paragraphNodeOf(), 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Select all'), findsNothing);
+
+    await rightClick(tester, paragraphNodeOf(), 4);
+    await tester.tap(find.byTooltip('Bold (Ctrl+B)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Select all'), findsNothing);
+
+    await rightClick(tester, paragraphNodeOf(), 4);
+    await tester.typeImeText('x');
+    await tester.pumpAndSettle();
+    expect(find.text('Select all'), findsNothing);
+  }, variant: desktop);
+
   testWidgets('Markdown edit: Cut copies and removes the selection', (
     tester,
   ) async {

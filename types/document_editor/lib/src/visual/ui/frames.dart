@@ -113,6 +113,8 @@ class _QuoteBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
+    // As wide as the row, so a quote inside a quote is tinted to the edge.
+    fit: StackFit.passthrough,
     children: [
       Positioned.fill(
         child: IgnorePointer(
