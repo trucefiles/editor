@@ -10,12 +10,15 @@ extension RunCommand on EditorGate {
   /// the blocks as they then are. A command [byControl] (see
   /// [Run.byControl]) leaves no caret. A command made on what showed at
   /// an earlier [revision] (a gesture's start) is dropped if the text
-  /// changed since. Whether a command went.
+  /// changed since; the raw block closing here is no such change. Whether
+  /// a command went.
   bool run(
     Command? Function(Selection? selection) build, {
     bool byControl = false,
     int? revision,
   }) {
+    // What showed earlier, if that is no longer what shows.
+    final earlier = revision == state.revision ? null : revision;
     send(
       (now) => switch (now.content) {
         FormattedContent(raw: _?) => CloseRawBlock(revision: now.revision),
@@ -27,7 +30,7 @@ extension RunCommand on EditorGate {
         FormattedContent(:final selection) => switch (build(selection)) {
           final command? => Run(
             command,
-            revision: revision ?? now.revision,
+            revision: earlier ?? now.revision,
             byControl: byControl,
           ),
           null => null,

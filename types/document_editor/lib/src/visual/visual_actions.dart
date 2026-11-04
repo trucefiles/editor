@@ -70,10 +70,11 @@ final class VisualActions {
   void deleteItem(NodeId item) =>
       _gate.run((_) => DeleteItem(item), byControl: true);
 
-  /// A drag or swipe starts: taps waiting go first, and a raw block open
-  /// as text closes; what shows then.
+  /// A drag or swipe starts: taps waiting go first; what shows then. A
+  /// raw block open as text stays open until the gesture acts, so its row
+  /// stays where the gesture holds it.
   ShownAt gestureStarted() {
-    _gate.run((_) => null);
+    _gate.send((_) => null);
     return ShownAt(_gate.state.revision);
   }
 
