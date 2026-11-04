@@ -21,14 +21,16 @@ final Map<ShortcutActivator, Intent> _shortcuts = {
   for (final MapEntry(key: keypad, value: key) in keypadStandsFor.entries)
     for (final shift in const [false, true])
       for (final control in const [false, true])
-        if (_intentOf(key, collapse: !shift, control: control)
-            case final intent?)
-          SingleActivator(
-            keypad,
-            shift: shift,
-            control: control,
-            numLock: LockState.unlocked,
-          ): intent,
+        SingleActivator(
+          keypad,
+          shift: shift,
+          control: control,
+          numLock: LockState.unlocked,
+        ): ?_intentOf(
+          key,
+          collapse: !shift,
+          control: control,
+        ),
 };
 
 /// What [key] does in a text field, with Control if [control]; moves the

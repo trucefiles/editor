@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../document_metrics.dart';
 import '../document_text_styles.dart';
@@ -29,7 +30,7 @@ class ListMarker extends StatelessWidget {
     final metrics = DocumentMetrics.of(context);
     return SizedBox(
       width: metrics.markerWidth,
-      height: DocumentTextStyles.lineHeightOf(
+      height: lineHeightOf(
         style,
         MediaQuery.textScalerOf(context),
       ),
