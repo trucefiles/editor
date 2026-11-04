@@ -14,6 +14,13 @@ extension UiDriver on WidgetTester {
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(() => finder.evaluate().isNotEmpty, timeout: timeout);
 
+  /// Waits for [finder], then lets it settle in place, e.g. a hint at the
+  /// bottom that is still sliding in, so a tap lands on it.
+  Future<void> waitForInPlace(Finder finder) async {
+    await waitFor(finder);
+    await pumpAndSettle();
+  }
+
   /// Pumps until [condition] holds; fails after [timeout].
   Future<void> waitUntil(
     bool Function() condition, {

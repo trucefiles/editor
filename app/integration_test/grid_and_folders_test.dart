@@ -61,7 +61,7 @@ void main() {
     await tester.openFile('Plan');
 
     await tester.chooseInMenu('Delete file');
-    await tester.waitFor(find.text('Undo'));
+    await tester.waitForInPlace(find.text('Undo'));
     expect(app.file('plan.md').existsSync(), isFalse);
     await tester.tapAndSettle(find.text('Undo'));
 
