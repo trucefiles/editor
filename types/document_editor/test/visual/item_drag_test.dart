@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_document_editor/src/visual/ui/item_row.dart';
+import 'package:truce_document_editor/truce_document_editor.dart'
+    show ListMarker;
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 
 /// Dragging an item in Visual edit, frame by frame: what the user sees
@@ -165,7 +167,8 @@ void main() {
     final document = TestDocument('- [ ] aaa\n- [ ] bbb\n\n1. ccc\n2. ddd');
     await pumpDocument(tester, document);
 
-    final gesture = await dragOnto(tester, 'bbb', 'ccc');
+    // Past the middle of the space between the lists, short of ccc's.
+    final gesture = await dragOnto(tester, 'bbb', 'ccc', fraction: -0.2);
     await gesture.up();
     await tester.pumpAndSettle();
 
@@ -205,11 +208,76 @@ void main() {
     await pumpDocument(tester, document);
     final before = rowTextTop(tester, 'ccc');
 
-    final gesture = await dragOnto(tester, 'aaa', 'ccc');
+    final gesture = await dragOnto(tester, 'aaa', 'ccc', fraction: -0.2);
     expect(rowTextTop(tester, 'ccc'), before);
     await gesture.up();
     await tester.pumpAndSettle();
 
     expect(document.text, text);
+  });
+
+  testWidgets('an item dropped at another level glides onto its row at '
+      'that level', (tester) async {
+    final document = TestDocument(
+      '- [ ] aaa\n  - [ ] sub\n- [ ] bbb\n- [ ] ccc',
+    );
+    await pumpDocument(tester, document);
+    double rowTextLeft() =>
+        tester.getTopLeft(find.text('ccc', findRichText: true).first).dx;
+    final start = rowTextLeft();
+
+    final gesture = await dragOnto(tester, 'ccc', 'sub');
+    await gesture.up();
+    final lefts = <double>[];
+    for (final _ in Iterable<int>.generate(20)) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (copy.evaluate().isNotEmpty) {
+        lefts.add(
+          tester
+              .getTopLeft(
+                find.descendant(
+                  of: copy,
+                  matching: find.text('ccc', findRichText: true),
+                ),
+              )
+              .dx,
+        );
+      }
+    }
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] aaa\n  - [ ] ccc\n  - [ ] sub\n- [ ] bbb');
+    final end = rowTextLeft();
+    expect(end, greaterThan(start));
+    expect(lefts.first, closeTo(start, 1));
+    expect(lefts.last, closeTo(end, 1));
+  });
+
+  testWidgets('a dragged parent shows how many subitems move with it, on a '
+      'line one level in below it', (tester) async {
+    await pumpDocument(
+      tester,
+      TestDocument('- [ ] aaa\n  - [ ] one\n  - [ ] two\n- [ ] bbb'),
+    );
+
+    final gesture = await dragItem(tester, 0, 0.2);
+    final count = find.descendant(of: copy, matching: find.text('+2'));
+    expect(count, findsOne);
+    final text = find.descendant(
+      of: copy,
+      matching: find.text('aaa', findRichText: true),
+    );
+    expect(
+      tester.getTopLeft(count).dy,
+      greaterThan(tester.getBottomLeft(text).dy),
+    );
+    // One level in: right of the item's own marker.
+    final marker = find.descendant(of: copy, matching: find.byType(ListMarker));
+    expect(
+      tester.getTopLeft(count).dx,
+      greaterThan(tester.getTopLeft(marker).dx),
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 }

@@ -179,7 +179,7 @@ class _VisualEditViewState extends State<VisualEditView> {
                   operations: _operations,
                   child: LineDropZone(
                     step: metrics.levelIndent,
-                    staysInPlace: _actions.staysWhereItIs,
+                    goesNextTo: _actions.goesNextTo,
                     onLift: (drag) => _actions.dragStarted(drag.item),
                     onDrop:
                         (

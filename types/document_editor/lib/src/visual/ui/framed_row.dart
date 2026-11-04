@@ -13,8 +13,9 @@ import 'item_row.dart';
 /// [ItemRow] beside it, the delete button shown while [active] (the
 /// selection is in the row), and the whole row a [MovableItem]. [copy]
 /// is what the drag copy shows of it; [style] the document's body text
-/// style.
-class FramedRow extends StatelessWidget {
+/// style. The item's row keeps one key while the row shows, so it stays
+/// the same row when the item changes level.
+class FramedRow extends StatefulWidget {
   const FramedRow({
     required this.frames,
     required this.content,
@@ -33,24 +34,33 @@ class FramedRow extends StatelessWidget {
   final VisualActions actions;
 
   @override
+  State<FramedRow> createState() => _FramedRowState();
+}
+
+class _FramedRowState extends State<FramedRow> {
+  final _row = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     final shown = framed(
-      frames,
-      content,
+      widget.frames,
+      widget.content,
       metrics: DocumentMetrics.of(context),
       row: (item, content) => ItemRow(
+        row: _row,
         item: item,
         content: content,
-        copy: copy,
-        active: active,
-        style: style,
-        actions: actions,
+        copy: widget.copy,
+        active: widget.active,
+        style: widget.style,
+        actions: widget.actions,
       ),
     );
-    return switch (frames.whereType<ItemFrame>().lastOrNull) {
+    return switch (widget.frames.whereType<ItemFrame>().lastOrNull) {
       final item? when item.starts => MovableItem(
         item: item.item,
-        actions: actions,
+        row: _row,
+        actions: widget.actions,
         child: shown,
       ),
       _ => shown,

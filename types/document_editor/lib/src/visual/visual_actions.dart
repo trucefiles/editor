@@ -99,10 +99,11 @@ final class VisualActions {
     null => null,
   };
 
-  /// Whether [item] dropped right next to [target]'s row, [below] it or
-  /// above, stays where it shows.
-  bool staysWhereItIs(NodeId item, NodeId target, {required bool below}) =>
-      _placeOf(item, target, below: below) == null;
+  /// The item [item] goes next to, as one of its list, dropped right next
+  /// to [target]'s row, [below] it or above; `null` where it stays where
+  /// it shows.
+  NodeId? goesNextTo(NodeId item, NodeId target, {required bool below}) =>
+      _placeOf(item, target, below: below)?.item;
 
   /// [item] dropped right next to [target]'s row, [below] it or above;
   /// dropped on itself, it goes [levels] deeper (shallower if negative).

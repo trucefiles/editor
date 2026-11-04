@@ -13,9 +13,11 @@ typedef Drop = (NodeId item, NodeId target, bool below, int levels);
 Widget _zone(Widget child, {void Function(Drop drop)? onDrop}) => LineDropZone(
   step: 24,
   // Rows are items of one list, in the order of their ids.
-  staysInPlace: (item, target, {required below}) =>
+  goesNextTo: (item, target, {required below}) =>
       target == item ||
-      _ids.indexOf(target) == _ids.indexOf(item) + (below ? -1 : 1),
+          _ids.indexOf(target) == _ids.indexOf(item) + (below ? -1 : 1)
+      ? null
+      : target,
   onLift: (_) {},
   onDrop: (drag, {required target, required below, required levels}) =>
       onDrop?.call((drag.item, target, below, levels)),
@@ -133,6 +135,7 @@ void main() {
                       padding: EdgeInsets.only(bottom: spacing),
                       child: LineDropTarget(
                         item: NodeId(index),
+                        row: row,
                         child: Row(
                           key: row,
                           children: [_handle(index, row), Text('item $index')],
@@ -304,12 +307,12 @@ void main() {
 
   for (final (direction, from, by) in [('down', 1, 48.0), ('up', 2, -48.0)]) {
     testWidgets('dragged $direction, no room opens until the copy passes the '
-        "next row's middle", (tester) async {
+        'middle line it shares with the next row', (tester) async {
       await showRows(tester);
       final before = [
         for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
       ];
-      final gesture = await drag(tester, from, Offset(0, by * 0.9), steps: 9);
+      final gesture = await drag(tester, from, Offset(0, by * 0.4), steps: 4);
       await tester.pumpAndSettle();
       expect([
         for (final row in [0, 1, 2, 3]) topOf(tester, 'item $row'),
@@ -331,7 +334,7 @@ void main() {
   ) async {
     final drops = <Drop>[];
     await showRows(tester, onDrop: drops.add);
-    final gesture = await drag(tester, 1, const Offset(0, 48 * 0.8));
+    final gesture = await drag(tester, 1, const Offset(0, 48 * 0.4));
     await gesture.up();
     await tester.pumpAndSettle();
 
@@ -367,6 +370,7 @@ void main() {
               for (final (index, row) in rows.indexed)
                 LineDropTarget(
                   item: NodeId(index),
+                  row: row,
                   child: Row(
                     key: row,
                     children: [_handle(index, row), Text('item $index')],
@@ -392,12 +396,13 @@ void main() {
   testWidgets('a drop between spaced rows still drops', (tester) async {
     final drops = <Drop>[];
     await showRows(tester, onDrop: drops.add, spacing: 8);
-    // The copy's middle ends in the space below the second row.
+    // The copy's bottom ends past the middle of the space below the
+    // second row: the drop goes above the third, the same place.
     final gesture = await drag(tester, 0, const Offset(0, 48 + 8 + 26));
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(drops, [(const NodeId(0), const NodeId(1), true, 0)]);
+    expect(drops, [(const NodeId(0), const NodeId(2), false, 0)]);
   });
 
   testWidgets('a row dropped on itself, shifted sideways, changes level', (
