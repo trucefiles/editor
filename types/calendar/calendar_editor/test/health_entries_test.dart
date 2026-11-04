@@ -9,21 +9,27 @@ import 'page_harness.dart';
 
 final _today = DateTime(2026, 11, 3);
 
-/// The health entries [part]'s calendar holds on [day] (by default
-/// [_today]).
-List<HealthEntry?> _entries(CalendarEditorPart part, [DateTime? day]) {
+/// The live health entries [part]'s calendar holds on [day] (by default
+/// [_today]), in file order.
+List<CalendarEvent> _events(CalendarEditorPart part, [DateTime? day]) {
   final on = day ?? _today;
   return [
-    for (final event
-        in healthByDay(calendarOf(part))[DateTime.utc(
-              on.year,
-              on.month,
-              on.day,
-            )] ??
-            const <CalendarEvent>[])
-      event.series.health,
+    for (final event in calendarOf(part).events)
+      if (event.series case EventPart(
+            health: _?,
+            deleted: false,
+            cancelled: false,
+            :final start?,
+          )
+          when DateUtils.isSameDay(start.wall, on))
+        event,
   ];
 }
+
+/// The health entries [part]'s calendar holds on [day].
+List<HealthEntry?> _entries(CalendarEditorPart part, [DateTime? day]) => [
+  for (final event in _events(part, day)) event.series.health,
+];
 
 /// Adds an entry of [kind] by Add, as the form starts it.
 Future<void> _add(WidgetTester tester, String kind) async {
@@ -136,7 +142,7 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(
-      healthByDay(calendarOf(part)).values.single.single.series.description,
+      _events(part, day).single.series.description,
       'Rested',
     );
     expect(_entries(part, day), [const HealthNote()]);

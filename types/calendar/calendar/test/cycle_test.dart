@@ -80,37 +80,4 @@ void main() {
       const Symptom('Cramps', level: 2),
     );
   });
-
-  test("a health calendar's entries by day; deleted ones left out", () {
-    final calendar = [
-      for (final (uid, entry) in [
-        ('p@t', const Period(PeriodFlow.light) as HealthEntry),
-        ('s@t', const Symptom('Cramps', level: 2)),
-        ('gone@t', const Period(PeriodFlow.heavy)),
-      ])
-        AddEvent(
-          uid,
-          EventDraft.health(entry, DateTime.utc(2026, 10, 1)),
-          at: DateTime.utc(2026, 10, 1),
-        ),
-      AddEvent(
-        'n@t',
-        EventDraft.health(
-          const Period(PeriodFlow.medium),
-          DateTime.utc(2026, 10, 2),
-        ),
-        at: DateTime.utc(2026, 10, 2),
-      ),
-      DeleteEvent('gone@t', at: DateTime.utc(2026, 10, 2)),
-    ].fold(Calendar.read(newCalendarText('Me', health: true))!, applyEdit);
-
-    expect(
-      healthByDay(calendar)
-          .map((day, events) => MapEntry(day, [for (final e in events) e.uid])),
-      {
-        DateTime.utc(2026, 10, 1): ['p@t', 's@t'],
-        DateTime.utc(2026, 10, 2): ['n@t'],
-      },
-    );
-  });
 }
