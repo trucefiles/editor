@@ -86,6 +86,7 @@ export 'src/conflicts/copies/conflict_copy_grouping.dart';
 export 'src/conflicts/copies/conflict_copy_names.dart';
 export 'src/conflicts/copies/named_conflict_source.dart';
 export 'src/conflicts/copies/named_copies_scanner.dart';
+export 'src/conflicts/copies/stamped_copy_names.dart';
 export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
 export 'src/conflicts/text_merge.dart';

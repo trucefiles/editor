@@ -12,7 +12,7 @@ void main() {
     store = MemoryFileStore();
     source = NamedConflictSource(
       store,
-      const FakeCopyNames(),
+      FakeCopyNames(),
       clock: () => DateTime(2026, 10, 13, 14, 30),
     );
   });
@@ -21,7 +21,7 @@ void main() {
   Future<List<Conflict>> scan() async => (await NamedCopiesScanner(
     store,
     VisibleFileFilter(const FakeSyncRules().isInternal),
-    const FakeCopyNames(),
+    FakeCopyNames(),
   ).scan()).value.conflicts;
 
   group('read and discard', () {

@@ -10,7 +10,7 @@ final class LocalDirectory implements RawFolder {
 
   /// The file-name rules of a local folder.
   static const rules = LocalFolderRules();
-  static const _names = LocalConflictNames();
+  static final _names = LocalConflictNames();
 
   /// What the app shows of a local folder: no hidden files, none of its
   /// own.

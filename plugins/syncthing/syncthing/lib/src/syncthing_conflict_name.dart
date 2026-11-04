@@ -17,6 +17,8 @@ final class SyncthingConflictNames implements ConflictCopyNames {
     r'^(.*?)((?:\.sync-conflict-\d{8}-\d{6}(?:-[A-Z0-9]{7})?)+)(\.[^.]*)?$',
   );
 
+  static final _stamped = StampedCopyNames('sync-conflict');
+
   static final _time = RegExp(r'(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d)');
 
   @override
@@ -31,17 +33,7 @@ final class SyncthingConflictNames implements ConflictCopyNames {
   /// Without the device-ID part, which only Syncthing knows. Syncthing
   /// syncs such a copy like any other file.
   @override
-  String format(String mainName, DateTime at) {
-    final dot = mainName.lastIndexOf('.');
-    final (base, extension) = dot > 0
-        ? (mainName.substring(0, dot), mainName.substring(dot))
-        : (mainName, '');
-    String two(int n) => n.toString().padLeft(2, '0');
-    final date =
-        '${at.year.toString().padLeft(4, '0')}${two(at.month)}${two(at.day)}';
-    final time = '${two(at.hour)}${two(at.minute)}${two(at.second)}';
-    return '$base.sync-conflict-$date-$time$extension';
-  }
+  String format(String mainName, DateTime at) => _stamped.format(mainName, at);
 
   static DateTime _parseTime(String markers) {
     final last = _time.allMatches(markers).last;

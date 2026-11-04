@@ -150,7 +150,7 @@ void main() {
   });
 
   test('conflict names round-trip and keep the extension', () {
-    const names = LocalConflictNames();
+    final names = LocalConflictNames();
     final name = names.format('plan.v2.txt', DateTime(2026, 10, 3, 13, 48, 9));
 
     expect(name, 'plan.v2.truce-conflict-20261003-134809.txt');

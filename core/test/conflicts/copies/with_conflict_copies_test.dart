@@ -5,7 +5,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 void main() {
   final filter = WithConflictCopies(
     VisibleFileFilter(const FakeSyncRules().isInternal),
-    const FakeCopyNames(),
+    FakeCopyNames(),
   );
 
   bool includes(String file) => filter.includesPath(path(file));
