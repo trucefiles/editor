@@ -84,7 +84,6 @@ final class FileSession {
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
   final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
   final _changes = StreamController<void>.broadcast(sync: true);
-  final _stopNotices = StreamController<Stopped>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, and the summary it told,
   /// as listeners last heard.
@@ -138,11 +137,6 @@ final class FileSession {
   /// Fires on every change of where the edits are, of where the file is,
   /// of [summary] (so of [title] and [path]), and of [state].
   Stream<void> get changes => _changes.stream;
-
-  /// Fires once after the file [Stopped]: after a bug, as it is first
-  /// known whether its edits are kept on this device; once its folder is
-  /// gone, at once.
-  Stream<Stopped> get stopNotices => _stopNotices.stream;
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new file is created now, unless it is empty.
@@ -269,9 +263,7 @@ final class FileSession {
           )
           .then((kept) {
             if (!identical(_state, keeping)) return;
-            final stopped = Stopped(text, kept: kept);
-            _setState(stopped);
-            if (known == null) _stopNotices.add(stopped);
+            _setState(Stopped(text, kept: kept));
           }),
     );
   }
@@ -285,9 +277,7 @@ final class FileSession {
   /// file owner closes, so nothing waits on it.
   void _onFolderGone() {
     if (_state is! Running) return;
-    final stopped = _folderGone(_file.state.text);
-    _setState(stopped);
-    _stopNotices.add(stopped);
+    _setState(_folderGone(_file.state.text));
     unawaited(_file.close());
   }
 
@@ -339,7 +329,6 @@ final class FileSession {
     unawaited(_editorNotices.close());
     unawaited(_fileNotices.close());
     unawaited(_changes.close());
-    unawaited(_stopNotices.close());
     unawaited(editor.close());
     unawaited(_file.close());
   }

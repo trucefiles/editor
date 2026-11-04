@@ -58,7 +58,7 @@ void main() {
     app.write('list.md', '# List\n- [ ] a\n- [x] b\n');
     await tester.addFolder(app);
     await tester.openFile('List');
-    await tester.chooseInMenu('Clear checked items now');
+    await tester.chooseInMenu('Delete checked items now');
     expect(find.text('Undo'), findsOneWidget);
 
     await tester.pageBack();
@@ -124,7 +124,7 @@ void main() {
       await tester.tapAndSettle(find.byTooltip('Show menu'));
       expect(find.text('Checked items: Move to end'), findsOneWidget);
       expect(find.text('Move checked items to end now'), findsNothing);
-      expect(find.text('Clear checked items now'), findsNothing);
+      expect(find.text('Delete checked items now'), findsNothing);
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
     }

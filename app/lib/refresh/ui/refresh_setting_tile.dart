@@ -15,7 +15,7 @@ class RefreshSettingTile extends ConsumerWidget {
       deviceSettingsProvider.select((s) => s.requireValue.refresh),
     );
     return ListTile(
-      title: const Text('Refresh changes in folders'),
+      title: const Text('Check folders for changes'),
       subtitle: Text(_modeName(settings.mode)),
       onTap: () => _change(context, ref, settings),
     );

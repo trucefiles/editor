@@ -95,7 +95,12 @@ void main() {
     tray.hasTray = false;
     await pumpTile(tester);
 
-    expect(find.text('No tray on this desktop: closing quits'), findsOneWidget);
+    expect(
+      find.text(
+        'No tray on this desktop, so closing the window quits the app.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('has no tray setting where the platform has no tray', (

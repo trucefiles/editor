@@ -109,7 +109,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       appBar: compareAppBar(
         folder: file.folder,
         file: _session.path,
-        reason: 'Changed elsewhere while you were editing',
+        reason: 'Changed in the folder while you were editing',
       ),
       body: theirs == null
           ? const SizedBox.shrink()

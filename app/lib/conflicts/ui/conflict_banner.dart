@@ -19,8 +19,8 @@ class ConflictBanner extends StatelessWidget {
         // Either side may have won the sync conflict, so this names
         // neither: the file shows the winner, the copies the others.
         count == 1
-            ? 'A sync conflict left another version of this file.'
-            : 'A sync conflict left $count other versions of this file.',
+            ? 'This file has another version from a sync conflict.'
+            : 'This file has $count other versions from a sync conflict.',
       ),
       actions: [
         TextButton(

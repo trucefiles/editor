@@ -133,7 +133,7 @@ void main() {
     expect(
       find.descendant(
         of: sheet,
-        matching: find.textContaining('open the file'),
+        matching: find.textContaining('Open the file to'),
       ),
       findsOne,
     );
@@ -158,7 +158,7 @@ void main() {
     expect(open, findsOne);
     expect((tester.getTopLeft(open) - at).distance, lessThan(80));
     expect(find.widgetWithText(MenuItemButton, 'Pin'), findsOne);
-    expect(find.textContaining('open the file'), findsOne);
+    expect(find.textContaining('Open the file to'), findsOne);
 
     // As with a mouse: the submenu opens on hover.
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);

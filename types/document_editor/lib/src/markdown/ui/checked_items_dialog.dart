@@ -26,8 +26,8 @@ Future<CheckedItems?> showCheckedItemsDialog(
               value: CheckedItems.doneSection,
               title: Text(checkedItemsName(CheckedItems.doneSection)),
               subtitle: const Text(
-                'Shown under "Done" at the bottom. The file keeps its '
-                'order.',
+                'Shown under "Done" at the bottom, but they stay in place in '
+                'the file.',
               ),
             ),
             RadioListTile(

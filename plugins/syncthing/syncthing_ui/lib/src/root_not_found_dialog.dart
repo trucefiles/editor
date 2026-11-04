@@ -15,13 +15,10 @@ Future<RootChoice?> showRootNotFound(BuildContext context) =>
     showDialog<RootChoice>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'Pick the Syncthing folder itself for version '
-          'history',
-        ),
+        title: const Text('Pick the whole Syncthing folder?'),
         content: const Text(
-          "Couldn't find the Syncthing folder this folder belongs "
-          "to. Without it, the app can't use Syncthing's version "
+          "This folder is inside a Syncthing folder the app can't find. "
+          'Pick that Syncthing folder so the app can use its version '
           'history and ignore rules.',
         ),
         actions: [
@@ -31,7 +28,7 @@ Future<RootChoice?> showRootNotFound(BuildContext context) =>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, RootChoice.pickRoot),
-            child: const Text('Pick it'),
+            child: const Text('Pick Syncthing folder'),
           ),
         ],
       ),

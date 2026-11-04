@@ -92,7 +92,7 @@ void main() {
 
     expect(find.text('Folders to add'), findsNothing);
     expect(
-      find.text("Hidden folders and Syncthing's own can't be added."),
+      find.text("Hidden folders and Syncthing's own folders can't be added."),
       findsOneWidget,
     );
     expect(ended, isTrue);

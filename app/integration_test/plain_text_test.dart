@@ -117,8 +117,8 @@ void main() {
     await tester.openFile('Plan');
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
-    await tester.tapAndSettle(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
+    await tester.tapAndSettle(find.textContaining('before you edited it'));
     await tester.waitFor(find.text('Restore'));
     await tester.keep(find.text('Restore'));
 

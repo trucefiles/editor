@@ -266,7 +266,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit all of them'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Place'), 'Home');
+    await tester.enterText(find.widgetWithText(TextField, 'Location'), 'Home');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -371,7 +371,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Place'), 'Home');
+    await tester.enterText(find.widgetWithText(TextField, 'Location'), 'Home');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(stamps(), '20261103T100700Z 20261103T100700Z 1');

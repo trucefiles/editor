@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
 
-/// Undo and Redo for [editor], each on while it has a step to take.
+/// Undo and Redo for [editor], each on while it has a step to take;
+/// Undo also takes a tap while off.
 class HistoryButtons extends StatelessWidget {
   const HistoryButtons(this.editor, {super.key});
 
@@ -13,12 +14,13 @@ class HistoryButtons extends StatelessWidget {
     builder: (context, _) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Looks off with nothing to undo, but still takes a tap, which
+        // then tells why there is nothing more.
         IconButton(
           tooltip: 'Undo',
           icon: const Icon(Icons.undo),
-          onPressed: editor.state.canUndo
-              ? () => editor.send(const Undo())
-              : null,
+          color: editor.state.canUndo ? null : Theme.of(context).disabledColor,
+          onPressed: () => editor.send(const Undo()),
         ),
         IconButton(
           tooltip: 'Redo',

@@ -36,7 +36,7 @@ class RestoreIntoFileScreen extends ConsumerWidget {
       appBar: compareAppBar(
         folder: folder,
         file: shown.filePath,
-        reason: 'Backup: ${shown.kind.text}',
+        reason: 'Backup · ${shown.kind.text}',
       ),
       body: switch (ref.watch(backupBytesProvider(backup))) {
         AsyncData(value: Ok(value: final bytes)) => VersionChooser(

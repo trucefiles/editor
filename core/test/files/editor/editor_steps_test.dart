@@ -99,11 +99,22 @@ void main() {
       expect(editor.shown, 'a');
     });
 
-    test('at the start tells why the history starts there', () {
+    test('undoing the last step tells nothing yet', () {
       final editor = _FakeEditor('a')
         ..edit('ab')
         ..handleRequest(const Undo());
 
+      expect(editor.shown, 'a');
+      expect(editor.notices.whereType<HistoryEnd>(), isEmpty);
+    });
+
+    test('asked at the start, tells why the history starts there', () {
+      final editor = _FakeEditor('a')
+        ..edit('ab')
+        ..handleRequest(const Undo())
+        ..handleRequest(const Undo());
+
+      expect(editor.shown, 'a');
       expect(editor.notices.last, isA<HistoryEnd>());
       expect((editor.notices.last as HistoryEnd).start, HistoryStart.opened);
     });
@@ -122,6 +133,7 @@ void main() {
 
       expect(editor.shown, '0');
       expect(editor.book.status.canUndo, isFalse);
+      editor.handleRequest(const Undo());
       expect((editor.notices.last as HistoryEnd).start, HistoryStart.limit);
     });
 

@@ -1,12 +1,16 @@
-import 'package:truce_core/truce_core.dart' show HistoryStart;
+import 'package:truce_core/truce_core.dart' show EditHistory, HistoryStart;
 
 /// What the user is told when undo reaches the start of the history.
 extension HistoryStartText on HistoryStart {
   String get text => switch (this) {
-    HistoryStart.opened => 'This is how the file was when you opened it.',
-    HistoryStart.changedElsewhere => 'Here the file changed elsewhere.',
+    HistoryStart.opened => 'Nothing more to undo since you opened the file.',
+    HistoryStart.changedElsewhere =>
+      'Nothing more to undo since the file was reloaded with changes from '
+          'the folder.',
     HistoryStart.replacedHere =>
-      'Here a version was picked or edits were dropped.',
-    HistoryStart.limit => "Older steps aren't kept.",
+      'Nothing more to undo since you picked a version or dropped your edits.',
+    HistoryStart.limit =>
+      'Nothing more to undo: only the last ${EditHistory.limit} steps are '
+          'kept.',
   };
 }

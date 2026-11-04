@@ -103,7 +103,8 @@ final class UndoRefused extends EditorNotice {
   final int id;
 }
 
-/// Undo reached the start of the history, which is there for [start].
+/// An undo was asked with nothing left to undo: the history starts
+/// there, for [start].
 final class HistoryEnd extends EditorNotice {
   const HistoryEnd(this.start);
 

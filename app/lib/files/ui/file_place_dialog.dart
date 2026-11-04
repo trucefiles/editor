@@ -36,7 +36,7 @@ Future<PickedPlace?> showFileNameDialog(
 }) async => switch (await showDialog<_Choice>(
   context: context,
   builder: (_) => _FilePlaceDialog(
-    'Place and name',
+    'Location and name',
     'OK',
     folders,
     initial,

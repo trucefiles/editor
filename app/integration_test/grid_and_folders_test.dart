@@ -129,7 +129,7 @@ void main() {
     await tester.waitFor(find.text('Day 21'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Recently edited on home'));
+    await tester.tapAndSettle(find.text('Recently edited: how many'));
     await tester.tapAndSettle(find.text('20'));
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -172,11 +172,9 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(
-      find.text('How old recently edited files can be'),
-    );
-    await tester.tapAndSettle(find.text('Up to 10 days'));
-    expect(find.text('Up to 10 days'), findsOne);
+    await tester.tapAndSettle(find.text('Recently edited: how far back'));
+    await tester.tapAndSettle(find.text('Last 10 days'));
+    expect(find.text('Last 10 days'), findsOne);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
@@ -355,7 +353,9 @@ void main() {
       await tester.runAsync(() => remove(tester));
 
       await tester.waitFor(
-        find.text('The folder was removed, so the file closed.'),
+        find.text(
+          'The file closed because its folder was removed from the app.',
+        ),
       );
       await tester.waitForNoteClosed();
       expect(find.textContaining('edits are kept'), findsNothing);

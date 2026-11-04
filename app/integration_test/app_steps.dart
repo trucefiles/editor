@@ -15,7 +15,7 @@ import 'test_app.dart';
 import 'ui_driver.dart';
 
 const savedOnDevice = 'Saved on this device. Tap to save in the folder now';
-const placeAndName = 'Place and name';
+const locationAndName = 'Location and name';
 
 /// The steps a user takes in the app, shared by the UI tests.
 extension AppSteps on WidgetTester {
@@ -123,7 +123,7 @@ extension AppSteps on WidgetTester {
   /// Starts a new file and types [text] into it, where the caret waits.
   Future<void> typeNewNote(String text) async {
     await startNewNote();
-    await waitFor(find.byTooltip(placeAndName));
+    await waitFor(find.byTooltip(locationAndName));
     await typeLines(text);
   }
 
@@ -187,7 +187,7 @@ extension AppSteps on WidgetTester {
     String? subfolder,
     String? name,
   }) async {
-    await tapAndSettle(find.byTooltip(placeAndName));
+    await tapAndSettle(find.byTooltip(locationAndName));
     await fillPlace(folder: folder, subfolder: subfolder, name: name);
   }
 

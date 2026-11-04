@@ -102,7 +102,6 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     _notices = [
       _session.editorNotices.listen(_onEditorNotice),
       _session.fileNotices.listen(_onFileNotice),
-      _session.stopNotices.listen(_onStopped),
     ];
     _lifecycle = AppLifecycleListener(
       onHide: () => unawaited(_session.secure(SecureReason.hide)),
@@ -125,23 +124,6 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _rebuild() {
     if (mounted) setState(() {});
   }
-
-  /// Tells that the file stopped taking edits, why, and whether its
-  /// edits are kept.
-  void _onStopped(Stopped stopped) =>
-      _messenger.currentState?.showHint(switch (stopped) {
-        Stopped(cause: StopCause.folderGone) =>
-          "This file's folder was removed, so the file is read-only "
-              'now. Your latest edits stay here only until you close it.',
-        Stopped(kept: true) =>
-          'Something went wrong, so this file is read-only for now. '
-              'Your edits are safe on this device and will be saved the '
-              'next time you open the app.',
-        Stopped() =>
-          'Something went wrong, so this file is read-only now, and '
-              "your latest edits couldn't be saved. They stay here only "
-              'until you close it.',
-      });
 
   void _onEditorNotice(EditorNotice notice) {
     final messenger = _messenger.currentState;
@@ -176,7 +158,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final messenger = _messenger.currentState;
     switch (notice) {
       case Replaced():
-        messenger?.showHint('Updated with a change from elsewhere');
+        messenger?.showHint('Reloaded with changes from the folder.');
       case PickMerged(:final lost):
         messenger?.showNotice(mergeOutcome(lost));
       case _:
@@ -205,13 +187,13 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       builder: (context) => AlertDialog(
         title: const Text("Your edits can't be saved"),
         content: const Text(
-          'Neither the file nor a conflict copy could be written. '
-          'Stay to copy your text somewhere else.',
+          'Neither the file nor a copy of it could be saved. '
+          'Stay and copy your text somewhere else.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Discard'),
+            child: const Text('Close and lose edits'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -226,12 +208,13 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   /// Once the file's folder was removed: closes if nothing is unsaved
   /// (its edits were saved before, see `FolderListWork.secureOpen`);
   /// else the file stays open, read only, so its edits never vanish with
-  /// the page ([_onStopped] tells).
+  /// the page (the edit state banner tells).
   void _closeIfNotShown(List<Folder> folders) {
     if (_controller.folderShownIn(folders)) return;
     if (!_controller.folderRemoved()) return;
-    ScaffoldMessenger.of(context)
-        .showHint('The folder was removed, so the file closed.');
+    ScaffoldMessenger.of(
+      context,
+    ).showHint('The file closed because its folder was removed from the app.');
     _closeWithAllOnTop();
   }
 

@@ -55,7 +55,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       appBar: compareAppBar(
         folder: folder,
         file: backup.filePath,
-        reason: 'Backup: ${backup.kind.text}',
+        reason: 'Backup · ${backup.kind.text}',
       ),
       body: Column(
         children: [

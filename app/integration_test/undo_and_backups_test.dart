@@ -54,6 +54,26 @@ void main() {
     await tester.leaveExpecting(app, '# Plan\n\nabcd\n');
   });
 
+  testApp('undo tells why there is nothing more only when asked for more', (
+    tester,
+  ) async {
+    await tester.openVisual(app, 'Plan', '# Plan\n\nab\n');
+    await tester.clickLine('ab', 2);
+    await tester.typeImeText('cd');
+    const end =
+        'Nothing more to undo since you opened the file. '
+        'Older versions are in Backups.';
+
+    await tester.pressCtrl(LogicalKeyboardKey.keyZ);
+    expect(tester.showsLine('ab'), isTrue);
+    expect(find.text(end), findsNothing);
+    // The button looks off, but a tap still tells.
+    await tester.tapAndSettle(find.byTooltip('Undo'));
+    expect(find.text(end), findsOne);
+
+    await tester.leaveExpecting(app, '# Plan\n\nab\n');
+  });
+
   testApp('Ctrl+Z in Markdown edit undoes and puts the caret at the change', (
     tester,
   ) async {

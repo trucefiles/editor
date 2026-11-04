@@ -98,6 +98,8 @@ void main() {
       run.request(const Undo());
       expect(run.state.text, '');
       expect(run.state.status.canUndo, isFalse);
+      expect(run.notices.whereType<HistoryEnd>(), isEmpty);
+      run.request(const Undo());
       expect(run.notices.last, isA<HistoryEnd>());
       run.request(const Redo());
       expect(run.state.text, 'one ');

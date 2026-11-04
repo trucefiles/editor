@@ -326,10 +326,20 @@ void main() {
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.replacedHere);
     });
 
-    test('tells when undo reaches the start', () {
+    test('tells nothing as undo takes its last step', () {
       final run = EditorRun('')
         ..caret(0, 0)
         ..type('a')
+        ..undo();
+      expect(run.rows, ['']);
+      expect(run.outputs.whereType<HistoryEnd>(), isEmpty);
+    });
+
+    test('tells why it starts there when undo asks for more', () {
+      final run = EditorRun('')
+        ..caret(0, 0)
+        ..type('a')
+        ..undo()
         ..undo();
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.opened);
     });
@@ -343,6 +353,7 @@ void main() {
         run.undo();
       }
       expect(run.rows, hasLength(2));
+      run.undo();
       expect((run.outputs.last as HistoryEnd).start, HistoryStart.limit);
     });
   });

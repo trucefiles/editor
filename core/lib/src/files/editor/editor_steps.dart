@@ -49,8 +49,13 @@ mixin EditorSteps<S> {
   void handleRequest(EditorRequest request) {
     switch (request) {
       case Undo():
-        _undoLatest();
-        if (!book.history.canUndo) notify(HistoryEnd(book.history.start));
+        // Told only when asked for more than there is, not as the last
+        // step goes, so the user hears it only when it matters.
+        if (book.history.canUndo) {
+          _undoLatest();
+        } else {
+          notify(HistoryEnd(book.history.start));
+        }
       case Redo():
         if (book.history.redone(snapshot()) case (
           :final history,

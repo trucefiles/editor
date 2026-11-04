@@ -65,7 +65,10 @@ void main() {
     await tester.pageBack();
     await tester.waitForNoteClosed();
 
-    expect(find.text('This file changed elsewhere.'), findsNothing);
+    expect(
+      find.text('This file changed in the folder while you were editing.'),
+      findsNothing,
+    );
     expect(app.conflictCopies(), isEmpty);
     expect(app.file('plan.md').readAsStringSync(), '# Plan\nsame\n');
   });
@@ -80,10 +83,10 @@ void main() {
     await tester.typeOver('# Plan\nmine\n');
     app.file('plan.md').deleteSync();
     await tester.tapAndSettle(find.byTooltip('Refresh'));
-    await tester.waitFor(find.text('Restore with this text'));
+    await tester.waitFor(find.text('Recreate with my text'));
 
     app.write('plan.md', '# Plan\ntheirs\n');
-    await tester.tapAndSettle(find.text('Restore with this text'));
+    await tester.tapAndSettle(find.text('Recreate with my text'));
     await tester.runFor(const Duration(seconds: 2));
     await tester.pageBack();
     await tester.waitForNoteClosed();

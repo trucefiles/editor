@@ -528,7 +528,7 @@ void main() {
   testApp('clearing checked items can be undone', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [x] milk\n- [ ] eggs\n');
 
-    await tester.chooseInMenu('Clear checked items now');
+    await tester.chooseInMenu('Delete checked items now');
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 

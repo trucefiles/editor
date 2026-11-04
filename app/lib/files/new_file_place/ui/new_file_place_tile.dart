@@ -29,8 +29,7 @@ class NewFilePlaceTile extends ConsumerWidget {
       title: const Text('Default folder for new files'),
       subtitle: place == null
           ? const Text(
-              'The first folder picked on home, or else the first one '
-              'available',
+              'The first folder picked on Home, else the first in your list',
             )
           : Align(
               alignment: AlignmentDirectional.centerStart,

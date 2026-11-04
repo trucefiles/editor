@@ -10,7 +10,7 @@ String cycleText(CyclePrediction cycle, DateTime today) {
       0 => 'next period likely today',
       1 => 'next period in about 1 day',
       > 1 => 'next period in about $until days',
-      _ => 'next period ${-until} days later than guessed',
+      _ => 'next period ${-until} days late',
     },
   ].join(' · ');
 }
