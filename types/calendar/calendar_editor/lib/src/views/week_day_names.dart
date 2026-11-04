@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// The month view's day names, all in the longest form whose every name
-/// fits its column: the full name, else the short one, else its first
-/// letter. Never broken mid-word.
+/// fits its column: the full name, else the short one, else the
+/// narrow one (mostly a letter). Never broken mid-word.
 Widget weekDayName(BuildContext context, DateTime date) => LayoutBuilder(
   builder: (context, constraints) {
     // kalender's own look for the names.
     final style = DefaultTextStyle.of(context).style
         .merge(KalenderTheme.of(context).weekDayHeaderStyle?.textStyle);
     final locale = Localizations.localeOf(context);
-    List<String> forms(DateTime day) {
-      final short = day.dayNameShortLocalized(locale);
-      return [day.dayNameLocalized(locale), short, short.characters.first];
-    }
-
-    final week = [
-      for (var day = 0; day < DateTime.daysPerWeek; day++)
-        forms(DateTime(date.year, date.month, date.day + day)),
+    List<String> forms(DateTime day) => [
+      day.dayNameLocalized(locale),
+      day.dayNameShortLocalized(locale),
+      DateFormat.EEEEE(locale.toLanguageTag()).format(day),
     ];
+
+    final week = List.generate(
+      DateTime.daysPerWeek,
+      (day) => forms(DateTime(date.year, date.month, date.day + day)),
+    );
     final form = [0, 1].firstWhere(
       (form) => week.every(
         (names) => fitsInLine(
