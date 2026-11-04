@@ -6,6 +6,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
+import 'esc_closes.dart';
 import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';
@@ -222,47 +223,51 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onToday: () => unawaited(_pages.to(widget.now())),
         ),
         Expanded(
-          child: SidewaysWheel(
-            onPrevious: () => _pages.step(-1),
-            onNext: () => _pages.step(1),
-            child: KalenderView(
-              eventsController: _events,
-              kalenderController: kalender,
-              locale: Localizations.localeOf(context),
-              callbacks: callbacks,
-              components: KalenderComponents(
-                monthComponents: MonthComponents(
-                  headerComponents: monthHeaderNames,
-                  bodyComponents: MonthBodyComponents(
-                    monthDayCellBuilder: dayCells(_model.health),
-                    monthDayHeaderBuilder: dayNumber,
-                  ),
-                ),
-              ),
-              interaction: KalenderInteraction(
-                allowResizing: movable,
-                allowRescheduling: movable,
-                // A drag over free times asks for a new event there.
-                allowEventCreation: onAdd != null,
-              ),
-              views: [
-                MultiDayViewParts(
-                  header: MultiDayHeader(tileComponents: _tiles),
-                  body: MultiDayBody(
-                    tileComponents: _tiles,
-                    // Not to the current time: it would carry its minutes
-                    // and seconds into the event.
-                    snapping: const KalenderSnapping(
-                      snapIntervalMinutes: 15,
-                      snapToTimeIndicator: false,
+          child: EscCloses(
+            open: kalender.openDayOverlay,
+            close: kalender.hideDayOverlay,
+            child: SidewaysWheel(
+              onPrevious: () => _pages.step(-1),
+              onNext: () => _pages.step(1),
+              child: KalenderView(
+                eventsController: _events,
+                kalenderController: kalender,
+                locale: Localizations.localeOf(context),
+                callbacks: callbacks,
+                components: KalenderComponents(
+                  monthComponents: MonthComponents(
+                    headerComponents: monthHeaderNames,
+                    bodyComponents: MonthBodyComponents(
+                      monthDayCellBuilder: dayCells(_model.health),
+                      monthDayHeaderBuilder: dayNumber,
                     ),
                   ),
                 ),
-                MonthViewParts(body: MonthBody(tileComponents: _tiles)),
-                ScheduleViewParts(
-                  body: ScheduleBody(tileComponents: _scheduleTiles),
+                interaction: KalenderInteraction(
+                  allowResizing: movable,
+                  allowRescheduling: movable,
+                  // A drag over free times asks for a new event there.
+                  allowEventCreation: onAdd != null,
                 ),
-              ],
+                views: [
+                  MultiDayViewParts(
+                    header: MultiDayHeader(tileComponents: _tiles),
+                    body: MultiDayBody(
+                      tileComponents: _tiles,
+                      // Not to the current time: it would carry its minutes
+                      // and seconds into the event.
+                      snapping: const KalenderSnapping(
+                        snapIntervalMinutes: 15,
+                        snapToTimeIndicator: false,
+                      ),
+                    ),
+                  ),
+                  MonthViewParts(body: MonthBody(tileComponents: _tiles)),
+                  ScheduleViewParts(
+                    body: ScheduleBody(tileComponents: _scheduleTiles),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -25,6 +25,7 @@
           <li>An event changed while another device deleted it is saved as a new one, so nothing you typed is lost.</li>
           <li>Event forms ask before dropping your changes.</li>
           <li>Dragging an item to the edge of a long list scrolls it.</li>
+          <li>A drag or swipe that ends after a change from another device no longer moves the wrong item.</li>
           <li>Quick taps on Next or Previous in the calendar each move a page.</li>
           <li>Phones and large text sizes fit better: day names, cards and the Add button.</li>
           <li>Esc closes the right-click menu without leaving the file.</li>
