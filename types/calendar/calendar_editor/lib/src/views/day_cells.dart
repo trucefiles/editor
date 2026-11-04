@@ -12,7 +12,7 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   final weekend = details.date.weekday >= DateTime.saturday;
   return Container(
     color: switch (day) {
-      (period: true, likelyPeriod: _, fertile: _) => colors.errorContainer,
+      (period: true, likelyPeriod: _, fertile: _) => colors.brightness == Brightness.dark ? Color.alphaBlend(const Color(0xFFEC407A).withValues(alpha: 0.85), colors.surface) : colors.errorContainer,
       (period: _, likelyPeriod: true, fertile: _) when likelyFill(colors) != null => likelyFill(colors),
       (period: _, likelyPeriod: _, fertile: true) => colors.tertiaryContainer,
       _ when weekend => colors.onSurface.withValues(alpha: 0.04),
@@ -120,7 +120,7 @@ var debugLikelyLook = 0;
 // Light: pale error-container fill. Dark: light red (the error color) at low
 // strength, so it reads as light red over the dark background.
 const _looks = [
-  (light: 0.3, dark: 0.75, lines: 0.2, gap: 12.0),
+  (light: 0.3, dark: 0.6, lines: 0.2, gap: 12.0),
   (light: 0.3, dark: 0.85, lines: 0.2, gap: 12.0),
 ];
 Color? likelyFill(ColorScheme colors) => Color.alphaBlend(

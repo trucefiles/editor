@@ -60,7 +60,7 @@ void main() {
       await tester.addFolder(app);
       await tester.waitFor(find.text('Me'));
       await tester.openFile('Me');
-      for (final variant in [0, 1]) {
+      for (final variant in [0]) {
         debugLikelyLook = variant;
         tester.binding.buildOwner!.reassemble(tester.binding.rootElement!);
         await _shot(tester, '${look}_$variant');
