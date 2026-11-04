@@ -13,6 +13,7 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   return Container(
     color: switch (day) {
       (period: true, likelyPeriod: _, fertile: _) => colors.errorContainer,
+      (period: _, likelyPeriod: true, fertile: _) when likelyFill(colors) != null => likelyFill(colors),
       (period: _, likelyPeriod: _, fertile: true) => colors.tertiaryContainer,
       _ when weekend => colors.onSurface.withValues(alpha: 0.04),
       _ => null,
@@ -22,7 +23,7 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
         : null,
     child: day.likelyPeriod
         ? CustomPaint(
-            painter: Stripes(colors.error),
+            painter: likelyStripes(colors),
             child: const SizedBox.expand(),
           )
         : null,
@@ -52,11 +53,11 @@ Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
 /// Thin diagonal lines in [color] over the whole box: a day that is
 /// likely, not known.
 class Stripes extends CustomPainter {
-  const Stripes(this.color);
+  const Stripes(this.color, [this._gap = 6.0]);
 
   final Color color;
 
-  static const _gap = 6.0;
+  final double _gap;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -107,9 +108,25 @@ class CycleLegend extends StatelessWidget {
       runSpacing: 4,
       children: [
         item(BoxDecoration(color: colors.errorContainer), 'Period'),
-        item(null, 'Likely next period', stripes: Stripes(colors.error)),
+        item(BoxDecoration(color: likelyFill(colors)), 'Likely next period', stripes: likelyStripes(colors)),
         item(BoxDecoration(color: colors.tertiaryContainer), 'Likely fertile'),
       ],
     );
   }
 }
+
+// SAMPLE ONLY: which look the likely period days get.
+var debugLikelyLook = 0;
+const _looks = [
+  (fill: null, lines: 1.0, gap: 6.0),
+  (fill: 0.5, lines: 0.3, gap: 8.0),
+  (fill: 0.4, lines: 0.2, gap: 12.0),
+];
+Color? likelyFill(ColorScheme colors) => switch (_looks[debugLikelyLook].fill) {
+  final double a => Color.alphaBlend(colors.errorContainer.withValues(alpha: a), colors.surface),
+  null => null,
+};
+Stripes likelyStripes(ColorScheme colors) => Stripes(
+  colors.error.withValues(alpha: _looks[debugLikelyLook].lines),
+  _looks[debugLikelyLook].gap,
+);
