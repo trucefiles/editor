@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../common/floating_button_room.dart';
 import 'file_grid.dart';
 
 /// Cards in a grid: [leading] first, then [pinned] and [others] under a
@@ -26,7 +27,7 @@ class FileSections extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, floatingButtonRoom),
           sliver: SliverMainAxisGroup(
             slivers: [
               _grid(leading),

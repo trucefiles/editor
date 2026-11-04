@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Makes the keypad's navigation keys (NumLock off) edit text like the keys
 /// they stand for, with Shift and Control.
@@ -17,105 +18,81 @@ class KeypadNavigation extends StatelessWidget {
 }
 
 final Map<ShortcutActivator, Intent> _shortcuts = {
-  for (final shift in const [false, true]) ...{
-    _keypad(
-      LogicalKeyboardKey.numpad4,
-      shift: shift,
-    ): ExtendSelectionByCharacterIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad6,
-      shift: shift,
-    ): ExtendSelectionByCharacterIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad8,
-      shift: shift,
-    ): ExtendSelectionVerticallyToAdjacentLineIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad2,
-      shift: shift,
-    ): ExtendSelectionVerticallyToAdjacentLineIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad9,
-      shift: shift,
-    ): ExtendSelectionVerticallyToAdjacentPageIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad3,
-      shift: shift,
-    ): ExtendSelectionVerticallyToAdjacentPageIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad7,
-      shift: shift,
-    ): ExtendSelectionToLineBreakIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad1,
-      shift: shift,
-    ): ExtendSelectionToLineBreakIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad4,
-      shift: shift,
-      control: true,
-    ): ExtendSelectionToNextWordBoundaryIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad6,
-      shift: shift,
-      control: true,
-    ): ExtendSelectionToNextWordBoundaryIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad7,
-      shift: shift,
-      control: true,
-    ): ExtendSelectionToDocumentBoundaryIntent(
-      forward: false,
-      collapseSelection: !shift,
-    ),
-    _keypad(
-      LogicalKeyboardKey.numpad1,
-      shift: shift,
-      control: true,
-    ): ExtendSelectionToDocumentBoundaryIntent(
-      forward: true,
-      collapseSelection: !shift,
-    ),
-  },
+  for (final MapEntry(key: keypad, value: key) in keypadStandsFor.entries)
+    for (final shift in const [false, true])
+      for (final control in const [false, true])
+        SingleActivator(
+          keypad,
+          shift: shift,
+          control: control,
+          numLock: LockState.unlocked,
+        ): ?_intentOf(
+          key,
+          collapse: !shift,
+          control: control,
+        ),
 };
 
-SingleActivator _keypad(
+/// What [key] does in a text field, with Control if [control]; moves the
+/// caret if [collapse], else extends the selection.
+Intent? _intentOf(
   LogicalKeyboardKey key, {
-  required bool shift,
-  bool control = false,
-}) => SingleActivator(
-  key,
-  shift: shift,
-  control: control,
-  numLock: LockState.unlocked,
-);
+  required bool collapse,
+  required bool control,
+}) => switch ((key, control)) {
+  (LogicalKeyboardKey.arrowLeft, false) => ExtendSelectionByCharacterIntent(
+    forward: false,
+    collapseSelection: collapse,
+  ),
+  (LogicalKeyboardKey.arrowRight, false) => ExtendSelectionByCharacterIntent(
+    forward: true,
+    collapseSelection: collapse,
+  ),
+  (LogicalKeyboardKey.arrowLeft, true) =>
+    ExtendSelectionToNextWordBoundaryIntent(
+      forward: false,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.arrowRight, true) =>
+    ExtendSelectionToNextWordBoundaryIntent(
+      forward: true,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.arrowUp, false) =>
+    ExtendSelectionVerticallyToAdjacentLineIntent(
+      forward: false,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.arrowDown, false) =>
+    ExtendSelectionVerticallyToAdjacentLineIntent(
+      forward: true,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.pageUp, false) =>
+    ExtendSelectionVerticallyToAdjacentPageIntent(
+      forward: false,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.pageDown, false) =>
+    ExtendSelectionVerticallyToAdjacentPageIntent(
+      forward: true,
+      collapseSelection: collapse,
+    ),
+  (LogicalKeyboardKey.home, false) => ExtendSelectionToLineBreakIntent(
+    forward: false,
+    collapseSelection: collapse,
+  ),
+  (LogicalKeyboardKey.end, false) => ExtendSelectionToLineBreakIntent(
+    forward: true,
+    collapseSelection: collapse,
+  ),
+  (LogicalKeyboardKey.home, true) => ExtendSelectionToDocumentBoundaryIntent(
+    forward: false,
+    collapseSelection: collapse,
+  ),
+  (LogicalKeyboardKey.end, true) => ExtendSelectionToDocumentBoundaryIntent(
+    forward: true,
+    collapseSelection: collapse,
+  ),
+  _ => null,
+};

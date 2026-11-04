@@ -33,26 +33,29 @@ final class EditorHost {
 
 /// How a file type's editor part shows on the page: the editor in
 /// the mode it shows, and what the type adds to the page while the
-/// file can be edited. Read again each time the part's changes fire.
-abstract interface class EditorView {
+/// file can be edited (by default nothing). Read again each time the
+/// part's changes fire.
+abstract base class EditorView {
+  const EditorView();
+
   /// The editor, as it shows now, on [host]; with the caret in it right
   /// away if [autofocus] (e.g. a new file).
   Widget view(EditorHost host, {required bool autofocus});
 
   /// What the type adds to the app bar (e.g. the mode menu).
-  List<Widget> actions(BuildContext context);
+  List<Widget> actions(BuildContext context) => const [];
 
   /// What the type adds to the file's menu, by its [view] settings
   /// now; [context] is the page's.
   List<PopupMenuEntry<VoidCallback>> menu(
     BuildContext context,
     ViewSettings view,
-  );
+  ) => const [];
 
   /// The type's keys.
-  Map<SingleActivator, VoidCallback> get keys;
+  Map<SingleActivator, VoidCallback> get keys => const {};
 
   /// The type's floating button (e.g. a calendar's Add), shown while the
   /// file can be edited; `null` for none.
-  Widget? floatingButton(BuildContext context);
+  Widget? floatingButton(BuildContext context) => null;
 }

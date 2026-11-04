@@ -1,6 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../visual_actions.dart';
+
 /// Lets the user swipe [child] right to indent or left to outdent, by
 /// touch or mouse. The child follows the pointer by up to one [step], the
 /// width of one indent level; a swipe that reaches it acts on release.
@@ -15,6 +17,7 @@ import 'package:flutter/material.dart';
 class SwipeToIndent extends StatefulWidget {
   const SwipeToIndent({
     required this.step,
+    required this.onStart,
     required this.onIndent,
     required this.onOutdent,
     required this.child,
@@ -24,11 +27,14 @@ class SwipeToIndent extends StatefulWidget {
   /// Width of one indent level on screen.
   final double step;
 
-  /// Indents the item; whether it moved.
-  final bool Function() onIndent;
+  /// The swipe starts; what shows then.
+  final ShownAt Function() onStart;
 
-  /// Outdents the item; whether it moved.
-  final bool Function() onOutdent;
+  /// Indents the item, as it showed [from]; whether it moved.
+  final bool Function(ShownAt from) onIndent;
+
+  /// Outdents the item (see [onIndent]).
+  final bool Function(ShownAt from) onOutdent;
   final Widget child;
 
   /// Leaves mouse drags that start on [child] to it, e.g. text selection
@@ -65,6 +71,11 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   /// How far the pointer moved sideways since the swipe started.
   double _dx = 0;
 
+  /// What showed as the swipe started.
+  ShownAt? _from;
+
+  void _start(DragStartDetails _) => _from = widget.onStart();
+
   /// How long the child takes to its place once [_dx] changed: none while
   /// it follows the pointer or once the item moved to where it shows.
   Duration _back = Duration.zero;
@@ -85,9 +96,9 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
   });
 
   void _end(DragEndDetails _) {
-    final moved = switch (_dx) {
-      final dx when dx >= widget.step => widget.onIndent(),
-      final dx when dx <= -widget.step => widget.onOutdent(),
+    final moved = switch ((_dx, _from)) {
+      (final dx, final from?) when dx >= widget.step => widget.onIndent(from),
+      (final dx, final from?) when dx <= -widget.step => widget.onOutdent(from),
       _ => false,
     };
     _settle(slides: !moved);
@@ -110,6 +121,7 @@ class _SwipeToIndentState extends State<SwipeToIndent> {
       _SwipeRecognizer: GestureRecognizerFactoryWithHandlers<_SwipeRecognizer>(
         () => _SwipeRecognizer(_allows),
         (recognizer) => recognizer
+          ..onStart = _start
           ..onUpdate = _follow
           ..onEnd = _end
           ..onCancel = _slideBack,

@@ -7,6 +7,7 @@ import 'package:truce_core/truce_core.dart'
         SentText,
         OfferedUndo,
         Step,
+        StepRun,
         TextSummary,
         UndoOffered,
         textChange;
@@ -38,23 +39,21 @@ Step<EditorState, EditorWork, EditorEvent, EditorEffect> editorStep(
   EditorWork work,
   EditorMessage message,
 ) {
-  final step = _Step(state, work)..handle(message);
-  return (
-    state: step.state,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(state, work).run(message);
 }
 
 /// One input's handling: the state as it changes and what it leads to.
-final class _Step with EditorSteps<Snapshot> {
-  _Step(this.state, this.work);
-
-  EditorState state;
-  EditorWork work;
-  final events = <EditorEvent>[];
-  final effects = <EditorEffect>[];
+final class _Step
+    extends
+        StepRun<
+          EditorMessage,
+          EditorState,
+          EditorWork,
+          EditorEvent,
+          EditorEffect
+        >
+    with EditorSteps<Snapshot> {
+  _Step(super.state, super.work);
 
   @override
   EditorBook<Snapshot> get book => work.book;
@@ -101,6 +100,7 @@ final class _Step with EditorSteps<Snapshot> {
   /// What the input's step did, if it is offered for undo right away.
   OfferedUndo? offered;
 
+  @override
   void handle(EditorMessage message) {
     switch (message) {
       case SaveTimerFired(:final id):

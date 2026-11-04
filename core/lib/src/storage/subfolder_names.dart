@@ -28,13 +28,12 @@ final class _Shown implements SubfolderNames {
 
   @override
   Future<Result<List<String>, StoreError>> namesIn(RelPath? folder) async =>
-      switch (await _all.namesIn(folder)) {
-        Ok(value: final names) => Ok([
+      (await _all.namesIn(folder)).map(
+        (names) => [
           for (final name in names)
             if (_pathOf(folder, name) case final path? when _shows(path)) name,
-        ]),
-        Err(:final error) => Err(error),
-      };
+        ],
+      );
 
   static RelPath? _pathOf(RelPath? folder, String name) =>
       folder == null ? RelPath.parse(name) : folder.child(name);

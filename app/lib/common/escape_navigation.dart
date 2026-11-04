@@ -31,8 +31,7 @@ class EscapeNavigation extends StatelessWidget {
   );
 }
 
-/// Esc on a screen: leave it. A screen that leaves on Esc by itself
-/// answers it with a [DoNothingAction].
+/// Esc on a screen: leave it.
 class LeaveScreenIntent extends Intent {
   const LeaveScreenIntent();
 }

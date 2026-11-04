@@ -114,6 +114,32 @@ final class EventDraft {
     );
   }
 
+  @override
+  bool operator ==(Object other) =>
+      other is EventDraft &&
+      other.summary == summary &&
+      other.description == description &&
+      other.location == location &&
+      other.start == start &&
+      other.end == end &&
+      other.repeat == repeat &&
+      const ListEquality<Duration>().equals(other.alerts, alerts) &&
+      other.health == health &&
+      other.color == color;
+
+  @override
+  int get hashCode => Object.hash(
+    summary,
+    description,
+    location,
+    start,
+    end,
+    repeat,
+    const ListEquality<Duration>().hash(alerts),
+    health,
+    color,
+  );
+
   /// Whether [alerts] are those of [part].
   bool sameAlertsAs(EventPart part) =>
       const ListEquality<Duration>().equals(alerts, part.alerts);

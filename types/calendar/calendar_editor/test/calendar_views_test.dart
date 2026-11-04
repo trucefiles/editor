@@ -115,6 +115,104 @@ void main() {
     expect(find.text('Party'), findsOneWidget);
   });
 
+  testWidgets('at very large text on a phone, all day numbers of the month '
+      'show at one size', (tester) async {
+    tester.view
+      ..physicalSize = const Size(360, 700)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery.withClampedTextScaling(
+          minScaleFactor: 3,
+          maxScaleFactor: 3,
+          child: Scaffold(
+            body: CalendarViews<String>(
+              calendars: {'home': _calendar('Home', 'Dentist', 9)},
+              colorOf: (_) => Colors.teal,
+              kind: CalendarViewKind.month,
+              onKind: (_) {},
+              now: () => DateTime(2026, 11, 3, 8),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // As shown, after each number shrank to fit.
+    double heightOf(String day) => tester.getRect(find.text(day).first).height;
+    expect(heightOf('9'), closeTo(heightOf('10'), 0.5));
+  });
+
+  testWidgets("Esc closes a day's popup and doesn't leave the page", (
+    tester,
+  ) async {
+    var leaves = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        // Above the pages, as the app's own Esc that leaves a page.
+        builder: (_, child) => CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): () => leaves++,
+          },
+          child: child!,
+        ),
+        home: Scaffold(
+          body: CalendarViews<String>(
+            calendars: {'home': _calendar('Home', 'Dentist', 9)},
+            colorOf: (_) => Colors.teal,
+            kind: CalendarViewKind.month,
+            onKind: (_) {},
+            now: () => DateTime(2026, 11, 3, 8),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final shown = tester
+        .widget<KalenderView>(find.byType(KalenderView))
+        .kalenderController;
+
+    await shown.showDayOverlay(DateTime(2026, 11, 3));
+    await tester.pumpAndSettle();
+    expect(shown.openDayOverlay.value, isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect((shown.openDayOverlay.value, leaves), (null, 0));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    expect(leaves, 1, reason: 'with no popup, Esc leaves');
+  });
+
+  for (final (kind, sixOn) in [
+    (CalendarViewKind.month, DateTime(2027, 5)),
+    (CalendarViewKind.week, DateTime(2026, 12, 14)),
+    (CalendarViewKind.day, DateTime(2026, 11, 9)),
+    (CalendarViewKind.schedule, DateTime(2027, 5)),
+  ]) {
+    testWidgets('quick taps on Next in the ${kind.name} view each move a '
+        'page', (tester) async {
+      await _showViews(tester, kind);
+      final shown = tester
+          .widget<KalenderView>(find.byType(KalenderView))
+          .kalenderController;
+
+      for (final _ in Iterable<int>.generate(6)) {
+        await tester.tap(find.byTooltip('Next'));
+        await tester.pump(const Duration(milliseconds: 30));
+      }
+      await tester.pumpAndSettle();
+
+      final range = shown.visibleDateTimeRange.value;
+      expect(
+        !sixOn.isBefore(range.start) && sixOn.isBefore(range.end),
+        isTrue,
+        reason: '$sixOn in ${range.start} to ${range.end}',
+      );
+    });
+  }
+
   for (final kind in [CalendarViewKind.month, CalendarViewKind.week]) {
     testWidgets('Shift and the mouse wheel page the ${kind.name} view one '
         'step per wheel step', (tester) async {

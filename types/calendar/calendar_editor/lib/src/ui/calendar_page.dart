@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
@@ -8,8 +10,8 @@ import 'events_page.dart';
 
 /// The calendar [part]'s editor shows, as it changes: the calendar's
 /// page; a text that is no calendar as it is, to read. Edits only while
-/// the part is editing.
-class CalendarPage extends StatelessWidget {
+/// the part is editing. An edit saved as a new event says why.
+class CalendarPage extends StatefulWidget {
   const CalendarPage(
     this.part, {
     required this.now,
@@ -42,15 +44,39 @@ class CalendarPage extends StatelessWidget {
   /// Shows a short hint, e.g. that an edit was not made.
   final void Function(String message) hint;
 
+  @override
+  State<CalendarPage> createState() => _CalendarPageState();
+}
+
+class _CalendarPageState extends State<CalendarPage> {
+  late final StreamSubscription<GoneMeanwhile> _savedAsNew;
+
+  @override
+  void initState() {
+    super.initState();
+    _savedAsNew = widget.part.savedAsNew.listen(
+      (gone) => widget.hint(_savedAsNewHint(gone)),
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_savedAsNew.cancel());
+    super.dispose();
+  }
+
   /// Makes [edit], or says why it can't be made.
   void _edit(CalendarEdit Function(DateTime at) edit) {
-    if (!part.edit(edit)) hint("The calendar can't be edited right now.");
+    if (!widget.part.edit(edit)) {
+      widget.hint("The calendar can't be edited right now.");
+    }
   }
 
   @override
   Widget build(BuildContext context) => StreamBuilder(
-    stream: part.owner.changes,
+    stream: widget.part.owner.changes,
     builder: (context, _) {
+      final part = widget.part;
       final state = part.owner.state;
       final MakeEdit? edit = part.isEditing ? _edit : null;
       return switch (state.calendar) {
@@ -58,17 +84,26 @@ class CalendarPage extends StatelessWidget {
         final calendar => EventsPage(
           calendar,
           edit: edit,
-          now: now,
-          deviceZone: deviceZone,
-          viewChoice: viewChoice,
-          color: color,
-          starts: starts,
-          hint: hint,
+          now: widget.now,
+          deviceZone: widget.deviceZone,
+          viewChoice: widget.viewChoice,
+          color: widget.color,
+          starts: widget.starts,
+          hint: widget.hint,
         ),
       };
     },
   );
 }
+
+/// Why an edit was saved as a new event, for the user.
+String _savedAsNewHint(GoneMeanwhile gone) => switch (gone) {
+  GoneMeanwhile.event =>
+    "This event was deleted on another device, so it's saved as a new one.",
+  GoneMeanwhile.date =>
+    "This date of the event changed on another device, so it's saved as "
+        'a new event.',
+};
 
 /// A text that can't be read as a calendar: shown as it is.
 class _NoCalendar extends StatelessWidget {

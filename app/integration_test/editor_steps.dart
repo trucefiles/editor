@@ -48,6 +48,17 @@ extension EditorSteps on WidgetTester {
     await pumpAndSettle();
   }
 
+  /// Right-clicks the line holding [text], [offset] characters into it.
+  Future<void> rightClickLine(String text, int offset) async {
+    final (:node, :start) = _lineAt(text);
+    await tapAt(
+      pointIn(node, start + offset),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await pumpAndSettle();
+  }
+
   /// Clicks the middle of what [finder] finds in the editor, e.g. a
   /// separator, which takes no hits itself: the editor does.
   Future<void> clickOn(Finder finder) async {

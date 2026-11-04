@@ -111,10 +111,7 @@ final class DefaultConflictService implements ConflictService {
         ifUnchanged: main.version,
       ),
     };
-    return switch (written) {
-      Ok() => const Ok(null),
-      Err(:final error) => Err(error),
-    };
+    return written.map((_) {});
   }
 
   static const _bytesEqual = ListEquality<int>();

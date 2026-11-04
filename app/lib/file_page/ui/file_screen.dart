@@ -9,7 +9,6 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../../common/escape_navigation.dart';
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
@@ -296,6 +295,12 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       PopupMenuButton<VoidCallback>(
         onSelected: (action) => action(),
         itemBuilder: (_) => [
+          if (_isEdited && _narrow(context))
+            PopupMenuItem(
+              value: () => _editor.send(const Redo()),
+              enabled: _editor.state.canRedo,
+              child: const Text('Redo'),
+            ),
           ..._page.view.menu(context, settings.view),
           PopupMenuItem(
             value: () =>
@@ -317,6 +322,12 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       );
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
+
+  /// Whether the window is phone-sized at its text size: then Redo goes
+  /// into the menu, so the bar keeps room for the title.
+  static bool _narrow(BuildContext context) =>
+      MediaQuery.sizeOf(context).width <
+      MediaQuery.textScalerOf(context).scale(600);
 
   /// Opens this file's backups; [context] is below this screen's
   /// messenger.
@@ -357,13 +368,10 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     );
   }
 
-  /// Esc leaves the file, as the back arrow does, even from the editor,
-  /// which keeps Esc to itself; Ctrl+Z undoes,
-  /// Ctrl+Shift+Z and Ctrl+Y redo while the file is edited; the
-  /// type's own keys work while it can be edited.
+  /// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo while the file is
+  /// edited; the type's own keys work while it can be edited. Esc is the
+  /// app's: it leaves, unless a menu above the editor takes it.
   late final Map<SingleActivator, VoidCallback> _keys = {
-    const SingleActivator(LogicalKeyboardKey.escape): () =>
-        unawaited(Navigator.maybePop(context)),
     const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
       if (_isEdited) _editor.send(const Undo());
     },
@@ -390,11 +398,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     key: _messenger,
     child: ScreenShortcuts(
       bindings: _keys,
-      // Its own Esc above leaves; the app-wide one would leave twice.
-      child: Actions(
-        actions: {LeaveScreenIntent: DoNothingAction()},
-        child: Builder(builder: _content),
-      ),
+      child: Builder(builder: _content),
     ),
   );
 
@@ -427,7 +431,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),
-          if (_isEdited) HistoryButtons(_editor),
+          if (_isEdited) HistoryButtons(_editor, redo: !_narrow(context)),
           // On touch, pulling down refreshes, and the menu has it.
           if (readOnly || !usesTouch(Theme.of(context)))
             IconButton(

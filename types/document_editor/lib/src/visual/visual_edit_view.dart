@@ -75,6 +75,9 @@ class _VisualEditViewState extends State<VisualEditView> {
   );
   late final StreamSubscription<md.EditorEvent> _notices;
 
+  /// What showed as the drag under way started.
+  ShownAt? _dragFrom;
+
   /// Where the caret is, for the link popup to follow.
   final _selectionLinks = SelectionLayerLinks();
   final _linkPopup = OverlayPortalController()..show();
@@ -235,7 +238,8 @@ class _VisualEditViewState extends State<VisualEditView> {
                       child: LineDropZone(
                         step: metrics.levelIndent,
                         goesNextTo: _actions.goesNextTo,
-                        onLift: (drag) => _actions.dragStarted(drag.item),
+                        onLift: (drag) =>
+                            _dragFrom = _actions.dragStarted(drag.item),
                         onDrop:
                             (
                               drag, {
@@ -247,6 +251,7 @@ class _VisualEditViewState extends State<VisualEditView> {
                               target: target,
                               below: below,
                               levels: levels,
+                              from: _dragFrom!,
                             ),
                         onSettled: _actions.dragEnded,
                         child: editor!,

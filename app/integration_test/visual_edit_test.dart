@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import 'app_steps.dart';
@@ -305,6 +306,21 @@ void main() {
     await tester.waitForNoteClosed();
 
     await tester.waitForFile(app.file('document.md'), '# Shop\n- [ ] milky\n');
+  });
+
+  testApp('Esc closes the right-click menu and the document stays open', (
+    tester,
+  ) async {
+    await tester.openVisual(app, 'Shop', '# Shop\n- [ ] milk\n');
+    await tester.clickLine('milk', 2);
+    await tester.rightClickLine('milk', 2);
+    expect(find.text('Select all'), findsOne);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select all'), findsNothing);
+    expect(find.byType(FileScreen), findsOne);
   });
 
   testApp('typed marks stay text', (tester) async {

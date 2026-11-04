@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
@@ -8,8 +11,10 @@ import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
+import 'page_mover.dart';
 import 'sideways_wheel.dart';
 import 'views_bar.dart';
+import 'week_day_names.dart';
 
 /// What the user does with an occurrence of the calendar keyed [calendar].
 typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
@@ -83,6 +88,11 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
+  late final _pages = PageMover(
+    pages: () => _pagesOf(_configurations[_model.kind]!),
+    shown: () => _model.middle ?? _model.today,
+    animateTo: (date) => _kalender!.animateToDate(date),
+  );
   // The current widget's colors: a calendar's color can change.
   late final _tiles = eventTiles<K>(_colorOf);
   late final _scheduleTiles = scheduleTiles<K>(_colorOf);
@@ -208,50 +218,56 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           title: _titleOf(context),
           kind: _model.kind,
           onKind: _pickKind,
-          onPrevious: kalender.animateToPreviousPage,
-          onNext: kalender.animateToNextPage,
-          onToday: () => kalender.animateToDate(widget.now()),
+          onPrevious: () => unawaited(_pages.step(-1)),
+          onNext: () => unawaited(_pages.step(1)),
+          onToday: () => unawaited(_pages.to(widget.now())),
         ),
         Expanded(
-          child: SidewaysWheel(
-            onPrevious: kalender.animateToPreviousPage,
-            onNext: kalender.animateToNextPage,
-            child: KalenderView(
-              eventsController: _events,
-              kalenderController: kalender,
-              locale: Localizations.localeOf(context),
-              callbacks: callbacks,
-              components: KalenderComponents(
-                monthComponents: MonthComponents(
-                  bodyComponents: MonthBodyComponents(
-                    monthDayCellBuilder: dayCells(_model.health),
-                  ),
-                ),
-              ),
-              interaction: KalenderInteraction(
-                allowResizing: movable,
-                allowRescheduling: movable,
-                // A drag over free times asks for a new event there.
-                allowEventCreation: onAdd != null,
-              ),
-              views: [
-                MultiDayViewParts(
-                  header: MultiDayHeader(tileComponents: _tiles),
-                  body: MultiDayBody(
-                    tileComponents: _tiles,
-                    // Not to the current time: it would carry its minutes
-                    // and seconds into the event.
-                    snapping: const KalenderSnapping(
-                      snapIntervalMinutes: 15,
-                      snapToTimeIndicator: false,
+          child: EscCloses(
+            open: kalender.openDayOverlay,
+            close: kalender.hideDayOverlay,
+            child: SidewaysWheel(
+              onPrevious: () => _pages.step(-1),
+              onNext: () => _pages.step(1),
+              child: KalenderView(
+                eventsController: _events,
+                kalenderController: kalender,
+                locale: Localizations.localeOf(context),
+                callbacks: callbacks,
+                components: KalenderComponents(
+                  monthComponents: MonthComponents(
+                    headerComponents: monthHeaderNames,
+                    bodyComponents: MonthBodyComponents(
+                      monthDayCellBuilder: dayCells(_model.health),
+                      monthDayHeaderBuilder: dayNumber,
                     ),
                   ),
                 ),
-                MonthViewParts(body: MonthBody(tileComponents: _tiles)),
-                ScheduleViewParts(
-                  body: ScheduleBody(tileComponents: _scheduleTiles),
+                interaction: KalenderInteraction(
+                  allowResizing: movable,
+                  allowRescheduling: movable,
+                  // A drag over free times asks for a new event there.
+                  allowEventCreation: onAdd != null,
                 ),
-              ],
+                views: [
+                  MultiDayViewParts(
+                    header: MultiDayHeader(tileComponents: _tiles),
+                    body: MultiDayBody(
+                      tileComponents: _tiles,
+                      // Not to the current time: it would carry its minutes
+                      // and seconds into the event.
+                      snapping: const KalenderSnapping(
+                        snapIntervalMinutes: 15,
+                        snapToTimeIndicator: false,
+                      ),
+                    ),
+                  ),
+                  MonthViewParts(body: MonthBody(tileComponents: _tiles)),
+                  ScheduleViewParts(
+                    body: ScheduleBody(tileComponents: _scheduleTiles),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -332,3 +348,14 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
     ),
   };
 }
+
+/// The pages of a view [configuration] of [configurationsFor].
+PageIndexCalculator _pagesOf(ViewConfiguration configuration) =>
+    switch (configuration) {
+      MonthViewConfiguration(:final PageIndexCalculator pageIndexCalculator) ||
+      MultiDayViewConfiguration(:final pageIndexCalculator) ||
+      ScheduleViewConfiguration(
+        :final pageIndexCalculator,
+      ) => pageIndexCalculator,
+      _ => throw UnsupportedError('No pages in $configuration'),
+    };

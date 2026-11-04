@@ -17,6 +17,7 @@ dependencies:
   # the caret; already in its graph.
   follow_the_leader: 0.5.3
   super_editor: 0.3.0-dev.52
+  truce_common_ui: any
   truce_core: any
   truce_file_page: any
   truce_files: any

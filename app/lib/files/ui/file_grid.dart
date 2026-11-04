@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
-/// [count] cards, each built by [card], in columns up to 240 wide, each as
-/// tall as its text: the layout shared by every file grid. Only cards
-/// near the screen are built.
-Widget fileGrid(int count, Widget Function(int index) card) =>
-    SliverMasonryGrid(
-      itemCount: count,
-      itemBuilder: (_, index) => card(index),
-      maxColumnWidth: 240,
-      spacing: 8,
-    );
+/// [count] cards, each built by [card], in columns up to 240 wide at the
+/// normal text size (wider with larger text, so a title keeps its
+/// words), each as tall as its text: the layout shared by every file
+/// grid. Only cards near the screen are built.
+Widget fileGrid(int count, Widget Function(int index) card) => Builder(
+  builder: (context) => SliverMasonryGrid(
+    itemCount: count,
+    itemBuilder: (_, index) => card(index),
+    maxColumnWidth: MediaQuery.textScalerOf(context).scale(240),
+    spacing: 8,
+  ),
+);
 
 /// [cards] laid out as [fileGrid], all built at once, as a box: for a
 /// part of a list that is built only near the screen, such as a section.

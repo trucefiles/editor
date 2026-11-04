@@ -4,12 +4,9 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
-import '../../common/store_error_text.dart';
-import '../../reach/folder_reach_controller.dart';
-import '../../reach/ui/unreachable_banner.dart';
 import '../../versions/ui/compare_app_bar.dart';
+import '../../versions/ui/compare_body.dart';
 import '../../versions/ui/resolve_error_text.dart';
-import '../../versions/ui/unreachable_wait.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';
 import '../restore_controller.dart';
@@ -57,31 +54,11 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
         file: backup.filePath,
         reason: 'Backup · ${backup.kind.text}',
       ),
-      body: Column(
-        children: [
-          UnreachableBanner(folder, message: waitMessage),
-          Expanded(
-            child: switch (shown) {
-              CompareLoading() => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              CompareLoadFailed(:final error) => Center(
-                child: Text(error.text),
-              ),
-              CompareShowing(sides: final choice) => _chooser(
-                choice,
-                ref.watch(folderReachProvider(folder.id)) == Reach.unreachable,
-              ),
-              CompareKeeping(sides: final choice) ||
-              CompareDone(sides: final choice) => _chooser(choice, true),
-            },
-          ),
-        ],
-      ),
+      body: CompareBody(folder: folder, shown: shown, chooser: _chooser),
     );
   }
 
-  Widget _chooser(RestoreChoice choice, bool busy) {
+  Widget _chooser(RestoreChoice choice, {required bool busy}) {
     final current = choice.current;
     final deleted = current == null;
     return VersionChooser(

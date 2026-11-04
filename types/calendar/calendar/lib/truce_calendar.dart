@@ -16,6 +16,7 @@ library;
 
 export 'src/edit/calendar_edit.dart';
 export 'src/edit/device_zone.dart';
+export 'src/edit/edit_landing.dart';
 export 'src/edit/event_draft.dart';
 export 'src/edit/new_uid.dart';
 export 'src/edit/occurrence_edits.dart';

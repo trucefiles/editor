@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -51,7 +52,7 @@ class FolderBadge extends StatelessWidget {
                     // Not even the dot fits.
                     < 0 => const SizedBox.shrink(),
                     final width => _row(
-                      _firstFitting(
+                      firstFitting(
                         names,
                         width: width,
                         style: style,
@@ -84,29 +85,6 @@ class FolderBadge extends StatelessWidget {
 
 const _dotSize = 10.0;
 const _dotGap = 6.0;
-
-/// The first of [texts] that fits in one line [width] wide; else the
-/// last.
-String _firstFitting(
-  List<String> texts, {
-  required double width,
-  required TextStyle? style,
-  required BuildContext context,
-}) {
-  bool fits(String text) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    final measured = painter.width;
-    painter.dispose();
-    return measured <= width;
-  }
-
-  return texts.firstWhere(fits, orElse: () => texts.last);
-}
 
 /// [folder]'s name, followed by [subfolder] if given, e.g. `Files/work`.
 String placeName(Folder folder, RelPath? subfolder) => switch (subfolder) {

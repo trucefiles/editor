@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -101,25 +99,12 @@ void main() {
 }
 
 /// [inner] that deletes nothing: access denied.
-final class _FailingDelete implements FileStore {
-  _FailingDelete(this.inner);
-
-  final FileStore inner;
+final class _FailingDelete extends ForwardingStore {
+  _FailingDelete(super.inner);
 
   @override
   Future<Result<void, StoreError>> delete(
     RelPath path, {
     required FileVersion ifUnchanged,
   }) async => const Err(StoreError.accessDenied);
-
-  @override
-  Future<Result<FileContent, StoreError>> read(RelPath path) =>
-      inner.read(path);
-
-  @override
-  Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
-      inner.create(path, bytes);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

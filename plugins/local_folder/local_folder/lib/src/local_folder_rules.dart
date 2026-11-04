@@ -12,13 +12,13 @@ final class LocalFolderRules {
   const LocalFolderRules();
 
   static const _tempPrefix = '.truce-';
+  static final _copyNames = LocalConflictNames();
   static const _tempSuffix = '.tmp';
 
   /// Whether [path] belongs to the sync tool itself (folder markers,
   /// version folders, temp files, conflict copies): never shown.
   bool isInternal(RelPath path) =>
-      _isTempFile(path.name) ||
-      const LocalConflictNames().parse(path.name) != null;
+      _isTempFile(path.name) || _copyNames.parse(path.name) != null;
 
   /// The temp file name of an atomic write; [randomToken] keeps
   /// concurrent writes apart.

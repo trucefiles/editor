@@ -3,6 +3,7 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
 
 import '../doc/definitions.dart';
 import '../doc/doc_nodes.dart';
@@ -51,6 +52,7 @@ PrintedMarkdown printMarkdown(DocTree doc, Origin origin) {
 
 /// What [doc] reads back as once printed (see `writableOf`): the seam
 /// the round-trip tests compare by.
+@visibleForTesting
 DocTree writableMarkdown(DocTree doc, Origin origin) => writableOf(
   doc,
   origin,

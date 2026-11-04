@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_files/truce_files.dart' show FileCardSummary;
 
 import '../text_zoom/ui/document_text_zoom.dart';
@@ -116,20 +117,9 @@ const _footerGap = 8.0;
 /// Fits a line of small labels, a label with a background or an icon.
 double _footerHeight(BuildContext context) => max(
   cardFooterIconSize,
-  _lineHeight(
+  lineHeightOf(
         Theme.of(context).textTheme.labelSmall,
         MediaQuery.textScalerOf(context),
       ) +
       4,
 );
-
-double _lineHeight(TextStyle? style, TextScaler scaler) {
-  final painter = TextPainter(
-    text: TextSpan(text: ' ', style: style),
-    textDirection: TextDirection.ltr,
-    textScaler: scaler,
-  )..layout();
-  final height = painter.height;
-  painter.dispose();
-  return height;
-}

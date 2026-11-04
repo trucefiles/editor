@@ -173,10 +173,7 @@ base class FileSteps {
       await _settings.edit(back.key, (_) => settings);
       if (back.path != file.path) await _moveBackups(file, back);
     }
-    return switch (restored) {
-      Ok() => const Ok(null),
-      Err(:final error) => Err(error),
-    };
+    return restored.map((_) {});
   }
 
   /// Recovers the drafts of every folder written before [before] (see

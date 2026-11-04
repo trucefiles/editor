@@ -87,6 +87,7 @@ final class FakeFolder implements RawFolder {
   final FakeLiveChanges changes = FakeLiveChanges();
 
   /// What the fake plugin shows: no hidden files, none of its own.
+  static final _copyNames = FakeCopyNames();
   static final _shown = VisibleFileFilter(const FakeSyncRules().isInternal);
 
   @override
@@ -95,9 +96,9 @@ final class FakeFolder implements RawFolder {
     return OpenFolder(
       bounded,
       store: store,
-      scanner: NamedCopiesScanner(store, _shown, const FakeCopyNames()),
+      scanner: NamedCopiesScanner(store, _shown, _copyNames),
       showsFolder: _shown.includesFolderPath,
-      conflicts: NamedConflictSource(store, const FakeCopyNames()),
+      conflicts: NamedConflictSource(store, _copyNames),
       notices: const _NoNotices(),
       changes: bounded.changes,
     );

@@ -101,30 +101,14 @@ class CalendarTabScreen extends ConsumerWidget {
     ListedFile file,
     Occurrence occurrence,
   ) async {
-    final edit = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(bottom: 16),
-          children: [
-            OccurrenceDetails(occurrence),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_outlined),
-              title: const Text('Open calendar'),
-              onTap: () => Navigator.pop(context, false),
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
-              onTap: () => Navigator.pop(context, true),
-            ),
-          ],
-        ),
+    final edit = await showOccurrenceSheet(context, occurrence, [
+      (
+        icon: Icons.calendar_month_outlined,
+        label: 'Open calendar',
+        value: false,
       ),
-    );
+      (icon: Icons.edit_outlined, label: 'Edit', value: true),
+    ]);
     if (edit == null || !context.mounted) return;
     await (edit
         ? openCalendar(context, ref, file, EditOccurrence.of(occurrence))

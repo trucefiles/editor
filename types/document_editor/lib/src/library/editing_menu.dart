@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import 'own_clipboard.dart';
 
@@ -25,12 +26,17 @@ class EditingMenu extends StatefulWidget {
 class _EditingMenuState extends State<EditingMenu> {
   final _menu = ContextMenuController();
 
+  /// Where the menu shows, while it does: Esc closes it then (see
+  /// [EscCloses]).
+  final _shownAt = ValueNotifier<Offset?>(null);
+
   /// The selection watched while the menu shows.
   Listenable? _watched;
 
   @override
   void dispose() {
     _close();
+    _shownAt.dispose();
     super.dispose();
   }
 
@@ -40,13 +46,17 @@ class _EditingMenuState extends State<EditingMenu> {
     HardwareKeyboard.instance.removeHandler(_keyCloses);
     _watched?.removeListener(_close);
     _watched = null;
+    _shownAt.value = null;
   }
 
-  /// A key closes the menu; Escape does nothing else.
+  /// A key closes the menu and still does what it does; Esc is left to
+  /// [EscCloses], so it doesn't reach the screen (which it would leave).
   bool _keyCloses(KeyEvent event) {
-    if (event is! KeyDownEvent) return false;
-    _close();
-    return event.logicalKey == LogicalKeyboardKey.escape;
+    if (event is KeyDownEvent &&
+        event.logicalKey != LogicalKeyboardKey.escape) {
+      _close();
+    }
+    return false;
   }
 
   void _open(Offset at) {
@@ -81,18 +91,23 @@ class _EditingMenuState extends State<EditingMenu> {
     );
     HardwareKeyboard.instance.addHandler(_keyCloses);
     _watched = operations.selection..addListener(_close);
+    _shownAt.value = at;
   }
 
   @override
   Widget build(BuildContext context) => TapRegion(
     groupId: _menu,
     onTapOutside: (_) => _close(),
-    child: Listener(
-      onPointerDown: (_) => _close(),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onSecondaryTapUp: (details) => _open(details.globalPosition),
-        child: widget.child,
+    child: EscCloses(
+      open: _shownAt,
+      close: _close,
+      child: Listener(
+        onPointerDown: (_) => _close(),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTapUp: (details) => _open(details.globalPosition),
+          child: widget.child,
+        ),
       ),
     ),
   );

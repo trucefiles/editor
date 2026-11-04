@@ -4,6 +4,11 @@ import 'package:truce_markdown/truce_markdown.dart';
 import '../editor_gate.dart';
 import '../run_command.dart';
 
+/// What showed as a gesture (a drag, a swipe) started: what it does on
+/// release is dropped if the text changed meanwhile, as the items it
+/// holds may then be other ones.
+extension type const ShownAt(int revision) {}
+
 /// What the user does in Visual edit beside typing: the rows' boxes,
 /// delete buttons, drags and swipes, the Done headings, Add item buttons
 /// and raw blocks, and the toolbar. Each is one input to the editor owner
@@ -65,26 +70,42 @@ final class VisualActions {
   void deleteItem(NodeId item) =>
       _gate.run((_) => DeleteItem(item), byControl: true);
 
-  /// [item] one level deeper, by a swipe or drag, where it can go;
-  /// whether it went.
-  bool indent(NodeId item) => _shift(item, canIndent, Indent.new);
+  /// A drag or swipe starts: taps waiting go first; what shows then. A
+  /// raw block open as text stays open until the gesture acts, so its row
+  /// stays where the gesture holds it.
+  ShownAt gestureStarted() {
+    _gate.send((_) => null);
+    return ShownAt(_gate.state.revision);
+  }
+
+  /// Whether the text is still as it showed [from].
+  bool _still(ShownAt from) => _gate.state.revision == from.revision;
+
+  /// [item] one level deeper, by a swipe or drag started [from], where it
+  /// can go; whether it went.
+  bool indent(NodeId item, ShownAt from) =>
+      _shift(item, from, canIndent, Indent.new);
 
   /// [item] one level shallower (see [indent]).
-  bool outdent(NodeId item) => _shift(item, canOutdent, Outdent.new);
+  bool outdent(NodeId item, ShownAt from) =>
+      _shift(item, from, canOutdent, Outdent.new);
 
   bool _shift(
     NodeId item,
+    ShownAt from,
     bool Function(ViewRows view, NodeId leaf) can,
     Command Function(TextSelection at) shift,
-  ) => _gate.run(
-    (_) => switch ((_shown?.view, _leafOf(item))) {
-      (final view?, final leaf?) when can(view, leaf) => shift(
-        TextSelection.caret(Place(leaf, 0)),
-      ),
-      _ => null,
-    },
-    byControl: true,
-  );
+  ) =>
+      _still(from) &&
+      _gate.run(
+        (_) => switch ((_shown?.view, _leafOf(item))) {
+          (final view?, final leaf?) when can(view, leaf) => shift(
+            TextSelection.caret(Place(leaf, 0)),
+          ),
+          _ => null,
+        },
+        byControl: true,
+      );
 
   /// The block that starts [item], as the blocks are now.
   NodeId? _leafOf(NodeId item) => switch (_shown?.view.doc.nodeOf(item)) {
@@ -92,11 +113,12 @@ final class VisualActions {
     _ => null,
   };
 
-  /// [item] lifted to be dragged: taps waiting go first; its subitems
-  /// fold.
-  void dragStarted(NodeId item) {
-    _gate.send((_) => null);
+  /// [item] lifted to be dragged (see [gestureStarted]); its subitems
+  /// fold. What shows then.
+  ShownAt dragStarted(NodeId item) {
+    final from = gestureStarted();
     onFold(item);
+    return from;
   }
 
   void dragEnded() => onFold(null);
@@ -118,21 +140,27 @@ final class VisualActions {
   NodeId? goesNextTo(NodeId item, NodeId target, {required bool below}) =>
       _placeOf(item, target, below: below)?.item;
 
-  /// [item] dropped right next to [target]'s row, [below] it or above;
-  /// dropped on itself, it goes [levels] deeper (shallower if negative).
+  /// [item], dragged [from] what showed then, dropped right next to
+  /// [target]'s row, [below] it or above; dropped on itself, it goes
+  /// [levels] deeper (shallower if negative), each level on what the one
+  /// before left.
   void drop(
     NodeId item, {
     required NodeId target,
     required bool below,
     required int levels,
+    required ShownAt from,
   }) {
     if (item == target) {
       final step = levels > 0 ? indent : outdent;
+      var at = from;
       for (final _ in Iterable<void>.generate(levels.abs())) {
-        step(item);
+        if (!step(item, at)) return;
+        at = ShownAt(_gate.state.revision);
       }
       return;
     }
+    if (!_still(from)) return;
     _gate.run(
       (_) => switch (_placeOf(item, target, below: below)) {
         (item: final next, :final below) => MoveItem(item, next, below: below),

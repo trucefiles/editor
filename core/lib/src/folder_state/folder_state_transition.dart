@@ -5,6 +5,7 @@ import '../marks/file_marks.dart';
 import '../owners/ask.dart';
 import '../owners/effects.dart';
 import '../owners/machine.dart';
+import '../owners/step_run.dart';
 import '../plugins/folder_id.dart';
 import '../scan/folder_scanner.dart';
 import '../storage/file_store.dart';
@@ -26,13 +27,7 @@ Step<FolderState, FolderStateWork, Fresh, FolderStateEffect> folderStateStep(
   FolderStateWork work,
   FolderStateMessage message,
 ) {
-  final step = _Step(timing, state, work)..handle(message);
-  return (
-    state: step.state,
-    work: step.work,
-    events: step.events,
-    effects: step.effects,
-  );
+  return _Step(timing, state, work).run(message);
 }
 
 /// How [work] breaks the folder state owner's rules.
@@ -49,15 +44,20 @@ List<String> folderStateViolations(FolderState state, FolderStateWork work) => [
     'the state holds other folders than those followed',
 ];
 
-final class _Step {
-  _Step(this.timing, this.state, this.work);
+final class _Step
+    extends
+        StepRun<
+          FolderStateMessage,
+          FolderState,
+          FolderStateWork,
+          Fresh,
+          FolderStateEffect
+        > {
+  _Step(this.timing, super.state, super.work);
 
   final ChangesTiming timing;
-  FolderState state;
-  FolderStateWork work;
-  final events = <Fresh>[];
-  final effects = <FolderStateEffect>[];
 
+  @override
   void handle(FolderStateMessage message) {
     switch (message) {
       case Refresh(:final ticket):

@@ -1,0 +1,7 @@
+- An event changed while another device deleted it is saved as a new one
+- Event forms ask before dropping your changes
+- Dragging an item to the edge of a long list scrolls it
+- A drag or swipe after a change on another device no longer moves the wrong item
+- Quick taps on Next or Previous in the calendar each move a page
+- Phones and large text fit better: day names, cards, the Add button
+- Esc closes the right-click menu without leaving the file

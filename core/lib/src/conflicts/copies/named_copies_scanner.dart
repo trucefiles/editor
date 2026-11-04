@@ -29,13 +29,10 @@ final class NamedCopiesScanner implements FolderScanner {
       includeFile: (file) =>
           _includesFileOrCopy(file) || (also?.includesFile(file) ?? false),
     );
-    return switch (listed) {
-      Ok(
-        value: Listing(files: final entries, :final folders, :final unreadable),
-      ) =>
-        Ok(_scanOf(entries, folders, unreadable, also)),
-      Err(:final error) => Err(error),
-    };
+    return listed.map(
+      (listing) =>
+          _scanOf(listing.files, listing.folders, listing.unreadable, also),
+    );
   }
 
   /// What one walk listed, told apart: what the filter shows, and what

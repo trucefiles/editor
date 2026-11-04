@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import 'leave_check.dart';
+
 /// The kinds of health entry the user can add, as the Add list names
 /// them, each with the entry a new one starts as: the general ones first.
 const healthKinds = <(String, HealthEntry)>[
@@ -69,6 +71,17 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
   );
   late final _note = TextEditingController(text: widget.note);
 
+  /// The entry and note as the form opened, as it reads them back.
+  late final HealthEdit _opened;
+
+  @override
+  void initState() {
+    super.initState();
+    _opened = _edit;
+  }
+
+  HealthEdit get _edit => (entry: _entry, note: _note.text);
+
   @override
   void dispose() {
     for (final field in [_name, _amount, _unit, _note]) {
@@ -95,13 +108,16 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
   };
 
   @override
-  Widget build(BuildContext context) {
-    TextField field(TextEditingController controller, String label) =>
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: label),
-          onChanged: (_) => setState(() {}),
-        );
+  Widget build(BuildContext context) =>
+      LeaveCheck(changed: () => _edit != _opened, child: _dialog());
+
+  TextField _field(TextEditingController controller, String label) => TextField(
+    controller: controller,
+    decoration: InputDecoration(labelText: label),
+    onChanged: (_) => setState(() {}),
+  );
+
+  Widget _dialog() {
     return AlertDialog(
       title: Text(widget.title),
       // One width whatever is picked.
@@ -126,7 +142,7 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
                   ),
                 ],
                 Symptom() => [
-                  field(_name, 'Symptom'),
+                  _field(_name, 'Symptom'),
                   const SizedBox(height: 8),
                   SegmentedButton<int>(
                     showSelectedIcon: false,
@@ -141,13 +157,13 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
                   ),
                 ],
                 Medication() => [
-                  field(_name, 'Medication'),
-                  field(_amount, 'Dose'),
+                  _field(_name, 'Medication'),
+                  _field(_amount, 'Dose'),
                 ],
                 Measure() => [
-                  field(_name, 'What'),
-                  field(_amount, 'Value'),
-                  field(_unit, 'Unit'),
+                  _field(_name, 'What'),
+                  _field(_amount, 'Value'),
+                  _field(_unit, 'Unit'),
                 ],
                 HealthNote() => const <Widget>[],
               },
@@ -169,9 +185,7 @@ class _HealthEntryFormState extends State<_HealthEntryForm> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _named
-              ? () => Navigator.pop(context, (entry: _entry, note: _note.text))
-              : null,
+          onPressed: _named ? () => Navigator.pop(context, _edit) : null,
           child: const Text('Save'),
         ),
       ],

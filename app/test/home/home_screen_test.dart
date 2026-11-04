@@ -333,6 +333,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('on a phone, Redo is in the menu, so the bar keeps room for '
+      'the title', (tester) async {
+    tester.view
+      ..physicalSize = const Size(360, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes\n- [ ] milk\n'});
+
+    await tester.tap(find.text('Notes').first);
+    await showsSoon(tester, find.byTooltip('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Redo'), findsNothing);
+
+    await tester.tap(find.byType(PopupMenuButton<VoidCallback>));
+    await tester.pumpAndSettle();
+    expect(find.text('Redo'), findsOne);
+  });
+
+  testWidgets('on a wide window, Redo is in the bar', (tester) async {
+    await start(tester, {'notes.md': '# Notes\n- [ ] milk\n'});
+
+    await tester.tap(find.text('Notes').first);
+    await showsSoon(tester, find.byTooltip('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Redo'), findsOne);
+  });
+
   testWidgets('a link opener answering after the page is gone tells '
       'nothing', (tester) async {
     final answer = Completer<bool>();

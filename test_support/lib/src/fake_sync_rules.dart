@@ -10,6 +10,7 @@ final class FakeSyncRules {
   const FakeSyncRules();
 
   static const _folder = '.fake';
+  static final _copyNames = FakeCopyNames();
   static const _tempSuffix = '.fake-tmp';
 
   /// Whether [path] belongs to the sync tool itself (folder markers,
@@ -17,7 +18,7 @@ final class FakeSyncRules {
   bool isInternal(RelPath path) =>
       isInternalFolder(path.value.split('/')) ||
       path.name.endsWith(_tempSuffix) ||
-      const FakeCopyNames().parse(path.name) != null;
+      _copyNames.parse(path.name) != null;
 
   /// Whether the folder with the segments [names], outermost first, is
   /// the tool's own or lies inside it.
