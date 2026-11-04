@@ -10,6 +10,7 @@ import 'new_event_spot.dart';
 import 'occurrence_event.dart';
 import 'sideways_wheel.dart';
 import 'views_bar.dart';
+import 'week_day_names.dart';
 
 /// What the user does with an occurrence of the calendar keyed [calendar].
 typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
@@ -223,6 +224,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
               callbacks: callbacks,
               components: KalenderComponents(
                 monthComponents: MonthComponents(
+                  headerComponents: monthHeaderNames,
                   bodyComponents: MonthBodyComponents(
                     monthDayCellBuilder: dayCells(_model.health),
                   ),
