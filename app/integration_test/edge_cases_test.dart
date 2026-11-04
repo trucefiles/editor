@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -441,13 +440,7 @@ void main() {
     app.folder('done').createSync();
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
-    await tester.tap(
-      find.text('Plan'),
-      kind: PointerDeviceKind.mouse,
-      buttons: kSecondaryMouseButton,
-    );
-    await tester.pumpAndSettle();
-    await tester.tapAndSettle(find.byTooltip('teal'));
+    await tester.colorFile('Plan', 'teal');
 
     await tester.openFile('Plan');
     await tester.placeNote(subfolder: 'done');

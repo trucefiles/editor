@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
@@ -11,14 +13,16 @@ import '../file_colors.dart';
 import 'file_type_icon.dart';
 
 /// A file in the grid: title and first lines at the document text zoom
-/// (as its [preview] has them, as many as fit); folder, its type's icon,
-/// last edit, pin and color.
+/// (as its [preview] has them, as many as fit); its type's icon first in
+/// the footer, so it keeps its place, then the folder, which takes the
+/// room left, last edit, pin and color.
 class FileCard extends ConsumerWidget {
   const FileCard(
     this.file, {
     required this.preview,
     required this.onTap,
-    required this.onMark,
+    required this.onActions,
+    required this.onActionsAt,
     this.mark = FileMark.none,
     this.settings = FileSettings.defaults,
     this.hasConflict = false,
@@ -38,13 +42,16 @@ class FileCard extends ConsumerWidget {
 
   final VoidCallback onTap;
 
-  /// Asks for a pin or color: on long press, or right click with a mouse.
-  final VoidCallback onMark;
+  /// Asks for the file's actions on a long press.
+  final VoidCallback onActions;
+
+  /// Asks for the file's actions on a right click, at its point on the
+  /// screen.
+  final ValueChanged<Offset> onActionsAt;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
     return CardFrame(
       color: fileTint(mark.color, theme.colorScheme),
       // An outline makes a conflict stand out in a full grid.
@@ -54,7 +61,8 @@ class FileCard extends ConsumerWidget {
             )
           : null,
       onTap: onTap,
-      onMark: onMark,
+      onActions: onActions,
+      onActionsAt: onActionsAt,
       title: cardTitle(file, preview),
       body: switch (preview) {
         Previewed(:final summary)
@@ -66,25 +74,76 @@ class FileCard extends ConsumerWidget {
         ),
         Previewed() || PreviewReading() || PreviewUnreadable() => null,
       },
-      footer: Row(
-        spacing: 6,
-        children: [
-          Expanded(child: FolderBadge(file.folder, file: file.path)),
-          FileTypeIcon(file, size: cardFooterIconSize),
-          Text(
-            ref
-                .watch(timeTextsProvider)
-                .edited(file.modified, now: DateTime.now()),
-            style: textTheme.labelSmall,
-          ),
-          if (settings.pinned)
-            const Tooltip(
-              message: 'Pinned',
-              child: Icon(Icons.push_pin, size: cardFooterIconSize),
-            ),
-          if (hasConflict) const ConflictLabel(),
-        ],
+      footer: _Footer(
+        file,
+        edited: ref
+            .watch(timeTextsProvider)
+            .edited(file.modified, now: DateTime.now()),
+        pinned: settings.pinned,
+        hasConflict: hasConflict,
       ),
     );
   }
+}
+
+/// The type's icon first, so it keeps its place; the file's place takes
+/// the room the rest leaves; the last edit, pin and conflict at the end.
+/// Where even they don't fit, the place is gone and the date is cut.
+class _Footer extends StatelessWidget {
+  const _Footer(
+    this.file, {
+    required this.edited,
+    required this.pinned,
+    required this.hasConflict,
+  });
+
+  final ListedFile file;
+  final String edited;
+  final bool pinned;
+  final bool hasConflict;
+
+  static const _gap = 6.0;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Row(
+      spacing: _gap,
+      children: [
+        FileTypeIcon(file, size: cardFooterIconSize),
+        Expanded(
+          child: FolderBadge(file.folder, file: file.path, cutInMiddle: true),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: max(
+              0,
+              constraints.maxWidth - cardFooterIconSize - 2 * _gap,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: _gap,
+            children: [
+              Flexible(
+                child: Text(
+                  edited,
+                  style: Theme.of(context).textTheme.labelSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (pinned)
+                const Tooltip(
+                  message: 'Pinned',
+                  child: Icon(Icons.push_pin, size: cardFooterIconSize),
+                ),
+              // Its word would leave the place no room; the red outline
+              // and the tooltip say it.
+              if (hasConflict) const ConflictLabel(word: false),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -45,6 +45,28 @@ void main() {
 
       expect(recent.hidesSome, isFalse);
     });
+
+    test('only others changed since the age limit, hiding the older; '
+        'pinned ones of any age', () {
+      final pinned = doc('pinned.md');
+      final files = [
+        doc('new.md', day: 9),
+        doc('edge.md', day: 5),
+        doc('old.md'),
+        pinned,
+      ];
+
+      final recent = recentOf(
+        files,
+        isPinned: (file) => file == pinned,
+        count: 50,
+        since: DateTime(2026, 1, 5),
+      );
+
+      expect(recent.pinned, [pinned]);
+      expect(recent.newest, [files[0], files[1]]);
+      expect(recent.hidesSome, isTrue);
+    });
   });
 
   group('sectionsByName', () {

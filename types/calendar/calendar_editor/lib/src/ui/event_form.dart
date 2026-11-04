@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../views/new_event_spot.dart';
 import 'color_choice.dart';
@@ -123,119 +124,122 @@ class _EventFormState extends State<EventForm> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _summary,
-            autofocus: widget.draft.summary.isEmpty,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Title'),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('All day'),
-            value: _times.allDay,
-            onChanged: (allDay) =>
-                setState(() => _times = _times.withAllDay(allDay)),
-          ),
-          _TimeRow(
-            label: 'Starts',
-            day: _times.startDay,
-            time: _times.allDay ? null : _times.startTime,
-            onDay: (day) => setState(() => _times = _times.withStartDay(day)),
-            onTime: (time) =>
-                setState(() => _times = _times.withStartTime(time)),
-          ),
-          _TimeRow(
-            label: 'Ends',
-            day: _times.endDay,
-            time: _times.allDay ? null : _times.endTime,
-            onDay: (day) => setState(() => _times = _times.copy(endDay: day)),
-            onTime: (time) =>
-                setState(() => _times = _times.copy(endTime: time)),
-          ),
-          if (_otherZone case final zone?)
+      body: PageWidth(
+        builder: (_, padding) => ListView(
+          padding: padding + const EdgeInsets.all(16),
+          children: [
+            TextField(
+              controller: _summary,
+              autofocus: widget.draft.summary.isEmpty,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('All day'),
+              value: _times.allDay,
+              onChanged: (allDay) =>
+                  setState(() => _times = _times.withAllDay(allDay)),
+            ),
+            _TimeRow(
+              label: 'Starts',
+              day: _times.startDay,
+              time: _times.allDay ? null : _times.startTime,
+              onDay: (day) => setState(() => _times = _times.withStartDay(day)),
+              onTime: (time) =>
+                  setState(() => _times = _times.withStartTime(time)),
+            ),
+            _TimeRow(
+              label: 'Ends',
+              day: _times.endDay,
+              time: _times.allDay ? null : _times.endTime,
+              onDay: (day) => setState(() => _times = _times.copy(endDay: day)),
+              onTime: (time) =>
+                  setState(() => _times = _times.copy(endTime: time)),
+            ),
+            if (_otherZone case final zone?)
+              Text(
+                'Times are in $zone.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            if (!ok)
+              Text(
+                'It ends before it starts.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            const SizedBox(height: 8),
+            if (widget.repeats)
+              switch (_repeat) {
+                OtherRepeat(:final rule) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Repeats'),
+                  subtitle: Text('$rule (kept as it is)'),
+                ),
+                final SimpleRepeat? repeat =>
+                  DropdownButtonFormField<Frequency?>(
+                    initialValue: repeat?.frequency,
+                    decoration: const InputDecoration(labelText: 'Repeats'),
+                    items: [
+                      const DropdownMenuItem(child: Text('Never')),
+                      for (final MapEntry(key: frequency, value: text)
+                          in _frequencyWords.entries)
+                        DropdownMenuItem(value: frequency, child: Text(text)),
+                    ],
+                    onChanged: (frequency) => setState(
+                      () => _repeat = switch (frequency) {
+                        null => null,
+                        // The rest of a repeat the form shows stays.
+                        _ when repeat?.frequency == frequency => repeat,
+                        final frequency => SimpleRepeat(frequency),
+                      },
+                    ),
+                  ),
+              },
+            const SizedBox(height: 8),
+            DropdownButtonFormField<_Alerts>(
+              initialValue: _Alerts(_alerts),
+              decoration: const InputDecoration(labelText: 'Alert'),
+              items: [
+                const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
+                if (_alerts.isNotEmpty && !_offered(_alerts))
+                  DropdownMenuItem(
+                    value: _Alerts(_alerts),
+                    child: Text(_alerts.map(alertText).join(', ')),
+                  ),
+                for (final before in alertChoices)
+                  DropdownMenuItem(
+                    value: _Alerts([before]),
+                    child: Text(alertText(before)),
+                  ),
+              ],
+              onChanged: (alerts) =>
+                  setState(() => _alerts = alerts?.before ?? const []),
+            ),
+            const SizedBox(height: 16),
+            ColorChoice(
+              color: _color,
+              onColor: (color) => setState(() => _color = color),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _location,
+              decoration: const InputDecoration(labelText: 'Place'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notes,
+              minLines: 2,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Notes'),
+            ),
+            const SizedBox(height: 16),
             Text(
-              'Times are in $zone.',
+              "Alerts are saved, but the app doesn't ring them yet.",
               style: Theme.of(context).textTheme.bodySmall,
             ),
-          if (!ok)
-            Text(
-              'It ends before it starts.',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          const SizedBox(height: 8),
-          if (widget.repeats)
-            switch (_repeat) {
-              OtherRepeat(:final rule) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Repeats'),
-                subtitle: Text('$rule (kept as it is)'),
-              ),
-              final SimpleRepeat? repeat => DropdownButtonFormField<Frequency?>(
-                initialValue: repeat?.frequency,
-                decoration: const InputDecoration(labelText: 'Repeats'),
-                items: [
-                  const DropdownMenuItem(child: Text('Never')),
-                  for (final MapEntry(key: frequency, value: text)
-                      in _frequencyWords.entries)
-                    DropdownMenuItem(value: frequency, child: Text(text)),
-                ],
-                onChanged: (frequency) => setState(
-                  () => _repeat = switch (frequency) {
-                    null => null,
-                    // The rest of a repeat the form shows stays.
-                    _ when repeat?.frequency == frequency => repeat,
-                    final frequency => SimpleRepeat(frequency),
-                  },
-                ),
-              ),
-            },
-          const SizedBox(height: 8),
-          DropdownButtonFormField<_Alerts>(
-            initialValue: _Alerts(_alerts),
-            decoration: const InputDecoration(labelText: 'Alert'),
-            items: [
-              const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
-              if (_alerts.isNotEmpty && !_offered(_alerts))
-                DropdownMenuItem(
-                  value: _Alerts(_alerts),
-                  child: Text(_alerts.map(alertText).join(', ')),
-                ),
-              for (final before in alertChoices)
-                DropdownMenuItem(
-                  value: _Alerts([before]),
-                  child: Text(alertText(before)),
-                ),
-            ],
-            onChanged: (alerts) =>
-                setState(() => _alerts = alerts?.before ?? const []),
-          ),
-          const SizedBox(height: 16),
-          ColorChoice(
-            color: _color,
-            onColor: (color) => setState(() => _color = color),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _location,
-            decoration: const InputDecoration(labelText: 'Place'),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _notes,
-            minLines: 2,
-            maxLines: null,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Notes'),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "Alerts are saved, but the app doesn't ring them yet.",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

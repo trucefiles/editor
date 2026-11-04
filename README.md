@@ -144,8 +144,10 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   and schedule, on `kalender`) for the calendar page and the Calendar
   tab, the event form and the health view. Flutter; uses core, files,
   file_page and calendar.
-- `masonry`: a lazy masonry grid (items as tall as their content, in
-  columns) for the cards. Flutter; layout only, knows nothing of files.
+- `common_ui`: UI parts with no app logic, for use across the app: the
+  lazy masonry grid for the cards (items as tall as their content, in
+  columns) and the page width that keeps settings and forms in one
+  centered column on wide windows. Flutter; knows nothing of files.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
   code, and the wiring that picks the file types (`markdown`,
   `plain_text`, `calendar`) and sync tools (`syncthing`, `local_folder`).
@@ -169,7 +171,7 @@ flutter analyze --fatal-infos
 (cd plugins/local_folder/local_folder && dart test)
 (cd folders && dart test)
 (cd files && dart test)
-(cd masonry && flutter test)
+(cd common_ui && flutter test)
 (cd types/document_editor && flutter test)
 (cd types/calendar/calendar_editor && flutter test)
 (cd app && flutter test)

@@ -25,6 +25,15 @@ void main() {
     expect(picked(), {'calendars'});
   });
 
+  test('clear unpicks every value', () {
+    picks()
+      ..toggle('notes')
+      ..toggle('calendars')
+      ..clear();
+
+    expect(picked(), isEmpty);
+  });
+
   test('drop unpicks', () {
     picks()
       ..toggle('notes')

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -48,17 +49,21 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
       child: Scaffold(
         appBar: AppBar(title: const Text('Add folder')),
         body: SafeArea(
-          child: switch (_flow.step) {
-            ChoosingPlugin() => _PluginStep(
-              ref.watch(wiredPluginsProvider),
-              onChosen: _openAddPage,
-            ),
-            final NamingFolder naming => _NameStep(
-              naming,
-              flow: _flow,
-              onDone: _busy ? null : _done,
-            ),
-          },
+          child: PageWidth(
+            builder: (_, padding) => switch (_flow.step) {
+              ChoosingPlugin() => _PluginStep(
+                ref.watch(wiredPluginsProvider),
+                padding: padding,
+                onChosen: _openAddPage,
+              ),
+              final NamingFolder naming => _NameStep(
+                naming,
+                padding: padding,
+                flow: _flow,
+                onDone: _busy ? null : _done,
+              ),
+            },
+          ),
         ),
       ),
     ),
@@ -86,14 +91,19 @@ class _AddFolderScreenState extends ConsumerState<AddFolderScreen> {
 
 /// Pick how the folder is synced: the plugins, each with its help line.
 class _PluginStep extends StatelessWidget {
-  const _PluginStep(this.plugins, {required this.onChosen});
+  const _PluginStep(
+    this.plugins, {
+    required this.padding,
+    required this.onChosen,
+  });
 
   final List<WiredPlugin> plugins;
+  final EdgeInsets padding;
   final void Function(WiredPlugin wired) onChosen;
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(16),
+    padding: padding + const EdgeInsets.all(16),
     children: [
       const Text('How is the folder synced?'),
       const SizedBox(height: 8),
@@ -110,9 +120,15 @@ class _PluginStep extends StatelessWidget {
 
 /// Name and color of one new folder.
 class _NameStep extends StatelessWidget {
-  const _NameStep(this.naming, {required this.flow, required this.onDone});
+  const _NameStep(
+    this.naming, {
+    required this.padding,
+    required this.flow,
+    required this.onDone,
+  });
 
   final NamingFolder naming;
+  final EdgeInsets padding;
   final AddFolderFlow flow;
   final VoidCallback? onDone;
 
@@ -121,7 +137,7 @@ class _NameStep extends StatelessWidget {
     children: [
       Expanded(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: padding.copyWith(bottom: 0) + const EdgeInsets.all(16),
           children: [
             if (naming.count > 1)
               Text('Folder ${naming.index + 1} of ${naming.count}'),
@@ -141,7 +157,7 @@ class _NameStep extends StatelessWidget {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16),
+        padding: padding.copyWith(top: 0) + const EdgeInsets.all(16),
         child: Align(
           alignment: AlignmentDirectional.centerEnd,
           child: FilledButton(

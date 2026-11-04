@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -42,37 +43,40 @@ class FoldersScreen extends ConsumerWidget {
               label: const Text('Add folder'),
             )
           : null,
-      body: ReorderableFolderList(
-        folders,
-        onMove: (folder, to) => _move(context, ref, folder, to: to),
-        tile: (folder, index) => ListTile(
-          key: ValueKey(folder.id),
-          leading: FolderDot(folder.color, size: 16),
-          title: Text(folder.name),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text(folder.location), FolderNoticesView(folder)],
-          ),
-          onTap: () => _edit(context, ref, folder),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: 'Remove from app',
-                icon: const Icon(Icons.remove_circle_outline),
-                onPressed: () => _remove(context, ref, folder),
-              ),
-              ReorderableDragStartListener(
-                index: index,
-                child: const Tooltip(
-                  message: 'Drag to reorder',
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(Icons.drag_handle),
+      body: PageWidth(
+        builder: (_, padding) => ReorderableFolderList(
+          folders,
+          padding: padding,
+          onMove: (folder, to) => _move(context, ref, folder, to: to),
+          tile: (folder, index) => ListTile(
+            key: ValueKey(folder.id),
+            leading: FolderDot(folder.color, size: 16),
+            title: Text(folder.name),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [Text(folder.location), FolderNoticesView(folder)],
+            ),
+            onTap: () => _edit(context, ref, folder),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Remove from app',
+                  icon: const Icon(Icons.remove_circle_outline),
+                  onPressed: () => _remove(context, ref, folder),
+                ),
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Tooltip(
+                    message: 'Drag to reorder',
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.drag_handle),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

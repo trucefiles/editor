@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
@@ -37,11 +38,14 @@ class BackupList extends StatelessWidget {
         icon: Icons.history,
         text: empty,
       ),
-      AsyncData(value: final backups) => ListView.builder(
-        itemCount: backups.length,
-        itemBuilder: (context, index) => _BackupTile(
-          backups[index],
-          onOpen: () => onOpen(context, backups[index]),
+      AsyncData(value: final backups) => PageWidth(
+        builder: (_, padding) => ListView.builder(
+          padding: padding,
+          itemCount: backups.length,
+          itemBuilder: (context, index) => _BackupTile(
+            backups[index],
+            onOpen: () => onOpen(context, backups[index]),
+          ),
         ),
       ),
       AsyncError() => const Center(

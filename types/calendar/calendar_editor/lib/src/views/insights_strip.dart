@@ -4,7 +4,8 @@ import '../ui/cycle_text.dart';
 import 'day_cells.dart';
 import 'health_days.dart';
 
-/// What the shown calendars tell about their content, above the views:
+/// What the shown calendars tell about their content, below the views,
+/// like a legend, clear of the page's Add button:
 /// for each health calendar with periods, where its cycle is [today]
 /// (named by [titleOf] when several calendars show), that it is only an
 /// estimate, and what the month view's cycle marks mean. Nothing for
@@ -28,8 +29,16 @@ class InsightsStrip<K> extends StatelessWidget {
     if (!health.any) return const SizedBox.shrink();
     final titleOf = this.titleOf;
     final theme = Theme.of(context).textTheme;
+    // The page's Add button floats over the bottom end corner.
+    final addButton =
+        Scaffold.maybeOf(context)?.hasFloatingActionButton ?? false;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      padding: EdgeInsetsDirectional.fromSTEB(
+        12,
+        4,
+        addButton ? _addButtonRoom : 12,
+        4,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,3 +61,6 @@ class InsightsStrip<K> extends StatelessWidget {
     );
   }
 }
+
+/// The room at the end the Add button takes: its size and its margins.
+const _addButtonRoom = 56.0 + 2 * kFloatingActionButtonMargin;

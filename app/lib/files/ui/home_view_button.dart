@@ -11,12 +11,12 @@ class HomeViewButton extends ConsumerWidget {
   const HomeViewButton({super.key});
 
   static IconData _icon(HomeView view) => switch (view) {
-    HomeView.recent => Icons.history,
+    HomeView.home => Icons.home_outlined,
     HomeView.all => Icons.view_module_outlined,
   };
 
   static String _label(HomeView view) => switch (view) {
-    HomeView.recent => 'Recent',
+    HomeView.home => 'Home',
     HomeView.all => 'All files',
   };
 

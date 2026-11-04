@@ -40,7 +40,8 @@ void main() {
     app.write('todo.md', '# Root\n');
     await tester.addFolder(app);
 
-    await tester.waitFor(find.text('Documents/a/b/c'));
+    // The card may cut the place; its tooltip has it whole.
+    await tester.waitFor(find.byTooltip('Documents/a/b/c'));
     await tester.openFile('Deep');
     expect(find.text('Documents/a/b/c/todo.md'), findsOne);
     await tester.tapAndSettle(find.byType(Checkbox));

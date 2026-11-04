@@ -71,6 +71,26 @@ void main() {
     expect(find.text('Period: heavy'), findsOne, reason: 'its tile');
   });
 
+  testWidgets('the cycle line shows below the calendar, clear of the Add '
+      'button', (tester) async {
+    final part = calendarPart(newCalendarText('Me', health: true));
+    await pumpPage(tester, part, today: _today);
+    await _add(tester, 'Period');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final line = tester.getRect(find.textContaining('of the cycle'));
+    final legend = tester.getRect(find.text('Likely fertile'));
+    final add = tester.getRect(find.byTooltip('Add event'));
+    expect(
+      line.top,
+      greaterThan(tester.getRect(find.byType(KalenderView)).bottom - 1),
+    );
+    for (final text in [line, legend]) {
+      expect(text.overlaps(add), isFalse);
+    }
+  });
+
   testWidgets('a symptom needs its name; the form keeps one width', (
     tester,
   ) async {

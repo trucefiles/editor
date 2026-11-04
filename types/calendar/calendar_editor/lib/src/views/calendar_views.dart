@@ -8,6 +8,7 @@ import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
+import 'sideways_wheel.dart';
 import 'views_bar.dart';
 
 /// What the user does with an occurrence of the calendar keyed [calendar].
@@ -23,10 +24,11 @@ typedef OnMove<K> = void Function(
 
 /// [calendars] (by key) in a month, week, day or schedule view, each in
 /// its color ([colorOf]; an event's own color or health kind comes
-/// first), what they tell above (the insights strip, each named by
+/// first), what they tell below (the insights strip, each named by
 /// [titleOf] if given and several tell), the month's days shaded (weekends, health
 /// calendars' cycle days); the user picks the view ([onKind] tells it, to
-/// keep), pages through time and taps an occurrence ([onTap]). Only with
+/// keep), pages through time (with the bar's buttons, a swipe, or Shift
+/// and the mouse wheel) and taps an occurrence ([onTap]). Only with
 /// [onAdd] can the user add: by a tap on a free time or day, or a drag
 /// over free times or days; [onAddDay] is told the day an Add button
 /// starts on. Only with [onMove] can the user drag an occurrence or its
@@ -210,49 +212,53 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           onNext: kalender.animateToNextPage,
           onToday: () => kalender.animateToDate(widget.now()),
         ),
+        Expanded(
+          child: SidewaysWheel(
+            onPrevious: kalender.animateToPreviousPage,
+            onNext: kalender.animateToNextPage,
+            child: KalenderView(
+              eventsController: _events,
+              kalenderController: kalender,
+              locale: Localizations.localeOf(context),
+              callbacks: callbacks,
+              components: KalenderComponents(
+                monthComponents: MonthComponents(
+                  bodyComponents: MonthBodyComponents(
+                    monthDayCellBuilder: dayCells(_model.health),
+                  ),
+                ),
+              ),
+              interaction: KalenderInteraction(
+                allowResizing: movable,
+                allowRescheduling: movable,
+                // A drag over free times asks for a new event there.
+                allowEventCreation: onAdd != null,
+              ),
+              views: [
+                MultiDayViewParts(
+                  header: MultiDayHeader(tileComponents: _tiles),
+                  body: MultiDayBody(
+                    tileComponents: _tiles,
+                    // Not to the current time: it would carry its minutes
+                    // and seconds into the event.
+                    snapping: const KalenderSnapping(
+                      snapIntervalMinutes: 15,
+                      snapToTimeIndicator: false,
+                    ),
+                  ),
+                ),
+                MonthViewParts(body: MonthBody(tileComponents: _tiles)),
+                ScheduleViewParts(
+                  body: ScheduleBody(tileComponents: _scheduleTiles),
+                ),
+              ],
+            ),
+          ),
+        ),
         InsightsStrip<K>(
           health: _model.health,
           today: _model.today,
           titleOf: widget.titleOf,
-        ),
-        Expanded(
-          child: KalenderView(
-            eventsController: _events,
-            kalenderController: kalender,
-            locale: Localizations.localeOf(context),
-            callbacks: callbacks,
-            components: KalenderComponents(
-              monthComponents: MonthComponents(
-                bodyComponents: MonthBodyComponents(
-                  monthDayCellBuilder: dayCells(_model.health),
-                ),
-              ),
-            ),
-            interaction: KalenderInteraction(
-              allowResizing: movable,
-              allowRescheduling: movable,
-              // A drag over free times asks for a new event there.
-              allowEventCreation: onAdd != null,
-            ),
-            views: [
-              MultiDayViewParts(
-                header: MultiDayHeader(tileComponents: _tiles),
-                body: MultiDayBody(
-                  tileComponents: _tiles,
-                  // Not to the current time: it would carry its minutes
-                  // and seconds into the event.
-                  snapping: const KalenderSnapping(
-                    snapIntervalMinutes: 15,
-                    snapToTimeIndicator: false,
-                  ),
-                ),
-              ),
-              MonthViewParts(body: MonthBody(tileComponents: _tiles)),
-              ScheduleViewParts(
-                body: ScheduleBody(tileComponents: _scheduleTiles),
-              ),
-            ],
-          ),
         ),
       ],
     );

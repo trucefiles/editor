@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../common/clear_chip.dart';
 import '../folder_selection.dart';
 import 'folder_badge.dart';
 import 'folder_warning_icon.dart';
 
 /// One chip per folder, in the user's order; picks the folders the grid
-/// shows, none picked showing all. A chip shows its folder's conflicts
+/// shows, none picked showing all; a Clear chip first while some are
+/// picked. A chip shows its folder's conflicts
 /// and a sign if its sync tool warns about it.
 class FolderChips extends ConsumerWidget {
   const FolderChips(this.folders, {required this.conflictCount, super.key});
@@ -25,6 +27,7 @@ class FolderChips extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       spacing: 8,
       children: [
+        if (picked.isNotEmpty) ClearChip(onPressed: picks.clear),
         for (final folder in folders)
           FilterChip(
             showCheckmark: false,

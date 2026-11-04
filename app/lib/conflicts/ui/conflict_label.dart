@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// A small "Conflict" pill: the file has versions from a sync conflict.
+/// Without [word], only its icon, where room is short.
 class ConflictLabel extends StatelessWidget {
-  const ConflictLabel({super.key});
+  const ConflictLabel({this.word = true, super.key});
+
+  final bool word;
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +23,12 @@ class ConflictLabel extends StatelessWidget {
           spacing: 2,
           children: [
             Icon(Icons.call_split, size: 14, color: colors.onError),
-            Text(
-              'Conflict',
-              style: Theme.of(context).textTheme.labelSmall
-                  ?.copyWith(color: colors.onError),
-            ),
+            if (word)
+              Text(
+                'Conflict',
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: colors.onError),
+              ),
           ],
         ),
       ),

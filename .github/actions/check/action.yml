@@ -77,9 +77,9 @@ runs:
       working-directory: files
       run: dart test
 
-    - name: Test masonry grid
+    - name: Test common UI
       shell: bash
-      working-directory: masonry
+      working-directory: common_ui
       run: flutter test
 
     - name: Test document editor

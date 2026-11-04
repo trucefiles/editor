@@ -1,14 +1,17 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_editor/files/ui/file_card.dart';
 import 'package:truce_editor/files/ui/file_grid.dart';
+import 'package:truce_editor/folders/ui/folder_badge.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
+import 'package:truce_editor/theme/app_theme.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../support.dart';
@@ -51,7 +54,8 @@ void main() {
                     file,
                     preview: read(text.join('\n')),
                     onTap: () {},
-                    onMark: () {},
+                    onActions: () {},
+                    onActionsAt: (_) {},
                   ),
                 ),
               ),
@@ -100,6 +104,113 @@ void main() {
     expect(find.textContaining('line'), findsNothing);
   });
 
+  group('footer', () {
+    final deep = listedFile(
+      folderAt(Directory.systemTemp).copyWith(name: 'Shared Notes'),
+      name: 'projects/clients/work/plan.md',
+      modified: DateTime(2026, 10, 14),
+    );
+
+    // The app's own font, so widths are as on a device.
+    setUpAll(() async {
+      final inter = FontLoader('Inter');
+      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+        inter.addFont(rootBundle.load('assets/fonts/inter/Inter-$weight.ttf'));
+      }
+      await inter.load();
+    });
+
+    /// Shows [deep]'s card [width] wide, pinned and with a conflict, at
+    /// the text size [scale].
+    Future<void> showDeep(
+      WidgetTester tester, {
+      required double width,
+      double scale = 1,
+    }) => tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: appTheme(Brightness.light),
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: width,
+                  child: FileCard(
+                    deep,
+                    preview: read('# Plan'),
+                    settings: FileSettings.defaults.withPinned(pinned: true),
+                    hasConflict: true,
+                    onTap: () {},
+                    onActions: () {},
+                    onActionsAt: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Finder footerIcon(IconData icon) => find.byIcon(icon);
+    Text place(WidgetTester tester) =>
+        tester.widget<Text>(find.textContaining('Shared'));
+
+    // From a narrow phone's two columns to the widest a grid makes them,
+    // and wider, as in a dialog.
+    for (final scale in [1.0, 1.5, 2.0]) {
+      for (final width in [140.0, 160.0, 180.0, 200.0, 240.0, 320.0, 480.0]) {
+        testWidgets('fits at $width px and text size $scale: the type icon '
+            'first, the place giving way before the date', (tester) async {
+          await showDeep(tester, width: width, scale: scale);
+
+          expect(tester.takeException(), isNull);
+          final card = tester.getRect(find.byType(FileCard));
+          final typeIcon = tester.getRect(
+            find
+                .descendant(
+                  of: find.byType(FileCard),
+                  matching: find.byType(Icon),
+                )
+                .first,
+          );
+          // At the card's left edge, inside its padding.
+          expect(typeIcon.left - card.left, lessThan(20));
+          final date = find.textContaining('Oct 14');
+          final dateText = tester.widget<Text>(date);
+          final painter = TextPainter(
+            text: TextSpan(text: dateText.data, style: dateText.style),
+            textDirection: TextDirection.ltr,
+            textScaler: TextScaler.linear(scale),
+            maxLines: 1,
+          )..layout();
+          final whole = tester.getSize(date).width >= painter.width - 0.01;
+          painter.dispose();
+          // The place gives way first: the date is cut only once it's gone.
+          if (!whole) expect(find.byType(FolderDot), findsNothing);
+          if (width >= 160 && scale == 1) expect(whole, isTrue);
+          expect(tester.getRect(date).right, lessThanOrEqualTo(card.right));
+          expect(footerIcon(Icons.push_pin), findsOne);
+        });
+      }
+    }
+
+    testWidgets('shortens the place in the middle, the folder name last', (
+      tester,
+    ) async {
+      await showDeep(tester, width: 700);
+      expect(place(tester).data, 'Shared Notes/projects/clients/work');
+
+      await showDeep(tester, width: 320);
+      expect(place(tester).data, 'Shared Notes/…/work');
+
+      await showDeep(tester, width: 240);
+      expect(place(tester).data, 'Shared Notes/…');
+    });
+  });
+
   testWidgets('labels a document with a sync conflict', (tester) async {
     Future<void> show({required bool hasConflict}) => tester.pumpWidget(
       ProviderScope(
@@ -110,7 +221,8 @@ void main() {
               preview: read('# Title'),
               hasConflict: hasConflict,
               onTap: () {},
-              onMark: () {},
+              onActions: () {},
+              onActionsAt: (_) {},
             ),
           ),
         ),
@@ -121,7 +233,7 @@ void main() {
     expect(find.text('Conflict'), findsNothing);
 
     await show(hasConflict: true);
-    expect(find.text('Conflict'), findsOne);
+    expect(find.byTooltip('Sync conflict'), findsOne);
   });
 
   testWidgets(
@@ -139,7 +251,8 @@ void main() {
                     file,
                     preview: read('# Title\nline'),
                     onTap: () {},
-                    onMark: () {},
+                    onActions: () {},
+                    onActionsAt: (_) {},
                   ),
                 ),
               ),
@@ -162,7 +275,13 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: FileCard(file, preview: preview, onTap: () {}, onMark: () {}),
+            body: FileCard(
+              file,
+              preview: preview,
+              onTap: () {},
+              onActions: () {},
+              onActionsAt: (_) {},
+            ),
           ),
         ),
       ),
@@ -203,7 +322,8 @@ void main() {
                         ].join('\n'),
                       ),
                       onTap: () {},
-                      onMark: () {},
+                      onActions: () {},
+                      onActionsAt: (_) {},
                     ),
                   ),
                 ],

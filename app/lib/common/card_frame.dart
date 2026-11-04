@@ -13,7 +13,8 @@ class CardFrame extends StatelessWidget {
     required this.footer,
     required this.onTap,
     this.body,
-    this.onMark,
+    this.onActions,
+    this.onActionsAt,
     this.color,
     this.shape,
     super.key,
@@ -27,8 +28,12 @@ class CardFrame extends StatelessWidget {
   final Widget footer;
   final VoidCallback onTap;
 
-  /// Asks for a pin or color: on long press, or right click with a mouse.
-  final VoidCallback? onMark;
+  /// Asks for the card's actions on a long press.
+  final VoidCallback? onActions;
+
+  /// Asks for the card's actions on a right click, at its point on the
+  /// screen.
+  final ValueChanged<Offset>? onActionsAt;
 
   final Color? color;
   final ShapeBorder? shape;
@@ -43,8 +48,13 @@ class CardFrame extends StatelessWidget {
       shape: shape,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onMark,
-        onSecondaryTap: onMark,
+        onLongPress: onActions,
+        onSecondaryTapUp: switch (onActionsAt) {
+          final onActionsAt? => (details) => onActionsAt(
+            details.globalPosition,
+          ),
+          null => null,
+        },
         child: Padding(
           padding: const EdgeInsets.all(_padding),
           child: Column(
