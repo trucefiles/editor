@@ -171,10 +171,7 @@ final class FileMarks {
     final written = version == null
         ? await _store.create(ownFile, bytes)
         : await _store.replace(ownFile, bytes, ifUnchanged: version);
-    return switch (written) {
-      Ok() => const Ok(null),
-      Err(:final error) => Err(error),
-    };
+    return written.map((_) {});
   }
 
   /// Drops the marks of files that are no longer in [directory]; keeps

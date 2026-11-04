@@ -226,12 +226,7 @@ final class FilesOfFolder {
       file.textFile.encode(text),
       ifUnchanged: file.listed.version,
     );
-    return switch (written) {
-      Ok(value: final entry) => Ok(
-        _fileAt(entry, file.textFile.withText(text)),
-      ),
-      Err(:final error) => Err(error),
-    };
+    return written.map((entry) => _fileAt(entry, file.textFile.withText(text)));
   }
 
   /// Writes [text] as [file]'s file again, e.g. after it was deleted
@@ -241,12 +236,7 @@ final class FilesOfFolder {
     String text,
   ) async {
     final created = await _store.create(file.path, file.textFile.encode(text));
-    return switch (created) {
-      Ok(value: final entry) => Ok(
-        _fileAt(entry, file.textFile.withText(text)),
-      ),
-      Err(:final error) => Err(error),
-    };
+    return created.map((entry) => _fileAt(entry, file.textFile.withText(text)));
   }
 
   /// Keeps [text] as a conflict copy of [file], for edits that cannot go

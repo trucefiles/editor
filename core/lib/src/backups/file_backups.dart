@@ -71,19 +71,15 @@ final class FileBackups {
 
   /// The backups of the file at [filePath], newest first.
   Future<Result<List<Backup>, StoreError>> listOf(RelPath filePath) async =>
-      switch (await list()) {
-        Ok(:final value) => Ok([
-          for (final backup in value)
+      (await list()).map(
+        (backups) => [
+          for (final backup in backups)
             if (backup.filePath == filePath) backup,
-        ]),
-        Err(:final error) => Err(error),
-      };
+        ],
+      );
 
   Future<Result<Uint8List, StoreError>> read(Backup backup) async =>
-      switch (await _store.read(backup.storePath)) {
-        Ok(:final value) => Ok(value.bytes),
-        Err(:final error) => Err(error),
-      };
+      (await _store.read(backup.storePath)).map((content) => content.bytes);
 
   /// Deletes [backup]; the user asked for it.
   Future<Result<void, StoreError>> delete(Backup backup) async =>

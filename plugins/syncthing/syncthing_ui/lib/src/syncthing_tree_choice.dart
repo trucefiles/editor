@@ -68,12 +68,8 @@ final class SyncthingTreeChoice {
   /// The folders in [parent] (the top level if `null`) to pick from,
   /// sorted.
   Future<Result<List<RelPath>, StoreError>> foldersIn(RelPath? parent) async =>
-      switch (await _names.namesIn(parent)) {
-        Ok(value: final names) => Ok([
-          for (final name in names) ?_pathOf(parent, name),
-        ]),
-        Err(:final error) => Err(error),
-      };
+      (await _names.namesIn(parent))
+          .map((names) => [for (final name in names) ?_pathOf(parent, name)]);
 
   /// The pick is no longer shown.
   void dispose() => unawaited(_changes.close());

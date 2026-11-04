@@ -15,14 +15,13 @@ extension FoldersThere on FileStore {
           folders.any((wanted) => wanted.isAtOrInside(folder)),
       includeFile: (_) => false,
     );
-    return switch (listed) {
-      Ok(value: final listing) => Ok({
+    return listed.map(
+      (listing) => {
         for (final folder in folders)
           if (listing.folders.contains(folder) ||
               listing.unreadable.any(folder.isAtOrInside))
             folder,
-      }),
-      Err(:final error) => Err(error),
-    };
+      },
+    );
   }
 }
