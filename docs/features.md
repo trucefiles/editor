@@ -3,14 +3,31 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Home, cards and wide windows
+
+Home now has two parts: **Pinned** (every pinned file) and **Recently
+edited**. Settings sets how many recently edited files show and, if you
+like, how old they can be. A **Clear** chip drops all picks in its row.
+A card's footer starts with its type's icon; a long place is cut in the
+middle, so the folder and the last subfolder stay readable, and the
+whole place shows when you hover over it. Long press a card, or right
+click it with a mouse, to open, pin or color it. Settings and forms
+stay in one readable column on wide windows, and Esc closes any page or
+form.
+
+<img src="screenshots/home/home_desktop.png" width="600" alt="Home: Pinned on top, then Recently edited, each card's footer starting with its type icon">
+<img src="screenshots/home/card_menu_desktop.png" width="600" alt="A right click on a card: Open, Pin, Color with its colors, and where the other actions are">
+<img src="screenshots/home/card_sheet_touch.png" width="300" alt="A long press on a card on a phone: its title and place, Open, Pin, colors">
+<img src="screenshots/settings/settings_desktop.png" width="600" alt="Settings on a wide window, in one centered column">
+
 ## Filters, folder order and type icons
 
 Pick as many folder and type chips as you like; tap one again to drop
-it. Each file shows its type's icon. In **Manage folders**, drag a folder
+it, or **Clear** to drop them all. Each file shows its type's icon. In **Manage folders**, drag a folder
 by its handle to change its place; the chips and All files follow that
 order.
 
-<img src="screenshots/home/home_filters_desktop.png" width="600" alt="Home showing Markdown files and calendars, both chips picked, each card with its type icon">
+<img src="screenshots/home/home_filters_desktop.png" width="600" alt="Home showing only Markdown files, its chip picked, a Clear chip before it">
 <img src="screenshots/folders/folders_order_desktop.png" width="600" alt="Manage folders: each folder with a drag handle">
 
 ## Adding folders
@@ -39,8 +56,10 @@ have its own color; otherwise it shows in its calendar's color (the
 file's color, else its folder's). A health calendar shows in the same
 views: **+** lists its kinds of entry (medication, symptom, measure,
 note, period), each with its own form and color. Once a period is
-written, the month shades period days, the likely next period and
-fertile days, and the line above tells the day of the cycle. Once your
+written, the month shades period days and fertile days, stripes the
+likely next period, and the line below tells the day of the cycle.
+Today always has a blue outline. With a mouse, Shift and the wheel page
+to the next or previous month, week or day. Once your
 folders hold a calendar, the **Calendar** tab shows the events of all
 of them in the same views. Tap an event there to see it, then open its
 calendar or edit it on its page; **+** picks a calendar and starts
@@ -52,22 +71,20 @@ kept.
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
-<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period outlined, the cycle line above">
+<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period striped, today outlined, the cycle line below">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
 <img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendar tab: its details with Open calendar and Edit">
 
-## Recent, All and search
+## Home, All and search
 
-Home shows your most recent documents from every folder, pinned ones on
-top. The view button at the top switches to **All files**: every
-document, newest first or by name (by name, under each subfolder), as
-cards or a list. When Recent hides some, **Show all** below it does the
-same. Settings sets how many recent
-documents home shows. Search looks through every folder, by title, text,
-file and folder names.
+Home shows your pinned files, then your recently edited documents from
+every folder. The view button at the top switches to **All files**:
+every document, newest first or by name (by name, under each
+subfolder), as cards or a list. When Recently edited hides some,
+**Show all** below it does the same. Search looks through every folder,
+by title, text, file and folder names.
 
-<img src="screenshots/home/home_recent_desktop.png" width="600" alt="Home: the recent documents from every folder, each with its type icon">
-<img src="screenshots/home/view_menu_desktop.png" width="600" alt="The view menu: Recent or All files, the order and cards or list">
+<img src="screenshots/home/view_menu_desktop.png" width="600" alt="The view menu: Home or All files, the order and cards or list">
 <img src="screenshots/home/all_by_name_desktop.png" width="600" alt="All documents by name, as cards under each subfolder">
 <img src="screenshots/home/all_list_desktop.png" width="600" alt="All documents by name, as a list">
 <img src="screenshots/home/search_desktop.png" width="600" alt="Search for lake finds two documents">

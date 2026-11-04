@@ -41,6 +41,7 @@ class SidewaysWheel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
     children: [
       child,
       // On top, so it is asked first; translucent, so the pointer still
