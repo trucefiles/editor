@@ -4,16 +4,19 @@ library;
 import '../../view/rows.dart';
 import '../change.dart';
 import '../selection.dart';
+import 'line_after.dart';
 import 'line_in_place.dart';
 import 'text_commands.dart';
 
 /// [view]'s document with what [selection] holds taken away, the caret
 /// where it was: its text removed, or the block selected whole replaced
-/// by an empty line, as typing replaces one selected character.
+/// by an empty line, as typing replaces one selected character; right
+/// after a block, a new empty line after it to type in.
 Edited cleared(ViewRows view, Selection selection) => switch (selection) {
   TextSelection(isCaret: true) => (doc: view.doc, selection: selection),
   final TextSelection range => settled(deleteRange(view, range)),
   BlockSelection(:final block) => settled(lineInPlace(view, block)),
+  BlockCaret(:final block) => settled(lineAfter(view, block)),
 };
 
 /// [edit] made at the caret once what [selection] holds is taken away.

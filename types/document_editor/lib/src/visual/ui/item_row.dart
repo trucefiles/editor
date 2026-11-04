@@ -14,9 +14,12 @@ import 'swipe_to_indent.dart';
 /// [active], a delete button, spaced by the document's metrics. The
 /// handle and delete button take the whole row's height, so a finger
 /// hits them anywhere beside the row. While dragged, the copy shows the
-/// handle, the marker, [copy] and how many subitems move with it.
-class ItemRow extends StatefulWidget {
+/// handle, the marker, [copy] and how many subitems move with it. [row]
+/// keys the row as its drag copy is laid out; it stays the same while the
+/// item changes level, so a drop lands where the row then shows.
+class ItemRow extends StatelessWidget {
   const ItemRow({
+    required this.row,
     required this.item,
     required this.content,
     required this.copy,
@@ -26,6 +29,7 @@ class ItemRow extends StatefulWidget {
     super.key,
   });
 
+  final GlobalKey row;
   final ItemFrame item;
   final Widget content;
   final Widget copy;
@@ -37,31 +41,23 @@ class ItemRow extends StatefulWidget {
   final VisualActions actions;
 
   @override
-  State<ItemRow> createState() => _ItemRowState();
-}
-
-class _ItemRowState extends State<ItemRow> {
-  final _rowKey = GlobalKey();
-
-  @override
   Widget build(BuildContext context) {
     final metrics = DocumentMetrics.of(context);
-    final item = widget.item;
     return Stack(
-      key: _rowKey,
+      key: row,
       children: [
         _MarkedRow(
           item,
-          style: widget.style,
-          onToggle: () => widget.actions.toggle(item.item),
-          child: widget.content,
+          style: style,
+          onToggle: () => actions.toggle(item.item),
+          child: content,
         ),
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
           width: metrics.handleWidth,
-          child: _deleteButton(metrics),
+          child: _deleteButton(context, metrics),
         ),
         Positioned(
           left: 0,
@@ -70,7 +66,7 @@ class _ItemRowState extends State<ItemRow> {
           width: metrics.handleWidth,
           child: SwipeToIndent.keepMouseDrags(
             LineDragHandle(
-              LineDrag(item.item, row: _rowKey, look: _dragged(metrics)),
+              LineDrag(item.item, row: row, look: _dragged(context, metrics)),
               icon: _slotIcon(Icons.drag_indicator, metrics),
             ),
           ),
@@ -81,56 +77,50 @@ class _ItemRowState extends State<ItemRow> {
 
   /// The copy: the handle, and the marker with [ItemRow.copy] laid out
   /// as the row is, so its text lies where the row's does when it lifts
-  /// and lands; then how many subitems move with it.
-  Widget _dragged(DocumentMetrics metrics) => Stack(
+  /// and lands; below it, one level in, a ghost line telling how many
+  /// subitems move with it.
+  Widget _dragged(BuildContext context, DocumentMetrics metrics) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _MarkedRow(
-        widget.item,
-        style: widget.style,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: widget.copy),
-            if (widget.item.subitems case final subitems when subitems > 0)
-              Text(
-                '  +$subitems',
-                style: widget.style.copyWith(
-                  color: Theme.of(context).disabledColor,
-                ),
-              ),
-          ],
-        ),
+      Stack(
+        children: [
+          _MarkedRow(item, style: style, child: copy),
+          Positioned(
+            left: 0,
+            top: 0,
+            width: metrics.handleWidth,
+            child: _slotIcon(Icons.drag_indicator, metrics),
+          ),
+        ],
       ),
-      Positioned(
-        left: 0,
-        top: 0,
-        width: metrics.handleWidth,
-        child: _slotIcon(Icons.drag_indicator, metrics),
-      ),
+      if (item.subitems case final subitems when subitems > 0)
+        _SubitemsLine(subitems, style: style, metrics: metrics),
     ],
   );
 
   /// Shown only while [ItemRow.active]; kept in the tree while hidden, so
   /// the row's layout stays put. Deletes the item with its subitems.
-  Widget _deleteButton(DocumentMetrics metrics) => Visibility(
-    visible: widget.active,
-    maintainState: true,
-    maintainAnimation: true,
-    maintainSize: true,
-    child: Tooltip(
-      message: 'Delete item',
-      child: InkResponse(
-        onTap: () => widget.actions.deleteItem(widget.item.item),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: IconTheme.merge(
-            data: IconThemeData(color: Theme.of(context).disabledColor),
-            child: _slotIcon(Icons.close, metrics),
+  Widget _deleteButton(BuildContext context, DocumentMetrics metrics) =>
+      Visibility(
+        visible: active,
+        maintainState: true,
+        maintainAnimation: true,
+        maintainSize: true,
+        child: Tooltip(
+          message: 'Delete item',
+          child: InkResponse(
+            onTap: () => actions.deleteItem(item.item),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: IconTheme.merge(
+                data: IconThemeData(color: Theme.of(context).disabledColor),
+                child: _slotIcon(Icons.close, metrics),
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 
   /// The icon of a slot beside the row (handle, delete), by the row's
   /// first line: drawn at line size, whatever the slot's size.
@@ -138,6 +128,56 @@ class _ItemRowState extends State<ItemRow> {
     padding: EdgeInsets.only(top: metrics.itemRowInset),
     child: Icon(icon, size: metrics.handleIconSize),
   );
+}
+
+/// The ghost line under a dragged item's copy, one level in: a chip
+/// with how many subitems move with it, [count].
+class _SubitemsLine extends StatelessWidget {
+  const _SubitemsLine(this.count, {required this.style, required this.metrics});
+
+  final int count;
+  final TextStyle style;
+  final DocumentMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: metrics.handleWidth + metrics.levelIndent,
+        right: metrics.handleWidth,
+        bottom: metrics.itemRowInset * 2,
+      ),
+      child: Row(
+        children: [
+          DecoratedBox(
+            decoration: ShapeDecoration(
+              color: colors.primary,
+              shape: const StadiumBorder(),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: metrics.lineGap * 2),
+              child: Text(
+                '+$count',
+                style: style.copyWith(
+                  color: colors.onPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: (style.fontSize ?? 14) * 0.8,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: metrics.lineGap * 2),
+          Expanded(
+            child: Container(
+              height: 2,
+              color: colors.onSurface.withValues(alpha: 0.12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// [child] beside [item]'s marker (in [style]; its box checks or
@@ -178,24 +218,27 @@ class _MarkedRow extends StatelessWidget {
   }
 }
 
-/// The whole row of [item], [child] with its indent: a drop or swipe
-/// anywhere on it counts (swipe right or left to indent or outdent);
-/// while [item] is dragged, it fades where it was.
+/// The whole row of [item], [child] with its indent, its [ItemRow] keyed
+/// [row]: a drop or swipe anywhere on it counts (swipe right or left to
+/// indent or outdent); while [item] is dragged, it fades where it was.
 class MovableItem extends StatelessWidget {
   const MovableItem({
     required this.item,
+    required this.row,
     required this.actions,
     required this.child,
     super.key,
   });
 
   final NodeId item;
+  final GlobalKey row;
   final VisualActions actions;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => LineDropTarget(
     item: item,
+    row: row,
     child: SwipeToIndent(
       step: DocumentMetrics.of(context).levelIndent,
       onIndent: () => actions.indent(item),

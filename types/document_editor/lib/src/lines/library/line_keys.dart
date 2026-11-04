@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:super_editor/super_editor.dart';
 
 import '../../library/keypad_keys.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../../library/rich_text_keys.dart';
 
 /// A line editor's key handling: the library's keys for plain text, Tab

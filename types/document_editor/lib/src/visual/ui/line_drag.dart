@@ -76,16 +76,14 @@ final class LineDrag {
         ),
       );
 
-  /// The dragged copy at [offset], measured on its row: its height, its
-  /// middle from top to bottom, and how far right of the row it is;
-  /// `null` once the row is gone.
-  ({double height, double middle, double shift})? at(Offset offset) =>
-      switch (rowBox) {
-        final box? => (
-          height: box.size.height,
-          middle: offset.dy + box.size.height / 2,
-          shift: offset.dx - box.localToGlobal(Offset.zero).dx,
-        ),
-        null => null,
-      };
+  /// The dragged copy at [offset], measured on its row: its top on
+  /// screen, and how far right of the row it is; `null` once the row is
+  /// gone.
+  ({double top, double shift})? at(Offset offset) => switch (rowBox) {
+    final box? => (
+      top: offset.dy,
+      shift: offset.dx - box.localToGlobal(Offset.zero).dx,
+    ),
+    null => null,
+  };
 }

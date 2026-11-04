@@ -330,4 +330,21 @@ void main() {
       isA<LineInPlace>(),
     );
   });
+
+  test('right after a divider, Backspace removes it, Enter adds a line '
+      'after it, other keys do nothing', () {
+    final document = _document('a\n\n---');
+    final divider = document.view.rows.whereType<BlockRow>().first.leaf.id;
+    KeyAction after(EditKey key) =>
+        keyAction(document.view, BlockCaret(divider), key);
+    expect(
+      _command(after(EditKey.backspace)),
+      isA<RemoveSelectedBlock>().having((it) => it.backward, 'backward', true),
+    );
+    expect(_command(after(EditKey.enter)), isA<LineAfter>());
+    expect(_command(after(EditKey.shiftEnter)), isA<LineAfter>());
+    for (final key in [EditKey.delete, EditKey.tab, EditKey.bold]) {
+      expect(after(key), isA<Consumed>(), reason: '$key');
+    }
+  });
 }

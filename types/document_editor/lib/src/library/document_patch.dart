@@ -13,12 +13,16 @@ typedef TargetNode = ({
 /// ones out of place, replaces those that don't show what they should,
 /// inserts the new ones; the others stay as they are. Edits the document
 /// directly, so the library's own requests are never needed. A composing
-/// region on a node that goes or changes its text is cleared.
+/// region on a node that goes or changes its text is cleared. [byUser]
+/// says the change came from the user's own input, so the view follows
+/// the caret (the library scrolls to it); a text from elsewhere moves
+/// nothing.
 final class PatchCommand extends EditCommand {
-  PatchCommand(this.nodes, {required this.selection});
+  PatchCommand(this.nodes, {required this.selection, required this.byUser});
 
   final List<TargetNode> nodes;
   final DocumentSelection? selection;
+  final bool byUser;
 
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.nonHistorical;
@@ -77,7 +81,9 @@ final class PatchCommand extends EditCommand {
         ChangeSelectionCommand(
           selection,
           SelectionChangeType.placeCaret,
-          SelectionReason.contentChange,
+          byUser
+              ? SelectionReason.userInteraction
+              : SelectionReason.contentChange,
         ),
       );
     }

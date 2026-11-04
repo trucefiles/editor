@@ -50,6 +50,36 @@ void main() {
       );
     });
 
+    test('gives an autolink new text as an inline link', () {
+      expect(
+        _linked(
+          'see www.example.com now',
+          4,
+          19,
+          'Example',
+          'http://www.example.com',
+        ).$1,
+        'see [Example](http://www.example.com) now',
+      );
+      expect(
+        _linked('see <https://x.io> now', 4, 16, 'X', 'https://x.io').$1,
+        'see [X](https://x.io) now',
+      );
+    });
+
+    test('keeps an autolink whose text stays', () {
+      expect(
+        _linked(
+          'see www.example.com now',
+          4,
+          19,
+          'www.example.com',
+          'http://www.example.com',
+        ).$1,
+        'see www.example.com now',
+      );
+    });
+
     test('changes a link\'s url', () {
       expect(_linked('[a](u)', 0, 1, 'a', 'v').$1, '[a](v)');
     });
@@ -66,6 +96,44 @@ void main() {
       expect(canRemoveLink(document.view, document.place(0, 0)), isTrue);
       expect(canRemoveLink(document.view, document.place(0, 3)), isFalse);
       expect(canRemoveLink(document.view, document.place(0, 8)), isFalse);
+    });
+  });
+
+  group('the link here', () {
+    LinkHere? here(String text, int from, [int? to]) {
+      final document = Shown.read(text);
+      return linkHere(
+        document.view,
+        TextSelection(document.place(0, from), document.place(0, to ?? from)),
+      );
+    }
+
+    test('at a caret in it, or right after it, is all of it', () {
+      for (final offset in [3, 4, 6]) {
+        final link = here('a [link](https://x.io) b', offset)!;
+        expect(
+          (link.text, link.url, link.removable),
+          ('link', 'https://x.io', true),
+        );
+        expect(link.range.base.offset, 2);
+        expect(link.range.extent.offset, 6);
+      }
+    });
+
+    test('over part of it, is all of it; over more, none', () {
+      expect(here('a [link](u) b', 3, 5)?.text, 'link');
+      expect(here('a [link](u) b', 1, 4), isNull);
+    });
+
+    test('is none before it or in plain text', () {
+      expect(here('a [link](u) b', 1), isNull);
+      expect(here('plain', 2), isNull);
+    });
+
+    test('of text GFM reads as a link cannot be removed', () {
+      final link = here('see www.x.io now', 6)!;
+      expect(link.text, 'www.x.io');
+      expect(link.removable, isFalse);
     });
   });
 }

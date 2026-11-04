@@ -95,7 +95,7 @@ void _expectSound(EditorState state, String fileText) {
             expect(row, isA<TextRow>(), reason: '$place shows');
             expect(place.offset, inInclusiveRange(0, textOf(row!.leaf).length));
           }
-        case BlockSelection(:final block):
+        case BlockSelection(:final block) || BlockCaret(:final block):
           expect(view.row(block), isA<BlockRow>(), reason: '$block shows');
         case null:
           break;

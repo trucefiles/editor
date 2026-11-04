@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
 import '../../ui/list_marker.dart';
 import '../row_looks.dart';
 
@@ -101,8 +102,10 @@ class MarkerView extends StatelessWidget {
       ListMarker(item.marker, style: style, onToggle: onToggle);
 }
 
-/// [child] in a quote: a bar on its left, so it stands apart from the
-/// text around it; the text [indent] right of it.
+/// [child] in a quote: a bar on its left and a light tint behind it, as
+/// Read shows quotes, so it stands apart from the text around it; the
+/// text [indent] right of the bar. The tint lets the page show through,
+/// so a quote inside a quote shows darker.
 class _QuoteBar extends StatelessWidget {
   const _QuoteBar(this.child, {required this.indent});
 
@@ -111,7 +114,16 @@ class _QuoteBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
+    // As wide as the row, so a quote inside a quote is tinted to the edge.
+    fit: StackFit.passthrough,
     children: [
+      Positioned.fill(
+        child: IgnorePointer(
+          child: ColoredBox(
+            color: DocumentTextStyles.quoteTint(Theme.of(context)),
+          ),
+        ),
+      ),
       Padding(
         padding: EdgeInsets.only(left: indent),
         child: child,

@@ -40,6 +40,19 @@ final class VisualActions {
     null => false,
   };
 
+  /// What is on at the caret or the selection, for the toolbar to show;
+  /// nothing while a raw block is open as text.
+  FormatState get formatState => switch (_shown) {
+    FormattedContent(
+      :final view,
+      :final selection,
+      :final typingStyle,
+      raw: null,
+    ) =>
+      formatStateAt(view, selection, typingStyle: typingStyle),
+    _ => FormatState.none,
+  };
+
   /// The text place the caret is in, if any.
   NodeId? get _caretLeaf => switch (_shown?.selection) {
     TextSelection(:final extent) => extent.leaf,
@@ -99,10 +112,11 @@ final class VisualActions {
     null => null,
   };
 
-  /// Whether [item] dropped right next to [target]'s row, [below] it or
-  /// above, stays where it shows.
-  bool staysWhereItIs(NodeId item, NodeId target, {required bool below}) =>
-      _placeOf(item, target, below: below) == null;
+  /// The item [item] goes next to, as one of its list, dropped right next
+  /// to [target]'s row, [below] it or above; `null` where it stays where
+  /// it shows.
+  NodeId? goesNextTo(NodeId item, NodeId target, {required bool below}) =>
+      _placeOf(item, target, below: below)?.item;
 
   /// [item] dropped right next to [target]'s row, [below] it or above;
   /// dropped on itself, it goes [levels] deeper (shallower if negative).
@@ -148,18 +162,31 @@ final class VisualActions {
 
   // The toolbar.
 
-  /// The link dialog's answer for [range], asked at [revision]: its text
-  /// links to [url]. Dropped if the text changed meanwhile.
-  void setLink(TextSelection range, String url, {required int revision}) =>
-      _gate.send(
-        (now) => switch (now.content) {
-          FormattedContent(:final view) => Run(
-            SetLink(range, plainTextOf(copiedLines(view, range)), url),
-            revision: revision,
-          ),
-          MarkdownContent() => null,
-        },
-      );
+  /// The link dialog's answer for [range], asked at [revision]: it shows
+  /// [text] as a link to [url]. Dropped if the text changed meanwhile.
+  void setLink(
+    TextSelection range,
+    String text,
+    String url, {
+    required int revision,
+  }) => _gate.send((_) => Run(SetLink(range, text, url), revision: revision));
+
+  /// The link the caret is in, if any: the link popup shows it.
+  LinkHere? get caretLink => switch (_shown) {
+    FormattedContent(
+      :final view,
+      selection: final TextSelection caret,
+      raw: null,
+    )
+        when caret.isCaret =>
+      linkHere(view, caret),
+    _ => null,
+  };
+
+  /// The link at [range], as shown at [revision], taken away, its text
+  /// kept. Dropped if the text changed meanwhile.
+  void removeLink(TextSelection range, {required int revision}) =>
+      _gate.send((_) => Run(RemoveLink(range.base), revision: revision));
 
   /// [key] pressed on the toolbar.
   void press(EditKey key) =>
@@ -184,7 +211,8 @@ final class VisualActions {
   void separator() => _gate.run(
     (selection) => switch (selection) {
       TextSelection(:final extent) => AddDivider(extent.leaf),
-      BlockSelection(:final block) => AddDivider(block),
+      BlockSelection(:final block) ||
+      BlockCaret(:final block) => AddDivider(block),
       null => null,
     },
   );
@@ -193,7 +221,7 @@ final class VisualActions {
   void quote() => _gate.run(
     (selection) => switch (selection) {
       final TextSelection range => SetFrame(range, FrameKind.quote),
-      BlockSelection() || null => null,
+      BlockSelection() || BlockCaret() || null => null,
     },
   );
 

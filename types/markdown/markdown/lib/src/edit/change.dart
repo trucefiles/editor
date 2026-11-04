@@ -127,7 +127,7 @@ CaretAfter selectionOnceGone(
 ) {
   final leaves = switch (selection) {
     TextSelection(:final base, :final extent) => [base.leaf, extent.leaf],
-    BlockSelection(:final block) => [block],
+    BlockSelection(:final block) || BlockCaret(:final block) => [block],
   };
   return leaves.any(
         (leaf) => switch (view.row(leaf)) {

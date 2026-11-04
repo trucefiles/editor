@@ -132,9 +132,7 @@ void main() {
       expect(find.byIcon(Icons.drag_indicator), findsNWidgets(3));
     });
 
-    testWidgets('selects with a tap, showing its delete button', (
-      tester,
-    ) async {
+    testWidgets('a tap shows its delete button', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
@@ -174,27 +172,65 @@ void main() {
       expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
     });
 
-    testWidgets('selected by a tap, shows itself selected', (tester) async {
+    /// The shade over the separator: transparent unless selected.
+    Color? shade(WidgetTester tester) =>
+        (tester
+                    .widget<DecoratedBox>(
+                      find
+                          .ancestor(
+                            of: find.byType(Divider),
+                            matching: find.byType(DecoratedBox),
+                          )
+                          .first,
+                    )
+                    .decoration
+                as BoxDecoration)
+            .color;
+
+    /// A double tap on the separator, which selects it as a word.
+    Future<void> doubleTap(
+      WidgetTester tester, {
+      PointerDeviceKind kind = PointerDeviceKind.touch,
+    }) async {
+      final at = tester.getCenter(find.byType(Divider));
+      await tester.tapAt(at, kind: kind);
+      await tester.pump(kDoubleTapMinTime);
+      await tester.tapAt(at, kind: kind);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a tap puts the caret right after it, not selecting it', (
+      tester,
+    ) async {
       await pumpDocument(tester, TestDocument(shop));
 
       await tester.tap(find.byType(Divider), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      final shade = tester.widget<DecoratedBox>(
-        find
-            .ancestor(
-              of: find.byType(Divider),
-              matching: find.byType(DecoratedBox),
-            )
-            .first,
-      );
-      expect(
-        (shade.decoration as BoxDecoration).color,
-        isNot(Colors.transparent),
-      );
+      expect(shade(tester), Colors.transparent);
     });
 
-    testWidgets('selected, text typed takes its place', (tester) async {
+    testWidgets('a double tap selects it, showing it selected', (tester) async {
+      await pumpDocument(tester, TestDocument(shop));
+
+      await doubleTap(tester);
+
+      expect(shade(tester), isNot(Colors.transparent));
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('a double click selects it, showing it selected', (
+      tester,
+    ) async {
+      await pumpDocument(tester, TestDocument(shop));
+
+      await doubleTap(tester, kind: PointerDeviceKind.mouse);
+
+      expect(shade(tester), isNot(Colors.transparent));
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+    testWidgets('after a tap, typed text goes on a new item after it', (
+      tester,
+    ) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
@@ -202,10 +238,20 @@ void main() {
       await tester.pumpAndSettle();
       await tester.typeImeText('x');
 
+      expect(document.text, '- [ ] milk\n- [ ] ------\n- [ ] x\n- [ ] eggs');
+    });
+
+    testWidgets('selected, text typed takes its place', (tester) async {
+      final document = TestDocument(shop);
+      await pumpDocument(tester, document);
+
+      await doubleTap(tester);
+      await tester.typeImeText('x');
+
       expect(document.text, '- [ ] milk\n- [ ] x\n- [ ] eggs');
     });
 
-    testWidgets('selected, pasted lines take its place', (tester) async {
+    testWidgets('after a tap, pasted lines go after it', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
       tester.clipboardHolds('tea\nrice');
@@ -215,10 +261,13 @@ void main() {
       await tester.pressCtlV();
       await tester.pumpAndSettle();
 
-      expect(document.text, '- [ ] milk\n- [ ] tea\n- [ ] rice\n- [ ] eggs');
+      expect(
+        document.text,
+        '- [ ] milk\n- [ ] ------\n- [ ] tea\n- [ ] rice\n- [ ] eggs',
+      );
     });
 
-    testWidgets('selected, Enter puts an empty item in its place', (
+    testWidgets('after a tap, Enter adds an empty item after it', (
       tester,
     ) async {
       final document = TestDocument(shop);
@@ -229,7 +278,7 @@ void main() {
       await tester.pressEnter();
       await tester.pumpAndSettle();
 
-      expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
+      expect(document.text, '- [ ] milk\n- [ ] ------\n- [ ] \n- [ ] eggs');
     });
 
     for (final (keyboard, backspace) in _backspaces) {
@@ -368,7 +417,7 @@ void main() {
     expect(document.text, '- [ ] milk\n- [ ] ***\n- [ ] xeggs');
   });
 
-  testWidgets('Separator with a separator selected adds one after it', (
+  testWidgets('Separator with the caret after a separator adds one after it', (
     tester,
   ) async {
     final document = TestDocument('milk\n\n---\n\neggs');
@@ -528,7 +577,7 @@ void main() {
 
   group('Link', () {
     Future<void> addLink(WidgetTester tester, String url) async {
-      await tester.enterText(find.byType(TextField), url);
+      await tester.enterText(find.widgetWithText(TextField, 'Address'), url);
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle();
     }
@@ -702,47 +751,137 @@ void main() {
   group('links', () {
     const linkedText = 'see [docs](https://a.b) now\n\nother';
 
-    testWidgets('a tap opens one in a line the caret is not in', (
-      tester,
-    ) async {
+    /// The popup's button with [tooltip].
+    Finder popupButton(String tooltip) => find.descendant(
+      of: find.byType(LinkPopup),
+      matching: find.byTooltip(tooltip),
+    );
+
+    testWidgets('a tap places the caret, opens none, and shows where the '
+        'link leads', (tester) async {
       final document = TestDocument(linkedText);
       await pumpDocument(tester, document);
-      await tester.caretIn(paragraphNodeOf(index: 1), 0);
 
       await tester.tapAt(tester.tapPointIn(paragraphNodeOf(), 6));
       await tester.pumpAndSettle();
-
-      expect(document.links, ['https://a.b']);
-    });
-
-    testWidgets('a tap in the caret line places the caret to edit it', (
-      tester,
-    ) async {
-      final document = TestDocument(linkedText);
-      await pumpDocument(tester, document);
-      await tester.caretIn(paragraphNodeOf(), 0);
-
-      await tester.caretIn(paragraphNodeOf(), 6);
 
       expect(document.links, isEmpty);
       expect(
         SuperEditorInspector.findDocumentSelection()!.extent.nodePosition,
         const TextNodePosition(offset: 6),
       );
+      expect(
+        find.descendant(
+          of: find.byType(LinkPopup),
+          matching: find.text('https://a.b'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the popup stays in the editor, gone while the caret is '
+        'scrolled out of it', (tester) async {
+      tester.view.physicalSize = const Size(600, 500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final lines = [for (var i = 0; i < 40; i++) 'line $i'].join('\n\n');
+      await pumpDocument(tester, TestDocument('$lines\n\nsee [docs](u)'));
+
+      final last = SuperEditorInspector.findDocument()!.last.id;
+      // To the end, the link on the last line shown.
+      await tester.drag(find.byType(SuperEditor), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      await tester.caretIn(last, 6);
+      final editor = tester.getRect(find.byType(SuperEditor));
+      expect(find.byType(LinkPopup), findsOneWidget);
+      final popup = tester.getRect(find.byType(LinkPopup));
+      expect(
+        editor.top <= popup.top && popup.bottom <= editor.bottom,
+        isTrue,
+        reason: 'popup $popup in editor $editor',
+      );
+
+      await tester.drag(find.byType(SuperEditor), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(find.byType(LinkPopup), findsNothing);
+    });
+
+    testWidgets('no popup with the caret off a link', (tester) async {
+      await pumpDocument(tester, TestDocument(linkedText));
+
+      await tester.caretIn(paragraphNodeOf(index: 1), 0);
+
+      expect(find.byType(LinkPopup), findsNothing);
+    });
+
+    testWidgets("the popup's Open opens it", (tester) async {
+      final document = TestDocument(linkedText);
+      await pumpDocument(tester, document);
+      await tester.caretIn(paragraphNodeOf(), 6);
+
+      await tester.tap(popupButton('Open link'));
+      await tester.pumpAndSettle();
+
+      expect(document.links, ['https://a.b']);
+    });
+
+    testWidgets("the popup's Remove keeps the text", (tester) async {
+      final document = TestDocument(linkedText);
+      await pumpDocument(tester, document);
+      await tester.caretIn(paragraphNodeOf(), 6);
+
+      await tester.tap(popupButton('Remove link'));
+      await tester.pumpAndSettle();
+
+      expect(document.text, 'see docs now\n\nother');
+    });
+
+    testWidgets("the popup's Edit changes the whole link's text and "
+        'address', (tester) async {
+      final document = TestDocument(linkedText);
+      await pumpDocument(tester, document);
+      await tester.caretIn(paragraphNodeOf(), 6);
+
+      await tester.tap(popupButton('Edit link'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit link'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextField, 'docs'), 'guide');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'https://a.b'),
+        'c.d',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(document.text, 'see [guide](https://c.d) now\n\nother');
+    });
+
+    testWidgets('a link GFM finds by itself has no Remove', (tester) async {
+      await pumpDocument(tester, TestDocument('see www.a.b now'));
+
+      await tester.caretIn(paragraphNodeOf(), 6);
+
+      expect(popupButton('Open link'), findsOneWidget);
+      expect(popupButton('Remove link'), findsNothing);
     });
 
     for (final (name, text) in [
+      ('a line', linkedText),
       ('a list item', '- see [docs](https://a.b) now\n\nother'),
       ('a quote', '> see [docs](https://a.b) now\n\nother'),
     ]) {
-      testWidgets('a tap opens one in $name', (tester) async {
+      testWidgets('a Ctrl+click opens one in $name', (tester) async {
         final document = TestDocument(text);
         await pumpDocument(tester, document);
         final nodes = SuperEditorInspector.findDocument()!;
-        await tester.caretIn(nodes.last.id, 0);
+        final linked = nodes.whereType<TextNode>().first;
 
-        final linked = nodes.firstWhere((node) => framesOf(node).isNotEmpty);
-        await tester.tapAt(tester.tapPointIn(linked.id, 6));
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.tapAt(
+          tester.tapPointIn(linked.id, 6),
+          kind: PointerDeviceKind.mouse,
+        );
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
         await tester.pumpAndSettle();
 
         expect(document.links, ['https://a.b']);

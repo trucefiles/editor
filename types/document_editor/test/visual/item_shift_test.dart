@@ -12,6 +12,21 @@ void main() {
   double left(WidgetTester tester) =>
       tester.getTopLeft(find.text('bbb', findRichText: true).last).dx;
 
+  /// The dragged copy, while it shows.
+  final copy = find.byWidgetPredicate(
+    (widget) => widget is Material && widget.elevation == 4,
+  );
+
+  /// Where `bbb` shows in the copy, left to right.
+  double copyLeft(WidgetTester tester) => tester
+      .getTopLeft(
+        find.descendant(
+          of: copy,
+          matching: find.text('bbb', findRichText: true),
+        ),
+      )
+      .dx;
+
   /// Moves [gesture] [dx] to the right, a few pixels a frame.
   Future<void> slide(WidgetTester tester, TestGesture gesture, double dx) =>
       Iterable<int>.generate(20).fold(Future.value(), (done, _) async {
@@ -89,5 +104,35 @@ void main() {
     expect(step, greaterThan(0));
     expect(frames, everyElement(inInclusiveRange(step - 0.5, 40.5)));
     expect(frames.last, closeTo(step, 0.5));
+  });
+
+  testWidgets('a drag sideways glides from where it was let go onto the '
+      'row at its new indent', (tester) async {
+    final document = TestDocument(list);
+    await pumpDocument(tester, document);
+    final start = left(tester);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator).at(1)),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    await slide(tester, gesture, 60);
+    await gesture.up();
+    final copies = <double>[];
+    for (final _ in Iterable<int>.generate(20)) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (copy.evaluate().isNotEmpty) copies.add(copyLeft(tester) - start);
+    }
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] aaa\n  - [ ] bbb\n- [ ] ccc');
+    final step = left(tester) - start;
+    expect(copies.length, greaterThan(2), reason: 'the copy glides');
+    expect(copies.first, closeTo(60, 1));
+    expect(copies.last, closeTo(step, 1));
+    for (final (index, x) in copies.indexed.skip(1)) {
+      expect(x, lessThanOrEqualTo(copies[index - 1] + 0.01));
+    }
   });
 }

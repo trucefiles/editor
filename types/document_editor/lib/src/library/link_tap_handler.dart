@@ -35,16 +35,10 @@ class LinkTapHandler extends ContentTapDelegate {
       opens(position) ? linkAt(position) : null;
 }
 
-/// Whether a tap opens a link while editing: with Ctrl (or Cmd) held on
-/// any line, and with a plain tap if [tapOpens], on a line the caret
-/// ([caretNode]) is not in. A tap on a link in the caret's line places the
-/// caret, so the link can be edited.
-bool editingTapOpens(
-  DocumentPosition position, {
-  required bool tapOpens,
-  required String? caretNode,
-}) {
+/// Whether a tap at [position] opens a link while editing: only with Ctrl
+/// (or Cmd) held; a plain tap places the caret, so the link can be
+/// edited.
+bool editingTapOpens(DocumentPosition position) {
   final keyboard = HardwareKeyboard.instance;
-  if (keyboard.isControlPressed || keyboard.isMetaPressed) return true;
-  return tapOpens && caretNode != position.nodeId;
+  return keyboard.isControlPressed || keyboard.isMetaPressed;
 }

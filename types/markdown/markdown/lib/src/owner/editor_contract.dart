@@ -262,11 +262,21 @@ final class Notice extends EditorEvent {
   final EditorNotice notice;
 }
 
-/// The link dialog opens on [range].
+/// The link dialog opens on [range], showing [text]: on a link, to edit
+/// it, with where it leads ([url]) and whether it can be [removable];
+/// else, with [url] `null`, to add one.
 final class AskLink extends EditorEvent {
-  const AskLink(this.range);
+  const AskLink(
+    this.range, {
+    required this.text,
+    this.url,
+    this.removable = false,
+  });
 
   final TextSelection range;
+  final String text;
+  final String? url;
+  final bool removable;
 }
 
 // State.

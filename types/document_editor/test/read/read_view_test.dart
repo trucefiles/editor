@@ -170,4 +170,20 @@ void main() {
 
     expect(opened, isEmpty);
   });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('a quote is tinted as Visual edit tints it, '
+        '${brightness.name}', (tester) async {
+      final theme = ThemeData(brightness: brightness);
+      await show(tester, '> a quote', theme: theme);
+
+      final tinted = find.byWidgetPredicate(
+        (widget) =>
+            widget is DecoratedBox &&
+            widget.decoration ==
+                BoxDecoration(color: DocumentTextStyles.quoteTint(theme)),
+      );
+      expect(tinted, findsOneWidget);
+    });
+  }
 }

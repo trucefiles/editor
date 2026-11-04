@@ -75,9 +75,14 @@ final class EditorRun {
     ),
   );
 
-  /// The block of row [row] selected whole, as a tap selects it.
+  /// The block of row [row] selected whole, as a double click selects
+  /// it.
   void select(int row) =>
       send(CaretMoved(BlockSelection(leaf(row)), revision: revision));
+
+  /// The caret right after the block of row [row], as a tap puts it.
+  void caretAfter(int row) =>
+      send(CaretMoved(BlockCaret(leaf(row)), revision: revision));
 
   /// [text] typed at the caret, which must show.
   void type(String text) =>

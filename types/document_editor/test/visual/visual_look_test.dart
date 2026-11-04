@@ -1,10 +1,11 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart'
-    show AddItemPlace;
+    show AddItemPlace, DocumentTextStyles;
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -115,6 +116,50 @@ void main() {
     final two = tester.getRect(find.text('two', findRichText: true));
     expect(two.top - one.bottom, greaterThan(20), reason: 'a blank line');
     expect(second.top, moreOrLessEquals(first.bottom), reason: 'no break');
+  });
+
+  testWidgets('a quote is tinted as far as its bar runs, a quote in a '
+      'quote twice', (tester) async {
+    await pumpDocument(tester, TestDocument('> one\n>\n> > two\n\nafter'));
+    await tester.pumpAndSettle();
+    final tint = DocumentTextStyles.quoteTint(
+      Theme.of(tester.element(find.byType(SuperEditor))),
+    );
+    List<Rect> tints() => [
+      for (final box
+          in find
+              .byWidgetPredicate(
+                (widget) => widget is ColoredBox && widget.color == tint,
+              )
+              .evaluate())
+        tester.getRect(find.byWidget(box.widget)),
+    ];
+    List<Rect> bars() => [
+      for (final bar in quoteBars().evaluate())
+        tester.getRect(find.byWidget(bar.widget)),
+    ];
+
+    expect(tints(), hasLength(bars().length));
+    int byPlace(Rect one, Rect other) => one.top != other.top
+        ? one.top.compareTo(other.top)
+        : one.left.compareTo(other.left);
+    for (final [tint, bar] in IterableZip([
+      tints().sorted(byPlace),
+      bars().sorted(byPlace),
+    ])) {
+      expect(tint.top, bar.top);
+      expect(tint.bottom, bar.bottom);
+      expect(tint.left, bar.left);
+    }
+    expect(
+      tints().map((tint) => tint.right).toSet(),
+      hasLength(1),
+      reason: 'every tint runs to the right edge',
+    );
+    final two = tester.getCenter(find.text('two', findRichText: true));
+    expect(tints().where((tint) => tint.contains(two)), hasLength(2));
+    final after = tester.getCenter(find.text('after', findRichText: true));
+    expect(tints().where((tint) => tint.contains(after)), isEmpty);
   });
 
   testWidgets("a quoted list's Add item and Done rows show in the quote", (

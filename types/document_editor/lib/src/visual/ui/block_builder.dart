@@ -15,7 +15,7 @@ import 'frames.dart';
 
 /// Builds the components of rows shown whole: dividers, drawn tables and
 /// raw blocks inside their frames (a tap on a table or raw block opens
-/// its raw text; a divider selects whole and shows it), and Done
+/// its raw text; a tap on a divider puts the caret right after it), and Done
 /// headings and Add item buttons inside their list's frames; each does
 /// what it offers by [actions]. One that
 /// starts an item has the item's row, as a text does.
@@ -79,9 +79,15 @@ class BlockBuilder implements ComponentBuilder {
     BuildContext context,
   ) {
     final BlockLook(:leaf, :frames) = look;
-    // Selected whole, a block holds the library's caret (see `Positions`)
-    // or lies in a selected range; every block shows it alike.
-    final selected = viewModel.selection != null;
+    // Selected whole (for the library a caret at its end, as the caret
+    // right after it is: see `Positions`), or in a selected range; every
+    // block shows it alike.
+    final selected =
+        look.selected ||
+        switch (viewModel.selection?.nodeSelection) {
+          UpstreamDownstreamNodeSelection(:final isCollapsed) => !isCollapsed,
+          _ => false,
+        };
     final shaded = DecoratedBox(
       position: DecorationPosition.foreground,
       decoration: BoxDecoration(
@@ -98,7 +104,7 @@ class BlockBuilder implements ComponentBuilder {
       frames: frames,
       content: block,
       copy: _block(leaf, context),
-      active: selected,
+      active: viewModel.selection != null,
       style: DocumentTextStyles.body(Theme.of(context)),
       actions: actions,
     );

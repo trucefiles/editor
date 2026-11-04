@@ -181,4 +181,19 @@ void main() {
 
     expect(run.heard, 2);
   });
+
+  test('a change says whether it came from the user', () {
+    final run = _Gate('- [ ] a')..type('x');
+    expect(run.gate.fromUser, isTrue);
+
+    run.gate.external(
+      const Request(
+        FromFile(Replaced('- [ ] b\n', version: Version(2), ackRev: 0)),
+      ),
+    );
+    expect(run.gate.fromUser, isFalse);
+
+    run.type('y');
+    expect(run.gate.fromUser, isTrue);
+  });
 }

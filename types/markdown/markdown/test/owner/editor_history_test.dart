@@ -94,16 +94,16 @@ void main() {
       expect(run.rows, ['abx']);
     });
 
-    test('a divider deleted after deleting text is one of its own', () {
+    test('a divider deleted after deleting text is a step of its own, as '
+        'a character, with no Undo offered', () {
       final run = EditorRun('ab\n\n---\n\ncd')
         ..caret(2, 2)
         ..press(EditKey.backspace)
         ..caret(2, 0)
         ..press(EditKey.backspace);
       expect(run.rows, ['ab', 'c']);
-      final offered = run.outputs.whereType<UndoOffered>().single;
-      expect(offered.what, OfferedUndo.removal);
-      run.request(UndoStep(offered.id));
+      expect(run.outputs.whereType<UndoOffered>(), isEmpty);
+      run.undo();
       expect(run.rows, ['ab', '[DividerNode]', 'c']);
     });
 
@@ -301,12 +301,11 @@ void main() {
     });
 
     test('is not told to end by the offered undo of its only step', () {
-      final run = EditorRun('ab\n\n---\n\ncd')
-        ..caret(2, 0)
-        ..press(EditKey.backspace);
+      final run = EditorRun('- a\n- b');
+      run.runCommand(DeleteItem(run.item(0)));
       final offered = run.outputs.whereType<UndoOffered>().single;
       run.request(UndoStep(offered.id));
-      expect(run.rows, ['ab', '[DividerNode]', 'cd']);
+      expect(run.rows, ['a', 'b']);
       expect(run.state.status.canUndo, isFalse);
       expect(run.outputs.whereType<HistoryEnd>(), isEmpty);
     });

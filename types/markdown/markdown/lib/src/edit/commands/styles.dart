@@ -17,13 +17,7 @@ import 'text_commands.dart';
 /// it shows as). The selection stays.
 Change toggleStyle(ViewRows view, TextSelection selection, TextFormat format) {
   final ranges = _ranges(view, selection);
-  final off = ranges.every(
-    (range) => range.text
-        .slice(range.start, range.end)
-        .pieces
-        .whereType<TextPiece>()
-        .every((piece) => piece.formatting.has(format)),
-  );
+  final off = _allHave(ranges, format);
   VisibleText changed(VisibleText text) => switch ((format, off)) {
     (TextFormat.code, false) => VisibleText([
       for (final piece in text.pieces)
@@ -56,6 +50,20 @@ Change toggleStyle(ViewRows view, TextSelection selection, TextFormat format) {
     }),
     caret: CaretAt(selection),
   );
+}
+
+/// Whether [selection] covers text and every character of it has
+/// [format]; the rule that says whether [toggleStyle] takes it off.
+bool hasStyle(ViewRows view, TextSelection selection, TextFormat format) =>
+    _allHave(_ranges(view, selection), format);
+
+bool _allHave(List<_Range> ranges, TextFormat format) {
+  final pieces = [
+    for (final range in ranges)
+      ...range.text.slice(range.start, range.end).pieces.whereType<TextPiece>(),
+  ];
+  return pieces.isNotEmpty &&
+      pieces.every((piece) => piece.formatting.has(format));
 }
 
 typedef _Range = ({TextNode leaf, VisibleText text, int start, int end});

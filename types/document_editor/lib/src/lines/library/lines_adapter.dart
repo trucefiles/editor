@@ -4,7 +4,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart' show splitLines, unchangedEnds;
 
 import '../../library/document_patch.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../edited_text.dart';
 
 /// Connects the library's [editor], one plain text node per line, to the
@@ -81,10 +81,8 @@ final class LinesAdapter {
   /// the transaction like any text with line breaks; the library's
   /// handlers take every other request.
   EditCommand? _handle(Editor editor, EditRequest request) => switch (request) {
-    _PatchRequest(:final nodes, :final selection) => PatchCommand(
-      nodes,
-      selection: selection,
-    ),
+    _PatchRequest(:final nodes, :final selection, :final byUser) =>
+      PatchCommand(nodes, selection: selection, byUser: byUser),
     PasteRequest(:final text) => _PasteCommand([
       for (final request in plainPasteRequests(text, composer.selection))
         ?_libraryCommand(request),
@@ -113,7 +111,7 @@ final class LinesAdapter {
     final nodes = [for (final node in _document) _textOf(node)];
     final lines = nodes.expand(splitLines).toList();
     if (lines.length != nodes.length) {
-      _show(lines, _caretOf(composer.selection));
+      _show(lines, _caretOf(composer.selection), byUser: true);
     }
     final text = lines.join('\n');
     if (text == _shown) return;
@@ -145,7 +143,7 @@ final class LinesAdapter {
       null => _caretOf(composer.selection),
     };
     _shown = text;
-    _show(splitLines(text), caret);
+    _show(splitLines(text), caret, byUser: false);
     _lastChange = LinesChange.replaced;
     _linesChanged.changed();
   }
@@ -160,8 +158,8 @@ final class LinesAdapter {
 
   /// Makes the nodes show [lines]: the nodes of the lines that stayed at
   /// the start and end stay, other lines get new ones; the caret goes to
-  /// [caret], kept within the lines.
-  void _show(List<String> lines, _Caret? caret) {
+  /// [caret], kept within the lines; [byUser] as for [PatchCommand].
+  void _show(List<String> lines, _Caret? caret, {required bool byUser}) {
     final nodes = _document.toList();
     final same = unchangedEnds([
       for (final node in nodes) _textOf(node),
@@ -185,7 +183,9 @@ final class LinesAdapter {
     };
     _patching = true;
     try {
-      editor.execute([_PatchRequest(targets, selection: selection)]);
+      editor.execute([
+        _PatchRequest(targets, selection: selection, byUser: byUser),
+      ]);
     } finally {
       _patching = false;
     }
@@ -255,10 +255,15 @@ typedef _Caret = ({int line, int offset});
 
 /// Shows the lines; see [PatchCommand].
 final class _PatchRequest implements EditRequest {
-  const _PatchRequest(this.nodes, {required this.selection});
+  const _PatchRequest(
+    this.nodes, {
+    required this.selection,
+    required this.byUser,
+  });
 
   final List<TargetNode> nodes;
   final DocumentSelection? selection;
+  final bool byUser;
 }
 
 /// Runs [commands], a paste, and tells so with [_Pasted].

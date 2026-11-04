@@ -4,7 +4,7 @@ import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
-import '../../library/own_paste.dart';
+import '../../library/own_clipboard.dart';
 import '../row_looks.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
@@ -87,14 +87,14 @@ final class VisualAdapter {
     _ => null,
   };
 
-  /// A tap at [position]: a divider there is selected whole, as a block;
-  /// whether there was one.
-  bool selectDividerAt(DocumentPosition position) {
+  /// A tap at [position]: on a divider, the caret goes right after it,
+  /// as after one character; whether there was one.
+  bool caretAfterDividerAt(DocumentPosition position) {
     final node = _document.getNodeById(position.nodeId);
     if (node == null) return false;
     if (lookOf(node) case BlockLook(leaf: md.DividerNode(:final id))) {
       _gate.send(
-        (now) => md.CaretMoved(md.BlockSelection(id), revision: now.revision),
+        (now) => md.CaretMoved(md.BlockCaret(id), revision: now.revision),
       );
       return true;
     }
@@ -110,6 +110,7 @@ final class VisualAdapter {
     _PatchRequest(:final nodes, :final selection) => PatchCommand(
       nodes,
       selection: selection,
+      byUser: _gate.fromUser,
     ),
     _ when _isLibrarys(request) => null,
     _ when _inRaw => _RunCommand(this, () => _rawEdit(request)),
@@ -253,8 +254,8 @@ final class VisualAdapter {
   /// Whether an input method is composing text: keys go to it.
   bool get composing => composer.composingRegion.value != null;
 
-  /// Removes the selected text, after [copySelection].
-  void deleteSelection() => _gate.send(
+  /// Removes the selected text, after [_copySelection].
+  void _deleteSelection() => _gate.send(
     (now) => switch (_shownRange(now)) {
       final range? when !range.isCaret => md.Run(
         md.DeleteRange(range),
@@ -275,9 +276,13 @@ final class VisualAdapter {
   /// The fragment copied here last, and the plain text the clipboard got.
   ({String plain, List<md.VisibleText> lines})? _copied;
 
+  /// Visual edit's own copy: [_copySelection], then [_deleteSelection]
+  /// for a cut.
+  OwnCopy get ownCopy => (text: _copySelection, remove: _deleteSelection);
+
   /// The selected text as lines with their styles, and as the plain text
   /// for the clipboard; remembered for a paste here.
-  String? copySelection() {
+  String? _copySelection() {
     final (shown, range) = (_shown, selectedRange);
     if (shown == null || range == null || range.isCaret) return null;
     final lines = md.copiedLines(shown.view, range);
@@ -401,7 +406,9 @@ final class VisualAdapter {
     final selection = _positions.toLibrary(shown.selection, raw: shown.raw);
     switch (_executor) {
       case final executor?:
-        executor.executeCommand(PatchCommand(nodes, selection: selection));
+        executor.executeCommand(
+          PatchCommand(nodes, selection: selection, byUser: _gate.fromUser),
+        );
       case null:
         editor.execute([_PatchRequest(nodes, selection: selection)]);
     }
@@ -426,7 +433,7 @@ final class VisualAdapter {
     if (split == null) return;
     final caret = switch (shown.selection) {
       md.TextSelection(:final extent) => extent.leaf,
-      md.BlockSelection(:final block) => block,
+      md.BlockSelection(:final block) || md.BlockCaret(:final block) => block,
       null => null,
     };
     final index = looks.indexWhere((look) => look.key == caret);

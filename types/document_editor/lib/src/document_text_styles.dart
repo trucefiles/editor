@@ -27,6 +27,11 @@ abstract final class DocumentTextStyles {
       ? style
       : monospace(style).copyWith(fontSize: sizeOf(style) * 0.85);
 
+  /// The light tint behind a quote in [theme], the same in every mode;
+  /// it lets the page show through, so a quote in a quote shows darker.
+  static Color quoteTint(ThemeData theme) =>
+      theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+
   static double _headingScale(int level) => switch (level) {
     1 => 1.5,
     2 => 1.3,
