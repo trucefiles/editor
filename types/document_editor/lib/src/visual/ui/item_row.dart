@@ -241,8 +241,9 @@ class MovableItem extends StatelessWidget {
     row: row,
     child: SwipeToIndent(
       step: DocumentMetrics.of(context).levelIndent,
-      onIndent: () => actions.indent(item),
-      onOutdent: () => actions.outdent(item),
+      onStart: actions.gestureStarted,
+      onIndent: (from) => actions.indent(item, from),
+      onOutdent: (from) => actions.outdent(item, from),
       child: ValueListenableBuilder(
         valueListenable: LineDropZone.of(context).drag,
         builder: (_, drag, child) =>

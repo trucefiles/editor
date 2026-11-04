@@ -175,6 +175,20 @@ void main() {
     expect(document.text, '- [ ] aaa\n\n1. [ ] bbb\n2. ccc\n3. ddd');
   });
 
+  testWidgets('a change from elsewhere during a drag: nothing moves on '
+      'release', (tester) async {
+    final document = TestDocument('- [ ] milk\n- [ ] eggs\n- [ ] jam');
+    await pumpDocument(tester, document);
+
+    final gesture = await dragOnto(tester, 'milk', 'eggs', fraction: 0.8);
+    document.changeElsewhere('- [ ] bread\n- [ ] milk\n- [ ] eggs\n- [ ] jam');
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] bread\n- [ ] milk\n- [ ] eggs\n- [ ] jam');
+  });
+
   testWidgets('the gap is as high as the dragged row, also with other '
       'blocks below it, and the copy lands on its row', (tester) async {
     final document = TestDocument(

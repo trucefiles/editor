@@ -67,6 +67,23 @@ void main() {
     expect(frames, everyElement(closeTo(step, 0.5)));
   });
 
+  testWidgets('a change from elsewhere during a swipe: nothing indents on '
+      'release', (tester) async {
+    final document = TestDocument(list);
+    await pumpDocument(tester, document);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('bbb', findRichText: true)),
+    );
+    await slide(tester, gesture, 80);
+    document.changeElsewhere('- [ ] new\n$list');
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(document.text, '- [ ] new\n$list');
+  });
+
   testWidgets('a swipe that cannot indent slides back', (tester) async {
     final document = TestDocument('- [ ] bbb');
     await pumpDocument(tester, document);

@@ -8,10 +8,13 @@ extension RunCommand on EditorGate {
   /// (`null`: no caret shows); nothing in Markdown edit or if [build]
   /// makes none. A raw block open as text closes first, so [build] sees
   /// the blocks as they then are. A command [byControl] (see
-  /// [Run.byControl]) leaves no caret. Whether a command went.
+  /// [Run.byControl]) leaves no caret. A command made on what showed at
+  /// an earlier [revision] (a gesture's start) is dropped if the text
+  /// changed since. Whether a command went.
   bool run(
     Command? Function(Selection? selection) build, {
     bool byControl = false,
+    int? revision,
   }) {
     send(
       (now) => switch (now.content) {
@@ -24,7 +27,7 @@ extension RunCommand on EditorGate {
         FormattedContent(:final selection) => switch (build(selection)) {
           final command? => Run(
             command,
-            revision: now.revision,
+            revision: revision ?? now.revision,
             byControl: byControl,
           ),
           null => null,
