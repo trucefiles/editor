@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
-import 'esc_closes.dart';
 import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';

@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// While [open] holds something (e.g. kalender's "+N more" day popup),
+/// While [open] holds something (a popup: a right-click menu, a day's
+/// "+N more" list),
 /// Esc closes it with [close] and goes no further, so it doesn't leave
 /// the page. Meanwhile it takes the keyboard focus if nothing in [child]
 /// has it, so Esc reaches it, and gives it back once closed.
