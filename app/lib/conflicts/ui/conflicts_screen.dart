@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
@@ -25,25 +26,28 @@ class ConflictsScreen extends ConsumerWidget {
               icon: Icons.check_circle_outline,
               text: 'No sync conflicts.',
             )
-          : ListView(
-              children: [
-                for (final conflict in conflicts)
-                  ListTile(
-                    leading: const Icon(Icons.call_split),
-                    title: _Title(conflict),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_summary(conflict)),
-                        FolderBadge(
-                          conflict.folder,
-                          file: conflict.conflict.mainPath,
-                        ),
-                      ],
+          : PageWidth(
+              builder: (_, padding) => ListView(
+                padding: padding,
+                children: [
+                  for (final conflict in conflicts)
+                    ListTile(
+                      leading: const Icon(Icons.call_split),
+                      title: _Title(conflict),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_summary(conflict)),
+                          FolderBadge(
+                            conflict.folder,
+                            file: conflict.conflict.mainPath,
+                          ),
+                        ],
+                      ),
+                      onTap: () => openConflict(context, conflict),
                     ),
-                    onTap: () => openConflict(context, conflict),
-                  ),
-              ],
+                ],
+              ),
             ),
     );
   }

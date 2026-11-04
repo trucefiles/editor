@@ -7,13 +7,17 @@ import '../folder_colors.dart';
 /// The folder's color dot and name, so it is always clear where a file
 /// lives. With [file], also the subfolders it is in, e.g. `Files/work/2026`,
 /// and with [withName] its name, e.g. `Files/work/todo.md`; with
-/// [subfolder], that subfolder.
+/// [subfolder], that subfolder. The full place shows on hover. Where the
+/// place doesn't fit, it ends in "…"; with [cutInMiddle], it is cut in the
+/// middle instead (see [placeNames]), which needs a parent that gives it
+/// a width (not a chip or a menu, which ask for its size first).
 class FolderBadge extends StatelessWidget {
   const FolderBadge(
     this.folder, {
     this.file,
     this.withName = false,
     this.subfolder,
+    this.cutInMiddle = false,
     super.key,
   });
 
@@ -27,27 +31,81 @@ class FolderBadge extends StatelessWidget {
   /// A subfolder of [folder], shown if there is no [file].
   final RelPath? subfolder;
 
+  final bool cutInMiddle;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FolderDot(folder.color),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            switch (file) {
-              final file? when withName =>
-                '${placeName(folder, file.parent)}/${file.name}',
-              _ => placeName(folder, file?.parent ?? subfolder),
-            },
-            style: Theme.of(context).textTheme.labelSmall,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+    final names = switch (file) {
+      final file? when withName => placeNames(folder, file),
+      _ => placeNames(folder, file?.parent ?? subfolder),
+    };
+    final style = Theme.of(context).textTheme.labelSmall;
+    return Tooltip(
+      message: names.first,
+      // Only on hover: a long press belongs to what the badge sits on.
+      triggerMode: TooltipTriggerMode.manual,
+      child: cutInMiddle
+          ? LayoutBuilder(
+              builder: (context, constraints) =>
+                  switch (constraints.maxWidth - _dotSize - _dotGap) {
+                    // Not even the dot fits.
+                    < 0 => const SizedBox.shrink(),
+                    final width => _row(
+                      _firstFitting(
+                        names,
+                        width: width,
+                        style: style,
+                        context: context,
+                      ),
+                      style,
+                    ),
+                  },
+            )
+          : _row(names.first, style),
     );
   }
+
+  Widget _row(String place, TextStyle? style) => Row(
+    mainAxisSize: MainAxisSize.min,
+    spacing: _dotGap,
+    children: [
+      FolderDot(folder.color),
+      Flexible(
+        child: Text(
+          place,
+          style: style,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
+}
+
+const _dotSize = 10.0;
+const _dotGap = 6.0;
+
+/// The first of [texts] that fits in one line [width] wide; else the
+/// last.
+String _firstFitting(
+  List<String> texts, {
+  required double width,
+  required TextStyle? style,
+  required BuildContext context,
+}) {
+  bool fits(String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final measured = painter.width;
+    painter.dispose();
+    return measured <= width;
+  }
+
+  return texts.firstWhere(fits, orElse: () => texts.last);
 }
 
 /// [folder]'s name, followed by [subfolder] if given, e.g. `Files/work`.
@@ -56,8 +114,19 @@ String placeName(Folder folder, RelPath? subfolder) => switch (subfolder) {
   null => folder.name,
 };
 
+/// The ways to show [path] in [folder], longest first: the full place
+/// (as [placeName]), then cut in the middle to the folder's name and the
+/// last part (`Shared Notes/…/work`), then the folder's name alone
+/// (`Shared Notes/…`). The folder's name is what is cut last.
+List<String> placeNames(Folder folder, RelPath? path) => [
+  placeName(folder, path),
+  if (path case final path? when path.parent != null)
+    '${folder.name}/…/${path.name}',
+  if (path != null) '${folder.name}/…',
+];
+
 class FolderDot extends StatelessWidget {
-  const FolderDot(this.color, {super.key, this.size = 10});
+  const FolderDot(this.color, {super.key, this.size = _dotSize});
 
   /// The color's name.
   final String color;

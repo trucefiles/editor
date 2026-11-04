@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -70,23 +71,25 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(folder.location, style: small),
-          Text('${plugin.name}: ${plugin.helpLine}', style: small),
-          FolderNoticesView(folder),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Name'),
-          ),
-          const SizedBox(height: 16),
-          FolderColorPicker(
-            selected: _color,
-            onPicked: (color) => setState(() => _color = color),
-          ),
-        ],
+      body: PageWidth(
+        builder: (_, padding) => ListView(
+          padding: padding + const EdgeInsets.all(16),
+          children: [
+            Text(folder.location, style: small),
+            Text('${plugin.name}: ${plugin.helpLine}', style: small),
+            FolderNoticesView(folder),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16),
+            FolderColorPicker(
+              selected: _color,
+              onPicked: (color) => setState(() => _color = color),
+            ),
+          ],
+        ),
       ),
     );
   }

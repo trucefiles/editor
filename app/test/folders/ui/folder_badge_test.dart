@@ -31,4 +31,50 @@ void main() {
 
     expect(find.text('Documents/a/b/c'), findsOne);
   });
+
+  group('placeNames', () {
+    test('cut in the middle, the folder name last', () {
+      expect(placeNames(folder, path('a/b/c')), [
+        'Documents/a/b/c',
+        'Documents/…/c',
+        'Documents/…',
+      ]);
+      expect(placeNames(folder, path('a')), ['Documents/a', 'Documents/…']);
+      expect(placeNames(folder, null), ['Documents']);
+    });
+  });
+
+  testWidgets('shows the full place on hover', (tester) async {
+    await show(tester, FolderBadge(folder, file: path('a/b/c/todo.md')));
+
+    expect(
+      tester.widget<Tooltip>(find.byType(Tooltip)).message,
+      'Documents/a/b/c',
+    );
+  });
+
+  testWidgets('shows nothing, not overflowing, where not even its dot fits', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 8,
+              child: FolderBadge(
+                folder,
+                file: path('a/todo.md'),
+                cutInMiddle: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(FolderDot), findsNothing);
+  });
 }

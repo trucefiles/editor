@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'folder_tree.dart';
@@ -48,37 +49,39 @@ class _SyncthingTreePageState extends State<SyncthingTreePage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Folders to add')),
     body: SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                const Text(
-                  'Tick the folders you want to use. Each one shows up as '
-                  'its own folder, with its subfolders inside.',
-                ),
-                const SizedBox(height: 8),
-                FolderTree(_choice, rootName: widget.rootName),
-              ],
+      child: PageWidth(
+        builder: (_, padding) => Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: padding.copyWith(bottom: 0) + const EdgeInsets.all(16),
+                children: [
+                  const Text(
+                    'Tick the folders you want to use. Each one shows up as '
+                    'its own folder, with its subfolders inside.',
+                  ),
+                  const SizedBox(height: 8),
+                  FolderTree(_choice, rootName: widget.rootName),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: StreamBuilder<void>(
-                stream: _choice.changes,
-                builder: (context, _) => FilledButton(
-                  onPressed: _choice.picked.isEmpty
-                      ? null
-                      : () => Navigator.pop(context, _choice.picked),
-                  child: const Text('Next'),
+            Padding(
+              padding: padding.copyWith(top: 0) + const EdgeInsets.all(16),
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: StreamBuilder<void>(
+                  stream: _choice.changes,
+                  builder: (context, _) => FilledButton(
+                    onPressed: _choice.picked.isEmpty
+                        ? null
+                        : () => Navigator.pop(context, _choice.picked),
+                    child: const Text('Next'),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );

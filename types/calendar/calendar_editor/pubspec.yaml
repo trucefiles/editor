@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   truce_calendar: any
+  truce_common_ui: any
   truce_core: any
   truce_file_page: any
   truce_files: any

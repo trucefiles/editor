@@ -1,5 +1,5 @@
-name: truce_masonry
-description: A lazy masonry grid for Flutter scroll views, items as tall as their content. Layout only; knows nothing of documents.
+name: truce_common_ui
+description: UI parts with no app logic, for use across the app (the lazy masonry grid, the page width). Knows nothing of documents.
 publish_to: none
 resolution: workspace
 

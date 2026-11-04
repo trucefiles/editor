@@ -194,7 +194,10 @@ class _FilesBody extends ConsumerWidget {
                     ),
                   )
                 : switch (ref.watch(homeViewProvider)) {
-                    HomeView.recent => _RecentView(files, leading: orphanCards),
+                    HomeView.home => _PinnedAndRecent(
+                      files,
+                      leading: orphanCards,
+                    ),
                     HomeView.all => AllFilesView(
                       files,
                       leading: orphanCards,
@@ -213,10 +216,10 @@ class _FilesBody extends ConsumerWidget {
   }
 }
 
-/// Home's Recent view: [leading] cards first, then the pinned and the
-/// newest of [files], and "Show all" while it leaves some out.
-class _RecentView extends ConsumerWidget {
-  const _RecentView(this.files, {required this.leading});
+/// Home's Home view: [leading] cards first, then the pinned and the
+/// recently edited of [files], and "Show all" while it leaves some out.
+class _PinnedAndRecent extends ConsumerWidget {
+  const _PinnedAndRecent(this.files, {required this.leading});
 
   final List<ListedFile> files;
   final List<Widget> leading;
@@ -225,18 +228,23 @@ class _RecentView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(fileSettingsProvider);
     final settings = ref.read(fileSettingsProvider.notifier);
+    final home = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.home),
+    );
     final recent = recentOf(
       files,
       isPinned: (file) => settings.settingsOf(file.key).pinned,
-      count: ref.watch(
-        deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
-      ),
+      count: home.recentCount,
+      // Checked on each listing; no timer moves files out while shown.
+      since: home.recentSince(DateTime.now()),
     );
     return FileSections(
       leading: leading,
       pinned: [for (final file in recent.pinned) ListedFileCard(file)],
       others: [for (final file in recent.newest) ListedFileCard(file)],
-      footer: recent.hidesSome ? const _ShowAll() : null,
+      footer: recent.hidesSome
+          ? _ShowAll(noneWithin: recent.newest.isEmpty ? home.recentDays : null)
+          : null,
     );
   }
 }
@@ -262,19 +270,28 @@ class _ConflictsButton extends ConsumerWidget {
   }
 }
 
-/// Switches home to All, at the end of Recent while Recent leaves files
-/// out.
+/// Switches home to All, at the end of Home while Home leaves files out.
+/// With [noneWithin], it says first that no file was edited in that many
+/// days, so an empty Home has a reason.
 class _ShowAll extends ConsumerWidget {
-  const _ShowAll();
+  const _ShowAll({this.noneWithin});
+
+  final int? noneWithin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Padding(
     padding: const EdgeInsets.only(top: 16),
-    child: Center(
-      child: OutlinedButton(
-        onPressed: () => ref.read(homeViewProvider.notifier).show(HomeView.all),
-        child: const Text('Show all'),
-      ),
+    child: Column(
+      spacing: 12,
+      children: [
+        if (noneWithin case final days?)
+          Text('Nothing edited in the last $days days.'),
+        OutlinedButton(
+          onPressed: () =>
+              ref.read(homeViewProvider.notifier).show(HomeView.all),
+          child: const Text('Show all'),
+        ),
+      ],
     ),
   );
 }

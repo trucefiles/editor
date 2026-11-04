@@ -18,6 +18,7 @@ import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
@@ -39,21 +40,26 @@ Future<void> showsSoon(WidgetTester tester, Finder finder) async {
 void main() {
   setUpAll(initializeDateFormatting);
 
-  /// Starts the app on a folder holding [files]; the folder.
+  /// Starts the app on a folder holding [files], last changed [changed]
+  /// (by default now), until [shows] shows; the folder.
   Future<Directory> start(
     WidgetTester tester,
     Map<String, String> files, {
     LinkOpener links = const LinkOpener(),
+    DeviceSettings settings = DeviceSettings.standard,
+    DateTime? changed,
+    Finder? shows,
   }) async {
     final dir = tempFolder();
     for (final MapEntry(key: name, value: text) in files.entries) {
-      File('${dir.path}/$name').writeCreatingFolders(text);
+      final file = File('${dir.path}/$name')..writeCreatingFolders(text);
+      if (changed != null) file.setLastModifiedSync(changed);
     }
     final storage = AppStorage(tempFolder().path);
     final scope = ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
-        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
+        loadedDeviceSettingsProvider.overrideWithValue(settings),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
         linkOpenerProvider.overrideWithValue(links),
@@ -66,7 +72,7 @@ void main() {
       container.dispose();
       await tester.pumpWidget(scope);
     });
-    await showsSoon(tester, find.text('Notes'));
+    await showsSoon(tester, shows ?? find.text('Notes'));
     return dir;
   }
 
@@ -84,6 +90,122 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Notes'), findsOneWidget);
     expect(find.text('List'), findsOneWidget);
+  });
+
+  testWidgets('a Clear chip shows in a row only while something in it is '
+      'picked, and clears only that row', (tester) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'list.txt': 'List\nmilk',
+    });
+    final clear = find.widgetWithText(ActionChip, 'Clear');
+    expect(clear, findsNothing);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Plain text'));
+    await tester.tap(find.widgetWithText(FilterChip, folderAt(dir).name));
+    await tester.pumpAndSettle();
+    expect(clear, findsNWidgets(2));
+    expect(find.text('Notes'), findsNothing);
+
+    // The second Clear is the type row's.
+    await tester.tap(clear.last);
+    await tester.pumpAndSettle();
+    expect(clear, findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
+
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(clear, findsNothing);
+  });
+
+  testWidgets('a long press on a card shows its actions as a sheet: its '
+      'title and place, Open, Pin and where the rest is', (tester) async {
+    await start(tester, {'work/notes.md': '# Notes'});
+
+    await tester.longPress(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Documents/work')),
+      findsOne,
+    );
+    expect(find.descendant(of: sheet, matching: find.text('Pin')), findsOne);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.textContaining('open the file'),
+      ),
+      findsOne,
+    );
+
+    await tester.tap(find.descendant(of: sheet, matching: find.text('Open')));
+    await showsSoon(tester, find.byType(FileScreen));
+  });
+
+  testWidgets('a right click on a card shows its actions as a menu there, '
+      'the colors in a submenu', (tester) async {
+    await start(tester, {'notes.md': '# Notes'});
+
+    final at = tester.getCenter(find.text('Notes'));
+    await tester.tapAt(
+      at,
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    final open = find.widgetWithText(MenuItemButton, 'Open');
+    expect(open, findsOne);
+    expect((tester.getTopLeft(open) - at).distance, lessThan(80));
+    expect(find.widgetWithText(MenuItemButton, 'Pin'), findsOne);
+    expect(find.textContaining('open the file'), findsOne);
+
+    // As with a mouse: the submenu opens on hover.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.moveTo(
+      tester.getCenter(find.widgetWithText(SubmenuButton, 'Color')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('No color'), findsOne);
+
+    await tester.tap(find.widgetWithText(MenuItemButton, 'Pin'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(MenuItemButton, 'Open'), findsNothing);
+    expect(find.text('Pinned'), findsWidgets);
+  });
+
+  testWidgets('Esc closes a card\'s right-click menu and stays on home', (
+    tester,
+  ) async {
+    await start(tester, {'notes.md': '# Notes'});
+
+    await tester.tapAt(
+      tester.getCenter(find.text('Notes')),
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(MenuItemButton, 'Open'), findsNothing);
+    expect(find.byType(HomeScreen), findsOne);
+  });
+
+  testWidgets('with nothing edited within the age limit, home says so '
+      'above Show all', (tester) async {
+    await start(
+      tester,
+      {'notes.md': '# Notes'},
+      settings: DeviceSettings.standard.copyWith(
+        home: HomeSettings.standard.withRecentDays(5),
+      ),
+      changed: DateTime.now().subtract(const Duration(days: 10)),
+      shows: find.text('Show all'),
+    );
+
+    expect(find.text('Nothing edited in the last 5 days.'), findsOne);
+    expect(find.text('Notes'), findsNothing);
   });
 
   testWidgets('a new file of another type than the one picked shows its '
@@ -169,6 +291,14 @@ void main() {
 
     await tester.tap(find.byTooltip('Add event'));
     await showsSoon(tester, find.text('New event'));
+    await tester.pumpAndSettle();
+
+    // Esc closes the event form, as on every page, and leaves the
+    // calendar's page under it open.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('New event'), findsNothing);
+    expect(find.byType(FileScreen), findsOne);
   });
 
   testWidgets('an event tapped in the Calendar tab shows; Edit opens its '

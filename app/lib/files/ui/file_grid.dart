@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:truce_masonry/truce_masonry.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// [count] cards, each built by [card], in columns up to 240 wide, each as
 /// tall as its text: the layout shared by every file grid. Only cards

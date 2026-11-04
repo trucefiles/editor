@@ -9,12 +9,16 @@ class ReorderableFolderList extends StatefulWidget {
     this.folders, {
     required this.onMove,
     required this.tile,
+    this.padding,
     super.key,
   });
 
   final List<Folder> folders;
   final Future<bool> Function(Folder folder, int to) onMove;
   final Widget Function(Folder folder, int index) tile;
+
+  /// The list's padding; the list's own default if `null`.
+  final EdgeInsets? padding;
 
   @override
   State<ReorderableFolderList> createState() => _ReorderableFolderListState();
@@ -47,6 +51,7 @@ class _ReorderableFolderListState extends State<ReorderableFolderList> {
     final shown = _dropped ?? widget.folders;
     return ReorderableListView(
       buildDefaultDragHandles: false,
+      padding: widget.padding,
       onReorderItem: (from, to) => _drop(shown, from, to),
       children: [
         for (final (index, folder) in shown.indexed) widget.tile(folder, index),

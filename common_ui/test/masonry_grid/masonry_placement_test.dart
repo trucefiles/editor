@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_masonry/src/masonry_columns.dart';
-import 'package:truce_masonry/src/masonry_placement.dart';
+import 'package:truce_common_ui/src/masonry_grid/masonry_columns.dart';
+import 'package:truce_common_ui/src/masonry_grid/masonry_placement.dart';
 
 void main() {
   /// A placement of items with [extents], all measured.
