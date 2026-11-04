@@ -236,10 +236,7 @@ class _PinnedAndRecent extends ConsumerWidget {
       isPinned: (file) => settings.settingsOf(file.key).pinned,
       count: home.recentCount,
       // Checked on each listing; no timer moves files out while shown.
-      since: switch (home.recentDays) {
-        null => null,
-        final days => DateTime.now().subtract(Duration(days: days)),
-      },
+      since: home.recentSince(DateTime.now()),
     );
     return FileSections(
       leading: leading,

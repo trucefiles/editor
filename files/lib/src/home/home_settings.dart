@@ -46,6 +46,12 @@ final class HomeSettings {
   final FileOrder order;
   final FileView view;
 
+  /// The oldest change Recently edited shows at [now]; `null`: any age.
+  DateTime? recentSince(DateTime now) => switch (recentDays) {
+    null => null,
+    final days => now.subtract(Duration(days: days)),
+  };
+
   HomeSettings copyWith({int? recentCount, FileOrder? order, FileView? view}) =>
       HomeSettings(
         recentCount: recentCount ?? this.recentCount,

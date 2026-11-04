@@ -46,4 +46,13 @@ void main() {
     expect(HomeSettings.standard.recentCount, 50);
     expect(HomeSettings.standard.recentDays, isNull);
   });
+
+  test('recently edited reaches back as far as its age limit', () {
+    final now = DateTime(2026, 11, 4, 12);
+    expect(HomeSettings.standard.recentSince(now), isNull);
+    expect(
+      HomeSettings.standard.withRecentDays(5).recentSince(now),
+      DateTime(2026, 10, 30, 12),
+    );
+  });
 }
