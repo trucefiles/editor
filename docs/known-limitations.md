@@ -27,7 +27,7 @@ Accepted behavior that is not planned to change, grouped by topic.
   document moved or renamed in Truce. When it is moved or renamed in another
   app or on another device, Truce sees a deleted document and a new one, so
   its earlier backups stay under the old folder and name in Backups.
-- **Undo stops at a change from elsewhere.** Undo takes back your own edits
+- **Undo stops at a change from the folder.** Undo takes back your own edits
   of this editing session, up to 100 steps. It stops where the document
   changed on another device or a version was chosen in a conflict; older
   versions are in the document's Backups.
