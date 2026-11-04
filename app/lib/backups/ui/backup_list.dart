@@ -4,6 +4,7 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
+import '../../common/confirm_dialog.dart';
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
@@ -100,23 +101,10 @@ class _BackupTile extends ConsumerWidget {
     }
   }
 
-  static Future<bool> _confirmDelete(BuildContext context) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Delete this backup?'),
-          content: const Text("This can't be undone. The file itself stays."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+  static Future<bool> _confirmDelete(BuildContext context) => showConfirmDialog(
+    context,
+    title: 'Delete this backup?',
+    message: "This can't be undone. The file itself stays.",
+    yes: 'Delete',
+  );
 }

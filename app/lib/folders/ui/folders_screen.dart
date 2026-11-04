@@ -4,6 +4,7 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../common/confirm_dialog.dart';
 import '../../common/snack.dart';
 import '../add_folder/ui/add_folder_screen.dart';
 import '../folder_actions.dart';
@@ -121,41 +122,25 @@ class FoldersScreen extends ConsumerWidget {
 
   /// Whether the user wants to remove [folder] from the app; the edits
   /// of [lost] files kept only on this device may be lost.
-  Future<bool> _confirmRemove(
-    BuildContext context,
-    Folder folder,
-    int lost,
-  ) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Remove "${folder.name}"?'),
-          content: Text(switch (lost) {
-            0 =>
-              'The folder disappears from the app. Its files stay where '
-                  'they are.',
-            1 =>
-              'The folder disappears from the app. Its files stay where '
-                  'they are, but edits to 1 file that are only on this '
-                  'device may be lost.',
-            _ =>
-              'The folder disappears from the app. Its files stay where '
-                  'they are, but edits to $lost files that are only on this '
-                  'device may be lost.',
-          }),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remove'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+  Future<bool> _confirmRemove(BuildContext context, Folder folder, int lost) =>
+      showConfirmDialog(
+        context,
+        title: 'Remove "${folder.name}"?',
+        message: switch (lost) {
+          0 =>
+            'The folder disappears from the app. Its files stay where they '
+                'are.',
+          1 =>
+            'The folder disappears from the app. Its files stay where they '
+                'are, but edits to 1 file that are only on this device may be '
+                'lost.',
+          _ =>
+            'The folder disappears from the app. Its files stay where they '
+                'are, but edits to $lost files that are only on this device '
+                'may be lost.',
+        },
+        yes: 'Remove',
+      );
 }
 
 /// Makes sure the app may open folders, then adds one step by step.
@@ -175,26 +160,12 @@ Future<void> addFolder(BuildContext context, WidgetRef ref) async {
 }
 
 /// Explains why the app needs all-files access; `true` to continue.
-Future<bool> _askForAccess(BuildContext context) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Allow file access'),
-        content: const Text(
-          'To open your synced folders, the app needs access to '
-          'files. It only opens the folders you add. Turn on the '
-          'switch on the next page, then come back to add a folder.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    ) ??
-    false;
+Future<bool> _askForAccess(BuildContext context) => showConfirmDialog(
+  context,
+  title: 'Allow file access',
+  message:
+      'To open your synced folders, the app needs access to files. It only '
+      'opens the folders you add. Turn on the switch on the next page, then '
+      'come back to add a folder.',
+  yes: 'Continue',
+);
