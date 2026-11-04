@@ -294,4 +294,36 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
   });
+
+  testWidgets('a drag held at the bottom edge scrolls the document, so the '
+      'item can go far down in one drag', (tester) async {
+    final document = TestDocument(
+      [for (final n in Iterable<int>.generate(80)) '- [ ] item $n'].join('\n'),
+    );
+    await pumpDocument(tester, document);
+    final scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    final bottom = tester.getRect(find.byType(Scrollable).first).bottom;
+    final from = tester.getCenter(find.byIcon(Icons.drag_indicator).first);
+    final gesture = await tester.startGesture(
+      from,
+      kind: PointerDeviceKind.touch,
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    for (final _ in Iterable<int>.generate(24)) {
+      await gesture.moveBy(Offset(0, (bottom - 4 - from.dy) / 24));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    for (final _ in Iterable<int>.generate(60)) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    final scrolled = scrollable.position.pixels;
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(scrolled, greaterThan(bottom));
+    final lines = document.text.split('\n');
+    expect(lines.indexOf('- [ ] item 0'), greaterThan(20));
+  });
 }

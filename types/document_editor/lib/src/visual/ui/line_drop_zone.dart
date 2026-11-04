@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart' show NodeId;
 
+import 'drag_edge_scroll.dart';
 import 'line_drag.dart';
 import 'line_drag_state.dart';
 import 'passed_row.dart';
@@ -21,7 +22,8 @@ typedef _Target = ({_Place place, bool below});
 /// release, into the gap while the row's old place closes, onto its row
 /// shifted where it lands (a drop on its own row), or, for a drag dropped
 /// nowhere, back to its row; each landing where the row's text will show,
-/// its new level included.
+/// its new level included. The document scrolls while the copy is at its
+/// top or bottom edge.
 class LineDropZone extends StatefulWidget {
   const LineDropZone({
     required this.step,
@@ -79,6 +81,16 @@ class LineDropZoneState extends State<LineDropZone> {
 
   static const _glideTime = Duration(milliseconds: 150);
 
+  /// Where the drag was over the zone last, to look again as the
+  /// document scrolls under it.
+  DragTargetDetails<LineDrag>? _over;
+
+  late final _edgeScroll = DragEdgeScroll(
+    onScrolled: () {
+      if (_over case final over?) _hover(over);
+    },
+  );
+
   /// Where the drag is, from lift until its copy settled.
   ValueListenable<LineDragState> get drag => _drag;
 
@@ -90,6 +102,7 @@ class LineDropZoneState extends State<LineDropZone> {
 
   /// [drag] dropped nowhere, its copy at [offset]: it glides back.
   void cancel(LineDrag drag, Offset offset) {
+    _stopScrolling();
     _drag.value = Lifted(drag.item);
     _glideTo(drag, from: offset, to: _rowOrigin(drag), then: () {});
   }
@@ -147,6 +160,8 @@ class LineDropZoneState extends State<LineDropZone> {
 
   void _hover(DragTargetDetails<LineDrag> details) {
     final drag = details.data;
+    _over = details;
+    _scrollAtEdge(drag, details.offset);
     final places = _places();
     _drag.value = Lifted(
       drag.item,
@@ -164,12 +179,27 @@ class LineDropZoneState extends State<LineDropZone> {
     );
   }
 
+  /// [drag]'s copy at [offset]: the document scrolls while it is past
+  /// the top or bottom edge.
+  void _scrollAtEdge(LineDrag drag, Offset offset) {
+    final (size, row) = (drag.rowBox?.size, _rows.firstOrNull);
+    if (size == null || row == null) return _stopScrolling();
+    _edgeScroll.at(offset & size, row.context);
+  }
+
+  void _stopScrolling() {
+    _over = null;
+    _edgeScroll.stop();
+  }
+
   /// The drag left the zone: no gap stays open.
   void _leave() {
+    _stopScrolling();
     if (_drag.value case Lifted(:final item)) _drag.value = Lifted(item);
   }
 
   void _drop(DragTargetDetails<LineDrag> details) {
+    _stopScrolling();
     final drag = details.data;
     final places = _places();
     final copy = drag.at(details.offset);
@@ -323,6 +353,7 @@ class LineDropZoneState extends State<LineDropZone> {
 
   @override
   void dispose() {
+    _edgeScroll.stop();
     // Left mid-glide (e.g. the editor closed): the drop is not made.
     _glide?.remove();
     _drag.dispose();
