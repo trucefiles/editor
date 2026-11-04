@@ -330,7 +330,7 @@ void main() {
     await gesture.moveBy(const Offset(0, 20));
     await tester.pumpAndSettle();
 
-    expect(find.text('  +2'), findsOne, reason: 'the copy counts them');
+    expect(find.text('+2'), findsOne, reason: 'the copy counts them');
     expect(shows('s1'), isFalse);
     expect(shows('s2'), isFalse);
 
@@ -391,12 +391,11 @@ void main() {
     await pumpDocument(tester, text);
 
     final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(2));
-    final target = tester.getBottomLeft(
-      find.byIcon(Icons.drag_indicator).at(0),
-    );
+    // The copy's top past the subitem's middle line, not past a's.
+    final sub = tester.getCenter(find.byIcon(Icons.drag_indicator).at(1));
     final gesture = await tester.startGesture(handle);
     await tester.pump();
-    await gesture.moveTo(Offset(handle.dx, target.dy));
+    await gesture.moveTo(Offset(handle.dx, sub.dy));
     await tester.pump();
     await gesture.up();
     await tester.pumpAndSettle();
@@ -411,12 +410,13 @@ void main() {
     await pumpDocument(tester, text);
 
     final handle = tester.getCenter(find.byIcon(Icons.drag_indicator).at(1));
-    final target = tester.getBottomLeft(
-      find.byIcon(Icons.drag_indicator).at(0),
-    );
+    // Up almost to a's middle line, not past it.
+    final parent = tester.getCenter(find.byIcon(Icons.drag_indicator).at(0));
     final gesture = await tester.startGesture(handle);
     await tester.pump();
-    await gesture.moveTo(Offset(handle.dx, target.dy));
+    await gesture.moveTo(
+      Offset(handle.dx, handle.dy - (handle.dy - parent.dy) / 2 + 4),
+    );
     await tester.pump();
     await gesture.up();
     await tester.pumpAndSettle();
