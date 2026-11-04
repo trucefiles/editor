@@ -54,7 +54,10 @@ extension AppSteps on WidgetTester {
       buttons: kSecondaryMouseButton,
     );
     await pumpAndSettle();
-    await tapAndSettle(find.widgetWithText(SubmenuButton, 'Color'));
+    // As with a mouse: the submenu opens on hover.
+    final mouse = await createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.moveTo(getCenter(find.widgetWithText(SubmenuButton, 'Color')));
+    await pumpAndSettle();
     await tapAndSettle(find.byTooltip(color));
   }
 

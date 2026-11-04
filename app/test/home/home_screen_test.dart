@@ -18,6 +18,7 @@ import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 
@@ -39,21 +40,26 @@ Future<void> showsSoon(WidgetTester tester, Finder finder) async {
 void main() {
   setUpAll(initializeDateFormatting);
 
-  /// Starts the app on a folder holding [files]; the folder.
+  /// Starts the app on a folder holding [files], last changed [changed]
+  /// (by default now), until [shows] shows; the folder.
   Future<Directory> start(
     WidgetTester tester,
     Map<String, String> files, {
     LinkOpener links = const LinkOpener(),
+    DeviceSettings settings = DeviceSettings.standard,
+    DateTime? changed,
+    Finder? shows,
   }) async {
     final dir = tempFolder();
     for (final MapEntry(key: name, value: text) in files.entries) {
-      File('${dir.path}/$name').writeCreatingFolders(text);
+      final file = File('${dir.path}/$name')..writeCreatingFolders(text);
+      if (changed != null) file.setLastModifiedSync(changed);
     }
     final storage = AppStorage(tempFolder().path);
     final scope = ProviderScope(
       overrides: [
         appStorageProvider.overrideWithValue(storage),
-        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
+        loadedDeviceSettingsProvider.overrideWithValue(settings),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
         linkOpenerProvider.overrideWithValue(links),
@@ -66,7 +72,7 @@ void main() {
       container.dispose();
       await tester.pumpWidget(scope);
     });
-    await showsSoon(tester, find.text('Notes'));
+    await showsSoon(tester, shows ?? find.text('Notes'));
     return dir;
   }
 
@@ -154,7 +160,11 @@ void main() {
     expect(find.widgetWithText(MenuItemButton, 'Pin'), findsOne);
     expect(find.textContaining('open the file'), findsOne);
 
-    await tester.tap(find.widgetWithText(SubmenuButton, 'Color'));
+    // As with a mouse: the submenu opens on hover.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.moveTo(
+      tester.getCenter(find.widgetWithText(SubmenuButton, 'Color')),
+    );
     await tester.pumpAndSettle();
     expect(find.byTooltip('No color'), findsOne);
 
@@ -162,6 +172,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(MenuItemButton, 'Open'), findsNothing);
     expect(find.text('Pinned'), findsWidgets);
+  });
+
+  testWidgets('Esc closes a card\'s right-click menu and stays on home', (
+    tester,
+  ) async {
+    await start(tester, {'notes.md': '# Notes'});
+
+    await tester.tapAt(
+      tester.getCenter(find.text('Notes')),
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(MenuItemButton, 'Open'), findsNothing);
+    expect(find.byType(HomeScreen), findsOne);
+  });
+
+  testWidgets('with nothing edited within the age limit, home says so '
+      'above Show all', (tester) async {
+    await start(
+      tester,
+      {'notes.md': '# Notes'},
+      settings: DeviceSettings.standard.copyWith(
+        home: HomeSettings.standard.withRecentDays(5),
+      ),
+      changed: DateTime.now().subtract(const Duration(days: 10)),
+      shows: find.text('Show all'),
+    );
+
+    expect(find.text('Nothing edited in the last 5 days.'), findsOne);
+    expect(find.text('Notes'), findsNothing);
   });
 
   testWidgets('a new file of another type than the one picked shows its '

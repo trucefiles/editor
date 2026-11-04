@@ -73,6 +73,8 @@ class _HomeFileActionsState extends ConsumerState<HomeFileActions> {
   /// (the place shows on hover).
   List<Widget> _menuItems(BuildContext context) => [
     MenuItemButton(
+      // Takes the focus, so Esc closes the menu before the pointer moves.
+      autofocus: true,
       leadingIcon: const Icon(_openIcon),
       onPressed: () => _apply(const OpenChoice()),
       child: const Text('Open'),

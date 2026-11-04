@@ -242,7 +242,9 @@ class _PinnedAndRecent extends ConsumerWidget {
       leading: leading,
       pinned: [for (final file in recent.pinned) ListedFileCard(file)],
       others: [for (final file in recent.newest) ListedFileCard(file)],
-      footer: recent.hidesSome ? const _ShowAll() : null,
+      footer: recent.hidesSome
+          ? _ShowAll(noneWithin: recent.newest.isEmpty ? home.recentDays : null)
+          : null,
     );
   }
 }
@@ -269,17 +271,27 @@ class _ConflictsButton extends ConsumerWidget {
 }
 
 /// Switches home to All, at the end of Home while Home leaves files out.
+/// With [noneWithin], it says first that no file was edited in that many
+/// days, so an empty Home has a reason.
 class _ShowAll extends ConsumerWidget {
-  const _ShowAll();
+  const _ShowAll({this.noneWithin});
+
+  final int? noneWithin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Padding(
     padding: const EdgeInsets.only(top: 16),
-    child: Center(
-      child: OutlinedButton(
-        onPressed: () => ref.read(homeViewProvider.notifier).show(HomeView.all),
-        child: const Text('Show all'),
-      ),
+    child: Column(
+      spacing: 12,
+      children: [
+        if (noneWithin case final days?)
+          Text('Nothing edited in the last $days days.'),
+        OutlinedButton(
+          onPressed: () =>
+              ref.read(homeViewProvider.notifier).show(HomeView.all),
+          child: const Text('Show all'),
+        ),
+      ],
     ),
   );
 }
