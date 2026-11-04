@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
@@ -83,4 +84,32 @@ void main() {
     expect(selection(), isNull);
     expect(scrolled(tester), before);
   });
+
+  testWidgets('typing at the bottom of the window keeps the caret in view', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final lines = [for (var line = 0; line < 6; line++) 'line $line'];
+    await pumpDocument(tester, TestDocument(lines.join('\n\n')));
+    await tester.caretIn(paragraphNodeOf(index: 5), 6);
+    final start = scrolled(tester);
+
+    for (final _ in Iterable<int>.generate(8)) {
+      await tester.pressEnter();
+      await tester.typeImeText('new');
+    }
+    await tester.pumpAndSettle();
+
+    expect(scrolled(tester), greaterThan(start));
+    final caret = SuperEditorInspector.findDocumentSelection()!.extent;
+    final layout = SuperEditorInspector.findDocumentLayout();
+    final rect = layout.getRectForPosition(caret)!;
+    final bottom = layout
+        .getAncestorOffsetFromDocumentOffset(rect.bottomLeft)
+        .dy;
+    final viewport = tester.getRect(find.byType(Scrollable).first);
+    expect(bottom, lessThanOrEqualTo(viewport.bottom));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 }

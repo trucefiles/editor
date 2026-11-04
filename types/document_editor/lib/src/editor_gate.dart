@@ -14,7 +14,9 @@ final class EditorGate extends ChangeNotifier {
     this.checkDelay = const Duration(milliseconds: 700),
   }) {
     _changes = _owner.changes.listen((_) {
-      if (_depth == 0) notifyListeners();
+      if (_depth > 0) return;
+      _fromUser = false;
+      notifyListeners();
     });
   }
 
@@ -37,6 +39,12 @@ final class EditorGate extends ChangeNotifier {
 
   EditorState get state => _owner.state;
 
+  /// Whether the owner's latest change came from the user's own input (a
+  /// key, typing, a tap, a control), not from elsewhere (the file, a
+  /// timer): only then does the view follow the caret.
+  bool get fromUser => _fromUser;
+  bool _fromUser = false;
+
   /// Each new state of the owner.
   Stream<EditorState> get changes => _owner.changes;
 
@@ -57,7 +65,7 @@ final class EditorGate extends ChangeNotifier {
   /// whether it made one.
   bool send(EditorInput? Function(EditorState now) build) {
     EditorInput? sent;
-    _change(() {
+    _change(fromUser: true, () {
       _flush();
       sent = build(_owner.state);
       if (sent case final input?) _owner.send(input);
@@ -67,17 +75,20 @@ final class EditorGate extends ChangeNotifier {
 
   /// A tap on [item]'s box; a second tap on it while it waits takes it
   /// back. The caret goes at once, as after any control.
-  void tapBox(NodeId item) => _change(() {
+  void tapBox(NodeId item) => _change(fromUser: true, () {
     _owner.send(const RemoveCaret());
     if (_waiting.isEmpty) _tappedAt = _owner.state.revision;
     if (!_waiting.remove(item)) _waiting.add(item);
     _timer?.cancel();
-    _timer = _waiting.isEmpty ? null : Timer(checkDelay, () => _change(_flush));
+    _timer = _waiting.isEmpty
+        ? null
+        : Timer(checkDelay, () => _change(fromUser: true, _flush));
   });
 
   /// An input not from the user (the file owner's message): the taps go
   /// on waiting.
-  void external(EditorInput input) => _change(() => _owner.send(input));
+  void external(EditorInput input) =>
+      _change(fromUser: false, () => _owner.send(input));
 
   void _flush() {
     _timer?.cancel();
@@ -88,7 +99,8 @@ final class EditorGate extends ChangeNotifier {
     _owner.send(ToggleItems(items, revision: _tappedAt));
   }
 
-  void _change(void Function() change) {
+  void _change(void Function() change, {required bool fromUser}) {
+    if (_depth == 0) _fromUser = fromUser;
     _depth++;
     try {
       change();

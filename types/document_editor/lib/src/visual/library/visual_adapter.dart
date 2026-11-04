@@ -110,6 +110,7 @@ final class VisualAdapter {
     _PatchRequest(:final nodes, :final selection) => PatchCommand(
       nodes,
       selection: selection,
+      byUser: _gate.fromUser,
     ),
     _ when _isLibrarys(request) => null,
     _ when _inRaw => _RunCommand(this, () => _rawEdit(request)),
@@ -401,7 +402,9 @@ final class VisualAdapter {
     final selection = _positions.toLibrary(shown.selection, raw: shown.raw);
     switch (_executor) {
       case final executor?:
-        executor.executeCommand(PatchCommand(nodes, selection: selection));
+        executor.executeCommand(
+          PatchCommand(nodes, selection: selection, byUser: _gate.fromUser),
+        );
       case null:
         editor.execute([_PatchRequest(nodes, selection: selection)]);
     }
