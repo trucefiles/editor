@@ -136,6 +136,7 @@ export 'src/storage/file_store.dart';
 export 'src/storage/folder_addresses.dart';
 export 'src/storage/folder_markers.dart';
 export 'src/storage/folders_there.dart';
+export 'src/storage/forwarding_store.dart';
 export 'src/storage/host_paths.dart';
 export 'src/storage/json_file.dart';
 export 'src/storage/local_disk.dart';

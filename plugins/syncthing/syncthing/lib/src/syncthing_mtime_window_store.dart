@@ -29,9 +29,9 @@ import 'package:truce_core/truce_core.dart';
 ///
 /// What it knows of earlier writes lives in [_memory], kept by the
 /// folder; [SyncthingWriteMemory.settled] waits for the rewrites due.
-final class SyncthingMtimeWindowStore implements FileStore {
+final class SyncthingMtimeWindowStore extends ForwardingStore {
   SyncthingMtimeWindowStore(
-    this._inner,
+    super.inner,
     this._memory, {
     DateTime Function()? now,
     Timer Function(Duration, void Function())? timer,
@@ -47,20 +47,13 @@ final class SyncthingMtimeWindowStore implements FileStore {
 
   static final _log = Logger('truce.syncthing');
 
-  final FileStore _inner;
   final SyncthingWriteMemory _memory;
   final DateTime Function() _now;
   final Timer Function(Duration, void Function()) _timer;
 
   @override
-  Future<Result<Listing, StoreError>> list({
-    bool Function(RelPath folder)? enterFolder,
-    bool Function(RelPath file)? includeFile,
-  }) => _inner.list(enterFolder: enterFolder, includeFile: includeFile);
-
-  @override
   Future<Result<FileContent, StoreError>> read(RelPath path) async {
-    final read = await _inner.read(path);
+    final read = await inner.read(path);
     if (read case Ok(value: final content)) {
       _stateOf(path).saw(content.modified);
     }
@@ -70,14 +63,10 @@ final class SyncthingMtimeWindowStore implements FileStore {
   @override
   Future<Result<FileEntry, StoreError>> create(RelPath path, Uint8List bytes) =>
       _serial(path, () async {
-        final created = await _inner.create(path, bytes);
+        final created = await inner.create(path, bytes);
         if (created case Ok(value: final entry)) _wrote(path, bytes, entry);
         return created;
       });
-
-  @override
-  Future<Result<void, StoreError>> createFolder(RelPath folder) =>
-      _inner.createFolder(folder);
 
   @override
   Future<Result<FileEntry, StoreError>> replace(
@@ -85,7 +74,7 @@ final class SyncthingMtimeWindowStore implements FileStore {
     Uint8List bytes, {
     required FileVersion ifUnchanged,
   }) => _serial(path, () async {
-    final replaced = await _inner.replace(
+    final replaced = await inner.replace(
       path,
       bytes,
       ifUnchanged: _stateOf(path).onDisk(ifUnchanged),
@@ -100,7 +89,7 @@ final class SyncthingMtimeWindowStore implements FileStore {
     required FileVersion ifUnchanged,
   }) => _serial(path, () async {
     final state = _stateOf(path);
-    final deleted = await _inner.delete(
+    final deleted = await inner.delete(
       path,
       ifUnchanged: state.onDisk(ifUnchanged),
     );
@@ -134,9 +123,9 @@ final class SyncthingMtimeWindowStore implements FileStore {
       _serial(path, () async {
         final state = _stateOf(path);
         if (state.version != written) return;
-        switch (await _inner.read(path)) {
+        switch (await inner.read(path)) {
           case Ok(value: final content) when _sameBytes(content.bytes, bytes):
-            switch (await _inner.replace(
+            switch (await inner.replace(
               path,
               bytes,
               ifUnchanged: content.version,
