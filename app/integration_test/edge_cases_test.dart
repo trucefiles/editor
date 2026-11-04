@@ -275,7 +275,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openFile('Plan');
     await tester.chooseInMenu('Delete file');
-    await tester.waitFor(find.text('Undo'));
+    await tester.waitForInPlace(find.text('Undo'));
 
     app.write('plan.md', '# Plan\nother\n');
     await tester.tapAndSettle(find.text('Undo'));
@@ -518,7 +518,7 @@ void main() {
 
     await tester.openFile('Plan');
     await tester.chooseInMenu('Delete file');
-    await tester.waitFor(find.text('Undo'));
+    await tester.waitForInPlace(find.text('Undo'));
     await tester.tapAndSettle(find.text('Undo'));
     await tester.waitForFile(app.file('plan.md'), '# Plan\n');
 
@@ -528,7 +528,7 @@ void main() {
   testApp('clearing checked items can be undone', (tester) async {
     await tester.openVisual(app, 'Shop', '# Shop\n- [x] milk\n- [ ] eggs\n');
 
-    await tester.chooseInMenu('Clear checked items now');
+    await tester.chooseInMenu('Delete checked items now');
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tapAndSettle(find.text('Undo'));
 

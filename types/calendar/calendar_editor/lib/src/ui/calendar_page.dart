@@ -82,7 +82,7 @@ class _NoCalendar extends StatelessWidget {
     children: [
       Text(
         "This file can't be read as a calendar, so it's shown as "
-        "it is and can't be changed here.",
+        "plain text and can't be changed here.",
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       const SizedBox(height: 12),

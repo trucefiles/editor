@@ -39,7 +39,6 @@ void main() {
 
   test('a bug in writing stops the session; edits stay a draft', () async {
     final errors = <Object>[];
-    final notices = <Stopped>[];
     late FileSession session;
 
     // Made in the zone, so the error of its file owner is heard there.
@@ -60,9 +59,7 @@ void main() {
               throw StateError('bug'),
         ),
       );
-      session
-        ..stopNotices.listen(notices.add)
-        ..type('mine ');
+      session.type('mine ');
       expect(await session.secure(.hide), isFalse);
       await pumpEventQueue();
     }, (error, _) => errors.add(error));
@@ -75,27 +72,29 @@ void main() {
       () async =>
           (await fixture.draftsIn('f1')).singleOrNull?.text == 'mine one\n',
     );
-    // Told once, as it is known that the edits are kept.
-    await eventually(() async => notices.isNotEmpty);
-    expect(notices.single.kept, isTrue);
-    expect(notices.single.cause, StopCause.bug);
-    expect(session.state, isA<Stopped>().having((s) => s.kept, 'kept', true));
+    // Tells, as soon as it is known, that the edits are kept.
+    await eventually(
+      () => switch (session.state) {
+        Stopped(kept: true, cause: StopCause.bug) => true,
+        _ => false,
+      },
+    );
   });
 
   test('a save into a removed folder stops the session, telling the folder '
       'is gone', () async {
     final session = fixture.session();
-    final notices = <Stopped>[];
-    session.stopNotices.listen(notices.add);
     await fixture.removeFirstFolder();
 
     session.type('mine ');
     await session.secure(.hide);
 
-    await eventually(() => notices.isNotEmpty);
-    expect(notices.single.cause, StopCause.folderGone);
-    expect(notices.single.kept, isFalse);
-    expect(session.state, isA<Stopped>());
+    await eventually(
+      () => switch (session.state) {
+        Stopped(kept: false, cause: StopCause.folderGone) => true,
+        _ => false,
+      },
+    );
   });
 
   test('once stopped, its text is the latest edits, also those the editor '

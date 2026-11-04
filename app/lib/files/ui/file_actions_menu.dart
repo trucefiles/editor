@@ -104,9 +104,7 @@ class _HomeFileActionsState extends ConsumerState<HomeFileActions> {
       child: const Text('Color'),
     ),
     const Divider(),
-    const MenuItemButton(
-      child: Text('Move, rename, delete or backups: open the file'),
-    ),
+    const MenuItemButton(child: Text(_openToChange)),
   ];
 }
 
@@ -195,7 +193,7 @@ class _FileSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
-                  'To move, rename, delete or see backups, open the file.',
+                  _openToChange,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -209,6 +207,11 @@ class _FileSheet extends StatelessWidget {
 }
 
 const _openIcon = Icons.description_outlined;
+
+/// Where the actions not offered here are, said alike by the sheet and
+/// the menu.
+const _openToChange =
+    'Open the file to move, rename or delete it, or to see backups.';
 
 IconData _pinIcon({required bool pinned}) =>
     pinned ? Icons.push_pin : Icons.push_pin_outlined;

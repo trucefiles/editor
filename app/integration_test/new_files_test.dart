@@ -106,7 +106,7 @@ void main() {
 
     app.folder('later').createSync();
     await tester.startNewNote();
-    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.tapAndSettle(find.byTooltip(locationAndName));
     await tester.pickSubfolder('later');
 
     expect(find.text('later'), findsWidgets);
@@ -136,7 +136,7 @@ void main() {
     await tester.waitFor(find.text('Old'));
 
     await tester.typeNewNote('Plans');
-    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.tapAndSettle(find.byTooltip(locationAndName));
     await tester.typeSubfolder('2026/spring');
     await tester.tapAndSettle(find.text('OK'));
     await tester.waitFor(find.text('Documents/2026/spring/Plans.md'));
@@ -153,7 +153,7 @@ void main() {
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
     await tester.typeNewNote('Idea');
-    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.tapAndSettle(find.byTooltip(locationAndName));
 
     // The user switches apps with the dialog open, and comes back.
     tester.hideAndComeBack();
@@ -209,7 +209,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openFile('Plan');
 
-    await tester.tapAndSettle(find.byTooltip(placeAndName));
+    await tester.tapAndSettle(find.byTooltip(locationAndName));
     await tester.typeSubfolder('done/2026');
     await tester.tapAndSettle(find.text('OK'));
 

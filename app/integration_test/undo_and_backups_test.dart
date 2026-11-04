@@ -54,6 +54,26 @@ void main() {
     await tester.leaveExpecting(app, '# Plan\n\nabcd\n');
   });
 
+  testApp('undo tells why there is nothing more only when asked for more', (
+    tester,
+  ) async {
+    await tester.openVisual(app, 'Plan', '# Plan\n\nab\n');
+    await tester.clickLine('ab', 2);
+    await tester.typeImeText('cd');
+    const end =
+        'Nothing more to undo since you opened the file. '
+        'Older versions are in Backups.';
+
+    await tester.pressCtrl(LogicalKeyboardKey.keyZ);
+    expect(tester.showsLine('ab'), isTrue);
+    expect(find.text(end), findsNothing);
+    // The button looks off, but a tap still tells.
+    await tester.tapAndSettle(find.byTooltip('Undo'));
+    expect(find.text(end), findsOne);
+
+    await tester.leaveExpecting(app, '# Plan\n\nab\n');
+  });
+
   testApp('Ctrl+Z in Markdown edit undoes and puts the caret at the change', (
     tester,
   ) async {
@@ -81,11 +101,11 @@ void main() {
     await tester.pressCtrl(LogicalKeyboardKey.keyZ);
 
     await tester.waitFor(
-      find.textContaining('This is how the file was when you opened it.'),
+      find.textContaining('Nothing more to undo since you opened the file.'),
     );
     await tester.tapAndSettle(find.text('Backups'));
     expect(find.text('Backups of Plan'), findsOne);
-    expect(find.textContaining('Before editing'), findsOne);
+    expect(find.textContaining('before you edited it'), findsOne);
   });
 
   testApp('restores a backup into the open document; Undo takes it back', (
@@ -94,8 +114,8 @@ void main() {
     await planWithBackup(tester);
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
-    await tester.tapAndSettle(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
+    await tester.tapAndSettle(find.textContaining('before you edited it'));
     await tester.waitFor(find.text('Restore'));
     await tester.keep(find.text('Restore'));
 
@@ -115,7 +135,7 @@ void main() {
     await tester.waitUntil(() => app.file('Renamed.md').existsSync());
     await tester.chooseInMenu('Backups');
 
-    await tester.waitFor(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
     expect(find.text('Backups of Plan'), findsOne);
   });
 
@@ -125,7 +145,7 @@ void main() {
     await tester.waitForNoteClosed();
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
     await tester.tapAndSettle(find.byTooltip('Backup options'));
     await tester.tapAndSettle(find.text('Delete backup'));
     await tester.tapAndSettle(find.text('Delete'));

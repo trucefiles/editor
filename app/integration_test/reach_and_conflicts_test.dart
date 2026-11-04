@@ -131,7 +131,7 @@ void main() {
 
     tester.hideAndComeBack();
 
-    await tester.waitFor(find.textContaining('changed elsewhere'));
+    await tester.waitFor(find.textContaining('changed in the folder'));
     expect(find.text('Delete file'), findsOneWidget);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
@@ -152,8 +152,8 @@ void main() {
     await tester.waitForNoteClosed();
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
-    await tester.tapAndSettle(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
+    await tester.tapAndSettle(find.textContaining('before you edited it'));
     await tester.waitFor(find.text('Restore'));
     await tester.keep(find.text('Restore'));
 

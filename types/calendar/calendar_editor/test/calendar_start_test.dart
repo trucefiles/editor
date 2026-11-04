@@ -32,7 +32,7 @@ void main() {
     await pumpPage(tester, part, today: _today, starts: starts);
 
     expect(find.text('Edit event'), findsOne);
-    await tester.enterText(find.widgetWithText(TextField, 'Place'), 'Home');
+    await tester.enterText(find.widgetWithText(TextField, 'Location'), 'Home');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(calendarOf(part).events.single.series.location, 'Home');
@@ -126,8 +126,8 @@ void main() {
     await pumpPage(tester, calendarPart('Not a calendar'), today: _today);
     expect(
       find.text(
-        "This file can't be read as a calendar, so it's shown as it is "
-        "and can't be changed here.",
+        "This file can't be read as a calendar, so it's shown as plain "
+        "text and can't be changed here.",
       ),
       findsOne,
     );

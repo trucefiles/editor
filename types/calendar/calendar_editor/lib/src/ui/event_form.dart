@@ -173,7 +173,7 @@ class _EventFormState extends State<EventForm> {
                 OtherRepeat(:final rule) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Repeats'),
-                  subtitle: Text('$rule (kept as it is)'),
+                  subtitle: Text("$rule (can't be changed here)"),
                 ),
                 final SimpleRepeat? repeat =>
                   DropdownButtonFormField<Frequency?>(
@@ -223,7 +223,7 @@ class _EventFormState extends State<EventForm> {
             const SizedBox(height: 8),
             TextField(
               controller: _location,
-              decoration: const InputDecoration(labelText: 'Place'),
+              decoration: const InputDecoration(labelText: 'Location'),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -235,7 +235,7 @@ class _EventFormState extends State<EventForm> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Alerts are saved, but the app doesn't ring them yet.",
+              "Alerts are saved, but the app doesn't remind you yet.",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

@@ -10,7 +10,7 @@ import '../../../settings/device_settings_controller.dart';
 class RecentCountTile extends ConsumerWidget {
   const RecentCountTile({super.key});
 
-  static const _title = 'Recently edited on home';
+  static const _title = 'Recently edited: how many';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,11 +41,11 @@ class RecentCountTile extends ConsumerWidget {
 class RecentAgeTile extends ConsumerWidget {
   const RecentAgeTile({super.key});
 
-  static const _title = 'How old recently edited files can be';
+  static const _title = 'Recently edited: how far back';
 
   static String _label(int? days) => switch (days) {
     null => 'No limit',
-    final days => 'Up to $days days',
+    final days => 'Last $days days',
   };
 
   @override

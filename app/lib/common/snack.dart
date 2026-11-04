@@ -20,6 +20,8 @@ extension HintSnackBar on ScaffoldMessengerState {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
+          duration: hintDuration(message),
+          showCloseIcon: true,
           // Flutter keeps snack bars with an action open until dismissed;
           // these are short hints, so they go away on their own.
           persist: false,
@@ -30,6 +32,12 @@ extension HintSnackBar on ScaffoldMessengerState {
       );
   }
 }
+
+/// How long a hint of [message] shows: long enough for a slow reader,
+/// growing with its length within Material's 4 to 10 seconds.
+Duration hintDuration(String message) => Duration(
+  milliseconds: (2000 + message.length * 1000 ~/ 15).clamp(4000, 10000),
+);
 
 extension NoticeBanner on ScaffoldMessengerState {
   /// Shows [message] at the top until the user dismisses it, for news

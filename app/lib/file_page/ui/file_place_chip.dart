@@ -25,7 +25,7 @@ class FilePlaceChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final file = session.file;
     return Tooltip(
-      message: 'Place and name',
+      message: 'Location and name',
       child: ActionChip(
         label: FolderBadge(file.folder, file: session.path, withName: true),
         onPressed: enabled ? () => _edit(context, ref) : null,

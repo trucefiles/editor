@@ -95,7 +95,8 @@ void main() {
     expect(home(), contains('SUMMARY:Swim\r\n'));
     expect(
       find.text(
-        'Merged. Some older changes were replaced and are in '
+        'Merged. Some conflicts were resolved automatically; the overwritten '
+        'changes are in '
         'Backups: "Swim (old)".',
       ),
       findsOneWidget,

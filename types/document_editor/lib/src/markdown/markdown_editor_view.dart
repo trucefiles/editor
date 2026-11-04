@@ -87,7 +87,7 @@ final class MarkdownEditorView implements EditorView {
           ),
           PopupMenuItem(
             value: () => gate.run((_) => const ClearChecked(), byControl: true),
-            child: const Text('Clear checked items now'),
+            child: const Text('Delete checked items now'),
           ),
         ],
         PopupMenuItem(

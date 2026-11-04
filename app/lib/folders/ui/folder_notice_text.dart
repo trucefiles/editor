@@ -11,8 +11,8 @@ extension FolderNoticeText on FolderNotice {
       "$tool doesn't sync this folder, so changes may not reach other "
           'devices.',
     SyncUnknownNotice() =>
-      "Can't check whether $tool syncs this folder. Add the "
-          'folder $tool shares itself to fix that.',
+      "Can't tell whether $tool syncs this folder. To fix this, add the "
+          'whole $tool folder, not a folder inside it.',
     PolledNotice(:final interval) =>
       'No live updates here, so the app checks for changes every '
           '${intervalText(interval)}.',
@@ -21,7 +21,7 @@ extension FolderNoticeText on FolderNotice {
   /// A few words, e.g. for a tooltip.
   String shortText(String tool) => switch (this) {
     NotSyncedNotice() => 'Not synced by $tool',
-    SyncUnknownNotice() => "Can't check whether $tool syncs this folder",
+    SyncUnknownNotice() => "Can't tell whether $tool syncs this folder",
     PolledNotice(:final interval) => 'Checked every ${intervalText(interval)}',
   };
 }

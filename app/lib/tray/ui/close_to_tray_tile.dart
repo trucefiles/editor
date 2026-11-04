@@ -18,7 +18,9 @@ class CloseToTrayTile extends ConsumerWidget {
     return SwitchListTile(
       title: const Text('Keep running in tray'),
       subtitle: setting.enabled && !setting.trayVisible
-          ? const Text('No tray on this desktop: closing quits')
+          ? const Text(
+              'No tray on this desktop, so closing the window quits the app.',
+            )
           : null,
       value: setting.enabled,
       onChanged: (enabled) =>

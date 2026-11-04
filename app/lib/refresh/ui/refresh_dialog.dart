@@ -27,7 +27,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Refresh changes in folders'),
+    title: const Text('Check folders for changes'),
     content: RadioGroup<RefreshMode>(
       groupValue: _settings.mode,
       onChanged: (mode) =>
@@ -40,8 +40,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
             value: RefreshMode.live,
             title: Text('Live'),
             subtitle: Text(
-              'As they happen where possible, otherwise at the interval '
-              'below.',
+              'Right away where possible, else at the interval below.',
             ),
           ),
           const RadioListTile(
@@ -60,7 +59,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: DropdownMenu<Duration>(
-              label: const Text('Refresh interval'),
+              label: const Text('Check every'),
               initialSelection: _settings.interval,
               enabled: _settings.mode != RefreshMode.manual,
               onSelected: (interval) => setState(
