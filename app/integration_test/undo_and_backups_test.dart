@@ -101,11 +101,11 @@ void main() {
     await tester.pressCtrl(LogicalKeyboardKey.keyZ);
 
     await tester.waitFor(
-      find.textContaining('This is how the file was when you opened it.'),
+      find.textContaining('Nothing more to undo since you opened the file.'),
     );
     await tester.tapAndSettle(find.text('Backups'));
     expect(find.text('Backups of Plan'), findsOne);
-    expect(find.textContaining('Before editing'), findsOne);
+    expect(find.textContaining('before you edited it'), findsOne);
   });
 
   testApp('restores a backup into the open document; Undo takes it back', (
@@ -114,8 +114,8 @@ void main() {
     await planWithBackup(tester);
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
-    await tester.tapAndSettle(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
+    await tester.tapAndSettle(find.textContaining('before you edited it'));
     await tester.waitFor(find.text('Restore'));
     await tester.keep(find.text('Restore'));
 
@@ -135,7 +135,7 @@ void main() {
     await tester.waitUntil(() => app.file('Renamed.md').existsSync());
     await tester.chooseInMenu('Backups');
 
-    await tester.waitFor(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
     expect(find.text('Backups of Plan'), findsOne);
   });
 
@@ -145,7 +145,7 @@ void main() {
     await tester.waitForNoteClosed();
 
     await tester.chooseInMenu('Backups');
-    await tester.waitFor(find.textContaining('Before editing'));
+    await tester.waitFor(find.textContaining('before you edited it'));
     await tester.tapAndSettle(find.byTooltip('Backup options'));
     await tester.tapAndSettle(find.text('Delete backup'));
     await tester.tapAndSettle(find.text('Delete'));

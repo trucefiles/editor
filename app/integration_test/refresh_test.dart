@@ -34,7 +34,7 @@ void main() {
     await tester.refocusApp();
 
     await tester.waitFor(fromElsewhere);
-    expect(find.text('Updated with a change from elsewhere'), findsOne);
+    expect(find.text('Reloaded with changes from the folder.'), findsOne);
   });
 
   testApp('shows a change made before the document opened', (tester) async {
@@ -107,7 +107,7 @@ void main() {
     await tester.waitFor(find.byTooltip('New file'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Refresh changes in folders'));
+    await tester.tapAndSettle(find.text('Check folders for changes'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
     // The setting is saved, then the app rescans once for changes made
@@ -204,7 +204,7 @@ void main() {
 
     await tester.placeNote(name: 'Ideas');
     await tester.runFor(const Duration(seconds: 2));
-    expect(find.textContaining('was deleted elsewhere'), findsNothing);
+    expect(find.textContaining('was deleted in the folder'), findsNothing);
 
     await tester.typeOver('# Plan\nv2');
     await tester.pageBack();
