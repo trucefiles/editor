@@ -30,8 +30,8 @@ void main() {
 
     expect(top(tester, 'orphan'), lessThan(top(tester, 'Pinned')));
     expect(top(tester, 'Pinned'), lessThan(top(tester, 'a')));
-    expect(top(tester, 'a'), lessThan(top(tester, 'Recent')));
-    expect(top(tester, 'Recent'), lessThan(top(tester, 'b')));
+    expect(top(tester, 'a'), lessThan(top(tester, 'Recently edited')));
+    expect(top(tester, 'Recently edited'), lessThan(top(tester, 'b')));
     expect(top(tester, 'b'), lessThan(top(tester, 'footer')));
   });
 
@@ -40,14 +40,16 @@ void main() {
 
     expect(find.text('b'), findsOne);
     expect(find.text('Pinned'), findsNothing);
-    expect(find.text('Recent'), findsNothing);
+    expect(find.text('Recently edited'), findsNothing);
   });
 
-  testWidgets('shows no "Recent" heading if all are pinned', (tester) async {
+  testWidgets('shows no "Recently edited" heading if all are pinned', (
+    tester,
+  ) async {
     await show(tester, pinned: ['a']);
 
     expect(find.text('Pinned'), findsOne);
-    expect(find.text('Recent'), findsNothing);
+    expect(find.text('Recently edited'), findsNothing);
   });
 
   testWidgets('cards are as tall as their content', (tester) async {
@@ -138,14 +140,14 @@ void main() {
     final position = tester
         .state<ScrollableState>(find.byType(Scrollable))
         .position;
-    final recent = top(tester, 'Recent');
+    final recent = top(tester, 'Recently edited');
 
     position.jumpTo(3000);
     await tester.pump();
     position.jumpTo(0);
     await tester.pump();
 
-    expect(top(tester, 'Recent'), recent);
+    expect(top(tester, 'Recently edited'), recent);
     expect(find.text('pinned 0'), findsOne);
   });
 }

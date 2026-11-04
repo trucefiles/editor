@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'file_grid.dart';
 
 /// Cards in a grid: [leading] first, then [pinned] and [others] under a
-/// "Pinned" and a "Recent" heading, then [footer]. Headings show only if
+/// "Pinned" and a "Recently edited" heading, then [footer]. Headings show only if
 /// something is pinned. Only cards near the screen are built.
 class FileSections extends StatelessWidget {
   const FileSections({
@@ -33,7 +33,7 @@ class FileSections extends StatelessWidget {
               if (pinned.isNotEmpty) ...[
                 const _Heading('Pinned'),
                 _grid(pinned),
-                if (others.isNotEmpty) const _Heading('Recent'),
+                if (others.isNotEmpty) const _Heading('Recently edited'),
               ],
               _grid(others),
               if (footer case final footer?) SliverToBoxAdapter(child: footer),

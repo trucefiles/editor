@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
-import '../../files/home/ui/recent_count_tile.dart';
+import '../../files/home/ui/recently_edited_tiles.dart';
 import '../../files/new_file_place/ui/new_file_place_tile.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
 import '../../text_zoom/text_zoom_target.dart';
@@ -22,6 +22,7 @@ class SettingsScreen extends StatelessWidget {
         children: const [
           NewFilePlaceTile(),
           RecentCountTile(),
+          RecentAgeTile(),
           AddItemPlaceTile(),
           TextZoomTile(TextZoomTarget.documents),
           TextZoomTile(TextZoomTarget.app),

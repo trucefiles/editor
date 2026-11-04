@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
@@ -42,6 +43,19 @@ extension AppSteps on WidgetTester {
     final card = find.text(title).hitTestable();
     await waitFor(card);
     await tapAndSettle(card.first);
+  }
+
+  /// Gives the file titled [title] the color [color] from its card's
+  /// menu, with a right click as with a mouse.
+  Future<void> colorFile(String title, String color) async {
+    await tap(
+      find.text(title),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await pumpAndSettle();
+    await tapAndSettle(find.widgetWithText(SubmenuButton, 'Color'));
+    await tapAndSettle(find.byTooltip(color));
   }
 
   /// Waits until the open file has closed.

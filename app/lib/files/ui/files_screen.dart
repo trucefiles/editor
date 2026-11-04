@@ -194,7 +194,10 @@ class _FilesBody extends ConsumerWidget {
                     ),
                   )
                 : switch (ref.watch(homeViewProvider)) {
-                    HomeView.recent => _RecentView(files, leading: orphanCards),
+                    HomeView.home => _PinnedAndRecent(
+                      files,
+                      leading: orphanCards,
+                    ),
                     HomeView.all => AllFilesView(
                       files,
                       leading: orphanCards,
@@ -213,10 +216,10 @@ class _FilesBody extends ConsumerWidget {
   }
 }
 
-/// Home's Recent view: [leading] cards first, then the pinned and the
-/// newest of [files], and "Show all" while it leaves some out.
-class _RecentView extends ConsumerWidget {
-  const _RecentView(this.files, {required this.leading});
+/// Home's Home view: [leading] cards first, then the pinned and the
+/// recently edited of [files], and "Show all" while it leaves some out.
+class _PinnedAndRecent extends ConsumerWidget {
+  const _PinnedAndRecent(this.files, {required this.leading});
 
   final List<ListedFile> files;
   final List<Widget> leading;
@@ -225,12 +228,18 @@ class _RecentView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(fileSettingsProvider);
     final settings = ref.read(fileSettingsProvider.notifier);
+    final home = ref.watch(
+      deviceSettingsProvider.select((s) => s.requireValue.home),
+    );
     final recent = recentOf(
       files,
       isPinned: (file) => settings.settingsOf(file.key).pinned,
-      count: ref.watch(
-        deviceSettingsProvider.select((s) => s.requireValue.home.recentCount),
-      ),
+      count: home.recentCount,
+      // Checked on each listing; no timer moves files out while shown.
+      since: switch (home.recentDays) {
+        null => null,
+        final days => DateTime.now().subtract(Duration(days: days)),
+      },
     );
     return FileSections(
       leading: leading,
@@ -262,8 +271,7 @@ class _ConflictsButton extends ConsumerWidget {
   }
 }
 
-/// Switches home to All, at the end of Recent while Recent leaves files
-/// out.
+/// Switches home to All, at the end of Home while Home leaves files out.
 class _ShowAll extends ConsumerWidget {
   const _ShowAll();
 

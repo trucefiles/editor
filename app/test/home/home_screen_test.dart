@@ -86,6 +86,84 @@ void main() {
     expect(find.text('List'), findsOneWidget);
   });
 
+  testWidgets('a Clear chip shows in a row only while something in it is '
+      'picked, and clears only that row', (tester) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'list.txt': 'List\nmilk',
+    });
+    final clear = find.widgetWithText(ActionChip, 'Clear');
+    expect(clear, findsNothing);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Plain text'));
+    await tester.tap(find.widgetWithText(FilterChip, folderAt(dir).name));
+    await tester.pumpAndSettle();
+    expect(clear, findsNWidgets(2));
+    expect(find.text('Notes'), findsNothing);
+
+    // The second Clear is the type row's.
+    await tester.tap(clear.last);
+    await tester.pumpAndSettle();
+    expect(clear, findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
+
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(clear, findsNothing);
+  });
+
+  testWidgets('a long press on a card shows its actions as a sheet: its '
+      'title and place, Open, Pin and where the rest is', (tester) async {
+    await start(tester, {'work/notes.md': '# Notes'});
+
+    await tester.longPress(find.text('Notes'));
+    await tester.pumpAndSettle();
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Documents/work')),
+      findsOne,
+    );
+    expect(find.descendant(of: sheet, matching: find.text('Pin')), findsOne);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.textContaining('open the file'),
+      ),
+      findsOne,
+    );
+
+    await tester.tap(find.descendant(of: sheet, matching: find.text('Open')));
+    await showsSoon(tester, find.byType(FileScreen));
+  });
+
+  testWidgets('a right click on a card shows its actions as a menu there, '
+      'the colors in a submenu', (tester) async {
+    await start(tester, {'notes.md': '# Notes'});
+
+    final at = tester.getCenter(find.text('Notes'));
+    await tester.tapAt(
+      at,
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    final open = find.widgetWithText(MenuItemButton, 'Open');
+    expect(open, findsOne);
+    expect((tester.getTopLeft(open) - at).distance, lessThan(80));
+    expect(find.widgetWithText(MenuItemButton, 'Pin'), findsOne);
+    expect(find.textContaining('open the file'), findsOne);
+
+    await tester.tap(find.widgetWithText(SubmenuButton, 'Color'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('No color'), findsOne);
+
+    await tester.tap(find.widgetWithText(MenuItemButton, 'Pin'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(MenuItemButton, 'Open'), findsNothing);
+    expect(find.text('Pinned'), findsWidgets);
+  });
+
   testWidgets('a new file of another type than the one picked shows its '
       'type too', (tester) async {
     await start(tester, {'notes.md': '# Notes'});

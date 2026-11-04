@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,15 +74,15 @@ void main() {
     app.write('ideas.md', '# Ideas\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
-    expect(find.text('Recent'), findsNothing);
+    expect(find.text('Recently edited'), findsNothing);
 
     await pin(tester, 'Plan');
 
     // In its own section, above the others.
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     expect(top('Pinned'), lessThan(top('Plan')));
-    expect(top('Plan'), lessThan(top('Recent')));
-    expect(top('Recent'), lessThan(top('Ideas')));
+    expect(top('Plan'), lessThan(top('Recently edited')));
+    expect(top('Recently edited'), lessThan(top('Ideas')));
     // A pin is this device's view, not synced with the folder.
     expect(app.folder('.truce').existsSync(), isFalse);
   });
@@ -94,7 +93,7 @@ void main() {
     app.write('work/a.md', '# Ant\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Bee'));
-    // Recent leaves nothing out, so it offers no "Show all".
+    // Home leaves nothing out, so it offers no "Show all".
     expect(find.text('Show all', skipOffstage: false), findsNothing);
 
     await pickInView(tester, 'All files');
@@ -119,7 +118,7 @@ void main() {
     await tester.waitFor(find.byType(FileScreen));
   });
 
-  testApp('Recent shows as many documents as set, All the rest', (
+  testApp('Recently edited shows as many documents as set, All the rest', (
     tester,
   ) async {
     for (var day = 1; day <= 21; day++) {
@@ -130,7 +129,7 @@ void main() {
     await tester.waitFor(find.text('Day 21'));
 
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Recent files on home'));
+    await tester.tapAndSettle(find.text('Recently edited on home'));
     await tester.tapAndSettle(find.text('20'));
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -155,6 +154,36 @@ void main() {
       300,
       scrollable: files(),
     );
+  });
+
+  testApp('Recently edited leaves out files older than the age limit', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    app.write('new.md', '# New\n');
+    app
+        .file('new.md')
+        .setLastModifiedSync(now.subtract(const Duration(days: 1)));
+    app.write('old.md', '# Old\n');
+    app
+        .file('old.md')
+        .setLastModifiedSync(now.subtract(const Duration(days: 20)));
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.chooseInMenu('Settings');
+    await tester.tapAndSettle(
+      find.text('How old recently edited files can be'),
+    );
+    await tester.tapAndSettle(find.text('Up to 10 days'));
+    expect(find.text('Up to 10 days'), findsOne);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('New'), findsOne);
+    expect(find.text('Old'), findsNothing);
+    await tester.tapAndSettle(find.text('Show all'));
+    await tester.waitFor(find.text('Old'));
   });
 
   testApp('All by name builds only the cards near the screen', (tester) async {
@@ -201,13 +230,7 @@ void main() {
     app.write('plan.md', '# Plan\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
-    await tester.tap(
-      find.text('Plan'),
-      kind: PointerDeviceKind.mouse,
-      buttons: kSecondaryMouseButton,
-    );
-    await tester.pumpAndSettle();
-    await tester.tapAndSettle(find.byTooltip('teal'));
+    await tester.colorFile('Plan', 'teal');
     await pickInView(tester, 'All files');
     await pickInView(tester, 'As list');
 
@@ -229,14 +252,7 @@ void main() {
     app.write('plan.md', '# Plan\n\n---\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Plan'));
-    // Right click, as with a mouse.
-    await tester.tap(
-      find.text('Plan'),
-      kind: PointerDeviceKind.mouse,
-      buttons: kSecondaryMouseButton,
-    );
-    await tester.pumpAndSettle();
-    await tester.tapAndSettle(find.byTooltip('teal'));
+    await tester.colorFile('Plan', 'teal');
 
     await tester.openFile('Plan');
 
