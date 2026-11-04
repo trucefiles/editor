@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  truce_common_ui: any
   truce_core: any
   truce_syncthing: any
 

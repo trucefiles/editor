@@ -11,7 +11,7 @@ workspace:
   - file_page
   - files
   - folders
-  - masonry
+  - common_ui
   - plugins/local_folder/local_folder
   - plugins/local_folder/local_folder_ui
   - plugins/syncthing/syncthing

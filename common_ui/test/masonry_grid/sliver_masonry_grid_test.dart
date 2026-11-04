@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_masonry/truce_masonry.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Two columns 100 wide, 10 apart, in a view 600 high.
 const _width = 210.0;

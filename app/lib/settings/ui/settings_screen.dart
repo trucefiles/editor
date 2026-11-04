@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../../files/home/ui/recent_count_tile.dart';
 import '../../files/new_file_place/ui/new_file_place_tile.dart';
@@ -15,16 +16,19 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Settings')),
-    body: ListView(
-      children: const [
-        NewFilePlaceTile(),
-        RecentCountTile(),
-        AddItemPlaceTile(),
-        TextZoomTile(TextZoomTarget.documents),
-        TextZoomTile(TextZoomTarget.app),
-        RefreshSettingTile(),
-        CloseToTrayTile(),
-      ],
+    body: PageWidth(
+      builder: (_, padding) => ListView(
+        padding: padding,
+        children: const [
+          NewFilePlaceTile(),
+          RecentCountTile(),
+          AddItemPlaceTile(),
+          TextZoomTile(TextZoomTarget.documents),
+          TextZoomTile(TextZoomTarget.app),
+          RefreshSettingTile(),
+          CloseToTrayTile(),
+        ],
+      ),
     ),
   );
 }
