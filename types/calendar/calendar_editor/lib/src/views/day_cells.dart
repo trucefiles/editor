@@ -30,10 +30,23 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
 };
 
 /// A day's number in the month view, made smaller where its cell is too
-/// narrow for it (very large text), never broken over two lines.
+/// narrow for it (very large text), never broken over two lines. Each
+/// shrinks as a two-digit number would, so all show at one size.
 Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
   fit: BoxFit.scaleDown,
-  child: MonthDayHeader(date: date),
+  child: Stack(
+    alignment: Alignment.center,
+    children: [
+      Visibility(
+        visible: false,
+        maintainSize: true,
+        maintainAnimation: true,
+        maintainState: true,
+        child: MonthDayHeader(date: DateTime(2000, 1, 30)),
+      ),
+      MonthDayHeader(date: date),
+    ],
+  ),
 );
 
 /// Thin diagonal lines in [color] over the whole box: a day that is

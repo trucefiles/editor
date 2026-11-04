@@ -115,10 +115,41 @@ void main() {
     expect(find.text('Party'), findsOneWidget);
   });
 
+  testWidgets('at very large text on a phone, all day numbers of the month '
+      'show at one size', (tester) async {
+    tester.view
+      ..physicalSize = const Size(360, 700)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery.withClampedTextScaling(
+          minScaleFactor: 3,
+          maxScaleFactor: 3,
+          child: Scaffold(
+            body: CalendarViews<String>(
+              calendars: {'home': _calendar('Home', 'Dentist', 9)},
+              colorOf: (_) => Colors.teal,
+              kind: CalendarViewKind.month,
+              onKind: (_) {},
+              now: () => DateTime(2026, 11, 3, 8),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // As shown, after each number shrank to fit.
+    double heightOf(String day) => tester.getRect(find.text(day).first).height;
+    expect(heightOf('9'), closeTo(heightOf('10'), 0.5));
+  });
+
   for (final (kind, sixOn) in [
     (CalendarViewKind.month, DateTime(2027, 5)),
     (CalendarViewKind.week, DateTime(2026, 12, 14)),
     (CalendarViewKind.day, DateTime(2026, 11, 9)),
+    (CalendarViewKind.schedule, DateTime(2027, 5)),
   ]) {
     testWidgets('quick taps on Next in the ${kind.name} view each move a '
         'page', (tester) async {

@@ -64,25 +64,6 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _ => today,
   };
 
-  /// A day of the page [by] pages on (back if negative) from the one
-  /// [from] is on, else from the page shown: a day, a week or a month on
-  /// (a month's first day, the schedule's too).
-  DateTime pageOn(int by, {DateTime? from}) {
-    final day =
-        from ??
-        switch (_kind) {
-          CalendarViewKind.schedule => _range?.from,
-          _ => middle,
-        } ??
-        today;
-    return switch (_kind) {
-      CalendarViewKind.month ||
-      CalendarViewKind.schedule => DateTime(day.year, day.month + by),
-      CalendarViewKind.week => DateTime(day.year, day.month, day.day + 7 * by),
-      CalendarViewKind.day => DateTime(day.year, day.month, day.day + by),
-    };
-  }
-
   /// The range shown, on this device's clock; `null` until it is told.
   ({DateTime from, DateTime to})? get range => _range;
 

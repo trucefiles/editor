@@ -88,7 +88,8 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
   late final _pages = PageMover(
-    pageOn: _model.pageOn,
+    pages: () => _pagesOf(_configurations[_model.kind]!),
+    shown: () => _model.middle ?? _model.today,
     animateTo: (date) => _kalender!.animateToDate(date),
   );
   // The current widget's colors: a calendar's color can change.
@@ -342,3 +343,14 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
     ),
   };
 }
+
+/// The pages of a view [configuration] of [configurationsFor].
+PageIndexCalculator _pagesOf(ViewConfiguration configuration) =>
+    switch (configuration) {
+      MonthViewConfiguration(:final PageIndexCalculator pageIndexCalculator) ||
+      MultiDayViewConfiguration(:final pageIndexCalculator) ||
+      ScheduleViewConfiguration(
+        :final pageIndexCalculator,
+      ) => pageIndexCalculator,
+      _ => throw UnsupportedError('No pages in $configuration'),
+    };
