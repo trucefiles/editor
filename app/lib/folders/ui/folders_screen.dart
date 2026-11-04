@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/confirm_dialog.dart';
+import '../../common/floating_button_room.dart';
 import '../../common/snack.dart';
 import '../add_folder/ui/add_folder_screen.dart';
 import '../folder_actions.dart';
@@ -47,7 +48,9 @@ class FoldersScreen extends ConsumerWidget {
       body: PageWidth(
         builder: (_, padding) => ReorderableFolderList(
           folders,
-          padding: padding,
+          padding: padding.copyWith(
+            bottom: padding.bottom + floatingButtonRoom,
+          ),
           onMove: (folder, to) => _move(context, ref, folder, to: to),
           tile: (folder, index) => ListTile(
             key: ValueKey(folder.id),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../../common/floating_button_room.dart';
 import '../../folders/ui/folder_badge.dart';
 import 'file_grid.dart';
 import 'file_sections.dart';
@@ -44,7 +45,7 @@ class AllFilesView extends StatelessWidget {
             asCards ? 12 : 0,
             0,
             asCards ? 12 : 0,
-            88,
+            floatingButtonRoom,
           ),
           sliver: _files(),
         ),
