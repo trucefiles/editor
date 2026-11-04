@@ -97,12 +97,20 @@ final class TextLook extends RowLook {
 
 /// A block without text, shown whole: a divider, table, HTML block, link
 /// definitions or front matter.
+/// [selected] while it is selected whole (not while the caret is right
+/// after it).
 final class BlockLook extends RowLook {
-  const BlockLook(this.leaf, {required this.frames, required this.done});
+  const BlockLook(
+    this.leaf, {
+    required this.frames,
+    required this.done,
+    this.selected = false,
+  });
 
   final DocLeaf leaf;
   final List<Frame> frames;
   final bool done;
+  final bool selected;
 
   @override
   NodeId get key => leaf.id;
@@ -112,10 +120,11 @@ final class BlockLook extends RowLook {
       other is BlockLook &&
       identical(other.leaf, leaf) &&
       other.done == done &&
+      other.selected == selected &&
       _frames.equals(other.frames, frames);
 
   @override
-  int get hashCode => Object.hash(leaf, done, _frames.hash(frames));
+  int get hashCode => Object.hash(leaf, done, selected, _frames.hash(frames));
 }
 
 /// A raw block open as its raw text. A node of its own, not the one
@@ -311,7 +320,12 @@ final class RowLooks {
         frames: frames,
       ),
       TextRow(:final leaf) => TextLook(leaf, frames: frames, done: row.done),
-      BlockRow(:final leaf) => BlockLook(leaf, frames: frames, done: row.done),
+      BlockRow(:final leaf) => BlockLook(
+        leaf,
+        frames: frames,
+        done: row.done,
+        selected: shown.selection == BlockSelection(leaf.id),
+      ),
     },
   );
 

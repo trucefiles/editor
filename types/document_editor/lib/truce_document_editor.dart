@@ -67,6 +67,7 @@ export 'src/visual/ui/line_drag.dart';
 export 'src/visual/ui/line_drag_state.dart';
 export 'src/visual/ui/line_drop_zone.dart';
 export 'src/visual/ui/link_dialog.dart';
+export 'src/visual/ui/link_popup.dart';
 export 'src/visual/ui/row_builder.dart';
 export 'src/visual/ui/row_component.dart';
 export 'src/visual/ui/swipe_to_indent.dart';

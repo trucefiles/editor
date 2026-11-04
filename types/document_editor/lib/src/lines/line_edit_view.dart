@@ -110,11 +110,7 @@ class _LineEditViewState extends State<LineEditView> {
                 (_) => LinkTapHandler(
                   linkAt: highlighter.linkAt,
                   onLink: widget.onLink,
-                  opens: (position) => editingTapOpens(
-                    position,
-                    tapOpens: false,
-                    caretNode: _adapter.composer.selection?.extent.nodeId,
-                  ),
+                  opens: editingTapOpens,
                 ),
             ],
           ),

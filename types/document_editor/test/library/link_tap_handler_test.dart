@@ -1,26 +1,27 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 
 /// When a tap opens a link while editing.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   const position = DocumentPosition(
     nodeId: 'a',
     nodePosition: TextNodePosition(offset: 0),
   );
 
-  test('a plain tap opens one on a line the caret is not in', () {
-    expect(editingTapOpens(position, tapOpens: true, caretNode: 'b'), isTrue);
-    expect(editingTapOpens(position, tapOpens: true, caretNode: null), isTrue);
+  testWidgets('a plain tap opens none: it places the caret', (tester) async {
+    expect(editingTapOpens(position), isFalse);
   });
 
-  test('a plain tap on the caret line places the caret instead', () {
-    expect(editingTapOpens(position, tapOpens: true, caretNode: 'a'), isFalse);
-  });
-
-  test('without plain taps, a tap opens none', () {
-    expect(editingTapOpens(position, tapOpens: false, caretNode: 'b'), isFalse);
-  });
+  for (final key in [
+    LogicalKeyboardKey.controlLeft,
+    LogicalKeyboardKey.metaLeft,
+  ]) {
+    testWidgets('a tap with ${key.keyLabel} held opens one', (tester) async {
+      await tester.sendKeyDownEvent(key);
+      expect(editingTapOpens(position), isTrue);
+      await tester.sendKeyUpEvent(key);
+    });
+  }
 }

@@ -141,14 +141,26 @@ void main() {
   });
 
   group('on a selected divider, as on one selected character', () {
+    /// The divider selected as a range, as a double click selects it.
     _Visual selected() {
       final visual = _Visual('a\n\n---\n\nb');
-      visual.adapter.selectDividerAt(
-        DocumentPosition(
-          nodeId: visual.document.getNodeAt(1)!.id,
-          nodePosition: const UpstreamDownstreamNodePosition.downstream(),
+      final divider = visual.document.getNodeAt(1)!.id;
+      visual.editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection(
+            base: DocumentPosition(
+              nodeId: divider,
+              nodePosition: const UpstreamDownstreamNodePosition.upstream(),
+            ),
+            extent: DocumentPosition(
+              nodeId: divider,
+              nodePosition: const UpstreamDownstreamNodePosition.downstream(),
+            ),
+          ),
+          SelectionChangeType.expandSelection,
+          SelectionReason.userInteraction,
         ),
-      );
+      ]);
       return visual;
     }
 
@@ -168,6 +180,53 @@ void main() {
       final visual = selected();
       visual.editor.execute([DeleteSelectionRequest(TextAffinity.upstream)]);
       expect(visual.texts, ['a', 'b']);
+    });
+  });
+
+  group('right after a tapped divider, as after one character', () {
+    _Visual tapped() {
+      final visual = _Visual('a\n\n---\n\nb');
+      expect(
+        visual.adapter.caretAfterDividerAt(
+          DocumentPosition(
+            nodeId: visual.document.getNodeAt(1)!.id,
+            nodePosition: const UpstreamDownstreamNodePosition.upstream(),
+          ),
+        ),
+        isTrue,
+      );
+      return visual;
+    }
+
+    test('the library has its caret at the divider\'s end', () {
+      final visual = tapped();
+      expect(
+        visual.selection,
+        DocumentSelection.collapsed(
+          position: DocumentPosition(
+            nodeId: visual.document.getNodeAt(1)!.id,
+            nodePosition: const UpstreamDownstreamNodePosition.downstream(),
+          ),
+        ),
+      );
+    });
+
+    test('a typed character starts a new line after it', () {
+      final visual = tapped();
+      visual.editor.execute([InsertCharacterAtCaretRequest(character: 'x')]);
+      expect(visual.secured(), 'a\n\n---\n\nx\n\nb');
+    });
+
+    test('pasted lines go after it', () {
+      final visual = tapped();
+      visual.adapter.paste('x\ny');
+      expect(visual.secured(), 'a\n\n---\n\nx\n\ny\n\nb');
+    });
+
+    test('Backspace removes it', () {
+      final visual = tapped();
+      visual.editor.execute([const DeleteUpstreamRequest()]);
+      expect(visual.secured(), 'a\n\nb');
     });
   });
 

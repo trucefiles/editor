@@ -70,7 +70,7 @@ void _expectShows(Shown document, Selection? selection) {
           reason: '$place is in its text',
         );
       }
-    case BlockSelection(:final block):
+    case BlockSelection(:final block) || BlockCaret(:final block):
       expect(document.view.row(block), isA<BlockRow>(), reason: '$block');
     case null:
       break;

@@ -13,6 +13,9 @@ dependencies:
     sdk: flutter
   flutter_markdown_plus: ^1.0.12
   markdown: ^7.3.1
+  # super_editor's own leaders and followers, to show the link popup at
+  # the caret; already in its graph.
+  follow_the_leader: 0.5.3
   super_editor: 0.3.0-dev.52
   truce_core: any
   truce_file_page: any

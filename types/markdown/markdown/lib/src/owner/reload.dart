@@ -59,7 +59,8 @@ final class ReloadMap {
 
   /// [selection] as it falls in [after], shown as [view] shows it: each
   /// place on the leaf its leaf falls on ([leafOf]), keeping its offset,
-  /// clamped; a selected divider stays selected; anything else lands at
+  /// clamped; a selected divider stays selected, a caret after one stays
+  /// there; anything else lands at
   /// the start of a text it falls on, else of the document; no caret
   /// stays none.
   Selection? selection(Selection? selection, ViewRows view) {
@@ -79,10 +80,10 @@ final class ReloadMap {
         (final base?, final extent?) => TextSelection(base, extent),
         _ => startOf(view),
       },
-      BlockSelection(:final block) => switch (leafOf(block, view)) {
-        final leaf? when view.row(leaf)?.leaf is DividerNode => BlockSelection(
-          leaf,
-        ),
+      BlockSelection(:final block) ||
+      BlockCaret(:final block) => switch (leafOf(block, view)) {
+        final leaf? when view.row(leaf)?.leaf is DividerNode =>
+          selection is BlockCaret ? BlockCaret(leaf) : BlockSelection(leaf),
         final leaf? when view.row(leaf) is TextRow => TextSelection.caret(
           Place(leaf, 0),
         ),

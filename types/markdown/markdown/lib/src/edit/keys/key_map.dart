@@ -89,6 +89,12 @@ KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
         LineInPlace(block),
       ),
       (BlockSelection(), _) => const Consumed(),
+      (BlockCaret(:final block), EditKey.backspace) => RunCommand(
+        RemoveSelectedBlock(block, backward: true),
+      ),
+      (BlockCaret(:final block), EditKey.enter || EditKey.shiftEnter) =>
+        RunCommand(LineAfter(block)),
+      (BlockCaret(), _) => const Consumed(),
       (final TextSelection range, _) => _Keys(view, range).action(key),
     };
 

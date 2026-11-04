@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import '../../doc/doc_nodes.dart';
 import '../../tree/inlines.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
@@ -32,10 +33,41 @@ Change setLink(ViewRows view, TextSelection range, String text, String url) {
   );
 }
 
+/// A link: the whole of its text as [range], the [text] it shows, where
+/// it leads ([url]), and whether it can be [removable] (see
+/// [canRemoveLink]).
+typedef LinkHere = ({
+  TextSelection range,
+  String text,
+  String url,
+  bool removable,
+});
+
+/// The link all of [selection] is in, a caret too (also right after the
+/// link's last character); `null` if there is none.
+LinkHere? linkHere(ViewRows view, TextSelection selection) {
+  final (start, end) = ordered(view, selection);
+  if (start.leaf != end.leaf || view.doc.nodeOf(start.leaf) is! TextNode) {
+    return null;
+  }
+  final text = textAt(view.doc, start.leaf);
+  return switch (linkAt(text, start.offset)) {
+    (:final mark, :final from, :final to)
+        when from <= start.offset && end.offset <= to =>
+      (
+        range: TextSelection(Place(start.leaf, from), Place(start.leaf, to)),
+        text: text.slice(from, to).text,
+        url: mark.destination,
+        removable: canRemoveLink(view, start),
+      ),
+    _ => null,
+  };
+}
+
 /// Whether the link at [at] can be removed: there is one, and it is not
 /// text GFM reads as a link anyway.
 bool canRemoveLink(ViewRows view, Place at) =>
-    switch (_linkAt(textAt(view.doc, at.leaf), at.offset)?.mark.style) {
+    switch (linkAt(textAt(view.doc, at.leaf), at.offset)?.mark.style) {
       null || LinkStyle.extendedAutolink => false,
       _ => true,
     };
@@ -43,7 +75,7 @@ bool canRemoveLink(ViewRows view, Place at) =>
 /// The link at [at] removed, its text kept; the caret after the text.
 Change removeLink(ViewRows view, Place at) {
   final text = textAt(view.doc, at.leaf);
-  final (mark: _, :from, :to) = _linkAt(text, at.offset)!;
+  final (mark: _, :from, :to) = linkAt(text, at.offset)!;
   return typed(
     view,
     Place(at.leaf, from),
@@ -54,7 +86,7 @@ Change removeLink(ViewRows view, Place at) {
 
 /// The link of the character at [offset] in [text], else of the one
 /// before it, with the stretch it spans; `null` if neither is a link's.
-({LinkMark mark, int from, int to})? _linkAt(VisibleText text, int offset) {
+({LinkMark mark, int from, int to})? linkAt(VisibleText text, int offset) {
   final mark = [offset, offset - 1]
       .where((index) => index >= 0 && index < text.length)
       .map((index) => text.formattingAt(index).link)

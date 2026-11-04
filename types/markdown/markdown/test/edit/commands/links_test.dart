@@ -68,4 +68,42 @@ void main() {
       expect(canRemoveLink(document.view, document.place(0, 8)), isFalse);
     });
   });
+
+  group('the link here', () {
+    LinkHere? here(String text, int from, [int? to]) {
+      final document = Shown.read(text);
+      return linkHere(
+        document.view,
+        TextSelection(document.place(0, from), document.place(0, to ?? from)),
+      );
+    }
+
+    test('at a caret in it, or right after it, is all of it', () {
+      for (final offset in [3, 4, 6]) {
+        final link = here('a [link](https://x.io) b', offset)!;
+        expect(
+          (link.text, link.url, link.removable),
+          ('link', 'https://x.io', true),
+        );
+        expect(link.range.base.offset, 2);
+        expect(link.range.extent.offset, 6);
+      }
+    });
+
+    test('over part of it, is all of it; over more, none', () {
+      expect(here('a [link](u) b', 3, 5)?.text, 'link');
+      expect(here('a [link](u) b', 1, 4), isNull);
+    });
+
+    test('is none before it or in plain text', () {
+      expect(here('a [link](u) b', 1), isNull);
+      expect(here('plain', 2), isNull);
+    });
+
+    test('of text GFM reads as a link cannot be removed', () {
+      final link = here('see www.x.io now', 6)!;
+      expect(link.text, 'www.x.io');
+      expect(link.removable, isFalse);
+    });
+  });
 }

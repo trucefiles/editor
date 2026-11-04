@@ -87,14 +87,14 @@ final class VisualAdapter {
     _ => null,
   };
 
-  /// A tap at [position]: a divider there is selected whole, as a block;
-  /// whether there was one.
-  bool selectDividerAt(DocumentPosition position) {
+  /// A tap at [position]: on a divider, the caret goes right after it,
+  /// as after one character; whether there was one.
+  bool caretAfterDividerAt(DocumentPosition position) {
     final node = _document.getNodeById(position.nodeId);
     if (node == null) return false;
     if (lookOf(node) case BlockLook(leaf: md.DividerNode(:final id))) {
       _gate.send(
-        (now) => md.CaretMoved(md.BlockSelection(id), revision: now.revision),
+        (now) => md.CaretMoved(md.BlockCaret(id), revision: now.revision),
       );
       return true;
     }
@@ -429,7 +429,7 @@ final class VisualAdapter {
     if (split == null) return;
     final caret = switch (shown.selection) {
       md.TextSelection(:final extent) => extent.leaf,
-      md.BlockSelection(:final block) => block,
+      md.BlockSelection(:final block) || md.BlockCaret(:final block) => block,
       null => null,
     };
     final index = looks.indexWhere((look) => look.key == caret);

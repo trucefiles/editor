@@ -127,6 +127,98 @@ void main() {
       });
     });
 
+    group('right after a separator, as after one character', () {
+      test('typed text starts a new line after it', () {
+        final run = EditorRun('a\n\n---\n\nb')
+          ..caretAfter(1)
+          ..type('x');
+        expect(run.rows, ['a', '[DividerNode]', 'x', 'b']);
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(2), 1)));
+      });
+
+      test('Enter starts a new empty line after it', () {
+        final run = EditorRun('a\n\n---\n\nb')
+          ..caretAfter(1)
+          ..press(EditKey.enter);
+        expect(run.rows, ['a', '[DividerNode]', '', 'b']);
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(2), 0)));
+      });
+
+      test('in a list, a new item after it', () {
+        final run = EditorRun('- [ ] a\n- [ ] ***\n- [ ] b')
+          ..caretAfter(1)
+          ..type('x');
+        run.pause();
+        expect(run.sent, '- [ ] a\n- [ ] ***\n- [ ] x\n- [ ] b');
+      });
+
+      test('pasted lines go after it', () {
+        final run = EditorRun('a\n\n---\n\nb')..caretAfter(1);
+        run.runCommand(
+          Paste(BlockCaret(run.leaf(1)), plainLines('x\ny', Formatting.plain)),
+        );
+        expect(run.rows, ['a', '[DividerNode]', 'x', 'y', 'b']);
+      });
+
+      test('Backspace removes it, the caret up, no Undo offered', () {
+        final run = EditorRun('a\n\n---\n\nb')
+          ..caretAfter(1)
+          ..press(EditKey.backspace);
+        expect(run.rows, ['a', 'b']);
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
+        expect(run.outputs.whereType<UndoOffered>(), isEmpty);
+      });
+
+      test('Delete and other keys do nothing', () {
+        final run = EditorRun('a\n\n---\n\nb')..caretAfter(1);
+        for (final key in [EditKey.delete, EditKey.tab, EditKey.bold]) {
+          run.press(key);
+        }
+        expect(run.rows, ['a', '[DividerNode]', 'b']);
+        expect(run.shown.selection, BlockCaret(run.leaf(1)));
+      });
+
+      test('the caret stays there through a change elsewhere', () {
+        final run = EditorRun('a\n\n---\n\nb')..caretAfter(1);
+        run.request(
+          const FromFile(
+            Replaced('x\n\na\n\n---\n\nb', version: v2, ackRev: 0),
+          ),
+        );
+        expect(run.shown.selection, BlockCaret(run.leaf(2)));
+      });
+    });
+
+    group('the link key asks for a link', () {
+      test('on a link, all of it, to edit', () {
+        final run = EditorRun('a [link](https://x.io) b')
+          ..caret(0, 4)
+          ..press(EditKey.link);
+        final ask = run.outputs.whereType<AskLink>().single;
+        expect(
+          (ask.text, ask.url, ask.removable),
+          ('link', 'https://x.io', true),
+        );
+        expect(
+          ask.range,
+          TextSelection(Place(run.leaf(0), 2), Place(run.leaf(0), 6)),
+        );
+      });
+
+      test('on text, the text selected, to add one', () {
+        final run = EditorRun('a word b');
+        run.send(
+          CaretMoved(
+            TextSelection(Place(run.leaf(0), 2), Place(run.leaf(0), 6)),
+            revision: run.revision,
+          ),
+        );
+        run.press(EditKey.link);
+        final ask = run.outputs.whereType<AskLink>().single;
+        expect((ask.text, ask.url), ('word', null));
+      });
+    });
+
     test('drops an input on what no longer shows', () {
       final run = EditorRun('- [ ] a\n- [ ] b');
       final tapped = run.revision;

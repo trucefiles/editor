@@ -15,6 +15,7 @@ import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/command.dart';
+import '../edit/commands/links.dart' show linkHere;
 import '../edit/commands/text_commands.dart' show ordered;
 import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
@@ -264,19 +265,33 @@ final class _Step with EditorSteps<Snapshot> {
         );
       case OpenLinkDialog():
         if (selection case final TextSelection range) {
-          events.add(AskLink(range));
+          events.add(_askLink(shown.view, range));
         }
       case Consumed():
         break;
     }
   }
 
+  /// The link dialog on [range]: on a link, the whole of it, to edit;
+  /// else the text selected, to link.
+  static AskLink _askLink(ViewRows view, TextSelection range) =>
+      switch (linkHere(view, range)) {
+        (:final range, :final text, :final url, :final removable) => AskLink(
+          range,
+          text: text,
+          url: url,
+          removable: removable,
+        ),
+        null => AskLink(range, text: plainTextOf(copiedLines(view, range))),
+      };
+
   /// [text] typed over [over]: over a block selected whole, the text
   /// takes its place, plain.
   void _typed(FormattedContent shown, String text, Selection over) =>
       switch (over) {
         final TextSelection range => _typedText(shown, text, range),
-        BlockSelection() => _run(Paste(over, plainLines(text, .plain))),
+        BlockSelection() ||
+        BlockCaret() => _run(Paste(over, plainLines(text, .plain))),
       };
 
   /// [text] typed over [range]: the typing style holds only at the
@@ -325,8 +340,9 @@ final class _Step with EditorSteps<Snapshot> {
   }
 
   /// Whether [command] removed what an undo is offered for: items by the
-  /// delete button or the menu, a block without text, code, or more than
-  /// one leaf. An emptied code block goes like an emptied paragraph.
+  /// delete button or the menu, a block without text (but a divider,
+  /// which goes as one character), code, or more than one leaf. An
+  /// emptied code block goes like an emptied paragraph.
   bool _removes(Command command, DocTree before, DocTree after) {
     if (command is DeleteItem || command is ClearChecked) return true;
     final removed = leavesIn(before.root)
@@ -335,7 +351,7 @@ final class _Step with EditorSteps<Snapshot> {
     return removed.length > 1 ||
         removed.any(
           (leaf) => switch (leaf) {
-            TextNode() => false,
+            TextNode() || DividerNode() => false,
             CodeNode(:final code) => code.isNotEmpty,
             _ => true,
           },
