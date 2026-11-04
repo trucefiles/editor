@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart'
-    show AddItemPlace;
+    show AddItemPlace, DocumentTextStyles;
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -122,10 +122,9 @@ void main() {
       'quote twice', (tester) async {
     await pumpDocument(tester, TestDocument('> one\n>\n> > two\n\nafter'));
     await tester.pumpAndSettle();
-    final tint = Theme.of(tester.element(find.byType(SuperEditor)))
-        .colorScheme
-        .surfaceContainerHighest
-        .withValues(alpha: 0.6);
+    final tint = DocumentTextStyles.quoteTint(
+      Theme.of(tester.element(find.byType(SuperEditor))),
+    );
     List<Rect> tints() => [
       for (final box
           in find

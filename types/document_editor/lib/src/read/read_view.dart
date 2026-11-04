@@ -65,6 +65,10 @@ MarkdownStyleSheet _styleSheet(ThemeData theme, DocumentMetrics metrics) {
     // The renderer's own box, in the theme's color, so it shows in dark
     // mode too.
     checkbox: sheet.checkbox?.copyWith(color: theme.colorScheme.primary),
+    // The quote tint Visual edit shows, in the theme's colors.
+    blockquoteDecoration: BoxDecoration(
+      color: DocumentTextStyles.quoteTint(theme),
+    ),
     blockSpacing: metrics.blockGap,
     pPadding: below,
     h1Padding: below,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../document_metrics.dart';
+import '../../document_text_styles.dart';
 import '../../ui/list_marker.dart';
 import '../row_looks.dart';
 
@@ -119,8 +120,7 @@ class _QuoteBar extends StatelessWidget {
       Positioned.fill(
         child: IgnorePointer(
           child: ColoredBox(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.6),
+            color: DocumentTextStyles.quoteTint(Theme.of(context)),
           ),
         ),
       ),

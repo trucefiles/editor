@@ -21,35 +21,36 @@ typedef RowSpan = ({double top, double bottom});
 /// space the two take together, whatever their heights; the rule holds no
 /// state, so moving back flips at the same line.
 ({int row, bool below})? passedRow(List<RowSpan> rows, int own, double top) {
-  final bottom = top + rows[own].bottom - rows[own].top;
+  final height = rows[own].bottom - rows[own].top;
+  if (top > rows[own].top) return _passedDown(rows, own, top + height);
+  // Moving up is moving down on the rows turned upside down.
+  final last = rows.length - 1;
+  final flipped = [
+    for (final row in rows.reversed) (top: -row.bottom, bottom: -row.top),
+  ];
+  return switch (_passedDown(flipped, last - own, -top)) {
+    (:final row, :final below) => (row: last - row, below: !below),
+    null => null,
+  };
+}
+
+/// [passedRow] moving down, the copy's bottom edge at [edge].
+({int row, bool below})? _passedDown(List<RowSpan> rows, int own, double edge) {
   double middle(int index) => (rows[index].top + rows[index].bottom) / 2;
-  final indices = Iterable<int>.generate(rows.length);
-  if (bottom > rows[own].bottom) {
-    final passed =
-        indices.skip(own + 1).lastWhereOrNull((i) => bottom > middle(i)) ?? own;
-    final next = passed + 1;
-    final space = next < rows.length
-        ? (from: rows[passed].bottom, to: rows[next].top)
-        : null;
-    return switch (space) {
-      (:final from, :final to)
-          when to - from >= _space && bottom > (from + to) / 2 =>
-        (row: next, below: false),
-      _ when passed == own => null,
-      _ => (row: passed, below: true),
-    };
-  }
   final passed =
-      indices.take(own).firstWhereOrNull((i) => top < middle(i)) ?? own;
-  final next = passed - 1;
-  final space = next >= 0
-      ? (from: rows[next].bottom, to: rows[passed].top)
+      Iterable<int>.generate(rows.length)
+          .skip(own + 1)
+          .lastWhereOrNull((i) => edge > middle(i)) ??
+      own;
+  final next = passed + 1;
+  final space = next < rows.length
+      ? (from: rows[passed].bottom, to: rows[next].top)
       : null;
   return switch (space) {
     (:final from, :final to)
-        when to - from >= _space && top < (from + to) / 2 =>
-      (row: next, below: true),
+        when to - from >= _space && edge > (from + to) / 2 =>
+      (row: next, below: false),
     _ when passed == own => null,
-    _ => (row: passed, below: false),
+    _ => (row: passed, below: true),
   };
 }
