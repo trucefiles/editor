@@ -52,18 +52,19 @@ Change toggleStyle(ViewRows view, TextSelection selection, TextFormat format) {
   );
 }
 
-/// Whether every character [selection] covers has [format]; the rule
-/// that says whether [toggleStyle] takes it off.
+/// Whether [selection] covers text and every character of it has
+/// [format]; the rule that says whether [toggleStyle] takes it off.
 bool hasStyle(ViewRows view, TextSelection selection, TextFormat format) =>
     _allHave(_ranges(view, selection), format);
 
-bool _allHave(List<_Range> ranges, TextFormat format) => ranges.every(
-  (range) => range.text
-      .slice(range.start, range.end)
-      .pieces
-      .whereType<TextPiece>()
-      .every((piece) => piece.formatting.has(format)),
-);
+bool _allHave(List<_Range> ranges, TextFormat format) {
+  final pieces = [
+    for (final range in ranges)
+      ...range.text.slice(range.start, range.end).pieces.whereType<TextPiece>(),
+  ];
+  return pieces.isNotEmpty &&
+      pieces.every((piece) => piece.formatting.has(format));
+}
 
 typedef _Range = ({TextNode leaf, VisibleText text, int start, int end});
 

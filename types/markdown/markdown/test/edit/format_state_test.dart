@@ -36,6 +36,15 @@ void main() {
     expect(_at('**ab** c', 0, 3).formats, isEmpty);
   });
 
+  test('over no text, only a line break, no format is on', () {
+    final document = Shown.read('a\n\nb');
+    final state = formatStateAt(
+      document.view,
+      TextSelection(document.place(0, 1), document.place(1, 0)),
+    );
+    expect(state.formats, isEmpty);
+  });
+
   test('in a link, and at its end', () {
     expect(_at('a [link](https://x.io) b', 3).link, isTrue);
     expect(_at('a [link](https://x.io) b', 6).link, isTrue);

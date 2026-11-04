@@ -50,6 +50,36 @@ void main() {
       );
     });
 
+    test('gives an autolink new text as an inline link', () {
+      expect(
+        _linked(
+          'see www.example.com now',
+          4,
+          19,
+          'Example',
+          'http://www.example.com',
+        ).$1,
+        'see [Example](http://www.example.com) now',
+      );
+      expect(
+        _linked('see <https://x.io> now', 4, 16, 'X', 'https://x.io').$1,
+        'see [X](https://x.io) now',
+      );
+    });
+
+    test('keeps an autolink whose text stays', () {
+      expect(
+        _linked(
+          'see www.example.com now',
+          4,
+          19,
+          'www.example.com',
+          'http://www.example.com',
+        ).$1,
+        'see www.example.com now',
+      );
+    });
+
     test('changes a link\'s url', () {
       expect(_linked('[a](u)', 0, 1, 'a', 'v').$1, '[a](v)');
     });

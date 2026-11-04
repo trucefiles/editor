@@ -13,16 +13,20 @@ import 'text_commands.dart';
 /// The link dialog's result: [range], within one text place, showing
 /// [text] (the [url] if empty) as a link to [url], the caret after it.
 /// Text left as it was keeps its formats; a link already there that
-/// leads to [url] keeps its spelling.
+/// leads to [url] keeps its spelling, unless that spelling is its text
+/// (an autolink) and the text changes: then it becomes an inline link.
 Change setLink(ViewRows view, TextSelection range, String text, String url) {
   final (start, end) = ordered(view, range);
   assert(start.leaf == end.leaf, 'a link within one text place');
   final old = textAt(view.doc, start.leaf).slice(start.offset, end.offset);
+  final shows = text.isEmpty ? url : text;
   final mark = switch (old.text.isEmpty ? null : old.formattingAt(0).link) {
-    final link? when link.destination == url => link,
+    final link?
+        when link.destination == url &&
+            (shows == old.text || !_spelledByText(link.style)) =>
+      link,
     _ => LinkMark(destination: url, style: LinkStyle.inline),
   };
-  final shows = text.isEmpty ? url : text;
   return typed(
     view,
     start,
@@ -32,6 +36,13 @@ Change setLink(ViewRows view, TextSelection range, String text, String url) {
         : VisibleText([TextPiece(shows, Formatting.plain.withLink(mark))]),
   );
 }
+
+/// Whether a link of [style] is spelled by its text alone (`<url>`, a
+/// bare `www.`): other text makes it no link.
+bool _spelledByText(LinkStyle style) => switch (style) {
+  LinkStyle.autolink || LinkStyle.extendedAutolink => true,
+  LinkStyle.inline || LinkStyle.reference => false,
+};
 
 /// A link: the whole of its text as [range], the [text] it shows, where
 /// it leads ([url]), and whether it can be [removable] (see

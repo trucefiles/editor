@@ -38,13 +38,21 @@ Future<LinkAnswer?> askLink(
 );
 
 /// [address] as a link leads: one typed without a scheme (e.g.
-/// `www.example.com`) gets `https://`; one that leads within the folder
-/// or the document (`/`, `./`, `../`, `#`) stays as typed.
+/// `www.example.com`, `localhost:3000`) gets `https://`, an e-mail
+/// address `mailto:`; one that leads within the folder or the document
+/// (`/`, `./`, `../`, `#`) stays as typed.
 String withScheme(String address) {
   final trimmed = address.trim();
-  final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:').hasMatch(trimmed);
+  // A port's digits after the colon make no scheme.
+  final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:(?!\d)')
+      .hasMatch(trimmed);
   final local = ['/', './', '../', '#'].any(trimmed.startsWith);
-  return hasScheme || local || trimmed.isEmpty ? trimmed : 'https://$trimmed';
+  final email = trimmed.contains('@') && !trimmed.contains('/');
+  return switch (trimmed) {
+    _ when hasScheme || local || trimmed.isEmpty => trimmed,
+    _ when email => 'mailto:$trimmed',
+    _ => 'https://$trimmed',
+  };
 }
 
 class _LinkDialog extends StatefulWidget {
@@ -75,8 +83,10 @@ class _LinkDialogState extends State<_LinkDialog> {
     super.dispose();
   }
 
+  /// The address as typed; one left as the link had it stays as it is
+  /// (e.g. `notes.md`, a file next to the document).
   void _save() {
-    final url = withScheme(_url.text);
+    final url = _url.text == widget.url ? _url.text : withScheme(_url.text);
     Navigator.pop(context, url.isEmpty ? null : LinkSet(_text.text, url));
   }
 

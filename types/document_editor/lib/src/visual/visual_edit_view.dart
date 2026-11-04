@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:follow_the_leader/follow_the_leader.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
@@ -20,6 +19,7 @@ import 'library/visual_adapter.dart';
 import 'library/visual_keys.dart';
 import 'row_looks.dart';
 import 'ui/block_builder.dart';
+import 'ui/caret_follower.dart';
 import 'ui/format_toolbar.dart';
 import 'ui/line_drop_zone.dart';
 import 'ui/link_dialog.dart';
@@ -78,6 +78,9 @@ class _VisualEditViewState extends State<VisualEditView> {
   /// Where the caret is, for the link popup to follow.
   final _selectionLinks = SelectionLayerLinks();
   final _linkPopup = OverlayPortalController()..show();
+
+  /// The rows' area, without the toolbar: the link popup stays in it.
+  final _editorArea = GlobalKey();
 
   /// The look in the current theme and metrics, with the document's
   /// images. Kept between builds: the library lays the whole document out
@@ -155,29 +158,27 @@ class _VisualEditViewState extends State<VisualEditView> {
   }
 
   /// The popup at the link the caret is in, if any, below the caret's
-  /// line (above it where there is no room), clear of a touch handle.
+  /// line (above it where there is no room), clear of a touch handle,
+  /// while the caret shows among the rows.
   Widget _linkPopupAtCaret(BuildContext context) => ListenableBuilder(
     listenable: widget.gate,
     builder: (context, _) => switch (_actions.caretLink) {
-      (:final range, :final url, :final removable, text: _) =>
-        Follower.withAligner(
-          link: _selectionLinks.caretLink,
-          aligner: PreferredPositionAligner.bottom(
-            gap: DocumentMetrics.of(context).touch ? 28 : 4,
-          ),
-          boundary: const KeyboardFollowerBoundary(),
-          child: LinkPopup(
-            url,
-            onOpen: () => widget.onLink(url),
-            onEdit: () => _actions.press(md.EditKey.link),
-            onRemove: removable
-                ? () => _actions.removeLink(
-                    range,
-                    revision: widget.gate.state.revision,
-                  )
-                : null,
-          ),
+      (:final range, :final url, :final removable, text: _) => CaretFollower(
+        caret: _selectionLinks.caretLink,
+        area: _editorArea,
+        gap: DocumentMetrics.of(context).touch ? 28 : 4,
+        child: LinkPopup(
+          url,
+          onOpen: () => widget.onLink(url),
+          onEdit: () => _actions.press(md.EditKey.link),
+          onRemove: removable
+              ? () => _actions.removeLink(
+                  range,
+                  revision: widget.gate.state.revision,
+                )
+              : null,
         ),
+      ),
       null => const SizedBox.shrink(),
     },
   );
@@ -224,6 +225,7 @@ class _VisualEditViewState extends State<VisualEditView> {
           children: [
             Expanded(
               child: Stack(
+                key: _editorArea,
                 children: [
                   TouchControls(
                     color: look.handleColor,

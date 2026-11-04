@@ -15,6 +15,10 @@ void main() {
       ('../a.md', '../a.md'),
       ('#todo', '#todo'),
       ('  ', ''),
+      ('localhost:3000', 'https://localhost:3000'),
+      ('www.example.com:8080/x', 'https://www.example.com:8080/x'),
+      ('name@example.com', 'mailto:name@example.com'),
+      ('https://me@a.b/x', 'https://me@a.b/x'),
     ]) {
       test('"$typed" leads to "$leads"', () {
         expect(withScheme(typed), leads);
@@ -66,6 +70,18 @@ void main() {
     expect(answered, isA<LinkSet>());
     final set = answered! as LinkSet;
     expect((set.text, set.url), ('docs', 'https://a.b'));
+  });
+
+  testWidgets('editing keeps an address left as it was, e.g. a file', (
+    tester,
+  ) async {
+    final answered = await answer(tester, () async {
+      await tester.enterText(find.widgetWithText(TextField, 'docs'), 'notes');
+      await tester.tap(find.text('Save'));
+    }, url: 'notes.md');
+
+    final set = answered! as LinkSet;
+    expect((set.text, set.url), ('notes', 'notes.md'));
   });
 
   testWidgets('an empty address answers nothing', (tester) async {

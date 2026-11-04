@@ -779,6 +779,33 @@ void main() {
       );
     });
 
+    testWidgets('the popup stays in the editor, gone while the caret is '
+        'scrolled out of it', (tester) async {
+      tester.view.physicalSize = const Size(600, 500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final lines = [for (var i = 0; i < 40; i++) 'line $i'].join('\n\n');
+      await pumpDocument(tester, TestDocument('$lines\n\nsee [docs](u)'));
+
+      final last = SuperEditorInspector.findDocument()!.last.id;
+      // To the end, the link on the last line shown.
+      await tester.drag(find.byType(SuperEditor), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+      await tester.caretIn(last, 6);
+      final editor = tester.getRect(find.byType(SuperEditor));
+      expect(find.byType(LinkPopup), findsOneWidget);
+      final popup = tester.getRect(find.byType(LinkPopup));
+      expect(
+        editor.top <= popup.top && popup.bottom <= editor.bottom,
+        isTrue,
+        reason: 'popup $popup in editor $editor',
+      );
+
+      await tester.drag(find.byType(SuperEditor), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(find.byType(LinkPopup), findsNothing);
+    });
+
     testWidgets('no popup with the caret off a link', (tester) async {
       await pumpDocument(tester, TestDocument(linkedText));
 
