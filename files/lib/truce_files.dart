@@ -44,6 +44,7 @@ export 'src/open_failure.dart';
 export 'src/open_file/editor_part.dart';
 export 'src/open_file/file_effects.dart';
 export 'src/open_file/file_session.dart';
+export 'src/open_file/fixed_view_editor_part.dart';
 export 'src/open_file/open_files.dart';
 export 'src/open_file/page_file.dart';
 export 'src/open_file/place_change.dart';

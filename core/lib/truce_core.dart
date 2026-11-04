@@ -113,6 +113,7 @@ export 'src/owners/effects.dart';
 export 'src/owners/machine.dart';
 export 'src/owners/machine_owner.dart';
 export 'src/owners/owner.dart';
+export 'src/owners/owner_view.dart';
 export 'src/owners/simple_owner.dart';
 export 'src/owners/step_run.dart';
 export 'src/owners/timers.dart';

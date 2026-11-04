@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:truce_file_page/truce_file_page.dart';
-import 'package:truce_files/truce_files.dart';
 
 import '../lines/line_edit_view.dart';
 import 'plain_editor_part.dart';
@@ -10,7 +9,7 @@ import 'ui/plain_read_view.dart';
 
 /// How a plain text document's part shows: its lines to edit, or only
 /// its text to read. Adds nothing else to the page.
-final class PlainEditorView implements EditorView {
+final class PlainEditorView extends EditorView {
   PlainEditorView(this._part) : _text = PlainText(_part.owner);
 
   final PlainEditorPart _part;
@@ -31,21 +30,6 @@ final class PlainEditorView implements EditorView {
           listenable: _text,
           builder: (_, _) => PlainReadView(_text.shown.text),
         );
-
-  @override
-  List<Widget> actions(BuildContext context) => const [];
-
-  @override
-  List<PopupMenuEntry<VoidCallback>> menu(
-    BuildContext context,
-    ViewSettings view,
-  ) => const [];
-
-  @override
-  Map<SingleActivator, VoidCallback> get keys => const {};
-
-  @override
-  Widget? floatingButton(BuildContext context) => null;
 }
 
 /// A plain text's lines: drawn as plain text.

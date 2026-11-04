@@ -16,7 +16,7 @@ import 'ui/edit_mode_button.dart';
 /// How a Markdown document's part shows: the editor in the mode it shows,
 /// the mode menu and Ctrl+1, 2, 3, and the menu's commands on checked
 /// items.
-final class MarkdownEditorView implements EditorView {
+final class MarkdownEditorView extends EditorView {
   MarkdownEditorView(this._part, this._services);
 
   final MarkdownEditorPart _part;
@@ -52,9 +52,6 @@ final class MarkdownEditorView implements EditorView {
   List<Widget> actions(BuildContext context) => [
     EditModeButton(mode: _part.mode, onChanged: _part.pick),
   ];
-
-  @override
-  Widget? floatingButton(BuildContext context) => null;
 
   /// Ctrl+1, 2, 3 pick the modes in the mode menu's order.
   @override

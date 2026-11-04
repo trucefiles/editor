@@ -41,7 +41,6 @@ export 'src/marker.dart';
 export 'src/plain/plain_editable_type.dart';
 export 'src/plain/plain_editor_part.dart';
 export 'src/plain/plain_editor_view.dart';
-export 'src/plain/plain_page_editor.dart';
 export 'src/plain/plain_text.dart';
 export 'src/plain/ui/plain_look.dart';
 export 'src/plain/ui/plain_read_view.dart';
