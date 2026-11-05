@@ -82,43 +82,50 @@ final class DeleteEvent extends CalendarEdit {
 }
 
 /// [calendar] after [edit]; unchanged if the event it names is not there
-/// (or already there, for [AddEvent]). An edit that puts an event in a
-/// time zone the calendar has no block for adds that zone's block.
-Calendar applyEdit(Calendar calendar, CalendarEdit edit) {
-  final edited = _applied(calendar, edit);
+/// (or already there, for [AddEvent]).
+Calendar applyEdit(Calendar calendar, CalendarEdit edit) =>
+    calendar.withUnits(editedUnits(calendar, edit));
+
+/// The units [edit] writes into [calendar]: the event it edits, and the
+/// block of each time zone it puts the event in that the calendar has no
+/// block for; none if the event it names is not there (or already there,
+/// for [AddEvent]).
+List<CalendarUnit> editedUnits(Calendar calendar, CalendarEdit edit) {
+  final event = _editedEvent(calendar, edit);
+  if (event == null) return const [];
   final draft = switch (edit) {
     AddEvent(:final draft) ||
     ChangeSeries(:final draft) ||
     ChangeOccurrence(:final draft) => draft,
     DeleteOccurrence() || DeleteEvent() => null,
   };
-  if (draft == null || identical(edited, calendar)) return edited;
-  return edited.withUnits([
-    for (final zone in {
-      for (final time in [draft.start, draft.end])
-        if (time case Zoned(:final zone)) zone,
-    })
-      if (!edited.zones.contains(zone))
-        if (zoneBlock(zone) case final block?)
-          CalendarUnit.edited(ZoneKey(zone), [block]),
-  ]);
+  return [
+    event,
+    if (draft != null)
+      for (final zone in {
+        for (final time in [draft.start, draft.end])
+          if (time case Zoned(:final zone)) zone,
+      })
+        if (!calendar.zones.contains(zone))
+          if (zoneBlock(zone) case final block?)
+            CalendarUnit.edited(ZoneKey(zone), [block]),
+  ];
 }
 
-Calendar _applied(Calendar calendar, CalendarEdit edit) {
+/// The event unit [edit] makes of [calendar]'s; `null` if it makes none.
+CalendarUnit? _editedEvent(Calendar calendar, CalendarEdit edit) {
   final at = edit.at;
   switch (edit) {
     case AddEvent(:final uid, :final draft):
-      if (calendar.unitOf(UidKey.event(uid)) != null) return calendar;
+      if (calendar.unitOf(UidKey.event(uid)) != null) return null;
       final event = _drafted(
         Component('VEVENT', [ContentLine('UID', uid)]),
         draft,
         series: true,
       );
-      return calendar.withUnit(
-        CalendarUnit.edited(UidKey.event(uid), [
-          _stamped(event, at, first: true),
-        ]),
-      );
+      return CalendarUnit.edited(UidKey.event(uid), [
+        _stamped(event, at, first: true),
+      ]);
     case ChangeSeries(:final uid, :final from):
       return _changed(calendar, uid, (event) {
         final now = event.series;
@@ -200,16 +207,15 @@ Calendar _applied(Calendar calendar, CalendarEdit edit) {
 EventDraft _wanted(EventDraft draft, EventDraft from, EventDraft? now) =>
     now == null ? draft : draft.over(from, now);
 
-/// [calendar] with event [uid]'s components replaced by [change]'s.
-Calendar _changed(
+/// Event [uid]'s unit with its components replaced by [change]'s;
+/// `null` if [calendar] has no such event.
+CalendarUnit? _changed(
   Calendar calendar,
   String uid,
   List<Component> Function(CalendarEvent event) change,
 ) => switch (calendar.eventOf(uid)) {
-  final event? => calendar.withUnit(
-    CalendarUnit.edited(event.key, change(event)),
-  ),
-  null => calendar,
+  final event? => CalendarUnit.edited(event.key, change(event)),
+  null => null,
 };
 
 /// Where a slot of [series] (a date it leaves out, or the occurrence a
@@ -317,33 +323,56 @@ Component _occurrenceOf(Component series, CalendarTime occurrence) {
 }
 
 /// [back], the calendar an undo or redo brings back over [now], as an
-/// edit at [at]: each event of [back] that differs from [now]'s is stamped
-/// anew, its `SEQUENCE` above both, and each event only [now] has is
-/// deleted (a marker). So a merge with [now]'s text, e.g. as another
-/// device got it, keeps what came back.
+/// edit at [at]: each of its events stamped anew where it differs from
+/// [now]'s, and each event only [now] has deleted (see [unitsBroughtBack]).
 Calendar broughtBack(Calendar back, Calendar now, DateTime at) =>
     back.withUnits([
       for (final event in back.events)
-        if (back.unitOf(event.key)! case final unit
-            when unit.text != now.unitOf(event.key)?.text)
-          CalendarUnit.edited(event.key, [
-            for (final component in unit.components)
-              _stamped(
-                component,
-                at,
-                above:
-                    now
-                        .unitOf(event.key)
-                        ?.components
-                        .map(_sequenceOf)
-                        .fold<int>(-1, max) ??
-                    -1,
-              ),
-          ]),
+        ?_cameBack(event.key, back.unitOf(event.key), now, at),
       for (final event in now.events)
         if (back.eventOf(event.uid) == null)
-          CalendarUnit.edited(event.key, [_marker(event, at)]),
+          ?_cameBack(event.key, null, now, at),
     ]);
+
+/// [now] with the units [back] holds (by key; `null` for a unit the edit
+/// undone or redone added) brought back as an edit at [at]: an event
+/// that differs from [now]'s is stamped anew, its `SEQUENCE` above both;
+/// an event [back] has not is deleted (a marker); any other unit comes
+/// back as it was, but one [back] has not stays (a time zone block may
+/// still be named by a marker). So a merge with [now]'s text, e.g. as
+/// another device got it, keeps what came back.
+Calendar unitsBroughtBack(
+  Calendar now,
+  Map<UnitKey, CalendarUnit?> back,
+  DateTime at,
+) => now.withUnits([
+  for (final MapEntry(:key, :value) in back.entries)
+    ?_cameBack(key, value, now, at),
+]);
+
+/// The unit [key] as it comes back to [now] as [back] (`null`: gone) at
+/// [at] (see [unitsBroughtBack]); `null` if [now] keeps its own.
+CalendarUnit? _cameBack(
+  UnitKey key,
+  CalendarUnit? back,
+  Calendar now,
+  DateTime at,
+) {
+  final current = now.unitOf(key);
+  if (back == null) {
+    return switch (current == null ? null : CalendarEvent.of(current)) {
+      final event? => CalendarUnit.edited(key, [_marker(event, at)]),
+      null => null,
+    };
+  }
+  if (back.text == current?.text) return null;
+  if (CalendarEvent.of(back) == null) return back;
+  final above = current?.components.map(_sequenceOf).fold<int>(-1, max) ?? -1;
+  return CalendarUnit.edited(key, [
+    for (final component in back.components)
+      _stamped(component, at, above: above),
+  ]);
+}
 
 /// [event] stamped as edited [at]; a [first] stamp starts its `SEQUENCE`
 /// at 0, else it goes one above its own and [above].

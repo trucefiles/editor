@@ -5,7 +5,6 @@ import 'package:truce_core/truce_core.dart'
         EditorSteps,
         EffectId,
         SentText,
-        ShownStep,
         Step,
         StepRun,
         TextSummary;
@@ -13,11 +12,12 @@ import 'package:truce_core/truce_core.dart'
 import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
+import '../model/calendar_unit.dart';
 import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
 
 /// The calendar editor owner's decision on [message] in [state], with its
-/// [book]; undo steps are the calendar before and after each edit.
+/// [book]; undo steps keep only the units each edit changed.
 Step<
   CalendarState,
   EditorBook<CalendarStep>,
@@ -60,12 +60,12 @@ final class _Step
       case EditCalendar(:final edit, :final newUid):
         if (state.calendar case final calendar?) {
           final landed = landing(calendar, edit, newUid: newUid);
-          final edited = applyEdit(calendar, landed.edit);
-          if (edited.text != calendar.text) {
-            final before = _shown;
+          final written = editedUnits(calendar, landed.edit);
+          final edited = calendar.withUnits(written);
+          if (UnitsChanged.of(calendar, edited, written) case final step?) {
             _showCalendar(edited);
             textChanged();
-            record(ShownStep(before, _shown), null);
+            record(step, null);
           }
           if (landed.gone case final gone?) events.add(SavedAsNew(gone));
         }
@@ -86,10 +86,22 @@ final class _Step
       effects.add(CalendarSaveTimer(id, delay));
 
   @override
-  void undo(CalendarStep step) => _restore(step.before);
+  void undo(CalendarStep step) => switch (step) {
+    UnitsChanged(:final before) => _bringBack(before),
+    TextReplaced(:final before) => _restore(before),
+  };
 
   @override
-  void redo(CalendarStep step) => _restore(step.after);
+  void redo(CalendarStep step) => switch (step) {
+    UnitsChanged(:final after) => _bringBack(after),
+    TextReplaced(:final after) => _restore(after),
+  };
+
+  /// The [units] of one side of an edit show again, stamped as an edit
+  /// made when it was asked. A units step is only undone or redone on the
+  /// calendar it was made on, so one shows.
+  void _bringBack(Map<UnitKey, CalendarUnit?> units) =>
+      _showCalendar(unitsBroughtBack(state.calendar!, units, _requestAt));
 
   /// [back] shows again: a calendar stamped as an edit made when it was
   /// asked; a text that is no calendar as it is.
@@ -111,7 +123,7 @@ final class _Step
   CalendarStep replaceText(String text) {
     final before = _shown;
     _restore((text: text, calendar: Calendar.read(text)));
-    return ShownStep(before, _shown);
+    return TextReplaced(before, _shown);
   }
 
   @override

@@ -124,6 +124,31 @@ void main() {
     }, reason: 'only the stamps');
   });
 
+  test(
+    'an edit writes its event and the block of a new zone, nothing else',
+    () {
+      final calendar = Calendar.read(birthday)!;
+      final call = AddEvent(
+        'call@t',
+        EventDraft(
+          summary: 'Call',
+          start: Zoned('Asia/Tokyo', DateTime(2026, 11, 3, 9)),
+          end: Zoned('Asia/Tokyo', DateTime(2026, 11, 3, 10)),
+        ),
+        at: _at,
+      );
+      expect(editedUnits(calendar, call).map((unit) => unit.key), [
+        UidKey.event('call@t'),
+        const ZoneKey('Asia/Tokyo'),
+      ]);
+      expect(
+        editedUnits(calendar, DeleteEvent('none@t', at: _at)),
+        isEmpty,
+        reason: 'no such event',
+      );
+    },
+  );
+
   test('a deleted event stays as a marker', () {
     final calendar = _edited(birthday, DeleteEvent('ann@truce', at: _at));
     final marker = calendar.eventOf('ann@truce')!.series;

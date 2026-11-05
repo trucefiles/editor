@@ -17,6 +17,32 @@ final _gym = AddEvent(
   at: _at,
 );
 
+final _later = _at.add(const Duration(minutes: 1));
+
+const _gymKey = UidKey.event('gym@t');
+
+final _tokyoCall = AddEvent(
+  'call@t',
+  EventDraft(
+    summary: 'Call',
+    start: Zoned('Asia/Tokyo', DateTime(2026, 11, 3, 9)),
+    end: Zoned('Asia/Tokyo', DateTime(2026, 11, 3, 10)),
+  ),
+  at: _at,
+);
+
+final _annRenamed = ChangeSeries(
+  'ann@truce',
+  EventDraft(
+    summary: 'Ann (birthday)',
+    start: AllDay(DateTime(2020, 3, 12)),
+    end: AllDay(DateTime(2020, 3, 13)),
+    repeat: const SimpleRepeat(Frequency.yearly),
+  ),
+  from: annDraft,
+  at: _at,
+);
+
 MachineRun<
   CalendarMessage,
   CalendarState,
@@ -51,6 +77,61 @@ void main() {
     run.send(CalendarRequest(const Redo(), at: _at));
     final gym = run.state.calendar!.eventOf('gym@t')!.series;
     expect((gym.deleted, gym.summary), (false, 'Gym'));
+  });
+
+  test('an undo step keeps only the units the edit changed', () {
+    final machine = calendarMachine(birthday, version: const Version(1));
+    final step = machine.step(
+      machine.state,
+      machine.work,
+      EditCalendar(_tokyoCall, newUid: 'new@t'),
+    );
+    final undo = step.work.history.undos.single.step as UnitsChanged;
+    const keys = [UidKey.event('call@t'), ZoneKey('Asia/Tokyo')];
+    expect(undo.before, {for (final key in keys) key: null});
+    expect(undo.after.keys, keys);
+    expect(
+      undo.after[keys.first],
+      same(step.state.calendar!.unitOf(keys.first)),
+      reason: 'the unit shown, not a copy',
+    );
+  });
+
+  test('undo and redo touch only the events of their step', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
+      ..send(EditCalendar(_annRenamed, newUid: 'new@t'));
+    final gym = run.state.calendar!.unitOf(_gymKey)!.text;
+
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.eventOf('ann@truce')!.series.summary, 'Ann');
+    expect(run.state.calendar!.unitOf(_gymKey)!.text, gym, reason: 'its bytes');
+
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.eventOf('gym@t')!.series.deleted, isTrue);
+    run
+      ..send(CalendarRequest(const Redo(), at: _later))
+      ..send(CalendarRequest(const Redo(), at: _later));
+    final calendar = run.state.calendar!;
+    expect(
+      [for (final event in calendar.events) event.series.summary],
+      ['Ann (birthday)', 'Gym'],
+    );
+    expect(calendar.eventOf('gym@t')!.series.deleted, isFalse);
+  });
+
+  test('undoing a new event keeps the block of its zone, which its marker '
+      'names', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
+      ..send(CalendarRequest(const Undo(), at: _later));
+    final calendar = run.state.calendar!;
+    expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
+    expect(calendar.zones, {'Asia/Tokyo'});
+
+    run.send(CalendarRequest(const Redo(), at: _later));
+    expect(run.state.calendar!.eventOf('call@t')!.series.deleted, isFalse);
+    expect(run.state.calendar!.zones, {'Asia/Tokyo'});
   });
 
   test('what an undo brings back wins over the text it undid', () {
