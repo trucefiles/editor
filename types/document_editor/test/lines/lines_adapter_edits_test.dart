@@ -15,15 +15,25 @@ final class _Recorded extends ChangeNotifier implements EditedText {
   _Recorded(this._text);
 
   String _text;
+  int? _caret;
   final edits = <TextEdit>[];
 
   @override
-  ShownText get shown => (text: _text, caret: null);
+  ShownText get shown => (text: _text, caret: _caret);
+
+  /// [text] from elsewhere (an undo, another device), with the caret at
+  /// [caret] or, if `null`, where it was.
+  void fromElsewhere(String text, {int? caret}) {
+    _text = text;
+    _caret = caret;
+    notifyListeners();
+  }
 
   @override
   void edit(TextEdit edit, {required bool pasted}) {
     edits.add(edit);
     _text = edit.text;
+    _caret = null;
     notifyListeners();
   }
 
@@ -73,19 +83,19 @@ final class _Lines {
 }
 
 void main() {
-  test('random edits each send the minimal change that makes the lines '
-      'shown', () {
+  test('random edits, between texts from elsewhere, each send the minimal '
+      'change that makes the lines shown', () {
     final random = Random(7);
     final lines = _Lines('one\ntwo words\n\nthree\nfour');
     int node() => random.nextInt(lines.document.nodeCount);
     int offsetIn(int node) => random.nextInt(lines.lines[node].length + 1);
     String word() => ['a', 'bc', 'x y', '', 'two'][random.nextInt(5)];
 
-    for (var round = 0; round < 400; round++) {
+    for (var round = 0; round < 500; round++) {
       final before = lines.adapter.text;
       final edits = lines.recorded.edits.length;
       final at = node();
-      switch (random.nextInt(7)) {
+      switch (random.nextInt(8)) {
         case 0:
           lines.type(at, offsetIn(at), word());
         case 1:
@@ -134,6 +144,23 @@ void main() {
                 attributions: const {},
               ),
             ]);
+        case 7:
+          // A text from elsewhere near this one: a word in or out.
+          final from = random.nextInt(before.length + 1);
+          final to = min(before.length, from + random.nextInt(4));
+          final text = before.replaceRange(from, to, word());
+          final caret = random.nextBool()
+              ? random.nextInt(text.length + 1)
+              : null;
+          lines.recorded.fromElsewhere(text, caret: caret);
+          expect(lines.lines.join('\n'), text, reason: 'round $round');
+          expect(lines.adapter.text, text, reason: 'round $round');
+          expect(
+            lines.recorded.edits,
+            hasLength(edits),
+            reason: 'round $round',
+          );
+          continue;
         case _:
           continue;
       }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,12 +12,14 @@ import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
 /// A Visual edit adapter on an editor owner of [text].
 final class _Visual {
-  _Visual(String text)
+  _Visual(String text, {md.EditorOwner Function(md.EditorOwner)? owner})
     : gate = EditorGate(
-        md.editorOwner(
-          md.MarkdownStart.read(text),
-          version: const Version(1),
-          startTimer: ManualTimers().start,
+        (owner ?? (owner) => owner)(
+          md.editorOwner(
+            md.MarkdownStart.read(text),
+            version: const Version(1),
+            startTimer: ManualTimers().start,
+          ),
         ),
       ) {
     gate.events.listen(outputs.add);
@@ -61,6 +65,44 @@ final class _Visual {
       SelectionReason.userInteraction,
     ),
   ]);
+}
+
+/// An owner that answers Enter with an Add item on the first list: a new
+/// row further down, while the caret's row keeps its look.
+final class _EnterAddsItem implements md.EditorOwner {
+  _EnterAddsItem(this._owner);
+
+  final md.EditorOwner _owner;
+
+  @override
+  void send(md.EditorInput input) => _owner.send(switch (input) {
+    md.Pressed(key: md.EditKey.enter, :final revision) => md.Run(
+      md.AddItem(_firstList),
+      revision: revision,
+    ),
+    _ => input,
+  });
+
+  md.NodeId get _firstList => (_owner.state.content as md.FormattedContent)
+      .view
+      .doc
+      .root
+      .children
+      .whereType<md.ListNode>()
+      .first
+      .id;
+
+  @override
+  md.EditorState get state => _owner.state;
+
+  @override
+  Stream<md.EditorState> get changes => _owner.changes;
+
+  @override
+  Stream<md.EditorEvent> get events => _owner.events;
+
+  @override
+  Future<void> close() => _owner.close();
 }
 
 void main() {
@@ -151,6 +193,25 @@ void main() {
     expect(now[1].id, nodes[2].id);
     expect(now[2].id, 'new');
     expect(visual.selection?.extent.nodeId, 'new');
+  });
+
+  test('an Enter that keeps the caret\'s row as it was still patches it, '
+      'as its node now shows the row above the new caret', () {
+    final visual = _Visual('- a\n  - b\n\nc', owner: _EnterAddsItem.new);
+    visual.caret(0, 1);
+    final nodes = visual.document.toList();
+
+    visual.editor.execute([InsertNewlineAtCaretRequest('new')]);
+
+    final now = visual.document.toList();
+    expect(visual.texts, ['a', 'b', '', 'c']);
+    expect(now.map((node) => node.id).toSet(), hasLength(4));
+    expect(now[1].id, nodes.first.id);
+    expect(now[2].id, 'new');
+    expect(identical(now.last, nodes.last), isTrue);
+    expect([
+      for (final node in now) lookOf(node),
+    ], md.looksOf(visual.gate.state.content as md.FormattedContent));
   });
 
   test('a caret the user moves goes to the owner', () {
@@ -487,5 +548,129 @@ void main() {
 
     final look = lookOf(visual.document.first) as md.TextLook;
     expect(look.frames.whereType<md.ItemFrame>().single.checked, isTrue);
+  });
+
+  test('random edits, taps and controls each leave the document showing '
+      'the looks of the owner\'s state', () {
+    final random = Random(11);
+    final visual = _Visual(
+      '# Title\n\n- [ ] a\n  - [ ] a1\n- [ ] b\n- [x] done\n\n> q1\n>\n'
+      '> q2\n\n| x |\n|---|\n| 1 |\n\n---\n\n1. n\n2. m\n\nend',
+    );
+    AddItemPlace? addItems;
+    md.NodeId? folded;
+    md.FormattedContent shown() =>
+        visual.gate.state.content as md.FormattedContent;
+    List<md.DocBlock> nodes() => md.nodesIn(shown().view.doc.root).toList();
+    List<int> textRows() => [
+      for (final (index, node) in visual.document.indexed)
+        if (node is TextNode) index,
+    ];
+    T pick<T>(List<T> from) => from[random.nextInt(from.length)];
+    int offsetIn(int row) => random.nextInt(
+      (visual.document.getNodeAt(row)! as TextNode).text.length + 1,
+    );
+    String word() => pick(['x', 'two words', '', 'y\nz']);
+
+    for (var round = 0; round < 300; round++) {
+      final rows = textRows();
+      final row = pick(rows);
+      switch (random.nextInt(10)) {
+        case 0:
+          final offset = offsetIn(row);
+          visual
+            ..caret(row, offset)
+            ..editor.execute([
+              InsertTextRequest(
+                documentPosition: visual.at(row, offset),
+                textToInsert: word(),
+                attributions: const {},
+              ),
+            ]);
+        case 1:
+          visual
+            ..caret(row, offsetIn(row))
+            ..editor.execute([InsertNewlineAtCaretRequest()]);
+        case 2 when row > 0:
+          visual
+            ..caret(row, 0)
+            ..editor.execute([
+              DeleteUpstreamAtBeginningOfNodeRequest(
+                visual.document.getNodeAt(row)!,
+              ),
+            ]);
+        case 3:
+          // A short range, so the blocks last for the other steps.
+          final end = pick(
+            rows.where((other) => other >= row && other <= row + 2).toList(),
+          );
+          visual.editor.execute([
+            ChangeSelectionRequest(
+              DocumentSelection(
+                base: visual.at(row, offsetIn(row)),
+                extent: visual.at(end, offsetIn(end)),
+              ),
+              SelectionChangeType.expandSelection,
+              SelectionReason.userInteraction,
+            ),
+            DeleteSelectionRequest(TextAffinity.downstream),
+          ]);
+        case 4:
+          visual
+            ..caret(row, offsetIn(row))
+            ..adapter.paste(word());
+        case 5:
+          final boxes = nodes().whereType<md.ItemNode>().where(
+            (item) => item.hasBox,
+          );
+          if (boxes.isNotEmpty) visual.gate.tapBox(pick(boxes.toList()).id);
+        case 6:
+          folded = pick([
+            null,
+            ...nodes().whereType<md.ItemNode>().map((item) => item.id),
+          ]);
+          visual.adapter.folded = folded;
+        case 7:
+          addItems = pick([null, ...AddItemPlace.values]);
+          visual.adapter.addItems = addItems;
+        case 8:
+          final tables = nodes().whereType<md.TableNode>();
+          if (tables.isNotEmpty && shown().raw == null) {
+            visual.gate.send(
+              (now) => md.OpenRawBlock(
+                tables.first.id,
+                atEnd: random.nextBool(),
+                revision: now.revision,
+              ),
+            );
+          }
+        case 9:
+          final raw = visual.document.indexed
+              .where((row) => lookOf(row.$2) is md.RawTextLook)
+              .firstOrNull;
+          if (raw case (final index, _)) {
+            final offset = offsetIn(index);
+            visual.editor.execute([
+              InsertTextRequest(
+                documentPosition: visual.at(index, offset),
+                textToInsert: word(),
+                attributions: const {},
+              ),
+            ]);
+          }
+        case _:
+          continue;
+      }
+      expect(
+        [for (final node in visual.document) lookOf(node)],
+        md.looksOf(
+          shown(),
+          waiting: visual.gate.waiting,
+          addItems: addItems,
+          folded: folded,
+        ),
+        reason: 'round $round',
+      );
+    }
   });
 }

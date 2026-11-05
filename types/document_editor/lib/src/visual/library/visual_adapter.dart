@@ -417,8 +417,17 @@ final class VisualAdapter {
     );
     final same = unchangedEnds(_looks, looks);
     final split = _applySplit(looks, shown);
-    final start = min(same.start, split?.top ?? same.start);
-    final end = min(same.end, looks.length - 1 - (split?.bottom ?? -1));
+    final start = [
+      same.start,
+      if (split != null) ...[split.top, split.old],
+    ].reduce(min);
+    final end = [
+      same.end,
+      if (split != null) ...[
+        looks.length - 1 - split.bottom,
+        _looks.length - 1 - split.old,
+      ],
+    ].reduce(min);
     final count = _looks.length - start - end;
     final range = looks.sublist(start, looks.length - end);
     _ids.forget(
@@ -466,9 +475,11 @@ final class VisualAdapter {
   /// Also where the owner split nothing (an empty item taken out of its
   /// list): the rows then only change nodes, which shows the same, and
   /// the input method finds the caret in the new node, as it expects
-  /// after every Enter. The indexes of the two rows, which the patch must
-  /// take in; `null` if there was no split.
-  ({int top, int bottom})? _applySplit(
+  /// after every Enter. The rows the patch must take in, as their ids
+  /// change: the indexes of the two rows in [looks], and the index the
+  /// node the caret was in has now, before the patch; `null` if there was
+  /// no split.
+  ({int top, int bottom, int old})? _applySplit(
     List<RowLook> looks,
     md.FormattedContent shown,
   ) {
@@ -482,13 +493,14 @@ final class VisualAdapter {
     };
     final index = looks.indexWhere((look) => look.key == caret);
     if (index < 1) return null;
+    final old = _document.getNodeIndexById(split.id);
     _ids.split(
       split.id,
       top: looks[index - 1].key,
       bottom: caret,
       newId: split.newId,
     );
-    return (top: index - 1, bottom: index);
+    return (top: index - 1, bottom: index, old: old);
   }
 
   void dispose() {

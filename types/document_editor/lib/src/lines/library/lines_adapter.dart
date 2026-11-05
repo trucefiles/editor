@@ -138,11 +138,7 @@ final class LinesAdapter {
       );
       _replace(same.start, changedNodes.length, changed, caret, byUser: true);
     }
-    final lines = [
-      ...nodes.take(same.start),
-      ...changed,
-      ...nodes.skip(nodes.length - same.end),
-    ];
+    final lines = _withMiddle(nodes, same, changed);
     final change = _changeOf(lines, same);
     _lines = lines;
     if (change == null) return;
@@ -223,12 +219,20 @@ final class LinesAdapter {
     final middle = lines.sublist(same.start, lines.length - same.end);
     final count = nodes.length - same.start - same.end;
     _replace(same.start, count, middle, caret, byUser: byUser);
-    _lines = [
-      ...nodes.take(same.start),
-      ...middle,
-      ...nodes.skip(nodes.length - same.end),
-    ];
+    _lines = _withMiddle(nodes, same, middle);
   }
+
+  /// [lines] with [middle] in place of the lines between the ones [same]
+  /// keeps at the start and end.
+  static List<String> _withMiddle(
+    List<String> lines,
+    ({int start, int end}) same,
+    List<String> middle,
+  ) => [
+    ...lines.take(same.start),
+    ...middle,
+    ...lines.skip(lines.length - same.end),
+  ];
 
   /// Makes the [count] nodes from [start] show [lines] instead, each in a
   /// new node; the nodes around stay untouched. The caret goes to [caret],
