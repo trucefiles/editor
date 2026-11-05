@@ -24,6 +24,16 @@ ReadDocument loaded(String text) {
   return (doc: doc, origin: origin, printed: printMarkdown(doc, origin));
 }
 
+/// The leaf shown in [view] whose row [line] of [printed], the print of
+/// its tree, is on: the last that starts at or before it, else the first.
+NodeId? leafOnLine(PrintedMarkdown printed, int line, ViewRows view) {
+  final leaves = printed.lines.entries
+      .where((entry) => view.rowOf(entry.key) != null)
+      .sortedBy<num>((entry) => entry.value.first);
+  return leaves.lastWhereOrNull((entry) => entry.value.first <= line)?.key ??
+      leaves.firstOrNull?.key;
+}
+
 /// What showed before a reload, as it falls in the document read anew:
 /// through a line diff of the old print, [before], and the new, of
 /// [after].
@@ -49,12 +59,7 @@ final class ReloadMap {
         _newLines.take(range.first + 1).lastWhereOrNull((line) => line != null),
       null => null,
     };
-    if (line == null) return null;
-    final leaves = after.printed.lines.entries
-        .where((entry) => view.rowOf(entry.key) != null)
-        .sortedBy<num>((entry) => entry.value.first);
-    return leaves.lastWhereOrNull((entry) => entry.value.first <= line)?.key ??
-        leaves.firstOrNull?.key;
+    return line == null ? null : leafOnLine(after.printed, line, view);
   }
 
   /// [selection] as it falls in [after], shown as [view] shows it: each

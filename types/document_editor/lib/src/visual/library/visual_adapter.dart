@@ -49,6 +49,9 @@ final class VisualAdapter {
 
   Document get document => _document;
 
+  /// The library node [leaf]'s row shows in; `null` if it doesn't show.
+  String? nodeShowing(md.NodeId leaf) => _ids.find(leaf);
+
   /// Where Add item buttons show; `null`: none.
   set addItems(AddItemPlace? place) {
     if (place == _addItems) return;

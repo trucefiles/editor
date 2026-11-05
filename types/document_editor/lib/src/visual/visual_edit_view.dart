@@ -25,6 +25,7 @@ import 'ui/line_drop_zone.dart';
 import 'ui/link_dialog.dart';
 import 'ui/link_popup.dart';
 import 'ui/row_builder.dart';
+import 'ui/show_whole.dart';
 import 'ui/visual_look.dart';
 import 'visual_actions.dart';
 
@@ -94,9 +95,13 @@ class _VisualEditViewState extends State<VisualEditView> {
   @override
   void initState() {
     super.initState();
-    _notices = widget.notices.listen((notice) {
-      if (notice case final md.AskLink ask) unawaited(_askLink(ask));
-    });
+    _notices = widget.notices.listen(
+      (notice) => switch (notice) {
+        final md.AskLink ask => unawaited(_askLink(ask)),
+        md.ShowRow(:final leaf) => _showRow(leaf),
+        md.Notice() => null,
+      },
+    );
     widget.gate.addListener(_keyboardFollowsCaret);
   }
 
@@ -135,6 +140,16 @@ class _VisualEditViewState extends State<VisualEditView> {
     _focus.dispose();
     super.dispose();
   }
+
+  /// Shows [leaf]'s row whole once it is laid out (undo or redo just
+  /// changed it), scrolling only if part of it is off screen.
+  void _showRow(md.NodeId leaf) =>
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_adapter.nodeShowing(leaf) case final id?) {
+          showWhole(_layout, id);
+        }
+      });
 
   /// Asks for the link [ask] says; the state it was asked on decides, so
   /// a change meanwhile drops the answer, as does leaving Visual edit.

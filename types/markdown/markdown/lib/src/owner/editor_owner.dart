@@ -6,7 +6,7 @@ import '../view/rows.dart';
 import 'editor_contract.dart';
 import 'editor_transition.dart';
 import 'editor_work.dart';
-import 'history/snapshot.dart';
+import 'history/markdown_step.dart';
 import 'markdown_start.dart';
 
 export 'editor_contract.dart';
@@ -61,7 +61,10 @@ EditorMachine editorMachine(
     document.doc,
     done: checkedItems == CheckedItems.doneSection ? DoneSections() : null,
   );
-  final book = EditorBook<Snapshot>(lineage: version, summary: start.summary);
+  final book = EditorBook<MarkdownStep>(
+    lineage: version,
+    summary: start.summary,
+  );
   return Machine(
     state: EditorState(
       content: mode == EditMode.markdown

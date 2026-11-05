@@ -30,3 +30,31 @@ int _wholeCharacterEnd(String text, int end) =>
 
 bool _isLead(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
 bool _isTrail(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
+
+/// [first], then [next] on the text [first] left, as one change; [next]
+/// must touch what [first] added (as typing that goes on does).
+TextChange followedBy(TextChange first, TextChange next) {
+  final firstEnd = first.start + first.added.length;
+  final nextEnd = next.start + next.removed.length;
+  assert(
+    next.start <= firstEnd && nextEnd >= first.start,
+    'the changes are apart',
+  );
+  final start = first.start < next.start ? first.start : next.start;
+  // What [next] removed before and after the text [first] added.
+  final ahead = first.start > next.start
+      ? next.removed.substring(0, first.start - next.start)
+      : '';
+  final behind = nextEnd > firstEnd
+      ? next.removed.substring(next.removed.length - (nextEnd - firstEnd))
+      : '';
+  return (
+    start: start,
+    removed: '$ahead${first.removed}$behind',
+    added: '$ahead${first.added}$behind'.replaceRange(
+      next.start - start,
+      nextEnd - start,
+      next.added,
+    ),
+  );
+}

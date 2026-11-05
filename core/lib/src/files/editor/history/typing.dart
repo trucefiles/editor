@@ -87,19 +87,21 @@ final class TypingRun {
 }
 
 /// The change from [before] to [after] in [text], a text edited as a
-/// whole (e.g. as plain text), as typing; a new line (Enter, a paste of
-/// lines) is a step of its own.
+/// whole (e.g. as plain text), as typing (see [typingFrom]).
 Typing? typingIn(Object? text, String before, String after) =>
-    switch (textChange(before, after)) {
-      (:final start, :final removed, :final added)
-          when (removed.isNotEmpty || added.isNotEmpty) &&
-              !added.contains('\n') =>
-        Typing(
-          text,
-          from: start,
-          to: start + removed.length,
-          added: added,
-          end: start + added.length,
-        ),
-      _ => null,
-    };
+    typingFrom(text, textChange(before, after));
+
+/// [change] of [text], a text edited as a whole, as typing; a new line
+/// (Enter, a paste of lines) is a step of its own.
+Typing? typingFrom(Object? text, TextChange change) => switch (change) {
+  (:final start, :final removed, :final added)
+      when (removed.isNotEmpty || added.isNotEmpty) && !added.contains('\n') =>
+    Typing(
+      text,
+      from: start,
+      to: start + removed.length,
+      added: added,
+      end: start + added.length,
+    ),
+  _ => null,
+};

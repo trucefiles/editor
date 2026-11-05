@@ -21,4 +21,22 @@ void main() {
       '\r',
     ]);
   });
+
+  test('a line starts after the break before it', () {
+    expect(
+      [
+        for (final line in [0, 1, 2, 3]) lineStart('ab\ncd\n', line),
+      ],
+      [0, 3, 6, 6],
+    );
+  });
+
+  test('an offset is on the line its break comes after', () {
+    expect(
+      [
+        for (final offset in [0, 2, 3, 6]) lineAt('ab\ncd\n', offset),
+      ],
+      [0, 0, 1, 2],
+    );
+  });
 }

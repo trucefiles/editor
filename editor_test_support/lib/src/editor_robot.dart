@@ -10,6 +10,7 @@ import 'package:truce_core/truce_core.dart'
         EditorNotice,
         FromFile,
         HistoryEnd,
+        Redo,
         Replaced,
         SecureEditor,
         SecureReason,
@@ -29,6 +30,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         MarkdownStart,
         Notice,
         Request,
+        ShowRow,
         editorOwner;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 
@@ -81,6 +83,9 @@ final class TestDocument {
   /// Undo, as the buttons and keys ask.
   void undo() => gate.external(const Request(Undo()));
 
+  /// Redo, as the buttons and keys ask.
+  void redo() => gate.external(const Request(Redo()));
+
   /// The text as last sent, without asking for more.
   String get sent => _text;
 
@@ -106,7 +111,7 @@ final class TestDocument {
             (UndoOffered() || UndoRefused() || HistoryEnd()),
       ):
         notices.add(notice);
-      case AskLink() || Notice():
+      case AskLink() || ShowRow() || Notice():
         break;
     }
   }

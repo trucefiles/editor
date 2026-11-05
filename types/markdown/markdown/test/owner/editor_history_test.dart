@@ -220,7 +220,11 @@ void main() {
       expect(run.markdown, 'ab');
       run.undo();
       expect(run.markdown, 'a');
-      expect((run.state.content as MarkdownContent).caret, 1);
+      expect(
+        (run.state.content as MarkdownContent).caret,
+        0,
+        reason: 'a Visual edit step puts the caret at its row\'s start',
+      );
       run
         ..owner.send(const SetMode(EditMode.visual))
         ..redo();

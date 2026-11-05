@@ -6,15 +6,24 @@ import 'package:truce_core/truce_core.dart'
         EffectId,
         SentText,
         OfferedUndo,
+        ShownStep,
         Step,
         StepRun,
+        TextChange,
+        TextStep,
         TextSummary,
+        Typing,
         UndoOffered,
-        textChange;
+        lineAt,
+        lineStart,
+        textChange,
+        typingFrom;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
+import '../doc/origin.dart';
 import '../edit/clipboard_lines.dart';
+import '../edit/commands/acted_on.dart';
 import '../edit/commands/command.dart';
 import '../edit/commands/links.dart' show linkHere;
 import '../edit/commands/text_commands.dart' show ordered;
@@ -28,7 +37,7 @@ import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
 import 'editor_work.dart';
-import 'history/snapshot.dart';
+import 'history/markdown_step.dart';
 import 'history/typing.dart';
 import 'raw_closed.dart';
 import 'reload.dart';
@@ -52,14 +61,14 @@ final class _Step
           EditorEvent,
           EditorEffect
         >
-    with EditorSteps<Snapshot> {
+    with EditorSteps<MarkdownStep> {
   _Step(super.state, super.work);
 
   @override
-  EditorBook<Snapshot> get book => work.book;
+  EditorBook<MarkdownStep> get book => work.book;
 
   @override
-  set book(EditorBook<Snapshot> book) => work = work.copyWith(book: book);
+  set book(EditorBook<MarkdownStep> book) => work = work.copyWith(book: book);
 
   @override
   void notify(EditorNotice notice) => events.add(Notice(notice));
@@ -67,9 +76,6 @@ final class _Step
   @override
   void startTimer(EffectId id, Duration delay) =>
       effects.add(StartSaveTimer(id, delay));
-
-  @override
-  Snapshot snapshot() => snapshotOf(state.content, work.origin);
 
   /// In Visual edit and Read, the summary is of the tree that printed the
   /// text; in Markdown edit, of the text, read only if asked.
@@ -100,6 +106,10 @@ final class _Step
   /// What the input's step did, if it is offered for undo right away.
   OfferedUndo? offered;
 
+  /// Where the input's commands acted: the row the first acted at before
+  /// it, and the row the last shows at after it.
+  ({NodeId? before, NodeId? after})? _acted;
+
   @override
   void handle(EditorMessage message) {
     switch (message) {
@@ -123,10 +133,8 @@ final class _Step
     if (_byControl(input)) _removeCaret();
     switch (input) {
       case ShownInput() when book.rev != rev:
-        record(
-          snapshotOf(before.content, origin),
-          typingOf(input, before, state),
-        );
+        final (step, typing) = _stepOf(input, before, origin);
+        record(step, typing);
         if (offered case final what?) {
           notify(UndoOffered(book.history.latestId!, what));
         }
@@ -141,6 +149,40 @@ final class _Step
     }
     _settleFlags();
   }
+
+  /// The edit [input] made from what showed [before], read from
+  /// [origin], as an undo step, and the typing it was.
+  (MarkdownStep, Typing?) _stepOf(
+    EditorInput input,
+    EditorState before,
+    Origin origin,
+  ) => switch ((before.content, state.content)) {
+    (MarkdownContent(text: final was), MarkdownContent(:final text)) =>
+      _textStep(input, textChange(was, text)),
+    (final FormattedContent was, final FormattedContent now) => (
+      TreeStep(
+        ShownStep(
+          TreeSide(was, origin, at: _acted?.before),
+          TreeSide(now, work.origin, at: _acted?.after),
+        ),
+      ),
+      typingOf(input, before, state),
+    ),
+    _ => throw StateError('an edit changed the mode'),
+  };
+
+  /// [change], made by [input] in Markdown edit, as an undo step, and the
+  /// typing it was.
+  static (MarkdownStep, Typing?) _textStep(
+    EditorInput input,
+    TextChange change,
+  ) => (
+    TextChangeStep(TextStep(change)),
+    switch (input) {
+      EditText(pasted: false) => typingFrom(#markdown, change),
+      _ => null,
+    },
+  );
 
   /// Whether [input] comes from a control (a row's box, delete button,
   /// drag or swipe, a Done heading, a menu): it leaves no caret.
@@ -332,6 +374,13 @@ final class _Step
     final before = shown.view.doc;
     final edited = run(shown.view, command);
     final doc = edited.doc.holdsSameAs(before) ? before : edited.doc;
+    if (!identical(doc, before)) {
+      final acted = actedOn(shown.view, command);
+      _acted = (
+        before: _acted == null ? acted : _acted!.before,
+        after: shownAfter(shown.view, edited, acted),
+      );
+    }
     _show(
       FormattedContent(
         view: ViewRows(doc, done: shown.view.done),
@@ -365,48 +414,88 @@ final class _Step
   // Undo and redo.
 
   @override
-  void restore(Snapshot back) {
-    switch ((back, state.content)) {
-      case (_, MarkdownContent(text: final now)):
-        if (back case TreeSnapshot(
-          :final doc,
-          :final selection,
-          :final printed,
-        )) {
-          work = work.copyWith(
-            left: (view: ViewRows(doc), selection: selection, printed: printed),
-          );
-        }
-        final change = textChange(now, back.text);
-        _show(
-          MarkdownContent(back.text, caret: change.start + change.added.length),
-        );
-      case (
-        TreeSnapshot(:final doc, :final origin, :final selection),
-        FormattedContent(:final view, selection: final shown),
-      ):
-        work = work.copyWith(origin: origin);
+  void undo(MarkdownStep step) => switch (step) {
+    TreeStep(:final sides) => _showSide(sides.before),
+    TextChangeStep(:final step) => _showText(step.undoneIn),
+  };
+
+  @override
+  void redo(MarkdownStep step) => switch (step) {
+    TreeStep(:final sides) => _showSide(sides.after),
+    TextChangeStep(:final step) => _showText(step.redoneIn),
+  };
+
+  /// What Visual edit showed at [side] shows again: in Visual edit, its
+  /// tree with its row shown (its caret only while one shows: after a
+  /// control, none comes back); in Markdown edit, its print, the caret at
+  /// its row's start, and Visual edit comes back to it.
+  void _showSide(TreeSide side) {
+    switch (state.content) {
+      case FormattedContent(:final view, :final selection):
+        work = work.copyWith(origin: side.origin);
         _show(
           FormattedContent(
-            view: _rows(doc, view.done, state.checkedItems),
-            // A caret comes back only while one shows: after a control,
-            // undo leaves the view where it is.
-            selection: shown == null ? null : selection,
+            view: _rows(side.doc, view.done, state.checkedItems),
+            selection: selection == null ? null : side.selection,
           ),
         );
-      case (TextSnapshot(:final text), FormattedContent()):
-        reload(text);
+        _showRow(side.row);
+      case MarkdownContent():
+        final printed = side.printed;
+        work = work.copyWith(
+          left: (
+            view: ViewRows(side.doc),
+            selection: side.selection,
+            printed: printed,
+          ),
+        );
+        final line = printed.lines[side.row]?.first ?? 0;
+        _show(
+          MarkdownContent(printed.text, caret: lineStart(printed.text, line)),
+        );
     }
   }
 
+  /// The text that shows as [changed] changes it: in Markdown edit, the
+  /// caret at the change; in Visual edit, the print changed, read anew,
+  /// the row on the changed line shown.
+  void _showText(({String text, int caret}) Function(String text) changed) {
+    switch (state.content) {
+      case MarkdownContent(text: final shown):
+        final (:text, :caret) = changed(shown);
+        _show(MarkdownContent(text, caret: caret));
+      case FormattedContent():
+        final printed = _printed();
+        final (:text, :caret) = changed(printed.text);
+        final next = loaded(text);
+        _reloadTo(next, printed: printed);
+        final view = (state.content as FormattedContent).view;
+        _showRow(leafOnLine(next.printed, lineAt(text, caret), view));
+    }
+  }
+
+  /// Visual edit shows [leaf]'s row, if one is known.
+  void _showRow(NodeId? leaf) {
+    if (leaf != null) events.add(ShowRow(leaf));
+  }
+
   @override
-  void replaceText(String text) {
-    if (state.mode == EditMode.markdown) {
-      _show(MarkdownContent(text, caret: 0));
-    } else {
-      final next = loaded(text);
-      work = work.copyWith(origin: next.origin);
-      _show(_fresh(next.doc));
+  MarkdownStep replaceText(String text) {
+    switch (state.content) {
+      case MarkdownContent(text: final old):
+        _show(MarkdownContent(text, caret: 0));
+        return TextChangeStep(TextStep(textChange(old, text)));
+      case final FormattedContent before:
+        final origin = work.origin;
+        final next = loaded(text);
+        work = work.copyWith(origin: next.origin);
+        _show(_fresh(next.doc));
+        return TreeStep(
+          ShownStep(
+            TreeSide(before, origin),
+            TreeSide(state.content as FormattedContent, next.origin),
+          ),
+        );
     }
   }
 
@@ -516,12 +605,16 @@ final class _Step
   /// sections follow their lines, and an open raw block whose text the
   /// change kept stays open.
   @override
-  void reload(String text) {
-    if (state.mode == EditMode.markdown) return _show(MarkdownContent(text));
-    final next = loaded(text);
+  void reload(String text) => state.mode == EditMode.markdown
+      ? _show(MarkdownContent(text))
+      : _reloadTo(loaded(text));
+
+  /// [next] shows instead, as [reload] says, in Visual edit or Read;
+  /// [printed] is the print of what shows, if known.
+  void _reloadTo(ReadDocument next, {PrintedMarkdown? printed}) {
     final content = switch (state.content) {
       FormattedContent(:final view, :final selection, :final raw) => _mapped(
-        (view: view, selection: selection, printed: _printed()),
+        (view: view, selection: selection, printed: printed ?? _printed()),
         raw,
         next,
       ),

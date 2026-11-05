@@ -4,7 +4,7 @@ import '../doc/origin.dart';
 import '../edit/selection.dart';
 import '../print/printer.dart';
 import '../view/rows.dart';
-import 'history/snapshot.dart';
+import 'history/markdown_step.dart';
 
 /// The editor owner's own bookkeeping, which its users never read.
 final class EditorWork {
@@ -14,7 +14,7 @@ final class EditorWork {
   final Origin origin;
 
   /// The edits on their way to the file owner, and the undo history.
-  final EditorBook<Snapshot> book;
+  final EditorBook<MarkdownStep> book;
 
   /// Visual edit as Markdown edit left it: what showed, its print and
   /// selection, which Visual edit comes back by.
@@ -22,7 +22,7 @@ final class EditorWork {
 
   EditorWork copyWith({
     Origin? origin,
-    EditorBook<Snapshot>? book,
+    EditorBook<MarkdownStep>? book,
     Object? left = _same,
   }) => EditorWork(
     origin: origin ?? this.origin,

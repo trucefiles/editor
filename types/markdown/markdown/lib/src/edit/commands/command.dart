@@ -3,6 +3,7 @@
 library;
 
 import '../../doc/doc_nodes.dart';
+import '../../doc/doc_tree.dart';
 import '../../view/rows.dart';
 import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
@@ -351,20 +352,11 @@ Change _change(ViewRows view, EditCommand command) {
       node(target),
       below: below,
     ),
-    ClearChecked(:final list) => clearItems(
+    final ClearChecked command => clearItems(
       view,
-      checkedItems(
-        view.doc,
-        list: switch (list) {
-          null => null,
-          final id => node(id),
-        },
-      ),
+      clearedItems(view.doc, command),
     ),
-    MoveToEnd(:final items) => moveToEnd(view, switch (items) {
-      null => checkedItems(view.doc),
-      final ids => [for (final id in ids) node<ItemNode>(id)],
-    }),
+    final MoveToEnd command => moveToEnd(view, movedItems(view.doc, command)),
     CloseRaw(:final block, :final raw, :final selection) => closeRaw(
       view,
       block,
@@ -373,3 +365,21 @@ Change _change(ViewRows view, EditCommand command) {
     ),
   };
 }
+
+/// The items [command] clears in [doc]: the checked ones of its list, or
+/// of every list.
+List<ItemNode> clearedItems(DocTree doc, ClearChecked command) => checkedItems(
+  doc,
+  list: switch (command.list) {
+    null => null,
+    final id => doc.nodeOf(id)! as ListNode,
+  },
+);
+
+/// The items [command] moves to the end of their lists in [doc]: the ones
+/// it names, else every checked one.
+List<ItemNode> movedItems(DocTree doc, MoveToEnd command) =>
+    switch (command.items) {
+      null => checkedItems(doc),
+      final ids => [for (final id in ids) doc.nodeOf(id)! as ItemNode],
+    };
