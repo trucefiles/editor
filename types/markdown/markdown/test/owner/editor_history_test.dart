@@ -213,6 +213,19 @@ void main() {
       expect(run.outputs.whereType<ChangedAt>().map((at) => at.leaf), [c, c]);
     });
 
+    test('tell the view the row they changed after a trip to Markdown '
+        'edit and back, which reads the text anew', () {
+      final run = EditorRun(
+        '- [ ] a\n- [ ] b\n- [ ] c',
+        checkedItems: CheckedItems.inPlace,
+      )..toggle(2);
+      run
+        ..send(const SetMode(EditMode.markdown))
+        ..send(const SetMode(EditMode.visual))
+        ..undo();
+      expect(run.outputs.whereType<ChangedAt>().single.leaf, run.leaf(2));
+    });
+
     test('a new edit drops what redo had', () {
       final run = EditorRun('')
         ..caret(0, 0)

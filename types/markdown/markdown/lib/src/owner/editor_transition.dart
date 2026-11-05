@@ -22,9 +22,9 @@ import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
 import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
+import '../print/changed_leaf.dart';
 import '../print/printer.dart';
 import '../summary/document_summary.dart';
-import '../view/changed_row.dart';
 import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
@@ -365,17 +365,17 @@ final class _Step
 
   // Undo and redo.
 
-  /// [back] shows again; in Visual edit, the view is told where it
-  /// changed first.
+  /// [back] shows again; in Visual edit, the view is told where the
+  /// file's text changed first.
   @override
   void restore(Snapshot back) {
-    final before = state.content;
+    final before = switch (state.content) {
+      FormattedContent() => _printed(),
+      MarkdownContent() => null,
+    };
     _restored(back);
-    if ((before, state.content) case (
-      FormattedContent(view: final was),
-      FormattedContent(:final view),
-    )) {
-      if (firstChangedRow(was, view) case final leaf?) {
+    if ((before, state.content) case (final before?, FormattedContent())) {
+      if (firstChangedLeaf(before, _printed()) case final leaf?) {
         events.add(ChangedAt(leaf));
       }
     }
