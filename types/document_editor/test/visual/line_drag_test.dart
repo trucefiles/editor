@@ -382,8 +382,9 @@ void main() {
       ),
     );
 
-    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.4));
-    // The rows move up one row under the copy, e.g. by the mouse wheel.
+    final gesture = await drag(tester, 0, const Offset(0, 48 * 1.6));
+    // The rows move up one row under the copy, e.g. by the mouse wheel:
+    // its top passes the middle of the row after next.
     scroll.jumpTo(48);
     await gesture.moveBy(const Offset(0, 1));
     await tester.pump();
@@ -396,9 +397,10 @@ void main() {
   testWidgets('a drop between spaced rows still drops', (tester) async {
     final drops = <Drop>[];
     await showRows(tester, onDrop: drops.add, spacing: 8);
-    // The copy's bottom ends past the middle of the space below the
-    // second row: the drop goes above the third, the same place.
-    final gesture = await drag(tester, 0, const Offset(0, 48 + 8 + 26));
+    // The space below the second row shows a row lower, below the gap:
+    // the copy's top ends past its middle (as without the gap), so the
+    // drop goes above the third row, the same place.
+    final gesture = await drag(tester, 0, const Offset(0, 48 + 8 + 48 + 6));
     await gesture.up();
     await tester.pumpAndSettle();
 
