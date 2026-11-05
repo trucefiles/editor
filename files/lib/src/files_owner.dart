@@ -68,6 +68,16 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
     steps.delete(file, text).then((result) => FileDeleted(ticket, result)),
   UndoDelete(:final ticket, :final deleted) =>
     steps.undoDelete(deleted).then((result) => DeleteUndone(ticket, result)),
+  RestoreAsNewFile(
+    :final ticket,
+    :final backup,
+    :final place,
+    :final title,
+    :final newSubfolder,
+  ) =>
+    steps
+        .restoreAsNew(backup, place, title: title, newSubfolder: newSubfolder)
+        .then((result) => RestoredAsNew(ticket, result)),
   SetMark(:final ticket, file: final file, :final mark) =>
     steps.setMark(file, mark).then((result) => MarkSet(ticket, result)),
   RecoverDrafts(:final ticket, :final before) =>

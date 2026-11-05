@@ -6,5 +6,7 @@ import '../../common/store_error_text.dart';
 String deleteFailureText(DeleteFailure failure) => switch (failure) {
   DeleteBlockedByConflict() =>
     "Resolve this file's sync conflict first, then delete it.",
+  DeleteNotBackedUp() =>
+    "No backup of the file could be made, so it wasn't deleted.",
   DeleteNotDone(:final error) => error.text,
 };

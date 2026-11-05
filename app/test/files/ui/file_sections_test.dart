@@ -14,6 +14,7 @@ void main() {
           leading: const [Text('orphan')],
           pinned: [for (final name in pinned) Text(name)],
           others: [for (final name in others) Text(name)],
+          othersHeading: 'Recently edited',
           footer: const Text('footer'),
         ),
       ),
@@ -58,6 +59,7 @@ void main() {
         home: Scaffold(
           body: FileSections(
             pinned: [],
+            othersHeading: 'Recently edited',
             others: [
               SizedBox(height: 50, child: Text('short')),
               SizedBox(height: 300, child: Text('tall')),
@@ -84,6 +86,7 @@ void main() {
             pinned: [
               for (var i = 0; i < 8; i++) card('pinned $i', 150.0 + i % 3 * 40),
             ],
+            othersHeading: 'Recently edited',
             others: [
               for (var i = 0; i < 60; i++) card('other $i', 120.0 + i % 4 * 30),
             ],
@@ -111,6 +114,7 @@ void main() {
           body: FileSections(
             pinned: [for (var i = 0; i < 40; i++) card('pinned $i')],
             others: [for (var i = 0; i < 200; i++) card('other $i')],
+            othersHeading: 'Recently edited',
           ),
         ),
       ),
@@ -133,6 +137,7 @@ void main() {
           body: FileSections(
             pinned: [for (var i = 0; i < 10; i++) Text('pinned $i')],
             others: [for (var i = 0; i < 80; i++) Text('other $i')],
+            othersHeading: 'Recently edited',
           ),
         ),
       ),

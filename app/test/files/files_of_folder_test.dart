@@ -68,7 +68,10 @@ void main() {
     final file = (await source.open(path('Plan.md'))).value;
     File('${dir.path}/Plan.md').writeAsStringSync('taken');
 
-    final copy = (await files.copyIn(file, 'b\n')).value;
+    final copy = (await files.copyIn(
+      file.path,
+      file.textFile.withText('b\n'),
+    )).value;
 
     expect(copy.path.value, 'Plan 2.md');
     expect(File('${dir.path}/Plan 2.md').readAsBytesSync(), [
@@ -81,7 +84,11 @@ void main() {
     File('${dir.path}/plan.MD').writeAsStringSync('a');
     final file = (await files.open(path('plan.MD'))).value;
 
-    final copy = (await files.copyIn(file, 'a', title: 'Ideas')).value;
+    final copy = (await files.copyIn(
+      file.path,
+      file.textFile,
+      title: 'Ideas',
+    )).value;
 
     expect(copy.path.value, 'Ideas.MD');
   });
@@ -108,7 +115,11 @@ void main() {
       text: '# Milk\n',
     )).value;
 
-    final copied = await files.copyIn(file, 'Milk', subfolder: path('gone'));
+    final copied = await files.copyIn(
+      file.path,
+      file.textFile.withText('Milk'),
+      subfolder: path('gone'),
+    );
 
     expect(copied.error, StoreError.notFound);
     expect(Directory('${dir.path}/gone').existsSync(), isFalse);

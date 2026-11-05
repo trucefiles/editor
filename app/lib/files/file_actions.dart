@@ -159,6 +159,25 @@ final class FileActions {
         orElse: const Err(_notRun),
       );
 
+  /// See [FileSteps.restoreAsNew].
+  Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
+    FolderBackup backup,
+    FilePlace place, {
+    String? title,
+    bool newSubfolder = false,
+  }) => answerOf(
+    _owner,
+    (ticket) => RestoreAsNewFile(
+      ticket,
+      backup,
+      place,
+      title: title,
+      newSubfolder: newSubfolder,
+    ),
+    read: (RestoredAsNew answer) => answer.result,
+    orElse: const Err(NotRestored(_notRun)),
+  );
+
   /// See [FileSteps.setMark].
   Future<Result<void, StoreError>> setMark(ListedFile file, FileMark mark) =>
       answerOf(

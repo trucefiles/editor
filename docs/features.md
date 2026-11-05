@@ -81,7 +81,7 @@ Home shows your pinned files, then your recently edited documents from
 every folder. The view button at the top switches to **All files**:
 every document, newest first or by name (by name, under each
 subfolder), as cards or a list. When Recently edited hides some,
-**Show all** below it does the same. Search looks through every folder,
+**Switch to all files** below it does the same, and Back returns to Home. Search looks through every folder,
 by title, text, file and folder names.
 
 <img src="screenshots/home/view_menu_desktop.png" width="600" alt="The view menu: Home or All files, the order and cards or list">
@@ -105,7 +105,10 @@ Undo and redo take back and redo your edits while a document is open, with
 the buttons at the top or Ctrl+Z and Ctrl+Y. When there is nothing more to
 undo, one more Undo says why and leads to the document's backups. The
 menu's **Backups** lists only this document's backups: open one to compare
-it, then restore it (Undo takes that back too) or delete it.
+it, then restore it (Undo takes that back too) or delete it. Deleting a file
+keeps a backup of it too. **Restore as new file**, in each backup's menu,
+writes it as a new file where and under what name you pick, next to the
+file it came from.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">

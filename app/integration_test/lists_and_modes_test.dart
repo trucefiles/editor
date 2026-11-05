@@ -269,7 +269,7 @@ void main() {
         MediaQuery.textScalerOf(tester.element(text)).scale(10);
     final title = find.descendant(
       of: find.byType(AppBar),
-      matching: find.text('Folders'),
+      matching: find.text('Home'),
     );
 
     // The first frame already: nothing jumps once the settings load.

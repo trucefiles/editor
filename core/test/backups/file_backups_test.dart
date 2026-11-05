@@ -24,6 +24,16 @@ void main() {
     expect(store.textOf('$atMicros.edit/lists/todo.md'), 'before');
   });
 
+  test('saves a document as it is deleted', () async {
+    await backups.saveBeforeDelete(
+      at: at,
+      filePath: path('lists/todo.md'),
+      bytes: bytesOf('last'),
+    );
+
+    expect(store.textOf('$atMicros.delete/lists/todo.md'), 'last');
+  });
+
   test('saves both versions', () async {
     await backups.saveBoth(
       at: at,

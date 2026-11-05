@@ -12,6 +12,7 @@ import '../../files/ui/listed_file.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../backup_actions.dart';
 import 'backup_kind_text.dart';
+import 'restore_as_new.dart';
 
 /// A screen listing [backups] under [title], newest first, rows built as
 /// they scroll in; tapping one calls [onOpen], and each can be deleted.
@@ -82,6 +83,10 @@ class _BackupTile extends ConsumerWidget {
         tooltip: 'Backup options',
         onSelected: (action) => action(),
         itemBuilder: (_) => [
+          PopupMenuItem(
+            value: () => restoreAsNew(context, ref, backup),
+            child: const Text('Restore as new file'),
+          ),
           PopupMenuItem(
             value: () => _delete(context, ref),
             child: const Text('Delete backup'),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../calendar_tab/calendar_tab_controller.dart';
 import '../calendar_tab/ui/calendar_tab_screen.dart';
+import '../files/home_view.dart';
 import '../files/ui/files_screen.dart';
 
 /// The app's home: the files, and once the shown folders hold a
@@ -28,30 +29,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
     final calendars = ref.watch(hasCalendarsProvider);
     final tab = calendars ? _tab : 0;
-    return Scaffold(
-      body: IndexedStack(
-        index: tab,
-        children: [
-          const FilesScreen(),
-          if (calendars) const CalendarTabScreen() else const SizedBox(),
-        ],
+    final allFiles = tab == 0 && ref.watch(homeViewProvider) == HomeView.all;
+    // Back (Android's, Esc) in All files returns to Home, as from a page.
+    return PopScope(
+      canPop: !allFiles,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && allFiles) {
+          ref.read(homeViewProvider.notifier).show(HomeView.home);
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: tab,
+          children: [
+            const FilesScreen(),
+            if (calendars) const CalendarTabScreen() else const SizedBox(),
+          ],
+        ),
+        bottomNavigationBar: calendars
+            ? NavigationBar(
+                selectedIndex: tab,
+                onDestinationSelected: (tab) => setState(() => _tab = tab),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.description_outlined),
+                    label: 'Files',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.calendar_month_outlined),
+                    label: 'Calendar',
+                  ),
+                ],
+              )
+            : null,
       ),
-      bottomNavigationBar: calendars
-          ? NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (tab) => setState(() => _tab = tab),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.description_outlined),
-                  label: 'Files',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  label: 'Calendar',
-                ),
-              ],
-            )
-          : null,
     );
   }
 }

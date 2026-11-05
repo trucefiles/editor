@@ -79,10 +79,11 @@ Accepted behavior that is not planned to change, grouped by topic.
   - Leftovers are cleaned up later: an old color the next time you change
     a color in that folder on this device, other settings after the document
     has been missing for 7 days.
-- **A new document can show an old color.** Deleting a document forgets its
-  color only on this device. If you later create a document with the same
-  name in the same folder, it may show the color another device still
-  remembers, until that device changes a color in the folder.
+- **A new document can get a deleted one's color and settings.** Deleting a
+  document keeps its color, pin and view settings for a while, so restoring
+  it from Backups brings them back. If you create a document with the same
+  name in the same folder meanwhile, it gets them: the color until a color
+  changes in that folder, the pin and view settings for up to 7 days.
 
 ## Backups
 

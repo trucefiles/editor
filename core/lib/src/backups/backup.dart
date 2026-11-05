@@ -5,6 +5,9 @@ enum BackupKind {
   /// The file before the first save of an editing session.
   beforeEdit('edit'),
 
+  /// The file as the user deleted it.
+  beforeDelete('delete'),
+
   /// The file before the user kept one of two versions.
   current('current'),
 

@@ -15,29 +15,35 @@ extension HintSnackBar on ScaffoldMessengerState {
   /// Like [showSnack]; for when the screen that asked may be gone by then,
   /// e.g. after an undo.
   void showHint(String message, {String? actionLabel, VoidCallback? onAction}) {
+    final action = actionLabel == null || onAction == null
+        ? null
+        : SnackBarAction(label: actionLabel, onPressed: onAction);
     this
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: hintDuration(message),
+          duration: hintDuration(message, withAction: action != null),
           showCloseIcon: true,
           // Flutter keeps snack bars with an action open until dismissed;
           // these are short hints, so they go away on their own.
           persist: false,
-          action: actionLabel == null || onAction == null
-              ? null
-              : SnackBarAction(label: actionLabel, onPressed: onAction),
+          action: action,
         ),
       );
   }
 }
 
 /// How long a hint of [message] shows: long enough for a slow reader,
-/// growing with its length within Material's 4 to 10 seconds.
-Duration hintDuration(String message) => Duration(
-  milliseconds: (2000 + message.length * 1000 ~/ 15).clamp(4000, 10000),
+/// growing with its length within Material's 4 to 10 seconds; the full
+/// 10 seconds [withAction], so there is time to decide on it (e.g. undo).
+Duration hintDuration(String message, {required bool withAction}) => Duration(
+  milliseconds: withAction
+      ? _longest
+      : (2000 + message.length * 1000 ~/ 15).clamp(4000, _longest),
 );
+
+const _longest = 10000;
 
 extension NoticeBanner on ScaffoldMessengerState {
   /// Shows [message] at the top until the user dismisses it, for news

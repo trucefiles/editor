@@ -252,19 +252,22 @@ void main() {
       ));
     });
 
-    testWidgets('the top level picked from the list is the top level', (
-      tester,
-    ) async {
+    testWidgets('the top level picked from the list empties the field, '
+        'which shows it as a hint', (tester) async {
       final result = await openFile(tester, files);
+      Future<void> pick(String entry) async {
+        await tester.tap(find.byType(DropdownMenu<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(MenuItemButton, entry));
+        await tester.pumpAndSettle();
+      }
 
-      await tester.tap(find.byType(DropdownMenu<String>));
+      await pick('work');
+      await pick('Top level');
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(MenuItemButton, 'Top level'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextField>(subfolderField()).controller!.text,
-        'Top level',
-      );
+      final field = tester.widget<TextField>(subfolderField());
+      expect(field.controller!.text, isEmpty);
+      expect(field.decoration!.hintText, 'Top level');
       await tester.tap(find.text('OK'));
 
       expect(await result, (

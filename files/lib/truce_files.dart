@@ -8,6 +8,7 @@ library;
 
 export 'src/backups/backup_retention.dart';
 export 'src/backups/folder_backups.dart';
+export 'src/backups/restore_as_new_failure.dart';
 export 'src/backups/restore_compare.dart';
 export 'src/conflicts/conflict_compare.dart';
 export 'src/conflicts/conflict_sides.dart';

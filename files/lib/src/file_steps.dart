@@ -1,6 +1,8 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import 'backups/folder_backups.dart';
+import 'backups/restore_as_new_failure.dart';
 import 'delete_failure.dart';
 import 'draft_recovery.dart';
 import 'file_drafts.dart';
@@ -132,9 +134,13 @@ base class FileSteps {
     return Ok(moved);
   }
 
-  /// Deletes [file] with its mark and settings, keeping them and its
-  /// [text] for [undoDelete]. Refused while a sync conflict of the file
-  /// waits. Fails if the file changed since [file] was read.
+  /// Deletes [file], holding [text], after a backup of it, so it can
+  /// still be restored from Backups once [undoDelete] is gone. Its mark
+  /// and settings stay until the usual cleanup drops them, so restoring
+  /// it at its place soon brings them back; they are kept for
+  /// [undoDelete] too. Refused while a sync conflict of the file waits,
+  /// and if no backup can be made. Fails if the file changed since [file]
+  /// was read.
   Future<Result<UndoableDelete, DeleteFailure>> delete(
     FileText file,
     String text,
@@ -142,27 +148,28 @@ base class FileSteps {
     if (_work.conflictWaits(file.key)) {
       return const Err(DeleteBlockedByConflict());
     }
+    final files = _files.of(file.folder);
+    if (await files.backUpBeforeDelete(file, text) is Err) {
+      return const Err(DeleteNotBackedUp());
+    }
     final mark = await _markOf(file.folder, file.path);
     final settings = _settings.settingsOf(file.key);
-    final deleted = await _files.of(file.folder).delete(file.listed);
+    final deleted = await files.delete(file.listed);
     if (deleted case Err(:final error)) return Err(DeleteNotDone(error));
-    // Best effort: the next write of the marks drops it anyway.
-    await _marksOf(file.folder).remove(file.path);
-    await _settings.forget(file.key);
     return Ok((file: file, text: text, mark: mark, settings: settings));
   }
 
   /// Writes [deleted] back with its mark and settings. Never
   /// overwrites: if a file was created at its path meanwhile, the file
   /// comes back beside it, under the next free numbered name, and its
-  /// backups go with it.
+  /// mark, settings and backups go with it, leaving the new file its own.
   Future<Result<void, StoreError>> undoDelete(UndoableDelete deleted) async {
     final UndoableDelete(:file, :text, :mark, :settings) = deleted;
     final files = _files.of(file.folder);
     final restored = switch (await files.restore(file, text)) {
       Err(error: StoreError.alreadyExists) => await files.copyIn(
-        file,
-        text,
+        file.path,
+        file.textFile.withText(text),
         subfolder: file.path.parent,
       ),
       final restored => restored,
@@ -171,9 +178,49 @@ base class FileSteps {
       // Even no mark: else an older mark from another device would win.
       await _marksOf(back.folder).set(back.path, mark);
       await _settings.edit(back.key, (_) => settings);
-      if (back.path != file.path) await _moveBackups(file, back);
+      if (back.path != file.path) {
+        await _marksOf(file.folder).remove(file.path);
+        await _settings.forget(file.key);
+        await _moveBackups(file, back);
+      }
     }
     return restored.map((_) {});
+  }
+
+  /// Writes [backup] as a new file at [place], named after [title] (by
+  /// default its file's name, with its extension), with a number if that
+  /// name is taken: never over a file. It starts with no color or
+  /// settings; [newSubfolder]: [place]'s subfolder is a new one the user
+  /// asked for, made first.
+  Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
+    FolderBackup backup,
+    FilePlace place, {
+    String? title,
+    bool newSubfolder = false,
+  }) async {
+    final (:folder, backup: kept) = backup;
+    final TextFile file;
+    switch (await _backupsOf(folder).read(kept)) {
+      case Ok(:final value):
+        final text = TextFile.decode(value);
+        if (text == null) return const Err(BackupNotText());
+        file = text;
+      case Err(:final error):
+        return Err(NotRestored(error));
+    }
+    final copied = await _files
+        .of(place.folder)
+        .copyIn(
+          kept.filePath,
+          file,
+          subfolder: place.subfolder,
+          newSubfolder: newSubfolder,
+          title: title,
+        );
+    return switch (copied) {
+      Ok(:final value) => Ok(value),
+      Err(:final error) => Err(NotRestored(error)),
+    };
   }
 
   /// Recovers the drafts of every folder written before [before] (see

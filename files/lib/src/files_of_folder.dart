@@ -83,23 +83,22 @@ final class FilesOfFolder {
     return created;
   }
 
-  /// A copy of [file], from any folder, holding [text] in
-  /// [file]'s byte style, in [subfolder] (the folder's top level
-  /// if `null`; made first if [newSubfolder]); named after [title] (by
-  /// default [file]'s name) with [file]'s extension, and a number
-  /// if that name is taken.
+  /// A copy of [file], the file at [of] in any folder (or a backup of
+  /// it), in [subfolder] (the folder's top level if `null`; made first if
+  /// [newSubfolder]); named after [title] (by default [of]'s name) with
+  /// [of]'s extension, and a number if that name is taken.
   Future<Result<FileText, StoreError>> copyIn(
-    FileText file,
-    String text, {
+    RelPath of,
+    TextFile file, {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
   }) {
-    final (:base, :extension) = splitFileName(file.path.name);
+    final (:base, :extension) = splitFileName(of.name);
     return _createNamed(title ?? base, extension, (
       folder: subfolder,
       isNew: newSubfolder,
-    ), file.textFile.withText(text));
+    ), file);
   }
 
   /// Moves [read]'s file, as last saved, from this folder into [target]
@@ -281,6 +280,17 @@ final class FilesOfFolder {
         filePath: file.path,
         bytes: file.textFile.encode(file.text),
       );
+
+  /// Keeps a backup of [text] in [file]'s byte style, as the user deletes
+  /// it.
+  Future<Result<void, StoreError>> backUpBeforeDelete(
+    FileText file,
+    String text,
+  ) => _services.backups.saveBeforeDelete(
+    at: DateTime.now(),
+    filePath: file.path,
+    bytes: file.textFile.encode(text),
+  );
 
   Future<Result<void, StoreError>> delete(ListedFile file) =>
       _store.delete(file.path, ifUnchanged: file.version);

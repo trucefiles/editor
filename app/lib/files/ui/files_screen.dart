@@ -76,7 +76,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ..watch(followingChangesProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Folders'),
+        title: Text(ref.watch(homeViewProvider).label),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -242,12 +242,20 @@ class _PinnedAndRecent extends ConsumerWidget {
       leading: leading,
       pinned: [for (final file in recent.pinned) ListedFileCard(file)],
       others: [for (final file in recent.newest) ListedFileCard(file)],
+      othersHeading: recentHeading(home.recentDays),
       footer: recent.hidesSome
           ? _ShowAll(noneWithin: recent.newest.isEmpty ? home.recentDays : null)
           : null,
     );
   }
 }
+
+/// The heading of Home's recently edited files, saying how far back they
+/// go if [days] limits it.
+String recentHeading(int? days) => switch (days) {
+  final days? => 'Edited in the last $days days',
+  null => 'Recently edited',
+};
 
 /// Opens the list of all conflicts; shown only while there are some, with
 /// their count.
@@ -289,7 +297,7 @@ class _ShowAll extends ConsumerWidget {
         OutlinedButton(
           onPressed: () =>
               ref.read(homeViewProvider.notifier).show(HomeView.all),
-          child: const Text('Show all'),
+          child: const Text('Switch to all files'),
         ),
       ],
     ),

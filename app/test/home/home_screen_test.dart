@@ -8,8 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/home/home_screen.dart';
@@ -201,11 +203,61 @@ void main() {
         home: HomeSettings.standard.withRecentDays(5),
       ),
       changed: DateTime.now().subtract(const Duration(days: 10)),
-      shows: find.text('Show all'),
+      shows: find.text('Switch to all files'),
     );
 
     expect(find.text('Nothing edited in the last 5 days.'), findsOne);
     expect(find.text('Notes'), findsNothing);
+  });
+
+  testWidgets('the title names the view; Back in All files returns to '
+      'Home', (tester) async {
+    await start(
+      tester,
+      {'notes.md': '# Notes', 'old.md': '# Old'},
+      settings: DeviceSettings.standard.copyWith(
+        home: HomeSettings.standard.copyWith(recentCount: 1),
+      ),
+      shows: find.text('Switch to all files'),
+    );
+    Finder title(String text) =>
+        find.descendant(of: find.byType(AppBar), matching: find.text(text));
+    expect(title('Home'), findsOne);
+
+    await tester.tap(find.text('Switch to all files'));
+    await tester.pumpAndSettle();
+    expect(title('All files'), findsOne);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(title('Home'), findsOne);
+    expect(find.byType(HomeScreen), findsOne);
+  });
+
+  testWidgets('with an age limit, the heading of the recent files says '
+      'it', (tester) async {
+    final dir = await start(
+      tester,
+      {'notes.md': '# Notes', 'pinned.md': '# Pinned'},
+      settings: DeviceSettings.standard.copyWith(
+        home: HomeSettings.standard.withRecentDays(10),
+      ),
+      shows: find.text('Pinned'),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    // Headings show once something is pinned.
+    await tester.runAsync(
+      () => container.read(fileSettingsProvider.notifier).edit((
+        folder: folderAt(dir).id,
+        path: RelPath.parse('pinned.md')!,
+      ), (settings) => settings.withPinned(pinned: true)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edited in the last 10 days'), findsOne);
+    expect(find.text('Recently edited'), findsNothing);
   });
 
   testWidgets('a new file of another type than the one picked shows its '

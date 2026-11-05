@@ -5,6 +5,8 @@ library;
 
 import 'package:truce_core/truce_core.dart';
 
+import 'backups/folder_backups.dart';
+import 'backups/restore_as_new_failure.dart';
 import 'delete_failure.dart';
 import 'file_place.dart';
 import 'file_text.dart';
@@ -75,6 +77,24 @@ final class UndoDelete extends FilesInput {
   final UndoableDelete deleted;
 }
 
+/// Write [backup] as a new file at [place], named after [title] if
+/// given; first make [place]'s subfolder if it is a new one the user asked
+/// for ([newSubfolder]).
+final class RestoreAsNewFile extends FilesInput {
+  const RestoreAsNewFile(
+    super.ticket,
+    this.backup,
+    this.place, {
+    this.title,
+    this.newSubfolder = false,
+  });
+
+  final FolderBackup backup;
+  final FilePlace place;
+  final String? title;
+  final bool newSubfolder;
+}
+
 /// Give [file] the color [mark].
 final class SetMark extends FilesInput {
   const SetMark(super.ticket, this.file, this.mark);
@@ -122,6 +142,12 @@ final class DeleteUndone extends FilesAnswer {
   const DeleteUndone(super.ticket, this.result);
 
   final Result<void, StoreError> result;
+}
+
+final class RestoredAsNew extends FilesAnswer {
+  const RestoredAsNew(super.ticket, this.result);
+
+  final Result<FileText, RestoreAsNewFailure> result;
 }
 
 final class MarkSet extends FilesAnswer {

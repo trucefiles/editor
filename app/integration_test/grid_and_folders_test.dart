@@ -93,8 +93,8 @@ void main() {
     app.write('work/a.md', '# Ant\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Bee'));
-    // Home leaves nothing out, so it offers no "Show all".
-    expect(find.text('Show all', skipOffstage: false), findsNothing);
+    // Home leaves nothing out, so it offers no "Switch to all files".
+    expect(find.text('Switch to all files', skipOffstage: false), findsNothing);
 
     await pickInView(tester, 'All files');
     await pickInView(tester, 'By name');
@@ -142,13 +142,13 @@ void main() {
         )
         .first;
     await tester.scrollUntilVisible(
-      find.text('Show all'),
+      find.text('Switch to all files'),
       300,
       scrollable: files(),
     );
     expect(find.text('Day 2'), findsOne);
     expect(find.text('Day 1'), findsNothing);
-    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.text('Switch to all files'));
     await tester.scrollUntilVisible(
       find.text('Day 1'),
       300,
@@ -180,7 +180,7 @@ void main() {
 
     expect(find.text('New'), findsOne);
     expect(find.text('Old'), findsNothing);
-    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.text('Switch to all files'));
     await tester.waitFor(find.text('Old'));
   });
 
@@ -189,9 +189,9 @@ void main() {
       app.write('n$i.md', '# Note $i\n');
     }
     await tester.addFolder(app);
-    await tester.waitFor(find.text('Show all', skipOffstage: false));
+    await tester.waitFor(find.text('Switch to all files', skipOffstage: false));
     await tester.scrollUntilVisible(
-      find.text('Show all'),
+      find.text('Switch to all files'),
       600,
       scrollable: find
           .descendant(
@@ -201,7 +201,7 @@ void main() {
           .first,
     );
 
-    await tester.tapAndSettle(find.text('Show all'));
+    await tester.tapAndSettle(find.text('Switch to all files'));
     await pickInView(tester, 'By name');
 
     expect(find.text('Note 100'), findsOne);
