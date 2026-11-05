@@ -324,19 +324,23 @@ final class _Step
   }
 
   /// [command] run on what shows; a changed document is a text change.
+  /// One that holds the same as before (e.g. the link dialog confirmed
+  /// unchanged, a keyboard putting back the word it typed) is no change,
+  /// so no undo step and no save: the document stays as it was.
   void _run(Command command) {
     final shown = state.content as FormattedContent;
     final before = shown.view.doc;
     final edited = run(shown.view, command);
+    final doc = edited.doc.holdsSameAs(before) ? before : edited.doc;
     _show(
       FormattedContent(
-        view: ViewRows(edited.doc, done: shown.view.done),
+        view: ViewRows(doc, done: shown.view.done),
         selection: edited.selection,
       ),
     );
-    if (identical(edited.doc, before)) return;
+    if (identical(doc, before)) return;
     textChanged();
-    if (_removes(command, before, edited.doc)) offered = OfferedUndo.removal;
+    if (_removes(command, before, doc)) offered = OfferedUndo.removal;
   }
 
   /// Whether [command] removed what an undo is offered for: items by the

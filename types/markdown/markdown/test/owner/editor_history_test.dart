@@ -128,6 +128,43 @@ void main() {
       expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
     });
 
+    test('none, and no save, for the link dialog confirmed unchanged', () {
+      final run = EditorRun('see [site](https://example.org) now')..caret(0, 5);
+      final link = TextSelection(Place(run.leaf(0), 4), Place(run.leaf(0), 8));
+      run.runCommand(SetLink(link, 'site', 'https://example.org'));
+      expect(run.state.status.canUndo, isFalse);
+      expect(run.outputs.whereType<StartSaveTimer>(), isEmpty);
+      expect(run.edits, isEmpty);
+    });
+
+    test('none, and no save, for a word the keyboard types over itself', () {
+      final run = EditorRun('milk and eggs')..caret(0, 4);
+      run.send(
+        Typed(
+          'milk',
+          over: TextSelection(Place(run.leaf(0), 0), Place(run.leaf(0), 4)),
+          revision: run.revision,
+        ),
+      );
+      expect(run.state.status.canUndo, isFalse);
+      expect(run.outputs.whereType<StartSaveTimer>(), isEmpty);
+      expect(run.edits, isEmpty);
+    });
+
+    test('one for a word typed over with other text', () {
+      final run = EditorRun('milk and eggs')..caret(0, 4);
+      run.send(
+        Typed(
+          'oats',
+          over: TextSelection(Place(run.leaf(0), 0), Place(run.leaf(0), 4)),
+          revision: run.revision,
+        ),
+      );
+      expect(run.text, 'oats and eggs');
+      run.undo();
+      expect(run.text, 'milk and eggs');
+    });
+
     test('one for a box tap that also moves the item', () {
       final run = EditorRun('- [ ] a\n- [ ] b')..toggle(0);
       expect(run.text, '- [ ] b\n- [x] a');

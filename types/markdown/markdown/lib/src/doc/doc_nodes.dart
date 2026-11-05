@@ -8,6 +8,8 @@
 /// Markdown, not to every format.
 library;
 
+import 'package:collection/collection.dart';
+
 import '../tree/blocks.dart';
 import '../visible/visible_text.dart';
 
@@ -236,3 +238,38 @@ Iterable<DocLeaf> leavesIn(DocBlock block) => switch (block) {
   DocContainer(:final children) => children.expand(leavesIn),
   final DocLeaf leaf => [leaf],
 };
+
+/// Whether [a] and [b] hold the same, node for node: the same ids and
+/// kinds, read from the same source, with the same text, formatting and
+/// settings. Nodes an edit left untouched are the very same objects, so
+/// only what it built anew is compared.
+bool sameBlocks(DocBlock a, DocBlock b) =>
+    identical(a, b) ||
+    a.id == b.id &&
+        identical(a.source, b.source) &&
+        switch ((a, b)) {
+          (final DocRoot a, final DocRoot b) => _sameChildren(a, b),
+          (final QuoteNode a, final QuoteNode b) => _sameChildren(a, b),
+          (final ListNode a, final ListNode b) =>
+            a.kind == b.kind &&
+                a.numbering == b.numbering &&
+                a.start == b.start &&
+                _sameChildren(a, b),
+          (final ItemNode a, final ItemNode b) =>
+            a.checked == b.checked && _sameChildren(a, b),
+          (final ParagraphNode a, final ParagraphNode b) => a.text == b.text,
+          (final HeadingNode a, final HeadingNode b) =>
+            a.level == b.level && a.text == b.text,
+          (final CodeNode a, final CodeNode b) =>
+            a.code == b.code && a.info == b.info,
+          (DividerNode(), DividerNode()) => true,
+          (final TableNode a, final TableNode b) => a.raw == b.raw,
+          (final RawNode a, final RawNode b) =>
+            a.kind == b.kind && a.raw == b.raw,
+          _ => false,
+        };
+
+bool _sameChildren(DocContainer a, DocContainer b) =>
+    a.children.length == b.children.length &&
+    IterableZip([a.children, b.children])
+        .every((pair) => sameBlocks(pair[0], pair[1]));
