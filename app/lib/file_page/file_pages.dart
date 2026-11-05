@@ -37,6 +37,8 @@ final class FilePage {
   final void Function() _closed;
 
   /// Closes the page; its edits are kept first, as far as they can be.
+  /// Tells [FilePages.fileClosed] at once: its last save needs no wait,
+  /// as every own write is checked on its own.
   Future<void> close() {
     _closed();
     part.dispose();
@@ -59,8 +61,8 @@ final class FilePages {
   /// file;
   /// [settingsOf] gives a file's settings, [editSettings] changes
   /// them. [reachOf] tells a folder's reach now, [reachSettled] once
-  /// a running check of it is over. [refresh] gives the refresh setting
-  /// now; [refreshFolders] lists the folders again.
+  /// a running check of it is over. [fileClosed] is told as each page
+  /// closes, e.g. so what shows next can be listed again.
   FilePages({
     required this.types,
     required this.create,
@@ -73,8 +75,7 @@ final class FilePages {
     required this.reachOf,
     required this.reachSettled,
     required this.openFiles,
-    required this.refresh,
-    required this.refreshFolders,
+    required this.fileClosed,
   });
 
   final ShownFileTypes<EditableType> types;
@@ -88,8 +89,7 @@ final class FilePages {
   final Reach Function(FolderId folder) reachOf;
   final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
-  final RefreshSettings Function() refresh;
-  final Future<void> Function() refreshFolders;
+  final void Function() fileClosed;
 
   /// The page of [file], as read just before; the editor runs actions
   /// on its file through [withFile].
@@ -192,15 +192,7 @@ final class FilePages {
       session,
       controller,
       leaveOpenFiles,
-      _closed,
+      fileClosed,
     );
-  }
-
-  /// A page closes: what shows next is listed again where the refresh
-  /// setting asks for it. At once, while the app's parts are surely
-  /// there; the page's last save is checked on its own, as every own
-  /// write is.
-  void _closed() {
-    if (refresh().listsWhenFileCloses) unawaited(refreshFolders());
   }
 }

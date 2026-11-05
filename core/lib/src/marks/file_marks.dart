@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:pool/pool.dart';
 
 import '../common/result.dart';
@@ -276,21 +275,18 @@ final class MarksFiles {
     };
   }();
 
-  /// The version of each file: a file read in the same version holds
-  /// the same marks.
-  Map<RelPath, FileVersion> get _versions => {
-    for (final MapEntry(:key, :value) in files.entries) key: value.version,
-  };
-
-  /// Equal to [other] when it holds the same files in the same versions.
+  /// Equal to [other] when it holds the same files in the same versions:
+  /// a file read in the same version holds the same marks.
   @override
   bool operator ==(Object other) =>
       other is MarksFiles &&
-      const MapEquality<RelPath, FileVersion>().equals(
-        other._versions,
-        _versions,
+      other.files.length == files.length &&
+      files.entries.every(
+        (entry) => other.files[entry.key]?.version == entry.value.version,
       );
 
   @override
-  int get hashCode => const MapEquality<RelPath, FileVersion>().hash(_versions);
+  int get hashCode => Object.hashAllUnordered(
+    files.entries.map((entry) => Object.hash(entry.key, entry.value.version)),
+  );
 }

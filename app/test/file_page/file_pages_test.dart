@@ -4,7 +4,6 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_pages.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -12,15 +11,15 @@ import 'file_fixture.dart';
 void main() {
   late FileFixture fixture;
   late OpenFiles open;
-  late int listings;
+  late int closings;
 
   setUp(() async {
     fixture = await FileFixture.create();
     open = OpenFiles();
-    listings = 0;
+    closings = 0;
   });
 
-  FilePages pages({RefreshMode mode = RefreshMode.live}) => FilePages(
+  FilePages pages() => FilePages(
     types: appFileTypes(),
     create: fixture.createFile,
     move: fixture.moveFile,
@@ -32,30 +31,19 @@ void main() {
     reachOf: (_) => Reach.reachable,
     reachSettled: (_) async => Reach.reachable,
     openFiles: open,
-    refresh: () => RefreshSettings.standard.copyWith(mode: mode),
-    refreshFolders: () async => listings++,
+    fileClosed: () => closings++,
   );
 
-  test('in Manual mode, closing a page lists the folders again; opening '
-      'one does not', () async {
-    final page = pages(mode: RefreshMode.manual)
-        .open(fixture.file, withFile: (_) async {});
-    expect(listings, 0);
+  test('a page tells that it closed, once, as it closes', () async {
+    final page = pages().open(fixture.file, withFile: (_) async {});
+    expect(closings, 0);
 
-    await page.close();
+    final closed = page.close();
+    expect(closings, 1);
+    await closed;
 
-    expect(listings, 1);
+    expect(closings, 1);
   });
-
-  for (final mode in [RefreshMode.live, RefreshMode.periodic]) {
-    test('in ${mode.name} mode, opening and closing a page lists no '
-        'folder: changes are followed meanwhile', () async {
-      final page = pages(mode: mode).open(fixture.file, withFile: (_) async {});
-      await page.close();
-
-      expect(listings, 0);
-    });
-  }
 
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {

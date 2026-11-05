@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
 
 import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';
+import '../changed_elsewhere_controller.dart';
 import '../file_controller.dart';
 
 /// Shows the open file's edits next to the version from elsewhere,
@@ -26,53 +26,16 @@ class ChangedElsewhereScreen extends StatefulWidget {
 }
 
 class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
+  late final _choice = ChangedElsewhereController(widget.controller);
+  late final StreamSubscription<void> _notKept;
   bool _closed = false;
-
-  /// The version a pick was sent against, while it is carried out.
-  Seen<ReadVersion>? _picking;
-
-  late final StreamSubscription<FileEvent> _notices;
-
-  FileSession get _session => widget.controller.session;
-
-  /// The version from elsewhere, while the choice is open.
-  Seen<ReadVersion>? get _theirs => switch (_session.status) {
-    ChangedElsewhere(:final theirs) => theirs,
-    _ => null,
-  };
-
-  /// Whether the edits and a version from elsewhere can be merged, as
-  /// last asked; asked again for each new version.
-  ({ReadVersion version, bool merges})? _merging;
-
-  /// Whether the edits and [theirs] can be merged, as far as known yet.
-  bool _merges(Seen<ReadVersion> theirs) => switch (_merging) {
-    (:final version, :final merges) when version == theirs.version => merges,
-    _ => false,
-  };
-
-  /// Asks whether the edits and the version shown merge, once per
-  /// version.
-  void _askMerges() {
-    final theirs = _theirs;
-    if (theirs == null || _merging?.version == theirs.version) return;
-    _merging = (version: theirs.version, merges: false);
-    unawaited(
-      _session.mergesWith(theirs).then((merges) {
-        if (!mounted || _merging?.version != theirs.version) return;
-        setState(() => _merging = (version: theirs.version, merges: merges));
-      }),
-    );
-  }
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onSessionChanged);
-    _askMerges();
-    _notices = _session.fileNotices.listen((notice) {
-      if (notice is! PickNotKept || !mounted) return;
-      setState(() => _picking = null);
+    _choice.addListener(_onChoiceChanged);
+    _notKept = _choice.notKept.listen((_) {
+      if (!mounted) return;
       showSnack(
         context,
         "That didn't work, so nothing changed. Please try again.",
@@ -82,22 +45,16 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onSessionChanged);
-    unawaited(_notices.cancel());
+    _choice.removeListener(_onChoiceChanged);
+    unawaited(_notKept.cancel());
+    _choice.dispose();
     super.dispose();
   }
 
-  /// Removes this screen's own route, not whatever is on top (e.g. a
-  /// dialog).
-  void _onSessionChanged() {
-    final theirs = _theirs;
-    if (theirs != null) {
-      // A newer version from elsewhere: the pick against the old one
-      // changes nothing, so the user picks again.
-      if (_picking != null && _picking?.version != theirs.version) {
-        _picking = null;
-      }
-      _askMerges();
+  /// Shows the change; once the choice is settled, removes this screen's
+  /// own route, not whatever is on top (e.g. a dialog).
+  void _onChoiceChanged() {
+    if (_choice.theirs != null) {
       setState(() {});
     } else if (!_closed && mounted) {
       _closed = true;
@@ -107,28 +64,15 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
     }
   }
 
-  /// Only while the choice is still open: it may have been settled while
-  /// the user confirmed. [seen]: the version shown when the user tapped.
-  void _keep(VersionSide side, Seen<ReadVersion> seen) => _pick(switch (side) {
-    VersionSide.current => PickChoice.theirs,
-    VersionSide.other => PickChoice.mine,
-  }, seen);
-
-  /// Sends [choice] against [seen], only while the choice is still open.
-  void _pick(PickChoice choice, Seen<ReadVersion> seen) {
-    if (_theirs == null) return;
-    setState(() => _picking = seen);
-    _session.pick(choice, theirs: seen, rev: _session.rev);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theirs = _theirs;
-    final file = _session.file;
+    final theirs = _choice.theirs;
+    final session = widget.controller.session;
+    final file = session.file;
     return Scaffold(
       appBar: compareAppBar(
         folder: file.folder,
-        file: _session.path,
+        file: session.path,
         reason: 'Changed in the folder while you were editing',
       ),
       body: theirs == null
@@ -145,18 +89,21 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
               ),
               other: ShownVersion(
                 label: 'Your edits',
-                content: EditorText(_session.text),
+                content: EditorText(_choice.mine),
                 keepLabel: 'Keep this',
                 keptMessage:
                     'Your edits replace the current version. $bothBackedUp',
               ),
               // This device's edits are the base: their own lines green.
               base: VersionSide.other,
-              enabled: _picking == null,
+              enabled: _choice.canPick,
               // This build's version: the one shown when the user taps.
-              onKeep: (side) => _keep(side, theirs),
-              onMerge: _merges(theirs)
-                  ? () => _pick(PickChoice.merged, theirs)
+              onKeep: (side) => _choice.pick(switch (side) {
+                VersionSide.current => PickChoice.theirs,
+                VersionSide.other => PickChoice.mine,
+              }, theirs),
+              onMerge: _choice.merges
+                  ? () => _choice.pick(PickChoice.merged, theirs)
                   : null,
             ),
     );

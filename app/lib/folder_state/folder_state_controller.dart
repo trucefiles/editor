@@ -16,10 +16,12 @@ final folderContentsProvider =
 /// What the screens show of the added folders: a new value only when
 /// what they hold changed, not with each listing that found the same.
 final folderFilesProvider = Provider<FolderFiles?>(
-  (ref) => ref.watch(
-    folderContentsProvider.select((contents) => contents.value?.shown),
-  ),
+  (ref) => ref.watch(folderContentsProvider.select((c) => c.value?.shown)),
 );
+
+/// As [folderFilesProvider], once the folders were listed: for work that
+/// waits for them.
+final loadedFolderFiles = folderContentsProvider.selectAsync((c) => c.shown);
 
 /// What the added folders hold and when it was seen: changes from the sync
 /// tool, other editors or the app's own writes show up as the folder

@@ -57,9 +57,7 @@ final calendarTabProvider =
 class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
   @override
   Future<List<TabCalendar>> build() async {
-    final shown = await ref.watch(
-      folderContentsProvider.selectAsync((contents) => contents.shown),
-    );
+    final shown = await ref.watch(loadedFolderFiles);
     await ref.watch(fileSettingsProvider.future);
     final settings = ref.read(fileSettingsProvider.notifier);
     final read = await ref

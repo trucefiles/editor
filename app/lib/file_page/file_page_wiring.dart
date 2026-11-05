@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../file_types/file_types.dart';
@@ -45,7 +47,13 @@ final filePagesProvider = Provider<FilePages>(
     reachSettled: (folder) =>
         ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
-    refresh: () => ref.read(deviceSettingsProvider).requireValue.refresh,
-    refreshFolders: () => ref.read(folderContentsProvider.notifier).refresh(),
+    // Where nothing finds changes meanwhile, what shows next is listed
+    // again.
+    fileClosed: () {
+      final refresh = ref.read(deviceSettingsProvider).requireValue.refresh;
+      if (refresh.listsWhenFileCloses) {
+        unawaited(ref.read(folderContentsProvider.notifier).refresh());
+      }
+    },
   ),
 );
