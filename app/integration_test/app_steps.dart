@@ -172,13 +172,14 @@ extension AppSteps on WidgetTester {
     String? folder,
     String? subfolder,
     String? name,
+    String confirm = 'OK',
   }) async {
     if (folder != null) await pickFolder(folder);
     if (subfolder != null) await pickSubfolder(subfolder);
     if (name != null) {
       await enterText(find.widgetWithText(TextField, 'Name'), name);
     }
-    await tapAndSettle(find.text('OK'));
+    await tapAndSettle(find.text(confirm));
   }
 
   /// Sets the open file's place and name.

@@ -90,8 +90,8 @@ final class FileFixture {
     required bool newSubfolder,
   }) async {
     final copied = await files[place.folder.id]!.copyIn(
-      file,
-      file.text,
+      file.path,
+      file.textFile,
       subfolder: place.subfolder,
       newSubfolder: newSubfolder,
       title: title,

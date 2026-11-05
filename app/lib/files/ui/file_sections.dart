@@ -4,12 +4,13 @@ import '../../common/floating_button_room.dart';
 import 'file_grid.dart';
 
 /// Cards in a grid: [leading] first, then [pinned] and [others] under a
-/// "Pinned" and a "Recently edited" heading, then [footer]. Headings show only if
-/// something is pinned. Only cards near the screen are built.
+/// "Pinned" and an [othersHeading] heading, then [footer]. Headings show
+/// only if something is pinned. Only cards near the screen are built.
 class FileSections extends StatelessWidget {
   const FileSections({
     required this.pinned,
     required this.others,
+    required this.othersHeading,
     this.leading = const [],
     this.footer,
     super.key,
@@ -18,6 +19,7 @@ class FileSections extends StatelessWidget {
   final List<Widget> leading;
   final List<Widget> pinned;
   final List<Widget> others;
+  final String othersHeading;
   final Widget? footer;
 
   @override
@@ -34,7 +36,7 @@ class FileSections extends StatelessWidget {
               if (pinned.isNotEmpty) ...[
                 const _Heading('Pinned'),
                 _grid(pinned),
-                if (others.isNotEmpty) const _Heading('Recently edited'),
+                if (others.isNotEmpty) _Heading(othersHeading),
               ],
               _grid(others),
               if (footer case final footer?) SliverToBoxAdapter(child: footer),

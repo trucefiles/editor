@@ -152,4 +152,28 @@ void main() {
 
     await tester.waitFor(find.textContaining('No backups yet.'));
   });
+
+  testApp('a deleted document comes back from Backups as a new file, '
+      'where and under what name you pick', (tester) async {
+    app.write('plan.md', '# Plan\nv1\n');
+    app.write('work/todo.md', '# Todo\n');
+    await tester.addFolder(app);
+    await tester.openFile('Plan');
+    await tester.chooseInMenu('Delete file');
+    await tester.waitUntil(() => !app.file('plan.md').existsSync());
+    await tester.waitForNoteClosed();
+
+    await tester.chooseInMenu('Backups');
+    await tester.waitFor(find.textContaining('as you deleted it'));
+    await tester.tapAndSettle(find.byTooltip('Backup options'));
+    await tester.tapAndSettle(find.text('Restore as new file'));
+    await tester.fillPlace(
+      subfolder: 'work',
+      name: 'Plan again',
+      confirm: 'Restore',
+    );
+
+    await tester.waitForFile(app.file('work/Plan again.md'), '# Plan\nv1\n');
+    expect(app.file('plan.md').existsSync(), isFalse);
+  });
 }

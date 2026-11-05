@@ -26,15 +26,17 @@ void main() {
   late Directory work;
   late Directory home;
   late List<Folder> folders;
+  late AppStorage storage;
   final markdown = appFileTypes().forNew;
 
   setUp(() async {
     work = tempFolder();
     home = tempFolder();
     folders = [folderAt(work, id: 'work'), folderAt(home, id: 'home')];
+    storage = AppStorage(tempFolder().path);
     container = ProviderContainer(
       overrides: [
-        appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+        appStorageProvider.overrideWithValue(storage),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
@@ -357,7 +359,8 @@ void main() {
     expect((await scans()).findFile(file.key), isNotNull);
   });
 
-  test('delete drops the mark and settings; undo brings them back', () async {
+  test('delete keeps the mark and settings, so a restore at the same '
+      'place soon brings them back; undo brings them back too', () async {
     final file = await fileIn(work, 'plan.md', '# Plan\n');
     final settings = container.read(fileSettingsProvider.notifier);
     const mark = FileMark(color: 'teal');
@@ -369,12 +372,130 @@ void main() {
     await settings.edit(file.key, (_) => mine);
 
     final deleted = (await actions.delete(file, '# Plan\n')).value;
-    expect(marksFile(work), isNot(contains('plan.md')));
-    expect(settings.settingsOf(file.key), FileSettings.defaults);
+    expect(marksFile(work), contains('plan.md'));
+    expect(settings.settingsOf(file.key), mine);
 
+    final services = container.read(folderServicesProvider(folders[0].id));
+    final backup = (await services.backups.listOf(file.path)).value.single;
+    final choice = (await services.restore.load(backup)).value;
+    await services.restore.keep(choice, const KeepOther());
+    expect((await scans()).markOf(file.key), mark);
+    expect(settings.settingsOf(file.key), mine);
+
+    File('${work.path}/plan.md').deleteSync();
     await actions.undoDelete(deleted);
     expect((await scans()).markOf(file.key), mark);
     expect(settings.settingsOf(file.key), mine);
+  });
+
+  test('delete keeps a backup of the text deleted', () async {
+    final file = await fileIn(work, 'plan.md', '# Plan\r\n');
+    final services = container.read(folderServicesProvider(folders[0].id));
+
+    await actions.delete(file, '# Plan\nmine\n');
+
+    final backup = (await services.backups.listOf(file.path)).value.single;
+    expect(backup.kind, BackupKind.beforeDelete);
+    expect(
+      String.fromCharCodes((await services.backups.read(backup)).value),
+      '# Plan\r\nmine\r\n',
+    );
+  });
+
+  test('delete is refused if no backup can be made', () async {
+    final file = await fileIn(work, 'plan.md', '# Plan\n');
+    // A file where the folder's backups go: none can be saved.
+    File(storage.backupsPath(folders[0].id)).writeCreatingFolders('');
+
+    final deleted = await actions.delete(file, '# Plan\n');
+
+    expect(deleted.error, isA<DeleteNotBackedUp>());
+    expect(diskFile(work, 'plan.md').existsSync(), isTrue);
+  });
+
+  group('restoreAsNew', () {
+    /// The backup of [name] in work that deleting it keeps.
+    Future<FolderBackup> deletedBackup(String name, String text) async {
+      final file = await fileIn(work, name, text);
+      await actions.delete(file, text);
+      final backups = container
+          .read(folderServicesProvider(folders[0].id))
+          .backups;
+      return (
+        folder: folders[0],
+        backup: (await backups.listOf(file.path)).value.single,
+      );
+    }
+
+    test('writes the backup as a new file at the place picked, in '
+        'its byte style, with no color or settings', () async {
+      final file = await fileIn(work, 'a/plan.md', '# Plan\r\n');
+      await actions.setMark(file.listed, const FileMark(color: 'teal'));
+      await actions.delete(file, '# Plan\n');
+      final backups = container
+          .read(folderServicesProvider(folders[0].id))
+          .backups;
+      final backup = (
+        folder: folders[0],
+        backup: (await backups.listOf(file.path)).value.single,
+      );
+
+      final copy = (await actions.restoreAsNew(backup, (
+        folder: folders[1],
+        subfolder: RelPath.parse('b'),
+      ), newSubfolder: true)).value;
+
+      expect(copy.path.value, 'b/plan.md');
+      expect(diskFile(home, 'b/plan.md').readAsStringSync(), '# Plan\r\n');
+      final scan = await scans();
+      expect(scan.markOf(copy.key), FileMark.none);
+      expect(
+        container.read(fileSettingsProvider.notifier).settingsOf(copy.key),
+        FileSettings.defaults,
+      );
+    });
+
+    test('never writes over a file: takes the next free name', () async {
+      final backup = await deletedBackup('plan.md', '# Plan\nold\n');
+      diskFile(work, 'plan.md').writeAsStringSync('# Plan\nnew\n');
+
+      final copy = (await actions.restoreAsNew(backup, (
+        folder: folders[0],
+        subfolder: null,
+      ))).value;
+
+      expect(copy.path.value, 'plan 2.md');
+      expect(diskFile(work, 'plan.md').readAsStringSync(), '# Plan\nnew\n');
+      expect(diskFile(work, 'plan 2.md').readAsStringSync(), '# Plan\nold\n');
+    });
+
+    test('takes the name given, keeping the extension', () async {
+      final backup = await deletedBackup('list.txt', 'Milk\n');
+
+      final copy = (await actions.restoreAsNew(backup, (
+        folder: folders[0],
+        subfolder: null,
+      ), title: 'Shopping')).value;
+
+      expect(copy.path.value, 'Shopping.txt');
+    });
+
+    test('a backup that is no text is not restored', () async {
+      final backup = await deletedBackup('plan.md', '# Plan\n');
+      final store = File(
+        '${storage.backupsPath(folders[0].id)}/'
+        '${backup.backup.storePath.value}',
+      );
+      store.writeAsBytesSync([0xff, 0xfe, 0x00, 0xd8, 0x00]);
+
+      final restored = await actions.restoreAsNew(backup, (
+        folder: folders[0],
+        subfolder: null,
+      ));
+
+      expect(restored.error, isA<BackupNotText>());
+      expect(diskFile(work, 'plan.md').existsSync(), isFalse);
+    });
   });
 
   test(

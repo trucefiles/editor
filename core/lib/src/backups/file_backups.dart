@@ -23,6 +23,14 @@ final class FileBackups {
     required Uint8List bytes,
   }) => _save(Backup.of(filePath, at: at, kind: BackupKind.beforeEdit), bytes);
 
+  /// Saves [bytes], the file at [filePath], as the user deletes it [at].
+  Future<Result<void, StoreError>> saveBeforeDelete({
+    required DateTime at,
+    required RelPath filePath,
+    required Uint8List bytes,
+  }) =>
+      _save(Backup.of(filePath, at: at, kind: BackupKind.beforeDelete), bytes);
+
   /// Saves both versions the user picks from [at], before keeping one.
   /// [current] is `null` if the file is deleted.
   Future<Result<void, StoreError>> saveBoth({

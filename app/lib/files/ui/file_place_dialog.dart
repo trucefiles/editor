@@ -23,25 +23,30 @@ Future<FilePlace?> showFilePlaceDialog(
 ))?.place;
 
 /// Like [showFilePlaceDialog], also asking for a file name without
-/// its extension, starting at [name]. A folder inside may also be typed, a
-/// new one too, if [canHold] says files of the folder can go there. The
-/// chosen place and name; `null` if cancelled.
+/// its extension, starting at [name]; [nameHint] says what an empty name
+/// means. A folder inside may also be typed, a new one too, if [canHold]
+/// says files of the folder can go there. The chosen place and name;
+/// `null` if cancelled.
 Future<PickedPlace?> showFileNameDialog(
   BuildContext context, {
+  String title = 'Location and name',
+  String action = 'OK',
   required List<Folder> folders,
   required FilePlace initial,
   required String name,
+  String nameHint = 'From the first line',
   required List<RelPath> Function(Folder folder) subfoldersOf,
   required bool Function(Folder folder, RelPath subfolder) canHold,
 }) async => switch (await showDialog<_Choice>(
   context: context,
   builder: (_) => _FilePlaceDialog(
-    'Location and name',
-    'OK',
+    title,
+    action,
     folders,
     initial,
     subfoldersOf,
     name,
+    nameHint: nameHint,
     canHold: canHold,
   ),
 )) {
@@ -63,6 +68,7 @@ class _FilePlaceDialog extends StatefulWidget {
     this.initial,
     this.subfoldersOf,
     this.name, {
+    this.nameHint,
     this.canHold,
   });
 
@@ -74,6 +80,9 @@ class _FilePlaceDialog extends StatefulWidget {
 
   /// The file name to start at; `null` asks for none.
   final String? name;
+
+  /// What an empty [name] means.
+  final String? nameHint;
 
   /// Whether files of a folder can go into a typed subfolder; `null`:
   /// only the subfolders offered can be picked.
@@ -98,13 +107,8 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
     ..addListener(_onTyped);
   String? _typedError;
 
-  /// Whether the top level was picked from the list (its label shows):
-  /// a subfolder named like it is still a subfolder.
-  var _topLevelPicked = false;
-
   /// The error goes as the user changes the text.
   void _onTyped() {
-    if (_typed.text != _topLevel) _topLevelPicked = false;
     if (_typedError != null) setState(() => _typedError = null);
   }
 
@@ -140,7 +144,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
   /// for the user; the folder's files refuse a place outside it anyway.
   (RelPath?, String?) _typedSubfolder() {
     final text = _typed.text.trim().replaceFirst(RegExp(r'/+$'), '');
-    if (text.isEmpty || _topLevelPicked) return (null, null);
+    if (text.isEmpty) return (null, null);
     final subfolder = RelPath.parse(text);
     return subfolder != null && widget.canHold!(_folder, subfolder)
         ? (subfolder, null)
@@ -168,7 +172,6 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
               _subfolder = null;
               _typed.text = _subfolder?.value ?? '';
               _typedError = null;
-              _topLevelPicked = false;
             }),
           ),
           if (widget.canHold != null) ...[
@@ -180,7 +183,6 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
               subfolders: _subfolders,
               topLevel: _topLevel,
               errorText: _typedError,
-              onPicked: (value) => _topLevelPicked = value.isEmpty,
             ),
           ] else if (_subfolders case final subfolders
               when subfolders.isNotEmpty) ...[
@@ -209,9 +211,9 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
             const SizedBox(height: 16),
             TextField(
               controller: _name,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Name',
-                hintText: 'From the first line',
+                hintText: widget.nameHint,
               ),
               onSubmitted: (_) => _confirm(),
             ),
@@ -230,13 +232,14 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
 }
 
 /// A folder inside to pick from those offered, or to type, a new one too.
+/// Empty is the top level: it shows [topLevel] as a hint, never as text,
+/// so nothing typed after it reads as a folder inside it.
 class _TypedSubfolder extends StatelessWidget {
   const _TypedSubfolder({
     required this.controller,
     required this.subfolders,
     required this.topLevel,
     required this.errorText,
-    required this.onPicked,
     super.key,
   });
 
@@ -244,10 +247,6 @@ class _TypedSubfolder extends StatelessWidget {
   final List<RelPath> subfolders;
   final String topLevel;
   final String? errorText;
-
-  /// Called with the value of an entry picked: the folder's path, or
-  /// empty for the top level.
-  final void Function(String value) onPicked;
 
   @override
   Widget build(BuildContext context) => DropdownMenu<String>(
@@ -273,9 +272,9 @@ class _TypedSubfolder extends StatelessWidget {
       ),
       suffixIconConstraints: const BoxConstraints(),
     ),
-    onSelected: (value) => onPicked(value ?? ''),
     dropdownMenuEntries: [
-      DropdownMenuEntry(value: '', label: topLevel),
+      // Picking it empties the field, which then shows the hint.
+      DropdownMenuEntry(value: '', label: '', labelWidget: Text(topLevel)),
       for (final subfolder in subfolders)
         DropdownMenuEntry(value: subfolder.value, label: subfolder.value),
     ],

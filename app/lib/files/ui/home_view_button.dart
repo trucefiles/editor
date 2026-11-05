@@ -15,11 +15,6 @@ class HomeViewButton extends ConsumerWidget {
     HomeView.all => Icons.view_module_outlined,
   };
 
-  static String _label(HomeView view) => switch (view) {
-    HomeView.home => 'Home',
-    HomeView.all => 'All files',
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final view = ref.watch(homeViewProvider);
@@ -46,13 +41,13 @@ class HomeViewButton extends ConsumerWidget {
     void changeHome(HomeSettings Function(HomeSettings) change) =>
         device.change((s) => s.copyWith(home: change(s.home)));
     return PopupMenuButton<VoidCallback>(
-      tooltip: 'View: ${_label(view)}',
+      tooltip: 'View: ${view.label}',
       icon: Icon(_icon(view)),
       onSelected: (pick) => pick(),
       itemBuilder: (_) => [
         for (final option in HomeView.values)
           item(
-            _label(option),
+            option.label,
             icon: _icon(option),
             on: option == view,
             pick: () => ref.read(homeViewProvider.notifier).show(option),
@@ -84,4 +79,12 @@ class HomeViewButton extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// What a home view is called, in its menu and as home's title.
+extension HomeViewLabel on HomeView {
+  String get label => switch (this) {
+    HomeView.home => 'Home',
+    HomeView.all => 'All files',
+  };
 }

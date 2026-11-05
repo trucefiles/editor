@@ -6,9 +6,8 @@ import 'package:truce_files/truce_files.dart';
 import '../../common/snack.dart';
 import '../../files/file_actions.dart';
 import '../../files/ui/file_place_dialog.dart';
+import '../../files/ui/folders_to_place_in.dart';
 import '../../files/ui/move_failure_text.dart';
-import '../../folder_state/folder_state_controller.dart';
-import '../../folders/folders_controller.dart';
 import '../../folders/ui/folder_badge.dart';
 
 /// Shows where the open file is, e.g. `Files/inbox/Milk.md`;
@@ -34,15 +33,9 @@ class FilePlaceChip extends ConsumerWidget {
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    // Change events don't tell about new empty subfolders; a listing finds
-    // them, so the dialog offers them.
-    await ref.read(folderContentsProvider.notifier).refresh();
-    if (!context.mounted) return;
+    final folders = await foldersToPlaceIn(context, ref);
+    if (folders == null || !context.mounted) return;
     final actions = ref.read(fileActionsProvider);
-    final folders = actions.reachableOf(ref.read(foldersProvider).value ?? []);
-    if (folders.isEmpty) {
-      return showSnack(context, 'No folder can be reached right now.');
-    }
     final picked = await showFileNameDialog(
       context,
       folders: folders,

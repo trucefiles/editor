@@ -11,6 +11,11 @@ final class DeleteBlockedByConflict extends DeleteFailure {
   const DeleteBlockedByConflict();
 }
 
+/// No backup of the file could be made, so it was not deleted.
+final class DeleteNotBackedUp extends DeleteFailure {
+  const DeleteNotBackedUp();
+}
+
 /// The file could not be deleted.
 final class DeleteNotDone extends DeleteFailure {
   const DeleteNotDone(this.error);
