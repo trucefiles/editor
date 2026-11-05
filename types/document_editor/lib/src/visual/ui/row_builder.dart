@@ -1,9 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show Frame, ItemFrame, RawTextLook, RowLook, TextLook;
 
 import '../library/library_nodes.dart';
-import '../row_looks.dart';
 import '../visual_actions.dart';
 import 'row_component.dart';
 

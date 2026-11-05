@@ -1,23 +1,20 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_editor_test_support/truce_editor_test_support.dart';
-import 'package:truce_markdown/truce_markdown.dart';
+import 'package:test/test.dart';
+import 'package:truce_markdown/src/doc/doc_nodes.dart';
+import 'package:truce_markdown/src/doc/load.dart';
+import 'package:truce_markdown/src/view/add_item_place.dart';
+import 'package:truce_markdown/src/view/row_looks.dart';
+import 'package:truce_markdown/src/view/rows.dart';
 
-/// The content Visual edit shows of [text].
-FormattedContent _shown(String text) =>
-    TestDocument(text).gate.state.content as FormattedContent;
+/// What Visual edit shows of [text], checked items in Done sections.
+ViewRows _shown(String text) =>
+    ViewRows(loadMarkdown(text).doc, done: DoneSections());
 
-/// The looks of [shown], Add item at [addItems].
+/// The looks of [view], Add item at [addItems].
 List<RowLook> _looks(
-  FormattedContent shown, {
+  ViewRows view, {
   AddItemPlace addItems = AddItemPlace.top,
   NodeId? folded,
-}) => RowLooks(
-  shown,
-  showsChecked: (item) => item.checked ?? false,
-  addItems: addItems,
-  folded: folded,
-).looks;
+}) => RowLooks(view, addItems: addItems, folded: folded).looks;
 
 List<Frame> _framesOf(RowLook look) => switch (look) {
   TextLook(:final frames) ||
@@ -114,7 +111,7 @@ void main() {
   test("the bar ends at a dragged item's row while its subitems are "
       'folded', () {
     final shown = _shown('> - [ ] a\n>   - [ ] sub');
-    final first = _nodes(shown.view.doc.root).whereType<ItemNode>().first;
+    final first = _nodes(shown.doc.root).whereType<ItemNode>().first;
 
     final looks = _looks(shown, addItems: AddItemPlace.top, folded: first.id);
 

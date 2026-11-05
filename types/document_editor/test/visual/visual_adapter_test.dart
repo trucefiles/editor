@@ -90,6 +90,27 @@ void main() {
     expect(visual.secured(), 'axb');
   });
 
+  test('typing patches only the rows whose looks changed: the other nodes '
+      'stay as they are', () {
+    final visual = _Visual('- [ ] a\n- [ ] b\n- [ ] c\n\nd');
+    visual.caret(1, 1);
+    final nodes = visual.document.toList();
+
+    visual.editor.execute([
+      InsertTextRequest(
+        documentPosition: visual.at(1, 1),
+        textToInsert: 'x',
+        attributions: const {},
+      ),
+    ]);
+
+    final now = visual.document.toList();
+    expect(visual.texts, ['a', 'bx', 'c', 'd']);
+    for (final index in [0, 2, 3]) {
+      expect(identical(now[index], nodes[index]), isTrue, reason: '$index');
+    }
+  });
+
   test('a caret the user moves goes to the owner', () {
     final visual = _Visual('ab');
 
@@ -422,7 +443,7 @@ void main() {
 
     visual.gate.tapBox(item.id);
 
-    final look = lookOf(visual.document.first) as TextLook;
-    expect(look.frames.whereType<ItemFrame>().single.checked, isTrue);
+    final look = lookOf(visual.document.first) as md.TextLook;
+    expect(look.frames.whereType<md.ItemFrame>().single.checked, isTrue);
   });
 }

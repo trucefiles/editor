@@ -140,8 +140,12 @@ final class _Device {
   ];
 
   /// The user edits the text to [text].
-  void edit(String text) =>
-      session.gate.send((now) => EditText(text, revision: now.revision));
+  void edit(String text) => session.gate.send(
+    (now) => EditText(
+      editTo((now.content as MarkdownContent).text, text),
+      revision: now.revision,
+    ),
+  );
 
   /// One poll of the app: a listing, then the app hidden, which keeps
   /// any edits. Returns how many files it wrote.

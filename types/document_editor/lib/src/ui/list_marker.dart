@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show BoxMarker, BulletMarker, Marker, NumberMarker;
 
 import '../document_metrics.dart';
-import '../marker.dart';
 
 /// The [marker] of a list item, the same wherever the editor draws one:
 /// its box, checked or not, which [onToggle] checks or unchecks; its

@@ -6,7 +6,7 @@
 library;
 
 import 'package:truce_core/truce_core.dart'
-    show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
+    show EditorNotice, EditorRequest, EditorStatus, EffectId, TextEdit, Wait;
 
 /// What the plain editor owner handles: inputs anyone may send, and the
 /// results of its effects.
@@ -20,13 +20,14 @@ sealed class PlainInput extends PlainMessage {
   const PlainInput();
 }
 
-/// The text is now [text], as the editor shows it at [revision]; dropped
-/// if the state moved on since. A [pasted] text is an undo step of its
-/// own, never part of the typing around it.
+/// The text is now [edit]'s text, which [edit]'s change made of the text
+/// the editor shows at [revision]; dropped if the state moved on since.
+/// A [pasted] text is an undo step of its own, never part of the typing
+/// around it.
 final class TextEdited extends PlainInput {
-  const TextEdited(this.text, {required this.revision, this.pasted = false});
+  const TextEdited(this.edit, {required this.revision, this.pasted = false});
 
-  final String text;
+  final TextEdit edit;
   final int revision;
   final bool pasted;
 }

@@ -7,7 +7,7 @@
 library;
 
 import 'package:truce_core/truce_core.dart'
-    show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
+    show EditorNotice, EditorRequest, EditorStatus, EffectId, TextEdit, Wait;
 
 import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';
@@ -165,12 +165,13 @@ final class RawCaretMoved extends ShownInput {
   final int extent;
 }
 
-/// Markdown edit's text is now [text]. A [pasted] text is an undo step
-/// of its own, never part of the typing around it.
+/// Markdown edit's text is now [edit]'s text, which [edit]'s change made
+/// of the text that shows. A [pasted] text is an undo step of its own,
+/// never part of the typing around it.
 final class EditText extends ShownInput {
-  const EditText(this.text, {required super.revision, this.pasted = false});
+  const EditText(this.edit, {required super.revision, this.pasted = false});
 
-  final String text;
+  final TextEdit edit;
   final bool pasted;
 }
 

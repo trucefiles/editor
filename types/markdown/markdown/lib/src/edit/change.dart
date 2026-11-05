@@ -44,10 +44,10 @@ CaretAfter caretOrEnd(Selection? caret) => switch (caret) {
 /// (`null`: no caret).
 typedef Edited = ({DocTree doc, Selection? selection});
 
-/// [change] as it shows: its tree normalized (see `normalized`), its
-/// caret placed.
-Edited settled(Change change) {
-  final doc = normalized(change.doc, change.doc.freshIds);
+/// [change], an edit of [before], as it shows: its tree normalized (see
+/// `normalized`), its caret placed.
+Edited settled(Change change, {required DocTree before}) {
+  final doc = normalized(change.doc, change.doc.freshIds, before: before);
   return (
     doc: doc,
     selection: switch (change.caret) {

@@ -55,10 +55,8 @@ final class EditorGate extends ChangeNotifier {
   Future<void> get closed => _closed.future;
   final _closed = Completer<void>();
 
-  /// Whether [item]'s box shows checked: its state, flipped while a tap on
-  /// it waits.
-  bool showsChecked(ItemNode item) =>
-      (item.checked ?? false) != _waiting.contains(item.id);
+  /// The items whose box tap waits: their boxes show flipped meanwhile.
+  Set<NodeId> get waiting => Set.unmodifiable(_waiting);
 
   /// A user input: sends the waiting taps, then the input [build] makes
   /// from the state as it is then (`null`: none, e.g. a drag start);

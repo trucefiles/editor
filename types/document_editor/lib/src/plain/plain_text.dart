@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_plain_text/truce_plain_text.dart';
 
 import '../lines/edited_text.dart';
@@ -18,8 +19,8 @@ final class PlainText implements EditedText {
   ShownText get shown => (text: _owner.state.text, caret: _owner.state.caret);
 
   @override
-  void edit(String text, {required bool pasted}) => _owner.send(
-    TextEdited(text, revision: _owner.state.revision, pasted: pasted),
+  void edit(TextEdit edit, {required bool pasted}) => _owner.send(
+    TextEdited(edit, revision: _owner.state.revision, pasted: pasted),
   );
 
   @override

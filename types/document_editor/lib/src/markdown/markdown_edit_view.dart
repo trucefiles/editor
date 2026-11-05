@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
 import '../editor_gate.dart';
@@ -52,8 +53,8 @@ final class MarkdownText implements EditedText {
   };
 
   @override
-  void edit(String text, {required bool pasted}) => _gate.send(
-    (now) => md.EditText(text, revision: now.revision, pasted: pasted),
+  void edit(TextEdit edit, {required bool pasted}) => _gate.send(
+    (now) => md.EditText(edit, revision: now.revision, pasted: pasted),
   );
 
   @override

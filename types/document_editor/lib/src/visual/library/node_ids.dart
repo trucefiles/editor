@@ -28,10 +28,11 @@ final class NodeIds {
     _assign(bottom, newId);
   }
 
-  /// Forgets the ids of keys not among [keys].
-  void keepOnly(Set<Object?> keys) {
-    _ids.removeWhere((key, _) => !keys.contains(key));
-    _keys.removeWhere((_, key) => !keys.contains(key));
+  /// Forgets the ids of [keys], which show no more.
+  void forget(Iterable<Object?> keys) {
+    for (final key in keys) {
+      _keys.remove(_ids.remove(key));
+    }
   }
 
   void _assign(Object? key, String id) {

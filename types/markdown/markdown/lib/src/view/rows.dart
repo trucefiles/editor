@@ -14,6 +14,22 @@ final class DoneSections {
   /// Lists whose Done section is collapsed: its items do not show.
   final Set<NodeId> collapsed;
 
+  /// The items of [list], a list at the top level, in the order they
+  /// show: its open items, then its checked ones in its Done section
+  /// (none while it is collapsed); each by its index in [list].
+  List<({int index, bool done})> order(ListNode list) {
+    final items = list.items;
+    bool isChecked(int index) => items[index].checked ?? false;
+    final indexes = Iterable<int>.generate(items.length);
+    return [
+      for (final index in indexes)
+        if (!isChecked(index)) (index: index, done: false),
+      if (!collapsed.contains(list.id))
+        for (final index in indexes)
+          if (isChecked(index)) (index: index, done: true),
+    ];
+  }
+
   /// These sections with [list]'s [collapsed] or open.
   DoneSections withCollapsed(NodeId list, {required bool collapsed}) =>
       DoneSections(
@@ -151,13 +167,11 @@ final class _Rows {
     if (done == null || !context.top) {
       return list.items.expand((item) => of(item, context));
     }
-    bool isChecked(ItemNode item) => item.checked ?? false;
-    return [
-      for (final item in list.items)
-        if (!isChecked(item)) ...of(item, (top: true, inDone: false)),
-      if (!done.collapsed.contains(list.id))
-        for (final item in list.items)
-          if (isChecked(item)) ...of(item, (top: true, inDone: true)),
-    ];
+    final items = list.items;
+    return done
+        .order(list)
+        .expand(
+          (shown) => of(items[shown.index], (top: true, inDone: shown.done)),
+        );
   }
 }

@@ -1,5 +1,4 @@
-import 'package:truce_core/truce_core.dart'
-    show ShownStep, TextStep, Typing, textChange;
+import 'package:truce_core/truce_core.dart' show ShownStep, TextStep, Typing;
 
 import '../../doc/origin.dart';
 import '../../edit/commands/acted_on.dart';
@@ -17,15 +16,12 @@ import 'typing.dart';
   required Origin from,
   required Origin to,
   required ActedAt? acted,
-}) => switch ((before.content, after.content)) {
-  (MarkdownContent(text: final was), MarkdownContent(:final text)) =>
-    switch (textChange(was, text)) {
-      final change => (
-        step: TextChangeStep(TextStep(change)),
-        typing: textTypingOf(input, change),
-      ),
-    },
-  (final FormattedContent was, final FormattedContent now) => (
+}) => switch ((input, before.content, after.content)) {
+  (final EditText input, MarkdownContent(), MarkdownContent()) => (
+    step: TextChangeStep(TextStep(input.edit.change)),
+    typing: textTypingOf(input),
+  ),
+  (_, final FormattedContent was, final FormattedContent now) => (
     step: TreeStep(
       ShownStep(
         TreeSide(was, from, at: acted?.before),
@@ -34,5 +30,5 @@ import 'typing.dart';
     ),
     typing: typingOf(input, before, after),
   ),
-  _ => throw StateError('an edit changed the mode'),
+  _ => throw StateError('an edit changed the mode, or no text edit made it'),
 };

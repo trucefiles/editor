@@ -69,6 +69,7 @@ void main() {
                 send(input);
             }
             _expectSound(owner.state, fileText);
+            _expectLooksAsDerivedAnew(owner.state, random);
           } on Object catch (error) {
             fail(
               'seed $seed, document $index: $error\n'
@@ -102,6 +103,56 @@ void _expectSound(EditorState state, String fileText) {
       }
   }
 }
+
+/// What Visual edit shows of [state], its looks reused from earlier
+/// states where they can be, is what it shows with every container built
+/// anew, so that no look is reused; with random Add item buttons, waiting
+/// box taps and a random folded item.
+void _expectLooksAsDerivedAnew(EditorState state, Random random) {
+  if (state.content case FormattedContent(
+    :final view,
+    :final selection,
+    :final raw,
+  )) {
+    final items = nodesIn(view.doc.root).whereType<ItemNode>().toList();
+    final addItems = [null, ...AddItemPlace.values][random.nextInt(3)];
+    final waiting = {
+      for (final item in items)
+        if (item.checked != null && random.nextInt(4) == 0) item.id,
+    };
+    final folded = items.isEmpty || random.nextBool()
+        ? null
+        : items[random.nextInt(items.length)].id;
+    List<RowLook> looksOf(ViewRows view) => RowLooks(
+      view,
+      selected: switch (selection) {
+        BlockSelection(:final block) => block,
+        _ => null,
+      },
+      raw: switch (raw) {
+        RawRegion(:final block, :final text) => (block: block, text: text),
+        null => null,
+      },
+      waiting: waiting,
+      addItems: addItems,
+      folded: folded,
+    ).looks;
+    final anew = DocTree(_rebuilt(view.doc.root) as DocRoot, nextId: 0);
+    expect(
+      looksOf(view),
+      looksOf(ViewRows(anew, done: view.done)),
+      reason: 'reused looks are the looks derived anew',
+    );
+  }
+}
+
+/// [node] with every container in it built anew, leaves as they are.
+DocBlock _rebuilt(DocBlock node) => switch (node) {
+  DocContainer(:final children) => node.withChildren(
+    children.map(_rebuilt).toList(),
+  ),
+  DocLeaf() => node,
+};
 
 /// A random message on [state], [timers] the save timers started so far;
 /// `null` for a change from the file owner.
@@ -169,7 +220,10 @@ EditorMessage? _randomInput(
     7 => null,
     8 => SetMode(pick(EditMode.values)),
     9 when markdown != null => EditText(
-      '$markdown${pick(['\n- [ ] x', '\n', '\n> q', ' text'])}',
+      editTo(
+        markdown,
+        '$markdown${pick(['\n- [ ] x', '\n', '\n> q', ' text'])}',
+      ),
       revision: revision,
     ),
     10 => SetCheckedItems(pick(CheckedItems.values)),

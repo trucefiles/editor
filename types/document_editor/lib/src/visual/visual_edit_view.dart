@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_markdown/truce_markdown.dart' show AddItemPlace;
 
 import '../document_metrics.dart';
 import '../editor_gate.dart';
@@ -17,7 +18,6 @@ import 'library/divider_tap_handler.dart';
 import 'library/ime_batches.dart';
 import 'library/visual_adapter.dart';
 import 'library/visual_keys.dart';
-import 'row_looks.dart';
 import 'ui/block_builder.dart';
 import 'ui/caret_follower.dart';
 import 'ui/format_toolbar.dart';

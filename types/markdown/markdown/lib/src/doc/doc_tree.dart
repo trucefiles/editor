@@ -70,6 +70,25 @@ final class DocTree {
   /// The container node [id] is in; `null` for the root or no node.
   DocContainer? parentOf(NodeId id) => _places[id]?.parent;
 
+  /// Whether [node] is this tree's node at its id, the same object: an
+  /// edit between this tree and another left it, and all in it, as is.
+  bool holds(DocBlock node) => identical(_places[node.id]?.node, node);
+
+  /// The nodes of this tree that [other] doesn't hold (see [holds]), top
+  /// down; nothing inside a node [other] holds is visited. Of the tree an
+  /// edit made: the nodes it rebuilt; of the tree before: the nodes it
+  /// took away or rebuilt.
+  Iterable<DocBlock> nodesNotIn(DocTree other) => _notHeld(root, other);
+
+  static Iterable<DocBlock> _notHeld(DocBlock node, DocTree other) =>
+      other.holds(node)
+      ? const []
+      : [
+          node,
+          if (node case DocContainer(:final children))
+            ...children.expand((child) => _notHeld(child, other)),
+        ];
+
   /// The containers node [id] is in, the root first.
   List<DocContainer> pathOf(NodeId id) {
     final path = <DocContainer>[];

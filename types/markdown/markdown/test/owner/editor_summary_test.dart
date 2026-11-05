@@ -51,7 +51,7 @@ void main() {
 
   test('in Markdown edit, is of the text sent', () {
     final run = EditorRun('one', mode: EditMode.markdown)
-      ..send(const EditText('# Two\none', revision: 0));
+      ..editText('# Two\none');
     expect(summaryOf(run).title, isNull);
 
     run.pause();

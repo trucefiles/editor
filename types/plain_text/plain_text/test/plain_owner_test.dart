@@ -24,11 +24,17 @@ final class _Run {
       if (notice case ToFile(input: final Edited edited)) edited,
   ];
 
-  void edit(String text) =>
-      machine.send(TextEdited(text, revision: state.revision));
+  void edit(String text) => machine.send(
+    TextEdited(editTo(state.text, text), revision: state.revision),
+  );
 
-  void paste(String text) =>
-      machine.send(TextEdited(text, revision: state.revision, pasted: true));
+  void paste(String text) => machine.send(
+    TextEdited(
+      editTo(state.text, text),
+      revision: state.revision,
+      pasted: true,
+    ),
+  );
 
   void request(EditorRequest request) => machine.send(PlainRequest(request));
 
@@ -60,7 +66,7 @@ void main() {
       final seen = run.state.revision;
       run
         ..edit('ab')
-        ..machine.send(TextEdited('ax', revision: seen));
+        ..machine.send(TextEdited(editTo('a', 'ax'), revision: seen));
       expect(run.state.text, 'ab');
     });
 

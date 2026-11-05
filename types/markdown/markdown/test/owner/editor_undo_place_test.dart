@@ -101,7 +101,7 @@ void main() {
       final run = EditorRun('one\n\ntwo\n\nthree')
         ..send(const SetMode(EditMode.markdown));
       run
-        ..send(EditText('one\n\ntwo!\n\nthree', revision: run.revision))
+        ..editText('one\n\ntwo!\n\nthree')
         ..send(const SetMode(EditMode.visual))
         ..undo();
       expect(run.rows, ['one', 'two', 'three']);
@@ -116,7 +116,7 @@ void main() {
       final run = EditorRun('one\n\ntwo\n\nthree')
         ..send(const SetMode(EditMode.markdown));
       run
-        ..send(EditText('one\n\nthree', revision: run.revision))
+        ..editText('one\n\nthree')
         ..send(const SetMode(EditMode.visual))
         ..undo();
       expect(run.rows, ['one', 'two', 'three']);
@@ -183,7 +183,7 @@ void main() {
     test('at the change, for a step made there', () {
       final run = EditorRun('one two', mode: EditMode.markdown);
       run
-        ..send(EditText('one, two', revision: run.revision))
+        ..editText('one, two')
         ..undo();
       expect(run.markdownCaret, 3);
       run.redo();

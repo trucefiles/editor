@@ -24,13 +24,19 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show
         AskLink,
+        BlockLook,
+        BoxMarker,
         CheckedItems,
         EditMode,
         EditorEvent,
+        Frame,
+        ItemFrame,
         MarkdownStart,
         Notice,
+        RawTextLook,
         Request,
         ShowRow,
+        TextLook,
         editorOwner;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 

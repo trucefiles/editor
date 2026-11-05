@@ -1,7 +1,14 @@
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_markdown/truce_markdown.dart' show textOf;
+import 'package:truce_markdown/truce_markdown.dart'
+    show
+        AddItemLook,
+        BlockLook,
+        DoneHeadingLook,
+        RawTextLook,
+        RowLook,
+        TextLook,
+        textOf;
 
-import '../row_looks.dart';
 import 'attributed_text.dart';
 
 /// The metadata key of the look a node shows.
@@ -18,9 +25,9 @@ DocumentNode libraryNodeOf(String id, RowLook look) => switch (look) {
     text: attributedTextOf(textOf(leaf)),
     metadata: {_lookKey: look},
   ),
-  RawTextLook(:final raw) => ParagraphNode(
+  RawTextLook(:final text) => ParagraphNode(
     id: id,
-    text: AttributedText(raw.text),
+    text: AttributedText(text),
     metadata: {_lookKey: look},
   ),
   BlockLook() || DoneHeadingLook() || AddItemLook() => LookBlockNode(id, look),

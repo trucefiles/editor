@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_markdown/truce_markdown.dart' show RawTextLook, TextLook;
 
 import '../../document_metrics.dart';
 import '../../document_text_styles.dart';
@@ -7,7 +8,6 @@ import '../../library/editor_look.dart';
 import '../../ui/document_image.dart';
 import '../library/attributed_text.dart';
 import '../library/library_nodes.dart';
-import '../row_looks.dart';
 
 /// How Visual edit looks in [theme]: text as it reads, headings and code
 /// as such, an open raw block as its dimmed raw text; formats, links,

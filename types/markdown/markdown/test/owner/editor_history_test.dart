@@ -14,8 +14,6 @@ extension on EditorRun {
     return edits.isEmpty ? '' : sent;
   }
 
-  void editText(String text) => owner.send(EditText(text, revision: revision));
-
   void paste(String text) => owner.send(
     Typed(
       text,
@@ -35,8 +33,7 @@ extension on EditorRun {
     ),
   );
 
-  void pasteText(String text) =>
-      owner.send(EditText(text, revision: revision, pasted: true));
+  void pasteText(String text) => editText(text, pasted: true);
 
   void moveTextCaret() => owner.send(TextCaretMoved(revision: revision));
 

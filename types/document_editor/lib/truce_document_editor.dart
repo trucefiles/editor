@@ -4,7 +4,8 @@
 /// types as the file page opens them.
 library;
 
-export 'src/add_item_place/add_item_place.dart';
+export 'package:truce_markdown/truce_markdown.dart' show AddItemPlace;
+
 export 'src/document_editor.dart';
 export 'src/document_images.dart';
 export 'src/document_metrics.dart';
@@ -37,7 +38,6 @@ export 'src/markdown/markdown_services.dart';
 export 'src/markdown/ui/checked_items_dialog.dart';
 export 'src/markdown/ui/edit_mode_button.dart';
 export 'src/markdown/ui/markdown_look.dart';
-export 'src/marker.dart';
 export 'src/plain/plain_editable_type.dart';
 export 'src/plain/plain_editor_part.dart';
 export 'src/plain/plain_editor_view.dart';
@@ -56,7 +56,6 @@ export 'src/visual/library/node_ids.dart';
 export 'src/visual/library/positions.dart';
 export 'src/visual/library/visual_adapter.dart';
 export 'src/visual/library/visual_keys.dart';
-export 'src/visual/row_looks.dart';
 export 'src/visual/ui/add_item_button.dart';
 export 'src/visual/ui/block_builder.dart';
 export 'src/visual/ui/done_heading.dart';

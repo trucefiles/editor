@@ -178,9 +178,8 @@ final class _Step
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
-      case (EditText(:final text), MarkdownContent(text: final old))
-          when text != old:
-        _show(MarkdownContent(text));
+      case (EditText(:final edit), MarkdownContent()) when edit.changes:
+        _show(MarkdownContent(edit.text));
         textChanged();
       case (SetMode(:final mode), _):
         _setMode(mode);
@@ -368,7 +367,9 @@ final class _Step
   /// emptied code block goes like an emptied paragraph.
   bool _removes(Command command, DocTree before, DocTree after) {
     if (command is DeleteItem || command is ClearChecked) return true;
-    final removed = leavesIn(before.root)
+    final removed = before
+        .nodesNotIn(after)
+        .whereType<DocLeaf>()
         .where((leaf) => after.nodeOf(leaf.id) == null)
         .toList();
     return removed.length > 1 ||
