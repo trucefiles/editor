@@ -95,6 +95,7 @@ export 'src/files/editor/editor_contract.dart';
 export 'src/files/editor/editor_steps.dart';
 export 'src/files/editor/history/edit_history.dart';
 export 'src/files/editor/history/text_change.dart';
+export 'src/files/editor/history/text_edit.dart';
 export 'src/files/editor/history/text_step.dart';
 export 'src/files/editor/history/typing.dart';
 export 'src/files/editor/history/undoable_edit.dart';

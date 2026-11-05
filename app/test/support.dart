@@ -20,6 +20,7 @@ export 'package:truce_test_support/truce_test_support.dart'
         ResultUnwrap,
         WriteCreatingFolders,
         bytesOf,
+        editTo,
         folderId,
         path,
         tempFolder;

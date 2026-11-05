@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-import 'add_item_place/add_item_place.dart';
 import 'editor_gate.dart';
 import 'markdown/markdown_edit_view.dart';
 import 'read/read_view.dart';

@@ -12,23 +12,52 @@ import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
 /// grows with the whole list fails.
 const _keystrokeBudget = Duration(milliseconds: 32);
 
+/// A 2000-item checklist, every other item a subitem if [nested].
+String _checklist({bool nested = false}) => [
+  for (var item = 0; item < 2000; item++)
+    '${nested && item.isOdd ? '  ' : ''}'
+        '- [${item % 3 == 0 ? 'x' : ' '}] item number $item with words',
+].join('\n');
+
+VisualAdapter _adapterOf(String text) => VisualAdapter(
+  EditorGate(
+    md.editorOwner(
+      md.MarkdownStart.read(text),
+      version: const Version(1),
+      startTimer: ManualTimers().start,
+    ),
+  ),
+);
+
 void main() {
+  test('a caret move in a 2000-item list shows within budget', () {
+    final adapter = _adapterOf(_checklist());
+    final node = adapter.document.getNodeAt(1000)!.id;
+    final times = [
+      for (var round = 0; round < 21; round++)
+        _timed(
+          () => adapter.editor.execute([
+            ChangeSelectionRequest(
+              DocumentSelection.collapsed(
+                position: DocumentPosition(
+                  nodeId: node,
+                  nodePosition: TextNodePosition(offset: round % 5),
+                ),
+              ),
+              SelectionChangeType.placeCaret,
+              SelectionReason.userInteraction,
+            ),
+          ]),
+        ),
+    ];
+
+    expect(_median(times), lessThan(_keystrokeBudget));
+  });
+
   for (final nested in [false, true]) {
     test('a typed character in a 2000-item ${nested ? 'nested ' : ''}list '
         'shows within budget', () {
-      final text = [
-        for (var item = 0; item < 2000; item++)
-          '${nested && item.isOdd ? '  ' : ''}'
-              '- [${item % 3 == 0 ? 'x' : ' '}] item number $item with words',
-      ].join('\n');
-      final gate = EditorGate(
-        md.editorOwner(
-          md.MarkdownStart.read(text),
-          version: const Version(1),
-          startTimer: ManualTimers().start,
-        ),
-      );
-      final adapter = VisualAdapter(gate);
+      final adapter = _adapterOf(_checklist(nested: nested));
       final node = adapter.document.getNodeAt(1000)!.id;
       final times = [
         for (var round = 0; round < 21; round++)

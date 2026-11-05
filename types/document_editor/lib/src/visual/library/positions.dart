@@ -1,8 +1,9 @@
 import 'package:collection/collection.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_markdown/truce_markdown.dart'
+    show BlockLook, RawTextLook, RowLook, TextLook;
 
-import '../row_looks.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
 

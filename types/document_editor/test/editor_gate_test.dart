@@ -48,7 +48,10 @@ final class _Gate {
       (shown.view.doc.root.children.first as ListNode).items;
 
   /// Whether each item's box shows checked.
-  List<bool> get boxes => [for (final item in items) gate.showsChecked(item)];
+  List<bool> get boxes => [
+    for (final item in items)
+      (item.checked ?? false) != gate.waiting.contains(item.id),
+  ];
 
   /// Whether each item is checked in the document.
   List<bool?> get checked => [for (final item in items) item.checked];

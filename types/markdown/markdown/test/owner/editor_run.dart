@@ -31,6 +31,15 @@ final class EditorRun {
   /// What the machine led to, the page's notices unwrapped.
   List<Object?> get outputs => _unwrapped(owner.outputs);
 
+  /// Markdown edit's text typed into [text], or [pasted].
+  void editText(String text, {bool pasted = false}) => send(
+    EditText(
+      editTo((state.content as MarkdownContent).text, text),
+      revision: revision,
+      pasted: pasted,
+    ),
+  );
+
   void send(EditorMessage message) {
     final outputs = _unwrapped(owner.send(message));
     onOutputs?.call(outputs);

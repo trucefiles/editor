@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
 import 'package:truce_markdown/src/doc/load.dart';
@@ -173,6 +175,85 @@ void main() {
         },
         'p c',
       ]);
+    });
+
+    test('holds a node while it is the same object at its id', () {
+      final doc = loadMarkdown('- a\n- b\n\nc').doc;
+      final list = doc.root.children.first as ListNode;
+      final b = list.items[1].children.single as ParagraphNode;
+      final changed = doc.withNode(b.withText(VisibleText([TextPiece('B')])));
+
+      expect(changed.holds(list.items.first), isTrue);
+      expect(changed.holds(list), isFalse);
+      expect(changed.holds(b), isFalse);
+      expect(changed.nodesNotIn(doc).map((node) => node.id), [
+        doc.root.id,
+        list.id,
+        list.items[1].id,
+        b.id,
+      ]);
+    });
+
+    test('normalized after an edit looks only at the nodes it rebuilt', () {
+      final doc = loadMarkdown('- a\n\n> b\n\nc').doc;
+      final list = doc.root.children.first as ListNode;
+      final quote = doc.root.children[1] as QuoteNode;
+      // An untidy list the tree before holds is taken as tidy.
+      final before = doc.withNode(list.withChildren(const []));
+      final edited = before.withNode(quote.withChildren(const []));
+
+      expect(
+        _outline(normalized(edited, edited.freshIds, before: before).root),
+        [
+          {'bullet 1': <Object>[]},
+          'p c',
+        ],
+      );
+    });
+
+    test('normalized after random edits is as normalized whole', () {
+      final random = Random(3);
+      for (final text in documentCorpus) {
+        final before = loadMarkdown(text).doc;
+        for (var round = 0; round < 20; round++) {
+          final nodes = nodesIn(before.root).skip(1).toList();
+          if (nodes.isEmpty) break;
+          final node = nodes[random.nextInt(nodes.length)];
+          final edited = before.replaced(node.id, switch (node) {
+            DocContainer(:final children) when random.nextBool() => [
+              node.withChildren(children.skip(1).toList()),
+            ],
+            _ => const [],
+          });
+          final whole = normalized(edited, edited.freshIds);
+          final tidied = normalized(edited, edited.freshIds, before: before);
+
+          expect(_outline(tidied.root), _outline(whole.root), reason: text);
+          expect(
+            nodesIn(tidied.root).map((node) => node.id),
+            nodesIn(whole.root).map((node) => node.id),
+          );
+        }
+      }
+    });
+
+    test('the leaves an edit removed are found among the nodes it took '
+        'away or rebuilt', () {
+      final random = Random(5);
+      for (final text in documentCorpus) {
+        final before = loadMarkdown(text).doc;
+        final nodes = nodesIn(before.root).skip(1).toList();
+        if (nodes.isEmpty) continue;
+        final node = nodes[random.nextInt(nodes.length)];
+        final after = before.replaced(node.id, const []);
+        bool gone(DocLeaf leaf) => after.nodeOf(leaf.id) == null;
+
+        expect(
+          before.nodesNotIn(after).whereType<DocLeaf>().where(gone),
+          leavesIn(before.root).where(gone),
+          reason: text,
+        );
+      }
     });
   });
 }

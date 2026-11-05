@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:truce_markdown/truce_markdown.dart' show Frame, ItemFrame;
 
 import '../../document_metrics.dart';
-import '../row_looks.dart';
 import '../visual_actions.dart';
 import 'frames.dart';
 import 'item_row.dart';

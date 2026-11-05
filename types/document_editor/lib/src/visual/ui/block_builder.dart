@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_markdown/truce_markdown.dart'
+    show
+        AddItemLook,
+        BlockLook,
+        DoneHeadingLook,
+        RawTextLook,
+        RowLook,
+        TextLook;
 
 import '../../document_metrics.dart';
 import '../../document_text_styles.dart';
 import '../library/library_nodes.dart';
-import '../row_looks.dart';
 import '../visual_actions.dart';
 import 'add_item_button.dart';
 import 'done_heading.dart';

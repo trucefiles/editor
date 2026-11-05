@@ -250,9 +250,17 @@ void main() {
   });
 
   group('Markdown edit', () {
+    test('an edit made on a text that does not show is a bug', () {
+      final run = EditorRun('a', mode: EditMode.markdown);
+      expect(
+        () => run.send(EditText(editTo('b', 'bx'), revision: run.revision)),
+        throwsStateError,
+      );
+    });
+
     test('edits the printed text, sent by the same timing', () {
       final run = EditorRun('a\n\nb', mode: EditMode.markdown);
-      run.owner.send(EditText('a\n\n- b', revision: run.revision));
+      run.editText('a\n\n- b');
       run.pause();
       expect(run.sent, 'a\n\n- b');
     });
@@ -280,8 +288,8 @@ void main() {
           'a\n\nbc',
         ),
       );
-      run.owner
-        ..send(EditText('a\n\nbc\n\nd', revision: run.revision))
+      run
+        ..editText('a\n\nbc\n\nd')
         ..send(const SetMode(EditMode.visual));
       expect(run.rows, ['a', 'bc', 'd']);
       expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 2)));
@@ -422,9 +430,9 @@ void main() {
         ),
       );
       expect(run.rows, ['x', 'a']);
-      run.owner
+      run
         ..send(const SetMode(EditMode.markdown))
-        ..send(EditText('y\n\n- [ ] a\n- [x] b', revision: run.revision))
+        ..editText('y\n\n- [ ] a\n- [x] b')
         ..send(const SetMode(EditMode.visual));
       expect(run.rows, ['y', 'a']);
     });

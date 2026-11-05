@@ -24,11 +24,17 @@ final class _Run {
       if (notice case ToFile(input: final Edited edited)) edited,
   ];
 
-  void edit(String text) =>
-      machine.send(TextEdited(text, revision: state.revision));
+  void edit(String text) => machine.send(
+    TextEdited(editTo(state.text, text), revision: state.revision),
+  );
 
-  void paste(String text) =>
-      machine.send(TextEdited(text, revision: state.revision, pasted: true));
+  void paste(String text) => machine.send(
+    TextEdited(
+      editTo(state.text, text),
+      revision: state.revision,
+      pasted: true,
+    ),
+  );
 
   void request(EditorRequest request) => machine.send(PlainRequest(request));
 
@@ -55,12 +61,22 @@ void main() {
       expect(run.state.status.unsent, isFalse);
     });
 
+    test('an edit made on a text that does not show is a bug', () {
+      final run = _Run('a');
+      expect(
+        () => run.machine.send(
+          TextEdited(editTo('b', 'bx'), revision: run.state.revision),
+        ),
+        throwsStateError,
+      );
+    });
+
     test('a text edited on what no longer shows is dropped', () {
       final run = _Run('a');
       final seen = run.state.revision;
       run
         ..edit('ab')
-        ..machine.send(TextEdited('ax', revision: seen));
+        ..machine.send(TextEdited(editTo('a', 'ax'), revision: seen));
       expect(run.state.text, 'ab');
     });
 

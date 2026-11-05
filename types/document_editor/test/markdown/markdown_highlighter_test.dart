@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 
@@ -14,7 +15,7 @@ final class _Text extends ChangeNotifier implements EditedText {
   ShownText get shown => (text: _text, caret: null);
 
   @override
-  void edit(String text, {required bool pasted}) => _text = text;
+  void edit(TextEdit edit, {required bool pasted}) => _text = edit.text;
 
   @override
   void caretMoved() {}

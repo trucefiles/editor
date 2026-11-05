@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show Frame, ItemFrame, QuoteFrame;
 
 import '../../document_metrics.dart';
 import '../../document_text_styles.dart';
 import '../../ui/list_marker.dart';
-import '../row_looks.dart';
 
 /// [child] inside [frames], outermost first, spaced by [metrics]: a bar
 /// beside it per quote, indented under the items it is in, as far as the

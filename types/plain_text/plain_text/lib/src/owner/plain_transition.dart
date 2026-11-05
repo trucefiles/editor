@@ -51,11 +51,16 @@ final class _Step
       case TextEdited(:final revision) when revision != state.revision:
         // Typed on what no longer shows.
         break;
-      case TextEdited(:final text, :final pasted) when text != state.text:
-        final change = textChange(state.text, text);
-        _show(text);
+      case TextEdited(:final edit, :final pasted) when edit.changes:
+        if (!edit.isOf(state.text)) {
+          throw StateError('a text edit made on a text not shown');
+        }
+        _show(edit.text);
         textChanged();
-        record(TextStep(change), pasted ? null : typingFrom(null, change));
+        record(
+          TextStep(edit.change),
+          pasted ? null : typingFrom(null, edit.change),
+        );
       case TextEdited():
         break;
       case CaretMoved():

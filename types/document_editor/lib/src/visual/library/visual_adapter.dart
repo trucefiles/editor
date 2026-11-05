@@ -1,11 +1,15 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_core/truce_core.dart' show unchangedEnds;
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_markdown/truce_markdown.dart'
+    show AddItemPlace, BlockLook, RawTextLook, RowLook, TextLook;
 
 import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
 import '../../library/own_clipboard.dart';
-import '../row_looks.dart';
 import 'library_nodes.dart';
 import 'node_ids.dart';
 import 'positions.dart';
@@ -15,7 +19,8 @@ import 'positions.dart';
 /// input carrying its own range (never a diff of the library's text);
 /// a transaction that only moved the selection becomes a caret move.
 /// After every change of the owner's state, the library's document is
-/// patched to show it: only rows whose look changed become new nodes.
+/// patched to show it: only the range of rows whose looks changed is
+/// patched, and there only rows whose look changed become new nodes.
 final class VisualAdapter {
   VisualAdapter(this._gate, {this._addItems}) {
     editor = Editor(
@@ -46,6 +51,9 @@ final class VisualAdapter {
 
   /// The split the library expects of the next patch, after an Enter.
   ({String id, String newId})? _split;
+
+  /// The looks the library's document shows, one per node, in order.
+  List<RowLook> _looks = const [];
 
   Document get document => _document;
 
@@ -110,11 +118,14 @@ final class VisualAdapter {
   /// `null` for a selection or composer request (the library's own
   /// handlers do those), a refusal for any other.
   EditCommand? _handle(Editor editor, EditRequest request) => switch (request) {
-    _PatchRequest(:final nodes, :final selection) => PatchCommand(
-      nodes,
-      selection: selection,
-      byUser: _gate.fromUser,
-    ),
+    _PatchRequest(:final nodes, :final start, :final count, :final selection) =>
+      PatchCommand(
+        nodes,
+        start: start,
+        count: count,
+        selection: selection,
+        byUser: _gate.fromUser,
+      ),
     _ when _isLibrarys(request) => null,
     _ when _inRaw => _RunCommand(this, () => _rawEdit(request)),
     _ => switch (_inputFor(request)) {
@@ -392,28 +403,63 @@ final class VisualAdapter {
 
   // Patching.
 
-  /// Makes the library's document show the owner's state: inside our
-  /// command when one runs, else as its own transaction.
+  /// Makes the library's document show the owner's state, inside our
+  /// command when one runs, else as its own transaction: the rows between
+  /// those whose looks stayed at the start and end are patched.
   void _patch() {
     final shown = _shown;
     if (shown == null) return;
-    final looks = RowLooks(
+    final looks = md.looksOf(
       shown,
-      showsChecked: _gate.showsChecked,
+      waiting: _gate.waiting,
       addItems: _addItems,
       folded: _folded,
-    ).looks;
-    _applySplit(looks, shown);
-    final nodes = [for (final look in looks) _target(_ids.of(look.key), look)];
-    _ids.keepOnly({for (final look in looks) look.key});
+    );
+    final same = unchangedEnds(_looks, looks);
+    final split = _applySplit(looks, shown);
+    final start = [
+      same.start,
+      if (split != null) ...[split.top, split.old],
+    ].reduce(min);
+    final end = [
+      same.end,
+      if (split != null) ...[
+        looks.length - 1 - split.bottom,
+        _looks.length - 1 - split.old,
+      ],
+    ].reduce(min);
+    final count = _looks.length - start - end;
+    final range = looks.sublist(start, looks.length - end);
+    _ids.forget(
+      _looks
+          .sublist(start, start + count)
+          .map((look) => look.key)
+          .toSet()
+          .difference({for (final look in range) look.key}),
+    );
+    final nodes = [for (final look in range) _target(_ids.of(look.key), look)];
+    _looks = looks;
     final selection = _positions.toLibrary(shown.selection, raw: shown.raw);
     switch (_executor) {
       case final executor?:
         executor.executeCommand(
-          PatchCommand(nodes, selection: selection, byUser: _gate.fromUser),
+          PatchCommand(
+            nodes,
+            start: start,
+            count: count,
+            selection: selection,
+            byUser: _gate.fromUser,
+          ),
         );
       case null:
-        editor.execute([_PatchRequest(nodes, selection: selection)]);
+        editor.execute([
+          _PatchRequest(
+            nodes,
+            start: start,
+            count: count,
+            selection: selection,
+          ),
+        ]);
     }
   }
 
@@ -427,26 +473,34 @@ final class VisualAdapter {
   /// After an Enter, the row above the caret shows in the node the caret
   /// was in, and the caret's row in the node the library made for it.
   /// Also where the owner split nothing (an empty item taken out of its
-  /// list): the rows then only change nodes,
-  /// which shows the same, and the input method finds the caret in the
-  /// new node, as it expects after every Enter.
-  void _applySplit(List<RowLook> looks, md.FormattedContent shown) {
+  /// list): the rows then only change nodes, which shows the same, and
+  /// the input method finds the caret in the new node, as it expects
+  /// after every Enter. The rows the patch must take in, as their ids
+  /// change: the indexes of the two rows in [looks], and the index the
+  /// node the caret was in has now, before the patch; `null` if there was
+  /// no split.
+  ({int top, int bottom, int old})? _applySplit(
+    List<RowLook> looks,
+    md.FormattedContent shown,
+  ) {
     final split = _split;
     _split = null;
-    if (split == null) return;
+    if (split == null) return null;
     final caret = switch (shown.selection) {
       md.TextSelection(:final extent) => extent.leaf,
       md.BlockSelection(:final block) || md.BlockCaret(:final block) => block,
       null => null,
     };
     final index = looks.indexWhere((look) => look.key == caret);
-    if (index < 1) return;
+    if (index < 1) return null;
+    final old = _document.getNodeIndexById(split.id);
     _ids.split(
       split.id,
       top: looks[index - 1].key,
       bottom: caret,
       newId: split.newId,
     );
+    return (top: index - 1, bottom: index, old: old);
   }
 
   void dispose() {
@@ -460,9 +514,16 @@ final _libraryHandlers = defaultRequestHandlers.cast<EditRequestHandler>();
 
 /// Patches the library's document; see [PatchCommand].
 final class _PatchRequest implements EditRequest {
-  const _PatchRequest(this.nodes, {required this.selection});
+  const _PatchRequest(
+    this.nodes, {
+    required this.start,
+    required this.count,
+    required this.selection,
+  });
 
   final List<TargetNode> nodes;
+  final int start;
+  final int count;
   final DocumentSelection? selection;
 }
 

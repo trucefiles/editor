@@ -28,6 +28,22 @@ int _wholeCharacterStart(String text, int start) =>
 int _wholeCharacterEnd(String text, int end) =>
     end > 0 && _isTrail(text.codeUnitAt(text.length - end)) ? end - 1 : end;
 
+/// [text] with [change] made in it: its removed text, at its start,
+/// replaced by its added text. Any other text there is a bug: the change
+/// is not of this text.
+String applyChange(String text, TextChange change) {
+  final (:start, :removed, :added) = change;
+  final end = start + removed.length;
+  if (end > text.length || !text.startsWith(removed, start)) {
+    throw StateError('a change applied to a text it is not of');
+  }
+  return text.replaceRange(start, end, added);
+}
+
+/// [change] taken back: what it added goes, what it removed comes back.
+TextChange reversedChange(TextChange change) =>
+    (start: change.start, removed: change.added, added: change.removed);
+
 bool _isLead(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
 bool _isTrail(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
 

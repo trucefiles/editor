@@ -12,26 +12,17 @@ final class TextStep implements UndoableEdit<TextStep> {
   /// [text], the text the edit left, with the edit taken back, and the
   /// caret right after the text put back.
   ({String text, int caret}) undoneIn(String text) =>
-      _swapped(text, change.added, change.removed);
+      _shown(text, reversedChange(change));
 
   /// [text], the text the edit was made on, with the edit made again, and
   /// the caret right after the text it added.
-  ({String text, int caret}) redoneIn(String text) =>
-      _swapped(text, change.removed, change.added);
+  ({String text, int caret}) redoneIn(String text) => _shown(text, change);
 
   @override
   TextStep joined(TextStep next) => TextStep(followedBy(change, next.change));
 
-  /// [text] with [out], at the change's start, replaced by [into]. Any
-  /// other text there is a bug: the step is not of this text.
-  ({String text, int caret}) _swapped(String text, String out, String into) {
-    final (start, end) = (change.start, change.start + out.length);
-    if (end > text.length || text.substring(start, end) != out) {
-      throw StateError('an undo step applied to a text it is not of');
-    }
-    return (
-      text: text.replaceRange(start, end, into),
-      caret: start + into.length,
-    );
-  }
+  static ({String text, int caret}) _shown(String text, TextChange change) => (
+    text: applyChange(text, change),
+    caret: change.start + change.added.length,
+  );
 }

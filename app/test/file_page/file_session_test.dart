@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_markdown/truce_markdown.dart' show EditMode, EditText;
+import 'package:truce_markdown/truce_markdown.dart'
+    show EditMode, EditText, MarkdownContent;
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -155,7 +156,12 @@ void main() {
     );
     addTearDown(session.dispose);
 
-    session.gate.send((now) => EditText('# Milk', revision: now.revision));
+    session.gate.send(
+      (now) => EditText(
+        editTo((now.content as MarkdownContent).text, '# Milk'),
+        revision: now.revision,
+      ),
+    );
     session.saveNow();
 
     await eventually(() => session.title == 'Milk');

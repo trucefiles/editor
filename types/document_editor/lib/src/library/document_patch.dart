@@ -8,19 +8,28 @@ typedef TargetNode = ({
   DocumentNode Function() build,
 });
 
-/// Makes the library's document hold [nodes], in order, and puts the
-/// selection at [selection]: removes the nodes not among them, moves the
-/// ones out of place, replaces those that don't show what they should,
-/// inserts the new ones; the others stay as they are. Edits the document
-/// directly, so the library's own requests are never needed. A composing
-/// region on a node that goes or changes its text is cleared. [byUser]
-/// says the change came from the user's own input, so the view follows
-/// the caret (the library scrolls to it); a text from elsewhere moves
-/// nothing.
+/// Makes the [count] nodes of the library's document from [start] the
+/// [nodes] instead, in order, and puts the selection at [selection]:
+/// removes the nodes there not among them, moves the ones out of place,
+/// replaces those that don't show what they should, inserts the new ones;
+/// the others stay as they are, and the nodes before and after the range
+/// are never looked at. Edits the document directly, so the library's own
+/// requests are never needed. A composing region on a node that goes or
+/// changes its text is cleared. [byUser] says the change came from the
+/// user's own input, so the view follows the caret (the library scrolls
+/// to it); a text from elsewhere moves nothing.
 final class PatchCommand extends EditCommand {
-  PatchCommand(this.nodes, {required this.selection, required this.byUser});
+  PatchCommand(
+    this.nodes, {
+    required this.start,
+    required this.count,
+    required this.selection,
+    required this.byUser,
+  });
 
   final List<TargetNode> nodes;
+  final int start;
+  final int count;
   final DocumentSelection? selection;
   final bool byUser;
 
@@ -31,11 +40,19 @@ final class PatchCommand extends EditCommand {
   void execute(EditContext context, CommandExecutor executor) {
     final document = context.document;
     final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
-    final wanted = {for (final node in nodes) node.id};
-    final removed = {
-      for (final node in document)
-        if (!wanted.contains(node.id)) node.id,
+    final range = {
+      for (final offset in Iterable<int>.generate(count))
+        document.getNodeAt(start + offset)!.id,
     };
+    assert(
+      nodes.every(
+        (node) =>
+            range.contains(node.id) || document.getNodeById(node.id) == null,
+      ),
+      'a node of the range is outside it',
+    );
+    final wanted = {for (final node in nodes) node.id};
+    final removed = range.difference(wanted);
     final replacements = {
       for (final (:id, :shows, :build) in nodes)
         if (document.getNodeById(id) case final current? when !shows(current))
@@ -60,7 +77,8 @@ final class PatchCommand extends EditCommand {
     for (final id in removed) {
       executor.executeCommand(DeleteNodeCommand(nodeId: id));
     }
-    for (final (index, (:id, shows: _, :build)) in nodes.indexed) {
+    for (final (offset, (:id, shows: _, :build)) in nodes.indexed) {
+      final index = start + offset;
       if (document.getNodeById(id) == null) {
         executor.executeCommand(
           InsertNodeAtIndexCommand(nodeIndex: index, newNode: build()),

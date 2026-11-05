@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_markdown/truce_markdown.dart' show BoxMarker;
 
 void main() {
   /// [marker] under a text scaling of [textScale].
