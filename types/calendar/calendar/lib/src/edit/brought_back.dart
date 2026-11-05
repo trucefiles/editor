@@ -32,7 +32,8 @@ Calendar unitsBroughtBack(
 /// got it, keeps what came back: an event that differs from [now]'s
 /// stamped anew, its `SEQUENCE` above both; an event [back] has not a
 /// deleted marker; a time zone block [back] has not stays [now]'s (a
-/// marker may still name its zone); any other unit as [back] has it.
+/// marker may name its zone, so none ever goes); any other unit as
+/// [back] has it.
 /// `null` if the unit is none.
 CalendarUnit? _cameBack(
   UnitKey key,
@@ -41,11 +42,10 @@ CalendarUnit? _cameBack(
   DateTime at,
 ) {
   final current = now.unitOf(key);
-  final event = switch (key) {
-    UidKey(component: 'VEVENT', :final uid) => now.eventOf(uid),
-    _ => null,
+  final (isEvent, event) = switch (key) {
+    UidKey(component: 'VEVENT', :final uid) => (true, now.eventOf(uid)),
+    _ => (false, null),
   };
-  final isEvent = key is UidKey && key.component == 'VEVENT';
   return switch (back) {
     null when event != null => CalendarUnit.edited(key, [markerOf(event, at)]),
     null when key is ZoneKey => current,

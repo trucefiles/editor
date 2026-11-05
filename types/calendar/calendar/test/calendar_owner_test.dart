@@ -143,13 +143,45 @@ void main() {
     expect((run.state.status.canUndo, run.state.status.unsent), (false, false));
   });
 
-  test('a restored backup without a zone keeps the block its markers name', () {
+  test('a restored backup without a zone keeps the zone block', () {
     final run = _run(birthday)
       ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
       ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
     final calendar = run.state.calendar!;
     expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
     expect(calendar.zones, {'Asia/Tokyo'});
+  });
+
+  test('a restore over a calendar is undone and redone, stamped', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
+      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+
+    run.send(CalendarRequest(const Undo(), at: _later));
+    var calendar = run.state.calendar!;
+    final call = calendar.eventOf('call@t')!.series;
+    expect((call.deleted, call.summary), (false, 'Call'));
+    expect(call.component.value('SEQUENCE'), '2', reason: 'above the marker');
+    expect(calendar.zones, {'Asia/Tokyo'});
+
+    run.send(CalendarRequest(const Redo(), at: _later));
+    calendar = run.state.calendar!;
+    expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
+    expect(calendar.eventOf('ann@truce')!.series.summary, 'Ann');
+    expect(calendar.zones, {'Asia/Tokyo'});
+  });
+
+  test('a restore brings back other units as the backup has them, and '
+      'drops those it has not', () {
+    String withUnits(String units) =>
+        birthday.replaceFirst('END:VCALENDAR', '${units}END:VCALENDAR');
+    const todoA = 'BEGIN:VTODO\nUID:todo@t\nSUMMARY:Buy milk\nEND:VTODO\n';
+    const todoB = 'BEGIN:VTODO\nUID:todo@t\nSUMMARY:Buy bread\nEND:VTODO\n';
+    const note = 'BEGIN:VJOURNAL\nSUMMARY:No uid\nEND:VJOURNAL\n';
+    final backup = withUnits(todoA);
+    final run = _run(withUnits('$todoB$note'))
+      ..send(CalendarRequest(ReplaceAll(backup), at: _later));
+    expect(run.state.text, backup, reason: 'not stamped, the note gone');
   });
 
   test('what an undo brings back wins over the text it undid', () {
