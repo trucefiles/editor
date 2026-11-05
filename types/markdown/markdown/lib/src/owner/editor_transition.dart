@@ -9,19 +9,15 @@ import 'package:truce_core/truce_core.dart'
         ShownStep,
         Step,
         StepRun,
-        TextChange,
         TextStep,
         TextSummary,
-        Typing,
         UndoOffered,
         lineAt,
         lineStart,
-        textChange,
-        typingFrom;
+        textChange;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
-import '../doc/origin.dart';
 import '../edit/clipboard_lines.dart';
 import '../edit/commands/acted_on.dart';
 import '../edit/commands/command.dart';
@@ -37,8 +33,8 @@ import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
 import 'editor_work.dart';
+import 'history/edit_of.dart';
 import 'history/markdown_step.dart';
-import 'history/typing.dart';
 import 'raw_closed.dart';
 import 'reload.dart';
 
@@ -108,7 +104,7 @@ final class _Step
 
   /// Where the input's commands acted: the row the first acted at before
   /// it, and the row the last shows at after it.
-  ({NodeId? before, NodeId? after})? _acted;
+  ActedAt? _acted;
 
   @override
   void handle(EditorMessage message) {
@@ -133,7 +129,14 @@ final class _Step
     if (_byControl(input)) _removeCaret();
     switch (input) {
       case ShownInput() when book.rev != rev:
-        final (step, typing) = _stepOf(input, before, origin);
+        final (:step, :typing) = editOf(
+          input,
+          before: before,
+          after: state,
+          from: origin,
+          to: work.origin,
+          acted: _acted,
+        );
         record(step, typing);
         if (offered case final what?) {
           notify(UndoOffered(book.history.latestId!, what));
@@ -149,40 +152,6 @@ final class _Step
     }
     _settleFlags();
   }
-
-  /// The edit [input] made from what showed [before], read from
-  /// [origin], as an undo step, and the typing it was.
-  (MarkdownStep, Typing?) _stepOf(
-    EditorInput input,
-    EditorState before,
-    Origin origin,
-  ) => switch ((before.content, state.content)) {
-    (MarkdownContent(text: final was), MarkdownContent(:final text)) =>
-      _textStep(input, textChange(was, text)),
-    (final FormattedContent was, final FormattedContent now) => (
-      TreeStep(
-        ShownStep(
-          TreeSide(was, origin, at: _acted?.before),
-          TreeSide(now, work.origin, at: _acted?.after),
-        ),
-      ),
-      typingOf(input, before, state),
-    ),
-    _ => throw StateError('an edit changed the mode'),
-  };
-
-  /// [change], made by [input] in Markdown edit, as an undo step, and the
-  /// typing it was.
-  static (MarkdownStep, Typing?) _textStep(
-    EditorInput input,
-    TextChange change,
-  ) => (
-    TextChangeStep(TextStep(change)),
-    switch (input) {
-      EditText(pasted: false) => typingFrom(#markdown, change),
-      _ => null,
-    },
-  );
 
   /// Whether [input] comes from a control (a row's box, delete button,
   /// drag or swipe, a Done heading, a menu): it leaves no caret.
@@ -369,8 +338,9 @@ final class _Step
   /// One that holds the same as before (e.g. the link dialog confirmed
   /// unchanged, a keyboard putting back the word it typed) is no change,
   /// so no undo step and no save: the document stays as it was.
-  void _run(Command command) {
+  void _run(Command given) {
     final shown = state.content as FormattedContent;
+    final command = withItemsNamed(shown.view.doc, given);
     final before = shown.view.doc;
     final edited = run(shown.view, command);
     final doc = edited.doc.holdsSameAs(before) ? before : edited.doc;
@@ -416,13 +386,13 @@ final class _Step
   @override
   void undo(MarkdownStep step) => switch (step) {
     TreeStep(:final sides) => _showSide(sides.before),
-    TextChangeStep(:final step) => _showText(step.undoneIn),
+    TextChangeStep(:final step) => _showText(step, undone: true),
   };
 
   @override
   void redo(MarkdownStep step) => switch (step) {
     TreeStep(:final sides) => _showSide(sides.after),
-    TextChangeStep(:final step) => _showText(step.redoneIn),
+    TextChangeStep(:final step) => _showText(step, undone: false),
   };
 
   /// What Visual edit showed at [side] shows again: in Visual edit, its
@@ -456,21 +426,24 @@ final class _Step
     }
   }
 
-  /// The text that shows as [changed] changes it: in Markdown edit, the
-  /// caret at the change; in Visual edit, the print changed, read anew,
-  /// the row on the changed line shown.
-  void _showText(({String text, int caret}) Function(String text) changed) {
+  /// The text that shows with [step] [undone] or made again: in Markdown
+  /// edit, the caret after the change; in Visual edit, the print changed,
+  /// read anew, the row on the line where the change starts shown.
+  void _showText(TextStep step, {required bool undone}) {
+    ({String text, int caret}) changed(String text) =>
+        undone ? step.undoneIn(text) : step.redoneIn(text);
     switch (state.content) {
       case MarkdownContent(text: final shown):
         final (:text, :caret) = changed(shown);
         _show(MarkdownContent(text, caret: caret));
       case FormattedContent():
         final printed = _printed();
-        final (:text, :caret) = changed(printed.text);
+        final text = changed(printed.text).text;
         final next = loaded(text);
-        _reloadTo(next, printed: printed);
-        final view = (state.content as FormattedContent).view;
-        _showRow(leafOnLine(next.printed, lineAt(text, caret), view));
+        final shown = _reloadTo(next, printed: printed);
+        _showRow(
+          leafOnLine(next.printed, lineAt(text, step.change.start), shown.view),
+        );
     }
   }
 
@@ -605,13 +578,14 @@ final class _Step
   /// sections follow their lines, and an open raw block whose text the
   /// change kept stays open.
   @override
-  void reload(String text) => state.mode == EditMode.markdown
-      ? _show(MarkdownContent(text))
-      : _reloadTo(loaded(text));
+  void reload(String text) {
+    if (state.mode == EditMode.markdown) return _show(MarkdownContent(text));
+    _reloadTo(loaded(text));
+  }
 
   /// [next] shows instead, as [reload] says, in Visual edit or Read;
-  /// [printed] is the print of what shows, if known.
-  void _reloadTo(ReadDocument next, {PrintedMarkdown? printed}) {
+  /// [printed] is the print of what shows, if known. Gives what shows.
+  FormattedContent _reloadTo(ReadDocument next, {PrintedMarkdown? printed}) {
     final content = switch (state.content) {
       FormattedContent(:final view, :final selection, :final raw) => _mapped(
         (view: view, selection: selection, printed: printed ?? _printed()),
@@ -625,6 +599,7 @@ final class _Step
     };
     work = work.copyWith(origin: next.origin);
     _show(content);
+    return content;
   }
 
   /// What showed [before], with [raw] open, as it falls in [next].

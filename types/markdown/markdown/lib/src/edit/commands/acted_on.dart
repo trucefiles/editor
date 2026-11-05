@@ -8,9 +8,14 @@ import '../../view/rows.dart';
 import '../change.dart';
 import 'command.dart';
 
+/// Where an input's commands acted: the leaf of the row the first acted
+/// at before it, and of the row the last shows at after it.
+typedef ActedAt = ({NodeId? before, NodeId? after});
+
 /// The leaf of the row [command] acts at in [view]: the place, item,
 /// block or selection it names; `null` only where it names none (no
-/// checked item to clear or move).
+/// checked item to clear or move, or "Clear checked" and "Move to end"
+/// without their items named: see `withItemsNamed`).
 NodeId? actedOn(ViewRows view, Command command) {
   NodeId firstOf(NodeId block) => leavesIn(view.doc.nodeOf(block)!).first.id;
   return switch (command) {
@@ -40,8 +45,11 @@ NodeId? actedOn(ViewRows view, Command command) {
     DeleteItem(:final item) ||
     MoveItem(:final item) => firstOf(item),
     AddItem(:final list) => leavesIn(view.doc.nodeOf(list)!).last.id,
-    final ClearChecked command => _firstOf(clearedItems(view.doc, command)),
-    final MoveToEnd command => _firstOf(movedItems(view.doc, command)),
+    ClearChecked(:final items) ||
+    MoveToEnd(:final items) => switch (items?.firstOrNull) {
+      final item? => firstOf(item),
+      null => null,
+    },
   };
 }
 
@@ -61,9 +69,3 @@ NodeId? shownAfter(ViewRows before, Edited edited, NodeId? acted) {
     },
   };
 }
-
-/// The first leaf of the first of [blocks]; `null` if there is none.
-NodeId? _firstOf(List<DocBlock> blocks) => switch (blocks.firstOrNull) {
-  final block? => leavesIn(block).first.id,
-  null => null,
-};

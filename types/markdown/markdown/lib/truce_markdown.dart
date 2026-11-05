@@ -13,7 +13,7 @@ export 'src/doc/doc_nodes.dart';
 export 'src/doc/doc_tree.dart' show DocTree;
 export 'src/document_tree.dart' show DocumentTree;
 export 'src/edit/clipboard_lines.dart';
-export 'src/edit/commands/command.dart' hide clearedItems, movedItems;
+export 'src/edit/commands/command.dart' hide withItemsNamed;
 export 'src/edit/commands/links.dart' show LinkHere, linkHere;
 export 'src/edit/drop_place.dart';
 export 'src/edit/format_state.dart';

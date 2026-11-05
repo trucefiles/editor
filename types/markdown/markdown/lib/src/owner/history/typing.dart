@@ -1,4 +1,5 @@
-import 'package:truce_core/truce_core.dart' show Typing, typingIn;
+import 'package:truce_core/truce_core.dart'
+    show TextChange, Typing, typingFrom, typingIn;
 
 import '../../edit/commands/text_commands.dart' show ordered;
 import '../../edit/keys/key_map.dart';
@@ -70,3 +71,10 @@ Typing? _deleted(Place caret, int count) => count > 0
         end: caret.offset,
       )
     : null;
+
+/// The typing [input] was in Markdown edit, where it made [change];
+/// `null` for a paste, which is a step of its own.
+Typing? textTypingOf(EditorInput input, TextChange change) => switch (input) {
+  EditText(pasted: false) => typingFrom(#markdown, change),
+  _ => null,
+};

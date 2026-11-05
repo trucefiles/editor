@@ -215,14 +215,15 @@ final class MoveItem extends EditCommand {
   final bool below;
 }
 
-/// "Clear checked items now": the checked items at the top level of
-/// [list], or of every list if `null`, go with their subitems; a list
-/// left empty keeps one empty open item (see [Toggle]: no caret after
-/// it).
+/// "Clear checked items now": [items] (by default the checked items at
+/// the top level of [list], or of every list if `null`) go with their
+/// subitems; a list left empty keeps one empty open item (see [Toggle]:
+/// no caret after it).
 final class ClearChecked extends EditCommand {
-  const ClearChecked({this.list});
+  const ClearChecked({this.list, this.items});
 
   final NodeId? list;
+  final List<NodeId>? items;
 }
 
 /// "Move checked items to end now", or a checked item's wait ending:
@@ -352,11 +353,14 @@ Change _change(ViewRows view, EditCommand command) {
       node(target),
       below: below,
     ),
-    final ClearChecked command => clearItems(
+    ClearChecked(:final list, :final items) => clearItems(
       view,
-      clearedItems(view.doc, command),
+      items == null ? _checkedIn(view.doc, list) : _named(view.doc, items),
     ),
-    final MoveToEnd command => moveToEnd(view, movedItems(view.doc, command)),
+    MoveToEnd(:final items) => moveToEnd(
+      view,
+      items == null ? checkedItems(view.doc) : _named(view.doc, items),
+    ),
     CloseRaw(:final block, :final raw, :final selection) => closeRaw(
       view,
       block,
@@ -366,20 +370,31 @@ Change _change(ViewRows view, EditCommand command) {
   };
 }
 
-/// The items [command] clears in [doc]: the checked ones of its list, or
-/// of every list.
-List<ItemNode> clearedItems(DocTree doc, ClearChecked command) => checkedItems(
+/// [command] with the items it acts on named, as found in [doc], so
+/// that they are looked up once: the checked items "Clear checked" and
+/// "Move to end" act on by default; any other command as it is.
+Command withItemsNamed(DocTree doc, Command command) => switch (command) {
+  ClearChecked(:final list, items: null) => ClearChecked(
+    list: list,
+    items: _ids(_checkedIn(doc, list)),
+  ),
+  MoveToEnd(items: null) => MoveToEnd(items: _ids(checkedItems(doc))),
+  _ => command,
+};
+
+/// The checked items at the top level of [list] in [doc], or of every
+/// list if `null`.
+List<ItemNode> _checkedIn(DocTree doc, NodeId? list) => checkedItems(
   doc,
-  list: switch (command.list) {
+  list: switch (list) {
     null => null,
     final id => doc.nodeOf(id)! as ListNode,
   },
 );
 
-/// The items [command] moves to the end of their lists in [doc]: the ones
-/// it names, else every checked one.
-List<ItemNode> movedItems(DocTree doc, MoveToEnd command) =>
-    switch (command.items) {
-      null => checkedItems(doc),
-      final ids => [for (final id in ids) doc.nodeOf(id)! as ItemNode],
-    };
+List<NodeId> _ids(List<ItemNode> items) => [for (final item in items) item.id];
+
+/// The items [ids] name in [doc].
+List<ItemNode> _named(DocTree doc, List<NodeId> ids) => [
+  for (final id in ids) doc.nodeOf(id)! as ItemNode,
+];
