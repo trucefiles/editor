@@ -52,6 +52,9 @@ final class _Step
         // Typed on what no longer shows.
         break;
       case TextEdited(:final edit, :final pasted) when edit.changes:
+        if (!edit.isOf(state.text)) {
+          throw StateError('a text edit made on a text not shown');
+        }
         _show(edit.text);
         textChanged();
         record(

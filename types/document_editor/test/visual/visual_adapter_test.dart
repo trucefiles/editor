@@ -111,6 +111,48 @@ void main() {
     }
   });
 
+  for (final atEnd in [false, true]) {
+    test('Enter ${atEnd ? 'at the end of' : 'inside'} a row patches both '
+        'rows of the split, the other nodes stay as they are', () {
+      final visual = _Visual(
+        [for (var item = 0; item < 20; item++) '- [ ] item $item'].join('\n'),
+      );
+      final offset = atEnd ? 'item 10'.length : 2;
+      visual.caret(10, offset);
+      final nodes = visual.document.toList();
+
+      visual.editor.execute([
+        InsertNewlineAtCaretRequest(Editor.createNodeId()),
+      ]);
+
+      final now = visual.document.toList();
+      expect(now, hasLength(21));
+      expect(now[10].id, nodes[10].id);
+      expect(visual.selection?.extent.nodeId, now[11].id);
+      expect(visual.texts[10], 'item 10'.substring(0, offset));
+      for (final index in [...Iterable<int>.generate(10), 12, 20]) {
+        final before = nodes[index < 10 ? index : index - 1];
+        expect(identical(now[index], before), isTrue, reason: '$index');
+      }
+    });
+  }
+
+  test('Enter on an empty last item, which leaves its list, patches both '
+      'rows of the split', () {
+    final visual = _Visual('- [ ] a\n- [ ] b\n- [ ] ');
+    visual.caret(2, 0);
+    final nodes = visual.document.toList();
+
+    visual.editor.execute([InsertNewlineAtCaretRequest('new')]);
+
+    final now = visual.document.toList();
+    expect(visual.texts, ['a', 'b', '']);
+    expect(identical(now.first, nodes.first), isTrue);
+    expect(now[1].id, nodes[2].id);
+    expect(now[2].id, 'new');
+    expect(visual.selection?.extent.nodeId, 'new');
+  });
+
   test('a caret the user moves goes to the owner', () {
     final visual = _Visual('ab');
 

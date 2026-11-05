@@ -61,6 +61,16 @@ void main() {
       expect(run.state.status.unsent, isFalse);
     });
 
+    test('an edit made on a text that does not show is a bug', () {
+      final run = _Run('a');
+      expect(
+        () => run.machine.send(
+          TextEdited(editTo('b', 'bx'), revision: run.state.revision),
+        ),
+        throwsStateError,
+      );
+    });
+
     test('a text edited on what no longer shows is dropped', () {
       final run = _Run('a');
       final seen = run.state.revision;

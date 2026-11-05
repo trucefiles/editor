@@ -178,7 +178,11 @@ final class _Step
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);
-      case (EditText(:final edit), MarkdownContent()) when edit.changes:
+      case (EditText(:final edit), MarkdownContent(:final text))
+          when edit.changes:
+        if (!edit.isOf(text)) {
+          throw StateError('a text edit made on a text not shown');
+        }
         _show(MarkdownContent(edit.text));
         textChanged();
       case (SetMode(:final mode), _):

@@ -109,11 +109,9 @@ void _expectSound(EditorState state, String fileText) {
 /// anew, so that no look is reused; with random Add item buttons, waiting
 /// box taps and a random folded item.
 void _expectLooksAsDerivedAnew(EditorState state, Random random) {
-  if (state.content case FormattedContent(
-    :final view,
-    :final selection,
-    :final raw,
-  )) {
+  if (state.content
+      case final FormattedContent shown &&
+          FormattedContent(:final view, :final selection, :final raw)) {
     final items = nodesIn(view.doc.root).whereType<ItemNode>().toList();
     final addItems = [null, ...AddItemPlace.values][random.nextInt(3)];
     final waiting = {
@@ -123,28 +121,44 @@ void _expectLooksAsDerivedAnew(EditorState state, Random random) {
     final folded = items.isEmpty || random.nextBool()
         ? null
         : items[random.nextInt(items.length)].id;
-    List<RowLook> looksOf(ViewRows view) => RowLooks(
-      view,
-      selected: switch (selection) {
-        BlockSelection(:final block) => block,
-        _ => null,
-      },
-      raw: switch (raw) {
-        RawRegion(:final block, :final text) => (block: block, text: text),
-        null => null,
-      },
-      waiting: waiting,
-      addItems: addItems,
-      folded: folded,
-    ).looks;
+    List<RowLook> looksIn(FormattedContent shown) =>
+        looksOf(shown, waiting: waiting, addItems: addItems, folded: folded);
     final anew = DocTree(_rebuilt(view.doc.root) as DocRoot, nextId: 0);
+    final looks = looksIn(shown);
     expect(
-      looksOf(view),
-      looksOf(ViewRows(anew, done: view.done)),
+      looks,
+      looksIn(
+        FormattedContent(
+          view: ViewRows(anew, done: view.done),
+          selection: selection,
+          raw: raw,
+        ),
+      ),
       reason: 'reused looks are the looks derived anew',
     );
+    if (folded == null) {
+      expect(
+        [for (final look in looks) ?_rowOf(look, raw: raw)],
+        [
+          for (final row in view.rows)
+            (row.leaf.id, row.leaf.id == raw?.block ? null : row.done),
+        ],
+        reason: 'looks show the rows, in order',
+      );
+    }
   }
 }
+
+/// The leaf [look] shows and whether in a Done section (`null` for the
+/// open [raw] block, whose look doesn't say); `null` for a list's own
+/// row.
+(NodeId, bool?)? _rowOf(RowLook look, {required RawRegion? raw}) =>
+    switch (look) {
+      TextLook(:final leaf, :final done) ||
+      BlockLook(:final leaf, :final done) => (leaf.id, done),
+      RawTextLook(:final block) => (block, null),
+      DoneHeadingLook() || AddItemLook() => null,
+    };
 
 /// [node] with every container in it built anew, leaves as they are.
 DocBlock _rebuilt(DocBlock node) => switch (node) {

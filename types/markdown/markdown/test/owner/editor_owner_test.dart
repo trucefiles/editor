@@ -250,6 +250,14 @@ void main() {
   });
 
   group('Markdown edit', () {
+    test('an edit made on a text that does not show is a bug', () {
+      final run = EditorRun('a', mode: EditMode.markdown);
+      expect(
+        () => run.send(EditText(editTo('b', 'bx'), revision: run.revision)),
+        throwsStateError,
+      );
+    });
+
     test('edits the printed text, sent by the same timing', () {
       final run = EditorRun('a\n\nb', mode: EditMode.markdown);
       run.editText('a\n\n- b');

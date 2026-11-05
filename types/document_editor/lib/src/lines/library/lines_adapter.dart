@@ -131,7 +131,11 @@ final class LinesAdapter {
     final changedNodes = nodes.sublist(same.start, nodes.length - same.end);
     final changed = changedNodes.expand(splitLines).toList();
     if (changed.length != changedNodes.length) {
-      final caret = _caretOf(composer.selection, same.start, changedNodes);
+      final caret = _caretOf(
+        composer.selection,
+        from: same.start,
+        split: changedNodes,
+      );
       _replace(same.start, changedNodes.length, changed, caret, byUser: true);
     }
     final lines = [
@@ -194,7 +198,7 @@ final class LinesAdapter {
     if (text == null || text == _shown) return;
     final caret = switch (offset) {
       final offset? => _caretAtOffset(text, offset),
-      null => _caretOf(composer.selection, 0, const []),
+      null => _caretOf(composer.selection),
     };
     _shown = text;
     _show(splitLines(text), caret, byUser: false);
@@ -284,7 +288,11 @@ final class LinesAdapter {
   /// The line and offset of [selection]'s caret in the text the nodes
   /// show; [split] are the texts of the nodes from [from] on that may hold
   /// line breaks, every other node holds one line.
-  _Caret? _caretOf(DocumentSelection? selection, int from, List<String> split) {
+  _Caret? _caretOf(
+    DocumentSelection? selection, {
+    int from = 0,
+    List<String> split = const [],
+  }) {
     if (selection == null) return null;
     final index = _document.getNodeIndexById(selection.extent.nodeId);
     final offset = switch (selection.extent.nodePosition) {

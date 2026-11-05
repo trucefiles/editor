@@ -5,7 +5,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:truce_core/truce_core.dart' show unchangedEnds;
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_markdown/truce_markdown.dart'
-    show AddItemPlace, BlockLook, RawTextLook, RowLook, RowLooks, TextLook;
+    show AddItemPlace, BlockLook, RawTextLook, RowLook, TextLook;
 
 import '../../editor_gate.dart';
 import '../../library/document_patch.dart';
@@ -409,20 +409,12 @@ final class VisualAdapter {
   void _patch() {
     final shown = _shown;
     if (shown == null) return;
-    final looks = RowLooks(
-      shown.view,
-      selected: switch (shown.selection) {
-        md.BlockSelection(:final block) => block,
-        _ => null,
-      },
-      raw: switch (shown.raw) {
-        md.RawRegion(:final block, :final text) => (block: block, text: text),
-        null => null,
-      },
+    final looks = md.looksOf(
+      shown,
       waiting: _gate.waiting,
       addItems: _addItems,
       folded: _folded,
-    ).looks;
+    );
     final same = unchangedEnds(_looks, looks);
     final split = _applySplit(looks, shown);
     final start = min(same.start, split?.top ?? same.start);

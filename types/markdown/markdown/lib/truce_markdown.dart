@@ -22,6 +22,7 @@ export 'src/edit/selection.dart';
 export 'src/edit/typing_style.dart';
 export 'src/highlight/highlights.dart';
 export 'src/owner/editor_owner.dart';
+export 'src/owner/looks_of.dart';
 export 'src/read/front_matter.dart' show textAfterFrontMatter;
 export 'src/summary/document_summary.dart';
 export 'src/support/markdown_file_type.dart';

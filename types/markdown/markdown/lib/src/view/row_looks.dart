@@ -293,7 +293,7 @@ final class RowLooks {
               item.id,
               marker: context.marker!,
               starts: true,
-              subitems: nodesIn(item).whereType<ItemNode>().length - 1,
+              subitems: _itemsIn(item) - 1,
             ),
           ],
           [
@@ -520,6 +520,17 @@ typedef _Cached = ({
 });
 
 final _cache = Expando<_Cached>('looks');
+
+/// How many items [node] holds, itself included; counted once per node
+/// object, from its children.
+int _itemsIn(DocBlock node) => _itemCounts[node] ??= switch (node) {
+  DocContainer(:final children) =>
+    (node is ItemNode ? 1 : 0) +
+        children.fold(0, (count, child) => count + _itemsIn(child)),
+  DocLeaf() => 0,
+};
+
+final _itemCounts = Expando<int>('items');
 
 /// One part of what a container shows: a child node, or a row of its own.
 sealed class _Part {
