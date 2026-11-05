@@ -9,7 +9,8 @@ enum RefreshMode {
   /// By checking the folders every [RefreshSettings.interval].
   periodic,
 
-  /// Only when the user refreshes (or opens a file, comes back to the app).
+  /// Only when the user refreshes (or closes a file, comes back to the
+  /// app).
   manual,
 }
 
@@ -37,6 +38,10 @@ final class RefreshSettings {
 
   /// How often folders are checked for changes when they are polled.
   final Duration interval;
+
+  /// Whether closing a file lists the folders again: only where nothing
+  /// finds changes meanwhile, so what shows next may be out of date.
+  bool get listsWhenFileCloses => mode == RefreshMode.manual;
 
   RefreshSettings copyWith({RefreshMode? mode, Duration? interval}) =>
       RefreshSettings(

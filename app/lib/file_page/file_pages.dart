@@ -25,6 +25,7 @@ final class FilePage {
     this.session,
     this.controller,
     this._leaveOpenFiles,
+    this._closed,
   );
 
   final EditableType type;
@@ -33,6 +34,7 @@ final class FilePage {
   final FileSession session;
   final FileController controller;
   final void Function() _leaveOpenFiles;
+  final void Function() _closed;
 
   /// Closes the page; its edits are kept first, as far as they can be.
   Future<void> close() {
@@ -44,6 +46,7 @@ final class FilePage {
     return session.secure(SecureReason.close).whenComplete(() {
       _leaveOpenFiles();
       session.dispose();
+      _closed();
     });
   }
 }
@@ -56,8 +59,8 @@ final class FilePages {
   /// file;
   /// [settingsOf] gives a file's settings, [editSettings] changes
   /// them. [reachOf] tells a folder's reach now, [reachSettled] once
-  /// a running check of it is over. [refreshFolders] lists the folders
-  /// again.
+  /// a running check of it is over. [refresh] gives the refresh setting
+  /// now; [refreshFolders] lists the folders again.
   FilePages({
     required this.types,
     required this.create,
@@ -70,6 +73,7 @@ final class FilePages {
     required this.reachOf,
     required this.reachSettled,
     required this.openFiles,
+    required this.refresh,
     required this.refreshFolders,
   });
 
@@ -84,6 +88,7 @@ final class FilePages {
   final Reach Function(FolderId folder) reachOf;
   final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
+  final RefreshSettings Function() refresh;
   final Future<void> Function() refreshFolders;
 
   /// The page of [file], as read just before; the editor runs actions
@@ -180,9 +185,6 @@ final class FilePages {
       folder: folder,
       secure: session.secure,
     );
-    // Opening a file lists the folders again, as the refresh setting
-    // promises; its own text was read just before.
-    unawaited(refreshFolders());
     return FilePage._(
       type,
       editor.part,
@@ -190,6 +192,13 @@ final class FilePages {
       session,
       controller,
       leaveOpenFiles,
+      _closed,
     );
+  }
+
+  /// A page closed: what shows next is listed again where the refresh
+  /// setting asks for it.
+  void _closed() {
+    if (refresh().listsWhenFileCloses) unawaited(refreshFolders());
   }
 }

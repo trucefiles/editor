@@ -6,6 +6,7 @@ import '../files/file_settings_controller.dart';
 import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../reach/folder_reach_controller.dart';
+import '../settings/device_settings_controller.dart';
 import 'file_pages.dart';
 
 /// Builds the page model of each open file. Watches only what never
@@ -44,6 +45,7 @@ final filePagesProvider = Provider<FilePages>(
     reachSettled: (folder) =>
         ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
+    refresh: () => ref.read(deviceSettingsProvider).requireValue.refresh,
     refreshFolders: () => ref.read(folderContentsProvider.notifier).refresh(),
   ),
 );

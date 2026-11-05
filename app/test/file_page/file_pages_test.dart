@@ -4,6 +4,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_pages.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -11,13 +12,15 @@ import 'file_fixture.dart';
 void main() {
   late FileFixture fixture;
   late OpenFiles open;
+  late int listings;
 
   setUp(() async {
     fixture = await FileFixture.create();
     open = OpenFiles();
+    listings = 0;
   });
 
-  FilePages pages() => FilePages(
+  FilePages pages({RefreshMode mode = RefreshMode.live}) => FilePages(
     types: appFileTypes(),
     create: fixture.createFile,
     move: fixture.moveFile,
@@ -29,8 +32,30 @@ void main() {
     reachOf: (_) => Reach.reachable,
     reachSettled: (_) async => Reach.reachable,
     openFiles: open,
-    refreshFolders: () async {},
+    refresh: () => RefreshSettings.standard.copyWith(mode: mode),
+    refreshFolders: () async => listings++,
   );
+
+  test('in Manual mode, closing a page lists the folders again; opening '
+      'one does not', () async {
+    final page = pages(mode: RefreshMode.manual)
+        .open(fixture.file, withFile: (_) async {});
+    expect(listings, 0);
+
+    await page.close();
+
+    expect(listings, 1);
+  });
+
+  for (final mode in [RefreshMode.live, RefreshMode.periodic]) {
+    test('in ${mode.name} mode, opening and closing a page lists no '
+        'folder: changes are followed meanwhile', () async {
+      final page = pages(mode: mode).open(fixture.file, withFile: (_) async {});
+      await page.close();
+
+      expect(listings, 0);
+    });
+  }
 
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {
