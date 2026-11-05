@@ -49,10 +49,12 @@ void main() {
     final base = await next();
 
     expect(
-      base.files.keys,
+      base.found.files.keys,
       unorderedEquals([path('work/plan.md'), path('top.md')]),
     );
-    expect(base.marks.marks, {path('top.md'): const FileMark(color: 'teal')});
+    expect(base.found.marks.marks, {
+      path('top.md'): const FileMark(color: 'teal'),
+    });
     expect(store.listCount, 1, reason: 'one walk for documents and marks');
   });
 
@@ -78,10 +80,12 @@ void main() {
     timers.fireAll();
     final base = await owner.changes
         .map((state) => state.folders[_a]! as Listed)
-        .firstWhere((base) => base.files.containsKey(path('work/new.md')));
+        .firstWhere(
+          (base) => base.found.files.containsKey(path('work/new.md')),
+        );
 
     expect(store.lastListed, [path('work/plan.md'), path('work/new.md')]);
-    expect(base.files, hasLength(3));
+    expect(base.found.files, hasLength(3));
   });
 
   test('a refresh lists again and answers once done', () async {
@@ -91,7 +95,7 @@ void main() {
 
     await refreshed();
 
-    expect((owner.state.folders[_a]! as Listed).files.keys, [
+    expect((owner.state.folders[_a]! as Listed).found.files.keys, [
       path('work/plan.md'),
     ]);
   });

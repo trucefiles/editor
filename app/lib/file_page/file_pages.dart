@@ -25,6 +25,7 @@ final class FilePage {
     this.session,
     this.controller,
     this._leaveOpenFiles,
+    this._closed,
   );
 
   final EditableType type;
@@ -33,18 +34,23 @@ final class FilePage {
   final FileSession session;
   final FileController controller;
   final void Function() _leaveOpenFiles;
+  final void Function() _closed;
 
   /// Closes the page; its edits are kept first, as far as they can be.
+  /// Tells [FilePages.fileClosed] once securing began, not after: its
+  /// last save needs no wait, as every own write is checked on its own.
   Future<void> close() {
     part.dispose();
     controller.dispose();
     // Also after a leave that kept the edits: the screen may also go
     // without one (its route removed), and a second answer is quick. It
     // stays an open file until then, so a folder change waits for it.
-    return session.secure(SecureReason.close).whenComplete(() {
+    final secured = session.secure(SecureReason.close).whenComplete(() {
       _leaveOpenFiles();
       session.dispose();
     });
+    _closed();
+    return secured;
   }
 }
 
@@ -56,8 +62,8 @@ final class FilePages {
   /// file;
   /// [settingsOf] gives a file's settings, [editSettings] changes
   /// them. [reachOf] tells a folder's reach now, [reachSettled] once
-  /// a running check of it is over. [refreshFolders] lists the folders
-  /// again.
+  /// a running check of it is over. [fileClosed] is told as each page
+  /// closes, e.g. so what shows next can be listed again.
   FilePages({
     required this.types,
     required this.create,
@@ -70,7 +76,7 @@ final class FilePages {
     required this.reachOf,
     required this.reachSettled,
     required this.openFiles,
-    required this.refreshFolders,
+    required this.fileClosed,
   });
 
   final ShownFileTypes<EditableType> types;
@@ -84,7 +90,7 @@ final class FilePages {
   final Reach Function(FolderId folder) reachOf;
   final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
-  final Future<void> Function() refreshFolders;
+  final void Function() fileClosed;
 
   /// The page of [file], as read just before; the editor runs actions
   /// on its file through [withFile].
@@ -180,9 +186,6 @@ final class FilePages {
       folder: folder,
       secure: session.secure,
     );
-    // Opening a file lists the folders again, as the refresh setting
-    // promises; its own text was read just before.
-    unawaited(refreshFolders());
     return FilePage._(
       type,
       editor.part,
@@ -190,6 +193,7 @@ final class FilePages {
       session,
       controller,
       leaveOpenFiles,
+      fileClosed,
     );
   }
 }

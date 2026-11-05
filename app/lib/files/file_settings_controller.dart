@@ -37,8 +37,8 @@ class FileSettingsController extends SettingController<KeptSettings>
   @override
   Future<void> forget(FileKey file) => change((all) => forgottenIn(all, file));
 
-  /// Prunes the settings by a listing, [contents], at [now] (see
+  /// Prunes the settings by what a listing found, [shown], at [now] (see
   /// [prunedIn]).
-  Future<void> prune(FolderContents contents, {required DateTime now}) =>
-      change((all) => prunedIn(all, contents, now: now));
+  Future<void> prune(FolderFiles shown, {required DateTime now}) =>
+      change((all) => prunedIn(all, shown, now: now));
 }

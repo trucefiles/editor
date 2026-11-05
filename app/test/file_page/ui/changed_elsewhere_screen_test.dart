@@ -183,6 +183,15 @@ void main() {
     expect(session.status, isA<ChangedElsewhere>());
     expect(fixture.onDisk('a.md'), 'theirs, newer\n');
     expect(find.text('Keep this'), findsNWidgets(2));
+
+    // The user picks again, against the newer version.
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await settle(tester, until: () => session.status is! ChangedElsewhere);
+
+    expect(session.status, isNot(isA<ChangedElsewhere>()));
+    expect(session.text, 'theirs, newer\n');
   });
 
   testWidgets('shows a newer version from elsewhere', (tester) async {
@@ -193,6 +202,18 @@ void main() {
     // In the current version's pane, its own line.
     expect(find.textContaining('theirs, newer'), findsOneWidget);
     expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
+  });
+
+  testWidgets('a newer version from elsewhere is offered merged too', (
+    tester,
+  ) async {
+    await pumpCompare(tester, merge: const _BothMerge());
+    expect(find.text('Merge both'), findsOneWidget);
+
+    await changedAgain(tester, 'theirs, newer\n');
+
+    expect(find.textContaining('theirs, newer'), findsOneWidget);
+    expect(find.text('Merge both'), findsOneWidget);
   });
 
   testWidgets('no merge is offered where the type does not merge', (

@@ -82,17 +82,53 @@ void main() {
       expect(run.status, isA<InStep>());
     });
 
-    test('the status tells whether the two merge', () {
+    test('tells whether the two merge when asked, once per question', () {
+      bool merges(_Run run, Version seen) {
+        final ticket = Ticket();
+        run.send(AskMerges(ticket, seen: seen));
+        return run
+            .all<MergesAnswer>()
+            .singleWhere((a) => a.ticket == ticket)
+            .merges;
+      }
+
       final merging = _Run('a:1\n')
         ..edit('a:1\nb:1\n', 1)
         ..keep()
         ..found(const Seen('a:2\n', _v2));
-      expect((merging.status as ChangedElsewhere).merges, isTrue);
+      expect(merges(merging, _v2), isTrue);
+      expect(
+        merges(merging, _v3),
+        isFalse,
+        reason: 'not the version from elsewhere now',
+      );
       final broken = _Run('a:1\n')
         ..edit('a:1\nb:1\n', 1)
         ..keep()
         ..found(const Seen('not a unit\n', _v2));
-      expect((broken.status as ChangedElsewhere).merges, isFalse);
+      expect(merges(broken, _v2), isFalse);
+      final inStep = _Run('a:1\n');
+      expect(merges(inStep, _v1), isFalse, reason: 'nothing to pick');
+    });
+
+    test('merges nothing while no one asks, whatever comes', () {
+      final merge = _CountingMerge();
+      final run = MachineRun.of(
+        openedFile(const Seen('a:1\n', _v1), merge: merge),
+      )..send(const Edited('a:1\nb:1\n', rev: 1, lineage: _v1, picks: 0));
+      run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
+      for (final read
+          in run
+              .send(Observed(const Found(_v2), startedAt: Moment.now()))
+              .whereType<ReadLatest>()) {
+        run.send(LatestRead(read.id, const Seen('a:2\n', _v2)));
+      }
+      expect(run.state.status, isA<ChangedElsewhere>());
+      run
+        ..send(const Edited('a:1\nb:2\n', rev: 2, lineage: _v1, picks: 0))
+        ..send(const SaveNow());
+
+      expect(merge.calls, 0);
     });
 
     test('both merged into the edits as they are: kept, written over '
@@ -180,4 +216,15 @@ void main() {
     expect(run.last<PickNotKept>(), isNotNull);
     expect(run.state.status, isA<ChangedElsewhere>());
   });
+}
+
+/// [FakeTextMerge], counting its merges.
+final class _CountingMerge implements TextMerge {
+  var calls = 0;
+
+  @override
+  MergeResult merge(String main, String other, {String? base}) {
+    calls++;
+    return const FakeTextMerge().merge(main, other, base: base);
+  }
 }

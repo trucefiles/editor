@@ -65,7 +65,7 @@ void main() {
 
   /// Opens the scanned conflict and waits until its sides are loaded.
   Future<ConflictController> open() async {
-    final scans = await container.read(folderContentsProvider.future);
+    final scans = (await container.read(folderContentsProvider.future)).shown;
     watch(scans.conflicts.all.single);
     await loaded();
     return container.read(provider.notifier);
@@ -137,7 +137,7 @@ void main() {
     watching.close();
 
     expect(await kept, isNull, reason: 'the screen closed first');
-    final scans = await container.read(folderContentsProvider.future);
+    final scans = (await container.read(folderContentsProvider.future)).shown;
     expect(scans.conflicts.all, isEmpty);
   });
 
@@ -219,7 +219,7 @@ void main() {
   test('loads the sides again at the next scan after they failed', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');
-    final scans = await container.read(folderContentsProvider.future);
+    final scans = (await container.read(folderContentsProvider.future)).shown;
     // Changed since the scan, so the sides can't be loaded from it.
     write('todo.md', '# Todo\nchanged\n');
     watch(scans.conflicts.all.single);
@@ -241,7 +241,7 @@ void main() {
   test('shows why the sides cannot be read', () async {
     write('todo.md', '# Todo\nmine\n');
     write(first, '# Todo\nfirst\n');
-    final scans = await container.read(folderContentsProvider.future);
+    final scans = (await container.read(folderContentsProvider.future)).shown;
     final FolderConflict conflict = scans.conflicts.all.single;
     File('${dir.path}/$first').deleteSync();
     watch(conflict);

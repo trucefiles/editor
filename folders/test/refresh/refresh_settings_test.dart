@@ -27,4 +27,20 @@ void main() {
     );
     expect(RefreshSettings.fromJson('live'), isNull);
   });
+
+  test('only Manual lists the folders when a file closes', () {
+    expect(
+      {
+        for (final mode in RefreshMode.values)
+          mode: RefreshSettings.standard
+              .copyWith(mode: mode)
+              .listsWhenFileCloses,
+      },
+      {
+        RefreshMode.live: false,
+        RefreshMode.periodic: false,
+        RefreshMode.manual: true,
+      },
+    );
+  });
 }

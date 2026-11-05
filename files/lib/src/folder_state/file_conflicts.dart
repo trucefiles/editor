@@ -6,6 +6,8 @@ import '../listed_file.dart';
 /// [state], as last listed.
 bool conflictWaitsIn(FolderState state, FileKey key) =>
     switch (state.folders[key.folder]) {
-      Listed(:final conflicts) => conflicts.containsKey(key.path),
+      Listed(found: FolderFound(:final conflicts)) => conflicts.containsKey(
+        key.path,
+      ),
       _ => false,
     };

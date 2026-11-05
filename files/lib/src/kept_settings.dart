@@ -2,7 +2,7 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_settings.dart';
 import 'file_settings_store.dart';
-import 'folder_state/folder_contents.dart';
+import 'folder_state/folder_files.dart';
 import 'kept_file_settings.dart';
 import 'listed_file.dart';
 
@@ -38,19 +38,19 @@ KeptSettings forgottenIn(KeptSettings all, FileKey file) => {
     if (entry.key != FileSettingsStore.storeKey(file)) entry.key: entry.value,
 };
 
-/// [all] after a listing, [contents] (see [FolderContents.observe]), at
+/// [all] after a listing, [shown] (see [FolderFiles.observe]), at
 /// [now]: settings of files that are gone, and of folders that are gone,
 /// are marked missing, and forgotten once missing for
 /// [KeptFileSettings.grace]; found again once a listing finds them.
 /// Settings of files the listing could not see count as found.
 KeptSettings prunedIn(
   KeptSettings all,
-  FolderContents contents, {
+  FolderFiles shown, {
   required DateTime now,
 }) => {
   for (final MapEntry(:key, :value) in all.entries)
     key: ?switch (FileSettingsStore.keyOf(key)) {
-      final file? when contents.observe(file) is! Gone => value.found,
+      final file? when shown.observe(file) is! Gone => value.found,
       _ => value.missedAt(now),
     },
 };

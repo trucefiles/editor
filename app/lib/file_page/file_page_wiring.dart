@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../file_types/file_types.dart';
@@ -6,6 +8,7 @@ import '../files/file_settings_controller.dart';
 import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../reach/folder_reach_controller.dart';
+import '../settings/device_settings_controller.dart';
 import 'file_pages.dart';
 
 /// Builds the page model of each open file. Watches only what never
@@ -44,6 +47,13 @@ final filePagesProvider = Provider<FilePages>(
     reachSettled: (folder) =>
         ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
-    refreshFolders: () => ref.read(folderContentsProvider.notifier).refresh(),
+    // Where nothing finds changes meanwhile, what shows next is listed
+    // again.
+    fileClosed: () {
+      final refresh = ref.read(deviceSettingsProvider).requireValue.refresh;
+      if (refresh.listsWhenFileCloses) {
+        unawaited(ref.read(folderContentsProvider.notifier).refresh());
+      }
+    },
   ),
 );

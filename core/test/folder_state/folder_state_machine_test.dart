@@ -100,8 +100,69 @@ void main() {
       expect(run.listings.single.folder, _a);
       run.listed(_scan([_file('x.md')]));
 
-      expect(run.listedOf(_a).files.keys, [path('x.md')]);
+      expect(run.listedOf(_a).found.files.keys, [path('x.md')]);
       expect(run.fresh, [ticket]);
+    });
+
+    test('a listing that finds the same keeps what was found, only its '
+        'time is new', () {
+      final run = _run()..send(FoldersChanged({_a}));
+      final scan = _scan(
+        [_file('x.md')],
+        subfolders: ['work'],
+        conflicts: [_conflict('y.md')],
+      );
+      run.listed(scan);
+      final before = run.listedOf(_a);
+
+      run.refresh();
+      final later = Moment.now();
+      run.listed(
+        _scan(
+          [_file('x.md')],
+          subfolders: ['work'],
+          conflicts: [_conflict('y.md')],
+        ),
+        startedAt: later,
+      );
+
+      expect(run.listedOf(_a).found, same(before.found));
+      expect(run.listedOf(_a).listedAt, same(later));
+    });
+
+    test('a listing that finds a change makes what was found anew', () {
+      final run = _run()..send(FoldersChanged({_a}));
+      run.listed(_scan([_file('x.md')]));
+      final before = run.listedOf(_a).found;
+
+      run.refresh();
+      run.listed(_scan([_file('x.md', version: 2)]));
+
+      expect(run.listedOf(_a).found, isNot(same(before)));
+      expect(
+        run.listedOf(_a).found.files.values.single.version,
+        const FileVersion(2),
+      );
+    });
+
+    test('a check that finds the same keeps what was found', () {
+      final run = _run()..send(FoldersChanged({_a}));
+      run.listed(_scan([_file('x.md')]));
+      final before = run.listedOf(_a).found;
+
+      run
+        ..changed(_a, 'x.md')
+        ..waited(_settle)
+        ..checked(
+          PartScan(
+            found: {null},
+            unknown: const {},
+            files: [_file('x.md')],
+            conflicts: const [],
+          ),
+        );
+
+      expect(run.listedOf(_a).found, same(before));
     });
 
     test('lists one folder at a time; a refresh waits for all', () {
@@ -159,10 +220,10 @@ void main() {
       );
 
       final base = run.listedOf(_a);
-      expect(base.conflicts.keys, [path('y.md')]);
-      expect(base.subfolders, {path('work'), path('work/old')});
-      expect(base.sees(path('private/x.md')), isFalse);
-      expect(base.sees(path('work/x.md')), isTrue);
+      expect(base.found.conflicts.keys, [path('y.md')]);
+      expect(base.found.subfolders, {path('work'), path('work/old')});
+      expect(base.found.sees(path('private/x.md')), isFalse);
+      expect(base.found.sees(path('work/x.md')), isTrue);
     });
 
     test('asks to read the marks files over the ones known', () {
@@ -182,7 +243,7 @@ void main() {
       run.listed(_scan([_file('x.md')]));
 
       run.send(FoldersChanged({_a, _b}));
-      expect(run.listedOf(_a).files.keys, [path('x.md')]);
+      expect(run.listedOf(_a).found.files.keys, [path('x.md')]);
       expect(run.state.folders[_b], isA<NotListed>());
 
       run.listed(_scan([]));
@@ -335,14 +396,14 @@ void main() {
         );
 
       expect(
-        run.listedOf(_a).files.keys,
+        run.listedOf(_a).found.files.keys,
         unorderedEquals([
           path('work/deep/y.md'),
           path('top.md'),
           path('work/z.md'),
         ]),
       );
-      expect(run.listedOf(_a).conflicts.keys, [path('top.md')]);
+      expect(run.listedOf(_a).found.conflicts.keys, [path('top.md')]);
     });
 
     test('drop everything in and below a folder that is gone', () {
@@ -354,13 +415,13 @@ void main() {
         );
 
       final base = run.listedOf(_a);
-      expect(base.files.keys, [path('top.md')]);
-      expect(base.subfolders, {path('other')});
-      expect(base.conflicts.keys, [path('top.md')]);
+      expect(base.found.files.keys, [path('top.md')]);
+      expect(base.found.subfolders, {path('other')});
+      expect(base.found.conflicts.keys, [path('top.md')]);
     });
 
     test('keep what is in a folder they could not read', () {
-      final before = run.listedOf(_a).files;
+      final before = run.listedOf(_a).found.files;
       run
         ..changed(_a, 'work/x.md')
         ..waited(_settle)
@@ -373,7 +434,7 @@ void main() {
           ),
         );
 
-      expect(run.listedOf(_a).files, before);
+      expect(run.listedOf(_a).found.files, before);
     });
 
     test('add a new folder found', () {
@@ -389,8 +450,8 @@ void main() {
           ),
         );
 
-      expect(run.listedOf(_a).subfolders, contains(path('new')));
-      expect(run.listedOf(_a).files.keys, contains(path('new/x.md')));
+      expect(run.listedOf(_a).found.subfolders, contains(path('new')));
+      expect(run.listedOf(_a).found.files.keys, contains(path('new/x.md')));
     });
 
     test('tell when what they saw was seen', () {
@@ -436,13 +497,18 @@ void main() {
     });
 
     test('put the marks read again in place', () {
-      final marks = MarksFiles(const {});
+      final marks = MarksFiles({
+        path('.truce/marks/phone.json'): (
+          version: const FileVersion(1),
+          marks: const {},
+        ),
+      });
       run
         ..changed(_a, '.truce/marks/phone.json')
         ..waited(_settle)
         ..checked(PartScan.nothing, marks: marks);
 
-      expect(run.listedOf(_a).marks, same(marks));
+      expect(run.listedOf(_a).found.marks, same(marks));
     });
 
     test('of a folder whose listing failed wait for a listing', () {
@@ -491,14 +557,14 @@ void main() {
         ..send(AppWrote(_a, {path('x.md')}, at: at))
         ..checked(part(_file('x.md', version: 2, time: 3)));
 
-      final shown = run.listedOf(_a).files[path('x.md')]!;
+      final shown = run.listedOf(_a).found.files[path('x.md')]!;
       expect(shown.modified, at);
       expect(shown.version, const FileVersion(2));
 
       run
         ..send(Hinted(_a, ListAgain()))
         ..listed(_scan([_file('x.md', version: 3, time: 4)]));
-      expect(run.listedOf(_a).files[path('x.md')]!.modified, at);
+      expect(run.listedOf(_a).found.files[path('x.md')]!.modified, at);
     });
 
     test('give way once a later time shows', () {
@@ -512,7 +578,7 @@ void main() {
         ..listed(_scan([_file('x.md', version: 4, time: 15)]));
 
       expect(
-        run.listedOf(_a).files[path('x.md')]!.modified,
+        run.listedOf(_a).found.files[path('x.md')]!.modified,
         DateTime.utc(2026, 10, 28, 0, 0, 15),
       );
     });
@@ -537,6 +603,6 @@ void main() {
       ),
     );
 
-    expect(run.listedOf(_a).files.keys, [path('x.md')]);
+    expect(run.listedOf(_a).found.files.keys, [path('x.md')]);
   });
 }

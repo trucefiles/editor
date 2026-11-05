@@ -274,4 +274,19 @@ final class MarksFiles {
         if (!value.mark.isNone) key: value.mark,
     };
   }();
+
+  /// Equal to [other] when it holds the same files in the same versions:
+  /// a file read in the same version holds the same marks.
+  @override
+  bool operator ==(Object other) =>
+      other is MarksFiles &&
+      other.files.length == files.length &&
+      files.entries.every(
+        (entry) => other.files[entry.key]?.version == entry.value.version,
+      );
+
+  @override
+  int get hashCode => Object.hashAllUnordered(
+    files.entries.map((entry) => Object.hash(entry.key, entry.value.version)),
+  );
 }

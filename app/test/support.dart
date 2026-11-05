@@ -198,19 +198,21 @@ FolderContents contentsFinding(
         folder.id: switch (failed[folder]) {
           final error? => ListingFailed(error),
           null => Listed(
-            files: {
-              for (final file in files)
-                if (file.folder.id == folder.id)
-                  file.path: FileEntry(
-                    file.path,
-                    version: file.version,
-                    modified: file.modified,
-                  ),
-            },
-            conflicts: const {},
-            subfolders: const {},
-            unreadable: unreadable[folder.id] ?? const [],
-            marks: MarksFiles.none,
+            FolderFound(
+              files: {
+                for (final file in files)
+                  if (file.folder.id == folder.id)
+                    file.path: FileEntry(
+                      file.path,
+                      version: file.version,
+                      modified: file.modified,
+                    ),
+              },
+              conflicts: const {},
+              subfolders: const {},
+              unreadable: unreadable[folder.id] ?? const [],
+              marks: MarksFiles.none,
+            ),
             listedAt: at,
           ),
         },

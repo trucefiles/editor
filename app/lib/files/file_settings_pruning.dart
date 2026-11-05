@@ -17,5 +17,5 @@ final fileSettingsPruningProvider = FutureProvider<void>((ref) async {
   if (contents == null) return;
   await ref
       .read(fileSettingsProvider.notifier)
-      .prune(contents, now: DateTime.now());
+      .prune(contents.shown, now: DateTime.now());
 });

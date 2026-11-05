@@ -49,6 +49,20 @@ void main() {
     await tester.waitFor(fromElsewhere);
   });
 
+  testApp('in Manual mode, closing a document shows what came meanwhile', (
+    tester,
+  ) async {
+    await app.useRefresh(RefreshMode.manual);
+    app.write('plan.md', '# Plan\nv1\n');
+    await tester.addFolder(app);
+    await tester.openFile('Plan');
+
+    app.write('new.md', '# New\n');
+    await tester.pageBack();
+
+    await tester.waitFor(find.text('New'));
+  });
+
   testApp('the refresh button shows new documents', (tester) async {
     await app.useRefresh(RefreshMode.manual);
     await tester.addFolder(app);

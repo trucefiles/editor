@@ -6,6 +6,7 @@
 /// app wires in.
 library;
 
+export 'src/backups/backup_pruning.dart';
 export 'src/backups/backup_retention.dart';
 export 'src/backups/folder_backups.dart';
 export 'src/backups/restore_as_new_failure.dart';
@@ -31,6 +32,7 @@ export 'src/files_of_folder.dart';
 export 'src/files_owner.dart';
 export 'src/folder_state/file_conflicts.dart';
 export 'src/folder_state/folder_contents.dart';
+export 'src/folder_state/folder_files.dart';
 export 'src/home/home_filter.dart';
 export 'src/home/home_lists.dart';
 export 'src/home/home_settings.dart';

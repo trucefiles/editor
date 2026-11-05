@@ -59,7 +59,7 @@ final class FileSession {
   /// [effects] say), its file read and written by [effects], edited by
   /// [editor], which opened with [opened]'s text. [merge]: how its type
   /// merges two texts, if it does; then a change elsewhere can be picked
-  /// merged with the edits ([ChangedElsewhere.merges]).
+  /// merged with the edits ([mergesWith]).
   FileSession(FileText? opened, this._effects, this.editor, {TextMerge? merge})
     : _file = fileOwner(switch (opened) {
         final opened? => openedFile(opened.seen, merge: merge),
@@ -163,12 +163,24 @@ final class FileSession {
   void observe(FolderContents contents) {
     if (read?.key case final key?) {
       if (contents.seenAt(key) case final seenAt?) {
-        _file.send(Observed(contents.observe(key), startedAt: seenAt));
+        _file.send(Observed(contents.shown.observe(key), startedAt: seenAt));
       } else {
         // Not listed: what it holds is unknown.
         _file.send(Observed(const Unknown(), startedAt: Moment.now()));
       }
     }
+  }
+
+  /// Whether the edits and [theirs], the version from elsewhere the
+  /// compare view shows, can be picked merged; `false` once another
+  /// version from elsewhere came, or the file closed.
+  Future<bool> mergesWith(Seen theirs) async {
+    final answer = await ask<FileInput<ReadVersion>, MergesAnswer>(
+      _file.send,
+      _file.events,
+      (ticket) => AskMerges(ticket, seen: theirs.version),
+    );
+    return answer?.merges ?? false;
   }
 
   /// The user's pick between the edits at [rev] and [theirs], as the
@@ -310,7 +322,7 @@ final class FileSession {
         _fileNotices.add(event);
       case FolderGone():
         _onFolderGone();
-      case Answer() || MoveAnswer():
+      case Answer() || MoveAnswer() || MergesAnswer():
         // [ask] hears it.
         break;
     }

@@ -59,10 +59,6 @@ final class _Step<V extends Version>
           EditPhase.onDevice,
         _ => EditPhase.inMemory,
       }),
-      ChangedElsewhere(:final theirs) => ChangedElsewhere(
-        theirs,
-        merges: _merge(theirs) != null,
-      ),
       _ => status,
     },
     text: state.text,
@@ -93,6 +89,8 @@ final class _Step<V extends Version>
         _observed(observation, startedAt);
       case Pick():
         _pick(message);
+      case AskMerges(:final ticket, :final seen):
+        events.add(MergesAnswer(ticket, merges: _mergesWith(seen)));
       case RestoreMine():
         _restoreMine();
       case Discard():
@@ -520,12 +518,17 @@ final class _Step<V extends Version>
 
   /// Takes [pick] between the edits as they are and the version from
   /// elsewhere waiting for it; the backup follows the I/O under way.
+  /// Takes [pick] to carry out once no I/O runs; a pick it can't take
+  /// (against an older version or edits, or while another is under way)
+  /// is told as not kept, so the user picks again.
   void _pick(Pick pick) {
     if (_theirs(pick) != null &&
         pick.rev == state.rev &&
         work.pick == null &&
         work.io is! BackingUp) {
       _work(work.copyWith(pick: pick));
+    } else {
+      events.add(const PickNotKept());
     }
   }
 
@@ -606,6 +609,14 @@ final class _Step<V extends Version>
         }
     }
   }
+
+  /// Whether the edits and the version [seen] from elsewhere merge, while
+  /// it is the one the user picks against.
+  bool _mergesWith(Version seen) => switch (status) {
+    ChangedElsewhere(:final theirs) when theirs.version == seen =>
+      _merge(theirs) != null,
+    _ => false,
+  };
 
   /// The edits and [theirs] merged by the type, if it merges them: the
   /// edits' base is the version they were made over.

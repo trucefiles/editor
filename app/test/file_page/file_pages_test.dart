@@ -11,10 +11,12 @@ import 'file_fixture.dart';
 void main() {
   late FileFixture fixture;
   late OpenFiles open;
+  late int closings;
 
   setUp(() async {
     fixture = await FileFixture.create();
     open = OpenFiles();
+    closings = 0;
   });
 
   FilePages pages() => FilePages(
@@ -29,8 +31,19 @@ void main() {
     reachOf: (_) => Reach.reachable,
     reachSettled: (_) async => Reach.reachable,
     openFiles: open,
-    refreshFolders: () async {},
+    fileClosed: () => closings++,
   );
+
+  test('a page tells that it closed, once, as it closes', () async {
+    final page = pages().open(fixture.file, withFile: (_) async {});
+    expect(closings, 0);
+
+    final closed = page.close();
+    expect(closings, 1);
+    await closed;
+
+    expect(closings, 1);
+  });
 
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {

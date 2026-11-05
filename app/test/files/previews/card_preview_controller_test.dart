@@ -27,7 +27,7 @@ void main() {
   });
 
   Future<ListedFile> listed(String name) async =>
-      (await container.read(folderContentsProvider.future)).files
+      (await container.read(folderContentsProvider.future)).shown.files
           .singleWhere((file) => file.path.value == name);
 
   test('a card shows the title and preview of the text read', () async {

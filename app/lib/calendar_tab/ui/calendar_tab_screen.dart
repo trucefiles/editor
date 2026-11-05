@@ -27,9 +27,9 @@ class CalendarTabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final calendars = ref.watch(calendarTabProvider).value ?? const [];
     final viewChoice = ref.watch(calendarViewChoiceProvider);
-    final contents = ref.watch(folderContentsProvider).value;
+    final shown = ref.watch(folderFilesProvider);
     Color colorOf(ListedFile file) =>
-        fileColor(contents?.markOf(file.key).color, folder: file.folder.color);
+        fileColor(shown?.markOf(file.key).color, folder: file.folder.color);
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
       floatingActionButton: calendars.isEmpty

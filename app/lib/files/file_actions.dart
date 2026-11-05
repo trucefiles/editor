@@ -20,7 +20,7 @@ final fileActionsProvider = Provider<FileActions>(
     reachOf: (folder) => ref.read(folderReachProvider(folder)),
     newFilePlace: () =>
         ref.read(deviceSettingsProvider).requireValue.newFilePlace,
-    contents: () => ref.read(folderContentsProvider).value,
+    shown: () => ref.read(folderFilesProvider),
     showsFolder: (folder, subfolder) =>
         ref.read(folderServicesProvider(folder)).open.showsFolder(subfolder),
     read: (file) => ref.read(fileAccessProvider).of(file.folder).reload(file),
@@ -34,7 +34,7 @@ final class FileActions {
   /// What the screens show now: [_pickedFolders], the folders the grid
   /// is filtered to; [_revealFolder] and [_revealType] make the grid's
   /// filters let a folder's or a type's files through; [_reachOf], each folder's reach; [_newFilePlace], the
-  /// place set for new files; [_contents], what the folders hold, as
+  /// place set for new files; [_shown], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
   /// folder shows the files in one of its subfolders; [_read], a file's
   /// text as it is now.
@@ -45,7 +45,7 @@ final class FileActions {
     required this._revealType,
     required this._reachOf,
     required this._newFilePlace,
-    required this._contents,
+    required this._shown,
     required this._showsFolder,
     required this._read,
   });
@@ -56,7 +56,7 @@ final class FileActions {
   final void Function(FileType type) _revealType;
   final Reach Function(FolderId folder) _reachOf;
   final NewFilePlaceSetting? Function() _newFilePlace;
-  final FolderContents? Function() _contents;
+  final FolderFiles? Function() _shown;
   final bool Function(FolderId folder, RelPath subfolder) _showsFolder;
   final Future<Result<FileText, OpenFailure>> Function(ListedFile file) _read;
 
@@ -87,7 +87,7 @@ final class FileActions {
 
   /// The subfolders of [folder], as last seen.
   List<RelPath> subfoldersOf(Folder folder) =>
-      _contents()?.subfoldersOf(folder.id) ?? const [];
+      _shown()?.subfoldersOf(folder.id) ?? const [];
 
   /// Whether files of [folder] can go into [subfolder], an existing
   /// one or a new one: one whose files the folder shows (e.g. none of its
@@ -97,7 +97,7 @@ final class FileActions {
 
   /// [file]'s color, as last seen.
   FileMark markOf(ListedFile file) =>
-      _contents()?.markOf(file.key) ?? FileMark.none;
+      _shown()?.markOf(file.key) ?? FileMark.none;
 
   /// See [FileSteps.create].
   Future<Result<FileText, StoreError>> create(

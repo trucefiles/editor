@@ -52,7 +52,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
             value: RefreshMode.manual,
             title: Text('Manual'),
             subtitle: Text(
-              'Only when you refresh, open a file or come back to the '
+              'Only when you refresh, close a file or come back to the '
               'app.',
             ),
           ),
