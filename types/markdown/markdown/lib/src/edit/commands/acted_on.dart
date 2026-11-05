@@ -70,16 +70,19 @@ NodeId? actedOn(ViewRows view, Command command) {
 /// `null` where none of what went showed (a folded Done section).
 NodeId? shownAfter(ViewRows before, Edited edited, NodeId? acted) {
   bool gone(NodeId leaf) => edited.doc.nodeOf(leaf) == null;
+  bool rowGone(Row row) => gone(row.leaf.id);
   return switch ((edited.selection, acted)) {
     (final selection?, _) => selection.endLeaf,
     (null, null) => null,
     (null, final acted?) when !gone(acted) => acted,
     // Rows gone that showed (none where they were folded away).
-    (null, _) when before.rows.any((row) => gone(row.leaf.id)) =>
-      switch (caretPast(before, (row) => gone(row.leaf.id))) {
-        CaretAt(:final selection) => selection.endLeaf,
-        CaretAtEnd() || NoCaret() => null,
-      },
+    (null, _) when before.rows.any(rowGone) => switch (caretPast(
+      before,
+      rowGone,
+    )) {
+      CaretAt(:final selection) => selection.endLeaf,
+      CaretAtEnd() || NoCaret() => null,
+    },
     (null, _) => null,
   };
 }
