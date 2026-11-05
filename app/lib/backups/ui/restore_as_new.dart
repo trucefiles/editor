@@ -7,8 +7,7 @@ import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
 import '../../files/file_actions.dart';
 import '../../files/ui/file_place_dialog.dart';
-import '../../folder_state/folder_state_controller.dart';
-import '../../folders/folders_controller.dart';
+import '../../files/ui/folders_to_place_in.dart';
 import '../../folders/ui/folder_badge.dart';
 
 /// Asks where [backup] goes and under what name, starting at its file's
@@ -19,15 +18,9 @@ Future<void> restoreAsNew(
   WidgetRef ref,
   FolderBackup backup,
 ) async {
-  // Change events don't tell about new empty subfolders; a listing finds
-  // them, so the dialog offers them.
-  await ref.read(folderContentsProvider.notifier).refresh();
-  if (!context.mounted) return;
+  final folders = await foldersToPlaceIn(context, ref);
+  if (folders == null || !context.mounted) return;
   final actions = ref.read(fileActionsProvider);
-  final folders = actions.reachableOf(ref.read(foldersProvider).value ?? []);
-  if (folders.isEmpty) {
-    return showSnack(context, 'No folder can be reached right now.');
-  }
   final (:folder, backup: kept) = backup;
   final oldName = splitFileName(kept.filePath.name).base;
   final picked = await showFileNameDialog(
