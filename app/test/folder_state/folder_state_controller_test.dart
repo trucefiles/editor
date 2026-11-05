@@ -30,12 +30,12 @@ void main() {
     await saveFolders(container, folders);
   }
 
-  Future<FolderContents> scans() =>
-      container.read(folderContentsProvider.future);
+  Future<FolderFiles> scans() async =>
+      (await container.read(folderContentsProvider.future)).shown;
 
-  /// The file names of [contents]' files, in order.
-  List<String> names(FolderContents contents) => [
-    for (final file in contents.files) file.path.name,
+  /// The file names of [shown]'s files, in order.
+  List<String> names(FolderFiles shown) => [
+    for (final file in shown.files) file.path.name,
   ];
 
   void write(Directory dir, String name, String text, {DateTime? modified}) {
@@ -240,7 +240,34 @@ void main() {
           text: '# New',
         );
 
-    await eventually(() => names(shown.read().requireValue).contains('New.md'));
+    await eventually(
+      () => names(shown.read().requireValue.shown).contains('New.md'),
+    );
+  });
+
+  test('a listing that finds the same changes nothing the screens show; '
+      'one that finds a change does', () async {
+    final dir = tempFolder();
+    write(dir, 'plan.md', '# Plan');
+    await start([folderAt(dir)]);
+    final notifier = container.read(folderContentsProvider.notifier);
+    final before = await scans();
+    var told = 0;
+    container.listen(folderFilesProvider, (_, _) => told++);
+
+    final relisted = (await notifier.refresh())!;
+    await pumpEventQueue();
+
+    expect(relisted.shown, same(before));
+    expect(container.read(folderFilesProvider), same(before));
+    expect(told, 0);
+
+    write(dir, 'new.md', '# New');
+    final changed = (await notifier.refresh())!;
+    await eventually(() => told > 0);
+
+    expect(names(changed.shown), contains('new.md'));
+    expect(container.read(folderFilesProvider), same(changed.shown));
   });
 
   test('refresh shows a document written just before', () async {

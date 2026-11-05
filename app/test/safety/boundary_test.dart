@@ -80,9 +80,10 @@ void main() {
         file.path: file.readAsStringSync(),
   };
 
-  Future<FolderContents> scanned() async {
+  Future<FolderFiles> scanned() async {
     await container.read(folderContentsProvider.future);
-    return (await container.read(folderContentsProvider.notifier).refresh())!;
+    return (await container.read(folderContentsProvider.notifier).refresh())!
+        .shown;
   }
 
   setUp(() {

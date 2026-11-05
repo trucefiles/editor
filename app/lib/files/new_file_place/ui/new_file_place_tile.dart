@@ -20,7 +20,7 @@ class NewFilePlaceTile extends ConsumerWidget {
     final setting = ref.watch(
       deviceSettingsProvider.select((s) => s.requireValue.newFilePlace),
     );
-    ref.watch(folderContentsProvider);
+    ref.watch(folderFilesProvider);
     final actions = ref.read(fileActionsProvider);
     final place = resolveNewFilePlace(setting, folders);
     final device = ref.read(deviceSettingsProvider.notifier);

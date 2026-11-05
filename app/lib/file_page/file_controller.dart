@@ -145,9 +145,9 @@ final class FileController extends ChangeNotifier {
     null => FileSettings.defaults,
   };
 
-  /// The file's mark as [contents] know it; none until it has a file.
-  FileMark markIn(FolderContents? contents) => switch (session.read) {
-    final file? => contents?.markOf(file.key) ?? FileMark.none,
+  /// The file's mark as [shown] holds it; none until it has a file.
+  FileMark markIn(FolderFiles? shown) => switch (session.read) {
+    final file? => shown?.markOf(file.key) ?? FileMark.none,
     null => FileMark.none,
   };
 

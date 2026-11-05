@@ -23,16 +23,16 @@ ListedLook watchListed(WidgetRef ref, ListedFile file) {
   return (
     preview: ref.watch(cardPreviewProvider(file)),
     mark: ref.watch(
-      folderContentsProvider.select(
-        (contents) => contents.value?.markOf(key) ?? FileMark.none,
+      folderFilesProvider.select(
+        (shown) => shown?.markOf(key) ?? FileMark.none,
       ),
     ),
     settings: ref.watch(
       fileSettingsProvider.select((all) => settingsIn(all.value, key)),
     ),
     hasConflict: ref.watch(
-      folderContentsProvider.select(
-        (contents) => contents.value?.conflicts.forFile(key) != null,
+      folderFilesProvider.select(
+        (shown) => shown?.conflicts.forFile(key) != null,
       ),
     ),
   );
@@ -41,7 +41,7 @@ ListedLook watchListed(WidgetRef ref, ListedFile file) {
 /// The title cards show for the file at [key]: its text's own once
 /// read, else its file name without its extension.
 String watchTitle(WidgetRef ref, FileKey key) => switch (ref.watch(
-  folderContentsProvider.select((contents) => contents.value?.findFile(key)),
+  folderFilesProvider.select((shown) => shown?.findFile(key)),
 )) {
   final file? => cardTitle(file, ref.watch(cardPreviewProvider(file))),
   null => nameTitle(key.path),

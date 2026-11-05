@@ -56,6 +56,7 @@ void main() {
       );
       await saveFolders(container, [folderAt(dir)]);
       return (await container.read(folderContentsProvider.future))
+          .shown
           .conflicts
           .all
           .single;

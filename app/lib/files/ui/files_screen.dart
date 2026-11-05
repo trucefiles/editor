@@ -160,9 +160,9 @@ class _FilesBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(homeFilterProvider);
     final types = ref.watch(fileTypesProvider);
-    final contents = ref.watch(folderContentsProvider).value;
-    final conflicts = contents?.conflicts;
-    final files = filter.of(contents?.files ?? const <ListedFile>[]);
+    final shown = ref.watch(folderFilesProvider);
+    final conflicts = shown?.conflicts;
+    final files = filter.of(shown?.files ?? const <ListedFile>[]);
     final orphans = filter.orphansOf(
       conflicts?.orphans ?? const [],
       typeOf: (path) => types.of(path)?.support.type,
@@ -179,12 +179,12 @@ class _FilesBody extends ConsumerWidget {
           folders,
           conflictCount: (folder) => conflicts?.countIn(folder.id) ?? 0,
         ),
-        if (contents != null) FolderProblems(contents, folders: folders),
+        if (shown != null) FolderProblems(shown, folders: folders),
         Expanded(
           child: PullToRefresh(
             key: pull,
             onRefresh: ref.read(folderContentsProvider.notifier).refresh,
-            child: contents == null
+            child: shown == null
                 ? const FilledScrollView(child: CircularProgressIndicator())
                 : files.isEmpty && orphans.isEmpty
                 ? const FilledScrollView(
@@ -264,8 +264,7 @@ class _ConflictsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count =
-        ref.watch(folderContentsProvider).value?.conflicts.all.length ?? 0;
+    final count = ref.watch(folderFilesProvider)?.conflicts.all.length ?? 0;
     if (count == 0) return const SizedBox.shrink();
     return IconButton(
       tooltip: 'Conflicts',

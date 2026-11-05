@@ -410,9 +410,9 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     ref.watch(folderReachProvider(_folder.id));
     final unreachable = _controller.unreachable;
     final readOnly = _controller.readOnly;
-    final contents = ref.watch(folderContentsProvider).value;
+    final shown = ref.watch(folderFilesProvider);
     final key = _session.read?.key;
-    final mark = _controller.markIn(contents);
+    final mark = _controller.markIn(shown);
     ref.watch(fileSettingsProvider);
     final settings = _controller.settings;
     final tint = fileTint(mark.color, Theme.of(context).colorScheme);
@@ -448,7 +448,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       body: Column(
         children: [
           if (key != null)
-            if (contents?.conflicts.forFile(key) case final conflict?)
+            if (shown?.conflicts.forFile(key) case final conflict?)
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,

@@ -1,3 +1,6 @@
+import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
+
 import '../common/moment.dart';
 import '../conflicts/conflict.dart';
 import '../marks/file_marks.dart';
@@ -34,21 +37,54 @@ final class ListingFailed extends ListingState {
   final StoreError error;
 }
 
-/// Listed: its files and what is known of them, kept in step with changes.
+/// Listed: what was [found], kept in step with changes, and when.
 final class Listed extends ListingState {
-  Listed({
+  Listed(
+    this.found, {
+    required this.listedAt,
+    Map<RelPath?, Moment> checkedAt = const {},
+  }) : checkedAt = Map.unmodifiable(checkedAt);
+
+  /// What the folder holds. The same object as long as the listings and
+  /// checks since found the same, so whatever is made of it is made
+  /// again only when it changes.
+  final FolderFound found;
+
+  /// When the last whole listing began.
+  final Moment listedAt;
+
+  /// When the last check of a folder since [listedAt] began, by folder
+  /// (`null`: the top level).
+  final Map<RelPath?, Moment> checkedAt;
+
+  /// When what is known of [path] was seen: the start of the last listing
+  /// or check of its folder, so a write that ended later is not in it. A
+  /// check looks only directly in a folder, so one of a folder above
+  /// tells nothing of [path].
+  Moment seenAt(RelPath path) => checkedAt[path.parent] ?? listedAt;
+
+  Listed copyWith({FolderFound? found, Map<RelPath?, Moment>? checkedAt}) =>
+      Listed(
+        found ?? this.found,
+        listedAt: listedAt,
+        checkedAt: checkedAt ?? this.checkedAt,
+      );
+}
+
+/// What a folder holds, as its listings and checks found it. Equal to
+/// another that holds the same.
+@immutable
+final class FolderFound {
+  FolderFound({
     required Map<RelPath, FileEntry> files,
     required Map<RelPath, Conflict> conflicts,
     required Set<RelPath> subfolders,
     required List<RelPath> unreadable,
     required this.marks,
-    required this.listedAt,
-    Map<RelPath?, Moment> checkedAt = const {},
   }) : files = Map.unmodifiable(files),
        conflicts = Map.unmodifiable(conflicts),
        subfolders = Set.unmodifiable(subfolders),
-       unreadable = List.unmodifiable(unreadable),
-       checkedAt = Map.unmodifiable(checkedAt);
+       unreadable = List.unmodifiable(unreadable);
 
   /// The files its sync tool shows, by path. A file's time is never one
   /// older than the app's own write of it.
@@ -66,37 +102,43 @@ final class Listed extends ListingState {
   /// The marks files of all devices.
   final MarksFiles marks;
 
-  /// When the last whole listing began.
-  final Moment listedAt;
-
-  /// When the last check of a folder since [listedAt] began, by folder
-  /// (`null`: the top level).
-  final Map<RelPath?, Moment> checkedAt;
-
-  /// When what is known of [path] was seen: the start of the last listing
-  /// or check of its folder, so a write that ended later is not in it. A
-  /// check looks only directly in a folder, so one of a folder above
-  /// tells nothing of [path].
-  Moment seenAt(RelPath path) => checkedAt[path.parent] ?? listedAt;
-
   /// Whether what is at [path] is known: no subfolder above it could not
   /// be read.
   bool sees(RelPath path) =>
       !unreadable.any((folder) => path.isAtOrInside(folder));
 
-  Listed copyWith({
+  FolderFound copyWith({
     Map<RelPath, FileEntry>? files,
     Map<RelPath, Conflict>? conflicts,
     Set<RelPath>? subfolders,
     MarksFiles? marks,
-    Map<RelPath?, Moment>? checkedAt,
-  }) => Listed(
+  }) => FolderFound(
     files: files ?? this.files,
     conflicts: conflicts ?? this.conflicts,
     subfolders: subfolders ?? this.subfolders,
     unreadable: unreadable,
     marks: marks ?? this.marks,
-    listedAt: listedAt,
-    checkedAt: checkedAt ?? this.checkedAt,
+  );
+
+  static const _maps = MapEquality<Object?, Object?>();
+  static const _sets = SetEquality<RelPath>();
+  static const _lists = ListEquality<RelPath>();
+
+  @override
+  bool operator ==(Object other) =>
+      other is FolderFound &&
+      _maps.equals(other.files, files) &&
+      _maps.equals(other.conflicts, conflicts) &&
+      _sets.equals(other.subfolders, subfolders) &&
+      _lists.equals(other.unreadable, unreadable) &&
+      other.marks == marks;
+
+  @override
+  int get hashCode => Object.hash(
+    _maps.hash(files),
+    _maps.hash(conflicts),
+    _sets.hash(subfolders),
+    _lists.hash(unreadable),
+    marks,
   );
 }

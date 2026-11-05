@@ -224,14 +224,16 @@ final class _Step
         _setFolder(
           folder,
           Listed(
-            files: files,
-            conflicts: {
-              for (final conflict in scan.conflicts)
-                conflict.mainPath: conflict,
-            },
-            subfolders: scan.subfolders.toSet(),
-            unreadable: scan.unreadable,
-            marks: marks,
+            FolderFound(
+              files: files,
+              conflicts: {
+                for (final conflict in scan.conflicts)
+                  conflict.mainPath: conflict,
+              },
+              subfolders: scan.subfolders.toSet(),
+              unreadable: scan.unreadable,
+              marks: marks,
+            ),
             listedAt: startedAt,
           ),
         );
@@ -253,7 +255,9 @@ final class _Step
     // tells too little.
     if (listed is! Listed) return;
     var checked = listed;
-    if (marks != null) checked = checked.copyWith(marks: marks);
+    if (marks != null) {
+      checked = checked.copyWith(found: checked.found.copyWith(marks: marks));
+    }
     switch (part) {
       case Ok(value: final part):
         checked = _mergePart(
@@ -285,24 +289,27 @@ final class _Step
     final known = {...part.found, ...gone};
     bool replaced(RelPath path) =>
         known.contains(path.parent) || gone.any((f) => _inOrAt(path, f));
+    final found = listed.found;
     final files = _shown(folder, {
-      for (final MapEntry(:key, :value) in listed.files.entries)
+      for (final MapEntry(:key, :value) in found.files.entries)
         if (!replaced(key)) key: value,
       for (final entry in part.files) entry.path: entry,
     });
     _keepOwnWritesOf(folder, files);
     return listed.copyWith(
-      files: files,
-      conflicts: {
-        for (final MapEntry(:key, :value) in listed.conflicts.entries)
-          if (!replaced(key)) key: value,
-        for (final conflict in part.conflicts) conflict.mainPath: conflict,
-      },
-      subfolders: {
-        for (final subfolder in listed.subfolders)
-          if (!gone.any((f) => _inOrAt(subfolder, f))) subfolder,
-        for (final subfolder in part.found) ?subfolder,
-      },
+      found: found.copyWith(
+        files: files,
+        conflicts: {
+          for (final MapEntry(:key, :value) in found.conflicts.entries)
+            if (!replaced(key)) key: value,
+          for (final conflict in part.conflicts) conflict.mainPath: conflict,
+        },
+        subfolders: {
+          for (final subfolder in found.subfolders)
+            if (!gone.any((f) => _inOrAt(subfolder, f))) subfolder,
+          for (final subfolder in part.found) ?subfolder,
+        },
+      ),
       checkedAt: {
         ...listed.checkedAt,
         for (final subfolder in known) subfolder: startedAt,
@@ -348,8 +355,18 @@ final class _Step
     work = work.copyWith(ownWrites: {...work.ownWrites, folder: kept});
   }
 
+  /// Sets what [folder] holds; a listing that found the same as before
+  /// keeps what was found, so nothing made of it is made again.
   void _setFolder(FolderId folder, ListingState listing) =>
-      state = FolderState({...state.folders, folder: listing});
+      state = FolderState({
+        ...state.folders,
+        folder: switch ((state.folders[folder], listing)) {
+          (Listed(found: final before), final Listed now)
+              when now.found == before =>
+            now.copyWith(found: before),
+          _ => listing,
+        },
+      });
 
   // The next listing or check.
 
@@ -412,7 +429,7 @@ final class _Step
   }
 
   MarksFiles _marksOf(FolderId folder) => switch (state.folders[folder]) {
-    Listed(:final marks) => marks,
+    Listed(found: FolderFound(:final marks)) => marks,
     _ => MarksFiles.none,
   };
 

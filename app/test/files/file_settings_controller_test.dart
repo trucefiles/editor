@@ -98,12 +98,12 @@ void main() {
         listedFile(folder, name: name);
 
     /// Prunes by [found] now and again once the grace period is over.
-    Future<void> pruneAfterGrace(FolderContents found) async {
+    Future<void> pruneAfterGrace(FolderFiles found) async {
       await views.prune(found, now: now);
       await views.prune(found, now: graceLater);
     }
 
-    FolderContents scans(
+    FolderFiles scans(
       List<ListedFile> files, {
       Map<Folder, StoreError> failed = const {},
       Map<FolderId, List<RelPath>> unreadable = const {},
@@ -112,7 +112,7 @@ void main() {
       folders: [work, home],
       failed: failed,
       unreadable: unreadable,
-    );
+    ).shown;
 
     test('drops views of documents and folders that are gone', () async {
       final kept = fileAt(work, 'kept.md');

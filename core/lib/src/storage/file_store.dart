@@ -108,6 +108,16 @@ final class FileEntry {
   /// When the file was last changed, for showing and sorting only; change
   /// checks use [version].
   final DateTime modified;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FileEntry &&
+      other.path == path &&
+      other.version == version &&
+      other.modified == modified;
+
+  @override
+  int get hashCode => Object.hash(path, version, modified);
 }
 
 final class FileContent {

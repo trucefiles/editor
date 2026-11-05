@@ -37,8 +37,8 @@ final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
 /// Whether the shown folders hold a calendar: the tab shows only then.
 final hasCalendarsProvider = Provider<bool>(
   (ref) => ref.watch(
-    folderContentsProvider.select(
-      (contents) => contents.value?.files.any(isCalendarFile) ?? false,
+    folderFilesProvider.select(
+      (shown) => shown?.files.any(isCalendarFile) ?? false,
     ),
   ),
 );
@@ -57,12 +57,14 @@ final calendarTabProvider =
 class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
   @override
   Future<List<TabCalendar>> build() async {
-    final contents = await ref.watch(folderContentsProvider.future);
+    final shown = await ref.watch(
+      folderContentsProvider.selectAsync((contents) => contents.shown),
+    );
     await ref.watch(fileSettingsProvider.future);
     final settings = ref.read(fileSettingsProvider.notifier);
     final read = await ref
         .read(calendarReadsProvider)
-        .readAll(contents.files.where(isCalendarFile).toList());
+        .readAll(shown.files.where(isCalendarFile).toList());
     return [
       for (final MapEntry(key: file, value: (:calendar, :title))
           in read.entries)

@@ -13,7 +13,15 @@ final folderContentsProvider =
       FolderStateController.new,
     );
 
-/// What the added folders hold, for the screens: changes from the sync
+/// What the screens show of the added folders: a new value only when
+/// what they hold changed, not with each listing that found the same.
+final folderFilesProvider = Provider<FolderFiles?>(
+  (ref) => ref.watch(
+    folderContentsProvider.select((contents) => contents.value?.shown),
+  ),
+);
+
+/// What the added folders hold and when it was seen: changes from the sync
 /// tool, other editors or the app's own writes show up as the folder
 /// state owner finds them.
 class FolderStateController extends AsyncNotifier<FolderContents> {
@@ -26,20 +34,26 @@ class FolderStateController extends AsyncNotifier<FolderContents> {
     ref.watch(folderListingProvider);
     final folders = await ref.watch(foldersProvider.future);
     final types = ref.watch(fileTypesProvider);
-    FolderContents contentsOf(FolderState state) =>
-        FolderContents(state, folders: folders, types: types);
+    FolderContents? last;
+    FolderContents contentsOf(FolderState state) => last = FolderContents(
+      state,
+      folders: folders,
+      types: types,
+      before: last,
+    );
     _contentsOf = contentsOf;
     final changes = owner.changes.listen((state) {
       final contents = contentsOf(state);
-      if (contents.loaded) this.state = AsyncData(contents);
+      if (contents.shown.loaded) this.state = AsyncData(contents);
     });
     ref.onDispose(() => unawaited(changes.cancel()));
-    if (contentsOf(owner.state) case final contents when contents.loaded) {
+    if (contentsOf(owner.state) case final contents
+        when contents.shown.loaded) {
       return contents;
     }
     return owner.changes
         .map(contentsOf)
-        .firstWhere((contents) => contents.loaded);
+        .firstWhere((contents) => contents.shown.loaded);
   }
 
   /// Lists every folder again now, e.g. when a file closes, when

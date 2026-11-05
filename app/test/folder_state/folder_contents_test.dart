@@ -11,7 +11,7 @@ void main() {
   final work = folderAt(Directory('/documents/work'), id: 'work');
   final home = folderAt(Directory('/documents/home'), id: 'home');
 
-  FolderContents scans({
+  FolderFiles scans({
     List<Folder>? folders,
     List<ListedFile> files = const [],
     Map<Folder, StoreError> failed = const {},
@@ -21,7 +21,7 @@ void main() {
     folders: folders ?? [work, home],
     failed: failed,
     unreadable: unreadable,
-  );
+  ).shown;
 
   group('covers', () {
     test('documents of folders that were scanned', () {
@@ -129,14 +129,14 @@ void main() {
         folders: [work],
       );
 
-      expect(contents.files, [kept]);
+      expect(contents.shown.files, [kept]);
     });
   });
 
   test('loaded once every folder was listed, even if that failed', () {
     expect(scans(failed: {home: StoreError.ioFailure}).loaded, isTrue);
     expect(
-      FolderContents(
+      FolderFiles(
         FolderState({work.id: const NotListed()}),
         folders: [work],
         types: appFileTypes(),
@@ -145,25 +145,73 @@ void main() {
     );
   });
 
-  test('listed at the start of the oldest listing', () {
+  test("a file is seen when its folder's listing began", () {
     final early = Moment.now();
-    final contents = FolderContents(
-      FolderState({
-        ...contentsFinding(
-          const [],
-          folders: [work],
-          listedAt: early,
-        ).state.folders,
-        ...contentsFinding(const [], folders: [home]).state.folders,
-      }),
+    final contents = contentsFinding(
+      const [],
       folders: [work, home],
-      types: appFileTypes(),
+      listedAt: early,
     );
 
-    expect(contents.listedAt, early);
     expect(
       contents.seenAt((folder: folderId('work'), path: path('a.md'))),
       early,
     );
+    expect(
+      contents.seenAt((folder: folderId('gone'), path: path('a.md'))),
+      isNull,
+    );
+  });
+
+  group('what screens show', () {
+    final folders = [work, home];
+    final file = listedFile(work, name: 'a.md');
+
+    test('stays the same while the folders found the same', () {
+      final before = contentsFinding([file], folders: folders);
+      final relisted = Listed(
+        (before.state.folders[work.id]! as Listed).found,
+        listedAt: Moment.now(),
+      );
+
+      final after = FolderContents(
+        FolderState({...before.state.folders, work.id: relisted}),
+        folders: before.shown.folders,
+        types: before.shown.types,
+        before: before,
+      );
+
+      expect(after.shown, same(before.shown));
+      expect(after.seenAt(file.key), same(relisted.listedAt));
+    });
+
+    test('is made anew when a folder found something else', () {
+      final before = contentsFinding([file], folders: folders);
+      final changed = contentsFinding(const [], folders: folders);
+
+      final after = FolderContents(
+        changed.state,
+        folders: before.shown.folders,
+        types: before.shown.types,
+        before: before,
+      );
+
+      expect(after.shown, isNot(same(before.shown)));
+      expect(after.shown.files, isEmpty);
+    });
+
+    test('is made anew for other folders', () {
+      final before = contentsFinding([file], folders: folders);
+
+      final after = FolderContents(
+        before.state,
+        folders: [work],
+        types: before.shown.types,
+        before: before,
+      );
+
+      expect(after.shown, isNot(same(before.shown)));
+      expect(after.shown.folders, [work]);
+    });
   });
 }

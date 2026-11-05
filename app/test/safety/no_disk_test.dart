@@ -48,7 +48,7 @@ void main() {
     final contents = (await container
         .read(folderContentsProvider.notifier)
         .refresh())!;
-    return [for (final file in contents.files) file.path.value];
+    return [for (final file in contents.shown.files) file.path.value];
   }
 
   test('lists, opens, saves, creates and moves files, into a new folder '
@@ -89,8 +89,9 @@ void main() {
     place.changes.hint(PathChanged(path('c.md')));
 
     await eventually(
-      () async => (container.read(folderContentsProvider).value?.files ?? [])
-          .any((file) => file.path.value == 'c.md'),
+      () async => (container.read(folderFilesProvider)?.files ?? []).any(
+        (file) => file.path.value == 'c.md',
+      ),
     );
     expect(place.changes.followed, 1);
   });

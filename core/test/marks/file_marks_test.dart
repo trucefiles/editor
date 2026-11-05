@@ -307,4 +307,18 @@ void main() {
       expect(again.marks, {path('todo.md'): amber});
     });
   });
+
+  test('marks files are equal when they hold the same files in the same '
+      'versions', () {
+    MarksFiles of(int version) => MarksFiles({
+      path('.truce/marks/phone.json'): (
+        version: FileVersion(version),
+        marks: const {},
+      ),
+    });
+
+    expect(of(1), of(1));
+    expect(of(1), isNot(of(2)));
+    expect(of(1), isNot(MarksFiles.none));
+  });
 }

@@ -7,23 +7,22 @@ import 'package:truce_folders/truce_folders.dart';
 import '../../common/store_error_text.dart';
 import '../../folder_state/folder_state_controller.dart';
 
-/// One row per folder that could not be seen in full in [contents]: folders that
+/// One row per folder that could not be seen in full in [shown]: folders that
 /// failed, with a retry, folders with subfolders that can't be read, and
 /// folders whose chosen subfolders are gone.
 class FolderProblems extends ConsumerWidget {
-  const FolderProblems(this.contents, {required this.folders, super.key});
+  const FolderProblems(this.shown, {required this.folders, super.key});
 
-  final FolderContents contents;
+  final FolderFiles shown;
 
-  /// The folders the user added, for the names of [FolderContents.unreadable]
-  /// and [FolderContents.gone].
+  /// The folders the user added, for the names of [FolderFiles.unreadable].
   final List<Folder> folders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(
     children: [
       for (final MapEntry(key: folder, value: error)
-          in contents.failedFolders.entries)
+          in shown.failedFolders.entries)
         ListTile(
           leading: const Icon(Icons.error_outline),
           title: Text(folder.name),
@@ -34,7 +33,7 @@ class FolderProblems extends ConsumerWidget {
           ),
         ),
       for (final folder in folders)
-        if (contents.unreadable[folder.id] case final subfolders?)
+        if (shown.unreadable[folder.id] case final subfolders?)
           ListTile(
             leading: const Icon(Icons.folder_off_outlined),
             title: Text(folder.name),

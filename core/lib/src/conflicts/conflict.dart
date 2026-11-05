@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../storage/file_store.dart';
 import '../storage/rel_path.dart';
 
@@ -21,6 +23,20 @@ final class Conflict {
   /// device and later deleted on another: the delete wins, and the edit
   /// survives only as a conflict copy.
   bool get isOrphaned => main == null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Conflict &&
+      other.mainPath == mainPath &&
+      other.main == main &&
+      const ListEquality<ConflictCopy>().equals(other.copies, copies);
+
+  @override
+  int get hashCode => Object.hash(
+    mainPath,
+    main,
+    const ListEquality<ConflictCopy>().hash(copies),
+  );
 }
 
 final class ConflictCopy {
@@ -39,4 +55,14 @@ final class ConflictCopy {
 
   /// When the sync tool created the copy.
   final DateTime createdAt;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ConflictCopy &&
+      other.id == id &&
+      other.version == version &&
+      other.createdAt == createdAt;
+
+  @override
+  int get hashCode => Object.hash(id, version, createdAt);
 }

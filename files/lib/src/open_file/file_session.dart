@@ -163,7 +163,7 @@ final class FileSession {
   void observe(FolderContents contents) {
     if (read?.key case final key?) {
       if (contents.seenAt(key) case final seenAt?) {
-        _file.send(Observed(contents.observe(key), startedAt: seenAt));
+        _file.send(Observed(contents.shown.observe(key), startedAt: seenAt));
       } else {
         // Not listed: what it holds is unknown.
         _file.send(Observed(const Unknown(), startedAt: Moment.now()));

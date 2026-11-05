@@ -17,7 +17,7 @@ class ConflictsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conflicts =
-        ref.watch(folderContentsProvider).value?.conflicts.all ??
+        ref.watch(folderFilesProvider)?.conflicts.all ??
         const <FolderConflict>[];
     return Scaffold(
       appBar: AppBar(title: const Text('Conflicts')),

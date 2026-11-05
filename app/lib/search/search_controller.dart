@@ -29,7 +29,7 @@ class FileSearchController extends Notifier<SearchResults> {
   SearchResults build() {
     final search = _search = ref.read(openTextSearchProvider)(
       searchablesOf(
-        ref.read(folderContentsProvider).value?.files ?? const [],
+        ref.read(folderFilesProvider)?.files ?? const [],
         filesOf: (folder) => ref.read(fileAccessProvider).of(folder),
         types: ref.read(fileTypesProvider),
       ),

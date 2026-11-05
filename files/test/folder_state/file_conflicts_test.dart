@@ -6,18 +6,20 @@ import 'package:truce_test_support/truce_test_support.dart';
 /// Folder `notes`, listed with a pending conflict of each of [conflicts].
 FolderState _listed(List<String> conflicts) => FolderState({
   folderId('notes'): Listed(
-    files: const {},
-    conflicts: {
-      for (final main in conflicts)
-        path(main): Conflict(
-          mainPath: path(main),
-          main: null,
-          copies: const [],
-        ),
-    },
-    subfolders: const {},
-    unreadable: const [],
-    marks: MarksFiles.none,
+    FolderFound(
+      files: const {},
+      conflicts: {
+        for (final main in conflicts)
+          path(main): Conflict(
+            mainPath: path(main),
+            main: null,
+            copies: const [],
+          ),
+      },
+      subfolders: const {},
+      unreadable: const [],
+      marks: MarksFiles.none,
+    ),
     listedAt: Moment.now(),
   ),
 });

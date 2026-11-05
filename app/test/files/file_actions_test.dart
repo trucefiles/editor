@@ -47,10 +47,11 @@ void main() {
   });
 
   /// What the folders hold, listed after every write so far.
-  Future<FolderContents> scans() async {
+  Future<FolderFiles> scans() async {
     // The first listing must be done, or the refresh finds no folders yet.
     await container.read(folderContentsProvider.future);
-    return (await container.read(folderContentsProvider.notifier).refresh())!;
+    return (await container.read(folderContentsProvider.notifier).refresh())!
+        .shown;
   }
 
   File diskFile(Directory dir, String name) => File('${dir.path}/$name');
