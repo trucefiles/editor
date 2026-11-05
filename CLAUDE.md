@@ -33,7 +33,7 @@ Prefer the simpler option when in doubt.
 ## Code style
 - Best design first: model the domain with the right entities and abstractions, then code it; never a quick version, or one shaped after old code, to clean up later.
 - Declarative over procedural: say what a value is (collection literals and comprehensions, `map`/`where`/`fold`, `switch` expressions with patterns, `package:collection` helpers), not how to build it step by step. No index loops, counters or flags where a declarative form reads as well.
-- Functional where possible: pure functions and immutable values; structure is derived once in an entity (e.g. a parsed tree) and questions are lookups on it, never rescans.
+- Functional where possible: pure functions and immutable values.
 - Object-oriented where state or identity is real: an entity owns its data and the rules on it; closed sets of cases are sealed classes, matched exhaustively.
 - Mutation only where it is the job (a session, an editor bridge), inside one owner. A loop with local state only where it is the clearest form (e.g. a single-pass parser).
 - One rule, one place: logic two operations share is one helper, never two variants.
@@ -49,6 +49,11 @@ Prefer the simpler option when in doubt.
 - Block-exact edits: blocks the user didn't touch keep their bytes; an edited block is rewritten in its own style where possible; never reprint the whole file.
 - Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per file format turns the doc tree into text, keeping each block's own style. New editing features (headings, quotes, tables) follow the same shape.
 - Concurrency: reads that follow a write must see that write.
+
+## Performance and memory
+- Work grows with the change, not with the data: handle only what changed, and pass changes on, not whole values.
+- Compute and store once: derive each answer once per input (e.g. a parsed tree per file version) and look it up after; keep one copy of each piece of data, with its owner.
+- No hidden quadratic work (a copy or full walk per step); hot paths (per keystroke, per listing) get speed tests at large sizes.
 
 ## Quality
 - A trusted, maintained library (or the framework's own) beats own code; own code only where none fits these rules, and the code says why.
