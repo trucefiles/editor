@@ -2,15 +2,15 @@ import 'package:collection/collection.dart';
 
 import '../editor_contract.dart';
 import 'typing.dart';
+import 'undoable_edit.dart';
 
-/// One undo or redo step: the file to come back to, as a snapshot of
-/// the type's own ([S]), and the step's [id].
-typedef HistoryStep<S> = ({int id, S snapshot});
+/// One undo or redo step of the type's own ([S]), and its [id].
+typedef HistoryStep<S> = ({int id, S step});
 
 /// The undo and redo steps of one editing session, an immutable value:
-/// each operation gives the history after it. Any file type: [S] is
-/// what its editor showed at a step, to come back to.
-final class EditHistory<S> {
+/// each operation gives the history after it. Any file type: [S] is an
+/// edit as its editor keeps it, to take back and make again.
+final class EditHistory<S extends UndoableEdit<S>> {
   const EditHistory({
     this.undos = const [],
     this.redos = const [],
@@ -22,10 +22,10 @@ final class EditHistory<S> {
   /// The most steps kept; the oldest go first.
   static const limit = 100;
 
-  /// What undo comes back to, the latest last.
+  /// The edits undo takes back, the latest last.
   final List<HistoryStep<S>> undos;
 
-  /// What redo comes back to, the next last.
+  /// The edits redo makes again, the next last.
   final List<HistoryStep<S>> redos;
 
   /// The typing the latest undo step holds, while more may join it.
@@ -43,19 +43,26 @@ final class EditHistory<S> {
   /// The id of the step undo takes back next.
   int? get latestId => undos.lastOrNull?.id;
 
-  /// The history with [typing] joined to the latest step, where its run
-  /// takes it; `null` where it is a new step.
-  EditHistory<S>? continued(Typing? typing) => switch (run) {
-    final run? when typing != null && run.takes(typing) => _with(
-      run: run.then(typing),
-    ),
-    _ => null,
-  };
+  /// The history with [step], typing [typing], joined to the latest
+  /// step, where its run takes it; `null` where it is a new step.
+  EditHistory<S>? continued(S step, Typing? typing) =>
+      switch ((run, undos.lastOrNull)) {
+        (final run?, (:final id, step: final latest)?)
+            when typing != null && run.takes(typing) =>
+          _with(
+            undos: [
+              ...undos.take(undos.length - 1),
+              (id: id, step: latest.joined(step)),
+            ],
+            run: run.then(typing),
+          ),
+        _ => null,
+      };
 
-  /// The history with an edit that changed the file from [before] as
-  /// a new step, its typing [typing] if it was typing. Redo steps go.
-  EditHistory<S> recorded(S before, Typing? typing) {
-    final undos = [...this.undos, (id: nextId, snapshot: before)];
+  /// The history with [step], typing [typing] if it was typing, as a new
+  /// step. Redo steps go.
+  EditHistory<S> recorded(S step, Typing? typing) {
+    final undos = [...this.undos, (id: nextId, step: step)];
     final dropped = undos.length > limit;
     return _with(
       undos: dropped ? undos.sublist(undos.length - limit) : undos,
@@ -66,33 +73,31 @@ final class EditHistory<S> {
     );
   }
 
-  /// The latest undo step's file, and the history once undo went
-  /// back to it from [now]; `null` if there is none.
-  ({EditHistory<S> history, S back})? undone(S now) =>
-      switch (undos.lastOrNull) {
-        (:final id, :final snapshot)? => (
-          history: _with(
-            undos: undos.sublist(0, undos.length - 1),
-            redos: [...redos, (id: id, snapshot: now)],
-          ),
-          back: snapshot,
-        ),
-        null => null,
-      };
+  /// The latest undo step, and the history once undo took it back (redo
+  /// makes it again next); `null` if there is none.
+  ({EditHistory<S> history, S step})? undone() => switch (undos.lastOrNull) {
+    final latest? => (
+      history: _with(
+        undos: undos.sublist(0, undos.length - 1),
+        redos: [...redos, latest],
+      ),
+      step: latest.step,
+    ),
+    null => null,
+  };
 
-  /// The next redo step's file, and the history once redo went to
-  /// it from [now]; `null` if there is none.
-  ({EditHistory<S> history, S back})? redone(S now) =>
-      switch (redos.lastOrNull) {
-        (:final id, :final snapshot)? => (
-          history: _with(
-            undos: [...undos, (id: id, snapshot: now)],
-            redos: redos.sublist(0, redos.length - 1),
-          ),
-          back: snapshot,
-        ),
-        null => null,
-      };
+  /// The next redo step, and the history once redo made it again (undo
+  /// takes it back next); `null` if there is none.
+  ({EditHistory<S> history, S step})? redone() => switch (redos.lastOrNull) {
+    final next? => (
+      history: _with(
+        undos: [...undos, next],
+        redos: redos.sublist(0, redos.length - 1),
+      ),
+      step: next.step,
+    ),
+    null => null,
+  };
 
   /// The history with its typing run ended: the next typing is a step of
   /// its own.

@@ -2,12 +2,13 @@ import '../../filetypes/file_type_support.dart';
 import '../version.dart';
 import 'editor_contract.dart';
 import 'history/edit_history.dart';
+import 'history/undoable_edit.dart';
 import 'save_clock.dart';
 
 /// The bookkeeping every editor keeps of its edits, whatever the file
 /// type: their revs on the way to the file owner, the save timing, and the
-/// undo history of snapshots of the type's own ([S]). An immutable value.
-final class EditorBook<S> {
+/// undo history of edits as the type keeps them ([S]). An immutable value.
+final class EditorBook<S extends UndoableEdit<S>> {
   EditorBook({
     required this.lineage,
     required this.summary,

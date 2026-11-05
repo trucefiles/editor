@@ -4,14 +4,15 @@ import '../file_owner/file_contract.dart';
 import 'editor_book.dart';
 import 'editor_contract.dart';
 import 'history/typing.dart';
+import 'history/undoable_edit.dart';
 import 'save_clock.dart';
 
 /// How every editor handles what all file types share, inside the
 /// step of its own machine: the page's requests, the save timing, and
 /// undo and redo. The type keeps its [book] and gives what differs: what
-/// shows ([snapshot], [restore], [reload], [replaceText]) and the text it
-/// sends, with its summary ([sent]).
-mixin EditorSteps<S> {
+/// shows ([undo], [redo], [reload], [replaceText]) and the text it sends,
+/// with its summary ([sent]).
+mixin EditorSteps<S extends UndoableEdit<S>> {
   EditorBook<S> get book;
   set book(EditorBook<S> book);
 
@@ -21,18 +22,19 @@ mixin EditorSteps<S> {
   /// Starts save timer [id], to fire after [delay].
   void startTimer(EffectId id, Duration delay);
 
-  /// What shows now, to come back to.
-  S snapshot();
+  /// What showed before [step] shows again.
+  void undo(S step);
 
-  /// [back], a snapshot, shows again.
-  void restore(S back);
+  /// What showed after [step] shows again.
+  void redo(S step);
 
   /// The file's [text] shows instead, read anew; what shows follows it
   /// where it can.
   void reload(String text);
 
-  /// [text] shows instead, from its start (a backup restored).
-  void replaceText(String text);
+  /// [text] shows instead, from its start (a backup restored); gives
+  /// that edit as a step.
+  S replaceText(String text);
 
   /// What the file says once the edits are sent, and what lists show of
   /// it.
@@ -57,12 +59,10 @@ mixin EditorSteps<S> {
           notify(HistoryEnd(book.history.start));
         }
       case Redo():
-        if (book.history.redone(snapshot()) case (
-          :final history,
-          :final back,
-        )) {
+        if (book.history.redone() case (:final history, :final step)) {
           book = book.copyWith(history: history);
-          _back(back);
+          redo(step);
+          _changedByHistory();
         }
       case UndoStep(:final id):
         if (book.history.latestId == id) {
@@ -71,10 +71,9 @@ mixin EditorSteps<S> {
           notify(UndoRefused(id));
         }
       case ReplaceAll(:final text):
-        final before = snapshot();
-        replaceText(text);
+        final step = replaceText(text);
         _changedByHistory();
-        record(before, null);
+        record(step, null);
         notify(UndoOffered(book.history.latestId!, OfferedUndo.restore));
       case FromFile(
             message: Replaced(:final text, :final version, :final ackRev),
@@ -117,13 +116,13 @@ mixin EditorSteps<S> {
   /// Save timer [id] fired.
   void fired(EffectId id) => _tick(book.clock.fired(id.value));
 
-  /// The edit that changed what showed from [before], typing [typing] if
-  /// it was typing, as an undo step, or as part of the latest one where
-  /// it goes on typing.
-  void record(S before, Typing? typing) {
+  /// [step], typing [typing] if it was typing, as an undo step, or as
+  /// part of the latest one where it goes on typing.
+  void record(S step, Typing? typing) {
     final history = book.history;
     book = book.copyWith(
-      history: history.continued(typing) ?? history.recorded(before, typing),
+      history:
+          history.continued(step, typing) ?? history.recorded(step, typing),
     );
   }
 
@@ -151,16 +150,11 @@ mixin EditorSteps<S> {
   }
 
   void _undoLatest() {
-    if (book.history.undone(snapshot()) case (:final history, :final back)) {
+    if (book.history.undone() case (:final history, :final step)) {
       book = book.copyWith(history: history);
-      _back(back);
+      undo(step);
+      _changedByHistory();
     }
-  }
-
-  /// [back] shows again, as a text change.
-  void _back(S back) {
-    restore(back);
-    _changedByHistory();
   }
 
   /// A text change not typed: saved as typing is, and sent at once where

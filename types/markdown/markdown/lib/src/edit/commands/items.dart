@@ -73,6 +73,14 @@ enum AddAt {
   afterOpen,
 }
 
+/// Where in [list]'s items Add item puts the new one, [at] its place.
+int addIndex(ListNode list, AddAt at) => switch (at) {
+  AddAt.first => 0,
+  AddAt.last => list.items.length,
+  AddAt.afterOpen =>
+    list.items.lastIndexWhere((item) => !(item.checked ?? false)) + 1,
+};
+
 /// A new empty item in [list], [at] its place: with an open box where
 /// the list's items have boxes.
 Change addItem(ViewRows view, ListNode list, {required AddAt at}) {
@@ -81,12 +89,7 @@ Change addItem(ViewRows view, ListNode list, {required AddAt at}) {
   final item = ItemNode(fresh.take(), [
     text,
   ], checked: list.items.any((item) => item.hasBox) ? false : null);
-  final index = switch (at) {
-    AddAt.first => 0,
-    AddAt.last => list.items.length,
-    AddAt.afterOpen =>
-      list.items.lastIndexWhere((item) => !(item.checked ?? false)) + 1,
-  };
+  final index = addIndex(list, at);
   return (
     doc: view.doc.edited({
       list.id: [

@@ -2,15 +2,15 @@ import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 
 /// The smallest file type's editor: it shows one text, edited as a
-/// whole, and snapshots are that text. It keeps what it led to.
-final class _FakeEditor with EditorSteps<String> {
+/// whole, its steps that text's changes. It keeps what it led to.
+final class _FakeEditor with EditorSteps<TextStep> {
   _FakeEditor(this.shown, {this.sendsAtOnce = false});
 
   /// The text that shows.
   String shown;
 
   @override
-  late EditorBook<String> book = EditorBook(
+  late EditorBook<TextStep> book = EditorBook(
     lineage: const Version(1),
     summary: _Summary(shown),
   );
@@ -29,17 +29,29 @@ final class _FakeEditor with EditorSteps<String> {
   @override
   void startTimer(EffectId id, Duration delay) => timers[id] = delay;
 
-  @override
-  String snapshot() => shown;
+  /// Where the caret went last.
+  int? caret;
 
   @override
-  void restore(String back) => shown = back;
+  void undo(TextStep step) => _show(step.undoneIn(shown));
+
+  @override
+  void redo(TextStep step) => _show(step.redoneIn(shown));
+
+  void _show(({String text, int caret}) shown) {
+    this.shown = shown.text;
+    caret = shown.caret;
+  }
 
   @override
   void reload(String text) => shown = text;
 
   @override
-  void replaceText(String text) => shown = text;
+  TextStep replaceText(String text) {
+    final step = TextStep(textChange(shown, text));
+    shown = text;
+    return step;
+  }
 
   @override
   SentText get sent => SentText(shown, _Summary(shown));
@@ -49,10 +61,10 @@ final class _FakeEditor with EditorSteps<String> {
 
   /// The user changed the text to [text], as the type's own step does.
   void edit(String text) {
-    final before = shown;
+    final change = textChange(shown, text);
     shown = text;
     textChanged();
-    record(before, typingIn(null, before, text));
+    record(TextStep(change), typingFrom(null, change));
   }
 
   /// Types each of [texts] in turn, each the whole text after a key.
@@ -78,6 +90,15 @@ void main() {
       expect(editor.shown, 'ab ');
       editor.handleRequest(const Undo());
       expect(editor.shown, '');
+    });
+
+    test('takes back a whole typing run, the caret where it started', () {
+      final editor = _FakeEditor('x')
+        ..type(['xa', 'xab'])
+        ..handleRequest(const Undo());
+
+      expect(editor.shown, 'x');
+      expect(editor.caret, 1);
     });
 
     test('a new line is a step of its own', () {
@@ -165,7 +186,18 @@ void main() {
         ..handleRequest(const Redo());
 
       expect(editor.shown, 'ab');
+      expect(editor.caret, 2);
       expect(editor.book.status.canRedo, isFalse);
+    });
+
+    test('makes a whole typing run again', () {
+      final editor = _FakeEditor('')
+        ..type(['a', 'ab', 'ab ', 'ab c'])
+        ..handleRequest(const Undo())
+        ..handleRequest(const Undo())
+        ..handleRequest(const Redo());
+
+      expect(editor.shown, 'ab ');
     });
 
     test('a new edit drops what redo had', () {

@@ -262,6 +262,14 @@ final class Notice extends EditorEvent {
   final EditorNotice notice;
 }
 
+/// Undo or redo changed the document at [leaf]'s row: Visual edit shows
+/// that row.
+final class ShowRow extends EditorEvent {
+  const ShowRow(this.leaf);
+
+  final NodeId leaf;
+}
+
 /// The link dialog opens on [range], showing [text]: on a link, to edit
 /// it, with where it leads ([url]) and whether it can be [removable];
 /// else, with [url] `null`, to add one.

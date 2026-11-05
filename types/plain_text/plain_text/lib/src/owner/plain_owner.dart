@@ -1,5 +1,12 @@
 import 'package:truce_core/truce_core.dart'
-    show EditorBook, Machine, MachineOwner, Owner, StartTimer, Version;
+    show
+        EditorBook,
+        Machine,
+        MachineOwner,
+        Owner,
+        StartTimer,
+        TextStep,
+        Version;
 
 import '../plain_summary.dart';
 import 'plain_contract.dart';
@@ -17,7 +24,7 @@ typedef PlainMachine =
     Machine<
       PlainMessage,
       PlainState,
-      EditorBook<String>,
+      EditorBook<TextStep>,
       PlainNotice,
       PlainSaveTimer
     >;
@@ -35,7 +42,7 @@ PlainOwner plainOwner(
       PlainInput,
       PlainTimerFired,
       PlainState,
-      EditorBook<String>,
+      EditorBook<TextStep>,
       PlainNotice,
       PlainSaveTimer
     >(plainMachine(text, version: version), startTimer: startTimer);
@@ -43,7 +50,7 @@ PlainOwner plainOwner(
 /// The plain editor machine of a document holding [text], read as
 /// [version] (`null` for a new document).
 PlainMachine plainMachine(String text, {required Version? version}) {
-  final book = EditorBook<String>(
+  final book = EditorBook<TextStep>(
     lineage: version,
     summary: PlainSummary(text, maxLines: 0),
   );

@@ -5,20 +5,21 @@ import 'package:truce_core/truce_core.dart'
         EditorSteps,
         EffectId,
         SentText,
+        TextStep,
         TextSummary,
         Step,
         StepRun,
         textChange,
-        typingIn;
+        typingFrom;
 
 import '../plain_summary.dart';
 import 'plain_contract.dart';
 
 /// The plain editor owner's decision on [message] in [state], with its
 /// [book].
-Step<PlainState, EditorBook<String>, PlainNotice, PlainSaveTimer> plainStep(
+Step<PlainState, EditorBook<TextStep>, PlainNotice, PlainSaveTimer> plainStep(
   PlainState state,
-  EditorBook<String> book,
+  EditorBook<TextStep> book,
   PlainMessage message,
 ) {
   return _Step(state, book).run(message);
@@ -30,18 +31,18 @@ final class _Step
         StepRun<
           PlainMessage,
           PlainState,
-          EditorBook<String>,
+          EditorBook<TextStep>,
           PlainNotice,
           PlainSaveTimer
         >
-    with EditorSteps<String> {
+    with EditorSteps<TextStep> {
   _Step(super.state, super.work);
 
   @override
-  EditorBook<String> get book => work;
+  EditorBook<TextStep> get book => work;
 
   @override
-  set book(EditorBook<String> book) => work = book;
+  set book(EditorBook<TextStep> book) => work = book;
 
   @override
   void handle(PlainMessage message) {
@@ -51,10 +52,10 @@ final class _Step
         // Typed on what no longer shows.
         break;
       case TextEdited(:final text, :final pasted) when text != state.text:
-        final before = state.text;
+        final change = textChange(state.text, text);
         _show(text);
         textChanged();
-        record(before, pasted ? null : typingIn(null, before, text));
+        record(TextStep(change), pasted ? null : typingFrom(null, change));
       case TextEdited():
         break;
       case CaretMoved():
@@ -74,21 +75,22 @@ final class _Step
   void startTimer(EffectId id, Duration delay) =>
       effects.add(PlainSaveTimer(id, delay));
 
-  @override
-  String snapshot() => state.text;
-
   /// The caret goes to where the text changed.
   @override
-  void restore(String back) {
-    final change = textChange(state.text, back);
-    _show(back, caret: change.start + change.added.length);
-  }
+  void undo(TextStep step) => _showAt(step.undoneIn(state.text));
+
+  @override
+  void redo(TextStep step) => _showAt(step.redoneIn(state.text));
 
   @override
   void reload(String text) => _show(text);
 
   @override
-  void replaceText(String text) => _show(text, caret: 0);
+  TextStep replaceText(String text) {
+    final step = TextStep(textChange(state.text, text));
+    _show(text, caret: 0);
+    return step;
+  }
 
   @override
   SentText get sent =>
@@ -109,6 +111,9 @@ final class _Step
     revision: state.revision + 1,
     status: book.status,
   );
+
+  void _showAt(({String text, int caret}) shown) =>
+      _show(shown.text, caret: shown.caret);
 
   /// The caret was told with the last state; it stays where it is now.
   void _caretTold() {

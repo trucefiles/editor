@@ -1,4 +1,5 @@
-import 'package:truce_core/truce_core.dart' show Typing, typingIn;
+import 'package:truce_core/truce_core.dart'
+    show TextChange, Typing, typingFrom, typingIn;
 
 import '../../edit/commands/text_commands.dart' show ordered;
 import '../../edit/keys/key_map.dart';
@@ -6,17 +7,12 @@ import '../../edit/selection.dart';
 import '../../edit/text_places.dart';
 import '../editor_contract.dart';
 
-/// The typing [input] was, which changed what showed from [before] to
-/// [after]; `null` for any other edit, which is a step of its own (a
-/// paste too).
+/// The typing [input] was in Visual edit, which changed what showed from
+/// [before] to [after]; `null` for any other edit, which is a step of its
+/// own (a paste too).
 Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
     switch ((input, before.content, after.content)) {
-      (
-        Typed(pasted: true) || EditRaw(pasted: true) || EditText(pasted: true),
-        _,
-        _,
-      ) =>
-        null,
+      (Typed(pasted: true) || EditRaw(pasted: true), _, _) => null,
       (
         Typed(:final text, over: final TextSelection over),
         FormattedContent(raw: null, :final view),
@@ -60,12 +56,6 @@ Typing? typingOf(EditorInput input, EditorState before, EditorState after) =>
       )
           when raw.block == was.block =>
         typingIn((#raw, raw.block), was.text, raw.text),
-      (
-        EditText(),
-        MarkdownContent(text: final was),
-        MarkdownContent(:final text),
-      ) =>
-        typingIn(#markdown, was, text),
       _ => null,
     };
 
@@ -81,3 +71,10 @@ Typing? _deleted(Place caret, int count) => count > 0
         end: caret.offset,
       )
     : null;
+
+/// The typing [input] was in Markdown edit, where it made [change];
+/// `null` for a paste, which is a step of its own.
+Typing? textTypingOf(EditorInput input, TextChange change) => switch (input) {
+  EditText(pasted: false) => typingFrom(#markdown, change),
+  _ => null,
+};

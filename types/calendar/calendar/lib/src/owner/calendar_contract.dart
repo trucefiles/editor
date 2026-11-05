@@ -7,7 +7,7 @@
 library;
 
 import 'package:truce_core/truce_core.dart'
-    show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
+    show EditorNotice, EditorRequest, EditorStatus, EffectId, ShownStep, Wait;
 
 import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
@@ -16,6 +16,9 @@ import '../model/calendar.dart';
 /// What the editor shows at one undo step: the [text], and the
 /// [calendar] read from it (`null` if it is no calendar).
 typedef CalendarShown = ({String text, Calendar? calendar});
+
+/// One undo step: what the editor showed before the edit and after it.
+typedef CalendarStep = ShownStep<CalendarShown>;
 
 /// What the calendar editor owner handles: inputs anyone may send, and
 /// the results of its effects.

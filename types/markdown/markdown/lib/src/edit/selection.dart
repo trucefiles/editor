@@ -21,6 +21,12 @@ final class Place {
 /// What is selected in Visual edit.
 sealed class Selection {
   const Selection();
+
+  /// The leaf it ends on, where the caret shows.
+  NodeId get endLeaf => switch (this) {
+    TextSelection(:final extent) => extent.leaf,
+    BlockCaret(:final block) || BlockSelection(:final block) => block,
+  };
 }
 
 /// Text from [base], where the selection started, to [extent], where it
