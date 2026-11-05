@@ -152,7 +152,9 @@ Change clearItems(ViewRows view, List<ItemNode> items) {
     doc: view.doc.edited({
       for (final item in items)
         item.id: keeping.contains(item.id)
-            ? [ItemNode(fresh.take(), [emptyParagraph(fresh)], checked: false)]
+            ? [
+                ItemNode(fresh.take(), [emptyParagraph(fresh)], checked: false),
+              ]
             : const [],
     }, fresh: fresh),
     caret: const NoCaret(),
