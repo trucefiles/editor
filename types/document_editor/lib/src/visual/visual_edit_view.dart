@@ -95,14 +95,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   void initState() {
     super.initState();
     _notices = widget.notices.listen((notice) {
-      switch (notice) {
-        case final md.AskLink ask:
-          unawaited(_askLink(ask));
-        case md.ChangedAt(:final leaf):
-          WidgetsBinding.instance.addPostFrameCallback((_) => _reveal(leaf));
-        case _:
-          break;
-      }
+      if (notice case final md.AskLink ask) unawaited(_askLink(ask));
     });
     widget.gate.addListener(_keyboardFollowsCaret);
   }
@@ -165,24 +158,6 @@ class _VisualEditViewState extends State<VisualEditView> {
         break;
     }
     _focus.requestFocus();
-  }
-
-  /// [leaf]'s row scrolled into view, if it is off screen, once it is
-  /// laid out: undo or redo changed what shows there.
-  void _reveal(md.NodeId leaf) {
-    if (!mounted) return;
-    final row = switch ((_layout.currentState, _adapter.nodeShowing(leaf))) {
-      (final DocumentLayout layout, final id?) =>
-        layout.getComponentByNodeId(id)?.context,
-      _ => null,
-    };
-    if (row == null || !row.mounted) return;
-    for (final policy in [
-      ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-      ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-    ]) {
-      unawaited(Scrollable.ensureVisible(row, alignmentPolicy: policy));
-    }
   }
 
   /// The popup at the link the caret is in, if any, below the caret's

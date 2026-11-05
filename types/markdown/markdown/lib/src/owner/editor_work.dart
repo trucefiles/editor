@@ -34,12 +34,6 @@ final class EditorWork {
 /// Marks an [EditorWork.copyWith] field left as it is.
 const _same = Object();
 
-/// What Visual edit showed, as [view] with [selection], read from
-/// [origin] and printed as [printed]: before a reload, or when Markdown
-/// edit took over.
-typedef Left = ({
-  ViewRows view,
-  Selection? selection,
-  Origin origin,
-  PrintedMarkdown printed,
-});
+/// What Visual edit showed, as [view] with [selection], printed as
+/// [printed]: before a reload, or when Markdown edit took over.
+typedef Left = ({ViewRows view, Selection? selection, PrintedMarkdown printed});

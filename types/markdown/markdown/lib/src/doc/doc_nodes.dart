@@ -245,38 +245,31 @@ Iterable<DocLeaf> leavesIn(DocBlock block) => switch (block) {
 /// only what it built anew is compared.
 bool sameBlocks(DocBlock a, DocBlock b) =>
     identical(a, b) ||
-    switch ((a, b)) {
-      (final DocContainer a, final DocContainer b) =>
-        sameFrame(a, b) &&
-            a.children.length == b.children.length &&
-            IterableZip([a.children, b.children])
-                .every((pair) => sameBlocks(pair[0], pair[1])),
-      (final DocLeaf a, final DocLeaf b) =>
-        a.id == b.id && identical(a.source, b.source) && _sameLeaf(a, b),
-      _ => false,
-    };
-
-/// Whether [a] and [b] are the same container as it shows around what it
-/// holds: its id, kind, source and settings (a list's kind and numbers,
-/// an item's box), not its children.
-bool sameFrame(DocContainer a, DocContainer b) =>
     a.id == b.id &&
-    identical(a.source, b.source) &&
-    switch ((a, b)) {
-      (DocRoot(), DocRoot()) || (QuoteNode(), QuoteNode()) => true,
-      (final ListNode a, final ListNode b) =>
-        a.kind == b.kind && a.numbering == b.numbering && a.start == b.start,
-      (final ItemNode a, final ItemNode b) => a.checked == b.checked,
-      _ => false,
-    };
+        identical(a.source, b.source) &&
+        switch ((a, b)) {
+          (final DocRoot a, final DocRoot b) => _sameChildren(a, b),
+          (final QuoteNode a, final QuoteNode b) => _sameChildren(a, b),
+          (final ListNode a, final ListNode b) =>
+            a.kind == b.kind &&
+                a.numbering == b.numbering &&
+                a.start == b.start &&
+                _sameChildren(a, b),
+          (final ItemNode a, final ItemNode b) =>
+            a.checked == b.checked && _sameChildren(a, b),
+          (final ParagraphNode a, final ParagraphNode b) => a.text == b.text,
+          (final HeadingNode a, final HeadingNode b) =>
+            a.level == b.level && a.text == b.text,
+          (final CodeNode a, final CodeNode b) =>
+            a.code == b.code && a.info == b.info,
+          (DividerNode(), DividerNode()) => true,
+          (final TableNode a, final TableNode b) => a.raw == b.raw,
+          (final RawNode a, final RawNode b) =>
+            a.kind == b.kind && a.raw == b.raw,
+          _ => false,
+        };
 
-bool _sameLeaf(DocLeaf a, DocLeaf b) => switch ((a, b)) {
-  (final ParagraphNode a, final ParagraphNode b) => a.text == b.text,
-  (final HeadingNode a, final HeadingNode b) =>
-    a.level == b.level && a.text == b.text,
-  (final CodeNode a, final CodeNode b) => a.code == b.code && a.info == b.info,
-  (DividerNode(), DividerNode()) => true,
-  (final TableNode a, final TableNode b) => a.raw == b.raw,
-  (final RawNode a, final RawNode b) => a.kind == b.kind && a.raw == b.raw,
-  _ => false,
-};
+bool _sameChildren(DocContainer a, DocContainer b) =>
+    a.children.length == b.children.length &&
+    IterableZip([a.children, b.children])
+        .every((pair) => sameBlocks(pair[0], pair[1]));

@@ -201,49 +201,6 @@ void main() {
       expect(run.state.status.canRedo, isFalse);
     });
 
-    test('tell the view the first row they changed, after a control too', () {
-      final run = EditorRun(
-        '- [ ] a\n- [ ] b\n- [ ] c',
-        checkedItems: CheckedItems.inPlace,
-      )..toggle(2);
-      final c = run.leaf(2);
-      run
-        ..undo()
-        ..redo();
-      expect(run.outputs.whereType<ChangedAt>().map((at) => at.leaf), [c, c]);
-    });
-
-    test('tell the view the changed row after a trip to Markdown edit '
-        'with nothing typed: the tree stays', () {
-      final run = EditorRun(
-        '- [ ] a\n- [ ] b\n- [ ] c',
-        checkedItems: CheckedItems.inPlace,
-      )..toggle(2);
-      final c = run.leaf(2);
-      run
-        ..send(const SetMode(EditMode.markdown))
-        ..send(const SetMode(EditMode.visual));
-      expect(run.leaf(2), same(c));
-      run.undo();
-      expect(run.text, '- [ ] a\n- [ ] b\n- [ ] c');
-      expect(run.outputs.whereType<ChangedAt>().map((at) => at.leaf), [c]);
-    });
-
-    test('tell the view nothing after typing in Markdown edit, '
-        'which reads the text anew: no row is known', () {
-      final run = EditorRun(
-        '- [ ] a\n- [ ] b\n- [ ] c',
-        checkedItems: CheckedItems.inPlace,
-      )..toggle(2);
-      run
-        ..send(const SetMode(EditMode.markdown))
-        ..editText('- [ ] a\n- [ ] b\n- [x] c\n- [ ] d')
-        ..send(const SetMode(EditMode.visual))
-        ..undo();
-      expect(run.text, '- [ ] a\n- [ ] b\n- [x] c');
-      expect(run.outputs.whereType<ChangedAt>(), isEmpty);
-    });
-
     test('a new edit drops what redo had', () {
       final run = EditorRun('')
         ..caret(0, 0)

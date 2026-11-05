@@ -24,7 +24,6 @@ import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
 import '../print/printer.dart';
 import '../summary/document_summary.dart';
-import '../view/changed_row.dart';
 import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
@@ -365,38 +364,17 @@ final class _Step
 
   // Undo and redo.
 
-  /// [back] shows again; in Visual edit, the view is told where it
-  /// changed first, if that can be told.
   @override
   void restore(Snapshot back) {
-    final before = state.content;
-    _restored(back);
-    if ((before, state.content) case (
-      FormattedContent(view: final was),
-      FormattedContent(:final view),
-    )) {
-      if (firstChangedRow(was, view) case final leaf?) {
-        events.add(ChangedAt(leaf));
-      }
-    }
-  }
-
-  void _restored(Snapshot back) {
     switch ((back, state.content)) {
       case (_, MarkdownContent(text: final now)):
         if (back case TreeSnapshot(
           :final doc,
           :final selection,
-          :final origin,
           :final printed,
         )) {
           work = work.copyWith(
-            left: (
-              view: ViewRows(doc),
-              selection: selection,
-              origin: origin,
-              printed: printed,
-            ),
+            left: (view: ViewRows(doc), selection: selection, printed: printed),
           );
         }
         final change = textChange(now, back.text);
@@ -481,17 +459,12 @@ final class _Step
       case (FormattedContent(:final view, :final selection), EditMode.markdown):
         final printed = _printed();
         work = work.copyWith(
-          left: (
-            view: view,
-            selection: selection,
-            origin: work.origin,
-            printed: printed,
-          ),
+          left: (view: view, selection: selection, printed: printed),
         );
         _show(MarkdownContent(printed.text), mode: mode);
       case (MarkdownContent(:final text), EditMode.visual || EditMode.read):
         _show(state.content, mode: mode);
-        _backFromMarkdown(text);
+        reload(text);
         work = work.copyWith(left: null);
         if (mode == EditMode.read) send();
       case (FormattedContent(:final selection), _):
@@ -500,25 +473,6 @@ final class _Step
         if (mode == EditMode.read) send();
       case (MarkdownContent(), _):
         break;
-    }
-  }
-
-  /// Back from Markdown edit, which shows [text]: the tree Visual edit
-  /// left, as it was, if the text is still what it printed (so undo
-  /// steps keep sharing its nodes); else [text] read anew.
-  void _backFromMarkdown(String text) {
-    switch (work.left) {
-      case (:final view, :final selection, :final origin, :final printed)
-          when printed.text == text:
-        work = work.copyWith(origin: origin);
-        _show(
-          FormattedContent(
-            view: _rows(view.doc, view.done, state.checkedItems),
-            selection: selection,
-          ),
-        );
-      case _:
-        reload(text);
     }
   }
 
@@ -567,12 +521,7 @@ final class _Step
     final next = loaded(text);
     final content = switch (state.content) {
       FormattedContent(:final view, :final selection, :final raw) => _mapped(
-        (
-          view: view,
-          selection: selection,
-          origin: work.origin,
-          printed: _printed(),
-        ),
+        (view: view, selection: selection, printed: _printed()),
         raw,
         next,
       ),
