@@ -38,6 +38,10 @@ final class DocTree {
   late final bool hasCheckboxes = nodesIn(root)
       .any((node) => node is ItemNode && node.checked != null);
 
+  /// Whether it holds what [other] does, node for node (see
+  /// [sameBlocks]): an edit between them changed nothing.
+  bool holdsSameAs(DocTree other) => sameBlocks(root, other.root);
+
   /// Ids for new nodes of an edit of this tree.
   FreshIds get freshIds => FreshIds(nextId);
 

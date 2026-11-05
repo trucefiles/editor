@@ -92,10 +92,17 @@ void main() {
     );
   });
 
-  test('clearing checked items removes them', () {
+  test('clearing checked items removes them; a list they would empty '
+      'keeps one empty open item', () {
     expect(
       _after('- [x] a\n- [ ] b\n\n> - [x] c', (_) => const ClearChecked()),
-      '- [ ] b',
+      '- [ ] b\n\n> - [ ] ',
+    );
+    expect(
+      _after('# Shop\n\n- [x] a\n  - [ ] sub\n- [x] b', (_) {
+        return const ClearChecked();
+      }),
+      '# Shop\n\n- [ ] ',
     );
   });
 

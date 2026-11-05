@@ -49,14 +49,36 @@ void main() {
     expect(passedRow(rows, 2, 39.9), (row: 0, below: false));
   });
 
-  test('far rows count once the copy passes their middle', () {
+  test('moving down, a row past the next one flips once the copy\'s '
+      'bottom passes its middle as it shows, a dragged row lower below '
+      'the gap', () {
     final rows = rowsOf([30, 30, 60, 30, 30]);
-    // Copy as high as row 0 (30): its bottom passes row 2's middle (90)
-    // with its top past 60, row 3's (135) past 105.
-    expect(passedRow(rows, 0, 59), (row: 1, below: true));
-    expect(passedRow(rows, 0, 61), (row: 2, below: true));
-    expect(passedRow(rows, 0, 106), (row: 3, below: true));
+    // Copy as high as row 0 (30). Row 1 (middle 45) by the copy's bottom:
+    // its top past 15. With the gap below row 1, row 2 shows 30 lower
+    // (middle 120): the copy's bottom reaches it with its top past 90,
+    // row 2's middle as without the gap. Row 3's middle is 135.
+    expect(passedRow(rows, 0, 14), isNull);
+    expect(passedRow(rows, 0, 16), (row: 1, below: true));
+    expect(passedRow(rows, 0, 89), (row: 1, below: true));
+    expect(passedRow(rows, 0, 91), (row: 2, below: true));
+    expect(passedRow(rows, 0, 134), (row: 2, below: true));
+    expect(passedRow(rows, 0, 136), (row: 3, below: true));
     expect(passedRow(rows, 0, 500), (row: 4, below: true));
+  });
+
+  test('moving down, the space past the next row counts as it shows, '
+      'below the gap', () {
+    // Row 1 right below the own place; a 40 px paragraph at 80 to 120,
+    // then row 2. With the gap below row 1, the space shows 40 lower.
+    final rows = <RowSpan>[
+      (top: 0, bottom: 40),
+      (top: 40, bottom: 80),
+      (top: 120, bottom: 160),
+    ];
+    expect(passedRow(rows, 0, 21), (row: 1, below: true));
+    expect(passedRow(rows, 0, 99), (row: 1, below: true));
+    expect(passedRow(rows, 0, 101), (row: 2, below: false));
+    expect(passedRow(rows, 0, 141), (row: 2, below: true));
   });
 
   test('moving back flips at the same line', () {

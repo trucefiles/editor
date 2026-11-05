@@ -160,6 +160,18 @@ void main() {
     expect(find.text('No app could open https://example.org'), findsOne);
   });
 
+  testWidgets('opens a link written with www. but no scheme as https', (
+    tester,
+  ) async {
+    await show(tester, '[site](www.example.org/a) [notes](notes.md)');
+
+    await tapLink(tester, 'site');
+    await tapLink(tester, 'notes');
+
+    expect(opened, [Uri.parse('https://www.example.org/a')]);
+    expect(find.text("Can't open notes.md"), findsOne);
+  });
+
   testWidgets('opens no local or relative links', (tester) async {
     await show(tester, '[a](file:///bin/sh) [b](other.md)');
 
