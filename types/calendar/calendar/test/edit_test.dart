@@ -137,12 +137,12 @@ void main() {
         ),
         at: _at,
       );
-      expect(editedUnits(calendar, call).map((unit) => unit.key), [
+      expect(writeEdit(calendar, call).written, [
         UidKey.event('call@t'),
         const ZoneKey('Asia/Tokyo'),
       ]);
       expect(
-        editedUnits(calendar, DeleteEvent('none@t', at: _at)),
+        writeEdit(calendar, DeleteEvent('none@t', at: _at)).written,
         isEmpty,
         reason: 'no such event',
       );

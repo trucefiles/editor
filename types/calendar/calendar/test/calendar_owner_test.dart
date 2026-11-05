@@ -134,6 +134,24 @@ void main() {
     expect(run.state.calendar!.zones, {'Asia/Tokyo'});
   });
 
+  test('an edit that writes nothing is no step and no save', () {
+    final run = _run(birthday)
+      ..send(
+        EditCalendar(AddEvent('ann@truce', annDraft, at: _at), newUid: 'new@t'),
+      );
+    expect(run.state.text, birthday);
+    expect((run.state.status.canUndo, run.state.status.unsent), (false, false));
+  });
+
+  test('a restored backup without a zone keeps the block its markers name', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
+      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    final calendar = run.state.calendar!;
+    expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
+    expect(calendar.zones, {'Asia/Tokyo'});
+  });
+
   test('what an undo brings back wins over the text it undid', () {
     final rename = ChangeSeries(
       'ann@truce',

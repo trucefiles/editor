@@ -22,25 +22,22 @@ sealed class CalendarStep implements UndoableEdit<CalendarStep> {
 final class UnitsChanged extends CalendarStep {
   const UnitsChanged._(this.before, this.after);
 
-  /// The step of [written], the units an edit wrote into [calendar],
-  /// which became [edited]: only those whose text changed count; `null`
-  /// if none did.
+  /// The step of an edit of [calendar] into [edited] that wrote the
+  /// units [written]; `null` if it wrote none.
   static UnitsChanged? of(
     Calendar calendar,
     Calendar edited,
-    List<CalendarUnit> written,
-  ) {
-    final after = {
-      for (final CalendarUnit(:key) in written)
-        if (edited.unitOf(key)! case final unit
-            when unit.text != calendar.unitOf(key)?.text)
-          key: unit,
-    };
-    if (after.isEmpty) return null;
-    return UnitsChanged._({
-      for (final key in after.keys) key: calendar.unitOf(key),
-    }, after);
-  }
+    List<UnitKey> written,
+  ) => written.isEmpty
+      ? null
+      : UnitsChanged._(
+          Map.unmodifiable({
+            for (final key in written) key: calendar.unitOf(key),
+          }),
+          Map.unmodifiable({
+            for (final key in written) key: edited.unitOf(key)!,
+          }),
+        );
 
   final Map<UnitKey, CalendarUnit?> before;
   final Map<UnitKey, CalendarUnit> after;

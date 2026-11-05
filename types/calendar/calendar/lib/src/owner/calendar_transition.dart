@@ -9,6 +9,7 @@ import 'package:truce_core/truce_core.dart'
         StepRun,
         TextSummary;
 
+import '../edit/brought_back.dart';
 import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
@@ -60,8 +61,7 @@ final class _Step
       case EditCalendar(:final edit, :final newUid):
         if (state.calendar case final calendar?) {
           final landed = landing(calendar, edit, newUid: newUid);
-          final written = editedUnits(calendar, landed.edit);
-          final edited = calendar.withUnits(written);
+          final (calendar: edited, :written) = writeEdit(calendar, landed.edit);
           if (UnitsChanged.of(calendar, edited, written) case final step?) {
             _showCalendar(edited);
             textChanged();
