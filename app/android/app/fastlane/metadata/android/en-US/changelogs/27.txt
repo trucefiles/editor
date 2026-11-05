@@ -1,0 +1,8 @@
+- A new calendar opens at once; name it right in its title
+- New file offers Document, Plain text, Calendar, Health calendar
+- Deleted files come back from Backups, also as a new file
+- Undo and Redo scroll to the change
+- Faster typing, undo and large calendars
+- The likely next period is easier on the eyes
+- Clearer home view, Clear chip and Recently edited
+- Visual edit: swap point in the middle, Clear checked keeps an item, links without https open

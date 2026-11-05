@@ -211,7 +211,8 @@ List<List<_Line>>? _blocks(List<_Line> lines) {
     final end = _begins(lines[start])
         ? _endOf(lines, start) + 1
         : _nextBegin(lines, start);
-    if (end == 0) return null;
+    // A component that doesn't end.
+    if (end <= start) return null;
     blocks.add(lines.sublist(start, end));
     start = end;
   }

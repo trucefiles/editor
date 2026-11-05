@@ -243,7 +243,7 @@ void main() {
     final theirs = Calendar.read(birthday)!.named('Theirs').text;
     final merged = _merge.merge(ours, theirs, base: birthday) as MergedText;
     expect(Calendar.read(merged.text)!.name, 'Ours');
-    expect(merged.lost, contains('The calendar name'));
+    expect(merged.lost, contains('Calendar name'));
   });
 }
 

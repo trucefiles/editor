@@ -41,7 +41,7 @@ final class CalendarMerge implements TextMerge {
           .named(name)
           .text,
       lost: [
-        if (renamed && name != others.name) 'The calendar name',
+        if (renamed && name != others.name) 'Calendar name',
         for (final unit in others.units)
           if (winners[unit.key] case final winner? when unit.key is! ZoneKey)
             for (final side in [mains.unitOf(unit.key)!, unit])
