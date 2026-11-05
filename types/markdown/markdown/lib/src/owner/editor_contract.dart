@@ -279,6 +279,14 @@ final class AskLink extends EditorEvent {
   final bool removable;
 }
 
+/// Undo or redo changed what shows, first in the row of [leaf]: the
+/// view shows that row.
+final class ChangedAt extends EditorEvent {
+  const ChangedAt(this.leaf);
+
+  final NodeId leaf;
+}
+
 // State.
 
 /// What the editor shows and how: the editor owner's state.

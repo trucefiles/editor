@@ -74,6 +74,9 @@ final class VisualAdapter {
     _ => null,
   };
 
+  /// The library's node that shows [leaf]'s row; `null` while none does.
+  String? nodeShowing(md.NodeId leaf) => _ids.find(leaf);
+
   /// The link at [position], if its text is part of one.
   String? linkAt(DocumentPosition position) => switch ((
     _document.getNodeById(position.nodeId),

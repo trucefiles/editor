@@ -23,6 +23,7 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show
         AskLink,
+        ChangedAt,
         CheckedItems,
         EditMode,
         EditorEvent,
@@ -106,7 +107,7 @@ final class TestDocument {
             (UndoOffered() || UndoRefused() || HistoryEnd()),
       ):
         notices.add(notice);
-      case AskLink() || Notice():
+      case AskLink() || ChangedAt() || Notice():
         break;
     }
   }

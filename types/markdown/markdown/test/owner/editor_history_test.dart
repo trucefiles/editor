@@ -201,6 +201,18 @@ void main() {
       expect(run.state.status.canRedo, isFalse);
     });
 
+    test('tell the view the first row they changed, after a control too', () {
+      final run = EditorRun(
+        '- [ ] a\n- [ ] b\n- [ ] c',
+        checkedItems: CheckedItems.inPlace,
+      )..toggle(2);
+      final c = run.leaf(2);
+      run
+        ..undo()
+        ..redo();
+      expect(run.outputs.whereType<ChangedAt>().map((at) => at.leaf), [c, c]);
+    });
+
     test('a new edit drops what redo had', () {
       final run = EditorRun('')
         ..caret(0, 0)

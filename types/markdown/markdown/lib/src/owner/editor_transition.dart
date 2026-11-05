@@ -24,6 +24,7 @@ import '../edit/text_places.dart' show textAt;
 import '../edit/typing_style.dart';
 import '../print/printer.dart';
 import '../summary/document_summary.dart';
+import '../view/changed_row.dart';
 import '../view/rows.dart';
 import '../visible/formatting.dart';
 import 'editor_contract.dart';
@@ -364,8 +365,23 @@ final class _Step
 
   // Undo and redo.
 
+  /// [back] shows again; in Visual edit, the view is told where it
+  /// changed first.
   @override
   void restore(Snapshot back) {
+    final before = state.content;
+    _restored(back);
+    if ((before, state.content) case (
+      FormattedContent(view: final was),
+      FormattedContent(:final view),
+    )) {
+      if (firstChangedRow(was, view) case final leaf?) {
+        events.add(ChangedAt(leaf));
+      }
+    }
+  }
+
+  void _restored(Snapshot back) {
     switch ((back, state.content)) {
       case (_, MarkdownContent(text: final now)):
         if (back case TreeSnapshot(
