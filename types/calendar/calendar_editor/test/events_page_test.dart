@@ -663,15 +663,12 @@ void main() {
 
   testWidgets('a drag lands on whole quarter hours, even next to the '
       'current time', (tester) async {
-    // kalender reads the real clock: the event lands on the quarter hour
-    // nearest to now, where snapping to now would add its seconds.
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final quarters = (now.difference(today).inSeconds / 900).round();
-    final landing = today.add(Duration(minutes: 15 * quarters));
-    // It ends there, moved down two hours, or up near midnight.
-    final up = landing.hour < 3;
-    final from = landing.add(Duration(hours: up ? 1 : -3));
+    // The page's clock: the event lands on the quarter hour nearest to
+    // now, where snapping to now would add its minutes and seconds.
+    final now = DateTime(2026, 11, 3, 10, 7, 23);
+    final landing = DateTime(2026, 11, 3, 10);
+    // It ends there, moved down two hours.
+    final from = landing.add(const Duration(hours: -3));
     final part = calendarPart(
       _call(
         Floating(
@@ -682,14 +679,14 @@ void main() {
     await pumpPage(
       tester,
       part,
-      today: today,
+      today: now,
       kept: KeptView(CalendarViewKind.week),
     );
 
     await _drag(
       tester,
       tester.getCenter(find.text('Call')),
-      Offset(0, up ? -2 * _hour : 2 * _hour),
+      const Offset(0, 2 * _hour),
       kind: PointerDeviceKind.mouse,
     );
 
