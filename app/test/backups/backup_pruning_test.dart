@@ -36,19 +36,23 @@ void main() {
 
   Future<void> prune() => pruning().read(backupPruningProvider.future);
 
-  test('deletes old backups again each time the app comes into use', () async {
+  test('deletes old backups when the app comes into use, not again the '
+      'same day', () async {
+    final first = backup('current', const Duration(days: 8));
+    final recent = backup('current', const Duration(days: 1));
     final container = pruning();
     await container.read(backupPruningProvider.future);
-    final old = backup('current', const Duration(days: 8));
+    expect(first.existsSync(), isFalse);
+    expect(recent.existsSync(), isTrue);
+    final later = backup('current', const Duration(days: 8));
     final activity = container.read(appActiveProvider.notifier) as _Activity;
 
     activity.set(active: false);
     await container.read(backupPruningProvider.future);
-    expect(old.existsSync(), isTrue);
-
     activity.set(active: true);
     await container.read(backupPruningProvider.future);
-    expect(old.existsSync(), isFalse);
+
+    expect(later.existsSync(), isTrue, reason: 'pruned today already');
   });
 
   test('does nothing before the first backup', () async {

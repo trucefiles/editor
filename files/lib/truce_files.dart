@@ -6,6 +6,7 @@
 /// app wires in.
 library;
 
+export 'src/backups/backup_pruning.dart';
 export 'src/backups/backup_retention.dart';
 export 'src/backups/folder_backups.dart';
 export 'src/backups/restore_as_new_failure.dart';
