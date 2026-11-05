@@ -644,6 +644,17 @@ void main() {
       expect((run.status as ChangedElsewhere).theirs.version, _v3);
     });
 
+    test('a pick against an older version or older edits is told as not '
+        'kept at once, so the user can pick again', () {
+      final run = changed()
+        ..send(const Pick(PickChoice.mine, seen: _v3, rev: 1))
+        ..send(const Pick(PickChoice.mine, seen: _v2, rev: 0));
+
+      expect(run.all<PickNotKept>(), hasLength(2));
+      expect(run.all<BackUpBoth>(), isEmpty);
+      expect(run.status, isA<ChangedElsewhere>());
+    });
+
     test('without a backup change nothing', () {
       final run = changed()
         ..send(const Pick(PickChoice.mine, seen: _v2, rev: 1));

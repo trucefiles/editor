@@ -37,19 +37,20 @@ final class FilePage {
   final void Function() _closed;
 
   /// Closes the page; its edits are kept first, as far as they can be.
-  /// Tells [FilePages.fileClosed] at once: its last save needs no wait,
-  /// as every own write is checked on its own.
+  /// Tells [FilePages.fileClosed] once securing began, not after: its
+  /// last save needs no wait, as every own write is checked on its own.
   Future<void> close() {
-    _closed();
     part.dispose();
     controller.dispose();
     // Also after a leave that kept the edits: the screen may also go
     // without one (its route removed), and a second answer is quick. It
     // stays an open file until then, so a folder change waits for it.
-    return session.secure(SecureReason.close).whenComplete(() {
+    final secured = session.secure(SecureReason.close).whenComplete(() {
       _leaveOpenFiles();
       session.dispose();
     });
+    _closed();
+    return secured;
   }
 }
 

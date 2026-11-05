@@ -64,6 +64,44 @@ void main() {
       await eventually(() => shown.theirs == null);
     },
   );
+
+  /// The file changes elsewhere again, to [text], and the session hears
+  /// of it.
+  Future<void> changedAgain(String text) async {
+    final latest = await fixture.editElsewhere(text);
+    session.observe(contentsFinding([latest.listed]));
+    await eventually(
+      () => switch (session.status) {
+        ChangedElsewhere(:final theirs) => theirs.text == text,
+        _ => false,
+      },
+    );
+  }
+
+  test('asks again for a newer version from elsewhere', () async {
+    final shown = await choice(merge: const _BothMerge());
+    await eventually(() => shown.merges);
+    final first = shown.theirs!;
+
+    await changedAgain('theirs, newer\n');
+
+    expect(shown.theirs!.version, isNot(first.version));
+    await eventually(() => shown.merges);
+  });
+
+  test('a pick not kept frees the choice and says so', () async {
+    final shown = await choice();
+    final old = shown.theirs!;
+    await changedAgain('theirs, newer\n');
+    var told = 0;
+    shown.notKept.listen((_) => told++);
+
+    shown.pick(PickChoice.mine, old);
+
+    await eventually(() => told == 1);
+    expect(shown.canPick, isTrue);
+    expect(shown.theirs?.text, 'theirs, newer\n');
+  });
 }
 
 /// Merges by keeping both texts.

@@ -518,12 +518,17 @@ final class _Step<V extends Version>
 
   /// Takes [pick] between the edits as they are and the version from
   /// elsewhere waiting for it; the backup follows the I/O under way.
+  /// Takes [pick] to carry out once no I/O runs; a pick it can't take
+  /// (against an older version or edits, or while another is under way)
+  /// is told as not kept, so the user picks again.
   void _pick(Pick pick) {
     if (_theirs(pick) != null &&
         pick.rev == state.rev &&
         work.pick == null &&
         work.io is! BackingUp) {
       _work(work.copyWith(pick: pick));
+    } else {
+      events.add(const PickNotKept());
     }
   }
 

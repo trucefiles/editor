@@ -183,6 +183,15 @@ void main() {
     expect(session.status, isA<ChangedElsewhere>());
     expect(fixture.onDisk('a.md'), 'theirs, newer\n');
     expect(find.text('Keep this'), findsNWidgets(2));
+
+    // The user picks again, against the newer version.
+    await tester.tap(find.text('Keep this').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await settle(tester, until: () => session.status is! ChangedElsewhere);
+
+    expect(session.status, isNot(isA<ChangedElsewhere>()));
+    expect(session.text, 'theirs, newer\n');
   });
 
   testWidgets('shows a newer version from elsewhere', (tester) async {
