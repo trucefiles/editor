@@ -7,6 +7,7 @@ import '../../doc/doc_nodes.dart';
 import '../../view/rows.dart';
 import '../change.dart';
 import 'command.dart';
+import 'items.dart' show addIndex;
 
 /// Where an input's commands acted: the leaf of the row the first acted
 /// at before it, and of the row the last shows at after it.
@@ -44,7 +45,16 @@ NodeId? actedOn(ViewRows view, Command command) {
     Toggle(:final item) ||
     DeleteItem(:final item) ||
     MoveItem(:final item) => firstOf(item),
-    AddItem(:final list) => leavesIn(view.doc.nodeOf(list)!).last.id,
+    AddItem(:final list, :final at) => switch (view.doc.nodeOf(list)!) {
+      final ListNode list => switch (list.items.elementAtOrNull(
+        addIndex(list, at),
+      )) {
+        // The item the new one takes the place of, else the list's end.
+        final item? => firstOf(item.id),
+        null => leavesIn(list).last.id,
+      },
+      _ => null,
+    },
     ClearChecked(:final items) ||
     MoveToEnd(:final items) => switch (items?.firstOrNull) {
       final item? => firstOf(item),
@@ -56,16 +66,20 @@ NodeId? actedOn(ViewRows view, Command command) {
 /// The leaf of the row that shows an edit after it, which acted on
 /// [acted] in [before] and gave [edited]: the caret it leaves; else
 /// [acted] where it stays; else the next row that stays (the previous one
-/// at the end), as the caret goes when the delete button removes an item.
+/// at the end), as the caret goes when the delete button removes an item;
+/// `null` where none of what went showed (a folded Done section).
 NodeId? shownAfter(ViewRows before, Edited edited, NodeId? acted) {
   bool gone(NodeId leaf) => edited.doc.nodeOf(leaf) == null;
   return switch ((edited.selection, acted)) {
     (final selection?, _) => selection.endLeaf,
     (null, null) => null,
     (null, final acted?) when !gone(acted) => acted,
-    (null, _) => switch (caretPast(before, (row) => gone(row.leaf.id))) {
-      CaretAt(:final selection) => selection.endLeaf,
-      CaretAtEnd() || NoCaret() => null,
-    },
+    // Rows gone that showed (none where they were folded away).
+    (null, _) when before.rows.any((row) => gone(row.leaf.id)) =>
+      switch (caretPast(before, (row) => gone(row.leaf.id))) {
+        CaretAt(:final selection) => selection.endLeaf,
+        CaretAtEnd() || NoCaret() => null,
+      },
+    (null, _) => null,
   };
 }

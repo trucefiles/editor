@@ -137,6 +137,48 @@ void main() {
     });
   });
 
+  group('Visual edit, edge cases', () {
+    test('checked items cleared from a folded Done section', () {
+      final run = EditorRun(
+        '- [ ] a\n- [x] b\n- [x] c\n\nend',
+        checkedItems: CheckedItems.doneSection,
+      );
+      run
+        ..send(
+          SetCollapsed(
+            run.shown.view.doc.root.children.first.id,
+            collapsed: true,
+          ),
+        )
+        ..runCommand(const ClearChecked());
+      expect(run.rows, ['a', 'end']);
+      run
+        ..undo()
+        ..redo();
+      expect(run.rows, ['a', 'end']);
+    });
+
+    test('an item added at the top: the row it went to', () {
+      final run = _listRun();
+      run
+        ..runCommand(
+          AddItem(run.shown.view.doc.root.children.single.id, at: AddAt.first),
+        )
+        ..undo();
+      expect(run.rowShown, 'a');
+    });
+
+    test('typing in a raw block opened by Backspace: that block', () {
+      final run = EditorRun('one\n\n<div>\n\ntwo')..caret(2, 0);
+      run
+        ..press(EditKey.backspace)
+        ..send(EditRaw('<div>x', base: 6, extent: 6, revision: run.revision))
+        ..caret(0, 0)
+        ..undo();
+      expect(run.outputs.whereType<ShowRow>().last.leaf, run.leaf(1));
+    });
+  });
+
   group('Markdown edit undo and redo put the caret', () {
     test('at the change, for a step made there', () {
       final run = EditorRun('one two', mode: EditMode.markdown);

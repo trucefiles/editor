@@ -54,9 +54,11 @@ final class TreeSide {
   /// The leaf of the row the edit acted at, if known.
   final NodeId? at;
 
+  /// An open raw block's text as read selected: the caret there may
+  /// still be where it was before the block opened.
   late final ({DocTree doc, Selection? selection}) _closed = rawClosed(
     _shown,
-    _shown.selection,
+    null,
   );
 
   /// The doc tree. Its nodes are the very ones shown then, so it prints
