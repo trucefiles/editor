@@ -38,6 +38,7 @@ final class FilePage {
 
   /// Closes the page; its edits are kept first, as far as they can be.
   Future<void> close() {
+    _closed();
     part.dispose();
     controller.dispose();
     // Also after a leave that kept the edits: the screen may also go
@@ -46,7 +47,6 @@ final class FilePage {
     return session.secure(SecureReason.close).whenComplete(() {
       _leaveOpenFiles();
       session.dispose();
-      _closed();
     });
   }
 }
@@ -196,8 +196,10 @@ final class FilePages {
     );
   }
 
-  /// A page closed: what shows next is listed again where the refresh
-  /// setting asks for it.
+  /// A page closes: what shows next is listed again where the refresh
+  /// setting asks for it. At once, while the app's parts are surely
+  /// there; the page's last save is checked on its own, as every own
+  /// write is.
   void _closed() {
     if (refresh().listsWhenFileCloses) unawaited(refreshFolders());
   }
