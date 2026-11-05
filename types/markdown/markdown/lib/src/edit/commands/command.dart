@@ -215,8 +215,9 @@ final class MoveItem extends EditCommand {
 }
 
 /// "Clear checked items now": the checked items at the top level of
-/// [list], or of every list if `null`, go with their subitems (see
-/// [Toggle]: no caret after it).
+/// [list], or of every list if `null`, go with their subitems; a list
+/// left empty keeps one empty open item (see [Toggle]: no caret after
+/// it).
 final class ClearChecked extends EditCommand {
   const ClearChecked({this.list});
 

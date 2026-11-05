@@ -135,12 +135,29 @@ List<ItemNode> checkedItems(DocTree doc, {ListNode? list}) => [
     ...top.items.where((item) => item.checked ?? false),
 ];
 
-/// [items] gone with their subitems: "Clear checked items"; no caret
-/// after it (see [toggle]).
-Change clearItems(ViewRows view, List<ItemNode> items) => (
-  doc: view.doc.edited({for (final item in items) item.id: const []}),
-  caret: const NoCaret(),
-);
+/// [items] gone with their subitems: "Clear checked items". A list they
+/// would leave empty keeps one empty open item in their place, so it
+/// stays to be filled again (e.g. a shopping list). No caret after it
+/// (see [toggle]).
+Change clearItems(ViewRows view, List<ItemNode> items) {
+  final going = {for (final item in items) item.id};
+  final keeping = {
+    for (final item in items)
+      if (view.doc.parentOf(item.id) case final ListNode list
+          when list.items.every((each) => going.contains(each.id)))
+        list.items.first.id,
+  };
+  final fresh = view.doc.freshIds;
+  return (
+    doc: view.doc.edited({
+      for (final item in items)
+        item.id: keeping.contains(item.id)
+            ? [ItemNode(fresh.take(), [emptyParagraph(fresh)], checked: false)]
+            : const [],
+    }, fresh: fresh),
+    caret: const NoCaret(),
+  );
+}
 
 /// [items] moved, with their subitems, to the end of their lists in
 /// their order: "Move checked items to end", and a checked item's wait
