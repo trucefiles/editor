@@ -35,6 +35,16 @@ base class CalendarFileType implements ShownFileType {
   @override
   TextFile get newFile => const TextFile.empty(lineBreak: '\r\n');
 
+  /// A calendar or a health calendar, with no name and no events yet.
+  @override
+  late final List<NewFileKind> newKinds = [
+    for (final health in [false, true])
+      NewFileKind(
+        kindName(health: health),
+        start: newCalendarText('', health: health),
+      ),
+  ];
+
   @override
   FileCardSummary cardSummary(FileText read) {
     final summary = CalendarSummary(read.text);
@@ -59,14 +69,3 @@ base class CalendarFileType implements ShownFileType {
   @override
   TextMerge get merge => const CalendarMerge();
 }
-
-/// The new calendars the user can make, of [type] (the calendar type as
-/// the app wires it): a calendar, or a health calendar, each named first.
-List<NewFileChoice<T>> newCalendarChoices<T extends ShownFileType>(T type) => [
-  NewFileChoice('Calendar', type, startNamed: newCalendarText),
-  NewFileChoice(
-    'Health calendar',
-    type,
-    startNamed: (name) => newCalendarText(name, health: true),
-  ),
-];

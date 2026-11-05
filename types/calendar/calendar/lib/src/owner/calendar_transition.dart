@@ -7,7 +7,8 @@ import 'package:truce_core/truce_core.dart'
         SentText,
         Step,
         StepRun,
-        TextSummary;
+        TextSummary,
+        typingIn;
 
 import '../edit/brought_back.dart';
 import '../edit/calendar_edit.dart';
@@ -69,6 +70,15 @@ final class _Step
           }
           if (landed.gone case final gone?) events.add(SavedAsNew(gone));
         }
+      case RenameCalendar(:final name):
+        if (state.calendar case final calendar? when calendar.name != name) {
+          _showCalendar(calendar.named(name));
+          textChanged();
+          record(
+            NameChanged(calendar.name, name),
+            typingIn(#name, calendar.name, name),
+          );
+        }
       case CalendarRequest(:final request, :final at):
         _requestAt = at;
         handleRequest(request);
@@ -88,14 +98,20 @@ final class _Step
   @override
   void undo(CalendarStep step) => switch (step) {
     UnitsChanged(:final before) => _bringBack(before),
+    NameChanged(:final before) => _rename(before),
     TextReplaced(:final before) => _restore(before),
   };
 
   @override
   void redo(CalendarStep step) => switch (step) {
     UnitsChanged(:final after) => _bringBack(after),
+    NameChanged(:final after) => _rename(after),
     TextReplaced(:final after) => _restore(after),
   };
+
+  /// The calendar is named [name] again. A name step is only undone or
+  /// redone on the calendar it was made on, so one shows.
+  void _rename(String name) => _showCalendar(state.calendar!.named(name));
 
   /// The [units] of one side of an edit show again, stamped as an edit
   /// made when it was asked. A units step is only undone or redone on the

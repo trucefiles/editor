@@ -111,7 +111,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
           FloatingActionButton(
             tooltip: 'New file',
             onPressed: () => _create(list),
-            child: const Icon(Icons.edit),
+            child: const Icon(Icons.add),
           ),
         _ => null,
       },
@@ -137,12 +137,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ref.read(fileTypesProvider).newFileChoices,
     );
     if (pick == null || !mounted) return;
-    ref.read(fileActionsProvider).reveal(place, pick.made.type.support.type);
+    ref.read(fileActionsProvider).reveal(place, pick.type.support.type);
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) =>
-            FileScreen.fresh(place, made: pick.made, name: pick.name),
+        builder: (_) => FileScreen.fresh(place, made: pick),
       ),
     );
   }

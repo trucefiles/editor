@@ -37,6 +37,15 @@ final class EditCalendar extends CalendarInput {
   final String newUid;
 }
 
+/// The user names the calendar [name] (none if empty), as typed so far:
+/// typing on in a name joins one undo step. Dropped while the text is no
+/// calendar, or if the name is the same.
+final class RenameCalendar extends CalendarInput {
+  const RenameCalendar(this.name);
+
+  final String name;
+}
+
 /// A request of the file page (see core's editor contract), made
 /// [at]: what an undo or redo brings back is stamped as an edit then.
 final class CalendarRequest extends CalendarInput {

@@ -307,4 +307,38 @@ void main() {
       GoneMeanwhile.event,
     ]);
   });
+
+  test('typing a name is one undo step, which an event edit ends', () {
+    final run = _run(newCalendarText(''))
+      ..send(const RenameCalendar('H'))
+      ..send(const RenameCalendar('Ho'))
+      ..send(const RenameCalendar('Home'));
+    expect(run.state.calendar!.name, 'Home');
+    expect(run.state.text, newCalendarText('Home'));
+    expect(run.state.status.unsent, isTrue);
+
+    run
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
+      ..send(const RenameCalendar('Home!'))
+      ..send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.name, 'Home');
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.eventOf('gym@t')!.series.deleted, isTrue);
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.name, '');
+    expect(run.state.status.canUndo, isFalse);
+
+    run.send(CalendarRequest(const Redo(), at: _later));
+    expect(run.state.calendar!.name, 'Home');
+  });
+
+  test('the same name, or a text that is no calendar, takes no rename', () {
+    final run = _run(birthday)..send(const RenameCalendar('Birthdays'));
+    expect(run.state.status.canUndo, isFalse);
+    final none = _run('no calendar')..send(const RenameCalendar('X'));
+    expect(
+      (none.state.text, none.state.status.canUndo),
+      ('no calendar', false),
+    );
+  });
 }

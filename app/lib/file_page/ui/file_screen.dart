@@ -42,25 +42,16 @@ import 'save_indicator.dart';
 /// Markdown document). Saves as the user types; a new file is
 /// created as the user leaves it or the app is hidden.
 class FileScreen extends ConsumerStatefulWidget {
-  const FileScreen(FileText this.file, {super.key})
-    : place = null,
-      made = null,
-      name = '';
+  const FileScreen(FileText this.file, {super.key}) : place = null, made = null;
 
-  /// A new file, to go into [place]: [made] (a plain one if `null`),
-  /// named [name] if it is named first.
-  const FileScreen.fresh(
-    FilePlace this.place, {
-    this.made,
-    this.name = '',
-    super.key,
-  }) : file = null;
+  /// A new file, to go into [place]: [made] (a plain one if `null`).
+  const FileScreen.fresh(FilePlace this.place, {this.made, super.key})
+    : file = null;
 
   /// The file to open, as read just before; `null` for a new one.
   final FileText? file;
   final FilePlace? place;
   final NewFileChoice<EditableType>? made;
-  final String name;
 
   @override
   ConsumerState<FileScreen> createState() => _FileScreenState();
@@ -91,7 +82,6 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       (_, final place?) => pages.openNew(
         place,
         made: widget.made,
-        name: widget.name,
         withFile: _withFile,
       ),
       _ => throw StateError('A file or a place is needed.'),
@@ -428,6 +418,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         title: FileHeading(
           title: _session.title,
           edited: _session.read?.listed.modified,
+          own: _page.view.title(context, title: _session.title),
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),

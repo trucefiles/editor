@@ -17,6 +17,9 @@ final class _Type implements ShownFileType {
   TextFile get newFile => const TextFile.empty();
 
   @override
+  List<NewFileKind> get newKinds => const [];
+
+  @override
   String searchText(FileText read) => read.text;
 
   @override

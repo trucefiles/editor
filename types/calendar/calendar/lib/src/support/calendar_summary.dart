@@ -36,11 +36,23 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
 
+  /// The calendar's name; `null` if it has none, so the file's name
+  /// shows.
   @override
-  String? get title => firstLine.isEmpty ? null : firstLine;
+  late final String? title = switch (calendar?.name.trim()) {
+    final name? when name.isNotEmpty => name,
+    _ => null,
+  };
 
+  /// The calendar's name; a calendar with none is named after its kind
+  /// ("Calendar", "Health calendar"), as a new file is.
   @override
-  late final String firstLine = calendar?.name.trim() ?? '';
+  late final String firstLine =
+      title ??
+      switch (calendar) {
+        final calendar? => kindName(health: calendar.isHealth),
+        null => '',
+      };
 
   /// What a search finds: the name and each event's title, place and
   /// notes, deleted events left out; a text that is no calendar as it is.
@@ -91,3 +103,8 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         options.now.add(previewAhead),
       ).take(options.count).toList();
 }
+
+/// What a calendar is called by its kind: as the user picks a new one,
+/// and as one without a name is named.
+String kindName({required bool health}) =>
+    health ? 'Health calendar' : 'Calendar';

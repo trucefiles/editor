@@ -4,6 +4,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 
 import 'calendar_editor_part.dart';
 import 'calendar_start.dart';
+import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
@@ -44,6 +45,14 @@ final class CalendarEditorView extends EditorView {
       starts: _pageStarts,
     );
   }
+
+  /// The calendar's name, edited in place while it can be edited;
+  /// otherwise, or for a text that is no calendar, the file's [title].
+  @override
+  Widget? title(BuildContext context, {required String title}) =>
+      _part.isEditing && _part.owner.state.calendar != null
+      ? CalendarNameField(_part, title: title)
+      : null;
 
   @override
   Widget? floatingButton(BuildContext context) => StreamBuilder(

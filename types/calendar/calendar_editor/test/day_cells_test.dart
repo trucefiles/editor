@@ -79,6 +79,21 @@ void main() {
     expect(outline(tester), isNull);
   });
 
+  testWidgets('a likely period day has a fill paler than a period day', (
+    tester,
+  ) async {
+    await show(tester, likely, isToday: false);
+    final colors = Theme.of(tester.element(find.byType(Container))).colorScheme;
+    final fill = tester.widget<Container>(find.byType(Container)).color!;
+
+    expect(fill, likelyPeriodFill(colors));
+    expect(fill, isNot(colors.errorContainer));
+    expect(
+      fill.computeLuminance(),
+      greaterThan(colors.errorContainer.computeLuminance()),
+    );
+  });
+
   testWidgets('today on a likely period day shows both', (tester) async {
     await show(tester, likely, isToday: true);
 

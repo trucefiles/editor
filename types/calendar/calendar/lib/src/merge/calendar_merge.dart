@@ -11,7 +11,10 @@ import '../read/values.dart';
 /// changed, or any unit without a base, takes the newer edit. A unit on one
 /// side only is kept: a deleted event stays as a marker, so a missing one
 /// is never taken as deleted. Order: `main`'s units, then `other`'s new
-/// ones; the calendar's own properties and layout are `main`'s. Time
+/// ones; the calendar's own properties and layout are `main`'s, but for
+/// its name, which, with a [base], takes `other`'s change where only
+/// `other` renamed it (a name both changed is `main`'s, and `other`'s is
+/// lost). Time
 /// zone blocks merge by zone like events (ours carry no stamp, so the
 /// smaller text wins; both are right) and never count as lost. Never
 /// changes a unit's text. Deterministic and idempotent.
@@ -28,11 +31,17 @@ final class CalendarMerge implements TextMerge {
         if (mains.unitOf(unit.key) case final mine?)
           unit.key: _keptOf(mine, unit, bases?.unitOf(unit.key)),
     };
+    final renamed = bases != null && others.name != bases.name;
+    final name = renamed && mains.name == bases.name ? others.name : mains.name;
     return MergedText(
-      mains.withUnits([
-        for (final unit in others.units) winners[unit.key] ?? unit,
-      ]).text,
+      mains
+          .withUnits([
+            for (final unit in others.units) winners[unit.key] ?? unit,
+          ])
+          .named(name)
+          .text,
       lost: [
+        if (renamed && name != others.name) 'The calendar name',
         for (final unit in others.units)
           if (winners[unit.key] case final winner? when unit.key is! ZoneKey)
             for (final side in [mains.unitOf(unit.key)!, unit])

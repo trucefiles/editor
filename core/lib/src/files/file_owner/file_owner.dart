@@ -63,11 +63,14 @@ FileMachine<V> openedFile<V extends Version>(
   step: _stepWith(merge),
 );
 
-/// The file machine of a new file, which has no file yet; [merge] as
-/// for [openedFile].
-FileMachine<V> newFile<V extends Version>({TextMerge? merge}) => Machine(
+/// The file machine of a new file, which has no file yet and starts with
+/// [start]; [merge] as for [openedFile].
+FileMachine<V> newFile<V extends Version>({
+  String start = '',
+  TextMerge? merge,
+}) => Machine(
   state: FileState(status: const Unwritten(), text: '', rev: 0, file: null),
-  work: FileWork(expected: null, offered: const []),
+  work: FileWork(expected: null, offered: const [], start: start),
   step: _stepWith(merge),
 );
 

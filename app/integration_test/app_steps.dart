@@ -114,10 +114,10 @@ extension AppSteps on WidgetTester {
     await tapAndSettle(find.text(choice));
   }
 
-  /// Starts a new note: New document, then Note among what it offers.
+  /// Starts a new note: New file, then Document among what it offers.
   Future<void> startNewNote() async {
     await tapAndSettle(find.byTooltip('New file'));
-    await tapAndSettle(find.text('Note'));
+    await tapAndSettle(find.text('Document'));
   }
 
   /// Starts a new file and types [text] into it, where the caret waits.

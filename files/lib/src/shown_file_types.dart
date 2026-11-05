@@ -5,10 +5,14 @@ import 'shown_file_type.dart';
 
 /// The file types the app handles, and which one a file is.
 final class ShownFileTypes<T extends ShownFileType> {
-  /// [newFileChoices]: what the user can make new, a plain new file
-  /// first; never empty.
-  ShownFileTypes(this.all, {required this.newFileChoices})
-    : assert(newFileChoices.isNotEmpty, 'Nothing to make new.'),
+  /// [all]: a plain new file's type first, as its first new kind is
+  /// what a plain new file is; some type must make new files.
+  ShownFileTypes(this.all)
+    : assert(all.any((type) => type.newKinds.isNotEmpty), 'Nothing new.'),
+      newFileChoices = [
+        for (final type in all)
+          for (final kind in type.newKinds) NewFileChoice(kind, type),
+      ],
       detector = ExtensionFileTypeDetector.of([
         for (final type in all) type.support,
       ]),
@@ -21,7 +25,8 @@ final class ShownFileTypes<T extends ShownFileType> {
   /// are not shown.
   final FileTypeDetector detector;
 
-  /// What the user can make new, a plain new file first.
+  /// What the user can make new, each type's kinds in the order of
+  /// [all]; a plain new file first.
   final List<NewFileChoice<T>> newFileChoices;
 
   /// The type of a plain new file.

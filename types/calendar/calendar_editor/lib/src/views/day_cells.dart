@@ -13,6 +13,7 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   return Container(
     color: switch (day) {
       (period: true, likelyPeriod: _, fertile: _) => colors.errorContainer,
+      (period: _, likelyPeriod: true, fertile: _) => likelyPeriodFill(colors),
       (period: _, likelyPeriod: _, fertile: true) => colors.tertiaryContainer,
       _ when weekend => colors.onSurface.withValues(alpha: 0.04),
       _ => null,
@@ -22,7 +23,7 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
         : null,
     child: day.likelyPeriod
         ? CustomPaint(
-            painter: Stripes(colors.error),
+            painter: Stripes.likelyPeriod(colors),
             child: const SizedBox.expand(),
           )
         : null,
@@ -49,14 +50,26 @@ Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
   ),
 );
 
-/// Thin diagonal lines in [color] over the whole box: a day that is
-/// likely, not known.
+/// The fill of a day likely in a period: paler than a known period day,
+/// so it reads as likely; pink on dark, where the theme's red looks rose.
+Color likelyPeriodFill(ColorScheme colors) =>
+    Color.alphaBlend(switch (colors.brightness) {
+      Brightness.light => colors.errorContainer.withValues(alpha: 0.3),
+      Brightness.dark => const Color(0xFFF48FB1).withValues(alpha: 0.6),
+    }, colors.surface);
+
+/// Thin, faint diagonal lines in [color] over the whole box: a day that
+/// is likely, not known.
 class Stripes extends CustomPainter {
   const Stripes(this.color);
 
+  /// The lines over a day likely in a period.
+  Stripes.likelyPeriod(ColorScheme colors)
+    : this(colors.error.withValues(alpha: 0.2));
+
   final Color color;
 
-  static const _gap = 6.0;
+  static const _gap = 12.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -107,7 +120,11 @@ class CycleLegend extends StatelessWidget {
       runSpacing: 4,
       children: [
         item(BoxDecoration(color: colors.errorContainer), 'Period'),
-        item(null, 'Likely next period', stripes: Stripes(colors.error)),
+        item(
+          BoxDecoration(color: likelyPeriodFill(colors)),
+          'Likely next period',
+          stripes: Stripes.likelyPeriod(colors),
+        ),
         item(BoxDecoration(color: colors.tertiaryContainer), 'Likely fertile'),
       ],
     );

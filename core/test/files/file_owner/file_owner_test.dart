@@ -855,6 +855,18 @@ void main() {
       expect(run.last<Answer>().kept, isTrue);
     });
 
+    test('back at the text it started with, it is not created', () {
+      final run = _Run(newFile(start: 'start'))
+        ..edit('started', 1, lineage: null)
+        ..keep()
+        ..edit('start', 2, lineage: null);
+      expect(run.status, isA<Unwritten>());
+      expect(run.all<DropDraft>(), hasLength(1));
+      run.secure(SecureReason.close);
+      expect(run.all<Create>(), isEmpty);
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
     test('stays on the device until the user leaves it, then is created', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)

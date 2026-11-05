@@ -19,15 +19,14 @@ void main() {
 
   setUp(() => app = TestApp.create());
 
-  testApp('a new calendar is written with its first event, and shows in the '
-      'Calendar tab', (tester) async {
+  testApp('a new calendar is named in its title, written with its first '
+      'event, and shows in the Calendar tab', (tester) async {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
-    await tester.enterText(find.byType(TextField), 'Family');
+    await tester.enterText(_nameField, 'Family');
     await tester.pump();
-    await tester.tapAndSettle(find.text('Create'));
     await tester.tapAndSettle(find.byTooltip('Add event'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
@@ -60,4 +59,44 @@ void main() {
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('Dentist'), findsOneWidget);
   });
+
+  testApp('a new calendar left with no name and no event is not written', (
+    tester,
+  ) async {
+    await tester.addFolder(app);
+
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
+    await tester.enterText(_nameField, 'Trip');
+    await tester.pump();
+    await tester.enterText(_nameField, '');
+    await tester.pump();
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    expect(app.topFiles, isEmpty);
+  });
+
+  testApp('a new calendar with an event and no name is named after its '
+      'kind', (tester) async {
+    await tester.addFolder(app);
+
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
+    await tester.tapAndSettle(find.byTooltip('Add event'));
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
+    await tester.tapAndSettle(find.text('Save'));
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    final file = app.file('Calendar.ics');
+    await tester.waitUntil(file.existsSync);
+    expect(file.readAsStringSync(), isNot(contains('X-WR-CALNAME')));
+  });
 }
+
+/// The calendar's name, edited in the page's title.
+final _nameField = find.descendant(
+  of: find.byType(AppBar),
+  matching: find.byType(TextField),
+);

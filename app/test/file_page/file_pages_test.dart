@@ -76,14 +76,13 @@ void main() {
     expect(page.type, same(made.types.forNew));
   });
 
-  test("a new calendar's page starts as the calendar it was named", () {
+  test("a new calendar's page starts as an empty, unnamed calendar", () {
     final health = appFileTypes().newFileChoices.firstWhere(
       (made) => made.label == 'Health calendar',
     );
     final page = pages().openNew(
       (folder: fixture.folders[0], subfolder: null),
       made: health,
-      name: 'Me',
       withFile: (_) async {},
     );
     addTearDown(page.close);
@@ -92,8 +91,12 @@ void main() {
     expect((page.session.file as NewFile).type, health.type);
     expect(
       (page.part as CalendarEditorPart).owner.state.text,
-      newCalendarText('Me', health: true),
+      newCalendarText('', health: true),
     );
-    expect(page.session.path, path('Me.ics'), reason: 'named by its name');
+    expect(
+      page.session.path,
+      path('Health calendar.ics'),
+      reason: 'named after its kind until it has a name',
+    );
   });
 }

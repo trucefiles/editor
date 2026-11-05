@@ -51,6 +51,17 @@ void main() {
     cycleLine: (_, _) => '',
   );
 
+  test('a calendar with no name has no title, and is named after its kind', () {
+    for (final (health, kind) in [
+      (false, 'Calendar'),
+      (true, 'Health calendar'),
+    ]) {
+      final summary = CalendarSummary(newCalendarText('', health: health));
+      expect((summary.title, summary.firstLine), (null, kind));
+    }
+    expect(CalendarSummary('no calendar').firstLine, '');
+  });
+
   test('a card holds until the first occurrence it shows ends', () {
     final summary = const CalendarSupport().summary(birthday, maxLines: 5);
     expect(summary.holdsUntil(at(DateTime(2026, 11))), DateTime(2027, 3, 13));

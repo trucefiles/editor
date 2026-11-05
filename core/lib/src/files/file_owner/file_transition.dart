@@ -163,7 +163,7 @@ final class _Step<V extends Version>
     switch (status) {
       case ChangedElsewhere() || DeletedElsewhere():
         break;
-      case _ when work.expected == null && edited.text.trim().isEmpty:
+      case _ when work.expected == null && _holdsNothing(edited.text):
         _settle(const Unwritten());
       case _ when edited.text == work.expected?.text && work.io is! WritingFile:
         // Back to the file's text: nothing to write.
@@ -172,6 +172,10 @@ final class _Step<V extends Version>
         _set(status: const Editing(EditPhase.inMemory));
     }
   }
+
+  /// Whether [text], a new file's, holds nothing to write: it is what
+  /// the file starts with, or only white space.
+  bool _holdsNothing(String text) => text == work.start || text.trim().isEmpty;
 
   /// Asks the file to hold the edits, where they can be written there.
   void _saveNow() {
@@ -645,7 +649,7 @@ final class _Step<V extends Version>
       _ => work.expected,
     };
     _work(work.copyWith(expected: file, offered: [?file]));
-    _set(text: file?.text ?? '');
+    _set(text: file?.text ?? work.start);
     _picked(state.text, file?.version);
     _settle(switch (status) {
       DeletedElsewhere() => const DeletedElsewhere(),

@@ -22,6 +22,9 @@ base class MarkdownFileType implements ShownFileType {
   @override
   TextFile get newFile => const TextFile.empty();
 
+  @override
+  List<NewFileKind> get newKinds => const [NewFileKind('Document')];
+
   /// The whole text.
   @override
   String searchText(FileText read) => read.text;

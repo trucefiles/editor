@@ -271,7 +271,7 @@ void main() {
 
     await tester.tap(find.byTooltip('New file'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Note'));
+    await tester.tap(find.widgetWithText(ListTile, 'Document'));
     await showsSoon(tester, find.byType(FileScreen));
 
     expect(container.read(pickedFileTypesProvider), {

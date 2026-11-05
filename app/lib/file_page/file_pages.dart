@@ -102,11 +102,10 @@ final class FilePages {
   );
 
   /// The page of a new file, to go into [place]: [made] (a plain one
-  /// if `null`), named [name] if it is named first.
+  /// if `null`).
   FilePage openNew(
     FilePlace place, {
     NewFileChoice<EditableType>? made,
-    String name = '',
     required WithFile withFile,
   }) {
     final what = made ?? types.newFileChoices.first;
@@ -114,7 +113,7 @@ final class FilePages {
       what.type,
       NewFile(place, type: what.type),
       view: FileSettings.defaults.view,
-      startText: what.startText(name),
+      startText: what.kind.start,
       withFile: withFile,
     );
   }
@@ -163,6 +162,7 @@ final class FilePages {
         mover: move,
       ),
       editor.part.editor,
+      start: startText,
       merge: type.merge,
     );
     FolderId folder() => session.file.folder.id;

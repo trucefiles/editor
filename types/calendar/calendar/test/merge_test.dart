@@ -220,6 +220,31 @@ void main() {
     expect(merged.eventOf('ann@truce'), isNotNull);
     expect(merged.name, 'Family', reason: "main's own properties");
   });
+
+  test("the name takes the other side's rename where only it renamed", () {
+    final named = Calendar.read(birthday)!.named('Family').text;
+    expect(
+      Calendar.read(_merged(added, named, base: birthday))!.name,
+      'Family',
+    );
+    expect(
+      Calendar.read(_merged(named, added, base: birthday))!.name,
+      'Family',
+    );
+    expect(
+      Calendar.read(_merged(added, named))!.name,
+      'Birthdays',
+      reason: "without a base, main's",
+    );
+  });
+
+  test("a name both renamed is main's, and the other's is lost", () {
+    final ours = Calendar.read(birthday)!.named('Ours').text;
+    final theirs = Calendar.read(birthday)!.named('Theirs').text;
+    final merged = _merge.merge(ours, theirs, base: birthday) as MergedText;
+    expect(Calendar.read(merged.text)!.name, 'Ours');
+    expect(merged.lost, contains('The calendar name'));
+  });
 }
 
 /// A calendar of one [component] with `UID:x`.
