@@ -41,16 +41,35 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
     _ => null,
   };
 
-  /// Whether the edits and the version from elsewhere can be merged.
-  bool get _merges => switch (_session.status) {
-    ChangedElsewhere(:final merges) => merges,
+  /// Whether the edits and a version from elsewhere can be merged, as
+  /// last asked; asked again for each new version.
+  ({ReadVersion version, bool merges})? _merging;
+
+  /// Whether the edits and [theirs] can be merged, as far as known yet.
+  bool _merges(Seen<ReadVersion> theirs) => switch (_merging) {
+    (:final version, :final merges) when version == theirs.version => merges,
     _ => false,
   };
+
+  /// Asks whether the edits and the version shown merge, once per
+  /// version.
+  void _askMerges() {
+    final theirs = _theirs;
+    if (theirs == null || _merging?.version == theirs.version) return;
+    _merging = (version: theirs.version, merges: false);
+    unawaited(
+      _session.mergesWith(theirs).then((merges) {
+        if (!mounted || _merging?.version != theirs.version) return;
+        setState(() => _merging = (version: theirs.version, merges: merges));
+      }),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onSessionChanged);
+    _askMerges();
     _notices = _session.fileNotices.listen((notice) {
       if (notice is! PickNotKept || !mounted) return;
       setState(() => _picking = null);
@@ -78,6 +97,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
       if (_picking != null && _picking?.version != theirs.version) {
         _picking = null;
       }
+      _askMerges();
       setState(() {});
     } else if (!_closed && mounted) {
       _closed = true;
@@ -135,7 +155,9 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
               enabled: _picking == null,
               // This build's version: the one shown when the user taps.
               onKeep: (side) => _keep(side, theirs),
-              onMerge: _merges ? () => _pick(PickChoice.merged, theirs) : null,
+              onMerge: _merges(theirs)
+                  ? () => _pick(PickChoice.merged, theirs)
+                  : null,
             ),
     );
   }

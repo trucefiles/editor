@@ -115,6 +115,17 @@ final class Pick extends FileInput<Never> {
   final int rev;
 }
 
+/// Whether the edits now and the version [seen] from elsewhere can be
+/// picked merged ([PickChoice.merged]), as the file's type merges them;
+/// answered by [MergesAnswer].
+final class AskMerges extends FileInput<Never> implements Asking {
+  const AskMerges(this.ticket, {required this.seen});
+
+  @override
+  final Ticket ticket;
+  final Version seen;
+}
+
 /// Write the edits as the file again, after it was deleted elsewhere.
 final class RestoreMine extends FileInput<Never> {
   const RestoreMine();
@@ -292,6 +303,16 @@ final class MoveAnswer extends FileEvent implements Answering {
   @override
   final Ticket ticket;
   final bool started;
+}
+
+/// The answer to [AskMerges]: whether the two merge; `false` once the
+/// version from elsewhere is another than the one asked about.
+final class MergesAnswer extends FileEvent implements Answering {
+  const MergesAnswer(this.ticket, {required this.merges});
+
+  @override
+  final Ticket ticket;
+  final bool merges;
 }
 
 /// The file's folder was removed from the app: the file takes no more
@@ -487,23 +508,19 @@ enum EditPhase {
 }
 
 /// The file changed elsewhere while there were unsaved edits; edits go
-/// on into the draft until the user picks against [theirs]. [merges]:
-/// whether the edits and [theirs] can be picked merged
-/// ([PickChoice.merged]), as the file's type merges them now.
+/// on into the draft until the user picks against [theirs] (whether the
+/// two merge: [AskMerges]).
 final class ChangedElsewhere<V extends Version> extends FileStatus<V> {
-  const ChangedElsewhere(this.theirs, {this.merges = false});
+  const ChangedElsewhere(this.theirs);
 
   final Seen<V> theirs;
-  final bool merges;
 
   @override
   bool operator ==(Object other) =>
-      other is ChangedElsewhere &&
-      other.theirs == theirs &&
-      other.merges == merges;
+      other is ChangedElsewhere && other.theirs == theirs;
 
   @override
-  int get hashCode => Object.hash(theirs, merges);
+  int get hashCode => theirs.hashCode;
 }
 
 /// The file was deleted elsewhere; edits (if any) go on into the draft

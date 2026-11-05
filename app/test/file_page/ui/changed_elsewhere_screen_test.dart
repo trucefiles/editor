@@ -195,6 +195,18 @@ void main() {
     expect(find.text('theirs'), findsNothing, reason: 'the old one is gone');
   });
 
+  testWidgets('a newer version from elsewhere is offered merged too', (
+    tester,
+  ) async {
+    await pumpCompare(tester, merge: const _BothMerge());
+    expect(find.text('Merge both'), findsOneWidget);
+
+    await changedAgain(tester, 'theirs, newer\n');
+
+    expect(find.textContaining('theirs, newer'), findsOneWidget);
+    expect(find.text('Merge both'), findsOneWidget);
+  });
+
   testWidgets('no merge is offered where the type does not merge', (
     tester,
   ) async {
