@@ -68,7 +68,7 @@ void main() {
     addTearDown(page.close);
     page.session.replaceAll('mine\n');
 
-    await open.secureForExit();
+    await open.secureForExit(within: const Duration(seconds: 5));
 
     expect(fixture.onDisk('a.md'), 'mine\n');
   });

@@ -22,7 +22,6 @@ void main() {
         return keeping.future;
       },
       quit: () async => done.add('quit'),
-      wait: const Duration(milliseconds: 50),
     );
   });
 
@@ -51,30 +50,16 @@ void main() {
       final first = end.ended(AppEndKind.sessionEnding);
       final second = end.ended(AppEndKind.stopAsked);
       final third = end.ended(AppEndKind.stopAsked);
-      final quit = end.keep();
       keeping.complete();
-      await Future.wait([first, second, third, quit]);
+      await Future.wait([first, second, third]);
       expect(done, ['keep', 'quit']);
     },
   );
 
-  test('a keep after the last one ended keeps again', () async {
+  test('an end after the last one was kept keeps again', () async {
     keeping.complete();
-    await end.keep();
-    await end.keep();
+    await end.ended(AppEndKind.sessionEnding);
+    await end.ended(AppEndKind.sessionEnding);
     expect(done, ['keep', 'keep']);
-  });
-
-  test('a folder that hangs holds the end only for its wait', () async {
-    await end.ended(AppEndKind.stopAsked);
-    expect(done, ['keep', 'quit']);
-  });
-
-  test('takes a keep that is a wait for many files', () async {
-    final many = AppEnd(
-      keepAll: () => Future.wait([Future<void>.value()]),
-      quit: () async {},
-    );
-    await many.keep();
   });
 }

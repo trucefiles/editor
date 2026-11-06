@@ -31,7 +31,8 @@ class _TruceAppState extends ConsumerState<TruceApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Keeps the tray icon, and the app's end, for as long as the app runs.
+    // Keeps the tray icon, and hears the app's end from outside, for as
+    // long as the app runs.
     ref
       ..listen(closeToTrayProvider, (_, _) {})
       ..listen(backgroundStartProvider, (_, _) {})

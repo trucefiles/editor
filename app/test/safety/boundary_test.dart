@@ -153,7 +153,7 @@ void main() {
           secure: (_) async {
             secured = (await files.save(a, '# A\nlast')) is Ok;
           },
-          written: () async {},
+          secureForExit: ({required within}) async {},
         );
 
     final removed = await container

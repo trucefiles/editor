@@ -185,7 +185,7 @@ final class FilePages {
     final leaveOpenFiles = openFiles.add(
       folder: folder,
       secure: session.secure,
-      written: session.written,
+      secureForExit: session.secureForExit,
     );
     return FilePage._(
       type,

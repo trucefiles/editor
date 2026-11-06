@@ -39,30 +39,38 @@ void main() {
     expect(session.saveState, SaveState.onDevice);
   });
 
-  test('securing as the app ends answers once on the device; written '
-      'waits for the file', () async {
+  test('securing as the app ends waits for the file', () async {
     final session = fixture.session()..type('x');
 
-    expect(await session.secure(.exit), isTrue);
-    await session.written();
+    expect(
+      await session.secureForExit(within: const Duration(seconds: 5)),
+      isTrue,
+    );
 
     expect(fixture.onDisk('a.md'), 'xone\n');
     expect(session.saveState, SaveState.inFolder);
   });
 
-  test('written is done once the session stopped', () async {
+  test('securing as the app ends is done once the session stopped', () async {
     final session = fixture.session();
     await fixture.removeFirstFolder();
     session.type('mine ');
     await session.secure(.hide);
     expect(session.state, isA<Stopped>());
 
-    await session.written().timeout(const Duration(seconds: 1));
+    // Long before its wait would end it.
+    await session
+        .secureForExit(within: const Duration(seconds: 30))
+        .timeout(const Duration(seconds: 1));
   });
 
-  test('written is done at once with nothing to write', () async {
+  test('securing as the app ends is done at once with nothing to '
+      'write', () async {
     final session = fixture.session();
-    await session.written();
+    expect(
+      await session.secureForExit(within: const Duration(seconds: 5)),
+      isTrue,
+    );
     expect(session.status, isA<InStep>());
   });
 

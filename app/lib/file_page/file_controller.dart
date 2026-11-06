@@ -212,23 +212,21 @@ final class FileController extends ChangeNotifier {
 
   /// Keeps the edits for [reason] ([FileSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
-  /// while the folder can't be reached; as the app ends, on this device
-  /// is enough, and no answer within [endWait] is none (a folder that
-  /// hangs). A failed save may just have started a check of the folder,
-  /// so this waits for its outcome. Once the session stopped, whether it
+  /// while the folder can't be reached (a failed save may just have
+  /// started a check of the folder, so this waits for its outcome); as
+  /// the app ends, on this device is enough, within [endWait]
+  /// ([FileSession.secureForExit]). Once the session stopped, whether it
   /// kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.
     if (session.state case Stopped(:final kept)) return kept ?? false;
-    final kept = _keep(reason);
     return switch (reason) {
-      SecureReason.exit => kept.timeout(endWait, onTimeout: () => false),
-      SecureReason.close || SecureReason.hide => kept,
+      SecureReason.exit => session.secureForExit(within: endWait),
+      SecureReason.close || SecureReason.hide =>
+        await session.secure(reason) ||
+            await reachSettled() == Reach.unreachable,
     };
   }
-
-  Future<bool> _keep(SecureReason reason) async =>
-      await session.secure(reason) || await reachSettled() == Reach.unreachable;
 
   /// Deletes the file with every edit sent; a new file is just
   /// dropped.
