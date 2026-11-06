@@ -35,10 +35,10 @@ Edited atCaret(
   ViewRows view,
   Edited edited,
   Change Function(ViewRows view, Place at) edit,
-) {
-  if (edited.selection case TextSelection(:final extent)) {
-    final shown = ViewRows(edited.doc, done: view.done);
-    return settled(edit(shown, extent), before: shown);
-  }
-  return edited;
-}
+) => switch ((edited.selection, view.over(edited.doc))) {
+  (TextSelection(:final extent), final shown) => settled(
+    edit(shown, extent),
+    before: shown,
+  ),
+  _ => edited,
+};

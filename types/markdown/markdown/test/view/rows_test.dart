@@ -70,4 +70,24 @@ void main() {
     expect(changed.rows.first, isNot(same(before.rows.first)));
     expect(changed.rowOf(first.id), 0);
   });
+
+  group('a view over a new tree, and a hidden row shown', () {
+    const text = 'x\n\n- [ ] a\n- [x] b';
+    final folded = _view(text, done: DoneSections());
+    final list = folded.doc.root.children.last.id;
+    final view = _view(text, done: DoneSections(collapsed: {list}));
+    final b = (view.doc.nodeOf(list)! as ListNode).items.last.children.first.id;
+
+    test('over keeps the Done sections', () {
+      expect(view.over(view.doc).done!.collapsed, {list});
+    });
+
+    test('showing opens only the section that hides the row', () {
+      expect(view.rowOf(b), isNull);
+      expect(_shown(view.showing(b)), ['x', 'a', 'done b']);
+      final x = view.doc.root.children.first.id;
+      expect(view.showing(x), same(view));
+      expect(view.showing(null), same(view));
+    });
+  });
 }

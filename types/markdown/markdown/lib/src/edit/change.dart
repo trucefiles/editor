@@ -53,7 +53,7 @@ Edited settled(Change change, {required ViewRows before}) {
     doc: doc,
     selection: switch (change.caret) {
       CaretAt(:final selection) => selection,
-      CaretAtEnd() => endOf(ViewRows(doc, done: before.done)),
+      CaretAtEnd() => endOf(before.over(doc)),
       NoCaret() => null,
     },
   );

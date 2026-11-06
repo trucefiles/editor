@@ -77,6 +77,26 @@ final class ViewRows {
   final DocTree doc;
   final DoneSections? done;
 
+  /// [doc], a new tree, shown as this view shows its own: the same Done
+  /// sections.
+  ViewRows over(DocTree doc) => ViewRows(doc, done: done);
+
+  /// This view with the Done sections that hide [leaf] opened, so its row
+  /// shows; as it is if it shows already or [leaf] is `null`.
+  ViewRows showing(NodeId? leaf) => switch ((done, leaf)) {
+    (final done?, final leaf?) when rowOf(leaf) == null => ViewRows(
+      doc,
+      done: doc
+          .pathOf(leaf)
+          .fold<DoneSections>(
+            done,
+            (sections, container) =>
+                sections.withCollapsed(container.id, collapsed: false),
+          ),
+    ),
+    _ => this,
+  };
+
   /// The rows, in the order they show.
   late final List<Row> rows = _Rows(done)
       .of(doc.root, (top: true, inDone: false));

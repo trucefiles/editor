@@ -50,7 +50,7 @@ Change _inPlaceOf(
   final next = caretAfter(view, (row) => row.leaf.id == leaf);
   return item == null || _goesOnInList(view, item, leaf, next)
       ? (doc: doc, caret: caretOrEnd(next))
-      : lineAfter(ViewRows(doc, done: view.done), divider.id);
+      : lineAfter(view.over(doc), divider.id);
 }
 
 /// Whether the caret [next] goes to is in [item]'s list and in the

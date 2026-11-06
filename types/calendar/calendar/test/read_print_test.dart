@@ -14,8 +14,8 @@ void main() {
 
     test('a unit taken out goes with all its parts, the rest as it was', () {
       final calendar = Calendar.read(exported)!;
-      final without = calendar.without({
-        const UidKey.event('swim@example.com'),
+      final without = calendar.withUnitsChanged({
+        const UidKey.event('swim@example.com'): null,
       });
       expect(without.eventOf('swim@example.com'), isNull);
       expect(without.text, isNot(contains('swim')));

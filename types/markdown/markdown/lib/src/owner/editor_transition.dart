@@ -355,10 +355,7 @@ final class _Step
       );
     }
     _show(
-      FormattedContent(
-        view: ViewRows(doc, done: shown.view.done),
-        selection: edited.selection,
-      ),
+      FormattedContent(view: shown.view.over(doc), selection: edited.selection),
     );
     if (identical(doc, before)) return;
     textChanged();
@@ -411,7 +408,11 @@ final class _Step
         work = work.copyWith(origin: side.origin);
         _show(
           FormattedContent(
-            view: _showing(side.doc, view.done, side.row),
+            view: _rows(
+              side.doc,
+              view.done,
+              state.checkedItems,
+            ).showing(side.row),
             selection: selection == null ? null : side.selection,
           ),
         );
@@ -420,8 +421,12 @@ final class _Step
         final printed = side.printed;
         work = work.copyWith(
           left: (
-            // Visual edit's Done sections stay as they were left.
-            view: ViewRows(side.doc, done: work.left?.view.done),
+            // Visual edit's Done sections stay as they were left, the
+            // one that holds the step's row opened, as in Visual edit.
+            view: ViewRows(
+              side.doc,
+              done: work.left?.view.done,
+            ).showing(side.row),
             selection: side.selection,
             printed: printed,
           ),
@@ -516,7 +521,7 @@ final class _Step
     final shown = state.content as FormattedContent;
     final closed = rawClosed(shown, selection);
     return FormattedContent(
-      view: ViewRows(closed.doc, done: shown.view.done),
+      view: shown.view.over(closed.doc),
       selection: closed.selection,
     );
   }
@@ -648,23 +653,6 @@ final class _Step
       };
 
   // State.
-
-  /// [doc] in rows as [_rows] says, with the Done section that holds
-  /// [leaf] opened if it is folded, so [leaf]'s row shows.
-  ViewRows _showing(DocTree doc, DoneSections? done, NodeId? leaf) {
-    final view = _rows(doc, done, state.checkedItems);
-    return switch ((view.done, leaf)) {
-      (final done?, final leaf?) when view.rowOf(leaf) == null => ViewRows(
-        doc,
-        done: DoneSections(
-          collapsed: done.collapsed.difference({
-            for (final container in doc.pathOf(leaf)) container.id,
-          }),
-        ),
-      ),
-      _ => view,
-    };
-  }
 
   /// [doc] in rows with checked items as [checkedItems] says, Done
   /// sections collapsed as [done] has them.

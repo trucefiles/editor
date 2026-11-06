@@ -29,16 +29,10 @@ Calendar unitsBroughtBack(
   Map<UnitKey, CalendarUnit?> back,
   DateTime at, {
   required Calendar? filed,
-}) {
-  final came = {
-    for (final MapEntry(:key, :value) in back.entries)
-      key: _cameBack(key, value, now, at, filed),
-  };
-  return now.withUnits([for (final unit in came.values) ?unit]).without({
-    for (final MapEntry(:key, :value) in came.entries)
-      if (value == null) key,
-  });
-}
+}) => now.withUnitsChanged({
+  for (final MapEntry(:key, :value) in back.entries)
+    key: _cameBack(key, value, now, at, filed),
+});
 
 /// What unit [key] is once [back] (`null`: none) comes back over [now] as
 /// an edit at [at], so a merge with [now]'s text, e.g. as another device

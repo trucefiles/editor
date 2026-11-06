@@ -79,6 +79,22 @@ void main() {
       expect(_onShownRow(run), isTrue);
     });
 
+    test('an Undo in Markdown edit into a folded Done section opens it '
+        'back in Visual edit', () {
+      final run = _folded('x\n\n- [x] b');
+      final list = run.shown.view.doc.root.children.last.id;
+      run
+        ..send(SetCollapsed(list, collapsed: false))
+        ..caret(1, 1)
+        ..type('!')
+        ..send(SetCollapsed(list, collapsed: true))
+        ..send(const SetMode(EditMode.markdown))
+        ..request(const Undo())
+        ..send(const SetMode(EditMode.visual));
+      expect(run.rows, ['x', 'b']);
+      expect(_onShownRow(run), isTrue);
+    });
+
     test('after a divider deleted by Backspace', () {
       final run = _folded('---\n\n- [x] b')..select(0);
       run.press(EditKey.backspace);
