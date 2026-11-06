@@ -125,17 +125,31 @@ void main() {
     expect(occurrences(calendar, DateTime(2026), DateTime(2027)), isEmpty);
   });
 
-  test('the occurrences of several calendars are joined by start', () {
-    final shown = occurrencesOf(
-      {
-        'family': Calendar.read(exported)!,
-        'birthdays': Calendar.read(birthday)!,
-      },
-      DateTime(2026, 11, 9),
-      DateTime(2026, 11, 11),
+  test('an occurrence overlaps a range by the rule occurrences are picked '
+      'by', () {
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:a\nDTSTART:20261130T220000\n'
+      'DTEND:20261201T020000\nEND:VEVENT\n'
+      'BEGIN:VEVENT\nUID:b\nDTSTART:20261201T000000\n'
+      'DTEND:20261201T000000\nEND:VEVENT\n',
     );
-    expect([for (final each in shown) each.calendar], ['family', 'family']);
-    expect(shown.first.occurrence.part.summary, 'Swimming');
+    final [late, midnight] = occurrences(
+      calendar,
+      DateTime(2026, 11),
+      DateTime(2027),
+    );
+    final (november, december) = (
+      (DateTime(2026, 11), DateTime(2026, 12)),
+      (DateTime(2026, 12), DateTime(2027)),
+    );
+    expect(
+      [
+        for (final (from, to) in [november, december])
+          (late.overlaps(from, to), midnight.overlaps(from, to)),
+      ],
+      [(true, false), (true, true)],
+      reason: 'one with no length is where it starts',
+    );
   });
 
   test('a simple repeat reads and writes back as the form shows it', () {

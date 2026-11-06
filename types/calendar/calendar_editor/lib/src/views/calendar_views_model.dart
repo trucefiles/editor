@@ -1,18 +1,19 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' show ChangeNotifier, DateUtils;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateUtils;
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../day_clock.dart';
 import 'health_days.dart';
 
-/// One occurrence the views show, with the key of its calendar.
-typedef ShownOccurrence<K> = ({K calendar, Occurrence occurrence});
+/// A range of time on this device's clock.
+typedef ShownRange = ({DateTime from, DateTime to});
 
-/// The one owner of what the calendar views show: the [kind] of view,
-/// the [range] it shows, the [shown] occurrences of its calendars around
-/// that range, worked out once per change (never while building), the
-/// cycle days of its health calendars ([health]), and [today], which
-/// moves on at each midnight of [now]'s clock. Calendars are told
+/// The one owner of what the calendar views show around their events:
+/// the [kind] of view, the [range] it shows, the cycle days of its health
+/// calendars ([health]), and [today], which moves on at each midnight of
+/// [now]'s clock. It tells a change of [range] on its own, as paging
+/// changes nothing else; its listeners hear the rest. Calendars are told
 /// apart by their keys ([K]).
 final class CalendarViewsModel<K> extends ChangeNotifier {
   CalendarViewsModel({
@@ -27,9 +28,7 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   final DayClock _clock;
   CalendarViewKind _kind;
   Map<K, Calendar> _calendars;
-  ({DateTime from, DateTime to})? _range;
-  ({DateTime from, DateTime to})? _window;
-  List<ShownOccurrence<K>> _shown = const [];
+  final _range = ValueNotifier<ShownRange?>(null);
   late HealthDays<K> _health;
 
   CalendarViewKind get kind => _kind;
@@ -39,7 +38,7 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
 
   /// The day in the middle of [range]: a month view shows the month it is
   /// in (its range has the weeks around it too).
-  DateTime? get middle => switch (_range) {
+  DateTime? get middle => switch (_range.value) {
     (:final from, :final to) => DateUtils.dateOnly(
       from.add(to.difference(from) ~/ 2),
     ),
@@ -47,12 +46,12 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   };
 
   /// The days shown: a month view's month, else [range].
-  ({DateTime from, DateTime to})? get _days => switch ((_kind, middle)) {
+  ShownRange? get _days => switch ((_kind, middle)) {
     (CalendarViewKind.month, final middle?) => (
       from: DateTime(middle.year, middle.month),
       to: DateTime(middle.year, middle.month + 1),
     ),
-    _ => _range,
+    _ => _range.value,
   };
 
   /// The day Add event starts on: [today] if it shows, else the first day
@@ -65,13 +64,7 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   };
 
   /// The range shown, on this device's clock; `null` until it is told.
-  ({DateTime from, DateTime to})? get range => _range;
-
-  /// The occurrences of the calendars by start, in a window around
-  /// [range]: its months and one month on each side. The views get the
-  /// pages next to the one shown (and a schedule its scrolled-to part as
-  /// the range) from it too, so nothing they still show goes empty.
-  List<ShownOccurrence<K>> get shown => _shown;
+  ValueListenable<ShownRange?> get range => _range;
 
   /// The cycle days of its health calendars as of [today].
   HealthDays<K> get health => _health;
@@ -84,19 +77,8 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   }
 
   /// Shows [from] to [to].
-  void showRange(DateTime from, DateTime to) {
-    if (_range == (from: from, to: to)) return;
-    _range = (from: from, to: to);
-    if (_window case (from: final start, to: final end)
-        when !from.isBefore(start) && !to.isAfter(end)) {
-      return notifyListeners();
-    }
-    _window = (
-      from: DateTime(from.year, from.month - 1),
-      to: DateTime(to.year, to.month + 2),
-    );
-    _update();
-  }
+  void showRange(DateTime from, DateTime to) =>
+      _range.value = (from: from, to: to);
 
   /// Shows [calendars], each as read now; calendars that show the same
   /// days (e.g. only renamed) are kept without working them out again.
@@ -106,7 +88,7 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _calendars = calendars;
     if (same) return;
     _health = HealthDays.of(calendars, today);
-    _update();
+    notifyListeners();
   }
 
   void _dayChanged() {
@@ -119,15 +101,8 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _clock
       ..removeListener(_dayChanged)
       ..dispose();
+    _range.dispose();
     super.dispose();
-  }
-
-  void _update() {
-    final window = _window;
-    _shown = window == null
-        ? const []
-        : occurrencesOf(_calendars, window.from, window.to);
-    notifyListeners();
   }
 }
 

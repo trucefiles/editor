@@ -16,74 +16,47 @@ Calendar _calendar(String name, String event, DateTime day) => applyEdit(
   ),
 );
 
-List<(String, String)> _shown(CalendarViewsModel<String> model) => [
-  for (final (:calendar, :occurrence) in model.shown)
-    (calendar, occurrence.part.summary),
-];
-
 void main() {
   final home = _calendar('Home', 'Dentist', DateTime(2026, 11, 5));
   final work = _calendar('Work', 'Review', DateTime(2026, 11, 20));
 
-  test('shows the occurrences of its calendars in the range, by key', () {
-    final model = CalendarViewsModel(
-      kind: CalendarViewKind.month,
-      calendars: {'home': home, 'work': work},
-      now: () => DateTime(2026, 11, 10, 12),
-    );
-    addTearDown(model.dispose);
-    expect(model.shown, isEmpty, reason: 'no range yet');
-
-    model.showRange(DateTime(2026, 11), DateTime(2026, 12));
-    expect(_shown(model), [('home', 'Dentist'), ('work', 'Review')]);
-
-    model.showRange(DateTime(2027, 2), DateTime(2027, 3));
-    expect(_shown(model), isEmpty, reason: 'far from them');
-  });
-
-  test('occurrences around the range stay: its months and one on each '
-      'side', () {
-    final december = _calendar('Home', 'Party', DateTime(2026, 12, 7));
-    final model = CalendarViewsModel(
-      kind: CalendarViewKind.schedule,
-      calendars: {'home': home, 'party': december},
-      now: () => DateTime(2026, 11, 10, 12),
-    );
-    addTearDown(model.dispose);
-
-    // A schedule tells only the part scrolled to.
-    model.showRange(DateTime(2026, 11, 15), DateTime(2026, 11, 22));
-    expect(_shown(model), [('home', 'Dentist'), ('party', 'Party')]);
-
-    var changes = 0;
-    model.addListener(() => changes++);
-    final before = model.shown;
-    model.showRange(DateTime(2026, 11, 3), DateTime(2026, 11, 10));
-    expect(changes, 1, reason: 'the range is new');
-    expect(
-      identical(model.shown, before),
-      isTrue,
-      reason: 'not worked out again',
-    );
-  });
-
-  test('new calendars show; the same ones change nothing', () {
+  test('a page change tells only the range', () {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
       now: () => DateTime(2026, 11, 10, 12),
-    )..showRange(DateTime(2026, 11), DateTime(2026, 12));
+    );
+    addTearDown(model.dispose);
+    final (changes, ranges) = (<String>[], <ShownRange?>[]);
+    model.addListener(() => changes.add('model'));
+    model.range.addListener(() => ranges.add(model.range.value));
+
+    model
+      ..showRange(DateTime(2026, 11), DateTime(2026, 12))
+      ..showRange(DateTime(2026, 11), DateTime(2026, 12))
+      ..showRange(DateTime(2026, 12), DateTime(2027));
+    expect(changes, isEmpty);
+    expect(ranges, [
+      (from: DateTime(2026, 11), to: DateTime(2026, 12)),
+      (from: DateTime(2026, 12), to: DateTime(2027)),
+    ]);
+  });
+
+  test('other calendars are told; the same ones change nothing', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => DateTime(2026, 11, 10, 12),
+    );
     addTearDown(model.dispose);
     var changes = 0;
     model.addListener(() => changes++);
 
     model.showCalendars({'home': home});
-    model.showRange(DateTime(2026, 11), DateTime(2026, 12));
     expect(changes, 0);
 
     model.showCalendars({'home': home, 'work': work});
     expect(changes, 1);
-    expect(_shown(model), [('home', 'Dentist'), ('work', 'Review')]);
   });
 
   test('the view kind changes once', () {
@@ -177,19 +150,17 @@ void main() {
     model.dispose();
   });
 
-  test('a renamed calendar shows the same days, worked out once', () {
+  test('a renamed calendar shows the same days: no change', () {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
       now: () => DateTime(2026, 11, 10, 12),
-    )..showRange(DateTime(2026, 11), DateTime(2026, 12));
+    );
     addTearDown(model.dispose);
     var changes = 0;
     model.addListener(() => changes++);
-    final before = model.shown;
 
     model.showCalendars({'home': home.named('Family')});
     expect(changes, 0);
-    expect(identical(model.shown, before), isTrue);
   });
 }

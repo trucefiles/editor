@@ -11,6 +11,7 @@ import 'event_tiles.dart';
 import 'insights_strip.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
+import 'occurrence_events.dart';
 import 'page_mover.dart';
 import 'sideways_wheel.dart';
 import 'views_bar.dart';
@@ -84,7 +85,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     calendars: widget.calendars,
     now: widget.now,
   );
-  final _events = DefaultEventsController();
+  late final _events = OccurrenceEvents<K>(widget.calendars);
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
@@ -103,6 +104,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   void initState() {
     super.initState();
     _model.addListener(_showModel);
+    _model.range.addListener(_tellAddDay);
   }
 
   @override
@@ -131,10 +133,12 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   void didUpdateWidget(CalendarViews<K> oldWidget) {
     super.didUpdateWidget(oldWidget);
     _model.showCalendars(widget.calendars);
+    _events.showCalendars(widget.calendars);
   }
 
   @override
   void dispose() {
+    _model.range.removeListener(_tellAddDay);
     _model
       ..removeListener(_showModel)
       ..dispose();
@@ -149,17 +153,19 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   }
 
   /// Hands the model's state to kalender, which only shows it (today
-  /// too, on the rebuild).
+  /// too, on the rebuild). A page change is no change here: kalender
+  /// pages on its own and asks for the events it shows.
   void _showModel() {
     final kalender = _kalender!;
     final configuration = _configurations[_model.kind]!;
     if (kalender.viewConfiguration != configuration) {
       kalender.viewConfiguration = configuration;
     }
-    _events.replaceEvents(eventsOf(_model.shown));
-    widget.onAddDay?.call(_model.dayToAdd);
+    _tellAddDay();
     setState(() {});
   }
+
+  void _tellAddDay() => widget.onAddDay?.call(_model.dayToAdd);
 
   void _pickKind(CalendarViewKind kind) {
     _model.showKind(kind);
@@ -214,13 +220,17 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     );
     return Column(
       children: [
-        ViewsBar(
-          title: _titleOf(context),
-          kind: _model.kind,
-          onKind: _pickKind,
-          onPrevious: () => unawaited(_pages.step(-1)),
-          onNext: () => unawaited(_pages.step(1)),
-          onToday: () => unawaited(_pages.to(widget.now())),
+        // Only the bar follows the range: a page change rebuilds no page.
+        ValueListenableBuilder(
+          valueListenable: _model.range,
+          builder: (context, _, _) => ViewsBar(
+            title: _titleOf(context),
+            kind: _model.kind,
+            onKind: _pickKind,
+            onPrevious: () => unawaited(_pages.step(-1)),
+            onNext: () => unawaited(_pages.step(1)),
+            onToday: () => unawaited(_pages.to(widget.now())),
+          ),
         ),
         Expanded(
           child: EscCloses(
@@ -284,7 +294,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   /// most of the range lies in.
   String _titleOf(BuildContext context) {
     final words = MaterialLocalizations.of(context);
-    final (range, middle) = (_model.range, _model.middle);
+    final (range, middle) = (_model.range.value, _model.middle);
     if (range == null || middle == null) return '';
     return switch (_model.kind) {
       CalendarViewKind.day => words.formatMediumDate(range.from),

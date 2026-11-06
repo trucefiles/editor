@@ -232,6 +232,48 @@ void main() {
     });
   }
 
+  testWidgets('a swipe to the next month shows its events and changes '
+      'only the bar and the Add day', (tester) async {
+    final days = <DateTime>[];
+    final calendar = Calendar.read(
+      'BEGIN:VCALENDAR\nVERSION:2.0\n'
+      'BEGIN:VEVENT\nUID:a\nDTSTART:20261103T090000\n'
+      'DTEND:20261103T100000\nSUMMARY:Dentist\nEND:VEVENT\n'
+      'BEGIN:VEVENT\nUID:b\nDTSTART:20261207T180000\n'
+      'DTEND:20261207T190000\nSUMMARY:Party\nEND:VEVENT\n'
+      'END:VCALENDAR\n',
+    )!;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarViews<String>(
+            calendars: {'home': calendar},
+            colorOf: (_) => Colors.teal,
+            kind: CalendarViewKind.month,
+            onKind: (_) {},
+            now: () => DateTime(2026, 11, 3, 8),
+            onAddDay: days.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Dentist'), findsOneWidget);
+    var rebuilt = 0;
+    debugOnRebuildDirtyWidget = (element, _) {
+      if (element.widget is KalenderView) rebuilt++;
+    };
+    addTearDown(() => debugOnRebuildDirtyWidget = null);
+
+    await tester.fling(find.byType(KalenderView), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(find.text('December 2026'), findsOneWidget);
+    expect(find.text('Party'), findsOneWidget);
+    expect(rebuilt, 0, reason: 'no page builds again');
+    expect(days.last, DateTime(2026, 12));
+  });
+
   testWidgets('the mouse wheel alone still scrolls the week view, not its '
       'pages', (tester) async {
     await _showViews(tester, CalendarViewKind.week);

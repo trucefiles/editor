@@ -34,6 +34,10 @@ final class Occurrence {
   final CalendarTime? recurrence;
 
   bool get allDay => part.allDay;
+
+  /// Whether it overlaps [from] to [to]; one with no length overlaps
+  /// where it starts. The rule [occurrences] picks them by.
+  bool overlaps(DateTime from, DateTime to) => _overlaps(start, end, from, to);
 }
 
 /// The occurrences of [calendar]'s events that overlap [from] to [to] (on
@@ -42,18 +46,6 @@ final class Occurrence {
 List<Occurrence> occurrences(Calendar calendar, DateTime from, DateTime to) =>
     [for (final event in calendar.events) ..._occurrencesOf(event, from, to)]
       ..sort((a, b) => a.start.compareTo(b.start));
-
-/// The occurrences of each of [calendars] that overlap [from] to [to], by
-/// start, each with the key of its calendar.
-List<({K calendar, Occurrence occurrence})> occurrencesOf<K>(
-  Map<K, Calendar> calendars,
-  DateTime from,
-  DateTime to,
-) => [
-  for (final MapEntry(key: calendar, value: each) in calendars.entries)
-    for (final occurrence in occurrences(each, from, to))
-      (calendar: calendar, occurrence: occurrence),
-]..sort((a, b) => a.occurrence.start.compareTo(b.occurrence.start));
 
 Iterable<Occurrence> _occurrencesOf(
   CalendarEvent event,
