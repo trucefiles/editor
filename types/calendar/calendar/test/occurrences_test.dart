@@ -111,6 +111,21 @@ void main() {
     ]);
   });
 
+  test('a lone changed date shows once, even if its date is unreadable', () {
+    for (final id in ['20261109T080000', ';VALUE=DATE:2026-11-09']) {
+      final line = id.startsWith(';')
+          ? 'RECURRENCE-ID$id'
+          : 'RECURRENCE-ID:$id';
+      final calendar = _with(
+        'BEGIN:VEVENT\nUID:a\n$line\nDTSTART:20261110T080000\n'
+        'RRULE:FREQ=DAILY\nEND:VEVENT\n',
+      );
+      expect(_starts(calendar, DateTime(2026, 11), DateTime(2026, 12)), [
+        DateTime(2026, 11, 10, 8),
+      ]);
+    }
+  });
+
   test('a series that starts after the range shows nothing', () {
     final calendar = _with(
       'BEGIN:VEVENT\nUID:s@x\nDTSTART:20270105T090000\n'

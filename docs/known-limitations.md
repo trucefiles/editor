@@ -135,6 +135,18 @@ Accepted behavior that is not planned to change, grouped by topic.
   event away, but once it was saved, its file keeps a note that it was
   deleted, so other devices learn of it too. An event you undo before it
   was saved leaves nothing.
+- **Importing an older file again undoes later changes.** An import puts
+  each event in just as the file has it. If you changed an imported event
+  here and then import the same file again, your change is replaced. Undo
+  brings it back.
+- **On Android, an .ics file may not show in the picker.** The file picker
+  lists calendar files by their type. A file saved under another type, for
+  example by a mail app, may be hidden there.
+- **Events without an ID show only once imported.** Every event in a
+  calendar file should have an ID (its `UID`). A few apps and hand-written
+  files leave it out. Truce keeps such events in the file but doesn't show
+  them. Import the file into a calendar instead: each event then gets an
+  ID and shows.
 
 ## Folders
 

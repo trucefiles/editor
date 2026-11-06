@@ -74,10 +74,12 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   Stream<ImportOutcome> get imports => _imports.stream;
 
   /// Imports the events of a calendar file the user picks, as one edit;
-  /// dropped if they pick none, or while the calendar can't be edited
-  /// then. What came of it is told by [imports].
+  /// dropped if they pick none, while the calendar can't be edited then,
+  /// or once the part is disposed. What came of it is told by [imports].
   Future<void> importFile() async {
-    switch (await _pickFile()) {
+    final picked = await _pickFile();
+    if (_imports.isClosed) return;
+    switch (picked) {
       case Ok(value: final bytes?) when isEditing:
         owner.send(ImportEvents(bytes, at: _at()));
       case Err():

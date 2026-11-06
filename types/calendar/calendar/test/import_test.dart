@@ -242,6 +242,58 @@ END:VCALENDAR
       'Tennis 09',
     ]);
     expect(_report(both).updated, 1);
+    expect(
+      [
+        for (final occurrence in occurrences(
+          both.calendar,
+          DateTime(2027, 3),
+          DateTime(2027, 4),
+        ))
+          if (occurrence.event.uid == 'tennis@example.org') occurrence.start,
+      ],
+      [DateTime(2027, 3, 2, 18, 30), DateTime(2027, 3, 9, 18, 30)],
+      reason: 'each date shows',
+    );
+  });
+
+  test('a changed date that is unreadable leaves the series as it is', () {
+    final import = _import(birthday, '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:ann@truce
+RECURRENCE-ID;VALUE=DATE:2021-03-12
+DTSTAMP:20270201T090000Z
+DTSTART;VALUE=DATE:20210313
+SUMMARY:Moved
+END:VEVENT
+END:VCALENDAR
+''');
+    expect(import.written, isEmpty);
+    expect(import.calendar.text, birthday);
+    final ann = import.calendar.eventOf('ann@truce')!;
+    expect(ann.series.summary, 'Ann');
+    expect(ann.series.repeat, isNotNull);
+  });
+
+  test('events with a blank UID are each their own, given a UID', () {
+    final import = _import(birthday, '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:
+DTSTART;VALUE=DATE:20270410
+SUMMARY:Book club
+END:VEVENT
+BEGIN:VEVENT
+UID: 
+DTSTART;VALUE=DATE:20270417
+SUMMARY:Choir
+END:VEVENT
+END:VCALENDAR
+''');
+    expect(_report(import).added, 2);
+    final added = import.calendar.events.where((e) => e.uid != 'ann@truce');
+    expect(added.map((e) => e.series.summary), ['Book club', 'Choir']);
+    expect(added.map((e) => e.uid), everyElement(endsWith('@truce')));
   });
 
   test('one event without UID twice in a file is added once', () {

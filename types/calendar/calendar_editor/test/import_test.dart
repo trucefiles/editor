@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -82,6 +83,18 @@ void main() {
     expect(hints, ["This file isn't a calendar.", "Couldn't read this file."]);
     expect(calendarOf(part).events, isEmpty);
     expect(part.owner.state.status.canUndo, isFalse);
+  });
+
+  test('a pick that ends after the page closed tells nothing', () async {
+    final pick = Completer<Result<Uint8List?, FileNotRead>>();
+    final part = calendarPart(
+      newCalendarText('Home'),
+      pickFile: () => pick.future,
+    );
+    final importing = part.importFile();
+    part.dispose();
+    pick.complete(const Err(FileNotRead()));
+    await expectLater(importing, completes);
   });
 
   testWidgets('no import while the calendar is only to read', (tester) async {

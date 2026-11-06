@@ -30,8 +30,13 @@ final class EventPart {
 
   bool get allDay => start is AllDay;
 
+  /// Whether it changes one occurrence of its series: it has a
+  /// `RECURRENCE-ID`, read or not.
+  late final bool changesOccurrence =
+      component.property('RECURRENCE-ID') != null;
+
   /// The occurrence of its series it changes; `null` for the series or a
-  /// single event.
+  /// single event, and where its `RECURRENCE-ID` can't be read.
   late final CalendarTime? recurrenceId = switch (component.property(
     'RECURRENCE-ID',
   )) {
@@ -126,7 +131,8 @@ Duration? alertBefore(Component alarm) => switch (alarm.property('TRIGGER')) {
 };
 
 /// One event of a calendar: all components with its [uid], the [series]
-/// (or single event) and its changed occurrences ([changed]).
+/// (or single event) and the rest ([changed]): its changed occurrences,
+/// and any part whose occurrence can't be read, kept but never shown.
 final class CalendarEvent {
   CalendarEvent(this.uid, this.series, this.changed);
 
@@ -135,11 +141,11 @@ final class CalendarEvent {
     if (unit.key case UidKey(component: 'VEVENT', :final uid)) {
       final parts = unit.components.map(EventPart.new).toList();
       final series =
-          parts.where((part) => part.recurrenceId == null).firstOrNull ??
+          parts.where((part) => !part.changesOccurrence).firstOrNull ??
           parts.first;
       return CalendarEvent(uid, series, [
         for (final part in parts)
-          if (part != series && part.recurrenceId != null) part,
+          if (part != series) part,
       ]);
     }
     return null;

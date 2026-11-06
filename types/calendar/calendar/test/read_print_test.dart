@@ -54,6 +54,47 @@ void main() {
       ]);
     });
 
+    test('a changed date that is unreadable never hides its series', () {
+      final calendar = Calendar.read(
+        birthday.replaceFirst(
+          'BEGIN:VEVENT',
+          'BEGIN:VEVENT\nUID:ann@truce\nRECURRENCE-ID;VALUE=DATE:2021-03-12\n'
+              'DTSTART;VALUE=DATE:20210313\nSUMMARY:Moved\nEND:VEVENT\n'
+              'BEGIN:VEVENT',
+        ),
+      )!;
+      final ann = calendar.eventOf('ann@truce')!;
+      expect(ann.series.summary, 'Ann');
+      expect(ann.changed.single.summary, 'Moved', reason: 'kept, not lost');
+      expect(
+        occurrences(
+          calendar,
+          DateTime(2021),
+          DateTime(2022),
+        ).map((occurrence) => occurrence.part.summary),
+        ['Ann'],
+        reason: 'never shown: it names no occurrence',
+      );
+    });
+
+    test('a blank UID or TZID is none: each such part stays its own', () {
+      const text =
+          'BEGIN:VCALENDAR\nVERSION:2.0\n'
+          'BEGIN:VTIMEZONE\nTZID:\nEND:VTIMEZONE\n'
+          'BEGIN:VTIMEZONE\nTZID: \nEND:VTIMEZONE\n'
+          'BEGIN:VEVENT\nUID:\nSUMMARY:One\nEND:VEVENT\n'
+          'BEGIN:VEVENT\nUID: \nSUMMARY:Two\nEND:VEVENT\n'
+          'END:VCALENDAR\n';
+      final calendar = Calendar.read(text)!;
+      expect(
+        calendar.units.map((unit) => unit.key),
+        everyElement(isA<TextKey>()),
+      );
+      expect(calendar.units, hasLength(4));
+      expect(calendar.zones, isEmpty);
+      expect(calendar.text, text);
+    });
+
     test('reads the calendar name, text values and unfolds lines', () {
       final calendar = Calendar.read(exported)!;
       expect(calendar.name, 'Family');

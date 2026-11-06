@@ -110,24 +110,28 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
 /// a file of changed occurrences only (e.g. an invite for one date of a
 /// series), over an event held here (a series, or changed dates only),
 /// changes only those occurrences in it, each in place of the one for
-/// the same date, the rest added.
+/// the same date, the rest added; one whose date can't be read is left
+/// out, as it names no occurrence.
 CalendarUnit _over(CalendarUnit event, CalendarUnit? mine) {
   final ours = mine == null ? null : CalendarEvent.of(mine);
-  final dates = {
-    for (final component in event.components)
-      EventPart(component).recurrenceId?.local: component,
-  };
-  if (ours == null || ours.series.deleted || dates.containsKey(null)) {
+  final parts = event.components.map(EventPart.new).toList();
+  if (ours == null ||
+      ours.series.deleted ||
+      !parts.every((part) => part.changesOccurrence)) {
     return event;
   }
-  final parts = [
+  final dates = {
+    for (final part in parts)
+      if (part.recurrenceId case final date?) date.local: part.component,
+  };
+  final ourDates = [
     for (final component in mine!.components)
       EventPart(component).recurrenceId?.local,
   ];
-  final held = parts.toSet();
+  final held = ourDates.toSet();
   return CalendarUnit.edited(event.key, [
     for (final (index, component) in mine.components.indexed)
-      dates[parts[index]] ?? component,
+      dates[ourDates[index]] ?? component,
     for (final MapEntry(:key, :value) in dates.entries)
       if (!held.contains(key)) value,
   ]);

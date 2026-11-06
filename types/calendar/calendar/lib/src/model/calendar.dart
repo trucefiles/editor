@@ -353,15 +353,22 @@ int _endOf(List<_Line> lines, int start) {
 
 /// The key that groups [component] with others: its `TZID` for a time
 /// zone block, its kind and `UID` for any other that has one (events,
-/// tasks, journal entries); `null` for the rest.
+/// tasks, journal entries); `null` for the rest. A blank id is none.
 UnitKey? _keyOf(Component? component) => switch (component) {
-  Component(name: 'VTIMEZONE') => switch (component.value('TZID')?.trim()) {
+  Component(name: 'VTIMEZONE') => switch (_idIn(component, 'TZID')) {
     final zone? => ZoneKey(zone),
     null => null,
   },
-  Component(:final name) => switch (component.value('UID')?.trim()) {
+  Component(:final name) => switch (_idIn(component, 'UID')) {
     final uid? => UidKey(name, uid),
     null => null,
   },
   null => null,
 };
+
+/// The id [component]'s property [name] holds; `null` if none or blank.
+String? _idIn(Component component, String name) =>
+    switch (component.value(name)?.trim()) {
+      final id? when id.isNotEmpty => id,
+      _ => null,
+    };

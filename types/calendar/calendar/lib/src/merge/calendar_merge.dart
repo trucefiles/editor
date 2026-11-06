@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:truce_core/truce_core.dart';
 
 import '../edit/stamp.dart';
@@ -116,15 +118,11 @@ typedef _Stamp = ({DateTime? modified, int sequence, DateTime? stamped});
 /// The latest edit stamp of any of [unit]'s components.
 _Stamp _stampOf(CalendarUnit unit) => unit.components.fold(
   (modified: null, sequence: -1, stamped: null),
-  (latest, component) {
-    final sequence =
-        int.tryParse(component.value('SEQUENCE')?.trim() ?? '') ?? -1;
-    return (
-      modified: _later(latest.modified, _timeIn(component, 'LAST-MODIFIED')),
-      sequence: sequence > latest.sequence ? sequence : latest.sequence,
-      stamped: _later(latest.stamped, _timeIn(component, 'DTSTAMP')),
-    );
-  },
+  (latest, component) => (
+    modified: _later(latest.modified, _timeIn(component, 'LAST-MODIFIED')),
+    sequence: max(latest.sequence, sequenceOf(component)),
+    stamped: _later(latest.stamped, _timeIn(component, 'DTSTAMP')),
+  ),
 );
 
 /// The time [component]'s property [name] holds; `null` if none.
