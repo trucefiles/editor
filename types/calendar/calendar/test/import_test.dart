@@ -162,6 +162,22 @@ void main() {
     expect(_report(again).updated, 2, reason: 'the lecture is restamped too');
   });
 
+  test('an event deleted here stays deleted, and says so', () {
+    final concert = DeleteEvent(
+      'concert@example.org',
+      at: DateTime.utc(2027, 2, 5),
+    );
+    final deleted = applyEdit(_import(birthday, _invites).calendar, concert);
+    final again = importInto(deleted, _bytes(_invites));
+    expect(again.written, isEmpty);
+    expect(
+      again.calendar.eventOf('concert@example.org')!.series.deleted,
+      isTrue,
+    );
+    expect(_report(again).deletedHere, ['Concert']);
+    expect(_report(again).kept, isEmpty);
+  });
+
   test('a file that is no calendar changes nothing', () {
     final calendar = Calendar.read(birthday)!;
     for (final bytes in [

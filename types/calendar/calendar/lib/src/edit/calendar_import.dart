@@ -29,18 +29,21 @@ final class NoEvents extends ImportReport {
 
 /// The file's events merged in: [added] ones the calendar didn't have,
 /// [updated] ones the file held a newer version of; [kept] names those
-/// the calendar held a newer version of, kept as they were. All none:
+/// the calendar held a newer version of, kept as they were, and
+/// [deletedHere] those deleted here later, which stay deleted. All none:
 /// the calendar had them all already.
 final class EventsImported extends ImportReport {
   const EventsImported({
     required this.added,
     required this.updated,
     required this.kept,
+    required this.deletedHere,
   });
 
   final int added;
   final int updated;
   final List<String> kept;
+  final List<String> deletedHere;
 }
 
 /// A calendar file's events imported into a calendar: what the
@@ -92,16 +95,18 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes) {
   ];
   final written = [...taken, ...zones];
   int count(_Came kind) => sides.where((side) => side.came == kind).length;
+  List<String> names(_Came kind) => [
+    for (final (:event, :came) in sides)
+      if (came == kind) nameOfUnit(calendar.unitOf(event.key)!),
+  ];
   return (
     calendar: calendar.withUnits(written),
     written: [for (final unit in written) unit.key],
     report: EventsImported(
       added: count(_Came.added),
       updated: count(_Came.updated),
-      kept: [
-        for (final (:event, :came) in sides)
-          if (came == _Came.kept) nameOfUnit(calendar.unitOf(event.key)!),
-      ],
+      kept: names(_Came.kept),
+      deletedHere: names(_Came.deletedHere),
     ),
   );
 }
@@ -117,6 +122,9 @@ enum _Came {
   /// The calendar's version is newer, kept as it was.
   kept,
 
+  /// It was deleted here later, and stays deleted.
+  deletedHere,
+
   /// The calendar has just this version.
   same,
 }
@@ -126,7 +134,10 @@ enum _Came {
 _Came _cameOf(CalendarUnit theirs, CalendarUnit? mine) => switch (mine) {
   null => _Came.added,
   _ when mine.text == theirs.text => _Came.same,
-  _ when mergedUnit(mine, theirs).text == mine.text => _Came.kept,
+  _ when mergedUnit(mine, theirs).text == mine.text =>
+    CalendarEvent.of(mine)?.series.deleted ?? false
+        ? _Came.deletedHere
+        : _Came.kept,
   _ => _Came.updated,
 };
 

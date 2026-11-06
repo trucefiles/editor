@@ -96,16 +96,43 @@ void main() {
   test('tells what an import came to', () {
     String told(ImportReport report) => importHint(FileImported(report));
     expect(
-      told(const EventsImported(added: 1, updated: 2, kept: [])),
+      told(
+        const EventsImported(added: 1, updated: 2, kept: [], deletedHere: []),
+      ),
       'Added 1 event and updated 2.',
     );
     expect(
-      told(const EventsImported(added: 0, updated: 1, kept: ['Swim'])),
+      told(
+        const EventsImported(
+          added: 0,
+          updated: 1,
+          kept: ['Swim'],
+          deletedHere: [],
+        ),
+      ),
       'Updated 1 event. Kept your newer version of "Swim".',
     );
     expect(
-      told(const EventsImported(added: 0, updated: 0, kept: ['A', 'B'])),
+      told(
+        const EventsImported(
+          added: 0,
+          updated: 0,
+          kept: ['A', 'B'],
+          deletedHere: [],
+        ),
+      ),
       'Kept your newer versions of "A", "B".',
+    );
+    expect(
+      told(
+        const EventsImported(
+          added: 1,
+          updated: 0,
+          kept: [],
+          deletedHere: ['Dentist'],
+        ),
+      ),
+      'Added 1 event. "Dentist" was deleted here, so it stays deleted.',
     );
     expect(told(const NoEvents()), 'There are no events in this file.');
   });

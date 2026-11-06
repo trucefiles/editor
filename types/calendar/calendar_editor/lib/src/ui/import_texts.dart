@@ -9,14 +9,24 @@ String importHint(ImportOutcome outcome) => switch (outcome) {
   FileImported(:final report) => switch (report) {
     NotACalendar() => "This file isn't a calendar.",
     NoEvents() => 'There are no events in this file.',
-    EventsImported(added: 0, updated: 0, kept: []) =>
+    EventsImported(added: 0, updated: 0, kept: [], deletedHere: []) =>
       'These events are already in the calendar.',
-    EventsImported(:final added, :final updated, :final kept) => [
-      ?_changed(added, updated),
-      if (kept.isNotEmpty)
-        'Kept your newer ${kept.length == 1 ? 'version' : 'versions'} '
-            'of ${fewNamed(kept)}.',
-    ].join(' '),
+    EventsImported(
+      :final added,
+      :final updated,
+      :final kept,
+      :final deletedHere,
+    ) =>
+      [
+        ?_changed(added, updated),
+        if (kept.isNotEmpty)
+          'Kept your newer ${kept.length == 1 ? 'version' : 'versions'} '
+              'of ${fewNamed(kept)}.',
+        if (deletedHere.isNotEmpty)
+          '${fewNamed(deletedHere)} '
+              '${deletedHere.length == 1 ? 'was' : 'were'} deleted here, so '
+              '${deletedHere.length == 1 ? 'it stays' : 'they stay'} deleted.',
+      ].join(' '),
   },
 };
 
