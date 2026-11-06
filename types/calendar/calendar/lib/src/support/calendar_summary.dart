@@ -46,10 +46,10 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
 
-  /// The calendar's name; `null` if it has none, so the file's name
-  /// shows.
+  /// The name the calendar shows under (see [Calendar.shownName]);
+  /// `null` if it has none, so the file's name shows.
   @override
-  late final String? title = switch (calendar?.name.trim()) {
+  late final String? title = switch (calendar?.shownName) {
     final name? when name.isNotEmpty => name,
     _ => null,
   };
@@ -68,7 +68,7 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
   /// notes, deleted events left out; a text that is no calendar as it is.
   late final String searchText = switch (calendar) {
     final calendar? => [
-      calendar.name,
+      calendar.shownName,
       for (final event in calendar.events)
         for (final part in [event.series, ...event.changed])
           if (!part.deleted) ...[part.summary, part.location, part.description],

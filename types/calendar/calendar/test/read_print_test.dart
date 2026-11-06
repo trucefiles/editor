@@ -110,6 +110,20 @@ void main() {
       expect(Calendar.read(birthday)!.holdsSameUnitsAs(calendar), isFalse);
     });
 
+    test("the standard's NAME shows where it has no name of ours, and is "
+        'never written', () {
+      final text = birthday.replaceFirst(
+        'X-WR-CALNAME:Birthdays\n',
+        'NAME:Geburtstage\n',
+      );
+      final calendar = Calendar.read(text)!;
+      expect((calendar.name, calendar.shownName), ('', 'Geburtstage'));
+      final named = calendar.named('Family');
+      expect((named.name, named.shownName), ('Family', 'Family'));
+      expect(named.text, contains('NAME:Geburtstage\n'));
+      expect(named.named('').text, text);
+    });
+
     test('a rename keeps the parameters of the name line', () {
       final text = birthday.replaceFirst(
         'X-WR-CALNAME:Birthdays',

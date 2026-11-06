@@ -105,6 +105,19 @@ final class Calendar {
         '',
   );
 
+  /// The name the standard's `NAME` property gives it (RFC 7986), which
+  /// some apps write; read only, never written. Empty if it has none.
+  late final String standardName = unescapeText(
+    properties.firstWhereOrNull((line) => line.name == 'NAME')?.value ?? '',
+  ).trim();
+
+  /// The name it shows under: its [name], else its [standardName]; empty
+  /// if it has neither.
+  late final String shownName = switch (name.trim()) {
+    '' => standardName,
+    final name => name,
+  };
+
   /// Whether it is a health calendar (shown with its cycle).
   late final bool isHealth = properties.any(
     (line) =>

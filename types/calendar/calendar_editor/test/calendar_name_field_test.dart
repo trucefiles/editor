@@ -90,4 +90,17 @@ void main() {
     await tester.pump();
     expect(tester.widget<TextField>(field).decoration!.hintText, 'Work');
   });
+
+  testWidgets("with no name of ours, the standard's NAME is the hint", (
+    tester,
+  ) async {
+    final part = calendarPart(
+      newCalendarText('')
+          .replaceFirst('END:VCALENDAR', 'NAME:Arbeit\nEND:VCALENDAR'),
+    );
+    await _pumpTitle(tester, part, title: 'Arbeit', nameTitle: 'work');
+    final field = find.byType(TextField);
+    expect(tester.widget<TextField>(field).decoration!.hintText, 'Arbeit');
+    expect(tester.widget<TextField>(field).controller!.text, '');
+  });
 }

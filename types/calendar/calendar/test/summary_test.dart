@@ -62,6 +62,13 @@ void main() {
     expect(CalendarSummary('no calendar').firstLine, '');
   });
 
+  test("a calendar with only the standard's NAME is titled by it", () {
+    final text = newCalendarText('')
+        .replaceFirst('END:VCALENDAR', 'NAME:Arbeit\nEND:VCALENDAR');
+    final summary = CalendarSummary(text);
+    expect((summary.title, summary.firstLine), ('Arbeit', 'Arbeit'));
+  });
+
   test('a calendar is searched from what was read, a text that is none as '
       'it is', () {
     final text = newCalendarText('Home')
