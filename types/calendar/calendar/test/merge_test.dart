@@ -203,6 +203,18 @@ void main() {
     expect(_merged(corrected, edited), edited);
   });
 
+  test('versions that differ only in their stamps lose nothing', () {
+    String event(String stamp) =>
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTAMP:$stamp\n'
+        'LAST-MODIFIED:$stamp\nSEQUENCE:1\nSUMMARY:Kite day\n'
+        'END:VEVENT\nEND:VCALENDAR\n';
+    final result = _merge.merge(
+      event('20270101T080000Z'),
+      event('20270102T080000Z'),
+    ) as MergedText;
+    expect(result.lost, isEmpty);
+  });
+
   test('without a base, a task changed on both sides is kept once', () {
     final older = _calendarWith('VTODO', 'Buy paint');
     final newer = _calendarWith(

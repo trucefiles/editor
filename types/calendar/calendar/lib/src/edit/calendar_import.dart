@@ -73,10 +73,9 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
     );
   }
   final changed = [
-    for (final event in events)
-      if (calendar.unitOf(event.key) case final mine
-          when mine == null || unstampedText(mine) != unstampedText(event))
-        (event: stampedOver(event, at, mine), mine: mine),
+    // One event per key: a file may hold one UID-less event twice.
+    for (final event in {for (final event in events) event.key: event}.values)
+      ?_change(event, calendar.unitOf(event.key), at),
   ];
   final taken = [for (final (:event, mine: _) in changed) event];
   final zones = [
@@ -93,6 +92,49 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
   );
 }
 
+/// The file's [event] as written over [mine], the calendar's version
+/// (`null`: none), stamped [at], with [mine]; `null` if the calendar
+/// holds it already (edit stamps aside).
+({CalendarUnit event, CalendarUnit? mine})? _change(
+  CalendarUnit event,
+  CalendarUnit? mine,
+  DateTime at,
+) => switch (_over(event, mine)) {
+  final over when mine != null && unstampedText(mine) == unstampedText(over) =>
+    null,
+  final over => (event: stampedOver(over, at, mine), mine: mine),
+};
+
+/// What the calendar holds of the file's [event] once imported over
+/// [mine], its version here (`null`: none): the file's whole event; but
+/// a file of changed occurrences only (e.g. an invite for one date of a
+/// series), over a series held here, changes only those occurrences in
+/// it, each in place of the one for the same date, the rest added.
+CalendarUnit _over(CalendarUnit event, CalendarUnit? mine) {
+  final ours = mine == null ? null : CalendarEvent.of(mine);
+  final dates = {
+    for (final component in event.components)
+      EventPart(component).recurrenceId?.local: component,
+  };
+  if (ours == null ||
+      ours.series.deleted ||
+      ours.series.recurrenceId != null ||
+      dates.containsKey(null)) {
+    return event;
+  }
+  final parts = [
+    for (final component in mine!.components)
+      EventPart(component).recurrenceId?.local,
+  ];
+  final held = parts.toSet();
+  return CalendarUnit.edited(event.key, [
+    for (final (index, component) in mine.components.indexed)
+      dates[parts[index]] ?? component,
+    for (final MapEntry(:key, :value) in dates.entries)
+      if (!held.contains(key)) value,
+  ]);
+}
+
 /// Whether an event the calendar holds as [mine] is new to the user: it
 /// has none, or only a deleted event's marker.
 bool _isNew(CalendarUnit? mine) =>
@@ -105,7 +147,7 @@ CalendarUnit? _event(CalendarUnit unit) {
   final event = switch ((unit.key, unit.components)) {
     (UidKey(component: 'VEVENT'), _) => unit,
     (TextKey(), [final Component component]) when component.name == 'VEVENT' =>
-      _withUid(component, _uidOf(unit.text)),
+      _withUid(component, _uidOf(unstampedText(unit))),
     _ => null,
   };
   return switch (event) {
@@ -119,7 +161,8 @@ CalendarUnit _withUid(Component event, String uid) => CalendarUnit.edited(
   [event.withProperty('UID', ContentLine('UID', uid))],
 );
 
-/// A `UID` for an event that has none, made from its [text]: the same
-/// for the same text, on every device.
+/// A `UID` for an event that has none, made from its [text] without
+/// edit stamps: the same for the same event, on every device, whenever
+/// it was exported.
 String _uidOf(String text) =>
     '${sha256.convert(utf8.encode(text)).toString().substring(0, 32)}@truce';

@@ -1,5 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
+import '../edit/stamp.dart';
 import '../model/calendar.dart';
 import '../model/calendar_event.dart';
 import '../model/calendar_unit.dart';
@@ -59,11 +60,7 @@ final class CalendarMerge implements TextMerge {
         for (final unit in others.units)
           if (winners[unit.key] case final winner? when unit.key is! ZoneKey)
             for (final side in [mains.unitOf(unit.key)!, unit])
-              if (_overwritten(
-                side.text,
-                winner.text,
-                bases?.unitOf(unit.key)?.text,
-              ))
+              if (_unitLost(side, winner, bases?.unitOf(unit.key)))
                 nameOfUnit(side),
       ],
     );
@@ -89,6 +86,18 @@ T _kept<T>(
 /// change from [base] (or there is none).
 bool _overwritten(String side, String kept, String? base) =>
     side != kept && side != base;
+
+/// Whether a merge that kept the unit [kept] lost [side], as [_overwritten]
+/// tells, by content: versions that differ only in their edit stamps
+/// (e.g. one file imported on two devices) lose nothing. Content is
+/// printed only where the texts differ.
+bool _unitLost(CalendarUnit side, CalendarUnit kept, CalendarUnit? base) =>
+    _overwritten(side.text, kept.text, base?.text) &&
+    _overwritten(
+      unstampedText(side),
+      unstampedText(kept),
+      base == null ? null : unstampedText(base),
+    );
 
 /// The newer of two versions [a] and [b] of one unit: by its latest
 /// `LAST-MODIFIED` (none is oldest), then its highest `SEQUENCE`, then

@@ -173,6 +173,84 @@ void main() {
     expect((_report(again).added, _report(again).updated), (1, 0));
   });
 
+  test('a file of one changed date keeps the series and its other dates', () {
+    const series = '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:choir@example.org
+DTSTAMP:20270101T090000Z
+DTSTART:20270104T190000
+DTEND:20270104T210000
+RRULE:FREQ=WEEKLY
+SUMMARY:Choir
+END:VEVENT
+BEGIN:VEVENT
+UID:choir@example.org
+RECURRENCE-ID:20270111T190000
+DTSTAMP:20270101T090000Z
+DTSTART:20270111T200000
+DTEND:20270111T220000
+SUMMARY:Choir (late)
+END:VEVENT
+END:VCALENDAR
+''';
+    const moved = '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:choir@example.org
+RECURRENCE-ID:20270118T190000
+DTSTAMP:20270105T090000Z
+DTSTART:20270119T190000
+DTEND:20270119T210000
+SUMMARY:Choir (Tuesday)
+END:VEVENT
+END:VCALENDAR
+''';
+    final import = _import(series, moved);
+    final choir = import.calendar.eventOf('choir@example.org')!;
+    expect(choir.series.summary, 'Choir');
+    expect(choir.series.repeat, isNotNull);
+    expect(choir.changed.map((part) => part.summary), [
+      'Choir (late)',
+      'Choir (Tuesday)',
+    ]);
+    expect((_report(import).added, _report(import).updated), (0, 1));
+
+    final again = importInto(import.calendar, _bytes(moved), _at.add(_day));
+    expect(again.written, isEmpty, reason: 'that date is there already');
+  });
+
+  test('one event without UID twice in a file is added once', () {
+    const bookClub = '''BEGIN:VEVENT
+DTSTAMP:20270201T090000Z
+DTSTART;VALUE=DATE:20270410
+SUMMARY:Book club
+END:VEVENT
+''';
+    final import = _import(
+      birthday,
+      'BEGIN:VCALENDAR\nVERSION:2.0\n$bookClub${bookClub}END:VCALENDAR\n',
+    );
+    expect(_report(import).added, 1);
+    expect(
+      import.calendar.events.where((e) => e.series.summary == 'Book club'),
+      hasLength(1),
+    );
+  });
+
+  test('an event without UID exported again later is the same event', () {
+    final first = _import(birthday, _invites).calendar;
+    final exportedLater = _invites.replaceAll(
+      'DTSTAMP:20270201T090000Z',
+      'DTSTAMP:20270301T090000Z',
+    );
+    final again = importInto(first, _bytes(exportedLater), _at.add(_day));
+    expect(
+      again.calendar.events.where((e) => e.series.summary == 'Book club'),
+      hasLength(1),
+    );
+  });
+
   test('a file that is no calendar changes nothing', () {
     final calendar = Calendar.read(birthday)!;
     for (final bytes in [
