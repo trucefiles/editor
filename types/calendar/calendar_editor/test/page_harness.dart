@@ -51,7 +51,8 @@ final FileKey pageFile = (folder: pageFolder, path: pagePath);
 /// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
 /// that keeps the view in [kept] (by default the month), with its Add
 /// button while it can be edited, its hints added to [hints], taking
-/// what [starts] asks of it; closes the part's editor once the test
+/// what [starts] asks of it, importing the file [pickFile] gives (by
+/// default none) from its menu; closes the part's editor once the test
 /// ends.
 Future<void> pumpPage(
   WidgetTester tester,
@@ -61,6 +62,7 @@ Future<void> pumpPage(
   String? deviceZone,
   KeptView? kept,
   CalendarStarts? starts,
+  PickCalendarFile? pickFile,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
@@ -72,12 +74,23 @@ Future<void> pumpPage(
     deviceZone: () async => deviceZone,
     viewChoice: (kept ?? KeptView()).choice,
     starts: starts ?? CalendarStarts(),
+    pickFile: pickFile ?? () async => const Ok(null),
     now: () => today,
   );
   await tester.pumpWidget(
     MaterialApp(
       home: Builder(
         builder: (context) => Scaffold(
+          // The file's menu, as the file page shows it.
+          appBar: AppBar(
+            actions: [
+              PopupMenuButton<VoidCallback>(
+                key: const Key('file menu'),
+                onSelected: (action) => action(),
+                itemBuilder: (context) => view.menu(context, ViewSettings.none),
+              ),
+            ],
+          ),
           // As the file page shows it: only while the file can be edited.
           floatingActionButton: part.isEditing
               ? view.floatingButton(context)

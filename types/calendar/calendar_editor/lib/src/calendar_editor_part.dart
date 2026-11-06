@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
+
+import 'calendar_import_file.dart';
 
 /// A calendar file's part of the file page: its editor owner, and
 /// whether the calendar can be edited here now. Keeps nothing of how the
@@ -18,12 +22,22 @@ final class CalendarEditorPart extends FixedViewEditorPart {
          startTimer: startTimer,
        ),
        _now = now ?? DateTime.now,
-       super(readOnly: start.readOnly);
+       super(readOnly: start.readOnly) {
+    _importsDone = owner.events.listen((event) {
+      if (event case ImportDone(:final report)) {
+        _imports.add(FileImported(report));
+      }
+    });
+  }
 
   /// The editor owner.
   final CalendarOwner owner;
 
   final DateTime Function() _now;
+
+  final _imports = StreamController<ImportOutcome>.broadcast();
+
+  late final StreamSubscription<CalendarOwnerEvent> _importsDone;
 
   /// [owner] as the file page sees it (core's editor contract): each
   /// request stamped with when it was made.
@@ -34,7 +48,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     state: (state) => state.status,
     event: (event) => switch (event) {
       CalendarNotice(:final notice) => notice,
-      SavedAsNew() => null,
+      SavedAsNew() || ImportDone() => null,
     },
   );
 
@@ -52,6 +66,22 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     return true;
   }
 
+  /// What came of each import the user asked for ([importFile]).
+  Stream<ImportOutcome> get imports => _imports.stream;
+
+  /// Imports the events of the calendar file [pick] asks the user for,
+  /// as one edit; dropped if they pick none, or while the calendar can't
+  /// be edited then. What came of it is told by [imports].
+  Future<void> importFile(PickCalendarFile pick) async {
+    switch (await pick()) {
+      case Ok(value: final bytes?) when isEditing:
+        owner.send(ImportEvents(bytes));
+      case Err():
+        _imports.add(const FileNotRead());
+      case Ok():
+    }
+  }
+
   /// The user names the calendar [name] (none if empty); dropped while
   /// it can't be edited. Whether it was made.
   bool rename(String name) {
@@ -61,4 +91,11 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   }
 
   DateTime _at() => _now().toUtc();
+
+  @override
+  void dispose() {
+    unawaited(_importsDone.cancel());
+    unawaited(_imports.close());
+    super.dispose();
+  }
 }

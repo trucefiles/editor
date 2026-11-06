@@ -21,6 +21,7 @@ final fileTypesProvider = Provider<ShownFileTypes<EditableType>>((ref) {
     deviceZone: ref.watch(deviceZoneProvider),
     viewChoice: ref.watch(calendarViewChoiceProvider),
     starts: ref.watch(calendarStartsProvider),
+    pickFile: ref.watch(calendarFilePickerProvider),
   );
   return ShownFileTypes([markdown, const PlainTextEditableType(), calendars]);
 });

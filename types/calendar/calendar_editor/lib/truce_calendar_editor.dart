@@ -9,6 +9,7 @@ library;
 export 'src/calendar_editable_type.dart';
 export 'src/calendar_editor_part.dart';
 export 'src/calendar_editor_view.dart';
+export 'src/calendar_import_file.dart';
 export 'src/calendar_start.dart';
 export 'src/ui/occurrence_sheet.dart';
 export 'src/ui/occurrence_texts.dart' show DayText;

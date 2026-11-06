@@ -14,6 +14,7 @@ CalendarEditorView _viewOf(CalendarEditorPart part) => CalendarEditorView(
   deviceZone: () async => null,
   viewChoice: KeptView().choice,
   starts: CalendarStarts(),
+  pickFile: () async => const Ok(null),
 );
 
 /// Shows [part]'s title in an app bar, as the file page does, the file's

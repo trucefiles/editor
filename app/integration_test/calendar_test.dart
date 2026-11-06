@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -60,6 +62,28 @@ void main() {
     expect(find.text('Dentist'), findsOneWidget);
   });
 
+  testApp('events imported from a file are merged in and written', (
+    tester,
+  ) async {
+    app
+      ..write('Garden.ics', _garden)
+      ..calendarToImport = utf8.encode(_seeds);
+    await tester.addFolder(app);
+    await tester.openFile('Garden');
+
+    await tester.chooseInMenu('Import events…');
+    expect(find.text('Seed swap'), findsOneWidget);
+    expect(find.text('Added 1 event.'), findsOneWidget);
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    final file = app.file('Garden.ics');
+    await tester.waitUntil(
+      () => file.readAsStringSync().contains('SUMMARY:Seed swap\r\n'),
+    );
+    expect(file.readAsStringSync(), contains('SUMMARY:Pruning\r\n'));
+  });
+
   testApp('a new calendar left with no name and no event is not written', (
     tester,
   ) async {
@@ -100,3 +124,42 @@ final _nameField = find.descendant(
   of: find.byType(AppBar),
   matching: find.byType(TextField),
 );
+
+/// A calendar file with one event this month.
+final _garden = [
+  'BEGIN:VCALENDAR',
+  'VERSION:2.0',
+  'PRODID:-//Example//Garden//EN',
+  'X-WR-CALNAME:Garden',
+  'BEGIN:VEVENT',
+  'UID:pruning@example.org',
+  'DTSTAMP:20260101T090000Z',
+  'DTSTART;VALUE=DATE:${_day(3)}',
+  'DTEND;VALUE=DATE:${_day(4)}',
+  'SUMMARY:Pruning',
+  'END:VEVENT',
+  'END:VCALENDAR',
+  '',
+].join('\r\n');
+
+/// A file to import, of one event this month.
+final _seeds = [
+  'BEGIN:VCALENDAR',
+  'VERSION:2.0',
+  'BEGIN:VEVENT',
+  'UID:seeds@example.org',
+  'DTSTAMP:20260101T090000Z',
+  'DTSTART;VALUE=DATE:${_day(20)}',
+  'DTEND;VALUE=DATE:${_day(21)}',
+  'SUMMARY:Seed swap',
+  'END:VEVENT',
+  'END:VCALENDAR',
+  '',
+].join('\r\n');
+
+/// Day [day] of this month, as a calendar file writes a date.
+String _day(int day) {
+  final now = DateTime.now();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${now.year}${two(now.month)}${two(day)}';
+}

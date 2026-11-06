@@ -29,13 +29,7 @@ final class CalendarMerge implements TextMerge {
     final winners = {
       for (final unit in others.units)
         if (mains.unitOf(unit.key) case final mine?)
-          unit.key: _kept(
-            mine,
-            unit,
-            bases?.unitOf(unit.key),
-            (unit) => unit.text,
-            tie: () => _newerOf(mine, unit),
-          ),
+          unit.key: mergedUnit(mine, unit, base: bases?.unitOf(unit.key)),
     };
     final name = _kept(
       mains.name,
@@ -68,6 +62,13 @@ final class CalendarMerge implements TextMerge {
     );
   }
 }
+
+/// The version of one unit a merge keeps of [a] and [b]: with a [base],
+/// the one that holds the only change from it; else, or where both
+/// changed, the newer edit (see [_newerOf]). Deterministic: every device
+/// keeps the same.
+CalendarUnit mergedUnit(CalendarUnit a, CalendarUnit b, {CalendarUnit? base}) =>
+    _kept(a, b, base, (unit) => unit.text, tie: () => _newerOf(a, b));
 
 /// The side a merge keeps of one thing (a unit, the name), of [a] and
 /// [b] as [textOf] reads them: when one still is [base], the other one

@@ -1,24 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_files/truce_files.dart' show ViewSettings;
 
 import 'calendar_editor_part.dart';
+import 'calendar_import_file.dart';
 import 'calendar_start.dart';
 import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
-/// its Add button; undo and redo are the page's. What [_starts] asks of
-/// its file and its Add button reach the page as its own [PageStarts].
+/// its Add button, and Import events in the file's menu; undo and redo
+/// are the page's. What [_starts] asks of its file and its Add button
+/// reach the page as its own [PageStarts].
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
   /// [_viewChoice] the view event calendars open in; [_starts] what
-  /// calendar pages are asked to start with; [now] the time.
+  /// calendar pages are asked to start with; [_pickFile] asks for a
+  /// calendar file to import; [now] the time.
   CalendarEditorView(
     this._part, {
     required this._deviceZone,
     required this._viewChoice,
     required this._starts,
+    required this._pickFile,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -26,6 +33,7 @@ final class CalendarEditorView extends EditorView {
   final DeviceZone _deviceZone;
   final CalendarViewChoice _viewChoice;
   final CalendarStarts _starts;
+  final PickCalendarFile _pickFile;
   final DateTime Function() _now;
   final _pageStarts = PageStarts();
 
@@ -60,6 +68,19 @@ final class CalendarEditorView extends EditorView {
           otherwise: fileTitle,
         )
       : fileTitle;
+
+  /// Import events, while a calendar can be edited.
+  @override
+  List<PopupMenuEntry<VoidCallback>> menu(
+    BuildContext context,
+    ViewSettings view,
+  ) => [
+    if (_part.isEditing && _part.owner.state.calendar != null)
+      PopupMenuItem(
+        value: () => unawaited(_part.importFile(_pickFile)),
+        child: const Text('Import events…'),
+      ),
+  ];
 
   /// Only for a calendar: a text that is no calendar has nothing to add.
   @override

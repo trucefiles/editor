@@ -259,16 +259,9 @@ final class _Body {
 
   late final Set<String> zonesNamed = {
     for (final unit in units)
-      if (unit.key is! ZoneKey)
-        for (final component in unit.components) ..._zonesIn(component),
+      if (unit.key is! ZoneKey) ...unit.zonesNamed,
   };
 }
-
-/// The zones [component] and the components in it name by `TZID`.
-Iterable<String> _zonesIn(Component component) => [
-  for (final line in component.properties) ?line.param('TZID'),
-  for (final child in component.children) ..._zonesIn(child),
-];
 
 bool _begins(_Line line) => line.unfolded.toUpperCase().startsWith('BEGIN:');
 

@@ -1,6 +1,7 @@
 import 'package:timezone/timezone.dart' as tz;
 
 import '../model/calendar_time.dart';
+import '../model/calendar_unit.dart';
 import '../model/time_zones.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
@@ -22,6 +23,13 @@ Component? zoneBlock(String zone) => switch (locationOf(zone)) {
   final location? => Component('VTIMEZONE', [
     ContentLine('TZID', zone),
   ], children: _observances(location)),
+  null => null,
+};
+
+/// [zone]'s block (see [zoneBlock]) as the unit a calendar holds it in;
+/// `null` if the `timezone` data doesn't know [zone].
+CalendarUnit? zoneUnit(String zone) => switch (zoneBlock(zone)) {
+  final block? => CalendarUnit.edited(ZoneKey(zone), [block]),
   null => null,
 };
 

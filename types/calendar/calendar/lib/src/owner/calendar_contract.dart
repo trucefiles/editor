@@ -6,10 +6,13 @@
 /// timing says.
 library;
 
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart'
     show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
 
 import '../edit/calendar_edit.dart';
+import '../edit/calendar_import.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../support/calendar_summary.dart';
@@ -45,6 +48,15 @@ final class RenameCalendar extends CalendarInput {
   const RenameCalendar(this.name);
 
   final String name;
+}
+
+/// The user imports the events of the calendar file [bytes] (see
+/// `importInto`): one undo step, and [ImportDone] tells what came of it.
+/// Dropped while the text is no calendar.
+final class ImportEvents extends CalendarInput {
+  const ImportEvents(this.bytes);
+
+  final Uint8List bytes;
 }
 
 /// A request of the file page (see core's editor contract), made
@@ -100,6 +112,13 @@ final class SavedAsNew extends CalendarOwnerEvent {
   const SavedAsNew(this.gone);
 
   final GoneMeanwhile gone;
+}
+
+/// An import of the user's is done, as [report] says.
+final class ImportDone extends CalendarOwnerEvent {
+  const ImportDone(this.report);
+
+  final ImportReport report;
 }
 
 // State.
