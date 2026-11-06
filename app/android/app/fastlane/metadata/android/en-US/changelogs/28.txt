@@ -1,4 +1,4 @@
-- Edits are kept on logout, shutdown and focus loss; quitting never waits for a hung folder
+- Typing is kept on the device as soon as the app loses focus
 - Import events from an .ics file into an open calendar
 - Smooth month swipes in the calendar
 - The Calendars tab opens a calendar

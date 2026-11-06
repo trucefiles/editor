@@ -22,7 +22,7 @@
     <release version="0.15.0" date="2026-11-06">
       <description>
         <ul>
-          <li>Your edits are kept when you log out or shut down, and as soon as the window loses focus; quitting no longer waits for a folder that hangs.</li>
+          <li>Your edits are kept when you log out or shut down, and as soon as the window loses focus; quitting waits at most 2 seconds for a folder that hangs.</li>
           <li>Import events from an .ics file into an open calendar; one Undo takes the import back.</li>
           <li>Month swipes in the calendar are smooth.</li>
           <li>The Calendars tab opens a calendar: right away with one, else you pick which.</li>
