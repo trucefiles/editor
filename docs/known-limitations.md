@@ -142,6 +142,11 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **On Android, an .ics file may not show in the picker.** The file picker
   lists calendar files by their type. A file saved under another type, for
   example by a mail app, may be hidden there.
+- **Events without an ID show only once imported.** Every event in a
+  calendar file should have an ID (its `UID`). A few apps and hand-written
+  files leave it out. Truce keeps such events in the file but doesn't show
+  them. Import the file into a calendar instead: each event then gets an
+  ID and shows.
 
 ## Folders
 
