@@ -837,6 +837,58 @@ void main() {
       });
     }
 
+    group('as the app ends', () {
+      test('answers once the device holds the edits, the write goes on', () {
+        final run = _Run.opened('a')
+          ..edit('ab', 1)
+          ..secure(SecureReason.exit);
+        expect(run.all<Answer>(), isEmpty);
+        run.keep();
+        expect(run.last<Answer>().kept, isTrue);
+        expect(run.last<Write>().text, 'ab');
+        run.wrote(const Written(Seen('ab', _v2)));
+        expect(run.all<Answer>(), hasLength(1));
+        expect(run.status, isA<InStep>());
+      });
+
+      test('answers at once while a write of the edits hangs', () {
+        final run = _Run.opened('a')..save('ab', 1);
+        expect(run.all<Write>(), hasLength(1));
+        final exit = run.secure(SecureReason.exit);
+        expect(run.last<Answer>().ticket, exit);
+        expect(run.last<Answer>().kept, isTrue);
+      });
+
+      test('a hide waiting with it is still answered after the write', () {
+        final run = _Run.opened('a')..save('ab', 1);
+        final hide = run.secure(SecureReason.hide);
+        final exit = run.secure(SecureReason.exit);
+        expect([for (final a in run.all<Answer>()) a.ticket], [exit]);
+        run.wrote(const Written(Seen('ab', _v2)));
+        expect([for (final a in run.all<Answer>()) a.ticket], [exit, hide]);
+      });
+
+      test('waits for a move under way, as every secure does', () {
+        final run = _Run.opened('a')
+          ..edit('ab', 1)
+          ..keep()
+          ..send(Move(Ticket()))
+          ..secure(SecureReason.exit);
+        expect(run.all<Answer>(), isEmpty);
+      });
+
+      test('waits while newer edits are not on the device yet', () {
+        final run = _Run.opened('a')
+          ..save('ab', 1)
+          ..edit('abc', 2)
+          ..secure(SecureReason.exit);
+        expect(run.all<Answer>(), isEmpty, reason: 'the write holds the I/O');
+        run.wrote(const Written(Seen('ab', _v2)));
+        run.keep();
+        expect(run.last<Answer>().kept, isTrue);
+      });
+    });
+
     test('drops a deleted file\'s draft when there are no edits', () {
       final run = _Run.opened('a')
         ..send(Observed(const Gone(), startedAt: Moment.now()))

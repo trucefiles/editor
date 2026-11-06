@@ -100,6 +100,8 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
           history: book.history.cleared(HistoryStart.replacedHere),
         );
         _reloaded(text);
+      case DraftNow():
+        _tick(book.clock.draftNow());
       case SecureEditor(:final ticket, :final reason):
         send();
         book = book.copyWith(clock: book.clock.left);

@@ -192,6 +192,14 @@ extension AppSteps on WidgetTester {
     await fillPlace(folder: folder, subfolder: subfolder, name: name);
   }
 
+  /// Another window takes the focus (e.g. the shutdown menu).
+  void loseFocus() =>
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+
+  /// The app's window has the focus again.
+  void regainFocus() =>
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+
   /// The user switches to another app and comes back.
   void hideAndComeBack() {
     for (final state in [

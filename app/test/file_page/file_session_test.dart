@@ -27,6 +27,53 @@ void main() {
     await eventually(() async => (await fixture.draftsIn('f1')).isEmpty);
   });
 
+  test('a draft now keeps typing on the device, not in the file', () async {
+    final session = fixture.session()..type('x');
+
+    session.draftNow();
+
+    await eventually(
+      () async => (await fixture.draftsIn('f1')).singleOrNull?.text == 'xone\n',
+    );
+    expect(fixture.onDisk('a.md'), 'one\n');
+    expect(session.saveState, SaveState.onDevice);
+  });
+
+  test('securing as the app ends waits for the file', () async {
+    final session = fixture.session()..type('x');
+
+    expect(
+      await session.secureForExit(within: const Duration(seconds: 5)),
+      isTrue,
+    );
+
+    expect(fixture.onDisk('a.md'), 'xone\n');
+    expect(session.saveState, SaveState.inFolder);
+  });
+
+  test('securing as the app ends is done once the session stopped', () async {
+    final session = fixture.session();
+    await fixture.removeFirstFolder();
+    session.type('mine ');
+    await session.secure(.hide);
+    expect(session.state, isA<Stopped>());
+
+    // Long before its wait would end it.
+    await session
+        .secureForExit(within: const Duration(seconds: 30))
+        .timeout(const Duration(seconds: 1));
+  });
+
+  test('securing as the app ends is done at once with nothing to '
+      'write', () async {
+    final session = fixture.session();
+    expect(
+      await session.secureForExit(within: const Duration(seconds: 5)),
+      isTrue,
+    );
+    expect(session.status, isA<InStep>());
+  });
+
   test("a new document's file is created once secured, named after its "
       'first line', () async {
     final session = fixture.session(fixture.newFile)..type('Milk');

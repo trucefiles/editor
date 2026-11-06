@@ -151,6 +151,34 @@ final class FileSession {
     return answer?.kept ?? false;
   }
 
+  /// Keeps typing that waits for a draft on this device now (e.g. the
+  /// app lost the focus); the file follows as after a pause.
+  void draftNow() => editor.send(const DraftNow());
+
+  /// Keeps the edits as the app ends ([SecureReason.exit]: on this
+  /// device at least), then waits until the file holds them, as far as
+  /// it can now; all within [within], so a folder that hangs never holds
+  /// the app. Whether they were kept in time; what isn't in the file by
+  /// then goes there at the next start.
+  Future<bool> secureForExit({required Duration within}) async {
+    final waited = Stopwatch()..start();
+    final kept = await secure(SecureReason.exit)
+        .timeout(within, onTimeout: () => false);
+    if (kept) {
+      await _written().timeout(within - waited.elapsed, onTimeout: () {});
+    }
+    return kept;
+  }
+
+  /// Completes once the file owner writes no more for now: the edits are
+  /// in the file, wait for the user, or wait for the next start; or the
+  /// session stopped or ended.
+  Future<void> _written() async {
+    bool done() => _state is! Running || status is! Editing;
+    if (done()) return;
+    await changes.firstWhere((_) => done(), orElse: () {});
+  }
+
   /// Writes the edits kept on this device into the file now; a new
   /// file is created, as only securing it does.
   void saveNow() => switch (file) {

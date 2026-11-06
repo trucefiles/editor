@@ -27,6 +27,7 @@ void main() {
       delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
       settingsOf: (_) => FileSettings.defaults,
       editSettings: (_, _) async {},
+      endWait: const Duration(seconds: 1),
     );
     addTearDown(file.dispose);
     final choice = ChangedElsewhereController(file);

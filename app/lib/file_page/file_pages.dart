@@ -77,6 +77,7 @@ final class FilePages {
     required this.reachSettled,
     required this.openFiles,
     required this.fileClosed,
+    required this.endWait,
   });
 
   final ShownFileTypes<EditableType> types;
@@ -91,6 +92,9 @@ final class FilePages {
   final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
   final void Function() fileClosed;
+
+  /// How long the app's end waits at most for a page's edits.
+  final Duration endWait;
 
   /// The page of [file], as read just before; the editor runs actions
   /// on its file through [withFile].
@@ -172,6 +176,7 @@ final class FilePages {
       delete: delete,
       settingsOf: settingsOf,
       editSettings: editSettings,
+      endWait: endWait,
     );
     // Shows the file only to read while it can't be edited.
     controller.addListener(
@@ -180,6 +185,7 @@ final class FilePages {
     final leaveOpenFiles = openFiles.add(
       folder: folder,
       secure: session.secure,
+      secureForExit: session.secureForExit,
     );
     return FilePage._(
       type,

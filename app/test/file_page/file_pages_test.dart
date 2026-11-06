@@ -32,6 +32,7 @@ void main() {
     reachSettled: (_) async => Reach.reachable,
     openFiles: open,
     fileClosed: () => closings++,
+    endWait: const Duration(seconds: 1),
   );
 
   test('a page tells that it closed, once, as it closes', () async {
@@ -59,6 +60,17 @@ void main() {
 
     expect(fixture.onDisk('a.md'), 'more\n');
     expect(page.session.state, isA<Ended>());
+  });
+
+  test('as the app ends, every open page keeps its edits, then waits for '
+      'its file', () async {
+    final page = pages().open(fixture.file, withFile: (_) async {});
+    addTearDown(page.close);
+    page.session.replaceAll('mine\n');
+
+    await open.secureForExit(within: const Duration(seconds: 5));
+
+    expect(fixture.onDisk('a.md'), 'mine\n');
   });
 
   test("a new document's page goes where it is placed, of the type it was "

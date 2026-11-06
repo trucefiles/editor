@@ -109,7 +109,8 @@ enum SecureRung {
   conflict,
 }
 
-/// The [Secure]s waiting for one answer, and how far keeping went.
+/// The [Secure]s waiting for one answer (none once the app's end was
+/// answered early, while keeping goes on), and how far keeping went.
 typedef Securing = ({List<Secure> asks, SecureRung rung});
 
 /// The file owner's bookkeeping behind its status.

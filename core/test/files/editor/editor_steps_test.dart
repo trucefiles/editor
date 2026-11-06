@@ -313,6 +313,16 @@ void main() {
     expect(editor.book.status.unsent, isFalse);
   });
 
+  test('a draft now sends typing that waits, once', () {
+    final editor = _FakeEditor('a')
+      ..edit('ab')
+      ..handleRequest(const DraftNow())
+      ..handleRequest(const DraftNow());
+
+    expect(editor.sentTexts, ['ab']);
+    expect(editor.notices.whereType<ToFile>(), hasLength(1));
+  });
+
   group('the summary', () {
     String summaryOf(_FakeEditor editor) =>
         (editor.book.status.summary as _Summary).text;

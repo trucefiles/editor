@@ -97,6 +97,7 @@ final class FileController extends ChangeNotifier {
     required this.delete,
     required this.settingsOf,
     required this.editSettings,
+    required this.endWait,
   }) {
     _following = session.changes.listen((_) {
       _keepOnceFiled();
@@ -111,6 +112,9 @@ final class FileController extends ChangeNotifier {
   final DeleteForUndo delete;
   final FileSettings Function(FileKey file) settingsOf;
   final EditSettings editSettings;
+
+  /// How long the app's end waits at most for the edits to be kept.
+  final Duration endWait;
   late final StreamSubscription<void> _following;
 
   /// The reach of the file's folder changed.
@@ -208,14 +212,20 @@ final class FileController extends ChangeNotifier {
 
   /// Keeps the edits for [reason] ([FileSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
-  /// while the folder can't be reached. A failed save may just have
-  /// started a check of the folder, so this waits for its outcome. Once
-  /// the session stopped, whether it kept them on this device.
+  /// while the folder can't be reached (a failed save may just have
+  /// started a check of the folder, so this waits for its outcome); as
+  /// the app ends, on this device is enough, within [endWait]
+  /// ([FileSession.secureForExit]). Once the session stopped, whether it
+  /// kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.
     if (session.state case Stopped(:final kept)) return kept ?? false;
-    if (await session.secure(reason)) return true;
-    return await reachSettled() == Reach.unreachable;
+    return switch (reason) {
+      SecureReason.exit => session.secureForExit(within: endWait),
+      SecureReason.close || SecureReason.hide =>
+        await session.secure(reason) ||
+            await reachSettled() == Reach.unreachable,
+    };
   }
 
   /// Deletes the file with every edit sent; a new file is just

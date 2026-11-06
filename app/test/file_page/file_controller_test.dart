@@ -50,6 +50,7 @@ void main() {
       settingsOf: (key) => settings[key] ?? FileSettings.defaults,
       editSettings: (key, change) async =>
           settings[key] = change(settings[key] ?? FileSettings.defaults),
+      endWait: const Duration(milliseconds: 200),
     );
     addTearDown(controller.dispose);
     return controller;
@@ -86,6 +87,7 @@ void main() {
       delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
       settingsOf: (_) => FileSettings.defaults,
       editSettings: (_, _) async {},
+      endWait: const Duration(seconds: 1),
     ).dispose();
 
     // A notifier told after its dispose fails.
@@ -209,6 +211,24 @@ void main() {
 
       expect(await controller.mayGo(.close, () async => asked = true), isTrue);
       expect(asked, isTrue);
+    });
+
+    test('as the app ends, a keep that never answers counts as not kept '
+        'after the wait', () async {
+      final borrowed = fixture.session()..type('mine ');
+      final session = FileSession(
+        ExistingFile(fixture.file),
+        fixture.effects(ExistingFile(fixture.file)),
+        _NoSecure(borrowed.editor),
+      );
+      addTearDown(session.dispose);
+      final controller = controllerOn(session);
+      var asked = false;
+
+      final went = await controller.mayGo(.exit, () async => asked = true);
+
+      expect(went, isTrue);
+      expect(asked, isTrue, reason: 'the user decides');
     });
 
     test('edits kept nowhere: stays if the user keeps them', () async {
@@ -420,3 +440,28 @@ String textShown(FileSession session) => [
   for (final row in (session.gate.state.content as FormattedContent).view.rows)
     if (row case TextRow(:final leaf)) textOf(leaf).text,
 ].join('\n');
+
+/// An editor whose keep never answers, as when the folder hangs before
+/// the device holds the edits; the session it is borrowed from closes it.
+final class _NoSecure implements PageEditor {
+  _NoSecure(this._editor);
+
+  final PageEditor _editor;
+
+  @override
+  void send(EditorRequest input) {
+    if (input is! SecureEditor) _editor.send(input);
+  }
+
+  @override
+  EditorStatus get state => _editor.state;
+
+  @override
+  Stream<EditorStatus> get changes => _editor.changes;
+
+  @override
+  Stream<EditorNotice> get events => _editor.events;
+
+  @override
+  Future<void> close() async {}
+}
