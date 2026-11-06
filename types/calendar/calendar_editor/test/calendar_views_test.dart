@@ -145,6 +145,42 @@ void main() {
     expect(heightOf('9'), closeTo(heightOf('10'), 0.5));
   });
 
+  for (final scale in [1.0, 3.0]) {
+    testWidgets('each day number is laid out as wide as kalender lays out '
+        'a two-digit one (text size $scale)', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery.withClampedTextScaling(
+            minScaleFactor: scale,
+            maxScaleFactor: scale,
+            child: Scaffold(
+              body: CalendarViews<String>(
+                calendars: {'home': _calendar('Home', 'Dentist', 9)},
+                colorOf: (_) => Colors.teal,
+                kind: CalendarViewKind.month,
+                onKind: (_) {},
+                now: () => DateTime(2026, 11, 3, 8),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Size of(String day, Type type) => tester.getSize(
+        find
+            .ancestor(of: find.text(day).first, matching: find.byType(type))
+            .first,
+      );
+      expect(
+        of('30', IconButton).width,
+        closeTo(of('30', SizedBox).width, 0.01),
+        reason: "the button's own width",
+      );
+      expect(of('9', SizedBox), of('30', SizedBox));
+    });
+  }
+
   testWidgets("Esc closes a day's popup and doesn't leave the page", (
     tester,
   ) async {

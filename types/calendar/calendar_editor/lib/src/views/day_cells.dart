@@ -30,28 +30,34 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   );
 };
 
-/// A day's number in the month view, made smaller where its cell is too
-/// narrow for it (very large text), never broken over two lines. Each
-/// shrinks as a two-digit number would, so all show at one size.
-Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
-  fit: BoxFit.scaleDown,
-  child: Stack(
-    alignment: Alignment.center,
-    children: [
-      Visibility(
-        visible: false,
-        maintainSize: true,
-        maintainAnimation: true,
-        maintainState: true,
-        child: MonthDayHeader(date: DateTime(2000, 1, 30)),
+/// The day numbers of the month view, each made smaller where its cell
+/// is too narrow for it (very large text), never broken over two lines.
+/// Each shrinks as a two-digit number would, so all show at one size:
+/// each is laid out [twoDigits] wide ([twoDigitsWidth]).
+MonthDayHeaderBuilder dayNumbers(double twoDigits) =>
+    (context, date) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: SizedBox(
+        width: twoDigits,
+        child: Center(child: MonthDayHeader(date: date)),
       ),
-      MonthDayHeader(date: date),
-    ],
-  ),
-);
+    );
 
-/// The fill of a day likely in a period: paler than a known period day,
-/// so it reads as likely; pink on dark, where the theme's red looks rose.
+/// How wide a two-digit day number is in [context]: its text and the
+/// padding of kalender's day number button (Material's default 8 on each
+/// side). Worked out from the text, as a hidden two-digit number in each
+/// cell cost as much as the numbers shown.
+double twoDigitsWidth(BuildContext context) {
+  final painter = TextPainter(
+    text: TextSpan(text: '30', style: DefaultTextStyle.of(context).style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  final width = painter.width + 2 * 8;
+  painter.dispose();
+  return width;
+}
+
 Color likelyPeriodFill(ColorScheme colors) =>
     Color.alphaBlend(switch (colors.brightness) {
       Brightness.light => colors.errorContainer.withValues(alpha: 0.3),

@@ -249,7 +249,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                     headerComponents: monthHeaderNames,
                     bodyComponents: MonthBodyComponents(
                       monthDayCellBuilder: dayCells(_model.health),
-                      monthDayHeaderBuilder: dayNumber,
+                      monthDayHeaderBuilder: dayNumbers(
+                        twoDigitsWidth(context),
+                      ),
                     ),
                   ),
                 ),
