@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
-/// A calendar file's part of the file page: its editor owner, and
-/// whether the calendar can be edited here now. Keeps nothing of how the
-/// calendar shows.
+import 'calendar_import_file.dart';
+
+/// A calendar file's part of the file page: its editor owner, whether
+/// the calendar can be edited here now, and the import of a calendar
+/// file the user picks. Keeps nothing of how the calendar shows.
 final class CalendarEditorPart extends FixedViewEditorPart {
-  /// [now] tells the time each edit is made at, and [startTimer] starts
-  /// the editor's save clock (both fixed in tests).
+  /// [_pickFile] asks the user for a calendar file to import; [now]
+  /// tells the time each edit is made at, and [startTimer] starts the
+  /// editor's save clock (both fixed in tests).
   CalendarEditorPart(
     EditorStart start, {
+    required this._pickFile,
     DateTime Function()? now,
     StartTimer? startTimer,
   }) : owner = calendarOwner(
@@ -18,12 +24,24 @@ final class CalendarEditorPart extends FixedViewEditorPart {
          startTimer: startTimer,
        ),
        _now = now ?? DateTime.now,
-       super(readOnly: start.readOnly);
+       super(readOnly: start.readOnly) {
+    _importsDone = owner.events.listen((event) {
+      if (event case ImportDone(:final report)) {
+        _imports.add(FileImported(report));
+      }
+    });
+  }
 
   /// The editor owner.
   final CalendarOwner owner;
 
+  final PickCalendarFile _pickFile;
+
   final DateTime Function() _now;
+
+  final _imports = StreamController<ImportOutcome>.broadcast();
+
+  late final StreamSubscription<CalendarOwnerEvent> _importsDone;
 
   /// [owner] as the file page sees it (core's editor contract): each
   /// request stamped with when it was made.
@@ -34,7 +52,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     state: (state) => state.status,
     event: (event) => switch (event) {
       CalendarNotice(:final notice) => notice,
-      SavedAsNew() => null,
+      SavedAsNew() || ImportDone() => null,
     },
   );
 
@@ -52,6 +70,22 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     return true;
   }
 
+  /// What came of each import the user asked for ([importFile]).
+  Stream<ImportOutcome> get imports => _imports.stream;
+
+  /// Imports the events of a calendar file the user picks, as one edit;
+  /// dropped if they pick none, or while the calendar can't be edited
+  /// then. What came of it is told by [imports].
+  Future<void> importFile() async {
+    switch (await _pickFile()) {
+      case Ok(value: final bytes?) when isEditing:
+        owner.send(ImportEvents(bytes, at: _at()));
+      case Err():
+        _imports.add(const FileNotRead());
+      case Ok():
+    }
+  }
+
   /// The user names the calendar [name] (none if empty); dropped while
   /// it can't be edited. Whether it was made.
   bool rename(String name) {
@@ -61,4 +95,11 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   }
 
   DateTime _at() => _now().toUtc();
+
+  @override
+  void dispose() {
+    unawaited(_importsDone.cancel());
+    unawaited(_imports.close());
+    super.dispose();
+  }
 }

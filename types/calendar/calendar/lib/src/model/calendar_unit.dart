@@ -77,4 +77,14 @@ final class CalendarUnit {
 
   /// Its whole text, its parts in order.
   String get text => parts.join();
+
+  /// The time zones its components read times by: a `TZID` on any of
+  /// their lines. Worked out each time it is asked.
+  Iterable<String> get zonesNamed => components.expand(_zonesIn);
 }
+
+/// The zones [component] and the components in it name by `TZID`.
+Iterable<String> _zonesIn(Component component) => [
+  for (final line in component.properties) ?line.param('TZID'),
+  for (final child in component.children) ..._zonesIn(child),
+];

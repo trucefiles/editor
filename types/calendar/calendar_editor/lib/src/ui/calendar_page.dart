@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
+import '../calendar_import_file.dart';
 import '../calendar_start.dart';
 import 'events_page.dart';
+import 'import_texts.dart';
 
 /// The calendar [part]'s editor shows, as it changes: the calendar's
 /// page; a text that is no calendar as it is, to read. Edits only while
-/// the part is editing. An edit saved as a new event says why.
+/// the part is editing. An edit saved as a new event says why; an import
+/// says what came of it.
 class CalendarPage extends StatefulWidget {
   const CalendarPage(
     this.part, {
@@ -49,6 +52,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   late final StreamSubscription<GoneMeanwhile> _savedAsNew;
+  late final StreamSubscription<ImportOutcome> _imports;
 
   /// The events page as last built, with the calendar it shows and
   /// whether it edits: kept while a change shows the same days (e.g. a
@@ -61,6 +65,9 @@ class _CalendarPageState extends State<CalendarPage> {
     _savedAsNew = widget.part.savedAsNew.listen(
       (gone) => widget.hint(_savedAsNewHint(gone)),
     );
+    _imports = widget.part.imports.listen(
+      (outcome) => widget.hint(importHint(outcome)),
+    );
   }
 
   @override
@@ -72,6 +79,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void dispose() {
     unawaited(_savedAsNew.cancel());
+    unawaited(_imports.cancel());
     super.dispose();
   }
 

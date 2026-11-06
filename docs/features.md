@@ -54,7 +54,10 @@ hours; **+** adds one too. Drag an event to move it, or its edge to make
 it longer (for an event that repeats, that moves just this one). Tap an
 event to edit or delete it, just this time or every time. An event can
 have its own color; otherwise it shows in its calendar's color (the
-file's color, else its folder's). A health calendar shows in the same
+file's color, else its folder's). **Import events** in a calendar's
+menu brings in the events of another `.ics` file, e.g. an invite: new
+ones are added, ones the calendar has already take the file's version,
+and one Undo takes it all back. A health calendar shows in the same
 views: **+** lists its kinds of entry (medication, symptom, measure,
 note, period), each with its own form and color. Once a period is
 written, the month shades period days and fertile days, shades the

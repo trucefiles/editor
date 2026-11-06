@@ -41,8 +41,9 @@
 - Plain text files (`.txt`), edited as text.
 - Calendars (`.ics`, the format other calendar apps use): month, week,
   day and schedule views, tap or drag to add and move events, events
-  that repeat, a health calendar with a cycle estimate, and a Calendar
-  tab with the events of all your calendars. Changes from two
+  that repeat, events imported from another `.ics` file, a health
+  calendar with a cycle estimate, and a Calendar tab with the events of
+  all your calendars. Changes from two
   devices merge event by event, with one tap.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
@@ -123,7 +124,8 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   text, with the editor's owner. Pure Dart, no UI; uses core, which knows
   nothing of it.
 - `types/calendar/calendar`: calendars (iCalendar, `.ics`), read and
-  written back block-exact, merged event by event, with repeats, time
+  written back block-exact, merged event by event, events imported from
+  another file, with repeats, time
   zones, health entries, cycle predictions and the editor's owner. Pure
   Dart, no UI; uses core, which knows nothing of it.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's

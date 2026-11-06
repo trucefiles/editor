@@ -12,6 +12,7 @@ import 'package:truce_core/truce_core.dart'
 
 import '../edit/brought_back.dart';
 import '../edit/calendar_edit.dart';
+import '../edit/calendar_import.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';
@@ -63,12 +64,18 @@ final class _Step
         if (state.calendar case final calendar?) {
           final landed = landing(calendar, edit, newUid: newUid);
           final (calendar: edited, :written) = writeEdit(calendar, landed.edit);
-          if (UnitsChanged.of(calendar, edited, written) case final step?) {
-            _showCalendar(edited);
-            textChanged();
-            record(step, null);
-          }
+          _edited(calendar, edited, written);
           if (landed.gone case final gone?) events.add(SavedAsNew(gone));
+        }
+      case ImportEvents(:final bytes, :final at):
+        if (state.calendar case final calendar?) {
+          final (calendar: imported, :written, :report) = importInto(
+            calendar,
+            bytes,
+            at,
+          );
+          _edited(calendar, imported, written);
+          events.add(ImportDone(report));
         }
       case RenameCalendar(:final name):
         if (state.calendar case final calendar? when calendar.name != name) {
@@ -86,6 +93,16 @@ final class _Step
         fired(id);
     }
     _settleStatus();
+  }
+
+  /// [calendar] became [edited] by a user's action that wrote the units
+  /// [written]: it shows, and is one undo step; nothing if it wrote none.
+  void _edited(Calendar calendar, Calendar edited, List<UnitKey> written) {
+    if (UnitsChanged.of(calendar, edited, written) case final step?) {
+      _showCalendar(edited);
+      textChanged();
+      record(step, null);
+    }
   }
 
   @override

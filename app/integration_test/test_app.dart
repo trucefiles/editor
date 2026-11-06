@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/common/device_locale.dart';
+import 'package:truce_editor/file_types/calendar_wiring.dart';
 import 'package:truce_editor/platform/folder_picker.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
@@ -21,7 +23,8 @@ import 'package:truce_test_support/truce_test_support.dart';
 import 'ui_driver.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
-/// [files], then [work], instead of opening the system dialog.
+/// [files], then [work], and a calendar file picker that returns
+/// [calendarToImport], instead of opening the system dialogs.
 final class TestApp {
   TestApp._(this.files, this.work, this._storage);
 
@@ -52,6 +55,10 @@ final class TestApp {
 
   final AppStorage _storage;
 
+  /// What the calendar file picker hands to the app to import: the
+  /// file's bytes, `null` for none picked.
+  Uint8List? calendarToImport;
+
   /// Starts the app, with the locale data and device settings that `main`
   /// loads, in US English whatever the machine's locale, so layouts (e.g.
   /// which day a month's grid starts on) are the same on every machine.
@@ -67,6 +74,9 @@ final class TestApp {
           systemTrayProvider.overrideWithValue(null),
           deviceLocaleProvider.overrideWithValue(const Locale('en', 'US')),
           folderPickerProvider.overrideWithValue(_QueuedPicker(picks)),
+          calendarFilePickerProvider.overrideWithValue(
+            () async => Ok(calendarToImport),
+          ),
         ],
         child: const TruceApp(),
       ),

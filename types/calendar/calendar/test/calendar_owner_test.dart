@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_core/truce_core.dart';
@@ -42,6 +44,19 @@ final _annRenamed = ChangeSeries(
   from: annDraft,
   at: _at,
 );
+
+/// A file of one concert in a zone with no block.
+const _concert = '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:concert@example.org
+DTSTAMP:20270201T090000Z
+DTSTART;TZID=Asia/Tokyo:20270320T190000
+DTEND;TZID=Asia/Tokyo:20270320T213000
+SUMMARY:Concert
+END:VEVENT
+END:VCALENDAR
+''';
 
 MachineRun<
   CalendarMessage,
@@ -89,6 +104,29 @@ void main() {
     run.send(CalendarRequest(const Redo(), at: _at));
     final gym = run.state.calendar!.eventOf('gym@t')!.series;
     expect((gym.deleted, gym.summary), (false, 'Gym'));
+  });
+
+  test('an import is one undo step and tells what came of it', () {
+    final run = _run(birthday)
+      ..send(ImportEvents(utf8.encode(_concert), at: _at));
+    expect(run.state.calendar!.eventOf('concert@example.org'), isNotNull);
+    expect(run.state.calendar!.zones, {'Asia/Tokyo'});
+    final report = run.events.whereType<ImportDone>().single.report;
+    expect((report as EventsImported).added, 1);
+
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.text, birthday);
+    expect(run.state.status.canUndo, isFalse);
+  });
+
+  test('an import that changes nothing is no undo step', () {
+    final run = _run(birthday)
+      ..send(ImportEvents(utf8.encode('No calendar'), at: _at));
+    expect(run.state.status.canUndo, isFalse);
+    expect(
+      run.events.whereType<ImportDone>().single.report,
+      isA<NotACalendar>(),
+    );
   });
 
   test('an undo step keeps only the units the edit changed', () {

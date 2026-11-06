@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_files/truce_files.dart' show ViewSettings;
 
 import 'calendar_editor_part.dart';
 import 'calendar_start.dart';
@@ -8,8 +11,9 @@ import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
-/// its Add button; undo and redo are the page's. What [_starts] asks of
-/// its file and its Add button reach the page as its own [PageStarts].
+/// its Add button, and Import events in the file's menu; undo and redo
+/// are the page's. What [_starts] asks of its file and its Add button
+/// reach the page as its own [PageStarts].
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
   /// [_viewChoice] the view event calendars open in; [_starts] what
@@ -60,6 +64,19 @@ final class CalendarEditorView extends EditorView {
           otherwise: fileTitle,
         )
       : fileTitle;
+
+  /// Import events, while a calendar can be edited.
+  @override
+  List<PopupMenuEntry<VoidCallback>> menu(
+    BuildContext context,
+    ViewSettings view,
+  ) => [
+    if (_part.isEditing && _part.owner.state.calendar != null)
+      PopupMenuItem(
+        value: () => unawaited(_part.importFile()),
+        child: const Text('Import events…'),
+      ),
+  ];
 
   /// Only for a calendar: a text that is no calendar has nothing to add.
   @override
