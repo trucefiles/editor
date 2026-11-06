@@ -25,13 +25,26 @@ Component stamped(
     );
 
 /// [unit] stamped as edited [at] over [now], the version it replaces
-/// (`null`: none): each component stamped, its `SEQUENCE` above both, so
-/// a merge with [now]'s text keeps [unit].
+/// (`null`: none), so a merge with [now]'s text keeps [unit]: every
+/// component stamped, its `SEQUENCE` above both (a unit wins a merge
+/// whole, so all its parts carry the stamp, untouched ones too).
 CalendarUnit stampedOver(CalendarUnit unit, DateTime at, CalendarUnit? now) =>
     CalendarUnit.edited(unit.key, [
       for (final component in unit.components)
         stamped(component, at, above: _latestSequence(now)),
     ]);
+
+/// [unit]'s text without its edit stamps (`DTSTAMP`, `LAST-MODIFIED`,
+/// `SEQUENCE`), printed fresh: what two versions of it differ in beyond
+/// when they were edited.
+String unstampedText(CalendarUnit unit) => [
+  for (final component in unit.components)
+    component
+        .withProperty('DTSTAMP', null)
+        .withProperty('LAST-MODIFIED', null)
+        .withProperty('SEQUENCE', null)
+        .printed,
+].join();
 
 /// The highest `SEQUENCE` of [unit]'s components; -1 if none has one.
 int _latestSequence(CalendarUnit? unit) =>

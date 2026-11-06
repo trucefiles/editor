@@ -75,7 +75,7 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
   final changed = [
     for (final event in events)
       if (calendar.unitOf(event.key) case final mine
-          when mine == null || _unstamped(mine) != _unstamped(event))
+          when mine == null || unstampedText(mine) != unstampedText(event))
         (event: stampedOver(event, at, mine), mine: mine),
   ];
   final taken = [for (final (:event, mine: _) in changed) event];
@@ -97,17 +97,6 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
 /// has none, or only a deleted event's marker.
 bool _isNew(CalendarUnit? mine) =>
     mine == null || (CalendarEvent.of(mine)?.series.deleted ?? false);
-
-/// [unit]'s text without its edit stamps, which an import sets anew: what
-/// tells whether the calendar holds the file's version already.
-String _unstamped(CalendarUnit unit) => [
-  for (final component in unit.components)
-    component
-        .withProperty('DTSTAMP', null)
-        .withProperty('LAST-MODIFIED', null)
-        .withProperty('SEQUENCE', null)
-        .printed,
-].join();
 
 /// [unit] as imported if it is an event: as it is, or given a `UID` made
 /// from its text if it has none; `null` for any other unit, and for a
