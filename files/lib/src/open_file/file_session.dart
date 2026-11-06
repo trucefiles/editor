@@ -151,6 +151,18 @@ final class FileSession {
     return answer?.kept ?? false;
   }
 
+  /// Keeps typing that waits for a draft on this device now (e.g. the
+  /// app lost the focus); the file follows as after a pause.
+  void draftNow() => editor.send(const DraftNow());
+
+  /// Completes once the file owner writes no more for now: the edits are
+  /// in the file, wait for the user, or wait for the next start; or the
+  /// session ended.
+  Future<void> written() async {
+    if (status is! Editing) return;
+    await changes.firstWhere((_) => status is! Editing, orElse: () {});
+  }
+
   /// Writes the edits kept on this device into the file now; a new
   /// file is created, as only securing it does.
   void saveNow() => switch (file) {

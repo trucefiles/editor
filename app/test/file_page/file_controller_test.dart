@@ -211,6 +211,24 @@ void main() {
       expect(asked, isTrue);
     });
 
+    test('as the app ends, a keep that never answers counts as not kept '
+        'after the wait', () async {
+      final borrowed = fixture.session()..type('mine ');
+      final session = FileSession(
+        ExistingFile(fixture.file),
+        fixture.effects(ExistingFile(fixture.file)),
+        _NoSecure(borrowed.editor),
+      );
+      addTearDown(session.dispose);
+      final controller = controllerOn(session);
+      var asked = false;
+
+      final went = await controller.mayGo(.exit, () async => asked = true);
+
+      expect(went, isTrue);
+      expect(asked, isTrue, reason: 'the user decides');
+    });
+
     test('edits kept nowhere: stays if the user keeps them', () async {
       final controller = editedInGoneFolder();
 
@@ -420,3 +438,28 @@ String textShown(FileSession session) => [
   for (final row in (session.gate.state.content as FormattedContent).view.rows)
     if (row case TextRow(:final leaf)) textOf(leaf).text,
 ].join('\n');
+
+/// An editor whose keep never answers, as when the folder hangs before
+/// the device holds the edits; the session it is borrowed from closes it.
+final class _NoSecure implements PageEditor {
+  _NoSecure(this._editor);
+
+  final PageEditor _editor;
+
+  @override
+  void send(EditorRequest input) {
+    if (input is! SecureEditor) _editor.send(input);
+  }
+
+  @override
+  EditorStatus get state => _editor.state;
+
+  @override
+  Stream<EditorStatus> get changes => _editor.changes;
+
+  @override
+  Stream<EditorNotice> get events => _editor.events;
+
+  @override
+  Future<void> close() async {}
+}

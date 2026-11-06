@@ -73,6 +73,25 @@ void main() {
     await tester.waitForFile(app.file('groceries.md'), '# Groceries\nMilk\n');
   });
 
+  testApp('losing the focus saves what is typed on the device at once', (
+    tester,
+  ) async {
+    app.write('groceries.md', '# Groceries\n');
+    await tester.addFolder(app);
+    await tester.openFile('Groceries');
+    await tester.typeOver('# Groceries\nMilk\n');
+
+    tester.loseFocus();
+
+    // Well before the pause after typing would save it.
+    await tester.waitFor(
+      find.byTooltip(savedOnDevice),
+      timeout: const Duration(seconds: 1),
+    );
+    expect(app.file('groceries.md').readAsStringSync(), '# Groceries\n');
+    tester.regainFocus();
+  });
+
   testApp('tapping the save icon saves in the file right away', (tester) async {
     app.write('todo.md', '# Todo\n');
     await tester.addFolder(app);

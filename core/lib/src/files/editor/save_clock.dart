@@ -76,19 +76,30 @@ final class SaveClock {
       SaveTimer.pause,
       SaveTimer.long,
     }),
-    SaveTimer.pause => _tick(
-      start: {SaveTimer.folder},
-      stop: {SaveTimer.pause, SaveTimer.long},
-      save: Save.draft,
-    ),
+    SaveTimer.pause => _draft(),
     SaveTimer.long => _tick(stop: {SaveTimer.long}, save: Save.draft),
     SaveTimer.folder => _intoFolder({SaveTimer.folder}),
     SaveTimer.stale => _tick(stop: {SaveTimer.stale}, stale: true),
   };
 
+  /// A draft now, if typing waits for one (e.g. the app lost the focus):
+  /// as after a pause, the folder follows later; never the folder now.
+  Tick draftNow() =>
+      _running.containsKey(SaveTimer.pause) ||
+          _running.containsKey(SaveTimer.long)
+      ? _draft()
+      : _tick();
+
   /// The user left: the text went into the folder at once, and nothing
   /// waits.
   SaveClock get left => SaveClock._(const {}, stale: false, nextId: nextId);
+
+  /// Typing waits no more: into the draft, and the folder follows.
+  Tick _draft() => _tick(
+    start: {SaveTimer.folder},
+    stop: {SaveTimer.pause, SaveTimer.long},
+    save: Save.draft,
+  );
 
   /// [stop] stopped, the text into the folder: no longer stale.
   Tick _intoFolder(Set<SaveTimer> stop) =>

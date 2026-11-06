@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../app_end/app_end_source.dart';
 import '../tray/app_window.dart';
 import '../tray/hosted_tray.dart';
 import '../tray/native_tray_icon.dart';
@@ -12,8 +13,10 @@ import 'device_zone.dart';
 import 'linux/document_portal.dart';
 import 'linux/document_portal_paths.dart';
 import 'linux/gtk_app_window.dart';
+import 'linux/gtk_session_end.dart';
 import 'linux/linux_zone.dart';
 import 'linux/status_notifier_host.dart';
+import 'stop_signal.dart';
 import 'storage_access.dart';
 
 // The one place that tells platforms apart: it picks each platform's
@@ -74,4 +77,11 @@ final appWindowProvider = Provider<AppWindow>(
   (ref) => Platform.isLinux
       ? const GtkAppWindow()
       : throw UnsupportedError('No app window control on this platform'),
+);
+
+/// What tells the app it is about to be ended from outside: on Linux the
+/// desktop session's end (early, where the desktop tells it) and SIGTERM.
+/// Android hides the app before it ends it, which keeps the edits.
+final appEndSourcesProvider = Provider<List<AppEndSource>>(
+  (ref) => Platform.isLinux ? const [GtkSessionEnd(), StopSignal()] : const [],
 );

@@ -6,12 +6,14 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include "session_end.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
   GtkWindow* window;
   FlMethodChannel* window_channel;
+  SessionEnd* session_end;
   // Set from Dart while the app keeps running in the tray on close.
   gboolean hide_on_close;
 };
@@ -144,6 +146,10 @@ static void my_application_activate(GApplication* application) {
   fl_method_channel_set_method_call_handler(self->window_channel,
                                             window_method_cb, self, nullptr);
 
+  self->session_end = session_end_new(
+      GTK_APPLICATION(application),
+      fl_plugin_registrar_get_messenger(registrar));
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -195,6 +201,7 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->window_channel);
+  g_clear_pointer(&self->session_end, session_end_free);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 
@@ -220,5 +227,7 @@ MyApplication* my_application_new() {
   // my_application_activate), also while it is hidden in the tray.
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_DEFAULT_FLAGS, nullptr));
+                                     G_APPLICATION_DEFAULT_FLAGS,
+                                     // Hears the session's end (session_end.h).
+                                     "register-session", TRUE, nullptr));
 }

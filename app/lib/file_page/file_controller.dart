@@ -5,6 +5,8 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../app_end/app_end.dart';
+
 /// Backs up [text], the open file's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
@@ -208,13 +210,22 @@ final class FileController extends ChangeNotifier {
 
   /// Keeps the edits for [reason] ([FileSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
-  /// while the folder can't be reached. A failed save may just have
+  /// while the folder can't be reached; as the app ends, on this device
+  /// is enough, and an answer later than [appEndWait] is none. A failed
+  /// save may just have
   /// started a check of the folder, so this waits for its outcome. Once
   /// the session stopped, whether it kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.
     if (session.state case Stopped(:final kept)) return kept ?? false;
-    if (await session.secure(reason)) return true;
+    final secured = session.secure(reason);
+    // The app's end never waits on a folder that hangs: not kept then.
+    if (await switch (reason) {
+      SecureReason.exit => secured.timeout(appEndWait, onTimeout: () => false),
+      SecureReason.close || SecureReason.hide => secured,
+    }) {
+      return true;
+    }
     return await reachSettled() == Reach.unreachable;
   }
 

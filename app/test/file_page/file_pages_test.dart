@@ -61,6 +61,17 @@ void main() {
     expect(page.session.state, isA<Ended>());
   });
 
+  test('as the app ends, every open page keeps its edits, then waits for '
+      'its file', () async {
+    final page = pages().open(fixture.file, withFile: (_) async {});
+    addTearDown(page.close);
+    page.session.replaceAll('mine\n');
+
+    await open.secureForExit();
+
+    expect(fixture.onDisk('a.md'), 'mine\n');
+  });
+
   test("a new document's page goes where it is placed, of the type it was "
       'made as', () {
     final made = pages();

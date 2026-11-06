@@ -27,6 +27,35 @@ void main() {
     await eventually(() async => (await fixture.draftsIn('f1')).isEmpty);
   });
 
+  test('a draft now keeps typing on the device, not in the file', () async {
+    final session = fixture.session()..type('x');
+
+    session.draftNow();
+
+    await eventually(
+      () async => (await fixture.draftsIn('f1')).singleOrNull?.text == 'xone\n',
+    );
+    expect(fixture.onDisk('a.md'), 'one\n');
+    expect(session.saveState, SaveState.onDevice);
+  });
+
+  test('securing as the app ends answers once on the device; written '
+      'waits for the file', () async {
+    final session = fixture.session()..type('x');
+
+    expect(await session.secure(.exit), isTrue);
+    await session.written();
+
+    expect(fixture.onDisk('a.md'), 'xone\n');
+    expect(session.saveState, SaveState.inFolder);
+  });
+
+  test('written is done at once with nothing to write', () async {
+    final session = fixture.session();
+    await session.written();
+    expect(session.status, isA<InStep>());
+  });
+
   test("a new document's file is created once secured, named after its "
       'first line', () async {
     final session = fixture.session(fixture.newFile)..type('Milk');

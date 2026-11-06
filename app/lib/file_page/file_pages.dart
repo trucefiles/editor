@@ -180,6 +180,7 @@ final class FilePages {
     final leaveOpenFiles = openFiles.add(
       folder: folder,
       secure: session.secure,
+      written: session.written,
     );
     return FilePage._(
       type,

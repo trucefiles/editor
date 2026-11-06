@@ -52,11 +52,9 @@ final class _Step<V extends Version>
   @override
   FileState<V> get endState => FileState(
     status: switch (status) {
-      Editing() => Editing(switch ((work.io, work.draft)) {
-        (WritingFile(:final text), _) when text == state.text =>
-          EditPhase.writing,
-        (_, KeptDraft(:final text)) when text == state.text =>
-          EditPhase.onDevice,
+      Editing() => Editing(switch (work.io) {
+        WritingFile(:final text) when text == state.text => EditPhase.writing,
+        _ when _onDevice => EditPhase.onDevice,
         _ => EditPhase.inMemory,
       }),
       _ => status,
@@ -119,6 +117,7 @@ final class _Step<V extends Version>
   /// next step of a move waiting, the next step of a [Secure], a version
   /// found to read, the draft, then the file.
   void _next() {
+    _answerExitsOnDevice();
     if (work.io != null) return;
     if (work.pick case final pick?) _startPick(pick);
     // Dropped while it still names the file it was kept for, before a move.
@@ -747,6 +746,39 @@ final class _Step<V extends Version>
       _set(status: const Closed());
     }
   }
+
+  /// The app ends ([SecureReason.exit]): kept once the device holds the
+  /// edits, even while the file is still being written, so a write that
+  /// hangs never holds the app. Keeping goes on up the rungs with no one
+  /// waiting, and the next start writes the edits if the app ended
+  /// first. After a move only, as every other [Secure].
+  void _answerExitsOnDevice() {
+    final securing = work.securing;
+    if (securing == null || work.move != null || !_onDevice) return;
+    final exits = [
+      for (final ask in securing.asks)
+        if (ask.reason == SecureReason.exit) ask,
+    ];
+    if (exits.isEmpty) return;
+    _work(
+      work.copyWith(
+        securing: (
+          asks: [
+            for (final ask in securing.asks)
+              if (ask.reason != SecureReason.exit) ask,
+          ],
+          rung: securing.rung,
+        ),
+      ),
+    );
+    events.addAll([for (final ask in exits) Answer(ask.ticket, kept: true)]);
+  }
+
+  /// Whether the device's draft holds the edits as they are now.
+  bool get _onDevice => switch (work.draft) {
+    KeptDraft(:final text) => text == state.text,
+    _ => false,
+  };
 
   // State.
 

@@ -17,6 +17,8 @@ final class _Clock {
 
   void type() => _take(clock.typed());
 
+  void draftNow() => _take(clock.draftNow());
+
   /// [timer] fires, as last started.
   void fire(SaveTimer timer) => _take(clock.fired(running[timer]!));
 }
@@ -77,5 +79,37 @@ void main() {
     for (final id in clock.running.values) {
       expect(left.fired(id).save, isNull);
     }
+  });
+
+  group('a draft now', () {
+    test('keeps typing that waits as a draft, the folder follows', () {
+      final clock = _Clock()..type();
+      final pause = clock.running[SaveTimer.pause]!;
+      final long = clock.running[SaveTimer.long]!;
+      clock.draftNow();
+      expect(clock.saves, [Save.draft]);
+      expect(clock.clock.fired(pause).save, isNull);
+      expect(clock.clock.fired(long).save, isNull);
+      clock.fire(SaveTimer.folder);
+      expect(clock.saves, [Save.draft, Save.folder]);
+    });
+
+    test('never goes into the folder at once, even when stale', () {
+      final clock = _Clock()
+        ..type()
+        ..fire(SaveTimer.stale)
+        ..draftNow();
+      expect(clock.saves, [Save.draft]);
+    });
+
+    test('does nothing when no typing waits', () {
+      final clock = _Clock()..draftNow();
+      expect(clock.saves, isEmpty);
+      clock
+        ..type()
+        ..fire(SaveTimer.pause)
+        ..draftNow();
+      expect(clock.saves, [Save.draft]);
+    });
   });
 }

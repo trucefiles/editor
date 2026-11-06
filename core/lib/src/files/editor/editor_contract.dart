@@ -39,6 +39,12 @@ final class SecureEditor extends EditorRequest implements Asking {
   final SecureReason reason;
 }
 
+/// Keep a draft on the device now of typing that waits for one (e.g.
+/// the app lost the focus); the folder follows as after a pause.
+final class DraftNow extends EditorRequest {
+  const DraftNow();
+}
+
 /// Undo the latest step of this editing session.
 final class Undo extends EditorRequest {
   const Undo();

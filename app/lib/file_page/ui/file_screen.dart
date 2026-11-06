@@ -94,6 +94,8 @@ class _FileScreenState extends ConsumerState<FileScreen> {
       _session.fileNotices.listen(_onFileNotice),
     ];
     _lifecycle = AppLifecycleListener(
+      // Before the window goes, e.g. to the shutdown menu.
+      onInactive: _session.draftNow,
       onHide: () => unawaited(_session.secure(SecureReason.hide)),
       onExitRequested: _onExitRequested,
     );
