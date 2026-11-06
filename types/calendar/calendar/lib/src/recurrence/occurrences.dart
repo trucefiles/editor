@@ -83,7 +83,7 @@ Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
     return;
   }
   final rule = series.rule;
-  if ((rule == null && series.rdates.isEmpty) || series.recurrenceId != null) {
+  if ((rule == null && series.rdates.isEmpty) || series.changesOccurrence) {
     if (span.overlaps(start, end)) {
       yield Occurrence(event, series, start: start.local, end: end.local);
     }
