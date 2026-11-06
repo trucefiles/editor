@@ -1,0 +1,7 @@
+- Edits are kept on logout, shutdown and focus loss; quitting never waits for a hung folder
+- Import events from an .ics file into an open calendar
+- Smooth month swipes in the calendar
+- The Calendars tab opens a calendar
+- Cards show their type's icon before the title
+- Location and name: the name from the text shows as a hint
+- Calendars read invites with changed dates better
