@@ -31,9 +31,7 @@ Future<void> _pumpTitle(
       home: Builder(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title:
-                view.title(context, title: title, nameTitle: nameTitle) ??
-                Text(title),
+            title: view.title(context, Text(title), nameTitle: nameTitle),
           ),
         ),
       ),

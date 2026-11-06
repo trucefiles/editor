@@ -419,11 +419,8 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         title: FileHeading(
           title: _session.title,
           edited: _session.read?.listed.modified,
-          typeTitle: _page.view.title(
-            context,
-            title: _session.title,
-            nameTitle: nameTitle(path),
-          ),
+          typeTitle: (fileTitle) =>
+              _page.view.title(context, fileTitle, nameTitle: nameTitle(path)),
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),

@@ -48,18 +48,18 @@ final class CalendarEditorView extends EditorView {
 
   /// The calendar's name, edited in place while it can be edited, with
   /// the file's [nameTitle] as its hint; otherwise, or for a text that is
-  /// no calendar, the file's [title].
+  /// no calendar, [fileTitle].
   @override
-  Widget? title(
-    BuildContext context, {
-    required String title,
+  Widget title(
+    BuildContext context,
+    Widget fileTitle, {
     required String nameTitle,
   }) => _part.isEditing
       ? _forCalendar(
           CalendarNameField(_part, hint: nameTitle),
-          otherwise: Text(title, overflow: TextOverflow.ellipsis),
+          otherwise: fileTitle,
         )
-      : null;
+      : fileTitle;
 
   /// Only for a calendar: a text that is no calendar has nothing to add.
   @override
