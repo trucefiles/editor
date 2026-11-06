@@ -12,13 +12,22 @@ import 'page_file.dart';
 /// file's first write there.
 typedef PickedPlace = ({FilePlace place, String name, bool newSubfolder});
 
-/// The name the open [file] has now, without its extension, at [path]
-/// and with [firstLine] as its text's first line: what the user changes
-/// when picking its place and name.
-String nameNow(PageFile file, RelPath path, String firstLine) => switch (file) {
-  NewFile() => file.titleFor(firstLine),
-  ExistingFile() => splitFileName(path.name).base,
-};
+/// How the name field starts when the user picks the open [file]'s place
+/// and name, at [path] and with [firstLine] as its text's first line:
+/// [name] is the name the file keeps, empty while a new file is named
+/// after its text, so that it keeps following it; [hint] is the name an
+/// empty field gives it.
+({String name, String hint}) nameFieldOf(
+  PageFile file,
+  RelPath path,
+  String firstLine,
+) => (
+  name: switch (file) {
+    NewFile(:final name) => name ?? '',
+    ExistingFile() => splitFileName(path.name).base,
+  },
+  hint: newFileName(firstLine, extension: ''),
+);
 
 /// What picking [picked] for the open [file] asks: [saved] is its file
 /// as saved, `null` while its edits are not all in it; [firstLine] its

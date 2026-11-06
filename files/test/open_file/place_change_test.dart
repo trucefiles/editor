@@ -113,11 +113,29 @@ void main() {
     expect((renamed as MoveTo).to.title, 'Steps');
   });
 
-  test('the name now: the new file title, or the file name', () {
-    expect(nameNow(existing, saved.path, 'Other'), 'Plan');
+  test('the name field: a new file named after its text starts empty, '
+      'the name its text gives as the hint', () {
+    final named = NewFile(topOf(work), type: const _Type(), name: 'Plan');
+
     expect(
-      nameNow(NewFile(topOf(work), type: const _Type()), path('x.md'), 'Milk'),
-      'Milk',
+      nameFieldOf(
+        NewFile(topOf(work), type: const _Type()),
+        path('x.md'),
+        'Milk',
+      ),
+      (name: '', hint: 'Milk'),
     );
+    expect(nameFieldOf(named, path('Plan.md'), 'Milk'), (
+      name: 'Plan',
+      hint: 'Milk',
+    ));
+    expect(nameFieldOf(existing, saved.path, 'Other'), (
+      name: 'Plan',
+      hint: 'Other',
+    ));
+    expect(nameFieldOf(existing, saved.path, ''), (
+      name: 'Plan',
+      hint: 'Untitled',
+    ));
   });
 }

@@ -8,14 +8,14 @@ first. They show sample documents only.
 Home now has two parts: **Pinned** (every pinned file) and **Recently
 edited**. Settings sets how many recently edited files show and, if you
 like, how old they can be. A **Clear** chip drops all picks in its row.
-A card's footer starts with its type's icon; a long place is cut in the
+A card's title starts with its type's icon; a long place is cut in the
 middle, so the folder and the last subfolder stay readable, and the
 whole place shows when you hover over it. Long press a card, or right
 click it with a mouse, to open, pin or color it. Settings and forms
 stay in one readable column on wide windows, and Esc closes any page or
 form.
 
-<img src="screenshots/home/home_desktop.png" width="600" alt="Home: Pinned on top, then Recently edited, each card's footer starting with its type icon">
+<img src="screenshots/home/home_desktop.png" width="600" alt="Home: Pinned on top, then Recently edited, each card's title starting with its type icon">
 <img src="screenshots/home/card_menu_desktop.png" width="600" alt="A right click on a card: Open, Pin, Color with its colors, and where the other actions are">
 <img src="screenshots/home/card_sheet_touch.png" width="300" alt="A long press on a card on a phone: its title and place, Open, Pin, colors">
 <img src="screenshots/settings/settings_desktop.png" width="600" alt="Settings on a wide window, in one centered column">
@@ -62,10 +62,11 @@ likely next period lighter with faint stripes, and the line below tells
 the day of the cycle.
 Today always has a blue outline. With a mouse, Shift and the wheel page
 to the next or previous month, week or day. Once your
-folders hold a calendar, the **Calendar** tab shows the events of all
+folders hold a calendar, the **Calendars** tab shows the events of all
 of them in the same views. Tap an event there to see it, then open its
-calendar or edit it on its page; **+** picks a calendar and starts
-adding there. When two devices changed
+calendar or edit it on its page. To add or change events, open one
+calendar with the calendar button; a tap on a free day there reminds
+you. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.
@@ -74,8 +75,9 @@ kept.
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
 <img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
-<img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
-<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendar tab: its details with Open calendar and Edit">
+<img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: two calendars as chips above one month, the open calendar button at the bottom">
+<img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its details with Open calendar and Edit">
 
 ## Home, All and search
 

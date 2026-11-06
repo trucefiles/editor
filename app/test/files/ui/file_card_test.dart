@@ -104,6 +104,32 @@ void main() {
     expect(find.textContaining('line'), findsNothing);
   });
 
+  testWidgets('shows its type icon before the title, as large as its '
+      'letters, growing with the document text zoom', (tester) async {
+    Rect icon() => tester.getRect(
+      find
+          .descendant(of: find.byType(FileCard), matching: find.byType(Icon))
+          .first,
+    );
+
+    await show(tester);
+    final card = tester.getRect(find.byType(FileCard));
+    final title = tester.getRect(find.text('Title'));
+    final normal = icon();
+
+    // At the card's left edge, inside its padding, beside the title.
+    expect(normal.left - card.left, lessThan(20));
+    expect(normal.right, lessThanOrEqualTo(title.left));
+    expect(normal.center.dy, closeTo(title.center.dy, 1));
+
+    await show(tester, zoom: TextZoom.closestTo(150));
+    expect(icon().height, greaterThan(normal.height));
+    expect(
+      icon().center.dy,
+      closeTo(tester.getCenter(find.text('Title')).dy, 1),
+    );
+  });
+
   group('footer', () {
     final deep = listedFile(
       folderAt(Directory.systemTemp).copyWith(name: 'Shared Notes'),
@@ -162,22 +188,12 @@ void main() {
     // and wider, as in a dialog.
     for (final scale in [1.0, 1.5, 2.0]) {
       for (final width in [140.0, 160.0, 180.0, 200.0, 240.0, 320.0, 480.0]) {
-        testWidgets('fits at $width px and text size $scale: the type icon '
-            'first, the place giving way before the date', (tester) async {
+        testWidgets('fits at $width px and text size $scale: the place '
+            'giving way before the date', (tester) async {
           await showDeep(tester, width: width, scale: scale);
 
           expect(tester.takeException(), isNull);
           final card = tester.getRect(find.byType(FileCard));
-          final typeIcon = tester.getRect(
-            find
-                .descendant(
-                  of: find.byType(FileCard),
-                  matching: find.byType(Icon),
-                )
-                .first,
-          );
-          // At the card's left edge, inside its padding.
-          expect(typeIcon.left - card.left, lessThan(20));
           final date = find.textContaining('Oct 14');
           final dateText = tester.widget<Text>(date);
           final painter = TextPainter(

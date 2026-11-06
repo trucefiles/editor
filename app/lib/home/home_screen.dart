@@ -57,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   NavigationDestination(
                     icon: Icon(Icons.calendar_month_outlined),
-                    label: 'Calendar',
+                    label: 'Calendars',
                   ),
                 ],
               )

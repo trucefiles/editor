@@ -48,7 +48,7 @@ void main() {
     await tester.waitForNoteClosed();
 
     await tester.tapAndSettle(
-      find.widgetWithText(NavigationDestination, 'Calendar'),
+      find.widgetWithText(NavigationDestination, 'Calendars'),
     );
     await tester.waitFor(find.widgetWithText(FilterChip, 'Family'));
     expect(find.text('Dentist'), findsOneWidget);

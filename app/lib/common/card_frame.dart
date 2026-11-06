@@ -6,13 +6,15 @@ import 'package:truce_files/truce_files.dart' show FileCardSummary;
 
 import '../text_zoom/ui/document_text_zoom.dart';
 
-/// The frame every card in a file grid shares: the title and [body] at
-/// the document text zoom, [footer] at the bottom; as tall as they are.
+/// The frame every card in a file grid shares: the title, after
+/// [leading] if given, and [body] at the document text zoom, [footer] at
+/// the bottom; as tall as they are.
 class CardFrame extends StatelessWidget {
   const CardFrame({
     required this.title,
     required this.footer,
     required this.onTap,
+    this.leading,
     this.body,
     this.onActions,
     this.onActionsAt,
@@ -22,6 +24,10 @@ class CardFrame extends StatelessWidget {
   });
 
   final String title;
+
+  /// Shown before the title, beside its first line, e.g. an icon; icons
+  /// in it are as large as the title's letters, so they grow with them.
+  final Widget? leading;
 
   /// Document text under the title, usually a [CardLines].
   final Widget? body;
@@ -68,12 +74,7 @@ class CardFrame extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: _titleGap,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    _Title(title, leading: leading),
                     ?body,
                   ],
                 ),
@@ -86,6 +87,46 @@ class CardFrame extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// [title] in at most two lines, after [leading] if given, centered on
+/// the first line and sized to its letters.
+class _Title extends StatelessWidget {
+  const _Title(this.title, {required this.leading});
+
+  final String title;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleMedium;
+    final text = Text(
+      title,
+      style: style,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+    final scaler = MediaQuery.textScalerOf(context);
+    return switch (leading) {
+      null => text,
+      final leading => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: _leadingGap,
+        children: [
+          SizedBox(
+            height: lineHeightOf(style, scaler),
+            child: Center(
+              child: IconTheme.merge(
+                data: IconThemeData(size: scaler.scale(style?.fontSize ?? 16)),
+                child: leading,
+              ),
+            ),
+          ),
+          Flexible(child: text),
+        ],
+      ),
+    };
+  }
 }
 
 /// [text] in the cards' body style, in at most as many lines as a preview
@@ -112,6 +153,7 @@ const cardFooterIconSize = 18.0;
 const _margin = 4.0;
 const _padding = 12.0;
 const _titleGap = 6.0;
+const _leadingGap = 6.0;
 const _footerGap = 8.0;
 
 /// Fits a line of small labels, a label with a background or an icon.
