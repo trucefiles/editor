@@ -401,8 +401,9 @@ final class _Step
   };
 
   /// What Visual edit showed at [side] shows again: in Visual edit, its
-  /// tree with its row shown (its caret only while one shows: after a
-  /// control, none comes back); in Markdown edit, its print, the caret at
+  /// tree with its row shown, its Done section opened if folded (its
+  /// caret only while one shows: after a control, none comes back); in
+  /// Markdown edit, its print, the caret at
   /// its row's start, and Visual edit comes back to it.
   void _showSide(TreeSide side) {
     switch (state.content) {
@@ -410,7 +411,7 @@ final class _Step
         work = work.copyWith(origin: side.origin);
         _show(
           FormattedContent(
-            view: _rows(side.doc, view.done, state.checkedItems),
+            view: _showing(side.doc, view.done, side.row),
             selection: selection == null ? null : side.selection,
           ),
         );
@@ -647,6 +648,23 @@ final class _Step
       };
 
   // State.
+
+  /// [doc] in rows as [_rows] says, with the Done section that holds
+  /// [leaf] opened if it is folded, so [leaf]'s row shows.
+  ViewRows _showing(DocTree doc, DoneSections? done, NodeId? leaf) {
+    final view = _rows(doc, done, state.checkedItems);
+    return switch ((view.done, leaf)) {
+      (final done?, final leaf?) when view.rowOf(leaf) == null => ViewRows(
+        doc,
+        done: DoneSections(
+          collapsed: done.collapsed.difference({
+            for (final container in doc.pathOf(leaf)) container.id,
+          }),
+        ),
+      ),
+      _ => view,
+    };
+  }
 
   /// [doc] in rows with checked items as [checkedItems] says, Done
   /// sections collapsed as [done] has them.

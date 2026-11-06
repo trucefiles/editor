@@ -12,6 +12,21 @@ void main() {
       }
     });
 
+    test('a unit taken out goes with all its parts, the rest as it was', () {
+      final calendar = Calendar.read(exported)!;
+      final without = calendar.without({
+        const UidKey.event('swim@example.com'),
+      });
+      expect(without.eventOf('swim@example.com'), isNull);
+      expect(without.text, isNot(contains('swim')));
+      expect(
+        without.units.map((unit) => unit.text),
+        calendar.units
+            .where((unit) => unit.key != const UidKey.event('swim@example.com'))
+            .map((unit) => unit.text),
+      );
+    });
+
     test('keeps lines it does not read, between and after units', () {
       const text =
           'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:a\nEND:VEVENT\n'

@@ -15,6 +15,7 @@ import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';
+import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
 
 /// The calendar editor owner's decision on [message] in [state], with its
@@ -115,15 +116,16 @@ final class _Step
   /// The [units] of one side of an edit show again, stamped as an edit
   /// made when it was asked. A units step is only undone or redone on the
   /// calendar it was made on, so one shows.
-  void _bringBack(Map<UnitKey, CalendarUnit?> units) =>
-      _showCalendar(unitsBroughtBack(state.calendar!, units, _requestAt));
+  void _bringBack(Map<UnitKey, CalendarUnit?> units) => _showCalendar(
+    unitsBroughtBack(state.calendar!, units, _requestAt, filed: _filed),
+  );
 
   /// [back] shows again: a calendar stamped as an edit made when it was
   /// asked; a text that is no calendar as it is.
   void _restore(CalendarShown back) =>
       switch ((back.calendar, state.calendar)) {
         (final back?, final now?) => _showCalendar(
-          broughtBack(back, now, _requestAt),
+          broughtBack(back, now, _requestAt, filed: _filed),
         ),
         (final back?, null) => _showCalendar(back),
         (null, _) => reload(back.text),
@@ -155,6 +157,10 @@ final class _Step
   /// Only the page shows the calendar; nothing shows the text kept.
   @override
   bool get sendsAtOnce => false;
+
+  /// The calendar as the file owner has it; `null` if its text is none.
+  /// The book holds the summary this owner made of that text.
+  Calendar? get _filed => (book.summary as CalendarSummary).calendar;
 
   /// What shows now.
   CalendarShown get _shown => (text: state.text, calendar: state.calendar);

@@ -61,6 +61,17 @@ List<String> _sent(
       text,
 ];
 
+/// What shows goes to the file owner, as after a typing pause, so a
+/// file may hold it from then on.
+void _saved(
+  MachineRun<Object?, Object?, CalendarOwnerEvent, CalendarSaveTimer> run,
+) => run.send(
+  run
+      .all<CalendarSaveTimer>()
+      .lastWhere((timer) => timer.delay == SaveTimer.pause.delay)
+      .done,
+);
+
 void main() {
   test('an edit shows at once and is one undo step', () {
     final run = _run(birthday)..send(EditCalendar(_gym, newUid: 'new@t'));
@@ -68,6 +79,7 @@ void main() {
     expect(run.state.status.canUndo, isTrue);
     expect(run.state.status.unsent, isTrue);
 
+    _saved(run);
     run.send(CalendarRequest(const Undo(), at: _at));
     expect(
       run.state.calendar!.eventOf('gym@t')!.series.deleted,
@@ -101,6 +113,7 @@ void main() {
     final run = _run(birthday)
       ..send(EditCalendar(_gym, newUid: 'new@t'))
       ..send(EditCalendar(_annRenamed, newUid: 'new@t'));
+    _saved(run);
     final gym = run.state.calendar!.unitOf(_gymKey)!.text;
 
     run.send(CalendarRequest(const Undo(), at: _later));
@@ -122,9 +135,9 @@ void main() {
 
   test('undoing a new event keeps the block of its zone, which its marker '
       'names', () {
-    final run = _run(birthday)
-      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
-      ..send(CalendarRequest(const Undo(), at: _later));
+    final run = _run(birthday)..send(EditCalendar(_tokyoCall, newUid: 'new@t'));
+    _saved(run);
+    run.send(CalendarRequest(const Undo(), at: _later));
     final calendar = run.state.calendar!;
     expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
     expect(calendar.zones, {'Asia/Tokyo'});
@@ -132,6 +145,31 @@ void main() {
     run.send(CalendarRequest(const Redo(), at: _later));
     expect(run.state.calendar!.eventOf('call@t')!.series.deleted, isFalse);
     expect(run.state.calendar!.zones, {'Asia/Tokyo'});
+  });
+
+  test('an event added and undone before any file got it leaves nothing, '
+      'so a new calendar is not written', () {
+    final start = newCalendarText('');
+    final run = _run(start)
+      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
+      ..send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.eventOf('call@t'), isNull);
+    expect(run.state.calendar!.zones, {'Asia/Tokyo'}, reason: 'zones stay');
+
+    run.send(CalendarRequest(const Redo(), at: _later));
+    expect(run.state.calendar!.eventOf('call@t')!.series.deleted, isFalse);
+
+    final gym = _run(start)
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
+      ..send(CalendarRequest(const Undo(), at: _later));
+    expect(gym.state.text, start, reason: 'back to the start text');
+  });
+
+  test('a restored backup drops an event no file got', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
+      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    expect(run.state.calendar!.eventOf('gym@t'), isNull);
   });
 
   test('an edit that writes nothing is no step and no save', () {
@@ -144,18 +182,18 @@ void main() {
   });
 
   test('a restored backup without a zone keeps the zone block', () {
-    final run = _run(birthday)
-      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
-      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    final run = _run(birthday)..send(EditCalendar(_tokyoCall, newUid: 'new@t'));
+    _saved(run);
+    run.send(CalendarRequest(const ReplaceAll(birthday), at: _later));
     final calendar = run.state.calendar!;
     expect(calendar.eventOf('call@t')!.series.deleted, isTrue);
     expect(calendar.zones, {'Asia/Tokyo'});
   });
 
   test('a restore over a calendar is undone and redone, stamped', () {
-    final run = _run(birthday)
-      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
-      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    final run = _run(birthday)..send(EditCalendar(_tokyoCall, newUid: 'new@t'));
+    _saved(run);
+    run.send(CalendarRequest(const ReplaceAll(birthday), at: _later));
 
     run.send(CalendarRequest(const Undo(), at: _later));
     var calendar = run.state.calendar!;
@@ -213,6 +251,7 @@ void main() {
 
   test('a restored backup wins over the text it replaced', () {
     final run = _run(birthday)..send(EditCalendar(_gym, newUid: 'new@t'));
+    _saved(run);
     final edited = run.state.text;
     run.send(
       CalendarRequest(
@@ -323,7 +362,11 @@ void main() {
       ..send(CalendarRequest(const Undo(), at: _later));
     expect(run.state.calendar!.name, 'Home');
     run.send(CalendarRequest(const Undo(), at: _later));
-    expect(run.state.calendar!.eventOf('gym@t')!.series.deleted, isTrue);
+    expect(
+      run.state.calendar!.eventOf('gym@t'),
+      isNull,
+      reason: 'never sent, so in no file',
+    );
     run.send(CalendarRequest(const Undo(), at: _later));
     expect(run.state.calendar!.name, '');
     expect(run.state.status.canUndo, isFalse);

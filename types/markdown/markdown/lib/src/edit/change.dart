@@ -44,37 +44,40 @@ CaretAfter caretOrEnd(Selection? caret) => switch (caret) {
 /// (`null`: no caret).
 typedef Edited = ({DocTree doc, Selection? selection});
 
-/// [change], an edit of [before], as it shows: its tree normalized (see
-/// `normalized`), its caret placed.
-Edited settled(Change change, {required DocTree before}) {
-  final doc = normalized(change.doc, change.doc.freshIds, before: before);
+/// [change], an edit of what [before] shows, as it shows: its tree
+/// normalized (see `normalized`), its caret placed, the Done sections
+/// folded as in [before].
+Edited settled(Change change, {required ViewRows before}) {
+  final doc = normalized(change.doc, change.doc.freshIds, before: before.doc);
   return (
     doc: doc,
     selection: switch (change.caret) {
       CaretAt(:final selection) => selection,
-      CaretAtEnd() => endOf(ViewRows(doc)),
+      CaretAtEnd() => endOf(ViewRows(doc, done: before.done)),
       NoCaret() => null,
     },
   );
 }
 
 /// A caret at the start of the first text [view] shows; where a block
-/// without text shows first, that block selected.
-Selection startOf(ViewRows view) => switch (view.rows.first) {
+/// without text shows first, that block selected; none if no row shows
+/// (e.g. only folded Done sections).
+Selection? startOf(ViewRows view) => switch (view.rows.firstOrNull) {
   TextRow(:final leaf) => TextSelection.caret(Place(leaf.id, 0)),
   BlockRow(:final leaf) => BlockSelection(leaf.id),
+  null => null,
 };
 
 /// A caret at the end of the last text [view] shows; where none shows
 /// after its last block without text (an HTML block that takes in the
-/// rest), that block selected.
-Selection endOf(ViewRows view) =>
+/// rest), that block selected; none if no row shows.
+Selection? endOf(ViewRows view) =>
     switch ((view.rows.whereType<TextRow>().lastOrNull, view.rows.lastOrNull)) {
       (_, final BlockRow last) => BlockSelection(last.leaf.id),
       (TextRow(:final leaf), _) => TextSelection.caret(
         Place(leaf.id, textOf(leaf).length),
       ),
-      _ => throw StateError('a document shows a row'),
+      _ => null,
     };
 
 /// Where the caret goes once the rows that [gone] says go are gone: at

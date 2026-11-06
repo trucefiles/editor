@@ -160,6 +160,25 @@ final class Calendar {
     );
   }
 
+  /// This calendar without the units [keys] names, the rest where they
+  /// were.
+  Calendar without(Set<UnitKey> keys) => keys.isEmpty
+      ? this
+      : Calendar._(
+          head,
+          _Body(
+            [
+              for (final unit in units)
+                if (!keys.contains(unit.key)) unit,
+            ],
+            [
+              for (final slot in _body.layout)
+                if (!keys.contains(slot.key)) slot,
+            ],
+          ),
+          tail,
+        );
+
   /// [unit] as it fits the places of the unit it replaces: its parts
   /// there, or, if it has not as many, its whole text where that unit's
   /// first part was.
