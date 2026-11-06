@@ -144,9 +144,11 @@ List<ItemNode> checkedItems(DocTree doc, {ListNode? list}) => [
 /// (see [toggle]).
 Change clearItems(ViewRows view, List<ItemNode> items) {
   final going = {for (final item in items) item.id};
+  // Each list is checked once: the work grows with its length, not its square.
+  final lists = {for (final item in items) view.doc.parentOf(item.id)};
   final keeping = {
-    for (final item in items)
-      if (view.doc.parentOf(item.id) case final ListNode list
+    for (final list in lists)
+      if (list case final ListNode list
           when list.items.every((each) => going.contains(each.id)))
         list.items.first.id,
   };

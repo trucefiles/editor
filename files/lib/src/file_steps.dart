@@ -189,9 +189,10 @@ base class FileSteps {
 
   /// Writes [backup] as a new file at [place], named after [title] (by
   /// default its file's name, with its extension), with a number if that
-  /// name is taken: never over a file. It starts with no color or
-  /// settings; [newSubfolder]: [place]'s subfolder is a new one the user
-  /// asked for, made first.
+  /// name is taken: never over a file. It is given no color or settings;
+  /// at a deleted file's own path, the ones [delete] kept apply to it
+  /// again. [newSubfolder]: [place]'s subfolder is a new one the
+  /// user asked for, made first.
   Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
     FolderBackup backup,
     FilePlace place, {

@@ -419,7 +419,8 @@ final class _Step
         final printed = side.printed;
         work = work.copyWith(
           left: (
-            view: ViewRows(side.doc),
+            // Visual edit's Done sections stay as they were left.
+            view: ViewRows(side.doc, done: work.left?.view.done),
             selection: side.selection,
             printed: printed,
           ),

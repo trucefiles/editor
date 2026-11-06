@@ -98,6 +98,22 @@ void main() {
       });
     });
   }
+
+  // 10000 items, all checked: a check per item over its whole list
+  // would take hundreds of milliseconds here.
+  test('Clear checked on a long list all checked runs within budget', () {
+    final view = ViewRows(
+      loadMarkdown(
+        [for (var item = 0; item < 10000; item++) '- [x] item $item']
+            .join('\n'),
+      ).doc,
+    );
+    final times = [
+      for (var round = 0; round < 5; round++)
+        _timed(() => run(view, const ClearChecked())),
+    ];
+    expect(_median(times), lessThan(_printBudget));
+  });
 }
 
 Duration _timed(void Function() run) {
