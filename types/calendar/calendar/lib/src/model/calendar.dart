@@ -80,6 +80,11 @@ final class Calendar {
   /// The time zones it holds a block for.
   Set<String> get zones => _body.zones;
 
+  /// The time zones its other units read times by (a `TZID` on any of
+  /// their lines, deleted markers' among them). Found by one pass over
+  /// the units when first asked.
+  Set<String> get zonesNamed => _body.zonesNamed;
+
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
     for (final line in logicalLines(head).skip(1))
@@ -138,19 +143,34 @@ final class Calendar {
 
   /// This calendar with each of [changes] in place of the unit with its
   /// key, where it was; those it doesn't have added at the end, in order.
-  Calendar withUnits(Iterable<CalendarUnit> changes) {
+  Calendar withUnits(Iterable<CalendarUnit> changes) =>
+      withUnitsChanged({for (final unit in changes) unit.key: unit});
+
+  /// This calendar with each unit of [changes] in place of the one with
+  /// its key, where it was, those it doesn't have added at the end, in
+  /// order; a key with `null` goes, with all its parts.
+  Calendar withUnitsChanged(Map<UnitKey, CalendarUnit?> changes) {
     if (changes.isEmpty) return this;
-    final byKey = {for (final unit in changes) unit.key: _fitted(unit)};
+    final byKey = {
+      for (final MapEntry(:key, :value) in changes.entries)
+        key: value == null ? null : _fitted(value),
+    };
+    bool goes(UnitKey key) => byKey.containsKey(key) && byKey[key] == null;
     final added = [
       for (final unit in byKey.values)
-        if (!_body.byKey.containsKey(unit.key)) unit,
+        if (unit != null && !_body.byKey.containsKey(unit.key)) unit,
     ];
     return Calendar._(
       head,
       _Body(
-        [for (final each in units) byKey[each.key] ?? each, ...added],
         [
-          ..._body.layout,
+          for (final each in units)
+            if (!goes(each.key)) byKey[each.key] ?? each,
+          ...added,
+        ],
+        [
+          for (final slot in _body.layout)
+            if (!goes(slot.key)) slot,
           for (final unit in added)
             for (final index in Iterable<int>.generate(unit.parts.length))
               (key: unit.key, part: index),
@@ -236,7 +256,19 @@ final class _Body {
     for (final unit in units)
       if (unit.key case ZoneKey(:final zone)) zone,
   };
+
+  late final Set<String> zonesNamed = {
+    for (final unit in units)
+      if (unit.key is! ZoneKey)
+        for (final component in unit.components) ..._zonesIn(component),
+  };
 }
+
+/// The zones [component] and the components in it name by `TZID`.
+Iterable<String> _zonesIn(Component component) => [
+  for (final line in component.properties) ?line.param('TZID'),
+  for (final child in component.children) ..._zonesIn(child),
+];
 
 bool _begins(_Line line) => line.unfolded.toUpperCase().startsWith('BEGIN:');
 

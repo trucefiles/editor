@@ -355,10 +355,7 @@ final class _Step
       );
     }
     _show(
-      FormattedContent(
-        view: ViewRows(doc, done: shown.view.done),
-        selection: edited.selection,
-      ),
+      FormattedContent(view: shown.view.over(doc), selection: edited.selection),
     );
     if (identical(doc, before)) return;
     textChanged();
@@ -401,8 +398,9 @@ final class _Step
   };
 
   /// What Visual edit showed at [side] shows again: in Visual edit, its
-  /// tree with its row shown (its caret only while one shows: after a
-  /// control, none comes back); in Markdown edit, its print, the caret at
+  /// tree with its row shown, its Done section opened if folded (its
+  /// caret only while one shows: after a control, none comes back); in
+  /// Markdown edit, its print, the caret at
   /// its row's start, and Visual edit comes back to it.
   void _showSide(TreeSide side) {
     switch (state.content) {
@@ -410,7 +408,11 @@ final class _Step
         work = work.copyWith(origin: side.origin);
         _show(
           FormattedContent(
-            view: _rows(side.doc, view.done, state.checkedItems),
+            view: _rows(
+              side.doc,
+              view.done,
+              state.checkedItems,
+            ).showing(side.row),
             selection: selection == null ? null : side.selection,
           ),
         );
@@ -419,7 +421,12 @@ final class _Step
         final printed = side.printed;
         work = work.copyWith(
           left: (
-            view: ViewRows(side.doc),
+            // Visual edit's Done sections stay as they were left, the
+            // one that holds the step's row opened, as in Visual edit.
+            view: ViewRows(
+              side.doc,
+              done: work.left?.view.done,
+            ).showing(side.row),
             selection: side.selection,
             printed: printed,
           ),
@@ -514,7 +521,7 @@ final class _Step
     final shown = state.content as FormattedContent;
     final closed = rawClosed(shown, selection);
     return FormattedContent(
-      view: ViewRows(closed.doc, done: shown.view.done),
+      view: shown.view.over(closed.doc),
       selection: closed.selection,
     );
   }

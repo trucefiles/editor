@@ -199,5 +199,25 @@ void main() {
       run.redo();
       expect(run.markdownCaret, _list.indexOf('- [ ] c'));
     });
+
+    test('Visual edit keeps its folded Done sections after the undo', () {
+      final run = EditorRun(
+        '- [ ] a\n- [x] b\n\nend',
+        checkedItems: CheckedItems.doneSection,
+      );
+      run
+        ..send(
+          SetCollapsed(
+            run.shown.view.doc.root.children.first.id,
+            collapsed: true,
+          ),
+        )
+        ..caret(1, 3)
+        ..type('!')
+        ..send(const SetMode(EditMode.markdown))
+        ..undo()
+        ..send(const SetMode(EditMode.visual));
+      expect(run.rows, ['a', 'end']);
+    });
   });
 }

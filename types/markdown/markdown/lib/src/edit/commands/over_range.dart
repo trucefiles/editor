@@ -14,15 +14,12 @@ import 'text_commands.dart';
 /// after a block, a new empty line after it to type in.
 Edited cleared(ViewRows view, Selection selection) => switch (selection) {
   TextSelection(isCaret: true) => (doc: view.doc, selection: selection),
-  final TextSelection range => settled(
-    deleteRange(view, range),
-    before: view.doc,
-  ),
+  final TextSelection range => settled(deleteRange(view, range), before: view),
   BlockSelection(:final block) => settled(
     lineInPlace(view, block),
-    before: view.doc,
+    before: view,
   ),
-  BlockCaret(:final block) => settled(lineAfter(view, block), before: view.doc),
+  BlockCaret(:final block) => settled(lineAfter(view, block), before: view),
 };
 
 /// [edit] made at the caret once what [selection] holds is taken away.
@@ -38,10 +35,10 @@ Edited atCaret(
   ViewRows view,
   Edited edited,
   Change Function(ViewRows view, Place at) edit,
-) => switch (edited.selection) {
-  TextSelection(:final extent) => settled(
-    edit(ViewRows(edited.doc, done: view.done), extent),
-    before: edited.doc,
+) => switch ((edited.selection, view.over(edited.doc))) {
+  (TextSelection(:final extent), final shown) => settled(
+    edit(shown, extent),
+    before: shown,
   ),
   _ => edited,
 };

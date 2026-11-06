@@ -286,10 +286,7 @@ Edited run(ViewRows view, Command command) => switch (command) {
   Paste(:final selection, :final lines) => paste(view, selection, lines),
   LineBreak(:final range) => overRange(view, range, lineBreak),
   SplitBlock(:final range) => overRange(view, range, splitBlock),
-  final EditCommand command => settled(
-    _change(view, command),
-    before: view.doc,
-  ),
+  final EditCommand command => settled(_change(view, command), before: view),
 };
 
 Change _change(ViewRows view, EditCommand command) {
