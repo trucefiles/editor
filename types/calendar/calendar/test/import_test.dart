@@ -149,6 +149,19 @@ void main() {
     expect(_report(older).kept, ['Ann']);
   });
 
+  test('a corrected file with a later DTSTAMP updates its events', () {
+    final first = _import(birthday, _invites).calendar;
+    final corrected = _invites
+        .replaceAll('DTSTAMP:20270201T090000Z', 'DTSTAMP:20270202T090000Z')
+        .replaceAll('SUMMARY:Concert', 'SUMMARY:Concert (moved to Hall C)');
+    final again = importInto(first, _bytes(corrected));
+    expect(
+      again.calendar.eventOf('concert@example.org')!.series.summary,
+      'Concert (moved to Hall C)',
+    );
+    expect(_report(again).updated, 2, reason: 'the lecture is restamped too');
+  });
+
   test('a file that is no calendar changes nothing', () {
     final calendar = Calendar.read(birthday)!;
     for (final bytes in [

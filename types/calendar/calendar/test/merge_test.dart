@@ -186,6 +186,23 @@ void main() {
     });
   });
 
+  test('without edit stamps, the later DTSTAMP wins; an edit stamp beats '
+      'any DTSTAMP', () {
+    String event(String summary, String lines) =>
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\n$lines'
+        'SUMMARY:$summary\nEND:VEVENT\nEND:VCALENDAR\n';
+    final first = event('Zoo trip', 'DTSTAMP:20270101T080000Z\n');
+    final corrected = event('Aquarium trip', 'DTSTAMP:20270102T080000Z\n');
+    expect(_merged(first, corrected), corrected);
+    expect(_merged(corrected, first), corrected);
+
+    final edited = event(
+      'Zoo trip',
+      'DTSTAMP:20261201T080000Z\nLAST-MODIFIED:20261201T080000Z\n',
+    );
+    expect(_merged(corrected, edited), edited);
+  });
+
   test('without a base, a task changed on both sides is kept once', () {
     final older = _calendarWith('VTODO', 'Buy paint');
     final newer = _calendarWith(

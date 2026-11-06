@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import '../model/calendar.dart';
 import '../model/calendar_event.dart';
 import '../model/calendar_unit.dart';
+import '../read/component.dart';
 import '../read/values.dart';
 
 /// How two texts of one calendar merge: unit by unit (an event with all
@@ -92,38 +93,57 @@ bool _overwritten(String side, String kept, String? base) =>
 
 /// The newer of two versions [a] and [b] of one unit: by its latest
 /// `LAST-MODIFIED` (none is oldest), then its highest `SEQUENCE`, then
-/// the smaller text, so every device picks the same.
+/// its latest `DTSTAMP` (none is oldest; it orders only versions without
+/// the first two, e.g. two exports, as an edit here always writes
+/// `LAST-MODIFIED`), then the smaller text, so every device picks the
+/// same.
 CalendarUnit _newerOf(CalendarUnit a, CalendarUnit b) {
-  final (stampA, stampB) = (_stampOf(a), _stampOf(b));
-  final byStamp = _compare(stampA, stampB);
+  final byStamp = _compare(_stampOf(a), _stampOf(b));
   if (byStamp != 0) return byStamp > 0 ? a : b;
   return a.text.compareTo(b.text) <= 0 ? a : b;
 }
 
-typedef _Stamp = ({DateTime? modified, int sequence});
+typedef _Stamp = ({DateTime? modified, int sequence, DateTime? stamped});
 
 /// The latest edit stamp of any of [unit]'s components.
-_Stamp _stampOf(CalendarUnit unit) =>
-    unit.components.fold((modified: null, sequence: -1), (latest, component) {
-      final modified = switch (component.property('LAST-MODIFIED')) {
-        final line? => timeOf(line)?.wall,
-        null => null,
-      };
-      final sequence =
-          int.tryParse(component.value('SEQUENCE')?.trim() ?? '') ?? -1;
-      return (
-        modified: switch ((latest.modified, modified)) {
-          (final a?, final b?) => a.isAfter(b) ? a : b,
-          (final a, final b) => a ?? b,
-        },
-        sequence: sequence > latest.sequence ? sequence : latest.sequence,
-      );
-    });
+_Stamp _stampOf(CalendarUnit unit) => unit.components.fold(
+  (modified: null, sequence: -1, stamped: null),
+  (latest, component) {
+    final sequence =
+        int.tryParse(component.value('SEQUENCE')?.trim() ?? '') ?? -1;
+    return (
+      modified: _later(latest.modified, _timeIn(component, 'LAST-MODIFIED')),
+      sequence: sequence > latest.sequence ? sequence : latest.sequence,
+      stamped: _later(latest.stamped, _timeIn(component, 'DTSTAMP')),
+    );
+  },
+);
+
+/// The time [component]'s property [name] holds; `null` if none.
+DateTime? _timeIn(Component component, String name) =>
+    switch (component.property(name)) {
+      final line? => timeOf(line)?.wall,
+      null => null,
+    };
+
+/// The later of [a] and [b]; one if the other is `null`.
+DateTime? _later(DateTime? a, DateTime? b) => switch ((a, b)) {
+  (final a?, final b?) => a.isAfter(b) ? a : b,
+  (final a, final b) => a ?? b,
+};
 
 /// Positive if [a] is newer than [b], negative if older, else 0.
-int _compare(_Stamp a, _Stamp b) => switch ((a.modified, b.modified)) {
-  (final x?, final y?) when x != y => x.compareTo(y),
+int _compare(_Stamp a, _Stamp b) =>
+    switch (_compareTimes(a.modified, b.modified)) {
+      0 when a.sequence != b.sequence => a.sequence.compareTo(b.sequence),
+      0 => _compareTimes(a.stamped, b.stamped),
+      final byModified => byModified,
+    };
+
+/// [a] against [b], a missing one oldest.
+int _compareTimes(DateTime? a, DateTime? b) => switch ((a, b)) {
+  (final x?, final y?) => x.compareTo(y),
   (_?, null) => 1,
   (null, _?) => -1,
-  _ => a.sequence.compareTo(b.sequence),
+  (null, null) => 0,
 };
