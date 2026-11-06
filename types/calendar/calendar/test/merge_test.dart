@@ -245,6 +245,14 @@ void main() {
     expect(Calendar.read(merged.text)!.name, 'Ours');
     expect(merged.lost, contains('Calendar name'));
   });
+
+  test('an empty name kept out by a merge is not told as lost', () {
+    final named = Calendar.read(birthday)!.named('Family').text;
+    final unnamed = Calendar.read(birthday)!.named('').text;
+    final merged = _merge.merge(named, unnamed) as MergedText;
+    expect(Calendar.read(merged.text)!.name, 'Family');
+    expect(merged.lost, isNot(contains('Calendar name')));
+  });
 }
 
 /// A calendar of one [component] with `UID:x`.

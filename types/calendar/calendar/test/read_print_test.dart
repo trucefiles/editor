@@ -110,6 +110,20 @@ void main() {
       expect(Calendar.read(birthday)!.holdsSameUnitsAs(calendar), isFalse);
     });
 
+    test('a rename keeps the parameters of the name line', () {
+      final text = birthday.replaceFirst(
+        'X-WR-CALNAME:Birthdays',
+        'X-WR-CALNAME;LANGUAGE=de:Geburtstage',
+      );
+      expect(
+        Calendar.read(text)!.named('Arbeit').text,
+        birthday.replaceFirst(
+          'X-WR-CALNAME:Birthdays',
+          'X-WR-CALNAME;LANGUAGE=de:Arbeit',
+        ),
+      );
+    });
+
     test('an empty name is no name line; a name is added as the last '
         'property', () {
       final unnamed = Calendar.read(birthday)!.named('');

@@ -62,6 +62,14 @@ void main() {
     expect(CalendarSummary('no calendar').firstLine, '');
   });
 
+  test('a calendar is searched from what was read, a text that is none as '
+      'it is', () {
+    final text = newCalendarText('Home')
+        .replaceFirst('END:VCALENDAR', 'X-NOTE:not searched\nEND:VCALENDAR');
+    expect(CalendarSummary(text).searchText, 'Home');
+    expect(CalendarSummary('no calendar').searchText, 'no calendar');
+  });
+
   test('a card holds until the first occurrence it shows ends', () {
     final summary = const CalendarSupport().summary(birthday, maxLines: 5);
     expect(summary.holdsUntil(at(DateTime(2026, 11))), DateTime(2027, 3, 13));

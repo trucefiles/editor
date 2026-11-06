@@ -17,11 +17,12 @@ CalendarEditorView _viewOf(CalendarEditorPart part) => CalendarEditorView(
 );
 
 /// Shows [part]'s title in an app bar, as the file page does, the file's
-/// [title] where the type has none.
+/// [title] where the type has none; [nameTitle] is the file name's.
 Future<void> _pumpTitle(
   WidgetTester tester,
   CalendarEditorPart part, {
   String title = 'Calendar',
+  String nameTitle = 'Calendar',
 }) {
   addTearDown(() => unawaited(part.editor.close()));
   final view = _viewOf(part);
@@ -30,7 +31,9 @@ Future<void> _pumpTitle(
       home: Builder(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: view.title(context, title: title) ?? Text(title),
+            title:
+                view.title(context, title: title, nameTitle: nameTitle) ??
+                Text(title),
           ),
         ),
       ),
@@ -76,5 +79,15 @@ void main() {
       expect(find.byType(TextField), findsNothing);
       expect(find.text('a'), findsOneWidget);
     }
+  });
+
+  testWidgets('a cleared name shows the file name as the hint, not the old '
+      'name', (tester) async {
+    final part = calendarPart(newCalendarText('Home'));
+    await _pumpTitle(tester, part, title: 'Home', nameTitle: 'Work');
+    final field = find.byType(TextField);
+    await tester.enterText(field, '');
+    await tester.pump();
+    expect(tester.widget<TextField>(field).decoration!.hintText, 'Work');
   });
 }

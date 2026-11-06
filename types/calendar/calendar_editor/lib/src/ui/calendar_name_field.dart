@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import '../calendar_editor_part.dart';
 
 /// The calendar's name in the page's title, edited in place; with no
-/// name, [title] (the file's) shows greyed. Each change names the
+/// name, [hint] (the file's name) shows greyed. Each change names the
 /// calendar; a change made elsewhere (an undo, a reload) shows here.
 class CalendarNameField extends StatefulWidget {
-  const CalendarNameField(this.part, {required this.title, super.key});
+  const CalendarNameField(this.part, {required this.hint, super.key});
 
   final CalendarEditorPart part;
-  final String title;
+  final String hint;
 
   @override
   State<CalendarNameField> createState() => _CalendarNameFieldState();
@@ -51,7 +51,7 @@ class _CalendarNameFieldState extends State<CalendarNameField> {
       style: style,
       textCapitalization: TextCapitalization.sentences,
       decoration: InputDecoration.collapsed(
-        hintText: widget.title,
+        hintText: widget.hint,
         hintStyle: style.copyWith(color: Theme.of(context).hintColor),
       ),
       onChanged: widget.part.rename,

@@ -30,7 +30,10 @@ const previewAhead = Duration(days: 366);
 /// calendar has no title and an empty preview.
 final class CalendarSummary implements TextSummary<CalendarPreview> {
   /// What lists show of [text], read.
-  CalendarSummary(String text) : this._(Calendar.read(text), text);
+  factory CalendarSummary(String text) => switch (Calendar.read(text)) {
+    final calendar? => CalendarSummary.of(calendar),
+    null => CalendarSummary._(null, text),
+  };
 
   /// What lists show of [calendar]'s text, from it as read.
   CalendarSummary.of(Calendar calendar) : this._(calendar, null);

@@ -12,7 +12,8 @@ import '../read/values.dart';
 /// side only is kept: a deleted event stays as a marker, so a missing one
 /// is never taken as deleted. Order: `main`'s units, then `other`'s new
 /// ones; the calendar's own properties and layout are `main`'s, but for
-/// its name, which merges as a unit does, `main`'s where both changed it.
+/// its name, which merges as a unit does, `main`'s where both changed it
+/// (an empty name lost is not told).
 /// Time
 /// zone blocks merge by zone like events (ours carry no stamp, so the
 /// smaller text wins; both are right) and never count as lost. Never
@@ -51,7 +52,9 @@ final class CalendarMerge implements TextMerge {
           .named(name)
           .text,
       lost: [
-        if (_overwritten(others.name, name, bases?.name)) 'Calendar name',
+        if (others.name.isNotEmpty &&
+            _overwritten(others.name, name, bases?.name))
+          'Calendar name',
         for (final unit in others.units)
           if (winners[unit.key] case final winner? when unit.key is! ZoneKey)
             for (final side in [mains.unitOf(unit.key)!, unit])

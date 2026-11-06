@@ -120,7 +120,7 @@ final class Calendar {
     final old = properties.firstWhereOrNull(
       (line) => line.name == _nameProperty,
     );
-    final written = [?_nameLine(name)].map((line) => '${line.printed}\n');
+    final written = [?_nameLine(name, old)].map((line) => '${line.printed}\n');
     return Calendar._(
       switch (old?.raw) {
         // After the line before it, so no other line's end matches.
@@ -174,8 +174,15 @@ final class Calendar {
 
 /// The line that names a calendar [name]; `null` for an empty name,
 /// which a calendar holds as no line.
-ContentLine? _nameLine(String name) =>
-    name.isEmpty ? null : ContentLine(_nameProperty, escapeText(name));
+/// The name line for [name] (none if empty), keeping the parameters of
+/// the [old] one.
+ContentLine? _nameLine(String name, [ContentLine? old]) => name.isEmpty
+    ? null
+    : ContentLine(
+        _nameProperty,
+        escapeText(name),
+        params: old?.params ?? const {},
+      );
 
 const _nameProperty = 'X-WR-CALNAME';
 
