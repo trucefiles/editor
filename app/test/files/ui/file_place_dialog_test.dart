@@ -62,7 +62,7 @@ void main() {
       files: [path('a'), path('a/b')],
     });
 
-    await tester.tap(find.text('Top level'));
+    await tester.tap(find.text('(top level)'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('a/b').last);
     await tester.pumpAndSettle();
@@ -114,6 +114,7 @@ void main() {
               folders: [files, work],
               initial: (folder: files, subfolder: null),
               name: 'Milk',
+              nameHint: 'Shopping list',
               subfoldersOf: (_) => const [],
               canHold: (_, _) => true,
             ),
@@ -132,6 +133,44 @@ void main() {
     expect(await result, (
       place: (folder: files, subfolder: null),
       name: 'Shopping',
+      newSubfolder: false,
+    ));
+  });
+
+  testWidgets('an empty name shows what it gives as a hint and stays '
+      'empty', (tester) async {
+    late Future<PickedPlace?> result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => result = showFileNameDialog(
+              context,
+              folders: [files],
+              initial: (folder: files, subfolder: null),
+              name: '',
+              nameHint: 'Shopping list',
+              subfoldersOf: (_) => const [],
+              canHold: (_, _) => true,
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final field = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Name'),
+    );
+    expect(field.controller!.text, isEmpty);
+    expect(field.decoration!.hintText, 'Shopping list');
+    await tester.tap(find.text('OK'));
+
+    expect(await result, (
+      place: (folder: files, subfolder: null),
+      name: '',
       newSubfolder: false,
     ));
   });
@@ -161,6 +200,7 @@ void main() {
                 folders: [folder],
                 initial: topOf(folder),
                 name: 'Milk',
+                nameHint: 'Milk',
                 subfoldersOf: (_) => [path('work')],
                 canHold:
                     canHold ??
@@ -263,11 +303,11 @@ void main() {
       }
 
       await pick('work');
-      await pick('Top level');
+      await pick('(top level)');
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(subfolderField());
       expect(field.controller!.text, isEmpty);
-      expect(field.decoration!.hintText, 'Top level');
+      expect(field.decoration!.hintText, '(top level)');
       await tester.tap(find.text('OK'));
 
       expect(await result, (
@@ -281,11 +321,11 @@ void main() {
         'subfolder', (tester) async {
       final result = await openFile(tester, files, canHold: (_, _) => true);
 
-      await tester.enterText(subfolderField(), 'Top level');
+      await tester.enterText(subfolderField(), '(top level)');
       await tester.tap(find.text('OK'));
 
       expect(await result, (
-        place: (folder: files, subfolder: path('Top level')),
+        place: (folder: files, subfolder: path('(top level)')),
         name: 'Milk',
         newSubfolder: true,
       ));

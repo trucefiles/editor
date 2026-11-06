@@ -37,7 +37,7 @@ class ListedFileRow extends ConsumerWidget {
         child: Material(
           color: fileTint(mark.color, theme.colorScheme) ?? Colors.transparent,
           child: ListTile(
-            leading: FileTypeIcon(file, size: 24),
+            leading: FileTypeIcon(file),
             title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: FolderBadge(
               file.folder,

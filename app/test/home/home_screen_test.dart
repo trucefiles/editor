@@ -8,8 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart'
+    show CalendarViews;
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
+import 'package:truce_editor/calendar_tab/ui/calendar_dot.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/file_type_selection.dart';
@@ -312,7 +315,7 @@ void main() {
       'home.ics': newCalendarText('Home'),
     });
 
-    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendars'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
   });
 
@@ -333,24 +336,99 @@ void main() {
     ).text;
   }
 
-  testWidgets("the Calendar tab's + opens the calendar with adding started", (
-    tester,
-  ) async {
-    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
-    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+  /// Shows the Calendar tab of the started app, once its calendars show.
+  Future<void> showCalendarTab(WidgetTester tester) async {
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendars'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
     await tester.pumpAndSettle();
+  }
 
-    await tester.tap(find.byTooltip('Add event'));
-    await showsSoon(tester, find.text('New event'));
+  testWidgets("the Calendar tab's button opens its only calendar, starting "
+      'nothing', (tester) async {
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await showCalendarTab(tester);
+
+    await tester.tap(find.byTooltip('Open calendar'));
+    await showsSoon(tester, find.byType(FileScreen));
     await tester.pumpAndSettle();
 
-    // Esc closes the event form, as on every page, and leaves the
-    // calendar's page under it open.
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    expect(find.text('Open which calendar?'), findsNothing);
+    expect(find.text('New event'), findsNothing);
+  });
+
+  testWidgets("the Calendar tab's button asks which calendar to open, each "
+      'with its color', (tester) async {
+    await start(tester, {
+      'notes.md': '# Notes',
+      'home.ics': newCalendarText('Home'),
+      'work.ics': newCalendarText('Work'),
+    });
+    await showCalendarTab(tester);
+
+    await tester.tap(find.byTooltip('Open calendar'));
+    await tester.pumpAndSettle();
+    final dialog = find.byType(SimpleDialog);
+    expect(find.text('Open which calendar?'), findsOne);
+    expect(
+      find.descendant(of: dialog, matching: find.byType(CalendarDot)),
+      findsNWidgets(2),
+    );
+    await tester.tap(find.descendant(of: dialog, matching: find.text('Work')));
+    await showsSoon(tester, find.byType(FileScreen));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New event'), findsNothing);
+    expect(find.text('Work'), findsWidgets);
+  });
+
+  testWidgets('a tap on a free day in the Calendar tab says to open a '
+      'calendar; Open opens it', (tester) async {
+    await start(tester, {
+      'notes.md': '# Notes',
+      'home.ics': newCalendarText('Home'),
+    });
+    await showCalendarTab(tester);
+
+    await tester.tap(find.byType(CalendarViews<ListedFile>));
+    await tester.pumpAndSettle();
+    expect(find.text('Open one calendar to edit'), findsOne);
+    expect(find.text('New event'), findsNothing);
+
+    await tester.tap(find.text('Open'));
+    await showsSoon(tester, find.byType(FileScreen));
     await tester.pumpAndSettle();
     expect(find.text('New event'), findsNothing);
-    expect(find.byType(FileScreen), findsOne);
+  });
+
+  testWidgets('a drag over free days in the Calendar tab says to open a '
+      'calendar and adds nothing', (tester) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'home.ics': newCalendarText('Home'),
+    });
+    await showCalendarTab(tester);
+
+    final from = tester.getCenter(find.text('10')) + const Offset(0, 40);
+    final to = tester.getCenter(find.text('12')) + const Offset(0, 40);
+    final gesture = await tester.startGesture(
+      from,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    for (var step = 0; step < 10; step++) {
+      await gesture.moveBy((to - from) / 10);
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open one calendar to edit'), findsOne);
+    expect(find.text('New event'), findsNothing);
+    expect(find.byType(FileScreen), findsNothing);
+    expect(
+      File('${dir.path}/home.ics').readAsStringSync(),
+      newCalendarText('Home'),
+    );
   });
 
   testWidgets('an event tapped in the Calendar tab shows; Edit opens its '
@@ -360,7 +438,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
-    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendars'));
     await showsSoon(tester, find.text('Call'));
     await tester.pumpAndSettle();
 
@@ -369,6 +447,14 @@ void main() {
     expect(find.text('Open calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
+    expect(find.byType(FileScreen), findsOne);
+
+    // Esc closes the event form, as on every page, and leaves the
+    // calendar's page under it open.
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit event'), findsNothing);
     expect(find.byType(FileScreen), findsOne);
   });
 
@@ -467,7 +553,7 @@ void main() {
       await tester.pump();
     }
 
-    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Calendars'));
     await showsSoon(tester, find.widgetWithText(FilterChip, 'Home'));
     File('${dir.path}/home.ics').deleteSync();
     await rescan();

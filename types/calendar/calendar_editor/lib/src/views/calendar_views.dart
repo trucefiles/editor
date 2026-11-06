@@ -35,10 +35,10 @@ typedef OnMove<K> = void Function(
 /// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time (with the bar's buttons, a swipe, or Shift
 /// and the mouse wheel) and taps an occurrence ([onTap]). Only with
-/// [onAdd] can the user add: by a tap on a free time or day, or a drag
-/// over free times or days; [onAddDay] is told the day an Add button
-/// starts on. Only with [onMove] can the user drag an occurrence or its
-/// edge.
+/// [onAdd] is the user asking to add told, by a tap on a free time or
+/// day, or a drag over free times or days; the host decides what
+/// follows. [onAddDay] is told the day an Add button starts on. Only
+/// with [onMove] can the user drag an occurrence or its edge.
 class CalendarViews<K> extends StatefulWidget {
   const CalendarViews({
     required this.calendars,

@@ -36,11 +36,17 @@ class FilePlaceChip extends ConsumerWidget {
     final folders = await foldersToPlaceIn(context, ref);
     if (folders == null || !context.mounted) return;
     final actions = ref.read(fileActionsProvider);
+    final nameField = nameFieldOf(
+      session.file,
+      session.path,
+      session.summary.firstLine,
+    );
     final picked = await showFileNameDialog(
       context,
       folders: folders,
       initial: (folder: session.file.folder, subfolder: session.path.parent),
-      name: nameNow(session.file, session.path, session.summary.firstLine),
+      name: nameField.name,
+      nameHint: nameField.hint,
       subfoldersOf: actions.subfoldersOf,
       canHold: actions.canHold,
     );

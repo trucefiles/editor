@@ -24,7 +24,7 @@ Future<FilePlace?> showFilePlaceDialog(
 
 /// Like [showFilePlaceDialog], also asking for a file name without
 /// its extension, starting at [name]; [nameHint] says what an empty name
-/// means. A folder inside may also be typed, a new one too, if [canHold]
+/// gives. A folder inside may also be typed, a new one too, if [canHold]
 /// says files of the folder can go there. The chosen place and name;
 /// `null` if cancelled.
 Future<PickedPlace?> showFileNameDialog(
@@ -34,7 +34,7 @@ Future<PickedPlace?> showFileNameDialog(
   required List<Folder> folders,
   required FilePlace initial,
   required String name,
-  String nameHint = 'From the first line',
+  required String nameHint,
   required List<RelPath> Function(Folder folder) subfoldersOf,
   required bool Function(Folder folder, RelPath subfolder) canHold,
 }) async => switch (await showDialog<_Choice>(
@@ -81,7 +81,7 @@ class _FilePlaceDialog extends StatefulWidget {
   /// The file name to start at; `null` asks for none.
   final String? name;
 
-  /// What an empty [name] means.
+  /// What an empty [name] gives.
   final String? nameHint;
 
   /// Whether files of a folder can go into a typed subfolder; `null`:
@@ -151,7 +151,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
         : (null, "Files can't go in there.");
   }
 
-  static const _topLevel = 'Top level';
+  static const _topLevel = '(top level)';
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +214,8 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
               decoration: InputDecoration(
                 labelText: 'Name',
                 hintText: widget.nameHint,
+                // An empty name shows its hint, not only once focused.
+                floatingLabelBehavior: FloatingLabelBehavior.always,
               ),
               onSubmitted: (_) => _confirm(),
             ),

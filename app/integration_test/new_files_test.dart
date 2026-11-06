@@ -145,6 +145,23 @@ void main() {
     await tester.waitForFile(app.file('2026/spring/Plans.md'), 'Plans\n');
   });
 
+  testApp('a new document placed with no name typed keeps following its '
+      'first line', (tester) async {
+    app.write('old.md', '# Old\n');
+    app.folder('inbox').createSync();
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Old'));
+
+    await tester.typeNewNote('Plan');
+    await tester.placeNote(subfolder: 'inbox');
+    await tester.typeOver('Plans');
+    await tester.pageBack();
+
+    // Typed over in Markdown edit, so written as typed.
+    await tester.waitForFile(app.file('inbox/Plans.md'), 'Plans');
+    expect(app.file('inbox/Plan.md').existsSync(), isFalse);
+  });
+
   testApp('a place picked while the app was hidden moves the new file', (
     tester,
   ) async {

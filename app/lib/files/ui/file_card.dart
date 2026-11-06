@@ -12,10 +12,10 @@ import '../../folders/ui/folder_badge.dart';
 import '../file_colors.dart';
 import 'file_type_icon.dart';
 
-/// A file in the grid: title and first lines at the document text zoom
-/// (as its [preview] has them, as many as fit); its type's icon first in
-/// the footer, so it keeps its place, then the folder, which takes the
-/// room left, last edit, pin and color.
+/// A file in the grid: its type's icon, title and first lines at the
+/// document text zoom (as its [preview] has them, as many as fit); the
+/// folder in the footer, which takes the room left, then last edit, pin
+/// and conflict.
 class FileCard extends ConsumerWidget {
   const FileCard(
     this.file, {
@@ -63,6 +63,7 @@ class FileCard extends ConsumerWidget {
       onTap: onTap,
       onActions: onActions,
       onActionsAt: onActionsAt,
+      leading: FileTypeIcon(file),
       title: cardTitle(file, preview),
       body: switch (preview) {
         Previewed(:final summary)
@@ -86,9 +87,9 @@ class FileCard extends ConsumerWidget {
   }
 }
 
-/// The type's icon first, so it keeps its place; the file's place takes
-/// the room the rest leaves; the last edit, pin and conflict at the end.
-/// Where even they don't fit, the place is gone and the date is cut.
+/// The file's place takes the room the rest leaves; the last edit, pin
+/// and conflict at the end. Where even they don't fit, the place is gone
+/// and the date is cut.
 class _Footer extends StatelessWidget {
   const _Footer(
     this.file, {
@@ -109,16 +110,12 @@ class _Footer extends StatelessWidget {
     builder: (context, constraints) => Row(
       spacing: _gap,
       children: [
-        FileTypeIcon(file, size: cardFooterIconSize),
         Expanded(
           child: FolderBadge(file.folder, file: file.path, cutInMiddle: true),
         ),
         ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: max(
-              0,
-              constraints.maxWidth - cardFooterIconSize - 2 * _gap,
-            ),
+            maxWidth: max(0, constraints.maxWidth - _gap),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

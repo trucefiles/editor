@@ -7,19 +7,23 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
+import '../../common/snack.dart';
 import '../../files/file_colors.dart';
 import '../../files/ui/open_file.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../settings/calendar_view_setting.dart';
+import '../calendar_clock.dart';
 import '../calendar_tab_controller.dart';
-import '../calendar_tab_picks.dart';
+import 'calendar_dot.dart';
 import 'open_calendar.dart';
+import 'pick_calendar.dart';
 
 /// The Calendar tab: the events of every calendar of the shown folders in
 /// the calendar views, each in its calendar's color; chips turn a
 /// calendar's events on and off. It only shows: tap an event to see it,
-/// then open its calendar or edit it there; + picks a calendar and starts
-/// adding on its page. Every edit happens on the calendar's own page.
+/// then open its calendar or edit it there; the floating button opens a
+/// calendar; a tap or drag on a free time says to open one. Every edit
+/// happens on the calendar's own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 
@@ -31,19 +35,15 @@ class CalendarTabScreen extends ConsumerWidget {
     Color colorOf(ListedFile file) =>
         fileColor(shown?.markOf(file.key).color, folder: file.folder.color);
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar')),
+      appBar: AppBar(title: const Text('Calendars')),
       floatingActionButton: calendars.isEmpty
           ? null
           : FloatingActionButton(
               // The files' button is in the same page, beside it.
               heroTag: null,
-              tooltip: 'Add event',
-              onPressed: () => _openForAdding(
-                context,
-                ref,
-                forAdding(calendars, ref.read(lastUsedCalendarProvider)),
-              ),
-              child: const Icon(Icons.add),
+              tooltip: 'Open calendar',
+              onPressed: () => _openCalendar(context, ref, colorOf),
+              child: const Icon(Icons.calendar_month_outlined),
             ),
       body: calendars.isEmpty
           ? const EmptyState(
@@ -59,9 +59,7 @@ class CalendarTabScreen extends ConsumerWidget {
                     children: [
                       for (final calendar in calendars)
                         FilterChip(
-                          avatar: CircleAvatar(
-                            backgroundColor: colorOf(calendar.file),
-                          ),
+                          avatar: CalendarDot(colorOf(calendar.file)),
                           label: Text(calendar.title),
                           selected: calendar.shown,
                           onSelected: (on) => ref
@@ -86,6 +84,13 @@ class CalendarTabScreen extends ConsumerWidget {
                         .title,
                     onTap: (file, occurrence) =>
                         _showEvent(context, ref, file, occurrence),
+                    // Adding happens on a calendar's page.
+                    onAdd: (_) => showSnack(
+                      context,
+                      'Open one calendar to edit',
+                      actionLabel: 'Open',
+                      onAction: () => _openCalendar(context, ref, colorOf),
+                    ),
                   ),
                 ),
               ],
@@ -115,29 +120,18 @@ class CalendarTabScreen extends ConsumerWidget {
         : openFile(context, ref, file));
   }
 
-  /// Asks which of [calendars] to add to, and starts adding on its page.
-  Future<void> _openForAdding(
+  /// Opens one of the tab's calendars as they are now, the user's pick,
+  /// on its own page.
+  Future<void> _openCalendar(
     BuildContext context,
     WidgetRef ref,
-    List<TabCalendar> calendars,
+    Color Function(ListedFile file) colorOf,
   ) async {
-    final picked = calendars.length == 1
-        ? calendars.single.file
-        : await showDialog<ListedFile>(
-            context: context,
-            builder: (context) => SimpleDialog(
-              title: const Text('Add to which calendar?'),
-              children: [
-                for (final calendar in calendars)
-                  SimpleDialogOption(
-                    onPressed: () => Navigator.pop(context, calendar.file),
-                    child: Text(calendar.title),
-                  ),
-              ],
-            ),
-          );
+    // The hint's Open may come after the tab is gone.
+    if (!context.mounted) return;
+    final calendars = ref.read(calendarTabProvider).value ?? const [];
+    final picked = await pickCalendar(context, calendars, colorOf);
     if (picked == null || !context.mounted) return;
-    ref.read(lastUsedCalendarProvider.notifier).addTo(picked);
-    await openCalendar(context, ref, picked, const StartAdding());
+    await openFile(context, ref, picked);
   }
 }
