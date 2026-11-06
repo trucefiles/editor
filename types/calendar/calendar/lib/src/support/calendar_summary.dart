@@ -103,8 +103,3 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         options.now.add(previewAhead),
       ).take(options.count).toList();
 }
-
-/// What a calendar is called by its kind: as the user picks a new one,
-/// and as one without a name is named.
-String kindName({required bool health}) =>
-    health ? 'Health calendar' : 'Calendar';

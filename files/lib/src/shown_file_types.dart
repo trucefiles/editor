@@ -29,7 +29,8 @@ final class ShownFileTypes<T extends ShownFileType> {
   /// [all]; a plain new file first.
   final List<NewFileChoice<T>> newFileChoices;
 
-  /// The type of a plain new file.
+  /// The type of a plain new file: the first choice's (e.g. for a test
+  /// that makes a file of any type).
   T get forNew => newFileChoices.first.type;
 
   final Map<FileType, T> _byId;

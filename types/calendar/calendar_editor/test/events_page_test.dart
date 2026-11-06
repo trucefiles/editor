@@ -661,10 +661,9 @@ void main() {
     });
   }
 
-  testWidgets('a drag lands on whole quarter hours, even next to the '
-      'current time', (tester) async {
-    // The page's clock: the event lands on the quarter hour nearest to
-    // now, where snapping to now would add its minutes and seconds.
+  testWidgets('a drag lands on whole quarter hours, though now is not on '
+      'one', (tester) async {
+    // The page's clock is between quarter hours; the event lands on one.
     final now = DateTime(2026, 11, 3, 10, 7, 23);
     final landing = DateTime(2026, 11, 3, 10);
     // It ends there, moved down two hours.

@@ -44,9 +44,12 @@ import 'save_indicator.dart';
 class FileScreen extends ConsumerStatefulWidget {
   const FileScreen(FileText this.file, {super.key}) : place = null, made = null;
 
-  /// A new file, to go into [place]: [made] (a plain one if `null`).
-  const FileScreen.fresh(FilePlace this.place, {this.made, super.key})
-    : file = null;
+  /// A new file [made], to go into [place].
+  const FileScreen.fresh(
+    FilePlace this.place, {
+    required NewFileChoice<EditableType> this.made,
+    super.key,
+  }) : file = null;
 
   /// The file to open, as read just before; `null` for a new one.
   final FileText? file;
@@ -77,14 +80,14 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void initState() {
     super.initState();
     final pages = ref.read(filePagesProvider);
-    _page = switch ((widget.file, widget.place)) {
-      (final file?, _) => pages.open(file, withFile: _withFile),
-      (_, final place?) => pages.openNew(
+    _page = switch ((widget.file, widget.place, widget.made)) {
+      (final file?, _, _) => pages.open(file, withFile: _withFile),
+      (_, final place?, final made?) => pages.openNew(
         place,
-        made: widget.made,
+        made: made,
         withFile: _withFile,
       ),
-      _ => throw StateError('A file or a place is needed.'),
+      _ => throw StateError('A file, or a place and what to make, is needed.'),
     };
     _partChanges = _page.part.changes.listen((_) => _rebuild());
     _controller.addListener(_rebuild);
@@ -418,7 +421,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
         title: FileHeading(
           title: _session.title,
           edited: _session.read?.listed.modified,
-          own: _page.view.title(context, title: _session.title),
+          typeTitle: _page.view.title(context, title: _session.title),
         ),
         actions: [
           SaveIndicator(_session.saveState, onSave: _session.saveNow),

@@ -50,22 +50,32 @@ final class CalendarEditorView extends EditorView {
   /// otherwise, or for a text that is no calendar, the file's [title].
   @override
   Widget? title(BuildContext context, {required String title}) =>
-      _part.isEditing && _part.owner.state.calendar != null
-      ? CalendarNameField(_part, title: title)
+      _part.isEditing
+      ? _forCalendar(
+          CalendarNameField(_part, title: title),
+          otherwise: Text(title, overflow: TextOverflow.ellipsis),
+        )
       : null;
 
+  /// Only for a calendar: a text that is no calendar has nothing to add.
   @override
-  Widget? floatingButton(BuildContext context) => StreamBuilder(
+  Widget? floatingButton(BuildContext context) => _forCalendar(
+    FloatingActionButton(
+      tooltip: 'Add event',
+      // Not a hero: no flight to other pages' buttons.
+      heroTag: null,
+      onPressed: () => _pageStarts.ask(const StartAdding()),
+      child: const Icon(Icons.add),
+    ),
+  );
+
+  /// [shown] while the part's text is a calendar, as it changes;
+  /// [otherwise] while it is none.
+  Widget _forCalendar(
+    Widget shown, {
+    Widget otherwise = const SizedBox.shrink(),
+  }) => StreamBuilder(
     stream: _part.owner.changes,
-    // Only for a calendar: a text that is no calendar has nothing to add.
-    builder: (_, _) => _part.owner.state.calendar == null
-        ? const SizedBox.shrink()
-        : FloatingActionButton(
-            tooltip: 'Add event',
-            // Not a hero: no flight to other pages' buttons.
-            heroTag: null,
-            onPressed: () => _pageStarts.ask(const StartAdding()),
-            child: const Icon(Icons.add),
-          ),
+    builder: (_, _) => _part.owner.state.calendar == null ? otherwise : shown,
   );
 }

@@ -112,18 +112,16 @@ final class Calendar {
   /// properties if it had none; itself if it is named so already.
   Calendar named(String name) {
     if (name == this.name) return this;
-    final lines = logicalLines(head);
-    final old = lines.indexWhere(
-      (line) => ContentLine.parse(line.unfolded)?.name == _nameProperty,
+    final old = properties.firstWhereOrNull(
+      (line) => line.name == _nameProperty,
     );
-    final at = old < 0 ? lines.length : old;
-    final written = _nameLine(name);
+    final written = [?_nameLine(name)].map((line) => '${line.printed}\n');
     return Calendar._(
-      [
-        for (final line in lines.take(at)) '${line.raw}\n',
-        if (written != null) '${written.printed}\n',
-        for (final line in lines.skip(old < 0 ? at : at + 1)) '${line.raw}\n',
-      ].join(),
+      switch (old?.raw) {
+        // After the line before it, so no other line's end matches.
+        final raw? => head.replaceFirst('\n$raw\n', '\n${written.join()}'),
+        null => '$head${written.join()}',
+      },
       units,
       tail,
       _layout,
@@ -175,6 +173,11 @@ ContentLine? _nameLine(String name) =>
     name.isEmpty ? null : ContentLine(_nameProperty, escapeText(name));
 
 const _nameProperty = 'X-WR-CALNAME';
+
+/// What a calendar is called by its kind: as the user picks a new one,
+/// and as one without a name is named.
+String kindName({required bool health}) =>
+    health ? 'Health calendar' : 'Calendar';
 
 /// The calendar property that makes a calendar a health calendar.
 const healthFlag = ContentLine('X-TRUCE-CALENDAR', 'HEALTH');

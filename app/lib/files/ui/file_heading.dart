@@ -4,18 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../common/time_texts.dart';
 
 /// The editor's title: the file's [title] (or the type's own title in
-/// its place, [own]) and its last edit, if it has a file yet.
+/// its place, [typeTitle]) and its last edit, if it has a file yet.
 class FileHeading extends ConsumerWidget {
   const FileHeading({
     required this.title,
     required this.edited,
-    this.own,
+    this.typeTitle,
     super.key,
   });
 
   final String title;
   final DateTime? edited;
-  final Widget? own;
+  final Widget? typeTitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,7 +23,7 @@ class FileHeading extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        own ?? Text(title, overflow: TextOverflow.ellipsis),
+        typeTitle ?? Text(title, overflow: TextOverflow.ellipsis),
         if (edited != null)
           Text(
             'Edited ${ref.watch(timeTextsProvider).edited(edited, now: DateTime.now())}',

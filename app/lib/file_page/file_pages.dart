@@ -101,22 +101,18 @@ final class FilePages {
     withFile: withFile,
   );
 
-  /// The page of a new file, to go into [place]: [made] (a plain one
-  /// if `null`).
+  /// The page of a new file [made], to go into [place].
   FilePage openNew(
     FilePlace place, {
-    NewFileChoice<EditableType>? made,
+    required NewFileChoice<EditableType> made,
     required WithFile withFile,
-  }) {
-    final what = made ?? types.newFileChoices.first;
-    return _open(
-      what.type,
-      NewFile(place, type: what.type),
-      view: FileSettings.defaults.view,
-      startText: what.kind.start,
-      withFile: withFile,
-    );
-  }
+  }) => _open(
+    made.type,
+    NewFile(place, type: made.type),
+    view: FileSettings.defaults.view,
+    startText: made.kind.start,
+    withFile: withFile,
+  );
 
   /// The page of a file of [type] whose [file] is where it starts,
   /// shown as [view] keeps; a new one starts with [startText], which is

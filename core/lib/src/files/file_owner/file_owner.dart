@@ -69,7 +69,7 @@ FileMachine<V> newFile<V extends Version>({
   String start = '',
   TextMerge? merge,
 }) => Machine(
-  state: FileState(status: const Unwritten(), text: '', rev: 0, file: null),
+  state: FileState(status: const Unwritten(), text: start, rev: 0, file: null),
   work: FileWork(expected: null, offered: const [], start: start),
   step: _stepWith(merge),
 );
