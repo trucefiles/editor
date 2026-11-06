@@ -145,21 +145,28 @@ void main() {
     expect(heightOf('9'), closeTo(heightOf('10'), 0.5));
   });
 
-  for (final scale in [1.0, 3.0]) {
+  for (final (scale, fontSize) in [(1.0, 14.0), (3.0, 14.0), (1.0, 4.0)]) {
     testWidgets('each day number is laid out as wide as kalender lays out '
-        'a two-digit one (text size $scale)', (tester) async {
+        'a two-digit one (text size $scale, font $fontSize)', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: MediaQuery.withClampedTextScaling(
             minScaleFactor: scale,
             maxScaleFactor: scale,
             child: Scaffold(
-              body: CalendarViews<String>(
-                calendars: {'home': _calendar('Home', 'Dentist', 9)},
-                colorOf: (_) => Colors.teal,
-                kind: CalendarViewKind.month,
-                onKind: (_) {},
-                now: () => DateTime(2026, 11, 3, 8),
+              body: Theme(
+                data: ThemeData(
+                  textTheme: TextTheme(
+                    bodyMedium: TextStyle(fontSize: fontSize),
+                  ),
+                ),
+                child: CalendarViews<String>(
+                  calendars: {'home': _calendar('Home', 'Dentist', 9)},
+                  colorOf: (_) => Colors.teal,
+                  kind: CalendarViewKind.month,
+                  onKind: (_) {},
+                  now: () => DateTime(2026, 11, 3, 8),
+                ),
               ),
             ),
           ),
@@ -172,10 +179,18 @@ void main() {
             .ancestor(of: find.text(day).first, matching: find.byType(type))
             .first,
       );
+      final button = tester.renderObject<RenderBox>(
+        find
+            .ancestor(
+              of: find.text('30').first,
+              matching: find.byType(IconButton),
+            )
+            .first,
+      );
       expect(
-        of('30', IconButton).width,
+        button.getMaxIntrinsicWidth(double.infinity),
         closeTo(of('30', SizedBox).width, 0.01),
-        reason: "the button's own width",
+        reason: "the button's own width, not squeezed",
       );
       expect(of('9', SizedBox), of('30', SizedBox));
     });

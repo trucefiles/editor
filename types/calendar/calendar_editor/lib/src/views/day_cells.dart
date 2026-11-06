@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 
@@ -30,34 +32,46 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
   );
 };
 
-/// The day numbers of the month view, each made smaller where its cell
-/// is too narrow for it (very large text), never broken over two lines.
-/// Each shrinks as a two-digit number would, so all show at one size:
-/// each is laid out [twoDigits] wide ([twoDigitsWidth]).
-MonthDayHeaderBuilder dayNumbers(double twoDigits) =>
-    (context, date) => FittedBox(
-      fit: BoxFit.scaleDown,
-      child: SizedBox(
-        width: twoDigits,
-        child: Center(child: MonthDayHeader(date: date)),
-      ),
-    );
+/// A day's number in the month view, made smaller where its cell is too
+/// narrow for it (very large text), never broken over two lines. Each is
+/// laid out as wide as kalender lays out a two-digit number, so all
+/// shrink alike and show at one size.
+Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
+  fit: BoxFit.scaleDown,
+  child: SizedBox(
+    width: _twoDigitsWidth(context),
+    child: Center(child: MonthDayHeader(date: date)),
+  ),
+);
 
-/// How wide a two-digit day number is in [context]: its text and the
-/// padding of kalender's day number button (Material's default 8 on each
-/// side). Worked out from the text, as a hidden two-digit number in each
-/// cell cost as much as the numbers shown.
-double twoDigitsWidth(BuildContext context) {
+/// How wide kalender lays out a two-digit day number in [context], from
+/// the same inputs as its `MonthDayHeader`: the theme's button size if
+/// set, else its text in the theme's number style with the button's
+/// padding (Material's default 8 on each side), at least the button's
+/// minimum at compact density; and the theme's margin around it. Worked
+/// out from the text, as a hidden two-digit number in each cell cost as
+/// much as the numbers shown.
+double _twoDigitsWidth(BuildContext context) {
+  final header = KalenderTheme.of(context).monthDayHeaderStyle;
+  final margin = header?.margin?.horizontal ?? 0;
+  if (header?.buttonSize case final size?) return size.width + margin;
   final painter = TextPainter(
-    text: TextSpan(text: '30', style: DefaultTextStyle.of(context).style),
+    text: TextSpan(
+      text: '30',
+      style: DefaultTextStyle.of(context).style.merge(header?.numberTextStyle),
+    ),
     textDirection: Directionality.of(context),
     textScaler: MediaQuery.textScalerOf(context),
   )..layout();
-  final width = painter.width + 2 * 8;
+  final text = painter.width;
   painter.dispose();
-  return width;
+  final smallest =
+      kMinInteractiveDimension + VisualDensity.compact.baseSizeAdjustment.dx;
+  return max(text + 2 * 8, smallest) + margin;
 }
 
+/// The fill of a day likely in a period: paler than a known period day,
+/// so it reads as likely; pink on dark, where the theme's red looks rose.
 Color likelyPeriodFill(ColorScheme colors) =>
     Color.alphaBlend(switch (colors.brightness) {
       Brightness.light => colors.errorContainer.withValues(alpha: 0.3),

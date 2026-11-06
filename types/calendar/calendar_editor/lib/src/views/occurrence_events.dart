@@ -3,6 +3,7 @@ import 'dart:math' show max;
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import 'changed_calendars.dart';
 import 'occurrence_event.dart';
 
 /// The occurrences of the shown calendars (by key, [K]) as kalender asks
@@ -13,6 +14,9 @@ import 'occurrence_event.dart';
 ///
 /// Each occurrence is held once: by the first month it touches that was
 /// worked out, so one that spans months shows once in each of them.
+///
+/// It is its store's only writer: kalender only asks, and the views add
+/// and remove nothing through the writers it inherits.
 final class OccurrenceEvents<K> extends DefaultEventsController {
   OccurrenceEvents(this._calendars);
 
@@ -25,12 +29,8 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
   /// than before (or came or went) are dropped and worked out again as
   /// kalender asks; the others keep their events.
   void showCalendars(Map<K, Calendar> calendars) {
-    final before = _calendars;
+    final changed = changedCalendars(_calendars, calendars);
     _calendars = calendars;
-    final changed = {
-      for (final key in {...before.keys, ...calendars.keys})
-        if (!_sameDays(before[key], calendars[key])) key,
-    };
     if (changed.isEmpty) return;
     eventStore.removeWhere(
       (_, event) => changed.contains((event as OccurrenceEvent<K>).calendar),
@@ -79,12 +79,6 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     done.add(month);
   }
 }
-
-bool _sameDays(Calendar? a, Calendar? b) => switch ((a, b)) {
-  (null, null) => true,
-  (final a?, final b?) => a.showsSameDaysAs(b),
-  _ => false,
-};
 
 /// Whether one of the months [done] overlaps [occurrence].
 bool _heldBy(Set<DateTime> done, Occurrence occurrence) =>

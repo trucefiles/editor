@@ -153,8 +153,8 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   }
 
   /// Hands the model's state to kalender, which only shows it (today
-  /// too, on the rebuild). A page change is no change here: kalender
-  /// pages on its own and asks for the events it shows.
+  /// too, on the rebuild). Paging doesn't reach here: kalender pages on
+  /// its own and asks for its events.
   void _showModel() {
     final kalender = _kalender!;
     final configuration = _configurations[_model.kind]!;
@@ -249,9 +249,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                     headerComponents: monthHeaderNames,
                     bodyComponents: MonthBodyComponents(
                       monthDayCellBuilder: dayCells(_model.health),
-                      monthDayHeaderBuilder: dayNumbers(
-                        twoDigitsWidth(context),
-                      ),
+                      monthDayHeaderBuilder: dayNumber,
                     ),
                   ),
                 ),

@@ -1,9 +1,9 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateUtils;
 import 'package:truce_calendar/truce_calendar.dart';
 
 import '../day_clock.dart';
+import 'changed_calendars.dart';
 import 'health_days.dart';
 
 /// A range of time on this device's clock.
@@ -80,11 +80,10 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   void showRange(DateTime from, DateTime to) =>
       _range.value = (from: from, to: to);
 
-  /// Shows [calendars], each as read now; calendars that show the same
-  /// days (e.g. only renamed) are kept without working them out again.
+  /// Shows [calendars], each as read now; when all show the same days as
+  /// before (e.g. only renamed), nothing changes.
   void showCalendars(Map<K, Calendar> calendars) {
-    final same = const MapEquality<Object?, Calendar>(values: _SameDays())
-        .equals(calendars, _calendars);
+    final same = changedCalendars(_calendars, calendars).isEmpty;
     _calendars = calendars;
     if (same) return;
     _health = HealthDays.of(calendars, today);
@@ -104,19 +103,4 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _range.dispose();
     super.dispose();
   }
-}
-
-/// Calendars equal when they show the same days
-/// ([Calendar.showsSameDaysAs]).
-final class _SameDays implements Equality<Calendar> {
-  const _SameDays();
-
-  @override
-  bool equals(Calendar a, Calendar b) => a.showsSameDaysAs(b);
-
-  @override
-  int hash(Calendar calendar) => identityHashCode(calendar.units);
-
-  @override
-  bool isValidKey(Object? o) => o is Calendar;
 }
