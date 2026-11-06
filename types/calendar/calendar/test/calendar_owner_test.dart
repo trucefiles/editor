@@ -153,16 +153,24 @@ void main() {
     final run = _run(start)
       ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
       ..send(CalendarRequest(const Undo(), at: _later));
-    expect(run.state.calendar!.eventOf('call@t'), isNull);
-    expect(run.state.calendar!.zones, {'Asia/Tokyo'}, reason: 'zones stay');
+    expect(run.state.text, start, reason: 'its zone block gone too');
 
     run.send(CalendarRequest(const Redo(), at: _later));
     expect(run.state.calendar!.eventOf('call@t')!.series.deleted, isFalse);
+    expect(run.state.calendar!.zones, {'Asia/Tokyo'});
 
     final gym = _run(start)
       ..send(EditCalendar(_gym, newUid: 'new@t'))
       ..send(CalendarRequest(const Undo(), at: _later));
     expect(gym.state.text, start, reason: 'back to the start text');
+  });
+
+  test('a restored backup drops an event no file got, and its zone block '
+      'with it', () {
+    final run = _run(birthday)
+      ..send(EditCalendar(_tokyoCall, newUid: 'new@t'))
+      ..send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    expect(run.state.text, birthday);
   });
 
   test('a restored backup drops an event no file got', () {

@@ -80,6 +80,11 @@ final class Calendar {
   /// The time zones it holds a block for.
   Set<String> get zones => _body.zones;
 
+  /// The time zones its other units read times by (a `TZID` on any of
+  /// their lines, deleted markers' among them). Found by one pass over
+  /// the units when first asked.
+  Set<String> get zonesNamed => _body.zonesNamed;
+
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
     for (final line in logicalLines(head).skip(1))
@@ -251,7 +256,19 @@ final class _Body {
     for (final unit in units)
       if (unit.key case ZoneKey(:final zone)) zone,
   };
+
+  late final Set<String> zonesNamed = {
+    for (final unit in units)
+      if (unit.key is! ZoneKey)
+        for (final component in unit.components) ..._zonesIn(component),
+  };
 }
+
+/// The zones [component] and the components in it name by `TZID`.
+Iterable<String> _zonesIn(Component component) => [
+  for (final line in component.properties) ?line.param('TZID'),
+  for (final child in component.children) ..._zonesIn(child),
+];
 
 bool _begins(_Line line) => line.unfolded.toUpperCase().startsWith('BEGIN:');
 
