@@ -23,6 +23,32 @@ void main() {
   group("a series' start moved", _startMoves);
   group('a series of extra dates alone', _extraDatesOnly);
 
+  test('an edit keeps a changed date whose date is unreadable', () {
+    const unreadable =
+        'BEGIN:VEVENT\nUID:ann@truce\nRECURRENCE-ID;VALUE=DATE:2021-03-12\n'
+        'DTSTART;VALUE=DATE:20210313\nSUMMARY:Moved\nEND:VEVENT\n';
+    final calendar = Calendar.read(
+      birthday.replaceFirst('END:VCALENDAR', '${unreadable}END:VCALENDAR'),
+    )!;
+    final at = DateTime.utc(2027, 2, 10, 12);
+    for (final edit in [
+      DeleteOccurrence('ann@truce', AllDay(DateTime(2027, 3, 12)), at: at),
+      ChangeSeries(
+        'ann@truce',
+        EventDraft(
+          summary: 'Ann (birthday)',
+          start: AllDay(DateTime(2020, 3, 12)),
+          end: AllDay(DateTime(2020, 3, 13)),
+          repeat: const SimpleRepeat(Frequency.yearly),
+        ),
+        from: annDraft,
+        at: at,
+      ),
+    ]) {
+      expect(applyEdit(calendar, edit).text, contains(unreadable));
+    }
+  });
+
   test('drafts are equal when every field is', () {
     final draft = _draft('Gym', DateTime(2026, 11, 3, 18));
     expect(_draft('Gym', DateTime(2026, 11, 3, 18)), draft);

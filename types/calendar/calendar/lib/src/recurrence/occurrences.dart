@@ -112,7 +112,12 @@ Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
   }
   for (final part in event.changed) {
     final (partStart, partEnd) = (part.start, part.end);
-    if (partStart == null || partEnd == null || part.cancelled) continue;
+    if (partStart == null ||
+        partEnd == null ||
+        part.cancelled ||
+        part.recurrenceId == null) {
+      continue;
+    }
     if (span.overlaps(partStart, partEnd)) {
       yield Occurrence(
         event,

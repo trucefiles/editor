@@ -65,7 +65,16 @@ void main() {
       )!;
       final ann = calendar.eventOf('ann@truce')!;
       expect(ann.series.summary, 'Ann');
-      expect(ann.changed, isEmpty);
+      expect(ann.changed.single.summary, 'Moved', reason: 'kept, not lost');
+      expect(
+        occurrences(
+          calendar,
+          DateTime(2021),
+          DateTime(2022),
+        ).map((occurrence) => occurrence.part.summary),
+        ['Ann'],
+        reason: 'never shown: it names no occurrence',
+      );
     });
 
     test('a blank UID or TZID is none: each such part stays its own', () {

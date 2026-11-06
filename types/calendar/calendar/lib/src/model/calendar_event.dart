@@ -131,7 +131,8 @@ Duration? alertBefore(Component alarm) => switch (alarm.property('TRIGGER')) {
 };
 
 /// One event of a calendar: all components with its [uid], the [series]
-/// (or single event) and its changed occurrences ([changed]).
+/// (or single event) and the rest ([changed]): its changed occurrences,
+/// and any part whose occurrence can't be read, kept but never shown.
 final class CalendarEvent {
   CalendarEvent(this.uid, this.series, this.changed);
 
@@ -144,7 +145,7 @@ final class CalendarEvent {
           parts.first;
       return CalendarEvent(uid, series, [
         for (final part in parts)
-          if (part != series && part.recurrenceId != null) part,
+          if (part != series) part,
       ]);
     }
     return null;
