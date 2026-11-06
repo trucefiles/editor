@@ -30,6 +30,22 @@ void main() {
     );
   });
 
+  test('a time written in a far zone shows on the day it falls on here, '
+      'though its written day is another', () {
+    // 1 December, 12:00 at UTC+14: 30 November, 22:00 in UTC.
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:a\nDTSTART;TZID=Pacific/Kiritimati:20261201T120000\n'
+      'DTEND;TZID=Pacific/Kiritimati:20261201T130000\nEND:VEVENT\n',
+    );
+    final here = calendar.events.single.series.start!.local;
+    final day = DateTime(here.year, here.month, here.day);
+    expect(_starts(calendar, day, day.add(const Duration(days: 1))), [here]);
+    expect(
+      _starts(calendar, day.add(const Duration(days: 1)), DateTime(2027)),
+      isEmpty,
+    );
+  });
+
   test('a weekly series shows on its days, with the changed one moved', () {
     final calendar = Calendar.read(exported)!;
     final shown = occurrences(
