@@ -131,9 +131,10 @@ Accepted behavior that is not planned to change, grouped by topic.
   minutes) is cut off. Tap it to see it whole.
 - **The views reach from 1900 to 2100.** Paging stops there; events
   outside those years still stay in the calendar.
-- **Undoing a new event leaves a deleted mark.** Undo takes the event
-  away, but its file keeps a note that it was deleted, so other devices
-  learn of it too.
+- **Undoing a saved new event leaves a deleted mark.** Undo takes the
+  event away, but once it was saved, its file keeps a note that it was
+  deleted, so other devices learn of it too. An event you undo before it
+  was saved leaves nothing.
 
 ## Folders
 
