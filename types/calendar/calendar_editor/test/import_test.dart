@@ -132,7 +132,7 @@ void main() {
           deletedHere: ['Dentist'],
         ),
       ),
-      'Added 1 event. "Dentist" was deleted here, so it stays deleted.',
+      'Added 1 event. Left out "Dentist", as you deleted it before.',
     );
     expect(told(const NoEvents()), 'There are no events in this file.');
   });

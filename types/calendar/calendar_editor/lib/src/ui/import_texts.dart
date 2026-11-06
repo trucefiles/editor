@@ -23,9 +23,8 @@ String importHint(ImportOutcome outcome) => switch (outcome) {
           'Kept your newer ${kept.length == 1 ? 'version' : 'versions'} '
               'of ${fewNamed(kept)}.',
         if (deletedHere.isNotEmpty)
-          '${fewNamed(deletedHere)} '
-              '${deletedHere.length == 1 ? 'was' : 'were'} deleted here, so '
-              '${deletedHere.length == 1 ? 'it stays' : 'they stay'} deleted.',
+          'Left out ${fewNamed(deletedHere)}, as you deleted '
+              '${deletedHere.length == 1 ? 'it' : 'them'} before.',
       ].join(' '),
   },
 };
