@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';
 import 'stamp.dart';
@@ -88,13 +86,6 @@ CalendarUnit? _cameBack(
     null when key is ZoneKey => current,
     null => null,
     _ when !isEvent || back.text == current?.text => back,
-    _ => CalendarUnit.edited(key, [
-      for (final component in back.components)
-        stamped(component, at, above: _latestSequence(current)),
-    ]),
+    _ => stampedOver(back, at, current),
   };
 }
-
-/// The highest `SEQUENCE` of [unit]'s components; -1 if none has one.
-int _latestSequence(CalendarUnit? unit) =>
-    unit?.components.map(sequenceOf).fold<int>(-1, max) ?? -1;

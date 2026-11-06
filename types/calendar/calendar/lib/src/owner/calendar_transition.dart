@@ -67,11 +67,12 @@ final class _Step
           _edited(calendar, edited, written);
           if (landed.gone case final gone?) events.add(SavedAsNew(gone));
         }
-      case ImportEvents(:final bytes):
+      case ImportEvents(:final bytes, :final at):
         if (state.calendar case final calendar?) {
           final (calendar: imported, :written, :report) = importInto(
             calendar,
             bytes,
+            at,
           );
           _edited(calendar, imported, written);
           events.add(ImportDone(report));

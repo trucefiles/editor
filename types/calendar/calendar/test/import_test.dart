@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_core/truce_core.dart' show MergedText;
 
 import 'samples.dart';
 
@@ -75,20 +76,31 @@ END:VCALENDAR
 
 Uint8List _bytes(String text) => utf8.encode(text);
 
+/// When the tests import.
+final _at = DateTime.utc(2027, 2, 10, 12);
+
 CalendarImport _import(String into, String file) =>
-    importInto(Calendar.read(into)!, _bytes(file));
+    importInto(Calendar.read(into)!, _bytes(file), _at);
 
 EventsImported _report(CalendarImport import) =>
     import.report as EventsImported;
 
+/// [unit]'s lines but its edit stamps.
+List<String> _content(CalendarUnit unit) => [
+  for (final line in unit.text.split('\n'))
+    if (!RegExp('^(DTSTAMP|LAST-MODIFIED|SEQUENCE)[:;]').hasMatch(line)) line,
+];
+
 void main() {
-  test('adds the events, each as the file has it', () {
+  test('adds the events as the file has them, stamped as an edit now', () {
     final import = _import(birthday, _invites);
     final calendar = import.calendar;
     final file = Calendar.read(_invites)!;
     for (final uid in ['lecture@example.org', 'concert@example.org']) {
       final key = UidKey.event(uid);
-      expect(calendar.unitOf(key)!.text, file.unitOf(key)!.text);
+      expect(_content(calendar.unitOf(key)!), _content(file.unitOf(key)!));
+      final event = calendar.eventOf(uid)!.series.component;
+      expect(event.value('LAST-MODIFIED'), '20270210T120000Z');
     }
     final bookClub = calendar.events.singleWhere(
       (event) => event.series.summary == 'Book club',
@@ -97,7 +109,6 @@ void main() {
     expect(calendar.eventOf('ann@truce'), isNotNull);
     final report = _report(import);
     expect((report.added, report.updated), (3, 0));
-    expect(report.kept, isEmpty);
   });
 
   test('leaves out markers, other components and the name', () {
@@ -123,6 +134,7 @@ void main() {
     final again = importInto(
       first.withUnitsChanged({const UidKey.event('concert@example.org'): null}),
       _bytes(_invites),
+      _at,
     );
     expect(again.calendar.unitOf(tokyo)!.text, own);
     expect(again.written, [const UidKey.event('concert@example.org')]);
@@ -130,52 +142,35 @@ void main() {
 
   test('importing the same file again changes nothing', () {
     final first = _import(birthday, _invites).calendar;
-    final again = importInto(first, _bytes(_invites));
+    final again = importInto(first, _bytes(_invites), _at.add(_day));
     expect(again.written, isEmpty);
     expect(again.calendar.text, first.text);
     final report = _report(again);
     expect((report.added, report.updated), (0, 0));
-    expect(report.kept, isEmpty);
   });
 
-  test("a newer version updates the event, an older one doesn't", () {
-    final newer = _import(birthday, _ann('20261101T080000Z', 'Ann (50)'));
-    expect(newer.calendar.eventOf('ann@truce')!.series.summary, 'Ann (50)');
-    expect((_report(newer).added, _report(newer).updated), (0, 1));
-
-    final older = _import(birthday, _ann('20250101T080000Z', 'Anne'));
-    expect(older.written, isEmpty);
-    expect(older.calendar.eventOf('ann@truce')!.series.summary, 'Ann');
-    expect(_report(older).kept, ['Ann']);
+  test("the file's version wins, newer or older, and wins a later merge", () {
+    for (final modified in ['20261101T080000Z', '20250101T080000Z']) {
+      final import = _import(birthday, _ann(modified, 'Ann (50)'));
+      final ann = import.calendar.eventOf('ann@truce')!.series;
+      expect(ann.summary, 'Ann (50)');
+      expect(ann.component.value('SEQUENCE'), '1', reason: 'above both');
+      expect((_report(import).added, _report(import).updated), (0, 1));
+      final merged = const CalendarMerge().merge(
+        birthday,
+        import.calendar.text,
+      );
+      expect((merged as MergedText).text, import.calendar.text);
+    }
   });
 
-  test('a corrected file with a later DTSTAMP updates its events', () {
-    final first = _import(birthday, _invites).calendar;
-    final corrected = _invites
-        .replaceAll('DTSTAMP:20270201T090000Z', 'DTSTAMP:20270202T090000Z')
-        .replaceAll('SUMMARY:Concert', 'SUMMARY:Concert (moved to Hall C)');
-    final again = importInto(first, _bytes(corrected));
-    expect(
-      again.calendar.eventOf('concert@example.org')!.series.summary,
-      'Concert (moved to Hall C)',
-    );
-    expect(_report(again).updated, 2, reason: 'the lecture is restamped too');
-  });
-
-  test('an event deleted here stays deleted, and says so', () {
-    final concert = DeleteEvent(
-      'concert@example.org',
-      at: DateTime.utc(2027, 2, 5),
-    );
+  test('an event deleted here comes back', () {
+    final concert = DeleteEvent('concert@example.org', at: _at.add(_day));
     final deleted = applyEdit(_import(birthday, _invites).calendar, concert);
-    final again = importInto(deleted, _bytes(_invites));
-    expect(again.written, isEmpty);
-    expect(
-      again.calendar.eventOf('concert@example.org')!.series.deleted,
-      isTrue,
-    );
-    expect(_report(again).deletedHere, ['Concert']);
-    expect(_report(again).kept, isEmpty);
+    final again = importInto(deleted, _bytes(_invites), _at.add(_day * 2));
+    final back = again.calendar.eventOf('concert@example.org')!.series;
+    expect((back.deleted, back.summary), (false, 'Concert'));
+    expect((_report(again).added, _report(again).updated), (1, 0));
   });
 
   test('a file that is no calendar changes nothing', () {
@@ -184,7 +179,7 @@ void main() {
       Uint8List.fromList([0xC3, 0x28]),
       _bytes('Just a note.\n'),
     ]) {
-      final import = importInto(calendar, bytes);
+      final import = importInto(calendar, bytes, _at);
       expect(import.report, isA<NotACalendar>());
       expect(import.written, isEmpty);
       expect(import.calendar, same(calendar));
@@ -204,3 +199,5 @@ END:VCALENDAR
     expect(import.written, isEmpty);
   });
 }
+
+const _day = Duration(days: 1);

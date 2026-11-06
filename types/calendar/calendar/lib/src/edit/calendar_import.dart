@@ -4,12 +4,12 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:truce_core/truce_core.dart' show TextFile;
 
-import '../merge/calendar_merge.dart';
 import '../model/calendar.dart';
 import '../model/calendar_event.dart';
 import '../model/calendar_unit.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
+import 'stamp.dart';
 import 'zone_block.dart';
 
 /// What importing a calendar file came to, for the user.
@@ -27,23 +27,14 @@ final class NoEvents extends ImportReport {
   const NoEvents();
 }
 
-/// The file's events merged in: [added] ones the calendar didn't have,
-/// [updated] ones the file held a newer version of; [kept] names those
-/// the calendar held a newer version of, kept as they were, and
-/// [deletedHere] those deleted here later, which stay deleted. All none:
-/// the calendar had them all already.
+/// The file's events brought in: [added] ones the calendar didn't have
+/// (or had deleted), [updated] ones it held another version of. Both
+/// none: the calendar had them all already.
 final class EventsImported extends ImportReport {
-  const EventsImported({
-    required this.added,
-    required this.updated,
-    required this.kept,
-    required this.deletedHere,
-  });
+  const EventsImported({required this.added, required this.updated});
 
   final int added;
   final int updated;
-  final List<String> kept;
-  final List<String> deletedHere;
 }
 
 /// A calendar file's events imported into a calendar: what the
@@ -55,17 +46,18 @@ typedef CalendarImport = ({
   ImportReport report,
 });
 
-/// [calendar] with the events of the calendar file [bytes] merged in,
-/// each as a merge without base keeps it ([mergedUnit]): one the
-/// calendar lacks is added, one it has is replaced only by a newer edit.
-/// Only events come in: not the file's name, properties, other
-/// components, or deleted events' markers (a file brings events, not
-/// deletes). An event without `UID` (invalid, but some apps write them)
-/// gets one made from its text, so importing it again finds it. Each zone
-/// a written event names that the calendar has no block for gets the
-/// file's block, else this app's ([zoneUnit]). An imported event keeps
-/// its text, but for a `UID` added.
-CalendarImport importInto(Calendar calendar, Uint8List bytes) {
+/// [calendar] with the events of the calendar file [bytes] imported at
+/// [at], as the user's own edit then: each event the file holds is put
+/// in as the file has it, stamped as edited [at] (so a merge with an
+/// older text keeps it), where the calendar lacks it, deleted it, or
+/// holds another version of it (stamps aside). Only events come in: not
+/// the file's name, properties, other components, or deleted events'
+/// markers (a file brings events, not deletes). An event without `UID`
+/// (invalid, but some apps write them) gets one made from its text, so
+/// importing it again finds it. Each zone a written event names that the
+/// calendar has no block for gets the file's block, else this app's
+/// ([zoneUnit]).
+CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
   final file = switch (TextFile.decode(bytes)) {
     final decoded? => Calendar.read(decoded.text),
     null => null,
@@ -80,66 +72,42 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes) {
       report: file == null ? const NotACalendar() : const NoEvents(),
     );
   }
-  final sides = [
+  final changed = [
     for (final event in events)
-      (event: event, came: _cameOf(event, calendar.unitOf(event.key))),
+      if (calendar.unitOf(event.key) case final mine
+          when mine == null || _unstamped(mine) != _unstamped(event))
+        (event: stampedOver(event, at, mine), mine: mine),
   ];
-  final taken = [
-    for (final (:event, :came) in sides)
-      if (came == _Came.added || came == _Came.updated) event,
-  ];
+  final taken = [for (final (:event, mine: _) in changed) event];
   final zones = [
     for (final zone in {for (final unit in taken) ...unit.zonesNamed})
       if (!calendar.zones.contains(zone))
         ?(file.unitOf(ZoneKey(zone)) ?? zoneUnit(zone)),
   ];
   final written = [...taken, ...zones];
-  int count(_Came kind) => sides.where((side) => side.came == kind).length;
-  List<String> names(_Came kind) => [
-    for (final (:event, :came) in sides)
-      if (came == kind) nameOfUnit(calendar.unitOf(event.key)!),
-  ];
+  final added = changed.where((side) => _isNew(side.mine)).length;
   return (
     calendar: calendar.withUnits(written),
     written: [for (final unit in written) unit.key],
-    report: EventsImported(
-      added: count(_Came.added),
-      updated: count(_Came.updated),
-      kept: names(_Came.kept),
-      deletedHere: names(_Came.deletedHere),
-    ),
+    report: EventsImported(added: added, updated: changed.length - added),
   );
 }
 
-/// How an imported event comes into a calendar.
-enum _Came {
-  /// The calendar didn't have it.
-  added,
+/// Whether an event the calendar holds as [mine] is new to the user: it
+/// has none, or only a deleted event's marker.
+bool _isNew(CalendarUnit? mine) =>
+    mine == null || (CalendarEvent.of(mine)?.series.deleted ?? false);
 
-  /// The file's version is newer.
-  updated,
-
-  /// The calendar's version is newer, kept as it was.
-  kept,
-
-  /// It was deleted here later, and stays deleted.
-  deletedHere,
-
-  /// The calendar has just this version.
-  same,
-}
-
-/// How [theirs] comes into a calendar that holds [mine] of it (`null`:
-/// none).
-_Came _cameOf(CalendarUnit theirs, CalendarUnit? mine) => switch (mine) {
-  null => _Came.added,
-  _ when mine.text == theirs.text => _Came.same,
-  _ when mergedUnit(mine, theirs).text == mine.text =>
-    CalendarEvent.of(mine)?.series.deleted ?? false
-        ? _Came.deletedHere
-        : _Came.kept,
-  _ => _Came.updated,
-};
+/// [unit]'s text without its edit stamps, which an import sets anew: what
+/// tells whether the calendar holds the file's version already.
+String _unstamped(CalendarUnit unit) => [
+  for (final component in unit.components)
+    component
+        .withProperty('DTSTAMP', null)
+        .withProperty('LAST-MODIFIED', null)
+        .withProperty('SEQUENCE', null)
+        .printed,
+].join();
 
 /// [unit] as imported if it is an event: as it is, or given a `UID` made
 /// from its text if it has none; `null` for any other unit, and for a

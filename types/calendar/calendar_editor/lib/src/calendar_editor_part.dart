@@ -79,7 +79,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   Future<void> importFile() async {
     switch (await _pickFile()) {
       case Ok(value: final bytes?) when isEditing:
-        owner.send(ImportEvents(bytes));
+        owner.send(ImportEvents(bytes, at: _at()));
       case Err():
         _imports.add(const FileNotRead());
       case Ok():

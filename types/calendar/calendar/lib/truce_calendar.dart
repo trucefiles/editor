@@ -22,7 +22,7 @@ export 'src/edit/event_draft.dart';
 export 'src/edit/new_uid.dart';
 export 'src/edit/occurrence_edits.dart';
 export 'src/health/cycle.dart';
-export 'src/merge/calendar_merge.dart' show CalendarMerge;
+export 'src/merge/calendar_merge.dart';
 export 'src/model/calendar.dart';
 export 'src/model/calendar_event.dart' show CalendarEvent, EventPart;
 export 'src/model/calendar_time.dart';

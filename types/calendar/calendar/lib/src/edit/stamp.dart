@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../model/calendar_event.dart';
+import '../model/calendar_unit.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
@@ -22,6 +23,19 @@ Component stamped(
         '${first ? 0 : max(sequenceOf(event), above) + 1}',
       ),
     );
+
+/// [unit] stamped as edited [at] over [now], the version it replaces
+/// (`null`: none): each component stamped, its `SEQUENCE` above both, so
+/// a merge with [now]'s text keeps [unit].
+CalendarUnit stampedOver(CalendarUnit unit, DateTime at, CalendarUnit? now) =>
+    CalendarUnit.edited(unit.key, [
+      for (final component in unit.components)
+        stamped(component, at, above: _latestSequence(now)),
+    ]);
+
+/// The highest `SEQUENCE` of [unit]'s components; -1 if none has one.
+int _latestSequence(CalendarUnit? unit) =>
+    unit?.components.map(sequenceOf).fold<int>(-1, max) ?? -1;
 
 /// The `SEQUENCE` of [event]; -1 if it has none.
 int sequenceOf(Component event) =>

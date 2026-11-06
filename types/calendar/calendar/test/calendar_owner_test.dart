@@ -107,7 +107,8 @@ void main() {
   });
 
   test('an import is one undo step and tells what came of it', () {
-    final run = _run(birthday)..send(ImportEvents(utf8.encode(_concert)));
+    final run = _run(birthday)
+      ..send(ImportEvents(utf8.encode(_concert), at: _at));
     expect(run.state.calendar!.eventOf('concert@example.org'), isNotNull);
     expect(run.state.calendar!.zones, {'Asia/Tokyo'});
     final report = run.events.whereType<ImportDone>().single.report;
@@ -119,7 +120,8 @@ void main() {
   });
 
   test('an import that changes nothing is no undo step', () {
-    final run = _run(birthday)..send(ImportEvents(utf8.encode('No calendar')));
+    final run = _run(birthday)
+      ..send(ImportEvents(utf8.encode('No calendar'), at: _at));
     expect(run.state.status.canUndo, isFalse);
     expect(
       run.events.whereType<ImportDone>().single.report,

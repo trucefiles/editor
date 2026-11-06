@@ -50,13 +50,14 @@ final class RenameCalendar extends CalendarInput {
   final String name;
 }
 
-/// The user imports the events of the calendar file [bytes] (see
+/// The user imports the events of the calendar file [bytes] [at] (see
 /// `importInto`): one undo step, and [ImportDone] tells what came of it.
 /// Dropped while the text is no calendar.
 final class ImportEvents extends CalendarInput {
-  const ImportEvents(this.bytes);
+  const ImportEvents(this.bytes, {required this.at});
 
   final Uint8List bytes;
+  final DateTime at;
 }
 
 /// A request of the file page (see core's editor contract), made
