@@ -48,9 +48,9 @@ Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
 /// the same inputs as its `MonthDayHeader`: the theme's button size if
 /// set, else its text in the theme's number style with the button's
 /// padding (Material's default 8 on each side), at least the button's
-/// minimum at compact density; and the theme's margin around it. Worked
-/// out from the text, as a hidden two-digit number in each cell cost as
-/// much as the numbers shown.
+/// smallest width ([_smallestButton]); and the theme's margin around it.
+/// Worked out from the text, as a hidden two-digit number in each cell
+/// cost as much as the numbers shown.
 double _twoDigitsWidth(BuildContext context) {
   final header = KalenderTheme.of(context).monthDayHeaderStyle;
   final margin = header?.margin?.horizontal ?? 0;
@@ -65,9 +65,18 @@ double _twoDigitsWidth(BuildContext context) {
   )..layout();
   final text = painter.width;
   painter.dispose();
-  final smallest =
-      kMinInteractiveDimension + VisualDensity.compact.baseSizeAdjustment.dx;
-  return max(text + 2 * 8, smallest) + margin;
+  return max(text + 2 * 8, _smallestButton(context)) + margin;
+}
+
+/// The narrowest kalender's day number button gets in [context]: Material
+/// 3's icon button minimum (40), or the tap target (48) where taps get
+/// padded targets (touch), each at the button's compact density.
+double _smallestButton(BuildContext context) {
+  final tapTarget = switch (Theme.of(context).materialTapTargetSize) {
+    MaterialTapTargetSize.padded => kMinInteractiveDimension,
+    MaterialTapTargetSize.shrinkWrap => 0.0,
+  };
+  return max(40.0, tapTarget) + VisualDensity.compact.baseSizeAdjustment.dx;
 }
 
 /// The fill of a day likely in a period: paler than a known period day,

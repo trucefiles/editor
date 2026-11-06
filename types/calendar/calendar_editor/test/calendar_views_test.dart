@@ -145,9 +145,15 @@ void main() {
     expect(heightOf('9'), closeTo(heightOf('10'), 0.5));
   });
 
-  for (final (scale, fontSize) in [(1.0, 14.0), (3.0, 14.0), (1.0, 4.0)]) {
+  for (final (scale, fontSize, platform) in [
+    (1.0, 14.0, TargetPlatform.android),
+    (3.0, 14.0, TargetPlatform.android),
+    (1.0, 4.0, TargetPlatform.android),
+    (1.0, 4.0, TargetPlatform.linux),
+  ]) {
     testWidgets('each day number is laid out as wide as kalender lays out '
-        'a two-digit one (text size $scale, font $fontSize)', (tester) async {
+        'a two-digit one (text size $scale, font $fontSize, '
+        '${platform.name})', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: MediaQuery.withClampedTextScaling(
@@ -156,6 +162,7 @@ void main() {
             child: Scaffold(
               body: Theme(
                 data: ThemeData(
+                  platform: platform,
                   textTheme: TextTheme(
                     bodyMedium: TextStyle(fontSize: fontSize),
                   ),

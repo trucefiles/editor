@@ -18,9 +18,16 @@ import 'occurrence_event.dart';
 /// It is its store's only writer: kalender only asks, and the views add
 /// and remove nothing through the writers it inherits.
 final class OccurrenceEvents<K> extends DefaultEventsController {
-  OccurrenceEvents(this._calendars);
+  /// [deviceZone] tells this device's time zone apart (by default as
+  /// kalender does): what is worked out holds only in the zone it was
+  /// worked out in.
+  OccurrenceEvents(this._calendars, {String Function() deviceZone = _zoneNow})
+    : _deviceZone = deviceZone,
+      _zone = deviceZone();
 
   Map<K, Calendar> _calendars;
+  final String Function() _deviceZone;
+  String _zone;
 
   /// Per calendar, the first days of the months worked out.
   final _months = <K, Set<DateTime>>{};
@@ -50,6 +57,7 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     bool includeDayEvents = true,
     Location? location,
   }) {
+    _followDeviceZone();
     final shown = range.forLocation(location: location);
     for (final month in _monthsOf(shown.start, shown.end)) {
       for (final MapEntry(:key, :value) in _calendars.entries) {
@@ -63,6 +71,17 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
       includeDayEvents: includeDayEvents,
       location: location,
     );
+  }
+
+  /// Forgets all that was worked out once the device is in another time
+  /// zone: its times on the device clock, and its months, moved. kalender
+  /// shows the zone change by asking again, so this tells no one.
+  void _followDeviceZone() {
+    final zone = _deviceZone();
+    if (zone == _zone) return;
+    _zone = zone;
+    eventStore.clear();
+    _months.clear();
   }
 
   /// Adds the occurrences of [calendar] (keyed [key]) in [month], but not
@@ -101,6 +120,12 @@ List<DateTime> _monthsOf(DateTime from, DateTime to) {
     max(count, 1),
     (index) => DateTime(first.year, first.month + index),
   );
+}
+
+/// This device's time zone now, as kalender tells it apart.
+String _zoneNow() {
+  final now = DateTime.now();
+  return '${now.timeZoneName} ${now.timeZoneOffset}';
 }
 
 DateTime _nextMonth(DateTime month) => DateTime(month.year, month.month + 1);

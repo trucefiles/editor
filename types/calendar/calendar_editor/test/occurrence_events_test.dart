@@ -121,4 +121,28 @@ void main() {
     expect(told, 2);
     expect(_ask(events, november.$1, november.$2), [('work', 'Review')]);
   });
+
+  test('in another time zone, all is worked out again, each occurrence '
+      'still once', () {
+    var zone = 'here';
+    final events = OccurrenceEvents({
+      'home': dentist,
+      'work': review,
+    }, deviceZone: () => zone);
+    addTearDown(events.dispose);
+    final november = (DateTime(2026, 11), DateTime(2026, 12));
+    _ask(events, november.$1, november.$2);
+    final before = events.events.toSet();
+    var told = 0;
+    events.addListener(() => told++);
+
+    zone = 'away';
+    expect(
+      _ask(events, november.$1, november.$2),
+      unorderedEquals([('home', 'Dentist'), ('work', 'Review')]),
+    );
+    expect(events.events, hasLength(2));
+    expect(events.events.toSet().intersection(before), isEmpty);
+    expect(told, 0, reason: 'kalender asks again on its own');
+  });
 }
