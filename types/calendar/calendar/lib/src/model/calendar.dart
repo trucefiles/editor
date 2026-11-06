@@ -8,26 +8,22 @@ import 'calendar_unit.dart';
 /// One calendar file, read: the lines up to its first unit ([head]: the
 /// calendar's own properties), its [units] in order, and the lines from
 /// its end on ([tail]). Prints back byte for byte, each unit's parts where
-/// they were ([_layout]); an edit replaces whole units, an edited unit
-/// printed where its first part was. Immutable; questions are lookups on
-/// it.
+/// they were); an edit replaces whole units, an edited unit printed where
+/// its first part was. Immutable; questions are lookups on it, and a
+/// rename keeps what was worked out of its units.
 final class Calendar {
-  Calendar._(this.head, this.units, this.tail, this._layout);
+  Calendar._(this.head, this._body, this.tail);
 
   /// The text up to the first unit: `BEGIN:VCALENDAR` and the calendar's
   /// properties.
   final String head;
-  final List<CalendarUnit> units;
+
+  final _Body _body;
 
   /// `END:VCALENDAR` and anything after it.
   final String tail;
 
-  late final Map<UnitKey, CalendarUnit> _byKey = {
-    for (final unit in units) unit.key: unit,
-  };
-
-  /// Where each part of each unit prints, in order.
-  final List<_Slot> _layout;
+  List<CalendarUnit> get units => _body.units;
 
   /// The calendar in [text] (`\n` line breaks); `null` if it is none.
   static Calendar? read(String text) {
@@ -52,46 +48,37 @@ final class Calendar {
     final tail = _textOf(lines.sublist(end));
     return Calendar._(
       _textOf(lines.sublist(0, begin + 1 + headCount)),
-      units,
+      _Body(units, layout),
       // Its last line break only if the text has one.
       text.endsWith('\n') ? tail : tail.substring(0, tail.length - 1),
-      layout,
     );
   }
 
   /// The calendar's text.
   late final String text = [
     head,
-    for (final (:key, :part) in _layout)
-      if (_byKey[key]!.parts case final parts when part < parts.length)
+    for (final (:key, :part) in _body.layout)
+      if (_body.byKey[key]!.parts case final parts when part < parts.length)
         parts[part],
     tail,
   ].join();
 
-  /// Whether [other] holds the very units this one does (as [named]
-  /// keeps them), so their events are the same.
-  bool holdsSameUnitsAs(Calendar other) => identical(units, other.units);
+  /// Whether [other] shows the same days: the very units this one holds
+  /// (as [named] keeps them), so the same events, of the same kind.
+  bool showsSameDaysAs(Calendar other) =>
+      identical(_body, other._body) && isHealth == other.isHealth;
 
   /// The unit [key]; `null` if there is none.
-  CalendarUnit? unitOf(UnitKey key) => _byKey[key];
+  CalendarUnit? unitOf(UnitKey key) => _body.byKey[key];
 
   /// The calendar's events, deleted ones' markers among them, in order.
-  late final List<CalendarEvent> events = [
-    for (final unit in units) ?CalendarEvent.of(unit),
-  ];
-
-  late final Map<String, CalendarEvent> _eventsByUid = {
-    for (final event in events) event.uid: event,
-  };
+  List<CalendarEvent> get events => _body.events;
 
   /// The event [uid]; `null` if there is none.
-  CalendarEvent? eventOf(String uid) => _eventsByUid[uid];
+  CalendarEvent? eventOf(String uid) => _body.eventsByUid[uid];
 
   /// The time zones it holds a block for.
-  late final Set<String> zones = {
-    for (final unit in units)
-      if (unit.key case ZoneKey(:final zone)) zone,
-  };
+  Set<String> get zones => _body.zones;
 
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
@@ -140,9 +127,8 @@ final class Calendar {
         final raw? => head.replaceFirst('\n$raw\n', '\n${written.join()}'),
         null => '$head${written.join()}',
       },
-      units,
+      _body,
       tail,
-      _layout,
     );
   }
 
@@ -157,25 +143,27 @@ final class Calendar {
     final byKey = {for (final unit in changes) unit.key: _fitted(unit)};
     final added = [
       for (final unit in byKey.values)
-        if (!_byKey.containsKey(unit.key)) unit,
+        if (!_body.byKey.containsKey(unit.key)) unit,
     ];
     return Calendar._(
       head,
-      [for (final each in units) byKey[each.key] ?? each, ...added],
+      _Body(
+        [for (final each in units) byKey[each.key] ?? each, ...added],
+        [
+          ..._body.layout,
+          for (final unit in added)
+            for (final index in Iterable<int>.generate(unit.parts.length))
+              (key: unit.key, part: index),
+        ],
+      ),
       tail,
-      [
-        ..._layout,
-        for (final unit in added)
-          for (final index in Iterable<int>.generate(unit.parts.length))
-            (key: unit.key, part: index),
-      ],
     );
   }
 
   /// [unit] as it fits the places of the unit it replaces: its parts
   /// there, or, if it has not as many, its whole text where that unit's
   /// first part was.
-  CalendarUnit _fitted(CalendarUnit unit) => switch (_byKey[unit.key]) {
+  CalendarUnit _fitted(CalendarUnit unit) => switch (_body.byKey[unit.key]) {
     final old? when old.parts.length != unit.parts.length => CalendarUnit.read(
       unit.key,
       [unit.text],
@@ -185,10 +173,8 @@ final class Calendar {
   };
 }
 
-/// The line that names a calendar [name]; `null` for an empty name,
-/// which a calendar holds as no line.
-/// The name line for [name] (none if empty), keeping the parameters of
-/// the [old] one.
+/// The name line for [name], keeping the parameters of the [old] one;
+/// `null` for an empty name, which a calendar holds as no line.
 ContentLine? _nameLine(String name, [ContentLine? old]) => name.isEmpty
     ? null
     : ContentLine(
@@ -223,6 +209,34 @@ typedef _Line = ({String unfolded, String raw});
 
 /// One place in the file: part [part] of the unit [key].
 typedef _Slot = ({UnitKey key, int part});
+
+/// A calendar's [units] with where each part prints ([layout]), and what
+/// is worked out of them, once: kept as it is by a rename.
+final class _Body {
+  _Body(this.units, this.layout);
+
+  final List<CalendarUnit> units;
+
+  /// Where each part of each unit prints, in order.
+  final List<_Slot> layout;
+
+  late final Map<UnitKey, CalendarUnit> byKey = {
+    for (final unit in units) unit.key: unit,
+  };
+
+  late final List<CalendarEvent> events = [
+    for (final unit in units) ?CalendarEvent.of(unit),
+  ];
+
+  late final Map<String, CalendarEvent> eventsByUid = {
+    for (final event in events) event.uid: event,
+  };
+
+  late final Set<String> zones = {
+    for (final unit in units)
+      if (unit.key case ZoneKey(:final zone)) zone,
+  };
+}
 
 bool _begins(_Line line) => line.unfolded.toUpperCase().startsWith('BEGIN:');
 

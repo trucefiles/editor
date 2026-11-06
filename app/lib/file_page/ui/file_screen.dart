@@ -42,19 +42,25 @@ import 'save_indicator.dart';
 /// Markdown document). Saves as the user types; a new file is
 /// created as the user leaves it or the app is hidden.
 class FileScreen extends ConsumerStatefulWidget {
-  const FileScreen(FileText this.file, {super.key}) : place = null, made = null;
+  /// The page of [file], as read just before.
+  FileScreen(FileText file, {super.key})
+    : _open = ((pages, withFile) => pages.open(file, withFile: withFile)),
+      _isNew = false;
 
   /// A new file [made], to go into [place].
-  const FileScreen.fresh(
-    FilePlace this.place, {
-    required NewFileChoice<EditableType> this.made,
+  FileScreen.fresh(
+    FilePlace place, {
+    required NewFileChoice<EditableType> made,
     super.key,
-  }) : file = null;
+  }) : _open = ((pages, withFile) =>
+           pages.openNew(place, made: made, withFile: withFile)),
+       _isNew = true;
 
-  /// The file to open, as read just before; `null` for a new one.
-  final FileText? file;
-  final FilePlace? place;
-  final NewFileChoice<EditableType>? made;
+  /// Opens the page this screen shows.
+  final FilePage Function(FilePages pages, WithFile withFile) _open;
+
+  /// Whether it is a new file, for typing right away.
+  final bool _isNew;
 
   @override
   ConsumerState<FileScreen> createState() => _FileScreenState();
@@ -80,15 +86,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void initState() {
     super.initState();
     final pages = ref.read(filePagesProvider);
-    _page = switch ((widget.file, widget.place, widget.made)) {
-      (final file?, _, _) => pages.open(file, withFile: _withFile),
-      (_, final place?, final made?) => pages.openNew(
-        place,
-        made: made,
-        withFile: _withFile,
-      ),
-      _ => throw StateError('A file, or a place and what to make, is needed.'),
-    };
+    _page = widget._open(pages, _withFile);
     _partChanges = _page.part.changes.listen((_) => _rebuild());
     _controller.addListener(_rebuild);
     _notices = [
@@ -489,8 +487,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                           _messenger.currentState?.showHint(message),
                       color: fileColor(mark.color, folder: _folder.color),
                     ),
-                    // A new file is for typing right away.
-                    autofocus: widget.file == null,
+                    autofocus: widget._isNew,
                   ),
                 ),
               ),

@@ -98,7 +98,7 @@ final class _Device {
     final file = (await files.reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = markdownSession(
-      file,
+      ExistingFile(file),
       FileEffects(
         filesOf: (_) => files,
         draftsOf: (_) => drafts,

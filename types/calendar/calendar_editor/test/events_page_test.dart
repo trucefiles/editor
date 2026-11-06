@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/ui/events_page.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -881,5 +882,31 @@ void main() {
     ]) {
       expect(text, contains('$line\n'));
     }
+  });
+
+  testWidgets('a rename keeps the views as built; an event edit builds '
+      'them again', (tester) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+    EventsPage page() => tester.widget<EventsPage>(find.byType(EventsPage));
+    final before = page();
+
+    part.rename('Family');
+    await tester.pump();
+    expect(page(), same(before));
+
+    part.edit(
+      (at) => AddEvent(
+        'gym@t',
+        EventDraft(
+          summary: 'Gym',
+          start: Floating(DateTime.utc(2026, 11, 3, 9)),
+          end: Floating(DateTime.utc(2026, 11, 3, 10)),
+        ),
+        at: at,
+      ),
+    );
+    await tester.pump();
+    expect(page(), isNot(same(before)));
   });
 }

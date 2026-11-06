@@ -55,21 +55,16 @@ final class Ended extends SessionState {
 /// [changes] tells of every change of where the edits are ([status],
 /// [saveState]), of [summary], and of [state].
 final class FileSession {
-  /// The file [opened] (`null` for a new one, which goes where
-  /// [effects] say), its file read and written by [effects], edited by
-  /// [editor], which opened with [opened]'s text, or a new file's
-  /// [start]. [merge]: how its type merges two texts, if it does; then a
-  /// change elsewhere can be picked merged with the edits ([mergesWith]).
-  FileSession(
-    FileText? opened,
-    this._effects,
-    this.editor, {
-    String start = '',
-    TextMerge? merge,
-  }) : _file = fileOwner(switch (opened) {
-         final opened? => openedFile(opened.seen, merge: merge),
-         null => newFile(start: start, merge: merge),
-       }, _effects.run) {
+  /// The file [opened]: one that exists, or a new one with the text it
+  /// starts with; its file read and written by [effects], edited by
+  /// [editor], which opened with that text. [merge]: how its type merges
+  /// two texts, if it does; then a change elsewhere can be picked merged
+  /// with the edits ([mergesWith]).
+  FileSession(PageFile opened, this._effects, this.editor, {TextMerge? merge})
+    : _file = fileOwner(switch (opened) {
+        ExistingFile(:final file) => openedFile(file.seen, merge: merge),
+        NewFile(:final start) => newFile(start: start, merge: merge),
+      }, _effects.run) {
     _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),

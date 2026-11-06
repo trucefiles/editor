@@ -5,7 +5,6 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import '../calendar_editor_part.dart';
 import '../calendar_start.dart';
-import 'event_actions.dart';
 import 'events_page.dart';
 
 /// The calendar [part]'s editor shows, as it changes: the calendar's
@@ -51,12 +50,23 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late final StreamSubscription<GoneMeanwhile> _savedAsNew;
 
+  /// The events page as last built, with the calendar it shows and
+  /// whether it edits: kept while a change shows the same days (e.g. a
+  /// rename), so the views aren't built again for it.
+  ({Calendar calendar, bool editing, Widget page})? _events;
+
   @override
   void initState() {
     super.initState();
     _savedAsNew = widget.part.savedAsNew.listen(
       (gone) => widget.hint(_savedAsNewHint(gone)),
     );
+  }
+
+  @override
+  void didUpdateWidget(CalendarPage old) {
+    super.didUpdateWidget(old);
+    _events = null;
   }
 
   @override
@@ -76,24 +86,35 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) => StreamBuilder(
     stream: widget.part.owner.changes,
     builder: (context, _) {
-      final part = widget.part;
-      final state = part.owner.state;
-      final MakeEdit? edit = part.isEditing ? _edit : null;
+      final state = widget.part.owner.state;
       return switch (state.calendar) {
         null => _NoCalendar(state.text),
-        final calendar => EventsPage(
-          calendar,
-          edit: edit,
-          now: widget.now,
-          deviceZone: widget.deviceZone,
-          viewChoice: widget.viewChoice,
-          color: widget.color,
-          starts: widget.starts,
-          hint: widget.hint,
-        ),
+        final calendar => _eventsOf(calendar, editing: widget.part.isEditing),
       };
     },
   );
+
+  /// The events page of [calendar]: the one built last if it shows the
+  /// same days the same way.
+  Widget _eventsOf(Calendar calendar, {required bool editing}) {
+    if (_events case final kept?
+        when kept.editing == editing &&
+            kept.calendar.showsSameDaysAs(calendar)) {
+      return kept.page;
+    }
+    final page = EventsPage(
+      calendar,
+      edit: editing ? _edit : null,
+      now: widget.now,
+      deviceZone: widget.deviceZone,
+      viewChoice: widget.viewChoice,
+      color: widget.color,
+      starts: widget.starts,
+      hint: widget.hint,
+    );
+    _events = (calendar: calendar, editing: editing, page: page);
+    return page;
+  }
 }
 
 /// Why an edit was saved as a new event, for the user.

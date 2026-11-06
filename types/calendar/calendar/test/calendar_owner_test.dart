@@ -347,7 +347,7 @@ void main() {
     final before = run.state.calendar!;
     run.send(const RenameCalendar('Family'));
     final shown = run.state.calendar!;
-    expect(shown.holdsSameUnitsAs(before), isTrue);
+    expect(shown.showsSameDaysAs(before), isTrue);
     expect(run.state.summary.calendar, same(shown));
     expect(run.state.text, shown.text);
   });

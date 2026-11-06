@@ -45,7 +45,7 @@ void main() {
     // Made in the zone, so the error of its file owner is heard there.
     await runZonedGuarded(() async {
       session = markdownSession(
-        fixture.file,
+        ExistingFile(fixture.file),
         FileEffects(
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
@@ -105,7 +105,7 @@ void main() {
 
     await runZonedGuarded(() async {
       session = markdownSession(
-        fixture.file,
+        ExistingFile(fixture.file),
         FileEffects(
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
@@ -150,7 +150,7 @@ void main() {
 
   test('in Markdown edit, the title follows a save too', () async {
     final session = markdownSession(
-      null,
+      fixture.newFile,
       fixture.effects(fixture.newFile),
       mode: EditMode.markdown,
     );
@@ -199,7 +199,7 @@ void main() {
 
       await runZonedGuarded(() async {
         session = markdownSession(
-          null,
+          fixture.newFile,
           FileEffects(
             newFile: fixture.newFile,
             filesOf: (folder) => fixture.files[folder.id]!,

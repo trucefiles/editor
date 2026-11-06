@@ -3,11 +3,11 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
-/// A session on the Markdown document [opened] (`null` for a new one),
+/// A session on the Markdown document [opened] (a file, or a new one),
 /// whose file [effects] reads and writes, its editor in [mode]; [merge]
 /// as a type that merges would give it.
 FileSession markdownSession(
-  FileText? opened,
+  PageFile opened,
   FileEffects effects, {
   EditMode mode = EditMode.visual,
   TextMerge? merge,
@@ -17,8 +17,14 @@ FileSession markdownSession(
   MarkdownPageEditor(
     EditorGate(
       editorOwner(
-        MarkdownStart.read(opened?.text ?? ''),
-        version: opened?.seen.version,
+        MarkdownStart.read(switch (opened) {
+          ExistingFile(:final file) => file.text,
+          NewFile(:final start) => start,
+        }),
+        version: switch (opened) {
+          ExistingFile(:final file) => file.seen.version,
+          NewFile() => null,
+        },
         mode: mode,
       ),
     ),

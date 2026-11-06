@@ -15,7 +15,6 @@ import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';
-import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
 
 /// The calendar editor owner's decision on [message] in [state], with its
@@ -151,7 +150,7 @@ final class _Step
   SentText get sent => SentText(state.text, state.summary);
 
   @override
-  TextSummary<Object?> summaryOfShown(String text) => CalendarSummary(text);
+  TextSummary<Object?> summaryOfShown(String text) => state.summary;
 
   /// Only the page shows the calendar; nothing shows the text kept.
   @override

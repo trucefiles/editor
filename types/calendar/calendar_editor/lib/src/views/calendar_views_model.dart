@@ -131,14 +131,13 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   }
 }
 
-/// Calendars equal when they show the same days: the same units, of the
-/// same kind.
+/// Calendars equal when they show the same days
+/// ([Calendar.showsSameDaysAs]).
 final class _SameDays implements Equality<Calendar> {
   const _SameDays();
 
   @override
-  bool equals(Calendar a, Calendar b) =>
-      a.holdsSameUnitsAs(b) && a.isHealth == b.isHealth;
+  bool equals(Calendar a, Calendar b) => a.showsSameDaysAs(b);
 
   @override
   int hash(Calendar calendar) => identityHashCode(calendar.units);

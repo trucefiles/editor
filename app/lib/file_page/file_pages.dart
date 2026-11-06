@@ -108,21 +108,18 @@ final class FilePages {
     required WithFile withFile,
   }) => _open(
     made.type,
-    NewFile(place, type: made.type),
+    NewFile(place, type: made.type, start: made.kind.start),
     view: FileSettings.defaults.view,
-    startText: made.kind.start,
     withFile: withFile,
   );
 
   /// The page of a file of [type] whose [file] is where it starts,
-  /// shown as [view] keeps; a new one starts with [startText], which is
-  /// written only with the user's first edit.
+  /// shown as [view] keeps.
   FilePage _open(
     EditableType type,
     PageFile file, {
     required ViewSettings view,
     required WithFile withFile,
-    String startText = '',
   }) {
     final (opened, newFile) = switch (file) {
       ExistingFile(file: final file) => (file, null),
@@ -133,7 +130,10 @@ final class FilePages {
     late final FileController controller;
     final editor = type.openEditor(
       (
-        text: opened?.text ?? startText,
+        text: switch (file) {
+          ExistingFile(:final file) => file.text,
+          NewFile(:final start) => start,
+        },
         version: opened?.seen.version,
         view: view,
         // Not yet kept as a conflict copy: only an unreachable folder
@@ -149,7 +149,7 @@ final class FilePages {
       ),
     );
     final session = FileSession(
-      opened,
+      file,
       FileEffects(
         newFile: newFile,
         filesOf: filesOf,
@@ -158,7 +158,6 @@ final class FilePages {
         mover: move,
       ),
       editor.part.editor,
-      start: startText,
       merge: type.merge,
     );
     FolderId folder() => session.file.folder.id;

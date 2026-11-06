@@ -31,11 +31,12 @@ sealed class PlaceChange {
     required PickedPlace picked,
   }) {
     final name = picked.name.trim();
-    if (file case NewFile(:final type)) {
+    if (file case NewFile(:final type, :final start)) {
       return NewPlace(
         NewFile(
           picked.place,
           type: type,
+          start: start,
           name: name.isEmpty ? null : name,
           newSubfolder: picked.newSubfolder,
         ),

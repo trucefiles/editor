@@ -103,11 +103,16 @@ void main() {
       expect(named.named('Birthdays').text, birthday);
       expect(calendar.named('Birthdays'), same(calendar));
       expect(
-        named.holdsSameUnitsAs(calendar),
+        named.showsSameDaysAs(calendar),
         isTrue,
         reason: 'the very units, so its events need no new pass',
       );
-      expect(Calendar.read(birthday)!.holdsSameUnitsAs(calendar), isFalse);
+      expect(Calendar.read(birthday)!.showsSameDaysAs(calendar), isFalse);
+      expect(
+        identical(named.events, calendar.events),
+        isTrue,
+        reason: 'what was worked out of the units is kept',
+      );
     });
 
     test("the standard's NAME shows where it has no name of ours, and is "
