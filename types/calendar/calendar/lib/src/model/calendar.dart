@@ -12,8 +12,7 @@ import 'calendar_unit.dart';
 /// printed where its first part was. Immutable; questions are lookups on
 /// it.
 final class Calendar {
-  Calendar._(this.head, this.units, this.tail, this._layout)
-    : _byKey = {for (final unit in units) unit.key: unit};
+  Calendar._(this.head, this.units, this.tail, this._layout);
 
   /// The text up to the first unit: `BEGIN:VCALENDAR` and the calendar's
   /// properties.
@@ -23,7 +22,9 @@ final class Calendar {
   /// `END:VCALENDAR` and anything after it.
   final String tail;
 
-  final Map<UnitKey, CalendarUnit> _byKey;
+  late final Map<UnitKey, CalendarUnit> _byKey = {
+    for (final unit in units) unit.key: unit,
+  };
 
   /// Where each part of each unit prints, in order.
   final List<_Slot> _layout;
@@ -66,6 +67,10 @@ final class Calendar {
         parts[part],
     tail,
   ].join();
+
+  /// Whether [other] holds the very units this one does (as [named]
+  /// keeps them), so their events are the same.
+  bool holdsSameUnitsAs(Calendar other) => identical(units, other.units);
 
   /// The unit [key]; `null` if there is none.
   CalendarUnit? unitOf(UnitKey key) => _byKey[key];

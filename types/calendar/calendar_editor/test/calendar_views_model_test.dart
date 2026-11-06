@@ -176,4 +176,20 @@ void main() {
     expect((model.today, changes), (DateTime(2026, 11, 2), 1));
     model.dispose();
   });
+
+  test('a renamed calendar shows the same days, worked out once', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.month,
+      calendars: {'home': home},
+      now: () => DateTime(2026, 11, 10, 12),
+    )..showRange(DateTime(2026, 11), DateTime(2026, 12));
+    addTearDown(model.dispose);
+    var changes = 0;
+    model.addListener(() => changes++);
+    final before = model.shown;
+
+    model.showCalendars({'home': home.named('Family')});
+    expect(changes, 0);
+    expect(identical(model.shown, before), isTrue);
+  });
 }

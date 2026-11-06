@@ -1,7 +1,6 @@
 import 'package:truce_core/truce_core.dart'
     show EditorBook, Machine, MachineOwner, Owner, StartTimer, Version;
 
-import '../model/calendar.dart';
 import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
 import 'calendar_transition.dart';
@@ -44,14 +43,12 @@ CalendarOwner calendarOwner(
 /// The calendar editor machine of a file holding [text], read as
 /// [version] (`null` for a new file).
 CalendarMachine calendarMachine(String text, {required Version? version}) {
-  final book = EditorBook<CalendarStep>(
-    lineage: version,
-    summary: CalendarSummary(text),
-  );
+  final summary = CalendarSummary(text);
+  final book = EditorBook<CalendarStep>(lineage: version, summary: summary);
   return Machine(
     state: CalendarState(
       text,
-      Calendar.read(text),
+      summary.calendar,
       revision: 0,
       status: book.status,
     ),

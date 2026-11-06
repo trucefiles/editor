@@ -341,4 +341,32 @@ void main() {
       ('no calendar', false),
     );
   });
+
+  test('a rename keeps the units and reads nothing again', () {
+    final run = _run(birthday);
+    final before = run.state.calendar!;
+    run.send(const RenameCalendar('Family'));
+    final shown = run.state.calendar!;
+    expect(shown.holdsSameUnitsAs(before), isTrue);
+    expect(run.state.summary.calendar, same(shown));
+    expect(run.state.text, shown.text);
+  });
+
+  test('typing a name in a large calendar takes no pass over it per key', () {
+    // About 2 MB; each key printed the whole file before.
+    final events = [
+      for (final n in Iterable<int>.generate(20000))
+        'BEGIN:VEVENT\nUID:$n\nDTSTART:20260101T100000Z\n'
+            'SUMMARY:Event $n with a few words\nEND:VEVENT\n',
+    ];
+    final run = _run('BEGIN:VCALENDAR\n${events.join()}END:VCALENDAR\n');
+    final watch = Stopwatch()..start();
+    for (final n in Iterable<int>.generate(1000)) {
+      run.send(RenameCalendar('Home $n'));
+    }
+    // Budget: 1000 keys in a second; with a pass per key they took over
+    // ten.
+    expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
+    expect(run.state.calendar!.name, 'Home 999');
+  });
 }

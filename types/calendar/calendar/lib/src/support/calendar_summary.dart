@@ -29,9 +29,16 @@ const previewAhead = Duration(days: 366);
 /// next occurrences (or cycle) as the preview. A text that is no
 /// calendar has no title and an empty preview.
 final class CalendarSummary implements TextSummary<CalendarPreview> {
-  CalendarSummary(this._text) : calendar = Calendar.read(_text);
+  /// What lists show of [text], read.
+  CalendarSummary(String text) : this._(Calendar.read(text), text);
 
-  final String _text;
+  /// What lists show of [calendar]'s text, from it as read.
+  CalendarSummary.of(Calendar calendar) : this._(calendar, null);
+
+  CalendarSummary._(this.calendar, this._noCalendar);
+
+  /// The text, kept only when it is no calendar.
+  final String? _noCalendar;
 
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
@@ -63,7 +70,7 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         for (final part in [event.series, ...event.changed])
           if (!part.deleted) ...[part.summary, part.location, part.description],
     ].where((text) => text.isNotEmpty).join('\n'),
-    null => _text,
+    null => _noCalendar!,
   };
 
   @override

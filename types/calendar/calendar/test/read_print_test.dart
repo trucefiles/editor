@@ -102,6 +102,12 @@ void main() {
       );
       expect(named.named('Birthdays').text, birthday);
       expect(calendar.named('Birthdays'), same(calendar));
+      expect(
+        named.holdsSameUnitsAs(calendar),
+        isTrue,
+        reason: 'the very units, so its events need no new pass',
+      );
+      expect(Calendar.read(birthday)!.holdsSameUnitsAs(calendar), isFalse);
     });
 
     test('an empty name is no name line; a name is added as the last '

@@ -131,7 +131,12 @@ final class _Step
       };
 
   @override
-  void reload(String text) => _show(text, Calendar.read(text));
+  void reload(String text) => state = CalendarState(
+    text,
+    Calendar.read(text),
+    revision: state.revision + 1,
+    status: book.status,
+  );
 
   /// A backup restored: stamped as an edit, as an undo is, so a merge with
   /// the text it replaced keeps it.
@@ -143,7 +148,7 @@ final class _Step
   }
 
   @override
-  SentText get sent => SentText(state.text, CalendarSummary(state.text));
+  SentText get sent => SentText(state.text, state.summary);
 
   @override
   TextSummary<Object?> summaryOfShown(String text) => CalendarSummary(text);
@@ -155,10 +160,7 @@ final class _Step
   /// What shows now.
   CalendarShown get _shown => (text: state.text, calendar: state.calendar);
 
-  void _showCalendar(Calendar calendar) => _show(calendar.text, calendar);
-
-  void _show(String text, Calendar? calendar) => state = CalendarState(
-    text,
+  void _showCalendar(Calendar calendar) => state = CalendarState.of(
     calendar,
     revision: state.revision + 1,
     status: book.status,
@@ -166,11 +168,6 @@ final class _Step
 
   void _settleStatus() {
     if (state.status == book.status) return;
-    state = CalendarState(
-      state.text,
-      state.calendar,
-      revision: state.revision,
-      status: book.status,
-    );
+    state = state.withStatus(book.status);
   }
 }

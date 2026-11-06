@@ -98,14 +98,13 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _update();
   }
 
-  /// Shows [calendars], each as read now; the same calendars change
-  /// nothing.
+  /// Shows [calendars], each as read now; calendars that show the same
+  /// days (e.g. only renamed) are kept without working them out again.
   void showCalendars(Map<K, Calendar> calendars) {
-    if (const MapEquality<Object?, Calendar>(values: IdentityEquality())
-        .equals(calendars, _calendars)) {
-      return;
-    }
+    final same = const MapEquality<Object?, Calendar>(values: _SameDays())
+        .equals(calendars, _calendars);
     _calendars = calendars;
+    if (same) return;
     _health = HealthDays.of(calendars, today);
     _update();
   }
@@ -130,4 +129,20 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
         : occurrencesOf(_calendars, window.from, window.to);
     notifyListeners();
   }
+}
+
+/// Calendars equal when they show the same days: the same units, of the
+/// same kind.
+final class _SameDays implements Equality<Calendar> {
+  const _SameDays();
+
+  @override
+  bool equals(Calendar a, Calendar b) =>
+      a.holdsSameUnitsAs(b) && a.isHealth == b.isHealth;
+
+  @override
+  int hash(Calendar calendar) => identityHashCode(calendar.units);
+
+  @override
+  bool isValidKey(Object? o) => o is Calendar;
 }
