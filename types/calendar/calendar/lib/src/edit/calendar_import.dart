@@ -108,18 +108,16 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
 /// What the calendar holds of the file's [event] once imported over
 /// [mine], its version here (`null`: none): the file's whole event; but
 /// a file of changed occurrences only (e.g. an invite for one date of a
-/// series), over a series held here, changes only those occurrences in
-/// it, each in place of the one for the same date, the rest added.
+/// series), over an event held here (a series, or changed dates only),
+/// changes only those occurrences in it, each in place of the one for
+/// the same date, the rest added.
 CalendarUnit _over(CalendarUnit event, CalendarUnit? mine) {
   final ours = mine == null ? null : CalendarEvent.of(mine);
   final dates = {
     for (final component in event.components)
       EventPart(component).recurrenceId?.local: component,
   };
-  if (ours == null ||
-      ours.series.deleted ||
-      ours.series.recurrenceId != null ||
-      dates.containsKey(null)) {
+  if (ours == null || ours.series.deleted || dates.containsKey(null)) {
     return event;
   }
   final parts = [

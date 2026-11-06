@@ -220,6 +220,30 @@ END:VCALENDAR
     expect(again.written, isEmpty, reason: 'that date is there already');
   });
 
+  test('two invites for single dates of one series add up', () {
+    String invite(String day) =>
+        '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:tennis@example.org
+RECURRENCE-ID:202703${day}T180000
+DTSTAMP:20270301T090000Z
+DTSTART:202703${day}T183000
+DTEND:202703${day}T193000
+SUMMARY:Tennis $day
+END:VEVENT
+END:VCALENDAR
+''';
+    final first = _import(birthday, invite('02')).calendar;
+    final both = importInto(first, _bytes(invite('09')), _at.add(_day));
+    final tennis = both.calendar.eventOf('tennis@example.org')!;
+    expect([tennis.series, ...tennis.changed].map((part) => part.summary), [
+      'Tennis 02',
+      'Tennis 09',
+    ]);
+    expect(_report(both).updated, 1);
+  });
+
   test('one event without UID twice in a file is added once', () {
     const bookClub = '''BEGIN:VEVENT
 DTSTAMP:20270201T090000Z
