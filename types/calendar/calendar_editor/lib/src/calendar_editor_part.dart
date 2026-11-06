@@ -6,14 +6,16 @@ import 'package:truce_files/truce_files.dart';
 
 import 'calendar_import_file.dart';
 
-/// A calendar file's part of the file page: its editor owner, and
-/// whether the calendar can be edited here now. Keeps nothing of how the
-/// calendar shows.
+/// A calendar file's part of the file page: its editor owner, whether
+/// the calendar can be edited here now, and the import of a calendar
+/// file the user picks. Keeps nothing of how the calendar shows.
 final class CalendarEditorPart extends FixedViewEditorPart {
-  /// [now] tells the time each edit is made at, and [startTimer] starts
-  /// the editor's save clock (both fixed in tests).
+  /// [_pickFile] asks the user for a calendar file to import; [now]
+  /// tells the time each edit is made at, and [startTimer] starts the
+  /// editor's save clock (both fixed in tests).
   CalendarEditorPart(
     EditorStart start, {
+    required this._pickFile,
     DateTime Function()? now,
     StartTimer? startTimer,
   }) : owner = calendarOwner(
@@ -32,6 +34,8 @@ final class CalendarEditorPart extends FixedViewEditorPart {
 
   /// The editor owner.
   final CalendarOwner owner;
+
+  final PickCalendarFile _pickFile;
 
   final DateTime Function() _now;
 
@@ -69,11 +73,11 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   /// What came of each import the user asked for ([importFile]).
   Stream<ImportOutcome> get imports => _imports.stream;
 
-  /// Imports the events of the calendar file [pick] asks the user for,
-  /// as one edit; dropped if they pick none, or while the calendar can't
-  /// be edited then. What came of it is told by [imports].
-  Future<void> importFile(PickCalendarFile pick) async {
-    switch (await pick()) {
+  /// Imports the events of a calendar file the user picks, as one edit;
+  /// dropped if they pick none, or while the calendar can't be edited
+  /// then. What came of it is told by [imports].
+  Future<void> importFile() async {
+    switch (await _pickFile()) {
       case Ok(value: final bytes?) when isEditing:
         owner.send(ImportEvents(bytes));
       case Err():

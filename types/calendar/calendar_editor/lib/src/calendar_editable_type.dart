@@ -40,7 +40,7 @@ final class CalendarEditableType extends CalendarFileType
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {
-    final part = CalendarEditorPart(start);
+    final part = CalendarEditorPart(start, pickFile: pickFile);
     return (
       part: part,
       view: CalendarEditorView(
@@ -48,7 +48,6 @@ final class CalendarEditableType extends CalendarFileType
         deviceZone: deviceZone,
         viewChoice: viewChoice,
         starts: starts,
-        pickFile: pickFile,
       ),
     );
   }

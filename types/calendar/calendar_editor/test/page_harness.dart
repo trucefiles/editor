@@ -13,11 +13,13 @@ import 'package:truce_test_support/truce_test_support.dart'
 /// When the tests' edits are made.
 final editedAt = DateTime.utc(2026, 11, 1, 12);
 
-/// A calendar part on [text], its edits made at [now] (else [editedAt]).
+/// A calendar part on [text], its edits made at [now] (else [editedAt]),
+/// importing the file [pickFile] gives (by default none).
 CalendarEditorPart calendarPart(
   String text, {
   bool readOnly = false,
   DateTime Function()? now,
+  PickCalendarFile? pickFile,
 }) => CalendarEditorPart(
   (
     text: text,
@@ -26,6 +28,7 @@ CalendarEditorPart calendarPart(
     readOnly: readOnly,
     isNew: false,
   ),
+  pickFile: pickFile ?? () async => const Ok(null),
   now: now ?? () => editedAt,
   // Never fire: no file keeps the edits here.
   startTimer: ManualTimers().start,
@@ -51,8 +54,7 @@ final FileKey pageFile = (folder: pageFolder, path: pagePath);
 /// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
 /// that keeps the view in [kept] (by default the month), with its Add
 /// button while it can be edited, its hints added to [hints], taking
-/// what [starts] asks of it, importing the file [pickFile] gives (by
-/// default none) from its menu; closes the part's editor once the test
+/// what [starts] asks of it, with the file's menu; closes the part's editor once the test
 /// ends.
 Future<void> pumpPage(
   WidgetTester tester,
@@ -62,7 +64,6 @@ Future<void> pumpPage(
   String? deviceZone,
   KeptView? kept,
   CalendarStarts? starts,
-  PickCalendarFile? pickFile,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
@@ -74,7 +75,6 @@ Future<void> pumpPage(
     deviceZone: () async => deviceZone,
     viewChoice: (kept ?? KeptView()).choice,
     starts: starts ?? CalendarStarts(),
-    pickFile: pickFile ?? () async => const Ok(null),
     now: () => today,
   );
   await tester.pumpWidget(

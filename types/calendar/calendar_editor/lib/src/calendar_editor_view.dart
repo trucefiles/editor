@@ -6,7 +6,6 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart' show ViewSettings;
 
 import 'calendar_editor_part.dart';
-import 'calendar_import_file.dart';
 import 'calendar_start.dart';
 import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
@@ -18,14 +17,12 @@ import 'ui/calendar_page.dart';
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
   /// [_viewChoice] the view event calendars open in; [_starts] what
-  /// calendar pages are asked to start with; [_pickFile] asks for a
-  /// calendar file to import; [now] the time.
+  /// calendar pages are asked to start with; [now] the time.
   CalendarEditorView(
     this._part, {
     required this._deviceZone,
     required this._viewChoice,
     required this._starts,
-    required this._pickFile,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -33,7 +30,6 @@ final class CalendarEditorView extends EditorView {
   final DeviceZone _deviceZone;
   final CalendarViewChoice _viewChoice;
   final CalendarStarts _starts;
-  final PickCalendarFile _pickFile;
   final DateTime Function() _now;
   final _pageStarts = PageStarts();
 
@@ -77,7 +73,7 @@ final class CalendarEditorView extends EditorView {
   ) => [
     if (_part.isEditing && _part.owner.state.calendar != null)
       PopupMenuItem(
-        value: () => unawaited(_part.importFile(_pickFile)),
+        value: () => unawaited(_part.importFile()),
         child: const Text('Import events…'),
       ),
   ];

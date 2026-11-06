@@ -42,15 +42,12 @@ void main() {
   testWidgets('imports the picked file: one undo step, told what came', (
     tester,
   ) async {
-    final part = calendarPart(newCalendarText('Home'));
-    final hints = <String>[];
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2027, 5, 10),
-      hints: hints,
+    final part = calendarPart(
+      newCalendarText('Home'),
       pickFile: () async => Ok(utf8.encode(_picnics)),
     );
+    final hints = <String>[];
+    await pumpPage(tester, part, today: DateTime(2027, 5, 10), hints: hints);
 
     await _import(tester);
     expect(calendarOf(part).events.map((event) => event.series.summary), [
@@ -68,16 +65,13 @@ void main() {
   testWidgets('a file that is no calendar, or not read, changes nothing', (
     tester,
   ) async {
-    final part = calendarPart(newCalendarText('Home'));
-    final hints = <String>[];
     Result<Uint8List?, FileNotRead> pick = Ok(utf8.encode('A note.\n'));
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2027, 5, 10),
-      hints: hints,
+    final part = calendarPart(
+      newCalendarText('Home'),
       pickFile: () async => pick,
     );
+    final hints = <String>[];
+    await pumpPage(tester, part, today: DateTime(2027, 5, 10), hints: hints);
 
     await _import(tester);
     pick = const Err(FileNotRead());
