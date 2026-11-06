@@ -157,10 +157,11 @@ final class FileSession {
 
   /// Completes once the file owner writes no more for now: the edits are
   /// in the file, wait for the user, or wait for the next start; or the
-  /// session ended.
+  /// session stopped or ended.
   Future<void> written() async {
-    if (status is! Editing) return;
-    await changes.firstWhere((_) => status is! Editing, orElse: () {});
+    bool done() => _state is! Running || status is! Editing;
+    if (done()) return;
+    await changes.firstWhere((_) => done(), orElse: () {});
   }
 
   /// Writes the edits kept on this device into the file now; a new

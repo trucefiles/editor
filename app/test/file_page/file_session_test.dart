@@ -50,6 +50,16 @@ void main() {
     expect(session.saveState, SaveState.inFolder);
   });
 
+  test('written is done once the session stopped', () async {
+    final session = fixture.session();
+    await fixture.removeFirstFolder();
+    session.type('mine ');
+    await session.secure(.hide);
+    expect(session.state, isA<Stopped>());
+
+    await session.written().timeout(const Duration(seconds: 1));
+  });
+
   test('written is done at once with nothing to write', () async {
     final session = fixture.session();
     await session.written();

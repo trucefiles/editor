@@ -50,6 +50,7 @@ void main() {
       settingsOf: (key) => settings[key] ?? FileSettings.defaults,
       editSettings: (key, change) async =>
           settings[key] = change(settings[key] ?? FileSettings.defaults),
+      endWait: const Duration(milliseconds: 200),
     );
     addTearDown(controller.dispose);
     return controller;
@@ -86,6 +87,7 @@ void main() {
       delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
       settingsOf: (_) => FileSettings.defaults,
       editSettings: (_, _) async {},
+      endWait: const Duration(seconds: 1),
     ).dispose();
 
     // A notifier told after its dispose fails.

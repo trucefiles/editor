@@ -868,6 +868,15 @@ void main() {
         expect([for (final a in run.all<Answer>()) a.ticket], [exit, hide]);
       });
 
+      test('waits for a move under way, as every secure does', () {
+        final run = _Run.opened('a')
+          ..edit('ab', 1)
+          ..keep()
+          ..send(Move(Ticket()))
+          ..secure(SecureReason.exit);
+        expect(run.all<Answer>(), isEmpty);
+      });
+
       test('waits while newer edits are not on the device yet', () {
         final run = _Run.opened('a')
           ..save('ab', 1)

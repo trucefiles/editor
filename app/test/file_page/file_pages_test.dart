@@ -32,6 +32,7 @@ void main() {
     reachSettled: (_) async => Reach.reachable,
     openFiles: open,
     fileClosed: () => closings++,
+    endWait: const Duration(seconds: 1),
   );
 
   test('a page tells that it closed, once, as it closes', () async {

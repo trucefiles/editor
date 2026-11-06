@@ -5,8 +5,6 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../app_end/app_end.dart';
-
 /// Backs up [text], the open file's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
@@ -99,6 +97,7 @@ final class FileController extends ChangeNotifier {
     required this.delete,
     required this.settingsOf,
     required this.editSettings,
+    required this.endWait,
   }) {
     _following = session.changes.listen((_) {
       _keepOnceFiled();
@@ -113,6 +112,9 @@ final class FileController extends ChangeNotifier {
   final DeleteForUndo delete;
   final FileSettings Function(FileKey file) settingsOf;
   final EditSettings editSettings;
+
+  /// How long the app's end waits at most for the edits to be kept.
+  final Duration endWait;
   late final StreamSubscription<void> _following;
 
   /// The reach of the file's folder changed.
@@ -211,23 +213,22 @@ final class FileController extends ChangeNotifier {
   /// Keeps the edits for [reason] ([FileSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
   /// while the folder can't be reached; as the app ends, on this device
-  /// is enough, and an answer later than [appEndWait] is none. A failed
-  /// save may just have
-  /// started a check of the folder, so this waits for its outcome. Once
-  /// the session stopped, whether it kept them on this device.
+  /// is enough, and no answer within [endWait] is none (a folder that
+  /// hangs). A failed save may just have started a check of the folder,
+  /// so this waits for its outcome. Once the session stopped, whether it
+  /// kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.
     if (session.state case Stopped(:final kept)) return kept ?? false;
-    final secured = session.secure(reason);
-    // The app's end never waits on a folder that hangs: not kept then.
-    if (await switch (reason) {
-      SecureReason.exit => secured.timeout(appEndWait, onTimeout: () => false),
-      SecureReason.close || SecureReason.hide => secured,
-    }) {
-      return true;
-    }
-    return await reachSettled() == Reach.unreachable;
+    final kept = _keep(reason);
+    return switch (reason) {
+      SecureReason.exit => kept.timeout(endWait, onTimeout: () => false),
+      SecureReason.close || SecureReason.hide => kept,
+    };
   }
+
+  Future<bool> _keep(SecureReason reason) async =>
+      await session.secure(reason) || await reachSettled() == Reach.unreachable;
 
   /// Deletes the file with every edit sent; a new file is just
   /// dropped.
