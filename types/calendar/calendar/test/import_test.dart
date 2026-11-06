@@ -242,6 +242,18 @@ END:VCALENDAR
       'Tennis 09',
     ]);
     expect(_report(both).updated, 1);
+    expect(
+      [
+        for (final occurrence in occurrences(
+          both.calendar,
+          DateTime(2027, 3),
+          DateTime(2027, 4),
+        ))
+          if (occurrence.event.uid == 'tennis@example.org') occurrence.start,
+      ],
+      [DateTime(2027, 3, 2, 18, 30), DateTime(2027, 3, 9, 18, 30)],
+      reason: 'each date shows',
+    );
   });
 
   test('a changed date that is unreadable leaves the series as it is', () {

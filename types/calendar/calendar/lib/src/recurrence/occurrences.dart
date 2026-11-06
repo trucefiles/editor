@@ -78,15 +78,23 @@ const _zoneGap = Duration(hours: 26);
 
 Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
   final series = event.series;
+  if (series.changesOccurrence) {
+    // Changed dates only (e.g. invites for single dates of a series held
+    // elsewhere): each shows on its own; the first as the event itself.
+    yield* [
+      ?_shownAt(event, series, span),
+      for (final part in event.changed)
+        ?_shownAt(event, part, span, recurrence: part.recurrenceId),
+    ];
+    return;
+  }
   final (start, end) = (series.start, series.end);
   if (start == null || end == null || series.cancelled || series.deleted) {
     return;
   }
   final rule = series.rule;
-  if ((rule == null && series.rdates.isEmpty) || series.changesOccurrence) {
-    if (span.overlaps(start, end)) {
-      yield Occurrence(event, series, start: start.local, end: end.local);
-    }
+  if (rule == null && series.rdates.isEmpty) {
+    yield* [?_shownAt(event, series, span)];
     return;
   }
   final length = lengthOn(start, end);
@@ -110,25 +118,34 @@ Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
       );
     }
   }
-  for (final part in event.changed) {
-    final (partStart, partEnd) = (part.start, part.end);
-    if (partStart == null ||
-        partEnd == null ||
-        part.cancelled ||
-        part.recurrenceId == null) {
-      continue;
-    }
-    if (span.overlaps(partStart, partEnd)) {
-      yield Occurrence(
-        event,
-        part,
-        start: partStart.local,
-        end: partEnd.local,
-        recurrence: part.recurrenceId,
-      );
-    }
-  }
+  // A changed date that names no occurrence is kept, never shown.
+  yield* [
+    for (final part in event.changed)
+      if (part.recurrenceId case final recurrence?)
+        ?_shownAt(event, part, span, recurrence: recurrence),
+  ];
 }
+
+/// [part] of [event] shown where it is written, as the occurrence
+/// [recurrence]; `null` where its times can't be read, it is cancelled,
+/// or it is outside [span].
+Occurrence? _shownAt(
+  CalendarEvent event,
+  EventPart part,
+  _Span span, {
+  CalendarTime? recurrence,
+}) => switch ((part.start, part.end)) {
+  (final start?, final end?)
+      when !part.cancelled && span.overlaps(start, end) =>
+    Occurrence(
+      event,
+      part,
+      start: start.local,
+      end: end.local,
+      recurrence: recurrence,
+    ),
+  _ => null,
+};
 
 /// How many steps from a series' start the library may walk before it
 /// stops: its highest limit. A series past it shows up to there.
