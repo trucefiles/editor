@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,6 +129,39 @@ void main() {
       icon().center.dy,
       closeTo(tester.getCenter(find.text('Title')).dy, 1),
     );
+  });
+
+  testWidgets('on touch, a long press on the type icon asks for the '
+      "card's actions, not the icon's name", (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    var asked = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 240,
+              child: FileCard(
+                file,
+                preview: read('# Title'),
+                onTap: () {},
+                onActions: () => asked++,
+                onActionsAt: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.longPress(
+      find.descendant(of: find.byType(FileCard), matching: find.byType(Icon)),
+    );
+    await tester.pumpAndSettle();
+    debugDefaultTargetPlatformOverride = null;
+
+    expect(asked, 1);
+    expect(find.text('Markdown'), findsNothing);
   });
 
   group('footer', () {
