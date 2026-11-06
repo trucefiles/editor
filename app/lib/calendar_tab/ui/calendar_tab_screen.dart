@@ -127,6 +127,8 @@ class CalendarTabScreen extends ConsumerWidget {
     WidgetRef ref,
     Color Function(ListedFile file) colorOf,
   ) async {
+    // The hint's Open may come after the tab is gone.
+    if (!context.mounted) return;
     final calendars = ref.read(calendarTabProvider).value ?? const [];
     final picked = await pickCalendar(context, calendars, colorOf);
     if (picked == null || !context.mounted) return;

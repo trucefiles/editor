@@ -6,12 +6,13 @@ import 'calendar_dot.dart';
 
 /// The calendar of [calendars] to open: the only one, else the one the
 /// user picks, each shown by its color ([colorOf]) and title; `null` if
-/// cancelled.
+/// there is none or the user cancels.
 Future<ListedFile?> pickCalendar(
   BuildContext context,
   List<TabCalendar> calendars,
   Color Function(ListedFile file) colorOf,
 ) async => switch (calendars) {
+  [] => null,
   [final only] => only.file,
   _ => await showDialog<ListedFile>(
     context: context,

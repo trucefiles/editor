@@ -65,8 +65,8 @@ to the next or previous month, week or day. Once your
 folders hold a calendar, the **Calendars** tab shows the events of all
 of them in the same views. Tap an event there to see it, then open its
 calendar or edit it on its page. To add or change events, open one
-calendar with the calendar button; a tap on a free day there reminds
-you. When two devices changed
+calendar with the calendar button; a tap on a free day in the tab
+reminds you. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.

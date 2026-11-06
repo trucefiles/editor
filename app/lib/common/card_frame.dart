@@ -117,7 +117,7 @@ class _Title extends StatelessWidget {
             height: lineHeightOf(style, scaler),
             child: Center(
               child: IconTheme.merge(
-                data: IconThemeData(size: scaler.scale(style?.fontSize ?? 16)),
+                data: IconThemeData(size: scaler.scale(style!.fontSize!)),
                 child: leading,
               ),
             ),

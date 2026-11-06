@@ -400,6 +400,37 @@ void main() {
     expect(find.text('New event'), findsNothing);
   });
 
+  testWidgets('a drag over free days in the Calendar tab says to open a '
+      'calendar and adds nothing', (tester) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'home.ics': newCalendarText('Home'),
+    });
+    await showCalendarTab(tester);
+
+    final from = tester.getCenter(find.text('10')) + const Offset(0, 40);
+    final to = tester.getCenter(find.text('12')) + const Offset(0, 40);
+    final gesture = await tester.startGesture(
+      from,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    for (var step = 0; step < 10; step++) {
+      await gesture.moveBy((to - from) / 10);
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open one calendar to edit'), findsOne);
+    expect(find.text('New event'), findsNothing);
+    expect(find.byType(FileScreen), findsNothing);
+    expect(
+      File('${dir.path}/home.ics').readAsStringSync(),
+      newCalendarText('Home'),
+    );
+  });
+
   testWidgets('an event tapped in the Calendar tab shows; Edit opens its '
       'form on its calendar page', (tester) async {
     // Tall enough for the month's rows to show their events.
@@ -416,6 +447,14 @@ void main() {
     expect(find.text('Open calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
+    expect(find.byType(FileScreen), findsOne);
+
+    // Esc closes the event form, as on every page, and leaves the
+    // calendar's page under it open.
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit event'), findsNothing);
     expect(find.byType(FileScreen), findsOne);
   });
 
