@@ -30,14 +30,18 @@ final class ExistingFile extends PageFile {
 /// A new file of [type]: its file goes to [place], named [name], or
 /// after its first line while [name] is `null`; a number is added if the
 /// name is taken then. [newSubfolder]: [place]'s subfolder is a new one
-/// the user asked for, made right before the file.
+/// the user asked for, made right before the file. It starts with
+/// [start], written only with the user's first edit.
 final class NewFile extends PageFile {
   const NewFile(
     this.place, {
     required this.type,
+    this.start = '',
     this.name,
     this.newSubfolder = false,
   });
+
+  final String start;
 
   final FilePlace place;
 

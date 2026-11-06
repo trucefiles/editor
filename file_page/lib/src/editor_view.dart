@@ -42,6 +42,16 @@ abstract base class EditorView {
   /// away if [autofocus] (e.g. a new file).
   Widget view(EditorHost host, {required bool autofocus});
 
+  /// The title in the app bar: [fileTitle], the file's title as the page
+  /// shows it, or the type's own in its place (e.g. a calendar's name,
+  /// edited right there). [nameTitle] is the title from the file's name
+  /// alone, whatever its text says.
+  Widget title(
+    BuildContext context,
+    Widget fileTitle, {
+    required String nameTitle,
+  }) => fileTitle;
+
   /// What the type adds to the app bar (e.g. the mode menu).
   List<Widget> actions(BuildContext context) => const [];
 

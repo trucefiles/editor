@@ -29,29 +29,51 @@ const previewAhead = Duration(days: 366);
 /// next occurrences (or cycle) as the preview. A text that is no
 /// calendar has no title and an empty preview.
 final class CalendarSummary implements TextSummary<CalendarPreview> {
-  CalendarSummary(this._text) : calendar = Calendar.read(_text);
+  /// What lists show of [text], read.
+  factory CalendarSummary(String text) => switch (Calendar.read(text)) {
+    final calendar? => CalendarSummary.of(calendar),
+    null => CalendarSummary._(null, text),
+  };
 
-  final String _text;
+  /// What lists show of [calendar]'s text, from it as read.
+  CalendarSummary.of(Calendar calendar) : this._(calendar, null);
+
+  CalendarSummary._(this.calendar, this._noCalendar);
+
+  /// The text, kept only when it is no calendar.
+  final String? _noCalendar;
 
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
 
+  /// The name the calendar shows under (see [Calendar.shownName]);
+  /// `null` if it has none, so the file's name shows.
   @override
-  String? get title => firstLine.isEmpty ? null : firstLine;
+  late final String? title = switch (calendar?.shownName) {
+    final name? when name.isNotEmpty => name,
+    _ => null,
+  };
 
+  /// The calendar's name; a calendar with none is named after its kind
+  /// ("Calendar", "Health calendar"), as a new file is.
   @override
-  late final String firstLine = calendar?.name.trim() ?? '';
+  late final String firstLine =
+      title ??
+      switch (calendar) {
+        final calendar? => kindName(health: calendar.isHealth),
+        null => '',
+      };
 
   /// What a search finds: the name and each event's title, place and
   /// notes, deleted events left out; a text that is no calendar as it is.
   late final String searchText = switch (calendar) {
     final calendar? => [
-      calendar.name,
+      calendar.shownName,
       for (final event in calendar.events)
         for (final part in [event.series, ...event.changed])
           if (!part.deleted) ...[part.summary, part.location, part.description],
     ].where((text) => text.isNotEmpty).join('\n'),
-    null => _text,
+    null => _noCalendar!,
   };
 
   @override

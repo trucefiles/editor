@@ -107,14 +107,7 @@ final class FileFixture {
   /// A session on [file], by default on [this.file]; disposed after the test.
   FileSession session([PageFile? file, TextMerge? merge]) {
     final start = file ?? ExistingFile(this.file);
-    final session = markdownSession(
-      switch (start) {
-        ExistingFile(file: final file) => file,
-        NewFile() => null,
-      },
-      effects(start),
-      merge: merge,
-    );
+    final session = markdownSession(start, effects(start), merge: merge);
     addTearDown(session.dispose);
     return session;
   }

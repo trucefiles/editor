@@ -307,4 +307,66 @@ void main() {
       GoneMeanwhile.event,
     ]);
   });
+
+  test('typing a name is one undo step, which an event edit ends', () {
+    final run = _run(newCalendarText(''))
+      ..send(const RenameCalendar('H'))
+      ..send(const RenameCalendar('Ho'))
+      ..send(const RenameCalendar('Home'));
+    expect(run.state.calendar!.name, 'Home');
+    expect(run.state.text, newCalendarText('Home'));
+    expect(run.state.status.unsent, isTrue);
+
+    run
+      ..send(EditCalendar(_gym, newUid: 'new@t'))
+      ..send(const RenameCalendar('Home!'))
+      ..send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.name, 'Home');
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.eventOf('gym@t')!.series.deleted, isTrue);
+    run.send(CalendarRequest(const Undo(), at: _later));
+    expect(run.state.calendar!.name, '');
+    expect(run.state.status.canUndo, isFalse);
+
+    run.send(CalendarRequest(const Redo(), at: _later));
+    expect(run.state.calendar!.name, 'Home');
+  });
+
+  test('the same name, or a text that is no calendar, takes no rename', () {
+    final run = _run(birthday)..send(const RenameCalendar('Birthdays'));
+    expect(run.state.status.canUndo, isFalse);
+    final none = _run('no calendar')..send(const RenameCalendar('X'));
+    expect(
+      (none.state.text, none.state.status.canUndo),
+      ('no calendar', false),
+    );
+  });
+
+  test('a rename keeps the units and reads nothing again', () {
+    final run = _run(birthday);
+    final before = run.state.calendar!;
+    run.send(const RenameCalendar('Family'));
+    final shown = run.state.calendar!;
+    expect(shown.showsSameDaysAs(before), isTrue);
+    expect(run.state.summary.calendar, same(shown));
+    expect(run.state.text, shown.text);
+  });
+
+  test('typing a name in a large calendar takes no pass over it per key', () {
+    // About 2 MB; each key printed the whole file before.
+    final events = [
+      for (final n in Iterable<int>.generate(20000))
+        'BEGIN:VEVENT\nUID:$n\nDTSTART:20260101T100000Z\n'
+            'SUMMARY:Event $n with a few words\nEND:VEVENT\n',
+    ];
+    final run = _run('BEGIN:VCALENDAR\n${events.join()}END:VCALENDAR\n');
+    final watch = Stopwatch()..start();
+    for (final n in Iterable<int>.generate(1000)) {
+      run.send(RenameCalendar('Home $n'));
+    }
+    // Budget: 1000 keys in a second; with a pass per key they took over
+    // ten.
+    expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
+    expect(run.state.calendar!.name, 'Home 999');
+  });
 }

@@ -45,7 +45,8 @@ own, with a name and a color.
 ## Calendars
 
 Calendars are `.ics` files, the format other calendar apps use. **New
-file** offers a calendar or a health calendar, named first. A
+file** offers a calendar or a health calendar; it opens at once, and
+its name is typed right in its title, now or any time later. A
 calendar's card shows its next events. Its page shows a month, a week,
 a day or a schedule, the one you picked last. Tap a free time to add an
 event there, a day in the month for an all-day event, or drag over a few
@@ -56,8 +57,9 @@ have its own color; otherwise it shows in its calendar's color (the
 file's color, else its folder's). A health calendar shows in the same
 views: **+** lists its kinds of entry (medication, symptom, measure,
 note, period), each with its own form and color. Once a period is
-written, the month shades period days and fertile days, stripes the
-likely next period, and the line below tells the day of the cycle.
+written, the month shades period days and fertile days, shades the
+likely next period lighter with faint stripes, and the line below tells
+the day of the cycle.
 Today always has a blue outline. With a mouse, Shift and the wheel page
 to the next or previous month, week or day. Once your
 folders hold a calendar, the **Calendar** tab shows the events of all
@@ -71,7 +73,7 @@ kept.
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
-<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period striped, today outlined, the cycle line below">
+<img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendar tab: two calendars as chips above one month">
 <img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendar tab: its details with Open calendar and Edit">
 

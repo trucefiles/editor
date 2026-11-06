@@ -12,6 +12,7 @@ import 'package:truce_core/truce_core.dart'
 import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
+import '../support/calendar_summary.dart';
 
 export 'calendar_step.dart';
 
@@ -35,6 +36,15 @@ final class EditCalendar extends CalendarInput {
 
   final CalendarEdit edit;
   final String newUid;
+}
+
+/// The user names the calendar [name] (none if empty), as typed so far:
+/// typing on in a name joins one undo step. Dropped while the text is no
+/// calendar, or if the name is the same.
+final class RenameCalendar extends CalendarInput {
+  const RenameCalendar(this.name);
+
+  final String name;
 }
 
 /// A request of the file page (see core's editor contract), made
@@ -94,18 +104,42 @@ final class SavedAsNew extends CalendarOwnerEvent {
 
 // State.
 
-/// What the page shows: the calendar's [text], read as [calendar] (`null`
-/// if it is none: it shows, and takes no edits).
+/// What the page shows: a [calendar], or a [text] that is none (it
+/// shows, and takes no edits). A calendar's text is printed only when
+/// asked, so an edit costs no print of the whole file.
 final class CalendarState {
+  /// [text], as read: [calendar], `null` if it is none.
   const CalendarState(
-    this.text,
-    this.calendar, {
+    String text,
+    Calendar? calendar, {
+    required int revision,
+    required EditorStatus status,
+  }) : this._(
+         calendar,
+         calendar == null ? text : null,
+         revision: revision,
+         status: status,
+       );
+
+  /// [calendar], its text printed only when asked.
+  const CalendarState.of(
+    Calendar calendar, {
+    required int revision,
+    required EditorStatus status,
+  }) : this._(calendar, null, revision: revision, status: status);
+
+  const CalendarState._(
+    this.calendar,
+    this._noCalendar, {
     required this.revision,
     required this.status,
   });
 
-  final String text;
+  /// The calendar shown; `null` if the text is none.
   final Calendar? calendar;
+
+  /// The text, kept only when it is no calendar.
+  final String? _noCalendar;
 
   /// Counts the changes to what shows.
   final int revision;
@@ -113,4 +147,21 @@ final class CalendarState {
   /// What it tells of the edits: whether some are only in memory, and
   /// what undo and redo can do.
   final EditorStatus status;
+
+  /// The text shown.
+  String get text => calendar?.text ?? _noCalendar!;
+
+  /// What lists show of [text], from the calendar as read.
+  CalendarSummary get summary => switch (calendar) {
+    final calendar? => CalendarSummary.of(calendar),
+    null => CalendarSummary(text),
+  };
+
+  /// The same shown, telling [status].
+  CalendarState withStatus(EditorStatus status) => CalendarState._(
+    calendar,
+    _noCalendar,
+    revision: revision,
+    status: status,
+  );
 }

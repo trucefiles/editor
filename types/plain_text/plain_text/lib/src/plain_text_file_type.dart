@@ -19,6 +19,9 @@ base class PlainTextFileType implements ShownFileType {
   @override
   TextFile get newFile => const TextFile.empty();
 
+  @override
+  List<NewFileKind> get newKinds => const [NewFileKind('Plain text')];
+
   /// The whole text.
   @override
   String searchText(FileText read) => read.text;

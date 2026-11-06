@@ -11,7 +11,10 @@ import '../read/values.dart';
 /// changed, or any unit without a base, takes the newer edit. A unit on one
 /// side only is kept: a deleted event stays as a marker, so a missing one
 /// is never taken as deleted. Order: `main`'s units, then `other`'s new
-/// ones; the calendar's own properties and layout are `main`'s. Time
+/// ones; the calendar's own properties and layout are `main`'s, but for
+/// its name, which merges as a unit does, `main`'s where both changed it
+/// (an empty name lost is not told).
+/// Time
 /// zone blocks merge by zone like events (ours carry no stamp, so the
 /// smaller text wins; both are right) and never count as lost. Never
 /// changes a unit's text. Deterministic and idempotent.
@@ -26,33 +29,65 @@ final class CalendarMerge implements TextMerge {
     final winners = {
       for (final unit in others.units)
         if (mains.unitOf(unit.key) case final mine?)
-          unit.key: _keptOf(mine, unit, bases?.unitOf(unit.key)),
+          unit.key: _kept(
+            mine,
+            unit,
+            bases?.unitOf(unit.key),
+            (unit) => unit.text,
+            tie: () => _newerOf(mine, unit),
+          ),
     };
+    final name = _kept(
+      mains.name,
+      others.name,
+      bases?.name,
+      (name) => name,
+      tie: () => mains.name,
+    );
     return MergedText(
-      mains.withUnits([
-        for (final unit in others.units) winners[unit.key] ?? unit,
-      ]).text,
+      mains
+          .withUnits([
+            for (final unit in others.units) winners[unit.key] ?? unit,
+          ])
+          .named(name)
+          .text,
       lost: [
+        if (others.name.isNotEmpty &&
+            _overwritten(others.name, name, bases?.name))
+          'Calendar name',
         for (final unit in others.units)
           if (winners[unit.key] case final winner? when unit.key is! ZoneKey)
             for (final side in [mains.unitOf(unit.key)!, unit])
-              if (side.text != winner.text &&
-                  bases?.unitOf(unit.key)?.text != side.text)
+              if (_overwritten(
+                side.text,
+                winner.text,
+                bases?.unitOf(unit.key)?.text,
+              ))
                 nameOfUnit(side),
       ],
     );
   }
 }
 
-/// The version of one unit a merge keeps, of [a] and [b]: when one
-/// still is [base], the other one (it holds the only change, stamped or
-/// not); else the newer.
-CalendarUnit _keptOf(CalendarUnit a, CalendarUnit b, CalendarUnit? base) =>
-    switch (base?.text) {
-      final text? when a.text == text => b,
-      final text? when b.text == text => a,
-      _ => _newerOf(a, b),
-    };
+/// The side a merge keeps of one thing (a unit, the name), of [a] and
+/// [b] as [textOf] reads them: when one still is [base], the other one
+/// (it holds the only change, stamped or not); else [tie].
+T _kept<T>(
+  T a,
+  T b,
+  T? base,
+  String Function(T side) textOf, {
+  required T Function() tie,
+}) => switch (base == null ? null : textOf(base)) {
+  final text? when textOf(a) == text => b,
+  final text? when textOf(b) == text => a,
+  _ => tie(),
+};
+
+/// Whether a merge that kept [kept] lost [side]: it differs, and it is a
+/// change from [base] (or there is none).
+bool _overwritten(String side, String kept, String? base) =>
+    side != kept && side != base;
 
 /// The newer of two versions [a] and [b] of one unit: by its latest
 /// `LAST-MODIFIED` (none is oldest), then its highest `SEQUENCE`, then

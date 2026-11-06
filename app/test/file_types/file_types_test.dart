@@ -37,11 +37,11 @@ void main() {
     expect(types.of(path('a.pdf')), isNull);
   });
 
-  test('a plain new file is a note; calendars are made named', () {
+  test('each type offers its new files; a plain new file is a document', () {
     final types = appFileTypes();
     expect(
       [for (final made in types.newFileChoices) made.label],
-      ['Note', 'Calendar', 'Health calendar'],
+      ['Document', 'Plain text', 'Calendar', 'Health calendar'],
     );
     expect(types.forNew, isA<MarkdownEditableType>());
   });

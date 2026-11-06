@@ -47,14 +47,16 @@ void main() {
     const TextFile.empty().withText(_birthday),
   );
 
-  test('a new calendar starts as its named, empty calendar', () {
+  test('a new calendar starts empty, with no name', () {
     final type = calendars();
-    final [plain, health] = newCalendarChoices(type);
+    final [plain, health] = type.newKinds;
     expect([plain.label, health.label], ['Calendar', 'Health calendar']);
-    expect(plain.type, same(type));
-    expect(Calendar.read(plain.startText('Home'))!.name, 'Home');
-    expect(Calendar.read(plain.startText('Home'))!.isHealth, isFalse);
-    expect(Calendar.read(health.startText('Me'))!.isHealth, isTrue);
+    for (final (kind, isHealth) in [(plain, false), (health, true)]) {
+      final calendar = Calendar.read(kind.start)!;
+      expect((calendar.name, calendar.isHealth), ('', isHealth));
+      expect(calendar.units, isEmpty);
+      expect(kind.start, isNot(contains('X-WR-CALNAME')));
+    }
     expect(utf8.decode(type.newFile.encode('a\nb')), 'a\r\nb');
     expect(type.newFileExtension, '.ics');
   });

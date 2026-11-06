@@ -8,25 +8,22 @@ import 'calendar_unit.dart';
 /// One calendar file, read: the lines up to its first unit ([head]: the
 /// calendar's own properties), its [units] in order, and the lines from
 /// its end on ([tail]). Prints back byte for byte, each unit's parts where
-/// they were ([_layout]); an edit replaces whole units, an edited unit
-/// printed where its first part was. Immutable; questions are lookups on
-/// it.
+/// they were); an edit replaces whole units, an edited unit printed where
+/// its first part was. Immutable; questions are lookups on it, and a
+/// rename keeps what was worked out of its units.
 final class Calendar {
-  Calendar._(this.head, this.units, this.tail, this._layout)
-    : _byKey = {for (final unit in units) unit.key: unit};
+  Calendar._(this.head, this._body, this.tail);
 
   /// The text up to the first unit: `BEGIN:VCALENDAR` and the calendar's
   /// properties.
   final String head;
-  final List<CalendarUnit> units;
+
+  final _Body _body;
 
   /// `END:VCALENDAR` and anything after it.
   final String tail;
 
-  final Map<UnitKey, CalendarUnit> _byKey;
-
-  /// Where each part of each unit prints, in order.
-  final List<_Slot> _layout;
+  List<CalendarUnit> get units => _body.units;
 
   /// The calendar in [text] (`\n` line breaks); `null` if it is none.
   static Calendar? read(String text) {
@@ -51,42 +48,37 @@ final class Calendar {
     final tail = _textOf(lines.sublist(end));
     return Calendar._(
       _textOf(lines.sublist(0, begin + 1 + headCount)),
-      units,
+      _Body(units, layout),
       // Its last line break only if the text has one.
       text.endsWith('\n') ? tail : tail.substring(0, tail.length - 1),
-      layout,
     );
   }
 
   /// The calendar's text.
   late final String text = [
     head,
-    for (final (:key, :part) in _layout)
-      if (_byKey[key]!.parts case final parts when part < parts.length)
+    for (final (:key, :part) in _body.layout)
+      if (_body.byKey[key]!.parts case final parts when part < parts.length)
         parts[part],
     tail,
   ].join();
 
+  /// Whether [other] shows the same days: the very units this one holds
+  /// (as [named] keeps them), so the same events, of the same kind.
+  bool showsSameDaysAs(Calendar other) =>
+      identical(_body, other._body) && isHealth == other.isHealth;
+
   /// The unit [key]; `null` if there is none.
-  CalendarUnit? unitOf(UnitKey key) => _byKey[key];
+  CalendarUnit? unitOf(UnitKey key) => _body.byKey[key];
 
   /// The calendar's events, deleted ones' markers among them, in order.
-  late final List<CalendarEvent> events = [
-    for (final unit in units) ?CalendarEvent.of(unit),
-  ];
-
-  late final Map<String, CalendarEvent> _eventsByUid = {
-    for (final event in events) event.uid: event,
-  };
+  List<CalendarEvent> get events => _body.events;
 
   /// The event [uid]; `null` if there is none.
-  CalendarEvent? eventOf(String uid) => _eventsByUid[uid];
+  CalendarEvent? eventOf(String uid) => _body.eventsByUid[uid];
 
   /// The time zones it holds a block for.
-  late final Set<String> zones = {
-    for (final unit in units)
-      if (unit.key case ZoneKey(:final zone)) zone,
-  };
+  Set<String> get zones => _body.zones;
 
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
@@ -96,9 +88,22 @@ final class Calendar {
 
   /// The calendar's name, as other apps show it; empty if it has none.
   late final String name = unescapeText(
-    properties.firstWhereOrNull((line) => line.name == 'X-WR-CALNAME')?.value ??
+    properties.firstWhereOrNull((line) => line.name == _nameProperty)?.value ??
         '',
   );
+
+  /// The name the standard's `NAME` property gives it (RFC 7986), which
+  /// some apps write; read only, never written. Empty if it has none.
+  late final String standardName = unescapeText(
+    properties.firstWhereOrNull((line) => line.name == 'NAME')?.value ?? '',
+  ).trim();
+
+  /// The name it shows under: its [name], else its [standardName]; empty
+  /// if it has neither.
+  late final String shownName = switch (name.trim()) {
+    '' => standardName,
+    final name => name,
+  };
 
   /// Whether it is a health calendar (shown with its cycle).
   late final bool isHealth = properties.any(
@@ -106,6 +111,26 @@ final class Calendar {
         line.name == healthFlag.name &&
         line.value.toUpperCase() == healthFlag.value,
   );
+
+  /// This calendar named [name] (none if empty): only its name line
+  /// changes, written in place of the old one, or as the last of its own
+  /// properties if it had none; itself if it is named so already.
+  Calendar named(String name) {
+    if (name == this.name) return this;
+    final old = properties.firstWhereOrNull(
+      (line) => line.name == _nameProperty,
+    );
+    final written = [?_nameLine(name, old)].map((line) => '${line.printed}\n');
+    return Calendar._(
+      switch (old?.raw) {
+        // After the line before it, so no other line's end matches.
+        final raw? => head.replaceFirst('\n$raw\n', '\n${written.join()}'),
+        null => '$head${written.join()}',
+      },
+      _body,
+      tail,
+    );
+  }
 
   /// This calendar with [unit] in place of the one with its key, or added
   /// at the end.
@@ -118,25 +143,27 @@ final class Calendar {
     final byKey = {for (final unit in changes) unit.key: _fitted(unit)};
     final added = [
       for (final unit in byKey.values)
-        if (!_byKey.containsKey(unit.key)) unit,
+        if (!_body.byKey.containsKey(unit.key)) unit,
     ];
     return Calendar._(
       head,
-      [for (final each in units) byKey[each.key] ?? each, ...added],
+      _Body(
+        [for (final each in units) byKey[each.key] ?? each, ...added],
+        [
+          ..._body.layout,
+          for (final unit in added)
+            for (final index in Iterable<int>.generate(unit.parts.length))
+              (key: unit.key, part: index),
+        ],
+      ),
       tail,
-      [
-        ..._layout,
-        for (final unit in added)
-          for (final index in Iterable<int>.generate(unit.parts.length))
-            (key: unit.key, part: index),
-      ],
     );
   }
 
   /// [unit] as it fits the places of the unit it replaces: its parts
   /// there, or, if it has not as many, its whole text where that unit's
   /// first part was.
-  CalendarUnit _fitted(CalendarUnit unit) => switch (_byKey[unit.key]) {
+  CalendarUnit _fitted(CalendarUnit unit) => switch (_body.byKey[unit.key]) {
     final old? when old.parts.length != unit.parts.length => CalendarUnit.read(
       unit.key,
       [unit.text],
@@ -146,16 +173,33 @@ final class Calendar {
   };
 }
 
+/// The name line for [name], keeping the parameters of the [old] one;
+/// `null` for an empty name, which a calendar holds as no line.
+ContentLine? _nameLine(String name, [ContentLine? old]) => name.isEmpty
+    ? null
+    : ContentLine(
+        _nameProperty,
+        escapeText(name),
+        params: old?.params ?? const {},
+      );
+
+const _nameProperty = 'X-WR-CALNAME';
+
+/// What a calendar is called by its kind: as the user picks a new one,
+/// and as one without a name is named.
+String kindName({required bool health}) =>
+    health ? 'Health calendar' : 'Calendar';
+
 /// The calendar property that makes a calendar a health calendar.
 const healthFlag = ContentLine('X-TRUCE-CALENDAR', 'HEALTH');
 
-/// The text of a new calendar named [name], a health calendar if
-/// [health]: no events yet.
+/// The text of a new calendar named [name] (none if empty), a health
+/// calendar if [health]: no events yet.
 String newCalendarText(String name, {bool health = false}) => [
   'BEGIN:VCALENDAR',
   'VERSION:2.0',
   'PRODID:-//Truce Editor//Calendar//EN',
-  ContentLine('X-WR-CALNAME', escapeText(name)).printed,
+  ?_nameLine(name)?.printed,
   if (health) healthFlag.printed,
   'END:VCALENDAR',
   '',
@@ -166,6 +210,34 @@ typedef _Line = ({String unfolded, String raw});
 /// One place in the file: part [part] of the unit [key].
 typedef _Slot = ({UnitKey key, int part});
 
+/// A calendar's [units] with where each part prints ([layout]), and what
+/// is worked out of them, once: kept as it is by a rename.
+final class _Body {
+  _Body(this.units, this.layout);
+
+  final List<CalendarUnit> units;
+
+  /// Where each part of each unit prints, in order.
+  final List<_Slot> layout;
+
+  late final Map<UnitKey, CalendarUnit> byKey = {
+    for (final unit in units) unit.key: unit,
+  };
+
+  late final List<CalendarEvent> events = [
+    for (final unit in units) ?CalendarEvent.of(unit),
+  ];
+
+  late final Map<String, CalendarEvent> eventsByUid = {
+    for (final event in events) event.uid: event,
+  };
+
+  late final Set<String> zones = {
+    for (final unit in units)
+      if (unit.key case ZoneKey(:final zone)) zone,
+  };
+}
+
 bool _begins(_Line line) => line.unfolded.toUpperCase().startsWith('BEGIN:');
 
 String _textOf(List<_Line> lines) =>
@@ -173,33 +245,37 @@ String _textOf(List<_Line> lines) =>
 
 /// [lines] split into components (each from its `BEGIN` to its `END`)
 /// and runs of other lines between them; `null` if a component doesn't
-/// end.
+/// end. One pass over [lines]: each block is a range of them.
 List<List<_Line>>? _blocks(List<_Line> lines) {
   final blocks = <List<_Line>>[];
-  var rest = lines;
-  while (rest.isNotEmpty) {
-    if (_begins(rest.first)) {
-      final end = _endOf(rest);
-      if (end < 0) return null;
-      blocks.add(rest.sublist(0, end + 1));
-      rest = rest.sublist(end + 1);
-    } else {
-      final next = rest.indexWhere(_begins);
-      final count = next < 0 ? rest.length : next;
-      blocks.add(rest.sublist(0, count));
-      rest = rest.sublist(count);
-    }
+  var start = 0;
+  while (start < lines.length) {
+    final end = _begins(lines[start])
+        ? _endOf(lines, start) + 1
+        : _nextBegin(lines, start);
+    // A component that doesn't end.
+    if (end <= start) return null;
+    blocks.add(lines.sublist(start, end));
+    start = end;
   }
   return blocks;
 }
 
-/// Where the component [lines] begin with ends; -1 if it doesn't.
-int _endOf(List<_Line> lines) {
-  final name = lines.first.unfolded.substring('BEGIN:'.length).trim();
+/// Where the next component after [from] in [lines] begins; their
+/// length if none does.
+int _nextBegin(List<_Line> lines, int from) {
+  final next = lines.indexWhere(_begins, from + 1);
+  return next < 0 ? lines.length : next;
+}
+
+/// Where the component that begins at [start] in [lines] ends; -1 if it
+/// doesn't.
+int _endOf(List<_Line> lines, int start) {
+  final name = lines[start].unfolded.substring('BEGIN:'.length).trim();
   final (begin, end) = ('BEGIN:$name'.toUpperCase(), 'END:$name'.toUpperCase());
   var depth = 0;
-  for (final (index, line) in lines.indexed) {
-    final upper = line.unfolded.trim().toUpperCase();
+  for (var index = start; index < lines.length; index++) {
+    final upper = lines[index].unfolded.trim().toUpperCase();
     if (upper == begin) depth++;
     if (upper == end && --depth == 0) return index;
   }

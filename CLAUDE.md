@@ -33,7 +33,7 @@ Prefer the simpler option when in doubt.
 ## Code style
 - Best design first: model the domain with the right entities and abstractions, then code it; never a quick version, or one shaped after old code, to clean up later.
 - Declarative over procedural: say what a value is (collection literals and comprehensions, `map`/`where`/`fold`, `switch` expressions with patterns, `package:collection` helpers), not how to build it step by step. No index loops, counters or flags where a declarative form reads as well.
-- Functional where possible: pure functions and immutable values; structure is derived once in an entity (e.g. a parsed tree) and questions are lookups on it, never rescans.
+- Functional where possible: pure functions and immutable values.
 - Object-oriented where state or identity is real: an entity owns its data and the rules on it; closed sets of cases are sealed classes, matched exhaustively.
 - Mutation only where it is the job (a session, an editor bridge), inside one owner. A loop with local state only where it is the clearest form (e.g. a single-pass parser).
 - One rule, one place: logic two operations share is one helper, never two variants.
@@ -50,6 +50,11 @@ Prefer the simpler option when in doubt.
 - Edits say what, one writer says how: an edit states the new structure (text, kind, checked, level, position) and never builds file text; one writer per file format turns the doc tree into text, keeping each block's own style. New editing features (headings, quotes, tables) follow the same shape.
 - Concurrency: reads that follow a write must see that write.
 
+## Performance and memory
+- Work grows with the change, not with the data, where the data can grow (a file's text, a folder's files): handle only what changed, and say what changed, so no receiver has to find it by comparing whole values. A full pass only where the result needs the whole (a save) or its cost was agreed.
+- Compute once, when asked: derive each answer once per input, in the entity that owns the input (e.g. a parsed tree per file version), and look it up there; hold no second copy of data for convenience, ask its owner.
+- No quadratic work (e.g. a copy or full walk per item).
+
 ## Quality
 - A trusted, maintained library (or the framework's own) beats own code; own code only where none fits these rules, and the code says why.
 - Only well-trusted dependencies, pinned where normal (actions by commit SHA, SDKs by version, packages via lock files, wrappers by hash). Report where pinning isn't possible.
@@ -57,6 +62,7 @@ Prefer the simpler option when in doubt.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.
 - Unit tests for every pure package and the view models; UI tests for user flows.
+- Hot paths (per keystroke, per listing) get speed tests at sizes well past normal use, against a stated budget with a margin so CI stays green.
 - Changes that affect how the UI looks (layout, theme, visuals; not animations or behavior) are also checked with a few screenshots, at least locally (e.g. a UI test on Linux saving the view's layer as PNG), on desktop and touch looks and at a larger text size where it matters.
 - Generic code is tested in its own package against fakes (e.g. a fake sync tool); each implementation tests the same flows on its real code.
 - Shared test doubles live in the test-only packages (`test_support`; `editor_test_support` for Flutter helpers), never in a production `lib`.

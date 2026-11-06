@@ -2,6 +2,7 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_card_summary.dart';
 import 'file_text.dart';
+import 'new_file_choice.dart';
 
 /// What one file type brings: its files ([support]), what cards show
 /// of a text, and whether two texts of it can be merged ([merge]).
@@ -13,6 +14,10 @@ abstract interface class ShownFileType {
 
   /// The byte style of a new file of this type (e.g. its line breaks).
   TextFile get newFile;
+
+  /// What new files of this type the user can make, in the order the
+  /// user picks from; empty if none.
+  List<NewFileKind> get newKinds;
 
   /// What cards and search show of [read], from its summary.
   FileCardSummary cardSummary(FileText read);

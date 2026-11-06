@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/files/new_file/pick_new_file.dart';
+import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../../support.dart';
 
@@ -11,7 +13,7 @@ void main() {
   /// Asks what to make new, and gives what the user picked to [picked].
   Future<void> pumpPicker(
     WidgetTester tester,
-    void Function(NewPick? pick) picked,
+    void Function(NewFileChoice<EditableType>? pick) picked,
   ) => tester.pumpWidget(
     MaterialApp(
       home: Builder(
@@ -23,36 +25,26 @@ void main() {
     ),
   );
 
-  testWidgets('a document opens unnamed; a calendar is named first', (
-    tester,
-  ) async {
-    NewPick? pick;
+  testWidgets('every kind opens at once, a calendar too', (tester) async {
+    NewFileChoice<EditableType>? pick;
     await pumpPicker(tester, (picked) => pick = picked);
 
     await tester.tap(find.text('New'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(choices.first.label));
-    await tester.pumpAndSettle();
-    expect((pick!.made, pick!.name), (choices.first, ''));
-
-    await tester.tap(find.text('New'));
-    await tester.pumpAndSettle();
+    expect(
+      [for (final choice in choices) choice.label],
+      ['Document', 'Plain text', 'Calendar', 'Health calendar'],
+    );
     await tester.tap(find.text('Health calendar'));
     await tester.pumpAndSettle();
-    final create = find.widgetWithText(FilledButton, 'Create');
-    expect(tester.widget<FilledButton>(create).onPressed, isNull);
-    await tester.enterText(find.byType(TextField), '  Me ');
-    await tester.pump();
-    await tester.tap(create);
-    await tester.pumpAndSettle();
 
-    expect(pick!.made.type, isA<CalendarFileType>());
-    expect(pick!.made.label, 'Health calendar');
-    expect(pick!.name, 'Me');
+    expect(pick!.type, isA<CalendarFileType>());
+    expect(pick!.label, 'Health calendar');
+    expect(find.byType(TextField), findsNothing, reason: 'no name asked');
   });
 
-  testWidgets('backing out of the name makes nothing', (tester) async {
-    NewPick? pick;
+  testWidgets('backing out of the choice makes nothing', (tester) async {
+    NewFileChoice<EditableType>? pick;
     var asked = false;
     await pumpPicker(tester, (picked) {
       asked = true;
@@ -61,9 +53,7 @@ void main() {
 
     await tester.tap(find.text('New'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Calendar'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
     expect(asked, isTrue);

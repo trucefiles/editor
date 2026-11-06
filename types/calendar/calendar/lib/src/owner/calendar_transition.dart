@@ -7,14 +7,14 @@ import 'package:truce_core/truce_core.dart'
         SentText,
         Step,
         StepRun,
-        TextSummary;
+        TextSummary,
+        typingIn;
 
 import '../edit/brought_back.dart';
 import '../edit/calendar_edit.dart';
 import '../edit/edit_landing.dart';
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';
-import '../support/calendar_summary.dart';
 import 'calendar_contract.dart';
 
 /// The calendar editor owner's decision on [message] in [state], with its
@@ -69,6 +69,15 @@ final class _Step
           }
           if (landed.gone case final gone?) events.add(SavedAsNew(gone));
         }
+      case RenameCalendar(:final name):
+        if (state.calendar case final calendar? when calendar.name != name) {
+          _showCalendar(calendar.named(name));
+          textChanged();
+          record(
+            NameChanged(calendar.name, name),
+            typingIn(#name, calendar.name, name),
+          );
+        }
       case CalendarRequest(:final request, :final at):
         _requestAt = at;
         handleRequest(request);
@@ -88,14 +97,20 @@ final class _Step
   @override
   void undo(CalendarStep step) => switch (step) {
     UnitsChanged(:final before) => _bringBack(before),
+    NameChanged(:final before) => _rename(before),
     TextReplaced(:final before) => _restore(before),
   };
 
   @override
   void redo(CalendarStep step) => switch (step) {
     UnitsChanged(:final after) => _bringBack(after),
+    NameChanged(:final after) => _rename(after),
     TextReplaced(:final after) => _restore(after),
   };
+
+  /// The calendar is named [name] again. A name step is only undone or
+  /// redone on the calendar it was made on, so one shows.
+  void _rename(String name) => _showCalendar(state.calendar!.named(name));
 
   /// The [units] of one side of an edit show again, stamped as an edit
   /// made when it was asked. A units step is only undone or redone on the
@@ -115,7 +130,12 @@ final class _Step
       };
 
   @override
-  void reload(String text) => _show(text, Calendar.read(text));
+  void reload(String text) => state = CalendarState(
+    text,
+    Calendar.read(text),
+    revision: state.revision + 1,
+    status: book.status,
+  );
 
   /// A backup restored: stamped as an edit, as an undo is, so a merge with
   /// the text it replaced keeps it.
@@ -127,10 +147,10 @@ final class _Step
   }
 
   @override
-  SentText get sent => SentText(state.text, CalendarSummary(state.text));
+  SentText get sent => SentText(state.text, state.summary);
 
   @override
-  TextSummary<Object?> summaryOfShown(String text) => CalendarSummary(text);
+  TextSummary<Object?> summaryOfShown(String text) => state.summary;
 
   /// Only the page shows the calendar; nothing shows the text kept.
   @override
@@ -139,10 +159,7 @@ final class _Step
   /// What shows now.
   CalendarShown get _shown => (text: state.text, calendar: state.calendar);
 
-  void _showCalendar(Calendar calendar) => _show(calendar.text, calendar);
-
-  void _show(String text, Calendar? calendar) => state = CalendarState(
-    text,
+  void _showCalendar(Calendar calendar) => state = CalendarState.of(
     calendar,
     revision: state.revision + 1,
     status: book.status,
@@ -150,11 +167,6 @@ final class _Step
 
   void _settleStatus() {
     if (state.status == book.status) return;
-    state = CalendarState(
-      state.text,
-      state.calendar,
-      revision: state.revision,
-      status: book.status,
-    );
+    state = state.withStatus(book.status);
   }
 }

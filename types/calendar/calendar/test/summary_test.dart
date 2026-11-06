@@ -51,6 +51,32 @@ void main() {
     cycleLine: (_, _) => '',
   );
 
+  test('a calendar with no name has no title, and is named after its kind', () {
+    for (final (health, kind) in [
+      (false, 'Calendar'),
+      (true, 'Health calendar'),
+    ]) {
+      final summary = CalendarSummary(newCalendarText('', health: health));
+      expect((summary.title, summary.firstLine), (null, kind));
+    }
+    expect(CalendarSummary('no calendar').firstLine, '');
+  });
+
+  test("a calendar with only the standard's NAME is titled by it", () {
+    final text = newCalendarText('')
+        .replaceFirst('END:VCALENDAR', 'NAME:Arbeit\nEND:VCALENDAR');
+    final summary = CalendarSummary(text);
+    expect((summary.title, summary.firstLine), ('Arbeit', 'Arbeit'));
+  });
+
+  test('a calendar is searched from what was read, a text that is none as '
+      'it is', () {
+    final text = newCalendarText('Home')
+        .replaceFirst('END:VCALENDAR', 'X-NOTE:not searched\nEND:VCALENDAR');
+    expect(CalendarSummary(text).searchText, 'Home');
+    expect(CalendarSummary('no calendar').searchText, 'no calendar');
+  });
+
   test('a card holds until the first occurrence it shows ends', () {
     final summary = const CalendarSupport().summary(birthday, maxLines: 5);
     expect(summary.holdsUntil(at(DateTime(2026, 11))), DateTime(2027, 3, 13));

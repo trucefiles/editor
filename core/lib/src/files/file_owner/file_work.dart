@@ -131,6 +131,7 @@ final class FileWork<V extends Version> {
     this.move,
     this.toRead,
     this.firstLine,
+    this.start = '',
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -192,6 +193,10 @@ final class FileWork<V extends Version> {
   /// said with it; `null` once it has a file.
   final String? firstLine;
 
+  /// The text a new file starts with: a new file back at it, or holding
+  /// only white space, is not written.
+  final String start;
+
   FileWork<V> copyWith({
     Object? expected = _same,
     Object? offered = _same,
@@ -226,6 +231,7 @@ final class FileWork<V extends Version> {
     move: _or(move, this.move),
     toRead: _or(toRead, this.toRead),
     firstLine: _or(firstLine, this.firstLine),
+    start: start,
   );
 }
 

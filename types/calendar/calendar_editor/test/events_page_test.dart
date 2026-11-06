@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/ui/events_page.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
@@ -661,17 +662,13 @@ void main() {
     });
   }
 
-  testWidgets('a drag lands on whole quarter hours, even next to the '
-      'current time', (tester) async {
-    // kalender reads the real clock: the event lands on the quarter hour
-    // nearest to now, where snapping to now would add its seconds.
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final quarters = (now.difference(today).inSeconds / 900).round();
-    final landing = today.add(Duration(minutes: 15 * quarters));
-    // It ends there, moved down two hours, or up near midnight.
-    final up = landing.hour < 3;
-    final from = landing.add(Duration(hours: up ? 1 : -3));
+  testWidgets('a drag lands on whole quarter hours, though now is not on '
+      'one', (tester) async {
+    // The page's clock is between quarter hours; the event lands on one.
+    final now = DateTime(2026, 11, 3, 10, 7, 23);
+    final landing = DateTime(2026, 11, 3, 10);
+    // It ends there, moved down two hours.
+    final from = landing.add(const Duration(hours: -3));
     final part = calendarPart(
       _call(
         Floating(
@@ -682,14 +679,14 @@ void main() {
     await pumpPage(
       tester,
       part,
-      today: today,
+      today: now,
       kept: KeptView(CalendarViewKind.week),
     );
 
     await _drag(
       tester,
       tester.getCenter(find.text('Call')),
-      Offset(0, up ? -2 * _hour : 2 * _hour),
+      const Offset(0, 2 * _hour),
       kind: PointerDeviceKind.mouse,
     );
 
@@ -885,5 +882,31 @@ void main() {
     ]) {
       expect(text, contains('$line\n'));
     }
+  });
+
+  testWidgets('a rename keeps the views as built; an event edit builds '
+      'them again', (tester) async {
+    final part = calendarPart(_birthday);
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
+    EventsPage page() => tester.widget<EventsPage>(find.byType(EventsPage));
+    final before = page();
+
+    part.rename('Family');
+    await tester.pump();
+    expect(page(), same(before));
+
+    part.edit(
+      (at) => AddEvent(
+        'gym@t',
+        EventDraft(
+          summary: 'Gym',
+          start: Floating(DateTime.utc(2026, 11, 3, 9)),
+          end: Floating(DateTime.utc(2026, 11, 3, 10)),
+        ),
+        at: at,
+      ),
+    );
+    await tester.pump();
+    expect(page(), isNot(same(before)));
   });
 }

@@ -20,8 +20,9 @@ abstract interface class TextSummary<Options> {
   /// The text's own title; `null` if it has none (the file name is used).
   String? get title;
 
-  /// The first line with words, as plain words; empty if there is none.
-  /// Names new files.
+  /// The name a new file of this text gets, as plain words: its first
+  /// line with words, or what the type names it by otherwise (e.g. a
+  /// calendar by its kind); empty if none.
   String get firstLine;
 
   /// The lines after the title, shown as [options] say.

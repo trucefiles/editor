@@ -4,6 +4,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 
 import 'calendar_editor_part.dart';
 import 'calendar_start.dart';
+import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
@@ -45,18 +46,40 @@ final class CalendarEditorView extends EditorView {
     );
   }
 
+  /// The calendar's name, edited in place while it can be edited, with
+  /// the file's [nameTitle] as its hint; otherwise, or for a text that is
+  /// no calendar, [fileTitle].
   @override
-  Widget? floatingButton(BuildContext context) => StreamBuilder(
+  Widget title(
+    BuildContext context,
+    Widget fileTitle, {
+    required String nameTitle,
+  }) => _part.isEditing
+      ? _forCalendar(
+          CalendarNameField(_part, hint: nameTitle),
+          otherwise: fileTitle,
+        )
+      : fileTitle;
+
+  /// Only for a calendar: a text that is no calendar has nothing to add.
+  @override
+  Widget? floatingButton(BuildContext context) => _forCalendar(
+    FloatingActionButton(
+      tooltip: 'Add event',
+      // Not a hero: no flight to other pages' buttons.
+      heroTag: null,
+      onPressed: () => _pageStarts.ask(const StartAdding()),
+      child: const Icon(Icons.add),
+    ),
+  );
+
+  /// [shown] while the part's text is a calendar, as it changes;
+  /// [otherwise] while it is none.
+  Widget _forCalendar(
+    Widget shown, {
+    Widget otherwise = const SizedBox.shrink(),
+  }) => StreamBuilder(
     stream: _part.owner.changes,
-    // Only for a calendar: a text that is no calendar has nothing to add.
-    builder: (_, _) => _part.owner.state.calendar == null
-        ? const SizedBox.shrink()
-        : FloatingActionButton(
-            tooltip: 'Add event',
-            // Not a hero: no flight to other pages' buttons.
-            heroTag: null,
-            onPressed: () => _pageStarts.ask(const StartAdding()),
-            child: const Icon(Icons.add),
-          ),
+    builder: (_, _) => _part.owner.state.calendar == null ? otherwise : shown,
   );
 }

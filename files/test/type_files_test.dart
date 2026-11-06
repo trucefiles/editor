@@ -18,6 +18,12 @@ final class _KeyValueType implements ShownFileType {
   @override
   TextFile get newFile => const TextFile.empty(lineBreak: '\r\n');
 
+  @override
+  List<NewFileKind> get newKinds => const [
+    NewFileKind('Note'),
+    NewFileKind('Named', start: 'name:'),
+  ];
+
   /// The values, not the keys.
   @override
   String searchText(FileText read) =>
@@ -32,10 +38,7 @@ final class _KeyValueType implements ShownFileType {
   TextMerge get merge => const FakeTextMerge();
 }
 
-final _types = ShownFileTypes(
-  [const _KeyValueType()],
-  newFileChoices: const [NewFileChoice('Note', _KeyValueType())],
-);
+final _types = ShownFileTypes([const _KeyValueType()]);
 
 const _copyName = 'a.fake-copy-20261101-120000.md';
 
@@ -167,20 +170,17 @@ void main() {
     expect((await searchable.read())!.text, 'teal');
   });
 
-  test('the plain new document is the first one offered', () {
-    const named = NewFileChoice(
-      'Named',
-      _KeyValueType(),
-      startNamed: _startNamed,
-    );
+  test("each type's new kinds are offered, the plain new document first", () {
     expect(_types.forNew, const _KeyValueType());
-    expect((named.named, named.startText('Home')), (true, 'name:Home'));
     expect(
-      (
-        _types.newFileChoices.single.named,
-        _types.newFileChoices.single.startText('x'),
-      ),
-      (false, ''),
+      [
+        for (final choice in _types.newFileChoices)
+          (choice.label, choice.kind.start, choice.type),
+      ],
+      [
+        ('Note', '', const _KeyValueType()),
+        ('Named', 'name:', const _KeyValueType()),
+      ],
     );
   });
 
@@ -248,5 +248,3 @@ void main() {
     expect((await kept.readAll(listed)).values, ['k:1']);
   });
 }
-
-String _startNamed(String name) => 'name:$name';

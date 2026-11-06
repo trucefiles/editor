@@ -316,7 +316,7 @@ void main() {
       late FileController controller;
       await runZonedGuarded(() async {
         final session = markdownSession(
-          fixture.file,
+          ExistingFile(fixture.file),
           FileEffects(
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,

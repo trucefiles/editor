@@ -94,9 +94,9 @@ Accepted behavior that is not planned to change, grouped by topic.
 
 ## Calendars
 
-- **A new calendar is saved with its first event.** Like a new document,
-  a new calendar gets its file only once you add something to it. Leave
-  it empty and it is gone.
+- **A new calendar is saved once it has a name or an event.** Like a new
+  document, a new calendar gets its file only once you add something to
+  it. Leave it with neither and it is gone.
 - **Alerts don't ring yet.** Truce keeps an event's alerts in the
   calendar, so other calendar apps ring them, but doesn't ring them
   itself.

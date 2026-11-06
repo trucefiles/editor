@@ -61,29 +61,30 @@ void main() {
     expect(page.session.state, isA<Ended>());
   });
 
-  test("a new document's page goes where it is placed, of the type for new "
-      'documents', () {
+  test("a new document's page goes where it is placed, of the type it was "
+      'made as', () {
     final made = pages();
-    final page = made.openNew((
-      folder: fixture.folders[1],
-      subfolder: null,
-    ), withFile: (_) async {});
+    final document = made.types.newFileChoices.first;
+    final page = made.openNew(
+      (folder: fixture.folders[1], subfolder: null),
+      made: document,
+      withFile: (_) async {},
+    );
     addTearDown(page.close);
 
     final file = page.session.file as NewFile;
     expect(file.folder.id, folderId('f2'));
-    expect(file.type, same(made.types.forNew));
-    expect(page.type, same(made.types.forNew));
+    expect(file.type, same(document.type));
+    expect(page.type, same(document.type));
   });
 
-  test("a new calendar's page starts as the calendar it was named", () {
+  test("a new calendar's page starts as an empty, unnamed calendar", () {
     final health = appFileTypes().newFileChoices.firstWhere(
       (made) => made.label == 'Health calendar',
     );
     final page = pages().openNew(
       (folder: fixture.folders[0], subfolder: null),
       made: health,
-      name: 'Me',
       withFile: (_) async {},
     );
     addTearDown(page.close);
@@ -92,8 +93,12 @@ void main() {
     expect((page.session.file as NewFile).type, health.type);
     expect(
       (page.part as CalendarEditorPart).owner.state.text,
-      newCalendarText('Me', health: true),
+      newCalendarText('', health: true),
     );
-    expect(page.session.path, path('Me.ics'), reason: 'named by its name');
+    expect(
+      page.session.path,
+      path('Health calendar.ics'),
+      reason: 'named after its kind until it has a name',
+    );
   });
 }

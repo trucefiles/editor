@@ -52,5 +52,13 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     return true;
   }
 
+  /// The user names the calendar [name] (none if empty); dropped while
+  /// it can't be edited. Whether it was made.
+  bool rename(String name) {
+    if (!isEditing) return false;
+    owner.send(RenameCalendar(name));
+    return true;
+  }
+
   DateTime _at() => _now().toUtc();
 }

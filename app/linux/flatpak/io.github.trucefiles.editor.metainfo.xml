@@ -19,6 +19,20 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.14.0" date="2026-11-06">
+      <description>
+        <ul>
+          <li>A new calendar opens at once; type its name right in its title, now or later.</li>
+          <li>New file offers Document, Plain text, Calendar and Health calendar.</li>
+          <li>Deleted files can be restored from Backups, also as a new file in another place.</li>
+          <li>Undo and Redo scroll to the change they make.</li>
+          <li>Typing, undo and large calendars are faster.</li>
+          <li>The likely next period is easier on the eyes.</li>
+          <li>Clearer home: the title says the view, a set-apart Clear chip, and the age limit in Recently edited.</li>
+          <li>Visual edit: the drag swap point is in the middle, Clear checked keeps one empty item, and links without https open.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.0" date="2026-11-04">
       <description>
         <ul>

@@ -1,20 +1,21 @@
 import 'shown_file_type.dart';
 
-/// Something new the user can make: a file of [type], called [label]
-/// where the user picks it (e.g. "Calendar").
-final class NewFileChoice<T extends ShownFileType> {
-  const NewFileChoice(this.label, this.type, {this.startNamed});
+/// Something new of a type the user can make, called [label] where the
+/// user picks it (e.g. "Health calendar"), starting with [start]: the
+/// text it opens with, written only once the user changes it.
+final class NewFileKind {
+  const NewFileKind(this.label, {this.start = ''});
 
   final String label;
+  final String start;
+}
+
+/// Something new the user can make: a file of [type], as [kind] says.
+final class NewFileChoice<T extends ShownFileType> {
+  const NewFileChoice(this.kind, this.type);
+
+  final NewFileKind kind;
   final T type;
 
-  /// The text it starts with for the name the user gives it first (e.g. a
-  /// calendar's own name); `null`: it starts empty, with no name asked.
-  final String Function(String name)? startNamed;
-
-  /// Whether the user names it before it opens.
-  bool get named => startNamed != null;
-
-  /// The text it starts with, named [name].
-  String startText(String name) => startNamed?.call(name) ?? '';
+  String get label => kind.label;
 }

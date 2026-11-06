@@ -88,5 +88,87 @@ void main() {
       final start = Calendar.read(text)!.eventOf('a')!.series.start!;
       expect(start.local, DateTime(2026, 11, 10, 9));
     });
+
+    test('naming changes only the name line, in its place', () {
+      final calendar = Calendar.read(birthday)!;
+      final named = calendar.named('Family, friends');
+      expect(named.name, 'Family, friends');
+      expect(
+        named.text,
+        birthday.replaceFirst(
+          'X-WR-CALNAME:Birthdays\n',
+          'X-WR-CALNAME:Family\\, friends\n',
+        ),
+      );
+      expect(named.named('Birthdays').text, birthday);
+      expect(calendar.named('Birthdays'), same(calendar));
+      expect(
+        named.showsSameDaysAs(calendar),
+        isTrue,
+        reason: 'the very units, so its events need no new pass',
+      );
+      expect(Calendar.read(birthday)!.showsSameDaysAs(calendar), isFalse);
+      expect(
+        identical(named.events, calendar.events),
+        isTrue,
+        reason: 'what was worked out of the units is kept',
+      );
+    });
+
+    test("the standard's NAME shows where it has no name of ours, and is "
+        'never written', () {
+      final text = birthday.replaceFirst(
+        'X-WR-CALNAME:Birthdays\n',
+        'NAME:Geburtstage\n',
+      );
+      final calendar = Calendar.read(text)!;
+      expect((calendar.name, calendar.shownName), ('', 'Geburtstage'));
+      final named = calendar.named('Family');
+      expect((named.name, named.shownName), ('Family', 'Family'));
+      expect(named.text, contains('NAME:Geburtstage\n'));
+      expect(named.named('').text, text);
+    });
+
+    test('a rename keeps the parameters of the name line', () {
+      final text = birthday.replaceFirst(
+        'X-WR-CALNAME:Birthdays',
+        'X-WR-CALNAME;LANGUAGE=de:Geburtstage',
+      );
+      expect(
+        Calendar.read(text)!.named('Arbeit').text,
+        birthday.replaceFirst(
+          'X-WR-CALNAME:Birthdays',
+          'X-WR-CALNAME;LANGUAGE=de:Arbeit',
+        ),
+      );
+    });
+
+    test('an empty name is no name line; a name is added as the last '
+        'property', () {
+      final unnamed = Calendar.read(birthday)!.named('');
+      expect(
+        unnamed.text,
+        birthday.replaceFirst('X-WR-CALNAME:Birthdays\n', ''),
+      );
+      expect(unnamed.name, '');
+      final named = Calendar.read(newCalendarText(''))!.named('Home');
+      expect(named.text, newCalendarText('Home'));
+      expect(named.named('').text, newCalendarText(''));
+    });
+
+    test('reads a large calendar in one pass', () {
+      // About 5 MB: reading it took over half a minute while each block
+      // copied the rest of the file.
+      final events = [
+        for (final n in Iterable<int>.generate(20000))
+          'BEGIN:VEVENT\nUID:$n\nDTSTART:20260101T100000Z\n'
+              'SUMMARY:Event $n with a few words\n'
+              'DESCRIPTION:A longer note about event $n\nEND:VEVENT\n',
+      ];
+      final text = 'BEGIN:VCALENDAR\n${events.join()}END:VCALENDAR\n';
+      final calendar = Calendar.read(text)!;
+      expect(calendar.events, hasLength(20000));
+      expect(calendar.text, text);
+    }, timeout: const Timeout(Duration(seconds: 10)));
   });
 }

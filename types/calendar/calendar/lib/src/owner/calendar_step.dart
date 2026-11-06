@@ -8,13 +8,26 @@ import '../model/calendar_unit.dart';
 typedef CalendarShown = ({String text, Calendar? calendar});
 
 /// One edit of a calendar, kept to take back by undo and make again by
-/// redo. A calendar edit is never typing, so steps never join.
+/// redo. Only typing in its name joins steps.
 sealed class CalendarStep implements UndoableEdit<CalendarStep> {
   const CalendarStep();
 
   @override
-  CalendarStep joined(CalendarStep next) =>
-      throw StateError('calendar edits are never typing');
+  CalendarStep joined(CalendarStep next) => switch ((this, next)) {
+    (NameChanged(:final before), NameChanged(:final after)) => NameChanged(
+      before,
+      after,
+    ),
+    _ => throw StateError('only typing in the name joins'),
+  };
+}
+
+/// The calendar's name, as it was [before] and is [after] (empty: none).
+final class NameChanged extends CalendarStep {
+  const NameChanged(this.before, this.after);
+
+  final String before;
+  final String after;
 }
 
 /// A user's edit, kept as the units it changed alone: each as it was
