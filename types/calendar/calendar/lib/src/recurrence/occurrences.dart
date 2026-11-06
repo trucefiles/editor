@@ -34,32 +34,49 @@ final class Occurrence {
   final CalendarTime? recurrence;
 
   bool get allDay => part.allDay;
+
+  /// Whether it overlaps [from] to [to]; one with no length overlaps
+  /// where it starts. The rule [occurrences] picks them by.
+  bool overlaps(DateTime from, DateTime to) => _overlaps(start, end, from, to);
 }
 
 /// The occurrences of [calendar]'s events that overlap [from] to [to] (on
 /// this device's clock), by start: repeats expanded, left-out ones
 /// skipped, changed ones in place; deleted and cancelled events left out.
-List<Occurrence> occurrences(Calendar calendar, DateTime from, DateTime to) =>
-    [for (final event in calendar.events) ..._occurrencesOf(event, from, to)]
-      ..sort((a, b) => a.start.compareTo(b.start));
+List<Occurrence> occurrences(Calendar calendar, DateTime from, DateTime to) {
+  final span = _Span(from, to);
+  return [for (final event in calendar.events) ..._occurrencesOf(event, span)]
+    ..sort((a, b) => a.start.compareTo(b.start));
+}
 
-/// The occurrences of each of [calendars] that overlap [from] to [to], by
-/// start, each with the key of its calendar.
-List<({K calendar, Occurrence occurrence})> occurrencesOf<K>(
-  Map<K, Calendar> calendars,
-  DateTime from,
-  DateTime to,
-) => [
-  for (final MapEntry(key: calendar, value: each) in calendars.entries)
-    for (final occurrence in occurrences(each, from, to))
-      (calendar: calendar, occurrence: occurrence),
-]..sort((a, b) => a.occurrence.start.compareTo(b.occurrence.start));
+/// A span of time on this device's clock, [from] to [to], and the wall
+/// clocks around it that a time written in any zone may show in it.
+final class _Span {
+  _Span(this.from, this.to)
+    : wallFrom = _wallOf(from).subtract(_zoneGap),
+      wallTo = _wallOf(to).add(_zoneGap);
 
-Iterable<Occurrence> _occurrencesOf(
-  CalendarEvent event,
-  DateTime from,
-  DateTime to,
-) sync* {
+  final DateTime from;
+  final DateTime to;
+  final DateTime wallFrom;
+  final DateTime wallTo;
+
+  /// Whether [start] to [end] (as written) overlaps it on this device's
+  /// clock. The written clocks are checked first: turning a time into
+  /// this device's clock is the costly part, so only times near the span
+  /// are turned.
+  bool overlaps(CalendarTime start, CalendarTime end) =>
+      start.wall.isBefore(wallTo) &&
+      !end.wall.isBefore(wallFrom) &&
+      _overlaps(start.local, end.local, from, to);
+}
+
+/// The widest gap between two zones' clocks (UTC−12 to UTC+14): a time
+/// written in one zone shows at most this far from its wall clock on
+/// this device's.
+const _zoneGap = Duration(hours: 26);
+
+Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
   final series = event.series;
   final (start, end) = (series.start, series.end);
   if (start == null || end == null || series.cancelled || series.deleted) {
@@ -67,7 +84,7 @@ Iterable<Occurrence> _occurrencesOf(
   }
   final rule = series.rule;
   if ((rule == null && series.rdates.isEmpty) || series.recurrenceId != null) {
-    if (_overlaps(start.local, end.local, from, to)) {
+    if (span.overlaps(start, end)) {
       yield Occurrence(event, series, start: start.local, end: end.local);
     }
     return;
@@ -78,11 +95,12 @@ Iterable<Occurrence> _occurrencesOf(
     for (final part in event.changed) ?part.recurrenceId?.local,
   };
   // The rule as written: the one other apps read too.
-  for (final wall in _instances(series, rule, from, to, length)) {
+  for (final wall in _instances(series, rule, span, length)) {
     final instance = start.at(wall);
     final local = instance.local;
     final localEnd = start.at(wall.add(length)).local;
-    if (!skipped.contains(local) && _overlaps(local, localEnd, from, to)) {
+    if (!skipped.contains(local) &&
+        _overlaps(local, localEnd, span.from, span.to)) {
       yield Occurrence(
         event,
         series,
@@ -95,7 +113,7 @@ Iterable<Occurrence> _occurrencesOf(
   for (final part in event.changed) {
     final (partStart, partEnd) = (part.start, part.end);
     if (partStart == null || partEnd == null || part.cancelled) continue;
-    if (_overlaps(partStart.local, partEnd.local, from, to)) {
+    if (span.overlaps(partStart, partEnd)) {
       yield Occurrence(
         event,
         part,
@@ -112,8 +130,8 @@ Iterable<Occurrence> _occurrencesOf(
 const _steps = RecurrenceIterator.absoluteMaxIterations;
 
 /// The wall clocks of [series]' occurrences (its [rule] and its extra
-/// dates) that may overlap [from] to [to]: a day more on each side, for
-/// time zones. A rule the library can't read gives only the start.
+/// dates) that may overlap [span], by its wall clocks. A rule the library
+/// can't read gives only the start.
 ///
 /// The library walks wall clocks: each goes in and comes out as a UTC
 /// time holding the wall clock's fields, so no zone's clock change moves
@@ -121,13 +139,11 @@ const _steps = RecurrenceIterator.absoluteMaxIterations;
 List<DateTime> _instances(
   EventPart series,
   String? rule,
-  DateTime from,
-  DateTime to,
+  _Span span,
   Duration length,
 ) {
   final start = series.start!;
-  const margin = Duration(days: 1);
-  final before = _wallOf(to).add(margin);
+  final before = span.wallTo;
   if (start.wall.isAfter(before)) return const [];
   final RecurrenceRule? recurrence;
   try {
@@ -138,7 +154,7 @@ List<DateTime> _instances(
   } on ParseException {
     return [start.wall];
   }
-  final after = _wallOf(from).subtract(length + margin);
+  final after = span.wallFrom.subtract(length);
   final walls =
       RecurrenceIterator(
             dtstart: _calendarTime(start.wall),
@@ -241,7 +257,6 @@ bool hasOccurrenceAt(CalendarEvent event, CalendarTime occurrence) {
   const near = Duration(minutes: 1);
   return _occurrencesOf(
     event,
-    at.subtract(near),
-    at.add(near),
+    _Span(at.subtract(near), at.add(near)),
   ).any((each) => each.recurrence?.local == at);
 }

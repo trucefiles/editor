@@ -1,8 +1,6 @@
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import 'calendar_views_model.dart';
-
 /// One [occurrence] as kalender shows it, with the key of its
 /// [calendar]: kalender's own way to carry an app's data on an event.
 final class OccurrenceEvent<K> extends KalenderEvent {
@@ -45,10 +43,3 @@ final class OccurrenceEvent<K> extends KalenderEvent {
 
 DateTime _notBefore(DateTime end, DateTime start) =>
     end.isBefore(start) ? start : end;
-
-/// [shown] as kalender events (whether they can be dragged is the
-/// views' one rule).
-List<OccurrenceEvent<K>> eventsOf<K>(List<ShownOccurrence<K>> shown) => [
-  for (final (:calendar, :occurrence) in shown)
-    OccurrenceEvent(calendar, occurrence),
-];

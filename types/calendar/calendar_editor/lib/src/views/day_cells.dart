@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 
@@ -31,24 +33,51 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
 };
 
 /// A day's number in the month view, made smaller where its cell is too
-/// narrow for it (very large text), never broken over two lines. Each
-/// shrinks as a two-digit number would, so all show at one size.
+/// narrow for it (very large text), never broken over two lines. Each is
+/// laid out as wide as kalender lays out a two-digit number, so all
+/// shrink alike and show at one size.
 Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
   fit: BoxFit.scaleDown,
-  child: Stack(
-    alignment: Alignment.center,
-    children: [
-      Visibility(
-        visible: false,
-        maintainSize: true,
-        maintainAnimation: true,
-        maintainState: true,
-        child: MonthDayHeader(date: DateTime(2000, 1, 30)),
-      ),
-      MonthDayHeader(date: date),
-    ],
+  child: SizedBox(
+    width: _twoDigitsWidth(context),
+    child: Center(child: MonthDayHeader(date: date)),
   ),
 );
+
+/// How wide kalender lays out a two-digit day number in [context], from
+/// the same inputs as its `MonthDayHeader`: the theme's button size if
+/// set, else its text in the theme's number style with the button's
+/// padding (Material's default 8 on each side), at least the button's
+/// smallest width ([_smallestButton]); and the theme's margin around it.
+/// Worked out from the text, as a hidden two-digit number in each cell
+/// cost as much as the numbers shown.
+double _twoDigitsWidth(BuildContext context) {
+  final header = KalenderTheme.of(context).monthDayHeaderStyle;
+  final margin = header?.margin?.horizontal ?? 0;
+  if (header?.buttonSize case final size?) return size.width + margin;
+  final painter = TextPainter(
+    text: TextSpan(
+      text: '30',
+      style: DefaultTextStyle.of(context).style.merge(header?.numberTextStyle),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  final text = painter.width;
+  painter.dispose();
+  return max(text + 2 * 8, _smallestButton(context)) + margin;
+}
+
+/// The narrowest kalender's day number button gets in [context]: Material
+/// 3's icon button minimum (40), or the tap target (48) where taps get
+/// padded targets (touch), each at the button's compact density.
+double _smallestButton(BuildContext context) {
+  final tapTarget = switch (Theme.of(context).materialTapTargetSize) {
+    MaterialTapTargetSize.padded => kMinInteractiveDimension,
+    MaterialTapTargetSize.shrinkWrap => 0.0,
+  };
+  return max(40.0, tapTarget) + VisualDensity.compact.baseSizeAdjustment.dx;
+}
 
 /// The fill of a day likely in a period: paler than a known period day,
 /// so it reads as likely; pink on dark, where the theme's red looks rose.

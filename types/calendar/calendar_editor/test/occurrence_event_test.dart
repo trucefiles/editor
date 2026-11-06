@@ -24,10 +24,10 @@ void main() {
           'DTEND:20261103T100000Z\nSUMMARY:Call\nEND:VEVENT\n',
         ),
       );
-      final [trip, call] = eventsOf([
+      final [trip, call] = [
         for (final occurrence in _november(calendar))
-          (calendar: 'home', occurrence: occurrence),
-      ]);
+          OccurrenceEvent('home', occurrence),
+      ];
 
       expect(
         (trip.isAllDay, trip.start, trip.end),
@@ -47,9 +47,7 @@ void main() {
           'DTEND:20261103T090000\nSUMMARY:Odd\nEND:VEVENT\n',
         ),
       );
-      final event = eventsOf([
-        (calendar: 'home', occurrence: _november(calendar).single),
-      ]).single;
+      final event = OccurrenceEvent('home', _november(calendar).single);
 
       expect(event.end, event.start);
     });
@@ -67,10 +65,10 @@ void main() {
         at: DateTime.utc(2026, 11),
       ),
     );
-    final [entry] = eventsOf([
+    final [entry] = [
       for (final occurrence in _november(calendar))
-        (calendar: 'me', occurrence: occurrence),
-    ]);
+        OccurrenceEvent('me', occurrence),
+    ];
     final interaction = entry.interaction;
     expect(
       (

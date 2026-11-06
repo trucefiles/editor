@@ -30,6 +30,22 @@ void main() {
     );
   });
 
+  test('a time written in a far zone shows on the day it falls on here, '
+      'though its written day is another', () {
+    // 1 December, 12:00 at UTC+14: 30 November, 22:00 in UTC.
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:a\nDTSTART;TZID=Pacific/Kiritimati:20261201T120000\n'
+      'DTEND;TZID=Pacific/Kiritimati:20261201T130000\nEND:VEVENT\n',
+    );
+    final here = calendar.events.single.series.start!.local;
+    final day = DateTime(here.year, here.month, here.day);
+    expect(_starts(calendar, day, day.add(const Duration(days: 1))), [here]);
+    expect(
+      _starts(calendar, day.add(const Duration(days: 1)), DateTime(2027)),
+      isEmpty,
+    );
+  });
+
   test('a weekly series shows on its days, with the changed one moved', () {
     final calendar = Calendar.read(exported)!;
     final shown = occurrences(
@@ -125,17 +141,31 @@ void main() {
     expect(occurrences(calendar, DateTime(2026), DateTime(2027)), isEmpty);
   });
 
-  test('the occurrences of several calendars are joined by start', () {
-    final shown = occurrencesOf(
-      {
-        'family': Calendar.read(exported)!,
-        'birthdays': Calendar.read(birthday)!,
-      },
-      DateTime(2026, 11, 9),
-      DateTime(2026, 11, 11),
+  test('an occurrence overlaps a range by the rule occurrences are picked '
+      'by', () {
+    final calendar = _with(
+      'BEGIN:VEVENT\nUID:a\nDTSTART:20261130T220000\n'
+      'DTEND:20261201T020000\nEND:VEVENT\n'
+      'BEGIN:VEVENT\nUID:b\nDTSTART:20261201T000000\n'
+      'DTEND:20261201T000000\nEND:VEVENT\n',
     );
-    expect([for (final each in shown) each.calendar], ['family', 'family']);
-    expect(shown.first.occurrence.part.summary, 'Swimming');
+    final [late, midnight] = occurrences(
+      calendar,
+      DateTime(2026, 11),
+      DateTime(2027),
+    );
+    final (november, december) = (
+      (DateTime(2026, 11), DateTime(2026, 12)),
+      (DateTime(2026, 12), DateTime(2027)),
+    );
+    expect(
+      [
+        for (final (from, to) in [november, december])
+          (late.overlaps(from, to), midnight.overlaps(from, to)),
+      ],
+      [(true, false), (true, true)],
+      reason: 'one with no length is where it starts',
+    );
   });
 
   test('a simple repeat reads and writes back as the form shows it', () {
