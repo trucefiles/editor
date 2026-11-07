@@ -62,6 +62,19 @@ void main() {
       );
     });
 
+    test('a UTC time shows on the device clock, as "local time"', () {
+      final start = DateTime.utc(2026, 11, 3, 9).toLocal();
+      String two(int value) => '$value'.padLeft(2, '0');
+      expect(
+        ownOf(
+          'DTSTART:20261103T090000Z',
+          'DTEND;TZID=Asia/Tokyo:20261104T080000',
+        ),
+        '${two(start.hour)}:${two(start.minute)} local time – '
+        'Nov 4 08:00 Asia/Tokyo',
+      );
+    });
+
     test('one zone, ending another day', () {
       expect(
         ownOf(

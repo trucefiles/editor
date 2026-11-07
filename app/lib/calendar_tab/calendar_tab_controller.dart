@@ -46,10 +46,16 @@ final class ShownCalendar extends OfferedCalendar {
   final Calendar calendar;
 }
 
-/// A calendar whose events the tab doesn't show: turned off (only its
-/// name is read), or its events can't be read.
+/// A calendar whose events the tab doesn't show, as the user turned it
+/// off; only its name is read.
 final class OffCalendar extends OfferedCalendar {
   const OffCalendar(super.file, super.title);
+}
+
+/// A calendar turned on whose events can't be read (e.g. a broken file);
+/// only its name could be.
+final class UnreadableCalendar extends OfferedCalendar {
+  const UnreadableCalendar(super.file, super.title);
 }
 
 /// A calendar left out of the tab; only its name is read.
@@ -145,7 +151,7 @@ class CalendarTabController extends AsyncNotifier<TabCalendars> {
             in read.entries)
           switch (calendar) {
             final calendar? => ShownCalendar(file, title, calendar),
-            null => OffCalendar(file, title),
+            null => UnreadableCalendar(file, title),
           },
         for (final file in off)
           if (titled[file] case final title?) OffCalendar(file, title),

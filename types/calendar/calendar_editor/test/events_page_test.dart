@@ -394,6 +394,25 @@ void main() {
     });
   });
 
+  testWidgets("the device's zone picked for an event without one is named, "
+      'so the change shows', (tester) async {
+    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
+    await pumpPage(
+      tester,
+      part,
+      today: DateTime(2026, 11, 3),
+      deviceZone: 'Europe/Berlin',
+    );
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Time zone'), findsNWidgets(2));
+
+    await _pickZone(tester, find.text('Time zone').first, 'berlin');
+    expect(find.text('Europe/Berlin'), findsNWidgets(2));
+  });
+
   testWidgets('one of a series deleted; the others stay', (tester) async {
     final part = calendarPart(_birthday);
     await pumpPage(tester, part, today: _annsDay);

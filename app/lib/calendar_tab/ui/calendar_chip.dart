@@ -7,6 +7,7 @@ import '../calendar_tab_controller.dart';
 /// A calendar's chip in the Calendar tab: its color and title, picked
 /// while its events show; a tap turns them on or off ([onShown]). A long
 /// press, or a right click, offers to hide it from the tab ([onHide]).
+/// One whose events can't be read shows greyed, saying so.
 class CalendarChip extends StatefulWidget {
   const CalendarChip(
     this.calendar, {
@@ -52,12 +53,23 @@ class _CalendarChipState extends State<CalendarChip> {
       child: GestureDetector(
         onLongPressStart: (details) => _showMenuAt(details.globalPosition),
         onSecondaryTapUp: (details) => _showMenuAt(details.globalPosition),
-        child: FilterChip(
-          avatar: CalendarDot(widget.color),
-          label: Text(widget.calendar.title),
-          selected: widget.calendar is ShownCalendar,
-          onSelected: widget.onShown,
-        ),
+        child: switch (widget.calendar) {
+          // Its chip stays, so it can still be hidden.
+          UnreadableCalendar(:final title) => Tooltip(
+            message: "Its events can't be read",
+            child: FilterChip(
+              avatar: CalendarDot(widget.color),
+              label: Text(title),
+              onSelected: null,
+            ),
+          ),
+          final calendar => FilterChip(
+            avatar: CalendarDot(widget.color),
+            label: Text(calendar.title),
+            selected: calendar is ShownCalendar,
+            onSelected: widget.onShown,
+          ),
+        },
       ),
     ),
   );

@@ -72,6 +72,7 @@ void main() {
           switch (calendar) {
             ShownCalendar() => TabPlace.shown,
             OffCalendar() => TabPlace.off,
+            UnreadableCalendar() => TabPlace.shown,
           },
         ),
       for (final calendar in calendars.hidden)
@@ -142,11 +143,14 @@ void main() {
   });
 
   test("a shown calendar whose events can't be read keeps its chip, "
-      'off', () async {
+      'greyed', () async {
     write('half.ics', 'BEGIN:VCALENDAR\nX-WR-CALNAME:Half\nBEGIN:VEVENT\n');
     await start();
 
-    expect(await tab(), [('Half', TabPlace.off)]);
+    expect(
+      (await container.read(calendarTabProvider.future)).offered.single,
+      isA<UnreadableCalendar>(),
+    );
     await place('Half', TabPlace.hidden);
     expect(await tab(), [('Half', TabPlace.hidden)]);
   });

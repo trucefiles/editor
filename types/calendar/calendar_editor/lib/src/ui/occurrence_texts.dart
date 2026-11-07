@@ -63,22 +63,23 @@ String? _ownTimes(
   required bool use24Hour,
 }) {
   final (startZone, endZone) = (start.zone, end.zone);
+  // Each on the clock a person reads it by: a UTC time on this device's.
+  final (startWall, endWall) = (start.editWall, end.editWall);
   if ((startZone, endZone) == (null, null) ||
-      (_sameClock(start.wall, shown.start) &&
-          _sameClock(end.wall, shown.end))) {
+      (_sameClock(startWall, shown.start) && _sameClock(endWall, shown.end))) {
     return null;
   }
   String time(DateTime wall) => words.formatTimeOfDay(
     TimeOfDay(hour: wall.hour, minute: wall.minute),
     alwaysUse24HourFormat: use24Hour,
   );
-  final endTime = DateUtils.isSameDay(start.wall, end.wall)
-      ? time(end.wall)
-      : '${words.formatShortMonthDay(end.wall)} ${time(end.wall)}';
+  final endTime = DateUtils.isSameDay(startWall, endWall)
+      ? time(endWall)
+      : '${words.formatShortMonthDay(endWall)} ${time(endWall)}';
   String zone(String? name) => name == null ? 'local time' : zoneText(name);
   return startZone == endZone
-      ? 'In ${zone(startZone)}: ${time(start.wall)} – $endTime'
-      : '${time(start.wall)} ${zone(startZone)} – $endTime ${zone(endZone)}';
+      ? 'In ${zone(startZone)}: ${time(startWall)} – $endTime'
+      : '${time(startWall)} ${zone(startZone)} – $endTime ${zone(endZone)}';
 }
 
 /// How a time zone (an IANA name) reads, e.g. "America/New York".

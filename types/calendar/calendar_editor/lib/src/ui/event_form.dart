@@ -166,7 +166,7 @@ class _EventFormState extends State<EventForm> {
               label: 'Starts',
               day: _times.startDay,
               time: _times.allDay ? null : _times.startTime,
-              zone: _zoneShown(_times.startZone),
+              zone: _zoneShown(_times.startZone, _openedTimes.startZone),
               onDay: (day) => setState(() => _times = _times.withStartDay(day)),
               onTime: (time) =>
                   setState(() => _times = _times.withStartTime(time)),
@@ -177,7 +177,7 @@ class _EventFormState extends State<EventForm> {
               label: 'Ends',
               day: _times.endDay,
               time: _times.allDay ? null : _times.endTime,
-              zone: _zoneShown(_times.endZone),
+              zone: _zoneShown(_times.endZone, _openedTimes.endZone),
               onDay: (day) => setState(() => _times = _times.copy(endDay: day)),
               onTime: (time) =>
                   setState(() => _times = _times.copy(endTime: time)),
@@ -266,9 +266,12 @@ class _EventFormState extends State<EventForm> {
     );
   }
 
-  /// [zone] as its time's row names it: `null` where it is the device's
-  /// (or none), as the device's clock needs no name.
-  String? _zoneShown(String? zone) => zone == widget.deviceZone ? null : zone;
+  /// [zone] as its time's row names it, [opened] the zone it had as the
+  /// form opened: `null` (no name) where it is none, or the device's as
+  /// before, as the device's clock needs no name; a zone just picked is
+  /// always named, so the change shows.
+  String? _zoneShown(String? zone, String? opened) =>
+      zone == widget.deviceZone && zone == opened ? null : zone;
 
   /// Whether [alerts] is one the list offers.
   bool _offered(List<Duration> alerts) =>

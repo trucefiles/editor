@@ -35,6 +35,7 @@ import 'edit_file_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
 import 'file_place_chip.dart';
+import 'file_place_spot.dart';
 import 'history_buttons.dart';
 import 'history_end_text.dart';
 import 'save_indicator.dart';
@@ -285,12 +286,11 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   }
 
   /// [context] is this screen's, below its own messenger; [settings] are
-  /// the file's. Has the file's place where it doesn't show above the
-  /// text ([placeAbove]).
+  /// the file's. Has the file's place where [placeSpot] says.
   Widget _menu(
     BuildContext context,
     FileSettings settings, {
-    required bool placeAbove,
+    required FilePlaceSpot placeSpot,
   }) => PopupMenuButton<VoidCallback>(
     onSelected: (action) => action(),
     itemBuilder: (_) => [
@@ -301,7 +301,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
           child: const Text('Redo'),
         ),
       ..._page.view.menu(context, settings.view),
-      if (!placeAbove)
+      if (placeSpot == FilePlaceSpot.menu)
         PopupMenuItem(
           value: () => unawaited(editFilePlace(context, ref, _session)),
           child: const Text('$placeLabel…'),
@@ -418,8 +418,11 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final mark = _controller.markIn(shown);
     ref.watch(fileSettingsProvider);
     final settings = _controller.settings;
-    final placeAbove = ref.watch(
-      deviceSettingsProvider.select((s) => s.requireValue.placeAboveText),
+    final placeSpot = filePlaceSpot(
+      aboveText: ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.placeAboveText),
+      ),
+      readOnly: readOnly,
     );
     final tint = fileTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
@@ -449,7 +452,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             ),
           if (!readOnly) ...[
             ..._page.view.actions(context),
-            _menu(context, settings, placeAbove: placeAbove),
+            _menu(context, settings, placeSpot: placeSpot),
           ],
         ],
       ),
@@ -467,7 +470,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             onClose: _leave,
             folderReachable: !unreachable,
           ),
-          if (placeAbove)
+          if (placeSpot == FilePlaceSpot.aboveText)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Align(
