@@ -11,9 +11,9 @@ import '../../common/snack.dart';
 import '../../files/file_colors.dart';
 import '../../files/ui/open_file.dart';
 import '../../folder_state/folder_state_controller.dart';
-import '../../settings/calendar_view_setting.dart';
 import '../calendar_clock.dart';
 import '../calendar_tab_controller.dart';
+import '../tab_view_setting.dart';
 import 'calendar_chip.dart';
 import 'hidden_calendars.dart';
 import 'open_calendar.dart';
@@ -33,7 +33,7 @@ class CalendarTabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final calendars = ref.watch(calendarTabProvider).value ?? TabCalendars.none;
     final controller = ref.read(calendarTabProvider.notifier);
-    final viewChoice = ref.watch(calendarViewChoiceProvider);
+    final viewChoice = ref.watch(tabViewChoiceProvider);
     final listed = ref.watch(folderFilesProvider);
     Color colorOf(ListedFile file) =>
         fileColor(listed?.markOf(file.key).color, folder: file.folder.color);

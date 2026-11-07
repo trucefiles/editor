@@ -9,6 +9,7 @@ final class PageMover {
     required this.pages,
     required this.shown,
     required this.animateTo,
+    required this.jumpTo,
   });
 
   /// The pages of the view shown now.
@@ -19,6 +20,9 @@ final class PageMover {
 
   /// Moves the views to the page [date] is on; done when the move ends.
   final Future<void> Function(DateTime date) animateTo;
+
+  /// Puts the views on the page [date] is on, with no pages on the way.
+  final void Function(DateTime date) jumpTo;
 
   /// The page the moves under way go to, while there are any.
   int? _target;
@@ -38,6 +42,13 @@ final class PageMover {
   /// To the page [date] is on, e.g. today.
   Future<void> to(DateTime date) =>
       _move(pages().indexFromDate(date, null), date);
+
+  /// Straight to the page [date] is on, showing none on the way (e.g. a
+  /// far date picked); a step under way then counts from there.
+  void jump(DateTime date) {
+    if (_moving > 0) _target = pages().indexFromDate(date, null);
+    jumpTo(date);
+  }
 
   Future<void> _move(int page, DateTime date) async {
     _target = page;

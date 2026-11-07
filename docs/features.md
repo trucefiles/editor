@@ -48,12 +48,14 @@ Calendars are `.ics` files, the format other calendar apps use. **New
 file** offers a calendar or a health calendar; it opens at once, and
 its name is typed right in its title, now or any time later. A
 calendar's card shows its next events. Its page shows a month, a week,
-a day or a schedule, the one you picked last. Tap a free time to add an
+a day or a schedule, the one you picked last for it. Tap a day's number
+or header to open that day, or the title above to pick a date: a day,
+or a month in the month and schedule views. Tap a free time to add an
 event there, a day in the month for an all-day event, or drag over a few
 hours; **+** adds one too. Drag an event to move it, or its edge to make
 it longer (for an event that repeats, that moves just this one). Tap an
 event to edit or delete it, just this time or every time. An event can
-have its own color; otherwise it shows in its calendar's color (the
+have its own color, also as a dot when you tap it; otherwise it shows in its calendar's color (the
 file's color, else its folder's). Start and end can each have their own
 time zone, e.g. for a flight: tap the zone under a time to pick one.
 An event from another zone also shows its own times when you tap it. **Import events** in a calendar's
@@ -68,7 +70,7 @@ the day of the cycle.
 Today always has a blue outline. With a mouse, Shift and the wheel page
 to the next or previous month, week or day. Once your
 folders hold a calendar, the **Calendars** tab shows the events of all
-of them in the same views. A chip turns a calendar's events on or off;
+of them in the same views, in the view picked last there. A chip turns a calendar's events on or off;
 a long press or right click on it hides the calendar from the tab, and
 **Hidden** brings it back. Tap an event there to see it and its
 calendar, then open the calendar or edit the event on its page. To add or change events, open one
@@ -81,6 +83,7 @@ kept.
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
+<img src="screenshots/calendar/calendar_month_picker_touch.png" width="300" alt="The month view's title tapped on a phone: pick a month, or tap the year to pick another year">
 <img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: two calendars as chips above one month, the open calendar button at the bottom">
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">

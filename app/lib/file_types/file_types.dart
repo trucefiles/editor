@@ -6,7 +6,6 @@ import 'package:truce_files/truce_files.dart';
 
 import '../common/time_texts.dart';
 import '../platform/platform_wiring.dart';
-import '../settings/calendar_view_setting.dart';
 import 'calendar_wiring.dart';
 import 'markdown_wiring.dart';
 
@@ -19,7 +18,6 @@ final fileTypesProvider = Provider<ShownFileTypes<EditableType>>((ref) {
   final calendars = CalendarEditableType(
     day: ref.watch(timeTextsProvider).day,
     deviceZone: ref.watch(deviceZoneProvider),
-    viewChoice: ref.watch(calendarViewChoiceProvider),
     starts: ref.watch(calendarStartsProvider),
     pickFile: ref.watch(calendarFilePickerProvider),
   );

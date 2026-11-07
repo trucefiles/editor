@@ -6,6 +6,8 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
+import 'views_title.dart';
+
 /// A calendar named [name] with [event] on 3 November 2026 from [hour]
 /// for an hour.
 Calendar _calendar(String name, String event, int hour) => applyEdit(
@@ -326,7 +328,7 @@ void main() {
     await tester.fling(find.byType(KalenderView), const Offset(-400, 0), 1000);
     await tester.pumpAndSettle();
 
-    expect(find.text('December 2026'), findsOneWidget);
+    expect(viewsTitle('December 2026'), findsOneWidget);
     expect(find.text('Party'), findsOneWidget);
     expect(rebuilt, 0, reason: 'no page builds again');
     expect(days.last, DateTime(2026, 12));

@@ -16,19 +16,17 @@ import 'ui/calendar_page.dart';
 /// reach the page as its own [PageStarts].
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
-  /// [_viewChoice] the view event calendars open in; [_starts] what
-  /// calendar pages are asked to start with; [now] the time.
+  /// [_starts] what calendar pages are asked to start with; [now] the
+  /// time.
   CalendarEditorView(
     this._part, {
     required this._deviceZone,
-    required this._viewChoice,
     required this._starts,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
   final CalendarEditorPart _part;
   final DeviceZone _deviceZone;
-  final CalendarViewChoice _viewChoice;
   final CalendarStarts _starts;
   final DateTime Function() _now;
   final _pageStarts = PageStarts();
@@ -45,7 +43,6 @@ final class CalendarEditorView extends EditorView {
       hint: host.hint,
       color: host.color,
       deviceZone: _deviceZone,
-      viewChoice: _viewChoice,
       starts: _pageStarts,
     );
   }

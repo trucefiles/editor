@@ -4,8 +4,8 @@ import '../view_settings.dart';
 import 'editor_part.dart';
 
 /// An [EditorPart] whose file shows one way: to edit, or only to read
-/// while it can't be edited here. It keeps nothing of how the file
-/// shows; a type adds only its [editor].
+/// while it can't be edited here. A change to what its type keeps of how
+/// the file shows ([viewChanged]) doesn't change how it shows.
 abstract base class FixedViewEditorPart implements EditorPart {
   /// Only to read at first if [readOnly].
   FixedViewEditorPart({required this._readOnly});

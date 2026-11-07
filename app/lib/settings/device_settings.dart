@@ -53,7 +53,7 @@ final class DeviceSettings {
 
   final HomeSettings home;
 
-  /// The view calendars open in: the one picked last.
+  /// The view the Calendar tab opens in: the one picked last there.
   final CalendarViewKind calendarView;
 
   /// Whether a file's location shows above its text; else it is only in

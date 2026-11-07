@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 /// The bar above the calendar views: the previous and next page, back to
-/// today, what is shown ([title]) and which view.
+/// today, what is shown ([title], a tap on it asks where to go:
+/// [onTitle]) and which view.
 class ViewsBar extends StatelessWidget {
   const ViewsBar({
     required this.title,
@@ -11,6 +12,7 @@ class ViewsBar extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onToday,
+    required this.onTitle,
     super.key,
   });
 
@@ -20,6 +22,7 @@ class ViewsBar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onToday;
+  final VoidCallback onTitle;
 
   @override
   Widget build(BuildContext context) => IconButtonTheme(
@@ -39,11 +42,30 @@ class ViewsBar extends StatelessWidget {
           onPressed: onNext,
         ),
         Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: InkWell(
+              onTap: onTitle,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.only(start: 4, end: 2),
+                // The arrow is cut with the title where the bar is narrow.
+                child: Text.rich(
+                  TextSpan(
+                    text: title,
+                    children: const [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(Icons.arrow_drop_down),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ),
           ),
         ),
         IconButton(

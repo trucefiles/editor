@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.17.0" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Go straight to a day: tap a day's number or header to open it in Day view.</li>
+          <li>Tap the title above a calendar to pick a date: a day in Day and Week view, a month in Month and Schedule view.</li>
+          <li>The Calendars tab and each calendar remember their own view; a calendar starts in Month.</li>
+          <li>An event with its own color shows it as a dot in its sheet.</li>
+          <li>Clearer settings for where the "Add item" button and the file location and name picker sit.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.16.0" date="2026-11-07">
       <description>
         <ul>

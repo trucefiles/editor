@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
-import 'package:truce_editor/settings/calendar_view_setting.dart';
+import 'package:truce_editor/calendar_tab/tab_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
@@ -155,21 +155,21 @@ void main() {
       expect(next.read(deviceSettingsProvider).requireValue.closeToTray, false);
     });
 
-    test('the calendar view picked last is kept for the next start', () async {
-      final first = await start();
-      final choice = first.read(calendarViewChoiceProvider);
-      expect(choice.last(), CalendarViewKind.month);
+    test(
+      "the Calendar tab's view picked last is kept for the next start",
+      () async {
+        final first = await start();
+        final choice = first.read(tabViewChoiceProvider);
+        expect(choice.last(), CalendarViewKind.month);
 
-      final keeping = choice.keep(CalendarViewKind.day);
-      expect(choice.last(), CalendarViewKind.day);
-      await keeping;
+        final keeping = choice.keep(CalendarViewKind.day);
+        expect(choice.last(), CalendarViewKind.day);
+        await keeping;
 
-      final next = await start();
-      expect(
-        next.read(calendarViewChoiceProvider).last(),
-        CalendarViewKind.day,
-      );
-    });
+        final next = await start();
+        expect(next.read(tabViewChoiceProvider).last(), CalendarViewKind.day);
+      },
+    );
 
     test('changes made at once each start from the one before', () async {
       final first = await start();
