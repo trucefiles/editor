@@ -78,28 +78,32 @@ class _MonthPickerState extends State<_MonthPicker> {
                   ? () => setState(() => _year += by)
                   : null,
             ),
-            SizedBox(
-              height: 280,
-              child: _pickingYear
-                  ? YearPicker(
-                      firstDate: widget.first,
-                      lastDate: widget.last,
-                      currentDate: widget.today,
-                      selectedDate: _picked,
-                      onChanged: (year) => setState(() {
-                        _year = year.year;
-                        _picked = _within(DateTime(year.year, _picked.month));
-                        _pickingYear = false;
-                      }),
-                    )
-                  : _MonthGrid(
-                      look,
-                      year: _year,
-                      picked: _picked,
-                      today: widget.today,
-                      canPick: (month) => _within(month) == month,
-                      onPick: (month) => setState(() => _picked = month),
-                    ),
+            Flexible(
+              // Shrinks in a short window; both lists scroll.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: _pickingYear
+                    ? YearPicker(
+                        firstDate: widget.first,
+                        lastDate: widget.last,
+                        currentDate: widget.today,
+                        // The year shown, as Flutter's picker does.
+                        selectedDate: DateTime(_year),
+                        onChanged: (year) => setState(() {
+                          _year = year.year;
+                          _picked = _within(DateTime(year.year, _picked.month));
+                          _pickingYear = false;
+                        }),
+                      )
+                    : _MonthGrid(
+                        look,
+                        year: _year,
+                        picked: _picked,
+                        today: widget.today,
+                        canPick: (month) => _within(month) == month,
+                        onPick: (month) => setState(() => _picked = month),
+                      ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(8),
