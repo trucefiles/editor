@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -61,26 +62,33 @@ void main() {
     await container.read(folderContentsProvider.future);
   }
 
-  /// The tab's calendars as their titles and places.
-  Future<List<(String, TabPlace)>> tab() async => [
-    for (final calendar in await container.read(calendarTabProvider.future))
-      (
-        calendar.title,
-        switch (calendar) {
-          ShownCalendar() => TabPlace.shown,
-          OffCalendar() => TabPlace.off,
-          HiddenCalendar() => TabPlace.hidden,
-        },
-      ),
-  ];
+  /// The tab's calendars as their titles and places, by title.
+  Future<List<(String, TabPlace)>> tab() async {
+    final calendars = await container.read(calendarTabProvider.future);
+    return [
+      for (final calendar in calendars.offered)
+        (
+          calendar.title,
+          switch (calendar) {
+            ShownCalendar() => TabPlace.shown,
+            OffCalendar() => TabPlace.off,
+          },
+        ),
+      for (final calendar in calendars.hidden)
+        (calendar.title, TabPlace.hidden),
+    ].sortedBy((calendar) => calendar.$1.toLowerCase());
+  }
 
   /// Puts the tab's calendar [title] in [place].
   Future<void> place(String title, TabPlace place) async {
-    final calendar = (await container.read(calendarTabProvider.future))
-        .firstWhere((calendar) => calendar.title == title);
-    await container
-        .read(calendarTabProvider.notifier)
-        .place(calendar.file, place);
+    final calendars = await container.read(calendarTabProvider.future);
+    final file = [
+      for (final calendar in calendars.offered)
+        if (calendar.title == title) calendar.file,
+      for (final calendar in calendars.hidden)
+        if (calendar.title == title) calendar.file,
+    ].single;
+    await container.read(calendarTabProvider.notifier).place(file, place);
   }
 
   test('no tab without a calendar', () async {
@@ -131,6 +139,16 @@ void main() {
     expect(await tab(), [('Home', TabPlace.hidden), ('Work', TabPlace.shown)]);
     expect(wholeReads.skip(2), ['work.ics']);
     expect(titleReads, hasLength(2), reason: 'Home kept as read');
+  });
+
+  test("a shown calendar whose events can't be read keeps its chip, "
+      'off', () async {
+    write('half.ics', 'BEGIN:VCALENDAR\nX-WR-CALNAME:Half\nBEGIN:VEVENT\n');
+    await start();
+
+    expect(await tab(), [('Half', TabPlace.off)]);
+    await place('Half', TabPlace.hidden);
+    expect(await tab(), [('Half', TabPlace.hidden)]);
   });
 
   test('a calendar without a name is titled and sorted by its file, as '

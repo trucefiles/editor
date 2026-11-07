@@ -9,7 +9,7 @@ import '../calendar_tab_controller.dart';
 /// there is none or the user cancels.
 Future<ListedFile?> pickCalendar(
   BuildContext context,
-  List<TabCalendar> calendars,
+  List<OfferedCalendar> calendars,
   Color Function(ListedFile file) colorOf,
 ) async => switch (calendars) {
   [] => null,

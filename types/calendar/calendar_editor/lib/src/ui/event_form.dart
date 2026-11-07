@@ -417,10 +417,10 @@ final class _FormTimes {
       allDay: allDay,
       startDay: DateTime(start.year, start.month, start.day),
       startTime: TimeOfDay(hour: start.hour, minute: start.minute),
-      startZone: _zoneOf(draft.start),
+      startZone: draft.start.zone,
       endDay: DateTime(lastDay.year, lastDay.month, lastDay.day),
       endTime: TimeOfDay(hour: end.hour, minute: end.minute),
-      endZone: _zoneOf(draft.end),
+      endZone: draft.end.zone,
     );
   }
 
@@ -557,10 +557,4 @@ final class _FormTimes {
   /// [wall] on the clock of [zone]; `null` is the device's.
   static CalendarTime _clock(DateTime wall, String? zone) =>
       zone == null ? Floating(wall) : Zoned(zone, wall);
-
-  /// The zone [time] is in; `null` if none (on the device's clock).
-  static String? _zoneOf(CalendarTime time) => switch (time) {
-    Zoned(:final zone) => zone,
-    _ => null,
-  };
 }

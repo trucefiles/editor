@@ -62,7 +62,7 @@ String? _ownTimes(
   required Occurrence shown,
   required bool use24Hour,
 }) {
-  final (startZone, endZone) = (_zoneOf(start), _zoneOf(end));
+  final (startZone, endZone) = (start.zone, end.zone);
   if ((startZone, endZone) == (null, null) ||
       (_sameClock(start.wall, shown.start) &&
           _sameClock(end.wall, shown.end))) {
@@ -83,12 +83,6 @@ String? _ownTimes(
 
 /// How a time zone (an IANA name) reads, e.g. "America/New York".
 String zoneText(String zone) => zone.replaceAll('_', ' ');
-
-/// The zone of [time], if it is of one.
-String? _zoneOf(CalendarTime time) => switch (time) {
-  Zoned(:final zone) => zone,
-  _ => null,
-};
 
 /// Whether the wall clock [wall] shows as [local] does.
 bool _sameClock(DateTime wall, DateTime local) =>

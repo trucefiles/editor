@@ -31,18 +31,13 @@ class CalendarTabScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final calendars = ref.watch(calendarTabProvider).value ?? const [];
+    final calendars = ref.watch(calendarTabProvider).value ?? TabCalendars.none;
     final controller = ref.read(calendarTabProvider.notifier);
     final viewChoice = ref.watch(calendarViewChoiceProvider);
     final listed = ref.watch(folderFilesProvider);
     Color colorOf(ListedFile file) =>
         fileColor(listed?.markOf(file.key).color, folder: file.folder.color);
-    final offered = _offered(calendars);
-    final shown = {
-      for (final calendar in calendars.whereType<ShownCalendar>())
-        calendar.file: calendar,
-    };
-    final hidden = calendars.whereType<HiddenCalendar>().toList();
+    final TabCalendars(:offered, :hidden, :shown) = calendars;
     return Scaffold(
       appBar: AppBar(title: const Text('Calendars')),
       floatingActionButton: offered.isEmpty
@@ -106,26 +101,22 @@ class CalendarTabScreen extends ConsumerWidget {
                       occurrence,
                       colorOf(file),
                     ),
-                    // Adding happens on a calendar's page.
-                    onAdd: (_) => showSnack(
-                      context,
-                      'Open one calendar to edit',
-                      actionLabel: 'Open',
-                      onAction: () => _openCalendar(context, ref, colorOf),
-                    ),
+                    // Adding happens on a calendar's page, if one can open.
+                    onAdd: offered.isEmpty
+                        ? null
+                        : (_) => showSnack(
+                            context,
+                            'Open one calendar to edit',
+                            actionLabel: 'Open',
+                            onAction: () =>
+                                _openCalendar(context, ref, colorOf),
+                          ),
                   ),
                 ),
               ],
             ),
     );
   }
-
-  /// The calendars the tab offers (a chip each, and to open): every one
-  /// not hidden.
-  static List<TabCalendar> _offered(List<TabCalendar> calendars) => [
-    for (final calendar in calendars)
-      if (calendar is! HiddenCalendar) calendar,
-  ];
 
   /// Shows [occurrence] of [calendar] whole, named with its [color] and
   /// title, with what can be done with it: open its calendar, or edit it
@@ -166,8 +157,8 @@ class CalendarTabScreen extends ConsumerWidget {
   ) async {
     // The hint's Open may come after the tab is gone.
     if (!context.mounted) return;
-    final calendars = ref.read(calendarTabProvider).value ?? const [];
-    final picked = await pickCalendar(context, _offered(calendars), colorOf);
+    final offered = ref.read(calendarTabProvider).value?.offered ?? const [];
+    final picked = await pickCalendar(context, offered, colorOf);
     if (picked == null || !context.mounted) return;
     await openFile(context, ref, picked);
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 import '../calendar_tab_controller.dart';
@@ -15,8 +16,7 @@ class CalendarChip extends StatefulWidget {
     super.key,
   });
 
-  /// A shown or an off calendar.
-  final TabCalendar calendar;
+  final OfferedCalendar calendar;
   final Color color;
   final ValueChanged<bool> onShown;
   final VoidCallback onHide;
@@ -43,18 +43,25 @@ class _CalendarChipState extends State<CalendarChip> {
         autofocus: true,
         leadingIcon: const Icon(Icons.visibility_off_outlined),
         onPressed: widget.onHide,
-        child: const Text('Hide from this tab'),
+        child: const Text(_hideLabel),
       ),
     ],
-    child: GestureDetector(
-      onLongPressStart: (details) => _showMenuAt(details.globalPosition),
-      onSecondaryTapUp: (details) => _showMenuAt(details.globalPosition),
-      child: FilterChip(
-        avatar: CalendarDot(widget.color),
-        label: Text(widget.calendar.title),
-        selected: widget.calendar is ShownCalendar,
-        onSelected: widget.onShown,
+    // Screen readers offer the hide as an action of the chip.
+    child: Semantics(
+      customSemanticsActions: {_hide: widget.onHide},
+      child: GestureDetector(
+        onLongPressStart: (details) => _showMenuAt(details.globalPosition),
+        onSecondaryTapUp: (details) => _showMenuAt(details.globalPosition),
+        child: FilterChip(
+          avatar: CalendarDot(widget.color),
+          label: Text(widget.calendar.title),
+          selected: widget.calendar is ShownCalendar,
+          onSelected: widget.onShown,
+        ),
       ),
     ),
   );
 }
+
+const _hideLabel = 'Hide from this tab';
+const _hide = CustomSemanticsAction(label: _hideLabel);

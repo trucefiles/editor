@@ -28,27 +28,19 @@ final class Calendar {
 
   /// The calendar in [text] (`\n` line breaks); `null` if it is none.
   static Calendar? read(String text) {
-    final lines = logicalLines(text);
-    final begin = lines.indexWhere(
-      (line) => line.unfolded.trim().toUpperCase() == 'BEGIN:VCALENDAR',
-    );
-    if (begin < 0 ||
-        lines.take(begin).any((line) => line.unfolded.trim().isNotEmpty)) {
-      return null;
-    }
+    final head = CalendarHead.read(text);
+    if (head == null) return null;
+    final lines = logicalLines(text.substring(head.text.length));
     final end = lines.lastIndexWhere(
       (line) => line.unfolded.trim().toUpperCase() == 'END:VCALENDAR',
     );
-    if (end <= begin) return null;
-    final inside = lines.sublist(begin + 1, end);
-    final firstUnit = inside.indexWhere(_begins);
-    final headCount = firstUnit < 0 ? inside.length : firstUnit;
-    final blocks = _blocks(inside.sublist(headCount));
+    if (end < 0) return null;
+    final blocks = _blocks(lines.sublist(0, end));
     if (blocks == null) return null;
     final (:units, :layout) = _units(blocks);
     final tail = _textOf(lines.sublist(end));
     return Calendar._(
-      CalendarHead(_textOf(lines.sublist(0, begin + 1 + headCount))),
+      head,
       _Body(units, layout),
       // Its last line break only if the text has one.
       text.endsWith('\n') ? tail : tail.substring(0, tail.length - 1),

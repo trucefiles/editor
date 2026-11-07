@@ -17,7 +17,7 @@ class _ZonePicker extends StatefulWidget {
 
 class _ZonePickerState extends State<_ZonePicker> {
   /// Every zone with how it reads, read once as the picker opens.
-  final _zones = [for (final zone in zoneNames()) (zone, zoneText(zone))];
+  final _zones = [for (final zone in zoneNames) (zone, zoneText(zone))];
   var _search = '';
 
   @override

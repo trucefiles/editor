@@ -2,31 +2,35 @@ import 'package:collection/collection.dart';
 
 import '../read/content_line.dart';
 
-/// A calendar's head: its [text] from `BEGIN:VCALENDAR` up to its first
-/// unit, which holds the calendar's own properties (its name, its kind).
-/// Immutable; each answer is worked out when first asked.
+/// A calendar's head: its [text] up to its first unit (or its end line):
+/// `BEGIN:VCALENDAR`, after blank lines if any, and the calendar's own
+/// properties (its name, its kind). The one rule for where a head ends,
+/// for a calendar read whole and for its name read alone. Immutable;
+/// each answer is worked out when first asked.
 final class CalendarHead {
   CalendarHead(this.text);
 
   /// The head of the calendar in [text] (`\n` line breaks), found without
   /// reading on past it, so a calendar's name is known without reading
   /// its events; `null` if [text] starts no calendar.
-  static CalendarHead? read(String text) =>
-      switch (_bounds.allMatches(text).take(2).toList()) {
-        [final begin, ...final rest]
-            when begin[0]!.trim().toUpperCase() == 'BEGIN:VCALENDAR' &&
-                text.substring(0, begin.start).trim().isEmpty =>
-          CalendarHead(
-            text.substring(begin.start, rest.firstOrNull?.start ?? text.length),
-          ),
-        _ => null,
-      };
+  static CalendarHead? read(String text) => switch (_bounds
+      .allMatches(text)
+      .take(2)
+      .toList()) {
+    [final begin, ...final rest]
+        when begin[0]!.trim().toUpperCase() == 'BEGIN:VCALENDAR' &&
+            text.substring(0, begin.start).trim().isEmpty =>
+      CalendarHead(text.substring(0, rest.firstOrNull?.start ?? text.length)),
+    _ => null,
+  };
 
   final String text;
 
   /// The calendar's own properties.
   late final List<ContentLine> properties = [
-    for (final line in logicalLines(text).skip(1))
+    for (final line in logicalLines(
+      text,
+    ).skipWhile((line) => line.unfolded.trim().isEmpty).skip(1))
       ?ContentLine.parse(line.unfolded, raw: line.raw),
   ];
 
@@ -66,9 +70,9 @@ const nameProperty = 'X-WR-CALNAME';
 /// The calendar property that makes a calendar a health calendar.
 const healthFlag = ContentLine('X-TRUCE-CALENDAR', 'HEALTH');
 
-/// A line that begins or ends a component.
+/// A line that begins a component, or ends the calendar.
 final _bounds = RegExp(
-  r'^(BEGIN|END):.*$',
+  r'^(BEGIN:.*|END:VCALENDAR\s*)$',
   multiLine: true,
   caseSensitive: false,
 );

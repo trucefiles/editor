@@ -60,4 +60,40 @@ void main() {
     expect(calendarTitle(CalendarHead.read(newCalendarText('Work'))!), 'Work');
     expect(calendarTitle(CalendarHead.read(newCalendarText(''))!), isNull);
   });
+
+  test('the whole read takes its head from the head read, and prints '
+      'back as it was', () {
+    for (final text in [
+      '\n\nBEGIN:VCALENDAR\nX-WR-CALNAME:Work\nEND:VCALENDAR\n',
+      'BEGIN:VCALENDAR\nX-WR-CALNAME:Work\nbegin:VEVENT\nUID:a\n'
+          'END:VEVENT\nEND:VCALENDAR',
+    ]) {
+      final whole = Calendar.read(text)!;
+      expect(whole.head.text, CalendarHead.read(text)!.text);
+      expect(whole.text, text);
+      expect(whole.name, 'Work');
+    }
+  });
+
+  test('time zones offered are places and UTC, not names that read '
+      'wrong', () {
+    expect(
+      zoneNames,
+      containsAll(['Europe/Berlin', 'America/New_York', 'Etc/UTC']),
+    );
+    expect(
+      zoneNames.where((zone) => zone.startsWith('Etc/') || !zone.contains('/')),
+      ['Etc/UTC'],
+    );
+    expect(zoneNames, isNot(contains('EST5EDT')));
+  });
+
+  test('a time names its zone only if it is in one', () {
+    final wall = DateTime.utc(2026, 11, 3, 9);
+    expect(Zoned('Europe/Berlin', wall).zone, 'Europe/Berlin');
+    expect(
+      [Floating(wall).zone, UtcTime(wall).zone, AllDay(wall).zone],
+      [null, null, null],
+    );
+  });
 }

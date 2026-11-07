@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_files/truce_files.dart';
@@ -6,35 +7,62 @@ import '../files/file_settings_controller.dart';
 import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
 
-/// One calendar the Calendar tab knows, by its place there ([TabPlace]):
-/// its listed [file] and its [title] as its card shows it.
-sealed class TabCalendar {
-  const TabCalendar(this.file, this.title);
+/// The Calendar tab's calendars, by title, each in its place there
+/// ([TabPlace]) on this device.
+final class TabCalendars {
+  TabCalendars({required this.offered, required this.hidden});
+
+  /// No calendars.
+  static final none = TabCalendars(offered: const [], hidden: const []);
+
+  /// The calendars with a chip, shown or off; also those to open.
+  final List<OfferedCalendar> offered;
+
+  /// The calendars left out, only listed to bring them back.
+  final List<HiddenCalendar> hidden;
+
+  /// The shown calendars, by file.
+  late final Map<ListedFile, ShownCalendar> shown = {
+    for (final calendar in offered.whereType<ShownCalendar>())
+      calendar.file: calendar,
+  };
+
+  bool get isEmpty => offered.isEmpty && hidden.isEmpty;
+}
+
+/// A calendar with a chip in the tab: its listed [file] and its [title]
+/// as its card shows it.
+sealed class OfferedCalendar {
+  const OfferedCalendar(this.file, this.title);
 
   final ListedFile file;
   final String title;
 }
 
 /// A calendar whose events the tab shows: its [calendar] as read.
-final class ShownCalendar extends TabCalendar {
+final class ShownCalendar extends OfferedCalendar {
   const ShownCalendar(super.file, super.title, this.calendar);
 
   final Calendar calendar;
 }
 
-/// A calendar the tab offers but doesn't show; only its name is read.
-final class OffCalendar extends TabCalendar {
+/// A calendar whose events the tab doesn't show: turned off (only its
+/// name is read), or its events can't be read.
+final class OffCalendar extends OfferedCalendar {
   const OffCalendar(super.file, super.title);
 }
 
-/// A calendar left out of the tab, only listed to bring it back; only
-/// its name is read.
-final class HiddenCalendar extends TabCalendar {
-  const HiddenCalendar(super.file, super.title);
+/// A calendar left out of the tab; only its name is read.
+final class HiddenCalendar {
+  const HiddenCalendar(this.file, this.title);
+
+  final ListedFile file;
+  final String title;
 }
 
-/// A calendar as the tab keeps it read: the [calendar] and its [title].
-typedef ReadCalendar = ({Calendar calendar, String title});
+/// A calendar as the tab reads one it shows: its [calendar], `null` if
+/// only its name could be read, and its [title].
+typedef ReadCalendar = ({Calendar? calendar, String title});
 
 /// The calendars of the tab as read, kept while the app runs; a file
 /// that is no calendar is left out.
@@ -42,13 +70,17 @@ final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendar),
 );
 
-/// [read] as the tab keeps a calendar it shows; `null` if it is none.
+/// [read] as the tab keeps a calendar it shows: whole, else by its name
+/// alone; `null` if it is no calendar.
 ReadCalendar? readCalendar(FileText read) => switch (read.summary) {
   CalendarSummary(:final calendar?) => (
     calendar: calendar,
     title: titleOf(read.summary, read.path),
   ),
-  _ => null,
+  _ => switch (readCalendarTitle(read)) {
+    final title? => (calendar: null, title: title),
+    null => null,
+  },
 };
 
 /// The titles of the tab's calendars it doesn't show, read from their
@@ -62,7 +94,7 @@ final calendarTitlesProvider = Provider<FileReads<String>>(
 /// none.
 String? readCalendarTitle(FileText read) =>
     switch (CalendarHead.read(read.text)) {
-      final head? => calendarTitle(head) ?? nameTitle(read.path),
+      final head? => ownTitleOr(calendarTitle(head), read.path),
       null => null,
     };
 
@@ -79,43 +111,50 @@ final hasCalendarsProvider = Provider<bool>(
 bool isCalendarFile(ListedFile file) => file.type.type == calendarType;
 
 final calendarTabProvider =
-    AsyncNotifierProvider<CalendarTabController, List<TabCalendar>>(
+    AsyncNotifierProvider<CalendarTabController, TabCalendars>(
       CalendarTabController.new,
     );
 
 /// The Calendar tab's calendars: every calendar the shown folders hold,
-/// by title, each in the place the user gave it on this device; only the
-/// shown ones are read whole, as they are now.
-class CalendarTabController extends AsyncNotifier<List<TabCalendar>> {
+/// each in the place the user gave it on this device; only the shown
+/// ones are read whole, as they are now.
+class CalendarTabController extends AsyncNotifier<TabCalendars> {
   @override
-  Future<List<TabCalendar>> build() async {
+  Future<TabCalendars> build() async {
     final listed = await ref.watch(loadedFolderFiles);
     await ref.watch(fileSettingsProvider.future);
     final settings = ref.read(fileSettingsProvider.notifier);
-    TabPlace placeOf(ListedFile file) =>
-        CalendarView.of(settings.settingsOf(file.key).view).tab;
-    final calendars = listed.files.where(isCalendarFile).toList();
+    final byPlace = listed.files
+        .where(isCalendarFile)
+        .groupListsBy(
+          (file) => CalendarView.of(settings.settingsOf(file.key).view).tab,
+        );
+    List<ListedFile> filesIn(TabPlace place) => byPlace[place] ?? const [];
+    final (shown, off, hidden) = (
+      filesIn(TabPlace.shown),
+      filesIn(TabPlace.off),
+      filesIn(TabPlace.hidden),
+    );
     final (read, titled) = await (
-      ref.read(calendarReadsProvider).readAll([
-        for (final file in calendars)
-          if (placeOf(file) == TabPlace.shown) file,
-      ]),
-      ref.read(calendarTitlesProvider).readAll([
-        for (final file in calendars)
-          if (placeOf(file) != TabPlace.shown) file,
-      ]),
+      ref.read(calendarReadsProvider).readAll(shown),
+      ref.read(calendarTitlesProvider).readAll([...off, ...hidden]),
     ).wait;
-    return <TabCalendar>[
-      for (final MapEntry(key: file, value: (:calendar, :title))
-          in read.entries)
-        ShownCalendar(file, title, calendar),
-      for (final MapEntry(key: file, value: title) in titled.entries)
-        switch (placeOf(file)) {
-          TabPlace.hidden => HiddenCalendar(file, title),
-          // Shown ones are read whole, above.
-          TabPlace.off || TabPlace.shown => OffCalendar(file, title),
-        },
-    ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return TabCalendars(
+      offered: [
+        for (final MapEntry(key: file, value: (:calendar, :title))
+            in read.entries)
+          switch (calendar) {
+            final calendar? => ShownCalendar(file, title, calendar),
+            null => OffCalendar(file, title),
+          },
+        for (final file in off)
+          if (titled[file] case final title?) OffCalendar(file, title),
+      ].sortedBy((calendar) => calendar.title.toLowerCase()),
+      hidden: [
+        for (final file in hidden)
+          if (titled[file] case final title?) HiddenCalendar(file, title),
+      ].sortedBy((calendar) => calendar.title.toLowerCase()),
+    );
   }
 
   /// Puts [file] in [place] in the tab.
