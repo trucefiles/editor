@@ -14,35 +14,48 @@ import 'package:truce_test_support/truce_test_support.dart'
 final editedAt = DateTime.utc(2026, 11, 1, 12);
 
 /// A calendar part on [text], its edits made at [now] (else [editedAt]),
-/// importing the file [pickFile] gives (by default none).
+/// importing the file [pickFile] gives (by default none), its view kept
+/// in [kept] (by default the month).
 CalendarEditorPart calendarPart(
   String text, {
   bool readOnly = false,
   DateTime Function()? now,
   PickCalendarFile? pickFile,
-}) => CalendarEditorPart(
-  (
-    text: text,
-    version: const Version(1),
-    view: ViewSettings.none,
-    readOnly: readOnly,
-    isNew: false,
-  ),
-  pickFile: pickFile ?? () async => const Ok(null),
-  now: now ?? () => editedAt,
-  // Never fire: no file keeps the edits here.
-  startTimer: ManualTimers().start,
-);
+  KeptView? kept,
+}) {
+  final view = kept ?? KeptView();
+  return CalendarEditorPart(
+    (
+      text: text,
+      version: const Version(1),
+      view: view.settings,
+      readOnly: readOnly,
+      isNew: false,
+    ),
+    view.page,
+    pickFile: pickFile ?? () async => const Ok(null),
+    now: now ?? () => editedAt,
+    // Never fire: no file keeps the edits here.
+    startTimer: ManualTimers().start,
+  );
+}
 
-/// The view a device keeps for calendars, as a test sets and reads it.
+/// What a device keeps of how a calendar shows, as a test sets and reads
+/// it: the file page's side of it.
 final class KeptView {
-  KeptView([this.kind = CalendarViewKind.month]);
+  /// Kept as opening in [kind].
+  KeptView([CalendarViewKind kind = CalendarViewKind.month])
+    : settings = CalendarView(kind: kind).settings;
 
-  CalendarViewKind kind;
+  ViewSettings settings;
 
-  CalendarViewChoice get choice => CalendarViewChoice(
-    last: () => kind,
-    keep: (kind) async => this.kind = kind,
+  /// The view the calendar opens in, as kept now.
+  CalendarViewKind get kind => CalendarView.of(settings).kind;
+
+  /// The page, keeping what the part changes; it has its file.
+  EditorPage get page => EditorPage(
+    keepView: (change) => settings = change(settings),
+    withFile: (_) async {},
   );
 }
 
@@ -51,8 +64,8 @@ final pageFolder = folderId('home');
 final pagePath = path('a.ics');
 final FileKey pageFile = (folder: pageFolder, path: pagePath);
 
-/// Shows [part]'s calendar page as of [today] on a device in [deviceZone]
-/// that keeps the view in [kept] (by default the month), with its Add
+/// Shows [part]'s calendar page as of [today] on a device in [deviceZone],
+/// with its Add
 /// button while it can be edited, its hints added to [hints], taking
 /// what [starts] asks of it, with the file's menu; closes the part's editor once the test
 /// ends.
@@ -62,7 +75,6 @@ Future<void> pumpPage(
   required DateTime today,
   List<String>? hints,
   String? deviceZone,
-  KeptView? kept,
   CalendarStarts? starts,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
@@ -73,7 +85,6 @@ Future<void> pumpPage(
   final view = CalendarEditorView(
     part,
     deviceZone: () async => deviceZone,
-    viewChoice: (kept ?? KeptView()).choice,
     starts: starts ?? CalendarStarts(),
     now: () => today,
   );

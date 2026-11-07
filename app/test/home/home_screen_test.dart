@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart'
-    show CalendarDot, CalendarViews;
+    show CalendarDot;
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
@@ -388,7 +388,8 @@ void main() {
     });
     await showCalendarTab(tester);
 
-    await tester.tap(find.byType(CalendarViews<ListedFile>));
+    // Below the day's number, which opens the day.
+    await tester.tapAt(tester.getCenter(find.text('10')) + const Offset(0, 40));
     await tester.pumpAndSettle();
     expect(find.text('Open one calendar to edit'), findsOne);
     expect(find.text('New event'), findsNothing);

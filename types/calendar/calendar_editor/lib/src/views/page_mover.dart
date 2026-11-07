@@ -1,14 +1,17 @@
 import 'package:kalender/kalender.dart';
 
-/// Moves the views page by page to where the user asks, by kalender's own
-/// page numbers. While a move is under way, the next step counts from the
-/// page that move goes to, not from the page shown midway (which kalender
-/// rounds back), so quick taps on Next or Previous each count.
+/// Moves the views to where the user asks, by kalender's own page
+/// numbers: the next or previous page slides in, a farther one shows at
+/// once (a slide over many pages is only a blur). While a move is under
+/// way, the next step counts from the page that move goes to, not from
+/// the page shown midway (which kalender rounds back), so quick taps on
+/// Next or Previous each count.
 final class PageMover {
   PageMover({
     required this.pages,
     required this.shown,
     required this.animateTo,
+    required this.jumpTo,
   });
 
   /// The pages of the view shown now.
@@ -19,6 +22,9 @@ final class PageMover {
 
   /// Moves the views to the page [date] is on; done when the move ends.
   final Future<void> Function(DateTime date) animateTo;
+
+  /// Puts the views on the page [date] is on, with no pages on the way.
+  final void Function(DateTime date) jumpTo;
 
   /// The page the moves under way go to, while there are any.
   int? _target;
@@ -35,9 +41,15 @@ final class PageMover {
     return _move(page, day);
   }
 
-  /// To the page [date] is on, e.g. today.
-  Future<void> to(DateTime date) =>
-      _move(pages().indexFromDate(date, null), date);
+  /// To the page [date] is on, e.g. today or a date picked.
+  Future<void> to(DateTime date) async {
+    final pages = this.pages();
+    final page = pages.indexFromDate(date, null);
+    final from = _target ?? pages.indexFromDate(shown(), null);
+    if ((page - from).abs() <= 1) return _move(page, date);
+    if (_moving > 0) _target = page;
+    jumpTo(date);
+  }
 
   Future<void> _move(int page, DateTime date) async {
     _target = page;

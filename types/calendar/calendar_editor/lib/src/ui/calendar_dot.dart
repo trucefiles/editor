@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// A calendar's color as a dot, beside its name.
+/// A color as a dot, beside the name of what has it: a calendar, an
+/// event.
 class CalendarDot extends StatelessWidget {
   const CalendarDot(this.color, {super.key});
 

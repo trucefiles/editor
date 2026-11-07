@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_editor/calendar_tab/calendar_tab_controller.dart';
+import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -119,6 +120,25 @@ void main() {
 
     await place('Home', TabPlace.off);
     expect(await tab(), [('Home', TabPlace.off), ('Work', TabPlace.off)]);
+  });
+
+  test("a calendar's new place keeps the view its page opens in", () async {
+    write('work.ics', newCalendarText('Work'));
+    await start();
+    final calendars = await container.read(calendarTabProvider.future);
+    final file = calendars.offered.single.file;
+    final settings = container.read(fileSettingsProvider.notifier);
+    await settings.edit(
+      file.key,
+      (each) => each.withView(
+        const CalendarView(kind: CalendarViewKind.week).settings,
+      ),
+    );
+
+    await place('Work', TabPlace.off);
+
+    final view = CalendarView.of(settings.settingsOf(file.key).view);
+    expect((view.tab, view.kind), (TabPlace.off, CalendarViewKind.week));
   });
 
   test('only shown calendars are read whole, the others by name only; '

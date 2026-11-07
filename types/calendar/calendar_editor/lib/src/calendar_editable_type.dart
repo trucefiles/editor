@@ -15,13 +15,12 @@ import 'ui/occurrence_texts.dart';
 final class CalendarEditableType extends CalendarFileType
     implements EditableType {
   /// [day] writes an event's day on cards; [deviceZone] tells this
-  /// device's time zone, for new events; [viewChoice] the view calendars
-  /// open in; [starts] what calendar pages are asked to start with;
+  /// device's time zone, for new events; [starts] what calendar pages are
+  /// asked to start with;
   /// [pickFile] asks for a calendar file to import; [now] tells the time.
   CalendarEditableType({
     required DayText day,
     required this.deviceZone,
-    required this.viewChoice,
     required this.starts,
     required this.pickFile,
     super.now,
@@ -31,7 +30,6 @@ final class CalendarEditableType extends CalendarFileType
        );
 
   final DeviceZone deviceZone;
-  final CalendarViewChoice viewChoice;
   final CalendarStarts starts;
   final PickCalendarFile pickFile;
 
@@ -40,15 +38,10 @@ final class CalendarEditableType extends CalendarFileType
 
   @override
   OpenedEditor openEditor(EditorStart start, EditorPage page) {
-    final part = CalendarEditorPart(start, pickFile: pickFile);
+    final part = CalendarEditorPart(start, page, pickFile: pickFile);
     return (
       part: part,
-      view: CalendarEditorView(
-        part,
-        deviceZone: deviceZone,
-        viewChoice: viewChoice,
-        starts: starts,
-      ),
+      view: CalendarEditorView(part, deviceZone: deviceZone, starts: starts),
     );
   }
 }

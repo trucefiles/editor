@@ -9,6 +9,7 @@ import 'calendar_views_model.dart';
 import 'day_cells.dart';
 import 'event_tiles.dart';
 import 'insights_strip.dart';
+import 'month_picker.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
 import 'occurrence_events.dart';
@@ -34,7 +35,10 @@ typedef OnMove<K> = void Function(
 /// [titleOf] if given and several tell), the month's days shaded (weekends, health
 /// calendars' cycle days); the user picks the view ([onKind] tells it, to
 /// keep), pages through time (with the bar's buttons, a swipe, or Shift
-/// and the mouse wheel) and taps an occurrence ([onTap]). Only with
+/// and the mouse wheel), goes to a date picked from the bar's title (a
+/// month in the month and schedule views) or to a day's own view by a
+/// tap on its date (a pick of the day view, told [onKind] too), and taps
+/// an occurrence ([onTap]). Only with
 /// [onAdd] is the user asking to add told, by a tap on a free time or
 /// day, or a drag over free times or days; the host decides what
 /// follows. [onAddDay] is told the day an Add button starts on. Only
@@ -93,6 +97,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     pages: () => _pagesOf(_configurations[_model.kind]!),
     shown: () => _model.middle ?? _model.today,
     animateTo: (date) => _kalender!.animateToDate(date),
+    jumpTo: (date) => _kalender!.jumpToDate(date),
   );
   // The current widget's colors: a calendar's color can change.
   late final _timedTiles = eventTiles<K>(_colorOf, lines: 3);
@@ -174,6 +179,38 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     widget.onKind(kind);
   }
 
+  /// Shows [date]'s day in the day view, moving from the day it opens on
+  /// once it shows.
+  Future<void> _showDay(DateTime date) async {
+    _pickKind(CalendarViewKind.day);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) await _pages.to(DateUtils.dateOnly(date));
+  }
+
+  /// Asks for a date to go to, starting on today if it shows, else on
+  /// the first day shown: a month in the month and schedule views, else
+  /// a day; shows it in the view shown.
+  Future<void> _goTo() async {
+    final shown = _model.dayToAdd;
+    final picked = await switch (_model.kind) {
+      CalendarViewKind.month || CalendarViewKind.schedule => pickMonth(
+        context,
+        shown: shown,
+        today: _model.today,
+        first: _shownDays.from,
+        last: _shownDays.last,
+      ),
+      CalendarViewKind.week || CalendarViewKind.day => showDatePicker(
+        context: context,
+        initialDate: shown,
+        currentDate: _model.today,
+        firstDate: _shownDays.from,
+        lastDate: _shownDays.last,
+      ),
+    };
+    if (picked != null && mounted) await _pages.to(picked);
+  }
+
   @override
   Widget build(BuildContext context) {
     final kalender = _kalender!;
@@ -182,6 +219,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     final onMove = widget.onMove;
     final movable = onMove != null;
     final callbacks = KalenderCallbacks(
+      dateLabel: GestureCallbacks(
+        onTap: (detail) => unawaited(_showDay(detail.date)),
+      ),
       onEventTapped: onTap == null
           ? null
           : (event) {
@@ -232,6 +272,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             onPrevious: () => unawaited(_pages.step(-1)),
             onNext: () => unawaited(_pages.step(1)),
             onToday: () => unawaited(_pages.to(widget.now())),
+            onTitle: () => unawaited(_goTo()),
           ),
         ),
         Expanded(
@@ -313,8 +354,8 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
   required DateTime Function() now,
 }) {
   final range = KalenderDateTimeRange(
-    start: DateTime(1900),
-    end: DateTime(2100),
+    start: _shownDays.from,
+    end: _shownDays.to,
   );
   const morning = KalenderTime(hour: 8, minute: 0);
   final today = now();
@@ -360,6 +401,14 @@ Map<CalendarViewKind, ViewConfiguration> configurationsFor({
     ),
   };
 }
+
+/// The days the views page over: two hundred years, [to] not included,
+/// so [last] is the last.
+final _shownDays = (
+  from: DateTime(1900),
+  to: DateTime(2100),
+  last: DateTime(2099, 12, 31),
+);
 
 /// The pages of a view [configuration] of [configurationsFor].
 PageIndexCalculator _pagesOf(ViewConfiguration configuration) =>

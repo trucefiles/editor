@@ -33,7 +33,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('moves the add buttons below lists and back', (tester) async {
+  testWidgets('moves the Add item button to the bottom of lists and back', (
+    tester,
+  ) async {
     final storage = AppStorage(tempFolder().path);
     await tester.runAsync(
       () => tester.pumpWidget(
@@ -50,14 +52,17 @@ void main() {
     );
     expect(place(tester), AddItemPlace.top);
 
-    await tester.tap(find.text('Show "Add item" below lists'));
-    await settle(tester, until: () => place(tester) == AddItemPlace.bottom);
-    expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-      isTrue,
-    );
+    expect(find.text('At the top of each list'), findsOneWidget);
 
-    await tester.tap(find.text('Show "Add item" below lists'));
+    await tester.tap(find.text('Add item button'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('At the bottom of each list'));
+    await settle(tester, until: () => place(tester) == AddItemPlace.bottom);
+    expect(find.text('At the bottom of each list'), findsOneWidget);
+
+    await tester.tap(find.text('Add item button'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('At the top of each list'));
     await settle(tester, until: () => place(tester) == AddItemPlace.top);
     expect(place(tester), AddItemPlace.top);
   });

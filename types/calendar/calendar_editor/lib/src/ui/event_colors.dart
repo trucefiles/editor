@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-/// The one rule for an occurrence's color: its own color, else its health
-/// entry kind's, else [calendar]'s color.
+/// The one rule for an occurrence's color: its own color ([ownColor]),
+/// else its health entry kind's, else [calendar]'s color.
 Color occurrenceColor(Occurrence occurrence, Color calendar) =>
+    ownColor(occurrence) ??
     switch (occurrence.part) {
-      EventPart(color: EventColor(:final rgb?)) => Color(0xFF000000 | rgb),
       EventPart(health: final entry?) => healthKindColor(entry),
       _ => calendar,
     };
+
+/// The color [occurrence]'s event gives itself, if it gives one.
+Color? ownColor(Occurrence occurrence) => switch (occurrence.part) {
+  EventPart(color: EventColor(:final rgb?)) => Color(0xFF000000 | rgb),
+  _ => null,
+};
 
 /// The color a health entry of [entry]'s kind shows in.
 Color healthKindColor(HealthEntry entry) => switch (entry) {

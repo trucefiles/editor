@@ -12,7 +12,6 @@ import 'page_harness.dart';
 CalendarEditorView _viewOf(CalendarEditorPart part) => CalendarEditorView(
   part,
   deviceZone: () async => null,
-  viewChoice: KeptView().choice,
   starts: CalendarStarts(),
 );
 

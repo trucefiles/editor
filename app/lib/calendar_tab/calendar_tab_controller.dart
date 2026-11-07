@@ -168,6 +168,8 @@ class CalendarTabController extends AsyncNotifier<TabCalendars> {
       .read(fileSettingsProvider.notifier)
       .edit(
         file.key,
-        (settings) => settings.withView(CalendarView(tab: place).settings),
+        (settings) => settings.withView(
+          CalendarView.of(settings.view).withTab(place).settings,
+        ),
       );
 }

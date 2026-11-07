@@ -52,6 +52,29 @@ void main() {
     );
   });
 
+  test('only an event that gives itself a color has one of its own', () {
+    EventDraft plain(DateTime day, {EventColor? color}) => EventDraft(
+      summary: 'Gym',
+      start: AllDay(day),
+      end: AllDay(day.add(const Duration(days: 1))),
+      color: color,
+    );
+    expect(ownColor(_one(plain)), isNull);
+    expect(
+      ownColor(_one((day) => plain(day, color: const EventColor('red')))),
+      const Color(0xFFFF0000),
+    );
+    expect(
+      ownColor(
+        _one(
+          (day) => EventDraft.health(const Medication('Ibu', dose: ''), day),
+        ),
+      ),
+      isNull,
+      reason: "a health kind's color is not the event's own",
+    );
+  });
+
   test('each health kind has a color of its own', () {
     const kinds = <HealthEntry>[
       Period(PeriodFlow.medium),

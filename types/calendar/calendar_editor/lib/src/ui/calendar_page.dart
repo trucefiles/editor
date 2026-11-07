@@ -19,7 +19,6 @@ class CalendarPage extends StatefulWidget {
     required this.now,
     required this.hint,
     required this.deviceZone,
-    required this.viewChoice,
     required this.color,
     required this.starts,
     super.key,
@@ -29,9 +28,6 @@ class CalendarPage extends StatefulWidget {
 
   /// The time now; today shows from it.
   final DateTime Function() now;
-
-  /// The view event calendars open in, and where a new pick is kept.
-  final CalendarViewChoice viewChoice;
 
   /// Tells this device's time zone, for new events.
   final DeviceZone deviceZone;
@@ -115,7 +111,7 @@ class _CalendarPageState extends State<CalendarPage> {
       edit: editing ? _edit : null,
       now: widget.now,
       deviceZone: widget.deviceZone,
-      viewChoice: widget.viewChoice,
+      viewChoice: widget.part.viewChoice,
       color: widget.color,
       starts: widget.starts,
       hint: widget.hint,

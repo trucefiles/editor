@@ -7,6 +7,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'page_harness.dart';
+import 'views_title.dart';
 
 const _birthday = '''BEGIN:VCALENDAR
 VERSION:2.0
@@ -611,13 +612,9 @@ void main() {
     final part = calendarPart(
       _call(Floating(DateTime.utc(2026, 11, 3, 9))),
       now: () => now,
-    );
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2026, 11, 3),
       kept: KeptView(CalendarViewKind.week),
     );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
     String stamps() {
       final call = calendarOf(part).events.single.series.component;
       return '${call.value('DTSTAMP')} ${call.value('LAST-MODIFIED')} '
@@ -647,13 +644,11 @@ void main() {
   testWidgets('the form sets an own color, and back to the calendar\'s', (
     tester,
   ) async {
-    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2026, 11, 3),
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
       kept: KeptView(CalendarViewKind.week),
     );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
     Future<void> pick(Finder color) async {
       await tester.tap(find.text('Call'));
       await tester.pumpAndSettle();
@@ -689,9 +684,8 @@ void main() {
     addTearDown(tester.platformDispatcher.clearAlwaysUse24HourTestValue);
     await pumpPage(
       tester,
-      calendarPart(calendar.text),
+      calendarPart(calendar.text, kept: KeptView(CalendarViewKind.schedule)),
       today: DateTime(2026, 11, 2),
-      kept: KeptView(CalendarViewKind.schedule),
     );
 
     expect(find.text('17:00 – 18:00'), findsOne);
@@ -719,9 +713,8 @@ void main() {
     final kept = KeptView(CalendarViewKind.week);
     await pumpPage(
       tester,
-      calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9)))),
+      calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))), kept: kept),
       today: DateTime(2026, 11, 3),
-      kept: kept,
     );
     expect(find.byIcon(Icons.calendar_view_week), findsOne);
     expect(find.text('Call'), findsOne);
@@ -730,7 +723,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Day'));
     await tester.pumpAndSettle();
-    expect(find.text('Tue, Nov 3'), findsOne, reason: 'on today');
+    expect(viewsTitle('Tue, Nov 3'), findsOne, reason: 'on today');
     expect(find.text('Call'), findsOne);
 
     await tester.tap(find.byTooltip('Pick a view'));
@@ -743,16 +736,31 @@ void main() {
     expect(find.text('9:00 AM – 10:00 AM'), findsOne);
   });
 
+  testWidgets('a calendar with no view kept opens in the month; a tap on a '
+      "day's number keeps the day view for it", (tester) async {
+    final kept = KeptView();
+    await pumpPage(
+      tester,
+      calendarPart(newCalendarText('Home'), kept: kept),
+      today: DateTime(2026, 11, 3),
+    );
+    expect(find.byIcon(Icons.calendar_view_month), findsOne);
+
+    await tester.tap(find.text('20'));
+    await tester.pumpAndSettle();
+
+    expect(viewsTitle('Fri, Nov 20'), findsOne);
+    expect(kept.kind, CalendarViewKind.day);
+  });
+
   testWidgets('a tap on a free time asks for an event at that time', (
     tester,
   ) async {
-    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2026, 11, 3),
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
       kept: KeptView(CalendarViewKind.day),
     );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
     final call = tester.getRect(find.text('Call'));
     await tester.tapAt(call.topCenter + const Offset(0, 3 * _hour + 2));
@@ -795,13 +803,9 @@ void main() {
     testWidgets('a drag moves an event (${kind.name})', (tester) async {
       final part = calendarPart(
         _call(Zoned('America/New_York', DateTime.utc(2026, 11, 3, 9))),
-      );
-      await pumpPage(
-        tester,
-        part,
-        today: DateTime(2026, 11, 3),
         kept: KeptView(CalendarViewKind.week),
       );
+      await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
       await _drag(
         tester,
@@ -835,13 +839,9 @@ void main() {
           DateTime.utc(from.year, from.month, from.day, from.hour, from.minute),
         ),
       ),
-    );
-    await pumpPage(
-      tester,
-      part,
-      today: now,
       kept: KeptView(CalendarViewKind.week),
     );
+    await pumpPage(tester, part, today: now);
 
     await _drag(
       tester,
@@ -885,13 +885,11 @@ void main() {
   });
 
   testWidgets('a drag of its end makes an event longer', (tester) async {
-    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2026, 11, 3),
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
       kept: KeptView(CalendarViewKind.day),
     );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
     final tile = tester.getRect(
       find
@@ -927,13 +925,11 @@ void main() {
   testWidgets('a drag over free times asks for an event over them', (
     tester,
   ) async {
-    final part = calendarPart(_call(Floating(DateTime.utc(2026, 11, 3, 9))));
-    await pumpPage(
-      tester,
-      part,
-      today: DateTime(2026, 11, 3),
+    final part = calendarPart(
+      _call(Floating(DateTime.utc(2026, 11, 3, 9))),
       kept: KeptView(CalendarViewKind.day),
     );
+    await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
     final call = tester.getRect(find.text('Call'));
     await _drag(
@@ -979,13 +975,8 @@ void main() {
   });
 
   testWidgets('an event dropped where it was changes nothing', (tester) async {
-    final part = calendarPart(_birthday);
-    await pumpPage(
-      tester,
-      part,
-      today: _annsDay,
-      kept: KeptView(CalendarViewKind.week),
-    );
+    final part = calendarPart(_birthday, kept: KeptView(CalendarViewKind.week));
+    await pumpPage(tester, part, today: _annsDay);
 
     final ann = tester.getCenter(find.text('Ann'));
     final gesture = await tester.startGesture(ann);

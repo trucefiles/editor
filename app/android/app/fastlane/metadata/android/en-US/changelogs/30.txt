@@ -1,0 +1,5 @@
+- Tap a day's number or header to open it in Day view
+- Tap the calendar's title to pick a day, or a month in Month and Schedule view
+- The Calendars tab and each calendar remember their own view
+- An event's own color shows as a dot in its sheet
+- Clearer settings for the "Add item" button and the location picker

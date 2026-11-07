@@ -118,14 +118,13 @@ void main() {
     await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
   });
 
-  testApp('with the location not above the text, the file menu has it', (
-    tester,
-  ) async {
+  testApp('with the picker in the menu, the file menu has it', (tester) async {
     app.write('old.md', '# Old\n');
     await tester.addFolder(app);
     await tester.waitFor(find.text('Old'));
     await tester.chooseInMenu('Settings');
-    await tester.tapAndSettle(find.text('Show location above the text'));
+    await tester.tapAndSettle(find.text('File location and name picker'));
+    await tester.tapAndSettle(find.text("In the file's menu"));
     await tester.pageBack();
     await tester.pumpAndSettle();
 

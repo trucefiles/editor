@@ -7,14 +7,16 @@ import 'package:truce_files/truce_files.dart';
 import 'calendar_import_file.dart';
 
 /// A calendar file's part of the file page: its editor owner, whether
-/// the calendar can be edited here now, and the import of a calendar
-/// file the user picks. Keeps nothing of how the calendar shows.
+/// the calendar can be edited here now, the import of a calendar file the
+/// user picks, and the view its page opens in ([viewChoice]).
 final class CalendarEditorPart extends FixedViewEditorPart {
-  /// [_pickFile] asks the user for a calendar file to import; [now]
-  /// tells the time each edit is made at, and [startTimer] starts the
-  /// editor's save clock (both fixed in tests).
+  /// [_page] keeps the view picked on this device; [_pickFile] asks the
+  /// user for a calendar file to import; [now] tells the time each edit
+  /// is made at, and [startTimer] starts the editor's save clock (both
+  /// fixed in tests).
   CalendarEditorPart(
-    EditorStart start, {
+    EditorStart start,
+    this._page, {
     required this._pickFile,
     DateTime Function()? now,
     StartTimer? startTimer,
@@ -24,6 +26,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
          startTimer: startTimer,
        ),
        _now = now ?? DateTime.now,
+       _kind = CalendarView.of(start.view).kind,
        super(readOnly: start.readOnly) {
     _importsDone = owner.events.listen((event) {
       if (event case ImportDone(:final report)) {
@@ -34,6 +37,21 @@ final class CalendarEditorPart extends FixedViewEditorPart {
 
   /// The editor owner.
   final CalendarOwner owner;
+
+  final EditorPage _page;
+
+  CalendarViewKind _kind;
+
+  /// The view the calendar's page opens in: the one picked last on it on
+  /// this device, kept in the calendar's own view settings (the month
+  /// until one is picked).
+  late final CalendarViewChoice viewChoice = CalendarViewChoice(
+    last: () => _kind,
+    keep: (kind) async {
+      _kind = kind;
+      _page.keepView((view) => CalendarView.of(view).withKind(kind).settings);
+    },
+  );
 
   final PickCalendarFile _pickFile;
 
