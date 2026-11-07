@@ -32,7 +32,7 @@ void main() {
       order: FileOrder.name,
       view: FileView.list,
     ),
-    calendarView: CalendarViewKind.week,
+    tabCalendarView: CalendarViewKind.week,
     placeAboveText: false,
   );
 

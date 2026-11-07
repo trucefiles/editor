@@ -20,13 +20,26 @@ class OccurrenceDetails extends StatelessWidget {
     final part = occurrence.part;
     final use24Hour = MediaQuery.alwaysUse24HourFormatOf(context);
     final times = timesOf(words, occurrence, use24Hour: use24Hour);
+    final title = occurrenceTitle(occurrence);
     return ListTile(
-      titleAlignment: ListTileTitleAlignment.top,
-      leading: switch (ownColor(occurrence)) {
-        final color? => CalendarDot(color),
-        null => null,
+      title: switch (ownColor(occurrence)) {
+        // In the title's first line, so the dot is centered on it.
+        final color? => Text.rich(
+          TextSpan(
+            children: [
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 12),
+                  child: CalendarDot(color),
+                ),
+              ),
+              TextSpan(text: title),
+            ],
+          ),
+        ),
+        null => Text(title),
       },
-      title: Text(occurrenceTitle(occurrence)),
       subtitle: Text(
         [
           '${words.formatFullDate(occurrence.start)} · $times',

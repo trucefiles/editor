@@ -55,9 +55,10 @@ event there, a day in the month for an all-day event, or drag over a few
 hours; **+** adds one too. Drag an event to move it, or its edge to make
 it longer (for an event that repeats, that moves just this one). Tap an
 event to edit or delete it, just this time or every time. An event can
-have its own color, also as a dot when you tap it; otherwise it shows in its calendar's color (the
-file's color, else its folder's). Start and end can each have their own
-time zone, e.g. for a flight: tap the zone under a time to pick one.
+have its own color, also as a dot when you tap it; otherwise it shows
+in its calendar's color (the file's color, else its folder's). Start
+and end can each have their own time zone, e.g. for a flight: tap the
+zone under a time to pick one.
 An event from another zone also shows its own times when you tap it. **Import events** in a calendar's
 menu brings in the events of another `.ics` file, e.g. an invite: new
 ones are added, ones the calendar has already take the file's version,

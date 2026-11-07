@@ -19,7 +19,7 @@ final class DeviceSettings {
     required this.addItemPlace,
     required this.closeToTray,
     required this.home,
-    required this.calendarView,
+    required this.tabCalendarView,
     required this.placeAboveText,
   });
 
@@ -32,7 +32,7 @@ final class DeviceSettings {
     addItemPlace: AddItemPlace.top,
     closeToTray: true,
     home: HomeSettings.standard,
-    calendarView: CalendarViewKind.month,
+    tabCalendarView: CalendarViewKind.month,
     placeAboveText: true,
   );
 
@@ -54,7 +54,7 @@ final class DeviceSettings {
   final HomeSettings home;
 
   /// The view the Calendar tab opens in: the one picked last there.
-  final CalendarViewKind calendarView;
+  final CalendarViewKind tabCalendarView;
 
   /// Whether a file's location shows above its text; else it is only in
   /// the file's menu.
@@ -83,7 +83,7 @@ final class DeviceSettings {
     AddItemPlace? addItemPlace,
     bool? closeToTray,
     HomeSettings? home,
-    CalendarViewKind? calendarView,
+    CalendarViewKind? tabCalendarView,
     bool? placeAboveText,
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
@@ -93,7 +93,7 @@ final class DeviceSettings {
     addItemPlace: addItemPlace ?? this.addItemPlace,
     closeToTray: closeToTray ?? this.closeToTray,
     home: home ?? this.home,
-    calendarView: calendarView ?? this.calendarView,
+    tabCalendarView: tabCalendarView ?? this.tabCalendarView,
     placeAboveText: placeAboveText ?? this.placeAboveText,
   );
 
@@ -105,7 +105,8 @@ final class DeviceSettings {
     'addItemPlace': addItemPlace.name,
     'closeToTray': closeToTray,
     'home': home.toJson(),
-    'calendarView': calendarView.name,
+    // Its name from when it was every calendar's view.
+    'calendarView': tabCalendarView.name,
     'placeAboveText': placeAboveText,
   };
 
@@ -131,9 +132,9 @@ final class DeviceSettings {
         _ => standard.closeToTray,
       },
       home: HomeSettings.fromJson(fields['home']) ?? standard.home,
-      calendarView:
+      tabCalendarView:
           CalendarViewKind.values.asNameMap()[fields['calendarView']] ??
-          standard.calendarView,
+          standard.tabCalendarView,
       placeAboveText: switch (fields['placeAboveText']) {
         final bool above => above,
         _ => standard.placeAboveText,
@@ -151,7 +152,7 @@ final class DeviceSettings {
       other.addItemPlace == addItemPlace &&
       other.closeToTray == closeToTray &&
       other.home == home &&
-      other.calendarView == calendarView &&
+      other.tabCalendarView == tabCalendarView &&
       other.placeAboveText == placeAboveText;
 
   @override
@@ -163,7 +164,7 @@ final class DeviceSettings {
     addItemPlace,
     closeToTray,
     home,
-    calendarView,
+    tabCalendarView,
     placeAboveText,
   );
 }

@@ -179,10 +179,12 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     widget.onKind(kind);
   }
 
-  /// Shows [date]'s day in the day view.
-  void _showDay(DateTime date) {
+  /// Shows [date]'s day in the day view, moving from the day it opens on
+  /// once it shows.
+  Future<void> _showDay(DateTime date) async {
     _pickKind(CalendarViewKind.day);
-    _pages.jump(DateUtils.dateOnly(date));
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) await _pages.to(DateUtils.dateOnly(date));
   }
 
   /// Asks for a date to go to, starting on today if it shows, else on
@@ -206,7 +208,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
         lastDate: _shownDays.last,
       ),
     };
-    if (picked != null && mounted) _pages.jump(picked);
+    if (picked != null && mounted) await _pages.to(picked);
   }
 
   @override
@@ -217,7 +219,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     final onMove = widget.onMove;
     final movable = onMove != null;
     final callbacks = KalenderCallbacks(
-      dateLabel: GestureCallbacks(onTap: (detail) => _showDay(detail.date)),
+      dateLabel: GestureCallbacks(
+        onTap: (detail) => unawaited(_showDay(detail.date)),
+      ),
       onEventTapped: onTap == null
           ? null
           : (event) {

@@ -35,9 +35,11 @@ void main() {
     await show(tester, _gym(color: const EventColor('red')));
     final dot = find.byType(CalendarDot);
     expect(tester.widget<CalendarDot>(dot).color, const Color(0xFFFF0000));
+    final title = find.textContaining('Gym', findRichText: true).last;
     expect(
-      tester.getCenter(dot).dx,
-      lessThan(tester.getTopLeft(find.text('Gym')).dx),
+      tester.getCenter(dot).dy,
+      moreOrLessEquals(tester.getCenter(title).dy, epsilon: 1),
+      reason: "centered on the title's one line",
     );
   });
 

@@ -6,12 +6,13 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 import 'views_title.dart';
 
-/// Shows an empty calendar in the [kind] view on 3 November 2026, each
-/// view picked added to [picked].
+/// Shows [calendar] (by default an empty one) in the [kind] view on 3
+/// November 2026, each view picked added to [picked].
 Future<void> _showViews(
   WidgetTester tester,
   CalendarViewKind kind, {
   List<CalendarViewKind>? picked,
+  Calendar? calendar,
 }) async {
   tester.view.physicalSize = const Size(800, 1200);
   tester.view.devicePixelRatio = 1;
@@ -20,7 +21,9 @@ Future<void> _showViews(
     MaterialApp(
       home: Scaffold(
         body: CalendarViews<String>(
-          calendars: {'home': Calendar.read(newCalendarText('Home'))!},
+          calendars: {
+            'home': calendar ?? Calendar.read(newCalendarText('Home'))!,
+          },
           colorOf: (_) => Colors.teal,
           kind: kind,
           onKind: (picked ?? []).add,
@@ -68,6 +71,40 @@ void main() {
     await _tap(tester, find.text('5'));
 
     expect(viewsTitle('Thu, Nov 5'), findsOneWidget);
+  });
+
+  testWidgets("the day view's title picks a day, and OK shows it", (
+    tester,
+  ) async {
+    await _showViews(tester, CalendarViewKind.day);
+
+    await _tap(tester, viewsTitle('Tue, Nov 3'));
+    await _tap(tester, find.text('19'));
+    await _tap(tester, find.text('OK'));
+
+    expect(viewsTitle('Thu, Nov 19'), findsOneWidget);
+  });
+
+  testWidgets("a tap on a schedule's date shows that day in the day view", (
+    tester,
+  ) async {
+    final calendar = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddEvent(
+        'a',
+        EventDraft(
+          summary: 'Gym',
+          start: AllDay(DateTime(2026, 11, 12)),
+          end: AllDay(DateTime(2026, 11, 13)),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    );
+    await _showViews(tester, CalendarViewKind.schedule, calendar: calendar);
+
+    await _tap(tester, find.text('12'));
+
+    expect(viewsTitle('Thu, Nov 12'), findsOneWidget);
   });
 
   testWidgets("the week view's title picks a day, and OK shows its week", (
