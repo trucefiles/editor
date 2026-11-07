@@ -67,6 +67,43 @@ Future<void> _drag(
   await tester.pumpAndSettle();
 }
 
+/// Sets the form's time [shown] to [hour]:[minute] by typing it.
+Future<void> _pickTime(
+  WidgetTester tester,
+  String shown, {
+  required int hour,
+  required int minute,
+}) async {
+  await tester.tap(find.text(shown));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byIcon(Icons.keyboard_outlined));
+  await tester.pumpAndSettle();
+  final fields = find.byType(TextFormField);
+  await tester.enterText(fields.at(0), '${hour > 12 ? hour - 12 : hour}');
+  await tester.enterText(fields.at(1), '$minute'.padLeft(2, '0'));
+  await tester.tap(find.text(hour >= 12 ? 'PM' : 'AM'));
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
+
+/// Picks the time zone found by [search] with the zone button [button].
+Future<void> _pickZone(
+  WidgetTester tester,
+  Finder button,
+  String search,
+) async {
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField).last, search);
+  await tester.pumpAndSettle();
+  final found = find.descendant(
+    of: find.byType(Dialog),
+    matching: find.byType(ListTile),
+  );
+  await tester.tap(found.first);
+  await tester.pumpAndSettle();
+}
+
 /// How tall an hour is in the week and day views.
 const _hour = 42.0;
 
@@ -132,7 +169,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Add event'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Times are in'), findsNothing);
+    expect(find.text('Time zone'), findsNWidgets(2), reason: 'no zone named');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Call');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -167,7 +204,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Times are in'), findsNothing);
+    expect(find.text('Time zone'), findsNWidgets(2));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -237,7 +274,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    expect(find.text('Times are in America/New_York.'), findsOne);
+    expect(find.text('America/New York'), findsNWidgets(2));
     await tester.enterText(
       find.widgetWithText(TextField, 'Title'),
       'Late call',
@@ -251,6 +288,110 @@ void main() {
       event.start,
       Zoned('America/New_York', DateTime.utc(2026, 11, 3, 9)),
     );
+  });
+
+  group('two zones (a flight)', () {
+    final berlin = Zoned('Europe/Berlin', DateTime.utc(2026, 11, 3, 10));
+    final newYork = Zoned('America/New_York', DateTime.utc(2026, 11, 3, 13));
+
+    /// Opens the form of a flight from [start] to [end], on a device in
+    /// Berlin.
+    Future<CalendarEditorPart> openFlight(
+      WidgetTester tester,
+      CalendarTime start,
+      CalendarTime end,
+    ) async {
+      final part = calendarPart(
+        applyEdit(
+          Calendar.read(newCalendarText('Home'))!,
+          AddEvent(
+            'flight',
+            EventDraft(summary: 'Flight', start: start, end: end),
+            at: editedAt,
+          ),
+        ).text,
+      );
+      await pumpPage(
+        tester,
+        part,
+        today: DateTime(2026, 11, 3),
+        deviceZone: 'Europe/Berlin',
+      );
+      await tester.tap(find.text('Flight'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      return part;
+    }
+
+    testWidgets('each time shows in its own zone; a new start time moves '
+        'the end by as much, in its own zone', (tester) async {
+      final part = await openFlight(tester, berlin, newYork);
+      expect(find.text('Time zone'), findsOne, reason: "the start's is here");
+      expect(find.text('America/New York'), findsOne);
+      expect(find.text('1:00 PM'), findsOne);
+
+      await _pickTime(tester, '10:00 AM', hour: 11, minute: 0);
+      expect(find.text('2:00 PM'), findsOne);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final event = calendarOf(part).events.single.series;
+      expect(
+        (event.start, event.end),
+        (
+          berlin.at(DateTime.utc(2026, 11, 3, 11)),
+          newYork.at(DateTime.utc(2026, 11, 3, 14)),
+        ),
+      );
+    });
+
+    testWidgets('an end earlier on the clock but later in time can be '
+        'saved', (tester) async {
+      // 13:00 in Berlin is 12:00 in London: half an hour in the air.
+      final part = await openFlight(
+        tester,
+        berlin.at(DateTime.utc(2026, 11, 3, 13)),
+        Zoned('Europe/London', DateTime.utc(2026, 11, 3, 12, 30)),
+      );
+      expect(find.text('It ends before it starts.'), findsNothing);
+      await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hop');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(calendarOf(part).events.single.series.summary, 'Hop');
+    });
+
+    testWidgets('a zone picked for the start goes for the end too, one '
+        'for the end alone splits them; clock times stay', (tester) async {
+      final part = calendarPart(newCalendarText('Home'));
+      await pumpPage(
+        tester,
+        part,
+        today: DateTime(2026, 11, 3),
+        deviceZone: 'Europe/Berlin',
+      );
+      await tester.tap(find.byTooltip('Add event'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Trip');
+
+      await _pickZone(tester, find.text('Time zone').first, 'london');
+      expect(find.text('Europe/London'), findsNWidgets(2));
+      await _pickZone(tester, find.text('Europe/London').last, 'new york');
+      expect(find.text('Europe/London'), findsOne);
+      expect(find.text('America/New York'), findsOne);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final event = calendarOf(part).events.single.series;
+      expect(
+        (event.start, event.end),
+        (
+          Zoned('Europe/London', DateTime.utc(2026, 11, 3, 9)),
+          Zoned('America/New_York', DateTime.utc(2026, 11, 3, 10)),
+        ),
+      );
+    });
   });
 
   testWidgets('one of a series deleted; the others stay', (tester) async {

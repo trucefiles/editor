@@ -52,7 +52,7 @@ class _CalendarNameFieldState extends State<CalendarNameField> {
       style: style,
       textCapitalization: TextCapitalization.sentences,
       decoration: InputDecoration.collapsed(
-        hintText: switch (widget.part.owner.state.calendar?.standardName) {
+        hintText: switch (widget.part.owner.state.calendar?.head.standardName) {
           final standard? when standard.isNotEmpty => standard,
           _ => widget.hint,
         },

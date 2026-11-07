@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -60,6 +61,37 @@ void main() {
     await tester.tapAndSettle(find.text('Open calendar'));
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('Dentist'), findsOneWidget);
+  });
+
+  testApp('a calendar hidden from the tab leaves it, and comes back off', (
+    tester,
+  ) async {
+    app
+      ..write('Garden.ics', _garden)
+      ..write('Work.ics', newCalendar('Work'));
+    await tester.addFolder(app);
+    await tester.tapAndSettle(
+      find.widgetWithText(NavigationDestination, 'Calendars'),
+    );
+    final work = find.widgetWithText(FilterChip, 'Work');
+    await tester.waitFor(work);
+
+    // Right click, as with a mouse; a long press on touch.
+    await tester.tap(
+      work,
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tapAndSettle(find.text('Hide from this tab'));
+    await tester.waitUntil(() => work.evaluate().isEmpty);
+    expect(find.text('Pruning'), findsOneWidget, reason: 'Garden still shows');
+
+    await tester.tapAndSettle(find.text('Hidden (1)'));
+    await tester.tapAndSettle(find.text('Work'));
+    await tester.waitFor(work);
+    expect(tester.widget<FilterChip>(work).selected, isFalse);
+    expect(find.textContaining('Hidden'), findsNothing);
   });
 
   testApp('events imported from a file are merged in and written', (
@@ -138,6 +170,15 @@ final _garden = [
   'DTEND;VALUE=DATE:${_day(4)}',
   'SUMMARY:Pruning',
   'END:VEVENT',
+  'END:VCALENDAR',
+  '',
+].join('\r\n');
+
+/// A calendar named [name], with no events.
+String newCalendar(String name) => [
+  'BEGIN:VCALENDAR',
+  'VERSION:2.0',
+  'X-WR-CALNAME:$name',
   'END:VCALENDAR',
   '',
 ].join('\r\n');

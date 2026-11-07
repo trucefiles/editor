@@ -1,17 +1,35 @@
 import 'package:truce_files/truce_files.dart';
 
-/// What a calendar keeps of how it shows on this device: whether the
-/// Calendar tab shows its events ([inTab], by default it does).
+/// How a calendar shows in the Calendar tab on this device.
+enum TabPlace {
+  /// Its events show.
+  shown,
+
+  /// Its events don't show, but it can be turned on there.
+  off,
+
+  /// Left out of the tab; only listed to bring it back.
+  hidden,
+}
+
+/// What a calendar keeps of how it shows on this device: its place in
+/// the Calendar tab ([tab], by default [TabPlace.shown]).
 final class CalendarView {
-  const CalendarView({this.inTab = true});
+  const CalendarView({this.tab = TabPlace.shown});
 
   /// [view] as the calendar kept it; what it can't read is as never
-  /// chosen.
-  factory CalendarView.of(ViewSettings view) =>
-      CalendarView(inTab: view.json['inTab'] != false);
+  /// chosen. Kept before as `inTab: false`, which still reads as off.
+  factory CalendarView.of(ViewSettings view) => CalendarView(
+    tab: switch (view.json) {
+      {'tab': 'hidden'} => TabPlace.hidden,
+      {'tab': 'off'} || {'inTab': false} => TabPlace.off,
+      _ => TabPlace.shown,
+    },
+  );
 
-  final bool inTab;
+  final TabPlace tab;
 
   /// As kept; nothing chosen is [ViewSettings.none].
-  ViewSettings get settings => ViewSettings({if (!inTab) 'inTab': false});
+  ViewSettings get settings =>
+      ViewSettings({if (tab != TabPlace.shown) 'tab': tab.name});
 }

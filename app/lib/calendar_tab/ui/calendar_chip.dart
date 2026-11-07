@@ -1,0 +1,60 @@
+import 'package:flutter/material.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
+
+import '../calendar_tab_controller.dart';
+
+/// A calendar's chip in the Calendar tab: its color and title, picked
+/// while its events show; a tap turns them on or off ([onShown]). A long
+/// press, or a right click, offers to hide it from the tab ([onHide]).
+class CalendarChip extends StatefulWidget {
+  const CalendarChip(
+    this.calendar, {
+    required this.color,
+    required this.onShown,
+    required this.onHide,
+    super.key,
+  });
+
+  /// A shown or an off calendar.
+  final TabCalendar calendar;
+  final Color color;
+  final ValueChanged<bool> onShown;
+  final VoidCallback onHide;
+
+  @override
+  State<CalendarChip> createState() => _CalendarChipState();
+}
+
+class _CalendarChipState extends State<CalendarChip> {
+  final _menu = MenuController();
+
+  /// Opens the menu at [position], a point on the screen.
+  void _showMenuAt(Offset position) {
+    final box = context.findRenderObject()! as RenderBox;
+    _menu.open(position: box.globalToLocal(position));
+  }
+
+  @override
+  Widget build(BuildContext context) => MenuAnchor(
+    controller: _menu,
+    menuChildren: [
+      MenuItemButton(
+        // Takes the focus, so Esc closes the menu.
+        autofocus: true,
+        leadingIcon: const Icon(Icons.visibility_off_outlined),
+        onPressed: widget.onHide,
+        child: const Text('Hide from this tab'),
+      ),
+    ],
+    child: GestureDetector(
+      onLongPressStart: (details) => _showMenuAt(details.globalPosition),
+      onSecondaryTapUp: (details) => _showMenuAt(details.globalPosition),
+      child: FilterChip(
+        avatar: CalendarDot(widget.color),
+        label: Text(widget.calendar.title),
+        selected: widget.calendar is ShownCalendar,
+        onSelected: widget.onShown,
+      ),
+    ),
+  );
+}
