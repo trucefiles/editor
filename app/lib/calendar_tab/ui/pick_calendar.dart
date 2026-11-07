@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../calendar_tab_controller.dart';
-import 'calendar_dot.dart';
 
 /// The calendar of [calendars] to open: the only one, else the one the
 /// user picks, each shown by its color ([colorOf]) and title; `null` if
 /// there is none or the user cancels.
 Future<ListedFile?> pickCalendar(
   BuildContext context,
-  List<TabCalendar> calendars,
+  List<OfferedCalendar> calendars,
   Color Function(ListedFile file) colorOf,
 ) async => switch (calendars) {
   [] => null,

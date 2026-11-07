@@ -54,7 +54,9 @@ hours; **+** adds one too. Drag an event to move it, or its edge to make
 it longer (for an event that repeats, that moves just this one). Tap an
 event to edit or delete it, just this time or every time. An event can
 have its own color; otherwise it shows in its calendar's color (the
-file's color, else its folder's). **Import events** in a calendar's
+file's color, else its folder's). Start and end can each have their own
+time zone, e.g. for a flight: tap the zone under a time to pick one.
+An event from another zone also shows its own times when you tap it. **Import events** in a calendar's
 menu brings in the events of another `.ics` file, e.g. an invite: new
 ones are added, ones the calendar has already take the file's version,
 and one Undo takes it all back. A health calendar shows in the same
@@ -66,8 +68,10 @@ the day of the cycle.
 Today always has a blue outline. With a mouse, Shift and the wheel page
 to the next or previous month, week or day. Once your
 folders hold a calendar, the **Calendars** tab shows the events of all
-of them in the same views. Tap an event there to see it, then open its
-calendar or edit it on its page. To add or change events, open one
+of them in the same views. A chip turns a calendar's events on or off;
+a long press or right click on it hides the calendar from the tab, and
+**Hidden** brings it back. Tap an event there to see it and its
+calendar, then open the calendar or edit the event on its page. To add or change events, open one
 calendar with the calendar button; a tap on a free day in the tab
 reminds you. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
@@ -80,7 +84,8 @@ kept.
 <img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: two calendars as chips above one month, the open calendar button at the bottom">
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
-<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its details with Open calendar and Edit">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, its details and its own times in two zones, with Open calendar and Edit">
+<img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
 
 ## Home, All and search
 

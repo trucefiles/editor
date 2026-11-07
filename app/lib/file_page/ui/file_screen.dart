@@ -25,14 +25,17 @@ import '../../folders/folders_controller.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
+import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../versions/merge_outcome.dart';
 import '../file_controller.dart';
 import '../file_page_wiring.dart';
 import '../file_pages.dart';
+import 'edit_file_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
 import 'file_place_chip.dart';
+import 'file_place_spot.dart';
 import 'history_buttons.dart';
 import 'history_end_text.dart';
 import 'save_indicator.dart';
@@ -283,36 +286,43 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   }
 
   /// [context] is this screen's, below its own messenger; [settings] are
-  /// the file's.
-  Widget _menu(BuildContext context, FileSettings settings) =>
-      PopupMenuButton<VoidCallback>(
-        onSelected: (action) => action(),
-        itemBuilder: (_) => [
-          if (_isEdited && _narrow(context))
-            PopupMenuItem(
-              value: () => _editor.send(const Redo()),
-              enabled: _editor.state.canRedo,
-              child: const Text('Redo'),
-            ),
-          ..._page.view.menu(context, settings.view),
-          PopupMenuItem(
-            value: () =>
-                _withFile((file) => editPinOrColor(context, ref, file)),
-            child: const Text('Pin or color'),
-          ),
-          if (_session.read != null)
-            PopupMenuItem(
-              value: () => unawaited(_openBackups(context)),
-              child: const Text('Backups'),
-            ),
-          if (usesTouch(Theme.of(context)))
-            PopupMenuItem(value: _refresh, child: const Text('Refresh')),
-          PopupMenuItem(
-            value: () => _delete(context),
-            child: const Text('Delete file'),
-          ),
-        ],
-      );
+  /// the file's. Has the file's place where [placeSpot] says.
+  Widget _menu(
+    BuildContext context,
+    FileSettings settings, {
+    required FilePlaceSpot placeSpot,
+  }) => PopupMenuButton<VoidCallback>(
+    onSelected: (action) => action(),
+    itemBuilder: (_) => [
+      if (_isEdited && _narrow(context))
+        PopupMenuItem(
+          value: () => _editor.send(const Redo()),
+          enabled: _editor.state.canRedo,
+          child: const Text('Redo'),
+        ),
+      ..._page.view.menu(context, settings.view),
+      if (placeSpot == FilePlaceSpot.menu)
+        PopupMenuItem(
+          value: () => unawaited(editFilePlace(context, ref, _session)),
+          child: const Text('$placeLabel…'),
+        ),
+      PopupMenuItem(
+        value: () => _withFile((file) => editPinOrColor(context, ref, file)),
+        child: const Text('Pin or color'),
+      ),
+      if (_session.read != null)
+        PopupMenuItem(
+          value: () => unawaited(_openBackups(context)),
+          child: const Text('Backups'),
+        ),
+      if (usesTouch(Theme.of(context)))
+        PopupMenuItem(value: _refresh, child: const Text('Refresh')),
+      PopupMenuItem(
+        value: () => _delete(context),
+        child: const Text('Delete file'),
+      ),
+    ],
+  );
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
 
@@ -408,6 +418,12 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     final mark = _controller.markIn(shown);
     ref.watch(fileSettingsProvider);
     final settings = _controller.settings;
+    final placeSpot = filePlaceSpot(
+      aboveText: ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.placeAboveText),
+      ),
+      readOnly: readOnly,
+    );
     final tint = fileTint(mark.color, Theme.of(context).colorScheme);
     final text = _session.text;
     final path = _session.path;
@@ -436,7 +452,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             ),
           if (!readOnly) ...[
             ..._page.view.actions(context),
-            _menu(context, settings),
+            _menu(context, settings, placeSpot: placeSpot),
           ],
         ],
       ),
@@ -454,17 +470,18 @@ class _FileScreenState extends ConsumerState<FileScreen> {
             onClose: _leave,
             folderReachable: !unreachable,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              // A new file can still go to another folder.
-              child: FilePlaceChip(
-                _session,
-                enabled: _session.file is NewFile || !readOnly,
+          if (placeSpot == FilePlaceSpot.aboveText)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                // A new file can still go to another folder.
+                child: FilePlaceChip(
+                  _session,
+                  enabled: _session.file is NewFile || !readOnly,
+                ),
               ),
             ),
-          ),
           Expanded(
             // The editor scrolls inside.
             child: PullToRefresh(

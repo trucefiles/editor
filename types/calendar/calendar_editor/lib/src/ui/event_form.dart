@@ -6,6 +6,8 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import '../views/new_event_spot.dart';
 import 'color_choice.dart';
 import 'leave_check.dart';
+import 'occurrence_texts.dart';
+import 'zone_picker.dart';
 
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
@@ -49,11 +51,13 @@ const _frequencyWords = {
   Frequency.yearly: 'Every year',
 };
 
-/// The event form: title, all day, start and end, repeat, alert, color,
-/// place and notes. What it doesn't show of the event (e.g. a health
-/// entry, a time zone) stays as it was; an event in another zone than
-/// the device's shows its own clock, its zone named below the times; an
-/// event in UTC shows on the device's clock and stays in UTC.
+/// The event form: title, all day, start and end each with its time
+/// zone, repeat, alert, color, place and notes. What it doesn't show of
+/// the event (e.g. a health entry) stays as it was. Each time shows on
+/// its own zone's clock, the zone named where it isn't the device's (a
+/// flight may start and end in two); picking a zone keeps the clock time
+/// as typed. An event in UTC shows on the device's clock and stays in
+/// UTC unless a zone is picked; there is no way back to no zone.
 class EventForm extends StatefulWidget {
   const EventForm(
     this.draft, {
@@ -112,7 +116,7 @@ class _EventFormState extends State<EventForm> {
         : _times.start(widget.draft.start, widget.deviceZone),
     end: _times == _openedTimes
         ? widget.draft.end
-        : _times.end(widget.draft.start, widget.deviceZone),
+        : _times.end(widget.draft.end, widget.deviceZone),
     description: _notes.text,
     location: _location.text.trim(),
     repeat: _repeat,
@@ -162,23 +166,24 @@ class _EventFormState extends State<EventForm> {
               label: 'Starts',
               day: _times.startDay,
               time: _times.allDay ? null : _times.startTime,
+              zone: _zoneShown(_times.startZone, _openedTimes.startZone),
               onDay: (day) => setState(() => _times = _times.withStartDay(day)),
               onTime: (time) =>
                   setState(() => _times = _times.withStartTime(time)),
+              onZone: (zone) =>
+                  setState(() => _times = _times.withStartZone(zone)),
             ),
             _TimeRow(
               label: 'Ends',
               day: _times.endDay,
               time: _times.allDay ? null : _times.endTime,
+              zone: _zoneShown(_times.endZone, _openedTimes.endZone),
               onDay: (day) => setState(() => _times = _times.copy(endDay: day)),
               onTime: (time) =>
                   setState(() => _times = _times.copy(endTime: time)),
+              onZone: (zone) =>
+                  setState(() => _times = _times.copy(endZone: zone)),
             ),
-            if (_otherZone case final zone?)
-              Text(
-                'Times are in $zone.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             if (!ok)
               Text(
                 'It ends before it starts.',
@@ -261,12 +266,12 @@ class _EventFormState extends State<EventForm> {
     );
   }
 
-  /// The event's zone if its times are of another zone than the device's.
-  String? get _otherZone => switch (widget.draft.start) {
-    _ when _times.allDay => null,
-    Zoned(:final zone) when zone != widget.deviceZone => zone,
-    _ => null,
-  };
+  /// [zone] as its time's row names it, [opened] the zone it had as the
+  /// form opened: `null` (no name) where it is none, or the device's as
+  /// before, as the device's clock needs no name; a zone just picked is
+  /// always named, so the change shows.
+  String? _zoneShown(String? zone, String? opened) =>
+      zone == widget.deviceZone && zone == opened ? null : zone;
 
   /// Whether [alerts] is one the list offers.
   bool _offered(List<Duration> alerts) =>
@@ -300,25 +305,56 @@ String alertText(Duration before) => switch (before) {
   _ => '${before.inMinutes} minutes before',
 };
 
-/// One row of a day and, unless all day, a time of day, each a button that
-/// asks for a new one.
+/// One row of a day and, unless all day, a time of day and below it its
+/// time zone ([zone], `null` for the device's), each a button that asks
+/// for a new one.
 class _TimeRow extends StatelessWidget {
   const _TimeRow({
     required this.label,
     required this.day,
     required this.time,
+    required this.zone,
     required this.onDay,
     required this.onTime,
+    required this.onZone,
   });
 
   final String label;
   final DateTime day;
   final TimeOfDay? time;
+  final String? zone;
   final void Function(DateTime day) onDay;
   final void Function(TimeOfDay time) onTime;
+  final void Function(String zone) onZone;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _dayAndTime(context),
+      if (time != null)
+        Padding(
+          padding: const EdgeInsetsDirectional.only(start: 64),
+          child: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              textStyle: Theme.of(context).textTheme.bodySmall,
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () async {
+              final picked = await pickZone(context);
+              if (picked != null) onZone(picked);
+            },
+            child: Text(switch (zone) {
+              final zone? => zoneText(zone),
+              null => 'Time zone',
+            }),
+          ),
+        ),
+    ],
+  );
+
+  Widget _dayAndTime(BuildContext context) {
     final words = MaterialLocalizations.of(context);
     final time = this.time;
     return Row(
@@ -361,16 +397,19 @@ class _TimeRow extends StatelessWidget {
   }
 }
 
-/// The start and end as the form shows them: days and times of day on the
-/// event's own clock (its wall clock), the last day of an all-day event
-/// itself (not the day after).
+/// The start and end as the form shows them: days and times of day each
+/// on its own zone's clock (its wall clock; a zone of `null` is the
+/// device's), the last day of an all-day event itself (not the day
+/// after).
 final class _FormTimes {
   const _FormTimes({
     required this.allDay,
     required this.startDay,
     required this.startTime,
+    required this.startZone,
     required this.endDay,
     required this.endTime,
+    required this.endZone,
   });
 
   factory _FormTimes.of(EventDraft draft) {
@@ -381,45 +420,71 @@ final class _FormTimes {
       allDay: allDay,
       startDay: DateTime(start.year, start.month, start.day),
       startTime: TimeOfDay(hour: start.hour, minute: start.minute),
+      startZone: draft.start.zone,
       endDay: DateTime(lastDay.year, lastDay.month, lastDay.day),
       endTime: TimeOfDay(hour: end.hour, minute: end.minute),
+      endZone: draft.end.zone,
     );
   }
 
   final bool allDay;
   final DateTime startDay;
   final TimeOfDay startTime;
+  final String? startZone;
   final DateTime endDay;
   final TimeOfDay endTime;
+  final String? endZone;
 
   DateTime get _startWall => _wall(startDay, allDay ? null : startTime);
   DateTime get _endWall => allDay
       ? DateTime.utc(endDay.year, endDay.month, endDay.day + 1)
       : _wall(endDay, endTime);
 
-  bool get endsAfterStart => !_endWall.isBefore(_startWall);
+  /// The start and end as moments, each read on its own clock.
+  CalendarTime get _startClock => _clock(_startWall, startZone);
+  CalendarTime get _endClock => _clock(_endWall, endZone);
 
-  /// The start, of [was]'s kind unless the form changed all day (see
-  /// [timeAt]).
+  bool get endsAfterStart => allDay
+      ? !_endWall.isBefore(_startWall)
+      : !_endClock.local.isBefore(_startClock.local);
+
+  /// The start, of [was]'s kind unless the form changed all day or
+  /// picked a zone (see [_timeAt]).
   CalendarTime start(CalendarTime was, String? deviceZone) =>
-      timeAt(_startWall, allDay: allDay, was: was, deviceZone: deviceZone);
+      _timeAt(_startWall, startZone, was: was, deviceZone: deviceZone);
 
-  /// The end, of [was]'s kind unless the form changed all day.
+  /// The end, likewise.
   CalendarTime end(CalendarTime was, String? deviceZone) =>
-      timeAt(_endWall, allDay: allDay, was: was, deviceZone: deviceZone);
+      _timeAt(_endWall, endZone, was: was, deviceZone: deviceZone);
+
+  /// The time at [wall]: in [zone] if it has one and is no day; else as
+  /// [timeAt] makes it.
+  CalendarTime _timeAt(
+    DateTime wall,
+    String? zone, {
+    required CalendarTime was,
+    required String? deviceZone,
+  }) => switch (zone) {
+    final zone? when !allDay => Zoned(zone, wall),
+    _ => timeAt(wall, allDay: allDay, was: was, deviceZone: deviceZone),
+  };
 
   _FormTimes copy({
     bool? allDay,
     DateTime? startDay,
     TimeOfDay? startTime,
+    String? startZone,
     DateTime? endDay,
     TimeOfDay? endTime,
+    String? endZone,
   }) => _FormTimes(
     allDay: allDay ?? this.allDay,
     startDay: startDay ?? this.startDay,
     startTime: startTime ?? this.startTime,
+    startZone: startZone ?? this.startZone,
     endDay: endDay ?? this.endDay,
     endTime: endTime ?? this.endTime,
+    endZone: endZone ?? this.endZone,
   );
 
   /// All day on keeps the days; off gives the start day the usual hour
@@ -444,10 +509,12 @@ final class _FormTimes {
     );
   }
 
-  /// A new start time moves the end along, so the event keeps its length.
+  /// A new start time moves the end along, so the event keeps its real
+  /// length, also when it ends in another zone.
   _FormTimes withStartTime(TimeOfDay time) {
-    final length = _endWall.difference(_startWall);
-    final end = _wall(startDay, time).add(length);
+    final length = _endClock.local.difference(_startClock.local);
+    final start = _clock(_wall(startDay, time), startZone).local;
+    final end = _endClock.sameKindAt(start.add(length)).wall;
     return copy(
       startTime: time,
       endDay: DateTime(end.year, end.month, end.day),
@@ -455,17 +522,32 @@ final class _FormTimes {
     );
   }
 
+  /// A new start zone, the clock times kept; the end takes it too while
+  /// it was in the start's.
+  _FormTimes withStartZone(String zone) =>
+      copy(startZone: zone, endZone: endZone == startZone ? zone : endZone);
+
   @override
   bool operator ==(Object other) =>
       other is _FormTimes &&
       other.allDay == allDay &&
       other.startDay == startDay &&
       other.startTime == startTime &&
+      other.startZone == startZone &&
       other.endDay == endDay &&
-      other.endTime == endTime;
+      other.endTime == endTime &&
+      other.endZone == endZone;
 
   @override
-  int get hashCode => Object.hash(allDay, startDay, startTime, endDay, endTime);
+  int get hashCode => Object.hash(
+    allDay,
+    startDay,
+    startTime,
+    startZone,
+    endDay,
+    endTime,
+    endZone,
+  );
 
   static DateTime _wall(DateTime day, TimeOfDay? time) => DateTime.utc(
     day.year,
@@ -474,4 +556,8 @@ final class _FormTimes {
     time?.hour ?? 0,
     time?.minute ?? 0,
   );
+
+  /// [wall] on the clock of [zone]; `null` is the device's.
+  static CalendarTime _clock(DateTime wall, String? zone) =>
+      zone == null ? Floating(wall) : Zoned(zone, wall);
 }

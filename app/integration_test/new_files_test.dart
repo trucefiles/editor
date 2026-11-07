@@ -118,6 +118,23 @@ void main() {
     await tester.waitForFile(app.file('todo.md'), '# Todo\nCall\n');
   });
 
+  testApp('with the location not above the text, the file menu has it', (
+    tester,
+  ) async {
+    app.write('old.md', '# Old\n');
+    await tester.addFolder(app);
+    await tester.waitFor(find.text('Old'));
+    await tester.chooseInMenu('Settings');
+    await tester.tapAndSettle(find.text('Show location above the text'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.openFile('Old');
+    expect(find.byTooltip(locationAndName), findsNothing);
+    await tester.chooseInMenu('$locationAndName…');
+    await tester.waitFor(find.text('Inside the folder'));
+  });
+
   testApp('offers an empty subfolder made while the app runs', (tester) async {
     app.write('old.md', '# Old\n');
     await tester.addFolder(app);

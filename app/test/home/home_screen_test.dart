@@ -9,10 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart'
-    show CalendarViews;
+    show CalendarDot, CalendarViews;
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
-import 'package:truce_editor/calendar_tab/ui/calendar_dot.dart';
 import 'package:truce_editor/file_page/ui/file_screen.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/file_type_selection.dart';

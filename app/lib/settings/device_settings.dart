@@ -20,6 +20,7 @@ final class DeviceSettings {
     required this.closeToTray,
     required this.home,
     required this.calendarView,
+    required this.placeAboveText,
   });
 
   /// What a device starts with.
@@ -32,6 +33,7 @@ final class DeviceSettings {
     closeToTray: true,
     home: HomeSettings.standard,
     calendarView: CalendarViewKind.month,
+    placeAboveText: true,
   );
 
   final TextZoom documentTextZoom;
@@ -53,6 +55,10 @@ final class DeviceSettings {
 
   /// The view calendars open in: the one picked last.
   final CalendarViewKind calendarView;
+
+  /// Whether a file's location shows above its text; else it is only in
+  /// the file's menu.
+  final bool placeAboveText;
 
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
@@ -78,6 +84,7 @@ final class DeviceSettings {
     bool? closeToTray,
     HomeSettings? home,
     CalendarViewKind? calendarView,
+    bool? placeAboveText,
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
@@ -87,6 +94,7 @@ final class DeviceSettings {
     closeToTray: closeToTray ?? this.closeToTray,
     home: home ?? this.home,
     calendarView: calendarView ?? this.calendarView,
+    placeAboveText: placeAboveText ?? this.placeAboveText,
   );
 
   Map<String, Object?> toJson() => {
@@ -98,6 +106,7 @@ final class DeviceSettings {
     'closeToTray': closeToTray,
     'home': home.toJson(),
     'calendarView': calendarView.name,
+    'placeAboveText': placeAboveText,
   };
 
   /// The settings [json] holds, each read on its own: one missing or not
@@ -125,6 +134,10 @@ final class DeviceSettings {
       calendarView:
           CalendarViewKind.values.asNameMap()[fields['calendarView']] ??
           standard.calendarView,
+      placeAboveText: switch (fields['placeAboveText']) {
+        final bool above => above,
+        _ => standard.placeAboveText,
+      },
     );
   }
 
@@ -138,7 +151,8 @@ final class DeviceSettings {
       other.addItemPlace == addItemPlace &&
       other.closeToTray == closeToTray &&
       other.home == home &&
-      other.calendarView == calendarView;
+      other.calendarView == calendarView &&
+      other.placeAboveText == placeAboveText;
 
   @override
   int get hashCode => Object.hash(
@@ -150,5 +164,6 @@ final class DeviceSettings {
     closeToTray,
     home,
     calendarView,
+    placeAboveText,
   );
 }

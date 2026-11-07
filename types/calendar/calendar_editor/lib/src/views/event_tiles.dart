@@ -8,10 +8,13 @@ import 'occurrence_event.dart';
 
 /// How occurrences look in the month, week and day views: a tile in
 /// their color ([occurrenceColor], over their calendar's: [colorOf] its
-/// key) with their title; while
-/// dragged, the same tile where it would land; a range dragged over for
-/// a new event, marked.
-TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
+/// key) with their title in up to [lines] lines (one line is cut
+/// anywhere, with "…"); while dragged, the same tile where it would
+/// land; a range dragged over for a new event, marked.
+TileComponents eventTiles<K>(
+  Color Function(K calendar) colorOf, {
+  required int lines,
+}) {
   Widget tile(KalenderEvent event, {Size? size, double opacity = 1}) => Opacity(
     opacity: opacity,
     child: SizedBox.fromSize(
@@ -20,6 +23,7 @@ TileComponents eventTiles<K>(Color Function(K calendar) colorOf) {
         OccurrenceEvent<K>(:final calendar, :final occurrence) => _Tile(
           occurrenceColor(occurrence, colorOf(calendar)),
           occurrence,
+          lines: lines,
         ),
         // The range a drag over free times marks for a new event.
         _ => const _NewTile(),
@@ -86,12 +90,14 @@ class _NewTile extends StatelessWidget {
   );
 }
 
-/// One occurrence's tile: its title on its calendar's [color].
+/// One occurrence's tile: its title on its calendar's [color], in up to
+/// [lines] lines.
 class _Tile extends StatelessWidget {
-  const _Tile(this.color, this.occurrence);
+  const _Tile(this.color, this.occurrence, {required this.lines});
 
   final Color color;
   final Occurrence occurrence;
+  final int lines;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +114,9 @@ class _Tile extends StatelessWidget {
       ),
       child: Text(
         occurrenceTitle(occurrence),
-        maxLines: 3,
+        maxLines: lines,
+        // One line keeps as much of the title as fits, not whole words.
+        softWrap: lines > 1,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelMedium
             ?.copyWith(color: onColor),

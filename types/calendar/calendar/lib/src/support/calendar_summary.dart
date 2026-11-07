@@ -2,6 +2,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../health/cycle.dart';
 import '../model/calendar.dart';
+import '../model/calendar_head.dart';
 import '../recurrence/occurrences.dart';
 
 /// How a calendar's preview shows, as of [now]: its next [count]
@@ -25,6 +26,14 @@ final class CalendarPreview {
 /// How far ahead a preview looks for occurrences.
 const previewAhead = Duration(days: 366);
 
+/// The title a calendar with [head] shows under: the name it shows under
+/// (see [CalendarHead.shownName]); `null` if it has none, so the file's
+/// name shows.
+String? calendarTitle(CalendarHead head) => switch (head.shownName) {
+  '' => null,
+  final name => name,
+};
+
 /// What lists show of a calendar's text: its name as the title, and its
 /// next occurrences (or cycle) as the preview. A text that is no
 /// calendar has no title and an empty preview.
@@ -46,12 +55,12 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
   /// The calendar; `null` if the text is none.
   final Calendar? calendar;
 
-  /// The name the calendar shows under (see [Calendar.shownName]);
-  /// `null` if it has none, so the file's name shows.
+  /// The calendar's title (see [calendarTitle]); `null` if it has none,
+  /// so the file's name shows.
   @override
-  late final String? title = switch (calendar?.shownName) {
-    final name? when name.isNotEmpty => name,
-    _ => null,
+  late final String? title = switch (calendar) {
+    final calendar? => calendarTitle(calendar.head),
+    null => null,
   };
 
   /// The calendar's name; a calendar with none is named after its kind

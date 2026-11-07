@@ -95,7 +95,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     animateTo: (date) => _kalender!.animateToDate(date),
   );
   // The current widget's colors: a calendar's color can change.
-  late final _tiles = eventTiles<K>(_colorOf);
+  late final _timedTiles = eventTiles<K>(_colorOf, lines: 3);
+  // Month days and the all-day row are one tile high.
+  late final _rowTiles = eventTiles<K>(_colorOf, lines: 1);
   late final _scheduleTiles = scheduleTiles<K>(_colorOf);
 
   Color _colorOf(K calendar) => widget.colorOf(calendar);
@@ -261,9 +263,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                 ),
                 views: [
                   MultiDayViewParts(
-                    header: MultiDayHeader(tileComponents: _tiles),
+                    header: MultiDayHeader(tileComponents: _rowTiles),
                     body: MultiDayBody(
-                      tileComponents: _tiles,
+                      tileComponents: _timedTiles,
                       // Not to the current time: it would carry its minutes
                       // and seconds into the event.
                       snapping: const KalenderSnapping(
@@ -272,7 +274,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                       ),
                     ),
                   ),
-                  MonthViewParts(body: MonthBody(tileComponents: _tiles)),
+                  MonthViewParts(body: MonthBody(tileComponents: _rowTiles)),
                   ScheduleViewParts(
                     body: ScheduleBody(tileComponents: _scheduleTiles),
                   ),

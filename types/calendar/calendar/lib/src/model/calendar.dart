@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
 import 'calendar_event.dart';
+import 'calendar_head.dart';
 import 'calendar_unit.dart';
 
 /// One calendar file, read: the lines up to its first unit ([head]: the
@@ -16,7 +17,7 @@ final class Calendar {
 
   /// The text up to the first unit: `BEGIN:VCALENDAR` and the calendar's
   /// properties.
-  final String head;
+  final CalendarHead head;
 
   final _Body _body;
 
@@ -27,27 +28,19 @@ final class Calendar {
 
   /// The calendar in [text] (`\n` line breaks); `null` if it is none.
   static Calendar? read(String text) {
-    final lines = logicalLines(text);
-    final begin = lines.indexWhere(
-      (line) => line.unfolded.trim().toUpperCase() == 'BEGIN:VCALENDAR',
-    );
-    if (begin < 0 ||
-        lines.take(begin).any((line) => line.unfolded.trim().isNotEmpty)) {
-      return null;
-    }
+    final head = CalendarHead.read(text);
+    if (head == null) return null;
+    final lines = logicalLines(text.substring(head.text.length));
     final end = lines.lastIndexWhere(
       (line) => line.unfolded.trim().toUpperCase() == 'END:VCALENDAR',
     );
-    if (end <= begin) return null;
-    final inside = lines.sublist(begin + 1, end);
-    final firstUnit = inside.indexWhere(_begins);
-    final headCount = firstUnit < 0 ? inside.length : firstUnit;
-    final blocks = _blocks(inside.sublist(headCount));
+    if (end < 0) return null;
+    final blocks = _blocks(lines.sublist(0, end));
     if (blocks == null) return null;
     final (:units, :layout) = _units(blocks);
     final tail = _textOf(lines.sublist(end));
     return Calendar._(
-      _textOf(lines.sublist(0, begin + 1 + headCount)),
+      head,
       _Body(units, layout),
       // Its last line break only if the text has one.
       text.endsWith('\n') ? tail : tail.substring(0, tail.length - 1),
@@ -56,7 +49,7 @@ final class Calendar {
 
   /// The calendar's text.
   late final String text = [
-    head,
+    head.text,
     for (final (:key, :part) in _body.layout)
       if (_body.byKey[key]!.parts case final parts when part < parts.length)
         parts[part],
@@ -85,53 +78,28 @@ final class Calendar {
   /// the units when first asked.
   Set<String> get zonesNamed => _body.zonesNamed;
 
-  /// The calendar's own properties.
-  late final List<ContentLine> properties = [
-    for (final line in logicalLines(head).skip(1))
-      ?ContentLine.parse(line.unfolded, raw: line.raw),
-  ];
-
   /// The calendar's name, as other apps show it; empty if it has none.
-  late final String name = unescapeText(
-    properties.firstWhereOrNull((line) => line.name == _nameProperty)?.value ??
-        '',
-  );
+  String get name => head.name;
 
-  /// The name the standard's `NAME` property gives it (RFC 7986), which
-  /// some apps write; read only, never written. Empty if it has none.
-  late final String standardName = unescapeText(
-    properties.firstWhereOrNull((line) => line.name == 'NAME')?.value ?? '',
-  ).trim();
-
-  /// The name it shows under: its [name], else its [standardName]; empty
-  /// if it has neither.
-  late final String shownName = switch (name.trim()) {
-    '' => standardName,
-    final name => name,
-  };
+  /// The name it shows under (see [CalendarHead.shownName]).
+  String get shownName => head.shownName;
 
   /// Whether it is a health calendar (shown with its cycle).
-  late final bool isHealth = properties.any(
-    (line) =>
-        line.name == healthFlag.name &&
-        line.value.toUpperCase() == healthFlag.value,
-  );
+  bool get isHealth => head.isHealth;
 
   /// This calendar named [name] (none if empty): only its name line
   /// changes, written in place of the old one, or as the last of its own
   /// properties if it had none; itself if it is named so already.
   Calendar named(String name) {
     if (name == this.name) return this;
-    final old = properties.firstWhereOrNull(
-      (line) => line.name == _nameProperty,
-    );
+    final old = head.nameLine;
     final written = [?_nameLine(name, old)].map((line) => '${line.printed}\n');
     return Calendar._(
-      switch (old?.raw) {
+      CalendarHead(switch (old?.raw) {
         // After the line before it, so no other line's end matches.
-        final raw? => head.replaceFirst('\n$raw\n', '\n${written.join()}'),
-        null => '$head${written.join()}',
-      },
+        final raw? => head.text.replaceFirst('\n$raw\n', '\n${written.join()}'),
+        null => '${head.text}${written.join()}',
+      }),
       _body,
       tail,
     );
@@ -198,20 +166,15 @@ final class Calendar {
 ContentLine? _nameLine(String name, [ContentLine? old]) => name.isEmpty
     ? null
     : ContentLine(
-        _nameProperty,
+        nameProperty,
         escapeText(name),
         params: old?.params ?? const {},
       );
-
-const _nameProperty = 'X-WR-CALNAME';
 
 /// What a calendar is called by its kind: as the user picks a new one,
 /// and as one without a name is named.
 String kindName({required bool health}) =>
     health ? 'Health calendar' : 'Calendar';
-
-/// The calendar property that makes a calendar a health calendar.
-const healthFlag = ContentLine('X-TRUCE-CALENDAR', 'HEALTH');
 
 /// The text of a new calendar named [name] (none if empty), a health
 /// calendar if [health]: no events yet.

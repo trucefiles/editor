@@ -11,6 +11,10 @@ sealed class CalendarTime {
   /// The wall clock (or the day at midnight) as written.
   DateTime get wall;
 
+  /// The time zone it is in (an IANA name, or one the app doesn't know);
+  /// `null` for a day, a floating time or UTC.
+  String? get zone => null;
+
   /// When it is on this device's clock.
   DateTime get local;
 
@@ -123,6 +127,7 @@ final class UtcTime extends CalendarTime {
 final class Zoned extends CalendarTime {
   Zoned(this.zone, DateTime wall) : wall = _asWall(wall);
 
+  @override
   final String zone;
 
   @override

@@ -33,6 +33,7 @@ void main() {
       view: FileView.list,
     ),
     calendarView: CalendarViewKind.week,
+    placeAboveText: false,
   );
 
   group('value', () {

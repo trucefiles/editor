@@ -114,8 +114,7 @@ List<CalendarUnit> _written(Calendar calendar, CalendarEdit edit) {
     event,
     if (draft != null)
       for (final zone in {
-        for (final time in [draft.start, draft.end])
-          if (time case Zoned(:final zone)) zone,
+        for (final time in [draft.start, draft.end]) ?time.zone,
       })
         if (!calendar.zones.contains(zone)) ?zoneUnit(zone),
   ];

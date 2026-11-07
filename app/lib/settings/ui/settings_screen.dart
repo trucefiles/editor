@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
+import '../../file_page/ui/place_above_text_tile.dart';
 import '../../files/home/ui/recently_edited_tiles.dart';
 import '../../files/new_file_place/ui/new_file_place_tile.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
@@ -24,6 +25,7 @@ class SettingsScreen extends StatelessWidget {
           RecentCountTile(),
           RecentAgeTile(),
           AddItemPlaceTile(),
+          PlaceAboveTextTile(),
           TextZoomTile(TextZoomTarget.documents),
           TextZoomTile(TextZoomTarget.app),
           RefreshSettingTile(),
