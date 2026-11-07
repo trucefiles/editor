@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.16.0" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Hide a calendar from the Calendars tab: long press or right click its chip; "Hidden" brings it back. Calendars turned off or hidden are no longer read in full.</li>
+          <li>Start and end of an event can each have their own time zone, e.g. for a flight; editing such an event no longer moves its end.</li>
+          <li>An event's sheet names its calendar, and its text can be selected and copied.</li>
+          <li>Month view titles show as much as fits, then "…".</li>
+          <li>New setting: show a file's location above its text, or only in its menu.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.0" date="2026-11-06">
       <description>
         <ul>

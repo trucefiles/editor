@@ -1,0 +1,5 @@
+- Hide a calendar from the Calendars tab
+- Start and end of an event can each have their own time zone (flights); editing them no longer moves the end
+- An event's sheet names its calendar; its text can be copied
+- Month view titles show as much as fits, then "…"
+- Setting: show a file's location above its text or only in its menu
