@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
@@ -33,10 +34,12 @@ void main() {
                   for (var i = 0; i < count; i++)
                     GestureDetector(
                       onTap: () => tapped?.add(i),
-                      child: SizedBox(
-                        width: 100,
-                        height: 32,
-                        child: Text('$i'),
+                      child: Focus(
+                        child: SizedBox(
+                          width: 100,
+                          height: 32,
+                          child: Text('$i'),
+                        ),
                       ),
                     ),
                 ],
@@ -138,5 +141,21 @@ void main() {
     tester.view.physicalSize = const Size(800, 600);
     await tester.pumpAndSettle();
     expect(after, findsNothing);
+  });
+
+  testWidgets('a chip reached by Tab scrolls clear of the arrows', (
+    tester,
+  ) async {
+    await show(tester, count: 10);
+    for (var i = 0; i < 4; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+    }
+    final chip = tester.getRect(find.text('3'));
+    for (final arrow in find.byType(IconButton).evaluate()) {
+      final box = tester.getRect(find.byWidget(arrow.widget));
+      expect(chip.overlaps(box), isFalse);
+    }
+    expect(rowOffset(tester), greaterThan(0));
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
@@ -97,4 +98,63 @@ void main() {
       }),
     );
   }
+
+  testWidgets('copying the whole sheet puts each line on its own line', (
+    tester,
+  ) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showOccurrenceSheet<void>(
+                context,
+                _swimming(),
+                const [],
+                calendar: (color: Colors.teal, title: 'Family'),
+              ),
+              child: const Text('Show'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Show'));
+    await tester.pumpAndSettle();
+
+    // A tap puts the keys in the sheet's text.
+    await tester.tap(find.text('Pool'));
+    await tester.pump();
+    tester
+        .state<SelectableRegionState>(find.byType(SelectableRegion))
+        .selectAll(SelectionChangedCause.keyboard);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(copied?.split('\n'), [
+      'Family',
+      'Swimming',
+      startsWith('Tuesday, November 3, 2026'),
+      'Pool',
+      'Bring a towel',
+    ]);
+  });
 }

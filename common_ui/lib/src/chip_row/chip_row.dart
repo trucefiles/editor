@@ -9,7 +9,9 @@ import '../wheel/wheel_step.dart';
 /// One row of [chips], 8 apart, that scrolls sideways when it doesn't fit:
 /// by a swipe, and with a mouse also by the plain wheel. In the desktop
 /// look (not [usesTouch]) a small arrow lies over each edge while chips
-/// are hidden on that side; a press scrolls about the row's width.
+/// are hidden on that side; a press scrolls about the row's width. A
+/// chip that gets the keyboard focus scrolls to the middle, clear of the
+/// arrows.
 class ChipRow extends StatefulWidget {
   const ChipRow({
     required this.chips,
@@ -74,6 +76,23 @@ class _ChipRowState extends State<ChipRow> {
     }
   }
 
+  static const _scrollTime = Duration(milliseconds: 250);
+
+  /// Scrolls the chip at [chip] to the middle of the row; Flutter only
+  /// brings a focused chip just into view, under an arrow.
+  void _center(BuildContext chip) {
+    final box = chip.findRenderObject();
+    if (box == null || !_scroll.hasClients) return;
+    unawaited(
+      _scroll.position.ensureVisible(
+        box,
+        alignment: 0.5,
+        duration: _scrollTime,
+        curve: Curves.easeOut,
+      ),
+    );
+  }
+
   /// Scrolls about the row's width towards its end ([direction] 1) or
   /// its start (-1).
   void _page(int direction) {
@@ -81,11 +100,7 @@ class _ChipRowState extends State<ChipRow> {
     final to = (position.pixels + direction * position.viewportDimension * 0.8)
         .clamp(position.minScrollExtent, position.maxScrollExtent);
     unawaited(
-      _scroll.animateTo(
-        to,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      ),
+      _scroll.animateTo(to, duration: _scrollTime, curve: Curves.easeOut),
     );
   }
 
@@ -99,7 +114,13 @@ class _ChipRowState extends State<ChipRow> {
           controller: _scroll,
           scrollDirection: Axis.horizontal,
           padding: widget.padding,
-          child: Row(spacing: 8, children: widget.chips),
+          child: Row(
+            spacing: 8,
+            children: [
+              for (final chip in widget.chips)
+                _CenteredOnFocus(onFocused: _center, child: chip),
+            ],
+          ),
         ),
       ),
     );
@@ -125,6 +146,25 @@ class _ChipRowState extends State<ChipRow> {
       ],
     );
   }
+}
+
+/// [child], telling [onFocused] when it or a widget in it gets the
+/// keyboard focus.
+class _CenteredOnFocus extends StatelessWidget {
+  const _CenteredOnFocus({required this.onFocused, required this.child});
+
+  final ValueChanged<BuildContext> onFocused;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: (focused) {
+      if (focused) onFocused(context);
+    },
+    child: child,
+  );
 }
 
 /// A small arrow over the row's [start] or end edge, fading the chips

@@ -5,12 +5,14 @@ import 'calendar_dot.dart';
 import 'event_colors.dart';
 import 'marked_line.dart';
 import 'occurrence_texts.dart';
+import 'selectable_lines.dart';
 
 /// The calendar an occurrence is in, as a sheet names it: its [color]
 /// and [title].
 typedef SheetCalendar = ({Color color, String title});
 
-/// What [occurrence] is, in full, one part per line, 8 apart: first the
+/// What [occurrence] is, in full, one part per line, 8 apart (and so
+/// copied): first the
 /// [calendar] it is in, if given (where several calendars show
 /// together), quieter; then its whole title
 /// (after a dot of its own color, if it has one), its day and times
@@ -36,36 +38,38 @@ class OccurrenceDetails extends StatelessWidget {
       text: text,
       style: partStyle,
     );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: 8,
-      children: [
-        if (calendar case (:final color, :final title))
+    return SelectableLines(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 8,
+        children: [
+          if (calendar case (:final color, :final title))
+            MarkedLine(
+              mark: CalendarDot(color),
+              text: title,
+              style: theme.textTheme.bodyMedium,
+            ),
           MarkedLine(
-            mark: CalendarDot(color),
-            text: title,
-            style: theme.textTheme.bodyMedium,
+            mark: switch (ownColor(occurrence)) {
+              final color? => CalendarDot(color),
+              null => null,
+            },
+            text: occurrenceTitle(occurrence),
+            style: theme.textTheme.titleMedium,
           ),
-        MarkedLine(
-          mark: switch (ownColor(occurrence)) {
-            final color? => CalendarDot(color),
-            null => null,
-          },
-          text: occurrenceTitle(occurrence),
-          style: theme.textTheme.titleMedium,
-        ),
-        partLine(
-          Icons.schedule,
-          [
-            '${words.formatFullDate(occurrence.start)} · $times',
-            ?ownTimesOf(words, occurrence, use24Hour: use24Hour),
-          ].join('\n'),
-        ),
-        if (part.location.isNotEmpty)
-          partLine(Icons.place_outlined, part.location),
-        if (part.description.isNotEmpty)
-          partLine(Icons.notes, part.description),
-      ],
+          partLine(
+            Icons.schedule,
+            [
+              '${words.formatFullDate(occurrence.start)} · $times',
+              ?ownTimesOf(words, occurrence, use24Hour: use24Hour),
+            ].join('\n'),
+          ),
+          if (part.location.isNotEmpty)
+            partLine(Icons.place_outlined, part.location),
+          if (part.description.isNotEmpty)
+            partLine(Icons.notes, part.description),
+        ],
+      ),
     );
   }
 }

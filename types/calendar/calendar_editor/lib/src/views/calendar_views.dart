@@ -284,14 +284,16 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             child: SidewaysWheel(
               onPrevious: () => _pages.step(-1),
               onNext: () => _pages.step(1),
-              child: CustomPaint(
-                painter: movable
-                    ? null
-                    : Stripes.readOnly(Theme.of(context).colorScheme),
-                // Its own layer, so scrolling and paging never repaint the
-                // stripes behind it.
-                child: RepaintBoundary(
-                  child: _kalenderView(kalender, callbacks),
+              // The stripes and kalender each in a layer of their own, so
+              // neither the bar nor scrolling and paging repaint them.
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: movable
+                      ? null
+                      : Stripes.readOnly(Theme.of(context).colorScheme),
+                  child: RepaintBoundary(
+                    child: _kalenderView(kalender, callbacks),
+                  ),
                 ),
               ),
             ),
