@@ -1,0 +1,4 @@
+- Calendar chips stay in one row that scrolls sideways
+- A slimmer bottom bar
+- Clearer event sheet: time, place and notes on their own lines with icons
+- Faint stripes show where a calendar can't be edited

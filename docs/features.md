@@ -86,9 +86,9 @@ kept.
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
 <img src="screenshots/calendar/calendar_month_picker_touch.png" width="300" alt="The month view's title tapped on a phone: pick a month, or tap the year to pick another year">
 <img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
-<img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: two calendars as chips above one month, the open calendar button at the bottom">
+<img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: calendars as chips in one row above one month, faintly striped as it only shows, the open calendar button at the bottom">
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
-<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, its details and its own times in two zones, with Open calendar and Edit">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Open calendar and Edit">
 <img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
 
 ## Home, All and search

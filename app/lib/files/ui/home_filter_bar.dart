@@ -19,29 +19,12 @@ class HomeFilterBar extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _ChipRow(
+      FolderChips(
+        folders,
+        conflictCount: conflictCount,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: FolderChips(folders, conflictCount: conflictCount),
       ),
-      const _ChipRow(
-        padding: EdgeInsets.fromLTRB(12, 4, 12, 8),
-        child: FileTypeChips(),
-      ),
+      const FileTypeChips(padding: EdgeInsets.fromLTRB(12, 4, 12, 8)),
     ],
-  );
-}
-
-/// One row of chips, scrolling sideways when it doesn't fit.
-class _ChipRow extends StatelessWidget {
-  const _ChipRow({required this.padding, required this.child});
-
-  final EdgeInsets padding;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    padding: padding,
-    child: child,
   );
 }

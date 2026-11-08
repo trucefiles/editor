@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// The app-wide look for [brightness]: teal colors, Inter with bold titles,
-/// shadowed cards, a flat top bar that lifts when content scrolls under
-/// and menus below their buttons.
+/// shadowed cards, a flat top bar that lifts when content scrolls under,
+/// a slim bottom bar and menus below their buttons.
 ThemeData appTheme(Brightness brightness) {
   final base = ThemeData(
     colorSchemeSeed: Colors.teal,
@@ -23,6 +23,8 @@ ThemeData appTheme(Brightness brightness) {
       scrolledUnderElevation: 3,
       titleTextStyle: text.titleLarge?.copyWith(color: scheme.onSurface),
     ),
+    // Material 3 Expressive's slimmer bar, for more room above it.
+    navigationBarTheme: const NavigationBarThemeData(height: 64),
     // Menus open below their button, so a quick second tap where the
     // button was never picks an item.
     popupMenuTheme: const PopupMenuThemeData(position: PopupMenuPosition.under),

@@ -12,6 +12,7 @@ export 'src/calendar_editor_view.dart';
 export 'src/calendar_import_file.dart';
 export 'src/calendar_start.dart';
 export 'src/ui/calendar_dot.dart';
+export 'src/ui/occurrence_details.dart' show SheetCalendar;
 export 'src/ui/occurrence_sheet.dart';
 export 'src/ui/occurrence_texts.dart' show DayText;
 export 'src/views/calendar_views.dart' show CalendarViews;

@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Lies over [child] and turns sideways steps of a mouse wheel (Shift and
 /// the wheel, or a wheel that tilts) into page moves: [onNext] for down
@@ -33,15 +33,11 @@ class _SidewaysWheelState extends State<SidewaysWheel> {
   bool _moving = false;
 
   /// How far [event] goes sideways; 0 if it isn't a sideways wheel step.
-  static double _sideways(PointerSignalEvent event) => switch (event) {
-    PointerScrollEvent(kind: PointerDeviceKind.mouse, :final scrollDelta)
-        when HardwareKeyboard.instance.isShiftPressed =>
-      scrollDelta.dy != 0 ? scrollDelta.dy : scrollDelta.dx,
-    PointerScrollEvent(kind: PointerDeviceKind.mouse, :final scrollDelta)
-        when scrollDelta.dy == 0 =>
-      scrollDelta.dx,
-    _ => 0,
-  };
+  double _sideways(PointerSignalEvent event) =>
+      switch (mouseWheelStep(context, event)) {
+        Offset(dy: 0, :final dx) => dx,
+        _ => 0,
+      };
 
   void _onSignal(PointerSignalEvent event) {
     final delta = _sideways(event);

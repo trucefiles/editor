@@ -6,4 +6,3 @@ library;
 
 export 'src/editable_type.dart';
 export 'src/editor_view.dart';
-export 'src/touch.dart';
