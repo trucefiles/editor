@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -84,10 +86,12 @@ class _ChipRowState extends State<ChipRow> {
     final position = _scroll.position;
     final to = (position.pixels + direction * position.viewportDimension * 0.8)
         .clamp(position.minScrollExtent, position.maxScrollExtent);
-    _scroll.animateTo(
-      to,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+    unawaited(
+      _scroll.animateTo(
+        to,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      ),
     );
   }
 
