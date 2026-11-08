@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import 'calendar_dot.dart';
+import 'marked_line.dart';
 import 'occurrence_details.dart';
 
 /// One thing to do with an occurrence, as its sheet lists it: [value]
@@ -31,17 +32,22 @@ Future<T?> showOccurrenceSheet<T>(
       children: [
         // The actions stay plain taps, outside the selectable text.
         SelectionArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (calendar case (:final color, :final title))
-                ListTile(
-                  dense: true,
-                  leading: CalendarDot(color),
-                  title: Text(title),
-                ),
-              OccurrenceDetails(occurrence),
-            ],
+          child: Padding(
+            // As a list row's, so the details line up with the actions.
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 8,
+              children: [
+                if (calendar case (:final color, :final title))
+                  MarkedLine(
+                    mark: CalendarDot(color),
+                    text: title,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                OccurrenceDetails(occurrence),
+              ],
+            ),
           ),
         ),
         if (actions.isNotEmpty) const Divider(),

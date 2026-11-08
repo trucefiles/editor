@@ -4,6 +4,7 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/views/day_cells.dart';
 import 'package:truce_calendar_editor/src/views/health_days.dart';
+import 'package:truce_calendar_editor/src/views/stripes.dart';
 
 void main() {
   final today = DateTime(2026, 11, 3);

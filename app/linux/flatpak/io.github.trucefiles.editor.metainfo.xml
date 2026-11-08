@@ -19,6 +19,16 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.17.1" date="2026-11-08">
+      <description>
+        <ul>
+          <li>Calendar chips stay in one row that scrolls sideways; with a mouse, the wheel or small arrows scroll it.</li>
+          <li>A slimmer bottom bar leaves more room above it.</li>
+          <li>An event's sheet shows its time, place and notes on their own lines, each with an icon, and the calendar and event dots line up.</li>
+          <li>Faint stripes show where a calendar can't be edited, such as in the Calendars tab.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.0" date="2026-11-07">
       <description>
         <ul>

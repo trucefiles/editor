@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import 'document_text_styles.dart';
 

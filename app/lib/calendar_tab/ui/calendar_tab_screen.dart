@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
@@ -55,10 +56,11 @@ class CalendarTabScreen extends ConsumerWidget {
               text: 'No calendars yet.',
             )
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
+                ChipRow(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Wrap(
+                  child: Row(
                     spacing: 8,
                     children: [
                       for (final calendar in offered)

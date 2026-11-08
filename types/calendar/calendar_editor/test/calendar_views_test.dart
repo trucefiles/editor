@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/views/stripes.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 import 'views_title.dart';
@@ -72,6 +73,41 @@ void main() {
     await tester.tap(find.text('Dentist'));
     await tester.pumpAndSettle();
     expect(tapped, [('home', 'Dentist')]);
+  });
+
+  testWidgets('faint stripes lie behind the views while events can\'t be '
+      'moved, and go once they can', (tester) async {
+    Future<void> show({required bool movable}) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarViews<String>(
+            calendars: {'home': _calendar('Home', 'Dentist', 9)},
+            colorOf: (_) => Colors.teal,
+            kind: CalendarViewKind.week,
+            onKind: (_) {},
+            now: () => DateTime(2026, 11, 3, 8),
+            onMove: movable ? (_, _, _, _) {} : null,
+          ),
+        ),
+      ),
+    );
+    bool striped() => find
+        .byWidgetPredicate(
+          (w) =>
+              w is CustomPaint &&
+              w.painter is Stripes &&
+              w.child is RepaintBoundary,
+        )
+        .evaluate()
+        .isNotEmpty;
+
+    await show(movable: false);
+    await tester.pumpAndSettle();
+    expect(striped(), isTrue);
+
+    await show(movable: true);
+    await tester.pump();
+    expect(striped(), isFalse);
   });
 
   testWidgets('the schedule keeps showing what is further down and on the '
