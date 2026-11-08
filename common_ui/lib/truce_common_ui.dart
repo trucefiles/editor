@@ -1,5 +1,6 @@
 /// UI parts with no app logic, for use across the app: a sideways
-/// scrolling row of chips, whether the app is used by touch, a yes or no
+/// scrolling row of chips, whether the app is used by touch, how far a
+/// mouse wheel step goes, a yes or no
 /// dialog, Esc that closes a popup first, the lazy masonry
 /// grid for cards (items as tall as their content, in columns), the page
 /// width that keeps settings and forms in one centered column, the keys
@@ -18,3 +19,4 @@ export 'src/page_width/page_width.dart';
 export 'src/text/first_fitting.dart';
 export 'src/text/line_height.dart';
 export 'src/touch/touch.dart';
+export 'src/wheel/wheel_step.dart';

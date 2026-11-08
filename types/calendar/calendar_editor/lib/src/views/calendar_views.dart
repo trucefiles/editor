@@ -291,47 +291,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
                 // Its own layer, so scrolling and paging never repaint the
                 // stripes behind it.
                 child: RepaintBoundary(
-                  child: KalenderView(
-                    eventsController: _events,
-                    kalenderController: kalender,
-                    locale: Localizations.localeOf(context),
-                    callbacks: callbacks,
-                    components: KalenderComponents(
-                      monthComponents: MonthComponents(
-                        headerComponents: monthHeaderNames,
-                        bodyComponents: MonthBodyComponents(
-                          monthDayCellBuilder: dayCells(_model.health),
-                          monthDayHeaderBuilder: dayNumber,
-                        ),
-                      ),
-                    ),
-                    interaction: KalenderInteraction(
-                      allowResizing: movable,
-                      allowRescheduling: movable,
-                      // A drag over free times asks for a new event there.
-                      allowEventCreation: onAdd != null,
-                    ),
-                    views: [
-                      MultiDayViewParts(
-                        header: MultiDayHeader(tileComponents: _rowTiles),
-                        body: MultiDayBody(
-                          tileComponents: _timedTiles,
-                          // Not to the current time: it would carry its minutes
-                          // and seconds into the event.
-                          snapping: const KalenderSnapping(
-                            snapIntervalMinutes: 15,
-                            snapToTimeIndicator: false,
-                          ),
-                        ),
-                      ),
-                      MonthViewParts(
-                        body: MonthBody(tileComponents: _rowTiles),
-                      ),
-                      ScheduleViewParts(
-                        body: ScheduleBody(tileComponents: _scheduleTiles),
-                      ),
-                    ],
-                  ),
+                  child: _kalenderView(kalender, callbacks),
                 ),
               ),
             ),
@@ -342,6 +302,52 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           today: _model.today,
           titleOf: widget.titleOf,
         ),
+      ],
+    );
+  }
+
+  /// kalender's views of the calendars, its [callbacks] handed in; drags
+  /// only with `onMove`, new events only with `onAdd`.
+  Widget _kalenderView(
+    KalenderController kalender,
+    KalenderCallbacks callbacks,
+  ) {
+    final movable = widget.onMove != null;
+    return KalenderView(
+      eventsController: _events,
+      kalenderController: kalender,
+      locale: Localizations.localeOf(context),
+      callbacks: callbacks,
+      components: KalenderComponents(
+        monthComponents: MonthComponents(
+          headerComponents: monthHeaderNames,
+          bodyComponents: MonthBodyComponents(
+            monthDayCellBuilder: dayCells(_model.health),
+            monthDayHeaderBuilder: dayNumber,
+          ),
+        ),
+      ),
+      interaction: KalenderInteraction(
+        allowResizing: movable,
+        allowRescheduling: movable,
+        // A drag over free times asks for a new event there.
+        allowEventCreation: widget.onAdd != null,
+      ),
+      views: [
+        MultiDayViewParts(
+          header: MultiDayHeader(tileComponents: _rowTiles),
+          body: MultiDayBody(
+            tileComponents: _timedTiles,
+            // Not to the current time: it would carry its minutes
+            // and seconds into the event.
+            snapping: const KalenderSnapping(
+              snapIntervalMinutes: 15,
+              snapToTimeIndicator: false,
+            ),
+          ),
+        ),
+        MonthViewParts(body: MonthBody(tileComponents: _rowTiles)),
+        ScheduleViewParts(body: ScheduleBody(tileComponents: _scheduleTiles)),
       ],
     );
   }

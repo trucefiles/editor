@@ -60,29 +60,26 @@ class CalendarTabScreen extends ConsumerWidget {
               children: [
                 ChipRow(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    spacing: 8,
-                    children: [
-                      for (final calendar in offered)
-                        CalendarChip(
-                          calendar,
-                          color: colorOf(calendar.file),
-                          onShown: (on) => controller.place(
-                            calendar.file,
-                            on ? TabPlace.shown : TabPlace.off,
-                          ),
-                          onHide: () =>
-                              controller.place(calendar.file, TabPlace.hidden),
+                  chips: [
+                    for (final calendar in offered)
+                      CalendarChip(
+                        calendar,
+                        color: colorOf(calendar.file),
+                        onShown: (on) => controller.place(
+                          calendar.file,
+                          on ? TabPlace.shown : TabPlace.off,
                         ),
-                      if (hidden.isNotEmpty)
-                        HiddenCalendarsChip(
-                          hidden,
-                          colorOf: colorOf,
-                          onShowAgain: (file) =>
-                              controller.place(file, TabPlace.off),
-                        ),
-                    ],
-                  ),
+                        onHide: () =>
+                            controller.place(calendar.file, TabPlace.hidden),
+                      ),
+                    if (hidden.isNotEmpty)
+                      HiddenCalendarsChip(
+                        hidden,
+                        colorOf: colorOf,
+                        onShowAgain: (file) =>
+                            controller.place(file, TabPlace.off),
+                      ),
+                  ],
                 ),
                 Expanded(
                   child: CalendarViews<ListedFile>(

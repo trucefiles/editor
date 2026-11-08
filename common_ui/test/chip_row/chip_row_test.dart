@@ -4,15 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
 void main() {
-  /// A page 400 wide with a [ChipRow] of [count] chips, each 100 wide,
-  /// above a tall list; padded tap targets in the touch look.
+  /// A page [width] wide with a [ChipRow] of [count] chips, each 100
+  /// wide and telling taps to [tapped], above a tall list; padded tap
+  /// targets in the touch look.
   Future<void> show(
     WidgetTester tester, {
     required int count,
     bool touch = false,
+    double width = 400,
+    List<int>? tapped,
   }) async {
     tester.view
-      ..physicalSize = const Size(400, 600)
+      ..physicalSize = Size(width, 600)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -26,12 +29,17 @@ void main() {
           body: ListView(
             children: [
               ChipRow(
-                child: Row(
-                  children: [
-                    for (var i = 0; i < count; i++)
-                      SizedBox(width: 100, height: 32, child: Text('$i')),
-                  ],
-                ),
+                chips: [
+                  for (var i = 0; i < count; i++)
+                    GestureDetector(
+                      onTap: () => tapped?.add(i),
+                      child: SizedBox(
+                        width: 100,
+                        height: 32,
+                        child: Text('$i'),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 2000),
             ],
@@ -69,13 +77,15 @@ void main() {
 
     await tester.tap(after);
     await tester.pumpAndSettle();
-    expect(rowOffset(tester), 320);
+    expect(rowOffset(tester), 320, reason: '80 % of the width');
     expect(before, findsOneWidget);
     expect(after, findsOneWidget);
 
     await tester.tap(after);
     await tester.pumpAndSettle();
-    expect(rowOffset(tester), 600, reason: 'stops at the end');
+    await tester.tap(after);
+    await tester.pumpAndSettle();
+    expect(rowOffset(tester), 672, reason: 'stops at the end');
     expect(after, findsNothing);
   });
 
@@ -109,5 +119,24 @@ void main() {
     await tester.sendEventToBinding(pointer.scroll(const Offset(0, 50)));
     await tester.pump();
     expect(pageOffset(tester), 50);
+  });
+
+  testWidgets('a chip under the fade but beside the arrow takes taps', (
+    tester,
+  ) async {
+    final tapped = <int>[];
+    await show(tester, count: 10, tapped: tapped);
+    final arrow = tester.getRect(find.byType(IconButton));
+    // Chip 3 lies from 324 to 424, its start under the fade.
+    await tester.tapAt(Offset(arrow.left - 4, arrow.center.dy));
+    expect(tapped, [3]);
+  });
+
+  testWidgets('an arrow goes once the row grows to fit', (tester) async {
+    await show(tester, count: 5);
+    expect(after, findsOneWidget);
+    tester.view.physicalSize = const Size(800, 600);
+    await tester.pumpAndSettle();
+    expect(after, findsNothing);
   });
 }

@@ -6,14 +6,21 @@ import 'event_colors.dart';
 import 'marked_line.dart';
 import 'occurrence_texts.dart';
 
-/// What [occurrence] is, in full, one part per line: its whole title
+/// The calendar an occurrence is in, as a sheet names it: its [color]
+/// and [title].
+typedef SheetCalendar = ({Color color, String title});
+
+/// What [occurrence] is, in full, one part per line, 8 apart: first the
+/// [calendar] it is in, if given (where several calendars show
+/// together), quieter; then its whole title
 /// (after a dot of its own color, if it has one), its day and times
 /// (also on its own clock, where that is another zone's), its place and
 /// its notes, each after an icon that says what it is.
 class OccurrenceDetails extends StatelessWidget {
-  const OccurrenceDetails(this.occurrence, {super.key});
+  const OccurrenceDetails(this.occurrence, {this.calendar, super.key});
 
   final Occurrence occurrence;
+  final SheetCalendar? calendar;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +40,12 @@ class OccurrenceDetails extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: 8,
       children: [
+        if (calendar case (:final color, :final title))
+          MarkedLine(
+            mark: CalendarDot(color),
+            text: title,
+            style: theme.textTheme.bodyMedium,
+          ),
         MarkedLine(
           mark: switch (ownColor(occurrence)) {
             final color? => CalendarDot(color),

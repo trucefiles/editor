@@ -2,22 +2,22 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../touch/touch.dart';
+import '../wheel/wheel_step.dart';
 
-/// One row of chips ([child]) that scrolls sideways when it doesn't fit:
+/// One row of [chips], 8 apart, that scrolls sideways when it doesn't fit:
 /// by a swipe, and with a mouse also by the plain wheel. In the desktop
 /// look (not [usesTouch]) a small arrow lies over each edge while chips
 /// are hidden on that side; a press scrolls about the row's width.
 class ChipRow extends StatefulWidget {
   const ChipRow({
-    required this.child,
+    required this.chips,
     this.padding = EdgeInsets.zero,
     super.key,
   });
 
-  final Widget child;
+  final List<Widget> chips;
 
   /// Space around the chips, inside the scrolling row.
   final EdgeInsets padding;
@@ -56,17 +56,11 @@ class _ChipRowState extends State<ChipRow> {
   }
 
   /// Turns a plain mouse wheel step into a sideways scroll; Flutter
-  /// scrolls a sideways row only by Shift and the wheel, or a wheel that
-  /// tilts. Claimed only when the row moves, so the page scrolls on
-  /// where the row can't.
+  /// scrolls a sideways row only by a sideways step. Claimed only when
+  /// the row moves, so the page scrolls on where the row can't.
   void _onSignal(PointerSignalEvent event) {
-    if (event
-        case PointerScrollEvent(
-          kind: PointerDeviceKind.mouse,
-          scrollDelta: Offset(dx: 0, :final dy),
-        )
-        when dy != 0 && !HardwareKeyboard.instance.isShiftPressed) {
-      if (!_scroll.hasClients) return;
+    if (mouseWheelStep(context, event) case Offset(dx: 0, :final dy)
+        when dy != 0 && _scroll.hasClients) {
       final position = _scroll.position;
       final to = (position.pixels + dy).clamp(
         position.minScrollExtent,
@@ -75,7 +69,7 @@ class _ChipRowState extends State<ChipRow> {
       if (to == position.pixels) return;
       GestureBinding.instance.pointerSignalResolver.register(
         event,
-        (_) => position.jumpTo(to),
+        (_) => position.pointerScroll(dy),
       );
     }
   }
@@ -105,7 +99,7 @@ class _ChipRowState extends State<ChipRow> {
           controller: _scroll,
           scrollDirection: Axis.horizontal,
           padding: widget.padding,
-          child: widget.child,
+          child: Row(spacing: 8, children: widget.chips),
         ),
       ),
     );
@@ -134,7 +128,8 @@ class _ChipRowState extends State<ChipRow> {
 }
 
 /// A small arrow over the row's [start] or end edge, fading the chips
-/// under it into the background.
+/// under it into the background; only the arrow takes taps, so a chip
+/// under the fade still does.
 class _EdgeArrow extends StatelessWidget {
   const _EdgeArrow({required this.start, required this.onPressed});
 
@@ -144,36 +139,43 @@ class _EdgeArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final background = Theme.of(context).colorScheme.surface;
+    final (outer, inner) = start
+        ? (AlignmentDirectional.centerStart, AlignmentDirectional.centerEnd)
+        : (AlignmentDirectional.centerEnd, AlignmentDirectional.centerStart);
     // A pointer aid only: keys and screen readers reach every chip.
     return ExcludeFocus(
       child: ExcludeSemantics(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: start
-                  ? AlignmentDirectional.centerEnd
-                  : AlignmentDirectional.centerStart,
-              end: start
-                  ? AlignmentDirectional.centerStart
-                  : AlignmentDirectional.centerEnd,
-              colors: [background.withValues(alpha: 0), background],
-              stops: const [0, 0.5],
-            ),
-          ),
-          child: Padding(
-            padding: EdgeInsetsDirectional.only(
-              start: start ? 0 : 16,
-              end: start ? 16 : 0,
-            ),
-            child: Center(
-              child: IconButton(
-                visualDensity: VisualDensity.compact,
-                iconSize: 18,
-                icon: Icon(start ? Icons.chevron_left : Icons.chevron_right),
-                onPressed: onPressed,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: inner,
+                      end: outer,
+                      colors: [background.withValues(alpha: 0), background],
+                      stops: const [0, 0.5],
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: start ? 0 : 16,
+                end: start ? 16 : 0,
+              ),
+              child: Center(
+                child: IconButton(
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  icon: Icon(start ? Icons.chevron_left : Icons.chevron_right),
+                  onPressed: onPressed,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
