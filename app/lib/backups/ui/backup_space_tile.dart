@@ -25,6 +25,7 @@ class BackupSpaceTile extends ConsumerWidget {
       choices: BackupSpace.values,
       labelOf: _label,
       current: space,
+      note: 'A smaller limit deletes older backups right away.',
       onChosen: (space) => ref
           .read(deviceSettingsProvider.notifier)
           .change((settings) => settings.copyWith(backupSpace: space)),

@@ -4,7 +4,8 @@ import 'choice_dialog.dart';
 
 /// A settings row that names a choice ([title]) and shows the one made
 /// ([subtitle]); a tap asks for one of [choices] (each shown by
-/// [labelOf], [current] marked) and tells [onChosen] the pick.
+/// [labelOf], [current] marked, under an optional [note]) and tells
+/// [onChosen] the pick.
 class ChoiceTile<T> extends StatelessWidget {
   const ChoiceTile({
     required this.title,
@@ -13,6 +14,7 @@ class ChoiceTile<T> extends StatelessWidget {
     required this.labelOf,
     required this.current,
     required this.onChosen,
+    this.note,
     super.key,
   });
 
@@ -22,6 +24,7 @@ class ChoiceTile<T> extends StatelessWidget {
   final String Function(T choice) labelOf;
   final T current;
   final Future<void> Function(T choice) onChosen;
+  final String? note;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -34,6 +37,7 @@ class ChoiceTile<T> extends StatelessWidget {
         choices: choices,
         labelOf: labelOf,
         current: current,
+        note: note,
       );
       if (chosen case (final choice,)) await onChosen(choice);
     },
