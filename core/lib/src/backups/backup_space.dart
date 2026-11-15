@@ -11,7 +11,8 @@ typedef SizedBackup<F> = ({F folder, Backup backup, int size});
 /// take the most space (a file is a path in a folder), so a large file
 /// gives up its own history first. A file's newest backups (those saved
 /// together at its latest moment, e.g. both sides of a kept conflict)
-/// are never among them, so the rest may stay over [limit].
+/// and the backups of deleted files (the only copy of what is gone) are
+/// never among them, so the rest may stay over [limit].
 List<SizedBackup<F>> overSpaceLimit<F>(
   Iterable<SizedBackup<F>> backups,
   int limit,
@@ -36,7 +37,7 @@ List<SizedBackup<F>> overSpaceLimit<F>(
 }
 
 /// One file's backups, as they are given up, oldest first: all but its
-/// newest, those saved at its latest moment.
+/// newest, those saved at its latest moment, and those of it deleted.
 final class _FileHistory<F> {
   _FileHistory(Iterable<SizedBackup<F>> backups)
     : _older = _olderThanNewest(backups),
@@ -57,13 +58,15 @@ final class _FileHistory<F> {
     return oldest;
   }
 
-  /// [backups] saved before the latest of them, oldest first.
+  /// [backups] saved before the latest of them, oldest first, without
+  /// those kept as the file was deleted.
   static List<SizedBackup<F>> _olderThanNewest<F>(
     Iterable<SizedBackup<F>> backups,
   ) {
     final newest = backups.map((b) => b.backup.savedAt).max;
     return backups
         .where((b) => b.backup.savedAt.isBefore(newest))
+        .where((b) => b.backup.kind != BackupKind.beforeDelete)
         .sortedBy((b) => b.backup.savedAt);
   }
 }

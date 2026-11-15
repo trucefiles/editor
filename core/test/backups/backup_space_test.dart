@@ -80,6 +80,17 @@ void main() {
     expect(named(overSpaceLimit(backups, 10)), [('a.md', 1)]);
   });
 
+  test("a deleted file's backup stays, even once a newer one is at its "
+      'path', () {
+    final backups = [
+      backup('a.md', 1, 80, kind: BackupKind.beforeDelete),
+      backup('a.md', 2, 80),
+      backup('a.md', 3, 80),
+    ];
+
+    expect(named(overSpaceLimit(backups, 10)), [('a.md', 2)]);
+  });
+
   test('the same path in two folders is two files', () {
     final backups = [
       backup('a.md', 1, 50),

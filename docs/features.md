@@ -131,7 +131,8 @@ writes it as a new file where and under what name you pick, next to the
 file it came from. Backups are kept for up to 7 days, and within the
 **Backup space** you pick in Settings (100 MB unless you change it):
 when they take more, the file whose backups take the most space gives
-up its oldest first, and each file keeps its newest.
+up its oldest first; each file keeps its newest, and a deleted file's
+backup stays its full 7 days.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">
