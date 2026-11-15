@@ -76,7 +76,7 @@ Future<void> pumpPage(
   List<String>? hints,
   String? deviceZone,
   CalendarStarts? starts,
-  EventOpeners openers = noOpeners,
+  EventOpeners? openers,
 }) async {
   // Not awaited: with no file to keep its edits, the editor never ends.
   addTearDown(() => unawaited(part.editor.close()));
@@ -87,7 +87,7 @@ Future<void> pumpPage(
     part,
     deviceZone: () async => deviceZone,
     starts: starts ?? CalendarStarts(),
-    openers: openers,
+    openers: openers ?? noOpeners,
     now: () => today,
   );
   await tester.pumpWidget(
