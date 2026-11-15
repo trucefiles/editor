@@ -59,4 +59,17 @@ void main() {
     expect(older.existsSync(), isFalse);
     expect(newer.existsSync(), isTrue);
   });
+
+  test('a pruning to a space no longer set stops deleting for space', () async {
+    await pruning.pruneIfDue(start, BackupSpace.noLimit);
+    final older = backup(const Duration(hours: 2), megabytes: 30);
+    final newer = backup(const Duration(hours: 1), megabytes: 30);
+
+    final smaller = pruning.pruneIfDue(start, BackupSpace.mb50);
+    await pruning.pruneIfDue(start, BackupSpace.noLimit);
+    await smaller;
+
+    expect(older.existsSync(), isTrue);
+    expect(newer.existsSync(), isTrue);
+  });
 }

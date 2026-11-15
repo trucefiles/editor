@@ -8,14 +8,16 @@ import 'file_backups_at.dart';
 /// Deletes the backups saved before [olderThan] in every backup folder
 /// right below [root] (one per folder of the app, also of folders removed
 /// since); then, while all left take more than [spaceLimit] bytes (if
-/// given), those [overSpaceLimit] picks; and the folders they leave
-/// empty. Only old folders and those of deleted backups go: a new backup
+/// given), those [overSpaceLimit] picks, while [goOn] holds (asked
+/// before each, so a limit no longer wanted stops deleting); and the
+/// folders they leave empty. Only old folders and those of deleted backups go: a new backup
 /// may be on its way into a new one. Failing is harmless: what can't be
 /// read or removed stays for the next time.
 Future<void> pruneBackupsAt(
   String root, {
   required DateTime olderThan,
   int? spaceLimit,
+  bool Function() goOn = _always,
 }) async {
   final folders = [
     for (final folder in await _foldersIn(Directory(root))) folder.path,
@@ -26,7 +28,7 @@ Future<void> pruneBackupsAt(
   final overLimit = spaceLimit == null
       ? const <SizedBackup<String>>[]
       : overSpaceLimit(await _sizedBackupsIn(folders), spaceLimit);
-  final deleted = await _deleteInOrder(overLimit);
+  final deleted = await _deleteInOrder(overLimit, goOn);
   for (final folder in folders) {
     final deletedHere = {
       for (final (folder: at, :backup, size: _) in deleted)
@@ -61,12 +63,15 @@ Future<int?> _sizeOf(File file) async {
   }
 }
 
-/// Deletes [backups] in order, up to the first that fails; those deleted.
+/// Deletes [backups] in order, up to the first that fails or until
+/// [goOn] no longer holds; those deleted.
 Future<List<SizedBackup<String>>> _deleteInOrder(
   List<SizedBackup<String>> backups,
+  bool Function() goOn,
 ) async {
   final deleted = <SizedBackup<String>>[];
   for (final sized in backups) {
+    if (!goOn()) break;
     if (await fileBackupsAt(sized.folder).delete(sized.backup) is Err) break;
     deleted.add(sized);
   }
@@ -123,3 +128,5 @@ Future<List<Directory>> _foldersInside(Directory folder) async {
     return const [];
   }
 }
+
+bool _always() => true;

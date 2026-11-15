@@ -6,7 +6,8 @@ import 'backup_retention.dart';
 /// while they take more than the [BackupSpace] set (see
 /// [pruneBackupsAt]), at most once a day or when that setting changes:
 /// backups are kept for days, so a walk more often finds next to nothing
-/// to delete.
+/// to delete. One pruning runs at a time; one pruning to a space no
+/// longer set stops deleting for space.
 final class BackupPruning {
   BackupPruning(this.root);
 
@@ -19,19 +20,29 @@ final class BackupPruning {
   /// first.
   ({DateTime at, BackupSpace space})? _last;
 
+  /// The space set last.
+  BackupSpace? _wanted;
+
+  /// The pruning running or queued last; done before the next begins.
+  Future<void> _running = Future.value();
+
   /// Prunes to [space] if the last pruning began [every] or longer before
   /// [now], or pruned to another space. Failing is harmless: what is left
   /// goes the next time.
-  Future<void> pruneIfDue(DateTime now, BackupSpace space) async {
+  Future<void> pruneIfDue(DateTime now, BackupSpace space) {
+    _wanted = space;
     if (_last case (:final at, space: final last)
         when last == space && now.difference(at) < every) {
-      return;
+      return _running;
     }
     _last = (at: now, space: space);
-    await pruneBackupsAt(
-      root,
-      olderThan: now.subtract(backupRetention),
-      spaceLimit: space.bytes,
+    return _running = _running.then(
+      (_) => pruneBackupsAt(
+        root,
+        olderThan: now.subtract(backupRetention),
+        spaceLimit: space.bytes,
+        goOn: () => _wanted == space,
+      ),
     );
   }
 }
