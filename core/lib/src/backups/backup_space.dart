@@ -9,8 +9,9 @@ typedef SizedBackup<F> = ({F folder, Backup backup, int size});
 /// The backups to delete, in order, so that [backups] take at most
 /// [limit] bytes: each time the oldest backup of the file whose backups
 /// take the most space (a file is a path in a folder), so a large file
-/// gives up its own history first. A file's newest backup is never
-/// among them, so the rest may stay over [limit].
+/// gives up its own history first. A file's newest backups (those saved
+/// together at its latest moment, e.g. both sides of a kept conflict)
+/// are never among them, so the rest may stay over [limit].
 List<SizedBackup<F>> overSpaceLimit<F>(
   Iterable<SizedBackup<F>> backups,
   int limit,
@@ -34,24 +35,35 @@ List<SizedBackup<F>> overSpaceLimit<F>(
   return deleted;
 }
 
-/// One file's backups, oldest first, as they are given up.
+/// One file's backups, as they are given up, oldest first: all but its
+/// newest, those saved at its latest moment.
 final class _FileHistory<F> {
   _FileHistory(Iterable<SizedBackup<F>> backups)
-    : _left = backups.sortedBy((b) => b.backup.savedAt),
+    : _older = _olderThanNewest(backups),
       size = backups.map((b) => b.size).sum;
 
-  final List<SizedBackup<F>> _left;
+  final List<SizedBackup<F>> _older;
   int _given = 0;
 
   /// The space its backups left take.
   int size;
 
-  /// Whether it has a backup to give up: all but its newest.
-  bool get canGiveUp => _left.length - _given > 1;
+  /// Whether it has a backup left to give up.
+  bool get canGiveUp => _given < _older.length;
 
   SizedBackup<F> giveUpOldest() {
-    final oldest = _left[_given++];
+    final oldest = _older[_given++];
     size -= oldest.size;
     return oldest;
+  }
+
+  /// [backups] saved before the latest of them, oldest first.
+  static List<SizedBackup<F>> _olderThanNewest<F>(
+    Iterable<SizedBackup<F>> backups,
+  ) {
+    final newest = backups.map((b) => b.backup.savedAt).max;
+    return backups
+        .where((b) => b.backup.savedAt.isBefore(newest))
+        .sortedBy((b) => b.backup.savedAt);
   }
 }

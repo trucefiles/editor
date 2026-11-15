@@ -85,6 +85,9 @@ final class Backup {
   /// Where the backup is kept in its store.
   final RelPath storePath;
 
+  /// The store's top folder it is kept in (see [savedAtOfFolder]).
+  String get folderName => storePath.value.split('/').first;
+
   /// The file it is a copy of, in its folder.
   final RelPath filePath;
 

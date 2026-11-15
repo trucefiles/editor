@@ -25,7 +25,7 @@
 - **Conflicts are caught, never lost.** When two devices change the same
   document at once, Truce notices, shows both versions side by side and lets
   you choose. Nothing is overwritten behind your back, and backups
-  of the last 7 days let you go back.
+  kept for up to 7 days let you go back.
 - **Plain files you own.** Documents are ordinary Markdown or text files
   in your own folders. Truce rewrites only the block you edit (a paragraph, a
   heading, a list item), in the document's own style where it can;
@@ -48,8 +48,8 @@
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
-- Undo and redo while editing, and backups of each document from the last
-  7 days, to compare and restore.
+- Undo and redo while editing, and backups of each document, kept for up
+  to 7 days, to compare and restore.
 - Android and Linux (Flatpak).
 
 ## What's coming

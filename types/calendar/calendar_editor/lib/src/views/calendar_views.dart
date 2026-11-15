@@ -5,6 +5,7 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
+import '../views_clock.dart';
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
 import 'event_tiles.dart';
@@ -19,7 +20,6 @@ import 'sideways_wheel.dart';
 import 'stripes.dart';
 import 'views_bar.dart';
 import 'week_day_names.dart';
-import 'zone_checks.dart';
 
 /// What the user does with an occurrence of the calendar keyed [calendar].
 typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
@@ -88,13 +88,16 @@ class CalendarViews<K> extends StatefulWidget {
 }
 
 class _CalendarViewsState<K> extends State<CalendarViews<K>> {
+  late final _clock = ViewsClock(widget.now);
   late final _model = CalendarViewsModel<K>(
     kind: widget.kind,
     calendars: widget.calendars,
-    now: widget.now,
+    clock: _clock,
   );
-  late final _events = OccurrenceEvents<K>(widget.calendars);
-  late final ZoneChecks _zoneChecks;
+  late final _events = OccurrenceEvents<K>(
+    widget.calendars,
+    deviceZone: () => _clock.zone,
+  );
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
@@ -117,7 +120,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     super.initState();
     _model.addListener(_showModel);
     _model.range.addListener(_tellAddDay);
-    _zoneChecks = ZoneChecks(_events.followDeviceZone);
+    _clock.addListener(_events.followDeviceZone);
   }
 
   @override
@@ -156,8 +159,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       ..removeListener(_showModel)
       ..dispose();
     _kalender?.dispose();
-    _zoneChecks.dispose();
+    _clock.removeListener(_events.followDeviceZone);
     _events.dispose();
+    _clock.dispose();
     super.dispose();
   }
 

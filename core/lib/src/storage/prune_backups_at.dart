@@ -30,7 +30,7 @@ Future<void> pruneBackupsAt(
   for (final folder in folders) {
     final deletedHere = {
       for (final (folder: at, :backup, size: _) in deleted)
-        if (at == folder) backup.storePath.value.split('/').first,
+        if (at == folder) backup.folderName,
     };
     await _removeEmpty(
       await _foldersIn(Directory(folder)),

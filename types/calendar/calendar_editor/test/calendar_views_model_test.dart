@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/views/calendar_views_model.dart';
+import 'package:truce_calendar_editor/src/views_clock.dart';
 
 /// A calendar named [name] with [event] on [day] from 9 to 10.
 Calendar _calendar(String name, String event, DateTime day) => applyEdit(
@@ -16,7 +17,16 @@ Calendar _calendar(String name, String event, DateTime day) => applyEdit(
   ),
 );
 
+/// A views clock on [now], disposed after the test, in the zone "UTC".
+ViewsClock _clock(DateTime Function() now) {
+  final clock = ViewsClock(now, deviceZone: () => 'UTC');
+  addTearDown(clock.dispose);
+  return clock;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final home = _calendar('Home', 'Dentist', DateTime(2026, 11, 5));
   final work = _calendar('Work', 'Review', DateTime(2026, 11, 20));
 
@@ -24,7 +34,7 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 10, 12),
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
     final (changes, ranges) = (<String>[], <ShownRange?>[]);
@@ -46,7 +56,7 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 10, 12),
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
     var changes = 0;
@@ -63,7 +73,7 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 10, 12),
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
     var changes = 0;
@@ -79,7 +89,7 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.week,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 10, 12),
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
 
@@ -96,7 +106,7 @@ void main() {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 30, 12),
+      clock: _clock(() => DateTime(2026, 11, 30, 12)),
     );
     addTearDown(model.dispose);
 
@@ -110,10 +120,11 @@ void main() {
 
   testWidgets('today moves on at midnight', (tester) async {
     var now = DateTime(2026, 11, 1, 23, 59);
+    final clock = ViewsClock(() => now, deviceZone: () => 'UTC');
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => now,
+      clock: clock,
     );
     var changes = 0;
     model.addListener(() => changes++);
@@ -123,18 +134,20 @@ void main() {
     await tester.pump(const Duration(minutes: 1));
 
     expect((model.today, changes), (DateTime(2026, 11, 2), 1));
-    // Ends the next midnight's wake before the test checks for timers.
+    // Ends the next wake before the test checks for timers.
     model.dispose();
+    clock.dispose();
   });
 
   testWidgets('today moves on within a minute after a sleep past midnight', (
     tester,
   ) async {
     var now = DateTime(2026, 11, 1, 22);
+    final clock = ViewsClock(() => now, deviceZone: () => 'UTC');
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => now,
+      clock: clock,
     );
     var changes = 0;
     model.addListener(() => changes++);
@@ -148,13 +161,14 @@ void main() {
 
     expect((model.today, changes), (DateTime(2026, 11, 2), 1));
     model.dispose();
+    clock.dispose();
   });
 
   test('a renamed calendar shows the same days: no change', () {
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
-      now: () => DateTime(2026, 11, 10, 12),
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
     var changes = 0;

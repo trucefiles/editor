@@ -11,12 +11,13 @@ void main() {
     int hour,
     int size, {
     String folder = 'docs',
+    BackupKind kind = BackupKind.beforeEdit,
   }) => (
     folder: folder,
     backup: Backup.of(
       RelPath.parse(file)!,
       at: start.add(Duration(hours: hour)),
-      kind: BackupKind.beforeEdit,
+      kind: kind,
     ),
     size: size,
   );
@@ -64,6 +65,16 @@ void main() {
       backup('a.md', 1, 80),
       backup('a.md', 2, 80),
       backup('b.md', 3, 80),
+    ];
+
+    expect(named(overSpaceLimit(backups, 10)), [('a.md', 1)]);
+  });
+
+  test('both sides of the latest kept conflict stay, even over the limit', () {
+    final backups = [
+      backup('a.md', 1, 80),
+      backup('a.md', 2, 80, kind: BackupKind.current),
+      backup('a.md', 2, 80, kind: BackupKind.other),
     ];
 
     expect(named(overSpaceLimit(backups, 10)), [('a.md', 1)]);
