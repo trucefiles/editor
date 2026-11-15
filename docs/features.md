@@ -136,7 +136,7 @@ backup stays its full 7 days.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">
-<img src="screenshots/backups/backup_space_touch.png" width="300" alt="Settings on a phone: Backup space, from 50 MB to no limit, 100 MB picked">
+<img src="screenshots/backups/backup_space_touch.png" width="300" alt="Settings on a phone: Backup space, from 50 MB to no limit, 100 MB picked, with a note that a smaller limit deletes older backups right away">
 
 ## Editing a document
 
