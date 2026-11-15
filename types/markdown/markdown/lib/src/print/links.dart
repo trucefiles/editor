@@ -3,9 +3,9 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:truce_core/truce_core.dart' show findExtendedAutolinks;
 
 import '../read/syntax/characters.dart';
-import '../read/syntax/extended_autolinks.dart';
 import '../read/syntax/link_syntax.dart';
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';

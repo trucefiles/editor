@@ -9,6 +9,7 @@ import 'calendar_views_model.dart';
 import 'day_cells.dart';
 import 'event_tiles.dart';
 import 'insights_strip.dart';
+import 'month_order.dart';
 import 'month_picker.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
@@ -18,6 +19,7 @@ import 'sideways_wheel.dart';
 import 'stripes.dart';
 import 'views_bar.dart';
 import 'week_day_names.dart';
+import 'zone_checks.dart';
 
 /// What the user does with an occurrence of the calendar keyed [calendar].
 typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
@@ -92,6 +94,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     now: widget.now,
   );
   late final _events = OccurrenceEvents<K>(widget.calendars);
+  late final ZoneChecks _zoneChecks;
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
@@ -114,6 +117,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     super.initState();
     _model.addListener(_showModel);
     _model.range.addListener(_tellAddDay);
+    _zoneChecks = ZoneChecks(_events.followDeviceZone);
   }
 
   @override
@@ -152,6 +156,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       ..removeListener(_showModel)
       ..dispose();
     _kalender?.dispose();
+    _zoneChecks.dispose();
     _events.dispose();
     super.dispose();
   }
@@ -348,7 +353,14 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             ),
           ),
         ),
-        MonthViewParts(body: MonthBody(tileComponents: _rowTiles)),
+        MonthViewParts(
+          body: MonthBody(
+            configuration: const MonthBodyConfiguration(
+              multiDayLayoutStrategy: MonthOrder(),
+            ),
+            tileComponents: _rowTiles,
+          ),
+        ),
         ScheduleViewParts(body: ScheduleBody(tileComponents: _scheduleTiles)),
       ],
     );

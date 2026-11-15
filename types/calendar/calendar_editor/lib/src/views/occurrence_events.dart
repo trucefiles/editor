@@ -57,7 +57,7 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     bool includeDayEvents = true,
     Location? location,
   }) {
-    _followDeviceZone();
+    _droppedForNewZone();
     final shown = range.forLocation(location: location);
     for (final month in _monthsOf(shown.start, shown.end)) {
       for (final MapEntry(:key, :value) in _calendars.entries) {
@@ -73,15 +73,24 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     );
   }
 
+  /// Checks the device's time zone, and once it is another, forgets all
+  /// that was worked out and tells kalender to ask again: the events'
+  /// times on the device clock moved. Called every minute and when the
+  /// app returns to the front ([ZoneChecks]), as no change is told.
+  void followDeviceZone() {
+    if (_droppedForNewZone()) notifyListeners();
+  }
+
   /// Forgets all that was worked out once the device is in another time
-  /// zone: its times on the device clock, and its months, moved. kalender
-  /// shows the zone change by asking again, so this tells no one.
-  void _followDeviceZone() {
+  /// zone (its times on the device clock, and its months, moved), so an
+  /// ask in the new zone is answered right; whether it did.
+  bool _droppedForNewZone() {
     final zone = _deviceZone();
-    if (zone == _zone) return;
+    if (zone == _zone) return false;
     _zone = zone;
     eventStore.clear();
     _months.clear();
+    return true;
   }
 
   /// Adds the occurrences of [calendar] (keyed [key]) in [month], but not

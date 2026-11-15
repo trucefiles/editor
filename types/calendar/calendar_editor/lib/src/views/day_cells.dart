@@ -36,12 +36,31 @@ MonthDayCellBuilder dayCells(HealthDays<Object?> health) => (context, details) {
 /// A day's number in the month view, made smaller where its cell is too
 /// narrow for it (very large text), never broken over two lines. Each is
 /// laid out as wide as kalender lays out a two-digit number, so all
-/// shrink alike and show at one size.
+/// shrink alike and show at one size. The number itself shows the hand
+/// cursor, as a link to its day; the room around it, which takes no tap,
+/// shows the plain one.
 Widget dayNumber(BuildContext context, DateTime date) => FittedBox(
   fit: BoxFit.scaleDown,
-  child: SizedBox(
-    width: _twoDigitsWidth(context),
-    child: Center(child: MonthDayHeader(date: date)),
+  child: MouseRegion(
+    cursor: SystemMouseCursors.basic,
+    // Counted as hit only over the number, so the room around it stays
+    // out of taps, yet its cursor shows there.
+    hitTestBehavior: HitTestBehavior.translucent,
+    child: SizedBox(
+      width: _twoDigitsWidth(context),
+      child: Center(
+        child: IconButtonTheme(
+          // kalender's number is a disabled button whose taps reach its
+          // label's tap detector, so the theme gives it the hand.
+          data: const IconButtonThemeData(
+            style: ButtonStyle(
+              mouseCursor: WidgetStatePropertyAll(SystemMouseCursors.click),
+            ),
+          ),
+          child: MonthDayHeader(date: date),
+        ),
+      ),
+    ),
   ),
 );
 

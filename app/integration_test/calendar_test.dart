@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:truce_editor/text_zoom/text_zoom.dart';
+import 'package:truce_editor/text_zoom/text_zoom_target.dart';
+
 import 'app_steps.dart';
 import 'test_app.dart';
 import 'ui_driver.dart';
@@ -92,6 +95,27 @@ void main() {
     await tester.waitFor(work);
     expect(tester.widget<FilterChip>(work).selected, isFalse);
     expect(find.textContaining('Hidden'), findsNothing);
+  });
+
+  testApp('the Calendar tab and its event sheet show events at the '
+      'document text size', (tester) async {
+    app.write('Garden.ics', _garden);
+    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
+    await tester.addFolder(app);
+    await tester.tapAndSettle(
+      find.widgetWithText(NavigationDestination, 'Calendars'),
+    );
+    await tester.waitFor(find.text('Pruning'));
+
+    double scaled(Finder text) =>
+        MediaQuery.textScalerOf(tester.element(text)).scale(10);
+    final appText = scaled(find.widgetWithText(NavigationDestination, 'Files'));
+    expect(scaled(find.text('Pruning')), closeTo(appText * 1.5, 0.01));
+
+    // An event's sheet too, but not its actions.
+    await tester.tapAndSettle(find.text('Pruning'));
+    expect(scaled(find.text('Pruning').last), closeTo(appText * 1.5, 0.01));
+    expect(scaled(find.text('Open calendar')), closeTo(appText, 0.01));
   });
 
   testApp('events imported from a file are merged in and written', (

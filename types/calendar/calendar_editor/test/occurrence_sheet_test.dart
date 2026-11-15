@@ -99,6 +99,39 @@ void main() {
     );
   }
 
+  testWidgets('the details show at the text size of where the sheet '
+      "opens from; the actions at the app's", (tester) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaQuery.withClampedTextScaling(
+            minScaleFactor: 2,
+            maxScaleFactor: 2,
+            child: Builder(
+              builder: (context) => TextButton(
+                onPressed: () =>
+                    showOccurrenceSheet<void>(context, _swimming(), const [
+                      (icon: Icons.edit_outlined, label: 'Edit', value: null),
+                    ]),
+                child: const Text('Show'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Show'));
+    await tester.pumpAndSettle();
+
+    double scaled(String text) =>
+        MediaQuery.textScalerOf(tester.element(find.text(text))).scale(10);
+    expect(scaled('Pool'), 20);
+    expect(scaled('Edit'), 10);
+  });
+
   testWidgets('copying the whole sheet puts each line on its own line', (
     tester,
   ) async {

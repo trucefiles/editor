@@ -148,7 +148,7 @@ void main() {
     final saved = await textTop(SavedText('text', DateTime(2026, 1, 2, 3, 4)));
     expect(find.text('Deleted'), findsNothing);
     expect(await textTop(const EditorText('text')), saved);
-    expect(find.text('In the editor now'), findsOneWidget);
+    expect(find.text('In the editor'), findsOneWidget);
     expect(await textTop(const DeletedFile()), saved);
     expect(find.text('Deleted'), findsOneWidget);
   });
