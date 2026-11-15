@@ -59,7 +59,9 @@ have its own color, also as a dot when you tap it; otherwise it shows
 in its calendar's color (the file's color, else its folder's). Start
 and end can each have their own time zone, e.g. for a flight: tap the
 zone under a time to pick one.
-An event from another zone also shows its own times when you tap it. **Import events** in a calendar's
+An event from another zone also shows its own times when you tap it.
+Links in an event's place and notes open with a tap, and a tap on the
+place opens it in your maps app. **Import events** in a calendar's
 menu brings in the events of another `.ics` file, e.g. an invite: new
 ones are added, ones the calendar has already take the file's version,
 and one Undo takes it all back. A health calendar shows in the same
@@ -76,7 +78,8 @@ a long press or right click on it hides the calendar from the tab, and
 **Hidden** brings it back. Tap an event there to see it and its
 calendar, then open the calendar or edit the event on its page. To add or change events, open one
 calendar with the calendar button; a tap on a free day in the tab
-reminds you. When two devices changed
+reminds you. Pinch or Ctrl and + or - zoom the tab and its event
+details, as in a document. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.
@@ -124,7 +127,10 @@ menu's **Backups** lists only this document's backups: open one to compare
 it, then restore it (Undo takes that back too) or delete it. Deleting a file
 keeps a backup of it too. **Restore as new file**, in each backup's menu,
 writes it as a new file where and under what name you pick, next to the
-file it came from.
+file it came from. Backups are kept for up to 7 days, and within the
+**Backup space** you pick in Settings (100 MB unless you change it):
+when they take more, the file with the most backups gives up its
+oldest first, and each file keeps its newest.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">
