@@ -93,6 +93,7 @@ kept.
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
 <img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Open calendar and Edit">
 <img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
+<img src="screenshots/calendar/calendar_event_links_touch.png" width="300" alt="An event's sheet: its place and the links in its notes underlined, to open with a tap">
 
 ## Home, All and search
 
@@ -134,6 +135,7 @@ oldest first, and each file keeps its newest.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">
+<img src="screenshots/backups/backup_space_touch.png" width="300" alt="Settings on a phone: Backup space, from 50 MB to no limit, 100 MB picked">
 
 ## Editing a document
 
