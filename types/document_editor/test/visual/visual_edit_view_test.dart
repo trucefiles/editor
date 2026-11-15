@@ -146,27 +146,31 @@ void main() {
       expect(document.text, '- [ ] milk\n- [ ] eggs');
     });
 
-    testWidgets('Backspace on it leaves the item empty, with the caret in '
-        'it', (tester) async {
+    testWidgets('Backspace on it selects it first, then leaves the item '
+        'empty, with the caret in it', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
       await tester.tap(find.byType(Divider), warnIfMissed: false);
       await tester.pumpAndSettle();
       await tester.pressBackspace();
+      await tester.pumpAndSettle();
+      expect(document.text, shop);
+      await tester.pressBackspace();
       await tester.typeImeText('bread');
 
       expect(document.text, '- [ ] milk\n- [ ] bread\n- [ ] eggs');
     });
 
-    testWidgets("a soft keyboard's Backspace on it leaves the item empty", (
-      tester,
-    ) async {
+    testWidgets("a soft keyboard's Backspace on it selects it first, then "
+        'leaves the item empty', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
       await tester.tap(find.byType(Divider), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await tester.softBackspace();
+      expect(document.text, shop);
       await tester.softBackspace();
 
       expect(document.text, '- [ ] milk\n- [ ] \n- [ ] eggs');
@@ -282,33 +286,39 @@ void main() {
     });
 
     for (final (keyboard, backspace) in _backspaces) {
-      testWidgets('$keyboard: Backspace at the next item\'s start takes its '
-          'box away, then removes the separator as one character', (
-        tester,
-      ) async {
-        final document = TestDocument(shop);
-        await pumpDocument(tester, document);
+      testWidgets(
+        '$keyboard: Backspace at the next item\'s start takes its '
+        'box away, then selects the separator and removes it as one character',
+        (tester) async {
+          final document = TestDocument(shop);
+          await pumpDocument(tester, document);
 
-        await tester.caretIn(checkboxNodeOf(index: 1), 0);
-        await backspace(tester);
-        expect(document.text, '- [ ] milk\n- [ ] ------\n  eggs');
-        await backspace(tester);
-        await tester.typeImeText('x');
+          await tester.caretIn(checkboxNodeOf(index: 1), 0);
+          await backspace(tester);
+          expect(document.text, '- [ ] milk\n- [ ] ------\n  eggs');
+          await backspace(tester);
+          expect(document.text, '- [ ] milk\n- [ ] ------\n  eggs');
+          await backspace(tester);
+          await tester.typeImeText('x');
 
-        expect(document.text, '- [ ] milk\n- [ ] xeggs');
-      });
+          expect(document.text, '- [ ] milk\n- [ ] xeggs');
+        },
+      );
     }
 
-    testWidgets('Delete at the end of the item above leaves the separator '
-        'item empty, the caret staying', (tester) async {
+    testWidgets('Delete at the end of the item above selects the separator, '
+        'then leaves its item empty, with the caret in it', (tester) async {
       final document = TestDocument(shop);
       await pumpDocument(tester, document);
 
       await tester.caretIn(checkboxNodeOf(), 4);
       await tester.pressDelete();
+      await tester.pumpAndSettle();
+      expect(document.text, shop);
+      await tester.pressDelete();
       await tester.typeImeText('x');
 
-      expect(document.text, '- [ ] milkx\n- [ ] \n- [ ] eggs');
+      expect(document.text, '- [ ] milk\n- [ ] x\n- [ ] eggs');
     });
 
     testWidgets('lets the right arrow pass it', (tester) async {
@@ -337,25 +347,28 @@ void main() {
   });
 
   for (final (keyboard, backspace) in _backspaces) {
-    testWidgets('$keyboard: Backspace removes a tapped separator', (
-      tester,
-    ) async {
+    testWidgets('$keyboard: Backspace selects a tapped separator, then '
+        'removes it', (tester) async {
       final document = TestDocument('milk\n\n---\n\neggs');
       await pumpDocument(tester, document);
 
       await tester.tap(find.byType(Divider), warnIfMissed: false);
       await tester.pumpAndSettle();
       await backspace(tester);
+      expect(document.text, 'milk\n\n---\n\neggs');
+      await backspace(tester);
 
       expect(document.text, 'milk\n\neggs');
     });
 
-    testWidgets('$keyboard: Backspace right after a separator removes it, '
-        'the caret staying', (tester) async {
+    testWidgets('$keyboard: Backspace right after a separator selects it, '
+        'then removes it, the caret staying', (tester) async {
       final document = TestDocument('milk\n\n---\n\neggs');
       await pumpDocument(tester, document);
 
       await tester.caretIn(paragraphNodeOf(index: 1), 0);
+      await backspace(tester);
+      expect(document.text, 'milk\n\n---\n\neggs');
       await backspace(tester);
       await tester.typeImeText('x');
 
@@ -363,16 +376,39 @@ void main() {
     });
 
     testWidgets('$keyboard: Backspace in an item\'s line below its '
-        'separator removes the separator', (tester) async {
+        'separator removes the separator in two presses', (tester) async {
       final document = TestDocument('- [ ] milk\n- [ ] ------\n  eggs');
       await pumpDocument(tester, document);
 
       await tester.caretIn(paragraphNodeOf(), 0);
       await backspace(tester);
+      await backspace(tester);
 
       expect(document.text, '- [ ] milk\n- [ ] eggs');
     });
   }
+
+  testWidgets('the caret after a tapped separator item is a text line high, '
+      "at the separator's end, before its delete button", (tester) async {
+    await pumpDocument(
+      tester,
+      TestDocument('- [ ] milk\n- [ ] ------\n- [ ] eggs'),
+    );
+    Rect caret() => tester.getRect(find.byKey(DocumentKeys.caret));
+    await tester.caretIn(checkboxNodeOf(), 4);
+    await tester.pumpAndSettle();
+    final textCaret = caret();
+
+    await tester.tap(find.byType(Divider), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    final divider = tester.getRect(find.byType(Divider));
+    final delete = tester.getRect(find.byIcon(Icons.close).hitTestable());
+
+    expect(caret().height, moreOrLessEquals(textCaret.height, epsilon: 1));
+    expect(caret().center.dy, moreOrLessEquals(divider.center.dy, epsilon: 1));
+    expect(caret().left, greaterThanOrEqualTo(divider.right - 1));
+    expect(caret().right, lessThanOrEqualTo(delete.left));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
   testWidgets('the arrow keys pass a separator between paragraphs', (
     tester,

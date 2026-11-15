@@ -17,22 +17,22 @@ import '../support/shown.dart';
 }
 
 void main() {
-  test('by Delete a divider goes, the caret at the start of the text '
-      'after', () {
+  test('by Delete a divider goes, the caret staying at the end of the '
+      'text above', () {
     final (text, caret) = _removed('a\n\n---\n\nb');
     expect(text, 'a\n\nb');
-    expect(caret.extent.offset, 0);
+    expect(caret.extent.offset, 1);
   });
 
-  test('by Backspace a divider goes, the caret at the end of the text '
-      'above', () {
+  test('by Backspace a divider goes, the caret staying at the start of '
+      'the text after', () {
     final document = Shown.read('ab\n\n---\n\nc');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
     final edited = document.run(
       RemoveSelectedBlock(divider.id, backward: true),
     );
     expect(edited.document.text, 'ab\n\nc');
-    expect(edited.selection, edited.document.caret(0, 2));
+    expect(edited.selection, edited.document.caret(1, 0));
   });
 
   test('by Backspace a first divider leaves the caret at the start of the '
@@ -73,10 +73,12 @@ void main() {
     expect(edited.selection, edited.document.caret(1, 0));
   });
 
-  test('a last divider leaves the caret in the empty text after it', () {
-    final (text, caret) = _removed('ab\n\n---');
+  test('a last divider leaves the caret in the empty text after it by '
+      'Backspace, at the end of the text above by Delete', () {
+    final (text, after) = _removed('ab\n\n---', backward: true);
     expect(text, 'ab');
-    expect(caret.extent.offset, 0);
+    expect(after.extent.offset, 0);
+    expect(_removed('ab\n\n---').$2.extent.offset, 2);
   });
 
   test('a divider with no text after it leaves the caret at the end of the '
@@ -93,44 +95,12 @@ void main() {
     expect(_removed('a\n\n> ---').$1, 'a');
   });
 
-  test('next to the caret, the caret stays where it was', () {
-    final document = Shown.read('a\n\n---\n\nb');
-    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(
-      RemoveBlockNextTo(divider.id, document.place(2, 0)),
-    );
-    expect(edited.document.text, 'a\n\nb');
-    expect(edited.selection, edited.document.caret(1, 0));
-  });
-
-  test("a separator above more of its item's lines goes; the next line "
-      'takes its place, keeping the box', () {
+  test('a selected separator above more of its item\'s lines goes by '
+      'Backspace; the caret to the start of the next line', () {
     final document = Shown.read('- [ ] a\n- [ ] ***\n  b');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf;
     final edited = document.run(
-      RemoveBlockNextTo(divider.id, document.place(2, 0)),
-    );
-    expect(edited.document.text, '- [ ] a\n- [ ] b');
-    expect(edited.selection, edited.document.caret(1, 0));
-  });
-
-  test('a separator item next to the caret leaves the item empty and the '
-      'caret where it was', () {
-    final document = Shown.read('- [ ] a\n- [ ] ***\n- [ ] b');
-    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(
-      RemoveBlockNextTo(divider.id, document.place(0, 1)),
-    );
-    expect(edited.document.text, '- [ ] a\n- [ ] \n- [ ] b');
-    expect(edited.selection, edited.document.caret(0, 1));
-  });
-
-  test('a selected separator above more of its item\'s lines goes; the '
-      'caret to the start of the next line', () {
-    final document = Shown.read('- [ ] a\n- [ ] ***\n  b');
-    final divider = document.view.rows.whereType<BlockRow>().first.leaf;
-    final edited = document.run(
-      RemoveSelectedBlock(divider.id, backward: false),
+      RemoveSelectedBlock(divider.id, backward: true),
     );
     expect(edited.document.text, '- [ ] a\n- [ ] b');
     expect(edited.selection, edited.document.caret(1, 0));

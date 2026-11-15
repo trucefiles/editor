@@ -347,8 +347,10 @@ void main() {
       expect(visual.secured(), 'a\n\n---\n\nx\n\ny\n\nb');
     });
 
-    test('Backspace removes it', () {
+    test('Backspace selects it, a second one removes it', () {
       final visual = tapped();
+      visual.editor.execute([const DeleteUpstreamRequest()]);
+      expect(visual.texts, hasLength(3));
       visual.editor.execute([const DeleteUpstreamRequest()]);
       expect(visual.secured(), 'a\n\nb');
     });

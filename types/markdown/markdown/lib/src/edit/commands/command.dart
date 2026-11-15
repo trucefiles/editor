@@ -165,15 +165,6 @@ final class RemoveSelectedBlock extends EditCommand {
   final bool backward;
 }
 
-/// Backspace or Delete at [caret], right next to [block], a divider: it
-/// goes, as one character, and the caret stays where it was.
-final class RemoveBlockNextTo extends EditCommand {
-  const RemoveBlockNextTo(this.block, this.caret);
-
-  final NodeId block;
-  final Place caret;
-}
-
 /// Enter with the caret right after [block], a divider: an empty line
 /// after it.
 final class LineAfter extends EditCommand {
@@ -337,11 +328,6 @@ Change _change(ViewRows view, EditCommand command) {
       view,
       block,
       backward: backward,
-    ),
-    RemoveBlockNextTo(:final block, :final caret) => removeBlockNextTo(
-      view,
-      block,
-      caret,
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),

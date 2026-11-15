@@ -97,6 +97,7 @@ void main() {
         ..caret(2, 2)
         ..press(EditKey.backspace)
         ..caret(2, 0)
+        ..press(EditKey.backspace)
         ..press(EditKey.backspace);
       expect(run.rows, ['ab', 'c']);
       expect(run.outputs.whereType<UndoOffered>(), isEmpty);

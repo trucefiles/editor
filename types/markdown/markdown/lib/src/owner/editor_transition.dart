@@ -277,6 +277,8 @@ final class _Step
             typingStyle: style.withFormat(format, on: !style.has(format)),
           ),
         );
+      case SelectBlock(:final block):
+        _show(_closedRaw(BlockSelection(block)));
       case OpenLinkDialog():
         if (selection case final TextSelection range) {
           events.add(_askLink(shown.view, range));
