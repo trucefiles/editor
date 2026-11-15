@@ -46,11 +46,9 @@ class OccurrenceDetails extends StatelessWidget {
     final part = occurrence.part;
     final use24Hour = MediaQuery.alwaysUse24HourFormatOf(context);
     final times = timesOf(words, occurrence, use24Hour: use24Hour);
-    MarkedLine partLine(IconData icon, String text) => MarkedLine(
-      mark: Icon(icon, size: 20, color: muted),
-      text: text,
-      style: partStyle,
-    );
+    Widget partMark(IconData icon) => Icon(icon, size: 20, color: muted);
+    MarkedLine partLine(IconData icon, String text) =>
+        MarkedLine(mark: partMark(icon), text: text, style: partStyle);
     return SelectableLines(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,7 +77,7 @@ class OccurrenceDetails extends StatelessWidget {
           ),
           if (part.location.isNotEmpty)
             _OpenableLine(
-              mark: Icon(Icons.place_outlined, size: 20, color: muted),
+              mark: partMark(Icons.place_outlined),
               text: part.location,
               style: partStyle,
               links: links,
@@ -87,7 +85,7 @@ class OccurrenceDetails extends StatelessWidget {
             ),
           if (part.description.isNotEmpty)
             _OpenableLine(
-              mark: Icon(Icons.notes, size: 20, color: muted),
+              mark: partMark(Icons.notes),
               text: part.description,
               style: partStyle,
               links: links,

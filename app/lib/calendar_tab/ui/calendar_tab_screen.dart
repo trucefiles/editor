@@ -110,7 +110,8 @@ class CalendarTabScreen extends ConsumerWidget {
                             occurrence,
                             colorOf(file),
                           ),
-                          // Adding happens on a calendar's page, if one can open.
+                          // Adding happens on a calendar's page, if one can
+                          // open.
                           onAdd: offered.isEmpty
                               ? null
                               : (_) => showSnack(
