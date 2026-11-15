@@ -1,22 +1,76 @@
 import 'dart:io';
 
 import '../backups/backup.dart';
+import '../backups/backup_space.dart';
+import '../common/result.dart';
 import 'file_backups_at.dart';
 
 /// Deletes the backups saved before [olderThan] in every backup folder
 /// right below [root] (one per folder of the app, also of folders removed
-/// since), and the folders they leave empty. Only old folders go: a new
-/// backup may be on its way into a new one. Failing is harmless: what
-/// can't be read or removed stays for the next time.
-Future<void> pruneBackupsAt(String root, {required DateTime olderThan}) async {
-  for (final folder in await _foldersIn(Directory(root))) {
-    await fileBackupsAt(folder.path).prune(olderThan: olderThan);
+/// since); then, while all left take more than [spaceLimit] bytes (if
+/// given), those [overSpaceLimit] picks; and the folders they leave
+/// empty. Only old folders and those of deleted backups go: a new backup
+/// may be on its way into a new one. Failing is harmless: what can't be
+/// read or removed stays for the next time.
+Future<void> pruneBackupsAt(
+  String root, {
+  required DateTime olderThan,
+  int? spaceLimit,
+}) async {
+  final folders = [
+    for (final folder in await _foldersIn(Directory(root))) folder.path,
+  ];
+  for (final folder in folders) {
+    await fileBackupsAt(folder).prune(olderThan: olderThan);
+  }
+  final overLimit = spaceLimit == null
+      ? const <SizedBackup<String>>[]
+      : overSpaceLimit(await _sizedBackupsIn(folders), spaceLimit);
+  final deleted = await _deleteInOrder(overLimit);
+  for (final folder in folders) {
+    final deletedHere = {
+      for (final (folder: at, :backup, size: _) in deleted)
+        if (at == folder) backup.storePath.value.split('/').first,
+    };
     await _removeEmpty(
-      await _foldersIn(folder),
+      await _foldersIn(Directory(folder)),
       isStale: (name) =>
-          Backup.savedAtOfFolder(name)?.isBefore(olderThan) ?? false,
+          deletedHere.contains(name) ||
+          (Backup.savedAtOfFolder(name)?.isBefore(olderThan) ?? false),
     );
   }
+}
+
+/// The backups in [folders], each with its size; those that can't be
+/// read left out.
+Future<List<SizedBackup<String>>> _sizedBackupsIn(List<String> folders) async =>
+    [
+      for (final folder in folders)
+        if (await fileBackupsAt(folder).list() case Ok(value: final backups))
+          for (final backup in backups)
+            if (await _sizeOf(File('$folder/${backup.storePath.value}'))
+                case final size?)
+              (folder: folder, backup: backup, size: size),
+    ];
+
+Future<int?> _sizeOf(File file) async {
+  try {
+    return await file.length();
+  } on FileSystemException {
+    return null;
+  }
+}
+
+/// Deletes [backups] in order, up to the first that fails; those deleted.
+Future<List<SizedBackup<String>>> _deleteInOrder(
+  List<SizedBackup<String>> backups,
+) async {
+  final deleted = <SizedBackup<String>>[];
+  for (final sized in backups) {
+    if (await fileBackupsAt(sized.folder).delete(sized.backup) is Err) break;
+    deleted.add(sized);
+  }
+  return deleted;
 }
 
 /// The folders right below [folder]; none if it can't be read.

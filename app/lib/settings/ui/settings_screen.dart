@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
+import '../../backups/ui/backup_space_tile.dart';
 import '../../file_page/ui/place_above_text_tile.dart';
 import '../../files/home/ui/recently_edited_tiles.dart';
 import '../../files/new_file_place/ui/new_file_place_tile.dart';
@@ -29,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
           TextZoomTile(TextZoomTarget.documents),
           TextZoomTile(TextZoomTarget.app),
           RefreshSettingTile(),
+          BackupSpaceTile(),
           CloseToTrayTile(),
         ],
       ),

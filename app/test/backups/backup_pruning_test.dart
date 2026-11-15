@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/backups/backup_pruning.dart';
 import 'package:truce_editor/platform/app_activity.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
+import 'package:truce_files/truce_files.dart';
 
 import '../support.dart';
 
@@ -14,11 +17,11 @@ void main() {
   setUp(() => storage = AppStorage(tempFolder().path));
 
   /// Writes a backup of `a.md` saved [age] ago into the backups of the folder [folder].
-  File backup(String folder, Duration age) {
+  File backup(String folder, Duration age, {int megabytes = 0}) {
     final savedAt = DateTime.now().subtract(age).microsecondsSinceEpoch;
     return File(
       '${storage.backupsPath(folderId(folder))}/$savedAt.other/documents/a.md',
-    )..writeCreatingFolders('backup');
+    )..writeCreatingFolders('x' * (megabytes * 1000 * 1000 + 6));
   }
 
   ProviderContainer pruning() {
@@ -27,6 +30,7 @@ void main() {
         appStorageProvider.overrideWithValue(storage),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         appActiveProvider.overrideWith(_Activity.new),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
     );
     addTearDown(container.dispose);
@@ -53,6 +57,21 @@ void main() {
     await container.read(backupPruningProvider.future);
 
     expect(later.existsSync(), isTrue, reason: 'pruned today already');
+  });
+
+  test('prunes again, to the new space, once the setting changes', () async {
+    final container = pruning();
+    await container.read(backupPruningProvider.future);
+    final older = backup('current', const Duration(hours: 2), megabytes: 30);
+    final newer = backup('current', const Duration(hours: 1), megabytes: 30);
+
+    await container
+        .read(deviceSettingsProvider.notifier)
+        .change((s) => s.copyWith(backupSpace: BackupSpace.mb50));
+    await container.read(backupPruningProvider.future);
+
+    expect(older.existsSync(), isFalse);
+    expect(newer.existsSync(), isTrue);
   });
 
   test('does nothing before the first backup', () async {

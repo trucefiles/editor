@@ -16,7 +16,7 @@ class BackupsScreen extends ConsumerWidget {
     title: 'Backups',
     backups: ref.watch(allBackupsProvider),
     empty:
-        "No backups yet. They're kept for "
+        "No backups yet. They're kept for up to "
         '${backupRetention.inDays} days.',
     onOpen: openRestore,
   );

@@ -34,6 +34,7 @@ void main() {
     ),
     tabCalendarView: CalendarViewKind.week,
     placeAboveText: false,
+    backupSpace: BackupSpace.noLimit,
   );
 
   group('value', () {

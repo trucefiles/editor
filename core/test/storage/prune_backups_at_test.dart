@@ -9,13 +9,18 @@ void main() {
 
   setUp(() => root = tempFolder().path);
 
-  /// Writes a backup of `a.md` saved [age] ago into the backup folder
-  /// [folder].
-  File backup(String folder, Duration age) {
+  /// Writes a backup of [file] saved [age] ago into the backup folder
+  /// [folder], [size] bytes long.
+  File backup(
+    String folder,
+    Duration age, {
+    String file = 'documents/a.md',
+    int size = 6,
+  }) {
     final savedAt = DateTime.now().subtract(age).microsecondsSinceEpoch;
-    return File('$root/$folder/$savedAt.other/documents/a.md')
+    return File('$root/$folder/$savedAt.other/$file')
       ..createSync(recursive: true)
-      ..writeAsStringSync('backup');
+      ..writeAsStringSync('x' * size);
   }
 
   Future<void> prune() => pruneBackupsAt(
@@ -49,6 +54,31 @@ void main() {
     expect(recent.parent.existsSync(), isTrue);
     expect(fresh.existsSync(), isTrue);
     expect(Directory('$root/current').existsSync(), isTrue);
+  });
+
+  test('over the space limit, the largest file gives up its oldest '
+      'backups first, in every folder, and their folders go', () async {
+    final oldest = backup('current', const Duration(hours: 3), size: 60);
+    final older = backup('current', const Duration(hours: 2), size: 60);
+    final newest = backup('current', const Duration(hours: 1), size: 60);
+    final other = backup(
+      'removed',
+      const Duration(hours: 4),
+      file: 'b.md',
+      size: 10,
+    );
+
+    await pruneBackupsAt(
+      root,
+      olderThan: DateTime.now().subtract(const Duration(days: 7)),
+      spaceLimit: 100,
+    );
+
+    expect(oldest.existsSync(), isFalse);
+    expect(older.existsSync(), isFalse);
+    expect(oldest.parent.parent.existsSync(), isFalse, reason: 'empty');
+    expect(newest.existsSync(), isTrue);
+    expect(other.existsSync(), isTrue);
   });
 
   test('does nothing before the first backup', () async {

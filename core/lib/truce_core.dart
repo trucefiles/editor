@@ -68,6 +68,7 @@
 library;
 
 export 'src/backups/backup.dart';
+export 'src/backups/backup_space.dart';
 export 'src/backups/file_backups.dart';
 export 'src/changes/bounded_changes.dart';
 export 'src/changes/folder_changes.dart';
