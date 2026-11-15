@@ -3,6 +3,7 @@ import 'dart:math' show max;
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../views_clock.dart';
 import 'changed_calendars.dart';
 import 'occurrence_event.dart';
 
@@ -18,12 +19,14 @@ import 'occurrence_event.dart';
 /// It is its store's only writer: kalender only asks, and the views add
 /// and remove nothing through the writers it inherits.
 final class OccurrenceEvents<K> extends DefaultEventsController {
-  /// [deviceZone] tells this device's time zone apart (by default as
-  /// kalender does): what is worked out holds only in the zone it was
+  /// [deviceZone] tells this device's time zone (in the views, their
+  /// [ViewsClock]'s): what is worked out holds only in the zone it was
   /// worked out in.
-  OccurrenceEvents(this._calendars, {String Function() deviceZone = _zoneNow})
-    : _deviceZone = deviceZone,
-      _zone = deviceZone();
+  OccurrenceEvents(
+    this._calendars, {
+    String Function() deviceZone = deviceZoneNow,
+  }) : _deviceZone = deviceZone,
+       _zone = deviceZone();
 
   Map<K, Calendar> _calendars;
   final String Function() _deviceZone;
@@ -57,7 +60,7 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     bool includeDayEvents = true,
     Location? location,
   }) {
-    _followDeviceZone();
+    _droppedForNewZone();
     final shown = range.forLocation(location: location);
     for (final month in _monthsOf(shown.start, shown.end)) {
       for (final MapEntry(:key, :value) in _calendars.entries) {
@@ -73,15 +76,24 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
     );
   }
 
+  /// Checks the device's time zone, and once it is another, forgets all
+  /// that was worked out and tells kalender to ask again: the events'
+  /// times on the device clock moved. Called when the views' [ViewsClock]
+  /// tells a change.
+  void followDeviceZone() {
+    if (_droppedForNewZone()) notifyListeners();
+  }
+
   /// Forgets all that was worked out once the device is in another time
-  /// zone: its times on the device clock, and its months, moved. kalender
-  /// shows the zone change by asking again, so this tells no one.
-  void _followDeviceZone() {
+  /// zone (its times on the device clock, and its months, moved), so an
+  /// ask in the new zone is answered right; whether it did.
+  bool _droppedForNewZone() {
     final zone = _deviceZone();
-    if (zone == _zone) return;
+    if (zone == _zone) return false;
     _zone = zone;
     eventStore.clear();
     _months.clear();
+    return true;
   }
 
   /// Adds the occurrences of [calendar] (keyed [key]) in [month], but not
@@ -120,12 +132,6 @@ List<DateTime> _monthsOf(DateTime from, DateTime to) {
     max(count, 1),
     (index) => DateTime(first.year, first.month + index),
   );
-}
-
-/// This device's time zone now, as kalender tells it apart.
-String _zoneNow() {
-  final now = DateTime.now();
-  return '${now.timeZoneName} ${now.timeZoneOffset}';
 }
 
 DateTime _nextMonth(DateTime month) => DateTime(month.year, month.month + 1);

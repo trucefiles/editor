@@ -63,7 +63,7 @@ Accepted behavior that is not planned to change, grouped by topic.
   as front matter only at the very start of a document. Anywhere else they
   are normal Markdown (a line, text or a heading).
 - **A checkbox tapped just before a remote change can flip back.** Truce
-  waits about 0.7 seconds before it saves a tapped checkbox. If a change
+  waits about 1.5 seconds before it saves a tapped checkbox. If a change
   from another device arrives in that time, or the app closes suddenly,
   the tap is lost and the box shows its old state.
 

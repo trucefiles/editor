@@ -119,11 +119,12 @@ void main() {
         expect(run.rows, ['a', 'x', 'y', 'b']);
       });
 
-      test('a deletion removes it, the caret up', () {
+      test('a deletion removes it, the caret staying below, as after '
+          'Backspace', () {
         final run = EditorRun('a\n\n---\n\nb')..select(1);
         run.runCommand(DeleteRange(BlockSelection(run.leaf(1))));
         expect(run.rows, ['a', 'b']);
-        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 0)));
       });
     });
 
@@ -160,13 +161,26 @@ void main() {
         expect(run.rows, ['a', '[DividerNode]', 'x', 'y', 'b']);
       });
 
-      test('Backspace removes it, the caret up, no Undo offered', () {
+      test('Backspace selects it, the next one removes it, the caret '
+          'staying after it, no Undo offered', () {
         final run = EditorRun('a\n\n---\n\nb')
           ..caretAfter(1)
           ..press(EditKey.backspace);
+        expect(run.rows, ['a', '[DividerNode]', 'b']);
+        expect(run.shown.selection, BlockSelection(run.leaf(1)));
+
+        run.press(EditKey.backspace);
         expect(run.rows, ['a', 'b']);
-        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(0), 1)));
+        expect(run.shown.selection, TextSelection.caret(Place(run.leaf(1), 0)));
         expect(run.outputs.whereType<UndoOffered>(), isEmpty);
+      });
+
+      test('Backspace at the start of the line below selects it too', () {
+        final run = EditorRun('a\n\n---\n\nb')
+          ..caret(2, 0)
+          ..press(EditKey.backspace);
+        expect(run.rows, ['a', '[DividerNode]', 'b']);
+        expect(run.shown.selection, BlockSelection(run.leaf(1)));
       });
 
       test('Delete and other keys do nothing', () {

@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.17.2" date="2026-11-15">
+      <description>
+        <ul>
+          <li>Links in an event's place and notes open with a tap, and a place opens in your maps app.</li>
+          <li>New setting Backup space: backups stay within the space you pick, each file keeps its newest.</li>
+          <li>A separator deletes like other editors: the first Backspace or Delete selects it, the next removes it.</li>
+          <li>The Calendars tab and event details zoom like a document; the month view lists each day's events by start time.</li>
+          <li>Fixes: mouse back on Android, events after a time zone change, the day number's cursor, checklist taps get more time.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.1" date="2026-11-08">
       <description>
         <ul>

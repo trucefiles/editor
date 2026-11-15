@@ -2,9 +2,12 @@ import 'package:truce_core/truce_core.dart';
 
 import 'backup_retention.dart';
 
-/// Deletes the backups below [root] older than [backupRetention] (see
-/// [pruneBackupsAt]), at most once a day: backups are kept for days, so
-/// a walk more often finds next to nothing to delete.
+/// Deletes the backups below [root] older than [backupRetention], then
+/// while they take more than the [BackupSpace] set (see
+/// [pruneBackupsAt]), at most once a day or when that setting changes:
+/// backups are kept for days, so a walk more often finds next to nothing
+/// to delete. One pruning runs at a time; one pruning to a space no
+/// longer set stops deleting for space.
 final class BackupPruning {
   BackupPruning(this.root);
 
@@ -13,14 +16,33 @@ final class BackupPruning {
 
   final String root;
 
-  /// When the last pruning began; `null` before the first.
-  DateTime? _last;
+  /// When the last pruning began, and to which space; `null` before the
+  /// first.
+  ({DateTime at, BackupSpace space})? _last;
 
-  /// Prunes if the last pruning began [every] or longer before [now].
-  /// Failing is harmless: what is left goes the next time.
-  Future<void> pruneIfDue(DateTime now) async {
-    if (_last case final last? when now.difference(last) < every) return;
-    _last = now;
-    await pruneBackupsAt(root, olderThan: now.subtract(backupRetention));
+  /// The space set last.
+  BackupSpace? _wanted;
+
+  /// The pruning running or queued last; done before the next begins.
+  Future<void> _running = Future.value();
+
+  /// Prunes to [space] if the last pruning began [every] or longer before
+  /// [now], or pruned to another space. Failing is harmless: what is left
+  /// goes the next time.
+  Future<void> pruneIfDue(DateTime now, BackupSpace space) {
+    _wanted = space;
+    if (_last case (:final at, space: final last)
+        when last == space && now.difference(at) < every) {
+      return _running;
+    }
+    _last = (at: now, space: space);
+    return _running = _running.then(
+      (_) => pruneBackupsAt(
+        root,
+        olderThan: now.subtract(backupRetention),
+        spaceLimit: space.bytes,
+        goOn: () => _wanted == space,
+      ),
+    );
   }
 }

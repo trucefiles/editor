@@ -1,0 +1,5 @@
+- Links in event places and notes open with a tap; places open in maps
+- New setting: Backup space
+- Separators delete in two steps, like other editors
+- Calendars tab zooms; month days list events by start time
+- Fixes: mouse back, time zone changes, day number cursor, checklist wait

@@ -42,7 +42,7 @@ void main() {
     await tester.pump();
     expect(selection(), isNull);
     expect(SuperEditorInspector.hasFocus(), isFalse);
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(document.text, '- [ ] eggs\n- [x] milk');
 

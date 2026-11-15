@@ -11,7 +11,7 @@ import 'package:truce_markdown/truce_markdown.dart';
 final class EditorGate extends ChangeNotifier {
   EditorGate(
     this._owner, {
-    this.checkDelay = const Duration(milliseconds: 700),
+    this.checkDelay = const Duration(milliseconds: 1500),
   }) {
     _changes = _owner.changes.listen((_) {
       if (_depth > 0) return;

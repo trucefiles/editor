@@ -6,10 +6,14 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 /// the same column and its text starting at the same place, at any text
 /// size; a line without a mark keeps its text there too.
 class MarkedLine extends StatelessWidget {
-  const MarkedLine({required this.text, this.mark, this.style, super.key});
+  MarkedLine({required String text, this.mark, this.style, super.key})
+    : text = TextSpan(text: text);
+
+  /// A line of [text] in parts, e.g. with links.
+  const MarkedLine.rich({required this.text, this.mark, this.style, super.key});
 
   final Widget? mark;
-  final String text;
+  final InlineSpan text;
 
   /// The text's style, on top of the surrounding one.
   final TextStyle? style;
@@ -34,7 +38,7 @@ class MarkedLine extends StatelessWidget {
           height: lineHeightOf(style, MediaQuery.textScalerOf(context)),
           child: Center(child: mark),
         ),
-        Expanded(child: Text(text, style: style)),
+        Expanded(child: Text.rich(text, style: style)),
       ],
     );
   }

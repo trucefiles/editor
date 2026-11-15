@@ -34,6 +34,24 @@ String _pressed(String text, int row, int offset, EditKey key) {
 
 Command _command(KeyAction action) => (action as RunCommand).command;
 
+/// [key] pressed twice at [offset] in row [row] of [text], next to a
+/// divider: the first press selects it, the second runs on that
+/// selection.
+({Shown document, Selection? selection}) _twice(
+  String text,
+  int row,
+  int offset,
+  EditKey key, {
+  DoneSections? done,
+}) {
+  final document = _document(text, done: done);
+  final first = keyAction(document.view, _caret(document, row, offset), key);
+  final block = (first as SelectBlock).block;
+  return document.run(
+    _command(keyAction(document.view, BlockSelection(block), key)),
+  );
+}
+
 void main() {
   group('Enter', () {
     test('splits text', () {
@@ -98,27 +116,37 @@ void main() {
       expect(_pressed('a\n\nb', 1, 0, EditKey.backspace), 'ab');
     });
 
-    test('after a rule removes it, as one character; after a table opens '
-        'it', () {
-      expect(_pressed('a\n\n---\n\nb', 2, 0, EditKey.backspace), 'a\n\nb');
+    test('after a rule selects it, the next press removing it as one '
+        'character; after a table opens it', () {
+      expect(
+        _twice('a\n\n---\n\nb', 2, 0, EditKey.backspace).document.text,
+        'a\n\nb',
+      );
       expect(
         _action('| a |\n| - |\n\nb', 1, 0, EditKey.backspace),
         isA<OpenRaw>().having((it) => it.atEnd, 'at end', isTrue),
       );
     });
 
-    test('after a rule keeps the caret where it was', () {
-      final document = _document('a\n\n---\n\nb');
-      final caret = _caret(document, 2, 0);
-      final action = keyAction(document.view, caret, EditKey.backspace);
-      final edited = document.run(_command(action));
-      expect(edited.selection, edited.document.caret(1, 0));
+    test('after a rule leaves the caret where it was once it is gone', () {
+      final (:document, :selection) = _twice(
+        'a\n\n---\n\nb',
+        2,
+        0,
+        EditKey.backspace,
+      );
+      expect(selection, document.caret(1, 0));
     });
 
-    test("in an item's line below its separator removes the separator; the "
-        'item keeps its box', () {
+    test("in an item's line below its separator removes the separator in "
+        'two presses; the item keeps its box', () {
       expect(
-        _pressed('- [ ] a\n- [ ] ***\n  b', 2, 0, EditKey.backspace),
+        _twice(
+          '- [ ] a\n- [ ] ***\n  b',
+          2,
+          0,
+          EditKey.backspace,
+        ).document.text,
         '- [ ] a\n- [ ] b',
       );
     });
@@ -150,18 +178,15 @@ void main() {
     });
 
     test('removes a separator within a Done section', () {
-      final done = DoneSections();
       expect(
-        _command(
-          _action(
-            '- [x] a\n- [x] ***\n- [x] b',
-            2,
-            0,
-            EditKey.backspace,
-            done: done,
-          ),
-        ),
-        isA<RemoveBlockNextTo>(),
+        _twice(
+          '- [x] a\n- [x] ***\n- [x] b',
+          2,
+          0,
+          EditKey.backspace,
+          done: DoneSections(),
+        ).document.text,
+        '- [x] a\n- [x] \n- [x] b',
       );
     });
 
@@ -228,16 +253,16 @@ void main() {
       expect(_pressed('a\n\nb', 0, 1, EditKey.delete), 'ab');
     });
 
-    test('before a rule removes it, as one character, the caret staying', () {
-      final document = _document('a\n\n---\n\nb');
-      final action = keyAction(
-        document.view,
-        _caret(document, 0, 1),
+    test('before a rule selects it, the next press removing it as one '
+        'character, the caret staying', () {
+      final (:document, :selection) = _twice(
+        'a\n\n---\n\nb',
+        0,
+        1,
         EditKey.delete,
       );
-      final edited = document.run(_command(action));
-      expect(edited.document.text, 'a\n\nb');
-      expect(edited.selection, edited.document.caret(0, 1));
+      expect(document.text, 'a\n\nb');
+      expect(selection, document.caret(0, 1));
     });
 
     test('before a separator in the Done section does nothing', () {
@@ -255,7 +280,12 @@ void main() {
 
     test('before a separator item leaves that item empty', () {
       expect(
-        _pressed('- [ ] a\n- [ ] ***\n- [ ] b', 0, 1, EditKey.delete),
+        _twice(
+          '- [ ] a\n- [ ] ***\n- [ ] b',
+          0,
+          1,
+          EditKey.delete,
+        ).document.text,
         '- [ ] a\n- [ ] \n- [ ] b',
       );
     });
@@ -331,15 +361,15 @@ void main() {
     );
   });
 
-  test('right after a divider, Backspace removes it, Enter adds a line '
+  test('right after a divider, Backspace selects it, Enter adds a line '
       'after it, other keys do nothing', () {
     final document = _document('a\n\n---');
     final divider = document.view.rows.whereType<BlockRow>().first.leaf.id;
     KeyAction after(EditKey key) =>
         keyAction(document.view, BlockCaret(divider), key);
     expect(
-      _command(after(EditKey.backspace)),
-      isA<RemoveSelectedBlock>().having((it) => it.backward, 'backward', true),
+      after(EditKey.backspace),
+      isA<SelectBlock>().having((it) => it.block, 'block', divider),
     );
     expect(_command(after(EditKey.enter)), isA<LineAfter>());
     expect(_command(after(EditKey.shiftEnter)), isA<LineAfter>());

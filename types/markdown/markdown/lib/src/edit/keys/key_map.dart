@@ -58,6 +58,14 @@ final class OpenLinkDialog extends KeyAction {
   const OpenLinkDialog();
 }
 
+/// The key selects [block], a divider, whole: the first of the two
+/// presses that delete it, so the user sees what the next one deletes.
+final class SelectBlock extends KeyAction {
+  const SelectBlock(this.block);
+
+  final NodeId block;
+}
+
 /// The key does nothing, and nothing else gets it.
 final class Consumed extends KeyAction {
   const Consumed();
@@ -89,9 +97,7 @@ KeyAction keyAction(ViewRows view, Selection selection, EditKey key) =>
         LineInPlace(block),
       ),
       (BlockSelection(), _) => const Consumed(),
-      (BlockCaret(:final block), EditKey.backspace) => RunCommand(
-        RemoveSelectedBlock(block, backward: true),
-      ),
+      (BlockCaret(:final block), EditKey.backspace) => SelectBlock(block),
       (BlockCaret(:final block), EditKey.enter || EditKey.shiftEnter) =>
         RunCommand(LineAfter(block)),
       (BlockCaret(), _) => const Consumed(),
@@ -214,10 +220,10 @@ final class _Keys {
       };
 
   /// Backspace ([backward]) or Delete into [row], a block next to the
-  /// caret: a divider goes, as one character; any other opens as its raw
-  /// text, the caret at the side it came from.
+  /// caret: a divider is selected, the next press deleting it; any other
+  /// opens as its raw text, the caret at the side it came from.
   KeyAction _into(BlockRow row, {required bool backward}) => switch (row.leaf) {
-    DividerNode(:final id) => RunCommand(RemoveBlockNextTo(id, at)),
+    DividerNode(:final id) => SelectBlock(id),
     final leaf => OpenRaw(leaf.id, atEnd: backward),
   };
 

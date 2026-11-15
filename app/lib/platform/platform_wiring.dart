@@ -59,6 +59,11 @@ final deviceZoneProvider = Provider<Future<String?> Function()>(
   (ref) => Platform.isLinux ? linuxZone(systemZone) : systemZone,
 );
 
+/// Whether the app itself turns the mouse's back button into Back. Not on
+/// Android: it already sends a system Back for that button, so the app
+/// handling it too would close two screens per press.
+final handlesMouseBackProvider = Provider<bool>((ref) => !Platform.isAndroid);
+
 /// The system tray of this platform; `null` where the app has none.
 final systemTrayProvider = Provider<SystemTray?>(
   (ref) => Platform.isLinux

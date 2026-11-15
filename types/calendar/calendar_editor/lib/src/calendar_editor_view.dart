@@ -9,6 +9,7 @@ import 'calendar_editor_part.dart';
 import 'calendar_start.dart';
 import 'ui/calendar_name_field.dart';
 import 'ui/calendar_page.dart';
+import 'ui/event_links.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
 /// its Add button, and Import events in the file's menu; undo and redo
@@ -16,18 +17,20 @@ import 'ui/calendar_page.dart';
 /// reach the page as its own [PageStarts].
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
-  /// [_starts] what calendar pages are asked to start with; [now] the
-  /// time.
+  /// [_starts] what calendar pages are asked to start with; [_openers]
+  /// open the links and places events name; [now] the time.
   CalendarEditorView(
     this._part, {
     required this._deviceZone,
     required this._starts,
+    required this._openers,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
   final CalendarEditorPart _part;
   final DeviceZone _deviceZone;
   final CalendarStarts _starts;
+  final EventOpeners _openers;
   final DateTime Function() _now;
   final _pageStarts = PageStarts();
 
@@ -37,13 +40,17 @@ final class CalendarEditorView extends EditorView {
         case final asked?) {
       _pageStarts.ask(asked);
     }
-    return CalendarPage(
-      _part,
-      now: _now,
+    return EventLinks(
+      openers: _openers,
       hint: host.hint,
-      color: host.color,
-      deviceZone: _deviceZone,
-      starts: _pageStarts,
+      child: CalendarPage(
+        _part,
+        now: _now,
+        hint: host.hint,
+        color: host.color,
+        deviceZone: _deviceZone,
+        starts: _pageStarts,
+      ),
     );
   }
 

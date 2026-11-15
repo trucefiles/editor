@@ -5,10 +5,12 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
+import '../views_clock.dart';
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
 import 'event_tiles.dart';
 import 'insights_strip.dart';
+import 'month_order.dart';
 import 'month_picker.dart';
 import 'new_event_spot.dart';
 import 'occurrence_event.dart';
@@ -86,12 +88,16 @@ class CalendarViews<K> extends StatefulWidget {
 }
 
 class _CalendarViewsState<K> extends State<CalendarViews<K>> {
+  late final _clock = ViewsClock(widget.now);
   late final _model = CalendarViewsModel<K>(
     kind: widget.kind,
     calendars: widget.calendars,
-    now: widget.now,
+    clock: _clock,
   );
-  late final _events = OccurrenceEvents<K>(widget.calendars);
+  late final _events = OccurrenceEvents<K>(
+    widget.calendars,
+    deviceZone: () => _clock.zone,
+  );
   KalenderController? _kalender;
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
@@ -114,6 +120,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     super.initState();
     _model.addListener(_showModel);
     _model.range.addListener(_tellAddDay);
+    _clock.addListener(_events.followDeviceZone);
   }
 
   @override
@@ -152,7 +159,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       ..removeListener(_showModel)
       ..dispose();
     _kalender?.dispose();
+    _clock.removeListener(_events.followDeviceZone);
     _events.dispose();
+    _clock.dispose();
     super.dispose();
   }
 
@@ -348,7 +357,14 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             ),
           ),
         ),
-        MonthViewParts(body: MonthBody(tileComponents: _rowTiles)),
+        MonthViewParts(
+          body: MonthBody(
+            configuration: const MonthBodyConfiguration(
+              multiDayLayoutStrategy: MonthOrder(),
+            ),
+            tileComponents: _rowTiles,
+          ),
+        ),
         ScheduleViewParts(body: ScheduleBody(tileComponents: _scheduleTiles)),
       ],
     );

@@ -8,6 +8,7 @@ import 'common/escape_navigation.dart';
 import 'common/keypad_navigation.dart';
 import 'common/mouse_back_navigation.dart';
 import 'home/home_screen.dart';
+import 'platform/platform_wiring.dart';
 import 'reach/ui/reach_overlay.dart';
 import 'text_zoom/ui/text_zoom_scope.dart';
 import 'theme/app_theme.dart';
@@ -38,6 +39,7 @@ class _TruceAppState extends ConsumerState<TruceApp> {
       ..listen(backgroundStartProvider, (_, _) {})
       ..listen(appEndProvider, (_, _) {});
     final deviceLocale = ref.watch(deviceLocaleProvider);
+    final handlesMouseBack = ref.watch(handlesMouseBackProvider);
     return MaterialApp(
       title: TruceApp.title,
       navigatorKey: _navigator,
@@ -51,6 +53,7 @@ class _TruceAppState extends ConsumerState<TruceApp> {
         child: ReachOverlay(
           child: MouseBackNavigation(
             navigator: _navigator,
+            enabled: handlesMouseBack,
             child: EscapeNavigation(
               navigator: _navigator,
               child: KeypadNavigation(child: child!),

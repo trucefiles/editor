@@ -65,6 +65,10 @@ void main() {
       deviceZone: () async => null,
       starts: CalendarStarts(),
       pickFile: () async => const Ok(null),
+      openers: EventOpeners(
+        openLink: (_) async => false,
+        openPlace: (_) async => false,
+      ),
       now: () => DateTime(2026, 11),
     );
     final card = type.cardSummary(

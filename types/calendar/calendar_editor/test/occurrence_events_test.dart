@@ -143,6 +143,27 @@ void main() {
     );
     expect(events.events, hasLength(2));
     expect(events.events.toSet().intersection(before), isEmpty);
-    expect(told, 0, reason: 'kalender asks again on its own');
+    expect(told, 0, reason: 'answered as asked, nothing to tell');
+  });
+
+  test('a zone check tells kalender to ask again only once the zone '
+      'changed', () {
+    var zone = 'here';
+    final events = OccurrenceEvents({'home': dentist}, deviceZone: () => zone);
+    addTearDown(events.dispose);
+    final november = (DateTime(2026, 11), DateTime(2026, 12));
+    _ask(events, november.$1, november.$2);
+    var told = 0;
+    events.addListener(() => told++);
+
+    events.followDeviceZone();
+    expect(told, 0);
+    expect(events.events, hasLength(1), reason: 'kept');
+
+    zone = 'away';
+    events.followDeviceZone();
+    expect(told, 1);
+    expect(events.events, isEmpty, reason: 'worked out again as asked');
+    expect(_ask(events, november.$1, november.$2), [('home', 'Dentist')]);
   });
 }

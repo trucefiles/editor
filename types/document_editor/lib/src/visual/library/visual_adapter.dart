@@ -198,16 +198,22 @@ final class VisualAdapter {
     };
   }
 
+  /// A deletion over [over]; over the block the caret stands right after,
+  /// it is a soft keyboard's Backspace (it sees the block as the one
+  /// character before the caret), so it goes as that key.
   md.EditorInput? Function(md.EditorState) _deleteRange(
     DocumentSelection? over,
   ) {
-    final selection = _actedOn(over);
-    return (now) => switch (selection) {
-      final selection? => md.Run(
+    final (shown, selection) = (_shown?.selection, _actedOn(over));
+    return (now) => switch ((shown, selection)) {
+      (md.BlockCaret(:final block), md.BlockSelection(block: final whole))
+          when whole == block =>
+        md.Pressed(md.EditKey.backspace, revision: now.revision),
+      (_, final selection?) => md.Run(
         md.DeleteRange(selection),
         revision: now.revision,
       ),
-      null => null,
+      (_, null) => null,
     };
   }
 

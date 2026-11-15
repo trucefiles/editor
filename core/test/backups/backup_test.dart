@@ -14,6 +14,8 @@ void main() {
     );
 
     expect(backup.storePath.value, '$micros.edit/lists/todo.md');
+    expect(backup.folderName, '$micros.edit');
+    expect(Backup.savedAtOfFolder(backup.folderName), at);
   });
 
   test('parses what it writes, for every kind', () {

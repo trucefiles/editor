@@ -34,4 +34,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(chosen, ['p']);
   });
+
+  testWidgets('shows its note under the title in the dialog', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ChoiceTile(
+            title: 'Fruit',
+            subtitle: 'Apples',
+            note: 'Pick one.',
+            choices: const ['a'],
+            labelOf: (_) => 'Apples',
+            current: 'a',
+            onChosen: (_) async {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Pick one.'), findsNothing);
+
+    await tester.tap(find.text('Fruit'));
+    await tester.pumpAndSettle();
+
+    final (title, note, choice) = (
+      tester.getRect(find.text('Fruit').last),
+      tester.getRect(find.text('Pick one.')),
+      tester.getRect(find.text('Apples').last),
+    );
+    expect(note.left, title.left);
+    expect(note.top, greaterThan(title.bottom));
+    expect(choice.top, greaterThan(note.bottom));
+  });
 }

@@ -31,7 +31,8 @@
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
 /// 9. `text`: decoding files for editing without changing their byte style
-///    ([TextFile]); a text's lines ([splitLines]).
+///    ([TextFile]); a text's lines ([splitLines]); the links plain text
+///    makes by what it says ([findExtendedAutolinks]).
 /// 10. `marks`: colors of files, synced inside the folder
 ///     ([FileMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -67,6 +68,7 @@
 library;
 
 export 'src/backups/backup.dart';
+export 'src/backups/backup_space.dart';
 export 'src/backups/file_backups.dart';
 export 'src/changes/bounded_changes.dart';
 export 'src/changes/folder_changes.dart';
@@ -152,6 +154,7 @@ export 'src/storage/rel_path.dart';
 export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
+export 'src/text/extended_autolinks.dart';
 export 'src/text/line_match.dart';
 export 'src/text/lines.dart';
 export 'src/text/text_file.dart';

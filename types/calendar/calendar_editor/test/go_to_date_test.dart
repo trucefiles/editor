@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -61,6 +63,31 @@ void main() {
     expect(viewsTitle('Fri, Nov 20'), findsOneWidget);
     expect(_shows(tester, DateTime(2026, 11, 20)), isTrue);
     expect(picked, [CalendarViewKind.day]);
+  });
+
+  testWidgets("a month's day number shows the hand cursor; the room "
+      'around it shows the plain one and takes no tap', (tester) async {
+    final picked = <CalendarViewKind>[];
+    await _showViews(tester, CalendarViewKind.month, picked: picked);
+    final number = find.text('9');
+    final label = find
+        .ancestor(of: number, matching: find.byType(SizedBox))
+        .first;
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    Future<MouseCursor?> cursorAt(Offset at) async {
+      await mouse.moveTo(at);
+      return RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1);
+    }
+
+    final beside = tester.getRect(label).centerLeft + const Offset(2, 0);
+    expect(await cursorAt(tester.getCenter(number)), SystemMouseCursors.click);
+    expect(await cursorAt(beside), SystemMouseCursors.basic);
+
+    await tester.tapAt(beside);
+    await tester.pumpAndSettle();
+    expect(picked, isEmpty);
   });
 
   testWidgets("a tap on a week's day header shows that day in the day view", (

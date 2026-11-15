@@ -9,9 +9,11 @@ import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
+import '../../file_types/calendar_wiring.dart';
 import '../../files/file_colors.dart';
 import '../../files/ui/open_file.dart';
 import '../../folder_state/folder_state_controller.dart';
+import '../../text_zoom/ui/document_text_zoom.dart';
 import '../calendar_clock.dart';
 import '../calendar_tab_controller.dart';
 import '../tab_view_setting.dart';
@@ -82,34 +84,46 @@ class CalendarTabScreen extends ConsumerWidget {
                   ],
                 ),
                 Expanded(
-                  child: CalendarViews<ListedFile>(
-                    calendars: {
-                      for (final MapEntry(key: file, value: calendar)
-                          in shown.entries)
-                        file: calendar.calendar,
-                    },
-                    colorOf: colorOf,
-                    kind: viewChoice.last(),
-                    onKind: (kind) => unawaited(viewChoice.keep(kind)),
-                    now: ref.watch(calendarClockProvider),
-                    titleOf: (file) => shown[file]!.title,
-                    onTap: (file, occurrence) => _showEvent(
-                      context,
-                      ref,
-                      shown[file]!,
-                      occurrence,
-                      colorOf(file),
-                    ),
-                    // Adding happens on a calendar's page, if one can open.
-                    onAdd: offered.isEmpty
-                        ? null
-                        : (_) => showSnack(
-                            context,
-                            'Open one calendar to edit',
-                            actionLabel: 'Open',
-                            onAction: () =>
-                                _openCalendar(context, ref, colorOf),
+                  // Event text, zoomed like a calendar's own page.
+                  child: DocumentTextZoom(
+                    child: EventLinks(
+                      openers: ref.watch(eventOpenersProvider),
+                      hint: (message) => showSnack(context, message),
+                      // Its own context, so an event's sheet opens with the
+                      // zoom and the links above.
+                      child: Builder(
+                        builder: (zoomed) => CalendarViews<ListedFile>(
+                          calendars: {
+                            for (final MapEntry(key: file, value: calendar)
+                                in shown.entries)
+                              file: calendar.calendar,
+                          },
+                          colorOf: colorOf,
+                          kind: viewChoice.last(),
+                          onKind: (kind) => unawaited(viewChoice.keep(kind)),
+                          now: ref.watch(calendarClockProvider),
+                          titleOf: (file) => shown[file]!.title,
+                          onTap: (file, occurrence) => _showEvent(
+                            zoomed,
+                            ref,
+                            shown[file]!,
+                            occurrence,
+                            colorOf(file),
                           ),
+                          // Adding happens on a calendar's page, if one can
+                          // open.
+                          onAdd: offered.isEmpty
+                              ? null
+                              : (_) => showSnack(
+                                  context,
+                                  'Open one calendar to edit',
+                                  actionLabel: 'Open',
+                                  onAction: () =>
+                                      _openCalendar(context, ref, colorOf),
+                                ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],

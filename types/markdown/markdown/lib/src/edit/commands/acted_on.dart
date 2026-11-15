@@ -34,8 +34,7 @@ NodeId? actedOn(ViewRows view, Command command) {
     JoinWithPrevious(:final at) ||
     JoinWithNext(:final at) ||
     SetHeading(:final at) ||
-    RemoveLink(:final at) ||
-    RemoveBlockNextTo(caret: final at) => at.leaf,
+    RemoveLink(:final at) => at.leaf,
     RemoveFrame(:final leaf) => leaf,
     RemoveSelectedBlock(:final block) ||
     LineAfter(:final block) ||

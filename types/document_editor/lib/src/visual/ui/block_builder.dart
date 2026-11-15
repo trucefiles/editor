@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_markdown/truce_markdown.dart'
     show
@@ -15,6 +16,7 @@ import '../../document_text_styles.dart';
 import '../library/library_nodes.dart';
 import '../visual_actions.dart';
 import 'add_item_button.dart';
+import 'block_component.dart';
 import 'done_heading.dart';
 import 'drawn_table.dart';
 import 'framed_row.dart';
@@ -46,17 +48,24 @@ class BlockBuilder implements ComponentBuilder {
     final look = componentViewModel.look;
     final context = componentContext.context;
     final metrics = DocumentMetrics.of(context);
-    return BoxComponent(
-      key: componentContext.componentKey,
-      isVisuallySelectable: look is BlockLook,
-      child: switch (look) {
-        BlockLook() => _shownWhole(look, componentViewModel, context),
-        DoneHeadingLook(
-          :final list,
-          :final count,
-          :final collapsed,
-          :final frames,
-        ) =>
+    final key = componentContext.componentKey;
+    return switch (look) {
+      BlockLook() => BlockComponent(
+        key: key,
+        lineHeight: lineHeightOf(
+          DocumentTextStyles.body(Theme.of(context)),
+          MediaQuery.textScalerOf(context),
+        ),
+        row: (box) => _shownWhole(look, componentViewModel, context, box),
+      ),
+      DoneHeadingLook(
+        :final list,
+        :final count,
+        :final collapsed,
+        :final frames,
+      ) =>
+        _unselectable(
+          key,
           framedListRow(
             frames,
             DoneHeading(
@@ -66,7 +75,10 @@ class BlockBuilder implements ComponentBuilder {
             ),
             metrics: metrics,
           ),
-        AddItemLook(:final list, :final first, :final frames) => framedListRow(
+        ),
+      AddItemLook(:final list, :final first, :final frames) => _unselectable(
+        key,
+        framedListRow(
           frames,
           AddItemButton(
             indent: metrics.handleWidth,
@@ -74,16 +86,22 @@ class BlockBuilder implements ComponentBuilder {
           ),
           metrics: metrics,
         ),
-        TextLook() || RawTextLook() => throw StateError('a row with text'),
-      },
-    );
+      ),
+      TextLook() || RawTextLook() => throw StateError('a row with text'),
+    };
   }
 
-  /// [look]'s block as a [FramedRow], active while selected whole.
+  /// [row] as a component the selection passes over.
+  Widget _unselectable(GlobalKey key, Widget row) =>
+      BoxComponent(key: key, isVisuallySelectable: false, child: row);
+
+  /// [look]'s block as a [FramedRow], active while selected whole, the
+  /// block in its [box].
   Widget _shownWhole(
     BlockLook look,
     BlockViewModel viewModel,
     BuildContext context,
+    Widget Function(Widget block) box,
   ) {
     final BlockLook(:leaf, :frames) = look;
     // Selected whole (for the library a caret at its end, as the caret
@@ -109,7 +127,7 @@ class BlockBuilder implements ComponentBuilder {
     };
     return FramedRow(
       frames: frames,
-      content: block,
+      content: box(block),
       copy: _block(leaf, context),
       active: viewModel.selection != null,
       style: DocumentTextStyles.body(Theme.of(context)),

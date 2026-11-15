@@ -59,7 +59,9 @@ have its own color, also as a dot when you tap it; otherwise it shows
 in its calendar's color (the file's color, else its folder's). Start
 and end can each have their own time zone, e.g. for a flight: tap the
 zone under a time to pick one.
-An event from another zone also shows its own times when you tap it. **Import events** in a calendar's
+An event from another zone also shows its own times when you tap it.
+Links in an event's place and notes open with a tap, and a tap on the
+place opens it in your maps app. **Import events** in a calendar's
 menu brings in the events of another `.ics` file, e.g. an invite: new
 ones are added, ones the calendar has already take the file's version,
 and one Undo takes it all back. A health calendar shows in the same
@@ -76,7 +78,8 @@ a long press or right click on it hides the calendar from the tab, and
 **Hidden** brings it back. Tap an event there to see it and its
 calendar, then open the calendar or edit the event on its page. To add or change events, open one
 calendar with the calendar button; a tap on a free day in the tab
-reminds you. When two devices changed
+reminds you. Pinch or Ctrl and + or - zoom the tab and its event
+details, as in a document. When two devices changed
 the same calendar, the compare view offers **Merge both**: events merge
 one by one, and where both changed the same event, the newer change is
 kept.
@@ -90,6 +93,7 @@ kept.
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
 <img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Open calendar and Edit">
 <img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
+<img src="screenshots/calendar/calendar_event_links_touch.png" width="300" alt="An event's sheet: its place and the links in its notes underlined, to open with a tap">
 
 ## Home, All and search
 
@@ -124,10 +128,15 @@ menu's **Backups** lists only this document's backups: open one to compare
 it, then restore it (Undo takes that back too) or delete it. Deleting a file
 keeps a backup of it too. **Restore as new file**, in each backup's menu,
 writes it as a new file where and under what name you pick, next to the
-file it came from.
+file it came from. Backups are kept for up to 7 days, and within the
+**Backup space** you pick in Settings (100 MB unless you change it):
+when they take more, the file whose backups take the most space gives
+up its oldest first; each file keeps its newest, and a deleted file's
+backup stays its full 7 days.
 
 <img src="screenshots/backups/document_backups_desktop.png" width="600" alt="The backups of one document, newest first">
 <img src="screenshots/backups/undo_end_notice_desktop.png" width="600" alt="A note at the bottom: nothing more to undo since you opened the file, with a Backups button">
+<img src="screenshots/backups/backup_space_touch.png" width="300" alt="Settings on a phone: Backup space, from 50 MB to no limit, 100 MB picked, with a note that a smaller limit deletes older backups right away">
 
 ## Editing a document
 

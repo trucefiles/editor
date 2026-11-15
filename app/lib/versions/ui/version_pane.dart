@@ -55,7 +55,7 @@ class VersionPane extends ConsumerWidget {
           subtitle: Text(switch (content) {
             SavedText(:final modified) =>
               ref.watch(timeTextsProvider).full(modified),
-            EditorText() => 'In the editor now',
+            EditorText() => 'In the editor',
             DeletedFile() => 'Deleted',
           }),
           trailing: FilledButton(onPressed: onKeep, child: Text(keepLabel)),

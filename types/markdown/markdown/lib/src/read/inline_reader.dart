@@ -1,9 +1,10 @@
+import 'package:truce_core/truce_core.dart' show findExtendedAutolinks;
+
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';
 import 'syntax/block_starts.dart';
 import 'syntax/characters.dart';
 import 'syntax/delimiter_runs.dart';
-import 'syntax/extended_autolinks.dart';
 import 'syntax/link_syntax.dart';
 
 /// The inline content of [content] from [start] to [end], as CommonMark

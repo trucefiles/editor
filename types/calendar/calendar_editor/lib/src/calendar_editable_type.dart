@@ -8,6 +8,7 @@ import 'calendar_editor_view.dart';
 import 'calendar_import_file.dart';
 import 'calendar_start.dart';
 import 'ui/cycle_text.dart';
+import 'ui/event_links.dart';
 import 'ui/occurrence_texts.dart';
 
 /// Calendars, shown on the calendar page; cards write their events'
@@ -17,12 +18,14 @@ final class CalendarEditableType extends CalendarFileType
   /// [day] writes an event's day on cards; [deviceZone] tells this
   /// device's time zone, for new events; [starts] what calendar pages are
   /// asked to start with;
-  /// [pickFile] asks for a calendar file to import; [now] tells the time.
+  /// [pickFile] asks for a calendar file to import; [openers] open the
+  /// links and places events name; [now] tells the time.
   CalendarEditableType({
     required DayText day,
     required this.deviceZone,
     required this.starts,
     required this.pickFile,
+    required this.openers,
     super.now,
   }) : super(
          eventLine: (occurrence) => occurrenceLine(occurrence, day),
@@ -32,6 +35,7 @@ final class CalendarEditableType extends CalendarFileType
   final DeviceZone deviceZone;
   final CalendarStarts starts;
   final PickCalendarFile pickFile;
+  final EventOpeners openers;
 
   @override
   IconData get icon => Icons.calendar_month_outlined;
@@ -41,7 +45,12 @@ final class CalendarEditableType extends CalendarFileType
     final part = CalendarEditorPart(start, page, pickFile: pickFile);
     return (
       part: part,
-      view: CalendarEditorView(part, deviceZone: deviceZone, starts: starts),
+      view: CalendarEditorView(
+        part,
+        deviceZone: deviceZone,
+        starts: starts,
+        openers: openers,
+      ),
     );
   }
 }

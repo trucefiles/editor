@@ -26,7 +26,7 @@ class FileBackupsScreen extends ConsumerWidget {
     title: 'Backups of $title',
     backups: ref.watch(fileBackupsProvider(file)),
     empty:
-        "No backups of this file yet. They're kept for "
+        "No backups of this file yet. They're kept for up to "
         '${backupRetention.inDays} days.',
     onOpen: onOpen,
   );
