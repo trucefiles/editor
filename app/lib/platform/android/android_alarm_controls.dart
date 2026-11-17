@@ -26,10 +26,12 @@ final class AndroidAlarmControls implements AlarmControls {
   @override
   Future<void> snooze(AlertTap alarm) async {
     await stop(alarm);
+    final now = DateTime.now();
     await scheduleAlert(
       _notifications.plugin,
       alarm,
-      at: DateTime.now().add(snoozeFor),
+      at: now.add(snoozeFor),
+      now: now,
       texts: _texts,
       exact: await mayRingExactly(_notifications.plugin),
     );

@@ -96,7 +96,7 @@ void main() {
   });
 
   Future<void> list(
-    Map<FileKey, Calendar> calendars, {
+    Map<FileKey, Calendar?> calendars, {
     DateTime? now,
     String zone = _zone,
     DateTime? version,
@@ -221,6 +221,21 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  test('a calendar that should have been read for a new day, but came '
+      'without, is read at the next listing', () async {
+    await start();
+    // Eight days ahead: past this plan's seven.
+    final work = _calendar({
+      'review': _monday.add(const Duration(days: 7, hours: 2)),
+    });
+    await list({_work: work});
+    expect(ringer.titles, isEmpty);
+    final tuesday = _monday.add(const Duration(days: 1));
+    await list({_work: null}, now: tuesday);
+    await list({_work: work}, now: tuesday);
+    expect(ringer.titles, ['review']);
   });
 
   test('a calendar no longer listed is silenced', () async {
@@ -451,6 +466,30 @@ void main() {
       await start(now: later);
       await list({_work: work}, now: later);
       expect([for (final alert in ringer.missed) alert.title], ['missed']);
+    });
+
+    test('a calendar planned before a run that ended before any listing '
+        'still rings from the start when its folder lists late', () async {
+      ringer = _Ringer(ringsWhileClosed: false);
+      planner = AlertPlanner(ringer: ringer, store: store);
+      await start();
+      await list({_work: _calendar({})});
+      await planner.handle((ticket) => Stopping(now: _monday, ticket: ticket));
+      await planner.close();
+      // A run that started and was ended before it listed anything.
+      planner = AlertPlanner(ringer: ringer, store: store);
+      await start(now: _monday.add(const Duration(hours: 1)));
+      await planner.close();
+      planner = AlertPlanner(ringer: ringer, store: store);
+      final started = _monday.add(const Duration(hours: 2));
+      await start(now: started);
+      await list({}, now: started, sees: (file) => file != _work);
+      await list({
+        _work: _calendar({
+          'after the start': started.add(const Duration(minutes: 20)),
+        }),
+      }, now: started.add(const Duration(minutes: 20)));
+      expect(ringer.titles, ['after the start']);
     });
 
     test(

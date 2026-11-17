@@ -17,9 +17,15 @@ import '../ring_failures.dart';
 /// Each rings in the device's [AlertStyle], as set when it was handed.
 /// One the system refuses is skipped ([orSkip]).
 final class AndroidRinger implements Ringer {
-  AndroidRinger(this._notifications, this._texts, {required this._style});
+  AndroidRinger(
+    this._notifications,
+    this._texts, {
+    required this._style,
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
   final AlertNotifications _notifications;
+  final DateTime Function() _now;
 
   /// The time texts as the device writes them now.
   final TimeTexts Function() _texts;
@@ -48,6 +54,7 @@ final class AndroidRinger implements Ringer {
               _notifications.plugin,
               AlertTap(alert, number: number, shown: shown),
               at: alert.at,
+              now: _now(),
               texts: _texts(),
               exact: exact,
             ),
@@ -86,19 +93,20 @@ final class AndroidRinger implements Ringer {
 
 /// Schedules [tap]'s alert to ring at [at] as [tap] says, under its
 /// number (in place of one by that number); also for a snooze. One whose
-/// time came while it was handed over rings now. Unless [exact] (see
+/// time came by [now], while it was handed over, rings at once. Unless [exact] (see
 /// [mayRingExactly]), it rings as near [at] as the system lets it.
 Future<void> scheduleAlert(
   FlutterLocalNotificationsPlugin plugin,
   AlertTap tap, {
   required DateTime at,
+  required DateTime now,
   required TimeTexts texts,
   required bool exact,
 }) async {
   final (title, body) = (alertTitle(tap.alert), alertWhen(tap.alert, texts));
   final details = notificationDetailsOf(tap.shown);
   // The system only takes times still ahead when it gets them.
-  if (at.isBefore(DateTime.now().add(const Duration(seconds: 1)))) {
+  if (at.isBefore(now.add(const Duration(seconds: 1)))) {
     return plugin.show(
       id: tap.number,
       title: title,

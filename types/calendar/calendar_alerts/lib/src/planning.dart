@@ -26,11 +26,9 @@ PlanStep planStep(
     PlannerState(
       ring: ringsWhileClosed
           ? state.ring
-          // Nothing the ringer held is held any more: plan all anew.
-          : RingState(
-              nextNumber: state.ring.nextNumber,
-              lastAlive: state.ring.lastAlive,
-            ),
+          // Nothing the ringer held is held any more; each calendar is
+          // read anew as the run first lists it.
+          : state.ring.copyWith(handed: const {}),
       startedAt: now,
       missedSince: state.ring.lastAlive,
       plannedAtStart: state.ring.versions.keys.toSet(),
@@ -79,13 +77,23 @@ PlanStep _listed(
   final ring = state.ring;
   // Planned from, not listed, but maybe still there.
   bool kept(FileKey file) => !calendars.containsKey(file) && !sees(file);
+  // On a ringer that forgot all at the start, a calendar not yet read in
+  // the run holds nothing.
+  bool forgotten(FileKey file) =>
+      !ringsWhileClosed && !state.missedChecked.contains(file);
   final read = {
     for (final MapEntry(key: file, value: (:version, :calendar))
         in calendars.entries)
       if (calendar != null &&
-          ring.needsRead(file, version, now: now, zone: zone))
+          (ring.needsRead(file, version, now: now, zone: zone) ||
+              forgotten(file)))
         file: calendar,
   };
+  // A plan that moves on to new days covers them only for the calendars
+  // it read: any other keeps no version, so it is read at the next
+  // listing.
+  final movesOn = ring.movesOn(now: now, zone: zone);
+  String? keptVersion(FileKey file) => movesOn ? null : ring.versions[file];
   final until = now.add(planAhead);
   // From when a calendar's alerts are handed: from the run's start for one
   // shown since then (what came meanwhile rings at once), else from now.
@@ -133,10 +141,10 @@ PlanStep _listed(
         versions: {
           for (final MapEntry(key: file, value: version)
               in ring.versions.entries)
-            if (kept(file)) file: version,
+            if (kept(file) && !movesOn) file: version,
           for (final MapEntry(key: file, value: (:version, calendar: _))
               in calendars.entries)
-            file: ?(read.containsKey(file) ? version : ring.versions[file]),
+            file: ?(read.containsKey(file) ? version : keptVersion(file)),
         },
         plannedOn: dayOf(now),
         zone: zone,

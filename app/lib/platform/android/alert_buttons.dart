@@ -26,10 +26,12 @@ Future<void> onAlertButton(NotificationResponse response) async {
       android: AndroidInitializationSettings('ic_alert'),
     ),
   );
+  final now = DateTime.now();
   await scheduleAlert(
     plugin,
     tap,
-    at: DateTime.now().add(snoozeFor),
+    at: now.add(snoozeFor),
+    now: now,
     texts: deviceTimeTexts(
       supportedLocaleOf(PlatformDispatcher.instance.locale),
     ),
