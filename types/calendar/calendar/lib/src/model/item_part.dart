@@ -1,5 +1,3 @@
-import 'package:collection/collection.dart';
-
 import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
@@ -174,17 +172,10 @@ final class TaskPart extends ItemPart {
   /// a due time where it starts.
   late final CalendarTime? _shownAt = due ?? start;
 
-  /// The half hour up to its due time, but not before that day begins
-  /// (by its own clock), so it shows on one day only.
   @override
   late final CalendarTime? from = switch (_shownAt) {
     final AllDay day => day,
-    final time? => time.at(
-      [
-        time.wall.subtract(taskLength),
-        DateTime.utc(time.wall.year, time.wall.month, time.wall.day),
-      ].max,
-    ),
+    final time? => time.at(time.wall.subtract(taskLength)),
     null => null,
   };
 
@@ -197,9 +188,12 @@ final class TaskPart extends ItemPart {
   @override
   late final List<Duration> alerts = _alertsOf(component, fromEnd: true);
 
-  /// Whether it is done: completed, by its status or by when.
-  late final bool done =
-      _status == 'COMPLETED' || component.property('COMPLETED') != null;
+  /// Whether it is done: by its status; without one, by when it was
+  /// done.
+  late final bool done = switch (_status) {
+    null => component.property('COMPLETED') != null,
+    final status => status == 'COMPLETED',
+  };
 
   /// When it was done, if it says.
   late final DateTime? completed = switch (component.property('COMPLETED')) {

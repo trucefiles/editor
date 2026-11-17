@@ -264,9 +264,13 @@ List<Component>? _checked(
   }
   if ((old ?? task.series).done == done) return null;
   final changed = _withDone(old?.component ?? _dateOf(task, date), done, at);
-  // Open again and as the series has it: no changed date is needed.
+  // Open again and as the series has it: no changed date is needed. Only
+  // a series that repeats has the date without it (a file of changed
+  // dates only has no series to fall back on).
   final asSeries =
       !done &&
+      task.series.repeats &&
+      !task.series.changesOccurrence &&
       !task.series.done &&
       _unchecked(changed) == _unchecked(_dateOf(task, date));
   return _withDate(task, old, asSeries ? null : stamped(changed, at));

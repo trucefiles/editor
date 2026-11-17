@@ -66,6 +66,17 @@ void _reading() {
     expect(part.done, isFalse);
   });
 
+  test('a status says whether it is done, over a done time left behind', () {
+    final reopened = _with(
+      _task(
+        'a',
+        ';VALUE=DATE:20261103',
+        more: 'STATUS:NEEDS-ACTION\nCOMPLETED:20261101T090000Z\n',
+      ),
+    ).taskOf('a')!.series;
+    expect(reopened.done, isFalse);
+  });
+
   test('done by its status or by when it was done', () {
     final calendar = _with(
       '${_task('a', ':20261110T090000', more: 'STATUS:COMPLETED\n')}'
@@ -109,6 +120,21 @@ void _shown() {
     expect(day.allDay, isTrue);
     expect(day.start, DateTime(2026, 11, 11));
     expect(day.due, DateTime(2026, 11, 11));
+  });
+
+  test('a task due just after midnight on this device shows on that day '
+      'only, whatever zone it is written in', () {
+    final due = DateTime(2026, 11, 10, 0, 10).toUtc();
+    String two(int value) => '$value'.padLeft(2, '0');
+    final written =
+        ':${due.year}${two(due.month)}${two(due.day)}T'
+        '${two(due.hour)}${two(due.minute)}00Z';
+    final shown = _tasksIn(
+      _with(_task('late', written)),
+      _november.from,
+      _november.to,
+    ).single;
+    expect(shown.start, DateTime(2026, 11, 10));
   });
 
   test('a task due just after midnight shows on its own day only', () {
@@ -241,6 +267,28 @@ void _checking() {
     ).taskOf('rent@thunderbird')!.changedAt(december)!;
     expect(kept.summary, 'Pay rent (late)');
     expect(kept.done, isFalse);
+  });
+
+  test('in a file of changed dates only, a date open again stays, though '
+      'it reads like the first', () {
+    final dates = _with(
+      'BEGIN:VTODO\nUID:gym\nSUMMARY:Gym\n'
+      'RECURRENCE-ID;VALUE=DATE:20261102\nDUE;VALUE=DATE:20261102\n'
+      'END:VTODO\n'
+      'BEGIN:VTODO\nUID:gym\nSUMMARY:Gym\n'
+      'RECURRENCE-ID;VALUE=DATE:20261109\nDUE;VALUE=DATE:20261109\n'
+      'END:VTODO\n',
+    );
+    final second = AllDay(DateTime(2026, 11, 9));
+    final checked = applyEdit(
+      dates,
+      CheckTask('gym', second, done: true, at: _at),
+    );
+    final open = applyEdit(
+      checked,
+      CheckTask('gym', second, done: false, at: _at),
+    ).taskOf('gym')!;
+    expect(open.changedAt(second)?.done, isFalse);
   });
 
   test('in a file of changed dates only, a check of one checks that one', () {

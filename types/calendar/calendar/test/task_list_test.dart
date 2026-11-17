@@ -99,6 +99,31 @@ void main() {
     expect(list.later.single.entry.due, DateTime(2028, 3));
   });
 
+  test('a series done as a whole shows once among the done', () {
+    final list = taskList({
+      'home': _with(
+        _task(
+          'stretch',
+          due: ';VALUE=DATE:20261101',
+          more:
+              'RRULE:FREQ=DAILY\nSTATUS:COMPLETED\n'
+              'COMPLETED:20261116T090000Z\n',
+        ),
+      ),
+    }, _today);
+    expect(_titles(list.done), ['stretch']);
+  });
+
+  test('done ones by when they were done, the latest first', () {
+    final list = taskList({
+      'home': _with(
+        '${_task('due yesterday', due: ';VALUE=DATE:20261116', more: 'COMPLETED:20261110T090000Z\n')}'
+        '${_task('long overdue', due: ';VALUE=DATE:20261001', more: 'COMPLETED:20261117T090000Z\n')}',
+      ),
+    }, _today);
+    expect(_titles(list.done), ['long overdue', 'due yesterday']);
+  });
+
   test('a series done as a whole shows no open date', () {
     final list = taskList({
       'home': _with(

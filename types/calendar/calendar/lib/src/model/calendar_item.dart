@@ -97,19 +97,24 @@ final class CalendarTask extends CalendarItem<TaskPart> {
   @override
   UidKey get key => UidKey.task(uid);
 
+  /// A date due at a time shows as the half hour up to it, but not before
+  /// that day begins on this device's clock, so it shows on one day only.
   @override
   TaskOccurrence occurrenceOf(
     TaskPart part, {
     required DateTime start,
     required DateTime end,
     CalendarTime? recurrence,
-  }) => TaskOccurrence(
-    this,
-    part,
-    start: start,
-    end: end,
-    recurrence: recurrence,
-  );
+  }) {
+    final dayBegins = DateTime(end.year, end.month, end.day);
+    return TaskOccurrence(
+      this,
+      part,
+      start: part.allDay || !start.isBefore(dayBegins) ? start : dayBegins,
+      end: end,
+      recurrence: recurrence,
+    );
+  }
 }
 
 /// [parts] as the series (the first that changes no date, else the

@@ -114,7 +114,7 @@ TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
               null => false,
             })
           row,
-    ]..sort((a, b) => _byDue(b, a)),
+    ]..sort(_byDoneLatest),
   );
 }
 
@@ -134,8 +134,11 @@ Iterable<TaskEntry> _entriesOf(
   final dates = series.repeats || series.changesOccurrence
       ? _datesUpToOpen(task, from, today)
       : _entriesIn(task, _farPast, _farFuture);
+  final done = dates.where((entry) => entry.done);
   return [
-    ...dates.where((entry) => entry.done),
+    // Dates done on their own; those of a series done as a whole as one.
+    ...done.where((entry) => entry.part != series),
+    ?done.where((entry) => entry.part == series).lastOrNull,
     ?dates.where((entry) => !entry.done).sorted(_entryByDue).firstOrNull,
   ];
 }
@@ -194,6 +197,17 @@ final _farPast = DateTime(1);
 final _farFuture = DateTime(9999);
 
 int _byDue<K>(TaskRow<K> a, TaskRow<K> b) => _entryByDue(a.entry, b.entry);
+
+/// By when done (else due), the latest first; then by title.
+int _byDoneLatest<K>(TaskRow<K> a, TaskRow<K> b) {
+  DateTime? doneAt(TaskEntry entry) => entry.part.completed ?? entry.due;
+  return switch ((doneAt(a.entry), doneAt(b.entry))) {
+    (final x?, final y?) when x != y => y.compareTo(x),
+    (_?, null) => -1,
+    (null, _?) => 1,
+    _ => a.entry.part.summary.compareTo(b.entry.part.summary),
+  };
+}
 
 /// By due time, no due time last; then by title.
 int _entryByDue(TaskEntry a, TaskEntry b) => switch ((a.due, b.due)) {
