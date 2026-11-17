@@ -3,9 +3,7 @@ import '../read/content_line.dart';
 import 'calendar_time.dart';
 import 'calendar_unit.dart';
 import 'item_part.dart';
-
-/// The kinds of component a [CalendarItem] is: events and tasks.
-const itemKinds = {'VEVENT', 'VTODO'};
+import 'occurrence.dart';
 
 /// One item of a calendar, an event or a task: all components of its
 /// kind with its [uid], the [series] (or single item) and the rest
@@ -16,11 +14,11 @@ sealed class CalendarItem<P extends ItemPart> {
 
   /// The item of [unit]; `null` if it holds none.
   static CalendarItem? of(CalendarUnit unit) => switch (unit.key) {
-    UidKey(component: 'VEVENT', :final uid) => CalendarEvent(
+    UidKey(kind: ItemKind.event, :final uid) => CalendarEvent(
       uid,
       unit.components.map(EventPart.new).toList(),
     ),
-    UidKey(component: 'VTODO', :final uid) => CalendarTask(
+    UidKey(kind: ItemKind.task, :final uid) => CalendarTask(
       uid,
       unit.components.map(TaskPart.new).toList(),
     ),
@@ -39,6 +37,15 @@ sealed class CalendarItem<P extends ItemPart> {
   P? changedAt(CalendarTime date) => changed
       .where((part) => part.recurrenceId?.local == date.local)
       .firstOrNull;
+
+  /// [part] of it shown from [start] to [end] (on this device's clock),
+  /// as its date [recurrence] if it repeats: an occurrence of its kind.
+  Occurrence occurrenceOf(
+    P part, {
+    required DateTime start,
+    required DateTime end,
+    CalendarTime? recurrence,
+  });
 
   /// Its components, the series first.
   List<Component> get components => [
@@ -60,6 +67,20 @@ final class CalendarEvent extends CalendarItem<EventPart> {
 
   @override
   UidKey get key => UidKey.event(uid);
+
+  @override
+  EventOccurrence occurrenceOf(
+    EventPart part, {
+    required DateTime start,
+    required DateTime end,
+    CalendarTime? recurrence,
+  }) => EventOccurrence(
+    this,
+    part,
+    start: start,
+    end: end,
+    recurrence: recurrence,
+  );
 }
 
 /// A task (`VTODO`): a repeating one with its changed (or checked)
@@ -75,6 +96,20 @@ final class CalendarTask extends CalendarItem<TaskPart> {
 
   @override
   UidKey get key => UidKey.task(uid);
+
+  @override
+  TaskOccurrence occurrenceOf(
+    TaskPart part, {
+    required DateTime start,
+    required DateTime end,
+    CalendarTime? recurrence,
+  }) => TaskOccurrence(
+    this,
+    part,
+    start: start,
+    end: end,
+    recurrence: recurrence,
+  );
 }
 
 /// [parts] as the series (the first that changes no date, else the

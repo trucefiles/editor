@@ -114,7 +114,7 @@ final class CalendarNotice extends CalendarOwnerEvent {
 sealed class GoneNotice extends CalendarOwnerEvent {
   const GoneNotice(this.gone);
 
-  final GoneMeanwhile gone;
+  final Gone gone;
 }
 
 /// The edit was saved as a new event or task.
@@ -122,7 +122,7 @@ final class SavedAsNew extends GoneNotice {
   const SavedAsNew(super.gone);
 }
 
-/// The check changed nothing.
+/// The edit (a check of a task) changed nothing.
 final class EditDropped extends GoneNotice {
   const EditDropped(super.gone);
 }

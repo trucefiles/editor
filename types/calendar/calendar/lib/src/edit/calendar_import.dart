@@ -160,9 +160,9 @@ bool _isNew(CalendarUnit? mine) =>
 /// and for a deleted item's marker.
 CalendarUnit? _item(CalendarUnit unit) {
   final item = switch ((unit.key, unit.components)) {
-    (UidKey(:final component), _) when itemKinds.contains(component) => unit,
+    (UidKey(kind: _?), _) => unit,
     (TextKey(), [final Component component])
-        when itemKinds.contains(component.name) =>
+        when ItemKind.named(component.name) != null =>
       _withUid(component, _uidOf(unstampedText(unit))),
     _ => null,
   };

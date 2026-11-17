@@ -9,6 +9,16 @@ import '../model/item_part.dart';
 import '../model/repeat.dart';
 import '../model/wall_on.dart';
 
+/// The fields both kinds of draft have.
+typedef _Shared = ({
+  String summary,
+  String description,
+  String location,
+  Repeat? repeat,
+  List<Duration> alerts,
+  EventColor? color,
+});
+
 /// What an event or a task is to be, as its form states it: never file
 /// text. An edit writes only what differs from the item it goes over;
 /// everything else of it stays as it was. What both kinds share is here.
@@ -68,25 +78,45 @@ sealed class ItemDraft {
   /// What is to be written when a form started from [from] ends as this
   /// draft, while the item became [now] meanwhile (e.g. changed on another
   /// device): what the user changed as this draft says, the rest as [now]
-  /// says. Its times count as one. This draft if the three aren't of one
-  /// kind.
-  ItemDraft over(ItemDraft from, ItemDraft now) => switch ((this, from, now)) {
-    (final EventDraft draft, final EventDraft from, final EventDraft now) =>
-      draft._over(from, now),
-    (final TaskDraft draft, final TaskDraft from, final TaskDraft now) =>
-      draft._over(from, now),
-    _ => this,
-  };
+  /// says. Its times count as one. All three are of one kind.
+  ItemDraft over(covariant ItemDraft from, covariant ItemDraft now);
 
   /// Whether [alerts] are those of [part].
   bool sameAlertsAs(ItemPart part) =>
       const ListEquality<Duration>().equals(alerts, part.alerts);
 
-  /// The alerts the user wants, as [_pick] picks a field.
-  List<Duration> _alertsOver(ItemDraft from, ItemDraft now) =>
-      const ListEquality<Duration>().equals(alerts, from.alerts)
-      ? now.alerts
-      : alerts;
+  /// What both kinds share, as this draft says.
+  _Shared get _shared => (
+    summary: summary,
+    description: description,
+    location: location,
+    repeat: repeat,
+    alerts: alerts,
+    color: color,
+  );
+
+  /// [_shared], but not repeating.
+  _Shared get _single => (
+    summary: summary,
+    description: description,
+    location: location,
+    repeat: null,
+    alerts: alerts,
+    color: color,
+  );
+
+  /// What both kinds share as the user wants it (see [over]): each field
+  /// as [_pick] picks it.
+  _Shared _sharedOver(ItemDraft from, ItemDraft now) => (
+    summary: _pick(summary, from.summary, now.summary),
+    description: _pick(description, from.description, now.description),
+    location: _pick(location, from.location, now.location),
+    repeat: _pick(repeat, from.repeat, now.repeat),
+    alerts: const ListEquality<Duration>().equals(alerts, from.alerts)
+        ? now.alerts
+        : alerts,
+    color: _pick(color, from.color, now.color),
+  );
 
   bool _sameShared(ItemDraft other) =>
       other.summary == summary &&
@@ -119,6 +149,20 @@ final class EventDraft extends ItemDraft {
     this.health,
     super.color,
   });
+
+  EventDraft._(
+    _Shared shared, {
+    required this.start,
+    required this.end,
+    required this.health,
+  }) : super(
+         summary: shared.summary,
+         description: shared.description,
+         location: shared.location,
+         repeat: shared.repeat,
+         alerts: shared.alerts,
+         color: shared.color,
+       );
 
   /// A health [entry] on [day], with an optional [note].
   EventDraft.health(HealthEntry entry, DateTime day, {String note = ''})
@@ -168,29 +212,17 @@ final class EventDraft extends ItemDraft {
 
   /// This draft for one occurrence, from [start] to [end]: it doesn't
   /// repeat.
-  EventDraft occurrenceAt(CalendarTime start, CalendarTime end) => EventDraft(
-    summary: summary,
-    start: start,
-    end: end,
-    description: description,
-    location: location,
-    alerts: alerts,
-    health: health,
-    color: color,
-  );
+  EventDraft occurrenceAt(CalendarTime start, CalendarTime end) =>
+      EventDraft._(_single, start: start, end: end, health: health);
 
-  EventDraft _over(EventDraft from, EventDraft now) {
+  @override
+  EventDraft over(EventDraft from, EventDraft now) {
     final timesChanged = start != from.start || end != from.end;
-    return EventDraft(
-      summary: _pick(summary, from.summary, now.summary),
+    return EventDraft._(
+      _sharedOver(from, now),
       start: timesChanged ? start : now.start,
       end: timesChanged ? end : now.end,
-      description: _pick(description, from.description, now.description),
-      location: _pick(location, from.location, now.location),
-      repeat: _pick(repeat, from.repeat, now.repeat),
-      alerts: _alertsOver(from, now),
       health: _pick(health, from.health, now.health),
-      color: _pick(color, from.color, now.color),
     );
   }
 
@@ -219,6 +251,16 @@ final class TaskDraft extends ItemDraft {
     super.alerts,
     super.color,
   });
+
+  TaskDraft._(_Shared shared, {required this.due, required this.start})
+    : super(
+        summary: shared.summary,
+        description: shared.description,
+        location: shared.location,
+        repeat: shared.repeat,
+        alerts: shared.alerts,
+        color: shared.color,
+      );
 
   /// What [part] says now, to start a form from.
   TaskDraft.of(TaskPart part)
@@ -249,35 +291,35 @@ final class TaskDraft extends ItemDraft {
   @override
   UidKey keyOf(String uid) => UidKey.task(uid);
 
-  /// This draft due [due] instead: its start moved along by as much, on
-  /// the due time's clock, while both are of one kind (a day, or a time
-  /// of day); else it has no start, so it has no dates its form doesn't
-  /// show. Without a due time it doesn't repeat.
+  /// This draft due [due] instead. Its start is moved along by as much,
+  /// on the due time's clock, while it and both due times are of one kind
+  /// (a day, or a time of day); else it stays while it is of the new due
+  /// time's kind and not after it; else it goes, as the form doesn't show
+  /// it. Without a due time it has no start and doesn't repeat.
   TaskDraft withDue(CalendarTime? due) {
     final (was, start) = (this.due, this.start);
-    return TaskDraft(
-      summary: summary,
+    bool sameKind(CalendarTime a, CalendarTime b) =>
+        (a is AllDay) == (b is AllDay);
+    return TaskDraft._(
+      due == null ? _single : _shared,
       due: due,
       start: switch ((was, start, due)) {
         (final was?, final start?, final due?)
-            when (was is AllDay) == (due is AllDay) &&
-                (start is AllDay) == (due is AllDay) =>
+            when sameKind(was, due) && sameKind(start, due) =>
           start.at(start.wall.add(due.wall.difference(was.wall))),
+        (_, final start?, final due?)
+            when sameKind(start, due) && !start.local.isAfter(due.local) =>
+          start,
         _ => null,
       },
-      description: description,
-      location: location,
-      repeat: due == null ? null : repeat,
-      alerts: alerts,
-      color: color,
     );
   }
 
   @override
   TaskDraft dateAt(CalendarTime anchor) {
     final (start, due) = (this.start, this.due);
-    return TaskDraft(
-      summary: summary,
+    return TaskDraft._(
+      _single,
       due: switch ((start, due)) {
         (final start?, final due?) => anchor.at(
           anchor.wall.add(offsetOn(start, due)),
@@ -286,35 +328,19 @@ final class TaskDraft extends ItemDraft {
         (_, null) => null,
       },
       start: start == null ? null : anchor,
-      description: description,
-      location: location,
-      alerts: alerts,
-      color: color,
     );
   }
 
   @override
-  TaskDraft get single => TaskDraft(
-    summary: summary,
-    due: due,
-    start: start,
-    description: description,
-    location: location,
-    alerts: alerts,
-    color: color,
-  );
+  TaskDraft get single => TaskDraft._(_single, due: due, start: start);
 
-  TaskDraft _over(TaskDraft from, TaskDraft now) {
+  @override
+  TaskDraft over(TaskDraft from, TaskDraft now) {
     final timesChanged = due != from.due || start != from.start;
-    return TaskDraft(
-      summary: _pick(summary, from.summary, now.summary),
+    return TaskDraft._(
+      _sharedOver(from, now),
       due: timesChanged ? due : now.due,
       start: timesChanged ? start : now.start,
-      description: _pick(description, from.description, now.description),
-      location: _pick(location, from.location, now.location),
-      repeat: _pick(repeat, from.repeat, now.repeat),
-      alerts: _alertsOver(from, now),
-      color: _pick(color, from.color, now.color),
     );
   }
 

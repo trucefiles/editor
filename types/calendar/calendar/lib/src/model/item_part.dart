@@ -4,6 +4,7 @@ import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
 import 'calendar_time.dart';
+import 'calendar_unit.dart' show ItemKind;
 import 'event_color.dart';
 import 'health_entry.dart';
 import 'repeat.dart';
@@ -18,7 +19,10 @@ sealed class ItemPart {
   /// The part [component] is, by its kind: a task's for a `VTODO`, else
   /// an event's.
   factory ItemPart.of(Component component) =>
-      component.name == 'VTODO' ? TaskPart(component) : EventPart(component);
+      switch (ItemKind.named(component.name)) {
+        ItemKind.task => TaskPart(component),
+        ItemKind.event || null => EventPart(component),
+      };
 
   final Component component;
 

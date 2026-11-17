@@ -393,6 +393,32 @@ void _editing() {
     expect(day.start, isNull, reason: 'a time start for a day');
   });
 
+  test("a due time given or changed keeps the task's start where it fits", () {
+    final starts = TaskDraft(
+      summary: 'Rent',
+      start: Floating(DateTime.utc(2026, 11, 1, 9)),
+    );
+    final due = Floating(DateTime.utc(2026, 11, 3, 18));
+    expect(starts.withDue(due).start, starts.start, reason: 'before it');
+    expect(
+      starts.withDue(Floating(DateTime.utc(2026, 10, 30, 18))).start,
+      isNull,
+      reason: 'after it',
+    );
+    final timed = starts.withDue(due);
+    final day = TaskDraft(
+      summary: 'Rent',
+      due: AllDay(DateTime(2026, 11, 3)),
+      start: AllDay(DateTime(2026, 11, 1)),
+    );
+    expect(day.withDue(due).start, isNull, reason: 'a day start for a time');
+    expect(
+      timed.withDue(AllDay(DateTime(2026, 11, 4))).start,
+      isNull,
+      reason: 'a time start for a day',
+    );
+  });
+
   test('a drag moves a date of a task to be due where it ends', () {
     final calendar = Calendar.read(_thunderbird)!;
     final december = _tasksIn(
@@ -420,7 +446,7 @@ void _editing() {
     final calendar = Calendar.read(_thunderbird)!;
     final deleted = applyEdit(
       calendar,
-      DeleteItem(const UidKey.task('rent@thunderbird'), at: _at),
+      DeleteItem(UidKey.task('rent@thunderbird'), at: _at),
     );
     final marker = deleted.taskOf('rent@thunderbird')!.series;
     expect((marker.deleted, marker.component.name), (true, 'VTODO'));
@@ -429,7 +455,7 @@ void _editing() {
     final dateGone = applyEdit(
       calendar,
       DeleteOccurrence(
-        const UidKey.task('rent@thunderbird'),
+        UidKey.task('rent@thunderbird'),
         Floating(DateTime.utc(2026, 12, 1, 9)),
         at: _at,
       ),
@@ -442,7 +468,7 @@ void _gone() {
   final calendar = Calendar.read(_thunderbird)!;
   final deleted = applyEdit(
     calendar,
-    DeleteItem(const UidKey.task('rent@thunderbird'), at: _at),
+    DeleteItem(UidKey.task('rent@thunderbird'), at: _at),
   );
   final december = Floating(DateTime.utc(2026, 12, 1, 9));
 
@@ -452,24 +478,26 @@ void _gone() {
       CheckTask('rent@thunderbird', december, done: true, at: _at),
       newUid: 'new@t',
     );
-    expect((landed.edit, landed.gone), (null, GoneMeanwhile.task));
+    expect(
+      (landed.edit, landed.gone),
+      (null, (kind: ItemKind.task, what: GoneMeanwhile.item)),
+    );
   });
 
   test('a check of a date the task no longer has changes nothing', () {
     final dateGone = applyEdit(
       calendar,
-      DeleteOccurrence(
-        const UidKey.task('rent@thunderbird'),
-        december,
-        at: _at,
-      ),
+      DeleteOccurrence(UidKey.task('rent@thunderbird'), december, at: _at),
     );
     final landed = landing(
       dateGone,
       CheckTask('rent@thunderbird', december, done: true, at: _at),
       newUid: 'new@t',
     );
-    expect((landed.edit, landed.gone), (null, GoneMeanwhile.taskDate));
+    expect(
+      (landed.edit, landed.gone),
+      (null, (kind: ItemKind.task, what: GoneMeanwhile.date)),
+    );
   });
 
   test('a change of a task deleted meanwhile is saved as a new task', () {
@@ -479,7 +507,7 @@ void _gone() {
       ChangeSeries('rent@thunderbird', from, from: from, at: _at),
       newUid: 'new@t',
     );
-    expect(landed.gone, GoneMeanwhile.task);
+    expect(landed.gone, (kind: ItemKind.task, what: GoneMeanwhile.item));
     expect(
       applyEdit(deleted, landed.edit!).taskOf('new@t')!.series.summary,
       'Pay rent',

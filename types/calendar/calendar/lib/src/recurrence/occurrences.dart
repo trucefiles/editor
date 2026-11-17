@@ -11,70 +11,11 @@ import '../model/calendar.dart';
 import '../model/calendar_item.dart';
 import '../model/calendar_time.dart';
 import '../model/item_part.dart';
+import '../model/occurrence.dart';
 import '../model/wall_on.dart';
 
-/// One date of an event or a task, as it shows: [part] says what it is
-/// (the series, a single item, or a changed date), from [start] to [end]
-/// on this device's clock (for a task: the half hour up to its due time,
-/// or its due day).
-sealed class Occurrence {
-  const Occurrence({required this.start, required this.end, this.recurrence});
-
-  CalendarItem get item;
-  ItemPart get part;
-  final DateTime start;
-  final DateTime end;
-
-  /// Which date of its series it is, as the series writes it (its
-  /// anchor, see [ItemPart.anchor]); `null` for an item that doesn't
-  /// repeat.
-  final CalendarTime? recurrence;
-
-  bool get allDay => part.allDay;
-
-  /// Whether it overlaps [from] to [to]; one with no length overlaps
-  /// where it starts. The rule [occurrences] picks them by.
-  bool overlaps(DateTime from, DateTime to) => _overlaps(start, end, from, to);
-}
-
-/// One date of an event.
-final class EventOccurrence extends Occurrence {
-  const EventOccurrence(
-    this.item,
-    this.part, {
-    required super.start,
-    required super.end,
-    super.recurrence,
-  });
-
-  @override
-  final CalendarEvent item;
-  @override
-  final EventPart part;
-}
-
-/// One date of a task, due at [end] (all day: on [start]'s day).
-final class TaskOccurrence extends Occurrence {
-  const TaskOccurrence(
-    this.item,
-    this.part, {
-    required super.start,
-    required super.end,
-    super.recurrence,
-  });
-
-  @override
-  final CalendarTask item;
-  @override
-  final TaskPart part;
-
-  /// Whether this date is done.
-  bool get done => part.done;
-
-  /// When it is due, on this device's clock: its due time, or its due day
-  /// at midnight.
-  DateTime get due => allDay ? start : end;
-}
+export '../model/occurrence.dart'
+    show EventOccurrence, Occurrence, TaskOccurrence;
 
 /// The occurrences of [calendar]'s events and tasks that overlap [from]
 /// to [to] (on this device's clock), by start: repeats expanded,
@@ -113,7 +54,7 @@ final class _Span {
   bool overlaps(CalendarTime start, CalendarTime end) =>
       start.wall.isBefore(wallTo) &&
       !end.wall.isBefore(wallFrom) &&
-      _overlaps(start.local, end.local, from, to);
+      spanOverlaps(start.local, end.local, from, to);
 }
 
 /// The widest gap between two zones' clocks (UTC−12 to UTC+14): a time
@@ -165,9 +106,8 @@ Iterable<Occurrence> _occurrencesOf<P extends ItemPart>(
         : anchor.at(wall.add(lead)).local;
     final shownTo = anchor.at(wall.add(lead + length)).local;
     if (!skipped.contains(local) &&
-        _overlaps(shownFrom, shownTo, span.from, span.to)) {
-      yield _occurrence(
-        item,
+        spanOverlaps(shownFrom, shownTo, span.from, span.to)) {
+      yield item.occurrenceOf(
         series,
         start: shownFrom,
         end: shownTo,
@@ -193,39 +133,13 @@ Occurrence? _shownAt<P extends ItemPart>(
   CalendarTime? recurrence,
 }) => switch ((part.from, part.to)) {
   (final from?, final to?) when !part.cancelled && span.overlaps(from, to) =>
-    _occurrence(
-      item,
+    item.occurrenceOf(
       part,
       start: from.local,
       end: to.local,
       recurrence: recurrence,
     ),
   _ => null,
-};
-
-/// [part] of [item] as an occurrence of its kind.
-Occurrence _occurrence<P extends ItemPart>(
-  CalendarItem<P> item,
-  P part, {
-  required DateTime start,
-  required DateTime end,
-  CalendarTime? recurrence,
-}) => switch ((item, part)) {
-  (final CalendarEvent event, final EventPart part) => EventOccurrence(
-    event,
-    part,
-    start: start,
-    end: end,
-    recurrence: recurrence,
-  ),
-  (final CalendarTask task, final TaskPart part) => TaskOccurrence(
-    task,
-    part,
-    start: start,
-    end: end,
-    recurrence: recurrence,
-  ),
-  _ => throw StateError('A part of another kind than its item'),
 };
 
 /// How many steps from a series' start the library may walk before it
@@ -344,12 +258,6 @@ DateTime _wallOf(DateTime local) => DateTime.utc(
   local.minute,
   local.second,
 );
-
-/// Whether [start] to [end] overlaps [from] to [to]; an event with no
-/// length overlaps where it starts.
-bool _overlaps(DateTime start, DateTime end, DateTime from, DateTime to) =>
-    start.isBefore(to) &&
-    (end.isAfter(from) || (end == start && !start.isBefore(from)));
 
 /// Whether [item]'s series still has its date [date] (as the series
 /// writes its anchor): the series repeats on it, and it is neither left

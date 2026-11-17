@@ -103,9 +103,9 @@ void main() {
     final calendar = import.calendar;
     final file = Calendar.read(_invites)!;
     for (final key in [
-      const UidKey.event('lecture@example.org'),
-      const UidKey.event('concert@example.org'),
-      const UidKey.task('todo@example.org'),
+      UidKey.event('lecture@example.org'),
+      UidKey.event('concert@example.org'),
+      UidKey.task('todo@example.org'),
     ]) {
       expect(_content(calendar.unitOf(key)!), _content(file.unitOf(key)!));
       final item = calendar.itemOf(key)!.series.component;
@@ -144,12 +144,12 @@ void main() {
     const tokyo = ZoneKey('Asia/Tokyo');
     final own = first.unitOf(tokyo)!.text;
     final again = importInto(
-      first.withUnitsChanged({const UidKey.event('concert@example.org'): null}),
+      first.withUnitsChanged({UidKey.event('concert@example.org'): null}),
       _bytes(_invites),
       _at,
     );
     expect(again.calendar.unitOf(tokyo)!.text, own);
-    expect(again.written, [const UidKey.event('concert@example.org')]);
+    expect(again.written, [UidKey.event('concert@example.org')]);
   });
 
   test('importing the same file again changes nothing', () {

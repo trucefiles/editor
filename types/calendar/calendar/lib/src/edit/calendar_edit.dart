@@ -433,18 +433,10 @@ Component _drafted(Component item, ItemDraft draft, {required bool series}) {
       .withText('DESCRIPTION', draft.description, now.description)
       .withText('LOCATION', draft.location, now.location)
       .withText('COLOR', draft.color?.value ?? '', now.color?.value ?? '');
-  edited = switch ((draft, now)) {
-    (final EventDraft draft, final EventPart now) => _eventDrafted(
-      edited,
-      draft,
-      now,
-    ),
-    (final TaskDraft draft, final TaskPart now) => _taskDrafted(
-      edited,
-      draft,
-      now,
-    ),
-    _ => throw StateError('A draft of another kind than its item'),
+  // The draft's kind is the item's: it reads the item as its kind.
+  edited = switch (draft) {
+    EventDraft() => _eventDrafted(edited, draft, EventPart(item)),
+    TaskDraft() => _taskDrafted(edited, draft, TaskPart(item)),
   };
   // A new anchor writes the repeat's last day anew, as the anchor writes
   // it (RFC 5545 wants an end of the start's kind).

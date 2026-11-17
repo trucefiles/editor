@@ -21,7 +21,7 @@ final _gym = AddItem(
 
 final _later = _at.add(const Duration(minutes: 1));
 
-const _gymKey = UidKey.event('gym@t');
+final _gymKey = UidKey.event('gym@t');
 
 final _tokyoCall = AddItem(
   'call@t',
@@ -137,7 +137,7 @@ void main() {
       EditCalendar(_tokyoCall, newUid: 'new@t'),
     );
     final undo = step.work.history.undos.single.step as UnitsChanged;
-    const keys = [UidKey.event('call@t'), ZoneKey('Asia/Tokyo')];
+    final keys = [UidKey.event('call@t'), ZoneKey('Asia/Tokyo')];
     expect(undo.before, {for (final key in keys) key: null});
     expect(undo.after.keys, keys);
     expect(
@@ -394,7 +394,7 @@ void main() {
       'Ann (birthday)',
     );
     expect(run.events.whereType<SavedAsNew>().map((saved) => saved.gone), [
-      GoneMeanwhile.event,
+      (kind: ItemKind.event, what: GoneMeanwhile.item),
     ]);
   });
 
@@ -495,7 +495,7 @@ void main() {
         final run = _run(withTask)
           ..send(
             EditCalendar(
-              DeleteItem(const UidKey.task('milk@t'), at: _at),
+              DeleteItem(UidKey.task('milk@t'), at: _at),
               newUid: 'unused@t',
             ),
           );
@@ -508,7 +508,7 @@ void main() {
         );
         expect(run.state.text, before);
         expect(run.events.whereType<EditDropped>().map((e) => e.gone), [
-          GoneMeanwhile.task,
+          (kind: ItemKind.task, what: GoneMeanwhile.item),
         ]);
       },
     );

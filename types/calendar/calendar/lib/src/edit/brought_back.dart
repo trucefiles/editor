@@ -1,5 +1,4 @@
 import '../model/calendar.dart';
-import '../model/calendar_item.dart';
 import '../model/calendar_unit.dart';
 import 'stamp.dart';
 
@@ -78,10 +77,7 @@ CalendarUnit? _cameBack(
 ) {
   final current = now.unitOf(key);
   final (isItem, item) = switch (key) {
-    UidKey(:final component) when itemKinds.contains(component) => (
-      true,
-      now.itemOf(key),
-    ),
+    UidKey(kind: _?) => (true, now.itemOf(key)),
     _ => (false, null),
   };
   return switch (back) {

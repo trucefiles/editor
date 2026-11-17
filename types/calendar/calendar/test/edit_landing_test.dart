@@ -47,7 +47,7 @@ void main() {
     final deleted = _after(DeleteItem(UidKey.event('run'), at: _at));
     for (final edit in [_changeOne, _changeAll]) {
       final landed = landing(deleted, edit, newUid: 'new');
-      expect(landed.gone, GoneMeanwhile.event);
+      expect(landed.gone, (kind: ItemKind.event, what: GoneMeanwhile.item));
       final added = landed.edit as AddItem;
       expect((added.uid, added.draft.summary), ('new', 'Long run'));
     }
@@ -74,7 +74,7 @@ void main() {
     );
     for (final calendar in [moved, dateDeleted]) {
       final landed = landing(calendar, _changeOne, newUid: 'new');
-      expect(landed.gone, GoneMeanwhile.eventDate);
+      expect(landed.gone, (kind: ItemKind.event, what: GoneMeanwhile.date));
       final added = landed.edit as AddItem;
       expect((added.draft.summary, added.draft.repeat), ('Long run', null));
     }

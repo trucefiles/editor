@@ -6,19 +6,16 @@ import 'calendar_edit.dart';
 
 /// What an edit names that is no longer in the calendar.
 enum GoneMeanwhile {
-  /// The whole event (e.g. deleted on another device).
-  event,
+  /// The whole event or task (e.g. deleted on another device).
+  item,
 
-  /// The one date of a repeating event (e.g. the series moved or that
-  /// date was deleted on another device).
-  eventDate,
-
-  /// The whole task.
-  task,
-
-  /// The one date of a repeating task.
-  taskDate,
+  /// The one date of a repeating event or task (e.g. the series moved or
+  /// that date was deleted on another device).
+  date,
 }
+
+/// What an edit named that is gone: of what [kind] of item, and [what].
+typedef Gone = ({ItemKind kind, GoneMeanwhile what});
 
 /// [edit] as it lands on [calendar] now: what the user typed is never
 /// lost. A change of an item that is gone, or of a date its series no
@@ -27,7 +24,7 @@ enum GoneMeanwhile {
 /// a task or date that is gone lands as no edit (`null`), and says what
 /// was gone. Other edits stay as they are (a delete of something gone
 /// changes nothing).
-({CalendarEdit? edit, GoneMeanwhile? gone}) landing(
+({CalendarEdit? edit, Gone? gone}) landing(
   Calendar calendar,
   CalendarEdit edit, {
   required String newUid,
@@ -54,23 +51,22 @@ enum GoneMeanwhile {
 }
 
 /// What [edit] changes that is gone from [calendar], if anything.
-GoneMeanwhile? _goneOf(Calendar calendar, CalendarEdit edit) {
+Gone? _goneOf(Calendar calendar, CalendarEdit edit) {
   final (date, mustBeThere) = switch (edit) {
     ChangeSeries() => (null, true),
     ChangeOccurrence(:final occurrence) => (occurrence, true),
     CheckTask(:final date) => (date, true),
     AddItem() || DeleteOccurrence() || DeleteItem() => (null, false),
   };
-  if (!mustBeThere) return null;
-  final task = edit.key.component == 'VTODO';
-  return switch (_there(calendar, edit.key)) {
-    null => task ? GoneMeanwhile.task : GoneMeanwhile.event,
+  final kind = edit.key.kind;
+  if (!mustBeThere || kind == null) return null;
+  final what = switch (_there(calendar, edit.key)) {
+    null => GoneMeanwhile.item,
     final item when date != null =>
-      hasOccurrenceAt(item, date)
-          ? null
-          : (task ? GoneMeanwhile.taskDate : GoneMeanwhile.eventDate),
+      hasOccurrenceAt(item, date) ? null : GoneMeanwhile.date,
     _ => null,
   };
+  return what == null ? null : (kind: kind, what: what);
 }
 
 /// The item [key] if it is in [calendar], not deleted or cancelled.

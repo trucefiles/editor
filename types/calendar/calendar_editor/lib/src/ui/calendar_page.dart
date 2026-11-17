@@ -123,26 +123,24 @@ class _CalendarPageState extends State<CalendarPage> {
 
 /// Why an edit was saved as a new event or task, or changed nothing, for
 /// the user.
-String _goneHint(GoneNotice landed) => switch (landed) {
-  SavedAsNew(gone: GoneMeanwhile.event) =>
-    "This event was deleted on another device, so it's saved as a new one.",
-  SavedAsNew(gone: GoneMeanwhile.eventDate) =>
-    "This date of the event changed on another device, so it's saved as "
-        'a new event.',
-  SavedAsNew(gone: GoneMeanwhile.task) =>
-    "This task was deleted on another device, so it's saved as a new one.",
-  SavedAsNew(gone: GoneMeanwhile.taskDate) =>
-    "This date of the task changed on another device, so it's saved as "
-        'a new task.',
-  EditDropped(gone: GoneMeanwhile.event) =>
-    'This event was deleted on another device, so nothing changed.',
-  EditDropped(gone: GoneMeanwhile.eventDate) =>
-    'This date of the event changed on another device, so nothing changed.',
-  EditDropped(gone: GoneMeanwhile.task) =>
-    'This task was deleted on another device, so nothing changed.',
-  EditDropped(gone: GoneMeanwhile.taskDate) =>
-    'This date of the task changed on another device, so nothing changed.',
-};
+String _goneHint(GoneNotice landed) {
+  final kind = switch (landed.gone.kind) {
+    ItemKind.event => 'event',
+    ItemKind.task => 'task',
+  };
+  return switch (landed) {
+    SavedAsNew(gone: (what: GoneMeanwhile.item, kind: _)) =>
+      "This $kind was deleted on another device, so it's saved as a new one.",
+    SavedAsNew(gone: (what: GoneMeanwhile.date, kind: _)) =>
+      "This date of the $kind changed on another device, so it's saved as "
+          'a new $kind.',
+    EditDropped(gone: (what: GoneMeanwhile.item, kind: _)) =>
+      'This $kind was deleted on another device, so nothing changed.',
+    EditDropped(gone: (what: GoneMeanwhile.date, kind: _)) =>
+      'This date of the $kind changed on another device, so nothing '
+          'changed.',
+  };
+}
 
 /// A text that can't be read as a calendar: shown as it is.
 class _NoCalendar extends StatelessWidget {

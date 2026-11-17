@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../read/component.dart';
 
 /// What names a unit across texts of one calendar: the grain of reading,
@@ -13,14 +15,17 @@ final class UidKey extends UnitKey {
   const UidKey(this.component, this.uid);
 
   /// The key of the event [uid].
-  const UidKey.event(this.uid) : component = 'VEVENT';
+  UidKey.event(String uid) : this(ItemKind.event.component, uid);
 
   /// The key of the task [uid].
-  const UidKey.task(this.uid) : component = 'VTODO';
+  UidKey.task(String uid) : this(ItemKind.task.component, uid);
 
   /// The components' name, upper case.
   final String component;
   final String uid;
+
+  /// The kind of item it holds; `null` if none (another component).
+  ItemKind? get kind => ItemKind.named(component);
 
   @override
   bool operator ==(Object other) =>
@@ -91,3 +96,19 @@ Iterable<String> _zonesIn(Component component) => [
   for (final line in component.properties) ?line.param('TZID'),
   for (final child in component.children) ..._zonesIn(child),
 ];
+
+/// The kinds of calendar item: events (`VEVENT`) and tasks (`VTODO`).
+/// The one place a component's name tells its kind.
+enum ItemKind {
+  event('VEVENT'),
+  task('VTODO');
+
+  const ItemKind(this.component);
+
+  /// The name of its components.
+  final String component;
+
+  /// The kind of a component named [component]; `null` if it is no item.
+  static ItemKind? named(String component) =>
+      values.where((kind) => kind.component == component).firstOrNull;
+}

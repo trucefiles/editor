@@ -74,7 +74,7 @@ void main() {
       birthday,
       AddItem('new@truce', _draft('Gym', DateTime(2026, 11, 3, 18)), at: _at),
     );
-    final unit = calendar.unitOf(const UidKey.event('new@truce'))!.text;
+    final unit = calendar.unitOf(UidKey.event('new@truce'))!.text;
     expect(
       calendar.text,
       startsWith(birthday.replaceAll('END:VCALENDAR\n', '')),
@@ -116,8 +116,8 @@ void main() {
       expect(after, contains(' ip card at the desk'), reason: 'still folded');
       expect(after, contains('SEQUENCE:1'));
       expect(
-        edited.unitOf(const UidKey.event('dentist@example.com'))!.text,
-        calendar.unitOf(const UidKey.event('dentist@example.com'))!.text,
+        edited.unitOf(UidKey.event('dentist@example.com'))!.text,
+        calendar.unitOf(UidKey.event('dentist@example.com'))!.text,
       );
       expect(
         after.where((line) => line.startsWith('BEGIN:VTODO')),
@@ -764,7 +764,7 @@ void _startMoves() {
       ),
     );
 
-    final unit = edited.unitOf(const UidKey.event('s@x'))!.text;
+    final unit = edited.unitOf(UidKey.event('s@x'))!.text;
     for (final gone in ['RRULE', 'EXDATE', 'RDATE', 'RECURRENCE-ID']) {
       expect(unit, isNot(contains(gone)));
     }
