@@ -25,7 +25,7 @@ void main() {
   test('a line gives the day, then the title as the views show it', () {
     expect(occurrenceLine(trip, day), '3.  Trip');
     expect(occurrenceLine(untitled, day), '5.  (No title)');
-    expect(occurrenceTitle(untitled), '(No title)');
+    expect(itemTitle(untitled.part), '(No title)');
   });
 
   test('a day says all day; days on end also their last day', () {

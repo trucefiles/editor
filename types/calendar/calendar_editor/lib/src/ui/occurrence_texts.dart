@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-/// What an [occurrence] is called; "(No title)" if it has none.
-String occurrenceTitle(Occurrence occurrence) => _titleOf(occurrence.part);
-
-/// What a task is called; "(No title)" if it has none.
-String taskTitle(TaskPart part) => _titleOf(part);
-
-String _titleOf(ItemPart part) => switch (part.summary.trim()) {
+/// What an event or a task is called; "(No title)" if it has none.
+String itemTitle(ItemPart part) => switch (part.summary.trim()) {
   '' => '(No title)',
   final title => title,
 };
@@ -103,7 +98,7 @@ String occurrenceLine(Occurrence occurrence, DayText day) {
     _ => occurrence.start,
   };
   return '${day(at, allDay: occurrence.allDay)}  '
-      '${occurrenceTitle(occurrence)}';
+      '${itemTitle(occurrence.part)}';
 }
 
 /// When [entry] is due, in [words] and on a 24-hour clock if [use24Hour]:

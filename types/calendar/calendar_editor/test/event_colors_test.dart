@@ -3,15 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/ui/event_colors.dart';
 
-/// The one occurrence of a calendar with one all-day event drafted as
-/// [draft] on 3 November 2026.
-Occurrence _one(EventDraft Function(DateTime day) draft) {
+/// What the one occurrence says of a calendar with one all-day event
+/// drafted as [draft] on 3 November 2026.
+ItemPart _one(EventDraft Function(DateTime day) draft) {
   final day = DateTime(2026, 11, 3);
   final calendar = applyEdit(
     Calendar.read(newCalendarText('Home'))!,
     AddItem('a', draft(day), at: DateTime.utc(2026, 11)),
   );
-  return occurrences(calendar, day, DateTime(2026, 11, 4)).single;
+  return occurrences(calendar, day, DateTime(2026, 11, 4)).single.part;
 }
 
 void main() {
@@ -25,16 +25,16 @@ void main() {
       end: AllDay(day.add(const Duration(days: 1))),
       color: color,
     );
-    expect(occurrenceColor(_one(plain), calendar), calendar);
+    expect(shownColor(_one(plain), calendar), calendar);
     expect(
-      occurrenceColor(
+      shownColor(
         _one((day) => plain(day, color: const EventColor('red'))),
         calendar,
       ),
       const Color(0xFFFF0000),
     );
     expect(
-      occurrenceColor(
+      shownColor(
         _one(
           (day) => EventDraft.health(const Medication('Ibu', dose: ''), day),
         ),
@@ -43,7 +43,7 @@ void main() {
       healthKindColor(const Medication('', dose: '')),
     );
     expect(
-      occurrenceColor(
+      shownColor(
         _one((day) => plain(day, color: const EventColor('no color'))),
         calendar,
       ),
@@ -59,13 +59,13 @@ void main() {
       end: AllDay(day.add(const Duration(days: 1))),
       color: color,
     );
-    expect(ownColor(_one(plain)), isNull);
+    expect(partColor(_one(plain)), isNull);
     expect(
-      ownColor(_one((day) => plain(day, color: const EventColor('red')))),
+      partColor(_one((day) => plain(day, color: const EventColor('red')))),
       const Color(0xFFFF0000),
     );
     expect(
-      ownColor(
+      partColor(
         _one(
           (day) => EventDraft.health(const Medication('Ibu', dose: ''), day),
         ),

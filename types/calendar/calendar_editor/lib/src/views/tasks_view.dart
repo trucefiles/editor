@@ -130,7 +130,7 @@ class _TaskTile extends StatelessWidget {
         size: MediaQuery.textScalerOf(context).scale(24),
       ),
       title: Text(
-        taskTitle(entry.part),
+        itemTitle(entry.part),
         style: entry.done
             ? const TextStyle(decoration: TextDecoration.lineThrough)
             : null,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/ui/calendar_dot.dart';
-import 'package:truce_calendar_editor/src/ui/occurrence_details.dart';
+import 'package:truce_calendar_editor/src/ui/item_details.dart';
 
 /// The one occurrence of an all-day event "Gym" of [color] on 3 November
 /// 2026.

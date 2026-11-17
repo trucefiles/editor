@@ -8,7 +8,7 @@ import 'occurrence_event.dart';
 import 'task_box.dart';
 
 /// How occurrences look in the month, week and day views: a tile in
-/// their color ([occurrenceColor], over their calendar's: [colorOf] its
+/// their color ([shownColor], over their calendar's: [colorOf] its
 /// key) with their title in up to [lines] lines (one line is cut
 /// anywhere, with "…"), a task's after its box (a tap on it tells
 /// [onCheck]; without it the box only shows), a done one's struck
@@ -25,7 +25,7 @@ TileComponents eventTiles<K>(
       size: size,
       child: switch (event) {
         OccurrenceEvent<K>(:final calendar, :final occurrence) => _Tile(
-          occurrenceColor(occurrence, colorOf(calendar)),
+          shownColor(occurrence.part, colorOf(calendar)),
           occurrence,
           lines: lines,
           onCheck: switch ((occurrence, onCheck?.call())) {
@@ -69,7 +69,7 @@ ScheduleTileComponents scheduleTiles<K>(
   tileBuilder: (context, event, _) {
     final shown = event as OccurrenceEvent<K>;
     final occurrence = shown.occurrence;
-    final color = occurrenceColor(occurrence, colorOf(shown.calendar));
+    final color = shownColor(occurrence.part, colorOf(shown.calendar));
     final words = MaterialLocalizations.of(context);
     final use24Hour = MediaQuery.alwaysUse24HourFormatOf(context);
     final check = onCheck?.call();
@@ -85,7 +85,7 @@ ScheduleTileComponents scheduleTiles<K>(
         ),
         EventOccurrence() => Icon(Icons.circle, size: 14, color: color),
       },
-      title: Text(occurrenceTitle(occurrence), style: _doneStyle(occurrence)),
+      title: Text(itemTitle(occurrence.part), style: _doneStyle(occurrence)),
       subtitle: Text(
         [
           switch (occurrence) {
@@ -172,7 +172,7 @@ class _Tile extends StatelessWidget {
   }
 
   Widget _title(BuildContext context, Color onColor) => Text(
-    occurrenceTitle(occurrence),
+    itemTitle(occurrence.part),
     maxLines: lines,
     // One line keeps as much of the title as fits, not whole words.
     softWrap: lines > 1,

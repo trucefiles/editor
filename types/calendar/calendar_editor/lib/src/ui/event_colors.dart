@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-/// The color [occurrence] shows in (see [shownColor]).
-Color occurrenceColor(Occurrence occurrence, Color calendar) =>
-    shownColor(occurrence.part, calendar);
-
 /// The one rule for an event's or task's color: its own color
 /// ([partColor]), else its health entry kind's, else [calendar]'s color.
 Color shownColor(ItemPart part, Color calendar) =>
@@ -13,9 +9,6 @@ Color shownColor(ItemPart part, Color calendar) =>
       EventPart(health: final entry?) => healthKindColor(entry),
       _ => calendar,
     };
-
-/// The color [occurrence]'s event or task gives itself, if it gives one.
-Color? ownColor(Occurrence occurrence) => partColor(occurrence.part);
 
 /// The color [part] gives itself, if it gives one.
 Color? partColor(ItemPart part) => switch (part.color) {

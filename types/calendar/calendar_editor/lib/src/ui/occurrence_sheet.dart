@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 import 'event_links.dart';
-import 'occurrence_details.dart';
-import 'task_details.dart';
+import 'item_details.dart';
 
 /// One thing to do with an occurrence, as its sheet lists it: [value]
 /// stands for it.
