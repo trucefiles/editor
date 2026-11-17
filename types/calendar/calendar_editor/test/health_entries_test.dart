@@ -34,7 +34,7 @@ List<HealthEntry?> _entries(CalendarEditorPart part, [DateTime? day]) => [
 
 /// Adds an entry of [kind] by Add, as the form starts it.
 Future<void> _add(WidgetTester tester, String kind) async {
-  await tester.tap(find.byTooltip('Add event'));
+  await tester.tap(find.byTooltip('Add'));
   await tester.pumpAndSettle();
   await tester.tap(find.text(kind).last);
   await tester.pumpAndSettle();
@@ -65,7 +65,7 @@ void main() {
       calendarPart(newCalendarText('Me', health: true)),
       today: _today,
     );
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
 
     final kinds = ['Medication', 'Symptom', 'Measure', 'Note', 'Period'];
@@ -104,7 +104,7 @@ void main() {
 
     final line = tester.getRect(find.textContaining('of the cycle'));
     final legend = tester.getRect(find.text('Likely fertile'));
-    final add = tester.getRect(find.byTooltip('Add event'));
+    final add = tester.getRect(find.byTooltip('Add'));
     expect(
       line.top,
       greaterThan(tester.getRect(find.byType(KalenderView)).bottom - 1),
@@ -173,7 +173,7 @@ void main() {
       Calendar.read(newCalendarText('Me', health: true))!,
       (calendar, day) => applyEdit(
         calendar,
-        AddEvent(
+        AddItem(
           'p$day',
           EventDraft.health(const Period(PeriodFlow.medium), day),
           at: DateTime.utc(2026, 11),

@@ -1,13 +1,13 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../views/new_event_spot.dart';
+import 'alert_field.dart';
 import 'color_choice.dart';
 import 'leave_check.dart';
-import 'occurrence_texts.dart';
-import 'zone_picker.dart';
+import 'repeat_field.dart';
+import 'time_row.dart';
 
 /// Opens the event form on [draft] (a new event's, or what an event says
 /// now), titled [title]; the draft as the user saved it, or `null` if
@@ -31,25 +31,6 @@ Future<EventDraft?> showEventForm(
     ),
   ),
 );
-
-/// The alerts the form offers, before the start.
-const alertChoices = [
-  Duration.zero,
-  Duration(minutes: 5),
-  Duration(minutes: 10),
-  Duration(minutes: 15),
-  Duration(minutes: 30),
-  Duration(hours: 1),
-  Duration(days: 1),
-];
-
-/// How a form's repeat choice reads.
-const _frequencyWords = {
-  Frequency.daily: 'Every day',
-  Frequency.weekly: 'Every week',
-  Frequency.monthly: 'Every month',
-  Frequency.yearly: 'Every year',
-};
 
 /// The event form: title, all day, start and end each with its time
 /// zone, repeat, alert, color, place and notes. What it doesn't show of
@@ -162,7 +143,7 @@ class _EventFormState extends State<EventForm> {
               onChanged: (allDay) =>
                   setState(() => _times = _times.withAllDay(allDay)),
             ),
-            _TimeRow(
+            TimeRow(
               label: 'Starts',
               day: _times.startDay,
               time: _times.allDay ? null : _times.startTime,
@@ -173,7 +154,7 @@ class _EventFormState extends State<EventForm> {
               onZone: (zone) =>
                   setState(() => _times = _times.withStartZone(zone)),
             ),
-            _TimeRow(
+            TimeRow(
               label: 'Ends',
               day: _times.endDay,
               time: _times.allDay ? null : _times.endTime,
@@ -191,51 +172,14 @@ class _EventFormState extends State<EventForm> {
               ),
             const SizedBox(height: 8),
             if (widget.repeats)
-              switch (_repeat) {
-                OtherRepeat(:final rule) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Repeats'),
-                  subtitle: Text("$rule (can't be changed here)"),
-                ),
-                final SimpleRepeat? repeat =>
-                  DropdownButtonFormField<Frequency?>(
-                    initialValue: repeat?.frequency,
-                    decoration: const InputDecoration(labelText: 'Repeats'),
-                    items: [
-                      const DropdownMenuItem(child: Text('Never')),
-                      for (final MapEntry(key: frequency, value: text)
-                          in _frequencyWords.entries)
-                        DropdownMenuItem(value: frequency, child: Text(text)),
-                    ],
-                    onChanged: (frequency) => setState(
-                      () => _repeat = switch (frequency) {
-                        null => null,
-                        // The rest of a repeat the form shows stays.
-                        _ when repeat?.frequency == frequency => repeat,
-                        final frequency => SimpleRepeat(frequency),
-                      },
-                    ),
-                  ),
-              },
+              RepeatField(
+                repeat: _repeat,
+                onRepeat: (repeat) => setState(() => _repeat = repeat),
+              ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<_Alerts>(
-              initialValue: _Alerts(_alerts),
-              decoration: const InputDecoration(labelText: 'Alert'),
-              items: [
-                const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
-                if (_alerts.isNotEmpty && !_offered(_alerts))
-                  DropdownMenuItem(
-                    value: _Alerts(_alerts),
-                    child: Text(_alerts.map(alertText).join(', ')),
-                  ),
-                for (final before in alertChoices)
-                  DropdownMenuItem(
-                    value: _Alerts([before]),
-                    child: Text(alertText(before)),
-                  ),
-              ],
-              onChanged: (alerts) =>
-                  setState(() => _alerts = alerts?.before ?? const []),
+            AlertField(
+              alerts: _alerts,
+              onAlerts: (alerts) => setState(() => _alerts = alerts),
             ),
             const SizedBox(height: 16),
             ColorChoice(
@@ -272,129 +216,6 @@ class _EventFormState extends State<EventForm> {
   /// always named, so the change shows.
   String? _zoneShown(String? zone, String? opened) =>
       zone == widget.deviceZone && zone == opened ? null : zone;
-
-  /// Whether [alerts] is one the list offers.
-  bool _offered(List<Duration> alerts) =>
-      alerts.length == 1 && alertChoices.contains(alerts.single);
-}
-
-/// The alerts a choice of the form's list stands for, equal by their
-/// times (a list alone is equal only to itself).
-final class _Alerts {
-  const _Alerts(this.before);
-
-  final List<Duration> before;
-
-  static const _equality = ListEquality<Duration>();
-
-  @override
-  bool operator ==(Object other) =>
-      other is _Alerts && _equality.equals(other.before, before);
-
-  @override
-  int get hashCode => _equality.hash(before);
-}
-
-/// How an alert [before] the start reads.
-String alertText(Duration before) => switch (before) {
-  Duration.zero => 'At the start',
-  _ when before.inDays > 0 && before.inHours % 24 == 0 =>
-    before.inDays == 1 ? '1 day before' : '${before.inDays} days before',
-  _ when before.inMinutes % 60 == 0 =>
-    before.inHours == 1 ? '1 hour before' : '${before.inHours} hours before',
-  _ => '${before.inMinutes} minutes before',
-};
-
-/// One row of a day and, unless all day, a time of day and below it its
-/// time zone ([zone], `null` for the device's), each a button that asks
-/// for a new one.
-class _TimeRow extends StatelessWidget {
-  const _TimeRow({
-    required this.label,
-    required this.day,
-    required this.time,
-    required this.zone,
-    required this.onDay,
-    required this.onTime,
-    required this.onZone,
-  });
-
-  final String label;
-  final DateTime day;
-  final TimeOfDay? time;
-  final String? zone;
-  final void Function(DateTime day) onDay;
-  final void Function(TimeOfDay time) onTime;
-  final void Function(String zone) onZone;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _dayAndTime(context),
-      if (time != null)
-        Padding(
-          padding: const EdgeInsetsDirectional.only(start: 64),
-          child: TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-              textStyle: Theme.of(context).textTheme.bodySmall,
-              visualDensity: VisualDensity.compact,
-            ),
-            onPressed: () async {
-              final picked = await pickZone(context);
-              if (picked != null) onZone(picked);
-            },
-            child: Text(switch (zone) {
-              final zone? => zoneText(zone),
-              null => 'Time zone',
-            }),
-          ),
-        ),
-    ],
-  );
-
-  Widget _dayAndTime(BuildContext context) {
-    final words = MaterialLocalizations.of(context);
-    final time = this.time;
-    return Row(
-      children: [
-        SizedBox(width: 64, child: Text(label)),
-        Expanded(
-          child: TextButton(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: day,
-                firstDate: DateTime(1900),
-                lastDate: DateTime(2200),
-              );
-              if (picked != null) onDay(picked);
-            },
-            child: Text(words.formatMediumDate(day)),
-          ),
-        ),
-        if (time != null)
-          TextButton(
-            onPressed: () async {
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: time,
-              );
-              if (picked != null) onTime(picked);
-            },
-            child: Text(
-              words.formatTimeOfDay(
-                time,
-                alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(
-                  context,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 }
 
 /// The start and end as the form shows them: days and times of day each

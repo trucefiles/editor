@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
 /// What an [occurrence] is called; "(No title)" if it has none.
-String occurrenceTitle(Occurrence occurrence) =>
-    switch (occurrence.part.summary.trim()) {
-      '' => '(No title)',
-      final title => title,
-    };
+String occurrenceTitle(Occurrence occurrence) => _titleOf(occurrence.part);
+
+/// What a task is called; "(No title)" if it has none.
+String taskTitle(TaskPart part) => _titleOf(part);
+
+String _titleOf(ItemPart part) => switch (part.summary.trim()) {
+  '' => '(No title)',
+  final title => title,
+};
 
 /// When [occurrence] is, in [words] and on a 24-hour clock if [use24Hour]:
 /// "All day" (with its last day if that is another day), or its times of
@@ -24,10 +28,7 @@ String timesOf(
         ? 'All day, until ${words.formatShortMonthDay(last)}'
         : 'All day';
   }
-  String time(DateTime at) => words.formatTimeOfDay(
-    TimeOfDay.fromDateTime(at),
-    alwaysUse24HourFormat: use24Hour,
-  );
+  String time(DateTime at) => _time(words, at, use24Hour: use24Hour);
   if (start == end) return time(start);
   return DateUtils.isSameDay(start, end)
       ? '${time(start)} – ${time(end)}'
@@ -40,7 +41,7 @@ String timesOf(
 /// America/New York"; `null` for one all day or on this device's clock.
 String? ownTimesOf(
   MaterialLocalizations words,
-  Occurrence occurrence, {
+  EventOccurrence occurrence, {
   required bool use24Hour,
 }) => switch ((occurrence.part.start, occurrence.part.end)) {
   (final start?, final end?) when !occurrence.allDay => _ownTimes(
@@ -94,8 +95,62 @@ bool _sameClock(DateTime wall, DateTime local) =>
 /// lasts [allDay] (e.g. "Fri, Mar 12, 14:00").
 typedef DayText = String Function(DateTime start, {required bool allDay});
 
-/// [occurrence] in one line, e.g. on a card: its day by [day], then its
-/// title.
-String occurrenceLine(Occurrence occurrence, DayText day) =>
-    '${day(occurrence.start, allDay: occurrence.allDay)}  '
-    '${occurrenceTitle(occurrence)}';
+/// [occurrence] in one line, e.g. on a card: its day by [day] (a task's:
+/// when it is due), then its title.
+String occurrenceLine(Occurrence occurrence, DayText day) {
+  final at = switch (occurrence) {
+    TaskOccurrence(:final due) => due,
+    _ => occurrence.start,
+  };
+  return '${day(at, allDay: occurrence.allDay)}  '
+      '${occurrenceTitle(occurrence)}';
+}
+
+/// When [entry] is due, in [words] and on a 24-hour clock if [use24Hour]:
+/// e.g. "Due Friday, November 20, 2026 · 18:00", or "No due date".
+String dueText(
+  MaterialLocalizations words,
+  TaskEntry entry, {
+  required bool use24Hour,
+}) => switch (entry.due) {
+  null => 'No due date',
+  final due when entry.allDay => 'Due ${words.formatFullDate(due)}',
+  final due =>
+    'Due ${words.formatFullDate(due)} · '
+        '${_time(words, due, use24Hour: use24Hour)}',
+};
+
+/// When [entry] is due on its day, in [words]: "Due", or e.g. "Due 18:00";
+/// "No due date" if it has none.
+String dueTimeText(
+  MaterialLocalizations words,
+  TaskEntry entry, {
+  required bool use24Hour,
+}) => switch (entry.due) {
+  null => 'No due date',
+  _ when entry.allDay => 'Due',
+  final due => 'Due ${_time(words, due, use24Hour: use24Hour)}',
+};
+
+/// When [entry] is due, short, in [words]: e.g. "Nov 20, 2026" or
+/// "Nov 20, 2026 · 18:00"; `null` if it has no due date.
+String? shortDueText(
+  MaterialLocalizations words,
+  TaskEntry entry, {
+  required bool use24Hour,
+}) => switch (entry.due) {
+  null => null,
+  final due when entry.allDay => words.formatMediumDate(due),
+  final due =>
+    '${words.formatMediumDate(due)} · '
+        '${_time(words, due, use24Hour: use24Hour)}',
+};
+
+String _time(
+  MaterialLocalizations words,
+  DateTime at, {
+  required bool use24Hour,
+}) => words.formatTimeOfDay(
+  TimeOfDay.fromDateTime(at),
+  alwaysUse24HourFormat: use24Hour,
+);

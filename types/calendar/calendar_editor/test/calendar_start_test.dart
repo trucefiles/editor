@@ -11,7 +11,7 @@ final _today = DateTime(2026, 11, 3);
 /// A calendar with "Call" on [_today] from 9 for an hour.
 final _call = applyEdit(
   Calendar.read(newCalendarText('Home'))!,
-  AddEvent(
+  AddItem(
     'call',
     EventDraft(
       summary: 'Call',
@@ -44,7 +44,7 @@ void main() {
   ) async {
     final health = applyEdit(
       Calendar.read(newCalendarText('Me', health: true))!,
-      AddEvent(
+      AddItem(
         'note',
         EventDraft.health(const HealthNote(), DateTime.utc(2026, 11, 3)),
         at: editedAt,
@@ -72,6 +72,7 @@ void main() {
       today: _today,
       starts: starts,
     );
+    await pickNew(tester, 'Event');
     expect(find.text('New event'), findsOne);
   });
 
@@ -118,6 +119,7 @@ void main() {
     );
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     expect(find.text('New event'), findsOne);
     expect(find.textContaining('9:00'), findsWidgets);
   });
@@ -144,12 +146,14 @@ void main() {
       today: _today,
       starts: starts,
     );
+    await pickNew(tester, 'Event');
     Navigator.pop(tester.element(find.text('New event')));
     await tester.pumpAndSettle();
     expect(find.text('New event'), findsNothing);
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     expect(find.text('New event'), findsOne);
   });
 
@@ -158,7 +162,7 @@ void main() {
   ) async {
     final weekly = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'gym',
         EventDraft(
           summary: 'Gym',
@@ -169,11 +173,9 @@ void main() {
         at: editedAt,
       ),
     );
-    final later = occurrences(
-      weekly,
-      DateTime(2026, 11, 3),
-      DateTime(2026, 11, 4),
-    ).single;
+    final later =
+        occurrences(weekly, DateTime(2026, 11, 3), DateTime(2026, 11, 4)).single
+            as EventOccurrence;
     final starts = CalendarStarts()..ask(pageFile, EditOccurrence.of(later));
     final hints = <String>[];
     await pumpPage(

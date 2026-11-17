@@ -35,7 +35,7 @@ END:VCALENDAR
 Future<void> _import(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('file menu')));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Import events…'));
+  await tester.tap(find.text('Import from file…'));
   await tester.pumpAndSettle();
 }
 
@@ -60,7 +60,7 @@ void main() {
     expect(part.owner.state.status.canUndo, isTrue);
 
     await _import(tester);
-    expect(hints.last, 'These events are already in the calendar.');
+    expect(hints.last, 'Everything in this file is already in the calendar.');
   });
 
   testWidgets('a file that is no calendar, or not read, changes nothing', (
@@ -103,20 +103,28 @@ void main() {
 
     await tester.tap(find.byKey(const Key('file menu')));
     await tester.pumpAndSettle();
-    expect(find.text('Import events…'), findsNothing);
+    expect(find.text('Import from file…'), findsNothing);
   });
 
   test('tells what an import came to', () {
     String told(ImportReport report) => importHint(FileImported(report));
     expect(
-      told(const EventsImported(added: 1, updated: 2)),
+      told(const ItemsImported(added: 1, updated: 2)),
       'Added 1 event and updated 2.',
     );
+    expect(told(const ItemsImported(added: 0, updated: 1)), 'Updated 1 event.');
+    expect(told(const ItemsImported(added: 3, updated: 0)), 'Added 3 events.');
     expect(
-      told(const EventsImported(added: 0, updated: 1)),
-      'Updated 1 event.',
+      told(const NothingToImport()),
+      'There are no events or tasks in this file.',
     );
-    expect(told(const EventsImported(added: 3, updated: 0)), 'Added 3 events.');
-    expect(told(const NoEvents()), 'There are no events in this file.');
+    expect(
+      told(const ItemsImported(added: 2, updated: 0, tasks: 2)),
+      'Added 2 tasks.',
+    );
+    expect(
+      told(const ItemsImported(added: 1, updated: 1, tasks: 1)),
+      'Added 1 entry and updated 1.',
+    );
   });
 }

@@ -6,7 +6,7 @@ import 'package:truce_calendar_editor/src/views_clock.dart';
 /// A calendar named [name] with [event] on [day] from 9 to 10.
 Calendar _calendar(String name, String event, DateTime day) => applyEdit(
   Calendar.read(newCalendarText(name))!,
-  AddEvent(
+  AddItem(
     event,
     EventDraft(
       summary: event,

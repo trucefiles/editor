@@ -56,7 +56,7 @@ void main() {
   test('a health entry moves to another day but does not stretch', () {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Me', health: true))!,
-      AddEvent(
+      AddItem(
         'p',
         EventDraft.health(
           const Period(PeriodFlow.medium),

@@ -18,11 +18,14 @@ import 'occurrence_events.dart';
 import 'page_mover.dart';
 import 'sideways_wheel.dart';
 import 'stripes.dart';
+import 'task_box.dart';
+import 'tasks_view.dart';
 import 'views_bar.dart';
 import 'week_day_names.dart';
 
-/// What the user does with an occurrence of the calendar keyed [calendar].
-typedef OnOccurrence<K> = void Function(K calendar, Occurrence occurrence);
+/// What the user does with an event's occurrence of the calendar keyed
+/// [calendar].
+typedef OnOccurrence<K> = void Function(K calendar, EventOccurrence occurrence);
 
 /// Where the user dragged an occurrence: to [start] up to [end].
 typedef OnMove<K> = void Function(
@@ -32,7 +35,7 @@ typedef OnMove<K> = void Function(
   DateTime end,
 );
 
-/// [calendars] (by key) in a month, week, day or schedule view, each in
+/// [calendars] (by key) in a month, week, day, schedule or tasks view, each in
 /// its color ([colorOf]; an event's own color or health kind comes
 /// first), what they tell below (the insights strip, each named by
 /// [titleOf] if given and several tell), the month's days shaded (weekends, health
@@ -41,7 +44,9 @@ typedef OnMove<K> = void Function(
 /// and the mouse wheel), goes to a date picked from the bar's title (a
 /// month in the month and schedule views) or to a day's own view by a
 /// tap on its date (a pick of the day view, told [onKind] too), and taps
-/// an occurrence ([onTap]). Only with
+/// an event's occurrence ([onTap]) or a task's date ([onTask]); tasks show
+/// with a box on their due day, and in the tasks view ([TasksView]); only
+/// with [onCheck] does a tap on a box check them off. Only with
 /// [onAdd] is the user asking to add told, by a tap on a free time or
 /// day, or a drag over free times or days; the host decides what
 /// follows. [onAddDay] is told the day an Add button starts on. Only
@@ -56,6 +61,8 @@ class CalendarViews<K> extends StatefulWidget {
     required this.now,
     this.titleOf,
     this.onTap,
+    this.onTask,
+    this.onCheck,
     this.onAdd,
     this.onAddDay,
     this.onMove,
@@ -76,6 +83,8 @@ class CalendarViews<K> extends StatefulWidget {
   /// shows.
   final String Function(K calendar)? titleOf;
   final OnOccurrence<K>? onTap;
+  final OnTask<K>? onTask;
+  final OnCheck<K>? onCheck;
   final ValueChanged<NewEventSpot>? onAdd;
 
   /// Told the day an Add button starts on as it changes: today if it
@@ -102,16 +111,18 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   int? _firstDay;
   late Map<CalendarViewKind, ViewConfiguration> _configurations;
   late final _pages = PageMover(
-    pages: () => _pagesOf(_configurations[_model.kind]!),
+    pages: () => _pagesOf(_kalenderConfiguration),
     shown: () => _model.middle ?? _model.today,
     animateTo: (date) => _kalender!.animateToDate(date),
     jumpTo: (date) => _kalender!.jumpToDate(date),
   );
   // The current widget's colors: a calendar's color can change.
-  late final _timedTiles = eventTiles<K>(_colorOf, lines: 3);
+  late final _timedTiles = eventTiles<K>(_colorOf, lines: 3, onCheck: _onCheck);
   // Month days and the all-day row are one tile high.
-  late final _rowTiles = eventTiles<K>(_colorOf, lines: 1);
-  late final _scheduleTiles = scheduleTiles<K>(_colorOf);
+  late final _rowTiles = eventTiles<K>(_colorOf, lines: 1, onCheck: _onCheck);
+  late final _scheduleTiles = scheduleTiles<K>(_colorOf, onCheck: _onCheck);
+
+  OnCheck<K>? _onCheck() => widget.onCheck;
 
   Color _colorOf(K calendar) => widget.colorOf(calendar);
 
@@ -134,7 +145,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       firstDayOfWeek: firstDay,
       now: widget.now,
     );
-    final configuration = _configurations[_model.kind]!;
+    final configuration = _kalenderConfiguration;
     switch (_kalender) {
       case final kalender?:
         kalender.viewConfiguration = configuration;
@@ -144,6 +155,12 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
         _showRange();
     }
   }
+
+  /// What kalender shows: the view shown, or the month behind the tasks
+  /// view, which is no kalender view.
+  ViewConfiguration get _kalenderConfiguration =>
+      _configurations[_model.kind] ??
+      _configurations[CalendarViewKind.month]!;
 
   @override
   void didUpdateWidget(CalendarViews<K> oldWidget) {
@@ -175,8 +192,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   /// its own and asks for its events.
   void _showModel() {
     final kalender = _kalender!;
-    final configuration = _configurations[_model.kind]!;
-    if (kalender.viewConfiguration != configuration) {
+    // The tasks view is no kalender view: kalender keeps the one before.
+    if (_configurations[_model.kind] case final configuration?
+        when kalender.viewConfiguration != configuration) {
       kalender.viewConfiguration = configuration;
     }
     _tellAddDay();
@@ -218,6 +236,8 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
         firstDate: _shownDays.from,
         lastDate: _shownDays.last,
       ),
+      // It has no dates to go to.
+      CalendarViewKind.tasks => Future<DateTime?>.value(),
     };
     if (picked != null && mounted) await _pages.to(picked);
   }
@@ -233,12 +253,15 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
       dateLabel: GestureCallbacks(
         onTap: (detail) => unawaited(_showDay(detail.date)),
       ),
-      onEventTapped: onTap == null
-          ? null
-          : (event) {
-              final shown = event as OccurrenceEvent<K>;
-              onTap(shown.calendar, shown.occurrence);
-            },
+      onEventTapped: (event) {
+        final shown = event as OccurrenceEvent<K>;
+        switch (shown.occurrence) {
+          case final EventOccurrence occurrence:
+            onTap?.call(shown.calendar, occurrence);
+          case final TaskOccurrence task:
+            widget.onTask?.call(shown.calendar, TaskEntry.of(task));
+        }
+      },
       onTappedWithDetail: onAdd == null
           ? null
           : (detail) => switch (detail) {
@@ -287,26 +310,34 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           ),
         ),
         Expanded(
-          child: EscCloses(
-            open: kalender.openDayOverlay,
-            close: kalender.hideDayOverlay,
-            child: SidewaysWheel(
-              onPrevious: () => _pages.step(-1),
-              onNext: () => _pages.step(1),
-              // The stripes and kalender each in a layer of their own, so
-              // neither the bar nor scrolling and paging repaint them.
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: movable
-                      ? null
-                      : Stripes.readOnly(Theme.of(context).colorScheme),
-                  child: RepaintBoundary(
-                    child: _kalenderView(kalender, callbacks),
+          child: _model.kind == CalendarViewKind.tasks
+              ? TasksView<K>(
+                  tasks: _model.tasks,
+                  colorOf: _colorOf,
+                  titleOf: widget.titleOf,
+                  onTask: widget.onTask,
+                  onCheck: widget.onCheck,
+                )
+              : EscCloses(
+                  open: kalender.openDayOverlay,
+                  close: kalender.hideDayOverlay,
+                  child: SidewaysWheel(
+                    onPrevious: () => _pages.step(-1),
+                    onNext: () => _pages.step(1),
+                    // The stripes and kalender each in a layer of their own, so
+                    // neither the bar nor scrolling and paging repaint them.
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: movable
+                            ? null
+                            : Stripes.readOnly(Theme.of(context).colorScheme),
+                        child: RepaintBoundary(
+                          child: _kalenderView(kalender, callbacks),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
         ),
         InsightsStrip<K>(
           health: _model.health,

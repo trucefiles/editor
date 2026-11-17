@@ -9,7 +9,7 @@ Occurrence _one(EventDraft Function(DateTime day) draft) {
   final day = DateTime(2026, 11, 3);
   final calendar = applyEdit(
     Calendar.read(newCalendarText('Home'))!,
-    AddEvent('a', draft(day), at: DateTime.utc(2026, 11)),
+    AddItem('a', draft(day), at: DateTime.utc(2026, 11)),
   );
   return occurrences(calendar, day, DateTime(2026, 11, 4)).single;
 }

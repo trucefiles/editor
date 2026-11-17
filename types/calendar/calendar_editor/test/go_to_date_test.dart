@@ -117,7 +117,7 @@ void main() {
   ) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'a',
         EventDraft(
           summary: 'Gym',

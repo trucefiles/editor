@@ -3,24 +3,50 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 import 'event_links.dart';
 import 'occurrence_details.dart';
+import 'task_details.dart';
 
 /// One thing to do with an occurrence, as its sheet lists it: [value]
 /// stands for it.
 typedef OccurrenceAction<T> = ({IconData icon, String label, T value});
 
-/// Shows [occurrence] in full in a sheet, its text selectable, with
-/// [actions] below it; first the [calendar] it is in, if given (where
-/// several calendars show together). The details show at the text size
-/// of [context], where the sheet opens from (the views, at the document
-/// text size), their links and place opened by its [EventLinks]; the
-/// actions at the app's. The value of the action the user
-/// picks, `null` if they close the sheet.
+/// Shows the event [occurrence] in full in a sheet, its text selectable,
+/// with [actions] below it; first the [calendar] it is in, if given
+/// (where several calendars show together). The details show at the text
+/// size of [context], where the sheet opens from (the views, at the
+/// document text size), their links and place opened by its
+/// [EventLinks]; the actions at the app's. The value of the action the
+/// user picks, `null` if they close the sheet.
 Future<T?> showOccurrenceSheet<T>(
   BuildContext context,
-  Occurrence occurrence,
+  EventOccurrence occurrence,
   List<OccurrenceAction<T>> actions, {
   SheetCalendar? calendar,
-}) {
+}) => _showSheet(
+  context,
+  (links) => OccurrenceDetails(occurrence, calendar: calendar, links: links),
+  actions,
+);
+
+/// Shows the task [entry] in full in a sheet, as [showOccurrenceSheet]
+/// shows an event.
+Future<T?> showTaskSheet<T>(
+  BuildContext context,
+  TaskEntry entry,
+  List<OccurrenceAction<T>> actions, {
+  SheetCalendar? calendar,
+}) => _showSheet(
+  context,
+  (links) => TaskDetails(entry, calendar: calendar, links: links),
+  actions,
+);
+
+/// A sheet of [details] (their links opened by [EventLinks] of [context])
+/// with [actions] below them, as [showOccurrenceSheet] tells.
+Future<T?> _showSheet<T>(
+  BuildContext context,
+  Widget Function(EventLinks? links) details,
+  List<OccurrenceAction<T>> actions,
+) {
   final detailsScaler = MediaQuery.textScalerOf(context);
   final links = EventLinks.maybeOf(context);
   return showModalBottomSheet<T>(
@@ -39,11 +65,7 @@ Future<T?> showOccurrenceSheet<T>(
               child: MediaQuery(
                 data: MediaQuery.of(context)
                     .copyWith(textScaler: detailsScaler),
-                child: OccurrenceDetails(
-                  occurrence,
-                  calendar: calendar,
-                  links: links,
-                ),
+                child: details(links),
               ),
             ),
           ),

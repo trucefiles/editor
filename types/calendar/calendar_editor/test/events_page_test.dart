@@ -39,7 +39,7 @@ List<String> _on(CalendarEditorPart part, DateTime day) => [
 /// A calendar with one event, "Call", on [start] for an hour.
 String _call(CalendarTime start) => applyEdit(
   Calendar.read(newCalendarText('Home'))!,
-  AddEvent(
+  AddItem(
     'call',
     EventDraft(
       summary: 'Call',
@@ -114,8 +114,9 @@ void main() {
     final part = calendarPart(newCalendarText('Home'));
     await pumpPage(tester, part, today: DateTime(2026, 11, 3));
 
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -136,13 +137,15 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await close();
     expect(find.text('New event'), findsNothing, reason: 'nothing typed');
 
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await close();
     expect(find.text('Discard changes?'), findsOne);
@@ -168,8 +171,9 @@ void main() {
       deviceZone: 'Europe/Berlin',
     );
 
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     expect(find.text('Time zone'), findsNWidgets(2), reason: 'no zone named');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Call');
     await tester.tap(find.text('Save'));
@@ -184,7 +188,7 @@ void main() {
       'UTC', (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'call',
         EventDraft(
           summary: 'Call',
@@ -228,7 +232,7 @@ void main() {
     );
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'call',
         EventDraft(summary: 'Call', start: start, end: end),
         at: editedAt,
@@ -253,7 +257,7 @@ void main() {
   ) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'call',
         EventDraft(
           summary: 'Call',
@@ -305,7 +309,7 @@ void main() {
       final part = calendarPart(
         applyEdit(
           Calendar.read(newCalendarText('Home'))!,
-          AddEvent(
+          AddItem(
             'flight',
             EventDraft(summary: 'Flight', start: start, end: end),
             at: editedAt,
@@ -372,8 +376,9 @@ void main() {
         today: DateTime(2026, 11, 3),
         deviceZone: 'Europe/Berlin',
       );
-      await tester.tap(find.byTooltip('Add event'));
+      await tester.tap(find.byTooltip('Add'));
       await tester.pumpAndSettle();
+      await pickNew(tester, 'Event');
       await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Trip');
 
       await _pickZone(tester, find.text('Time zone').first, 'london');
@@ -462,7 +467,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Anna');
     part.owner.send(
-      EditCalendar(DeleteEvent('ann@truce', at: editedAt), newUid: 'x'),
+      EditCalendar(
+        DeleteItem(UidKey.event('ann@truce'), at: editedAt),
+        newUid: 'x',
+      ),
     );
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -564,7 +572,7 @@ void main() {
     final part = calendarPart(_birthday, readOnly: true);
     await pumpPage(tester, part, today: _annsDay);
 
-    expect(find.byTooltip('Add event'), findsNothing);
+    expect(find.byTooltip('Add'), findsNothing);
     await tester.tap(find.text('Ann'));
     await tester.pumpAndSettle();
     expect(find.text('Friday, March 12, 2027 · All day'), findsOne);
@@ -670,7 +678,7 @@ void main() {
   testWidgets("times show on the system's clock", (tester) async {
     final calendar = applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'swim',
         EventDraft(
           summary: 'Swimming',
@@ -696,8 +704,9 @@ void main() {
     final part = calendarPart(_birthday);
     final hints = <String>[];
     await pumpPage(tester, part, today: _annsDay, hints: hints);
-    await tester.tap(find.byTooltip('Add event'));
+    await tester.tap(find.byTooltip('Add'));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Late');
 
     part.showReadOnly(readOnly: true);
@@ -765,6 +774,7 @@ void main() {
     final call = tester.getRect(find.text('Call'));
     await tester.tapAt(call.topCenter + const Offset(0, 3 * _hour + 2));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Lunch');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -787,6 +797,7 @@ void main() {
 
     await tester.tapAt(tester.getCenter(find.text('20')) + const Offset(0, 40));
     await tester.pumpAndSettle();
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Party');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -938,6 +949,7 @@ void main() {
       const Offset(0, 2 * _hour),
       kind: PointerDeviceKind.mouse,
     );
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Lunch');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -963,6 +975,7 @@ void main() {
     final from = tester.getCenter(find.text('10')) + const Offset(0, 40);
     final to = tester.getCenter(find.text('12')) + const Offset(0, 40);
     await _drag(tester, from, to - from, kind: PointerDeviceKind.mouse);
+    await pickNew(tester, 'Event');
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Trip');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -996,7 +1009,7 @@ void main() {
   ) async {
     final written = applyEdit(
       Calendar.read(newCalendarText('Me', health: true))!,
-      AddEvent(
+      AddItem(
         'p',
         EventDraft.health(
           const Period(PeriodFlow.heavy),
@@ -1047,7 +1060,7 @@ void main() {
     expect(page(), same(before));
 
     part.edit(
-      (at) => AddEvent(
+      (at) => AddItem(
         'gym@t',
         EventDraft(
           summary: 'Gym',

@@ -109,19 +109,22 @@ final class CalendarNotice extends CalendarOwnerEvent {
   final EditorNotice notice;
 }
 
-/// An edit of what was [gone] was saved as a new event or task, for the
-/// user to hear why.
-final class SavedAsNew extends CalendarOwnerEvent {
-  const SavedAsNew(this.gone);
+/// An edit of what was [gone] meanwhile landed otherwise than asked, for
+/// the user to hear why (see [landing]).
+sealed class GoneNotice extends CalendarOwnerEvent {
+  const GoneNotice(this.gone);
 
   final GoneMeanwhile gone;
 }
 
-/// A check of what was [gone] changed nothing, for the user to hear why.
-final class EditDropped extends CalendarOwnerEvent {
-  const EditDropped(this.gone);
+/// The edit was saved as a new event or task.
+final class SavedAsNew extends GoneNotice {
+  const SavedAsNew(super.gone);
+}
 
-  final GoneMeanwhile gone;
+/// The check changed nothing.
+final class EditDropped extends GoneNotice {
+  const EditDropped(super.gone);
 }
 
 /// An import of the user's is done, as [report] says.

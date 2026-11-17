@@ -5,15 +5,19 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../ui/event_colors.dart';
 import '../ui/occurrence_texts.dart';
 import 'occurrence_event.dart';
+import 'task_box.dart';
 
 /// How occurrences look in the month, week and day views: a tile in
 /// their color ([occurrenceColor], over their calendar's: [colorOf] its
 /// key) with their title in up to [lines] lines (one line is cut
-/// anywhere, with "…"); while dragged, the same tile where it would
-/// land; a range dragged over for a new event, marked.
+/// anywhere, with "…"), a task's after its box (a tap on it tells
+/// [onCheck]; without it the box only shows), a done one's struck
+/// through; while dragged, the same tile where it would land; a range
+/// dragged over for a new event, marked.
 TileComponents eventTiles<K>(
   Color Function(K calendar) colorOf, {
   required int lines,
+  OnCheck<K>? Function()? onCheck,
 }) {
   Widget tile(KalenderEvent event, {Size? size, double opacity = 1}) => Opacity(
     opacity: opacity,
@@ -24,6 +28,14 @@ TileComponents eventTiles<K>(
           occurrenceColor(occurrence, colorOf(calendar)),
           occurrence,
           lines: lines,
+          onCheck: switch ((occurrence, onCheck?.call())) {
+            (final TaskOccurrence task, final onCheck?) => (done) => onCheck(
+              calendar,
+              TaskEntry.of(task),
+              done,
+            ),
+            _ => null,
+          },
         ),
         // The range a drag over free times marks for a new event.
         _ => const _NewTile(),
@@ -47,34 +59,61 @@ TileComponents eventTiles<K>(
   );
 }
 
-/// How occurrences look in the schedule view: a dot in their color,
-/// their title and their times.
-ScheduleTileComponents scheduleTiles<K>(Color Function(K calendar) colorOf) =>
-    ScheduleTileComponents(
-      tileBuilder: (context, event, _) {
-        final shown = event as OccurrenceEvent<K>;
-        final occurrence = shown.occurrence;
-        return ListTile(
-          dense: true,
-          leading: Icon(
-            Icons.circle,
-            size: 14,
-            color: occurrenceColor(occurrence, colorOf(shown.calendar)),
-          ),
-          title: Text(occurrenceTitle(occurrence)),
-          subtitle: Text(
-            [
-              timesOf(
-                MaterialLocalizations.of(context),
-                occurrence,
-                use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
-              ),
-              if (occurrence.part.location.isNotEmpty) occurrence.part.location,
-            ].join(' · '),
-          ),
-        );
+/// How occurrences look in the schedule view: a dot in their color (a
+/// task: its box, as [eventTiles] has it), their title and their times
+/// (a task's: when it is due).
+ScheduleTileComponents scheduleTiles<K>(
+  Color Function(K calendar) colorOf, {
+  OnCheck<K>? Function()? onCheck,
+}) => ScheduleTileComponents(
+  tileBuilder: (context, event, _) {
+    final shown = event as OccurrenceEvent<K>;
+    final occurrence = shown.occurrence;
+    final color = occurrenceColor(occurrence, colorOf(shown.calendar));
+    final words = MaterialLocalizations.of(context);
+    final use24Hour = MediaQuery.alwaysUse24HourFormatOf(context);
+    final check = onCheck?.call();
+    return ListTile(
+      dense: true,
+      leading: switch (occurrence) {
+        final TaskOccurrence task => TaskBox(
+          done: task.done,
+          color: color,
+          onChanged: check == null
+              ? null
+              : (done) => check(shown.calendar, TaskEntry.of(task), done),
+        ),
+        EventOccurrence() => Icon(Icons.circle, size: 14, color: color),
       },
+      title: Text(occurrenceTitle(occurrence), style: _doneStyle(occurrence)),
+      subtitle: Text(
+        [
+          switch (occurrence) {
+            final TaskOccurrence task => dueTimeText(
+              words,
+              TaskEntry.of(task),
+              use24Hour: use24Hour,
+            ),
+            EventOccurrence() => timesOf(
+              words,
+              occurrence,
+              use24Hour: use24Hour,
+            ),
+          },
+          if (occurrence.part.location.isNotEmpty) occurrence.part.location,
+        ].join(' · '),
+      ),
     );
+  },
+);
+
+/// How a done task's title looks: struck through; `null` for the rest.
+TextStyle? _doneStyle(Occurrence occurrence) => switch (occurrence) {
+  TaskOccurrence(done: true) => const TextStyle(
+    decoration: TextDecoration.lineThrough,
+  ),
+  _ => null,
+};
 
 /// The range marked for a new event, while the user drags over it.
 class _NewTile extends StatelessWidget {
@@ -91,13 +130,14 @@ class _NewTile extends StatelessWidget {
 }
 
 /// One occurrence's tile: its title on its calendar's [color], in up to
-/// [lines] lines.
+/// [lines] lines; a task's after its box, which tells [onCheck].
 class _Tile extends StatelessWidget {
-  const _Tile(this.color, this.occurrence, {required this.lines});
+  const _Tile(this.color, this.occurrence, {required this.lines, this.onCheck});
 
   final Color color;
   final Occurrence occurrence;
   final int lines;
+  final ValueChanged<bool>? onCheck;
 
   @override
   Widget build(BuildContext context) {
@@ -112,15 +152,33 @@ class _Tile extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        occurrenceTitle(occurrence),
-        maxLines: lines,
-        // One line keeps as much of the title as fits, not whole words.
-        softWrap: lines > 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelMedium
-            ?.copyWith(color: onColor),
-      ),
+      child: switch (occurrence) {
+        final TaskOccurrence task => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TaskBox(
+              done: task.done,
+              color: onColor,
+              size: 14,
+              onChanged: onCheck,
+            ),
+            const SizedBox(width: 2),
+            Expanded(child: _title(context, onColor)),
+          ],
+        ),
+        EventOccurrence() => _title(context, onColor),
+      },
     );
   }
+
+  Widget _title(BuildContext context, Color onColor) => Text(
+    occurrenceTitle(occurrence),
+    maxLines: lines,
+    // One line keeps as much of the title as fits, not whole words.
+    softWrap: lines > 1,
+    overflow: TextOverflow.ellipsis,
+    style: Theme.of(context).textTheme.labelMedium
+        ?.copyWith(color: onColor)
+        .merge(_doneStyle(occurrence)),
+  );
 }

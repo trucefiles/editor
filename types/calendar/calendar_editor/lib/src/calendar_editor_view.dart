@@ -12,7 +12,7 @@ import 'ui/calendar_page.dart';
 import 'ui/event_links.dart';
 
 /// How a calendar file's part shows on the page: its calendar page, and
-/// its Add button, and Import events in the file's menu; undo and redo
+/// its Add button, and Import from file in the file's menu; undo and redo
 /// are the page's. What [_starts] asks of its file and its Add button
 /// reach the page as its own [PageStarts].
 final class CalendarEditorView extends EditorView {
@@ -69,7 +69,7 @@ final class CalendarEditorView extends EditorView {
         )
       : fileTitle;
 
-  /// Import events, while a calendar can be edited.
+  /// Import from a file, while a calendar can be edited.
   @override
   List<PopupMenuEntry<VoidCallback>> menu(
     BuildContext context,
@@ -78,7 +78,7 @@ final class CalendarEditorView extends EditorView {
     if (_part.isEditing && _part.owner.state.calendar != null)
       PopupMenuItem(
         value: () => unawaited(_part.importFile()),
-        child: const Text('Import events…'),
+        child: const Text('Import from file…'),
       ),
   ];
 
@@ -86,7 +86,7 @@ final class CalendarEditorView extends EditorView {
   @override
   Widget? floatingButton(BuildContext context) => _forCalendar(
     FloatingActionButton(
-      tooltip: 'Add event',
+      tooltip: 'Add',
       // Not a hero: no flight to other pages' buttons.
       heroTag: null,
       onPressed: () => _pageStarts.ask(const StartAdding()),
