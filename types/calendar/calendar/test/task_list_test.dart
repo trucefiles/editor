@@ -85,9 +85,38 @@ void main() {
     expect(list.later.single.entry.due, DateTime(2027, 6));
   });
 
-  test('done tasks of the last 30 days, and ones done without a date', () {
+  test('a task that repeats every two years shows its next date, however '
+      'far', () {
     final list = taskList({
       'home': _with(
+        _task(
+          'new tyres',
+          due: ';VALUE=DATE:20260301',
+          more: 'RRULE:FREQ=YEARLY;INTERVAL=2\n',
+        ),
+      ),
+    }, _today);
+    expect(list.later.single.entry.due, DateTime(2028, 3));
+  });
+
+  test('a series done as a whole shows no open date', () {
+    final list = taskList({
+      'home': _with(
+        _task(
+          'stretch',
+          due: ';VALUE=DATE:20261101',
+          more: 'RRULE:FREQ=DAILY\nSTATUS:COMPLETED\n',
+        ),
+      ),
+    }, _today);
+    expect([...list.overdue, ...list.today, ...list.later], isEmpty);
+  });
+
+  test('done tasks of the last 30 days, and ones done without a date; one '
+      'done at no known time counts as long ago', () {
+    final list = taskList({
+      'home': _with(
+        '${_task('some time', more: 'STATUS:COMPLETED\n')}'
         '${_task('old', due: ':20260901T090000', more: 'STATUS:COMPLETED\n')}'
         '${_task('recent', due: ':20261110T090000', more: 'STATUS:COMPLETED\n')}'
         '${_task('undated', more: 'COMPLETED:20261115T090000Z\n')}'

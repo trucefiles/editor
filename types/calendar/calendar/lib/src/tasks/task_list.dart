@@ -74,22 +74,19 @@ final class TaskList<K> {
 /// and for what was done.
 const tasksBack = Duration(days: 30);
 
-/// How far ahead the tasks list looks for a repeating task's next date.
-const tasksAhead = Duration(days: 366);
-
 /// The tasks list of [calendars] (by key) as of [today] (at midnight on
 /// this device's clock): each task that doesn't repeat; of each
 /// repeating one only its oldest open date of the last 30 days, else its
-/// next one (up to a year ahead), so a task done daily shows once; the
-/// dates and tasks done in the last 30 days (by when they were done, else
-/// when due), in [TaskList.done]. Deleted and cancelled tasks are left out.
+/// next one, so a task done daily shows once; the dates and tasks done in
+/// the last 30 days (by when they were done, else when due; one done at
+/// no known time counts as done long ago), in [TaskList.done]. Deleted
+/// and cancelled tasks are left out.
 TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
   final from = today.subtract(tasksBack);
-  final to = today.add(tasksAhead);
   final rows = [
     for (final MapEntry(key: calendar, value: each) in calendars.entries)
       for (final task in each.tasks)
-        for (final entry in _entriesOf(task, from, to))
+        for (final entry in _entriesOf(task, from, today))
           (calendar: calendar, entry: entry),
   ];
   final open = rows.where((row) => !row.entry.done);
@@ -112,32 +109,85 @@ TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
     done: [
       for (final row in rows)
         if (row.entry.done &&
-            !(row.entry.part.completed ?? row.entry.due ?? from).isBefore(from))
+            switch (row.entry.part.completed ?? row.entry.due) {
+              final at? => !at.isBefore(from),
+              null => false,
+            })
           row,
     ]..sort((a, b) => _byDue(b, a)),
   );
 }
 
-/// What the tasks list shows of [task], looking from [from] to [to]: an
-/// open single task whenever due, a repeating one's oldest open date and
-/// its done dates in the window.
-Iterable<TaskEntry> _entriesOf(CalendarTask task, DateTime from, DateTime to) {
+/// What the tasks list shows of [task] as of [today], looking back to
+/// [from]: an open single task whenever due; of a repeating one its
+/// oldest open date from [from] on and its done dates up to there.
+Iterable<TaskEntry> _entriesOf(
+  CalendarTask task,
+  DateTime from,
+  DateTime today,
+) {
   final series = task.series;
   if (series.deleted || series.cancelled) return const [];
   if (series.from == null && !series.changesOccurrence) {
     return [TaskEntry.undated(task)];
   }
-  final repeats = series.repeats || series.changesOccurrence;
-  final (start, end) = repeats ? (from, to) : (_farPast, _farFuture);
-  final dates = [
-    for (final occurrence in occurrencesOf(task, start, end))
-      if (occurrence is TaskOccurrence) TaskEntry.of(occurrence),
-  ];
+  final dates = series.repeats || series.changesOccurrence
+      ? _datesUpToOpen(task, from, today)
+      : _entriesIn(task, _farPast, _farFuture);
   return [
     ...dates.where((entry) => entry.done),
     ?dates.where((entry) => !entry.done).sorted(_entryByDue).firstOrNull,
   ];
 }
+
+/// [task]'s dates from [from] on, walked in spans that double in length
+/// (the first up to [today]'s end), up to the span that holds an open
+/// one: work grows with how far that date is, so a task that repeats
+/// rarely is still found and one that repeats often isn't walked far. A
+/// series done as a whole has open dates only among its changed ones,
+/// so its walk ends after the last of them.
+List<TaskEntry> _datesUpToOpen(
+  CalendarTask task,
+  DateTime from,
+  DateTime today,
+) {
+  final last = task.series.done
+      ? [today, for (final part in task.changed) ?part.to?.local].max
+      : _farFuture;
+  final walked = <TaskEntry>[];
+  for (final span in _spans(from, today.add(const Duration(days: 1)), last)) {
+    walked.addAll([
+      for (final occurrence in occurrencesOf(task, span.from, span.to))
+        // A date across two spans is the earlier one's.
+        if (occurrence is TaskOccurrence &&
+            (span.from == from || !occurrence.start.isBefore(span.from)))
+          TaskEntry.of(occurrence),
+    ]);
+    if (walked.any((entry) => !entry.done)) break;
+  }
+  return walked;
+}
+
+/// Spans one after another from [from], the first to [firstEnd], each
+/// after twice as long as the one before, until one reaches [last].
+Iterable<({DateTime from, DateTime to})> _spans(
+  DateTime from,
+  DateTime firstEnd,
+  DateTime last,
+) sync* {
+  var span = (from: from, to: firstEnd);
+  while (span.from.isBefore(last)) {
+    yield span;
+    final length = span.to.difference(span.from) * 2;
+    span = (from: span.to, to: span.to.add(length));
+  }
+}
+
+/// [task]'s dates that overlap [from] to [to].
+List<TaskEntry> _entriesIn(CalendarTask task, DateTime from, DateTime to) => [
+  for (final occurrence in occurrencesOf(task, from, to))
+    if (occurrence is TaskOccurrence) TaskEntry.of(occurrence),
+];
 
 /// Before and after any date a calendar holds.
 final _farPast = DateTime(1);
