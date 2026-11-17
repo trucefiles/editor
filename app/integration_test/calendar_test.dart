@@ -33,7 +33,7 @@ void main() {
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
     await tester.enterText(_nameField, 'Family');
     await tester.pump();
-    await tester.tapAndSettle(find.byTooltip('Add event'));
+    await tester.tapAndSettle(find.byTooltip('Add'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
     expect(find.text('Dentist'), findsOneWidget);
@@ -127,7 +127,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openFile('Garden');
 
-    await tester.chooseInMenu('Import events…');
+    await tester.chooseInMenu('Import from file…');
     expect(find.text('Seed swap'), findsOneWidget);
     expect(find.text('Added 1 event.'), findsOneWidget);
     await tester.pageBack();
@@ -163,7 +163,7 @@ void main() {
 
     await tester.tapAndSettle(find.byTooltip('New file'));
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
-    await tester.tapAndSettle(find.byTooltip('Add event'));
+    await tester.tapAndSettle(find.byTooltip('Add'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
     await tester.pageBack();

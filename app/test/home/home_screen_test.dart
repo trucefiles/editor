@@ -23,7 +23,7 @@ import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_markdown/truce_markdown.dart' hide AddItem;
 import 'package:truce_plain_text/truce_plain_text.dart';
 
 import '../support.dart';
@@ -323,7 +323,7 @@ void main() {
     final now = DateTime.now();
     return applyEdit(
       Calendar.read(newCalendarText('Home'))!,
-      AddEvent(
+      AddItem(
         'call',
         EventDraft(
           summary: 'Call',
@@ -455,6 +455,33 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.text('Edit event'), findsNothing);
+    expect(find.byType(FileScreen), findsOne);
+  });
+
+  testWidgets('a task in the Calendar tab shows, but is checked off on its '
+      'calendar page; Edit opens its form there', (tester) async {
+    final home = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddItem(
+        'water',
+        const TaskDraft(summary: 'Water plants'),
+        at: DateTime.utc(2026, 11),
+      ),
+    ).text;
+    await start(tester, {'notes.md': '# Notes', 'home.ics': home});
+    await showCalendarTab(tester);
+    await tester.tap(find.byTooltip('Pick a view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tasks').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Water plants'), findsOne);
+    expect(find.byTooltip('Mark as done'), findsNothing, reason: 'read only');
+    await tester.tap(find.text('Water plants'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open calendar'), findsOne);
+    await tester.tap(find.text('Edit'));
+    await showsSoon(tester, find.text('Edit task'));
     expect(find.byType(FileScreen), findsOne);
   });
 
