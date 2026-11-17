@@ -122,7 +122,13 @@ class _TaskTile extends StatelessWidget {
     );
     final subtitle = [?due, ?calendar].join(' · ');
     return ListTile(
-      leading: TaskBox(done: entry.done, color: color, onChanged: onCheck),
+      leading: TaskBox(
+        done: entry.done,
+        color: color,
+        onChanged: onCheck,
+        // As large as the title, which grows with the text size.
+        size: MediaQuery.textScalerOf(context).scale(24),
+      ),
       title: Text(
         taskTitle(entry.part),
         style: entry.done
