@@ -111,6 +111,18 @@ void _shown() {
     expect(day.due, DateTime(2026, 11, 11));
   });
 
+  test('a task due just after midnight shows on its own day only', () {
+    final shown = _tasksIn(
+      _with(_task('late', ':20261110T001000')),
+      _november.from,
+      _november.to,
+    ).single;
+    expect(
+      (shown.start, shown.end),
+      (DateTime(2026, 11, 10), DateTime(2026, 11, 10, 0, 10)),
+    );
+  });
+
   test("a repeating task's dates count from its start; each shows at its "
       'due time', () {
     final calendar = Calendar.read(_thunderbird)!;

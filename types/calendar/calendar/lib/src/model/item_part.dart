@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
@@ -168,10 +170,17 @@ final class TaskPart extends ItemPart {
   /// a due time where it starts.
   late final CalendarTime? _shownAt = due ?? start;
 
+  /// The half hour up to its due time, but not before that day begins
+  /// (by its own clock), so it shows on one day only.
   @override
   late final CalendarTime? from = switch (_shownAt) {
     final AllDay day => day,
-    final time? => time.at(time.wall.subtract(taskLength)),
+    final time? => time.at(
+      [
+        time.wall.subtract(taskLength),
+        DateTime.utc(time.wall.year, time.wall.month, time.wall.day),
+      ].max,
+    ),
     null => null,
   };
 
