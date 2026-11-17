@@ -1,8 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import 'task_lists.dart';
-
 /// The budget for the tasks list of five busy calendars, on the JIT that
 /// tests run on. It is built when the Tasks view shows, again on a new
 /// day. It took about 85 ms here, as long as
@@ -13,10 +11,10 @@ import 'task_lists.dart';
 /// over a local run as the month budget does.
 const _listBudget = Duration(milliseconds: 400);
 
-/// The budget for the tasks list again after a change of one of five
-/// busy calendars (e.g. a box checked): only that one is walked again.
-/// It took about 20 ms here; the same margin as [_listBudget].
-const _changeBudget = Duration(milliseconds: 80);
+/// The budget for the tasks list of the same calendars again after a box
+/// is checked: only the task checked is walked again. It took about
+/// 2 ms here; the same margin as [_listBudget].
+const _checkBudget = Duration(milliseconds: 10);
 
 /// A calendar well past normal use: 200 single tasks, 20 daily series
 /// running since 2024 and one hourly since October, with the dailies'
@@ -58,7 +56,7 @@ void main() {
       for (var day = 10; day < 21; day++)
         () {
           final watch = Stopwatch()..start();
-          final list = taskListOf(calendars, DateTime(2026, 11, day));
+          final list = taskList(calendars, DateTime(2026, 11, day));
           expect(list.overdue, isNotEmpty);
           return watch.elapsed;
         }(),
@@ -67,27 +65,35 @@ void main() {
     expect(times[times.length ~/ 2], lessThan(_listBudget));
   });
 
-  test('the tasks list after a change of one busy calendar comes within '
-      'budget', () {
+  test('the tasks list after a box is checked comes within budget', () {
     final today = DateTime(2026, 11, 17);
-    final entries = {
-      for (var index = 0; index < 5; index++)
-        index: calendarTaskEntries(_busy(index), today),
+    final calendars = {
+      for (var index = 0; index < 5; index++) index: _busy(index),
     };
-    final changed = _busy(0);
+    final first = taskList(calendars, today);
     final times = [
-      for (var run = 0; run < 11; run++)
+      for (var day = 1; day < 12; day++)
         () {
+          final checked = applyEdit(
+            calendars[0]!,
+            CheckTask(
+              'd0-0',
+              Floating(DateTime.utc(2026, 11, day, 9)),
+              done: true,
+              at: DateTime.utc(2026, 11, 17),
+            ),
+          );
           final watch = Stopwatch()..start();
-          final list = taskList({
-            ...entries,
-            0: calendarTaskEntries(changed, today),
-          }, today);
+          final list = taskList(
+            {...calendars, 0: checked},
+            today,
+            before: first,
+          );
           expect(list.overdue, isNotEmpty);
           return watch.elapsed;
         }(),
     ]..sort();
 
-    expect(times[times.length ~/ 2], lessThan(_changeBudget));
+    expect(times[times.length ~/ 2], lessThan(_checkBudget));
   });
 }

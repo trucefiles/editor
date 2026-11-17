@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:collection/collection.dart';
 
 import '../model/calendar.dart';
@@ -53,14 +55,17 @@ typedef TaskRow<K> = ({K calendar, TaskEntry entry});
 /// The tasks of some calendars as the tasks list groups them, each group
 /// by due time: open ones [overdue] (due before today), due [today],
 /// due [later], and with [noDate]; and those [done] lately, the latest
-/// first.
+/// first. It keeps what each task put in it, so the next list of the
+/// same day walks only the tasks that changed ([taskList]).
 final class TaskList<K> {
-  const TaskList({
+  const TaskList._({
     required this.overdue,
     required this.today,
     required this.later,
     required this.noDate,
     required this.done,
+    required this._asOf,
+    required this._byTask,
   });
 
   final List<TaskRow<K>> overdue;
@@ -68,23 +73,48 @@ final class TaskList<K> {
   final List<TaskRow<K>> later;
   final List<TaskRow<K>> noDate;
   final List<TaskRow<K>> done;
+
+  /// The day it is the list of.
+  final DateTime _asOf;
+
+  /// What each task put in it, by the very task.
+  final Map<CalendarTask, List<TaskEntry>> _byTask;
 }
 
 /// How far back the tasks list looks: for a repeating task's open dates,
 /// and for what was done.
 const tasksBack = Duration(days: 30);
 
-/// The tasks list of [calendars] (by key, each with its
-/// [calendarTaskEntries]) as of [today] (at midnight on this device's
-/// clock), grouped: open ones by when they are due, and the dates and
-/// tasks done in the last 30 days (by when they were done, else when
-/// due; one done at no known time counts as done long ago), in
-/// [TaskList.done].
-TaskList<K> taskList<K>(Map<K, List<TaskEntry>> calendars, DateTime today) {
+/// The tasks list of [calendars] (by key) as of [today] (at midnight on
+/// this device's clock): each task that doesn't repeat; of each
+/// repeating one only its oldest open date of the last 30 days, else its
+/// next one, so a task done daily shows once; the dates and tasks done in
+/// the last 30 days (by when they were done, else when due; one done at
+/// no known time counts as done long ago), in [TaskList.done]. Deleted
+/// and cancelled tasks are left out.
+///
+/// Walking a repeating task is the costly part, so a task that is still
+/// the very one it was in the list [before] of the same day keeps what it
+/// put there: a change walks only the tasks it changed.
+TaskList<K> taskList<K>(
+  Map<K, Calendar> calendars,
+  DateTime today, {
+  TaskList<K>? before,
+}) {
   final from = today.subtract(tasksBack);
+  final kept = before?._asOf == today
+      ? before!._byTask
+      : const <CalendarTask, List<TaskEntry>>{};
+  final byTask = LinkedHashMap<CalendarTask, List<TaskEntry>>.identity()
+    ..addEntries([
+      for (final calendar in calendars.values)
+        for (final task in calendar.tasks)
+          MapEntry(task, kept[task] ?? _entriesOf(task, from, today)),
+    ]);
   final rows = [
-    for (final MapEntry(key: calendar, value: entries) in calendars.entries)
-      for (final entry in entries) (calendar: calendar, entry: entry),
+    for (final MapEntry(key: calendar, value: each) in calendars.entries)
+      for (final task in each.tasks)
+        for (final entry in byTask[task]!) (calendar: calendar, entry: entry),
   ];
   final open = rows.where((row) => !row.entry.done);
   final tomorrow = DateTime(today.year, today.month, today.day + 1);
@@ -98,7 +128,7 @@ TaskList<K> taskList<K>(Map<K, List<TaskEntry>> calendars, DateTime today) {
           )
           .toList()
         ..sort(_byDue);
-  return TaskList(
+  return TaskList._(
     overdue: dueIn((due) => due.isBefore(today)),
     today: dueIn((due) => !due.isBefore(today) && due.isBefore(tomorrow)),
     later: dueIn((due) => !due.isBefore(tomorrow)),
@@ -112,29 +142,15 @@ TaskList<K> taskList<K>(Map<K, List<TaskEntry>> calendars, DateTime today) {
             })
           row,
     ]..sort(_byDoneLatest),
+    asOf: today,
+    byTask: byTask,
   );
-}
-
-/// What [calendar] puts in the tasks list as of [today] (at midnight on
-/// this device's clock): each task that doesn't repeat; of each
-/// repeating one only its oldest open date of the last 30 days, else its
-/// next one, so a task done daily shows once; and its done dates. Deleted
-/// and cancelled tasks are left out. This walks each repeating task, so
-/// it is the costly part: worked out per calendar, so a change of one
-/// calendar walks only that one.
-List<TaskEntry> calendarTaskEntries(Calendar calendar, DateTime today) {
-  final from = today.subtract(tasksBack);
-  return [for (final task in calendar.tasks) ..._entriesOf(task, from, today)];
 }
 
 /// What the tasks list shows of [task] as of [today], looking back to
 /// [from]: an open single task whenever due; of a repeating one its
 /// oldest open date from [from] on and its done dates up to there.
-Iterable<TaskEntry> _entriesOf(
-  CalendarTask task,
-  DateTime from,
-  DateTime today,
-) {
+List<TaskEntry> _entriesOf(CalendarTask task, DateTime from, DateTime today) {
   final series = task.series;
   if (series.deleted || series.cancelled) return const [];
   if (series.from == null && !series.changesOccurrence) {

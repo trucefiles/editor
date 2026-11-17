@@ -98,9 +98,7 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
     report: ItemsImported(
       added: added,
       updated: changed.length - added,
-      tasks: taken
-          .where((unit) => CalendarItem.of(unit) is CalendarTask)
-          .length,
+      tasks: taken.where((unit) => unit.item is CalendarTask).length,
     ),
   );
 }
@@ -126,7 +124,7 @@ CalendarImport importInto(Calendar calendar, Uint8List bytes, DateTime at) {
 /// date, the rest added; one whose date can't be read is left out, as it
 /// names no date.
 CalendarUnit _over(CalendarUnit item, CalendarUnit? mine) {
-  final ours = mine == null ? null : CalendarItem.of(mine);
+  final ours = mine?.item;
   final parts = item.components.map(ItemPart.of).toList();
   if (ours == null ||
       ours.series.deleted ||
@@ -153,7 +151,7 @@ CalendarUnit _over(CalendarUnit item, CalendarUnit? mine) {
 /// Whether an item the calendar holds as [mine] is new to the user: it
 /// has none, or only a deleted item's marker.
 bool _isNew(CalendarUnit? mine) =>
-    mine == null || (CalendarItem.of(mine)?.series.deleted ?? false);
+    mine == null || (mine.item?.series.deleted ?? false);
 
 /// [unit] as imported if it is an event or a task: as it is, or given a
 /// `UID` made from its text if it has none; `null` for any other unit,
@@ -167,7 +165,7 @@ CalendarUnit? _item(CalendarUnit unit) {
     _ => null,
   };
   return switch (item) {
-    final item? when !CalendarItem.of(item)!.series.deleted => item,
+    final item? when !item.item!.series.deleted => item,
     _ => null,
   };
 }

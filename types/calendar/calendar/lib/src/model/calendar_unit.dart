@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../read/component.dart';
+import 'calendar_item.dart';
 
 /// What names a unit across texts of one calendar: the grain of reading,
 /// editing and merging.
@@ -73,7 +74,7 @@ final class TextKey extends UnitKey {
 /// fresh as one part after an edit.
 final class CalendarUnit {
   /// A unit as read: [parts] hold its blocks' lines as they were.
-  const CalendarUnit.read(this.key, this.parts, this.components);
+  CalendarUnit.read(this.key, this.parts, this.components);
 
   /// A unit an edit made: printed fresh from [components].
   CalendarUnit.edited(this.key, this.components)
@@ -85,6 +86,10 @@ final class CalendarUnit {
 
   /// Its whole text, its parts in order.
   String get text => parts.join();
+
+  /// The event or task it holds; `null` for none. Worked out once, so a
+  /// unit an edit leaves alone keeps its item in the edited calendar.
+  late final CalendarItem? item = CalendarItem.of(this);
 
   /// The time zones its components read times by: a `TZID` on any of
   /// their lines. Worked out each time it is asked.

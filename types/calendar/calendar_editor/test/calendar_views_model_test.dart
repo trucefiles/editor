@@ -178,25 +178,27 @@ void main() {
     expect(changes, 0);
   });
 
-  test("a change of one calendar walks its tasks again, the others' kept", () {
-    Calendar tasks(String uid) => Calendar.read(
-      'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VTODO\nUID:$uid\nSUMMARY:$uid\n'
-      'DUE;VALUE=DATE:20261120\nRRULE:FREQ=WEEKLY\nEND:VTODO\nEND:VCALENDAR\n',
+  test('a box checked walks that task again; the others are kept', () {
+    String task(String uid) =>
+        'BEGIN:VTODO\nUID:$uid\nSUMMARY:$uid\n'
+        'DUE;VALUE=DATE:20261120\nRRULE:FREQ=WEEKLY\nEND:VTODO\n';
+    final home = Calendar.read(
+      'BEGIN:VCALENDAR\nVERSION:2.0\n${task('water')}${task('bins')}'
+      'END:VCALENDAR\n',
     )!;
-    final (water, bins) = (tasks('water'), tasks('bins'));
     final model = CalendarViewsModel(
       kind: CalendarViewKind.tasks,
-      calendars: {'home': water, 'work': bins},
+      calendars: {'home': home},
       clock: _clock(() => DateTime(2026, 11, 10, 12)),
     );
     addTearDown(model.dispose);
-    TaskEntry entryOf(String calendar) =>
-        model.tasks.later.singleWhere((row) => row.calendar == calendar).entry;
-    final (home, work) = (entryOf('home'), entryOf('work'));
+    TaskEntry entryOf(String uid) =>
+        model.tasks.later.singleWhere((row) => row.entry.task.uid == uid).entry;
+    final bins = entryOf('bins');
 
     model.showCalendars({
       'home': applyEdit(
-        water,
+        home,
         CheckTask(
           'water',
           AllDay(DateTime.utc(2026, 11, 20)),
@@ -204,11 +206,9 @@ void main() {
           at: DateTime.utc(2026, 11, 10),
         ),
       ),
-      'work': bins,
     });
 
-    expect(identical(entryOf('work'), work), isTrue, reason: 'kept');
-    expect(entryOf('home').date, AllDay(DateTime.utc(2026, 11, 27)));
-    expect(home.date, AllDay(DateTime.utc(2026, 11, 20)));
+    expect(identical(entryOf('bins'), bins), isTrue, reason: 'kept');
+    expect(entryOf('water').date, AllDay(DateTime.utc(2026, 11, 27)));
   });
 }

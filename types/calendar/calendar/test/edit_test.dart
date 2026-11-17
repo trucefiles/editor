@@ -552,6 +552,20 @@ void main() {
     expect(one, matches(RegExp(r'^[0-9a-f]{32}@truce$')));
     expect(one, isNot(other));
   });
+
+  test('an edit keeps the items it leaves alone as they were', () {
+    final calendar = Calendar.read(
+      'BEGIN:VCALENDAR\nVERSION:2.0\n'
+      'BEGIN:VEVENT\nUID:a\nDTSTART:20261102T090000\nSUMMARY:A\nEND:VEVENT\n'
+      'BEGIN:VTODO\nUID:b\nSUMMARY:B\nEND:VTODO\nEND:VCALENDAR\n',
+    )!;
+    final edited = applyEdit(
+      calendar,
+      AddItem('c', _draft('C', DateTime.utc(2026, 11, 3, 9)), at: _at),
+    );
+    expect(identical(edited.events.first, calendar.events.single), isTrue);
+    expect(identical(edited.tasks.single, calendar.tasks.single), isTrue);
+  });
 }
 
 void _repeatEnds() {

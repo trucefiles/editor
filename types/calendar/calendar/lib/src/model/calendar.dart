@@ -226,9 +226,7 @@ final class _Body {
     for (final unit in units) unit.key: unit,
   };
 
-  late final List<CalendarItem> items = [
-    for (final unit in units) ?CalendarItem.of(unit),
-  ];
+  late final List<CalendarItem> items = [for (final unit in units) ?unit.item];
 
   late final List<CalendarEvent> events = items
       .whereType<CalendarEvent>()
