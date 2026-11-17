@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../read/component.dart';
 import 'calendar_item.dart';
+import 'item_part.dart';
 
 /// What names a unit across texts of one calendar: the grain of reading,
 /// editing and merging.
@@ -89,7 +90,17 @@ final class CalendarUnit {
 
   /// The event or task it holds; `null` for none. Worked out once, so a
   /// unit an edit leaves alone keeps its item in the edited calendar.
-  late final CalendarItem? item = CalendarItem.of(this);
+  late final CalendarItem? item = switch (key) {
+    UidKey(kind: ItemKind.event, :final uid) => CalendarEvent(
+      uid,
+      components.map(EventPart.new).toList(),
+    ),
+    UidKey(kind: ItemKind.task, :final uid) => CalendarTask(
+      uid,
+      components.map(TaskPart.new).toList(),
+    ),
+    _ => null,
+  };
 
   /// The time zones its components read times by: a `TZID` on any of
   /// their lines. Worked out each time it is asked.

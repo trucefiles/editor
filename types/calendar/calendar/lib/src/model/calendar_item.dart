@@ -12,20 +12,6 @@ import 'occurrence.dart';
 sealed class CalendarItem<P extends ItemPart> {
   CalendarItem(this.uid, this.series, this.changed);
 
-  /// The item of [unit]; `null` if it holds none. Built anew each time:
-  /// ask the unit ([CalendarUnit.item]) for the one it keeps.
-  static CalendarItem? of(CalendarUnit unit) => switch (unit.key) {
-    UidKey(kind: ItemKind.event, :final uid) => CalendarEvent(
-      uid,
-      unit.components.map(EventPart.new).toList(),
-    ),
-    UidKey(kind: ItemKind.task, :final uid) => CalendarTask(
-      uid,
-      unit.components.map(TaskPart.new).toList(),
-    ),
-    _ => null,
-  };
-
   final String uid;
   final P series;
   final List<P> changed;

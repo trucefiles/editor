@@ -71,21 +71,16 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   HealthDays<K> get health => _health;
 
   /// The tasks list of its calendars as of [today]: worked out when first
-  /// asked, and again once a calendar or the day changes, from the one
-  /// before, so only tasks that changed are walked again.
-  TaskList<K> get tasks {
-    final shown = _tasks;
-    if (shown != null &&
-        identical(shown.of, _calendars) &&
-        shown.day == today) {
-      return shown.list;
-    }
-    final list = taskList(_calendars, today, before: shown?.list);
-    _tasks = (of: _calendars, day: today, list: list);
-    return list;
-  }
+  /// asked, and again once a calendar or the day (or zone) changes; after
+  /// a change of calendars from the list before, so only tasks that
+  /// changed are walked again.
+  TaskList<K> get tasks =>
+      _tasks ??= taskList(_calendars, today, before: _before);
+  TaskList<K>? _tasks;
 
-  ({Map<K, Calendar> of, DateTime day, TaskList<K> list})? _tasks;
+  /// The list before a change of calendars, whose tasks' entries the next
+  /// one keeps where the task is the same.
+  TaskList<K>? _before;
 
   /// Shows the view [kind].
   void showKind(CalendarViewKind kind) {
@@ -105,11 +100,14 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _calendars = calendars;
     if (same) return;
     _health = HealthDays.of(calendars, today);
+    _before = _tasks ?? _before;
+    _tasks = null;
     notifyListeners();
   }
 
   void _dayChanged() {
     _health = HealthDays.of(_calendars, today);
+    _tasks = _before = null;
     notifyListeners();
   }
 

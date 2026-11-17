@@ -211,4 +211,38 @@ void main() {
     expect(identical(entryOf('bins'), bins), isTrue, reason: 'kept');
     expect(entryOf('water').date, AllDay(DateTime.utc(2026, 11, 27)));
   });
+
+  test('the same calendars told again keep the very same tasks list', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': home},
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
+    );
+    addTearDown(model.dispose);
+    final list = model.tasks;
+
+    model.showCalendars({'home': home});
+    expect(identical(model.tasks, list), isTrue);
+  });
+
+  testWidgets('a new time zone works the tasks list out anew', (tester) async {
+    var zone = 'UTC';
+    final clock = ViewsClock(
+      () => DateTime(2026, 11, 10, 12),
+      deviceZone: () => zone,
+    );
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': home},
+      clock: clock,
+    );
+    final list = model.tasks;
+
+    zone = 'Europe/Berlin';
+    await tester.pump(const Duration(minutes: 1));
+
+    expect(identical(model.tasks, list), isFalse);
+    model.dispose();
+    clock.dispose();
+  });
 }
