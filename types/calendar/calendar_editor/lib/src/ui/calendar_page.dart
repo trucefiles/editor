@@ -11,8 +11,8 @@ import 'import_texts.dart';
 
 /// The calendar [part]'s editor shows, as it changes: the calendar's
 /// page; a text that is no calendar as it is, to read. Edits only while
-/// the part is editing. An edit saved as a new event says why; an import
-/// says what came of it.
+/// the part is editing. An edit saved as a new event or task, or a check
+/// that changed nothing, says why; an import says what came of it.
 class CalendarPage extends StatefulWidget {
   const CalendarPage(
     this.part, {
@@ -47,7 +47,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-  late final StreamSubscription<GoneMeanwhile> _savedAsNew;
+  late final StreamSubscription<GoneNotice> _goneMeanwhile;
   late final StreamSubscription<ImportOutcome> _imports;
 
   /// The events page as last built, with the calendar it shows and
@@ -58,8 +58,8 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
-    _savedAsNew = widget.part.savedAsNew.listen(
-      (gone) => widget.hint(_savedAsNewHint(gone)),
+    _goneMeanwhile = widget.part.goneMeanwhile.listen(
+      (landed) => widget.hint(_goneHint(landed)),
     );
     _imports = widget.part.imports.listen(
       (outcome) => widget.hint(importHint(outcome)),
@@ -74,7 +74,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   void dispose() {
-    unawaited(_savedAsNew.cancel());
+    unawaited(_goneMeanwhile.cancel());
     unawaited(_imports.cancel());
     super.dispose();
   }
@@ -121,14 +121,26 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 }
 
-/// Why an edit was saved as a new event, for the user.
-String _savedAsNewHint(GoneMeanwhile gone) => switch (gone) {
-  GoneMeanwhile.event =>
-    "This event was deleted on another device, so it's saved as a new one.",
-  GoneMeanwhile.date =>
-    "This date of the event changed on another device, so it's saved as "
-        'a new event.',
-};
+/// Why an edit was saved as a new event or task, or changed nothing, for
+/// the user.
+String _goneHint(GoneNotice landed) {
+  final kind = switch (landed.gone.kind) {
+    ItemKind.event => 'event',
+    ItemKind.task => 'task',
+  };
+  return switch (landed) {
+    SavedAsNew(gone: (what: GoneMeanwhile.item, kind: _)) =>
+      "This $kind was deleted on another device, so it's saved as a new one.",
+    SavedAsNew(gone: (what: GoneMeanwhile.date, kind: _)) =>
+      "This date of the $kind changed on another device, so it's saved as "
+          'a new $kind.',
+    EditDropped(gone: (what: GoneMeanwhile.item, kind: _)) =>
+      'This $kind was deleted on another device, so nothing changed.',
+    EditDropped(gone: (what: GoneMeanwhile.date, kind: _)) =>
+      'This date of the $kind changed on another device, so nothing '
+          'changed.',
+  };
+}
 
 /// A text that can't be read as a calendar: shown as it is.
 class _NoCalendar extends StatelessWidget {

@@ -4,10 +4,10 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 /// An occurrence at [location] with [description].
-Occurrence _event({required String location, String description = ''}) {
+EventOccurrence _event({required String location, String description = ''}) {
   final calendar = applyEdit(
     Calendar.read(newCalendarText('Home'))!,
-    AddEvent(
+    AddItem(
       'a',
       EventDraft(
         summary: 'Meeting',
@@ -20,10 +20,11 @@ Occurrence _event({required String location, String description = ''}) {
     ),
   );
   return occurrences(
-    calendar,
-    DateTime(2026, 11, 3),
-    DateTime(2026, 11, 4),
-  ).single;
+        calendar,
+        DateTime(2026, 11, 3),
+        DateTime(2026, 11, 4),
+      ).single
+      as EventOccurrence;
 }
 
 void main() {
@@ -45,7 +46,7 @@ void main() {
   /// Shows [occurrence]'s sheet, opened below [EventLinks] if [links].
   Future<void> showSheet(
     WidgetTester tester,
-    Occurrence occurrence, {
+    EventOccurrence occurrence, {
     bool links = true,
   }) async {
     final button = Builder(

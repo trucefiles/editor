@@ -3,7 +3,8 @@ import 'package:truce_calendar/truce_calendar.dart';
 
 /// The bar above the calendar views: the previous and next page, back to
 /// today, what is shown ([title], a tap on it asks where to go:
-/// [onTitle]) and which view.
+/// [onTitle]) and which view. A view that doesn't page through time (the
+/// tasks) shows only its title and which view.
 class ViewsBar extends StatelessWidget {
   const ViewsBar({
     required this.title,
@@ -25,83 +26,100 @@ class ViewsBar extends StatelessWidget {
   final VoidCallback onTitle;
 
   @override
-  Widget build(BuildContext context) => IconButtonTheme(
-    data: const IconButtonThemeData(
-      style: ButtonStyle(visualDensity: VisualDensity.compact),
-    ),
-    child: Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          tooltip: 'Previous',
-          onPressed: onPrevious,
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          tooltip: 'Next',
-          onPressed: onNext,
-        ),
-        Expanded(
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: InkWell(
-              onTap: onTitle,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.only(start: 4, end: 2),
-                // The arrow is cut with the title where the bar is narrow.
-                child: Text.rich(
-                  TextSpan(
-                    text: title,
-                    children: const [
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Icon(Icons.arrow_drop_down),
-                      ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
+  Widget build(BuildContext context) {
+    final paged = kind != CalendarViewKind.tasks;
+    return IconButtonTheme(
+      data: const IconButtonThemeData(
+        style: ButtonStyle(visualDensity: VisualDensity.compact),
+      ),
+      child: Row(
+        children: [
+          if (paged) ...[
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Previous',
+              onPressed: onPrevious,
             ),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.today_outlined),
-          tooltip: 'Today',
-          onPressed: onToday,
-        ),
-        PopupMenuButton<CalendarViewKind>(
-          tooltip: 'Pick a view',
-          initialValue: kind,
-          onSelected: onKind,
-          itemBuilder: (context) => [
-            for (final each in CalendarViewKind.values)
-              PopupMenuItem(
-                value: each,
-                child: ListTile(
-                  leading: Icon(_iconOf(each)),
-                  title: Text(_labelOf(each)),
-                ),
-              ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Next',
+              onPressed: onNext,
+            ),
           ],
-          // The view's icon only, so the bar fits a phone at large text.
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(_iconOf(kind)),
-                const Icon(Icons.arrow_drop_down),
-              ],
+          Expanded(
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: !paged
+                  ? Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 16),
+                      child: Text(
+                        _labelOf(kind),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    )
+                  : InkWell(
+                      onTap: onTitle,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 4,
+                          end: 2,
+                        ),
+                        // The arrow is cut with the title where the bar is narrow.
+                        child: Text.rich(
+                          TextSpan(
+                            text: title,
+                            children: const [
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Icon(Icons.arrow_drop_down),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          if (paged)
+            IconButton(
+              icon: const Icon(Icons.today_outlined),
+              tooltip: 'Today',
+              onPressed: onToday,
+            ),
+          PopupMenuButton<CalendarViewKind>(
+            tooltip: 'Pick a view',
+            initialValue: kind,
+            onSelected: onKind,
+            itemBuilder: (context) => [
+              for (final each in CalendarViewKind.values)
+                PopupMenuItem(
+                  value: each,
+                  child: ListTile(
+                    leading: Icon(_iconOf(each)),
+                    title: Text(_labelOf(each)),
+                  ),
+                ),
+            ],
+            // The view's icon only, so the bar fits a phone at large text.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_iconOf(kind)),
+                  const Icon(Icons.arrow_drop_down),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 String _labelOf(CalendarViewKind kind) => switch (kind) {
@@ -109,6 +127,7 @@ String _labelOf(CalendarViewKind kind) => switch (kind) {
   CalendarViewKind.week => 'Week',
   CalendarViewKind.day => 'Day',
   CalendarViewKind.schedule => 'Schedule',
+  CalendarViewKind.tasks => 'Tasks',
 };
 
 IconData _iconOf(CalendarViewKind kind) => switch (kind) {
@@ -116,4 +135,5 @@ IconData _iconOf(CalendarViewKind kind) => switch (kind) {
   CalendarViewKind.week => Icons.calendar_view_week,
   CalendarViewKind.day => Icons.calendar_view_day,
   CalendarViewKind.schedule => Icons.view_agenda_outlined,
+  CalendarViewKind.tasks => Icons.checklist,
 };

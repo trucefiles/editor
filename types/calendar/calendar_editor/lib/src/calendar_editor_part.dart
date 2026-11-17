@@ -70,13 +70,14 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     state: (state) => state.status,
     event: (event) => switch (event) {
       CalendarNotice(:final notice) => notice,
-      SavedAsNew() || ImportDone() => null,
+      GoneNotice() || ImportDone() => null,
     },
   );
 
-  /// What was gone each time an edit was saved as a new event instead.
-  Stream<GoneMeanwhile> get savedAsNew => owner.events.expand(
-    (event) => [if (event case SavedAsNew(:final gone)) gone],
+  /// Each edit of something gone meanwhile, as it landed: saved as a new
+  /// event or task, or a check that changed nothing.
+  Stream<GoneNotice> get goneMeanwhile => owner.events.expand(
+    (event) => [if (event case final GoneNotice notice) notice],
   );
 
   /// The user's [edit], made now; dropped while the calendar can't be

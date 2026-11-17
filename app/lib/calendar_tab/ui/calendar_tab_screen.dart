@@ -22,13 +22,14 @@ import 'hidden_calendars.dart';
 import 'open_calendar.dart';
 import 'pick_calendar.dart';
 
-/// The Calendar tab: the events of every calendar of the shown folders in
-/// the calendar views, each in its calendar's color; chips turn a
-/// calendar's events on and off, or hide it from the tab, and the last
-/// chip brings hidden ones back. It only shows: tap an event to see it,
-/// then open its calendar or edit it there; the floating button opens a
-/// calendar; a tap or drag on a free time says to open one. Every edit
-/// happens on the calendar's own page.
+/// The Calendar tab: the events and tasks of every calendar of the shown
+/// folders in the calendar views, each in its calendar's color; chips
+/// turn a calendar's items on and off, or hide it from the tab, and the
+/// last chip brings hidden ones back. It only shows: tap an event or a
+/// task to see it, then open its calendar or edit it there; a task is
+/// checked off on its calendar's page, not here; the floating button
+/// opens a calendar; a tap or drag on a free time says to open one.
+/// Every edit happens on the calendar's own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 
@@ -103,12 +104,31 @@ class CalendarTabScreen extends ConsumerWidget {
                           onKind: (kind) => unawaited(viewChoice.keep(kind)),
                           now: ref.watch(calendarClockProvider),
                           titleOf: (file) => shown[file]!.title,
-                          onTap: (file, occurrence) => _showEvent(
+                          onTap: (file, occurrence) => _showItem(
                             zoomed,
                             ref,
                             shown[file]!,
-                            occurrence,
                             colorOf(file),
+                            edit: EditOccurrence.of(occurrence),
+                            sheet: (actions, calendar) => showOccurrenceSheet(
+                              zoomed,
+                              occurrence,
+                              actions,
+                              calendar: calendar,
+                            ),
+                          ),
+                          onTask: (file, entry) => _showItem(
+                            zoomed,
+                            ref,
+                            shown[file]!,
+                            colorOf(file),
+                            edit: EditTask.of(entry),
+                            sheet: (actions, calendar) => showTaskSheet(
+                              zoomed,
+                              entry,
+                              actions,
+                              calendar: calendar,
+                            ),
                           ),
                           // Adding happens on a calendar's page, if one can
                           // open.
@@ -131,20 +151,23 @@ class CalendarTabScreen extends ConsumerWidget {
     );
   }
 
-  /// Shows [occurrence] of [calendar] whole, named with its [color] and
-  /// title, with what can be done with it: open its calendar, or edit it
-  /// there.
-  Future<void> _showEvent(
+  /// Shows an event or a task of [calendar] whole in its [sheet], named
+  /// with its [color] and title, with what can be done with it: open its
+  /// calendar, or [edit] it there.
+  Future<void> _showItem(
     BuildContext context,
     WidgetRef ref,
     ShownCalendar calendar,
-    Occurrence occurrence,
-    Color color,
-  ) async {
+    Color color, {
+    required CalendarStart edit,
+    required Future<bool?> Function(
+      List<OccurrenceAction<bool>> actions,
+      SheetCalendar calendar,
+    )
+    sheet,
+  }) async {
     final file = calendar.file;
-    final edit = await showOccurrenceSheet(
-      context,
-      occurrence,
+    final editing = await sheet(
       [
         (
           icon: Icons.calendar_month_outlined,
@@ -153,11 +176,11 @@ class CalendarTabScreen extends ConsumerWidget {
         ),
         (icon: Icons.edit_outlined, label: 'Edit', value: true),
       ],
-      calendar: (color: color, title: calendar.title),
+      (color: color, title: calendar.title),
     );
-    if (edit == null || !context.mounted) return;
-    await (edit
-        ? openCalendar(context, ref, file, EditOccurrence.of(occurrence))
+    if (editing == null || !context.mounted) return;
+    await (editing
+        ? openCalendar(context, ref, file, edit)
         : openFile(context, ref, file));
   }
 

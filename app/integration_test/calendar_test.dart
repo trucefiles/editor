@@ -33,7 +33,8 @@ void main() {
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
     await tester.enterText(_nameField, 'Family');
     await tester.pump();
-    await tester.tapAndSettle(find.byTooltip('Add event'));
+    await tester.tapAndSettle(find.byTooltip('Add'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Event'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
     expect(find.text('Dentist'), findsOneWidget);
@@ -127,7 +128,7 @@ void main() {
     await tester.addFolder(app);
     await tester.openFile('Garden');
 
-    await tester.chooseInMenu('Import events…');
+    await tester.chooseInMenu('Import from file…');
     expect(find.text('Seed swap'), findsOneWidget);
     expect(find.text('Added 1 event.'), findsOneWidget);
     await tester.pageBack();
@@ -157,13 +158,42 @@ void main() {
     expect(app.topFiles, isEmpty);
   });
 
+  testApp('a task added in the Tasks view is written beside the events, '
+      'and checked off', (tester) async {
+    await tester.addFolder(app);
+
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
+    await tester.enterText(_nameField, 'Chores');
+    await tester.pump();
+    await tester.tapAndSettle(find.byTooltip('Pick a view'));
+    await tester.tapAndSettle(find.text('Tasks').last);
+    await tester.tapAndSettle(find.byTooltip('Add'));
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Tent');
+    await tester.tapAndSettle(find.text('Save'));
+    await tester.tapAndSettle(find.byTooltip('Mark as done'));
+    expect(find.text('Done (1)'), findsOneWidget);
+    await tester.pageBack();
+    await tester.waitForNoteClosed();
+
+    final file = app.file('Chores.ics');
+    await tester.waitUntil(
+      () => file.existsSync() && file.readAsStringSync().contains('COMPLETED:'),
+    );
+    final text = file.readAsStringSync();
+    expect(text, contains('BEGIN:VTODO\r\n'));
+    expect(text, contains('SUMMARY:Tent\r\n'));
+    expect(text, contains('STATUS:COMPLETED\r\n'));
+  });
+
   testApp('a new calendar with an event and no name is named after its '
       'kind', (tester) async {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
     await tester.tapAndSettle(find.widgetWithText(ListTile, 'Calendar'));
-    await tester.tapAndSettle(find.byTooltip('Add event'));
+    await tester.tapAndSettle(find.byTooltip('Add'));
+    await tester.tapAndSettle(find.widgetWithText(ListTile, 'Event'));
     await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Dentist');
     await tester.tapAndSettle(find.text('Save'));
     await tester.pageBack();

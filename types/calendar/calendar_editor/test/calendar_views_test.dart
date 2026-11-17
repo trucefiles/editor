@@ -13,7 +13,7 @@ import 'views_title.dart';
 /// for an hour.
 Calendar _calendar(String name, String event, int hour) => applyEdit(
   Calendar.read(newCalendarText(name))!,
-  AddEvent(
+  AddItem(
     event,
     EventDraft(
       summary: event,
@@ -57,7 +57,7 @@ void main() {
       ),
       (false, false, false),
     );
-    expect(find.byTooltip('Add event'), findsNothing);
+    expect(find.byTooltip('Add'), findsNothing);
 
     final dentist = tester.getCenter(find.text('Dentist'));
     final gesture = await tester.startGesture(
@@ -114,7 +114,7 @@ void main() {
       'next page', (tester) async {
     Calendar on(String event, DateTime day) => applyEdit(
       Calendar.read(newCalendarText(event))!,
-      AddEvent(
+      AddItem(
         event,
         EventDraft(
           summary: event,
@@ -427,7 +427,7 @@ void main() {
       'two are named', (tester) async {
     Calendar me(String name) => applyEdit(
       Calendar.read(newCalendarText(name, health: true))!,
-      AddEvent(
+      AddItem(
         'p',
         EventDraft.health(
           const Period(PeriodFlow.medium),

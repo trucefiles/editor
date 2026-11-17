@@ -11,9 +11,10 @@ typedef ShownRange = ({DateTime from, DateTime to});
 
 /// The one owner of what the calendar views show around their events:
 /// the [kind] of view, the [range] it shows, the cycle days of its health
-/// calendars ([health]), and [today], which moves on at each midnight of
-/// its [ViewsClock]. It tells a change of [range] on its own, as paging
-/// changes nothing else; its listeners hear the rest. Calendars are told
+/// calendars ([health]), the tasks list ([tasks]), and [today], which
+/// moves on at each midnight of its [ViewsClock]. It tells a change of
+/// [range] on its own, as paging changes nothing else; its listeners
+/// hear the rest. Calendars are told
 /// apart by their keys ([K]).
 final class CalendarViewsModel<K> extends ChangeNotifier {
   CalendarViewsModel({
@@ -69,6 +70,18 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
   /// The cycle days of its health calendars as of [today].
   HealthDays<K> get health => _health;
 
+  /// The tasks list of its calendars as of [today]: worked out when first
+  /// asked, and again once a calendar or the day (or zone) changes; after
+  /// a change of calendars from the list before, so only tasks that
+  /// changed are walked again.
+  TaskList<K> get tasks =>
+      _tasks ??= taskList(_calendars, today, before: _before);
+  TaskList<K>? _tasks;
+
+  /// The list before a change of calendars, whose tasks' entries the next
+  /// one keeps where the task is the same.
+  TaskList<K>? _before;
+
   /// Shows the view [kind].
   void showKind(CalendarViewKind kind) {
     if (kind == _kind) return;
@@ -87,11 +100,14 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _calendars = calendars;
     if (same) return;
     _health = HealthDays.of(calendars, today);
+    _before = _tasks ?? _before;
+    _tasks = null;
     notifyListeners();
   }
 
   void _dayChanged() {
     _health = HealthDays.of(_calendars, today);
+    _tasks = _before = null;
     notifyListeners();
   }
 

@@ -32,8 +32,9 @@ sealed class CalendarInput extends CalendarMessage {
 }
 
 /// The user's [edit]: one undo step. Dropped while the text is no
-/// calendar, or if it changes nothing. A change of an event or date that
-/// is gone meanwhile lands as the new event [newUid] (see [landing]).
+/// calendar, or if it changes nothing. A change of an event, task or
+/// date that is gone meanwhile lands as the new item [newUid]; a check of
+/// one is dropped (see [landing]).
 final class EditCalendar extends CalendarInput {
   const EditCalendar(this.edit, {required this.newUid});
 
@@ -50,7 +51,8 @@ final class RenameCalendar extends CalendarInput {
   final String name;
 }
 
-/// The user imports the events of the calendar file [bytes] [at] (see
+/// The user imports the events and tasks of the calendar file [bytes]
+/// [at] (see
 /// `importInto`): one undo step, and [ImportDone] tells what came of it.
 /// Dropped while the text is no calendar.
 final class ImportEvents extends CalendarInput {
@@ -107,12 +109,22 @@ final class CalendarNotice extends CalendarOwnerEvent {
   final EditorNotice notice;
 }
 
-/// An edit of what was [gone] was saved as a new event, for the user to
-/// hear why.
-final class SavedAsNew extends CalendarOwnerEvent {
-  const SavedAsNew(this.gone);
+/// An edit of what was [gone] meanwhile landed otherwise than asked, for
+/// the user to hear why (see [landing]).
+sealed class GoneNotice extends CalendarOwnerEvent {
+  const GoneNotice(this.gone);
 
-  final GoneMeanwhile gone;
+  final Gone gone;
+}
+
+/// The edit was saved as a new event or task.
+final class SavedAsNew extends GoneNotice {
+  const SavedAsNew(super.gone);
+}
+
+/// The edit (a check of a task) changed nothing.
+final class EditDropped extends GoneNotice {
+  const EditDropped(super.gone);
 }
 
 /// An import of the user's is done, as [report] says.

@@ -24,7 +24,7 @@ void main() {
       ),
     );
     final second = _november(calendar)[1];
-    final draft = occurrenceDraft(second);
+    final draft = occurrenceDraft(second) as EventDraft;
 
     expect(second.end.difference(second.start), const Duration(hours: 1));
     expect(

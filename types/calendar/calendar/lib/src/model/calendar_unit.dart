@@ -1,4 +1,8 @@
+import 'package:collection/collection.dart';
+
 import '../read/component.dart';
+import 'calendar_item.dart';
+import 'item_part.dart';
 
 /// What names a unit across texts of one calendar: the grain of reading,
 /// editing and merging.
@@ -7,17 +11,23 @@ sealed class UnitKey {
 }
 
 /// All components of one kind ([component]: `VEVENT`, `VTODO`, ...) with
-/// one `UID`: for events a series with its changed occurrences, or one
-/// event.
+/// one `UID`: for events and tasks a series with its changed dates, or
+/// one event or task.
 final class UidKey extends UnitKey {
   const UidKey(this.component, this.uid);
 
   /// The key of the event [uid].
-  const UidKey.event(this.uid) : component = 'VEVENT';
+  UidKey.event(String uid) : this(ItemKind.event.component, uid);
+
+  /// The key of the task [uid].
+  UidKey.task(String uid) : this(ItemKind.task.component, uid);
 
   /// The components' name, upper case.
   final String component;
   final String uid;
+
+  /// The kind of item it holds; `null` if none (another component).
+  ItemKind? get kind => ItemKind.named(component);
 
   @override
   bool operator ==(Object other) =>
@@ -65,7 +75,7 @@ final class TextKey extends UnitKey {
 /// fresh as one part after an edit.
 final class CalendarUnit {
   /// A unit as read: [parts] hold its blocks' lines as they were.
-  const CalendarUnit.read(this.key, this.parts, this.components);
+  CalendarUnit.read(this.key, this.parts, this.components);
 
   /// A unit an edit made: printed fresh from [components].
   CalendarUnit.edited(this.key, this.components)
@@ -78,6 +88,20 @@ final class CalendarUnit {
   /// Its whole text, its parts in order.
   String get text => parts.join();
 
+  /// The event or task it holds; `null` for none. Worked out once, so a
+  /// unit an edit leaves alone keeps its item in the edited calendar.
+  late final CalendarItem? item = switch (key) {
+    UidKey(kind: ItemKind.event, :final uid) => CalendarEvent(
+      uid,
+      components.map(EventPart.new).toList(),
+    ),
+    UidKey(kind: ItemKind.task, :final uid) => CalendarTask(
+      uid,
+      components.map(TaskPart.new).toList(),
+    ),
+    _ => null,
+  };
+
   /// The time zones its components read times by: a `TZID` on any of
   /// their lines. Worked out each time it is asked.
   Iterable<String> get zonesNamed => components.expand(_zonesIn);
@@ -88,3 +112,19 @@ Iterable<String> _zonesIn(Component component) => [
   for (final line in component.properties) ?line.param('TZID'),
   for (final child in component.children) ..._zonesIn(child),
 ];
+
+/// The kinds of calendar item: events (`VEVENT`) and tasks (`VTODO`).
+/// The one place a component's name tells its kind.
+enum ItemKind {
+  event('VEVENT'),
+  task('VTODO');
+
+  const ItemKind(this.component);
+
+  /// The name of its components.
+  final String component;
+
+  /// The kind of a component named [component]; `null` if it is no item.
+  static ItemKind? named(String component) =>
+      values.where((kind) => kind.component == component).firstOrNull;
+}

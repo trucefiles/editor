@@ -24,7 +24,7 @@ void main() {
 
   // Two devices from one text: one adds an event, the other edits Ann.
   final added = _apply(birthday, [
-    AddEvent('gym@a', _draft('Gym', DateTime(2026, 11, 3, 18)), at: day1),
+    AddItem('gym@a', _draft('Gym', DateTime(2026, 11, 3, 18)), at: day1),
   ]);
   final renamed = _apply(birthday, [
     ChangeSeries(
@@ -66,7 +66,7 @@ void main() {
   test('keeps the layout of main: parts of one event that lie apart', () {
     expect(_merged(exported, exported), exported);
     final renamed = _apply(exported, [
-      DeleteEvent('dentist@example.com', at: day2),
+      DeleteItem(UidKey.event('dentist@example.com'), at: day2),
     ]);
     expect(_merged(exported, renamed), _merged(renamed, renamed));
   });
@@ -82,7 +82,9 @@ void main() {
   });
 
   test('a delete wins over an older edit, and stays a marker', () {
-    final deleted = _apply(birthday, [DeleteEvent('ann@truce', at: day2)]);
+    final deleted = _apply(birthday, [
+      DeleteItem(UidKey.event('ann@truce'), at: day2),
+    ]);
     final edited = _apply(birthday, [
       ChangeSeries(
         'ann@truce',
@@ -225,6 +227,13 @@ void main() {
     final result = _merge.merge(older, newer) as MergedText;
     expect(result.text, newer);
     expect(result.lost, ['Buy paint']);
+  });
+
+  test('an untitled task that lost is named as a task', () {
+    final older = _calendarWith('VTODO', '');
+    final newer = _calendarWith('VTODO', ' ', modified: '20261002T080000Z');
+    final result = _merge.merge(older, newer) as MergedText;
+    expect(result.lost, ['A task']);
   });
 
   test('keeps a task and an event with the same UID apart', () {

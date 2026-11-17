@@ -13,7 +13,7 @@ final _calendar = Calendar.read(_weekly)!;
 
 /// The second Monday's run, as the form started from it.
 final _second = Floating(DateTime(2026, 11, 9, 10));
-final _from = EventDraft.at(_calendar.eventOf('run')!, _second);
+final _from = ItemDraft.at(_calendar.eventOf('run')!, _second) as EventDraft;
 
 final _typed = EventDraft(
   summary: 'Long run',
@@ -44,11 +44,11 @@ void main() {
   });
 
   test('a change of a deleted event is saved as a new event', () {
-    final deleted = _after(DeleteEvent('run', at: _at));
+    final deleted = _after(DeleteItem(UidKey.event('run'), at: _at));
     for (final edit in [_changeOne, _changeAll]) {
       final landed = landing(deleted, edit, newUid: 'new');
-      expect(landed.gone, GoneMeanwhile.event);
-      final added = landed.edit as AddEvent;
+      expect(landed.gone, (kind: ItemKind.event, what: GoneMeanwhile.item));
+      final added = landed.edit as AddItem;
       expect((added.uid, added.draft.summary), ('new', 'Long run'));
     }
   });
@@ -69,11 +69,13 @@ void main() {
         at: _at,
       ),
     );
-    final dateDeleted = _after(DeleteOccurrence('run', _second, at: _at));
+    final dateDeleted = _after(
+      DeleteOccurrence(UidKey.event('run'), _second, at: _at),
+    );
     for (final calendar in [moved, dateDeleted]) {
       final landed = landing(calendar, _changeOne, newUid: 'new');
-      expect(landed.gone, GoneMeanwhile.date);
-      final added = landed.edit as AddEvent;
+      expect(landed.gone, (kind: ItemKind.event, what: GoneMeanwhile.date));
+      final added = landed.edit as AddItem;
       expect((added.draft.summary, added.draft.repeat), ('Long run', null));
     }
   });

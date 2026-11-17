@@ -7,16 +7,18 @@ import 'package:truce_calendar/truce_calendar.dart';
 import '../calendar_start.dart';
 import '../views/calendar_views.dart';
 import '../views/new_event_spot.dart';
-import 'event_actions.dart';
 import 'health_actions.dart';
+import 'item_actions.dart';
+import 'new_kind.dart';
 
-/// A calendar's page: the calendar in the calendar views. Tap an event to
-/// see it whole and to edit or delete it (a health entry in its own
-/// form); tap a free time or day to add one (to a health calendar: an
-/// entry of a kind picked first); drag an event or its edge to move that
-/// one date. It takes what [starts] asks (the Add button, the Calendar
-/// tab's Edit) once it can be edited. Only to read unless [edit] is
-/// given.
+/// A calendar's page: the calendar in the calendar views. Tap an event or
+/// a task to see it whole and to edit or delete it (a health entry in its
+/// own form); tap a task's box to check it off; tap a free time or day to
+/// add an event or a task there, the user's pick (to a health calendar:
+/// an entry of a kind picked first; in the tasks view: a task); drag an
+/// event or a task, or an event's edge, to move that one date. It takes
+/// what [starts] asks (the Add button, the Calendar tab's Edit) once it
+/// can be edited. Only to read unless [edit] is given.
 class EventsPage extends StatefulWidget {
   const EventsPage(
     this.calendar, {
@@ -81,23 +83,26 @@ class _EventsPageState extends State<EventsPage> {
     if (!mounted || edit == null) return;
     switch (widget.starts.take()) {
       case StartAdding():
-        unawaited(_add(AtTimes.usualOn(_addDay), edit));
+        unawaited(
+          _addsTasks
+              ? _addTask(null, edit)
+              : _add(AtTimes.usualOn(_addDay), edit),
+        );
       case final EditOccurrence asked:
         unawaited(_editAsked(asked, edit));
+      case final EditTask asked:
+        unawaited(_editTaskAsked(asked, edit));
       case null:
     }
   }
 
   Future<void> _editAsked(EditOccurrence asked, MakeEdit edit) async {
     final start = asked.start;
-    final occurrence =
-        occurrences(
-          widget.calendar,
-          start,
-          start.add(const Duration(days: 1)),
-        ).firstWhereOrNull(
+    final occurrence = _occurrencesAround(start)
+        .whereType<EventOccurrence>()
+        .firstWhereOrNull(
           (each) =>
-              each.event.uid == asked.uid &&
+              each.item.uid == asked.uid &&
               each.recurrence == asked.recurrence &&
               each.start == start,
         );
@@ -105,15 +110,79 @@ class _EventsPageState extends State<EventsPage> {
       return widget.hint('This event is no longer in the calendar.');
     }
     await (occurrence.part.health == null
-        ? editOccurrence(context, occurrence, edit, widget.deviceZone)
+        ? editOccurrence(
+            context,
+            occurrence,
+            edit,
+            widget.deviceZone,
+            today: _today,
+          )
         : editHealthEntry(context, occurrence, edit));
   }
 
-  /// Adds at [spot]: an event, or a health entry of a kind picked first.
-  Future<void> _add(NewEventSpot spot, MakeEdit edit) =>
-      widget.calendar.isHealth
-      ? addHealthEntry(context, spot.firstDay, edit)
-      : addEvent(context, spot, edit, widget.deviceZone);
+  Future<void> _editTaskAsked(EditTask asked, MakeEdit edit) async {
+    final task = widget.calendar.taskOf(asked.uid);
+    final entry = switch ((task, asked.due)) {
+      (final task?, null)
+          when task.series.from == null && !task.series.deleted =>
+        TaskEntry.undated(task),
+      (_?, final due?) =>
+        _occurrencesAround(due)
+            .whereType<TaskOccurrence>()
+            .where(
+              (each) =>
+                  each.item.uid == asked.uid &&
+                  each.recurrence == asked.date &&
+                  each.due == due,
+            )
+            .map(TaskEntry.of)
+            .firstOrNull,
+      _ => null,
+    };
+    if (entry == null) {
+      return widget.hint('This task is no longer in the calendar.');
+    }
+    await editTask(context, entry, edit, widget.deviceZone, today: _today);
+  }
+
+  /// The occurrences of the calendar from a day before [at] to a day
+  /// after.
+  List<Occurrence> _occurrencesAround(DateTime at) => occurrences(
+    widget.calendar,
+    at.subtract(const Duration(days: 1)),
+    at.add(const Duration(days: 1)),
+  );
+
+  DateTime get _today => DateUtils.dateOnly(widget.now());
+
+  /// Adds at [spot]: a health entry of a kind picked first; in the tasks
+  /// view a task; else an event or a task, the user's pick.
+  Future<void> _add(NewEventSpot spot, MakeEdit edit) async {
+    if (widget.calendar.isHealth) {
+      return addHealthEntry(context, spot.firstDay, edit);
+    }
+    if (_addsTasks) {
+      return _addTask(spot, edit);
+    }
+    final kind = await pickNewKind(context);
+    if (!mounted) return;
+    switch (kind) {
+      case NewKind.event:
+        await addEvent(context, spot, edit, widget.deviceZone);
+      case NewKind.task:
+        await _addTask(spot, edit);
+      case null:
+    }
+  }
+
+  /// Whether adding adds a task, without asking: in the tasks view of a
+  /// calendar that is no health calendar.
+  bool get _addsTasks =>
+      !widget.calendar.isHealth &&
+      widget.viewChoice.last() == CalendarViewKind.tasks;
+
+  Future<void> _addTask(NewEventSpot? spot, MakeEdit edit) =>
+      addTask(context, spot, edit, widget.deviceZone, today: _today);
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +196,15 @@ class _EventsPageState extends State<EventsPage> {
       onKind: (kind) => unawaited(widget.viewChoice.keep(kind)),
       now: widget.now,
       onTap: (_, occurrence) => occurrence.part.health == null
-          ? showOccurrence(context, occurrence, edit, deviceZone)
+          ? showOccurrence(context, occurrence, edit, deviceZone, today: _today)
           : showHealthEntry(context, occurrence, edit),
+      onTask: (_, entry) =>
+          showTask(context, entry, edit, deviceZone, today: _today),
+      onCheck: edit == null
+          ? null
+          : (_, entry, done) => edit(
+              (at) => CheckTask(entry.task.uid, entry.date, done: done, at: at),
+            ),
       onAdd: edit == null ? null : (spot) => _add(spot, edit),
       onAddDay: (day) => _addDay = day,
       onMove: edit == null

@@ -62,10 +62,15 @@ final class _Step
     switch (message) {
       case EditCalendar(:final edit, :final newUid):
         if (state.calendar case final calendar?) {
-          final landed = landing(calendar, edit, newUid: newUid);
-          final (calendar: edited, :written) = writeEdit(calendar, landed.edit);
-          _edited(calendar, edited, written);
-          if (landed.gone case final gone?) events.add(SavedAsNew(gone));
+          switch (landing(calendar, edit, newUid: newUid)) {
+            case (edit: final landed?, :final gone):
+              final (calendar: edited, :written) = writeEdit(calendar, landed);
+              _edited(calendar, edited, written);
+              if (gone != null) events.add(SavedAsNew(gone));
+            case (edit: null, gone: final gone?):
+              events.add(EditDropped(gone));
+            case (edit: null, gone: null):
+          }
         }
       case ImportEvents(:final bytes, :final at):
         if (state.calendar case final calendar?) {

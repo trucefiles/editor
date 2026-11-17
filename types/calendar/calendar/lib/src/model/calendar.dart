@@ -2,8 +2,8 @@ import 'package:collection/collection.dart';
 
 import '../read/component.dart';
 import '../read/content_line.dart';
-import 'calendar_event.dart';
 import 'calendar_head.dart';
+import 'calendar_item.dart';
 import 'calendar_unit.dart';
 
 /// One calendar file, read: the lines up to its first unit ([head]: the
@@ -64,11 +64,30 @@ final class Calendar {
   /// The unit [key]; `null` if there is none.
   CalendarUnit? unitOf(UnitKey key) => _body.byKey[key];
 
+  /// The calendar's events and tasks, deleted ones' markers among them,
+  /// in order.
+  List<CalendarItem> get items => _body.items;
+
   /// The calendar's events, deleted ones' markers among them, in order.
   List<CalendarEvent> get events => _body.events;
 
+  /// The calendar's tasks, deleted ones' markers among them, in order.
+  List<CalendarTask> get tasks => _body.tasks;
+
+  /// The event or task [key]; `null` if there is none.
+  CalendarItem? itemOf(UidKey key) => _body.itemsByKey[key];
+
   /// The event [uid]; `null` if there is none.
-  CalendarEvent? eventOf(String uid) => _body.eventsByUid[uid];
+  CalendarEvent? eventOf(String uid) => switch (itemOf(UidKey.event(uid))) {
+    final CalendarEvent event => event,
+    _ => null,
+  };
+
+  /// The task [uid]; `null` if there is none.
+  CalendarTask? taskOf(String uid) => switch (itemOf(UidKey.task(uid))) {
+    final CalendarTask task => task,
+    _ => null,
+  };
 
   /// The time zones it holds a block for.
   Set<String> get zones => _body.zones;
@@ -207,12 +226,18 @@ final class _Body {
     for (final unit in units) unit.key: unit,
   };
 
-  late final List<CalendarEvent> events = [
-    for (final unit in units) ?CalendarEvent.of(unit),
-  ];
+  late final List<CalendarItem> items = [for (final unit in units) ?unit.item];
 
-  late final Map<String, CalendarEvent> eventsByUid = {
-    for (final event in events) event.uid: event,
+  late final List<CalendarEvent> events = items
+      .whereType<CalendarEvent>()
+      .toList();
+
+  late final List<CalendarTask> tasks = items
+      .whereType<CalendarTask>()
+      .toList();
+
+  late final Map<UidKey, CalendarItem> itemsByKey = {
+    for (final item in items) item.key: item,
   };
 
   late final Set<String> zones = {

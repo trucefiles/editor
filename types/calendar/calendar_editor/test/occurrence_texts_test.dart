@@ -25,7 +25,7 @@ void main() {
   test('a line gives the day, then the title as the views show it', () {
     expect(occurrenceLine(trip, day), '3.  Trip');
     expect(occurrenceLine(untitled, day), '5.  (No title)');
-    expect(occurrenceTitle(untitled), '(No title)');
+    expect(itemTitle(untitled.part), '(No title)');
   });
 
   test('a day says all day; days on end also their last day', () {
@@ -44,11 +44,9 @@ void main() {
         'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:a\n'
         '$start\n$end\nSUMMARY:Flight\nEND:VEVENT\nEND:VCALENDAR\n',
       )!;
-      final [occurrence] = occurrences(
-        calendar,
-        DateTime(2026, 11),
-        DateTime(2026, 12),
-      );
+      final occurrence =
+          occurrences(calendar, DateTime(2026, 11), DateTime(2026, 12)).single
+              as EventOccurrence;
       return ownTimesOf(words, occurrence, use24Hour: true);
     }
 

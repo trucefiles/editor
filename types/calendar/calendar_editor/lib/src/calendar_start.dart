@@ -3,7 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_files/truce_files.dart';
 
 /// What a calendar's page is asked to start with once its calendar
-/// shows: adding, or editing one occurrence.
+/// shows: adding, or editing one occurrence or task.
 sealed class CalendarStart {
   const CalendarStart();
 }
@@ -20,16 +20,26 @@ final class EditOccurrence extends CalendarStart {
   const EditOccurrence(this.uid, this.recurrence, {required this.start});
 
   /// [occurrence]'s edit.
-  EditOccurrence.of(Occurrence occurrence)
-    : this(
-        occurrence.event.uid,
-        occurrence.recurrence,
-        start: occurrence.start,
-      );
+  EditOccurrence.of(EventOccurrence occurrence)
+    : this(occurrence.item.uid, occurrence.recurrence, start: occurrence.start);
 
   final String uid;
   final CalendarTime? recurrence;
   final DateTime start;
+}
+
+/// Edit the task [uid], or its date [date] (`null`: a task that doesn't
+/// repeat) due at [due] on this device's clock (`null`: never).
+final class EditTask extends CalendarStart {
+  const EditTask(this.uid, this.date, {required this.due});
+
+  /// [entry]'s edit.
+  EditTask.of(TaskEntry entry)
+    : this(entry.task.uid, entry.date, due: entry.due);
+
+  final String uid;
+  final CalendarTime? date;
+  final DateTime? due;
 }
 
 /// Starts asked of calendar pages by file, e.g. by the Calendar tab

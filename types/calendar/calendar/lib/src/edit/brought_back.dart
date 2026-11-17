@@ -59,9 +59,9 @@ Calendar _unusedZonesGone(Calendar calendar, List<UnitKey> lacking) =>
 
 /// What unit [key] is once [back] (`null`: none) comes back over [now] as
 /// an edit at [at], so a merge with [now]'s text, e.g. as another device
-/// got it, keeps what came back: an event that differs from [now]'s
-/// stamped anew, its `SEQUENCE` above both; an event [back] has not a
-/// deleted marker, or none at all where [filed] (the calendar as the
+/// got it, keeps what came back: an item that differs from [now]'s
+/// stamped anew, its `SEQUENCE` above both; an event or task [back] has
+/// not a deleted marker, or none at all where [filed] (the calendar as the
 /// file owner has it) has no unit of it: no file can hold it then, so no
 /// merge needs the marker; a time zone block [back] has not stays
 /// [now]'s here, as a marker may name its zone (it goes later only if
@@ -76,16 +76,18 @@ CalendarUnit? _cameBack(
   Calendar? filed,
 ) {
   final current = now.unitOf(key);
-  final (isEvent, event) = switch (key) {
-    UidKey(component: 'VEVENT', :final uid) => (true, now.eventOf(uid)),
+  final (isItem, item) = switch (key) {
+    UidKey(kind: _?) => (true, now.itemOf(key)),
     _ => (false, null),
   };
   return switch (back) {
-    null when event != null && filed?.unitOf(key) != null =>
-      CalendarUnit.edited(key, [markerOf(event, at)]),
+    null when item != null && filed?.unitOf(key) != null => CalendarUnit.edited(
+      key,
+      [markerOf(item, at)],
+    ),
     null when key is ZoneKey => current,
     null => null,
-    _ when !isEvent || back.text == current?.text => back,
+    _ when !isItem || back.text == current?.text => back,
     _ => stampedOver(back, at, current),
   };
 }

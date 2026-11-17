@@ -14,8 +14,7 @@ final class OccurrenceEvent<K> extends KalenderEvent {
          // A broken end before the start shows as no length.
          end: _notBefore(end ?? occurrence.end, start ?? occurrence.start),
          isAllDay: occurrence.allDay,
-         // A health entry is on one day: it moves, but doesn't stretch.
-         interaction: occurrence.part.health == null
+         interaction: _stretches(occurrence)
              ? EventInteraction.allowAll()
              : EventInteraction(allowStartResize: false, allowEndResize: false),
        );
@@ -40,6 +39,13 @@ final class OccurrenceEvent<K> extends KalenderEvent {
   @override
   int get hashCode => Object.hash(super.hashCode, calendar, occurrence);
 }
+
+/// Whether [occurrence] can be stretched: a health entry is on one day,
+/// and a task is due at one time; both move, but don't stretch.
+bool _stretches(Occurrence occurrence) => switch (occurrence) {
+  EventOccurrence(part: EventPart(health: null)) => true,
+  EventOccurrence() || TaskOccurrence() => false,
+};
 
 DateTime _notBefore(DateTime end, DateTime start) =>
     end.isBefore(start) ? start : end;

@@ -6,7 +6,7 @@ import 'package:truce_calendar_editor/src/views_clock.dart';
 /// A calendar named [name] with [event] on [day] from 9 to 10.
 Calendar _calendar(String name, String event, DateTime day) => applyEdit(
   Calendar.read(newCalendarText(name))!,
-  AddEvent(
+  AddItem(
     event,
     EventDraft(
       summary: event,
@@ -176,5 +176,73 @@ void main() {
 
     model.showCalendars({'home': home.named('Family')});
     expect(changes, 0);
+  });
+
+  test('a box checked walks that task again; the others are kept', () {
+    String task(String uid) =>
+        'BEGIN:VTODO\nUID:$uid\nSUMMARY:$uid\n'
+        'DUE;VALUE=DATE:20261120\nRRULE:FREQ=WEEKLY\nEND:VTODO\n';
+    final home = Calendar.read(
+      'BEGIN:VCALENDAR\nVERSION:2.0\n${task('water')}${task('bins')}'
+      'END:VCALENDAR\n',
+    )!;
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': home},
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
+    );
+    addTearDown(model.dispose);
+    TaskEntry entryOf(String uid) =>
+        model.tasks.later.singleWhere((row) => row.entry.task.uid == uid).entry;
+    final bins = entryOf('bins');
+
+    model.showCalendars({
+      'home': applyEdit(
+        home,
+        CheckTask(
+          'water',
+          AllDay(DateTime.utc(2026, 11, 20)),
+          done: true,
+          at: DateTime.utc(2026, 11, 10),
+        ),
+      ),
+    });
+
+    expect(identical(entryOf('bins'), bins), isTrue, reason: 'kept');
+    expect(entryOf('water').date, AllDay(DateTime.utc(2026, 11, 27)));
+  });
+
+  test('the same calendars told again keep the very same tasks list', () {
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': home},
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
+    );
+    addTearDown(model.dispose);
+    final list = model.tasks;
+
+    model.showCalendars({'home': home});
+    expect(identical(model.tasks, list), isTrue);
+  });
+
+  testWidgets('a new time zone works the tasks list out anew', (tester) async {
+    var zone = 'UTC';
+    final clock = ViewsClock(
+      () => DateTime(2026, 11, 10, 12),
+      deviceZone: () => zone,
+    );
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': home},
+      clock: clock,
+    );
+    final list = model.tasks;
+
+    zone = 'Europe/Berlin';
+    await tester.pump(const Duration(minutes: 1));
+
+    expect(identical(model.tasks, list), isFalse);
+    model.dispose();
+    clock.dispose();
   });
 }

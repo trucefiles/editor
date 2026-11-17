@@ -57,7 +57,7 @@ void main() {
 
   test("a calendar's period days come from its period entries", () {
     final calendar = [
-      AddEvent(
+      AddItem(
         'p@t',
         EventDraft.health(
           const Period(PeriodFlow.light),
@@ -65,7 +65,7 @@ void main() {
         ),
         at: DateTime.utc(2026, 10, 1),
       ),
-      AddEvent(
+      AddItem(
         's@t',
         EventDraft.health(
           const Symptom('Cramps', level: 2),

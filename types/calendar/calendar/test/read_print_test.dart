@@ -15,14 +15,14 @@ void main() {
     test('a unit taken out goes with all its parts, the rest as it was', () {
       final calendar = Calendar.read(exported)!;
       final without = calendar.withUnitsChanged({
-        const UidKey.event('swim@example.com'): null,
+        UidKey.event('swim@example.com'): null,
       });
       expect(without.eventOf('swim@example.com'), isNull);
       expect(without.text, isNot(contains('swim')));
       expect(
         without.units.map((unit) => unit.text),
         calendar.units
-            .where((unit) => unit.key != const UidKey.event('swim@example.com'))
+            .where((unit) => unit.key != UidKey.event('swim@example.com'))
             .map((unit) => unit.text),
       );
     });

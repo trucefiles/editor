@@ -6,10 +6,10 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
 /// The one occurrence of "Swimming" on 3 November 2026, 17 to 18, in
 /// red, at the pool, with notes.
-Occurrence _swimming() {
+EventOccurrence _swimming() {
   final calendar = applyEdit(
     Calendar.read(newCalendarText('Home'))!,
-    AddEvent(
+    AddItem(
       'a',
       EventDraft(
         summary: 'Swimming',
@@ -23,10 +23,11 @@ Occurrence _swimming() {
     ),
   );
   return occurrences(
-    calendar,
-    DateTime(2026, 11, 3),
-    DateTime(2026, 11, 4),
-  ).single;
+        calendar,
+        DateTime(2026, 11, 3),
+        DateTime(2026, 11, 4),
+      ).single
+      as EventOccurrence;
 }
 
 void main() {

@@ -51,8 +51,8 @@ calendar's card shows its next events. Its page shows a month, a week,
 a day or a schedule, the one you picked last for it. Tap a day's number
 or header to open that day, or the title above to pick a date: a day,
 or a month in the month and schedule views. Tap a free time to add an
-event there, a day in the month for an all-day event, or drag over a few
-hours; **+** adds one too. Drag an event to move it, or its edge to make
+event or a task there, a day in the month for an all-day one, or drag
+over a few hours; **+** adds one too, and asks which. Drag an event to move it, or its edge to make
 it longer (for an event that repeats, that moves just this one). Tap an
 event to edit or delete it, just this time or every time. An event can
 have its own color, also as a dot when you tap it; otherwise it shows
@@ -61,8 +61,16 @@ and end can each have their own time zone, e.g. for a flight: tap the
 zone under a time to pick one.
 An event from another zone also shows its own times when you tap it.
 Links in an event's place and notes open with a tap, and a tap on the
-place opens it in your maps app. **Import events** in a calendar's
-menu brings in the events of another `.ics` file, e.g. an invite: new
+place opens it in your maps app.
+Tasks live in the same calendar, beside its events, as other calendar
+apps keep them. A task can have a due date, maybe a time, a repeat and
+an alert, or no date at all. It shows on its due day with a box to check
+it off; a task due at a time shows as the half hour before it. The
+**Tasks** view lists them all: overdue, today, later and with no date,
+and below them, folded, those done in the last 30 days. For a task that
+repeats, each date is checked on its own, and the list shows one date:
+the oldest still open from the last 30 days, else the next. **Import from file** in a calendar's
+menu brings in the events and tasks of another `.ics` file, e.g. an invite: new
 ones are added, ones the calendar has already take the file's version,
 and one Undo takes it all back. A health calendar shows in the same
 views: **+** lists its kinds of entry (medication, symptom, measure,
@@ -72,23 +80,30 @@ likely next period lighter with faint stripes, and the line below tells
 the day of the cycle.
 Today always has a blue outline. With a mouse, Shift and the wheel page
 to the next or previous month, week or day. Once your
-folders hold a calendar, the **Calendars** tab shows the events of all
-of them in the same views, in the view picked last there. A chip turns a calendar's events on or off;
+folders hold a calendar, the **Calendars** tab shows the events and
+tasks of all of them in the same views, the Tasks view too, in the view
+picked last there. A chip turns a calendar on or off;
 a long press or right click on it hides the calendar from the tab, and
-**Hidden** brings it back. Tap an event there to see it and its
-calendar, then open the calendar or edit the event on its page. To add or change events, open one
+**Hidden** brings it back. Tap an event or a task there to see it and
+its calendar, then open the calendar or edit it on its page. To add,
+change or check off, open one
 calendar with the calendar button; a tap on a free day in the tab
 reminds you. Pinch or Ctrl and + or - zoom the tab and its event
 details, as in a document. When two devices changed
-the same calendar, the compare view offers **Merge both**: events merge
-one by one, and where both changed the same event, the newer change is
-kept.
+the same calendar, the compare view offers **Merge both**: events and
+tasks merge one by one, and where both changed the same one, the newer
+change is kept.
 
 <img src="screenshots/calendar/calendar_month_desktop.png" width="600" alt="A calendar's page in the month view">
 <img src="screenshots/calendar/calendar_week_desktop.png" width="600" alt="The same calendar in the week view, events by hour">
 <img src="screenshots/calendar/calendar_schedule_touch.png" width="300" alt="The schedule view on a phone: events listed by date">
 <img src="screenshots/calendar/calendar_month_picker_touch.png" width="300" alt="The month view's title tapped on a phone: pick a month, or tap the year to pick another year">
 <img src="screenshots/calendar/calendar_health_touch.png" width="300" alt="A health calendar on a phone: period days shaded, the likely next period lighter with faint stripes, today outlined, the cycle line below">
+<img src="screenshots/calendar/calendar_tasks_desktop.png" width="600" alt="The Tasks view: overdue, today, later and with no date, each task with its box and when it is due; those done folded below">
+<img src="screenshots/calendar/calendar_tasks_month_desktop.png" width="600" alt="The month view with tasks beside events, each with a box to check it off">
+<img src="screenshots/calendar/calendar_add_choice_touch.png" width="300" alt="The + button on a phone: add an event or a task">
+<img src="screenshots/calendar/calendar_task_form_touch.png" width="300" alt="The task form on a phone: title, due date and time, repeat, alert, color and notes">
+<img src="screenshots/calendar/calendar_tasks_touch_large.png" width="300" alt="The Tasks view on a phone with larger text">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: calendars as chips in one row above one month, faintly striped as it only shows, the open calendar button at the bottom">
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
 <img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Open calendar and Edit">

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../model/calendar_event.dart';
+import '../model/calendar_item.dart';
 import '../model/calendar_unit.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
@@ -54,14 +54,15 @@ int _latestSequence(CalendarUnit? unit) =>
 int sequenceOf(Component event) =>
     int.tryParse(event.value('SEQUENCE')?.trim() ?? '') ?? -1;
 
-/// A deleted [event]'s marker: its id, stamps, start and title, and that
-/// it is deleted.
-Component markerOf(CalendarEvent event, DateTime at) {
-  final series = event.series.component;
+/// A deleted [item]'s marker, of its kind: its id, stamps, start (and a
+/// task's due time) and title, and that it is deleted.
+Component markerOf(CalendarItem item, DateTime at) {
+  final series = item.series.component;
   return stamped(
-    Component('VEVENT', [
-      ContentLine('UID', event.uid),
+    Component(series.name, [
+      ContentLine('UID', item.uid),
       ?series.property('DTSTART'),
+      ?series.property('DUE'),
       ?series.property('SUMMARY'),
       ?series.property('SEQUENCE'),
       const ContentLine('STATUS', 'CANCELLED'),

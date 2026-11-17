@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/ui/calendar_dot.dart';
-import 'package:truce_calendar_editor/src/ui/occurrence_details.dart';
+import 'package:truce_calendar_editor/src/ui/item_details.dart';
 
 /// The one occurrence of an all-day event "Gym" of [color] on 3 November
 /// 2026.
-Occurrence _gym({EventColor? color}) {
+EventOccurrence _gym({EventColor? color}) {
   final day = DateTime(2026, 11, 3);
   final calendar = applyEdit(
     Calendar.read(newCalendarText('Home'))!,
-    AddEvent(
+    AddItem(
       'a',
       EventDraft(
         summary: 'Gym',
@@ -21,11 +21,12 @@ Occurrence _gym({EventColor? color}) {
       at: DateTime.utc(2026, 11),
     ),
   );
-  return occurrences(calendar, day, DateTime(2026, 11, 4)).single;
+  return occurrences(calendar, day, DateTime(2026, 11, 4)).single
+      as EventOccurrence;
 }
 
 void main() {
-  Future<void> show(WidgetTester tester, Occurrence occurrence) =>
+  Future<void> show(WidgetTester tester, EventOccurrence occurrence) =>
       tester.pumpWidget(
         MaterialApp(home: Scaffold(body: OccurrenceDetails(occurrence))),
       );

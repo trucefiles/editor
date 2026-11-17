@@ -1,6 +1,7 @@
-/// The calendar page of a calendar file: its events in month, week,
-/// day and schedule views (on the `kalender` package), the event form,
-/// and for a health calendar its entry kinds with their own forms, its
+/// The calendar page of a calendar file: its events and tasks in month,
+/// week, day and schedule views (on the `kalender` package) and its
+/// tasks in a list of their own, the event and task forms, and for a
+/// health calendar its entry kinds with their own forms, its
 /// cycle shaded and told above; the same views for the Calendar tab; the
 /// calendar type as the file page opens it ([CalendarEditableType]).
 /// Flutter widgets only; what a calendar is lives in `calendar`.
@@ -13,7 +14,7 @@ export 'src/calendar_import_file.dart';
 export 'src/calendar_start.dart';
 export 'src/ui/calendar_dot.dart';
 export 'src/ui/event_links.dart';
-export 'src/ui/occurrence_details.dart' show SheetCalendar;
+export 'src/ui/item_details.dart' show SheetCalendar;
 export 'src/ui/occurrence_sheet.dart';
 export 'src/ui/occurrence_texts.dart' show DayText;
 export 'src/views/calendar_views.dart' show CalendarViews;

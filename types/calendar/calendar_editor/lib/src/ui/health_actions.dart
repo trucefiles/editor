@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import 'event_actions.dart';
 import 'health_entry_form.dart';
+import 'item_actions.dart';
 import 'occurrence_sheet.dart';
 
 /// Asks which kind of health entry to add on [day], then for the entry,
@@ -35,7 +35,7 @@ Future<void> addHealthEntry(
   final uid = newUid();
   final key = DateTime.utc(day.year, day.month, day.day);
   edit(
-    (at) => AddEvent(
+    (at) => AddItem(
       uid,
       EventDraft.health(made.entry, key, note: made.note),
       at: at,
@@ -47,7 +47,7 @@ Future<void> addHealthEntry(
 /// offers to edit it in its own form or to delete it.
 Future<void> showHealthEntry(
   BuildContext context,
-  Occurrence occurrence,
+  EventOccurrence occurrence,
   MakeEdit? edit,
 ) async {
   final delete = await showOccurrenceSheet(context, occurrence, [
@@ -58,7 +58,7 @@ Future<void> showHealthEntry(
   ]);
   if (delete == null || edit == null || !context.mounted) return;
   if (delete) {
-    return edit((at) => DeleteEvent(occurrence.event.uid, at: at));
+    return edit((at) => DeleteItem(occurrence.item.key, at: at));
   }
   await editHealthEntry(context, occurrence, edit);
 }
@@ -67,10 +67,10 @@ Future<void> showHealthEntry(
 /// user changes; it keeps its day.
 Future<void> editHealthEntry(
   BuildContext context,
-  Occurrence occurrence,
+  EventOccurrence occurrence,
   MakeEdit edit,
 ) async {
-  final event = occurrence.event;
+  final event = occurrence.item;
   final part = event.series;
   final made = await showHealthEntryForm(
     context,

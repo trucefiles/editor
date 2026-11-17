@@ -14,7 +14,7 @@ void main() {
       Calendar.read(newCalendarText('Me', health: true))!,
       (calendar, day) => applyEdit(
         calendar,
-        AddEvent(
+        AddItem(
           'p$day',
           EventDraft.health(const Period(PeriodFlow.medium), day),
           at: DateTime.utc(2026, 11),

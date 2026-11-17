@@ -135,3 +135,9 @@ final noOpeners = EventOpeners(
   openLink: (_) async => false,
   openPlace: (_) async => false,
 );
+
+/// Picks [kind] ("Event" or "Task") in the sheet that asks what to add.
+Future<void> pickNew(WidgetTester tester, String kind) async {
+  await tester.tap(find.widgetWithText(ListTile, kind));
+  await tester.pumpAndSettle();
+}
