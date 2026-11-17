@@ -169,11 +169,7 @@ CalendarUnit? _editedItem(Calendar calendar, CalendarEdit edit) {
     case ChangeSeries(:final from, :final key):
       return _changed(calendar, key, (item) {
         final now = item.series;
-        final draft = _wanted(
-          edit.draft,
-          from,
-          _draftOf(now),
-        );
+        final draft = _wanted(edit.draft, from, _draftOf(now));
         // A repeat turned off leaves a single item: its left-out, extra
         // and changed dates mean nothing any more.
         if (now.repeat != null && draft.repeat == null) {
