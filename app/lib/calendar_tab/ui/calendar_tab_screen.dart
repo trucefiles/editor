@@ -26,10 +26,10 @@ import 'pick_calendar.dart';
 /// folders in the calendar views, each in its calendar's color; chips
 /// turn a calendar's items on and off, or hide it from the tab, and the
 /// last chip brings hidden ones back. It only shows: tap an event or a
-/// task to see it, then open its calendar or edit it there; tasks are
-/// checked off there too; the floating button opens a
-/// calendar; a tap or drag on a free time says to open one. Every edit
-/// happens on the calendar's own page.
+/// task to see it, then open its calendar or edit it there; a task is
+/// checked off on its calendar's page, not here; the floating button
+/// opens a calendar; a tap or drag on a free time says to open one.
+/// Every edit happens on the calendar's own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 

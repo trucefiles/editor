@@ -127,8 +127,9 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
 - `types/calendar/calendar`: calendars (iCalendar, `.ics`) of events
   and tasks, read and written back block-exact, merged item by item,
   items imported from another file, tasks checked off date by date and
-  listed by when they are due, with repeats, time zones, health entries, cycle predictions and the editor's owner. Pure
-  Dart, no UI; uses core, which knows nothing of it.
+  listed by when they are due, with repeats, time zones, health
+  entries, cycle predictions and the editor's owner. Pure Dart, no UI;
+  uses core, which knows nothing of it.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
   interfaces. Pure Dart.
 - `plugins/local_folder/local_folder`: local folders, which no sync tool
@@ -145,8 +146,8 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   files, file_page, markdown and plain_text.
 - `types/calendar/calendar_editor`: the calendar views (month, week, day
   and schedule, on `kalender`, and the tasks list) for the calendar page
-  and the Calendar tab, the event and task forms and the health view. Flutter; uses core, files,
-  file_page and calendar.
+  and the Calendar tab, the event and task forms and the health view.
+  Flutter; uses core, files, file_page and calendar.
 - `common_ui`: UI parts with no app logic, for use across the app: the
   lazy masonry grid for the cards (items as tall as their content, in
   columns) and the page width that keeps settings and forms in one

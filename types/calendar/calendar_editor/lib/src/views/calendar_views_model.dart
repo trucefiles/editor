@@ -12,8 +12,9 @@ typedef ShownRange = ({DateTime from, DateTime to});
 /// The one owner of what the calendar views show around their events:
 /// the [kind] of view, the [range] it shows, the cycle days of its health
 /// calendars ([health]), the tasks list ([tasks]), and [today], which
-/// moves on at each midnight of its [ViewsClock]. It tells a change of [range] on its own, as paging
-/// changes nothing else; its listeners hear the rest. Calendars are told
+/// moves on at each midnight of its [ViewsClock]. It tells a change of
+/// [range] on its own, as paging changes nothing else; its listeners
+/// hear the rest. Calendars are told
 /// apart by their keys ([K]).
 final class CalendarViewsModel<K> extends ChangeNotifier {
   CalendarViewsModel({

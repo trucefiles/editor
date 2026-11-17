@@ -114,6 +114,29 @@ void main() {
     expect(calendarOf(part).tasks.single.series.done, isFalse);
   });
 
+  testWidgets('screen readers hear a box as a checkbox, checked once done', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpPage(tester, _tasksPart([_call, _bins]), today: _today);
+    await tester.tap(find.text('Done (1)'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSemantics(_box('Call Ann', Icons.check_box_outline_blank)),
+      containsSemantics(
+        hasCheckedState: true,
+        isChecked: false,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      tester.getSemantics(_box('Take out bins', Icons.check_box)),
+      containsSemantics(hasCheckedState: true, isChecked: true),
+    );
+    semantics.dispose();
+  });
+
   testWidgets('a task on a day of the month checks off from its box', (
     tester,
   ) async {

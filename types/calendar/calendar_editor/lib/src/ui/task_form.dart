@@ -37,7 +37,8 @@ Future<TaskDraft?> showTaskForm(
 /// The task form: title, a due day (or none) and maybe a time of day,
 /// and with a due day its repeat and alert; color and notes. What it
 /// doesn't show of the task (its start, place, other alarms) stays as it
-/// was, a start moved along with the due time ([TaskDraft.withDue]). A
+/// was; a new due time keeps the start where it fits, or moves it along
+/// ([TaskDraft.withDue]). A
 /// time keeps the zone it was written in; a new one is in the device's.
 class TaskForm extends StatefulWidget {
   const TaskForm(

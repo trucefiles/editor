@@ -10,7 +10,10 @@ typedef OnTask<K> = void Function(K calendar, TaskEntry task);
 typedef OnCheck<K> = void Function(K calendar, TaskEntry task, bool done);
 
 /// A task's box: checked once it is [done]. A tap tells [onChanged] the
-/// other state; without it the box only shows the state.
+/// other state; without it the box only shows the state. Own rather than
+/// the framework's [Checkbox]: that one keeps its size and room around
+/// it, and the box must fit a one-line tile in the month; screen readers
+/// still hear a checkbox.
 class TaskBox extends StatelessWidget {
   const TaskBox({
     required this.done,
@@ -29,20 +32,27 @@ class TaskBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onChanged = this.onChanged;
     final icon = Icon(
       done ? Icons.check_box : Icons.check_box_outline_blank,
       size: size,
       color: color,
-      semanticLabel: done ? 'Done' : 'Not done',
     );
-    final onChanged = this.onChanged;
-    if (onChanged == null) return icon;
-    return Tooltip(
-      message: done ? 'Mark as not done' : 'Mark as done',
-      child: InkResponse(
-        onTap: () => onChanged(!done),
-        radius: size,
-        child: icon,
+    return Semantics(
+      checked: done,
+      enabled: onChanged != null,
+      onTap: onChanged == null ? null : () => onChanged(!done),
+      child: ExcludeSemantics(
+        child: onChanged == null
+            ? icon
+            : Tooltip(
+                message: done ? 'Mark as not done' : 'Mark as done',
+                child: InkResponse(
+                  onTap: () => onChanged(!done),
+                  radius: size,
+                  child: icon,
+                ),
+              ),
       ),
     );
   }
