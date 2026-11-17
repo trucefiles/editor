@@ -159,8 +159,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
   /// What kalender shows: the view shown, or the month behind the tasks
   /// view, which is no kalender view.
   ViewConfiguration get _kalenderConfiguration =>
-      _configurations[_model.kind] ??
-      _configurations[CalendarViewKind.month]!;
+      _configurations[_model.kind] ?? _configurations[CalendarViewKind.month]!;
 
   @override
   void didUpdateWidget(CalendarViews<K> oldWidget) {

@@ -8,7 +8,8 @@ String importHint(ImportOutcome outcome) => switch (outcome) {
   FileImported(:final report) => switch (report) {
     NotACalendar() => "This file isn't a calendar.",
     NothingToImport() => 'There are no events or tasks in this file.',
-    ItemsImported(added: 0, updated: 0) => 'Everything in this file is already in the calendar.',
+    ItemsImported(added: 0, updated: 0) =>
+      'Everything in this file is already in the calendar.',
     ItemsImported(:final added, :final updated, :final tasks) => switch ((
       added,
       updated,
