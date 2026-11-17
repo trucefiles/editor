@@ -7,7 +7,9 @@ import 'package:truce_calendar/truce_calendar.dart';
 /// a month of the same calendars in the month view: the cost is the
 /// recurrence library walking each series from its first date, which both
 /// pay. Before, a fixed walk of a year ahead per series came on top.
-const _listBudget = Duration(milliseconds: 160);
+/// CI runners took about 270 ms, so the budget leaves the same margin
+/// over a local run as the month budget does.
+const _listBudget = Duration(milliseconds: 400);
 
 /// A calendar well past normal use: 200 single tasks, 20 daily series
 /// running since 2024 and one hourly since October, with the dailies'
