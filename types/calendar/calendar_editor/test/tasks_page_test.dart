@@ -124,7 +124,7 @@ void main() {
 
     expect(
       tester.getSemantics(_box('Call Ann', Icons.check_box_outline_blank)),
-      containsSemantics(
+      isSemantics(
         hasCheckedState: true,
         isChecked: false,
         hasTapAction: true,
@@ -132,7 +132,7 @@ void main() {
     );
     expect(
       tester.getSemantics(_box('Take out bins', Icons.check_box)),
-      containsSemantics(hasCheckedState: true, isChecked: true),
+      isSemantics(hasCheckedState: true, isChecked: true),
     );
     semantics.dispose();
   });
