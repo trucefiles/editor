@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12 and later. The device id stays on this device: restored on a
+<!-- Android 12 and later. The device id and the alerts' state stay on this device: restored on a
      new phone, both phones would write the same files into synced folders. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="settings/device_id" />
+        <exclude domain="file" path="settings/ring_state.json" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="settings/device_id" />
+        <exclude domain="file" path="settings/ring_state.json" />
     </device-transfer>
 </data-extraction-rules>

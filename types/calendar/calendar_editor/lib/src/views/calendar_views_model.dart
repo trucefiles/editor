@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateUtils;
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../views_clock.dart';
+import '../calendar_clock.dart';
 import 'changed_calendars.dart';
 import 'health_days.dart';
 
@@ -12,7 +12,7 @@ typedef ShownRange = ({DateTime from, DateTime to});
 /// The one owner of what the calendar views show around their events:
 /// the [kind] of view, the [range] it shows, the cycle days of its health
 /// calendars ([health]), the tasks list ([tasks]), and [today], which
-/// moves on at each midnight of its [ViewsClock]. It tells a change of
+/// moves on at each midnight of its [CalendarClock]. It tells a change of
 /// [range] on its own, as paging changes nothing else; its listeners
 /// hear the rest. Calendars are told
 /// apart by their keys ([K]).
@@ -26,7 +26,7 @@ final class CalendarViewsModel<K> extends ChangeNotifier {
     _clock.addListener(_dayChanged);
   }
 
-  final ViewsClock _clock;
+  final CalendarClock _clock;
   CalendarViewKind _kind;
   Map<K, Calendar> _calendars;
   final _range = ValueNotifier<ShownRange?>(null);

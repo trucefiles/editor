@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../calendar_clock.dart';
 import '../calendar_editor_part.dart';
 import '../calendar_import_file.dart';
 import '../calendar_start.dart';
@@ -16,7 +17,7 @@ import 'import_texts.dart';
 class CalendarPage extends StatefulWidget {
   const CalendarPage(
     this.part, {
-    required this.now,
+    required this.clock,
     required this.hint,
     required this.deviceZone,
     required this.color,
@@ -26,8 +27,8 @@ class CalendarPage extends StatefulWidget {
 
   final CalendarEditorPart part;
 
-  /// The time now; today shows from it.
-  final DateTime Function() now;
+  /// The calendars' clock; today shows from it.
+  final CalendarClock clock;
 
   /// Tells this device's time zone, for new events.
   final DeviceZone deviceZone;
@@ -109,7 +110,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final page = EventsPage(
       calendar,
       edit: editing ? _edit : null,
-      now: widget.now,
+      clock: widget.clock,
       deviceZone: widget.deviceZone,
       viewChoice: widget.part.viewChoice,
       color: widget.color,

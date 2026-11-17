@@ -5,7 +5,7 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
-import '../views_clock.dart';
+import '../calendar_clock.dart';
 import 'calendar_views_model.dart';
 import 'day_cells.dart';
 import 'event_tiles.dart';
@@ -58,7 +58,7 @@ class CalendarViews<K> extends StatefulWidget {
     required this.colorOf,
     required this.kind,
     required this.onKind,
-    required this.now,
+    required this.clock,
     this.titleOf,
     this.onTap,
     this.onTask,
@@ -76,8 +76,8 @@ class CalendarViews<K> extends StatefulWidget {
   final CalendarViewKind kind;
   final ValueChanged<CalendarViewKind> onKind;
 
-  /// The time now; today shows from it.
-  final DateTime Function() now;
+  /// The calendars' clock; today shows from it.
+  final CalendarClock clock;
 
   /// A calendar's title, to name it above the views; `null` when only one
   /// shows.
@@ -97,7 +97,7 @@ class CalendarViews<K> extends StatefulWidget {
 }
 
 class _CalendarViewsState<K> extends State<CalendarViews<K>> {
-  late final _clock = ViewsClock(widget.now);
+  late final _clock = widget.clock;
   late final _model = CalendarViewsModel<K>(
     kind: widget.kind,
     calendars: widget.calendars,
@@ -143,7 +143,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     _firstDay = firstDay;
     _configurations = configurationsFor(
       firstDayOfWeek: firstDay,
-      now: widget.now,
+      now: widget.clock.now,
     );
     final configuration = _kalenderConfiguration;
     switch (_kalender) {
@@ -177,7 +177,6 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     _kalender?.dispose();
     _clock.removeListener(_events.followDeviceZone);
     _events.dispose();
-    _clock.dispose();
     super.dispose();
   }
 
@@ -304,7 +303,7 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
             onKind: _pickKind,
             onPrevious: () => unawaited(_pages.step(-1)),
             onNext: () => unawaited(_pages.step(1)),
-            onToday: () => unawaited(_pages.to(widget.now())),
+            onToday: () => unawaited(_pages.to(widget.clock.now())),
             onTitle: () => unawaited(_goTo()),
           ),
         ),

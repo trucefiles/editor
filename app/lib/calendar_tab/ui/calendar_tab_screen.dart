@@ -102,7 +102,7 @@ class CalendarTabScreen extends ConsumerWidget {
                           colorOf: colorOf,
                           kind: viewChoice.last(),
                           onKind: (kind) => unawaited(viewChoice.keep(kind)),
-                          now: ref.watch(calendarClockProvider),
+                          clock: ref.watch(calendarClockProvider),
                           titleOf: (file) => shown[file]!.title,
                           onTap: (file, occurrence) => _showItem(
                             zoomed,

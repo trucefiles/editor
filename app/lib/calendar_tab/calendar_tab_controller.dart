@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_core/truce_core.dart' show Unknown;
 import 'package:truce_files/truce_files.dart';
 
 import '../files/file_settings_controller.dart';
@@ -10,10 +11,22 @@ import '../folder_state/folder_state_controller.dart';
 /// The Calendar tab's calendars, by title, each in its place there
 /// ([TabPlace]) on this device.
 final class TabCalendars {
-  TabCalendars({required this.offered, required this.hidden});
+  TabCalendars({
+    required this.offered,
+    required this.hidden,
+    required this.sees,
+  });
 
   /// No calendars.
-  static final none = TabCalendars(offered: const [], hidden: const []);
+  static final none = TabCalendars(
+    offered: const [],
+    hidden: const [],
+    sees: (_) => true,
+  );
+
+  /// Whether the listing these come from would show the file at a key
+  /// were it there: not where a folder or subfolder couldn't be read.
+  final bool Function(FileKey key) sees;
 
   /// The calendars with a chip, shown or off; also those to open.
   final List<OfferedCalendar> offered;
@@ -116,6 +129,20 @@ final hasCalendarsProvider = Provider<bool>(
 /// Whether [file] is a calendar.
 bool isCalendarFile(ListedFile file) => file.type.type == calendarType;
 
+/// Where a calendar with [settings] is in the Calendar tab on this device.
+TabPlace tabPlaceOf(FileSettings settings) =>
+    CalendarView.of(settings.view).tab;
+
+/// Whether [file], with [settings], is a calendar shown in the Calendar
+/// tab on this device.
+bool isShownCalendar(ListedFile file, FileSettings settings) =>
+    isCalendarFile(file) && tabPlaceOf(settings) == TabPlace.shown;
+
+/// Whether [files] would show the file at a key were it there: not where
+/// a folder or subfolder couldn't be read.
+bool Function(FileKey key) seesIn(FolderFiles files) =>
+    (key) => files.observe(key) is! Unknown;
+
 final calendarTabProvider =
     AsyncNotifierProvider<CalendarTabController, TabCalendars>(
       CalendarTabController.new,
@@ -132,9 +159,7 @@ class CalendarTabController extends AsyncNotifier<TabCalendars> {
     final settings = ref.read(fileSettingsProvider.notifier);
     final byPlace = listed.files
         .where(isCalendarFile)
-        .groupListsBy(
-          (file) => CalendarView.of(settings.settingsOf(file.key).view).tab,
-        );
+        .groupListsBy((file) => tabPlaceOf(settings.settingsOf(file.key)));
     List<ListedFile> filesIn(TabPlace place) => byPlace[place] ?? const [];
     final (shown, off, hidden) = (
       filesIn(TabPlace.shown),
@@ -160,6 +185,7 @@ class CalendarTabController extends AsyncNotifier<TabCalendars> {
         for (final file in hidden)
           if (titled[file] case final title?) HiddenCalendar(file, title),
       ].sortedBy((calendar) => calendar.title.toLowerCase()),
+      sees: seesIn(listed),
     );
   }
 

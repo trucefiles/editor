@@ -1,3 +1,4 @@
+import '../alerts/alarm.dart';
 import '../read/component.dart';
 import '../read/content_line.dart';
 import '../read/values.dart';
@@ -49,6 +50,11 @@ sealed class ItemPart {
   /// When its alerts come, before the time they count from (an event's
   /// start, a task's due time; see [alertBefore]).
   List<Duration> get alerts;
+
+  /// Its alarms that ring, as written (the form's [alerts] and others).
+  late final List<Alarm> alarms = [
+    for (final child in component.children) ?Alarm.of(child),
+  ];
 
   /// Whether it changes one date of its series: it has a
   /// `RECURRENCE-ID`, read or not.
@@ -222,16 +228,10 @@ List<Duration> _alertsOf(Component component, {required bool fromEnd}) => [
 /// a sound or a mail) are kept in the file but not listed; `null` for
 /// them.
 Duration? alertBefore(Component alarm, {required bool fromEnd}) =>
-    switch (alarm.property('TRIGGER')) {
-      final trigger?
-          when alarm.name == 'VALARM' &&
-              alarm.value('ACTION')?.trim().toUpperCase() == 'DISPLAY' &&
-              trigger.param('VALUE') != 'DATE-TIME' &&
-              (trigger.param('RELATED') == 'END') == fromEnd =>
-        switch (durationOf(trigger.value)) {
-          final offset? => -offset,
-          null => null,
-        },
+    switch (Alarm.of(alarm)) {
+      RelativeAlarm(:final offset, fromEnd: final end, shows: true)
+          when end == fromEnd =>
+        -offset,
       _ => null,
     };
 

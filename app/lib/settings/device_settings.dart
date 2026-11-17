@@ -4,6 +4,7 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../alerts/alert_style.dart';
 import '../text_zoom/text_zoom.dart';
 import '../text_zoom/text_zoom_target.dart';
 
@@ -22,6 +23,8 @@ final class DeviceSettings {
     required this.tabCalendarView,
     required this.placeAboveText,
     required this.backupSpace,
+    required this.alertStyle,
+    required this.startAtLogin,
   });
 
   /// What a device starts with.
@@ -36,6 +39,8 @@ final class DeviceSettings {
     tabCalendarView: CalendarViewKind.month,
     placeAboveText: true,
     backupSpace: BackupSpace.standard,
+    alertStyle: AlertStyle.notification,
+    startAtLogin: false,
   );
 
   final TextZoom documentTextZoom;
@@ -65,6 +70,12 @@ final class DeviceSettings {
   /// How much space backups may take on this device.
   final BackupSpace backupSpace;
 
+  /// How calendar alerts ring, where the device can tell apart.
+  final AlertStyle alertStyle;
+
+  /// Start in the tray when the user logs in, where the app has a tray.
+  final bool startAtLogin;
+
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
     TextZoomTarget.documents => documentTextZoom,
@@ -91,6 +102,8 @@ final class DeviceSettings {
     CalendarViewKind? tabCalendarView,
     bool? placeAboveText,
     BackupSpace? backupSpace,
+    AlertStyle? alertStyle,
+    bool? startAtLogin,
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
@@ -102,6 +115,8 @@ final class DeviceSettings {
     tabCalendarView: tabCalendarView ?? this.tabCalendarView,
     placeAboveText: placeAboveText ?? this.placeAboveText,
     backupSpace: backupSpace ?? this.backupSpace,
+    alertStyle: alertStyle ?? this.alertStyle,
+    startAtLogin: startAtLogin ?? this.startAtLogin,
   );
 
   Map<String, Object?> toJson() => {
@@ -116,6 +131,8 @@ final class DeviceSettings {
     'calendarView': tabCalendarView.name,
     'placeAboveText': placeAboveText,
     'backupSpace': backupSpace.name,
+    'alertStyle': alertStyle.name,
+    'startAtLogin': startAtLogin,
   };
 
   /// The settings [json] holds, each read on its own: one missing or not
@@ -150,6 +167,13 @@ final class DeviceSettings {
       backupSpace:
           BackupSpace.values.asNameMap()[fields['backupSpace']] ??
           standard.backupSpace,
+      alertStyle:
+          AlertStyle.values.asNameMap()[fields['alertStyle']] ??
+          standard.alertStyle,
+      startAtLogin: switch (fields['startAtLogin']) {
+        final bool start => start,
+        _ => standard.startAtLogin,
+      },
     );
   }
 
@@ -165,7 +189,9 @@ final class DeviceSettings {
       other.home == home &&
       other.tabCalendarView == tabCalendarView &&
       other.placeAboveText == placeAboveText &&
-      other.backupSpace == backupSpace;
+      other.backupSpace == backupSpace &&
+      other.alertStyle == alertStyle &&
+      other.startAtLogin == startAtLogin;
 
   @override
   int get hashCode => Object.hash(
@@ -179,5 +205,7 @@ final class DeviceSettings {
     tabCalendarView,
     placeAboveText,
     backupSpace,
+    alertStyle,
+    startAtLogin,
   );
 }

@@ -2,4 +2,5 @@
 <!-- Android 11 and earlier; see data_extraction_rules.xml. -->
 <full-backup-content>
     <exclude domain="file" path="settings/device_id" />
+    <exclude domain="file" path="settings/ring_state.json" />
 </full-backup-content>

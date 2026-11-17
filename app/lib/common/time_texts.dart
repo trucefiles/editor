@@ -12,10 +12,15 @@ import 'device_locale.dart';
 /// alike (Flutter's own, e.g. in date pickers, follow the same locale,
 /// see [appLocalizations]).
 final timeTextsProvider = Provider<TimeTexts>(
-  (ref) => TimeTexts(
-    locale: ref.watch(deviceLocaleProvider).toString(),
-    use24Hour: PlatformDispatcher.instance.alwaysUse24HourFormat,
-  ),
+  (ref) => deviceTimeTexts(ref.watch(deviceLocaleProvider)),
+);
+
+/// The time texts of [locale] (the device's, see [deviceLocaleProvider])
+/// with the device's clock style; also where no provider runs, e.g. a
+/// notification's button handled in the background.
+TimeTexts deviceTimeTexts(Locale locale) => TimeTexts(
+  locale: locale.toString(),
+  use24Hour: PlatformDispatcher.instance.alwaysUse24HourFormat,
 );
 
 /// Dates and times as the system shows them: in the formats of its

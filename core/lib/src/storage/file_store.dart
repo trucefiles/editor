@@ -85,10 +85,15 @@ typedef TempFileNamer = String Function(String randomToken);
 /// versions apart (file times, a revision number, a hash) is its own
 /// business.
 final class FileVersion {
-  /// [token] must compare by value, e.g. a record or a number.
+  /// [token] must compare by value and write the same text for the same
+  /// version, e.g. a record of numbers and times.
   const FileVersion(this._token);
 
   final Object _token;
+
+  /// The version as text, to keep across runs (e.g. which version a plan
+  /// was made from); equal versions give equal texts.
+  String get text => '$_token';
 
   @override
   bool operator ==(Object other) =>

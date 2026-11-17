@@ -6,6 +6,7 @@ import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
+import 'alerts/quiet_alerts.dart';
 import 'support.dart';
 
 void main() {
@@ -22,6 +23,7 @@ void main() {
             ),
             deviceIdProvider.overrideWithValue('0123456789abcdef'),
             systemTrayProvider.overrideWithValue(null),
+            ...quietAlerts(),
           ],
           child: const TruceApp(),
         ),

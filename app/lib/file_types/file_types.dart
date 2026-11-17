@@ -4,6 +4,7 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
+import '../calendar_tab/calendar_clock.dart';
 import '../common/time_texts.dart';
 import '../platform/platform_wiring.dart';
 import 'calendar_wiring.dart';
@@ -21,6 +22,7 @@ final fileTypesProvider = Provider<ShownFileTypes<EditableType>>((ref) {
     starts: ref.watch(calendarStartsProvider),
     pickFile: ref.watch(calendarFilePickerProvider),
     openers: ref.watch(eventOpenersProvider),
+    clock: ref.watch(calendarClockProvider),
   );
   return ShownFileTypes([markdown, const PlainTextEditableType(), calendars]);
 });

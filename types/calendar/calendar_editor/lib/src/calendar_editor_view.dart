@@ -5,6 +5,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart' show ViewSettings;
 
+import 'calendar_clock.dart';
 import 'calendar_editor_part.dart';
 import 'calendar_start.dart';
 import 'ui/calendar_name_field.dart';
@@ -18,20 +19,21 @@ import 'ui/event_links.dart';
 final class CalendarEditorView extends EditorView {
   /// [_deviceZone] tells this device's time zone, for new events;
   /// [_starts] what calendar pages are asked to start with; [_openers]
-  /// open the links and places events name; [now] the time.
+  /// open the links and places events name; [_clock] is the calendars'
+  /// clock.
   CalendarEditorView(
     this._part, {
     required this._deviceZone,
     required this._starts,
     required this._openers,
-    DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+    required this._clock,
+  });
 
   final CalendarEditorPart _part;
   final DeviceZone _deviceZone;
   final CalendarStarts _starts;
   final EventOpeners _openers;
-  final DateTime Function() _now;
+  final CalendarClock _clock;
   final _pageStarts = PageStarts();
 
   @override
@@ -45,7 +47,7 @@ final class CalendarEditorView extends EditorView {
       hint: host.hint,
       child: CalendarPage(
         _part,
-        now: _now,
+        clock: _clock,
         hint: host.hint,
         color: host.color,
         deviceZone: _deviceZone,

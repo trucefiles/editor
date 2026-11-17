@@ -20,6 +20,7 @@ import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
+import '../test/alerts/quiet_alerts.dart';
 import 'ui_driver.dart';
 
 /// The real app on fresh temp storage, with a folder picker that returns
@@ -72,6 +73,7 @@ final class TestApp {
           deviceIdProvider.overrideWithValue('0123456789abcdef'),
           loadedDeviceSettingsProvider.overrideWithValue(settings),
           systemTrayProvider.overrideWithValue(null),
+          ...quietAlerts(),
           deviceLocaleProvider.overrideWithValue(const Locale('en', 'US')),
           folderPickerProvider.overrideWithValue(_QueuedPicker(picks)),
           calendarFilePickerProvider.overrideWithValue(

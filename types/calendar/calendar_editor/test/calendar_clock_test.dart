@@ -1,11 +1,11 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_calendar_editor/src/views_clock.dart';
+import 'package:truce_calendar_editor/src/calendar_clock.dart';
 
 void main() {
   testWidgets('a zone change is told within a minute', (tester) async {
     var zone = 'CET';
-    final clock = ViewsClock(
+    final clock = CalendarClock(
       () => DateTime(2026, 11, 10, 12),
       deviceZone: () => zone,
     );
@@ -25,7 +25,7 @@ void main() {
     tester,
   ) async {
     var (now, zone) = (DateTime(2026, 11, 10, 22), 'CET');
-    final clock = ViewsClock(() => now, deviceZone: () => zone);
+    final clock = CalendarClock(() => now, deviceZone: () => zone);
     var changes = 0;
     clock.addListener(() => changes++);
 
@@ -43,6 +43,22 @@ void main() {
       (clock.today, clock.zone, changes),
       (DateTime(2026, 11, 11), 'JST', 1),
     );
+    clock.dispose();
+  });
+
+  testWidgets('without listeners it wakes for nothing and answers fresh', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 11, 10, 22);
+    final clock = CalendarClock(() => now, deviceZone: () => 'CET');
+    void listen() {}
+    clock
+      ..addListener(listen)
+      ..removeListener(listen);
+    now = DateTime(2026, 11, 11, 7);
+
+    expect(clock.today, DateTime(2026, 11, 11));
+    // No timer is left pending: the test would fail if one were.
     clock.dispose();
   });
 }

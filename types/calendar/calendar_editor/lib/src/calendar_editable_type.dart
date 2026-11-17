@@ -3,6 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
+import 'calendar_clock.dart';
 import 'calendar_editor_part.dart';
 import 'calendar_editor_view.dart';
 import 'calendar_import_file.dart';
@@ -19,15 +20,17 @@ final class CalendarEditableType extends CalendarFileType
   /// device's time zone, for new events; [starts] what calendar pages are
   /// asked to start with;
   /// [pickFile] asks for a calendar file to import; [openers] open the
-  /// links and places events name; [now] tells the time.
+  /// links and places events name; [clock] is the calendars' clock, held
+  /// by the app.
   CalendarEditableType({
     required DayText day,
     required this.deviceZone,
     required this.starts,
     required this.pickFile,
     required this.openers,
-    super.now,
+    required this.clock,
   }) : super(
+         now: clock.now,
          eventLine: (occurrence) => occurrenceLine(occurrence, day),
          cycleLine: cycleText,
        );
@@ -36,6 +39,7 @@ final class CalendarEditableType extends CalendarFileType
   final CalendarStarts starts;
   final PickCalendarFile pickFile;
   final EventOpeners openers;
+  final CalendarClock clock;
 
   @override
   IconData get icon => Icons.calendar_month_outlined;
@@ -50,6 +54,7 @@ final class CalendarEditableType extends CalendarFileType
         deviceZone: deviceZone,
         starts: starts,
         openers: openers,
+        clock: clock,
       ),
     );
   }

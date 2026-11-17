@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import '../calendar_clock.dart';
 import '../calendar_start.dart';
 import '../views/calendar_views.dart';
 import '../views/new_event_spot.dart';
@@ -23,7 +24,7 @@ class EventsPage extends StatefulWidget {
   const EventsPage(
     this.calendar, {
     this.edit,
-    required this.now,
+    required this.clock,
     required this.deviceZone,
     required this.viewChoice,
     required this.color,
@@ -34,7 +35,7 @@ class EventsPage extends StatefulWidget {
 
   final Calendar calendar;
   final MakeEdit? edit;
-  final DateTime Function() now;
+  final CalendarClock clock;
   final DeviceZone deviceZone;
   final CalendarViewChoice viewChoice;
   final Color color;
@@ -47,7 +48,7 @@ class EventsPage extends StatefulWidget {
 
 class _EventsPageState extends State<EventsPage> {
   /// The day Add starts on, as the views tell it.
-  late DateTime _addDay = DateUtils.dateOnly(widget.now());
+  late DateTime _addDay = DateUtils.dateOnly(widget.clock.now());
 
   @override
   void initState() {
@@ -103,7 +104,7 @@ class _EventsPageState extends State<EventsPage> {
         .firstWhereOrNull(
           (each) =>
               each.item.uid == asked.uid &&
-              each.recurrence == asked.recurrence &&
+              each.recurrence?.local == asked.recurrence &&
               each.start == start,
         );
     if (occurrence == null) {
@@ -132,7 +133,7 @@ class _EventsPageState extends State<EventsPage> {
             .where(
               (each) =>
                   each.item.uid == asked.uid &&
-                  each.recurrence == asked.date &&
+                  each.recurrence?.local == asked.date &&
                   each.due == due,
             )
             .map(TaskEntry.of)
@@ -153,7 +154,7 @@ class _EventsPageState extends State<EventsPage> {
     at.add(const Duration(days: 1)),
   );
 
-  DateTime get _today => DateUtils.dateOnly(widget.now());
+  DateTime get _today => DateUtils.dateOnly(widget.clock.now());
 
   /// Adds at [spot]: a health entry of a kind picked first; in the tasks
   /// view a task; else an event or a task, the user's pick.
@@ -194,7 +195,7 @@ class _EventsPageState extends State<EventsPage> {
       colorOf: (_) => widget.color,
       kind: widget.viewChoice.last(),
       onKind: (kind) => unawaited(widget.viewChoice.keep(kind)),
-      now: widget.now,
+      clock: widget.clock,
       onTap: (_, occurrence) => occurrence.part.health == null
           ? showOccurrence(context, occurrence, edit, deviceZone, today: _today)
           : showHealthEntry(context, occurrence, edit),

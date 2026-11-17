@@ -97,9 +97,21 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A new calendar is saved once it has a name or an event.** Like a new
   document, a new calendar gets its file only once you add something to
   it. Leave it with neither and it is gone.
-- **Alerts don't ring yet.** Truce keeps the alerts of events and tasks
-  in the calendar, so other calendar apps ring them, but doesn't ring
-  them itself.
+- **On Linux, alerts ring only while Truce runs.** In a window or in the
+  tray. Turn on "Start in tray at login" so it runs from the start.
+- **On Android, an alert added on another device rings after a while.**
+  It rings once Truce next checks in the background (about every 6
+  hours, longer when the phone saves battery) or once you open Truce.
+- **Alerts from other devices arrive within 15 minutes in the
+  background.** While Truce is in the tray (Linux) or in the background
+  (Android), it looks for changed calendars every 15 minutes.
+- **An alert edited in an open calendar rings once the calendar is
+  saved.**
+- **Dismissing an alert on one device doesn't dismiss it on others.**
+- **Some phone makers stop background checks.** Alerts already planned
+  still ring; new ones from other devices wait until you open Truce.
+- **Alerts that came while the phone was off ring at once after it
+  starts.** Android hands them over as soon as it is back on.
 - **A repeating task grows its file a little each time it's checked.**
   Each date checked off is kept on its own, about 300 bytes: a daily
   task adds about 100 KB a year. Truce never tidies this up by itself,

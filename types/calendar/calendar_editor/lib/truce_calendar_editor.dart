@@ -7,6 +7,7 @@
 /// Flutter widgets only; what a calendar is lives in `calendar`.
 library;
 
+export 'src/calendar_clock.dart';
 export 'src/calendar_editable_type.dart';
 export 'src/calendar_editor_part.dart';
 export 'src/calendar_editor_view.dart';
