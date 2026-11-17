@@ -10,9 +10,10 @@ import 'time_row.dart';
 
 /// Opens the task form on [draft] (a new task's, or what a task says
 /// now), titled [title]; the draft as the user saved it, or `null` if
-/// they backed out. Offers a repeat unless the task is one date of a
-/// series ([repeats] false). [deviceZone] is this device's time zone, if
-/// known; a due date turned on starts on [today].
+/// they backed out. Offers a repeat, and to drop the due date, unless
+/// the task is one date of a series ([repeats] false). [deviceZone] is
+/// this device's time zone, if known; a due date turned on starts on
+/// [today].
 Future<TaskDraft?> showTaskForm(
   BuildContext context,
   TaskDraft draft, {
@@ -135,13 +136,16 @@ class _TaskFormState extends State<TaskForm> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Title'),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Due date'),
-              value: _due != null,
-              onChanged: (due) =>
-                  setState(() => _due = due ? _FormDue.on(widget.today) : null),
-            ),
+            // One date of a series can be moved, but not made undated.
+            if (widget.repeats || _openedDue == null)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Due date'),
+                value: _due != null,
+                onChanged: (due) => setState(
+                  () => _due = due ? _FormDue.on(widget.today) : null,
+                ),
+              ),
             if (_due case final due?) ...[
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

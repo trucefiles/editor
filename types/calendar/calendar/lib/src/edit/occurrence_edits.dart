@@ -24,11 +24,14 @@ CalendarEdit Function(DateTime at) occurrenceMovedTo(
   DateTime end,
 ) {
   final draft = occurrenceDraft(occurrence);
+  // A task shows where it is due (else where it starts): a day, or the
+  // half hour up to the time.
+  CalendarTime taskMoved(CalendarTime shown) =>
+      shown is AllDay ? shown.sameKindAt(start) : shown.sameKindAt(end);
   final moved = switch (draft) {
     EventDraft() => _eventMoved(draft, start, end),
-    TaskDraft(:final due?) => draft.withDue(
-      due is AllDay ? due.sameKindAt(start) : due.sameKindAt(end),
-    ),
+    TaskDraft(:final due?) => draft.withDue(taskMoved(due)),
+    TaskDraft(start: final starts?) => draft.withStart(taskMoved(starts)),
     TaskDraft() => draft,
   };
   final uid = occurrence.item.uid;

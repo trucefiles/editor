@@ -55,6 +55,8 @@ class TasksView<K> extends StatelessWidget {
           ],
           if (tasks.done.isNotEmpty)
             ExpansionTile(
+              // Keeps it open or folded as rows above it come and go.
+              key: const PageStorageKey('done'),
               title: Text('Done (${tasks.done.length})'),
               shape: const Border(),
               children: [for (final row in tasks.done) _row(row)],

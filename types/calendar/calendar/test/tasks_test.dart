@@ -489,6 +489,22 @@ void _editing() {
     expect(date.start, Floating(DateTime.utc(2026, 12, 2, 1)));
   });
 
+  test('a drag moves a task that only starts to start where it lands', () {
+    final calendar = _with(
+      'BEGIN:VTODO\nUID:walk\nSUMMARY:Walk\nDTSTART;VALUE=DATE:20261103\n'
+      'END:VTODO\n',
+    );
+    final shown = _tasksIn(calendar, _november.from, _november.to).single;
+    final moved = applyEdit(
+      calendar,
+      occurrenceMovedTo(shown, DateTime(2026, 11, 5), DateTime(2026, 11, 6))(
+        _at,
+      ),
+    ).taskOf('walk')!.series;
+    expect(moved.start, AllDay(DateTime(2026, 11, 5)));
+    expect(moved.due, isNull);
+  });
+
   test('a deleted task stays as a marker of a task; a deleted date is left '
       'out', () {
     final calendar = Calendar.read(_thunderbird)!;

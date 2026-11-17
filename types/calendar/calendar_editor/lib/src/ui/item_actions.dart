@@ -116,11 +116,11 @@ Future<void> showTask(
   DeviceZone deviceZone, {
   required DateTime today,
 }) async {
-  final action = await showTaskSheet(
-    context,
-    entry,
-    _actionsFor(entry.date, editable: edit != null),
-  );
+  final check = entry.done ? _Action.uncheck : _Action.check;
+  final action = await showTaskSheet(context, entry, [
+    if (edit != null) (icon: check.icon, label: check.label, value: check),
+    ..._actionsFor(entry.date, editable: edit != null),
+  ]);
   if (action == null || edit == null || !context.mounted) return;
   await _act(
     context,
@@ -261,6 +261,9 @@ Future<void> _act(
       if (date != null) edit((at) => DeleteOccurrence(key, date, at: at));
     case _Action.delete || _Action.deleteAll:
       edit((at) => DeleteItem(key, at: at));
+    case _Action.check || _Action.uncheck:
+      final done = action == _Action.check;
+      edit((at) => CheckTask(uid, date, done: done, at: at));
   }
 }
 
@@ -270,7 +273,9 @@ enum _Action {
   editOne('Edit this one', Icons.edit_outlined),
   editAll('Edit all of them', Icons.edit_calendar_outlined),
   deleteOne('Delete this one', Icons.delete_outline),
-  deleteAll('Delete all of them', Icons.delete_sweep_outlined);
+  deleteAll('Delete all of them', Icons.delete_sweep_outlined),
+  check('Mark as done', Icons.task_alt),
+  uncheck('Mark as not done', Icons.remove_done);
 
   const _Action(this.label, this.icon);
 

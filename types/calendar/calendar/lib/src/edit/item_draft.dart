@@ -315,6 +315,10 @@ final class TaskDraft extends ItemDraft {
     );
   }
 
+  /// This draft starting [start] instead, for a task without a due time.
+  TaskDraft withStart(CalendarTime start) =>
+      TaskDraft._(_shared, due: due, start: start);
+
   @override
   TaskDraft dateAt(CalendarTime anchor) {
     final (start, due) = (this.start, this.due);

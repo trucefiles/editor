@@ -133,6 +133,59 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('the Done section stays open while tasks above it are checked', (
+    tester,
+  ) async {
+    await pumpPage(tester, _tasksPart([_call, _gifts, _bins]), today: _today);
+    await tester.tap(find.text('Done (1)'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(_box('Call Ann', Icons.check_box_outline_blank));
+    await tester.pumpAndSettle();
+    expect(find.text('Done (2)'), findsOne);
+    expect(find.text('Take out bins'), findsOne, reason: 'still open');
+  });
+
+  testWidgets("a task's sheet checks it off, and opens it again", (
+    tester,
+  ) async {
+    final part = _tasksPart([_call]);
+    await pumpPage(tester, part, today: _today);
+
+    await tester.tap(find.text('Call Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark as done'));
+    await tester.pumpAndSettle();
+    expect(calendarOf(part).tasks.single.series.done, isTrue);
+
+    await tester.tap(find.text('Done (1)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Call Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark as not done'));
+    await tester.pumpAndSettle();
+    expect(calendarOf(part).tasks.single.series.done, isFalse);
+  });
+
+  testWidgets('one date of a repeating task keeps its due date: the form '
+      'offers no switch to drop it', (tester) async {
+    await pumpPage(
+      tester,
+      _tasksPart([
+        'UID:plants\nSUMMARY:Water plants\nDUE;VALUE=DATE:20261103\n'
+            'RRULE:FREQ=WEEKLY',
+      ]),
+      today: _today,
+    );
+    await tester.tap(find.text('Water plants'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit this one'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit this one'), findsOne);
+    expect(find.text('Due date'), findsNothing);
+    expect(find.text('At a time'), findsOne);
+  });
+
   testWidgets('a task on a day of the month checks off from its box', (
     tester,
   ) async {
