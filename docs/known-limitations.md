@@ -127,6 +127,10 @@ Accepted behavior that is not planned to change, grouped by topic.
   deleted one as deleted, so other devices learn of it. Some apps remove
   it instead; when that file meets a Truce device's copy, it comes
   back.
+- **Two devices checking off different dates of one repeating task can
+  lose one check.** A repeating task and all its dates merge as one: when
+  both devices changed it before they synced, **Merge both** keeps the
+  newer one and lists the other as lost. Check that date off again.
 - **A device with a wrong clock can lose its edits.** When the same event
   changed on two devices, the newer change wins, by each device's clock.
   The edit that lost is still in the calendar's Backups.
