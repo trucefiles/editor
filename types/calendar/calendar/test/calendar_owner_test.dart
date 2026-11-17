@@ -9,7 +9,7 @@ import 'samples.dart';
 
 final _at = DateTime.utc(2026, 11, 1, 12);
 
-final _gym = AddEvent(
+final _gym = AddItem(
   'gym@t',
   EventDraft(
     summary: 'Gym',
@@ -23,7 +23,7 @@ final _later = _at.add(const Duration(minutes: 1));
 
 const _gymKey = UidKey.event('gym@t');
 
-final _tokyoCall = AddEvent(
+final _tokyoCall = AddItem(
   'call@t',
   EventDraft(
     summary: 'Call',
@@ -112,7 +112,7 @@ void main() {
     expect(run.state.calendar!.eventOf('concert@example.org'), isNotNull);
     expect(run.state.calendar!.zones, {'Asia/Tokyo'});
     final report = run.events.whereType<ImportDone>().single.report;
-    expect((report as EventsImported).added, 1);
+    expect((report as ItemsImported).added, 1);
 
     run.send(CalendarRequest(const Undo(), at: _later));
     expect(run.state.calendar!.text, birthday);
@@ -221,7 +221,7 @@ void main() {
   test('an edit that writes nothing is no step and no save', () {
     final run = _run(birthday)
       ..send(
-        EditCalendar(AddEvent('ann@truce', annDraft, at: _at), newUid: 'new@t'),
+        EditCalendar(AddItem('ann@truce', annDraft, at: _at), newUid: 'new@t'),
       );
     expect(run.state.text, birthday);
     expect((run.state.status.canUndo, run.state.status.unsent), (false, false));
@@ -259,11 +259,13 @@ void main() {
       'drops those it has not', () {
     String withUnits(String units) =>
         birthday.replaceFirst('END:VCALENDAR', '${units}END:VCALENDAR');
-    const todoA = 'BEGIN:VTODO\nUID:todo@t\nSUMMARY:Buy milk\nEND:VTODO\n';
-    const todoB = 'BEGIN:VTODO\nUID:todo@t\nSUMMARY:Buy bread\nEND:VTODO\n';
+    const entryA =
+        'BEGIN:VJOURNAL\nUID:entry@t\nSUMMARY:Buy milk\nEND:VJOURNAL\n';
+    const entryB =
+        'BEGIN:VJOURNAL\nUID:entry@t\nSUMMARY:Buy bread\nEND:VJOURNAL\n';
     const note = 'BEGIN:VJOURNAL\nSUMMARY:No uid\nEND:VJOURNAL\n';
-    final backup = withUnits(todoA);
-    final run = _run(withUnits('$todoB$note'))
+    final backup = withUnits(entryA);
+    final run = _run(withUnits('$entryB$note'))
       ..send(CalendarRequest(ReplaceAll(backup), at: _later));
     expect(run.state.text, backup, reason: 'not stamped, the note gone');
   });
@@ -353,7 +355,7 @@ void main() {
       );
     final merged = applyEdit(
       Calendar.read(_sent(run).single)!,
-      DeleteEvent('ann@truce', at: _at),
+      DeleteItem(UidKey.event('ann@truce'), at: _at),
     );
     run.send(
       CalendarRequest(
@@ -369,7 +371,10 @@ void main() {
       'and says so', () {
     final run = _run(birthday)
       ..send(
-        EditCalendar(DeleteEvent('ann@truce', at: _at), newUid: 'unused@t'),
+        EditCalendar(
+          DeleteItem(UidKey.event('ann@truce'), at: _at),
+          newUid: 'unused@t',
+        ),
       );
     final rename = ChangeSeries(
       'ann@truce',
@@ -457,5 +462,55 @@ void main() {
     // ten.
     expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
     expect(run.state.calendar!.name, 'Home 999');
+  });
+
+  group('tasks', () {
+    final withTask = birthday.replaceFirst(
+      'END:VCALENDAR',
+      'BEGIN:VTODO\nUID:milk@t\nSUMMARY:Buy milk\n'
+          'DUE;VALUE=DATE:20261110\nEND:VTODO\nEND:VCALENDAR',
+    );
+
+    test(
+      'a check is one undo step; its undo opens the task again, stamped',
+      () {
+        final run = _run(withTask)
+          ..send(
+            EditCalendar(
+              CheckTask('milk@t', null, done: true, at: _at),
+              newUid: 'unused@t',
+            ),
+          );
+        expect(run.state.calendar!.taskOf('milk@t')!.series.done, isTrue);
+        run.send(CalendarRequest(const Undo(), at: _later));
+        final task = run.state.calendar!.taskOf('milk@t')!.series;
+        expect(task.done, isFalse);
+        expect(task.component.property('LAST-MODIFIED'), isNotNull);
+      },
+    );
+
+    test(
+      'a check of a task deleted meanwhile changes nothing and says why',
+      () {
+        final run = _run(withTask)
+          ..send(
+            EditCalendar(
+              DeleteItem(const UidKey.task('milk@t'), at: _at),
+              newUid: 'unused@t',
+            ),
+          );
+        final before = run.state.text;
+        run.send(
+          EditCalendar(
+            CheckTask('milk@t', null, done: true, at: _at),
+            newUid: 'unused@t',
+          ),
+        );
+        expect(run.state.text, before);
+        expect(run.events.whereType<EditDropped>().map((e) => e.gone), [
+          GoneMeanwhile.task,
+        ]);
+      },
+    );
   });
 }

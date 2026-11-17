@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 
 import '../edit/stamp.dart';
 import '../model/calendar.dart';
-import '../model/calendar_event.dart';
+import '../model/calendar_item.dart';
 import '../model/calendar_unit.dart';
 import '../read/component.dart';
 import '../read/values.dart';

@@ -7,13 +7,16 @@ sealed class UnitKey {
 }
 
 /// All components of one kind ([component]: `VEVENT`, `VTODO`, ...) with
-/// one `UID`: for events a series with its changed occurrences, or one
-/// event.
+/// one `UID`: for events and tasks a series with its changed dates, or
+/// one event or task.
 final class UidKey extends UnitKey {
   const UidKey(this.component, this.uid);
 
   /// The key of the event [uid].
   const UidKey.event(this.uid) : component = 'VEVENT';
+
+  /// The key of the task [uid].
+  const UidKey.task(this.uid) : component = 'VTODO';
 
   /// The components' name, upper case.
   final String component;

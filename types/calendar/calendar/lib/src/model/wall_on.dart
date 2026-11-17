@@ -23,3 +23,8 @@ Duration lengthOn(CalendarTime start, CalendarTime end) =>
       final length when length.isNegative => Duration.zero,
       final length => length,
     };
+
+/// How far [time] is from [anchor], on [anchor]'s clock: before it if
+/// negative (e.g. where a task's half hour up to its due time starts).
+Duration offsetOn(CalendarTime anchor, CalendarTime time) =>
+    wallOn(anchor, time).difference(anchor.wall);

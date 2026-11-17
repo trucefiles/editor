@@ -22,7 +22,7 @@ void main() {
     final health = const CalendarSupport().summary(
       applyEdit(
         Calendar.read(newCalendarText('Me', health: true))!,
-        AddEvent(
+        AddItem(
           'p@t',
           EventDraft.health(
             const Period(PeriodFlow.light),
@@ -103,17 +103,42 @@ void main() {
   test('search finds the name and the events, not the file words', () {
     final calendar = Calendar.read(exported)!;
     final summary = const CalendarSupport().summary(
-      applyEdit(calendar, DeleteEvent('dentist@example.com', at: _at)).text,
+      applyEdit(
+        calendar,
+        DeleteItem(UidKey.event('dentist@example.com'), at: _at),
+      ).text,
       maxLines: 5,
     );
     expect(summary.searchText, contains('Family'));
     expect(summary.searchText, contains('Swimming (late)'));
     expect(summary.searchText, contains('blue bag'));
+    expect(summary.searchText, contains('Buy paint'), reason: 'a task');
     expect(summary.searchText, isNot(contains('Dentist')));
     expect(summary.searchText, isNot(contains('VEVENT')));
     expect(
       const CalendarSupport().summary('not a calendar', maxLines: 5).searchText,
       'not a calendar',
     );
+  });
+
+  test('cards show tasks to do on their due day, not those done', () {
+    final text = newCalendarText('Home').replaceFirst(
+      'END:VCALENDAR',
+      'BEGIN:VTODO\nUID:a\nSUMMARY:Call the bank\n'
+          'DUE;VALUE=DATE:20261105\nEND:VTODO\n'
+          'BEGIN:VTODO\nUID:b\nSUMMARY:Pay rent\nSTATUS:COMPLETED\n'
+          'DUE;VALUE=DATE:20261104\nEND:VTODO\nEND:VCALENDAR',
+    );
+    final preview = const CalendarSupport()
+        .summary(text, maxLines: 5)
+        .preview(
+          CalendarPreview(
+            now: DateTime(2026, 11),
+            occurrenceLine: (occurrence) => occurrence.part.summary,
+            cycleLine: (_, _) => '',
+          ),
+        );
+    expect(preview, contains('Call the bank'));
+    expect(preview, isNot(contains('Pay rent')));
   });
 }

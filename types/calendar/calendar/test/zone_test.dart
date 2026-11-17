@@ -16,7 +16,7 @@ EventDraft _draft(String summary, CalendarTime start) => EventDraft(
 String _added(String text, String uid, String zone, {DateTime? at}) =>
     applyEdit(
       Calendar.read(text)!,
-      AddEvent(
+      AddItem(
         uid,
         _draft('Call', Zoned(zone, DateTime(2026, 11, 3, 9))),
         at: at ?? _at,

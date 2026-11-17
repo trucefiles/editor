@@ -8,29 +8,26 @@ import 'package:firstfloor_calendar/firstfloor_calendar.dart'
         parseRecurrenceRuleValue;
 
 import '../model/calendar.dart';
-import '../model/calendar_event.dart';
+import '../model/calendar_item.dart';
 import '../model/calendar_time.dart';
+import '../model/item_part.dart';
 import '../model/wall_on.dart';
 
-/// One occurrence of an event, as it shows: [part] says what it is (the
-/// series, a single event, or a changed occurrence), from [start] to
-/// [end] on this device's clock.
-final class Occurrence {
-  const Occurrence(
-    this.event,
-    this.part, {
-    required this.start,
-    required this.end,
-    this.recurrence,
-  });
+/// One date of an event or a task, as it shows: [part] says what it is
+/// (the series, a single item, or a changed date), from [start] to [end]
+/// on this device's clock (for a task: the half hour up to its due time,
+/// or its due day).
+sealed class Occurrence {
+  const Occurrence({required this.start, required this.end, this.recurrence});
 
-  final CalendarEvent event;
-  final EventPart part;
+  CalendarItem get item;
+  ItemPart get part;
   final DateTime start;
   final DateTime end;
 
-  /// Which occurrence of its series it is, as the series writes its
-  /// start; `null` for an event that doesn't repeat.
+  /// Which date of its series it is, as the series writes it (its
+  /// anchor, see [ItemPart.anchor]); `null` for an item that doesn't
+  /// repeat.
   final CalendarTime? recurrence;
 
   bool get allDay => part.allDay;
@@ -40,14 +37,62 @@ final class Occurrence {
   bool overlaps(DateTime from, DateTime to) => _overlaps(start, end, from, to);
 }
 
-/// The occurrences of [calendar]'s events that overlap [from] to [to] (on
-/// this device's clock), by start: repeats expanded, left-out ones
-/// skipped, changed ones in place; deleted and cancelled events left out.
+/// One date of an event.
+final class EventOccurrence extends Occurrence {
+  const EventOccurrence(
+    this.item,
+    this.part, {
+    required super.start,
+    required super.end,
+    super.recurrence,
+  });
+
+  @override
+  final CalendarEvent item;
+  @override
+  final EventPart part;
+}
+
+/// One date of a task, due at [end] (all day: on [start]'s day).
+final class TaskOccurrence extends Occurrence {
+  const TaskOccurrence(
+    this.item,
+    this.part, {
+    required super.start,
+    required super.end,
+    super.recurrence,
+  });
+
+  @override
+  final CalendarTask item;
+  @override
+  final TaskPart part;
+
+  /// Whether this date is done.
+  bool get done => part.done;
+
+  /// When it is due, on this device's clock: its due time, or its due day
+  /// at midnight.
+  DateTime get due => allDay ? start : end;
+}
+
+/// The occurrences of [calendar]'s events and tasks that overlap [from]
+/// to [to] (on this device's clock), by start: repeats expanded,
+/// left-out ones skipped, changed ones in place; deleted and cancelled
+/// ones left out, and tasks without a due time.
 List<Occurrence> occurrences(Calendar calendar, DateTime from, DateTime to) {
   final span = _Span(from, to);
-  return [for (final event in calendar.events) ..._occurrencesOf(event, span)]
+  return [for (final item in calendar.items) ..._occurrencesOf(item, span)]
     ..sort((a, b) => a.start.compareTo(b.start));
 }
+
+/// The occurrences of [item] alone, as [occurrences] picks them, in the
+/// order its dates come.
+Iterable<Occurrence> occurrencesOf(
+  CalendarItem item,
+  DateTime from,
+  DateTime to,
+) => _occurrencesOf(item, _Span(from, to));
 
 /// A span of time on this device's clock, [from] to [to], and the wall
 /// clocks around it that a time written in any zone may show in it.
@@ -76,96 +121,134 @@ final class _Span {
 /// this device's.
 const _zoneGap = Duration(hours: 26);
 
-Iterable<Occurrence> _occurrencesOf(CalendarEvent event, _Span span) sync* {
-  final series = event.series;
+Iterable<Occurrence> _occurrencesOf<P extends ItemPart>(
+  CalendarItem<P> item,
+  _Span span,
+) sync* {
+  final series = item.series;
   if (series.changesOccurrence) {
     // Changed dates only (e.g. invites for single dates of a series held
-    // elsewhere): each shows on its own; the first as the event itself.
+    // elsewhere): each shows on its own; the first as the item itself.
     yield* [
-      ?_shownAt(event, series, span),
-      for (final part in event.changed)
-        ?_shownAt(event, part, span, recurrence: part.recurrenceId),
+      ?_shownAt(item, series, span),
+      for (final part in item.changed)
+        ?_shownAt(item, part, span, recurrence: part.recurrenceId),
     ];
     return;
   }
-  final (start, end) = (series.start, series.end);
-  if (start == null || end == null || series.cancelled || series.deleted) {
+  final (anchor, from, to) = (series.anchor, series.from, series.to);
+  if (anchor == null ||
+      from == null ||
+      to == null ||
+      series.cancelled ||
+      series.deleted) {
     return;
   }
   final rule = series.rule;
   if (rule == null && series.rdates.isEmpty) {
-    yield* [?_shownAt(event, series, span)];
+    yield* [?_shownAt(item, series, span)];
     return;
   }
-  final length = lengthOn(start, end);
+  // Where each date shows, from its anchor, on the anchor's clock.
+  final lead = offsetOn(anchor, from);
+  final length = lengthOn(from, to);
   final skipped = {
     for (final exdate in series.exdates) exdate.local,
-    for (final part in event.changed) ?part.recurrenceId?.local,
+    for (final part in item.changed) ?part.recurrenceId?.local,
   };
   // The rule as written: the one other apps read too.
-  for (final wall in _instances(series, rule, span, length)) {
-    final instance = start.at(wall);
+  for (final wall in _instances(series, rule, span, lead, length)) {
+    final instance = anchor.at(wall);
     final local = instance.local;
-    final localEnd = start.at(wall.add(length)).local;
+    final shownFrom = lead == Duration.zero
+        ? local
+        : anchor.at(wall.add(lead)).local;
+    final shownTo = anchor.at(wall.add(lead + length)).local;
     if (!skipped.contains(local) &&
-        _overlaps(local, localEnd, span.from, span.to)) {
-      yield Occurrence(
-        event,
+        _overlaps(shownFrom, shownTo, span.from, span.to)) {
+      yield _occurrence(
+        item,
         series,
-        start: local,
-        end: localEnd,
+        start: shownFrom,
+        end: shownTo,
         recurrence: instance,
       );
     }
   }
-  // A changed date that names no occurrence is kept, never shown.
+  // A changed date that names no date of the series is kept, never shown.
   yield* [
-    for (final part in event.changed)
+    for (final part in item.changed)
       if (part.recurrenceId case final recurrence?)
-        ?_shownAt(event, part, span, recurrence: recurrence),
+        ?_shownAt(item, part, span, recurrence: recurrence),
   ];
 }
 
-/// [part] of [event] shown where it is written, as the occurrence
+/// [part] of [item] shown where it is written, as the date
 /// [recurrence]; `null` where its times can't be read, it is cancelled,
 /// or it is outside [span].
-Occurrence? _shownAt(
-  CalendarEvent event,
-  EventPart part,
+Occurrence? _shownAt<P extends ItemPart>(
+  CalendarItem<P> item,
+  P part,
   _Span span, {
   CalendarTime? recurrence,
-}) => switch ((part.start, part.end)) {
-  (final start?, final end?)
-      when !part.cancelled && span.overlaps(start, end) =>
-    Occurrence(
-      event,
+}) => switch ((part.from, part.to)) {
+  (final from?, final to?) when !part.cancelled && span.overlaps(from, to) =>
+    _occurrence(
+      item,
       part,
-      start: start.local,
-      end: end.local,
+      start: from.local,
+      end: to.local,
       recurrence: recurrence,
     ),
   _ => null,
+};
+
+/// [part] of [item] as an occurrence of its kind.
+Occurrence _occurrence<P extends ItemPart>(
+  CalendarItem<P> item,
+  P part, {
+  required DateTime start,
+  required DateTime end,
+  CalendarTime? recurrence,
+}) => switch ((item, part)) {
+  (final CalendarEvent event, final EventPart part) => EventOccurrence(
+    event,
+    part,
+    start: start,
+    end: end,
+    recurrence: recurrence,
+  ),
+  (final CalendarTask task, final TaskPart part) => TaskOccurrence(
+    task,
+    part,
+    start: start,
+    end: end,
+    recurrence: recurrence,
+  ),
+  _ => throw StateError('A part of another kind than its item'),
 };
 
 /// How many steps from a series' start the library may walk before it
 /// stops: its highest limit. A series past it shows up to there.
 const _steps = RecurrenceIterator.absoluteMaxIterations;
 
-/// The wall clocks of [series]' occurrences (its [rule] and its extra
-/// dates) that may overlap [span], by its wall clocks. A rule the library
-/// can't read gives only the start.
+/// The wall clocks of [series]' dates (its [rule] and its extra dates),
+/// on its anchor's clock, that may overlap [span] where each shows
+/// [lead] after its date for [length] (by the wall clocks). A rule the
+/// library can't read gives only the anchor.
 ///
 /// The library walks wall clocks: each goes in and comes out as a UTC
 /// time holding the wall clock's fields, so no zone's clock change moves
 /// it. Its types stay in this function.
 List<DateTime> _instances(
-  EventPart series,
+  ItemPart series,
   String? rule,
   _Span span,
+  Duration lead,
   Duration length,
 ) {
-  final start = series.start!;
-  final before = span.wallTo;
+  final start = series.anchor!;
+  final before = span.wallTo.subtract(lead);
   if (start.wall.isAfter(before)) return const [];
   final RecurrenceRule? recurrence;
   try {
@@ -176,7 +259,7 @@ List<DateTime> _instances(
   } on ParseException {
     return [start.wall];
   }
-  final after = span.wallFrom.subtract(length);
+  final after = span.wallFrom.subtract(lead + length);
   final walls =
       RecurrenceIterator(
             dtstart: _calendarTime(start.wall),
@@ -268,17 +351,24 @@ bool _overlaps(DateTime start, DateTime end, DateTime from, DateTime to) =>
     start.isBefore(to) &&
     (end.isAfter(from) || (end == start && !start.isBefore(from)));
 
-/// Whether [event]'s series still has its occurrence at [occurrence] (as
-/// the series writes its start): the series repeats on it, and it is
-/// neither left out nor cancelled.
-bool hasOccurrenceAt(CalendarEvent event, CalendarTime occurrence) {
-  if (event.changedAt(occurrence) case final changed?) {
+/// Whether [item]'s series still has its date [date] (as the series
+/// writes its anchor): the series repeats on it, and it is neither left
+/// out nor cancelled.
+bool hasOccurrenceAt(CalendarItem item, CalendarTime date) {
+  if (item.changedAt(date) case final changed?) {
     return !changed.cancelled;
   }
-  final at = occurrence.local;
-  const near = Duration(minutes: 1);
+  final at = date.local;
+  final series = item.series;
+  // Around where the date shows, from its anchor (a day either side, for
+  // a clock change between them).
+  final shown = switch ((series.anchor, series.from)) {
+    (final anchor?, final from?) => at.add(offsetOn(anchor, from)),
+    _ => at,
+  };
+  const near = Duration(days: 1);
   return _occurrencesOf(
-    event,
-    _Span(at.subtract(near), at.add(near)),
+    item,
+    _Span(shown.subtract(near), shown.add(near)),
   ).any((each) => each.recurrence?.local == at);
 }

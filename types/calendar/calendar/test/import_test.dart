@@ -9,7 +9,8 @@ import 'samples.dart';
 
 /// A small invite file, as another app or an assistant writes it: a
 /// lecture with its zone's block, a concert in a zone with no block, an
-/// event without `UID`, a deleted event's marker, a task and a name.
+/// event without `UID`, a deleted event's marker, a task, a journal
+/// entry and a name.
 const _invites = '''BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Example//Invites//EN
@@ -52,7 +53,12 @@ END:VEVENT
 BEGIN:VTODO
 UID:todo@example.org
 SUMMARY:Buy tickets
+DUE;VALUE=DATE:20270315
 END:VTODO
+BEGIN:VJOURNAL
+UID:note@example.org
+SUMMARY:Notes
+END:VJOURNAL
 END:VCALENDAR
 ''';
 
@@ -82,8 +88,7 @@ final _at = DateTime.utc(2027, 2, 10, 12);
 CalendarImport _import(String into, String file) =>
     importInto(Calendar.read(into)!, _bytes(file), _at);
 
-EventsImported _report(CalendarImport import) =>
-    import.report as EventsImported;
+ItemsImported _report(CalendarImport import) => import.report as ItemsImported;
 
 /// [unit]'s lines but its edit stamps.
 List<String> _content(CalendarUnit unit) => [
@@ -92,15 +97,19 @@ List<String> _content(CalendarUnit unit) => [
 ];
 
 void main() {
-  test('adds the events as the file has them, stamped as an edit now', () {
+  test('adds the events and tasks as the file has them, stamped as an edit '
+      'now', () {
     final import = _import(birthday, _invites);
     final calendar = import.calendar;
     final file = Calendar.read(_invites)!;
-    for (final uid in ['lecture@example.org', 'concert@example.org']) {
-      final key = UidKey.event(uid);
+    for (final key in [
+      const UidKey.event('lecture@example.org'),
+      const UidKey.event('concert@example.org'),
+      const UidKey.task('todo@example.org'),
+    ]) {
       expect(_content(calendar.unitOf(key)!), _content(file.unitOf(key)!));
-      final event = calendar.eventOf(uid)!.series.component;
-      expect(event.value('LAST-MODIFIED'), '20270210T120000Z');
+      final item = calendar.itemOf(key)!.series.component;
+      expect(item.value('LAST-MODIFIED'), '20270210T120000Z');
     }
     final bookClub = calendar.events.singleWhere(
       (event) => event.series.summary == 'Book club',
@@ -108,13 +117,16 @@ void main() {
     expect(bookClub.uid, endsWith('@truce'));
     expect(calendar.eventOf('ann@truce'), isNotNull);
     final report = _report(import);
-    expect((report.added, report.updated), (3, 0));
+    expect((report.added, report.updated, report.tasks), (4, 0, 1));
   });
 
   test('leaves out markers, other components and the name', () {
     final calendar = _import(birthday, _invites).calendar;
     expect(calendar.eventOf('gone@example.org'), isNull);
-    expect(calendar.unitOf(const UidKey('VTODO', 'todo@example.org')), isNull);
+    expect(
+      calendar.unitOf(const UidKey('VJOURNAL', 'note@example.org')),
+      isNull,
+    );
     expect(calendar.name, 'Birthdays');
   });
 
@@ -165,7 +177,10 @@ void main() {
   });
 
   test('an event deleted here comes back', () {
-    final concert = DeleteEvent('concert@example.org', at: _at.add(_day));
+    final concert = DeleteItem(
+      UidKey.event('concert@example.org'),
+      at: _at.add(_day),
+    );
     final deleted = applyEdit(_import(birthday, _invites).calendar, concert);
     final again = importInto(deleted, _bytes(_invites), _at.add(_day * 2));
     final back = again.calendar.eventOf('concert@example.org')!.series;
@@ -249,7 +264,7 @@ END:VCALENDAR
           DateTime(2027, 3),
           DateTime(2027, 4),
         ))
-          if (occurrence.event.uid == 'tennis@example.org') occurrence.start,
+          if (occurrence.item.uid == 'tennis@example.org') occurrence.start,
       ],
       [DateTime(2027, 3, 2, 18, 30), DateTime(2027, 3, 9, 18, 30)],
       reason: 'each date shows',
@@ -340,16 +355,16 @@ END:VEVENT
     }
   });
 
-  test('a calendar without events changes nothing', () {
+  test('a calendar without events or tasks changes nothing', () {
     final import = _import(birthday, '''BEGIN:VCALENDAR
 VERSION:2.0
-BEGIN:VTODO
-UID:todo@example.org
-SUMMARY:Buy tickets
-END:VTODO
+BEGIN:VJOURNAL
+UID:note@example.org
+SUMMARY:Notes
+END:VJOURNAL
 END:VCALENDAR
 ''');
-    expect(import.report, isA<NoEvents>());
+    expect(import.report, isA<NothingToImport>());
     expect(import.written, isEmpty);
   });
 }

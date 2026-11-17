@@ -73,13 +73,14 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         null => '',
       };
 
-  /// What a search finds: the name and each event's title, place and
-  /// notes, deleted events left out; a text that is no calendar as it is.
+  /// What a search finds: the name and each event's and task's title,
+  /// place and notes, deleted ones left out; a text that is no calendar
+  /// as it is.
   late final String searchText = switch (calendar) {
     final calendar? => [
       calendar.shownName,
-      for (final event in calendar.events)
-        for (final part in [event.series, ...event.changed])
+      for (final item in calendar.items)
+        for (final part in [item.series, ...item.changed])
           if (!part.deleted) ...[part.summary, part.location, part.description],
     ].where((text) => text.isNotEmpty).join('\n'),
     null => _noCalendar!,
@@ -114,11 +115,13 @@ final class CalendarSummary implements TextSummary<CalendarPreview> {
         );
   }
 
-  /// The occurrences a preview with [options] shows.
+  /// The occurrences a preview with [options] shows: events, and tasks
+  /// not done yet.
   List<Occurrence> _shown(Calendar calendar, CalendarPreview options) =>
-      occurrences(
-        calendar,
-        options.now,
-        options.now.add(previewAhead),
-      ).take(options.count).toList();
+      occurrences(calendar, options.now, options.now.add(previewAhead))
+          .where(
+            (occurrence) => occurrence is! TaskOccurrence || !occurrence.done,
+          )
+          .take(options.count)
+          .toList();
 }

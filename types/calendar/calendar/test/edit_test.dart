@@ -32,7 +32,11 @@ void main() {
     )!;
     final at = DateTime.utc(2027, 2, 10, 12);
     for (final edit in [
-      DeleteOccurrence('ann@truce', AllDay(DateTime(2027, 3, 12)), at: at),
+      DeleteOccurrence(
+        UidKey.event('ann@truce'),
+        AllDay(DateTime(2027, 3, 12)),
+        at: at,
+      ),
       ChangeSeries(
         'ann@truce',
         EventDraft(
@@ -68,7 +72,7 @@ void main() {
   test('a new event is added at the end, stamped, floating', () {
     final calendar = _edited(
       birthday,
-      AddEvent('new@truce', _draft('Gym', DateTime(2026, 11, 3, 18)), at: _at),
+      AddItem('new@truce', _draft('Gym', DateTime(2026, 11, 3, 18)), at: _at),
     );
     final unit = calendar.unitOf(const UidKey.event('new@truce'))!.text;
     expect(
@@ -154,7 +158,7 @@ void main() {
     'an edit writes its event and the block of a new zone, nothing else',
     () {
       final calendar = Calendar.read(birthday)!;
-      final call = AddEvent(
+      final call = AddItem(
         'call@t',
         EventDraft(
           summary: 'Call',
@@ -168,7 +172,10 @@ void main() {
         const ZoneKey('Asia/Tokyo'),
       ]);
       expect(
-        writeEdit(calendar, DeleteEvent('none@t', at: _at)).written,
+        writeEdit(
+          calendar,
+          DeleteItem(UidKey.event('none@t'), at: _at),
+        ).written,
         isEmpty,
         reason: 'no such event',
       );
@@ -176,7 +183,10 @@ void main() {
   );
 
   test('a deleted event stays as a marker', () {
-    final calendar = _edited(birthday, DeleteEvent('ann@truce', at: _at));
+    final calendar = _edited(
+      birthday,
+      DeleteItem(UidKey.event('ann@truce'), at: _at),
+    );
     final marker = calendar.eventOf('ann@truce')!.series;
     expect(
       (marker.deleted, marker.cancelled, marker.summary),
@@ -220,10 +230,10 @@ void main() {
 
     test('of one occurrence, the same', () {
       final one = AllDay(DateTime(2027, 3, 12));
-      final from = EventDraft.at(
+      final from = ItemDraft.at(
         Calendar.read(birthday)!.eventOf('ann@truce')!,
         one,
-      );
+      ) as EventDraft;
       final event = applyEdit(
         elsewhere,
         ChangeOccurrence(
@@ -268,7 +278,7 @@ void main() {
           start: AllDay(DateTime(2027, 3, 13)),
           end: AllDay(DateTime(2027, 3, 14)),
         ),
-        from: EventDraft.at(
+        from: ItemDraft.at(
           Calendar.read(birthday)!.eventOf('ann@truce')!,
           AllDay(DateTime(2027, 3, 12)),
         ),
@@ -303,7 +313,11 @@ void main() {
   test('one occurrence deleted is left out of its series', () {
     final calendar = _edited(
       birthday,
-      DeleteOccurrence('ann@truce', AllDay(DateTime(2027, 3, 12)), at: _at),
+      DeleteOccurrence(
+        UidKey.event('ann@truce'),
+        AllDay(DateTime(2027, 3, 12)),
+        at: _at,
+      ),
     );
     expect(occurrences(calendar, DateTime(2027), DateTime(2028)), isEmpty);
     expect(occurrences(calendar, DateTime(2028), DateTime(2029)), hasLength(1));
@@ -313,7 +327,7 @@ void main() {
   test('a health entry is a tagged all-day event with its values', () {
     final calendar = _edited(
       newCalendarText('Me', health: true),
-      AddEvent(
+      AddItem(
         'p1@truce',
         EventDraft.health(
           const Period(PeriodFlow.heavy),
@@ -333,7 +347,7 @@ void main() {
   test('alerts are written as display alarms before the start', () {
     final calendar = _edited(
       birthday,
-      AddEvent(
+      AddItem(
         'a@truce',
         EventDraft(
           summary: 'Call',
@@ -438,7 +452,7 @@ void main() {
     final summary = 'Ü' * 60;
     final calendar = _edited(
       birthday,
-      AddEvent('f@truce', _draft(summary, DateTime(2026, 11, 3)), at: _at),
+      AddItem('f@truce', _draft(summary, DateTime(2026, 11, 3)), at: _at),
     );
     final lines = calendar.text.split('\n');
     expect(lines.every((line) => utf8.encode(line).length <= 75), isTrue);
@@ -768,7 +782,11 @@ void _extraDatesOnly() {
         'END:VEVENT\nEND:VCALENDAR\n';
     final edited = _edited(
       text,
-      DeleteOccurrence('r@x', Floating(DateTime.utc(2026, 11, 4, 9)), at: _at),
+      DeleteOccurrence(
+        UidKey.event('r@x'),
+        Floating(DateTime.utc(2026, 11, 4, 9)),
+        at: _at,
+      ),
     );
 
     expect(edited.text, contains('EXDATE:20261104T090000\n'));

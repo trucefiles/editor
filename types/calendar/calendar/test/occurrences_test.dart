@@ -53,7 +53,7 @@ void main() {
       DateTime(2026, 10, 1),
       DateTime(2026, 10, 21),
     );
-    final swims = shown.where((each) => each.event.uid == 'swim@example.com');
+    final swims = shown.where((each) => each.item.uid == 'swim@example.com');
     expect(
       [for (final swim in swims) swim.part.summary],
       ['Swimming', 'Swimming (late)', 'Swimming'],
@@ -78,14 +78,14 @@ void main() {
     expect(
       [
         for (final day in days)
-          if (day.event.uid == 'a') day.start.day,
+          if (day.item.uid == 'a') day.start.day,
       ],
       [2, 3, 5, 6],
     );
     expect(
       [
         for (final day in days)
-          if (day.event.uid == 'b') day.start.day,
+          if (day.item.uid == 'b') day.start.day,
       ],
       [2, 4, 16, 18],
     );
