@@ -97,6 +97,19 @@ void main() {
     expect(_titles(list.done)..sort(), ['recent', 'undated']);
   });
 
+  test('a task due long ago and checked today stays among the done', () {
+    final list = taskList({
+      'home': _with(
+        _task(
+          'late',
+          due: ';VALUE=DATE:20260901',
+          more: 'STATUS:COMPLETED\nCOMPLETED:20261117T090000Z\n',
+        ),
+      ),
+    }, _today);
+    expect(_titles(list.done), ['late']);
+  });
+
   test('rows tell their calendar; deleted and cancelled tasks are left out', () {
     final list = taskList({
       'home': _with(_task('a', due: ';VALUE=DATE:20261120')),

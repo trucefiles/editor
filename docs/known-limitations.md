@@ -97,9 +97,13 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A new calendar is saved once it has a name or an event.** Like a new
   document, a new calendar gets its file only once you add something to
   it. Leave it with neither and it is gone.
-- **Alerts don't ring yet.** Truce keeps an event's alerts in the
-  calendar, so other calendar apps ring them, but doesn't ring them
-  itself.
+- **Alerts don't ring yet.** Truce keeps the alerts of events and tasks
+  in the calendar, so other calendar apps ring them, but doesn't ring
+  them itself.
+- **A repeating task grows its file a little each time it's checked.**
+  Each date checked off is kept on its own, about 300 bytes: a daily
+  task adds about 100 KB a year. Truce never tidies this up by itself,
+  as that would write into your synced folders.
 - **Time zone rules are written once.** A new event is saved in your
   device's time zone, and the calendar gets that zone's rules once. If a
   country later changes its clock rules, newer Truce versions know it,
@@ -119,10 +123,10 @@ Accepted behavior that is not planned to change, grouped by topic.
 - **A device without a known time zone saves floating times.** If the
   system doesn't tell Truce its time zone (or names one Truce doesn't
   know), a new event has no zone: 9:00 stays 9:00 wherever you are.
-- **An event another app removed can come back.** Truce marks a deleted
-  event as deleted, so other devices learn of it. Some apps remove the
-  event instead; when that file meets a Truce device's copy, the event
-  comes back.
+- **An event or task another app removed can come back.** Truce marks a
+  deleted one as deleted, so other devices learn of it. Some apps remove
+  it instead; when that file meets a Truce device's copy, it comes
+  back.
 - **A device with a wrong clock can lose its edits.** When the same event
   changed on two devices, the newer change wins, by each device's clock.
   The edit that lost is still in the calendar's Backups.

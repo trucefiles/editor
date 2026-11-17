@@ -80,9 +80,9 @@ const tasksAhead = Duration(days: 366);
 /// The tasks list of [calendars] (by key) as of [today] (at midnight on
 /// this device's clock): each task that doesn't repeat; of each
 /// repeating one only its oldest open date of the last 30 days, else its
-/// next one (up to a year ahead), so a task done daily shows once; done
-/// dates and tasks of the last 30 days on (a task without date: done in
-/// them), in [TaskList.done]. Deleted and cancelled tasks are left out.
+/// next one (up to a year ahead), so a task done daily shows once; the
+/// dates and tasks done in the last 30 days (by when they were done, else
+/// when due), in [TaskList.done]. Deleted and cancelled tasks are left out.
 TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
   final from = today.subtract(tasksBack);
   final to = today.add(tasksAhead);
@@ -112,7 +112,7 @@ TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
     done: [
       for (final row in rows)
         if (row.entry.done &&
-            !(row.entry.due ?? row.entry.part.completed ?? from).isBefore(from))
+            !(row.entry.part.completed ?? row.entry.due ?? from).isBefore(from))
           row,
     ]..sort((a, b) => _byDue(b, a)),
   );

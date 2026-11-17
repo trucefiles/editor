@@ -134,9 +134,13 @@ String _goneHint(GoneNotice landed) => switch (landed) {
   SavedAsNew(gone: GoneMeanwhile.taskDate) =>
     "This date of the task changed on another device, so it's saved as "
         'a new task.',
-  EditDropped(gone: GoneMeanwhile.task || GoneMeanwhile.event) =>
+  EditDropped(gone: GoneMeanwhile.event) =>
+    'This event was deleted on another device, so nothing changed.',
+  EditDropped(gone: GoneMeanwhile.eventDate) =>
+    'This date of the event changed on another device, so nothing changed.',
+  EditDropped(gone: GoneMeanwhile.task) =>
     'This task was deleted on another device, so nothing changed.',
-  EditDropped(gone: GoneMeanwhile.taskDate || GoneMeanwhile.eventDate) =>
+  EditDropped(gone: GoneMeanwhile.taskDate) =>
     'This date of the task changed on another device, so nothing changed.',
 };
 

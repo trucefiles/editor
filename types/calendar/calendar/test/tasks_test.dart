@@ -122,6 +122,22 @@ void _shown() {
     expect(shown.last.recurrence, Floating(DateTime.utc(2026, 12, 1, 9)));
   });
 
+  test('a task that only starts shows where it starts, each date of its '
+      'repeat, and is listed by date', () {
+    final daily = _with(
+      'BEGIN:VTODO\nUID:walk\nSUMMARY:Walk\nDTSTART;VALUE=DATE:20261101\n'
+      'RRULE:FREQ=DAILY;COUNT=3\nEND:VTODO\n',
+    );
+    final shown = _tasksIn(daily, _november.from, _november.to);
+    expect(
+      [for (final date in shown) date.start],
+      [DateTime(2026, 11), DateTime(2026, 11, 2), DateTime(2026, 11, 3)],
+    );
+    final list = taskList({'home': daily}, DateTime(2026, 11, 2));
+    expect(list.noDate, isEmpty);
+    expect(list.overdue.single.entry.date, AllDay(DateTime(2026, 11)));
+  });
+
   test('a cancelled task and a deleted one show nowhere', () {
     final calendar = _with(
       '${_task('a', ':20261110T090000', more: 'STATUS:CANCELLED\n')}'
@@ -215,6 +231,24 @@ void _checking() {
     expect(kept.done, isFalse);
   });
 
+  test('in a file of changed dates only, a check of one checks that one', () {
+    final dates = _with(
+      'BEGIN:VTODO\nUID:gym\nSUMMARY:Gym\n'
+      'RECURRENCE-ID;VALUE=DATE:20261102\nDUE;VALUE=DATE:20261102\n'
+      'END:VTODO\n'
+      'BEGIN:VTODO\nUID:gym\nSUMMARY:Gym\n'
+      'RECURRENCE-ID;VALUE=DATE:20261109\nDUE;VALUE=DATE:20261109\n'
+      'END:VTODO\n',
+    );
+    final second = AllDay(DateTime(2026, 11, 9));
+    final task = applyEdit(
+      dates,
+      CheckTask('gym', second, done: true, at: _at),
+    ).taskOf('gym')!;
+    expect(task.series.done, isFalse);
+    expect(task.changedAt(second)!.done, isTrue);
+  });
+
   test('a date of a series done as a whole is opened in a changed date', () {
     final calendar = _with(
       _task(
@@ -301,6 +335,36 @@ void _editing() {
     expect(
       moved.changed.single.recurrenceId,
       Floating(DateTime.utc(2026, 12, 3, 9)),
+    );
+  });
+
+  test('a change to a task without a date keeps what another device '
+      'changed meanwhile', () {
+    final opened = _with(
+      'BEGIN:VTODO\nUID:tent\nSUMMARY:Tent\nDESCRIPTION:old\nEND:VTODO\n',
+    );
+    final from = ItemDraft.of(opened.taskOf('tent')!.series) as TaskDraft;
+    final meanwhile = applyEdit(
+      opened,
+      ChangeSeries(
+        'tent',
+        TaskDraft(summary: 'Tent', description: 'from the other device'),
+        from: from,
+        at: _at,
+      ),
+    );
+    final task = applyEdit(
+      meanwhile,
+      ChangeSeries(
+        'tent',
+        TaskDraft(summary: 'Fix the tent', description: 'old'),
+        from: from,
+        at: _at.add(const Duration(minutes: 1)),
+      ),
+    ).taskOf('tent')!.series;
+    expect(
+      (task.summary, task.description),
+      ('Fix the tent', 'from the other device'),
     );
   });
 

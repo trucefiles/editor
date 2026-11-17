@@ -186,6 +186,42 @@ void main() {
     expect(find.text('Nothing to do.'), findsOne);
   });
 
+  testWidgets('a title changed on a task that only starts keeps its repeat', (
+    tester,
+  ) async {
+    final part = _tasksPart([
+      'UID:walk\nSUMMARY:Walk\nDTSTART;VALUE=DATE:20261103\n'
+          'RRULE:FREQ=DAILY',
+    ]);
+    await pumpPage(tester, part, today: _today);
+
+    await tester.tap(find.text('Walk'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit all of them'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Run');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final run = calendarOf(part).tasks.single.series;
+    expect((run.summary, run.repeats), ('Run', true));
+  });
+
+  testWidgets('Add in the tasks view of a health calendar lists its kinds', (
+    tester,
+  ) async {
+    final part = calendarPart(
+      newCalendarText('Me', health: true),
+      kept: KeptView(CalendarViewKind.tasks),
+    );
+    await pumpPage(tester, part, today: _today);
+
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+    expect(find.text('Medication'), findsOne);
+    expect(find.text('New task'), findsNothing);
+  });
+
   testWidgets('a page asked to edit a task opens its form', (tester) async {
     final calendar = Calendar.read(_withTasks([_book]))!;
     final starts = CalendarStarts()

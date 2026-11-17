@@ -172,7 +172,7 @@ CalendarUnit? _editedItem(Calendar calendar, CalendarEdit edit) {
         final draft = _wanted(
           edit.draft,
           from,
-          now.anchor == null ? null : ItemDraft.of(now),
+          _draftOf(now),
         );
         // A repeat turned off leaves a single item: its left-out, extra
         // and changed dates mean nothing any more.
@@ -258,14 +258,14 @@ List<Component>? _checked(
   bool done,
   DateTime at,
 ) {
-  if (date == null || !task.series.repeats) {
+  final old = date == null ? null : task.changedAt(date);
+  if (date == null || (old == null && !task.series.repeats)) {
     if (task.series.done == done) return null;
     return [
       stamped(_withDone(task.series.component, done, at), at),
       for (final part in task.changed) part.component,
     ];
   }
-  final old = task.changedAt(date);
   if ((old ?? task.series).done == done) return null;
   final changed = _withDone(old?.component ?? _dateOf(task, date), done, at);
   // Open again and as the series has it: no changed date is needed.
@@ -275,6 +275,11 @@ List<Component>? _checked(
       _unchecked(changed) == _unchecked(_dateOf(task, date));
   return _withDate(task, old, asSeries ? null : stamped(changed, at));
 }
+
+/// What [part] says now, as a draft; `null` for an event whose times
+/// can't be read. A task needs no time.
+ItemDraft? _draftOf(ItemPart part) =>
+    part is EventPart && part.anchor == null ? null : ItemDraft.of(part);
 
 /// [task]'s date [date] as its series has it, as a changed date.
 Component _dateOf(CalendarTask task, CalendarTime date) => _drafted(

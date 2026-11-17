@@ -84,7 +84,7 @@ class _EventsPageState extends State<EventsPage> {
     switch (widget.starts.take()) {
       case StartAdding():
         unawaited(
-          widget.viewChoice.last() == CalendarViewKind.tasks
+          _addsTasks
               ? _addTask(null, edit)
               : _add(AtTimes.usualOn(_addDay), edit),
         );
@@ -161,7 +161,7 @@ class _EventsPageState extends State<EventsPage> {
     if (widget.calendar.isHealth) {
       return addHealthEntry(context, spot.firstDay, edit);
     }
-    if (widget.viewChoice.last() == CalendarViewKind.tasks) {
+    if (_addsTasks) {
       return _addTask(spot, edit);
     }
     final kind = await pickNewKind(context);
@@ -174,6 +174,12 @@ class _EventsPageState extends State<EventsPage> {
       case null:
     }
   }
+
+  /// Whether adding adds a task, without asking: in the tasks view of a
+  /// calendar that is no health calendar.
+  bool get _addsTasks =>
+      !widget.calendar.isHealth &&
+      widget.viewChoice.last() == CalendarViewKind.tasks;
 
   Future<void> _addTask(NewEventSpot? spot, MakeEdit edit) =>
       addTask(context, spot, edit, widget.deviceZone, today: _today);

@@ -41,10 +41,11 @@
 - Plain text files (`.txt`), edited as text.
 - Calendars (`.ics`, the format other calendar apps use): month, week,
   day and schedule views, tap or drag to add and move events, events
-  that repeat, events imported from another `.ics` file, a health
-  calendar with a cycle estimate, and a Calendar tab with the events of
-  all your calendars. Changes from two
-  devices merge event by event, with one tap.
+  that repeat, tasks to check off (repeating ones too) in a list of
+  their own, events and tasks imported from another `.ics` file, a
+  health calendar with a cycle estimate, and a Calendar tab with the
+  events and tasks of all your calendars. Changes from two devices merge
+  one by one, with one tap.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -56,7 +57,7 @@
 
 - Assisted merge for Markdown and text: Truce suggests a merged version
   of a conflict for you to accept (calendars merge with one tap already).
-- Calendar alerts that ring.
+- Alerts that ring for events and tasks.
 - More kinds of files beyond Markdown, plain text and calendars.
 - Windows, macOS and iOS.
 
@@ -123,10 +124,10 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
 - `types/plain_text/plain_text`: plain text documents, edited as a whole
   text, with the editor's owner. Pure Dart, no UI; uses core, which knows
   nothing of it.
-- `types/calendar/calendar`: calendars (iCalendar, `.ics`), read and
-  written back block-exact, merged event by event, events imported from
-  another file, with repeats, time
-  zones, health entries, cycle predictions and the editor's owner. Pure
+- `types/calendar/calendar`: calendars (iCalendar, `.ics`) of events
+  and tasks, read and written back block-exact, merged item by item,
+  items imported from another file, tasks checked off date by date and
+  listed by when they are due, with repeats, time zones, health entries, cycle predictions and the editor's owner. Pure
   Dart, no UI; uses core, which knows nothing of it.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
   interfaces. Pure Dart.
@@ -143,8 +144,8 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   (Visual edit, Markdown edit, plain text, Read). Flutter; uses core,
   files, file_page, markdown and plain_text.
 - `types/calendar/calendar_editor`: the calendar views (month, week, day
-  and schedule, on `kalender`) for the calendar page and the Calendar
-  tab, the event form and the health view. Flutter; uses core, files,
+  and schedule, on `kalender`, and the tasks list) for the calendar page
+  and the Calendar tab, the event and task forms and the health view. Flutter; uses core, files,
   file_page and calendar.
 - `common_ui`: UI parts with no app logic, for use across the app: the
   lazy masonry grid for the cards (items as tall as their content, in

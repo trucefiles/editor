@@ -96,15 +96,17 @@ class _TaskFormState extends State<TaskForm> {
     final timed = _due == _openedDue
         ? widget.draft
         : widget.draft.withDue(_due?.asTime(was, widget.deviceZone));
-    final due = timed.due != null;
+    // Only a due date turned off here drops what goes with it; a task
+    // that has none (one that only starts) keeps them.
+    final dropped = _due == null && _openedDue != null;
     return TaskDraft(
       summary: _summary.text.trim(),
       due: timed.due,
       start: timed.start,
       description: _notes.text,
       location: widget.draft.location,
-      repeat: due ? _repeat : null,
-      alerts: due ? _alerts : const [],
+      repeat: dropped ? null : _repeat,
+      alerts: dropped ? const [] : _alerts,
       color: _color,
     );
   }

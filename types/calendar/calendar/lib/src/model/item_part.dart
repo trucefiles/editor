@@ -164,17 +164,21 @@ final class TaskPart extends ItemPart {
   @override
   CalendarTime? get anchor => start ?? due;
 
+  /// Where it shows: on its due day or up to its due time; one without
+  /// a due time where it starts.
+  late final CalendarTime? _shownAt = due ?? start;
+
   @override
-  late final CalendarTime? from = switch (due) {
+  late final CalendarTime? from = switch (_shownAt) {
     final AllDay day => day,
-    final due? => due.at(due.wall.subtract(taskLength)),
+    final time? => time.at(time.wall.subtract(taskLength)),
     null => null,
   };
 
   @override
-  late final CalendarTime? to = switch (due) {
+  late final CalendarTime? to = switch (_shownAt) {
     final AllDay day => day.at(day.wall.add(const Duration(days: 1))),
-    final due => due,
+    final time => time,
   };
 
   @override
