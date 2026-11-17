@@ -177,4 +177,38 @@ void main() {
     model.showCalendars({'home': home.named('Family')});
     expect(changes, 0);
   });
+
+  test("a change of one calendar walks its tasks again, the others' kept", () {
+    Calendar tasks(String uid) => Calendar.read(
+      'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VTODO\nUID:$uid\nSUMMARY:$uid\n'
+      'DUE;VALUE=DATE:20261120\nRRULE:FREQ=WEEKLY\nEND:VTODO\nEND:VCALENDAR\n',
+    )!;
+    final (water, bins) = (tasks('water'), tasks('bins'));
+    final model = CalendarViewsModel(
+      kind: CalendarViewKind.tasks,
+      calendars: {'home': water, 'work': bins},
+      clock: _clock(() => DateTime(2026, 11, 10, 12)),
+    );
+    addTearDown(model.dispose);
+    TaskEntry entryOf(String calendar) =>
+        model.tasks.later.singleWhere((row) => row.calendar == calendar).entry;
+    final (home, work) = (entryOf('home'), entryOf('work'));
+
+    model.showCalendars({
+      'home': applyEdit(
+        water,
+        CheckTask(
+          'water',
+          AllDay(DateTime.utc(2026, 11, 20)),
+          done: true,
+          at: DateTime.utc(2026, 11, 10),
+        ),
+      ),
+      'work': bins,
+    });
+
+    expect(identical(entryOf('work'), work), isTrue, reason: 'kept');
+    expect(entryOf('home').date, AllDay(DateTime.utc(2026, 11, 27)));
+    expect(home.date, AllDay(DateTime.utc(2026, 11, 20)));
+  });
 }

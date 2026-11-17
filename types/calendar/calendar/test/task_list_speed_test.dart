@@ -1,15 +1,22 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import 'task_lists.dart';
+
 /// The budget for the tasks list of five busy calendars, on the JIT that
-/// tests run on. It is built when the Tasks view shows, again on a change
-/// of a shown calendar or a new day. It took about 85 ms here, as long as
+/// tests run on. It is built when the Tasks view shows, again on a new
+/// day. It took about 85 ms here, as long as
 /// a month of the same calendars in the month view: the cost is the
 /// recurrence library walking each series from its first date, which both
 /// pay. Before, a fixed walk of a year ahead per series came on top.
 /// CI runners took about 270 ms, so the budget leaves the same margin
 /// over a local run as the month budget does.
 const _listBudget = Duration(milliseconds: 400);
+
+/// The budget for the tasks list again after a change of one of five
+/// busy calendars (e.g. a box checked): only that one is walked again.
+/// It took about 20 ms here; the same margin as [_listBudget].
+const _changeBudget = Duration(milliseconds: 80);
 
 /// A calendar well past normal use: 200 single tasks, 20 daily series
 /// running since 2024 and one hourly since October, with the dailies'
@@ -51,12 +58,36 @@ void main() {
       for (var day = 10; day < 21; day++)
         () {
           final watch = Stopwatch()..start();
-          final list = taskList(calendars, DateTime(2026, 11, day));
+          final list = taskListOf(calendars, DateTime(2026, 11, day));
           expect(list.overdue, isNotEmpty);
           return watch.elapsed;
         }(),
     ]..sort();
 
     expect(times[times.length ~/ 2], lessThan(_listBudget));
+  });
+
+  test('the tasks list after a change of one busy calendar comes within '
+      'budget', () {
+    final today = DateTime(2026, 11, 17);
+    final entries = {
+      for (var index = 0; index < 5; index++)
+        index: calendarTaskEntries(_busy(index), today),
+    };
+    final changed = _busy(0);
+    final times = [
+      for (var run = 0; run < 11; run++)
+        () {
+          final watch = Stopwatch()..start();
+          final list = taskList({
+            ...entries,
+            0: calendarTaskEntries(changed, today),
+          }, today);
+          expect(list.overdue, isNotEmpty);
+          return watch.elapsed;
+        }(),
+    ]..sort();
+
+    expect(times[times.length ~/ 2], lessThan(_changeBudget));
   });
 }

@@ -74,20 +74,17 @@ final class TaskList<K> {
 /// and for what was done.
 const tasksBack = Duration(days: 30);
 
-/// The tasks list of [calendars] (by key) as of [today] (at midnight on
-/// this device's clock): each task that doesn't repeat; of each
-/// repeating one only its oldest open date of the last 30 days, else its
-/// next one, so a task done daily shows once; the dates and tasks done in
-/// the last 30 days (by when they were done, else when due; one done at
-/// no known time counts as done long ago), in [TaskList.done]. Deleted
-/// and cancelled tasks are left out.
-TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
+/// The tasks list of [calendars] (by key, each with its
+/// [calendarTaskEntries]) as of [today] (at midnight on this device's
+/// clock), grouped: open ones by when they are due, and the dates and
+/// tasks done in the last 30 days (by when they were done, else when
+/// due; one done at no known time counts as done long ago), in
+/// [TaskList.done].
+TaskList<K> taskList<K>(Map<K, List<TaskEntry>> calendars, DateTime today) {
   final from = today.subtract(tasksBack);
   final rows = [
-    for (final MapEntry(key: calendar, value: each) in calendars.entries)
-      for (final task in each.tasks)
-        for (final entry in _entriesOf(task, from, today))
-          (calendar: calendar, entry: entry),
+    for (final MapEntry(key: calendar, value: entries) in calendars.entries)
+      for (final entry in entries) (calendar: calendar, entry: entry),
   ];
   final open = rows.where((row) => !row.entry.done);
   final tomorrow = DateTime(today.year, today.month, today.day + 1);
@@ -116,6 +113,18 @@ TaskList<K> taskList<K>(Map<K, Calendar> calendars, DateTime today) {
           row,
     ]..sort(_byDoneLatest),
   );
+}
+
+/// What [calendar] puts in the tasks list as of [today] (at midnight on
+/// this device's clock): each task that doesn't repeat; of each
+/// repeating one only its oldest open date of the last 30 days, else its
+/// next one, so a task done daily shows once; and its done dates. Deleted
+/// and cancelled tasks are left out. This walks each repeating task, so
+/// it is the costly part: worked out per calendar, so a change of one
+/// calendar walks only that one.
+List<TaskEntry> calendarTaskEntries(Calendar calendar, DateTime today) {
+  final from = today.subtract(tasksBack);
+  return [for (final task in calendar.tasks) ..._entriesOf(task, from, today)];
 }
 
 /// What the tasks list shows of [task] as of [today], looking back to

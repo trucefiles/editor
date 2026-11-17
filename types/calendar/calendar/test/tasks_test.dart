@@ -1,6 +1,8 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
+import 'task_lists.dart';
+
 final _at = DateTime.utc(2026, 11, 10, 12);
 
 /// A task file as Thunderbird writes it: a monthly task from a start to
@@ -171,7 +173,7 @@ void _shown() {
       [for (final date in shown) date.start],
       [DateTime(2026, 11), DateTime(2026, 11, 2), DateTime(2026, 11, 3)],
     );
-    final list = taskList({'home': daily}, DateTime(2026, 11, 2));
+    final list = taskListOf({'home': daily}, DateTime(2026, 11, 2));
     expect(list.noDate, isEmpty);
     expect(list.overdue.single.entry.date, AllDay(DateTime(2026, 11)));
   });
