@@ -27,8 +27,9 @@ final class CalendarClock extends ChangeNotifier {
     onCancel: _unlistened,
   );
 
-  /// The time at each whole minute, while listened to; after a sleep at
-  /// the next whole minute. One wake serves it and the day and zone.
+  /// The time at each whole minute, and as the app returns to the front,
+  /// while listened to; after a sleep at the next whole minute. One wake
+  /// serves it and the day and zone.
   Stream<DateTime> get minutes => _minutes.stream;
 
   /// The time now.

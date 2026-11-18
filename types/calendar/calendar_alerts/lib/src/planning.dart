@@ -26,12 +26,19 @@ PlanStep planStep(
     PlannerState(
       ring: ringsWhileClosed
           ? state.ring
-          // Nothing the ringer held is held any more; each calendar is
-          // read anew as the run first lists it.
-          : state.ring.copyWith(handed: const {}),
+          // Nothing the ringer held is held any more: each calendar is
+          // read anew, as its plan covers no day now.
+          : state.ring.copyWith(
+              handed: const {},
+              plans: {
+                for (final MapEntry(key: file, value: (:version, day: _, :zone))
+                    in state.ring.plans.entries)
+                  file: (version: version, day: null, zone: zone),
+              },
+            ),
       startedAt: now,
       missedSince: state.ring.lastAlive,
-      plannedAtStart: state.ring.versions.keys.toSet(),
+      plannedAtStart: state.ring.plans.keys.toSet(),
     ),
   ),
   final CalendarsListed listing => _listed(
@@ -77,23 +84,13 @@ PlanStep _listed(
   final ring = state.ring;
   // Planned from, not listed, but maybe still there.
   bool kept(FileKey file) => !calendars.containsKey(file) && !sees(file);
-  // On a ringer that forgot all at the start, a calendar not yet read in
-  // the run holds nothing.
-  bool forgotten(FileKey file) =>
-      !ringsWhileClosed && !state.missedChecked.contains(file);
   final read = {
     for (final MapEntry(key: file, value: (:version, :calendar))
         in calendars.entries)
       if (calendar != null &&
-          (ring.needsRead(file, version, now: now, zone: zone) ||
-              forgotten(file)))
+          ring.needsRead(file, version, now: now, zone: zone))
         file: calendar,
   };
-  // A plan that moves on to new days covers them only for the calendars
-  // it read: any other keeps no version, so it is read at the next
-  // listing.
-  final movesOn = ring.movesOn(now: now, zone: zone);
-  String? keptVersion(FileKey file) => movesOn ? null : ring.versions[file];
   final until = now.add(planAhead);
   // From when a calendar's alerts are handed: from the run's start for one
   // shown since then (what came meanwhile rings at once), else from now.
@@ -143,16 +140,17 @@ PlanStep _listed(
       ring: ring.copyWith(
         handed: handed,
         nextNumber: ring.nextNumber + numbers.length,
-        versions: {
-          for (final MapEntry(key: file, value: version)
-              in ring.versions.entries)
-            if (kept(file) && !movesOn) file: version,
+        // A calendar not read keeps what its plan covered: one that needed
+        // reading but came without is read at the next listing.
+        plans: {
+          for (final MapEntry(key: file, value: plan) in ring.plans.entries)
+            if (kept(file)) file: plan,
           for (final MapEntry(key: file, value: (:version, calendar: _))
               in calendars.entries)
-            file: ?(read.containsKey(file) ? version : keptVersion(file)),
+            file: ?(read.containsKey(file)
+                ? (version: version, day: dayOf(now), zone: zone)
+                : ring.plans[file]),
         },
-        plannedOn: dayOf(now),
-        zone: zone,
         // The run's missed alerts are told. On a ringer that rings on its
         // own, the alerts it held until now rang: once they are no longer
         // held, nothing until now was missed.

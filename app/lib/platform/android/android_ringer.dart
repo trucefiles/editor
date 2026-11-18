@@ -21,8 +21,8 @@ final class AndroidRinger implements Ringer {
     this._notifications,
     this._texts, {
     required this._style,
-    DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+    required this._now,
+  });
 
   final AlertNotifications _notifications;
   final DateTime Function() _now;

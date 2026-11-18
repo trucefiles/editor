@@ -134,7 +134,12 @@ final ringerProvider = Provider<Ringer>((ref) {
   TimeTexts texts() => ref.read(timeTextsProvider);
   if (Platform.isAndroid) {
     final style = followedSetting(ref, (s) => s.alertStyle);
-    return AndroidRinger(notifications, texts, style: () => style.value);
+    return AndroidRinger(
+      notifications,
+      texts,
+      style: () => style.value,
+      now: ref.watch(calendarClockProvider).now,
+    );
   }
   final ringer = LinuxRinger(
     LinuxNotices(notifications, texts),

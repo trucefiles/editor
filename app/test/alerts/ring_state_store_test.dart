@@ -16,14 +16,19 @@ void main() {
     final kept = RingState.none.copyWith(
       handed: {alert.id: (number: 1, alert: alert)},
       nextNumber: 2,
-      zone: 'Europe/Berlin',
+      plans: {
+        alert.file: (
+          version: '7',
+          day: DateTime(2026, 11, 17),
+          zone: 'Europe/Berlin',
+        ),
+      },
     );
 
     await RingStateStore.of(storage).save(kept);
     final read = await RingStateStore.of(storage).load();
 
-    expect(read.handed, kept.handed);
-    expect((read.nextNumber, read.zone), (2, 'Europe/Berlin'));
+    expect(read, kept);
   });
 
   test('nothing kept, or nothing readable, is no state', () async {

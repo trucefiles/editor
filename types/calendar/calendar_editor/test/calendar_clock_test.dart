@@ -8,7 +8,11 @@ void main() {
   testWidgets('tells each whole minute while listened to, and wakes for '
       'nothing after', (tester) async {
     var now = DateTime(2026, 11, 10, 9, 0, 30);
-    final clock = CalendarClock(() => now, deviceZone: () => 'CET');
+    var reads = 0;
+    final clock = CalendarClock(() {
+      reads++;
+      return now;
+    }, deviceZone: () => 'CET');
     final told = <DateTime>[];
     final minutes = clock.minutes.listen(told.add);
 
@@ -22,8 +26,10 @@ void main() {
     expect(told, [DateTime(2026, 11, 10, 9, 1), DateTime(2026, 11, 10, 9, 2)]);
 
     unawaited(minutes.cancel());
+    final readsBefore = reads;
     await pass(const Duration(minutes: 5));
     expect(told, hasLength(2));
+    expect(reads, readsBefore, reason: 'no wake after the last listener');
     clock.dispose();
   });
 

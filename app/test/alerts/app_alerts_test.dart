@@ -173,7 +173,7 @@ void main() {
     role.ask();
     await pumpEventQueue();
     expect(listings, 1);
-    expect(planner.state.ring.plannedOn, dayOf(now));
+    expect(planner.state.ring.plans[_work]?.day, dayOf(now));
   });
 
   test('handing again rings the planned alerts again', () async {

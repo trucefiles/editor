@@ -33,9 +33,8 @@ final class Started extends PlannerInput {
 /// any planned from that isn't here any more is silenced, unless the
 /// listing couldn't see where it is ([sees]). Each holds its calendar
 /// where it was read; one not read must be one the plan doesn't need to
-/// read anew ([RingState.needsRead]; on a ringer that rings only while
-/// the app runs, also one not yet given in the run). One that needed
-/// reading but came without is read at a later listing.
+/// read anew ([RingState.needsRead]). One that needed reading but came
+/// without is read at a later listing.
 final class CalendarsListed extends PlannerInput {
   CalendarsListed({
     required this.now,

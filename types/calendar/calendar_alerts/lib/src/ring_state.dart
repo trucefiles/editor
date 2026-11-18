@@ -8,17 +8,19 @@ import 'planned_alert.dart';
 /// by.
 typedef Handed = ({int number, PlannedAlert alert});
 
+/// What a calendar's plan covers: its [version] (as text) read, the
+/// next days from [day] (midnight on this device's clock; `null`: none,
+/// it must be read again), in this device's time [zone].
+typedef CalendarPlan = ({String version, DateTime? day, String zone});
+
 /// What the planner keeps on this device between runs (in app storage,
-/// never synced): the alerts handed to the ringer, the version of each
-/// calendar they were planned from, the day and time zone they were
-/// planned in, and when the app last could ring.
+/// never synced): the alerts handed to the ringer, what the plan of each
+/// calendar they came from covers, and when the app last could ring.
 final class RingState {
   const RingState({
     this.handed = const {},
     this.nextNumber = 1,
-    this.versions = const {},
-    this.plannedOn,
-    this.zone,
+    this.plans = const {},
     this.lastAlive,
   });
 
@@ -33,49 +35,32 @@ final class RingState {
   /// notification that rang never stands for another alert.
   final int nextNumber;
 
-  /// Each calendar planned from, with the version (as text) it was
-  /// planned from.
-  final Map<FileKey, String> versions;
-
-  /// The day the alerts were planned for the next days, at midnight on
-  /// this device's clock; `null` if never.
-  final DateTime? plannedOn;
-
-  /// This device's time zone then.
-  final String? zone;
+  /// Each calendar planned from, with what its plan covers.
+  final Map<FileKey, CalendarPlan> plans;
 
   /// When something last could ring alerts here: alerts after it that
   /// weren't handed to a ringer that rings on its own were missed.
   final DateTime? lastAlive;
 
   /// Whether the calendar [file], as listed at [version], must be read
-  /// for a plan at [now] in [zone]: it changed since, or the plan must
-  /// move on to a new day or zone.
+  /// for a plan at [now] in [zone]: its plan doesn't cover that version,
+  /// day and zone.
   bool needsRead(
     FileKey file,
     String version, {
     required DateTime now,
     required String zone,
-  }) => movesOn(now: now, zone: zone) || versions[file] != version;
-
-  /// Whether a plan at [now] in [zone] covers new days, or another zone:
-  /// every calendar is planned anew then.
-  bool movesOn({required DateTime now, required String zone}) =>
-      plannedOn != dayOf(now) || this.zone != zone;
+  }) => plans[file] != (version: version, day: dayOf(now), zone: zone);
 
   RingState copyWith({
     Map<String, Handed>? handed,
     int? nextNumber,
-    Map<FileKey, String>? versions,
-    DateTime? plannedOn,
-    String? zone,
+    Map<FileKey, CalendarPlan>? plans,
     DateTime? lastAlive,
   }) => RingState(
     handed: handed ?? this.handed,
     nextNumber: nextNumber ?? this.nextNumber,
-    versions: versions ?? this.versions,
-    plannedOn: plannedOn ?? this.plannedOn,
-    zone: zone ?? this.zone,
+    plans: plans ?? this.plans,
     lastAlive: lastAlive ?? this.lastAlive,
   );
 
@@ -86,18 +71,14 @@ final class RingState {
       other is RingState &&
       const MapEquality<String, Handed>().equals(other.handed, handed) &&
       other.nextNumber == nextNumber &&
-      const MapEquality<FileKey, String>().equals(other.versions, versions) &&
-      other.plannedOn == plannedOn &&
-      other.zone == zone &&
+      const MapEquality<FileKey, CalendarPlan>().equals(other.plans, plans) &&
       other.lastAlive == lastAlive;
 
   @override
   int get hashCode => Object.hash(
     const MapEquality<String, Handed>().hash(handed),
     nextNumber,
-    const MapEquality<FileKey, String>().hash(versions),
-    plannedOn,
-    zone,
+    const MapEquality<FileKey, CalendarPlan>().hash(plans),
     lastAlive,
   );
 
@@ -107,16 +88,17 @@ final class RingState {
         {'number': number, 'alert': alert.toJson()},
     ],
     'nextNumber': nextNumber,
-    'versions': [
-      for (final MapEntry(key: file, value: version) in versions.entries)
+    'plans': [
+      for (final MapEntry(key: file, value: (:version, :day, :zone))
+          in plans.entries)
         {
           'folder': [file.folder.plugin, file.folder.folder],
           'path': file.path.value,
           'version': version,
+          'day': day?.toIso8601String(),
+          'zone': zone,
         },
     ],
-    'plannedOn': plannedOn?.toIso8601String(),
-    'zone': zone,
     'lastAlive': lastAlive?.toUtc().toIso8601String(),
   };
 
@@ -139,23 +121,23 @@ final class RingState {
         // Past every number given, so none is given twice.
         _ => (handed.values.map((each) => each.number).maxOrNull ?? 0) + 1,
       },
-      versions: {
-        for (final entry in _list(fields['versions']))
+      plans: {
+        for (final entry in _list(fields['plans']))
           if (entry case {
             'folder': [final String plugin, final String folder],
             'path': final String path,
             'version': final String version,
+            'zone': final String zone,
           })
             if ((FolderId.parse(plugin, folder), RelPath.parse(path)) case (
               final folder?,
               final path?,
             ))
-              (folder: folder, path: path): version,
-      },
-      plannedOn: _timeOf(fields['plannedOn']),
-      zone: switch (fields['zone']) {
-        final String zone => zone,
-        _ => null,
+              (folder: folder, path: path): (
+                version: version,
+                day: _timeOf(entry['day']),
+                zone: zone,
+              ),
       },
       lastAlive: _timeOf(fields['lastAlive'])?.toLocal(),
     );

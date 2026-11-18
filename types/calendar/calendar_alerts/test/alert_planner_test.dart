@@ -268,7 +268,7 @@ void main() {
     });
     await list({});
     expect(ringer.ringing, isEmpty);
-    expect(planner.state.ring.versions, isEmpty);
+    expect(planner.state.ring.plans, isEmpty);
   });
 
   test("a calendar the listing couldn't see keeps its alerts", () async {
@@ -279,7 +279,7 @@ void main() {
     // Its folder couldn't be listed this time.
     await list({}, sees: (file) => file != _work);
     expect(ringer.titles, ['meeting']);
-    expect(planner.state.ring.versions.keys, [_work]);
+    expect(planner.state.ring.plans.keys, [_work]);
   });
 
   test('only the nearest are planned', () async {
@@ -471,6 +471,33 @@ void main() {
       expect(ringer.titles, ['after the start']);
     });
 
+    test('a calendar whose folder was unreadable on a new day still counts '
+        'as planned at the next start', () async {
+      ringer = _Ringer(ringsWhileClosed: false);
+      planner = AlertPlanner(ringer: ringer, store: store);
+      await start();
+      await list({_work: _calendar({})});
+      await planner.handle((ticket) => Stopping(now: _monday, ticket: ticket));
+      await planner.close();
+      // The next day its folder can't be read.
+      final tuesday = _monday.add(const Duration(days: 1));
+      planner = AlertPlanner(ringer: ringer, store: store);
+      await start(now: tuesday);
+      await list({}, now: tuesday, sees: (file) => file != _work);
+      await planner.close();
+      // Restarted; the folder lists late.
+      planner = AlertPlanner(ringer: ringer, store: store);
+      final started = tuesday.add(const Duration(hours: 2));
+      await start(now: started);
+      await list({}, now: started, sees: (file) => file != _work);
+      await list({
+        _work: _calendar({
+          'after the start': started.add(const Duration(minutes: 20)),
+        }),
+      }, now: started.add(const Duration(minutes: 20)));
+      expect(ringer.titles, ['after the start']);
+    });
+
     test('a run ended before any listing still leaves the missed ones '
         'for the next', () async {
       ringer = _Ringer(ringsWhileClosed: false);
@@ -564,10 +591,9 @@ void main() {
     final kept = planner.state.ring;
     final read = RingState.fromJson(kept.toJson());
     expect(read.handed, kept.handed);
-    expect(read.versions, kept.versions);
+    expect(read.plans, kept.plans);
     expect(read.nextNumber, kept.nextNumber);
-    expect(read.plannedOn, kept.plannedOn);
-    expect(read.zone, kept.zone);
     expect(read.lastAlive, kept.lastAlive);
+    expect(read, kept);
   });
 }
