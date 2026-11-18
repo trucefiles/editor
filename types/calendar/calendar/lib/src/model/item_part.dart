@@ -136,7 +136,7 @@ final class EventPart extends ItemPart {
   late final CalendarTime? end = _end();
 
   @override
-  late final List<Duration> alerts = _alertsOf(component, fromEnd: false);
+  late final List<Duration> alerts = _alertsOf(alarms, fromEnd: false);
 
   /// The health entry it is; `null` if it is none.
   late final HealthEntry? health = HealthEntry.of(component);
@@ -192,7 +192,7 @@ final class TaskPart extends ItemPart {
   };
 
   @override
-  late final List<Duration> alerts = _alertsOf(component, fromEnd: true);
+  late final List<Duration> alerts = _alertsOf(alarms, fromEnd: true);
 
   /// Whether it is done: by its status; without one, by when it was
   /// done.
@@ -218,8 +218,8 @@ CalendarTime? _after(CalendarTime start, Component component) =>
       null => null,
     };
 
-List<Duration> _alertsOf(Component component, {required bool fromEnd}) => [
-  for (final alarm in component.children) ?alertBefore(alarm, fromEnd: fromEnd),
+List<Duration> _alertsOf(List<Alarm> alarms, {required bool fromEnd}) => [
+  for (final alarm in alarms) ?alertBefore(alarm, fromEnd: fromEnd),
 ];
 
 /// How long before its item's start (or, [fromEnd], its end or due time)
@@ -227,13 +227,12 @@ List<Duration> _alertsOf(Component component, {required bool fromEnd}) => [
 /// at a time from there. Other alarms (a fixed time, from the other end,
 /// a sound or a mail) are kept in the file but not listed; `null` for
 /// them.
-Duration? alertBefore(Component alarm, {required bool fromEnd}) =>
-    switch (Alarm.of(alarm)) {
-      RelativeAlarm(:final offset, fromEnd: final end, shows: true)
-          when end == fromEnd =>
-        -offset,
-      _ => null,
-    };
+Duration? alertBefore(Alarm? alarm, {required bool fromEnd}) => switch (alarm) {
+  RelativeAlarm(:final offset, fromEnd: final end, shows: true)
+      when end == fromEnd =>
+    -offset,
+  _ => null,
+};
 
 /// The `TRIGGER` line of an alert [before] its item's start (or,
 /// [fromEnd], its due time), as the form writes it.

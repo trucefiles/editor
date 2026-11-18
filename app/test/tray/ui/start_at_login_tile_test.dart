@@ -95,22 +95,34 @@ void main() {
     expect(settings(tester).startAtLogin, isFalse);
   });
 
-  testWidgets('nothing where the app has no tray', (tester) async {
-    await tester.runAsync(
-      () => tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
-            loadedDeviceSettingsProvider.overrideWithValue(
-              DeviceSettings.standard,
-            ),
-            systemTrayProvider.overrideWithValue(null),
-            loginStartProvider.overrideWithValue(_LoginStart()),
-          ],
-          child: const MaterialApp(home: Scaffold(body: StartAtLoginTile())),
-        ),
+  Future<void> showWith(
+    WidgetTester tester, {
+    required LoginStart? loginStart,
+    required bool tray,
+  }) => tester.runAsync(
+    () => tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+          loadedDeviceSettingsProvider.overrideWithValue(
+            DeviceSettings.standard,
+          ),
+          systemTrayProvider.overrideWithValue(tray ? FakeTray() : null),
+          loginStartProvider.overrideWithValue(loginStart),
+        ],
+        child: const MaterialApp(home: Scaffold(body: StartAtLoginTile())),
       ),
-    );
+    ),
+  );
+
+  testWidgets('offered without a tray too: the app then opens its window '
+      'at login', (tester) async {
+    await showWith(tester, loginStart: _LoginStart(), tray: false);
+    expect(find.text('Start at login'), findsOneWidget);
+  });
+
+  testWidgets("nothing where the desktop can't start the app", (tester) async {
+    await showWith(tester, loginStart: null, tray: true);
     expect(find.text('Start at login'), findsNothing);
   });
 }

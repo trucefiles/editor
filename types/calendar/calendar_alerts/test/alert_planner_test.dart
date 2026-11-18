@@ -19,17 +19,25 @@ final class _Ringer implements Ringer {
   final told = <List<RingChange>>[];
   final missed = <PlannedAlert>[];
 
+  /// The titles of the alerts it refuses, as a system may.
+  final refuses = <String>{};
+
   @override
-  Future<void> apply(List<RingChange> changes) async {
+  Future<Set<int>> apply(List<RingChange> changes) async {
     told.add(changes);
+    final refused = <int>{};
     for (final change in changes) {
       switch (change) {
+        case Ring(:final number, :final alert)
+            when refuses.contains(alert.title):
+          refused.add(number);
         case Ring(:final number, :final alert):
           ringing[number] = alert;
         case Silence(:final number):
           ringing.remove(number);
       }
     }
+    return refused;
   }
 
   @override
@@ -260,6 +268,28 @@ void main() {
     expect(store.saves, saves + 1);
     expect(planner.state.ring.lastAlive, _monday.add(const Duration(hours: 4)));
   });
+
+  test(
+    'an alert the system refused is tried again at the next listing',
+    () async {
+      await start();
+      final work = _calendar({
+        'meeting': _monday.add(const Duration(hours: 3)),
+        'review': _monday.add(const Duration(hours: 5)),
+      });
+      ringer.refuses.add('meeting');
+      await list({_work: work});
+      expect(ringer.titles, ['review']);
+      expect(
+        [for (final alert in planner.state.planned) alert.title],
+        ['review'],
+      );
+
+      ringer.refuses.clear();
+      await list({_work: work}, now: _monday.add(const Duration(minutes: 5)));
+      expect(ringer.titles, ['meeting', 'review']);
+    },
+  );
 
   test('a calendar no longer listed is silenced', () async {
     await start();

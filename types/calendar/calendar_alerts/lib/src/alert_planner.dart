@@ -58,12 +58,14 @@ final class AlertPlanner implements Owner<PlannerInput, PlannerState, Handled> {
     final (ringer, store) = (_ringer, _store);
     final state = _loaded ? out.state : PlannerState(ring: await store.load());
     _loaded = true;
-    final (state: next, :changes, :missed) = planStep(
+    final (state: planned, :changes, :missed) = planStep(
       state,
       input,
       ringsWhileClosed: ringer.ringsWhileClosed,
     );
-    if (changes.isNotEmpty) await ringer.apply(changes);
+    final next = changes.isEmpty
+        ? planned
+        : withoutRefused(planned, await ringer.apply(changes));
     if (missed.isNotEmpty) await ringer.showMissed(missed);
     // Kept once rung: a state that says more than the ringer holds would
     // count an alert as rung that never was. Only a change is written.

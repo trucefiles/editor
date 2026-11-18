@@ -42,6 +42,9 @@ final class AppAlerts {
   /// Whether it holds the role, and so plans.
   var _holds = false;
   var _ended = false;
+
+  /// Whether the alerts are to be handed again once it holds the role.
+  var _handAgainPending = false;
   ShownCalendars? _shown;
 
   /// Waits for the role, then starts the planner and plans.
@@ -51,6 +54,10 @@ final class AppAlerts {
     if (_ended) return _role.release();
     _holds = true;
     _planner.send(Started(now: _clock.now()));
+    if (_handAgainPending) {
+      _handAgainPending = false;
+      handAgain();
+    }
     _plan();
   }
 
@@ -61,21 +68,35 @@ final class AppAlerts {
   }
 
   /// Hands every planned alert to the ringer again, e.g. as the way
-  /// alerts ring changed.
+  /// alerts ring changed; while another part plans, once it holds the
+  /// role.
   void handAgain() {
-    if (_holds) _planner.send(HandAgain(now: _clock.now()));
+    if (_holds) {
+      _planner.send(HandAgain(now: _clock.now()));
+    } else {
+      _handAgainPending = true;
+    }
+  }
+
+  /// The app may end now: completes once the planner kept that alerts up
+  /// to now weren't missed. It goes on planning if the app goes on.
+  Future<void> stopping() async {
+    if (_holds) await _keepStop();
   }
 
   /// Stops planning for this run: alerts up to now weren't missed, and,
   /// once the planner kept that, the role is free for the background
   /// check.
   Future<void> stop() async {
-    if (_holds) {
-      _holds = false;
-      final now = _clock.now();
-      await _planner.handle((ticket) => Stopping(now: now, ticket: ticket));
-    }
+    final held = _holds;
+    _holds = false;
+    if (held) await _keepStop();
     _role.release();
+  }
+
+  Future<void> _keepStop() {
+    final now = _clock.now();
+    return _planner.handle((ticket) => Stopping(now: now, ticket: ticket));
   }
 
   void dispose() {

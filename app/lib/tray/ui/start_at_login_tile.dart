@@ -6,7 +6,7 @@ import '../../settings/device_settings_controller.dart';
 import '../start_at_login.dart';
 
 /// Settings row that starts the app at login, so calendar alerts ring
-/// from then on. Nothing where the app has no tray.
+/// from then on. Nothing where the desktop can't start the app.
 class StartAtLoginTile extends ConsumerWidget {
   const StartAtLoginTile({super.key});
 

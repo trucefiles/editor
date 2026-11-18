@@ -13,8 +13,9 @@ abstract interface class Ringer {
   Stream<DateTime> get rang;
 
   /// Rings the alerts [changes] add at their time, and no longer those
-  /// they take back, in order.
-  Future<void> apply(List<RingChange> changes);
+  /// they take back, in order; the numbers of the alerts it couldn't take
+  /// (the system refused them), none if it took all.
+  Future<Set<int>> apply(List<RingChange> changes);
 
   /// Tells, quietly, the alerts [missed] while nothing could ring them.
   Future<void> showMissed(List<PlannedAlert> missed);

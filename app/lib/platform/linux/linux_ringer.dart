@@ -29,7 +29,7 @@ final class LinuxRinger implements Ringer {
   Stream<DateTime> get rang => _rang.stream;
 
   @override
-  Future<void> apply(List<RingChange> changes) async {
+  Future<Set<int>> apply(List<RingChange> changes) async {
     for (final change in changes) {
       switch (change) {
         case Ring(:final number, :final alert):
@@ -38,6 +38,8 @@ final class LinuxRinger implements Ringer {
           _held.remove(number);
       }
     }
+    // Held in memory: nothing is refused.
+    return const {};
   }
 
   @override

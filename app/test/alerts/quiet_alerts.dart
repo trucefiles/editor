@@ -28,7 +28,7 @@ final class QuietRinger implements Ringer {
   Stream<DateTime> get rang => const Stream.empty();
 
   @override
-  Future<void> apply(List<RingChange> changes) async {
+  Future<Set<int>> apply(List<RingChange> changes) async {
     for (final change in changes) {
       switch (change) {
         case Ring(:final number, :final alert):
@@ -37,6 +37,7 @@ final class QuietRinger implements Ringer {
           ringing.remove(number);
       }
     }
+    return const {};
   }
 
   @override

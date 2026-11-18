@@ -59,6 +59,31 @@ PlanStep planStep(
   ),
 };
 
+/// [state] without the alerts numbered [refused], which the ringer
+/// couldn't take: they don't count as handed, and their calendars' plans
+/// are dropped, so the next listing tries them again (and one whose time
+/// passes meanwhile counts as missed).
+PlannerState withoutRefused(PlannerState state, Set<int> refused) {
+  if (refused.isEmpty) return state;
+  final ring = state.ring;
+  final dropped = {
+    for (final (:number, :alert) in ring.handed.values)
+      if (refused.contains(number)) alert.file,
+  };
+  return state.withRing(
+    ring.copyWith(
+      handed: {
+        for (final MapEntry(key: id, value: handed) in ring.handed.entries)
+          if (!refused.contains(handed.number)) id: handed,
+      },
+      plans: {
+        for (final MapEntry(key: file, value: plan) in ring.plans.entries)
+          if (!dropped.contains(file)) file: plan,
+      },
+    ),
+  );
+}
+
 /// The later of [ring]'s last alive and [time].
 DateTime _later(RingState ring, DateTime time) => switch (ring.lastAlive) {
   final last? when last.isAfter(time) => last,

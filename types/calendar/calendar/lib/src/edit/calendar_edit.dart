@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import '../alerts/alarm.dart';
 import '../model/calendar.dart';
 import '../model/calendar_item.dart';
 import '../model/calendar_time.dart';
@@ -537,7 +538,7 @@ Component _withAlerts(Component item, ItemDraft draft) {
   final fromEnd = draft is TaskDraft;
   return item.withChildren([
     for (final child in item.children)
-      if (alertBefore(child, fromEnd: fromEnd) == null) child,
+      if (alertBefore(Alarm.of(child), fromEnd: fromEnd) == null) child,
     for (final before in draft.alerts)
       Component('VALARM', [
         const ContentLine('ACTION', 'DISPLAY'),

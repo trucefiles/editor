@@ -33,9 +33,10 @@ final alertPlannerProvider = Provider<AlertPlanner>((ref) {
 /// The app's alerts, from its start on, fed the calendars shown in the
 /// Calendar tab and the alert style; they stop as the app's engine
 /// detaches (Android may end it with the process still running, and the
-/// background check mustn't wait). Also schedules the background check
-/// where there is one.
-final alertsProvider = Provider<void>((ref) {
+/// background check mustn't wait). The app's end keeps their stop before
+/// quitting (`appEndProvider`). Also schedules the background check where
+/// there is one.
+final alertsProvider = Provider<AppAlerts>((ref) {
   final alerts = AppAlerts(
     planner: ref.watch(alertPlannerProvider),
     clock: ref.watch(calendarClockProvider),
@@ -59,6 +60,7 @@ final alertsProvider = Provider<void>((ref) {
   if (ref.read(alertCheckScheduleProvider) case final schedule?) {
     unawaited(schedule());
   }
+  return alerts;
 });
 
 /// The calendars of [tab] the alerts plan from: the shown ones, as read

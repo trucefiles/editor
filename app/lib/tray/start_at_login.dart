@@ -23,11 +23,10 @@ final class StartAtLogin {
   }
 }
 
-/// Starting the app at login; `null` where the app has no tray or the
-/// desktop can't start it.
+/// Starting the app at login; `null` where the desktop can't start it.
 final startAtLoginProvider = Provider<StartAtLogin?>((ref) {
   final desktop = ref.watch(loginStartProvider);
-  if (desktop == null || ref.watch(systemTrayProvider) == null) return null;
+  if (desktop == null) return null;
   return StartAtLogin(
     desktop: desktop,
     keep: ({required start}) => ref

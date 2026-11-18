@@ -188,4 +188,51 @@ void main() {
     await pumpEventQueue();
     expect(ringer.ringing, hasLength(1));
   });
+
+  test("the app may end: the planner keeps that alerts until now weren't "
+      'missed, and it goes on planning', () async {
+    final role = _HeldRole()..free.complete();
+    final alerts = alertsWith(role);
+    addTearDown(alerts.dispose);
+    await alerts.start();
+    alerts.show(shown);
+    await pumpEventQueue();
+    now = start.add(const Duration(hours: 1));
+
+    await alerts.stopping();
+    expect(store.kept.lastAlive, start.add(const Duration(hours: 1)));
+    expect(role.released, 0);
+
+    ringer.ringing.clear();
+    alerts.handAgain();
+    await pumpEventQueue();
+    expect(ringer.ringing, hasLength(1), reason: 'it still plans');
+  });
+
+  test('a hand again asked while another part plans is sent once it holds '
+      'the role', () async {
+    final role = _HeldRole();
+    final alerts = alertsWith(role);
+    addTearDown(alerts.dispose);
+    final started = alerts.start();
+    alerts.show(shown);
+    // The background check planned this alert before.
+    await planner.handle((ticket) => Started(now: start, ticket: ticket));
+    await planner.handle(
+      (ticket) => CalendarsListed(
+        now: start,
+        zone: 'UTC',
+        calendars: shown.calendars,
+        sees: shown.sees,
+        ticket: ticket,
+      ),
+    );
+    ringer.ringing.clear();
+
+    alerts.handAgain();
+    role.free.complete();
+    await started;
+    await pumpEventQueue();
+    expect(ringer.ringing, hasLength(1));
+  });
 }

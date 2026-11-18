@@ -38,17 +38,18 @@ final class AndroidRinger implements Ringer {
   Stream<DateTime> get rang => const Stream.empty();
 
   @override
-  Future<void> apply(List<RingChange> changes) async {
+  Future<Set<int>> apply(List<RingChange> changes) async {
     await _notifications.ready;
     final shown = switch (_style()) {
       AlertStyle.notification => AlertShown.notification,
       AlertStyle.alarm => AlertShown.alarm,
     };
     final exact = await mayRingExactly(_notifications.plugin);
+    final refused = <int>{};
     for (final change in changes) {
       switch (change) {
         case Ring(:final number, :final alert):
-          await orSkip(
+          final taken = await orSkip(
             'hand alert $number to the system',
             () => scheduleAlert(
               _notifications.plugin,
@@ -59,6 +60,7 @@ final class AndroidRinger implements Ringer {
               exact: exact,
             ),
           );
+          if (!taken) refused.add(number);
         case Silence(:final number):
           await orSkip(
             'take alert $number back',
@@ -66,6 +68,7 @@ final class AndroidRinger implements Ringer {
           );
       }
     }
+    return refused;
   }
 
   @override
