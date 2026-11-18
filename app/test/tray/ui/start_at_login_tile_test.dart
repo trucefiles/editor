@@ -66,22 +66,19 @@ void main() {
         ),
       );
 
-  testWidgets('turned on, it starts the app at login and keeps it in the '
-      'tray on close', (tester) async {
+  testWidgets('turned on, it starts the app at login and leaves the tray '
+      'setting as it is', (tester) async {
     final loginStart = _LoginStart();
     await show(tester, loginStart);
+    final closeToTray = settings(tester).closeToTray;
 
-    await tester.tap(find.text('Start in tray at login'));
-    await settle(
-      tester,
-      until: () =>
-          settings(tester).startAtLogin && settings(tester).closeToTray,
-    );
+    await tester.tap(find.text('Start at login'));
+    await settle(tester, until: () => settings(tester).startAtLogin);
 
     expect(loginStart.asked, [true]);
     expect(
       (settings(tester).startAtLogin, settings(tester).closeToTray),
-      (true, true),
+      (true, closeToTray),
     );
   });
 
@@ -91,7 +88,7 @@ void main() {
     final loginStart = _LoginStart()..agrees = false;
     await show(tester, loginStart);
 
-    await tester.tap(find.text('Start in tray at login'));
+    await tester.tap(find.text('Start at login'));
     await tester.pumpAndSettle();
 
     expect(find.text("The desktop didn't allow it."), findsOneWidget);
@@ -114,6 +111,6 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Start in tray at login'), findsNothing);
+    expect(find.text('Start at login'), findsNothing);
   });
 }

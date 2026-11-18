@@ -97,7 +97,7 @@ Alerts ring for the calendars shown in the Calendars tab, whoever set
 them. On Android they ring even with the app closed, as a notification
 or, if you pick **Alarm** in Settings, full screen until you dismiss or
 snooze them. On Linux they ring while the app runs, in a window or the
-tray; **Start in tray at login** keeps it running. An alert that came
+tray; **Start at login** with **Keep running in tray** keeps it running. An alert that came
 while nothing could ring it shows once, quietly, while its event lasts.
 Tap an alert to open its event or task.
 
@@ -117,7 +117,7 @@ Tap an alert to open its event or task.
 <img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
 <img src="screenshots/calendar/calendar_event_links_touch.png" width="300" alt="An event's sheet: its place and the links in its notes underlined, to open with a tap">
 <img src="screenshots/calendar/calendar_alarm_touch.png" width="300" alt="An alert ringing as an alarm on a phone: its title and time, with Dismiss, Snooze 10 min and Open">
-<img src="screenshots/calendar/calendar_alert_settings_desktop.png" width="600" alt="Settings on Linux: Start in tray at login, as alerts ring only while the app runs">
+<img src="screenshots/calendar/calendar_alert_settings_desktop.png" width="600" alt="Settings on Linux: Start at login, as alerts ring only while the app runs">
 <img src="screenshots/calendar/calendar_alert_style_touch.png" width="300" alt="Settings on a phone: calendar alerts ring as a notification or an alarm">
 
 ## Home, All and search

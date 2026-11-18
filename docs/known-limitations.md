@@ -98,13 +98,14 @@ Accepted behavior that is not planned to change, grouped by topic.
   document, a new calendar gets its file only once you add something to
   it. Leave it with neither and it is gone.
 - **On Linux, alerts ring only while Truce runs.** In a window or in the
-  tray. Turn on "Start in tray at login" so it runs from the start.
-- **On Android, an alert added on another device rings after a while.**
-  It rings once Truce next checks in the background (about every 6
-  hours, longer when the phone saves battery) or once you open Truce.
-- **Alerts from other devices arrive within 15 minutes in the
-  background.** While Truce is in the tray (Linux) or in the background
-  (Android), it looks for changed calendars every 15 minutes.
+  tray. Turn on "Start at login" and "Keep running in tray" so it runs
+  from the start and keeps running when you close the window.
+- **Alerts from other devices can take a while to arrive.** An open
+  Truce notices a changed calendar soon. Hidden in the tray or in the
+  background, it looks every 15 minutes. With Truce closed on Android, it
+  looks about every 2 hours, and later when the phone saves battery. Until
+  then, an alert added on another device doesn't ring here, and if its
+  time passes meanwhile it shows as missed.
 - **An alert edited in an open calendar rings once the calendar is
   saved.**
 - **Dismissing an alert on one device doesn't dismiss it on others.**

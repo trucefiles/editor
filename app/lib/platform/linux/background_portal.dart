@@ -5,8 +5,7 @@ import 'package:dbus/dbus.dart';
 import '../../tray/login_start.dart';
 import '../../tray/start_in_background.dart';
 
-/// Starts the app in the tray at login through the desktop's Background
-/// portal (`org.freedesktop.portal.Background`), which works inside the
+/// Starts the app at login through the desktop's Background portal (`org.freedesktop.portal.Background`), which works inside the
 /// Flatpak sandbox without access to the host: the desktop writes the
 /// autostart entry, which starts the app with [backgroundFlag].
 final class BackgroundPortal implements LoginStart {
@@ -44,7 +43,7 @@ final class BackgroundPortal implements LoginStart {
         DBusDict.stringVariant({
           'handle_token': DBusString(token),
           'reason': const DBusString(
-            'Calendar alerts ring while the app runs in the tray.',
+            'Starts at login, so calendar alerts can ring.',
           ),
           'autostart': DBusBoolean(start),
           'commandline': DBusArray.string(['truce_editor', backgroundFlag]),

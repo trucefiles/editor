@@ -5,8 +5,8 @@ import '../../common/snack.dart';
 import '../../settings/device_settings_controller.dart';
 import '../start_at_login.dart';
 
-/// Settings row that starts the app in the tray at login, so calendar
-/// alerts ring from then on. Nothing where the app has no tray.
+/// Settings row that starts the app at login, so calendar alerts ring
+/// from then on. Nothing where the app has no tray.
 class StartAtLoginTile extends ConsumerWidget {
   const StartAtLoginTile({super.key});
 
@@ -18,8 +18,11 @@ class StartAtLoginTile extends ConsumerWidget {
       deviceSettingsProvider.select((s) => s.requireValue.startAtLogin),
     );
     return SwitchListTile(
-      title: const Text('Start in tray at login'),
-      subtitle: const Text('Calendar alerts ring only while the app runs.'),
+      title: const Text('Start at login'),
+      subtitle: const Text(
+        'Opens in the tray if it keeps running there. '
+        'Calendar alerts ring only while the app runs.',
+      ),
       value: start,
       onChanged: (start) async {
         if (!await startAtLogin.set(start: start) && context.mounted) {

@@ -6,16 +6,20 @@ import '../../storage/app_start.dart';
 
 const _check = 'io.github.trucefiles.editor.alert_check';
 
+/// How often the background check runs, about.
+const alertCheckEvery = Duration(hours: 2);
+
 /// Asks the system to run the alerts' background check ([alertCheckOf])
-/// about every 6 hours, with the app closed too (the system batches it
-/// with other work); kept as it is if already asked.
+/// about every [alertCheckEvery], with the app closed too (the system
+/// batches it with other work, and may run it later to save battery); a
+/// check asked before takes the new interval.
 Future<void> scheduleAlertCheck() async {
   await Workmanager().initialize(runAlertCheck);
   await Workmanager().registerPeriodicTask(
     _check,
     _check,
-    frequency: const Duration(hours: 6),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    frequency: alertCheckEvery,
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
   );
 }
 
