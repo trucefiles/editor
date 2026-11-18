@@ -14,31 +14,36 @@ final class StartAdding extends CalendarStart {
   const StartAdding();
 }
 
-/// Edit the occurrence of event [uid] at [recurrence] (`null`: an event
-/// that doesn't repeat) that starts at [start], on this device's clock.
+/// Edit the occurrence of event [uid] at its date [recurrence] (`null`:
+/// an event that doesn't repeat) that starts at [start], both on this
+/// device's clock.
 final class EditOccurrence extends CalendarStart {
   const EditOccurrence(this.uid, this.recurrence, {required this.start});
 
   /// [occurrence]'s edit.
   EditOccurrence.of(EventOccurrence occurrence)
-    : this(occurrence.item.uid, occurrence.recurrence, start: occurrence.start);
+    : this(
+        occurrence.item.uid,
+        occurrence.recurrence?.local,
+        start: occurrence.start,
+      );
 
   final String uid;
-  final CalendarTime? recurrence;
+  final DateTime? recurrence;
   final DateTime start;
 }
 
 /// Edit the task [uid], or its date [date] (`null`: a task that doesn't
-/// repeat) due at [due] on this device's clock (`null`: never).
+/// repeat) due at [due] (`null`: never), both on this device's clock.
 final class EditTask extends CalendarStart {
   const EditTask(this.uid, this.date, {required this.due});
 
   /// [entry]'s edit.
   EditTask.of(TaskEntry entry)
-    : this(entry.task.uid, entry.date, due: entry.due);
+    : this(entry.task.uid, entry.date?.local, due: entry.due);
 
   final String uid;
-  final CalendarTime? date;
+  final DateTime? date;
   final DateTime? due;
 }
 

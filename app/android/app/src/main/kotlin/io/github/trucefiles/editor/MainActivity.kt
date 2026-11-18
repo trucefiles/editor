@@ -8,10 +8,23 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-/** Hosts the app and answers the Dart side's storage access questions. */
+/**
+ * Hosts the app, answers the Dart side's storage access questions, and
+ * shows the app over the lock screen while an alarm shows.
+ */
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ALARM_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "showOverLock" -> {
+                        showOverLock(call.arguments as Boolean)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -35,7 +48,17 @@ class MainActivity : FlutterActivity() {
         )
     }
 
+    /**
+     * Shows the app over the lock screen and turns the screen on, or no
+     * longer: only while an alarm shows, so notes never show there.
+     */
+    private fun showOverLock(show: Boolean) {
+        setShowWhenLocked(show)
+        setTurnScreenOn(show)
+    }
+
     private companion object {
         const val STORAGE_CHANNEL = "io.github.trucefiles.editor/storage_access"
+        const val ALARM_CHANNEL = "io.github.trucefiles.editor/alarm_window"
     }
 }

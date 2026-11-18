@@ -1,19 +1,38 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_calendar_alerts/truce_calendar_alerts.dart';
 import 'package:truce_core/truce_core.dart';
 
+import '../alerts/alarm_controls.dart';
+import '../alerts/alert_permissions.dart';
+import '../alerts/alert_tap.dart';
+import '../alerts/planner_role.dart';
 import '../app_end/app_end_source.dart';
+import '../calendar_tab/calendar_clock.dart';
+import '../common/time_texts.dart';
+import '../settings/followed_setting.dart';
 import '../tray/app_window.dart';
 import '../tray/hosted_tray.dart';
+import '../tray/login_start.dart';
 import '../tray/native_tray_icon.dart';
 import '../tray/system_tray.dart';
+import 'alert_notifications.dart';
+import 'android/alert_buttons.dart';
+import 'android/alert_check_job.dart';
+import 'android/android_alarm_controls.dart';
+import 'android/android_alert_permissions.dart';
+import 'android/android_ringer.dart';
 import 'android/android_storage_access.dart';
+import 'android/isolate_planner_role.dart';
 import 'device_zone.dart';
+import 'linux/background_portal.dart';
+import 'linux/desktop_notices.dart';
 import 'linux/document_portal.dart';
 import 'linux/document_portal_paths.dart';
 import 'linux/gtk_app_window.dart';
 import 'linux/gtk_session_end.dart';
+import 'linux/linux_ringer.dart';
 import 'linux/linux_zone.dart';
 import 'linux/status_notifier_host.dart';
 import 'stop_signal.dart';
@@ -89,4 +108,81 @@ final appWindowProvider = Provider<AppWindow>(
 /// Android hides the app before it ends it, which keeps the edits.
 final appEndSourcesProvider = Provider<List<AppEndSource>>(
   (ref) => Platform.isLinux ? const [GtkSessionEnd(), StopSignal()] : const [],
+);
+
+/// The system's notifications, for calendar alerts; one for the app.
+final alertNotificationsProvider = Provider<AlertNotifications>((ref) {
+  final notifications = AlertNotifications(
+    inBackground: Platform.isAndroid ? onAlertButton : null,
+  );
+  ref.onDispose(notifications.dispose);
+  return notifications;
+});
+
+/// The calendar alerts the user taps.
+final alertTapsProvider = Provider<AlertTaps>(
+  (ref) => ref.watch(alertNotificationsProvider),
+);
+
+/// What rings calendar alerts here: on Android the system's scheduled
+/// notifications, in the device's alert style; on Linux the calendars'
+/// clock while the app runs.
+final ringerProvider = Provider<Ringer>((ref) {
+  final notifications = ref.watch(alertNotificationsProvider);
+  // Read when shown: a new locale doesn't make a new ringer, which would
+  // start the alerts anew.
+  TimeTexts texts() => ref.read(timeTextsProvider);
+  if (Platform.isAndroid) {
+    final style = followedSetting(ref, (s) => s.alertStyle);
+    return AndroidRinger(
+      notifications,
+      texts,
+      style: () => style.value,
+      now: ref.watch(calendarClockProvider).now,
+    );
+  }
+  final ringer = LinuxRinger(
+    LinuxNotices(notifications, texts),
+    minutes: ref.watch(calendarClockProvider).minutes,
+  );
+  ref.onDispose(ringer.dispose);
+  return ringer;
+});
+
+/// Who plans the alerts: on Android the app and its background check
+/// take turns; elsewhere only the app plans.
+final plannerRoleProvider = Provider<PlannerRole>(
+  (ref) => Platform.isAndroid ? IsolatePlannerRole() : const SoleRole(),
+);
+
+/// What the system lets alerts do.
+final alertPermissionsProvider = Provider<AlertPermissions>(
+  (ref) => Platform.isAndroid
+      ? AndroidAlertPermissions(ref.watch(alertNotificationsProvider))
+      : const GrantedAlertPermissions(),
+);
+
+/// What the alarm screen does with its alarm; `null` where alerts never
+/// ring as alarms.
+final alarmControlsProvider = Provider<AlarmControls?>(
+  (ref) => Platform.isAndroid
+      ? AndroidAlarmControls(
+          ref.watch(alertNotificationsProvider),
+          ref.watch(timeTextsProvider),
+        )
+      : null,
+);
+
+/// Whether alerts can ring as a notification or as an alarm here.
+final choosesAlertStyleProvider = Provider<bool>((ref) => Platform.isAndroid);
+
+/// Starting in the tray at login; `null` where the app has no tray.
+final loginStartProvider = Provider<LoginStart?>(
+  (ref) => Platform.isLinux ? BackgroundPortal() : null,
+);
+
+/// Schedules the background check of alerts, where the system runs one
+/// with the app closed; `null` elsewhere.
+final alertCheckScheduleProvider = Provider<Future<void> Function()?>(
+  (ref) => Platform.isAndroid ? scheduleAlertCheck : null,
 );

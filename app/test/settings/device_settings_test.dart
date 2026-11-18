@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_editor/alerts/alert_style.dart';
 import 'package:truce_editor/calendar_tab/tab_view_setting.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
@@ -35,6 +36,8 @@ void main() {
     tabCalendarView: CalendarViewKind.week,
     placeAboveText: false,
     backupSpace: BackupSpace.noLimit,
+    alertStyle: AlertStyle.alarm,
+    startAtLogin: true,
   );
 
   group('value', () {

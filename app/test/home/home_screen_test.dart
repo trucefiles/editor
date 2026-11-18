@@ -26,6 +26,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' hide AddItem;
 import 'package:truce_plain_text/truce_plain_text.dart';
 
+import '../alerts/quiet_alerts.dart';
 import '../support.dart';
 
 /// Waits until [finder] finds a widget, for files read in real time;
@@ -67,6 +68,7 @@ void main() {
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
         linkOpenerProvider.overrideWithValue(links),
+        ...quietAlerts(),
       ],
       child: const TruceApp(),
     );

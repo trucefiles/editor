@@ -1,0 +1,17 @@
+name: truce_calendar_alerts
+description: When calendar alerts ring on this device, and which were missed. Pure Dart, no UI; the ringing itself is handed in from above.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  collection: ^1.19.1
+  truce_calendar: any
+  truce_core: any
+  truce_files: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any

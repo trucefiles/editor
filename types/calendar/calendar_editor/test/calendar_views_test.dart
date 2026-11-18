@@ -7,6 +7,8 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/src/views/stripes.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
+import 'page_harness.dart' show testClock;
+
 import 'views_title.dart';
 
 /// A calendar named [name] with [event] on 3 November 2026 from [hour]
@@ -37,7 +39,7 @@ void main() {
             colorOf: (_) => Colors.teal,
             kind: CalendarViewKind.day,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
             onTap: (calendar, occurrence) =>
                 tapped.add((calendar, occurrence.part.summary)),
           ),
@@ -85,7 +87,7 @@ void main() {
             colorOf: (_) => Colors.teal,
             kind: CalendarViewKind.week,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
             onMove: movable ? (_, _, _, _) {} : null,
           ),
         ),
@@ -136,7 +138,7 @@ void main() {
             colorOf: (_) => Colors.teal,
             kind: CalendarViewKind.schedule,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
           ),
         ),
       ),
@@ -170,7 +172,7 @@ void main() {
               colorOf: (_) => Colors.teal,
               kind: CalendarViewKind.month,
               onKind: (_) {},
-              now: () => DateTime(2026, 11, 3, 8),
+              clock: testClock(() => DateTime(2026, 11, 3, 8)),
             ),
           ),
         ),
@@ -210,7 +212,7 @@ void main() {
                   colorOf: (_) => Colors.teal,
                   kind: CalendarViewKind.month,
                   onKind: (_) {},
-                  now: () => DateTime(2026, 11, 3, 8),
+                  clock: testClock(() => DateTime(2026, 11, 3, 8)),
                 ),
               ),
             ),
@@ -260,7 +262,7 @@ void main() {
             colorOf: (_) => Colors.teal,
             kind: CalendarViewKind.month,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
           ),
         ),
       ),
@@ -347,7 +349,7 @@ void main() {
             colorOf: (_) => Colors.teal,
             kind: CalendarViewKind.month,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
             onAddDay: days.add,
           ),
         ),
@@ -395,7 +397,7 @@ void main() {
             colorOf: (_) => color,
             kind: CalendarViewKind.day,
             onKind: (_) {},
-            now: () => DateTime(2026, 11, 3, 8),
+            clock: testClock(() => DateTime(2026, 11, 3, 8)),
           ),
         ),
       ),
@@ -445,7 +447,7 @@ void main() {
               colorOf: (_) => Colors.teal,
               kind: CalendarViewKind.month,
               onKind: (_) {},
-              now: () => DateTime(2026, 11, 3, 8),
+              clock: testClock(() => DateTime(2026, 11, 3, 8)),
               titleOf: (name) => name,
             ),
           ),
@@ -474,7 +476,7 @@ Future<void> _showViews(WidgetTester tester, CalendarViewKind kind) async {
           colorOf: (_) => Colors.teal,
           kind: kind,
           onKind: (_) {},
-          now: () => DateTime(2026, 11, 3, 8),
+          clock: testClock(() => DateTime(2026, 11, 3, 8)),
         ),
       ),
     ),

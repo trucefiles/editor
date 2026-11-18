@@ -3,7 +3,7 @@ import 'dart:math' show max;
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 
-import '../views_clock.dart';
+import '../calendar_clock.dart';
 import 'changed_calendars.dart';
 import 'occurrence_event.dart';
 
@@ -20,7 +20,7 @@ import 'occurrence_event.dart';
 /// and remove nothing through the writers it inherits.
 final class OccurrenceEvents<K> extends DefaultEventsController {
   /// [deviceZone] tells this device's time zone (in the views, their
-  /// [ViewsClock]'s): what is worked out holds only in the zone it was
+  /// [CalendarClock]'s): what is worked out holds only in the zone it was
   /// worked out in.
   OccurrenceEvents(
     this._calendars, {
@@ -78,7 +78,7 @@ final class OccurrenceEvents<K> extends DefaultEventsController {
 
   /// Checks the device's time zone, and once it is another, forgets all
   /// that was worked out and tells kalender to ask again: the events'
-  /// times on the device clock moved. Called when the views' [ViewsClock]
+  /// times on the device clock moved. Called when the views' [CalendarClock]
   /// tells a change.
   void followDeviceZone() {
     if (_droppedForNewZone()) notifyListeners();

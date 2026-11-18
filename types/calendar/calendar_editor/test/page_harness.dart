@@ -88,7 +88,7 @@ Future<void> pumpPage(
     deviceZone: () async => deviceZone,
     starts: starts ?? CalendarStarts(),
     openers: openers ?? noOpeners,
-    now: () => today,
+    clock: testClock(() => today),
   );
   await tester.pumpWidget(
     MaterialApp(
@@ -140,4 +140,11 @@ final noOpeners = EventOpeners(
 Future<void> pickNew(WidgetTester tester, String kind) async {
   await tester.tap(find.widgetWithText(ListTile, kind));
   await tester.pumpAndSettle();
+}
+
+/// The calendars' clock at [now], in UTC, disposed when the test ends.
+CalendarClock testClock(DateTime Function() now) {
+  final clock = CalendarClock(now, deviceZone: () => 'UTC');
+  addTearDown(clock.dispose);
+  return clock;
 }

@@ -6,6 +6,8 @@ import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
+import 'page_harness.dart' show testClock;
+
 import 'views_title.dart';
 
 /// Shows [calendar] (by default an empty one) in the [kind] view on 3
@@ -29,7 +31,7 @@ Future<void> _showViews(
           colorOf: (_) => Colors.teal,
           kind: kind,
           onKind: (picked ?? []).add,
-          now: () => DateTime(2026, 11, 3, 8),
+          clock: testClock(() => DateTime(2026, 11, 3, 8)),
         ),
       ),
     ),

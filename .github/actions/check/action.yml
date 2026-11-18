@@ -47,6 +47,17 @@ runs:
       working-directory: types/calendar/calendar
       run: dart test
 
+    - name: Test calendar alerts
+      shell: bash
+      working-directory: types/calendar/calendar_alerts
+      run: dart test
+
+    # Alert times on the device's clock, across a summer time change.
+    - name: Test alert times in a zone with summer time
+      shell: bash
+      working-directory: types/calendar/calendar
+      run: TZ=Europe/Berlin dart test test/alerts_test.dart
+
     - name: Test Syncthing
       shell: bash
       working-directory: plugins/syncthing/syncthing

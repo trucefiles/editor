@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/calendar_clock.dart';
 import 'package:truce_calendar_editor/src/views/calendar_views_model.dart';
-import 'package:truce_calendar_editor/src/views_clock.dart';
 
 /// A calendar named [name] with [event] on [day] from 9 to 10.
 Calendar _calendar(String name, String event, DateTime day) => applyEdit(
@@ -18,8 +18,8 @@ Calendar _calendar(String name, String event, DateTime day) => applyEdit(
 );
 
 /// A views clock on [now], disposed after the test, in the zone "UTC".
-ViewsClock _clock(DateTime Function() now) {
-  final clock = ViewsClock(now, deviceZone: () => 'UTC');
+CalendarClock _clock(DateTime Function() now) {
+  final clock = CalendarClock(now, deviceZone: () => 'UTC');
   addTearDown(clock.dispose);
   return clock;
 }
@@ -120,7 +120,7 @@ void main() {
 
   testWidgets('today moves on at midnight', (tester) async {
     var now = DateTime(2026, 11, 1, 23, 59);
-    final clock = ViewsClock(() => now, deviceZone: () => 'UTC');
+    final clock = CalendarClock(() => now, deviceZone: () => 'UTC');
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
@@ -143,7 +143,7 @@ void main() {
     tester,
   ) async {
     var now = DateTime(2026, 11, 1, 22);
-    final clock = ViewsClock(() => now, deviceZone: () => 'UTC');
+    final clock = CalendarClock(() => now, deviceZone: () => 'UTC');
     final model = CalendarViewsModel(
       kind: CalendarViewKind.month,
       calendars: {'home': home},
@@ -227,7 +227,7 @@ void main() {
 
   testWidgets('a new time zone works the tasks list out anew', (tester) async {
     var zone = 'UTC';
-    final clock = ViewsClock(
+    final clock = CalendarClock(
       () => DateTime(2026, 11, 10, 12),
       deviceZone: () => zone,
     );

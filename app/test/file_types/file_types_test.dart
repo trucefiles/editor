@@ -69,7 +69,7 @@ void main() {
         openLink: (_) async => false,
         openPlace: (_) async => false,
       ),
-      now: () => DateTime(2026, 11),
+      clock: CalendarClock(() => DateTime(2026, 11)),
     );
     final card = type.cardSummary(
       fileTextOf(folderAt(tempFolder()), _birthday, name: 'birthdays.ics'),

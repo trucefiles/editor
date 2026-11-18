@@ -14,6 +14,7 @@ CalendarEditorView _viewOf(CalendarEditorPart part) => CalendarEditorView(
   deviceZone: () async => null,
   starts: CalendarStarts(),
   openers: noOpeners,
+  clock: testClock(DateTime.now),
 );
 
 /// Shows [part]'s title in an app bar, as the file page does, the file's

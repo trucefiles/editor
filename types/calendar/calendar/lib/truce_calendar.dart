@@ -4,7 +4,7 @@
 /// bytes); merged unit by unit, the one changed or the newer edit winning
 /// ([CalendarMerge]);
 /// repeats expanded into occurrences ([occurrences]); the tasks to do
-/// ([taskList]); health entries as
+/// ([taskList]); the alerts that ring ([alertsIn]); health entries as
 /// tagged all-day events, with cycle predictions derived, never stored
 /// ([predictCycle]).
 ///
@@ -15,6 +15,8 @@
 /// uses is exported here.
 library;
 
+export 'src/alerts/alarm.dart';
+export 'src/alerts/alerts_in.dart';
 export 'src/edit/calendar_edit.dart';
 export 'src/edit/calendar_import.dart';
 export 'src/edit/device_zone.dart';

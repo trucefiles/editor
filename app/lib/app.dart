@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'alerts/alerts_wiring.dart';
+import 'alerts/ui/alert_taps.dart';
 import 'app_end/app_end_wiring.dart';
 import 'common/app_localizations.dart';
 import 'common/device_locale.dart';
@@ -16,8 +18,8 @@ import 'tray/close_to_tray_controller.dart';
 import 'tray/start_in_background.dart';
 
 /// Root widget: app-wide theme and text zoom, the first screen, the tray
-/// (also at a start in the background), the app's end, and the overlay
-/// while a folder is being reached again.
+/// (also at a start in the background), the app's end, calendar alerts
+/// and their taps, and the overlay while a folder is being reached again.
 class TruceApp extends ConsumerStatefulWidget {
   const TruceApp({super.key});
 
@@ -37,7 +39,11 @@ class _TruceAppState extends ConsumerState<TruceApp> {
     ref
       ..listen(closeToTrayProvider, (_, _) {})
       ..listen(backgroundStartProvider, (_, _) {})
-      ..listen(appEndProvider, (_, _) {});
+      ..listen(appEndProvider, (_, _) {})
+      // Plans the calendar alerts from the start on.
+      ..listen(alertsProvider, (_, _) {})
+      ..listen(alertPermissionAskProvider, (_, _) {})
+      ..listen(quietListingProvider, (_, _) {});
     final deviceLocale = ref.watch(deviceLocaleProvider);
     final handlesMouseBack = ref.watch(handlesMouseBackProvider);
     return MaterialApp(
@@ -56,7 +62,10 @@ class _TruceAppState extends ConsumerState<TruceApp> {
             enabled: handlesMouseBack,
             child: EscapeNavigation(
               navigator: _navigator,
-              child: KeypadNavigation(child: child!),
+              child: AlertTaps(
+                navigator: _navigator,
+                child: KeypadNavigation(child: child!),
+              ),
             ),
           ),
         ),
