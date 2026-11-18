@@ -43,12 +43,16 @@ final class _Ringer implements Ringer {
 /// A store in memory that keeps its value as JSON, as the app's does.
 final class _Store implements SettingStore<RingState> {
   Object? json;
+  var saves = 0;
 
   @override
   Future<RingState> load() async => RingState.fromJson(json);
 
   @override
-  Future<void> save(RingState value) async => json = value.toJson();
+  Future<void> save(RingState value) async {
+    saves++;
+    json = value.toJson();
+  }
 }
 
 final FileKey _work = (
@@ -236,6 +240,25 @@ void main() {
     await list({_work: null}, now: tuesday);
     await list({_work: work}, now: tuesday);
     expect(ringer.titles, ['review']);
+  });
+
+  test('a listing that changes nothing writes nothing', () async {
+    await start();
+    final work = _calendar({'meeting': _monday.add(const Duration(hours: 3))});
+    await list({_work: work});
+    final saves = store.saves;
+
+    await list({_work: work}, now: _monday.add(const Duration(minutes: 20)));
+    await planner.handle(
+      (ticket) =>
+          Rang(now: _monday.subtract(const Duration(hours: 1)), ticket: ticket),
+    );
+    expect(store.saves, saves);
+
+    // Once the alert rang, the next listing drops it, and keeps that.
+    await list({_work: work}, now: _monday.add(const Duration(hours: 4)));
+    expect(store.saves, saves + 1);
+    expect(planner.state.ring.lastAlive, _monday.add(const Duration(hours: 4)));
   });
 
   test('a calendar no longer listed is silenced', () async {

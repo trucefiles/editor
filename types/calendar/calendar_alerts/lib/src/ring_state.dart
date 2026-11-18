@@ -79,6 +79,28 @@ final class RingState {
     lastAlive: lastAlive ?? this.lastAlive,
   );
 
+  /// Equal when it keeps the same: a step that changes nothing saves
+  /// nothing.
+  @override
+  bool operator ==(Object other) =>
+      other is RingState &&
+      const MapEquality<String, Handed>().equals(other.handed, handed) &&
+      other.nextNumber == nextNumber &&
+      const MapEquality<FileKey, String>().equals(other.versions, versions) &&
+      other.plannedOn == plannedOn &&
+      other.zone == zone &&
+      other.lastAlive == lastAlive;
+
+  @override
+  int get hashCode => Object.hash(
+    const MapEquality<String, Handed>().hash(handed),
+    nextNumber,
+    const MapEquality<FileKey, String>().hash(versions),
+    plannedOn,
+    zone,
+    lastAlive,
+  );
+
   Map<String, Object?> toJson() => {
     'handed': [
       for (final (:number, :alert) in handed.values)

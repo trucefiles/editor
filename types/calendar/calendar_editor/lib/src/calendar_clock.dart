@@ -1,21 +1,19 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 
 /// The calendars' one clock, held by the app for its views and its
 /// alerts: [today] on [now]'s clock and this device's time [zone], telling
-/// its listeners when either changes. While it has listeners it checks at
-/// each midnight, at least every minute (timers stop while the device
-/// sleeps, so a midnight wake alone could come hours late) and whenever
-/// the app returns to the front; no system tells the app of a zone
-/// change. Without listeners it only answers when asked.
+/// its listeners when either changes, and the time at each whole minute
+/// ([minutes]). While it has listeners it checks at each whole minute
+/// (timers stop while the device sleeps, so a wake set hours ahead could
+/// come hours late) and whenever the app returns to the front; no system
+/// tells the app of a zone change. Without listeners it only answers when
+/// asked.
 final class CalendarClock extends ChangeNotifier {
   /// [deviceZone] tells this device's time zone apart (by default as
   /// kalender does).
   CalendarClock(this._now, {this._deviceZone = deviceZoneNow});
-
-  static const _every = Duration(minutes: 1);
 
   final DateTime Function() _now;
   final String Function() _deviceZone;
@@ -24,6 +22,14 @@ final class CalendarClock extends ChangeNotifier {
   ({DateTime today, String zone})? _checked;
   AppLifecycleListener? _resume;
   Timer? _wake;
+  late final _minutes = StreamController<DateTime>.broadcast(
+    onListen: _listened,
+    onCancel: _unlistened,
+  );
+
+  /// The time at each whole minute, while listened to; after a sleep at
+  /// the next whole minute. One wake serves it and the day and zone.
+  Stream<DateTime> get minutes => _minutes.stream;
 
   /// The time now.
   DateTime now() => _now();
@@ -34,20 +40,32 @@ final class CalendarClock extends ChangeNotifier {
   /// This device's time zone.
   String get zone => (_checked ?? _fresh()).zone;
 
+  /// Whether anyone listens, to the day and zone or to the minutes.
+  bool get _anyListens => hasListeners || _minutes.hasListener;
+
   @override
   void addListener(VoidCallback listener) {
-    if (!hasListeners) {
-      _checked = _fresh();
-      _resume = AppLifecycleListener(onResume: _check);
-      _wakeNext();
-    }
+    _listened();
     super.addListener(listener);
   }
 
   @override
   void removeListener(VoidCallback listener) {
     super.removeListener(listener);
-    if (!hasListeners) _stop();
+    _unlistened();
+  }
+
+  /// Starts checking as the first listener comes.
+  void _listened() {
+    if (_wake != null) return;
+    _checked = _fresh();
+    _resume = AppLifecycleListener(onResume: _check);
+    _wakeNext();
+  }
+
+  /// Stops checking once the last listener left.
+  void _unlistened() {
+    if (!_anyListens) _stop();
   }
 
   ({DateTime today, String zone}) _fresh() {
@@ -55,22 +73,29 @@ final class CalendarClock extends ChangeNotifier {
     return (today: DateTime(now.year, now.month, now.day), zone: _deviceZone());
   }
 
-  /// Moves [today] and [zone] on if either changed since.
+  /// Tells the minute, and moves [today] and [zone] on if either changed
+  /// since.
   void _check() {
     _wakeNext();
+    if (_minutes.hasListener) _minutes.add(_now());
     final checked = _fresh();
     if (checked == _checked) return;
     _checked = checked;
     notifyListeners();
   }
 
-  /// A wake at the next midnight or check, whichever comes first, to
-  /// check again.
+  /// A wake at the next whole minute (midnight is one), to check again.
   void _wakeNext() {
     final now = _now();
-    final midnight = DateTime(now.year, now.month, now.day + 1);
+    final next = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute + 1,
+    );
     _wake?.cancel();
-    _wake = Timer([midnight.difference(now), _every].min, _check);
+    _wake = Timer(next.difference(now), _check);
   }
 
   void _stop() {
@@ -84,6 +109,7 @@ final class CalendarClock extends ChangeNotifier {
   @override
   void dispose() {
     _stop();
+    unawaited(_minutes.close());
     super.dispose();
   }
 }

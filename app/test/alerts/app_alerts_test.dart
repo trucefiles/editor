@@ -147,6 +147,7 @@ void main() {
     alerts.show(shown);
     await pumpEventQueue();
     store.saving = Completer();
+    now = start.add(const Duration(hours: 1));
 
     final stopped = alerts.stop();
     await pumpEventQueue();

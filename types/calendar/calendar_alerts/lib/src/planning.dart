@@ -111,6 +111,11 @@ PlanStep _listed(
       for (final alert in alertsIn(calendar, handedFrom(file), until))
         if (alert.at.isAfter(handedFrom(file))) PlannedAlert.of(file, alert),
   ].sortedBy((alert) => alert.at).take(mostPlanned).toList();
+  // Whether alerts the ringer held and rang are dropped: none whose time
+  // came is planned on.
+  final dropsRung = ring.handed.values.any(
+    (handed) => !handed.alert.at.isAfter(now),
+  );
   final added = [
     for (final alert in chosen)
       if (ring.handed[alert.id]?.alert != alert) alert,
@@ -148,10 +153,14 @@ PlanStep _listed(
         },
         plannedOn: dayOf(now),
         zone: zone,
-        // The run's missed alerts are told; on a ringer that rings on its
-        // own, everything due until now was handed to it.
+        // The run's missed alerts are told. On a ringer that rings on its
+        // own, the alerts it held until now rang: once they are no longer
+        // held, nothing until now was missed.
         lastAlive: switch (state.startedAt) {
-          final started? => _later(ring, ringsWhileClosed ? now : started),
+          final started? => _later(
+            ring,
+            ringsWhileClosed && dropsRung ? now : started,
+          ),
           null => null,
         },
       ),

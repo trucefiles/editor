@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar_alerts/truce_calendar_alerts.dart';
 import 'package:truce_editor/alerts/alert_tap.dart';
@@ -16,24 +18,25 @@ final class _Notices implements DesktopNotices {
 }
 
 void main() {
-  late DateTime now;
+  late StreamController<DateTime> minutes;
   late _Notices notices;
   late LinuxRinger ringer;
 
-  /// Starts a ringer at [start] (half a minute past 9).
-  void start([DateTime? start]) {
-    now = start ?? DateTime(2026, 11, 17, 9, 0, 30);
+  /// Starts a ringer on a clock of its own.
+  void start() {
+    minutes = StreamController();
     notices = _Notices();
-    ringer = LinuxRinger(notices, now: () => now);
+    ringer = LinuxRinger(notices, minutes: minutes.stream);
+    addTearDown(ringer.dispose);
   }
 
-  /// Lets [time] pass, on the clock and for the timers.
-  Future<void> pass(WidgetTester tester, Duration time) async {
-    now = now.add(time);
-    await tester.pump(time);
+  /// The clock tells the minute [time].
+  Future<void> tick(DateTime time) async {
+    minutes.add(time);
+    await pumpEventQueue();
   }
 
-  testWidgets('an alert shows on the minute it comes, once', (tester) async {
+  test('an alert shows on the minute it comes, once', () async {
     start();
     final rang = <DateTime>[];
     ringer.rang.listen(rang.add);
@@ -41,34 +44,30 @@ void main() {
       Ring(1, eventAlert('Standup', at: DateTime(2026, 11, 17, 9, 2))),
     ]);
 
-    await pass(tester, const Duration(seconds: 30));
+    await tick(DateTime(2026, 11, 17, 9, 1));
     expect(notices.shown, isEmpty, reason: 'at 9:01');
 
-    await pass(tester, const Duration(minutes: 1));
+    await tick(DateTime(2026, 11, 17, 9, 2));
     expect(notices.shown, [('Standup', AlertShown.notification)]);
     expect(rang, hasLength(1));
 
-    await pass(tester, const Duration(minutes: 5));
+    await tick(DateTime(2026, 11, 17, 9, 3));
     expect(notices.shown, hasLength(1));
-    // Ends the next wake before the test checks for timers.
-    await ringer.dispose();
   });
 
-  testWidgets('a silenced alert shows nothing', (tester) async {
+  test('a silenced alert shows nothing', () async {
     start();
     await ringer.apply([
       Ring(1, eventAlert('Standup', at: DateTime(2026, 11, 17, 9, 2))),
     ]);
     await ringer.apply([const Silence(1)]);
 
-    await pass(tester, const Duration(minutes: 5));
+    await tick(DateTime(2026, 11, 17, 9, 5));
     expect(notices.shown, isEmpty);
-    // Ends the next wake before the test checks for timers.
-    await ringer.dispose();
   });
 
-  testWidgets('after a sleep, an alert come meanwhile shows within a '
-      'minute; one whose event ended is dropped', (tester) async {
+  test('after a sleep, an alert come meanwhile shows within a '
+      'minute; one whose event ended is dropped', () async {
     start();
     await ringer.apply([
       Ring(
@@ -89,22 +88,17 @@ void main() {
       ),
     ]);
 
-    // The computer slept: the clock went on, the timers didn't.
-    now = DateTime(2026, 11, 17, 10);
-    await tester.pump(const Duration(minutes: 1));
+    // The computer slept: the next minute told is 10:00.
+    await tick(DateTime(2026, 11, 17, 10));
 
     expect(notices.shown, [('Still on', AlertShown.notification)]);
-    // Ends the next wake before the test checks for timers.
-    await ringer.dispose();
   });
 
-  testWidgets('missed alerts show as missed', (tester) async {
+  test('missed alerts show as missed', () async {
     start();
     await ringer.showMissed([
       eventAlert('Dentist', at: DateTime(2026, 11, 17, 8)),
     ]);
     expect(notices.shown, [('Dentist', AlertShown.missed)]);
-    // Ends the next wake before the test checks for timers.
-    await ringer.dispose();
   });
 }

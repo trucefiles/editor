@@ -9,6 +9,7 @@ import '../alerts/alert_permissions.dart';
 import '../alerts/alert_tap.dart';
 import '../alerts/planner_role.dart';
 import '../app_end/app_end_source.dart';
+import '../calendar_tab/calendar_clock.dart';
 import '../common/time_texts.dart';
 import '../settings/followed_setting.dart';
 import '../tray/app_window.dart';
@@ -124,8 +125,8 @@ final alertTapsProvider = Provider<AlertTaps>(
 );
 
 /// What rings calendar alerts here: on Android the system's scheduled
-/// notifications, in the device's alert style; on Linux the app's own
-/// clock while it runs.
+/// notifications, in the device's alert style; on Linux the calendars'
+/// clock while the app runs.
 final ringerProvider = Provider<Ringer>((ref) {
   final notifications = ref.watch(alertNotificationsProvider);
   // Read when shown: a new locale doesn't make a new ringer, which would
@@ -135,7 +136,10 @@ final ringerProvider = Provider<Ringer>((ref) {
     final style = followedSetting(ref, (s) => s.alertStyle);
     return AndroidRinger(notifications, texts, style: () => style.value);
   }
-  final ringer = LinuxRinger(LinuxNotices(notifications, texts));
+  final ringer = LinuxRinger(
+    LinuxNotices(notifications, texts),
+    minutes: ref.watch(calendarClockProvider).minutes,
+  );
   ref.onDispose(ringer.dispose);
   return ringer;
 });

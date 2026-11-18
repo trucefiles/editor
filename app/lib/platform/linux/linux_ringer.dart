@@ -7,22 +7,20 @@ import '../alert_notifications.dart' show missedNumberOf;
 import 'desktop_notices.dart';
 
 /// Rings alerts on the desktop while the app runs (window or tray): it
-/// holds what it is handed and checks the wall clock once a minute, on
-/// the minute, showing each alert come as a desktop notification. Timers
-/// sleep with the computer, so after a suspend the alerts that came
-/// meanwhile show within a minute; an event's that ended meanwhile is
-/// dropped. Nothing rings once the app quits.
+/// holds what it is handed and, at each whole minute of the app's clock
+/// ([minutes]), shows each alert come as a desktop notification. After a
+/// suspend the alerts that came meanwhile show at the next minute; an
+/// event's that ended meanwhile is dropped. Nothing rings once the app
+/// quits.
 final class LinuxRinger implements Ringer {
-  LinuxRinger(this._notices, {DateTime Function()? now})
-    : _now = now ?? DateTime.now {
-    _wakeNext();
+  LinuxRinger(this._notices, {required Stream<DateTime> minutes}) {
+    _minutes = minutes.listen((now) => unawaited(_check(now)));
   }
 
   final DesktopNotices _notices;
-  final DateTime Function() _now;
   final _held = <int, PlannedAlert>{};
   final _rang = StreamController<DateTime>.broadcast();
-  Timer? _wake;
+  late final StreamSubscription<DateTime> _minutes;
 
   @override
   bool get ringsWhileClosed => false;
@@ -49,10 +47,8 @@ final class LinuxRinger implements Ringer {
     }
   }
 
-  /// Shows the alerts come by now, and wakes again on the next minute.
-  Future<void> _check() async {
-    _wakeNext();
-    final now = _now();
+  /// Shows the alerts come by [now].
+  Future<void> _check(DateTime now) async {
     final come = {
       for (final MapEntry(key: number, value: alert) in _held.entries)
         if (!alert.at.isAfter(now)) number: alert,
@@ -67,22 +63,8 @@ final class LinuxRinger implements Ringer {
     _rang.add(now);
   }
 
-  /// A wake on the next minute of the wall clock.
-  void _wakeNext() {
-    final now = _now();
-    final next = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute + 1,
-    );
-    _wake?.cancel();
-    _wake = Timer(next.difference(now), () => unawaited(_check()));
-  }
-
   Future<void> dispose() async {
-    _wake?.cancel();
+    await _minutes.cancel();
     await _rang.close();
   }
 }

@@ -66,8 +66,8 @@ final class AlertPlanner implements Owner<PlannerInput, PlannerState, Handled> {
     if (changes.isNotEmpty) await ringer.apply(changes);
     if (missed.isNotEmpty) await ringer.showMissed(missed);
     // Kept once rung: a state that says more than the ringer holds would
-    // count an alert as rung that never was.
-    if (!identical(next.ring, state.ring)) await store.save(next.ring);
+    // count an alert as rung that never was. Only a change is written.
+    if (next.ring != state.ring) await store.save(next.ring);
     out
       ..state = next
       ..emit(Handled(input.ticket));

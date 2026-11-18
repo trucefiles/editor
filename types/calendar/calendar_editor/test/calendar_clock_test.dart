@@ -1,8 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar_editor/src/calendar_clock.dart';
 
 void main() {
+  testWidgets('tells each whole minute while listened to, and wakes for '
+      'nothing after', (tester) async {
+    var now = DateTime(2026, 11, 10, 9, 0, 30);
+    final clock = CalendarClock(() => now, deviceZone: () => 'CET');
+    final told = <DateTime>[];
+    final minutes = clock.minutes.listen(told.add);
+
+    Future<void> pass(Duration time) async {
+      now = now.add(time);
+      await tester.pump(time);
+    }
+
+    await pass(const Duration(seconds: 30));
+    await pass(const Duration(minutes: 1));
+    expect(told, [DateTime(2026, 11, 10, 9, 1), DateTime(2026, 11, 10, 9, 2)]);
+
+    unawaited(minutes.cancel());
+    await pass(const Duration(minutes: 5));
+    expect(told, hasLength(2));
+    clock.dispose();
+  });
+
   testWidgets('a zone change is told within a minute', (tester) async {
     var zone = 'CET';
     final clock = CalendarClock(
