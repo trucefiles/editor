@@ -141,6 +141,47 @@ void main() {
     expect(diskFile(work, kept).readAsStringSync(), 'png');
   });
 
+  test('a move brings back no image removed meanwhile', () async {
+    final file = await fileIn(work, 'plan.md', '![a]($kept)\n');
+    final store = container.read(documentImageStoresProvider)(folders[0].id);
+    await store.remove((await store.images()).value[name]!);
+
+    await actions.move(file, (
+      folder: folders[0],
+      subfolder: path('a'),
+    ), newSubfolder: true);
+
+    expect(diskFile(work, kept).existsSync(), isFalse);
+    expect(diskFile(work, 'a/plan.md').readAsStringSync(), '![a]($kept)\n');
+  });
+
+  test('a backup restored over its file brings back its images', () async {
+    final file = await fileIn(work, 'plan.md', '![a]($kept)\n');
+    final services = container.read(folderServicesProvider(folders[0].id));
+    await container
+        .read(fileAccessProvider)
+        .of(folders[0])
+        .backUpBeforeDelete(file, '![a]($kept)\n');
+    diskFile(work, 'plan.md').writeAsStringSync('none');
+    final store = container.read(documentImageStoresProvider)(folders[0].id);
+    await store.remove((await store.images()).value[name]!);
+    final backup = (
+      folder: folders[0],
+      backup: (await services.backups.listOf(file.path)).value.first,
+    );
+    final compare = RestoreCompare(
+      services.restore,
+      () async {},
+      arrivals: container.read(fileArrivalsProvider),
+    );
+
+    final sides = (await compare.load(backup)).value;
+    await compare.keep(backup, sides, const KeepOther());
+
+    expect(diskFile(work, kept).readAsStringSync(), 'png');
+    expect(diskFile(work, 'plan.md').readAsStringSync(), '![a]($kept)\n');
+  });
+
   test('an image added once the folder is gone never makes it again', () async {
     await scans();
     work.deleteSync(recursive: true);

@@ -32,7 +32,7 @@ dependencies:
   truce_common_ui: any
   truce_core: any
   truce_document_editor: any
-  truce_document_image_store: any
+  truce_markdown_images: any
   truce_file_page: any
   truce_files: any
   truce_folders: any

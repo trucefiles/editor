@@ -1,13 +1,9 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_pages.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -23,7 +19,7 @@ void main() {
     closings = 0;
   });
 
-  FilePages pages({LinkedFiles linked = const NoLinkedFiles()}) => FilePages(
+  FilePages pages() => FilePages(
     types: appFileTypes(),
     create: fixture.createFile,
     move: fixture.moveFile,
@@ -37,7 +33,7 @@ void main() {
     openFiles: open,
     fileClosed: () => closings++,
     endWait: const Duration(seconds: 1),
-    linked: linked,
+    arrivals: noArrivals(),
   );
 
   test('a page tells that it closed, once, as it closes', () async {
@@ -95,128 +91,6 @@ void main() {
     expect(page.type, same(document.type));
   });
 
-  group("a new document's place changed before its first save", () {
-    late _FakeLinked linked;
-    late FilePage page;
-
-    setUp(() async {
-      linked = _FakeLinked();
-      final made = pages(linked: linked);
-      page = made.openNew(
-        (folder: fixture.folders[0], subfolder: null),
-        made: made.types.newFileChoices.first,
-        withFile: (_) async {},
-      );
-      addTearDown(page.close);
-      await page.session.replaceAll('Plan\n\n![a](x.png)\n');
-    });
-
-    test('changes its links with it', () async {
-      final placed = await page.session.place(
-        NewFile((
-          folder: fixture.folders[0],
-          subfolder: path('a'),
-        ), type: (page.session.file as NewFile).type),
-      );
-
-      expect(placed, isA<Ok<void, StoreError>>());
-      expect(page.session.text, 'Plan\n\n![a](../x.png)\n');
-      expect(linked.copied, isEmpty);
-    });
-
-    test('in another folder, copies its images first', () async {
-      await page.session.place(
-        NewFile((
-          folder: fixture.folders[1],
-          subfolder: null,
-        ), type: (page.session.file as NewFile).type),
-      );
-
-      expect(linked.copied, [fixture.folders[1].id]);
-      expect(page.session.file.folder, fixture.folders[1]);
-    });
-
-    test('a save while its images are copied lands at the new place', () async {
-      linked.copying = Completer<void>();
-      final placed = page.session.place(
-        NewFile((
-          folder: fixture.folders[1],
-          subfolder: null,
-        ), type: (page.session.file as NewFile).type),
-      );
-
-      final saved = page.session.secure(SecureReason.hide);
-      await pumpEventQueue();
-      expect(fixture.dirs[0].listSync().whereType<File>(), hasLength(1));
-      linked.copying!.complete();
-      await placed;
-
-      expect(await saved, isTrue);
-      expect(File('${fixture.dirs[1].path}/Plan.md').existsSync(), isTrue);
-    });
-
-    test('edits made while its images are copied change with it', () async {
-      linked.copying = Completer<void>();
-      final placed = page.session.place(
-        NewFile((
-          folder: fixture.folders[1],
-          subfolder: path('a'),
-        ), type: (page.session.file as NewFile).type),
-      );
-
-      await page.session.replaceAll('Plan\n\n![a](x.png)\n\nMore\n');
-      linked.copying!.complete();
-      await placed;
-
-      expect(page.session.text, 'Plan\n\n![a](../x.png)\n\nMore\n');
-    });
-
-    test(
-      'a second pick waits for the first, and a save lands at the last',
-      () async {
-        Directory('${fixture.dirs[0].path}/a').createSync();
-        linked.copying = Completer<void>();
-        final type = (page.session.file as NewFile).type;
-        final first = page.session.place(
-          NewFile((folder: fixture.folders[1], subfolder: null), type: type),
-        );
-        final second = page.session.place(
-          NewFile((
-            folder: fixture.folders[0],
-            subfolder: path('a'),
-          ), type: type),
-        );
-
-        final saved = page.session.secure(SecureReason.hide);
-        await pumpEventQueue();
-        linked.copying!.complete();
-        await (first, second).wait;
-
-        expect(await saved, isTrue);
-        expect(linked.copied, [fixture.folders[1].id, fixture.folders[0].id]);
-        expect(fixture.dirs[1].listSync(), isEmpty);
-        expect(
-          File('${fixture.dirs[0].path}/a/Plan.md').readAsStringSync(),
-          'Plan\n\n![a](../x.png)\n',
-        );
-      },
-    );
-
-    test('stays where its images can not be copied', () async {
-      linked.copyFails = true;
-
-      final placed = await page.session.place(
-        NewFile((
-          folder: fixture.folders[1],
-          subfolder: null,
-        ), type: (page.session.file as NewFile).type),
-      );
-
-      expect(placed, isA<Err<void, StoreError>>());
-      expect(page.session.file.folder, fixture.folders[0]);
-    });
-  });
-
   test("a new calendar's page starts as an empty, unnamed calendar", () {
     final health = appFileTypes().newFileChoices.firstWhere(
       (made) => made.label == 'Health calendar',
@@ -240,39 +114,4 @@ void main() {
       reason: 'named after its kind until it has a name',
     );
   });
-}
-
-/// Kept files for links named `x.png`, at the folder's top level.
-final class _FakeLinked implements LinkedFiles {
-  final List<FolderId> copied = [];
-  bool copyFails = false;
-
-  /// While set, a copy waits for it.
-  Completer<void>? copying;
-
-  @override
-  Future<Result<void, StoreError>> copyFor(
-    String text, {
-    required Folder from,
-    required Folder to,
-  }) async {
-    await copying?.future;
-    if (copyFails) return const Err(StoreError.ioFailure);
-    copied.add(to.id);
-    return const Ok(null);
-  }
-
-  @override
-  Future<Result<Relink?, StoreError>> relinkFor(
-    String text,
-    Folder folder, {
-    required RelPath from,
-    required RelPath? toFolder,
-  }) async => Ok(
-    (destination) =>
-        destination == 'x.png' && toFolder != null ? '../x.png' : null,
-  );
-
-  @override
-  Future<void> bringBack(String text, Folder folder) async {}
 }

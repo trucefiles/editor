@@ -35,7 +35,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
         if (ref.mounted) ref.invalidate(allBackupsProvider);
         return folderState.refresh();
       },
-      linked: ref.read(linkedFilesProvider),
+      arrivals: ref.read(fileArrivalsProvider),
     );
   }
 

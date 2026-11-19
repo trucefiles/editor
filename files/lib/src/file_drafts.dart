@@ -21,18 +21,36 @@ final class FileDrafts {
 
   /// Every draft that can be read and was last written before [before];
   /// others are left in place untouched.
-  Future<List<FileDraft>> all({required DateTime before}) async {
-    final drafts = <FileDraft>[];
+  Future<List<FileDraft>> all({required DateTime before}) async => [
+    for (final draft in await _drafts(before: before) ?? const <FileDraft?>[])
+      ?draft,
+  ];
+
+  /// Every draft, each with its file's path; `null` if one can't be read.
+  /// None before the first.
+  Future<List<FileDraft>?> every() async => switch (await _drafts()) {
+    final drafts? when !drafts.contains(null) => drafts.nonNulls.toList(),
+    _ => null,
+  };
+
+  /// The drafts last written before [before] (by default all), each
+  /// `null` if it can't be read; `null` if they can't be listed. None
+  /// before the first.
+  Future<List<FileDraft?>?> _drafts({DateTime? before}) async {
+    final drafts = <FileDraft?>[];
     try {
+      if (!await _folder.exists()) return drafts;
       await for (final entity in _folder.list(followLinks: false)) {
         final name = entity.uri.pathSegments.last;
         if (entity is! File || !name.endsWith(_extension)) continue;
-        if (!(await entity.lastModified()).isBefore(before)) continue;
+        if (before != null && !(await entity.lastModified()).isBefore(before)) {
+          continue;
+        }
         final id = name.substring(0, name.length - _extension.length);
-        if (await _read(id) case final draft?) drafts.add(draft);
+        drafts.add(await _read(id));
       }
     } on FileSystemException {
-      // No drafts yet, or none readable.
+      return null;
     }
     return drafts;
   }
@@ -68,27 +86,6 @@ final class FileDrafts {
     } on FileSystemException {
       // None yet, or left unseen in app storage.
     }
-  }
-
-  /// The edits every draft holds; `null` if one can't be read. None
-  /// before the first.
-  Future<List<String>?> texts() async {
-    final ids = <String>[];
-    try {
-      if (!await _folder.exists()) return const [];
-      await for (final entity in _folder.list(followLinks: false)) {
-        final name = entity.uri.pathSegments.last;
-        if (entity is File && name.endsWith(_extension)) {
-          ids.add(name.substring(0, name.length - _extension.length));
-        }
-      }
-    } on FileSystemException {
-      return null;
-    }
-    final drafts = await Future.wait(ids.map(_read));
-    return drafts.contains(null)
-        ? null
-        : [for (final draft in drafts) draft!.text];
   }
 
   /// How many files have readable drafts.

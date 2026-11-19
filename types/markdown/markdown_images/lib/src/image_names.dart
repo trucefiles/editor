@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_markdown/truce_markdown.dart'
+    show MarkdownSupport, imageLinksOf, markdownType;
 
 /// The one rule for where the app keeps document images and how it names
 /// them: `document-images/img-<id>.<extension>` at a folder's root, the
@@ -15,10 +17,6 @@ abstract final class ImageNames {
   static bool isKept(RelPath path) => path.isAtOrInside(folder);
 
   static final _name = RegExp(r'^img-[0-9a-f]{16}\.(jpg|png|gif|webp|bmp)$');
-
-  /// Every name of ours in any text, links or not; may find more than a
-  /// reader would, which only keeps an image.
-  static final _inText = RegExp(r'img-[0-9a-f]{16}\.(?:jpg|png|gif|webp|bmp)');
 
   static final _random = Random.secure();
 
@@ -41,13 +39,41 @@ abstract final class ImageNames {
     return name != null && _name.hasMatch(name) ? name : null;
   }
 
-  /// The names of ours [text] holds.
-  static Set<String> namesIn(String text) => {
-    for (final match in _inText.allMatches(text)) match[0]!,
+  /// The names of ours the images of the document [text] lead to, as
+  /// read.
+  static Set<String> linkedBy(String text) => ofLinks(imageLinksOf(text));
+
+  /// The names of ours [links] lead to.
+  static Set<String> ofLinks(Iterable<String> links) => {
+    for (final link in links) ?nameIn(link),
+  };
+
+  /// Whether [path] is a document whose images are ours to keep.
+  static bool isDocument(RelPath path) =>
+      _documents.detect(path) == markdownType;
+
+  static final _documents = ExtensionFileTypeDetector.of([
+    const MarkdownSupport(),
+  ]);
+
+  /// Where the image [link] names is kept, wherever it points; `null`
+  /// for a link whose name isn't ours. It may not be there.
+  static RelPath? keptAt(String link) => switch (nameIn(link)) {
+    final name? => pathOf(name),
+    null => null,
   };
 
   /// Where the image [name] is kept.
   static RelPath pathOf(String name) => folder.child(name)!;
+
+  /// Whether links to images from documents in [one] and [other]
+  /// (`null`: the top level) read alike: the store is at the root, so
+  /// only their depth counts.
+  static bool linksAlike(RelPath? one, RelPath? other) =>
+      _depth(one) == _depth(other);
+
+  static int _depth(RelPath? folder) =>
+      folder == null ? 0 : folder.folders.length + 1;
 
   /// The link to the image [name] from a document in [documentFolder]
   /// (`null`: the top level).

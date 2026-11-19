@@ -1,7 +1,7 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 /// The user's cleanup of a folder's unused document images: open
 /// documents of the folder keep their edits first, so every link is in
@@ -34,7 +34,7 @@ class ImageCleanup {
     return UnusedImages(
       DocumentImageStore(services),
       services,
-      drafts: _draftsOf(folder).texts,
+      drafts: _draftsOf(folder).every,
       now: _now,
     );
   }

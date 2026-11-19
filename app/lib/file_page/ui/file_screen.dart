@@ -23,8 +23,6 @@ import '../../files/ui/file_actions_menu.dart';
 import '../../files/ui/file_heading.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/folders_controller.dart';
-import '../../images/images_wiring.dart';
-import '../../images/store_host_images.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
@@ -505,10 +503,6 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                       hint: (message) =>
                           _messenger.currentState?.showHint(message),
                       color: fileColor(mark.color, folder: _folder.color),
-                      images: StoreHostImages(
-                        ref.read(documentImageStoresProvider),
-                        _session,
-                      ),
                     ),
                     autofocus: widget._isNew,
                   ),

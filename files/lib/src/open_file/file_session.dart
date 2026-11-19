@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
 
+import '../file_arrival.dart';
 import '../file_text.dart';
 import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
-import '../linked_files.dart';
 import '../move_failure.dart';
 import '../read_version.dart';
 import 'file_effects.dart';
@@ -60,15 +60,14 @@ final class FileSession {
   /// starts with; its file read and written by [effects], edited by
   /// [editor], which opened with that text. [merge]: how its type merges
   /// two texts, if it does; then a change elsewhere can be picked merged
-  /// with the edits ([mergesWith]).
-  /// [linked]: the files kept for its text, which restores bring back
-  /// and a new file's place change takes along.
+  /// with the edits ([mergesWith]). [arrivals]: how a past version
+  /// arrives as it is restored ([replaceAll]).
   FileSession(
     PageFile opened,
     this._effects,
     this.editor, {
     TextMerge? merge,
-    required this._linked,
+    required this._arrivals,
   }) : _file = fileOwner(switch (opened) {
          ExistingFile(:final file) => openedFile(file.seen, merge: merge),
          NewFile(:final start) => newFile(start: start, merge: merge),
@@ -84,7 +83,7 @@ final class FileSession {
 
   final FileEffects _effects;
   final FileOwner<ReadVersion> _file;
-  final LinkedFiles _linked;
+  final FileArrivals _arrivals;
 
   /// The way into the editor owner.
   final PageEditor editor;
@@ -101,17 +100,6 @@ final class FileSession {
   /// Whether the file takes edits.
   SessionState get state => _state;
   SessionState _state = const Running();
-
-  /// The place changes and the steps at the file's place ([atPlace])
-  /// asked for, one after another: the last one asked for.
-  Future<void> _turns = Future.value();
-
-  /// Place changes of a new file asked for and not yet ended: the file
-  /// owner holds the file ([Placing]) while there are any.
-  var _placesUnderWay = 0;
-
-  /// How the text changes with them, applied once they all ended.
-  TextRewrite? _placedChange;
 
   /// Where the file is: the file the file owner names, else where a new
   /// file goes.
@@ -237,10 +225,19 @@ final class FileSession {
       _file.send(Pick(choice, seen: theirs.version, rev: rev));
 
   /// The file reads [text] instead (a backup restored), as one edit
-  /// that undo takes back; the files kept for it come back first.
+  /// that undo takes back; it arrives at the file's place first, as its
+  /// type says ([FileArrivals.restored]).
   Future<void> replaceAll(String text) async {
-    await _linked.bringBack(text, file.folder);
-    editor.send(ReplaceAll(text));
+    final restored = switch (read) {
+      final read? => await _arrivals.restored(
+        read.textFile.withText(text),
+        folder: read.folder,
+        from: read.path,
+        to: (folder: read.folder, subfolder: read.path.parent),
+      ),
+      null => text,
+    };
+    editor.send(ReplaceAll(restored));
   }
 
   /// Writes the edits as the file again, after it was deleted elsewhere.
@@ -263,77 +260,11 @@ final class FileSession {
     return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
-  /// The user picked where a new file goes: the files kept for its text
-  /// go along first, and its links change where they must, as in a move.
-  /// Nothing changes if they can't go along. One at a time, in the order
-  /// picked; a new file is created nowhere until all have ended.
-  Future<Result<void, StoreError>> place(NewFile to) {
-    final holds = file is NewFile;
-    if (holds && _placesUnderWay++ == 0) _file.send(const Placing());
-    return _inTurn(() => _place(to, holds: holds));
-  }
-
-  /// Runs [step] at the file's place as it is then ([file], [path]):
-  /// no place change runs while it does (e.g. adding an image and its
-  /// link, so the link leads from where the file is).
-  Future<T> atPlace<T>(Future<T> Function(PageFile file, RelPath path) step) =>
-      _inTurn(() => step(file, path));
-
-  Future<T> _inTurn<T>(Future<T> Function() step) {
-    final done = _turns.then((_) => step());
-    _turns = done.then<void>((_) {}, onError: (Object _) {});
-    return done;
-  }
-
-  Future<Result<void, StoreError>> _place(
-    NewFile to, {
-    required bool holds,
-  }) async {
-    final from = file;
-    if (from is! NewFile) {
-      _effects.place(to);
-      if (holds) _placedOne(null);
-      _changed();
-      return const Ok(null);
-    }
-    // The editor's typing first, so the links of all of it change.
-    draftNow();
-    final moved = await _linked.rewriteAt(
-      to.place,
-      _file.state.text,
-      type: from.type,
-      folder: from.folder,
-      from: from.pathFor(summary.firstLine),
-    );
-    if (moved case Ok()) _effects.place(to);
-    _placedOne(switch (moved) {
-      Ok(:final value) => value,
-      Err() => null,
-    });
+  /// The user picked where a new file goes.
+  void place(NewFile to) {
+    _effects.place(to);
     _changed();
-    return moved.map((_) {});
   }
-
-  /// One place change ended with [change]; once all have, the text
-  /// changes by all of theirs.
-  void _placedOne(TextRewrite? change) {
-    _placedChange = _then(_placedChange, change);
-    if (--_placesUnderWay > 0) return;
-    // Typed meanwhile changes too.
-    draftNow();
-    _file.send(Placed(change: _placedChange));
-    _placedChange = null;
-  }
-
-  static TextRewrite? _then(TextRewrite? first, TextRewrite? next) =>
-      switch ((first, next)) {
-        (null, _) => next,
-        (_, null) => first,
-        (final first?, final next?) => (text) {
-          final once = first(text);
-          return next(once ?? text) ?? once;
-        },
-      };
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
     (ToFile(input: final Edited edited), Running()) => _file.send(

@@ -1,6 +1,7 @@
-import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import 'document_image_store.dart';
@@ -17,8 +18,8 @@ enum CleanupRefused {
 }
 
 /// The user's cleanup of one folder's unused document images: those no
-/// document, conflict copy or draft of the folder names. Every one of
-/// them is read first; images that changed or came here in the last
+/// document, conflict copy of one or draft of one in the folder links,
+/// as read. Every one of them is read first; images that changed or came here in the last
 /// [fresh] stay, as their document may not hold its link yet (here or
 /// on another device).
 /// Open documents are secured by the caller first, so their edits are
@@ -37,9 +38,8 @@ final class UnusedImages {
   final DocumentImageStore _store;
   final FolderServices _services;
 
-  /// The folder's drafts on this device, as written; `null` if one can't
-  /// be read.
-  final Future<List<String>?> Function() _drafts;
+  /// The folder's drafts on this device; `null` if one can't be read.
+  final Future<List<FileDraft>?> Function() _drafts;
   final DateTime Function() _now;
 
   /// The images that would go, oldest first.
@@ -75,9 +75,9 @@ final class UnusedImages {
     return removed;
   }
 
-  /// The image names every document, conflict copy and draft of the
-  /// folder holds, each read in turn and not kept; `null` if any can't
-  /// be read.
+  /// The image names every document of the folder, conflict copy of one
+  /// and draft of one links, each read in turn and not kept; `null` if
+  /// any can't be read.
   Future<Set<String>?> _usedNames() async {
     final FolderScan scan;
     switch (await _services.scanner.scan()) {
@@ -88,19 +88,26 @@ final class UnusedImages {
     }
     final drafts = await _drafts();
     if (drafts == null) return null;
-    final used = {for (final draft in drafts) ...ImageNames.namesIn(draft)};
-    for (final file in scan.files) {
+    final used = {
+      for (final draft in drafts)
+        if (ImageNames.isDocument(draft.path))
+          ...ImageNames.linkedBy(draft.text),
+    };
+    for (final file in scan.files.where((f) => ImageNames.isDocument(f.path))) {
       switch (await _services.store.read(file.path)) {
         case Ok(:final value):
-          used.addAll(ImageNames.namesIn(_asText(value.bytes)));
+          used.addAll(_linkedBy(value.bytes));
         case Err():
           return null;
       }
     }
-    for (final copy in scan.conflicts.expand((conflict) => conflict.copies)) {
+    final copies = scan.conflicts
+        .where((conflict) => ImageNames.isDocument(conflict.mainPath))
+        .expand((conflict) => conflict.copies);
+    for (final copy in copies) {
       switch (await _services.conflicts.readCopy(copy)) {
         case Ok(:final value):
-          used.addAll(ImageNames.namesIn(_asText(value)));
+          used.addAll(_linkedBy(value));
         case Err():
           return null;
       }
@@ -108,7 +115,8 @@ final class UnusedImages {
     return used;
   }
 
-  /// Names are plain ASCII, so any text encoding finds them.
-  static String _asText(List<int> bytes) =>
-      utf8.decode(bytes, allowMalformed: true);
+  /// The names the document [bytes] links; as shown if they aren't
+  /// UTF-8, so no image of a broken file is taken for unused.
+  static Set<String> _linkedBy(Uint8List bytes) =>
+      ImageNames.linkedBy(TextFile.textToShow(bytes));
 }

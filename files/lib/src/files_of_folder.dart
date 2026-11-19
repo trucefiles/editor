@@ -105,9 +105,9 @@ final class FilesOfFolder {
   /// (this one too), to [subfolder] (its top level if `null`; made first
   /// if [newSubfolder]); named after [title] (by default [read]'s name)
   /// with [read]'s extension, and a number if that name is taken; holding
-  /// [text] there if given (e.g. its links changed), else its text as is.
-  /// The folder decides how ([OpenFolder.moveInto]). Nothing moves if the
-  /// file changed since [read] was read; if its old file can't be
+  /// [holding] there if given (its type changed it as it moved), else as
+  /// it is. The folder decides how ([OpenFolder.moveInto]). Nothing moves
+  /// if the file changed since [read] was read; if its old file can't be
   /// removed, both stay ([MoveLeftOriginal]).
   Future<Result<FileText, MoveFailure>> moveTo(
     FilesOfFolder target,
@@ -115,12 +115,12 @@ final class FilesOfFolder {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
-    String? text,
+    TextFile? holding,
   }) async {
     final FileText(listed: ListedFile(path: from, :version), textFile: old) =
         read;
-    final file = text == null ? old : old.withText(text);
-    final bytes = text == null ? null : file.encode(text);
+    final file = holding ?? old;
+    final bytes = holding?.encode(holding.text);
     final (:base, :extension) = splitFileName(from.name);
     CopiedOnly? left;
     // A copy whose old file stays still names the file: it ends the

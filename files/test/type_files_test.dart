@@ -36,9 +36,6 @@ final class _KeyValueType implements ShownFileType {
 
   @override
   TextMerge get merge => const FakeTextMerge();
-
-  @override
-  String? relinked(String text, Relink relink) => null;
 }
 
 final _types = ShownFileTypes([const _KeyValueType()]);

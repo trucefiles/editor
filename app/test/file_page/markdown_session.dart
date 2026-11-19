@@ -32,7 +32,7 @@ FileSession markdownSession(
     ),
   ),
   merge: merge,
-  linked: const NoLinkedFiles(),
+  arrivals: noArrivals(),
 );
 
 extension MarkdownSession on FileSession {

@@ -133,7 +133,6 @@ final class FileWork<V extends Version> {
     this.toRead,
     this.firstLine,
     this.start = '',
-    this.placing = false,
   });
 
   /// What a write may go over: the version read, our last write, or a
@@ -199,10 +198,6 @@ final class FileWork<V extends Version> {
   /// only white space, is not written.
   final String start;
 
-  /// A new file's place is changing ([Placing]): it is not created
-  /// until it is [Placed].
-  final bool placing;
-
   FileWork<V> copyWith({
     Object? expected = _same,
     Object? offered = _same,
@@ -220,7 +215,6 @@ final class FileWork<V extends Version> {
     Object? move = _same,
     Object? toRead = _same,
     Object? firstLine = _same,
-    bool? placing,
   }) => FileWork(
     expected: _or(expected, this.expected),
     offered: _or(offered, this.offered),
@@ -239,7 +233,6 @@ final class FileWork<V extends Version> {
     toRead: _or(toRead, this.toRead),
     firstLine: _or(firstLine, this.firstLine),
     start: start,
-    placing: placing ?? this.placing,
   );
 }
 

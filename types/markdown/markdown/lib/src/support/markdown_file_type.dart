@@ -1,7 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
-import '../edit/relinked.dart';
 import '../owner/editor_contract.dart' show CheckedItems;
 import '../summary/document_summary.dart';
 import 'markdown_support.dart';
@@ -47,9 +46,4 @@ base class MarkdownFileType implements ShownFileType {
   /// Texts are compared and picked by the user.
   @override
   TextMerge? get merge => null;
-
-  /// Inline images only, block-exact (see [relinkedMarkdown]).
-  @override
-  String? relinked(String text, Relink relink) =>
-      relinkedMarkdown(text, relink);
 }

@@ -23,6 +23,7 @@ import '../edit/commands/acted_on.dart';
 import '../edit/commands/command.dart';
 import '../edit/commands/links.dart' show linkHere;
 import '../edit/commands/text_commands.dart' show ordered;
+import '../edit/image_links.dart';
 import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
 import '../edit/text_places.dart' show textAt;
@@ -185,6 +186,10 @@ final class _Step
         }
         _show(MarkdownContent(edit.text));
         textChanged();
+      case (RelinkImages(:final relink), _):
+        if (relinkedMarkdown(sent.text, relink) case final text?) {
+          replaceAsStep(text);
+        }
       case (SetMode(:final mode), _):
         _setMode(mode);
       case (SetCheckedItems(:final checkedItems), _):

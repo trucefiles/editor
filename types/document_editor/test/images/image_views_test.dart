@@ -12,7 +12,7 @@ void main() {
   testWidgets('Image in Visual edit keeps the picture and puts it on a line '
       'after the caret', (tester) async {
     final document = TestDocument('milk\n\neggs');
-    final kept = FakeHostImages();
+    final kept = FakeImageKeeping();
     await pumpDocument(
       tester,
       document,
@@ -44,7 +44,7 @@ void main() {
     await pumpDocument(
       tester,
       document,
-      imageAdding: (picking: picking, kept: FakeHostImages(), hint: (_) {}),
+      imageAdding: (picking: picking, kept: FakeImageKeeping(), hint: (_) {}),
     );
 
     await tester.caretIn(paragraphNodeOf(), 2);

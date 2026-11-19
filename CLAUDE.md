@@ -22,7 +22,7 @@ Prefer the simpler option when in doubt.
 - App-private storage (settings, drafts, backups) is never synced, so it never follows a sync tool's rules (temp names, ignored files).
 
 ## Interfaces
-- Information hiding: an interface states the question, not how one implementation answers it. No parameters, types or concepts that only some implementations need.
+- Information hiding: an interface states the question, not how one implementation answers it. A generic layer (core, folders, files, file_page) holds no concept that only some file types or features have: if other implementations would answer "none" or throw, it belongs to the type, and the generic layer offers at most a content-neutral seam. Neutral names don't make a concept neutral.
 - Encapsulate what varies: decisions that differ per sync tool or platform stay behind the interface; platform facts are injected into implementations at the wiring point.
 - Sync-tool neutral: generic code works unchanged for any sync tool, including one without files on disk.
 - One type, one meaning; prefer opaque ids and values over raw paths or mixed data.

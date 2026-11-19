@@ -126,26 +126,6 @@ final class AskMerges extends FileInput<Never> implements Asking {
   final Version seen;
 }
 
-/// A new file's place starts to change: it is not created until it is
-/// [Placed], so it never lands at a place it leaves. Nothing for a file
-/// that has a file.
-final class Placing extends FileInput<Never> {
-  const Placing();
-}
-
-/// How a text changes (e.g. its links as its file changes place): the
-/// new text, `null` if it stays.
-typedef TextRewrite = String? Function(String text);
-
-/// A new file's place change ended; with it its text changes as [change]
-/// says (`null`: it stays), edits made meanwhile included: the editor
-/// shows it, unless it has edits the file has not seen yet.
-final class Placed extends FileInput<Never> {
-  const Placed({this.change});
-
-  final TextRewrite? change;
-}
-
 /// Write the edits as the file again, after it was deleted elsewhere.
 final class RestoreMine extends FileInput<Never> {
   const RestoreMine();
@@ -287,15 +267,14 @@ enum ReplacedBy {
   /// It changed elsewhere.
   elsewhere,
 
-  /// The user's move changed it (e.g. its links); a new file's too,
-  /// before its first save ([Placed]).
+  /// The user's move changed it (e.g. what a file type rewrites as its
+  /// file moves).
   move,
 }
 
 /// The file's text was replaced [by] a change elsewhere or the user's
 /// move while there were no unsaved edits: the editor shows [text]
-/// unless it changed its text after [ackRev]. [version]: the file's,
-/// `null` for a new file that has none yet.
+/// unless it changed its text after [ackRev].
 final class Replaced extends ToEditor {
   const Replaced(
     this.text, {
@@ -305,7 +284,7 @@ final class Replaced extends ToEditor {
   });
 
   final String text;
-  final Version? version;
+  final Version version;
   final int ackRev;
   final ReplacedBy by;
 }

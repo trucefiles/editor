@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import 'support.dart';
@@ -29,11 +29,32 @@ void main() {
     );
   });
 
-  test('names are found anywhere in a text', () {
+  test('a document links the names of ours its images lead to', () {
     expect(
-      ImageNames.namesIn('![](document-images/$nameA) and $nameB, $nameA'),
-      {nameA, nameB},
+      ImageNames.linkedBy(
+        '![](document-images/$nameA) and $nameB, `![](x/$nameB)`, '
+        '![](../document-images/$nameA) ![](pics/a.png)',
+      ),
+      {nameA},
     );
+  });
+
+  test('links from documents at the same depth read alike', () {
+    expect(ImageNames.linksAlike(null, null), isTrue);
+    expect(ImageNames.linksAlike(path('a'), path('b')), isTrue);
+    expect(ImageNames.linksAlike(null, path('a')), isFalse);
+    expect(ImageNames.linksAlike(path('a/b'), path('c')), isFalse);
+  });
+
+  test('a link of ours is kept in the store, wherever it points', () {
+    expect(ImageNames.keptAt('../../x/$nameA'), path('document-images/$nameA'));
+    expect(ImageNames.keptAt('pics/a.png'), isNull);
+  });
+
+  test('only Markdown documents link images of ours', () {
+    expect(ImageNames.isDocument(path('a/b.md')), isTrue);
+    expect(ImageNames.isDocument(path('a/b.txt')), isFalse);
+    expect(ImageNames.isDocument(path('a/b.ics')), isFalse);
   });
 
   test('the store folder and all in it are kept apart', () {

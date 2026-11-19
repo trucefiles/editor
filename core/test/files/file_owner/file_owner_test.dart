@@ -921,61 +921,6 @@ void main() {
   });
 
   group('a new document', () {
-    test('its text changed with its place shows, kept as its edits', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..keep()
-        ..send(const Placing())
-        ..send(Placed(change: (text) => '${text}2'));
-      final replaced = run.last<Replaced>();
-      expect((replaced.text, replaced.version), ('a2', null));
-      expect(replaced.by, ReplacedBy.move);
-      run.keep();
-      expect(run.last<KeepDraft>().text, 'a2');
-      run.secure(SecureReason.hide);
-      expect(run.last<Create>().text, 'a2');
-    });
-
-    test('is not created while its place changes, then created there', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..keep()
-        ..send(const Placing())
-        ..secure(SecureReason.hide);
-      expect(run.all<Create>(), isEmpty);
-      run.send(const Placed());
-      expect(run.last<Create>().text, 'a');
-    });
-
-    test('as the app ends while its place changes, it stays on the device', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..keep()
-        ..send(const Placing())
-        ..secure(SecureReason.exit);
-      expect(run.all<Create>(), isEmpty);
-      expect(run.last<Answer>().kept, isTrue);
-    });
-
-    test('its text changes with its place, edits made meanwhile too', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..send(const Placing())
-        ..edit('ab', 2, lineage: null)
-        ..send(Placed(change: (text) => '${text}2'));
-      expect(run.last<Replaced>().text, 'ab2');
-      expect(run.state.text, 'ab2');
-    });
-
-    test('a change that leaves its text is not shown', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..send(const Placing())
-        ..send(Placed(change: (_) => null));
-      expect(run.all<Replaced>(), isEmpty);
-      expect(run.state.text, 'a');
-    });
-
     test('empty is never written', () {
       final run = _Run.unwritten()
         ..edit(' ', 1, lineage: null)

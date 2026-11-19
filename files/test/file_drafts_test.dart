@@ -105,16 +105,22 @@ void main() {
   });
 
   test(
-    'gives the edits of every draft, or none if one can not be read',
+    'gives every draft with its path, or none if one can not be read',
     () async {
-      expect(await drafts.texts(), isEmpty);
+      expect(await drafts.every(), isEmpty);
       await drafts.keep(draft('1', 'one'));
       await drafts.keep(draft('2', 'two'));
-      expect(await drafts.texts(), unorderedEquals(['one', 'two']));
+      expect(
+        (await drafts.every())!.map((draft) => (draft.path, draft.text)),
+        unorderedEquals([
+          (draft('1', 'one').path, 'one'),
+          (draft('2', 'two').path, 'two'),
+        ]),
+      );
 
       File('${dir.path}/3.json').writeAsStringSync('{broken');
 
-      expect(await drafts.texts(), isNull);
+      expect(await drafts.every(), isNull);
     },
   );
 

@@ -1,0 +1,18 @@
+name: truce_markdown_images
+description: The images Markdown documents show, kept in each folder's document-images folder (adding, taking along as documents move, bringing back, cleaning up). Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  truce_core: any
+  truce_files: any
+  truce_folders: any
+  truce_markdown: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any
+  truce_test_support: any

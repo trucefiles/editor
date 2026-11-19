@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import 'support.dart';

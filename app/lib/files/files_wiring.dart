@@ -40,7 +40,7 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
     folders: () => settledFolders(folderList),
     drafts: ref.watch(draftsProvider),
     types: ref.watch(fileTypesProvider),
-    linked: ref.watch(linkedFilesProvider),
+    arrivals: ref.watch(fileArrivalsProvider),
   );
 });
 

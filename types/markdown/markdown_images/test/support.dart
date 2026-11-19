@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 /// A folder of the fake plugin whose document images are kept apart, as
@@ -11,7 +11,8 @@ final class ImageFolder {
     services = folderServices(
       raw,
       reach: folderReach(raw.files),
-      handles: (file) => file.name.endsWith('.md'),
+      handles: (file) =>
+          file.name.endsWith('.md') || file.name.endsWith('.txt'),
       keptApart: ImageNames.isKept,
       checkEvery: () => const Duration(seconds: 1),
       backupsPath: tempFolder().path,

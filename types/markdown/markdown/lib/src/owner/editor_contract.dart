@@ -11,6 +11,7 @@ import 'package:truce_core/truce_core.dart'
 
 import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';
+import '../edit/image_links.dart';
 import '../edit/keys/key_map.dart';
 import '../edit/selection.dart';
 import '../view/rows.dart';
@@ -210,6 +211,14 @@ final class SetCollapsed extends EditorInput {
   final bool collapsed;
 }
 
+/// The document's place changed: each inline image link of it changes
+/// as [relink] says, in any mode, as one step undo takes back.
+final class RelinkImages extends EditorInput {
+  const RelinkImages(this.relink);
+
+  final Relink relink;
+}
+
 /// A request of the document page (see core's editor contract).
 final class Request extends EditorInput {
   const Request(this.request);
@@ -318,6 +327,16 @@ final class EditorState {
 /// What shows: the doc tree, or the text Markdown edit edits.
 sealed class EditorContent {
   const EditorContent();
+
+  /// Where its images lead (see [imageLinksIn]), a raw block's as typed
+  /// so far too.
+  Set<String> get imageLinks => switch (this) {
+    FormattedContent(:final view, :final raw) => {
+      ...imageLinksIn(view.doc),
+      if (raw != null) ...imageLinksOf(raw.text),
+    },
+    MarkdownContent(:final text) => imageLinksOf(text),
+  };
 }
 
 /// The document formatted: its [view] rows, the [selection] in them

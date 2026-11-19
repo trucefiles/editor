@@ -17,6 +17,7 @@ export 'src/edit/commands/command.dart' hide withItemsNamed;
 export 'src/edit/commands/links.dart' show LinkHere, linkHere;
 export 'src/edit/drop_place.dart';
 export 'src/edit/format_state.dart';
+export 'src/edit/image_links.dart';
 export 'src/edit/keys/key_map.dart';
 export 'src/edit/selection.dart';
 export 'src/edit/typing_style.dart';

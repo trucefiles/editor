@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_editor/images/image_cleanup.dart';
 import 'package:truce_editor/images/images_wiring.dart';
 import 'package:truce_editor/images/ui/remove_unused_images_tile.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 import '../../support.dart';
 

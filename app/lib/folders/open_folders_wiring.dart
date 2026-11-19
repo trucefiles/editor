@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 import '../file_types/file_types.dart';
 import '../plugins/plugins_wiring.dart';

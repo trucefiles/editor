@@ -219,7 +219,6 @@ void main() {
       bytesOf: (_) async => null,
       hint: (_) {},
       color: Colors.teal,
-      images: FakeHostImages(),
     );
     Future<void> pumpPart() => tester.pumpWidget(
       MaterialApp(

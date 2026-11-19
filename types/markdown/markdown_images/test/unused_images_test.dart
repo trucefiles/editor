@@ -1,13 +1,14 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 import 'support.dart';
 
 void main() {
   late ImageFolder folder;
-  late List<String>? drafts;
+  late List<FileDraft>? drafts;
 
   setUp(() {
     folder = ImageFolder('f1');
@@ -44,10 +45,35 @@ void main() {
     folder.putImage(nameA);
     folder.putImage(nameB);
     folder.files.put('a.md', 'no images');
-    folder.files.put('a.fake-copy-20261101-120000.md', 'see $nameA');
-    drafts = ['see $nameB'];
+    folder.files.put(
+      'a.fake-copy-20261101-120000.md',
+      '![](document-images/$nameA)',
+    );
+    drafts = [
+      FileDraft(
+        id: '1',
+        path: path('b.md'),
+        text: '![](document-images/$nameB)',
+      ),
+    ];
 
     expect((await cleanup().find()).value, isEmpty);
+  });
+
+  test('a name only in plain text, code or a file of another type does '
+      'not keep an image', () async {
+    folder.putImage(nameA);
+    folder.files.put('a.md', 'see $nameA, `![](document-images/$nameA)`');
+    folder.files.put('b.txt', '![](document-images/$nameA)');
+    drafts = [
+      FileDraft(
+        id: '1',
+        path: path('c.txt'),
+        text: '![](document-images/$nameA)',
+      ),
+    ];
+
+    expect(names((await cleanup().find()).value), [nameA]);
   });
 
   test('an image changed in the last hour stays', () async {

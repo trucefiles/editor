@@ -300,6 +300,39 @@ void main() {
       expect(run.markdown, 'a');
     });
 
+    String? up(String link) => link == 'a.png' ? '../a.png' : null;
+
+    test('image links changed with the place are one step, offered for '
+        'nothing', () {
+      final run = EditorRun('x ![](a.png) ![](b.png)')..send(RelinkImages(up));
+      expect(run.text, 'x ![](../a.png) ![](b.png)');
+      expect(run.outputs.whereType<UndoOffered>(), isEmpty);
+      run.undo();
+      expect(run.text, 'x ![](a.png) ![](b.png)');
+    });
+
+    test('image links change in Markdown edit too, typing kept', () {
+      final run = EditorRun('x ![](a.png)', mode: EditMode.markdown)
+        ..editText('xy ![](a.png)')
+        ..send(RelinkImages(up));
+      expect(run.text, 'xy ![](../a.png)');
+    });
+
+    test('tells where its images lead, in each mode', () {
+      // The image in raw HTML is no image.
+      const text = 'x ![](a.png)\n\n<div>\n![](b.png)\n</div>\n';
+      expect(EditorRun(text).state.content.imageLinks, {'a.png'});
+      expect(
+        EditorRun(text, mode: EditMode.markdown).state.content.imageLinks,
+        {'a.png'},
+      );
+    });
+
+    test('image links that stay make no step', () {
+      final run = EditorRun('x ![](b.png)')..send(RelinkImages(up));
+      expect(run.state.status.canUndo, isFalse);
+    });
+
     test('a backup restored is one step, offered for undo', () {
       final run = EditorRun('mine')..request(const ReplaceAll('backup'));
       expect(run.rows, ['backup']);

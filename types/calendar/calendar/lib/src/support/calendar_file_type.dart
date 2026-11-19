@@ -68,8 +68,4 @@ base class CalendarFileType implements ShownFileType {
 
   @override
   TextMerge get merge => const CalendarMerge();
-
-  /// Its texts have no image links.
-  @override
-  String? relinked(String text, Relink relink) => null;
 }

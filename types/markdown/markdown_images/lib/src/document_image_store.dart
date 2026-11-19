@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart' show Relink;
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown/truce_markdown.dart' show Relink;
 
 import 'image_names.dart';
 

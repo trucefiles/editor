@@ -91,12 +91,6 @@ final class _Step<V extends Version>
         events.add(MergesAnswer(ticket, merges: _mergesWith(seen)));
       case RestoreMine():
         _restoreMine();
-      case Placing():
-        if (work.expected == null && !_done) {
-          _work(work.copyWith(placing: true));
-        }
-      case Placed(:final change):
-        _placed(change);
       case Discard():
         _discard();
       case Move():
@@ -130,15 +124,14 @@ final class _Step<V extends Version>
     if (work.io == null && !_hasEdits && work.draft != null) _dropDraft();
     if (work.move case final move? when work.io == null) _moveStep(move);
     // Secures waiting are answered once the move ran.
-    // A new file changing its place is created once placed.
     if (work.securing case final securing?
-        when work.io == null && work.move == null && !work.placing) {
+        when work.io == null && work.move == null) {
       _secureStep(securing);
     }
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
-    if (work.folderRev != null && !work.placing) _write();
+    if (work.folderRev != null) _write();
   }
 
   // Edits.
@@ -465,22 +458,6 @@ final class _Step<V extends Version>
     );
   }
 
-  /// A new file's place change ended, its text [from] now [text], if
-  /// given: it shows, unless edits came since. A file that has a file
-  /// changes only by a move ([_movedTo]).
-  void _placed(TextRewrite? change) {
-    _work(work.copyWith(placing: false));
-    if (change == null || work.expected != null || _done) return;
-    final text = change(state.text);
-    if (text == null) return;
-    _set(text: text);
-    // Kept on the device as the edits are.
-    if (status is Editing) _set(status: const Editing(EditPhase.inMemory));
-    events.add(
-      Replaced(text, version: null, ackRev: state.rev, by: ReplacedBy.move),
-    );
-  }
-
   void _goneElsewhere() {
     if (status is! DeletedElsewhere) _set(status: const DeletedElsewhere());
   }
@@ -538,8 +515,8 @@ final class _Step<V extends Version>
     if (copy != null) {
       final sent = work.expected?.text;
       _work(work.copyWith(expected: copy, lastWriteEnd: endedAt));
-      // The move changed the text (e.g. its links): the editor takes it,
-      // unless edits came meanwhile, which go over it.
+      // The move changed the text (its file type rewrote it): the editor
+      // takes it, unless edits came meanwhile, which go over it.
       if (copy.text != sent && state.text == sent) {
         _replaced(copy, by: ReplacedBy.move);
       }

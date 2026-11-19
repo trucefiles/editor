@@ -10,14 +10,14 @@ import 'image_fakes.dart';
 
 void main() {
   late FakePicking picking;
-  late FakeHostImages kept;
+  late FakeImageKeeping kept;
   late List<String> hints;
   late List<String> inserted;
   late ImageInsert insert;
 
   setUp(() {
     picking = FakePicking(onePixelPng);
-    kept = FakeHostImages();
+    kept = FakeImageKeeping();
     hints = [];
     inserted = [];
     insert = ImageInsert(

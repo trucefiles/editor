@@ -23,6 +23,7 @@ dependencies:
   truce_files: any
   truce_images: any
   truce_markdown: any
+  truce_markdown_images: any
   truce_plain_text: any
 
 dev_dependencies:
@@ -31,5 +32,6 @@ dev_dependencies:
   # The key robots super_editor's own tests use; already in its graph.
   flutter_test_robots: 0.0.24
   truce_editor_test_support: any
+  truce_folders: any
   truce_lints: any
   truce_test_support: any

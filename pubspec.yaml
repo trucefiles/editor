@@ -12,7 +12,6 @@ workspace:
   - files
   - folders
   - images
-  - document_image_store
   - common_ui
   - plugins/local_folder/local_folder
   - plugins/local_folder/local_folder_ui
@@ -24,5 +23,6 @@ workspace:
   - types/calendar/calendar_editor
   - types/document_editor
   - types/markdown/markdown
+  - types/markdown/markdown_images
   - types/plain_text/plain_text
   - lints

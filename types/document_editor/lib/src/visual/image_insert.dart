@@ -1,15 +1,27 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_images/truce_images.dart';
 
 import 'image_picking.dart';
 
+/// Keeping a picture for a document and linking it there.
+abstract interface class ImageKeeping {
+  /// Keeps [bytes], an image with [extension] (without its dot), for the
+  /// document, and puts the link to it in its text by [insert], leading
+  /// from where the document is then. Fails if the folder can't be
+  /// written (e.g. it can't be reached).
+  Future<Result<void, StoreError>> add(
+    Uint8List bytes, {
+    required String extension,
+    required void Function(String link) insert,
+  });
+}
+
 /// What adding an image to a document needs: how pictures are picked,
-/// where they are kept, and how a short hint shows.
+/// how they are kept, and how a short hint shows.
 typedef ImageAdding = ({
   ImagePicking picking,
-  HostImages kept,
+  ImageKeeping kept,
   void Function(String message) hint,
 });
 

@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 import '../document_editor.dart';
 import '../document_images.dart';
 import '../run_command.dart';
+import 'images_at_place.dart';
 import 'markdown_editor_part.dart';
 import 'markdown_links.dart';
 import 'markdown_services.dart';
@@ -25,38 +27,45 @@ final class MarkdownEditorView extends EditorView {
   /// When the document was opened: its pictures are read anew each open.
   final _openedAt = DateTime.now();
 
+  /// Its images at its place, from its first view on.
+  ImagesAtPlace? _images;
+
   /// Lists get Add item buttons where the setting says, links open as the
   /// app opens them, images show from the file's folder, the kept ones
-  /// first, and are added there.
+  /// first, and are added there; they follow the document as its place
+  /// changes ([ImagesAtPlace.at]).
   @override
-  Widget view(EditorHost host, {required bool autofocus}) =>
-      ValueListenableBuilder(
-        valueListenable: _services.addItems,
-        builder: (_, addItems, _) => DocumentEditor(
-          _part.gate,
-          text: host.kept,
-          notices: _part.gate.events,
-          addItems: addItems,
-          onLink: (url) =>
-              openMarkdownLink(url, open: _services.openLink, hint: host.hint),
-          images: FolderImages(
-            host.bytesOf,
-            folder: host.folder,
-            document: host.path,
-            openedAt: _openedAt,
-            keptAt: host.images.keptAt,
-          ),
-          imageAdding: switch (_services.picking) {
-            final picking? => (
-              picking: picking,
-              kept: host.images,
-              hint: host.hint,
-            ),
-            null => null,
-          },
-          autofocus: autofocus,
+  Widget view(EditorHost host, {required bool autofocus}) {
+    final images = _images ??= ImagesAtPlace(
+      _part.gate,
+      _services.imagesOf,
+      place: (folder: host.folder, documentFolder: host.path.parent),
+    );
+    images.at(host.folder, host.path, hint: host.hint);
+    return ValueListenableBuilder(
+      valueListenable: _services.addItems,
+      builder: (_, addItems, _) => DocumentEditor(
+        _part.gate,
+        text: host.kept,
+        notices: _part.gate.events,
+        addItems: addItems,
+        onLink: (url) =>
+            openMarkdownLink(url, open: _services.openLink, hint: host.hint),
+        images: FolderImages(
+          host.bytesOf,
+          folder: host.folder,
+          document: host.path,
+          openedAt: _openedAt,
+          keptAt: ImageNames.keptAt,
         ),
-      );
+        imageAdding: switch (_services.picking) {
+          final picking? => (picking: picking, kept: images, hint: host.hint),
+          null => null,
+        },
+        autofocus: autofocus,
+      ),
+    );
+  }
 
   @override
   List<Widget> actions(BuildContext context) => [

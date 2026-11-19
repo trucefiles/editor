@@ -50,7 +50,7 @@ final filePagesProvider = Provider<FilePages>(
         ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
     endWait: appEndWait,
-    linked: ref.watch(linkedFilesProvider),
+    arrivals: ref.watch(fileArrivalsProvider),
     // Where nothing finds changes meanwhile, what shows next is listed
     // again.
     fileClosed: () {

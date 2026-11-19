@@ -71,9 +71,7 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
           notify(UndoRefused(id));
         }
       case ReplaceAll(:final text):
-        final step = replaceText(text);
-        _changedByHistory();
-        record(step, null);
+        replaceAsStep(text);
         notify(UndoOffered(book.history.latestId!, OfferedUndo.restore));
       case FromFile(
             message: Replaced(
@@ -165,6 +163,13 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
       undo(step);
       _changedByHistory();
     }
+  }
+
+  /// Shows [text] in place of the text, as one step undo takes back.
+  void replaceAsStep(String text) {
+    final step = replaceText(text);
+    _changedByHistory();
+    record(step, null);
   }
 
   /// A text change not typed: saved as typing is, and sent at once where

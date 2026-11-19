@@ -1,18 +1,20 @@
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 
-import '../linked_files.dart';
+import '../file_arrival.dart';
 import 'folder_backups.dart';
 
 /// Compares a backup with its file as it is now, through [_restore];
-/// [_rescan] scans after a keep. A kept backup's linked files come back
-/// first ([LinkedFiles.bringBack]).
+/// [_rescan] scans after a keep. What is kept arrives at the file's
+/// place first, as its type says ([FileArrivals.restoredBytes]).
 final class RestoreCompare
     implements CompareSource<FolderBackup, RestoreChoice> {
-  RestoreCompare(this._restore, this._rescan, {required this._linked});
+  RestoreCompare(this._restore, this._rescan, {required this._arrivals});
 
   final BackupRestore _restore;
   final Future<void> Function() _rescan;
-  final LinkedFiles _linked;
+  final FileArrivals _arrivals;
 
   @override
   Future<Result<RestoreChoice, StoreError>> load(FolderBackup target) =>
@@ -24,17 +26,31 @@ final class RestoreCompare
     RestoreChoice sides,
     Resolution choice,
   ) async {
-    final kept = switch (choice) {
-      KeepCurrent() => null,
-      KeepOther() => sides.bytes,
-      KeepMerged(:final bytes) => bytes,
-    };
-    if (kept != null) {
-      if (TextFile.decode(kept) case final file?) {
-        await _linked.bringBack(file.text, target.folder);
-      }
+    Future<Uint8List> arrived(Uint8List bytes) {
+      final path = target.backup.filePath;
+      return _arrivals.restoredBytes(
+        bytes,
+        folder: target.folder,
+        from: path,
+        to: (folder: target.folder, subfolder: path.parent),
+      );
     }
-    return _restore.keep(sides, choice);
+
+    return switch (choice) {
+      KeepCurrent() => _restore.keep(sides, choice),
+      KeepOther() => _restore.keep(
+        RestoreChoice(
+          sides.backup,
+          bytes: await arrived(sides.bytes),
+          current: sides.current,
+        ),
+        choice,
+      ),
+      KeepMerged(:final bytes) => _restore.keep(
+        sides,
+        KeepMerged(await arrived(bytes)),
+      ),
+    };
   }
 
   @override

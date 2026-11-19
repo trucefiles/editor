@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 import '../../common/snack.dart';
 import '../images_wiring.dart';

@@ -1,3 +1,7 @@
+/// The one rule for a document's image links, as read: what they lead
+/// to, and changing where they lead.
+library;
+
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../doc/load.dart';
@@ -6,11 +10,26 @@ import '../print/printer.dart';
 import '../tree/inlines.dart';
 import '../visible/visible_text.dart';
 
-/// [text] with each inline image's destination changed as [relink] says
-/// (`null`: kept), printed by the one printer, so every block whose
-/// images keep their links keeps its bytes; `null` if none changes.
-/// Reference images keep theirs: their destination is a definition's.
-String? relinkedMarkdown(String text, String? Function(String) relink) {
+/// How an image link changes: its new destination, `null` to keep it.
+typedef Relink = String? Function(String destination);
+
+/// Where every image of [doc] leads, inline and reference ones; never
+/// a text that only looks like a link (e.g. in code).
+Set<String> imageLinksIn(DocTree doc) => {
+  for (final node in nodesIn(doc.root).whereType<TextNode>())
+    for (final piece in node.text.pieces)
+      if (piece case ObjectPiece(inline: final ImageInline image))
+        image.destination,
+};
+
+/// [imageLinksIn] the document [text] reads as.
+Set<String> imageLinksOf(String text) => imageLinksIn(loadMarkdown(text).doc);
+
+/// [text] with each inline image's destination changed as [relink] says,
+/// printed by the one printer, so every block whose images keep their
+/// links keeps its bytes; `null` if none changes. Reference images keep
+/// theirs: their destination is a definition's.
+String? relinkedMarkdown(String text, Relink relink) {
   final (:doc, :origin) = loadMarkdown(text);
   final changed = nodesIn(doc.root)
       .whereType<TextNode>()
@@ -25,7 +44,7 @@ String? relinkedMarkdown(String text, String? Function(String) relink) {
 
 /// [text] with its inline images relinked; the same object if none
 /// changes.
-VisibleText _relinked(VisibleText text, String? Function(String) relink) {
+VisibleText _relinked(VisibleText text, Relink relink) {
   final images = {
     for (final piece in text.pieces)
       if (piece case ObjectPiece(inline: final ImageInline image)

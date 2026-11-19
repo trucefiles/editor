@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
@@ -12,6 +11,7 @@ import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, path, tempFolder;
@@ -257,26 +257,5 @@ Future<Folder> addFolderOf(
   return added.value.single;
 }
 
-/// No files are kept for any text: moves and restores leave texts as
-/// they are.
-final class NoLinkedFiles implements LinkedFiles {
-  const NoLinkedFiles();
-
-  @override
-  Future<Result<void, StoreError>> copyFor(
-    String text, {
-    required Folder from,
-    required Folder to,
-  }) async => const Ok(null);
-
-  @override
-  Future<Result<Relink?, StoreError>> relinkFor(
-    String text,
-    Folder folder, {
-    required RelPath from,
-    required RelPath? toFolder,
-  }) async => const Ok(null);
-
-  @override
-  Future<void> bringBack(String text, Folder folder) async {}
-}
+/// No file type does anything as its files move or are restored.
+FileArrivals noArrivals() => FileArrivals(appFileTypes().detector);

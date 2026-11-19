@@ -1,10 +1,31 @@
 import 'package:test/test.dart';
-import 'package:truce_markdown/src/edit/relinked.dart';
+import 'package:truce_markdown/src/edit/image_links.dart';
 
 String? _toUp(String destination) =>
     destination.startsWith('document-images/') ? '../$destination' : null;
 
 void main() {
+  group('imageLinksOf', () {
+    test('gives where inline and reference images lead', () {
+      expect(
+        imageLinksOf(
+          '# A ![](a.png)\n\n- ![x](b/c.jpg "t")\n\n![r][1]\n\n'
+          '[1]: d.png\n',
+        ),
+        {'a.png', 'b/c.jpg', 'd.png'},
+      );
+    });
+
+    test('never finds a link in code or plain text', () {
+      expect(
+        imageLinksOf(
+          '`![](a.png)`\n\n```\n![](b.png)\n```\n\ndocument-images/c.png\n',
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('relinkedMarkdown', () {
     test('changes only the image links asked, every other block as read', () {
       const text =

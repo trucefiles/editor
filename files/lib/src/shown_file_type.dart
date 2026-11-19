@@ -2,7 +2,6 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_card_summary.dart';
 import 'file_text.dart';
-import 'linked_files.dart';
 import 'new_file_choice.dart';
 
 /// What one file type brings: its files ([support]), what cards show
@@ -31,11 +30,6 @@ abstract interface class ShownFileType {
   /// e.g. a conflict copy into its file; `null` if they don't (the user
   /// keeps one side).
   TextMerge? get merge;
-
-  /// [text] with its links to kept files (see `LinkedFiles`) changed as
-  /// [relink] says, block-exact (all else keeps its bytes); `null` if
-  /// none changes, or the type has no such links.
-  String? relinked(String text, Relink relink);
 }
 
 /// What every file type gives the same way.
