@@ -11,5 +11,6 @@ library;
 
 export 'src/document_image_store.dart';
 export 'src/image_names.dart';
+export 'src/images_follow.dart';
 export 'src/markdown_arrival.dart';
 export 'src/unused_images.dart';

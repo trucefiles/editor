@@ -26,6 +26,7 @@ void main() {
   Future<void> prune() => pruneBackupsAt(
     root,
     olderThan: DateTime.now().subtract(const Duration(days: 7)),
+    counts: _every,
   );
 
   test('deletes old backups of every folder, removed ones too', () async {
@@ -71,6 +72,7 @@ void main() {
     await pruneBackupsAt(
       root,
       olderThan: DateTime.now().subtract(const Duration(days: 7)),
+      counts: _every,
       spaceLimit: 100,
     );
 
@@ -81,9 +83,37 @@ void main() {
     expect(other.existsSync(), isTrue);
   });
 
+  test('backups of files it does not count never push others out', () async {
+    final older = backup('current', const Duration(hours: 2), size: 60);
+    final newest = backup('current', const Duration(hours: 1), size: 30);
+    final apart = backup(
+      'current',
+      const Duration(hours: 3),
+      file: 'kept/big.png',
+      size: 500,
+    );
+
+    await pruneBackupsAt(
+      root,
+      olderThan: DateTime.now().subtract(const Duration(days: 7)),
+      counts: (file) => !file.value.startsWith('kept/'),
+      spaceLimit: 100,
+    );
+
+    expect(older.existsSync(), isTrue);
+    expect(newest.existsSync(), isTrue);
+    expect(apart.existsSync(), isTrue);
+  });
+
   test('does nothing before the first backup', () async {
-    await pruneBackupsAt('$root/none', olderThan: DateTime.now());
+    await pruneBackupsAt(
+      '$root/none',
+      olderThan: DateTime.now(),
+      counts: _every,
+    );
 
     expect(Directory('$root/none').existsSync(), isFalse);
   });
 }
+
+bool _every(RelPath file) => true;

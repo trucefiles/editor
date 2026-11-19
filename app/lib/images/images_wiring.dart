@@ -8,28 +8,33 @@ import '../files/files_wiring.dart';
 import '../folders/open_folders_wiring.dart';
 import 'image_cleanup.dart';
 
-/// The document images of each open folder. Typed here: the Markdown
-/// services read it, and the folders know the types.
-final Provider<DocumentImageStore Function(FolderId folder)>
-documentImageStoresProvider = Provider((ref) {
-  final open = ref.watch(openFoldersProvider);
-  return (folder) => DocumentImageStore(open.servicesOf(folder));
-});
+/// Which files of a folder the app keeps apart from the documents: the
+/// document images' folder.
+final keptApartProvider = Provider<bool Function(RelPath path)>(
+  (_) => ImageNames.isKept,
+);
+
+/// The document images of each open folder.
+final documentImageStoresProvider =
+    Provider<DocumentImageStore Function(FolderId folder)>((ref) {
+      final open = ref.watch(openFoldersProvider);
+      return (folder) => DocumentImageStore(open.servicesOf(folder));
+    });
 
 /// How a Markdown document arrives as it moves or is restored: its
 /// images go along (see [MarkdownArrival]).
-final Provider<MarkdownArrival> markdownArrivalProvider = Provider((ref) {
-  final storeOf = ref.watch(documentImageStoresProvider);
-  return MarkdownArrival((folder) => storeOf(folder.id));
-});
+final markdownArrivalProvider = Provider<MarkdownArrival>(
+  (ref) => MarkdownArrival(ref.watch(documentImageStoresProvider)),
+);
 
 /// The user's cleanup of unused document images.
-final imageCleanupProvider = Provider<ImageCleanup>(
-  (ref) => ImageCleanup(
+final imageCleanupProvider = Provider<ImageCleanup>((ref) {
+  final detector = ref.watch(fileTypeDetectorProvider);
+  return ImageCleanup(
     servicesOf: ref.watch(openFoldersProvider).servicesOf,
+    storeOf: ref.watch(documentImageStoresProvider),
     draftsOf: ref.watch(draftsProvider).of,
     openFiles: ref.watch(openFilesProvider),
-    isDocument: (path) =>
-        ref.watch(fileTypesProvider).detector.detect(path) == markdownType,
-  ),
-);
+    isDocument: (path) => detector.detect(path) == markdownType,
+  );
+});

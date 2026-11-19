@@ -8,10 +8,6 @@ import 'package:truce_markdown_images/truce_markdown_images.dart';
 import '../editor_gate.dart';
 import '../visual/image_insert.dart';
 
-/// Where a document is: its folder, and the subfolder it is in (`null`:
-/// the top level).
-typedef DocumentPlace = ({FolderId folder, RelPath? documentFolder});
-
 /// The images of the Markdown document behind [_gate], at its place:
 /// adding one there ([add]), and, as its place changes ([at]; e.g. a new
 /// document's folder picked), its images going along into the new
@@ -77,28 +73,28 @@ final class ImagesAtPlace implements ImageKeeping {
   }
 
   /// The images go along to the place last asked for, then the links
-  /// change to lead from there. Images that can't go along keep their
-  /// links, and a hint tells.
+  /// change to lead from there (see [imagesFollow]). If the images can't
+  /// go along, the links stay as they are, and a hint tells.
   Future<void> _follow() async {
     final (from, to) = (_linksFrom, _asked);
-    if (to == _linksFrom || _closed) return;
+    if (to == from || _closed) return;
     _linksFrom = to;
-    final target = _storeOf(to.folder);
-    if (to.folder != from.folder) {
-      final names = ImageNames.ofLinks(_gate.state.content.imageLinks);
-      if (await _storeOf(from.folder).copyInto(target, names) is Err) {
+    final followed = await imagesFollow(
+      ImageNames.ofLinks(_gate.state.content.imageLinks),
+      from: from,
+      to: to,
+      storeOf: _storeOf,
+    );
+    switch (followed) {
+      case Err():
         _hint(
           "Couldn't take the images along: the folder can't be "
           'written now.',
         );
-      }
-    }
-    if (ImageNames.linksAlike(from.documentFolder, to.documentFolder)) {
-      return;
-    }
-    if (await target.relinkFrom(to.documentFolder) case Ok(value: final relink)
-        when !_closed) {
-      _gate.external(RelinkImages(relink));
+      case Ok(value: final relink?) when !_closed:
+        _gate.external(RelinkImages(relink));
+      case Ok():
+        break;
     }
   }
 }

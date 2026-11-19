@@ -41,6 +41,8 @@ final class MarkdownEditorView extends EditorView {
       _services.imagesOf,
       place: (folder: host.folder, documentFolder: host.path.parent),
     );
+    // The page tells no place change, so each view compares the place;
+    // the compare is cheap and the step runs only once per change.
     images.at(host.folder, host.path, hint: host.hint);
     return ValueListenableBuilder(
       valueListenable: _services.addItems,

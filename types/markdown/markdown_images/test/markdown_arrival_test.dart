@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart' show ArrivalBy;
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -28,7 +29,7 @@ void main() {
       for (final name in ['f1', 'f2'])
         folderId(name): ImageFolder(name, plugin: plugin),
     };
-    arrival = MarkdownArrival((folder) => folders[folder.id]!.store);
+    arrival = MarkdownArrival((id) => folders[id]!.store);
     images('f1').putImage(nameA);
   });
 
@@ -39,7 +40,7 @@ void main() {
     String from = 'doc.md',
     String to = 'f1',
     String? subfolder,
-    bool restored = false,
+    ArrivalBy by = ArrivalBy.move,
   }) async => (await arrival.arrive((
     bytes: Uint8List.fromList(utf8.encode(text)),
     folder: folder('f1'),
@@ -48,7 +49,7 @@ void main() {
       folder: folder(to),
       subfolder: subfolder == null ? null : path(subfolder),
     ),
-    restored: restored,
+    by: by,
   ))).map((bytes) => bytes == null ? null : utf8.decode(bytes));
 
   test('at the same depth, no link changes', () async {
@@ -102,7 +103,7 @@ void main() {
     final store = images('f1').store;
     await store.remove((await store.images()).value[nameA]!);
 
-    await arrive('![](document-images/$nameA)', restored: true);
+    await arrive('![](document-images/$nameA)', by: ArrivalBy.restore);
 
     expect(images('f1').has(nameA), isTrue);
   });

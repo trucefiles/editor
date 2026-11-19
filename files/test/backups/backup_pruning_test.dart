@@ -11,7 +11,7 @@ void main() {
 
   setUp(() {
     root = tempFolder().path;
-    pruning = BackupPruning(root);
+    pruning = BackupPruning(root, shows: (file) => file.value.endsWith('.md'));
   });
 
   /// Writes a backup saved [age] before [start], [megabytes] large.
@@ -21,6 +21,28 @@ void main() {
       ..createSync(recursive: true)
       ..writeAsBytesSync(List.filled(megabytes * 1000 * 1000 + 6, 0));
   }
+
+  test(
+    'backups of files the app does not show never push others out',
+    () async {
+      final older = backup(const Duration(hours: 2), megabytes: 30);
+      final newest = backup(const Duration(hours: 1), megabytes: 15);
+      final savedAt = start.subtract(const Duration(hours: 3));
+      final image =
+          File(
+              '$root/folder/${savedAt.microsecondsSinceEpoch}.other/'
+              'document-images/a.png',
+            )
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(List.filled(40 * 1000 * 1000, 0));
+
+      await pruning.pruneIfDue(start, BackupSpace.mb50);
+
+      expect(older.existsSync(), isTrue);
+      expect(newest.existsSync(), isTrue);
+      expect(image.existsSync(), isTrue);
+    },
+  );
 
   test('prunes the first time, then not again within a day', () async {
     final old = backup(const Duration(days: 8));

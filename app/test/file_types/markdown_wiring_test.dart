@@ -16,6 +16,7 @@ void main() {
       overrides: [
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
+        noImageFolders,
       ],
     );
     addTearDown(container.dispose);

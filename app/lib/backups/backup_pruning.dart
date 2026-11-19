@@ -1,13 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 
+import '../file_types/file_types.dart';
 import '../platform/app_activity.dart';
 import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
 
-final _pruningProvider = Provider<BackupPruning>(
-  (ref) => BackupPruning(ref.watch(appStorageProvider).backupsRootPath),
-);
+final _pruningProvider = Provider<BackupPruning>((ref) {
+  final detector = ref.watch(fileTypeDetectorProvider);
+  return BackupPruning(
+    ref.watch(appStorageProvider).backupsRootPath,
+    shows: (file) => detector.detect(file) != null,
+  );
+});
 
 /// Deletes old backups when the app comes into use, at most once a day,
 /// and when the backup space set changes (see [BackupPruning]).

@@ -4,10 +4,12 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 
 import '../../common/snack.dart';
+import '../image_cleanup_flow.dart';
 import '../images_wiring.dart';
 
 /// The folder setting that removes the images no document of [folder]
-/// shows any more, after the user agrees to how many.
+/// shows any more, after the user agrees to how many
+/// ([cleanUpUnusedImages]): it shows the flow and its outcome.
 class RemoveUnusedImagesTile extends ConsumerStatefulWidget {
   const RemoveUnusedImagesTile(this.folder, {super.key});
 
@@ -23,24 +25,20 @@ class _RemoveUnusedImagesTileState
   bool _busy = false;
 
   Future<void> _run() async {
-    final cleanup = ref.read(imageCleanupProvider);
     setState(() => _busy = true);
-    final found = await cleanup.find(widget.folder);
-    final images = switch (found) {
-      Ok(:final value) when value.isNotEmpty => value,
-      Ok() => null,
-      Err() => null,
-    };
-    final go = images != null && mounted && await _confirm(images.length);
-    final removed = go ? await cleanup.remove(widget.folder, images) : null;
+    final outcome = await cleanUpUnusedImages(
+      ref.read(imageCleanupProvider),
+      widget.folder,
+      confirm: (count) async => mounted && await _confirm(count),
+    );
     if (!mounted) return;
     setState(() => _busy = false);
-    final message = switch ((found, removed)) {
-      (Err(:final error), _) => _refusedText(error),
-      (Ok(value: []), _) => 'No unused images.',
-      (_, final removed?) =>
-        removed == 1 ? 'Removed 1 image.' : 'Removed $removed images.',
-      _ => null,
+    final message = switch (outcome) {
+      CleanupNotRun(:final why) => _refusedText(why),
+      NoneUnused() => 'No unused images.',
+      UnusedRemoved(count: 1) => 'Removed 1 image.',
+      UnusedRemoved(:final count) => 'Removed $count images.',
+      UnusedKept() => null,
     };
     if (message != null) showSnack(context, message);
   }

@@ -220,6 +220,7 @@ void main() {
   /// The cleanup as it runs [later] from now.
   ImageCleanup cleanupIn(Duration later) => ImageCleanup(
     servicesOf: container.read(openFoldersProvider).servicesOf,
+    storeOf: container.read(documentImageStoresProvider),
     draftsOf: container.read(draftsProvider).of,
     openFiles: container.read(openFilesProvider),
     isDocument: (path) => path.name.endsWith('.md'),

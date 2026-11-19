@@ -9,6 +9,7 @@ import 'package:truce_markdown_images/truce_markdown_images.dart';
 class ImageCleanup {
   const ImageCleanup({
     required this._servicesOf,
+    required this._storeOf,
     required this._draftsOf,
     required this._openFiles,
     required this._isDocument,
@@ -16,6 +17,7 @@ class ImageCleanup {
   });
 
   final FolderServices Function(FolderId folder) _servicesOf;
+  final DocumentImageStore Function(FolderId folder) _storeOf;
   final FileDrafts Function(FolderId folder) _draftsOf;
   final OpenFiles _openFiles;
 
@@ -34,10 +36,9 @@ class ImageCleanup {
       _unused(folder).remove(images);
 
   UnusedImages _unused(FolderId folder) {
-    final services = _servicesOf(folder);
     return UnusedImages(
-      DocumentImageStore(services),
-      services,
+      _storeOf(folder),
+      _servicesOf(folder),
       drafts: _draftsOf(folder).every,
       isDocument: _isDocument,
       now: _now,

@@ -20,7 +20,10 @@ final class _Marks implements FileArrival {
     seen.add(arrival);
     if (failWith case final error?) return Err(error);
     final text = utf8.decode(arrival.bytes);
-    final mark = arrival.restored ? 'restored' : 'moved';
+    final mark = switch (arrival.by) {
+      ArrivalBy.move => 'moved',
+      ArrivalBy.restore => 'restored',
+    };
     return Ok(Uint8List.fromList(utf8.encode('$text $mark')));
   }
 }
@@ -55,9 +58,8 @@ void main() {
     );
 
     expect(moved.value.text, 'x moved');
-    final (:from, to: place, :restored, folder: _, bytes: _) =
-        marks.seen.single;
-    expect((from, place, restored), (path('b.nt'), to, false));
+    final (:from, to: place, :by, folder: _, bytes: _) = marks.seen.single;
+    expect((from, place, by), (path('b.nt'), to, ArrivalBy.move));
   });
 
   test('a move fails as its type fails', () async {
@@ -97,7 +99,11 @@ void main() {
   test('a file restored at its own place is told so', () async {
     await arrivals.restored(file('x'), folder: folder, from: path('a/b.nt'));
 
-    expect(marks.seen.single.to, (folder: folder, subfolder: path('a')));
+    final (:to, :by, folder: _, from: _, bytes: _) = marks.seen.single;
+    expect(
+      (to, by),
+      ((folder: folder, subfolder: path('a')), ArrivalBy.restore),
+    );
   });
 
   test('a type without a step keeps its files as they are', () async {

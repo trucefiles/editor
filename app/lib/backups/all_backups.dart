@@ -14,9 +14,10 @@ final allBackupsProvider = FutureProvider.autoDispose<List<FolderBackup>>((
   // Built again as the list changes; none if it can't be read.
   ref.watch(folderListStateProvider);
   final open = ref.watch(openFoldersProvider);
+  final detector = ref.watch(fileTypeDetectorProvider);
   return backupsShown(
     await settledFolders(ref.read(folderListOwnerProvider)),
     (folder) => open.servicesOf(folder.id).backups,
-    shows: ref.watch(fileTypesProvider).handles,
+    shows: (file) => detector.detect(file) != null,
   );
 });

@@ -5,15 +5,24 @@ import 'package:truce_folders/truce_folders.dart';
 
 import 'file_place.dart';
 
+/// Why a file arrives at a place.
+enum ArrivalBy {
+  /// The user moves it.
+  move,
+
+  /// A past version of it comes back: its delete undone, a backup
+  /// restored.
+  restore,
+}
+
 /// A file about to be written at a place: [bytes], the file at [from] in
-/// [folder], go to [to]. [restored]: a past version of it comes back
-/// (its delete undone, a backup restored); else it moves.
+/// [folder], go to [to], [by] a move or a restore.
 typedef Arrival = ({
   Uint8List bytes,
   Folder folder,
   RelPath from,
   FilePlace to,
-  bool restored,
+  ArrivalBy by,
 });
 
 /// What one file type does as one of its files arrives at a place, e.g.
@@ -47,7 +56,7 @@ final class FileArrivals {
     folder: folder,
     from: from,
     to: to,
-    restored: false,
+    by: ArrivalBy.move,
   ))).map((bytes) => bytes == null ? file : _decoded(bytes));
 
   /// The text [file], a past version of the file at [from] in [folder],
@@ -82,7 +91,7 @@ final class FileArrivals {
     folder: folder,
     from: from,
     to: to ?? (folder: folder, subfolder: from.parent),
-    restored: true,
+    by: ArrivalBy.restore,
   ))) {
     Ok(:final value) => value,
     Err() => null,

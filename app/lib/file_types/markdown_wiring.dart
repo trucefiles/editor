@@ -15,9 +15,7 @@ final markdownServicesProvider = Provider<MarkdownServices>(
     addItems: ref.watch(_addItemPlaceProvider),
     openLink: ref.watch(linkOpenerProvider).open,
     picking: ref.watch(imagePickingProvider),
-    // Read when asked: the folders' stores know the file types, which
-    // know these services.
-    imagesOf: (folder) => ref.read(documentImageStoresProvider)(folder),
+    imagesOf: ref.watch(documentImageStoresProvider),
   ),
 );
 
