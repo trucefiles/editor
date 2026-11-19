@@ -11,8 +11,7 @@ its own line after the caret: from a file dialog on the desktop, or
 folder's `document-images` folder, so it syncs with the document. Tap an
 image to see it full screen and zoom in. Settings can take the location
 out of photos (on by default) and make large pictures smaller. A
-folder's settings can remove the images no document shows any more; each
-one keeps a backup for 7 days.
+folder's settings can remove the images no document shows any more.
 
 <img src="screenshots/images/image_visual_desktop.png" width="600" alt="Visual edit with a picture of a lake in the document and the Image button on the format bar">
 <img src="screenshots/images/image_button_touch.png" width="280" alt="The same document on a phone, the format bar scrolled to the Image button">

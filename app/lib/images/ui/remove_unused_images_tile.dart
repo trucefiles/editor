@@ -49,11 +49,7 @@ class _RemoveUnusedImagesTileState
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Remove $images?'),
-        content: const Text(
-          'No document in this folder shows them. '
-          'You can bring them back for 7 days by restoring a document '
-          'that showed them.',
-        ),
+        content: const Text('No document in this folder shows them.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

@@ -43,16 +43,30 @@ final class FileDrafts {
       await for (final entity in _folder.list(followLinks: false)) {
         final name = entity.uri.pathSegments.last;
         if (entity is! File || !name.endsWith(_extension)) continue;
-        if (before != null && !(await entity.lastModified()).isBefore(before)) {
-          continue;
-        }
         final id = name.substring(0, name.length - _extension.length);
-        drafts.add(await _read(id));
+        switch (await _writtenBefore(entity, before)) {
+          case true:
+            drafts.add(await _read(id));
+          case null:
+            drafts.add(null);
+          case false:
+        }
       }
     } on FileSystemException {
       return null;
     }
     return drafts;
+  }
+
+  /// Whether [draft] was last written before [before] (any time if
+  /// `null`); `null` if that can't be told, as for a draft not readable.
+  Future<bool?> _writtenBefore(File draft, DateTime? before) async {
+    if (before == null) return true;
+    try {
+      return (await draft.lastModified()).isBefore(before);
+    } on FileSystemException {
+      return null;
+    }
   }
 
   /// Writes [draft] over any earlier one with its id, atomically, after

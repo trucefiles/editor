@@ -48,9 +48,9 @@ class ImageButton extends StatelessWidget {
 
   Future<void> _pressed(BuildContext context) async {
     final source = sources.length == 1 ? sources.single : await _ask(context);
-    if (source == null) return;
+    if (source == null || !context.mounted) return;
     await insert.from(source);
-    onDone();
+    if (context.mounted) onDone();
   }
 
   /// Which source, from a menu at the button.

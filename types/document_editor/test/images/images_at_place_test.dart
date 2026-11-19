@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -57,11 +58,8 @@ void main() {
   }
 
   /// The document is at [at] in [folder] now; its steps ended.
-  Future<void> moveTo(String folder, String at) async {
-    images.at(folderId(folder), path(at), hint: hints.add);
-    // A step after it ends after it.
-    await images.add(Uint8List(0), extension: 'none', insert: (_) {});
-  }
+  Future<void> moveTo(String folder, String at) =>
+      images.at(folderId(folder), path(at), hint: hints.add);
 
   setUp(() {
     final plugin = FakePlugin();
@@ -123,13 +121,44 @@ void main() {
     expect(text(), '![](document-images/$_name)');
   });
 
+  test('images that could not come along come along at the next try, '
+      'and show anew', () async {
+    open('![](document-images/$_name)');
+    final f2 = folders[folderId('f2')]!.files;
+    f2.failWith = StoreError.ioFailure;
+    await moveTo('f2', 'x/doc.md');
+    expect(images.followed.value, isNull);
+
+    f2.failWith = null;
+    await moveTo('f2', 'x/doc.md');
+
+    expect(has('f2'), isTrue);
+    expect(text(), '![](../document-images/$_name)');
+    expect(images.followed.value, isNotNull);
+  });
+
+  test('an image added after its images could not come along tries '
+      'again first', () async {
+    open('![](document-images/$_name)');
+    final f2 = folders[folderId('f2')]!.files;
+    f2.failWith = StoreError.ioFailure;
+    await moveTo('f2', 'x/doc.md');
+    f2.failWith = null;
+    final links = <String>[];
+
+    await images.add(Uint8List(1), extension: 'png', insert: links.add);
+
+    expect(has('f2'), isTrue);
+    expect(links.single, startsWith('../document-images/'));
+  });
+
   test(
     'an image added while the place changes links from the new place',
     () async {
       open('a');
       final links = <String>[];
 
-      images.at(folderId('f2'), path('x/doc.md'), hint: hints.add);
+      unawaited(images.at(folderId('f2'), path('x/doc.md'), hint: hints.add));
       await images.add(Uint8List(1), extension: 'png', insert: links.add);
 
       expect(links.single, startsWith('../document-images/'));

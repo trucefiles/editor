@@ -44,9 +44,9 @@ final class FileArrivals {
   final Map<FileType, FileArrival> _byType;
 
   /// The text file to write as [file], the file at [from] in [folder],
-  /// moves to [to]: as its type's [FileArrival] says, else [file] as it
-  /// is. Fails if its type's step fails: the file then stays.
-  Future<Result<TextFile, StoreError>> moved(
+  /// moves to [to], as its type's [FileArrival] says; `null` if it moves
+  /// as it is. Fails if its type's step fails: the file then stays.
+  Future<Result<TextFile?, StoreError>> moved(
     TextFile file, {
     required Folder folder,
     required RelPath from,
@@ -57,7 +57,7 @@ final class FileArrivals {
     from: from,
     to: to,
     by: ArrivalBy.move,
-  ))).map((bytes) => bytes == null ? file : _decoded(bytes));
+  ))).map((bytes) => bytes == null ? null : _decoded(bytes));
 
   /// The text [file], a past version of the file at [from] in [folder],
   /// holds once restored at [to] (by default its own place), by

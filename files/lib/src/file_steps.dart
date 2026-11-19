@@ -112,7 +112,7 @@ base class FileSteps {
     if (_work.conflictWaits(file.key)) {
       return const Err(MoveBlockedByConflict());
     }
-    final TextFile arrived;
+    final TextFile? arrived;
     switch (await _work.arrivals.moved(
       file.textFile,
       folder: file.folder,

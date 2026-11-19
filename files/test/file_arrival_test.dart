@@ -57,7 +57,7 @@ void main() {
       to: to,
     );
 
-    expect(moved.value.text, 'x moved');
+    expect(moved.value?.text, 'x moved');
     final (:from, to: place, :by, folder: _, bytes: _) = marks.seen.single;
     expect((from, place, by), (path('b.nt'), to, ArrivalBy.move));
   });
@@ -114,7 +114,7 @@ void main() {
       to: to,
     );
 
-    expect(moved.value.text, 'x');
+    expect(moved.value, isNull);
     expect(marks.seen, isEmpty);
   });
 }
