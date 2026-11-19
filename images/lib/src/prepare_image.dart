@@ -84,18 +84,18 @@ final class PreparedImage {
 PreparedImage? prepareImage(Uint8List bytes, ImageSettings settings) {
   final kind = ImageKind.of(bytes);
   if (kind == null) return null;
-  if (settings.makeSmaller) {
-    switch (_smaller(bytes, kind, removeLocation: settings.removeLocation)) {
-      case _Unreadable():
-        return null;
-      case _Smaller(:final bytes):
-        return PreparedImage(bytes, kind);
-      case _SmallEnough():
-        break;
-    }
+  final Uint8List sized;
+  switch (settings.makeSmaller ? _smaller(bytes, kind) : const _SmallEnough()) {
+    case _Unreadable():
+      return null;
+    case _Smaller(:final bytes):
+      sized = bytes;
+    case _SmallEnough():
+      sized = bytes;
   }
+  // On the final bytes: an encoder may carry location along.
   return PreparedImage(
-    settings.removeLocation ? withoutLocation(bytes, kind) : bytes,
+    settings.removeLocation ? withoutLocation(sized, kind) : sized,
     kind,
   );
 }
@@ -128,11 +128,7 @@ final class _Smaller extends _Resized {
 /// [bytes] at most [ImageSettings.longestSide] on their longest side,
 /// every frame of an animation too, upright (the JPEG decoder turns it
 /// by its orientation).
-_Resized _smaller(
-  Uint8List bytes,
-  ImageKind kind, {
-  required bool removeLocation,
-}) {
+_Resized _smaller(Uint8List bytes, ImageKind kind) {
   final img.Image? image;
   try {
     image = switch (kind) {
@@ -155,7 +151,6 @@ _Resized _smaller(
     height: (image.height * scale).round(),
     interpolation: img.Interpolation.average,
   );
-  if (removeLocation) dropGps(small.exif);
   return _Smaller(switch (kind) {
     ImageKind.jpeg => img.encodeJpg(small, quality: 90),
     ImageKind.png => img.encodePng(small),

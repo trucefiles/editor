@@ -91,8 +91,12 @@ final class _Step<V extends Version>
         events.add(MergesAnswer(ticket, merges: _mergesWith(seen)));
       case RestoreMine():
         _restoreMine();
-      case Relinked(:final text, :final from):
-        _relinked(text, from: from);
+      case Placing():
+        if (work.expected == null && !_done) {
+          _work(work.copyWith(placing: true));
+        }
+      case Placed(:final text, :final from):
+        _placed(text, from: from);
       case Discard():
         _discard();
       case Move():
@@ -126,14 +130,15 @@ final class _Step<V extends Version>
     if (work.io == null && !_hasEdits && work.draft != null) _dropDraft();
     if (work.move case final move? when work.io == null) _moveStep(move);
     // Secures waiting are answered once the move ran.
+    // A new file changing its place is created once placed.
     if (work.securing case final securing?
-        when work.io == null && work.move == null) {
+        when work.io == null && work.move == null && !work.placing) {
       _secureStep(securing);
     }
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
-    if (work.folderRev != null) _write();
+    if (work.folderRev != null && !work.placing) _write();
   }
 
   // Edits.
@@ -460,11 +465,13 @@ final class _Step<V extends Version>
     );
   }
 
-  /// A new file's text [from] changed with its place: it shows [text],
-  /// unless edits came since. A file that has a file changes only by a
-  /// move ([_movedTo]).
-  void _relinked(String text, {required String from}) {
-    if (work.expected != null || _done || state.text != from) return;
+  /// A new file's place change ended, its text [from] now [text], if
+  /// given: it shows, unless edits came since. A file that has a file
+  /// changes only by a move ([_movedTo]).
+  void _placed(String? text, {required String from}) {
+    _work(work.copyWith(placing: false));
+    if (text == null || work.expected != null || _done) return;
+    if (state.text != from) return;
     _set(text: text);
     // Kept on the device as the edits are.
     if (status is Editing) _set(status: const Editing(EditPhase.inMemory));

@@ -33,8 +33,10 @@ final class StoreLinkedFiles implements LinkedFiles {
         (toFolder == null ? 0 : toFolder.folders.length + 1)) {
       return const Ok(null);
     }
-    return (await _storeOf(folder).relinkFrom(toFolder))
-        .map((relink) => relink);
+    return switch (await _storeOf(folder).relinkFrom(toFolder)) {
+      Ok(value: final relink) => Ok(relink),
+      Err(:final error) => Err(error),
+    };
   }
 
   @override

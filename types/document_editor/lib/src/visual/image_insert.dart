@@ -3,7 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_images/truce_images.dart';
 
-import '../markdown/image_picking.dart';
+import 'image_picking.dart';
 
 /// What adding an image to a document needs: how pictures are picked,
 /// where they are kept, and how a short hint shows.

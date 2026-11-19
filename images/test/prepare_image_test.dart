@@ -87,6 +87,27 @@ void main() {
       expect((shown.width, shown.height), (2000, 1000));
     });
 
+    test('a large located JPEG loses its location too', () {
+      final large = img.Image(width: 3000, height: 1500)
+        ..exif = img.decodeJpgExif(_sample('located.jpg'))!;
+      final out = prepareImage(img.encodeJpg(large), _smaller)!.bytes;
+      // Upright by its orientation: 1000 wide, 2000 high.
+      expect(img.decodeJpg(out)!.height, 2000);
+      expect(img.decodeJpgExif(out)?.gpsIfd.isEmpty ?? true, isTrue);
+      expect(_holds(out, 'GPSLatitude'), isFalse);
+    });
+
+    test('a large located PNG loses its location too', () {
+      final large = img.Image(width: 3000, height: 1500)
+        ..textData = {'XML:com.adobe.xmp': '<x:xmpmeta GPSLatitude="1"/>'}
+        ..exif = img.decodeJpgExif(_sample('located.jpg'))!;
+      final bytes = img.encodePng(large);
+      expect(_holds(bytes, 'GPSLatitude'), isTrue);
+      final out = prepareImage(bytes, _smaller)!.bytes;
+      expect(img.decodePng(out)!.width, 2000);
+      expect(_holds(out, 'GPSLatitude'), isFalse);
+    });
+
     test('a large animation keeps every frame', () {
       final frames = img.Image(width: 2400, height: 1200)
         ..addFrame(img.Image(width: 2400, height: 1200));

@@ -80,7 +80,15 @@ final class DocumentImageStore {
     DocumentImageStore into,
     Set<String> names,
   ) async {
-    for (final name in names) {
+    if (names.isEmpty) return const Ok(null);
+    final Map<String, FileEntry> there;
+    switch (await into.images()) {
+      case Ok(:final value):
+        there = value;
+      case Err(:final error):
+        return Err(error);
+    }
+    for (final name in names.where((name) => !there.containsKey(name))) {
       final path = ImageNames.pathOf(name);
       final Uint8List bytes;
       switch (await _files.read(path)) {

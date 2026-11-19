@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
@@ -133,6 +136,25 @@ void main() {
       expect(page.session.file.folder, fixture.folders[1]);
     });
 
+    test('a save while its images are copied lands at the new place', () async {
+      linked.copying = Completer<void>();
+      final placed = page.session.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: null,
+        ), type: (page.session.file as NewFile).type),
+      );
+
+      final saved = page.session.secure(SecureReason.hide);
+      await pumpEventQueue();
+      expect(fixture.dirs[0].listSync().whereType<File>(), hasLength(1));
+      linked.copying!.complete();
+      await placed;
+
+      expect(await saved, isTrue);
+      expect(File('${fixture.dirs[1].path}/Plan.md').existsSync(), isTrue);
+    });
+
     test('stays where its images can not be copied', () async {
       linked.copyFails = true;
 
@@ -178,12 +200,16 @@ final class _FakeLinked implements LinkedFiles {
   final List<FolderId> copied = [];
   bool copyFails = false;
 
+  /// While set, a copy waits for it.
+  Completer<void>? copying;
+
   @override
   Future<Result<void, StoreError>> copyFor(
     String text, {
     required Folder from,
     required Folder to,
   }) async {
+    await copying?.future;
     if (copyFails) return const Err(StoreError.ioFailure);
     copied.add(to.id);
     return const Ok(null);

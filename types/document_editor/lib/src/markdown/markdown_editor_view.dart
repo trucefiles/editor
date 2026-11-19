@@ -55,11 +55,10 @@ final class MarkdownEditorView extends EditorView {
             ),
             null => null,
           },
-          pasted: (text) async => switch (await host.images.pasteRelink()) {
-            final relink? =>
-              const MarkdownFileType().relinked(text, relink) ?? text,
-            null => text,
-          },
+          pasted: (text) => host.images.relinkPasted(
+            text,
+            relinked: const MarkdownFileType().relinked,
+          ),
           autofocus: autofocus,
         ),
       );

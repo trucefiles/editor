@@ -257,37 +257,35 @@ final class FileSession {
   /// Nothing changes if they can't go along.
   Future<Result<void, StoreError>> place(NewFile to) async {
     final from = file;
-    // The editor's typing first, so the links of all of it change.
+    if (from is! NewFile) {
+      _effects.place(to);
+      _changed();
+      return const Ok(null);
+    }
+    // The editor's typing first, so the links of all of it change; it is
+    // created nowhere while it changes place.
     draftNow();
     final text = _file.state.text;
-    if (from is NewFile) {
-      if (from.folder.id != to.folder.id) {
-        final copied = await _linked.copyFor(
-          text,
-          from: from.folder,
-          to: to.folder,
-        );
-        if (copied is Err) return copied;
-      }
-      final relink = await _linked.relinkFor(
-        from.folder,
-        from: from.pathFor(summary.firstLine),
-        toFolder: to.place.subfolder,
-      );
-      switch (relink) {
-        case Ok(value: final relink?):
-          if (from.type.relinked(text, relink) case final relinked?) {
-            _file.send(Relinked(relinked, from: text));
-          }
-        case Ok(value: null):
-          break;
-        case Err():
-          return relink;
-      }
-    }
-    _effects.place(to);
+    _file.send(const Placing());
+    final moved = await _linked.textAt(
+      to.place,
+      text,
+      type: from.type,
+      folder: from.folder,
+      from: from.pathFor(summary.firstLine),
+    );
+    if (moved case Ok()) _effects.place(to);
+    _file.send(
+      Placed(
+        text: switch (moved) {
+          Ok(:final value) => value,
+          Err() => null,
+        },
+        from: text,
+      ),
+    );
     _changed();
-    return const Ok(null);
+    return moved.map((_) {});
   }
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {

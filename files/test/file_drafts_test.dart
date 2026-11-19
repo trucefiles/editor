@@ -104,6 +104,20 @@ void main() {
     expect(dir.existsSync(), isFalse);
   });
 
+  test(
+    'gives the edits of every draft, or none if one can not be read',
+    () async {
+      expect(await drafts.texts(), isEmpty);
+      await drafts.keep(draft('1', 'one'));
+      await drafts.keep(draft('2', 'two'));
+      expect(await drafts.texts(), unorderedEquals(['one', 'two']));
+
+      File('${dir.path}/3.json').writeAsStringSync('{broken');
+
+      expect(await drafts.texts(), isNull);
+    },
+  );
+
   test('removes nothing before the first draft', () async {
     await drafts.forget();
 

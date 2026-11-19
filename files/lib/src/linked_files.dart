@@ -1,6 +1,9 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import 'file_place.dart';
+import 'shown_file_type.dart';
+
 /// How a file's links change: the new destination for a link to
 /// [destination], `null` to keep it.
 typedef Relink = String? Function(String destination);
@@ -54,4 +57,31 @@ final class NoLinkedFiles implements LinkedFiles {
 
   @override
   Future<void> bringBack(String text, Folder folder) async {}
+}
+
+/// The one rule for a file's text as it changes place.
+extension TextAtPlace on LinkedFiles {
+  /// What a file of [type] holding [text], at [from] in [folder], holds
+  /// once at [to]: the kept files it links go along into [to]'s folder
+  /// first, then its links change where they must; `null` if its text
+  /// stays. Fails if the kept files can't go along or be looked up.
+  Future<Result<String?, StoreError>> textAt(
+    FilePlace to,
+    String text, {
+    required ShownFileType? type,
+    required Folder folder,
+    required RelPath from,
+  }) async {
+    if (to.folder.id != folder.id) {
+      final copied = await copyFor(text, from: folder, to: to.folder);
+      if (copied case Err(:final error)) return Err(error);
+    }
+    final relink = await relinkFor(folder, from: from, toFolder: to.subfolder);
+    return relink.map(
+      (relink) => switch ((relink, type)) {
+        (final relink?, final type?) => type.relinked(text, relink),
+        _ => null,
+      },
+    );
+  }
 }

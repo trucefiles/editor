@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_markdown/truce_markdown.dart' as md;
@@ -22,7 +24,7 @@ class MarkdownEditView extends StatefulWidget {
 
   final EditorGate gate;
   final void Function(String url) onLink;
-  final Future<String> Function(String text)? pasted;
+  final FutureOr<String> Function(String text)? pasted;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;

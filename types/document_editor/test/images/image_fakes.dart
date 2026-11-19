@@ -54,5 +54,8 @@ final class FakeKept implements HostImages {
   }
 
   @override
-  Future<Relink?> pasteRelink() async => null;
+  String relinkPasted(
+    String text, {
+    required String? Function(String text, Relink relink) relinked,
+  }) => text;
 }

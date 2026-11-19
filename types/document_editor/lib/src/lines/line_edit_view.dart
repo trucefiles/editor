@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -41,7 +43,7 @@ class LineEditView extends StatefulWidget {
   final EditedText text;
   final LineEditing editing;
   final void Function(String url) onLink;
-  final Future<String> Function(String text)? pasted;
+  final FutureOr<String> Function(String text)? pasted;
 
   static void _ignore(String _) {}
 
@@ -64,10 +66,15 @@ class _LineEditViewState extends State<LineEditView> {
   );
 
   /// [text] pasted over the selection as it is once [LineEditView.pasted]
-  /// gave it.
+  /// gave it: at once where it gives it at once.
   Future<void> _paste(String text) async {
-    final pasted = await widget.pasted?.call(text) ?? text;
-    if (mounted) _adapter.paste(pasted);
+    switch (widget.pasted?.call(text) ?? text) {
+      case final String pasted:
+        _adapter.paste(pasted);
+      case final Future<String> pasting:
+        final pasted = await pasting;
+        if (mounted) _adapter.paste(pasted);
+    }
   }
 
   /// The look in the current theme and metrics. Kept between builds:

@@ -32,9 +32,9 @@ abstract interface class ShownFileType {
   /// keeps one side).
   TextMerge? get merge;
 
-  /// [text] with its image links changed as [relink] says, block-exact
-  /// (all else keeps its bytes); `null` if none changes, or the type has
-  /// none.
+  /// [text] with its links to kept files (see `LinkedFiles`) changed as
+  /// [relink] says, block-exact (all else keeps its bytes); `null` if
+  /// none changes, or the type has no such links.
   String? relinked(String text, Relink relink);
 }
 

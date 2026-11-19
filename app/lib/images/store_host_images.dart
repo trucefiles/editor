@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
@@ -27,9 +28,17 @@ final class StoreHostImages implements HostImages {
       _store.add(bytes, extension: extension, documentFolder: _documentFolder);
 
   @override
-  Future<Relink?> pasteRelink() async =>
-      switch (await _store.relinkFrom(_documentFolder)) {
-        Ok(:final value) => value,
-        Err() => null,
-      };
+  FutureOr<String> relinkPasted(
+    String text, {
+    required String? Function(String text, Relink relink) relinked,
+  }) =>
+      ImageNames.namesIn(text).isEmpty ? text : _relinkedPaste(text, relinked);
+
+  Future<String> _relinkedPaste(
+    String text,
+    String? Function(String text, Relink relink) relinked,
+  ) async => switch (await _store.relinkFrom(_documentFolder)) {
+    Ok(value: final relink) => relinked(text, relink) ?? text,
+    Err() => text,
+  };
 }

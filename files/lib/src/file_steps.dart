@@ -113,7 +113,13 @@ base class FileSteps {
       return const Err(MoveBlockedByConflict());
     }
     final String? text;
-    switch (await _movedText(file, place)) {
+    switch (await _work.linked.textAt(
+      place,
+      file.text,
+      type: _work.types.of(file.path),
+      folder: file.folder,
+      from: file.path,
+    )) {
       case Ok(:final value):
         text = value;
       case Err(:final error):
@@ -147,34 +153,6 @@ base class FileSteps {
     await _settings.forget(file.key);
     await _moveBackups(file, moved);
     return Ok(moved);
-  }
-
-  /// What [file] holds once at [place], its kept files there first:
-  /// `null` if its text stays as it is.
-  Future<Result<String?, StoreError>> _movedText(
-    FileText file,
-    FilePlace place,
-  ) async {
-    final linked = _work.linked;
-    if (place.folder.id != file.folder.id) {
-      final copied = await linked.copyFor(
-        file.text,
-        from: file.folder,
-        to: place.folder,
-      );
-      if (copied case Err(:final error)) return Err(error);
-    }
-    final relink = await linked.relinkFor(
-      file.folder,
-      from: file.path,
-      toFolder: place.subfolder,
-    );
-    return relink.map(
-      (relink) => switch ((relink, _work.types.of(file.path))) {
-        (final relink?, final type?) => type.relinked(file.text, relink),
-        _ => null,
-      },
-    );
   }
 
   /// Deletes [file], holding [text], after a backup of it, so it can
@@ -238,7 +216,7 @@ base class FileSteps {
   /// at a deleted file's own path, the ones [delete] kept apply to it
   /// again. [newSubfolder]: [place]'s subfolder is a new one the
   /// user asked for, made first. The files kept for its text come back
-  /// first, and along into [place]'s folder (best effort).
+  /// first, then go along with it as in a move (best effort).
   Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
     FolderBackup backup,
     FilePlace place, {
@@ -257,14 +235,22 @@ base class FileSteps {
     }
     final linked = _work.linked;
     await linked.bringBack(file.text, folder);
-    if (place.folder.id != folder.id) {
-      await linked.copyFor(file.text, from: folder, to: place.folder);
-    }
+    // Best effort: the text as backed up if its kept files can't follow.
+    final moved = switch (await linked.textAt(
+      place,
+      file.text,
+      type: _work.types.of(kept.filePath),
+      folder: folder,
+      from: kept.filePath,
+    )) {
+      Ok(value: final text?) => file.withText(text),
+      Ok() || Err() => file,
+    };
     final copied = await _files
         .of(place.folder)
         .copyIn(
           kept.filePath,
-          file,
+          moved,
           subfolder: place.subfolder,
           newSubfolder: newSubfolder,
           title: title,

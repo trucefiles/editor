@@ -6,6 +6,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
+import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/images/images_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
@@ -154,6 +155,23 @@ void main() {
 
     expect(added, isA<Err<String, StoreError>>());
     expect(work.existsSync(), isFalse);
+  });
+
+  test('a restore as new at another level changes the links too', () async {
+    final file = await fileIn(work, 'a/plan.md', '![a](../$kept)\n');
+    await actions.delete(file, '![a](../$kept)\n');
+    final backups = container
+        .read(folderServicesProvider(folders[0].id))
+        .backups;
+    final backup = (
+      folder: folders[0],
+      backup: (await backups.listOf(file.path)).value.single,
+    );
+
+    await actions.restoreAsNew(backup, (folder: folders[1], subfolder: null));
+
+    expect(diskFile(home, 'plan.md').readAsStringSync(), '![a]($kept)\n');
+    expect(diskFile(home, kept).readAsStringSync(), 'png');
   });
 
   test('cleanup finds only images no document shows', () async {

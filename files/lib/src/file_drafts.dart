@@ -70,20 +70,25 @@ final class FileDrafts {
     }
   }
 
-  /// The text of every draft's file as written, unparsed (e.g. to find
-  /// names in it); `null` if one can't be read. None before the first.
-  Future<List<String>?> rawTexts() async {
-    final texts = <String>[];
+  /// The edits every draft holds; `null` if one can't be read. None
+  /// before the first.
+  Future<List<String>?> texts() async {
+    final ids = <String>[];
     try {
-      if (!await _folder.exists()) return texts;
+      if (!await _folder.exists()) return const [];
       await for (final entity in _folder.list(followLinks: false)) {
-        if (entity is! File || !entity.path.endsWith(_extension)) continue;
-        texts.add(await entity.readAsString());
+        final name = entity.uri.pathSegments.last;
+        if (entity is File && name.endsWith(_extension)) {
+          ids.add(name.substring(0, name.length - _extension.length));
+        }
       }
     } on FileSystemException {
       return null;
     }
-    return texts;
+    final drafts = await Future.wait(ids.map(_read));
+    return drafts.contains(null)
+        ? null
+        : [for (final draft in drafts) draft!.text];
   }
 
   /// How many files have readable drafts.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
@@ -51,10 +53,14 @@ abstract interface class HostImages {
     required String extension,
   });
 
-  /// How the links of ours in text pasted into the file change, so they
-  /// lead to their images from where it is; `null` if that can't be
-  /// told now.
-  Future<Relink?> pasteRelink();
+  /// [text] pasted into the file with the links of ours changed by the
+  /// file's type ([relinked]) so they lead to their images from where it
+  /// is; at once, as it is, when it names none of ours, or when that
+  /// can't be told now.
+  FutureOr<String> relinkPasted(
+    String text, {
+    required String? Function(String text, Relink relink) relinked,
+  });
 }
 
 /// A file for which no images are kept.
@@ -71,7 +77,10 @@ final class NoHostImages implements HostImages {
   }) async => const Err(StoreError.outside);
 
   @override
-  Future<Relink?> pasteRelink() async => null;
+  String relinkPasted(
+    String text, {
+    required String? Function(String text, Relink relink) relinked,
+  }) => text;
 }
 
 /// How a file type's editor part shows on the page: the editor in

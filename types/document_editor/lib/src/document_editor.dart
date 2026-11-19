@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -37,7 +39,7 @@ class DocumentEditor extends StatelessWidget {
   final void Function(String url) onLink;
   final DocumentImageLookup images;
   final ImageAdding? imageAdding;
-  final Future<String> Function(String text)? pasted;
+  final FutureOr<String> Function(String text)? pasted;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;

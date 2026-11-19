@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_markdown/truce_markdown.dart' show AddItemPlace;
 
-import 'image_picking.dart';
+import '../visual/image_picking.dart';
 
 /// What Markdown views need from the app beyond the page's host: where
 /// lists get Add item buttons ([addItems], as the setting changes), how

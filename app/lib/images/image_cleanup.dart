@@ -32,7 +32,7 @@ class ImageCleanup {
     return UnusedImages(
       DocumentImageStore(services),
       services,
-      drafts: _draftsOf(folder).rawTexts,
+      drafts: _draftsOf(folder).texts,
     );
   }
 }

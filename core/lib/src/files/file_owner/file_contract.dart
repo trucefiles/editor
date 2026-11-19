@@ -126,13 +126,20 @@ final class AskMerges extends FileInput<Never> implements Asking {
   final Version seen;
 }
 
-/// A new file's place changed before its first save, and with it its
-/// text [from] became [text] (e.g. its links): the editor shows it,
-/// unless edits came since. Nothing for a file that has a file.
-final class Relinked extends FileInput<Never> {
-  const Relinked(this.text, {required this.from});
+/// A new file's place starts to change: it is not created until
+/// [Placed], so it never lands at the place it leaves. Nothing for a file
+/// that has a file.
+final class Placing extends FileInput<Never> {
+  const Placing();
+}
 
-  final String text;
+/// A new file's place change ended; with it its text [from] became
+/// [text] (e.g. its links), `null` if it stays: the editor shows it,
+/// unless edits came since.
+final class Placed extends FileInput<Never> {
+  const Placed({this.text, required this.from});
+
+  final String? text;
   final String from;
 }
 
@@ -278,7 +285,7 @@ enum ReplacedBy {
   elsewhere,
 
   /// The user's move changed it (e.g. its links); a new file's too,
-  /// before its first save ([Relinked]).
+  /// before its first save ([Placed]).
   move,
 }
 

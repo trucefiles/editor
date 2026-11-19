@@ -925,7 +925,8 @@ void main() {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
         ..keep()
-        ..send(const Relinked('a2', from: 'a'));
+        ..send(const Placing())
+        ..send(const Placed(text: 'a2', from: 'a'));
       final replaced = run.last<Replaced>();
       expect((replaced.text, replaced.version), ('a2', null));
       expect(replaced.by, ReplacedBy.move);
@@ -935,11 +936,33 @@ void main() {
       expect(run.last<Create>().text, 'a2');
     });
 
+    test('is not created while its place changes, then created there', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Placing())
+        ..secure(SecureReason.hide);
+      expect(run.all<Create>(), isEmpty);
+      run.send(const Placed(from: 'a'));
+      expect(run.last<Create>().text, 'a');
+    });
+
+    test('as the app ends while its place changes, it stays on the device', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Placing())
+        ..secure(SecureReason.exit);
+      expect(run.all<Create>(), isEmpty);
+      expect(run.last<Answer>().kept, isTrue);
+    });
+
     test('its text changed with its place is dropped after newer edits', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
         ..edit('ab', 2, lineage: null)
-        ..send(const Relinked('a2', from: 'a'));
+        ..send(const Placing())
+        ..send(const Placed(text: 'a2', from: 'a'));
       expect(run.all<Replaced>(), isEmpty);
       expect(run.state.text, 'ab');
     });
