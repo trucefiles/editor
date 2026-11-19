@@ -98,6 +98,41 @@ final class VisualAdapter {
     _ => null,
   };
 
+  /// The image whose character is at [position] or right before it:
+  /// its link and description, and the positions around its character;
+  /// `null` if none.
+  ShownImage? imageAt(DocumentPosition position) => switch ((
+    _document.getNodeById(position.nodeId),
+    position.nodePosition,
+  )) {
+    (final node?, TextNodePosition(:final offset)) => switch (lookOf(node)) {
+      TextLook(leaf: md.TextNode(:final text)) =>
+        [offset, offset - 1]
+            .where((at) => at >= 0 && at < text.length)
+            .map(
+              (at) => switch (text.pieceAt(at)) {
+                md.ObjectPiece(inline: final md.ImageInline image) => (
+                  url: image.destination,
+                  alt: image.description,
+                  start: DocumentPosition(
+                    nodeId: node.id,
+                    nodePosition: TextNodePosition(offset: at),
+                  ),
+                  end: DocumentPosition(
+                    nodeId: node.id,
+                    nodePosition: TextNodePosition(offset: at + 1),
+                  ),
+                ),
+                _ => null,
+              },
+            )
+            .nonNulls
+            .firstOrNull,
+      _ => null,
+    },
+    _ => null,
+  };
+
   /// A tap at [position]: on a divider, the caret goes right after it,
   /// as after one character; whether there was one.
   bool caretAfterDividerAt(DocumentPosition position) {
@@ -568,3 +603,12 @@ final class _Refused extends EditCommand {
   @override
   void execute(EditContext context, CommandExecutor executor) {}
 }
+
+/// An image as Visual edit shows it: its [url] and [alt] text, and the
+/// positions around its one character.
+typedef ShownImage = ({
+  String url,
+  String alt,
+  DocumentPosition start,
+  DocumentPosition end,
+});

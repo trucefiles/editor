@@ -70,6 +70,22 @@ final class FileDrafts {
     }
   }
 
+  /// The text of every draft's file as written, unparsed (e.g. to find
+  /// names in it); `null` if one can't be read. None before the first.
+  Future<List<String>?> rawTexts() async {
+    final texts = <String>[];
+    try {
+      if (!await _folder.exists()) return texts;
+      await for (final entity in _folder.list(followLinks: false)) {
+        if (entity is! File || !entity.path.endsWith(_extension)) continue;
+        texts.add(await entity.readAsString());
+      }
+    } on FileSystemException {
+      return null;
+    }
+    return texts;
+  }
+
   /// How many files have readable drafts.
   Future<int> count() async => (await all(before: DateTime(9999))).length;
 

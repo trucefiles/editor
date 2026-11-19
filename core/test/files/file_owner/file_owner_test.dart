@@ -265,6 +265,28 @@ void main() {
       expect((write.text, write.over), ('ab', copy));
     });
 
+    test('a move that changed the text shows the new text, told as by the '
+        'move', () {
+      const copy = Seen('a moved', Version(9));
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      run.send(MovedTo(run.last<MoveFile>().id, copy, endedAt: Moment.now()));
+      final replaced = run.last<Replaced>();
+      expect((replaced.text, replaced.by), ('a moved', ReplacedBy.move));
+      expect(run.state.text, 'a moved');
+      expect(run.status, isA<InStep>());
+    });
+
+    test('a move that changed the text leaves edits made meanwhile', () {
+      const copy = Seen('a moved', Version(9));
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      final move = run.last<MoveFile>();
+      run
+        ..edit('ab', 1)
+        ..send(MovedTo(move.id, copy, endedAt: Moment.now()));
+      expect(run.all<Replaced>(), isEmpty);
+      expect(run.state.text, 'ab');
+    });
+
     test('a scan during a move changes nothing', () {
       final run = _Run.opened('a')..send(Move(Ticket()));
       final move = run.last<MoveFile>();
@@ -899,6 +921,29 @@ void main() {
   });
 
   group('a new document', () {
+    test('its text changed with its place shows, kept as its edits', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Relinked('a2', from: 'a'));
+      final replaced = run.last<Replaced>();
+      expect((replaced.text, replaced.version), ('a2', null));
+      expect(replaced.by, ReplacedBy.move);
+      run.keep();
+      expect(run.last<KeepDraft>().text, 'a2');
+      run.secure(SecureReason.hide);
+      expect(run.last<Create>().text, 'a2');
+    });
+
+    test('its text changed with its place is dropped after newer edits', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..edit('ab', 2, lineage: null)
+        ..send(const Relinked('a2', from: 'a'));
+      expect(run.all<Replaced>(), isEmpty);
+      expect(run.state.text, 'ab');
+    });
+
     test('empty is never written', () {
       final run = _Run.unwritten()
         ..edit(' ', 1, lineage: null)

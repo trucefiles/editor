@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../file_types/file_types.dart';
 import '../folders/folders_controller.dart';
 import '../folders/open_folders_wiring.dart';
 
@@ -16,5 +17,6 @@ final allBackupsProvider = FutureProvider.autoDispose<List<FolderBackup>>((
   return backupsShown(
     await settledFolders(ref.read(folderListOwnerProvider)),
     (folder) => open.servicesOf(folder.id).backups,
+    shows: ref.watch(fileTypesProvider).handles,
   );
 });

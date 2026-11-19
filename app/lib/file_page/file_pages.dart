@@ -63,7 +63,8 @@ final class FilePages {
   /// [settingsOf] gives a file's settings, [editSettings] changes
   /// them. [reachOf] tells a folder's reach now, [reachSettled] once
   /// a running check of it is over. [fileClosed] is told as each page
-  /// closes, e.g. so what shows next can be listed again.
+  /// closes, e.g. so what shows next can be listed again. [linked] are
+  /// the files the app keeps for texts, e.g. document images.
   FilePages({
     required this.types,
     required this.create,
@@ -78,6 +79,7 @@ final class FilePages {
     required this.openFiles,
     required this.fileClosed,
     required this.endWait,
+    this.linked = const NoLinkedFiles(),
   });
 
   final ShownFileTypes<EditableType> types;
@@ -92,6 +94,7 @@ final class FilePages {
   final Future<Reach> Function(FolderId folder) reachSettled;
   final OpenFiles openFiles;
   final void Function() fileClosed;
+  final LinkedFiles linked;
 
   /// How long the app's end waits at most for a page's edits.
   final Duration endWait;
@@ -163,6 +166,7 @@ final class FilePages {
       ),
       editor.part.editor,
       merge: type.merge,
+      linked: linked,
     );
     FolderId folder() => session.file.folder.id;
     controller = FileController(

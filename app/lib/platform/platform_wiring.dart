@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar_alerts/truce_calendar_alerts.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_editor/truce_document_editor.dart'
+    show ImagePicking, ImageSource;
 
 import '../alerts/alarm_controls.dart';
 import '../alerts/alert_permissions.dart';
@@ -26,6 +28,7 @@ import 'android/android_ringer.dart';
 import 'android/android_storage_access.dart';
 import 'android/isolate_planner_role.dart';
 import 'device_zone.dart';
+import 'image_picking.dart';
 import 'linux/background_portal.dart';
 import 'linux/desktop_notices.dart';
 import 'linux/document_portal.dart';
@@ -186,3 +189,16 @@ final loginStartProvider = Provider<LoginStart?>(
 final alertCheckScheduleProvider = Provider<Future<void> Function()?>(
   (ref) => Platform.isAndroid ? scheduleAlertCheck : null,
 );
+
+/// How pictures are picked here: on Android from the photos or the
+/// camera, elsewhere by a file dialog; made ready as the image settings
+/// say at each pick.
+final imagePickingProvider = Provider<ImagePicking>((ref) {
+  final settings = followedSetting(ref, (s) => s.images);
+  return PlatformImagePicking(
+    sources: Platform.isAndroid
+        ? const [ImageSource.gallery, ImageSource.camera]
+        : const [ImageSource.file],
+    read: () => settings.value,
+  );
+});

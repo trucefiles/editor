@@ -76,7 +76,12 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
         record(step, null);
         notify(UndoOffered(book.history.latestId!, OfferedUndo.restore));
       case FromFile(
-            message: Replaced(:final text, :final version, :final ackRev),
+            message: Replaced(
+              :final text,
+              :final version,
+              :final ackRev,
+              :final by,
+            ),
           )
           when ackRev == book.rev:
         book = book.copyWith(
@@ -85,7 +90,10 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
           // opened (e.g. a newer copy of an own save shows).
           history: book.history.nextId == 0
               ? book.history
-              : book.history.cleared(HistoryStart.changedElsewhere),
+              : book.history.cleared(switch (by) {
+                  ReplacedBy.elsewhere => HistoryStart.changedElsewhere,
+                  ReplacedBy.move => HistoryStart.moved,
+                }),
         );
         _reloaded(text);
       case FromFile(message: Replaced()):

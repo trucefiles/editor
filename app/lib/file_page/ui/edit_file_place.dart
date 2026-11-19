@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
 import '../../files/file_actions.dart';
 import '../../files/ui/file_place_dialog.dart';
 import '../../files/ui/folders_to_place_in.dart';
@@ -44,7 +45,9 @@ Future<void> editFilePlace(
     picked: picked,
   )) {
     case NewPlace(:final to):
-      session.place(to);
+      if (await session.place(to) case Err(:final error) when context.mounted) {
+        showSnack(context, "Couldn't move the file: ${error.text}");
+      }
     case SamePlace():
       return;
     case CantMove(:final failure):

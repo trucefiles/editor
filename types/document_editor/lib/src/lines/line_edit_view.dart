@@ -26,11 +26,14 @@ final class LineEditing {
 /// A text edited line by line as it is written: Markdown edit, or a plain
 /// text. Links, where its highlighter finds them, open with [onLink]
 /// on a tap with Ctrl (or Cmd) held, so a plain tap places the caret.
+/// Pasted text goes in as [pasted] gives it (e.g. its image links fixed
+/// for where the file is), still as one paste.
 class LineEditView extends StatefulWidget {
   const LineEditView(
     this.text, {
     required this.editing,
     this.onLink = _ignore,
+    this.pasted,
     this.autofocus = false,
     super.key,
   });
@@ -38,6 +41,7 @@ class LineEditView extends StatefulWidget {
   final EditedText text;
   final LineEditing editing;
   final void Function(String url) onLink;
+  final Future<String> Function(String text)? pasted;
 
   static void _ignore(String _) {}
 
@@ -55,9 +59,16 @@ class _LineEditViewState extends State<LineEditView> {
   final _layout = GlobalKey();
   late final _operations = MenuOperations(
     _adapter.editor,
-    _adapter.paste,
+    _paste,
     layout: _layout,
   );
+
+  /// [text] pasted over the selection as it is once [LineEditView.pasted]
+  /// gave it.
+  Future<void> _paste(String text) async {
+    final pasted = await widget.pasted?.call(text) ?? text;
+    if (mounted) _adapter.paste(pasted);
+  }
 
   /// The look in the current theme and metrics. Kept between builds:
   /// the library lays the whole document out anew for each new
@@ -107,7 +118,7 @@ class _LineEditViewState extends State<LineEditView> {
               selectionStyle: look.selection,
               documentOverlayBuilders: look.overlays,
               customStylePhases: _phases,
-              keyboardActions: lineKeyboardActions(_adapter.paste),
+              keyboardActions: lineKeyboardActions(_paste),
               contentTapDelegateFactories: [
                 if (_highlighter case final highlighter?)
                   (_) => LinkTapHandler(

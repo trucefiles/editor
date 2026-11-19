@@ -23,6 +23,8 @@ import '../../files/ui/file_actions_menu.dart';
 import '../../files/ui/file_heading.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folders/folders_controller.dart';
+import '../../images/images_wiring.dart';
+import '../../images/store_host_images.dart';
 import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
@@ -153,7 +155,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _onFileNotice(FileEvent notice) {
     final messenger = _messenger.currentState;
     switch (notice) {
-      case Replaced():
+      case Replaced(by: ReplacedBy.elsewhere):
         messenger?.showHint('Reloaded with changes from the folder.');
       case PickMerged(:final lost):
         messenger?.showNotice(mergeOutcome(lost));
@@ -503,6 +505,10 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                       hint: (message) =>
                           _messenger.currentState?.showHint(message),
                       color: fileColor(mark.color, folder: _folder.color),
+                      images: StoreHostImages(
+                        ref.read(documentImageStoresProvider)(_folder.id),
+                        path.parent,
+                      ),
                     ),
                     autofocus: widget._isNew,
                   ),

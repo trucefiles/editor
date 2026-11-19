@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../file_types/file_types.dart';
@@ -35,6 +36,7 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
       raw,
       reach: reach,
       handles: types.handles,
+      keptApart: ImageNames.isKept,
       backupsPath: storage.backupsPath(folder.id),
       deviceId: deviceId,
       checkEvery: checkEvery,

@@ -39,7 +39,7 @@ void main() {
                   ..hideCurrentSnackBar()
                   ..showSnackBar(SnackBar(content: Text(message))),
               ),
-              images: const NoDocumentImages(),
+              images: const NoDocumentImageLookup(),
             ),
           ),
         ),

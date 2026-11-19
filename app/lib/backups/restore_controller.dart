@@ -4,6 +4,7 @@ import 'package:truce_files/truce_files.dart';
 
 import '../folder_state/folder_state_controller.dart';
 import '../folders/open_folders_wiring.dart';
+import '../images/images_wiring.dart';
 import '../versions/compare_controller.dart';
 import 'all_backups.dart';
 
@@ -34,6 +35,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
         if (ref.mounted) ref.invalidate(allBackupsProvider);
         return folderState.refresh();
       },
+      linked: ref.read(linkedFilesProvider),
     );
   }
 

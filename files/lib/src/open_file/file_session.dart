@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import '../file_text.dart';
 import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
+import '../linked_files.dart';
 import '../move_failure.dart';
 import '../read_version.dart';
 import 'file_effects.dart';
@@ -60,11 +61,18 @@ final class FileSession {
   /// [editor], which opened with that text. [merge]: how its type merges
   /// two texts, if it does; then a change elsewhere can be picked merged
   /// with the edits ([mergesWith]).
-  FileSession(PageFile opened, this._effects, this.editor, {TextMerge? merge})
-    : _file = fileOwner(switch (opened) {
-        ExistingFile(:final file) => openedFile(file.seen, merge: merge),
-        NewFile(:final start) => newFile(start: start, merge: merge),
-      }, _effects.run) {
+  /// [linked]: the files kept for its text, which restores bring back
+  /// and a new file's place change takes along.
+  FileSession(
+    PageFile opened,
+    this._effects,
+    this.editor, {
+    TextMerge? merge,
+    this._linked = const NoLinkedFiles(),
+  }) : _file = fileOwner(switch (opened) {
+         ExistingFile(:final file) => openedFile(file.seen, merge: merge),
+         NewFile(:final start) => newFile(start: start, merge: merge),
+       }, _effects.run) {
     _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
@@ -76,6 +84,7 @@ final class FileSession {
 
   final FileEffects _effects;
   final FileOwner<ReadVersion> _file;
+  final LinkedFiles _linked;
 
   /// The way into the editor owner.
   final PageEditor editor;
@@ -217,8 +226,11 @@ final class FileSession {
       _file.send(Pick(choice, seen: theirs.version, rev: rev));
 
   /// The file reads [text] instead (a backup restored), as one edit
-  /// that undo takes back.
-  void replaceAll(String text) => editor.send(ReplaceAll(text));
+  /// that undo takes back; the files kept for it come back first.
+  Future<void> replaceAll(String text) async {
+    await _linked.bringBack(text, file.folder);
+    editor.send(ReplaceAll(text));
+  }
 
   /// Writes the edits as the file again, after it was deleted elsewhere.
   void restoreMine() => _file.send(const RestoreMine());
@@ -240,10 +252,42 @@ final class FileSession {
     return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
-  /// The user picked where a new file goes.
-  void place(NewFile to) {
+  /// The user picked where a new file goes: the files kept for its text
+  /// go along first, and its links change where they must, as in a move.
+  /// Nothing changes if they can't go along.
+  Future<Result<void, StoreError>> place(NewFile to) async {
+    final from = file;
+    // The editor's typing first, so the links of all of it change.
+    draftNow();
+    final text = _file.state.text;
+    if (from is NewFile) {
+      if (from.folder.id != to.folder.id) {
+        final copied = await _linked.copyFor(
+          text,
+          from: from.folder,
+          to: to.folder,
+        );
+        if (copied is Err) return copied;
+      }
+      final relink = await _linked.relinkFor(
+        from.folder,
+        from: from.pathFor(summary.firstLine),
+        toFolder: to.place.subfolder,
+      );
+      switch (relink) {
+        case Ok(value: final relink?):
+          if (from.type.relinked(text, relink) case final relinked?) {
+            _file.send(Relinked(relinked, from: text));
+          }
+        case Ok(value: null):
+          break;
+        case Err():
+          return relink;
+      }
+    }
     _effects.place(to);
     _changed();
+    return const Ok(null);
   }
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {

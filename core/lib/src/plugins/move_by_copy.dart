@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:logging/logging.dart';
 
 import '../common/result.dart';
@@ -28,7 +30,9 @@ final class CopiedOnly extends MoveError {
 }
 
 /// The shared way to move a file, for any two folders and inside one:
-/// copies [from] in [source] to [to] in [target], then deletes [from].
+/// copies [from] in [source] to [to] in [target], then deletes [from];
+/// [bytes]: what the file holds at [to], if the move changes it (e.g.
+/// its links), written in the same create.
 /// Never overwrites a file at [to] ([StoreError.alreadyExists]). If [from]
 /// is no longer at version [ifUnchanged], the delete refuses and the copy
 /// is removed again (only if still as created): nothing moved, nothing
@@ -42,16 +46,21 @@ Future<Result<FileEntry, MoveError>> moveByCopy(
   required FileVersion ifUnchanged,
   required FileStore target,
   required RelPath to,
+  Uint8List? bytes,
 }) async {
-  final FileContent content;
-  switch (await source.read(from)) {
-    case Ok(:final value):
-      content = value;
-    case Err(:final error):
-      return Err(NotMoved(error));
+  final Uint8List moved;
+  if (bytes != null) {
+    moved = bytes;
+  } else {
+    switch (await source.read(from)) {
+      case Ok(:final value):
+        moved = value.bytes;
+      case Err(:final error):
+        return Err(NotMoved(error));
+    }
   }
   final FileEntry copy;
-  switch (await target.create(to, content.bytes)) {
+  switch (await target.create(to, moved)) {
     case Ok(:final value):
       copy = value;
     case Err(:final error):

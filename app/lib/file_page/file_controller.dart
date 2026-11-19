@@ -278,7 +278,7 @@ final class FileController extends ChangeNotifier {
     final now = await textNow();
     if (readOnly) return RestoreOutcome.notEditable;
     if (await backUp(now) is Err) return RestoreOutcome.notBackedUp;
-    session.replaceAll(backup);
+    await session.replaceAll(backup);
     return RestoreOutcome.restored;
   }
 }

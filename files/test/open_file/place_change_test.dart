@@ -28,6 +28,9 @@ final class _Type implements ShownFileType {
 
   @override
   TextMerge? get merge => null;
+
+  @override
+  String? relinked(String text, Relink relink) => null;
 }
 
 Folder _folder(String id) =>

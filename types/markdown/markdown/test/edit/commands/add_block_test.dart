@@ -21,6 +21,8 @@ import '../support/shown.dart';
 }
 
 void main() {
+  _imageTests();
+
   test("goes after the caret's paragraph; the caret to the text after", () {
     final (text, row) = _added('ab\n\ncd', 0, 1);
     expect(text, 'ab\n\n---\n\ncd');
@@ -122,5 +124,47 @@ void main() {
     expect(edited.document.text, '- [ ] a\n- [x] b\n- [x] ***\n- [x] ');
     final caret = edited.selection as TextSelection;
     expect(edited.document.view.row(caret.extent.leaf)!.done, isTrue);
+  });
+}
+
+void _imageTests() {
+  group('InsertImage', () {
+    const link = 'document-images/img-0123456789abcdef.jpg';
+
+    String inserted(String text, int index, int offset) {
+      final document = Shown.read(text);
+      final edited = document.run(
+        InsertImage(document.place(index, offset).leaf, link),
+      );
+      return edited.document.text;
+    }
+
+    test("goes on a line of its own after the caret's line", () {
+      expect(inserted('ab\n\ncd', 0, 1), 'ab\n\n![]($link)\n\ncd');
+    });
+
+    test('takes the place of an empty line', () {
+      final document = Shown.read('---');
+      final edited = document.run(InsertImage(document.place(1, 0).leaf, link));
+      expect(edited.document.text, startsWith('---\n\n![]($link)'));
+      expect(edited.document.rows.length, 2);
+    });
+
+    test('in a list is an item of its own', () {
+      expect(inserted('- a\n- b', 0, 1), '- a\n- ![]($link)\n- b');
+    });
+
+    test('reads back as an image with no description', () {
+      final document = Shown.read(inserted('ab', 0, 2));
+      expect(document.text, contains('![]($link)'));
+    });
+
+    test('a link with a space is written so it reads back as one', () {
+      final document = Shown.read('ab');
+      final edited = document.run(
+        InsertImage(document.place(0, 2).leaf, '../my images/a.png'),
+      );
+      expect(edited.document.text, contains('![](<../my images/a.png>)'));
+    });
   });
 }

@@ -3,6 +3,7 @@ import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_images/truce_images.dart';
 
 import '../alerts/alert_style.dart';
 import '../text_zoom/text_zoom.dart';
@@ -25,6 +26,7 @@ final class DeviceSettings {
     required this.backupSpace,
     required this.alertStyle,
     required this.startAtLogin,
+    required this.images,
   });
 
   /// What a device starts with.
@@ -41,6 +43,7 @@ final class DeviceSettings {
     backupSpace: BackupSpace.standard,
     alertStyle: AlertStyle.notification,
     startAtLogin: false,
+    images: ImageSettings.standard,
   );
 
   final TextZoom documentTextZoom;
@@ -76,6 +79,9 @@ final class DeviceSettings {
   /// Start in the tray when the user logs in, where the app has a tray.
   final bool startAtLogin;
 
+  /// How pictures added to documents are made ready.
+  final ImageSettings images;
+
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
     TextZoomTarget.documents => documentTextZoom,
@@ -104,6 +110,7 @@ final class DeviceSettings {
     BackupSpace? backupSpace,
     AlertStyle? alertStyle,
     bool? startAtLogin,
+    ImageSettings? images,
   }) => DeviceSettings(
     documentTextZoom: documentTextZoom ?? this.documentTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
@@ -117,6 +124,7 @@ final class DeviceSettings {
     backupSpace: backupSpace ?? this.backupSpace,
     alertStyle: alertStyle ?? this.alertStyle,
     startAtLogin: startAtLogin ?? this.startAtLogin,
+    images: images ?? this.images,
   );
 
   Map<String, Object?> toJson() => {
@@ -133,6 +141,7 @@ final class DeviceSettings {
     'backupSpace': backupSpace.name,
     'alertStyle': alertStyle.name,
     'startAtLogin': startAtLogin,
+    'images': images.toJson(),
   };
 
   /// The settings [json] holds, each read on its own: one missing or not
@@ -174,6 +183,7 @@ final class DeviceSettings {
         final bool start => start,
         _ => standard.startAtLogin,
       },
+      images: ImageSettings.fromJson(fields['images']),
     );
   }
 
@@ -191,7 +201,8 @@ final class DeviceSettings {
       other.placeAboveText == placeAboveText &&
       other.backupSpace == backupSpace &&
       other.alertStyle == alertStyle &&
-      other.startAtLogin == startAtLogin;
+      other.startAtLogin == startAtLogin &&
+      other.images == images;
 
   @override
   int get hashCode => Object.hash(
@@ -207,5 +218,6 @@ final class DeviceSettings {
     backupSpace,
     alertStyle,
     startAtLogin,
+    images,
   );
 }

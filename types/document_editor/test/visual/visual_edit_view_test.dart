@@ -1109,7 +1109,7 @@ void main() {
 }
 
 /// Every image a document refers to is [image].
-final class _OneImage implements DocumentImages {
+final class _OneImage implements DocumentImageLookup {
   const _OneImage(this.image);
 
   final ImageProvider image;

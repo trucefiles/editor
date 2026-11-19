@@ -4,6 +4,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_pages.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -19,7 +20,7 @@ void main() {
     closings = 0;
   });
 
-  FilePages pages() => FilePages(
+  FilePages pages({LinkedFiles linked = const NoLinkedFiles()}) => FilePages(
     types: appFileTypes(),
     create: fixture.createFile,
     move: fixture.moveFile,
@@ -33,6 +34,7 @@ void main() {
     openFiles: open,
     fileClosed: () => closings++,
     endWait: const Duration(seconds: 1),
+    linked: linked,
   );
 
   test('a page tells that it closed, once, as it closes', () async {
@@ -49,13 +51,13 @@ void main() {
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {
     final page = pages().open(fixture.file, withFile: (_) async {});
-    page.session.replaceAll('mine\n');
+    await page.session.replaceAll('mine\n');
 
     // A folder change keeps the edits of the open files first.
     await open.secureIn(fixture.folders[0].id, SecureReason.hide);
     expect(fixture.onDisk('a.md'), 'mine\n');
 
-    page.session.replaceAll('more\n');
+    await page.session.replaceAll('more\n');
     await page.close();
 
     expect(fixture.onDisk('a.md'), 'more\n');
@@ -66,7 +68,7 @@ void main() {
       'its file', () async {
     final page = pages().open(fixture.file, withFile: (_) async {});
     addTearDown(page.close);
-    page.session.replaceAll('mine\n');
+    await page.session.replaceAll('mine\n');
 
     await open.secureForExit(within: const Duration(seconds: 5));
 
@@ -88,6 +90,62 @@ void main() {
     expect(file.folder.id, folderId('f2'));
     expect(file.type, same(document.type));
     expect(page.type, same(document.type));
+  });
+
+  group("a new document's place changed before its first save", () {
+    late _FakeLinked linked;
+    late FilePage page;
+
+    setUp(() async {
+      linked = _FakeLinked();
+      final made = pages(linked: linked);
+      page = made.openNew(
+        (folder: fixture.folders[0], subfolder: null),
+        made: made.types.newFileChoices.first,
+        withFile: (_) async {},
+      );
+      addTearDown(page.close);
+      await page.session.replaceAll('Plan\n\n![a](x.png)\n');
+    });
+
+    test('changes its links with it', () async {
+      final placed = await page.session.place(
+        NewFile((
+          folder: fixture.folders[0],
+          subfolder: path('a'),
+        ), type: (page.session.file as NewFile).type),
+      );
+
+      expect(placed, isA<Ok<void, StoreError>>());
+      expect(page.session.text, 'Plan\n\n![a](../x.png)\n');
+      expect(linked.copied, isEmpty);
+    });
+
+    test('in another folder, copies its images first', () async {
+      await page.session.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: null,
+        ), type: (page.session.file as NewFile).type),
+      );
+
+      expect(linked.copied, [fixture.folders[1].id]);
+      expect(page.session.file.folder, fixture.folders[1]);
+    });
+
+    test('stays where its images can not be copied', () async {
+      linked.copyFails = true;
+
+      final placed = await page.session.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: null,
+        ), type: (page.session.file as NewFile).type),
+      );
+
+      expect(placed, isA<Err<void, StoreError>>());
+      expect(page.session.file.folder, fixture.folders[0]);
+    });
   });
 
   test("a new calendar's page starts as an empty, unnamed calendar", () {
@@ -113,4 +171,34 @@ void main() {
       reason: 'named after its kind until it has a name',
     );
   });
+}
+
+/// Kept files for links named `x.png`, at the folder's top level.
+final class _FakeLinked implements LinkedFiles {
+  final List<FolderId> copied = [];
+  bool copyFails = false;
+
+  @override
+  Future<Result<void, StoreError>> copyFor(
+    String text, {
+    required Folder from,
+    required Folder to,
+  }) async {
+    if (copyFails) return const Err(StoreError.ioFailure);
+    copied.add(to.id);
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<Relink?, StoreError>> relinkFor(
+    Folder folder, {
+    required RelPath from,
+    required RelPath? toFolder,
+  }) async => Ok(
+    (destination) =>
+        destination == 'x.png' && toFolder != null ? '../x.png' : null,
+  );
+
+  @override
+  Future<void> bringBack(String text, Folder folder) async {}
 }

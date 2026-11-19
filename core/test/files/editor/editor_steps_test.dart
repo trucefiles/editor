@@ -261,6 +261,27 @@ void main() {
       expect(editor.book.history.start, HistoryStart.changedElsewhere);
     });
 
+    test('a text changed by a move shows and ends the history, told as '
+        'moved', () {
+      final editor = _FakeEditor('a')
+        ..edit('ab')
+        ..send()
+        ..handleRequest(
+          const FromFile(
+            Replaced(
+              'ab moved',
+              version: Version(2),
+              ackRev: 1,
+              by: ReplacedBy.move,
+            ),
+          ),
+        );
+
+      expect(editor.shown, 'ab moved');
+      expect(editor.book.status.canUndo, isFalse);
+      expect(editor.book.history.start, HistoryStart.moved);
+    });
+
     test('a change elsewhere before any edit keeps the history start', () {
       final editor = _FakeEditor('a')
         ..handleRequest(

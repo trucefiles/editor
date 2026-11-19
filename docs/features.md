@@ -3,6 +3,24 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Images in documents
+
+In Visual edit, the **Image** button on the format bar adds a picture on
+its own line after the caret: from a file dialog on the desktop, or
+"Choose image" and "Take photo" on a phone. Truce keeps a copy in the
+folder's `document-images` folder, so it syncs with the document. Tap an
+image to see it full screen and zoom in. Settings can take the location
+out of photos (on by default) and make large pictures smaller. A
+folder's settings can remove the images no document shows any more; each
+one keeps a backup for 7 days.
+
+<img src="screenshots/images/image_visual_desktop.png" width="600" alt="Visual edit with a picture of a lake in the document and the Image button on the format bar">
+<img src="screenshots/images/image_button_touch.png" width="280" alt="The same document on a phone, the format bar scrolled to the Image button">
+
+<img src="screenshots/images/image_viewer_desktop.png" width="600" alt="The picture full screen, on black, with a close button">
+<img src="screenshots/images/image_settings_touch.png" width="280" alt="Settings on a phone with larger text: Remove location from photos, on, and Make large images smaller, off">
+<img src="screenshots/images/image_cleanup_desktop.png" width="600" alt="A folder's settings with Remove unused images below its name and color">
+
 ## Home, cards and wide windows
 
 Home now has two parts: **Pinned** (every pinned file) and **Recently

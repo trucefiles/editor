@@ -9,19 +9,28 @@ import 'rel_path.dart';
 /// folder: the files it [handles] (the handled file types and the app's
 /// own files, e.g. marks) are listed, read and written; every other file
 /// is only read, never listed or written (e.g. an image a file links).
-/// Writing any other file fails with [StoreError.outside].
+/// Writing any other file fails with [StoreError.outside]. Folders
+/// [enters] leaves out are never listed or walked.
 final class BoundedStore extends ForwardingStore {
-  const BoundedStore(super.inner, {required this.handles});
+  const BoundedStore(super.inner, {required this.handles, this.enters});
 
   /// Whether a file is listed and written.
   final bool Function(RelPath file) handles;
+
+  /// Whether a folder is walked by a listing; `null`: every folder.
+  final bool Function(RelPath folder)? enters;
 
   @override
   Future<Result<Listing, StoreError>> list({
     bool Function(RelPath folder)? enterFolder,
     bool Function(RelPath file)? includeFile,
   }) => inner.list(
-    enterFolder: enterFolder,
+    enterFolder: switch (enters) {
+      null => enterFolder,
+      final enters => (
+        folder,
+      ) => enters(folder) && (enterFolder?.call(folder) ?? true),
+    },
     includeFile: (file) => handles(file) && (includeFile?.call(file) ?? true),
   );
 

@@ -15,7 +15,7 @@ import '../library/library_nodes.dart';
 EditorLook visualLook(
   ThemeData theme, {
   required DocumentMetrics metrics,
-  required DocumentImages images,
+  required DocumentImageLookup images,
 }) {
   final body = DocumentTextStyles.body(theme);
   final colors = theme.colorScheme;

@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../common/snack.dart';
+import '../../images/ui/remove_unused_images_tile.dart';
 import '../../plugins/plugins_wiring.dart';
 import '../folder_actions.dart';
 import 'folder_color_picker.dart';
@@ -12,7 +13,8 @@ import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
 
 /// A folder's settings: its name and color; where it is, its kind (the
-/// plugin), and what its plugin tells about it.
+/// plugin), and what its plugin tells about it; the cleanup of its
+/// unused images.
 class FolderSettingsScreen extends ConsumerStatefulWidget {
   const FolderSettingsScreen(this.folder, {super.key});
 
@@ -88,6 +90,8 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
               selected: _color,
               onPicked: (color) => setState(() => _color = color),
             ),
+            const SizedBox(height: 16),
+            RemoveUnusedImagesTile(folder.id),
           ],
         ),
       ),

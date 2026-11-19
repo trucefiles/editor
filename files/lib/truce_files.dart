@@ -38,6 +38,7 @@ export 'src/home/home_lists.dart';
 export 'src/home/home_settings.dart';
 export 'src/kept_file_settings.dart';
 export 'src/kept_settings.dart';
+export 'src/linked_files.dart';
 export 'src/listed_file.dart';
 export 'src/move_failure.dart';
 export 'src/new_file_choice.dart';

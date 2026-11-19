@@ -196,6 +196,30 @@ Accepted behavior that is not planned to change, grouped by topic.
   In rare cases a save can still reach your other devices only with the
   next one. Nothing is lost on this device.
 
+## Images in documents
+
+- **Removed images stay until you clean up.** An image you delete from a
+  document, or one added to a new document you then drop, stays in the
+  folder's `document-images` folder until you use "Remove unused images"
+  in the folder's settings.
+- **A move to another folder copies its images.** The images go along as
+  copies, so they sync again, and the old ones stay where they were until
+  the cleanup.
+- **An image pasted from another folder doesn't show.** Its picture is in
+  the other folder. Add it again with the Image button.
+- **Links changed by other apps stay as they are.** If another app moves a
+  document, Truce still shows its images, but it doesn't fix their links
+  in the file.
+- **Markdown edit shows the link, not the image.** Add images in Visual
+  edit; Markdown edit shows the line that links them.
+- **Images in tables keep their links on a move.** When a document moves
+  to another folder level, the links of images inside a table are not
+  changed. They still show in Truce.
+- **Restoring a document can make the image folder again.** When you
+  restore a document or undo its delete, its images that were removed come
+  back from their backups, which can make `document-images` again if you
+  deleted it.
+
 ## Unreachable folders
 
 - **A failed save or rescan is not retried when the folder comes back.**

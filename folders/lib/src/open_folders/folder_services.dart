@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 final class FolderServices {
   const FolderServices({
     required this.open,
+    required this.apart,
     required this.conflicts,
     required this.backups,
     required this.restore,
@@ -18,6 +19,10 @@ final class FolderServices {
   final OpenFolder open;
 
   FileStore get store => open.store;
+
+  /// The files the app keeps apart in the folder (see
+  /// [BoundedPlace.apart]); none where it keeps none.
+  final FileStore apart;
   FolderScanner get scanner => open.scanner;
 
   /// What the plugin tells about the folder.
@@ -44,29 +49,39 @@ final class FolderServices {
 
 /// The services of a folder on [raw], its plugin's raw access to it, whose
 /// files tell [reach] how each access went, bounded to the files the app
-/// [handles] and the marks. Each write, the plugin's own included, is
-/// told to [wrote]. A folder that is gone is checked every [checkEvery]
-/// whether it is back.
+/// [handles] and the marks, with the files [keptApart] reached on their
+/// own. Each write, the plugin's own included, is told to [wrote], but
+/// those kept apart, which no screen shows. A folder that is gone is
+/// checked every [checkEvery] whether it is back.
 FolderServices folderServices(
   RawFolder raw, {
   required FolderReach reach,
   required bool Function(RelPath file) handles,
+  bool Function(RelPath path)? keptApart,
   required String backupsPath,
   required String deviceId,
   required Duration Function() checkEvery,
   required void Function(Set<RelPath> paths) wrote,
 }) {
   // Below the bound: a write it refuses is never told.
+  final apart = keptApart ?? (_) => false;
+  void told(Set<RelPath> paths) {
+    final shown = {...paths.where((path) => !apart(path))};
+    if (shown.isNotEmpty) wrote(shown);
+  }
+
   final bounded = BoundedPlace(
-    WriteReportingStore(ReachReportingStore(raw.files, reach), wrote),
+    WriteReportingStore(ReachReportingStore(raw.files, reach), told),
     raw.changes,
     handles: (file) => handles(file) || FileMarks.files.includesFile(file),
+    keptApart: apart,
     checkEvery: checkEvery,
   );
   final open = raw.open(bounded);
   final backups = fileBackupsAt(backupsPath);
   return FolderServices(
     open: open,
+    apart: bounded.apart,
     conflicts: DefaultConflictService(
       folder: open.store,
       source: open.conflicts,

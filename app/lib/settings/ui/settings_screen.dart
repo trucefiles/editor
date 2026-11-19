@@ -6,6 +6,7 @@ import '../../backups/ui/backup_space_tile.dart';
 import '../../file_page/ui/place_above_text_tile.dart';
 import '../../files/home/ui/recently_edited_tiles.dart';
 import '../../files/new_file_place/ui/new_file_place_tile.dart';
+import '../../images/ui/image_setting_tiles.dart';
 import '../../refresh/ui/refresh_setting_tile.dart';
 import '../../text_zoom/text_zoom_target.dart';
 import '../../text_zoom/ui/text_zoom_tile.dart';
@@ -29,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
           RecentAgeTile(),
           AddItemPlaceTile(),
           PlaceAboveTextTile(),
+          ImageSettingTiles(),
           TextZoomTile(TextZoomTarget.documents),
           TextZoomTile(TextZoomTarget.app),
           RefreshSettingTile(),

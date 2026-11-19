@@ -16,12 +16,14 @@ void main() {
   Future<Result<FileEntry, MoveError>> move({
     FileStore? into,
     String to = 'sub/b.md',
+    String? text,
   }) => moveByCopy(
     source,
     path('a.md'),
     ifUnchanged: version,
     target: into ?? target,
     to: path(to),
+    bytes: text == null ? null : bytesOf(text),
   );
 
   test('moves the bytes into another folder', () async {
@@ -30,6 +32,23 @@ void main() {
     expect(moved.value.path, path('sub/b.md'));
     expect(target.textOf('sub/b.md'), 'text');
     expect(source.textOf('a.md'), isNull);
+  });
+
+  test('writes the bytes given instead, e.g. with its links changed', () async {
+    await move(text: 'changed');
+
+    expect(target.textOf('sub/b.md'), 'changed');
+    expect(source.textOf('a.md'), isNull);
+  });
+
+  test('with bytes given, a file changed since still stays', () async {
+    source.put('a.md', 'newer');
+
+    final moved = await move(text: 'changed');
+
+    expect((moved.error as NotMoved).error, StoreError.changedSinceRead);
+    expect(target.textOf('sub/b.md'), isNull);
+    expect(source.textOf('a.md'), 'newer');
   });
 
   test('moves inside one folder alike', () async {

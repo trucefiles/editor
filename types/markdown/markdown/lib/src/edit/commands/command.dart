@@ -9,7 +9,7 @@ import '../../visible/formatting.dart';
 import '../../visible/visible_text.dart';
 import '../change.dart';
 import '../selection.dart';
-import 'add_divider.dart';
+import 'add_block.dart';
 import 'heading.dart';
 import 'indent.dart';
 import 'items.dart';
@@ -188,6 +188,17 @@ final class AddDivider extends EditCommand {
   final NodeId after;
 }
 
+/// The toolbar's Image, once the image is kept: an image leading to
+/// [link] on a line of its own after the block [after] (the caret's, or
+/// a selected divider), or as an item after its item; an empty line
+/// becomes it.
+final class InsertImage extends EditCommand {
+  const InsertImage(this.after, this.link);
+
+  final NodeId after;
+  final String link;
+}
+
 /// The Add item button of [list]: a new empty item, [at] its place.
 final class AddItem extends EditCommand {
   const AddItem(this.list, {this.at = AddAt.last});
@@ -331,6 +342,7 @@ Change _change(ViewRows view, EditCommand command) {
     ),
     AddItem(:final list, :final at) => addItem(view, node(list), at: at),
     AddDivider(:final after) => addDivider(view, after),
+    InsertImage(:final after, :final link) => addImage(view, after, link),
     LineInPlace(:final block) => lineInPlace(view, block),
     LineAfter(:final block) => lineAfter(view, block),
     MoveItem(:final item, :final target, :final below) => moveItem(

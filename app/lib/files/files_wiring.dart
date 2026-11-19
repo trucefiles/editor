@@ -8,6 +8,7 @@ import '../file_types/file_types.dart';
 import '../folder_state/folder_state_wiring.dart';
 import '../folders/folders_controller.dart';
 import '../folders/open_folders_wiring.dart';
+import '../images/images_wiring.dart';
 import '../storage/app_storage.dart';
 import 'file_settings_controller.dart';
 
@@ -39,6 +40,7 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
     folders: () => settledFolders(folderList),
     drafts: ref.watch(draftsProvider),
     types: ref.watch(fileTypesProvider),
+    linked: ref.watch(linkedFilesProvider),
   );
 });
 

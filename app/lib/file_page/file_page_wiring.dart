@@ -8,6 +8,7 @@ import '../files/file_actions.dart';
 import '../files/file_settings_controller.dart';
 import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
+import '../images/images_wiring.dart';
 import '../reach/folder_reach_controller.dart';
 import '../settings/device_settings_controller.dart';
 import 'file_pages.dart';
@@ -49,6 +50,7 @@ final filePagesProvider = Provider<FilePages>(
         ref.read(folderReachProvider(folder).notifier).settled(),
     openFiles: ref.watch(openFilesProvider),
     endWait: appEndWait,
+    linked: ref.watch(linkedFilesProvider),
     // Where nothing finds changes meanwhile, what shows next is listed
     // again.
     fileClosed: () {

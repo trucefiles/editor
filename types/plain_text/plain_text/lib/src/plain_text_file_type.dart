@@ -38,4 +38,8 @@ base class PlainTextFileType implements ShownFileType {
   /// Texts are compared and picked by the user.
   @override
   TextMerge? get merge => null;
+
+  /// Its texts have no image links.
+  @override
+  String? relinked(String text, Relink relink) => null;
 }

@@ -8,8 +8,9 @@ import 'package:truce_files/truce_files.dart';
 /// ([folder], [path]; it changes with a move, or a new file's first
 /// line), how to read another file of its folder ([bytesOf], e.g. an
 /// image it links; `null` if it can't be read), how a short [hint]
-/// shows (e.g. a link it doesn't open), and the file's [color]. What a
-/// type needs beyond this, it gets from its own wiring.
+/// shows (e.g. a link it doesn't open), the file's [color], and the
+/// [images] the app keeps for its text. What a type needs beyond this,
+/// it gets from its own wiring.
 final class EditorHost {
   const EditorHost({
     required this.kept,
@@ -18,6 +19,7 @@ final class EditorHost {
     required this.bytesOf,
     required this.hint,
     required this.color,
+    this.images = const NoHostImages(),
   });
 
   final String kept;
@@ -29,6 +31,47 @@ final class EditorHost {
   /// The file's color as the app shows it (its own, else its folder's),
   /// for a type that draws in it (e.g. a calendar's events).
   final Color color;
+
+  final HostImages images;
+}
+
+/// The images the app keeps for a file's text in its folder, wherever
+/// the file is now: where a link of ours leads, adding one, and how
+/// links of ours change in text pasted into the file.
+abstract interface class HostImages {
+  /// Where the image [link] names is kept, wherever the link points;
+  /// `null` for a link whose name isn't ours. It may not be there.
+  RelPath? keptAt(String link);
+
+  /// Keeps [bytes], an image with [extension] (without its dot), for the
+  /// file: the link to write in its text. Fails if the folder can't be
+  /// written (e.g. it can't be reached).
+  Future<Result<String, StoreError>> add(
+    Uint8List bytes, {
+    required String extension,
+  });
+
+  /// How the links of ours in text pasted into the file change, so they
+  /// lead to their images from where it is; `null` if that can't be
+  /// told now.
+  Future<Relink?> pasteRelink();
+}
+
+/// A file for which no images are kept.
+final class NoHostImages implements HostImages {
+  const NoHostImages();
+
+  @override
+  RelPath? keptAt(String link) => null;
+
+  @override
+  Future<Result<String, StoreError>> add(
+    Uint8List bytes, {
+    required String extension,
+  }) async => const Err(StoreError.outside);
+
+  @override
+  Future<Relink?> pasteRelink() async => null;
 }
 
 /// How a file type's editor part shows on the page: the editor in
