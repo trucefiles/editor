@@ -259,11 +259,34 @@ final class FileSession {
     return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
-  /// The user picked where a new file goes.
-  void place(NewFile to) {
-    _effects.place(to);
-    _changed();
+  /// The user picked where a new file goes. Its type's arrival there
+  /// runs first, as for a move (e.g. its images go along); if it fails,
+  /// the file stays where it was (told only for the latest pick). Only
+  /// the latest pick takes effect, and only while the file is still new:
+  /// once it was created meanwhile, at the place it had, the pick is
+  /// dropped.
+  Future<Result<void, MoveFailure>> place(NewFile to) async {
+    _picked = to;
+    if (file case final NewFile from) {
+      final arrived = await _arrivals.moved(
+        const TextFile.empty().withText(text),
+        folder: from.folder,
+        from: from.pathFor(summary.firstLine),
+        to: (folder: to.folder, subfolder: to.place.subfolder),
+      );
+      if (arrived case Err(:final error) when identical(_picked, to)) {
+        return Err(MoveNotWritten(error));
+      }
+    }
+    if (identical(_picked, to) && file is NewFile && _state is Running) {
+      _effects.place(to);
+      _changed();
+    }
+    return const Ok(null);
   }
+
+  /// The place last picked for a new file ([place]).
+  NewFile? _picked;
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
     (ToFile(input: final Edited edited), Running()) => _file.send(

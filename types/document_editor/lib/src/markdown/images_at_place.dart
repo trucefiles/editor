@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown/truce_markdown.dart' show RelinkImages;
 import 'package:truce_markdown_images/truce_markdown_images.dart';
@@ -13,9 +14,10 @@ import '../visual/image_insert.dart';
 /// document's folder picked), its images going along into the new
 /// folder first, then its links changing so each leads from there, as
 /// one step of its editor. Each folder's images are [_storeOf]'s. One
-/// step at a time, in order, so a link always leads from where the
-/// links lead from. Images that can't go along yet are tried again at
-/// the next [at] or [add], so they never stay behind unnoticed.
+/// step at a time, in order, so a link always leads from where its
+/// images are. A new document's place changes only once its images went
+/// along (as for a move); this copies those not there yet, e.g. one
+/// added meanwhile.
 final class ImagesAtPlace implements ImageKeeping {
   ImagesAtPlace(this._gate, this._storeOf, {required DocumentPlace place})
     : _asked = place,
@@ -32,14 +34,6 @@ final class ImagesAtPlace implements ImageKeeping {
   /// The place the document's links lead from: where its images are.
   DocumentPlace _linksFrom;
 
-  /// The images following the document now, if they are.
-  Future<void>? _following;
-
-  /// When the document's images last followed it, if they did: images
-  /// show as read since then.
-  ValueListenable<DateTime?> get followed => _followed;
-  final _followed = ValueNotifier<DateTime?>(null);
-
   /// The steps asked for, one after another: the last one asked for.
   Future<void> _turns = Future.value();
 
@@ -49,18 +43,18 @@ final class ImagesAtPlace implements ImageKeeping {
   void Function(String message) _hint = (_) {};
 
   /// The document is at [path] in [folder] now; a hint shows by [hint].
-  /// Its images follow if they are not there yet; done once they
-  /// followed or couldn't.
+  /// Its images follow if its folder or subfolder changed; done once
+  /// they did or couldn't.
   Future<void> at(
     FolderId folder,
     RelPath path, {
     required void Function(String message) hint,
   }) {
     _hint = hint;
-    _asked = (folder: folder, documentFolder: path.parent);
-    if (_asked == _linksFrom) return Future.value();
-    return _following ??= _inTurn(_follow)
-        .whenComplete(() => _following = null);
+    final place = (folder: folder, documentFolder: path.parent);
+    if (place == _asked) return Future.value();
+    _asked = place;
+    return _inTurn(_follow);
   }
 
   @override
@@ -69,7 +63,6 @@ final class ImagesAtPlace implements ImageKeeping {
     required String extension,
     required void Function(String link) insert,
   }) => _inTurn(() async {
-    await _follow();
     final place = _linksFrom;
     final added = await _storeOf(place.folder)
         .add(bytes, extension: extension, documentFolder: place.documentFolder);
@@ -99,13 +92,12 @@ final class ImagesAtPlace implements ImageKeeping {
     switch (followed) {
       case Err():
         _hint(
-          "Couldn't take the images along yet: the folder can't be "
+          "Couldn't take the images along: the folder can't be "
           'written now.',
         );
       case Ok(value: final relink):
         _linksFrom = to;
         if (relink != null) _gate.external(RelinkImages(relink));
-        _followed.value = DateTime.now();
     }
   }
 }

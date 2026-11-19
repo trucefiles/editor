@@ -35,7 +35,7 @@ final class MarkdownEditorView extends EditorView {
   /// Lists get Add item buttons where the setting says, links open as the
   /// app opens them, images show from the file's folder, the kept ones
   /// first, and are added there; they follow the document as its place
-  /// changes ([ImagesAtPlace.at]), and show as read anew once they did.
+  /// changes ([ImagesAtPlace.at]).
   @override
   Widget view(EditorHost host, {required bool autofocus}) {
     final images = _images ??= ImagesAtPlace(
@@ -44,22 +44,22 @@ final class MarkdownEditorView extends EditorView {
       place: (folder: host.folder, documentFolder: host.path.parent),
     );
     // The page tells no place change, so each view compares the place;
-    // the compare is cheap, and images follow only while not there yet.
+    // the compare is cheap and the step runs only once per change.
     unawaited(images.at(host.folder, host.path, hint: host.hint));
-    return ListenableBuilder(
-      listenable: Listenable.merge([_services.addItems, images.followed]),
-      builder: (_, _) => DocumentEditor(
+    return ValueListenableBuilder(
+      valueListenable: _services.addItems,
+      builder: (_, addItems, _) => DocumentEditor(
         _part.gate,
         text: host.kept,
         notices: _part.gate.events,
-        addItems: _services.addItems.value,
+        addItems: addItems,
         onLink: (url) =>
             openMarkdownLink(url, open: _services.openLink, hint: host.hint),
         images: FolderImages(
           host.bytesOf,
           folder: host.folder,
           document: host.path,
-          readSince: images.followed.value ?? _openedAt,
+          openedAt: _openedAt,
           keptAt: ImageNames.keptAt,
         ),
         imageAdding: switch (_services.picking) {

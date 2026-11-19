@@ -121,35 +121,47 @@ void main() {
     expect(text(), '![](document-images/$_name)');
   });
 
-  test('images that could not come along come along at the next try, '
-      'and show anew', () async {
-    open('![](document-images/$_name)');
-    final f2 = folders[folderId('f2')]!.files;
-    f2.failWith = StoreError.ioFailure;
-    await moveTo('f2', 'x/doc.md');
-    expect(images.followed.value, isNull);
+  /// Puts [link] as an image at the end of the text, as the editor does.
+  void insert(String link) => gate.send(
+    (now) => md.EditText(
+      editTo(text(), '${text()}\n\n![]($link)'),
+      revision: now.revision,
+    ),
+  );
 
-    f2.failWith = null;
-    await moveTo('f2', 'x/doc.md');
+  bool hasIn(String folder, String link) => folders[folderId(folder)]!
+      .files
+      .files
+      .containsKey(ImageNames.pathOf(link.split('/').last));
 
-    expect(has('f2'), isTrue);
-    expect(text(), '![](../document-images/$_name)');
-    expect(images.followed.value, isNotNull);
-  });
-
-  test('an image added after its images could not come along tries '
-      'again first', () async {
-    open('![](document-images/$_name)');
-    final f2 = folders[folderId('f2')]!.files;
-    f2.failWith = StoreError.ioFailure;
-    await moveTo('f2', 'x/doc.md');
-    f2.failWith = null;
+  test('an image added right before the place changes comes along', () async {
+    open('a');
     final links = <String>[];
 
-    await images.add(Uint8List(1), extension: 'png', insert: links.add);
+    await images.add(
+      Uint8List(1),
+      extension: 'png',
+      insert: (link) => insert((links..add(link)).last),
+    );
+    await moveTo('f2', 'doc.md');
 
-    expect(has('f2'), isTrue);
-    expect(links.single, startsWith('../document-images/'));
+    expect(hasIn('f2', links.single), isTrue);
+  });
+
+  test('an image being added as the place changes comes along', () async {
+    open('a');
+    final links = <String>[];
+
+    final added = images.add(
+      Uint8List(1),
+      extension: 'png',
+      insert: (link) => insert((links..add(link)).last),
+    );
+    await moveTo('f2', 'doc.md');
+    await added;
+
+    expect(hasIn('f1', links.single), isTrue);
+    expect(hasIn('f2', links.single), isTrue);
   });
 
   test(

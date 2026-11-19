@@ -15,7 +15,7 @@ void main() {
       (_) async => bytes,
       folder: folderId('f1'),
       document: path('doc.md'),
-      readSince: DateTime(2026),
+      openedAt: DateTime(2026),
     );
     Future<void> show() async {
       await tester.pumpWidget(
