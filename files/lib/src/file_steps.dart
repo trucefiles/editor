@@ -190,7 +190,6 @@ base class FileSteps {
       file.textFile.withText(deleted.text),
       folder: file.folder,
       from: file.path,
-      to: (folder: file.folder, subfolder: file.path.parent),
     );
     final files = _files.of(file.folder);
     final restored = switch (await files.restore(file, text)) {

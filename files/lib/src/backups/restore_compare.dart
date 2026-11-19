@@ -26,15 +26,13 @@ final class RestoreCompare
     RestoreChoice sides,
     Resolution choice,
   ) async {
-    Future<Uint8List> arrived(Uint8List bytes) {
-      final path = target.backup.filePath;
-      return _arrivals.restoredBytes(
-        bytes,
-        folder: target.folder,
-        from: path,
-        to: (folder: target.folder, subfolder: path.parent),
-      );
-    }
+    Future<Uint8List> arrived(Uint8List bytes) async =>
+        await _arrivals.restoredBytes(
+          bytes,
+          folder: target.folder,
+          from: target.backup.filePath,
+        ) ??
+        bytes;
 
     return switch (choice) {
       KeepCurrent() => _restore.keep(sides, choice),

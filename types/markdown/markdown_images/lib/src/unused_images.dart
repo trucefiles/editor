@@ -29,6 +29,7 @@ final class UnusedImages {
     this._store,
     this._services, {
     required this._drafts,
+    required this._isDocument,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -41,6 +42,9 @@ final class UnusedImages {
   /// The folder's drafts on this device; `null` if one can't be read.
   final Future<List<FileDraft>?> Function() _drafts;
   final DateTime Function() _now;
+
+  /// Whether a file is a Markdown document, by the app's file types.
+  final bool Function(RelPath path) _isDocument;
 
   /// The images that would go, oldest first.
   Future<Result<List<FileEntry>, CleanupRefused>> find() async {
@@ -90,10 +94,9 @@ final class UnusedImages {
     if (drafts == null) return null;
     final used = {
       for (final draft in drafts)
-        if (ImageNames.isDocument(draft.path))
-          ...ImageNames.linkedBy(draft.text),
+        if (_isDocument(draft.path)) ...ImageNames.linkedBy(draft.text),
     };
-    for (final file in scan.files.where((f) => ImageNames.isDocument(f.path))) {
+    for (final file in scan.files.where((f) => _isDocument(f.path))) {
       switch (await _services.store.read(file.path)) {
         case Ok(:final value):
           used.addAll(_linkedBy(value.bytes));
@@ -102,7 +105,7 @@ final class UnusedImages {
       }
     }
     final copies = scan.conflicts
-        .where((conflict) => ImageNames.isDocument(conflict.mainPath))
+        .where((conflict) => _isDocument(conflict.mainPath))
         .expand((conflict) => conflict.copies);
     for (final copy in copies) {
       switch (await _services.conflicts.readCopy(copy)) {

@@ -51,12 +51,6 @@ void main() {
     expect(ImageNames.keptAt('pics/a.png'), isNull);
   });
 
-  test('only Markdown documents link images of ours', () {
-    expect(ImageNames.isDocument(path('a/b.md')), isTrue);
-    expect(ImageNames.isDocument(path('a/b.txt')), isFalse);
-    expect(ImageNames.isDocument(path('a/b.ics')), isFalse);
-  });
-
   test('the store folder and all in it are kept apart', () {
     expect(ImageNames.isKept(path('document-images')), isTrue);
     expect(ImageNames.isKept(path('document-images/$nameA')), isTrue);

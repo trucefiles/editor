@@ -20,6 +20,7 @@ void main() {
     folder.store,
     folder.services,
     drafts: () async => drafts,
+    isDocument: (path) => path.name.endsWith('.md'),
     now: () =>
         DateTime.fromMillisecondsSinceEpoch(0).add(const Duration(hours: 2)),
   );
@@ -83,6 +84,7 @@ void main() {
       folder.store,
       folder.services,
       drafts: () async => drafts,
+      isDocument: (path) => path.name.endsWith('.md'),
       now: () =>
           DateTime.fromMillisecondsSinceEpoch(0)
               .add(const Duration(minutes: 30)),

@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_markdown/truce_markdown.dart'
-    show MarkdownSupport, imageLinksOf, markdownType;
+import 'package:truce_markdown/truce_markdown.dart' show imageLinksOf;
 
 /// The one rule for where the app keeps document images and how it names
 /// them: `document-images/img-<id>.<extension>` at a folder's root, the
@@ -47,14 +46,6 @@ abstract final class ImageNames {
   static Set<String> ofLinks(Iterable<String> links) => {
     for (final link in links) ?nameIn(link),
   };
-
-  /// Whether [path] is a document whose images are ours to keep.
-  static bool isDocument(RelPath path) =>
-      _documents.detect(path) == markdownType;
-
-  static final _documents = ExtensionFileTypeDetector.of([
-    const MarkdownSupport(),
-  ]);
 
   /// Where the image [link] names is kept, wherever it points; `null`
   /// for a link whose name isn't ours. It may not be there.

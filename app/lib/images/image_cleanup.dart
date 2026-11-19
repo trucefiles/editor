@@ -11,12 +11,16 @@ class ImageCleanup {
     required this._servicesOf,
     required this._draftsOf,
     required this._openFiles,
+    required this._isDocument,
     this._now,
   });
 
   final FolderServices Function(FolderId folder) _servicesOf;
   final FileDrafts Function(FolderId folder) _draftsOf;
   final OpenFiles _openFiles;
+
+  /// Whether a file is a Markdown document.
+  final bool Function(RelPath path) _isDocument;
   final DateTime Function()? _now;
 
   /// The unused images of [folder], to remove with [remove].
@@ -35,6 +39,7 @@ class ImageCleanup {
       DocumentImageStore(services),
       services,
       drafts: _draftsOf(folder).every,
+      isDocument: _isDocument,
       now: _now,
     );
   }

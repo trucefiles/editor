@@ -8,7 +8,6 @@ import '../files/file_actions.dart';
 import '../files/file_settings_controller.dart';
 import '../files/files_wiring.dart';
 import '../folder_state/folder_state_controller.dart';
-import '../images/images_wiring.dart';
 import '../reach/folder_reach_controller.dart';
 import '../settings/device_settings_controller.dart';
 import 'file_pages.dart';

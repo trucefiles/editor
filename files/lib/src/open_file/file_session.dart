@@ -233,7 +233,6 @@ final class FileSession {
         read.textFile.withText(text),
         folder: read.folder,
         from: read.path,
-        to: (folder: read.folder, subfolder: read.path.parent),
       ),
       null => text,
     };

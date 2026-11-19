@@ -94,6 +94,12 @@ void main() {
     );
   });
 
+  test('a file restored at its own place is told so', () async {
+    await arrivals.restored(file('x'), folder: folder, from: path('a/b.nt'));
+
+    expect(marks.seen.single.to, (folder: folder, subfolder: path('a')));
+  });
+
   test('a type without a step keeps its files as they are', () async {
     final moved = await arrivals.moved(
       file('x'),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
@@ -221,6 +222,7 @@ void main() {
     servicesOf: container.read(openFoldersProvider).servicesOf,
     draftsOf: container.read(draftsProvider).of,
     openFiles: container.read(openFilesProvider),
+    isDocument: (path) => path.name.endsWith('.md'),
     now: () => DateTime.now().add(later),
   );
 

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' show markdownType;
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 
@@ -17,13 +16,11 @@ documentImageStoresProvider = Provider((ref) {
   return (folder) => DocumentImageStore(open.servicesOf(folder));
 });
 
-/// How files arrive as they move or are restored: Markdown documents
-/// take their images along (see [MarkdownArrival]).
-final fileArrivalsProvider = Provider<FileArrivals>((ref) {
+/// How a Markdown document arrives as it moves or is restored: its
+/// images go along (see [MarkdownArrival]).
+final Provider<MarkdownArrival> markdownArrivalProvider = Provider((ref) {
   final storeOf = ref.watch(documentImageStoresProvider);
-  return FileArrivals(ref.watch(fileTypesProvider).detector, {
-    markdownType: MarkdownArrival((folder) => storeOf(folder.id)),
-  });
+  return MarkdownArrival((folder) => storeOf(folder.id));
 });
 
 /// The user's cleanup of unused document images.
@@ -32,5 +29,7 @@ final imageCleanupProvider = Provider<ImageCleanup>(
     servicesOf: ref.watch(openFoldersProvider).servicesOf,
     draftsOf: ref.watch(draftsProvider).of,
     openFiles: ref.watch(openFilesProvider),
+    isDocument: (path) =>
+        ref.watch(fileTypesProvider).detector.detect(path) == markdownType,
   ),
 );

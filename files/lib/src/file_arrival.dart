@@ -51,40 +51,41 @@ final class FileArrivals {
   ))).map((bytes) => bytes == null ? file : _decoded(bytes));
 
   /// The text [file], a past version of the file at [from] in [folder],
-  /// holds once restored at [to], by [restoredBytes].
+  /// holds once restored at [to] (by default its own place), by
+  /// [restoredBytes].
   Future<String> restored(
     TextFile file, {
     required Folder folder,
     required RelPath from,
-    required FilePlace to,
-  }) async {
-    final bytes = file.encode(file.text);
-    final arrived = await restoredBytes(
-      bytes,
-      folder: folder,
-      from: from,
-      to: to,
-    );
-    return identical(arrived, bytes) ? file.text : _decoded(arrived).text;
-  }
+    FilePlace? to,
+  }) async => switch (await restoredBytes(
+    file.encode(file.text),
+    folder: folder,
+    from: from,
+    to: to,
+  )) {
+    final bytes? => _decoded(bytes).text,
+    null => file.text,
+  };
 
   /// The bytes to write as [bytes], a past version of the file at [from]
-  /// in [folder], are restored at [to]: as its type's [FileArrival] says,
-  /// else [bytes]. Best effort: a restore never waits on a failed step.
-  Future<Uint8List> restoredBytes(
+  /// in [folder], are restored at [to] (by default its own place), as its
+  /// type's [FileArrival] says; `null` to write [bytes] as they are. Best
+  /// effort: a restore never waits on a failed step.
+  Future<Uint8List?> restoredBytes(
     Uint8List bytes, {
     required Folder folder,
     required RelPath from,
-    required FilePlace to,
+    FilePlace? to,
   }) async => switch (await _arrive((
     bytes: bytes,
     folder: folder,
     from: from,
-    to: to,
+    to: to ?? (folder: folder, subfolder: from.parent),
     restored: true,
   ))) {
-    Ok(value: final arrived?) => arrived,
-    Ok() || Err() => bytes,
+    Ok(:final value) => value,
+    Err() => null,
   };
 
   /// The bytes its type's [FileArrival] gives for [arrival]; `null` for
