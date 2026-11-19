@@ -1,5 +1,6 @@
 import 'dart:ui' show Codec, ImmutableBuffer;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:truce_core/truce_core.dart';
@@ -8,22 +9,27 @@ import 'ui/document_image.dart';
 
 /// The images the document at [document] in [folder] shows, for the
 /// open of it at [openedAt]: a web image from its url, and an image in
-/// its folder by its link relative to the document, read by [bytesOf].
-/// Any other image (another scheme, outside the folder) doesn't show.
-/// Equal for the same folder, folder of the document and open: they find
-/// the same images.
+/// its folder, read by [bytesOf]: one the app keeps where [keptAt] says
+/// first, wherever its link points, else by its link relative to the
+/// document. Any other image (another scheme, outside the folder)
+/// doesn't show. Equal for the same folder, folder of the document and
+/// open: they find the same images ([keptAt] is one rule by name).
 @immutable
-final class FolderImages implements DocumentImages {
+final class FolderImages implements DocumentImageLookup {
   const FolderImages(
     this.bytesOf, {
     required this.folder,
     required this.document,
     required this.openedAt,
+    this.keptAt = _keptNowhere,
   });
 
   final Future<Uint8List?> Function(RelPath path) bytesOf;
   final FolderId folder;
   final RelPath document;
+  final RelPath? Function(String link) keptAt;
+
+  static RelPath? _keptNowhere(String link) => null;
 
   /// When the document was opened: a picture changed on disk shows anew
   /// at the next open.
@@ -33,10 +39,10 @@ final class FolderImages implements DocumentImages {
   ImageProvider? of(String url) {
     final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
     if (scheme == 'http' || scheme == 'https') return NetworkImage(url);
-    return switch (document.linked(url)) {
-      final path? => FolderImage(folder, path, bytesOf, openedAt: openedAt),
-      null => null,
-    };
+    final paths = {?keptAt(url), ?document.linked(url)}.toList();
+    return paths.isEmpty
+        ? null
+        : FolderImage(folder, paths, bytesOf, openedAt: openedAt);
   }
 
   @override
@@ -50,21 +56,22 @@ final class FolderImages implements DocumentImages {
   int get hashCode => Object.hash(folder, document.parent, openedAt);
 }
 
-/// The image in the file at [path] of [folder], whose bytes
-/// [read] gives, for the open of its document at [openedAt]. Equal to
-/// another of the same file and open, so the image cache decodes it once
-/// per open.
+/// The image in the first file of [paths] in [folder] that [read]
+/// gives, for the open of its document at [openedAt]. Equal to another
+/// of the same files and open, so the image cache decodes it once per
+/// open; one that can't be read leaves the cache, so it is read again as
+/// it shows again (e.g. once synced in).
 @immutable
 final class FolderImage extends ImageProvider<FolderImage> {
   const FolderImage(
     this.folder,
-    this.path,
+    this.paths,
     this.read, {
     required this.openedAt,
   });
 
   final FolderId folder;
-  final RelPath path;
+  final List<RelPath> paths;
   final Future<Uint8List?> Function(RelPath path) read;
   final DateTime openedAt;
 
@@ -79,22 +86,29 @@ final class FolderImage extends ImageProvider<FolderImage> {
   ) => MultiFrameImageStreamCompleter(
     codec: _codec(decode),
     scale: 1,
-    debugLabel: path.value,
+    debugLabel: paths.first.value,
   );
 
   Future<Codec> _codec(ImageDecoderCallback decode) async {
-    final bytes = await read(path);
-    if (bytes == null) throw StateError('Image ${path.value} unreadable');
-    return decode(await ImmutableBuffer.fromUint8List(bytes));
+    for (final path in paths) {
+      if (await read(path) case final bytes?) {
+        return decode(await ImmutableBuffer.fromUint8List(bytes));
+      }
+    }
+    // Flutter keeps a failed load in its cache for good; the next look
+    // at this image tries again.
+    PaintingBinding.instance.imageCache.evict(this);
+    throw StateError('Image ${paths.first.value} unreadable');
   }
 
   @override
   bool operator ==(Object other) =>
       other is FolderImage &&
       other.folder == folder &&
-      other.path == path &&
+      const ListEquality<RelPath>().equals(other.paths, paths) &&
       other.openedAt == openedAt;
 
   @override
-  int get hashCode => Object.hash(folder, path, openedAt);
+  int get hashCode =>
+      Object.hash(folder, const ListEquality<RelPath>().hash(paths), openedAt);
 }

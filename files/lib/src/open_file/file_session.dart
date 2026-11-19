@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:truce_core/truce_core.dart';
 
+import '../file_arrival.dart';
 import '../file_text.dart';
 import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
@@ -59,12 +60,18 @@ final class FileSession {
   /// starts with; its file read and written by [effects], edited by
   /// [editor], which opened with that text. [merge]: how its type merges
   /// two texts, if it does; then a change elsewhere can be picked merged
-  /// with the edits ([mergesWith]).
-  FileSession(PageFile opened, this._effects, this.editor, {TextMerge? merge})
-    : _file = fileOwner(switch (opened) {
-        ExistingFile(:final file) => openedFile(file.seen, merge: merge),
-        NewFile(:final start) => newFile(start: start, merge: merge),
-      }, _effects.run) {
+  /// with the edits ([mergesWith]). [arrivals]: how a past version
+  /// arrives as it is restored ([replaceAll]).
+  FileSession(
+    PageFile opened,
+    this._effects,
+    this.editor, {
+    TextMerge? merge,
+    required this._arrivals,
+  }) : _file = fileOwner(switch (opened) {
+         ExistingFile(:final file) => openedFile(file.seen, merge: merge),
+         NewFile(:final start) => newFile(start: start, merge: merge),
+       }, _effects.run) {
     _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
       editor.events.listen(_onEditorEvent),
@@ -76,6 +83,7 @@ final class FileSession {
 
   final FileEffects _effects;
   final FileOwner<ReadVersion> _file;
+  final FileArrivals _arrivals;
 
   /// The way into the editor owner.
   final PageEditor editor;
@@ -217,8 +225,19 @@ final class FileSession {
       _file.send(Pick(choice, seen: theirs.version, rev: rev));
 
   /// The file reads [text] instead (a backup restored), as one edit
-  /// that undo takes back.
-  void replaceAll(String text) => editor.send(ReplaceAll(text));
+  /// that undo takes back; it arrives at the file's place first, as its
+  /// type says ([FileArrivals.restored]).
+  Future<void> replaceAll(String text) async {
+    final restored = switch (read) {
+      final read? => await _arrivals.restored(
+        read.textFile.withText(text),
+        folder: read.folder,
+        from: read.path,
+      ),
+      null => text,
+    };
+    editor.send(ReplaceAll(restored));
+  }
 
   /// Writes the edits as the file again, after it was deleted elsewhere.
   void restoreMine() => _file.send(const RestoreMine());
@@ -240,11 +259,34 @@ final class FileSession {
     return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
-  /// The user picked where a new file goes.
-  void place(NewFile to) {
-    _effects.place(to);
-    _changed();
+  /// The user picked where a new file goes. Its type's arrival there
+  /// runs first, as for a move (e.g. its images go along); if it fails,
+  /// the file stays where it was (told only for the latest pick). Only
+  /// the latest pick takes effect, and only while the file is still new:
+  /// once it was created meanwhile, at the place it had, the pick is
+  /// dropped.
+  Future<Result<void, MoveFailure>> place(NewFile to) async {
+    _picked = to;
+    if (file case final NewFile from) {
+      final arrived = await _arrivals.moved(
+        const TextFile.empty().withText(text),
+        folder: from.folder,
+        from: from.pathFor(summary.firstLine),
+        to: (folder: to.folder, subfolder: to.place.subfolder),
+      );
+      if (arrived case Err(:final error) when identical(_picked, to)) {
+        return Err(MoveNotWritten(error));
+      }
+    }
+    if (identical(_picked, to) && file is NewFile && _state is Running) {
+      _effects.place(to);
+      _changed();
+    }
+    return const Ok(null);
   }
+
+  /// The place last picked for a new file ([place]).
+  NewFile? _picked;
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
     (ToFile(input: final Edited edited), Running()) => _file.send(

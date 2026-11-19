@@ -104,10 +104,20 @@ final class FileFixture {
     };
   }
 
-  /// A session on [file], by default on [this.file]; disposed after the test.
-  FileSession session([PageFile? file, TextMerge? merge]) {
+  /// A session on [file], by default on [this.file], its files arriving
+  /// as [arrivals] say; disposed after the test.
+  FileSession session([
+    PageFile? file,
+    TextMerge? merge,
+    FileArrivals? arrivals,
+  ]) {
     final start = file ?? ExistingFile(this.file);
-    final session = markdownSession(start, effects(start), merge: merge);
+    final session = markdownSession(
+      start,
+      effects(start),
+      merge: merge,
+      arrivals: arrivals,
+    );
     addTearDown(session.dispose);
     return session;
   }

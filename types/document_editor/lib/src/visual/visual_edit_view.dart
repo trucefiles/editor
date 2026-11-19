@@ -14,7 +14,10 @@ import '../library/own_clipboard.dart';
 import '../library/touch_controls.dart';
 import '../ui/document_image.dart';
 import '../ui/empty_document_hint.dart';
+import '../ui/image_viewer.dart';
+import 'image_insert.dart';
 import 'library/divider_tap_handler.dart';
+import 'library/image_tap_handler.dart';
 import 'library/ime_batches.dart';
 import 'library/visual_adapter.dart';
 import 'library/visual_keys.dart';
@@ -34,7 +37,9 @@ import 'visual_actions.dart';
 /// [addItems]. A link asked for in [notices] is asked of the user; with
 /// the caret in a link, a popup at it offers to open, edit or remove it;
 /// links open with [onLink] (a tap opens one only with Ctrl held, see
-/// [editingTapOpens]); images show as [images] finds them.
+/// [editingTapOpens]); images show as [images] finds them, and a tap on
+/// one shows it full screen; the toolbar's Image adds one as
+/// [imageAdding] says (no Image button if `null`).
 class VisualEditView extends StatefulWidget {
   const VisualEditView(
     this.gate, {
@@ -42,6 +47,7 @@ class VisualEditView extends StatefulWidget {
     required this.addItems,
     required this.onLink,
     required this.images,
+    this.imageAdding,
     this.autofocus = false,
     super.key,
   });
@@ -50,7 +56,8 @@ class VisualEditView extends StatefulWidget {
   final Stream<md.EditorEvent> notices;
   final AddItemPlace? addItems;
   final void Function(String url) onLink;
-  final DocumentImages images;
+  final DocumentImageLookup images;
+  final ImageAdding? imageAdding;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;
@@ -75,6 +82,10 @@ class _VisualEditViewState extends State<VisualEditView> {
     onCaretPlaced: _focus.requestFocus,
   );
   late final StreamSubscription<md.EditorEvent> _notices;
+  late final _imageInsert = ImageInsert(
+    () => widget.imageAdding!,
+    insert: _actions.image,
+  );
 
   /// What showed as the drag under way started.
   ShownAt? _dragFrom;
@@ -90,7 +101,7 @@ class _VisualEditViewState extends State<VisualEditView> {
   /// images. Kept between builds: the library lays the whole document out
   /// anew for each new stylesheet.
   EditorLook? _look;
-  (ThemeData, DocumentMetrics, DocumentImages)? _lookFor;
+  (ThemeData, DocumentMetrics, DocumentImageLookup)? _lookFor;
 
   @override
   void initState() {
@@ -137,6 +148,7 @@ class _VisualEditViewState extends State<VisualEditView> {
     unawaited(_notices.cancel());
     widget.gate.removeListener(_keyboardFollowsCaret);
     _adapter.dispose();
+    _imageInsert.dispose();
     _focus.dispose();
     super.dispose();
   }
@@ -201,6 +213,13 @@ class _VisualEditViewState extends State<VisualEditView> {
     },
   );
 
+  /// A tap on an image shows it full screen.
+  void _showImage(ShownImage image) {
+    if (widget.images.of(image.url) case final shown?) {
+      unawaited(showImageViewer(context, shown, alt: image.alt));
+    }
+  }
+
   /// A tap on a divider puts the caret right after it, with the keyboard
   /// here as for text.
   bool _caretAfterDividerAt(DocumentPosition position) {
@@ -227,6 +246,7 @@ class _VisualEditViewState extends State<VisualEditView> {
       keyboardActions: visualKeyboardActions(_adapter),
       contentTapDelegateFactories: [
         (_) => DividerTapHandler(_caretAfterDividerAt),
+        (_) => ImageTapHandler(imageAt: _adapter.imageAt, onImage: _showImage),
         (_) => LinkTapHandler(
           linkAt: _adapter.linkAt,
           onLink: widget.onLink,
@@ -280,7 +300,17 @@ class _VisualEditViewState extends State<VisualEditView> {
                 ],
               ),
             ),
-            FormatToolbar(_actions, onDone: _focus.requestFocus),
+            FormatToolbar(
+              _actions,
+              onDone: _focus.requestFocus,
+              image: switch (widget.imageAdding) {
+                (:final picking, kept: _, hint: _) => (
+                  insert: _imageInsert,
+                  sources: picking.sources,
+                ),
+                null => null,
+              },
+            ),
           ],
         ),
         child: editor,

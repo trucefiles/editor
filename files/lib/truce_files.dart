@@ -16,6 +16,7 @@ export 'src/conflicts/conflict_sides.dart';
 export 'src/conflicts/folder_conflicts.dart';
 export 'src/delete_failure.dart';
 export 'src/draft_recovery.dart';
+export 'src/file_arrival.dart';
 export 'src/file_card_summary.dart';
 export 'src/file_draft.dart';
 export 'src/file_drafts.dart';

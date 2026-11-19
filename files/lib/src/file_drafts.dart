@@ -21,20 +21,52 @@ final class FileDrafts {
 
   /// Every draft that can be read and was last written before [before];
   /// others are left in place untouched.
-  Future<List<FileDraft>> all({required DateTime before}) async {
-    final drafts = <FileDraft>[];
+  Future<List<FileDraft>> all({required DateTime before}) async => [
+    for (final draft in await _drafts(before: before) ?? const <FileDraft?>[])
+      ?draft,
+  ];
+
+  /// Every draft, each with its file's path; `null` if one can't be read.
+  /// None before the first.
+  Future<List<FileDraft>?> every() async => switch (await _drafts()) {
+    final drafts? when !drafts.contains(null) => drafts.nonNulls.toList(),
+    _ => null,
+  };
+
+  /// The drafts last written before [before] (by default all), each
+  /// `null` if it can't be read; `null` if they can't be listed. None
+  /// before the first.
+  Future<List<FileDraft?>?> _drafts({DateTime? before}) async {
+    final drafts = <FileDraft?>[];
     try {
+      if (!await _folder.exists()) return drafts;
       await for (final entity in _folder.list(followLinks: false)) {
         final name = entity.uri.pathSegments.last;
         if (entity is! File || !name.endsWith(_extension)) continue;
-        if (!(await entity.lastModified()).isBefore(before)) continue;
         final id = name.substring(0, name.length - _extension.length);
-        if (await _read(id) case final draft?) drafts.add(draft);
+        switch (await _writtenBefore(entity, before)) {
+          case true:
+            drafts.add(await _read(id));
+          case null:
+            drafts.add(null);
+          case false:
+        }
       }
     } on FileSystemException {
-      // No drafts yet, or none readable.
+      return null;
     }
     return drafts;
+  }
+
+  /// Whether [draft] was last written before [before] (any time if
+  /// `null`); `null` if that can't be told, as for a draft not readable.
+  Future<bool?> _writtenBefore(File draft, DateTime? before) async {
+    if (before == null) return true;
+    try {
+      return (await draft.lastModified()).isBefore(before);
+    } on FileSystemException {
+      return null;
+    }
   }
 
   /// Writes [draft] over any earlier one with its id, atomically, after

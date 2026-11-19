@@ -4,18 +4,23 @@ import '../backups/backup.dart';
 import '../backups/backup_space.dart';
 import '../common/result.dart';
 import 'file_backups_at.dart';
+import 'rel_path.dart';
 
 /// Deletes the backups saved before [olderThan] in every backup folder
 /// right below [root] (one per folder of the app, also of folders removed
 /// since); then, while all left take more than [spaceLimit] bytes (if
 /// given), those [overSpaceLimit] picks, while [goOn] holds (asked
 /// before each, so a limit no longer wanted stops deleting); and the
-/// folders they leave empty. Only old folders and those of deleted backups go: a new backup
+/// folders they leave empty. Only backups of the files [counts] takes
+/// (e.g. those the app shows) count toward the space or go for it; the
+/// others (e.g. of files the app keeps apart) go only when old, so they
+/// never push the others out. Only old folders and those of deleted backups go: a new backup
 /// may be on its way into a new one. Failing is harmless: what can't be
 /// read or removed stays for the next time.
 Future<void> pruneBackupsAt(
   String root, {
   required DateTime olderThan,
+  required bool Function(RelPath file) counts,
   int? spaceLimit,
   bool Function() goOn = _always,
 }) async {
@@ -27,7 +32,10 @@ Future<void> pruneBackupsAt(
   }
   final overLimit = spaceLimit == null
       ? const <SizedBackup<String>>[]
-      : overSpaceLimit(await _sizedBackupsIn(folders), spaceLimit);
+      : overSpaceLimit([
+          for (final sized in await _sizedBackupsIn(folders))
+            if (counts(sized.backup.filePath)) sized,
+        ], spaceLimit);
   final deleted = await _deleteInOrder(overLimit, goOn);
   for (final folder in folders) {
     final deletedHere = {

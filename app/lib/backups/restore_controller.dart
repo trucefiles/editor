@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
+import '../file_types/file_types.dart';
 import '../folder_state/folder_state_controller.dart';
 import '../folders/open_folders_wiring.dart';
 import '../versions/compare_controller.dart';
@@ -34,6 +35,7 @@ class RestoreController extends CompareController<FolderBackup, RestoreChoice> {
         if (ref.mounted) ref.invalidate(allBackupsProvider);
         return folderState.refresh();
       },
+      arrivals: ref.read(fileArrivalsProvider),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../changes/folder_changes.dart';
 import '../common/result.dart';
 import '../conflicts/conflict_source.dart';
@@ -48,18 +50,21 @@ final class OpenFolder {
   /// Moves the file at [from], at version [ifUnchanged], to [to] in
   /// [target] (this folder too): the one call for every move. For now by
   /// the shared copy and delete ([moveByCopy]); a plugin with a cheaper
-  /// way may take it here later.
+  /// way may take it here later. [bytes]: what the moved file holds, if
+  /// the move changes it; by default as it is.
   Future<Result<FileEntry, MoveError>> moveInto(
     RelPath from, {
     required FileVersion ifUnchanged,
     required OpenFolder target,
     required RelPath to,
+    Uint8List? bytes,
   }) => moveByCopy(
     store,
     from,
     ifUnchanged: ifUnchanged,
     target: target.store,
     to: to,
+    bytes: bytes,
   );
 
   /// Waits for the work under way, the plugin's included, then refuses

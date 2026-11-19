@@ -265,6 +265,28 @@ void main() {
       expect((write.text, write.over), ('ab', copy));
     });
 
+    test('a move that changed the text shows the new text, told as by the '
+        'move', () {
+      const copy = Seen('a moved', Version(9));
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      run.send(MovedTo(run.last<MoveFile>().id, copy, endedAt: Moment.now()));
+      final replaced = run.last<Replaced>();
+      expect((replaced.text, replaced.by), ('a moved', ReplacedBy.move));
+      expect(run.state.text, 'a moved');
+      expect(run.status, isA<InStep>());
+    });
+
+    test('a move that changed the text leaves edits made meanwhile', () {
+      const copy = Seen('a moved', Version(9));
+      final run = _Run.opened('a')..send(Move(Ticket()));
+      final move = run.last<MoveFile>();
+      run
+        ..edit('ab', 1)
+        ..send(MovedTo(move.id, copy, endedAt: Moment.now()));
+      expect(run.all<Replaced>(), isEmpty);
+      expect(run.state.text, 'ab');
+    });
+
     test('a scan during a move changes nothing', () {
       final run = _Run.opened('a')..send(Move(Ticket()));
       final move = run.last<MoveFile>();

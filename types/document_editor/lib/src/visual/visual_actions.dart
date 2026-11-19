@@ -245,6 +245,20 @@ final class VisualActions {
     },
   );
 
+  /// An image leading to [link] on a line of its own after the caret's
+  /// block or the selected one, or as an item after its item; at the end
+  /// if the caret went meanwhile (it was picked with the caret in place),
+  /// so a kept image always shows.
+  void image(String link) => _gate.run(
+    (selection) => switch ((selection, _shown?.view.rows.lastOrNull)) {
+      (TextSelection(:final extent), _) => InsertImage(extent.leaf, link),
+      (BlockSelection(:final block) || BlockCaret(:final block), _) =>
+        InsertImage(block, link),
+      (null, final last?) => InsertImage(last.leaf.id, link),
+      (null, null) => null,
+    },
+  );
+
   /// The selected blocks put in a quote, or taken out of it.
   void quote() => _gate.run(
     (selection) => switch (selection) {

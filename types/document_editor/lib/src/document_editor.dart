@@ -5,14 +5,16 @@ import 'editor_gate.dart';
 import 'markdown/markdown_edit_view.dart';
 import 'read/read_view.dart';
 import 'ui/document_image.dart';
+import 'visual/image_insert.dart';
 import 'visual/visual_edit_view.dart';
 
 /// The open document in the mode its editor owner (behind [gate]) is in:
 /// Visual edit, Markdown edit, or Read of [text], the edits as last kept.
 /// Lists in Visual edit get Add item buttons at [addItems]; what the
 /// editor asks of the user comes in [notices]. Links open with [onLink];
-/// images show as [images] finds them. The one place that picks the view
-/// of each mode; each is built anew for its mode.
+/// images show as [images] finds them, and Visual edit adds them as
+/// [imageAdding] says (none if `null`). The one place that picks the
+/// view of each mode; each is built anew for its mode.
 class DocumentEditor extends StatelessWidget {
   const DocumentEditor(
     this.gate, {
@@ -21,6 +23,7 @@ class DocumentEditor extends StatelessWidget {
     required this.addItems,
     required this.onLink,
     required this.images,
+    this.imageAdding,
     this.autofocus = false,
     super.key,
   });
@@ -30,7 +33,8 @@ class DocumentEditor extends StatelessWidget {
   final Stream<EditorEvent> notices;
   final AddItemPlace addItems;
   final void Function(String url) onLink;
-  final DocumentImages images;
+  final DocumentImageLookup images;
+  final ImageAdding? imageAdding;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;
@@ -44,6 +48,7 @@ class DocumentEditor extends StatelessWidget {
       addItems: addItems,
       onLink: onLink,
       images: images,
+      imageAdding: imageAdding,
       autofocus: autofocus,
     ),
     EditMode.markdown => MarkdownEditView(

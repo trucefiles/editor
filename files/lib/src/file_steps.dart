@@ -5,6 +5,7 @@ import 'backups/folder_backups.dart';
 import 'backups/restore_as_new_failure.dart';
 import 'delete_failure.dart';
 import 'draft_recovery.dart';
+import 'file_arrival.dart';
 import 'file_drafts.dart';
 import 'file_place.dart';
 import 'file_settings_keeper.dart';
@@ -26,6 +27,7 @@ final class FilesWork {
     required this.folders,
     required this.drafts,
     required this.types,
+    required this.arrivals,
   });
 
   final FileAccess files;
@@ -43,6 +45,9 @@ final class FilesWork {
 
   final DraftsByFolder drafts;
   final ShownFileTypes types;
+
+  /// How files arrive as they move or are restored.
+  final FileArrivals arrivals;
 }
 
 /// The steps of the user's actions on files: create, new subfolder,
@@ -95,7 +100,9 @@ base class FileSteps {
   /// changed since [file] was read: the user saves their edits first.
   /// Its folder decides how it moves ([FilesOfFolder.moveTo]); if the old
   /// file stays beside its copy, e.g. as it can't be removed, both stay
-  /// with their color and settings: never lose data.
+  /// with their color and settings: never lose data. It arrives there as
+  /// its type says ([FileArrivals]), in the same write; if it can't, it
+  /// stays.
   Future<Result<FileText, MoveFailure>> move(
     FileText file,
     FilePlace place, {
@@ -104,6 +111,18 @@ base class FileSteps {
   }) async {
     if (_work.conflictWaits(file.key)) {
       return const Err(MoveBlockedByConflict());
+    }
+    final TextFile? arrived;
+    switch (await _work.arrivals.moved(
+      file.textFile,
+      folder: file.folder,
+      from: file.path,
+      to: place,
+    )) {
+      case Ok(:final value):
+        arrived = value;
+      case Err(:final error):
+        return Err(MoveNotWritten(error));
     }
     final mark = await _markOf(file.folder, file.path);
     final settings = _settings.settingsOf(file.key);
@@ -115,6 +134,7 @@ base class FileSteps {
           subfolder: place.subfolder,
           newSubfolder: newSubfolder,
           title: title,
+          holding: arrived,
         );
     final moved = switch (written) {
       Ok(:final value) => value,
@@ -159,12 +179,18 @@ base class FileSteps {
     return Ok((file: file, text: text, mark: mark, settings: settings));
   }
 
-  /// Writes [deleted] back with its mark and settings. Never
+  /// Writes [deleted] back with its mark and settings, arriving at its
+  /// place as its type says ([FileArrivals]; best effort). Never
   /// overwrites: if a file was created at its path meanwhile, the file
   /// comes back beside it, under the next free numbered name, and its
   /// mark, settings and backups go with it, leaving the new file its own.
   Future<Result<void, StoreError>> undoDelete(UndoableDelete deleted) async {
-    final UndoableDelete(:file, :text, :mark, :settings) = deleted;
+    final UndoableDelete(:file, :mark, :settings) = deleted;
+    final text = await _work.arrivals.restored(
+      file.textFile.withText(deleted.text),
+      folder: file.folder,
+      from: file.path,
+    );
     final files = _files.of(file.folder);
     final restored = switch (await files.restore(file, text)) {
       Err(error: StoreError.alreadyExists) => await files.copyIn(
@@ -192,7 +218,8 @@ base class FileSteps {
   /// name is taken: never over a file. It is given no color or settings;
   /// at a deleted file's own path, the ones [delete] kept apply to it
   /// again. [newSubfolder]: [place]'s subfolder is a new one the
-  /// user asked for, made first.
+  /// user asked for, made first. It arrives there as its type says
+  /// ([FileArrivals]; best effort).
   Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
     FolderBackup backup,
     FilePlace place, {
@@ -209,11 +236,17 @@ base class FileSteps {
       case Err(:final error):
         return Err(NotRestored(error));
     }
+    final arrived = await _work.arrivals.restored(
+      file,
+      folder: folder,
+      from: kept.filePath,
+      to: place,
+    );
     final copied = await _files
         .of(place.folder)
         .copyIn(
           kept.filePath,
-          file,
+          file.withText(arrived),
           subfolder: place.subfolder,
           newSubfolder: newSubfolder,
           title: title,

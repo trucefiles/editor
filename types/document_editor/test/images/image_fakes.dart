@@ -1,0 +1,37 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_images/truce_images.dart';
+
+/// A PNG picture of one pixel.
+final onePixelPng = base64.decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ'
+  '/pLvAAAAAElFTkSuQmCC',
+);
+
+/// Picks [picked] from any source, as the user would.
+final class FakePicking implements ImagePicking {
+  FakePicking(this.picked, {this.sources = const [ImageSource.file]});
+
+  Uint8List? picked;
+
+  @override
+  final List<ImageSource> sources;
+
+  final List<ImageSource> asked = [];
+
+  /// When set, a pick waits for it, as a dialog open.
+  Completer<void>? waits;
+
+  @override
+  Future<Uint8List?> pick(ImageSource source) async {
+    asked.add(source);
+    await waits?.future;
+    return picked;
+  }
+
+  @override
+  ImageSettings get settings => ImageSettings.standard;
+}

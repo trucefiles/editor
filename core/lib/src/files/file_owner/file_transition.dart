@@ -448,12 +448,13 @@ final class _Step<V extends Version>
     }
   }
 
-  /// The editor shows [latest], unless it has edits not seen here.
-  void _replaced(Seen<V> latest) {
+  /// The editor shows [latest], unless it has edits not seen here;
+  /// [by]: why it changed.
+  void _replaced(Seen<V> latest, {ReplacedBy by = ReplacedBy.elsewhere}) {
     _work(work.copyWith(expected: latest, offered: [...work.offered, latest]));
     _set(text: latest.text, status: const InStep());
     events.add(
-      Replaced(latest.text, version: latest.version, ackRev: state.rev),
+      Replaced(latest.text, version: latest.version, ackRev: state.rev, by: by),
     );
   }
 
@@ -503,7 +504,7 @@ final class _Step<V extends Version>
   }
 
   /// The move ended: writes go over the [copy] it left, edits made
-  /// meanwhile too.
+  /// meanwhile too; a copy holding another text than was moved shows.
   void _movedTo(EffectId id, Seen<V>? copy, Moment endedAt) {
     final ask = switch (work.io) {
       MovingFile(id: final moving, :final ask) when moving == id => ask,
@@ -512,7 +513,13 @@ final class _Step<V extends Version>
     if (ask == null) return;
     _work(work.copyWith(io: null));
     if (copy != null) {
+      final sent = work.expected?.text;
       _work(work.copyWith(expected: copy, lastWriteEnd: endedAt));
+      // The move changed the text (its file type rewrote it): the editor
+      // takes it, unless edits came meanwhile, which go over it.
+      if (copy.text != sent && state.text == sent) {
+        _replaced(copy, by: ReplacedBy.move);
+      }
     }
     events.add(MoveAnswer(ask.ticket, started: true));
   }

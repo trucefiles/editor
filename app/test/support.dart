@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
+import 'package:truce_editor/images/images_wiring.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, path, tempFolder;
@@ -98,9 +100,15 @@ Future<void> saveFolders(
 
 Uri _addressOf(Folder folder) => Uri.file(_directories[folder.id]!.path);
 
-/// The file types the app handles.
+/// No folder open for the editors' images: for tests that show or list
+/// file types without opening folders. An image added fails.
+final noImageFolders = documentImageStoresProvider.overrideWithValue(
+  (folder) => throw StateError('No folder is open: $folder'),
+);
+
+/// The file types the app handles, with no folder open for their images.
 ShownFileTypes<EditableType> appFileTypes() {
-  final container = ProviderContainer();
+  final container = ProviderContainer(overrides: [noImageFolders]);
   try {
     return container.read(fileTypesProvider);
   } finally {
@@ -147,6 +155,7 @@ FolderServices servicesFor(
     raw,
     reach: folderReach(raw.files),
     handles: appFileTypes().handles,
+    keptApart: ImageNames.isKept,
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',
@@ -254,3 +263,6 @@ Future<Folder> addFolderOf(
   ]);
   return added.value.single;
 }
+
+/// No file type does anything as its files move or are restored.
+FileArrivals noArrivals() => FileArrivals(appFileTypes().detector);

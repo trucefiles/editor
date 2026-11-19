@@ -94,6 +94,24 @@ void main() {
           : false,
     );
 
+    test(
+      'a file that kept an old modified time arrived when put in place',
+      () async {
+        await fx.write('a.md', 'a');
+        final old = DateTime.now().subtract(const Duration(days: 2));
+        // As a sync tool does: the time from the other device.
+        await File('${fx.root.path}/a.md').setLastModified(old);
+
+        final entry = (await fx.store.list()).value.files.single;
+
+        expect(entry.modified.isBefore(entry.arrived), isTrue);
+        expect(
+          DateTime.now().difference(entry.arrived),
+          lessThan(const Duration(minutes: 1)),
+        );
+      },
+    );
+
     test('fails with notFound if the root is missing', () async {
       final missing = LocalFileStore('${fx.root.path}/missing', (t) => t);
 

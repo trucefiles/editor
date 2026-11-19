@@ -59,8 +59,7 @@ void main() {
   });
 
   test('HTML typed open is one raw block, as typed', () {
-    // What follows it joins it only once read again: see
-    // docs/known-limitations.md.
+    // What follows it joins it only once read again (accepted).
     final document = Shown.read('<div>\n\na');
     final closed = run(
       document.view,

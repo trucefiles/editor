@@ -31,6 +31,10 @@ final class MemoryFileStore implements FileStore {
   /// Every file [read] was asked for, in order.
   final List<RelPath> reads = [];
 
+  /// When a file came here, where it came later than it was changed (as a
+  /// sync tool brings a change from another device).
+  final Map<RelPath, DateTime> arrivals = {};
+
   int _clock = 0;
 
   /// Adds or overwrites [path] without any checks.
@@ -144,6 +148,10 @@ final class MemoryFileStore implements FileStore {
     return _entryOf(path, content);
   }
 
-  static FileEntry _entryOf(RelPath path, FileContent content) =>
-      FileEntry(path, version: content.version, modified: content.modified);
+  FileEntry _entryOf(RelPath path, FileContent content) => FileEntry(
+    path,
+    version: content.version,
+    modified: content.modified,
+    arrived: arrivals[path],
+  );
 }

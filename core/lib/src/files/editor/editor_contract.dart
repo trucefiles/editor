@@ -128,6 +128,10 @@ enum HistoryStart {
   /// A version was picked, or edits discarded, there.
   replacedHere,
 
+  /// The file moved there, and its text changed with it (e.g. its
+  /// links).
+  moved,
+
   /// Older steps are not kept.
   limit,
 }

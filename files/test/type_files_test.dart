@@ -60,6 +60,7 @@ void main() {
       raw,
       reach: folderReach(raw.files),
       handles: _types.handles,
+      keptApart: (_) => false,
       checkEvery: () => const Duration(seconds: 1),
       backupsPath: tempFolder().path,
       deviceId: '0123456789abcdef',

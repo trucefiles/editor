@@ -22,7 +22,7 @@ Prefer the simpler option when in doubt.
 - App-private storage (settings, drafts, backups) is never synced, so it never follows a sync tool's rules (temp names, ignored files).
 
 ## Interfaces
-- Information hiding: an interface states the question, not how one implementation answers it. No parameters, types or concepts that only some implementations need.
+- Information hiding: an interface states the question, not how one implementation answers it. A generic layer (core, folders, files, file_page) holds no concept that only some file types or features have: if other implementations would answer "none" or throw, it belongs to the type, and the generic layer offers at most a content-neutral seam. Neutral names don't make a concept neutral.
 - Encapsulate what varies: decisions that differ per sync tool or platform stay behind the interface; platform facts are injected into implementations at the wiring point.
 - Sync-tool neutral: generic code works unchanged for any sync tool, including one without files on disk.
 - One type, one meaning; prefer opaque ids and values over raw paths or mixed data.
@@ -58,6 +58,7 @@ Prefer the simpler option when in doubt.
 ## Quality
 - A trusted, maintained library (or the framework's own) beats own code; own code only where none fits these rules, and the code says why.
 - Only well-trusted dependencies, pinned where normal (actions by commit SHA, SDKs by version, packages via lock files, wrappers by hash). Report where pinning isn't possible.
+- A dependency version is at least 2 days old. One less than 7 days old is checked by hand first: the published package matches its source tag, no new dependencies, no new file, network, process or native access, the commit authors are the known ones and the publisher is unchanged.
 - Small files and units; split when a unit does two jobs.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.

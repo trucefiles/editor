@@ -2,21 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show BlockKind, EditKey, FormatState, TextFormat;
 
+import '../image_insert.dart';
+import '../image_picking.dart';
 import '../visual_actions.dart';
+import 'image_button.dart';
 
 /// The toolbar of Visual edit: outdent and indent the caret's item (each
 /// only where it can), format the selected text, make it a heading, a
-/// list of a kind or a quote, add a separator, and break the line within
-/// its block. Each button does what [actions] says, then [onDone]; all
+/// list of a kind or a quote, add a separator or an image, and break the
+/// line within its block. Each button does what [actions] says, then [onDone]; all
 /// are off while no caret shows, as they act at the caret. A format or
 /// kind of block that is on where the caret is shows its button pressed,
 /// as in other editors. A bar
 /// at the bottom of the screen: its buttons stay clear of the system's
 /// bottom edge (e.g. Android's gesture line), its color goes under it.
 class FormatToolbar extends StatelessWidget {
-  const FormatToolbar(this.actions, {required this.onDone, super.key});
+  const FormatToolbar(
+    this.actions, {
+    required this.onDone,
+    this.image,
+    super.key,
+  });
 
   final VisualActions actions;
+
+  /// The Image button's flow and where pictures come from; `null`: no
+  /// Image button (e.g. no images are kept for the file).
+  final ({ImageInsert insert, List<ImageSource> sources})? image;
 
   /// A button did its job: the editor takes the keyboard again.
   final VoidCallback onDone;
@@ -108,6 +120,13 @@ class FormatToolbar extends StatelessWidget {
                 selected: on.blocks.contains(BlockKind.quote),
               ),
               _button(Icons.horizontal_rule, 'Separator', actions.separator),
+              if (image case (:final insert, :final sources))
+                ImageButton(
+                  insert,
+                  sources: sources,
+                  enabled: actions.hasCaret,
+                  onDone: onDone,
+                ),
               _button(
                 Icons.keyboard_return,
                 'Line break (Shift+Enter)',

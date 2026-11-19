@@ -40,6 +40,7 @@ NodeId? actedOn(ViewRows view, Command command) {
     LineAfter(:final block) ||
     LineInPlace(:final block) ||
     AddDivider(after: final block) ||
+    InsertImage(after: final block) ||
     CloseRaw(:final block) => block,
     Toggle(:final item) ||
     DeleteItem(:final item) ||

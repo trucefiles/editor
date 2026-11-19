@@ -33,6 +33,7 @@ void main() {
     openFiles: open,
     fileClosed: () => closings++,
     endWait: const Duration(seconds: 1),
+    arrivals: noArrivals(),
   );
 
   test('a page tells that it closed, once, as it closes', () async {
@@ -49,13 +50,13 @@ void main() {
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {
     final page = pages().open(fixture.file, withFile: (_) async {});
-    page.session.replaceAll('mine\n');
+    await page.session.replaceAll('mine\n');
 
     // A folder change keeps the edits of the open files first.
     await open.secureIn(fixture.folders[0].id, SecureReason.hide);
     expect(fixture.onDisk('a.md'), 'mine\n');
 
-    page.session.replaceAll('more\n');
+    await page.session.replaceAll('more\n');
     await page.close();
 
     expect(fixture.onDisk('a.md'), 'more\n');
@@ -66,7 +67,7 @@ void main() {
       'its file', () async {
     final page = pages().open(fixture.file, withFile: (_) async {});
     addTearDown(page.close);
-    page.session.replaceAll('mine\n');
+    await page.session.replaceAll('mine\n');
 
     await open.secureForExit(within: const Duration(seconds: 5));
 

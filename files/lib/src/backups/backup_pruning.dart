@@ -7,14 +7,16 @@ import 'backup_retention.dart';
 /// [pruneBackupsAt]), at most once a day or when that setting changes:
 /// backups are kept for days, so a walk more often finds next to nothing
 /// to delete. One pruning runs at a time; one pruning to a space no
-/// longer set stops deleting for space.
+/// longer set stops deleting for space. Only backups of the files the
+/// app [shows] count toward the space.
 final class BackupPruning {
-  BackupPruning(this.root);
+  BackupPruning(this.root, {required this.shows});
 
   /// How long after a pruning the next one is due.
   static const every = Duration(days: 1);
 
   final String root;
+  final bool Function(RelPath file) shows;
 
   /// When the last pruning began, and to which space; `null` before the
   /// first.
@@ -40,6 +42,7 @@ final class BackupPruning {
       (_) => pruneBackupsAt(
         root,
         olderThan: now.subtract(backupRetention),
+        counts: shows,
         spaceLimit: space.bytes,
         goOn: () => _wanted == space,
       ),

@@ -44,7 +44,9 @@ Future<void> editFilePlace(
     picked: picked,
   )) {
     case NewPlace(:final to):
-      session.place(to);
+      if (await session.place(to) case Err(:final error) when context.mounted) {
+        showSnack(context, moveFailureText(error));
+      }
     case SamePlace():
       return;
     case CantMove(:final failure):

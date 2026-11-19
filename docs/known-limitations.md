@@ -2,224 +2,64 @@
 
 Accepted behavior that is not planned to change, grouped by topic.
 
-## Document names and conflicts
+## Documents
 
-- **A document named like a conflict copy shows as a conflict.** A document whose
-  file name looks like a Syncthing conflict copy (for example
+- **A document named like a conflict copy shows as a conflict.** A document
+  whose file name looks like a Syncthing conflict copy (for example
   `todo.sync-conflict-20261003-134809-ABCDEFG.md`) is listed as a conflict
   of `todo.md`, not as a document of its own.
-- **A conflict copy can bring back a deleted subfolder.** If a document's
-  subfolder is deleted on another device while the document has unsaved edits
-  here, the edits are kept as a conflict copy in that subfolder, which
-  recreates it, so the edits stay visible. A folder's own directory is never
-  made again: if it is gone, the edits stay on this device, not shown, until
-  it is back.
-
-- **A new subfolder can stay empty.** A subfolder you type in "Place and
-  name" is made right before the document goes in. If that then fails (for
-  example, the document changed on another device meanwhile), the new
-  subfolder stays, empty. Nothing is lost; delete it if you don't need it.
+- **A conflict copy can bring back a deleted subfolder.** If a subfolder is
+  deleted on another device while one of its documents has unsaved edits
+  here, the edits are kept as a conflict copy there, which makes the
+  subfolder again, so nothing is lost.
 - **A moved or renamed document can come back.** Sync tools see a move or
   rename as a delete and a new file. If another device edits the document
-  before it learns of the change, the edited document shows up again in its
-  old place, next to the moved one.
-- **Backups stay behind after a move outside the app.** Backups follow a
-  document moved or renamed in Truce. When it is moved or renamed in another
-  app or on another device, Truce sees a deleted document and a new one, so
-  its earlier backups stay under the old folder and name in Backups.
+  before it learns of the change, the document shows up again in its old
+  place.
 - **Undo stops at a change from the folder.** Undo takes back your own edits
-  of this editing session, up to 100 steps. It stops where the document
-  changed on another device or a version was chosen in a conflict; older
-  versions are in the document's Backups.
-- **A paste from the phone keyboard can join the typing.** A paste with
-  Ctrl+V or from the editor's own Paste button is one undo step. Text the
-  keyboard puts in from its own clipboard bar arrives as typing, so undo
-  can take it back together with the word typed right before it.
+  of this session. Older versions are in the document's Backups.
+- **Empty lines and trailing spaces are not saved.** Markdown has no way to
+  store them, so they are gone once the document is saved.
+- **A document renamed or moved in another app loses its color and
+  settings.** Rename or move it in Truce to keep them.
 
-## Editing Markdown
+## Images in documents
 
-- **An edited paragraph may be saved a bit differently.** When you
-  change a paragraph or other block, Truce writes that block again. A few
-  special characters can then be saved in another, equivalent way (for
-  example `*` as `\*`, or `&copy;` as `©`). The document looks the same.
-- **Empty lines and trailing spaces are not saved.** Markdown has no way
-  to store an empty paragraph or spaces at the end of a line. You see
-  them while editing, but they are gone once saved. That's why "Pick
-  mine" and the compare view, which show the saved text, can look
-  different from the editor.
-- **Links keep working when their definition goes.** If an edit removes
-  a link definition (a line like `[site]: https://example.org`), the
-  links that used it are saved with their address written out, as
-  `[site](https://example.org)`.
-- **An HTML tag moved to the start of a line becomes plain text.** At
-  the start of a line, a tag would turn everything after it into HTML.
-  To keep the document as it was, Truce saves the tag as plain text there.
-- **An unfinished HTML block shows its effect only later.** If you edit
-  an HTML block so that it no longer ends (for example `<!--` without
-  `-->`), the blocks below still look the same at first. Once the document
-  is opened again or changed on another device, they become part of the
-  HTML block, as Markdown says.
-- **Front matter only at the top.** Lines between two `---` lines count
-  as front matter only at the very start of a document. Anywhere else they
-  are normal Markdown (a line, text or a heading).
-- **A checkbox tapped just before a remote change can flip back.** Truce
-  waits about 1.5 seconds before it saves a tapped checkbox. If a change
-  from another device arrives in that time, or the app closes suddenly,
-  the tap is lost and the box shows its old state.
-
-## Colors, pins and views
-
-- **A document renamed or moved outside the app loses its color and
-  settings.** Truce remembers a document's color, pin, checked-items choice
-  and last view by its file name and folder. If you rename or move the
-  document in another app, Truce sees a new document and these are gone.
-  - Rename or move it in Truce instead: the color then follows on every
-    device, and the other settings follow on this device. Other devices
-    lose their own pin and view settings for it.
-  - Leftovers are cleaned up later: an old color the next time you change
-    a color in that folder on this device, other settings after the document
-    has been missing for 7 days.
-- **A new document can get a deleted one's color and settings.** Deleting a
-  document keeps its color, pin and view settings for a while, so restoring
-  it from Backups brings them back. If you create a document with the same
-  name in the same folder meanwhile, it gets them: the color until a color
-  changes in that folder, the pin and view settings for up to 7 days.
-
-## Backups
-
-- **Backups of a folder you removed and added again stay hidden.** Truce
-  treats the re-added folder as a new one, so the Backups screen doesn't
-  list its earlier backups. They are deleted after 7 days, like every
-  backup.
+- **Removed images stay until you clean up.** An image you delete from a
+  document stays in the folder until you use "Remove unused images" in the
+  folder's settings.
+- **Images from outside a folder don't show.** A document shows an image
+  only if the image file is inside the document's folder. An image pasted
+  from another folder doesn't show either: add it again with the Image
+  button.
+- **Restoring a document can make the image folder again.** Its removed
+  images come back from their backups, which can make `document-images`
+  again if you deleted it.
 
 ## Calendars
 
-- **A new calendar is saved once it has a name or an event.** Like a new
-  document, a new calendar gets its file only once you add something to
-  it. Leave it with neither and it is gone.
-- **On Linux, alerts ring only while Truce runs.** In a window or in the
-  tray. Turn on "Start at login" and "Keep running in tray" so it runs
-  from the start and keeps running when you close the window.
-- **Alerts from other devices can take a while to arrive.** An open
-  Truce notices a changed calendar soon. Hidden in the tray or in the
-  background, it looks every 15 minutes. With Truce closed on Android, it
-  looks about every 2 hours, and later when the phone saves battery. Until
-  then, an alert added on another device doesn't ring here, and if its
-  time passes meanwhile it shows as missed.
-- **An alert edited in an open calendar rings once the calendar is
-  saved.**
+- **On Linux, alerts ring only while Truce runs.** Turn on "Start at login"
+  and "Keep running in tray" so it keeps running when you close the window.
+- **Alerts from other devices can take a while to arrive.** In the
+  background Truce checks every 15 minutes, and on Android with Truce
+  closed about every 2 hours. Some phone makers stop these checks; new
+  alerts then wait until you open Truce.
 - **Dismissing an alert on one device doesn't dismiss it on others.**
-- **Some phone makers stop background checks.** Alerts already planned
-  still ring; new ones from other devices wait until you open Truce.
-- **Alerts that came while the phone was off ring at once after it
-  starts.** Android hands them over as soon as it is back on.
-- **A repeating task grows its file a little each time it's checked.**
-  Each date checked off is kept on its own, about 300 bytes: a daily
-  task adds about 100 KB a year. Truce never tidies this up by itself,
-  as that would write into your synced folders.
-- **Time zone rules are written once.** A new event is saved in your
-  device's time zone, and the calendar gets that zone's rules once. If a
-  country later changes its clock rules, newer Truce versions know it,
-  but the rules in the calendar stay as written, so other apps may show
-  such events an hour off after the change.
-- **Time zone rules cover 2020 on.** The rules a calendar gets for a
-  zone start in 2020. Other apps may show events of that zone from
-  before 2020 an hour off; Truce shows them right.
-- **Very old fast repeats stop showing.** Truce walks a repeating event
-  from its first date, up to a limit. An event that repeats every hour
-  and started more than about 11 years ago stops showing at that limit.
-- **Time zones named the Windows way read as local time.** Outlook and
-  Exchange name zones like `W. Europe Standard Time`. Truce doesn't know
-  these names and shows such times as written, on your device's clock.
-  That is right while you are in the event's zone; an event of another
-  zone shows hours off. The file keeps the zone as it was.
-- **A device without a known time zone saves floating times.** If the
-  system doesn't tell Truce its time zone (or names one Truce doesn't
-  know), a new event has no zone: 9:00 stays 9:00 wherever you are.
-- **An event or task another app removed can come back.** Truce marks a
-  deleted one as deleted, so other devices learn of it. Some apps remove
-  it instead; when that file meets a Truce device's copy, it comes
-  back.
-- **Two devices checking off different dates of one repeating task can
-  lose one check.** A repeating task and all its dates merge as one: when
-  both devices changed it before they synced, **Merge both** keeps the
-  newer one and lists the other as lost. Check that date off again.
-- **A device with a wrong clock can lose its edits.** When the same event
-  changed on two devices, the newer change wins, by each device's clock.
-  The edit that lost is still in the calendar's Backups.
-- **Hour rows keep their height.** In the week and day views, an hour
-  doesn't grow with larger text, and the title of a short event (15
-  minutes) is cut off. Tap it to see it whole.
-- **The views reach from 1900 to 2100.** Paging stops there; events
-  outside those years still stay in the calendar.
-- **Undoing a saved new event leaves a deleted mark.** Undo takes the
-  event away, but once it was saved, its file keeps a note that it was
-  deleted, so other devices learn of it too. An event you undo before it
-  was saved leaves nothing.
-- **Importing an older file again undoes later changes.** An import puts
-  each event in just as the file has it. If you changed an imported event
-  here and then import the same file again, your change is replaced. Undo
-  brings it back.
-- **On Android, an .ics file may not show in the picker.** The file picker
-  lists calendar files by their type. A file saved under another type, for
-  example by a mail app, may be hidden there.
-- **Events without an ID show only once imported.** Every event in a
-  calendar file should have an ID (its `UID`). A few apps and hand-written
-  files leave it out. Truce keeps such events in the file but doesn't show
-  them. Import the file into a calendar instead: each event then gets an
-  ID and shows.
-
-## Folders
-
-- **Images from outside a folder don't show.** A document shows an image
-  only if the image file is inside the document's folder.
-- **A local folder can keep temp files after a crash.** In a folder no sync
-  app syncs, Truce saves through a temp file named `.truce-….tmp`. If the
-  app stops in the middle of a save, the temp file stays. Truce hides it but
-  never deletes it, as it writes into your folders only when you ask. You
-  can delete it yourself.
-
-## Search
-
-- **Search shows texts as they were when it opened.** Search reads every
-  document when you open it and keeps the texts only while it is open. A
-  change made meanwhile shows the next time you open search.
-- **Search needs a while with many documents.** Matches by file and folder
-  name show at once; matches in the texts show as search reads them, which
-  takes a while with thousands of documents, most of all on Android.
-
-## Syncing
-
-- **Quick saves can reach other devices late.** Syncthing can miss a save
-  that comes within 2 seconds of the last one and keeps the file's size.
-  Truce works around this by saving such a file once more a moment later.
-  In rare cases a save can still reach your other devices only with the
-  next one. Nothing is lost on this device.
+- **An event or task another app removed can come back.** Some apps remove
+  it instead of marking it deleted; when their file meets a Truce device's
+  copy, it comes back.
+- **Time zones named the Windows way read as local time.** Events from
+  Outlook or Exchange in another zone can show hours off.
+- **Events without an ID show only once imported.** A few apps leave out an
+  event's `UID`. Import the file into a calendar to give each one an ID.
+- **On Android, an .ics file may not show in the file picker** if another
+  app saved it under another file type.
 
 ## Unreachable folders
 
-- **A failed save or rescan is not retried when the folder comes back.**
-  Nothing is lost: the next rescan shows the folder again, and your edits
-  are saved at your next edit or when you close the document.
-- **Typing stops while Truce tries to reach a folder.** While the "Trying
-  to reach" overlay shows, the document loses the cursor. Tap into it again
-  afterwards.
-- **Edits in an unreachable folder wait for the next start.** If you
-  close a document while its folder can't be reached, Truce keeps the edits
-  on this device and writes them to the file the next time it starts.
-- **A folder that is gone for good slows each start a little.** Truce
-  tries to reach it for a few seconds before marking it unreachable.
-  Remove the folder from Truce to stop this.
-- **A subfolder that can't be read hides its documents.** Truce doesn't treat
-  them as deleted, and the home screen names the subfolder, but you can't
-  see or open them until it can be read again.
-- **A drive that is not plugged in can make its folder look empty.** If a
-  document folder is where a drive gets mounted and the drive is not mounted,
-  the folder is still there but empty. Its documents then look deleted
-  instead of the folder looking unreachable.
-- **A drive that stops responding is not noticed.** If a folder's storage
-  hangs instead of failing (for example a network share that went away),
-  Truce doesn't mark it unreachable; it just waits.
-- **On Linux, the language decides 12 or 24 hour time.** Linux has no
-  separate clock setting for apps, so times show the way the system
-  language writes them.
+- **Edits in an unreachable folder wait for the next start.** Truce keeps
+  them on this device and writes them once the folder is back.
+- **A subfolder that can't be read hides its documents.** They are not
+  treated as deleted; they show again once it can be read.
+- **A drive that is not plugged in can make its folder look empty.** Its
+  documents then look deleted instead of the folder looking unreachable.

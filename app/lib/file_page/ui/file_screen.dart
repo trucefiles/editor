@@ -153,7 +153,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   void _onFileNotice(FileEvent notice) {
     final messenger = _messenger.currentState;
     switch (notice) {
-      case Replaced():
+      case Replaced(by: ReplacedBy.elsewhere):
         messenger?.showHint('Reloaded with changes from the folder.');
       case PickMerged(:final lost):
         messenger?.showNotice(mergeOutcome(lost));

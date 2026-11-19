@@ -49,7 +49,7 @@ void main() {
   test('new events take the zone the platform tells', () {
     Future<String?> zone() async => 'Europe/Berlin';
     final container = ProviderContainer(
-      overrides: [deviceZoneProvider.overrideWithValue(zone)],
+      overrides: [deviceZoneProvider.overrideWithValue(zone), noImageFolders],
     );
     addTearDown(container.dispose);
     final types = container.read(fileTypesProvider);

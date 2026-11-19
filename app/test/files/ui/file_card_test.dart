@@ -43,6 +43,7 @@ void main() {
     final text = ['# $title', for (var i = 1; i <= lines; i++) 'line $i'];
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           home: DocumentTextZoomScope(
             zoom: zoom,
@@ -137,6 +138,7 @@ void main() {
     var asked = 0;
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           home: Scaffold(
             body: SizedBox(
@@ -188,6 +190,7 @@ void main() {
       double scale = 1,
     }) => tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           theme: appTheme(Brightness.light),
           home: MediaQuery(
@@ -264,6 +267,7 @@ void main() {
   testWidgets('labels a document with a sync conflict', (tester) async {
     Future<void> show({required bool hasConflict}) => tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           home: Scaffold(
             body: FileCard(
@@ -291,6 +295,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [noImageFolders],
           child: MaterialApp(
             home: DocumentTextZoomScope(
               zoom: TextZoom.closestTo(150),
@@ -323,6 +328,7 @@ void main() {
       "can't be shown", (tester) async {
     Future<void> show(CardPreview preview) => tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           home: Scaffold(
             body: FileCard(
@@ -355,6 +361,7 @@ void main() {
   ) async {
     Future<void> show(TextZoom zoom) => tester.pumpWidget(
       ProviderScope(
+        overrides: [noImageFolders],
         child: MaterialApp(
           home: DocumentTextZoomScope(
             zoom: zoom,

@@ -37,6 +37,16 @@ runs:
       working-directory: types/markdown/markdown
       run: dart test
 
+    - name: Test Markdown images
+      shell: bash
+      working-directory: types/markdown/markdown_images
+      run: dart test
+
+    - name: Test images
+      shell: bash
+      working-directory: images
+      run: dart test
+
     - name: Test plain text
       shell: bash
       working-directory: types/plain_text/plain_text

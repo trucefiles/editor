@@ -23,7 +23,7 @@ class ReadView extends StatelessWidget {
 
   final String text;
   final void Function(String url) onLink;
-  final DocumentImages images;
+  final DocumentImageLookup images;
 
   @override
   Widget build(BuildContext context) => SelectionArea(
@@ -37,8 +37,12 @@ class ReadView extends StatelessWidget {
       onTapLink: (_, href, _) {
         if (href != null) onLink(href);
       },
-      imageBuilder: (uri, _, alt) =>
-          DocumentImage(uri.toString(), alt: alt ?? '', images: images),
+      imageBuilder: (uri, _, alt) => DocumentImage(
+        uri.toString(),
+        alt: alt ?? '',
+        images: images,
+        opens: true,
+      ),
     ),
   );
 }

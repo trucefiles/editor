@@ -6,17 +6,21 @@ import '../listed_file.dart';
 /// A backup and the folder its file is in.
 typedef FolderBackup = ({Folder folder, Backup backup});
 
-/// The backups of the files of [folders], newest first, each folder's
-/// from [backupsOf]. A folder whose backups can't be read is left out.
+/// The backups of the files of [folders] the app [shows], newest first,
+/// each folder's from [backupsOf]; backups of any other file (e.g. an
+/// image the app keeps) are left out. A folder whose backups can't be
+/// read is left out.
 Future<List<FolderBackup>> backupsShown(
   List<Folder> folders,
-  FileBackups Function(Folder folder) backupsOf,
-) async {
+  FileBackups Function(Folder folder) backupsOf, {
+  required bool Function(RelPath file) shows,
+}) async {
   final all = <FolderBackup>[];
   for (final folder in folders) {
     if (await backupsOf(folder).list() case Ok(:final value)) {
       all.addAll([
-        for (final backup in value) (folder: folder, backup: backup),
+        for (final backup in value)
+          if (shows(backup.filePath)) (folder: folder, backup: backup),
       ]);
     }
   }

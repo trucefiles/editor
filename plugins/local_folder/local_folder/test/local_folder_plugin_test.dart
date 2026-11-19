@@ -115,6 +115,7 @@ void main() {
           store,
           null,
           handles: (_) => true,
+          keptApart: (_) => false,
           checkEvery: () => Duration.zero,
         ),
       );

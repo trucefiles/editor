@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../file_types/file_types.dart';
+import '../images/images_wiring.dart';
 import '../plugins/plugins_wiring.dart';
 import '../settings/device_settings_controller.dart';
 import '../settings/followed_setting.dart';
@@ -23,7 +24,8 @@ final appWritesProvider = Provider<AppWrites>((ref) {
 /// at each wait.
 final openFoldersProvider = Provider<OpenFolders>((ref) {
   final plugins = ref.watch(folderPluginsProvider);
-  final types = ref.watch(fileTypesProvider);
+  final detector = ref.watch(fileTypeDetectorProvider);
+  final keptApart = ref.watch(keptApartProvider);
   final storage = ref.watch(appStorageProvider);
   final deviceId = ref.watch(deviceIdProvider);
   final writes = ref.watch(appWritesProvider);
@@ -34,7 +36,8 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
     build: (folder, raw, reach) => folderServices(
       raw,
       reach: reach,
-      handles: types.handles,
+      handles: (file) => detector.detect(file) != null,
+      keptApart: keptApart,
       backupsPath: storage.backupsPath(folder.id),
       deviceId: deviceId,
       checkEvery: checkEvery,

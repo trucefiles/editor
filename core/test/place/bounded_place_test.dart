@@ -17,6 +17,7 @@ void main() {
     files,
     changes,
     handles: (file) => file.name.endsWith('.md'),
+    keptApart: (_) => false,
     checkEvery: () => const Duration(milliseconds: 5),
   );
 
@@ -40,6 +41,45 @@ void main() {
       path('a.md'),
     ]);
     expect(hints, [PathChanged(path('a.md'))]);
+  });
+
+  test('files kept apart are reached only through their own store', () async {
+    files.put('kept/k.md', 'k');
+    final place = BoundedPlace(
+      files,
+      live,
+      handles: (file) => file.name.endsWith('.md'),
+      keptApart: (path) => path.isAtOrInside(RelPath.parse('kept')!),
+      checkEvery: () => const Duration(milliseconds: 5),
+    );
+    final hints = <ChangeHint>[];
+    final following = place.changes!.changes.listen(hints.add);
+    addTearDown(following.cancel);
+    await Future<void>.delayed(Duration.zero);
+
+    live.hint(PathChanged(path('kept/k.md')));
+    await Future<void>.delayed(Duration.zero);
+
+    expect((await place.files.list()).value.files.map((file) => file.path), [
+      path('a.md'),
+    ]);
+    expect(
+      (await place.files.create(path('kept/n.md'), bytesOf('n'))).error,
+      StoreError.outside,
+    );
+    expect((await place.files.read(path('kept/k.md'))).value.bytes, isNotEmpty);
+    expect(hints, isEmpty);
+    expect((await place.apart.list()).value.files.map((file) => file.path), [
+      path('kept/k.md'),
+    ]);
+    expect(
+      await place.apart.create(path('kept/n.md'), bytesOf('n')),
+      isA<Ok<FileEntry, StoreError>>(),
+    );
+    expect(
+      (await place.apart.create(path('n.md'), bytesOf('n'))).error,
+      StoreError.outside,
+    );
   });
 
   test('no changes where the place can not follow them live', () {

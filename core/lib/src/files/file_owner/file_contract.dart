@@ -262,14 +262,31 @@ sealed class ToEditor extends FileEvent {
   const ToEditor();
 }
 
-/// The file changed elsewhere while there were no unsaved edits: the
-/// editor shows [text] unless it changed its text after [ackRev].
+/// Why the file's text was replaced.
+enum ReplacedBy {
+  /// It changed elsewhere.
+  elsewhere,
+
+  /// The user's move changed it (e.g. what a file type rewrites as its
+  /// file moves).
+  move,
+}
+
+/// The file's text was replaced [by] a change elsewhere or the user's
+/// move while there were no unsaved edits: the editor shows [text]
+/// unless it changed its text after [ackRev].
 final class Replaced extends ToEditor {
-  const Replaced(this.text, {required this.version, required this.ackRev});
+  const Replaced(
+    this.text, {
+    required this.version,
+    required this.ackRev,
+    this.by = ReplacedBy.elsewhere,
+  });
 
   final String text;
   final Version version;
   final int ackRev;
+  final ReplacedBy by;
 }
 
 /// [text] to show, descending from [version]: the version from elsewhere

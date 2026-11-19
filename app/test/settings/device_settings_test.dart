@@ -13,6 +13,7 @@ import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/text_zoom_target.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_images/truce_images.dart';
 
 import '../support.dart';
 
@@ -38,6 +39,7 @@ void main() {
     backupSpace: BackupSpace.noLimit,
     alertStyle: AlertStyle.alarm,
     startAtLogin: true,
+    images: const ImageSettings(removeLocation: false, makeSmaller: true),
   );
 
   group('value', () {

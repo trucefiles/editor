@@ -9,6 +9,8 @@ extension HistoryStartText on HistoryStart {
           'the folder.',
     HistoryStart.replacedHere =>
       'Nothing more to undo since you picked a version or dropped your edits.',
+    HistoryStart.moved =>
+      'Nothing more to undo since the file moved and changed with it.',
     HistoryStart.limit =>
       'Nothing more to undo: only the last ${EditHistory.limit} steps are '
           'kept.',

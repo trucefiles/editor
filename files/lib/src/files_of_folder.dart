@@ -104,9 +104,10 @@ final class FilesOfFolder {
   /// Moves [read]'s file, as last saved, from this folder into [target]
   /// (this one too), to [subfolder] (its top level if `null`; made first
   /// if [newSubfolder]); named after [title] (by default [read]'s name)
-  /// with [read]'s extension, and a number if that name is taken. The
-  /// folder decides how ([OpenFolder.moveInto]). Nothing moves if the
-  /// file changed since [read] was read; if its old file can't be
+  /// with [read]'s extension, and a number if that name is taken; holding
+  /// [holding] there if given (its type changed it as it moved), else as
+  /// it is. The folder decides how ([OpenFolder.moveInto]). Nothing moves
+  /// if the file changed since [read] was read; if its old file can't be
   /// removed, both stay ([MoveLeftOriginal]).
   Future<Result<FileText, MoveFailure>> moveTo(
     FilesOfFolder target,
@@ -114,9 +115,12 @@ final class FilesOfFolder {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
+    TextFile? holding,
   }) async {
-    final FileText(listed: ListedFile(path: from, :version), textFile: file) =
+    final FileText(listed: ListedFile(path: from, :version), textFile: old) =
         read;
+    final file = holding ?? old;
+    final bytes = holding?.encode(holding.text);
     final (:base, :extension) = splitFileName(from.name);
     CopiedOnly? left;
     // A copy whose old file stays still names the file: it ends the
@@ -127,6 +131,7 @@ final class FilesOfFolder {
         ifUnchanged: version,
         target: target._services.open,
         to: path,
+        bytes: bytes,
       )) {
         case Ok(:final value):
           return Ok(value);
