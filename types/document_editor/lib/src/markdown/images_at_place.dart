@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
