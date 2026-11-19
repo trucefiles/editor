@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import '../../common/moment.dart';
 import '../../conflicts/text_merge.dart';
 import '../../owners/effects.dart';
@@ -93,10 +95,10 @@ final class _Step<V extends Version>
         _restoreMine();
       case Placing():
         if (work.expected == null && !_done) {
-          _work(work.copyWith(placing: true));
+          _work(work.copyWith(placing: work.placing + 1));
         }
-      case Placed(:final text, :final from):
-        _placed(text, from: from);
+      case Placed(:final change):
+        _placed(change);
       case Discard():
         _discard();
       case Move():
@@ -132,13 +134,13 @@ final class _Step<V extends Version>
     // Secures waiting are answered once the move ran.
     // A new file changing its place is created once placed.
     if (work.securing case final securing?
-        when work.io == null && work.move == null && !work.placing) {
+        when work.io == null && work.move == null && work.placing == 0) {
       _secureStep(securing);
     }
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
-    if (work.folderRev != null && !work.placing) _write();
+    if (work.folderRev != null && work.placing == 0) _write();
   }
 
   // Edits.
@@ -468,10 +470,11 @@ final class _Step<V extends Version>
   /// A new file's place change ended, its text [from] now [text], if
   /// given: it shows, unless edits came since. A file that has a file
   /// changes only by a move ([_movedTo]).
-  void _placed(String? text, {required String from}) {
-    _work(work.copyWith(placing: false));
-    if (text == null || work.expected != null || _done) return;
-    if (state.text != from) return;
+  void _placed(TextRewrite? change) {
+    _work(work.copyWith(placing: max(0, work.placing - 1)));
+    if (change == null || work.expected != null || _done) return;
+    final text = change(state.text);
+    if (text == null) return;
     _set(text: text);
     // Kept on the device as the edits are.
     if (status is Editing) _set(status: const Editing(EditPhase.inMemory));

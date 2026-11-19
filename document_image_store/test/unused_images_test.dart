@@ -65,6 +65,15 @@ void main() {
     expect((await fresh.find()).value, isEmpty);
   });
 
+  test('an image that came here in the last hour stays, however old', () async {
+    folder.putImage(nameA);
+    folder.files.arrivals[ImageNames.pathOf(nameA)] =
+        DateTime.fromMillisecondsSinceEpoch(0)
+            .add(const Duration(hours: 1, minutes: 30));
+
+    expect((await cleanup().find()).value, isEmpty);
+  });
+
   test('refuses if a draft can not be read', () async {
     folder.putImage(nameA);
     drafts = null;

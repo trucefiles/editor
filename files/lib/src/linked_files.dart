@@ -22,10 +22,11 @@ abstract interface class LinkedFiles {
     required Folder to,
   });
 
-  /// How the links of the file at [from] in [folder] change when it moves
-  /// into [toFolder] (`null`: the top level) of that folder or another
-  /// one holding the same kept files; `null` if none change.
+  /// How the links in [text], of the file at [from] in [folder], change
+  /// when it moves into [toFolder] (`null`: the top level) of that folder
+  /// or another one holding the same kept files; `null` if none change.
   Future<Result<Relink?, StoreError>> relinkFor(
+    String text,
     Folder folder, {
     required RelPath from,
     required RelPath? toFolder,
@@ -50,6 +51,7 @@ final class NoLinkedFiles implements LinkedFiles {
 
   @override
   Future<Result<Relink?, StoreError>> relinkFor(
+    String text,
     Folder folder, {
     required RelPath from,
     required RelPath? toFolder,
@@ -61,11 +63,12 @@ final class NoLinkedFiles implements LinkedFiles {
 
 /// The one rule for a file's text as it changes place.
 extension TextAtPlace on LinkedFiles {
-  /// What a file of [type] holding [text], at [from] in [folder], holds
-  /// once at [to]: the kept files it links go along into [to]'s folder
-  /// first, then its links change where they must; `null` if its text
-  /// stays. Fails if the kept files can't go along or be looked up.
-  Future<Result<String?, StoreError>> textAt(
+  /// How the text of a file of [type] holding [text], at [from] in
+  /// [folder], changes once at [to]: the kept files it links go along
+  /// into [to]'s folder first, then its links change where they must;
+  /// `null` if its text stays. Fails if the kept files can't go along or
+  /// be looked up.
+  Future<Result<TextRewrite?, StoreError>> rewriteAt(
     FilePlace to,
     String text, {
     required ShownFileType? type,
@@ -76,12 +79,33 @@ extension TextAtPlace on LinkedFiles {
       final copied = await copyFor(text, from: folder, to: to.folder);
       if (copied case Err(:final error)) return Err(error);
     }
-    final relink = await relinkFor(folder, from: from, toFolder: to.subfolder);
+    final relink = await relinkFor(
+      text,
+      folder,
+      from: from,
+      toFolder: to.subfolder,
+    );
     return relink.map(
       (relink) => switch ((relink, type)) {
-        (final relink?, final type?) => type.relinked(text, relink),
+        (final relink?, final type?) => (text) => type.relinked(text, relink),
         _ => null,
       },
     );
   }
+
+  /// What a file holding [text] holds once at [to], by [rewriteAt];
+  /// `null` if its text stays.
+  Future<Result<String?, StoreError>> textAt(
+    FilePlace to,
+    String text, {
+    required ShownFileType? type,
+    required Folder folder,
+    required RelPath from,
+  }) async => (await rewriteAt(
+    to,
+    text,
+    type: type,
+    folder: folder,
+    from: from,
+  )).map((rewrite) => rewrite?.call(text));
 }

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -135,7 +133,6 @@ Future<void> pumpDocument(
   TransitionBuilder? around,
   DocumentImageLookup images = const NoDocumentImageLookup(),
   ImageAdding? imageAdding,
-  FutureOr<String> Function(String text)? pasted,
 }) => tester.pumpWidget(
   MaterialApp(
     theme: theme,
@@ -151,7 +148,6 @@ Future<void> pumpDocument(
           onLink: document.links.add,
           images: images,
           imageAdding: imageAdding,
-          pasted: pasted,
         ),
       ),
     ),

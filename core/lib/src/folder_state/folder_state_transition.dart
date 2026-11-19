@@ -336,6 +336,7 @@ final class _Step
             path,
             version: entry.version,
             modified: at,
+            arrived: entry.arrived,
           ),
           _ => entry,
         },

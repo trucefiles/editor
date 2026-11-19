@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
@@ -15,9 +13,8 @@ import 'visual/visual_edit_view.dart';
 /// Lists in Visual edit get Add item buttons at [addItems]; what the
 /// editor asks of the user comes in [notices]. Links open with [onLink];
 /// images show as [images] finds them, and Visual edit adds them as
-/// [imageAdding] says (none if `null`); Markdown edit pastes text as
-/// [pasted] gives it. The one place that picks the view of each mode;
-/// each is built anew for its mode.
+/// [imageAdding] says (none if `null`). The one place that picks the
+/// view of each mode; each is built anew for its mode.
 class DocumentEditor extends StatelessWidget {
   const DocumentEditor(
     this.gate, {
@@ -27,7 +24,6 @@ class DocumentEditor extends StatelessWidget {
     required this.onLink,
     required this.images,
     this.imageAdding,
-    this.pasted,
     this.autofocus = false,
     super.key,
   });
@@ -39,7 +35,6 @@ class DocumentEditor extends StatelessWidget {
   final void Function(String url) onLink;
   final DocumentImageLookup images;
   final ImageAdding? imageAdding;
-  final FutureOr<String> Function(String text)? pasted;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;
@@ -60,7 +55,6 @@ class DocumentEditor extends StatelessWidget {
       gate,
       key: const ValueKey(EditMode.markdown),
       onLink: onLink,
-      pasted: pasted,
       autofocus: autofocus,
     ),
     EditMode.read => ReadView(

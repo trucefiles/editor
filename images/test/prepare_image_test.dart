@@ -74,6 +74,48 @@ void main() {
       expect(img.decodeWebP(out)!.width, 64);
     });
 
+    test('bytes after a picture\'s end go with its location', () {
+      final trailing = utf8.encode('<x:xmpmeta GPSLatitude="1"/> and more');
+      for (final name in ['located.jpg', 'located.png', 'located.webp']) {
+        final sample = _sample(name);
+        final bytes = Uint8List.fromList([...sample, ...trailing]);
+        final out = prepareImage(bytes, _noLocation)!.bytes;
+        expect(_holds(out, 'GPSLatitude'), isFalse, reason: name);
+      }
+    });
+
+    test('a picture whose location can not be found is none', () {
+      final png = _sample('located.png');
+      final webp = _sample('located.webp');
+      final jpeg = _sample('located.jpg');
+      final broken = {
+        // A chunk that claims more bytes than there are.
+        'png': Uint8List.fromList([
+          ...png.sublist(0, 8),
+          0,
+          0,
+          0x10,
+          0,
+          ...png.sublist(12),
+        ]),
+        // A size that claims more bytes than there are.
+        'webp': Uint8List.fromList([
+          ...webp.sublist(0, 4),
+          0xFF,
+          0xFF,
+          0,
+          0,
+          ...webp.sublist(8),
+        ]),
+        // Cut inside its EXIF data.
+        'jpeg': jpeg.sublist(0, 40),
+      };
+      for (final MapEntry(:key, :value) in broken.entries) {
+        expect(prepareImage(value, _noLocation), isNull, reason: key);
+        expect(prepareImage(value, _keepAll), isNotNull, reason: key);
+      }
+    });
+
     test('a small picture is not encoded anew when asked to be smaller', () {
       final bytes = _sample('animated.gif');
       expect(prepareImage(bytes, _smaller)!.bytes, bytes);

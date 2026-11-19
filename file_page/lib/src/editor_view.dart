@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart';
@@ -38,8 +36,7 @@ final class EditorHost {
 }
 
 /// The images the app keeps for a file's text in its folder, wherever
-/// the file is now: where a link of ours leads, adding one, and how
-/// links of ours change in text pasted into the file.
+/// the file is now: where a link of ours leads, and adding one.
 abstract interface class HostImages {
   /// Where the image [link] names is kept, wherever the link points;
   /// `null` for a link whose name isn't ours. It may not be there.
@@ -51,15 +48,6 @@ abstract interface class HostImages {
   Future<Result<String, StoreError>> add(
     Uint8List bytes, {
     required String extension,
-  });
-
-  /// [text] pasted into the file with the links of ours changed by the
-  /// file's type ([relinked]) so they lead to their images from where it
-  /// is; at once, as it is, when it names none of ours, or when that
-  /// can't be told now.
-  FutureOr<String> relinkPasted(
-    String text, {
-    required String? Function(String text, Relink relink) relinked,
   });
 }
 
@@ -75,12 +63,6 @@ final class NoHostImages implements HostImages {
     Uint8List bytes, {
     required String extension,
   }) async => const Err(StoreError.outside);
-
-  @override
-  String relinkPasted(
-    String text, {
-    required String? Function(String text, Relink relink) relinked,
-  }) => text;
 }
 
 /// How a file type's editor part shows on the page: the editor in

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_markdown/truce_markdown.dart' as md;
@@ -11,20 +9,17 @@ import 'library/markdown_highlighter.dart';
 
 /// Markdown edit of the document behind [gate]: its text as written,
 /// line by line, highlighted as it reads. Links open with [onLink] on a
-/// tap with Ctrl (or Cmd) held, so a plain tap places the caret. Pasted
-/// text goes in as [pasted] gives it (see [LineEditView.pasted]).
+/// tap with Ctrl (or Cmd) held, so a plain tap places the caret.
 class MarkdownEditView extends StatefulWidget {
   const MarkdownEditView(
     this.gate, {
     required this.onLink,
-    this.pasted,
     this.autofocus = false,
     super.key,
   });
 
   final EditorGate gate;
   final void Function(String url) onLink;
-  final FutureOr<String> Function(String text)? pasted;
 
   /// Puts the caret into the document right away, e.g. a new one.
   final bool autofocus;
@@ -41,7 +36,6 @@ class _MarkdownEditViewState extends State<MarkdownEditView> {
     _text,
     editing: markdownLines,
     onLink: widget.onLink,
-    pasted: widget.pasted,
     autofocus: widget.autofocus,
   );
 }

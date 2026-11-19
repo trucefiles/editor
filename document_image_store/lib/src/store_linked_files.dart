@@ -22,17 +22,19 @@ final class StoreLinkedFiles implements LinkedFiles {
   }) => _storeOf(from).copyInto(_storeOf(to), ImageNames.namesIn(text));
 
   /// Links change only when the file's folder depth does: the store is at
-  /// the root, so a move at the same depth leaves every link working.
+  /// the root, so a move at the same depth leaves every link working. A
+  /// text naming none of ours needs no look at the store.
   @override
   Future<Result<Relink?, StoreError>> relinkFor(
+    String text,
     Folder folder, {
     required RelPath from,
     required RelPath? toFolder,
   }) async {
-    if (from.folders.length ==
-        (toFolder == null ? 0 : toFolder.folders.length + 1)) {
-      return const Ok(null);
-    }
+    final sameDepth =
+        from.folders.length ==
+        (toFolder == null ? 0 : toFolder.folders.length + 1);
+    if (sameDepth || ImageNames.namesIn(text).isEmpty) return const Ok(null);
     return switch (await _storeOf(folder).relinkFrom(toFolder)) {
       Ok(value: final relink) => Ok(relink),
       Err(:final error) => Err(error),

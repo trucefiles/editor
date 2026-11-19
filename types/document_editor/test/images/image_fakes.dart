@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_file_page/truce_file_page.dart';
-import 'package:truce_files/truce_files.dart' show Relink;
 import 'package:truce_images/truce_images.dart';
 
 /// A PNG picture of one pixel.
@@ -52,10 +51,4 @@ final class FakeKept implements HostImages {
     kept[link] = bytes;
     return Ok(link);
   }
-
-  @override
-  String relinkPasted(
-    String text, {
-    required String? Function(String text, Relink relink) relinked,
-  }) => text;
 }

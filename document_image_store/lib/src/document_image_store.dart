@@ -143,20 +143,24 @@ final class DocumentImageStore {
       case Err():
         return;
     }
-    for (final name in names.where((name) => !here.containsKey(name))) {
-      await _bringBackOne(ImageNames.pathOf(name));
-    }
-  }
-
-  Future<void> _bringBackOne(RelPath path) async {
-    final backups = _services.backups;
-    final latest = switch (await backups.listOf(path)) {
-      Ok(:final value) => value.firstOrNull,
-      Err() => null,
+    final missing = {
+      for (final name in names)
+        if (!here.containsKey(name)) ImageNames.pathOf(name),
     };
-    if (latest == null) return;
-    if (await backups.read(latest) case Ok(:final value)) {
-      await _files.create(path, value);
+    if (missing.isEmpty) return;
+    final backups = _services.backups;
+    // Listed once; newest first, so each path's first is its latest.
+    final latest = switch (await backups.list()) {
+      Ok(:final value) => {
+        for (final backup in value.reversed)
+          if (missing.contains(backup.filePath)) backup.filePath: backup,
+      },
+      Err() => const <RelPath, Backup>{},
+    };
+    for (final MapEntry(key: path, value: backup) in latest.entries) {
+      if (await backups.read(backup) case Ok(:final value)) {
+        await _files.create(path, value);
+      }
     }
   }
 }

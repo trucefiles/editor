@@ -18,8 +18,9 @@ enum CleanupRefused {
 
 /// The user's cleanup of one folder's unused document images: those no
 /// document, conflict copy or draft of the folder names. Every one of
-/// them is read first; images changed in the last [fresh] stay, as their
-/// document may not hold its link yet (here or on another device).
+/// them is read first; images that changed or came here in the last
+/// [fresh] stay, as their document may not hold its link yet (here or
+/// on another device).
 /// Open documents are secured by the caller first, so their edits are
 /// in a file or a draft.
 final class UnusedImages {
@@ -59,7 +60,7 @@ final class UnusedImages {
       images.entries
           .where((image) => !used.contains(image.key))
           .map((image) => image.value)
-          .where((entry) => entry.modified.isBefore(before))
+          .where((entry) => entry.arrived.isBefore(before))
           .toList()
         ..sort((a, b) => a.modified.compareTo(b.modified)),
     );

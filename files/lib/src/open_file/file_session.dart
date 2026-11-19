@@ -102,6 +102,9 @@ final class FileSession {
   SessionState get state => _state;
   SessionState _state = const Running();
 
+  /// The last place change asked for: each waits for the one before.
+  Future<Result<void, StoreError>> _lastPlace = Future.value(const Ok(null));
+
   /// Where the file is: the file the file owner names, else where a new
   /// file goes.
   PageFile get file => _effects.whereOf(_file.state.file);
@@ -254,34 +257,38 @@ final class FileSession {
 
   /// The user picked where a new file goes: the files kept for its text
   /// go along first, and its links change where they must, as in a move.
-  /// Nothing changes if they can't go along.
-  Future<Result<void, StoreError>> place(NewFile to) async {
+  /// Nothing changes if they can't go along. One at a time, in the order
+  /// picked; a new file is created nowhere until each has ended.
+  Future<Result<void, StoreError>> place(NewFile to) {
+    if (file is NewFile) _file.send(const Placing());
+    return _lastPlace = _lastPlace.then((_) => _place(to));
+  }
+
+  Future<Result<void, StoreError>> _place(NewFile to) async {
     final from = file;
     if (from is! NewFile) {
       _effects.place(to);
       _changed();
       return const Ok(null);
     }
-    // The editor's typing first, so the links of all of it change; it is
-    // created nowhere while it changes place.
+    // The editor's typing first, so the links of all of it change.
     draftNow();
-    final text = _file.state.text;
-    _file.send(const Placing());
-    final moved = await _linked.textAt(
+    final moved = await _linked.rewriteAt(
       to.place,
-      text,
+      _file.state.text,
       type: from.type,
       folder: from.folder,
       from: from.pathFor(summary.firstLine),
     );
     if (moved case Ok()) _effects.place(to);
+    // Typed meanwhile changes too.
+    draftNow();
     _file.send(
       Placed(
-        text: switch (moved) {
+        change: switch (moved) {
           Ok(:final value) => value,
           Err() => null,
         },
-        from: text,
       ),
     );
     _changed();

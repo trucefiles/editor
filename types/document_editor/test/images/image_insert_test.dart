@@ -60,4 +60,13 @@ void main() {
     expect(inserted, isEmpty);
     expect(hints, ["Couldn't add the image: the folder can't be written now."]);
   });
+
+  test('a view gone while a picture comes keeps and inserts nothing', () async {
+    final adding = insert.from(ImageSource.file);
+    insert.dispose();
+    await adding;
+
+    expect(inserted, isEmpty);
+    expect(kept.kept, isEmpty);
+  });
 }

@@ -64,20 +64,17 @@ void main() {
     expect(find.byTooltip('Image'), findsNothing);
   });
 
-  testWidgets('Markdown edit pastes text as the page fixes it', (tester) async {
+  testWidgets('Markdown edit pastes image links as they are', (tester) async {
+    const link = '![](document-images/img-0123456789abcdef.png)';
     final document = TestDocument('', mode: EditMode.markdown);
-    await pumpDocument(
-      tester,
-      document,
-      pasted: (text) async => text.replaceAll('a.png', '../a.png'),
-    );
-    tester.clipboardHolds('![](a.png)');
+    await pumpDocument(tester, document);
+    tester.clipboardHolds(link);
 
     await tester.caretIn(lineNodeOf(0), 0);
     await tester.pressCtlV();
     await tester.pumpAndSettle();
 
-    expect(document.text, '![](../a.png)');
+    expect(document.text, link);
   });
 
   testWidgets('a tap on an image in Visual edit shows it full screen', (

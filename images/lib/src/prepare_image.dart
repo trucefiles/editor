@@ -80,7 +80,7 @@ final class PreparedImage {
 /// [bytes], a picture the user picked, ready to keep by [settings]:
 /// encoded anew only when made smaller; else as picked, only its
 /// location data taken out if asked. `null` if it is not a picture of a
-/// kind the app takes, or can't be read to make it smaller.
+/// kind the app takes, or can't be read as far as asked.
 PreparedImage? prepareImage(Uint8List bytes, ImageSettings settings) {
   final kind = ImageKind.of(bytes);
   if (kind == null) return null;
@@ -94,10 +94,8 @@ PreparedImage? prepareImage(Uint8List bytes, ImageSettings settings) {
       sized = bytes;
   }
   // On the final bytes: an encoder may carry location along.
-  return PreparedImage(
-    settings.removeLocation ? withoutLocation(sized, kind) : sized,
-    kind,
-  );
+  final kept = settings.removeLocation ? withoutLocation(sized, kind) : sized;
+  return kept == null ? null : PreparedImage(kept, kind);
 }
 
 /// [prepareImage] away from the caller's thread: decoding and encoding a

@@ -29,6 +29,7 @@ void main() {
 
   test('a move at the same depth changes no link', () async {
     final relink = await linked.relinkFor(
+      'see document-images/$nameA',
       folder('f1'),
       from: path('a/doc.md'),
       toFolder: path('b'),
@@ -39,6 +40,7 @@ void main() {
 
   test('a move to another depth changes the links of ours', () async {
     final relink = (await linked.relinkFor(
+      'see document-images/$nameA',
       folder('f1'),
       from: path('doc.md'),
       toFolder: path('a/b'),
@@ -46,6 +48,21 @@ void main() {
 
     expect(relink('document-images/$nameA'), '../../document-images/$nameA');
     expect(relink('pics/x.png'), isNull);
+  });
+
+  test('a text naming none of ours never looks at the store', () async {
+    final files = folders[folderId('f1')]!.files
+      ..failWith = StoreError.ioFailure;
+    addTearDown(() => files.failWith = null);
+
+    final relink = await linked.relinkFor(
+      'see pics/x.png',
+      folder('f1'),
+      from: path('doc.md'),
+      toFolder: path('a/b'),
+    );
+
+    expect(relink.value, isNull);
   });
 
   test('a move to another folder copies the images the text names', () async {

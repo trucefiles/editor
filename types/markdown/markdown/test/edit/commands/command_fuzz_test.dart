@@ -79,8 +79,8 @@ void _expectShows(Shown document, Selection? selection) {
 
 const _words = ['a', 'b c', '*', ' ', 'www.x.io', '`', '# ', '- ', '1.', r'\'];
 
-// HTML left open (`<!--`) takes in what follows only once read again:
-// see docs/known-limitations.md.
+// HTML left open (`<!--`) takes in what follows only once read again
+// (accepted).
 const _raws = ['<div>', '[x]: /u', '| a |\n|---|', 'text', ''];
 
 Command? _randomCommand(Random random, Shown document) {

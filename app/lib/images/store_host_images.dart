@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_file_page/truce_file_page.dart';
-import 'package:truce_files/truce_files.dart' show Relink;
 
 /// The images of a document in [_documentFolder] (`null`: the top
 /// level), kept in its folder's [DocumentImageStore].
@@ -26,19 +24,4 @@ final class StoreHostImages implements HostImages {
     required String extension,
   }) =>
       _store.add(bytes, extension: extension, documentFolder: _documentFolder);
-
-  @override
-  FutureOr<String> relinkPasted(
-    String text, {
-    required String? Function(String text, Relink relink) relinked,
-  }) =>
-      ImageNames.namesIn(text).isEmpty ? text : _relinkedPaste(text, relinked);
-
-  Future<String> _relinkedPaste(
-    String text,
-    String? Function(String text, Relink relink) relinked,
-  ) async => switch (await _store.relinkFrom(_documentFolder)) {
-    Ok(value: final relink) => relinked(text, relink) ?? text,
-    Err() => text,
-  };
 }

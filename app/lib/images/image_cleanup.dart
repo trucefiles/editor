@@ -11,11 +11,13 @@ class ImageCleanup {
     required this._servicesOf,
     required this._draftsOf,
     required this._openFiles,
+    this._now,
   });
 
   final FolderServices Function(FolderId folder) _servicesOf;
   final FileDrafts Function(FolderId folder) _draftsOf;
   final OpenFiles _openFiles;
+  final DateTime Function()? _now;
 
   /// The unused images of [folder], to remove with [remove].
   Future<Result<List<FileEntry>, CleanupRefused>> find(FolderId folder) async {
@@ -33,6 +35,7 @@ class ImageCleanup {
       DocumentImageStore(services),
       services,
       drafts: _draftsOf(folder).texts,
+      now: _now,
     );
   }
 }

@@ -265,8 +265,14 @@ final class LocalFileStore implements FileStore {
     return stat;
   }
 
-  static FileEntry _entry(RelPath path, FileStat stat) =>
-      FileEntry(path, version: _version(stat), modified: stat.modified);
+  /// The change time tells when a sync tool put the file in place, which
+  /// can be long after the modified time it carries over.
+  static FileEntry _entry(RelPath path, FileStat stat) => FileEntry(
+    path,
+    version: _version(stat),
+    modified: stat.modified,
+    arrived: stat.changed.isAfter(stat.modified) ? stat.changed : stat.modified,
+  );
 
   /// A file's modification time and size: a new version of a file changes
   /// at least one of them.

@@ -3,7 +3,6 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_editor/images/store_host_images.dart';
 import 'package:truce_folders/truce_folders.dart';
-import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
@@ -24,25 +23,6 @@ void main() {
       wrote: (_) {},
     );
     images = StoreHostImages(DocumentImageStore(services), path('a'));
-  });
-
-  test('a paste with no image of ours goes in at once, as it is', () {
-    final pasted = images.relinkPasted(
-      'see ![x](pic.png)',
-      relinked: const MarkdownFileType().relinked,
-    );
-
-    expect(pasted, 'see ![x](pic.png)');
-  });
-
-  test("a paste with an image of ours leads to it from the document's "
-      'folder', () async {
-    final pasted = await images.relinkPasted(
-      '![](document-images/$name)',
-      relinked: const MarkdownFileType().relinked,
-    );
-
-    expect(pasted, '![](../document-images/$name)');
   });
 
   test('an image of ours is kept by its name, wherever its link points', () {

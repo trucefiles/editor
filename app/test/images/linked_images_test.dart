@@ -7,6 +7,7 @@ import 'package:truce_editor/files/file_actions.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/open_folders_wiring.dart';
+import 'package:truce_editor/images/image_cleanup.dart';
 import 'package:truce_editor/images/images_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
@@ -174,17 +175,38 @@ void main() {
     expect(diskFile(home, kept).readAsStringSync(), 'png');
   });
 
+  /// The cleanup as it runs [later] from now.
+  ImageCleanup cleanupIn(Duration later) => ImageCleanup(
+    servicesOf: container.read(openFoldersProvider).servicesOf,
+    draftsOf: container.read(draftsProvider).of,
+    openFiles: container.read(openFilesProvider),
+    now: () => DateTime.now().add(later),
+  );
+
   test('cleanup finds only images no document shows', () async {
     const unused = 'document-images/img-fedcba9876543210.png';
     diskFile(work, unused).writeAsStringSync('old');
-    final old = DateTime.now().subtract(const Duration(hours: 2));
-    diskFile(work, unused).setLastModifiedSync(old);
-    diskFile(work, kept).setLastModifiedSync(old);
     await fileIn(work, 'plan.md', '![a]($kept)\n');
+
+    final found = (await cleanupIn(
+      const Duration(hours: 2),
+    ).find(folders[0].id)).value;
+
+    expect(found.map((image) => image.path.value), [unused]);
+  });
+
+  test('cleanup leaves an image that just came here, however old', () async {
+    const synced = 'document-images/img-fedcba9876543210.png';
+    diskFile(work, synced).writeAsStringSync('from the phone');
+    // As a sync tool puts it: the time it had on the other device.
+    diskFile(
+      work,
+      synced,
+    ).setLastModifiedSync(DateTime.now().subtract(const Duration(days: 2)));
 
     final found =
         (await container.read(imageCleanupProvider).find(folders[0].id)).value;
 
-    expect(found.map((image) => image.path.value), [unused]);
+    expect(found, isEmpty);
   });
 }

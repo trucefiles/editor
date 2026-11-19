@@ -141,6 +141,22 @@ void main() {
       expect(folder.has(nameB), isFalse);
     });
 
+    test('brings each missing image back from its latest backup', () async {
+      Future<void> removeNow(String name) async =>
+          folder.store.remove((await folder.store.images()).value[name]!);
+      folder.putImage(nameA);
+      await removeNow(nameA);
+      folder.files.put('document-images/$nameA', 'newer');
+      await removeNow(nameA);
+      folder.putImage(nameB);
+      await removeNow(nameB);
+
+      await folder.store.bringBack({nameA, nameB});
+
+      expect(folder.files.textOf('document-images/$nameA'), 'newer');
+      expect(folder.files.textOf('document-images/$nameB'), 'image $nameB');
+    });
+
     test('keeps an image changed since it was listed', () async {
       folder.putImage(nameA);
       final image = (await folder.store.images()).value[nameA]!;

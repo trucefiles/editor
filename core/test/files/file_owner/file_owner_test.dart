@@ -926,7 +926,7 @@ void main() {
         ..edit('a', 1, lineage: null)
         ..keep()
         ..send(const Placing())
-        ..send(const Placed(text: 'a2', from: 'a'));
+        ..send(Placed(change: (text) => '${text}2'));
       final replaced = run.last<Replaced>();
       expect((replaced.text, replaced.version), ('a2', null));
       expect(replaced.by, ReplacedBy.move);
@@ -943,7 +943,20 @@ void main() {
         ..send(const Placing())
         ..secure(SecureReason.hide);
       expect(run.all<Create>(), isEmpty);
-      run.send(const Placed(from: 'a'));
+      run.send(const Placed());
+      expect(run.last<Create>().text, 'a');
+    });
+
+    test('is created only once every place change under way ended', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..keep()
+        ..send(const Placing())
+        ..send(const Placing())
+        ..secure(SecureReason.hide)
+        ..send(const Placed());
+      expect(run.all<Create>(), isEmpty);
+      run.send(const Placed());
       expect(run.last<Create>().text, 'a');
     });
 
@@ -957,14 +970,23 @@ void main() {
       expect(run.last<Answer>().kept, isTrue);
     });
 
-    test('its text changed with its place is dropped after newer edits', () {
+    test('its text changes with its place, edits made meanwhile too', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)
-        ..edit('ab', 2, lineage: null)
         ..send(const Placing())
-        ..send(const Placed(text: 'a2', from: 'a'));
+        ..edit('ab', 2, lineage: null)
+        ..send(Placed(change: (text) => '${text}2'));
+      expect(run.last<Replaced>().text, 'ab2');
+      expect(run.state.text, 'ab2');
+    });
+
+    test('a change that leaves its text is not shown', () {
+      final run = _Run.unwritten()
+        ..edit('a', 1, lineage: null)
+        ..send(const Placing())
+        ..send(Placed(change: (_) => null));
       expect(run.all<Replaced>(), isEmpty);
-      expect(run.state.text, 'ab');
+      expect(run.state.text, 'a');
     });
 
     test('empty is never written', () {

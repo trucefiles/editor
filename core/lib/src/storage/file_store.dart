@@ -105,7 +105,12 @@ final class FileVersion {
 
 /// A file as the store last saw it.
 final class FileEntry {
-  const FileEntry(this.path, {required this.version, required this.modified});
+  const FileEntry(
+    this.path, {
+    required this.version,
+    required this.modified,
+    DateTime? arrived,
+  }) : arrived = arrived ?? modified;
 
   final RelPath path;
   final FileVersion version;
@@ -114,15 +119,20 @@ final class FileEntry {
   /// checks use [version].
   final DateTime modified;
 
+  /// When this version came to this device: later than [modified] for a
+  /// change a sync tool brought here later; [modified] where unknown.
+  final DateTime arrived;
+
   @override
   bool operator ==(Object other) =>
       other is FileEntry &&
       other.path == path &&
       other.version == version &&
-      other.modified == modified;
+      other.modified == modified &&
+      other.arrived == arrived;
 
   @override
-  int get hashCode => Object.hash(path, version, modified);
+  int get hashCode => Object.hash(path, version, modified, arrived);
 }
 
 final class FileContent {

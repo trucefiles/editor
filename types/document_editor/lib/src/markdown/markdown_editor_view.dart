@@ -27,8 +27,7 @@ final class MarkdownEditorView extends EditorView {
 
   /// Lists get Add item buttons where the setting says, links open as the
   /// app opens them, images show from the file's folder, the kept ones
-  /// first, and are added there; pasted image links of ours lead to their
-  /// images from where the file is.
+  /// first, and are added there.
   @override
   Widget view(EditorHost host, {required bool autofocus}) =>
       ValueListenableBuilder(
@@ -55,10 +54,6 @@ final class MarkdownEditorView extends EditorView {
             ),
             null => null,
           },
-          pasted: (text) => host.images.relinkPasted(
-            text,
-            relinked: const MarkdownFileType().relinked,
-          ),
           autofocus: autofocus,
         ),
       );

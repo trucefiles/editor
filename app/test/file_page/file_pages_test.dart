@@ -155,6 +155,53 @@ void main() {
       expect(File('${fixture.dirs[1].path}/Plan.md').existsSync(), isTrue);
     });
 
+    test('edits made while its images are copied change with it', () async {
+      linked.copying = Completer<void>();
+      final placed = page.session.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: path('a'),
+        ), type: (page.session.file as NewFile).type),
+      );
+
+      await page.session.replaceAll('Plan\n\n![a](x.png)\n\nMore\n');
+      linked.copying!.complete();
+      await placed;
+
+      expect(page.session.text, 'Plan\n\n![a](../x.png)\n\nMore\n');
+    });
+
+    test(
+      'a second pick waits for the first, and a save lands at the last',
+      () async {
+        Directory('${fixture.dirs[0].path}/a').createSync();
+        linked.copying = Completer<void>();
+        final type = (page.session.file as NewFile).type;
+        final first = page.session.place(
+          NewFile((folder: fixture.folders[1], subfolder: null), type: type),
+        );
+        final second = page.session.place(
+          NewFile((
+            folder: fixture.folders[0],
+            subfolder: path('a'),
+          ), type: type),
+        );
+
+        final saved = page.session.secure(SecureReason.hide);
+        await pumpEventQueue();
+        linked.copying!.complete();
+        await (first, second).wait;
+
+        expect(await saved, isTrue);
+        expect(linked.copied, [fixture.folders[1].id, fixture.folders[0].id]);
+        expect(fixture.dirs[1].listSync(), isEmpty);
+        expect(
+          File('${fixture.dirs[0].path}/a/Plan.md').readAsStringSync(),
+          'Plan\n\n![a](../x.png)\n',
+        );
+      },
+    );
+
     test('stays where its images can not be copied', () async {
       linked.copyFails = true;
 
@@ -217,6 +264,7 @@ final class _FakeLinked implements LinkedFiles {
 
   @override
   Future<Result<Relink?, StoreError>> relinkFor(
+    String text,
     Folder folder, {
     required RelPath from,
     required RelPath? toFolder,

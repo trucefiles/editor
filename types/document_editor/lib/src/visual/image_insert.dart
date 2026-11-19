@@ -15,7 +15,9 @@ typedef ImageAdding = ({
 
 /// The Image button's flow: a picture picked, made ready away from the
 /// screen's thread, kept in the folder, then [insert]ed as a link.
-/// [busy] while it is made ready and kept; one at a time.
+/// [busy] while it is made ready and kept; one at a time. Once
+/// [dispose]d (its view gone), it stops at its next step: a picture not
+/// kept yet never is; one kept already stays unused, for the cleanup.
 final class ImageInsert extends ChangeNotifier {
   ImageInsert(this._adding, {required this.insert});
 
@@ -27,22 +29,26 @@ final class ImageInsert extends ChangeNotifier {
 
   bool get busy => _busy;
   var _busy = false;
+  var _disposed = false;
 
   Future<void> from(ImageSource source) async {
     if (_busy) return;
     final (:picking, :kept, :hint) = _adding();
     final bytes = await picking.pick(source);
-    if (bytes == null) return;
+    if (bytes == null || _disposed) return;
     _setBusy(true);
     try {
       final prepared = await prepareInBackground(bytes, picking.settings);
+      if (_disposed) return;
       if (prepared == null) {
         return hint("That file isn't an image the app can show.");
       }
-      switch (await kept.add(
+      final added = await kept.add(
         prepared.bytes,
         extension: prepared.kind.extension,
-      )) {
+      );
+      if (_disposed) return;
+      switch (added) {
         case Ok(value: final link):
           insert(link);
         case Err():
@@ -55,6 +61,12 @@ final class ImageInsert extends ChangeNotifier {
 
   void _setBusy(bool busy) {
     _busy = busy;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
