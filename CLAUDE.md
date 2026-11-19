@@ -58,6 +58,7 @@ Prefer the simpler option when in doubt.
 ## Quality
 - A trusted, maintained library (or the framework's own) beats own code; own code only where none fits these rules, and the code says why.
 - Only well-trusted dependencies, pinned where normal (actions by commit SHA, SDKs by version, packages via lock files, wrappers by hash). Report where pinning isn't possible.
+- A dependency version is at least 2 days old. One less than 7 days old is checked by hand first: the published package matches its source tag, no new dependencies, no new file, network, process or native access, the commit authors are the known ones and the publisher is unchanged.
 - Small files and units; split when a unit does two jobs.
 - Every change ships with new or updated tests; every bug fix gets a test that fails without it.
 - CI stays green; never skip or disable a test.
