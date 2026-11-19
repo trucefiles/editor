@@ -68,7 +68,7 @@ final class FileSession {
     this._effects,
     this.editor, {
     TextMerge? merge,
-    this._linked = const NoLinkedFiles(),
+    required this._linked,
   }) : _file = fileOwner(switch (opened) {
          ExistingFile(:final file) => openedFile(file.seen, merge: merge),
          NewFile(:final start) => newFile(start: start, merge: merge),
@@ -102,8 +102,16 @@ final class FileSession {
   SessionState get state => _state;
   SessionState _state = const Running();
 
-  /// The last place change asked for: each waits for the one before.
-  Future<Result<void, StoreError>> _lastPlace = Future.value(const Ok(null));
+  /// The place changes and the steps at the file's place ([atPlace])
+  /// asked for, one after another: the last one asked for.
+  Future<void> _turns = Future.value();
+
+  /// Place changes of a new file asked for and not yet ended: the file
+  /// owner holds the file ([Placing]) while there are any.
+  var _placesUnderWay = 0;
+
+  /// How the text changes with them, applied once they all ended.
+  TextRewrite? _placedChange;
 
   /// Where the file is: the file the file owner names, else where a new
   /// file goes.
@@ -258,16 +266,33 @@ final class FileSession {
   /// The user picked where a new file goes: the files kept for its text
   /// go along first, and its links change where they must, as in a move.
   /// Nothing changes if they can't go along. One at a time, in the order
-  /// picked; a new file is created nowhere until each has ended.
+  /// picked; a new file is created nowhere until all have ended.
   Future<Result<void, StoreError>> place(NewFile to) {
-    if (file is NewFile) _file.send(const Placing());
-    return _lastPlace = _lastPlace.then((_) => _place(to));
+    final holds = file is NewFile;
+    if (holds && _placesUnderWay++ == 0) _file.send(const Placing());
+    return _inTurn(() => _place(to, holds: holds));
   }
 
-  Future<Result<void, StoreError>> _place(NewFile to) async {
+  /// Runs [step] at the file's place as it is then ([file], [path]):
+  /// no place change runs while it does (e.g. adding an image and its
+  /// link, so the link leads from where the file is).
+  Future<T> atPlace<T>(Future<T> Function(PageFile file, RelPath path) step) =>
+      _inTurn(() => step(file, path));
+
+  Future<T> _inTurn<T>(Future<T> Function() step) {
+    final done = _turns.then((_) => step());
+    _turns = done.then<void>((_) {}, onError: (Object _) {});
+    return done;
+  }
+
+  Future<Result<void, StoreError>> _place(
+    NewFile to, {
+    required bool holds,
+  }) async {
     final from = file;
     if (from is! NewFile) {
       _effects.place(to);
+      if (holds) _placedOne(null);
       _changed();
       return const Ok(null);
     }
@@ -281,19 +306,34 @@ final class FileSession {
       from: from.pathFor(summary.firstLine),
     );
     if (moved case Ok()) _effects.place(to);
-    // Typed meanwhile changes too.
-    draftNow();
-    _file.send(
-      Placed(
-        change: switch (moved) {
-          Ok(:final value) => value,
-          Err() => null,
-        },
-      ),
-    );
+    _placedOne(switch (moved) {
+      Ok(:final value) => value,
+      Err() => null,
+    });
     _changed();
     return moved.map((_) {});
   }
+
+  /// One place change ended with [change]; once all have, the text
+  /// changes by all of theirs.
+  void _placedOne(TextRewrite? change) {
+    _placedChange = _then(_placedChange, change);
+    if (--_placesUnderWay > 0) return;
+    // Typed meanwhile changes too.
+    draftNow();
+    _file.send(Placed(change: _placedChange));
+    _placedChange = null;
+  }
+
+  static TextRewrite? _then(TextRewrite? first, TextRewrite? next) =>
+      switch ((first, next)) {
+        (null, _) => next,
+        (_, null) => first,
+        (final first?, final next?) => (text) {
+          final once = first(text);
+          return next(once ?? text) ?? once;
+        },
+      };
 
   void _onEditorEvent(EditorNotice event) => switch ((event, _state)) {
     (ToFile(input: final Edited edited), Running()) => _file.send(

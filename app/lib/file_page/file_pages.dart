@@ -79,7 +79,7 @@ final class FilePages {
     required this.openFiles,
     required this.fileClosed,
     required this.endWait,
-    this.linked = const NoLinkedFiles(),
+    required this.linked,
   });
 
   final ShownFileTypes<EditableType> types;

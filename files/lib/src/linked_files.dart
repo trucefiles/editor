@@ -11,7 +11,7 @@ typedef Relink = String? Function(String destination);
 /// The files the app keeps for the texts of a folder's files, apart from
 /// them (e.g. the images documents show): what moving and restoring a
 /// file needs of them. Implemented above `files` and handed in at the
-/// wiring; [NoLinkedFiles] where the app keeps none.
+/// wiring.
 abstract interface class LinkedFiles {
   /// Copies the kept files [text] links from [from] into [to], with
   /// their names, before a file holding [text] moves there; one already
@@ -36,29 +36,6 @@ abstract interface class LinkedFiles {
   /// their backups, before a text is restored there. Best effort: the
   /// restore never waits on a failure.
   Future<void> bringBack(String text, Folder folder);
-}
-
-/// No files are kept for any text.
-final class NoLinkedFiles implements LinkedFiles {
-  const NoLinkedFiles();
-
-  @override
-  Future<Result<void, StoreError>> copyFor(
-    String text, {
-    required Folder from,
-    required Folder to,
-  }) async => const Ok(null);
-
-  @override
-  Future<Result<Relink?, StoreError>> relinkFor(
-    String text,
-    Folder folder, {
-    required RelPath from,
-    required RelPath? toFolder,
-  }) async => const Ok(null);
-
-  @override
-  Future<void> bringBack(String text, Folder folder) async {}
 }
 
 /// The one rule for a file's text as it changes place.

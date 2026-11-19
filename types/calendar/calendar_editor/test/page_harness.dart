@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -116,6 +117,7 @@ Future<void> pumpPage(
               bytesOf: (_) async => null,
               hint: (hints ?? []).add,
               color: Colors.teal,
+              images: const _NoImages(),
             ),
             autofocus: false,
           ),
@@ -147,4 +149,19 @@ CalendarClock testClock(DateTime Function() now) {
   final clock = CalendarClock(now, deviceZone: () => 'UTC');
   addTearDown(clock.dispose);
   return clock;
+}
+
+/// A calendar keeps no images.
+final class _NoImages implements HostImages {
+  const _NoImages();
+
+  @override
+  RelPath? keptAt(String link) => null;
+
+  @override
+  Future<Result<void, StoreError>> add(
+    Uint8List bytes, {
+    required String extension,
+    required void Function(String link) insert,
+  }) => throw UnimplementedError('a calendar adds no images');
 }

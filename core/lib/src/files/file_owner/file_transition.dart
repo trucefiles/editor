@@ -1,5 +1,3 @@
-import 'dart:math' show max;
-
 import '../../common/moment.dart';
 import '../../conflicts/text_merge.dart';
 import '../../owners/effects.dart';
@@ -95,7 +93,7 @@ final class _Step<V extends Version>
         _restoreMine();
       case Placing():
         if (work.expected == null && !_done) {
-          _work(work.copyWith(placing: work.placing + 1));
+          _work(work.copyWith(placing: true));
         }
       case Placed(:final change):
         _placed(change);
@@ -134,13 +132,13 @@ final class _Step<V extends Version>
     // Secures waiting are answered once the move ran.
     // A new file changing its place is created once placed.
     if (work.securing case final securing?
-        when work.io == null && work.move == null && work.placing == 0) {
+        when work.io == null && work.move == null && !work.placing) {
       _secureStep(securing);
     }
     if (work.io != null) return;
     if (work.toRead != null && !_done) return _readLatest();
     if (_hasEdits && work.draft?.text != state.text) return _keepDraft();
-    if (work.folderRev != null && work.placing == 0) _write();
+    if (work.folderRev != null && !work.placing) _write();
   }
 
   // Edits.
@@ -471,7 +469,7 @@ final class _Step<V extends Version>
   /// given: it shows, unless edits came since. A file that has a file
   /// changes only by a move ([_movedTo]).
   void _placed(TextRewrite? change) {
-    _work(work.copyWith(placing: max(0, work.placing - 1)));
+    _work(work.copyWith(placing: false));
     if (change == null || work.expected != null || _done) return;
     final text = change(state.text);
     if (text == null) return;

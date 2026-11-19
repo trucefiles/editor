@@ -27,7 +27,7 @@ final class FilesWork {
     required this.folders,
     required this.drafts,
     required this.types,
-    this.linked = const NoLinkedFiles(),
+    required this.linked,
   });
 
   final FileAccess files;

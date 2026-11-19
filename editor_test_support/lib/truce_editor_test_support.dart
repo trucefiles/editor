@@ -3,3 +3,4 @@
 library;
 
 export 'src/editor_robot.dart';
+export 'src/fake_host_images.dart';

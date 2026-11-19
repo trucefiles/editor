@@ -16,6 +16,7 @@ dependencies:
   super_editor: 0.3.0-dev.52
   truce_core: any
   truce_document_editor: any
+  truce_file_page: any
   truce_markdown: any
   truce_test_support: any
 

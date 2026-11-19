@@ -19,7 +19,7 @@ final class BoundedPlace {
     FileStore files,
     LiveChanges? live, {
     required bool Function(RelPath file) handles,
-    bool Function(RelPath path) keptApart = _nothingApart,
+    required bool Function(RelPath path) keptApart,
     required Duration Function() checkEvery,
   }) {
     final gate = ClosingStore(files);
@@ -35,8 +35,6 @@ final class BoundedPlace {
   }
 
   BoundedPlace._(this._gate, this.files, this.apart, this.changes);
-
-  static bool _nothingApart(RelPath path) => false;
 
   final ClosingStore _gate;
 

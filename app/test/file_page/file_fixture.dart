@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
     show Err, FolderId, Ok, Result, StoreError, TextMerge;
+import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -46,6 +47,10 @@ final class FileFixture {
   final Map<FolderId, FilesOfFolder> files;
   final Map<FolderId, FileDrafts> drafts;
   late final FileText file;
+
+  /// The document images kept in [folder].
+  DocumentImageStore imagesOf(FolderId folder) =>
+      DocumentImageStore(_services[folder]!);
 
   /// Closes folder `f1`, as when the user removes it: from then on its
   /// files refuse every read and write.

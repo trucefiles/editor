@@ -8,7 +8,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' hide Selection;
 import 'package:truce_test_support/truce_test_support.dart';
 
-import '../support.dart' show eventually;
+import '../support.dart' show NoLinkedFiles, eventually;
 import 'file_fixture.dart';
 import 'markdown_session.dart';
 
@@ -220,6 +220,7 @@ void main() {
         ExistingFile(fixture.file),
         fixture.effects(ExistingFile(fixture.file)),
         _NoSecure(borrowed.editor),
+        linked: const NoLinkedFiles(),
       );
       addTearDown(session.dispose);
       final controller = controllerOn(session);

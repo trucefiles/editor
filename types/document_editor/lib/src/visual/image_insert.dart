@@ -14,10 +14,11 @@ typedef ImageAdding = ({
 });
 
 /// The Image button's flow: a picture picked, made ready away from the
-/// screen's thread, kept in the folder, then [insert]ed as a link.
-/// [busy] while it is made ready and kept; one at a time. Once
+/// screen's thread, kept in the folder and [insert]ed as a link. One at a
+/// time, from the click on; [busy] while it is made ready and kept. Once
 /// [dispose]d (its view gone), it stops at its next step: a picture not
-/// kept yet never is; one kept already stays unused, for the cleanup.
+/// kept yet never is; one kept as the view went stays unlinked, for the
+/// cleanup.
 final class ImageInsert extends ChangeNotifier {
   ImageInsert(this._adding, {required this.insert});
 
@@ -29,39 +30,46 @@ final class ImageInsert extends ChangeNotifier {
 
   bool get busy => _busy;
   var _busy = false;
+  var _running = false;
   var _disposed = false;
 
   Future<void> from(ImageSource source) async {
-    if (_busy) return;
-    final (:picking, :kept, :hint) = _adding();
-    final bytes = await picking.pick(source);
-    if (bytes == null || _disposed) return;
-    _setBusy(true);
+    if (_running) return;
+    _running = true;
     try {
-      final prepared = await prepareInBackground(bytes, picking.settings);
-      if (_disposed) return;
-      if (prepared == null) {
-        return hint("That file isn't an image the app can show.");
-      }
-      final added = await kept.add(
-        prepared.bytes,
-        extension: prepared.kind.extension,
-      );
-      if (_disposed) return;
-      switch (added) {
-        case Ok(value: final link):
-          insert(link);
-        case Err():
-          hint("Couldn't add the image: the folder can't be written now.");
-      }
+      await _add(source);
     } finally {
+      _running = false;
       _setBusy(false);
     }
   }
 
+  Future<void> _add(ImageSource source) async {
+    final (:picking, :kept, :hint) = _adding();
+    final bytes = await picking.pick(source);
+    if (bytes == null || _disposed) return;
+    _setBusy(true);
+    final prepared = await prepareInBackground(bytes, picking.settings);
+    if (_disposed) return;
+    if (prepared == null) {
+      return hint("That file isn't an image the app can show.");
+    }
+    final added = await kept.add(
+      prepared.bytes,
+      extension: prepared.kind.extension,
+      insert: (link) {
+        if (!_disposed) insert(link);
+      },
+    );
+    if (added is Err && !_disposed) {
+      hint("Couldn't add the image: the folder can't be written now.");
+    }
+  }
+
   void _setBusy(bool busy) {
+    if (_busy == busy || _disposed) return;
     _busy = busy;
-    if (!_disposed) notifyListeners();
+    notifyListeners();
   }
 
   @override

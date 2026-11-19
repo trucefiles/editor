@@ -1,21 +1,23 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 
 import 'image_fakes.dart';
 
 void main() {
   late FakePicking picking;
-  late FakeKept kept;
+  late FakeHostImages kept;
   late List<String> hints;
   late List<String> inserted;
   late ImageInsert insert;
 
   setUp(() {
     picking = FakePicking(onePixelPng);
-    kept = FakeKept();
+    kept = FakeHostImages();
     hints = [];
     inserted = [];
     insert = ImageInsert(
@@ -68,5 +70,18 @@ void main() {
 
     expect(inserted, isEmpty);
     expect(kept.kept, isEmpty);
+  });
+
+  test('a second click while the first picks opens nothing', () async {
+    picking.waits = Completer<void>();
+    final first = insert.from(ImageSource.file);
+    expect(insert.busy, isFalse, reason: 'no spinner while picking');
+
+    await insert.from(ImageSource.file);
+    picking.waits!.complete();
+    await first;
+
+    expect(picking.asked, hasLength(1));
+    expect(inserted, hasLength(1));
   });
 }

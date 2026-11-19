@@ -8,11 +8,7 @@ import 'folder_backups.dart';
 /// first ([LinkedFiles.bringBack]).
 final class RestoreCompare
     implements CompareSource<FolderBackup, RestoreChoice> {
-  RestoreCompare(
-    this._restore,
-    this._rescan, {
-    this._linked = const NoLinkedFiles(),
-  });
+  RestoreCompare(this._restore, this._rescan, {required this._linked});
 
   final BackupRestore _restore;
   final Future<void> Function() _rescan;

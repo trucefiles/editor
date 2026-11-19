@@ -17,6 +17,7 @@ void main() {
     files,
     changes,
     handles: (file) => file.name.endsWith('.md'),
+    keptApart: (_) => false,
     checkEvery: () => const Duration(milliseconds: 5),
   );
 

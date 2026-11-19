@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_document_image_store/truce_document_image_store.dart';
 import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
@@ -147,6 +148,7 @@ FolderServices servicesFor(
     raw,
     reach: folderReach(raw.files),
     handles: appFileTypes().handles,
+    keptApart: ImageNames.isKept,
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',
@@ -253,4 +255,28 @@ Future<Folder> addFolderOf(
     (candidate: candidate, name: 'Documents', color: 'teal'),
   ]);
   return added.value.single;
+}
+
+/// No files are kept for any text: moves and restores leave texts as
+/// they are.
+final class NoLinkedFiles implements LinkedFiles {
+  const NoLinkedFiles();
+
+  @override
+  Future<Result<void, StoreError>> copyFor(
+    String text, {
+    required Folder from,
+    required Folder to,
+  }) async => const Ok(null);
+
+  @override
+  Future<Result<Relink?, StoreError>> relinkFor(
+    String text,
+    Folder folder, {
+    required RelPath from,
+    required RelPath? toFolder,
+  }) async => const Ok(null);
+
+  @override
+  Future<void> bringBack(String text, Folder folder) async {}
 }

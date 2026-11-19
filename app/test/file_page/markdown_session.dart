@@ -3,6 +3,8 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 
+import '../support.dart';
+
 /// A session on the Markdown document [opened] (a file, or a new one),
 /// whose file [effects] reads and writes, its editor in [mode]; [merge]
 /// as a type that merges would give it.
@@ -30,6 +32,7 @@ FileSession markdownSession(
     ),
   ),
   merge: merge,
+  linked: const NoLinkedFiles(),
 );
 
 extension MarkdownSession on FileSession {

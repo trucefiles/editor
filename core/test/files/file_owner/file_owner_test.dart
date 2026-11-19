@@ -947,19 +947,6 @@ void main() {
       expect(run.last<Create>().text, 'a');
     });
 
-    test('is created only once every place change under way ended', () {
-      final run = _Run.unwritten()
-        ..edit('a', 1, lineage: null)
-        ..keep()
-        ..send(const Placing())
-        ..send(const Placing())
-        ..secure(SecureReason.hide)
-        ..send(const Placed());
-      expect(run.all<Create>(), isEmpty);
-      run.send(const Placed());
-      expect(run.last<Create>().text, 'a');
-    });
-
     test('as the app ends while its place changes, it stays on the device', () {
       final run = _Run.unwritten()
         ..edit('a', 1, lineage: null)

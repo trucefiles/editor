@@ -25,7 +25,7 @@ Uint8List? withoutLocation(Uint8List bytes, ImageKind kind) => switch (kind) {
 };
 
 /// Drops the GPS part of [exif], in place.
-void dropGps(img.ExifData exif) {
+void _dropGps(img.ExifData exif) {
   exif.imageIfd.sub.directories.remove('gps');
   exif.imageIfd.data.remove(_gpsPointer);
 }
@@ -38,7 +38,7 @@ Uint8List? _jpegWithoutGps(Uint8List bytes) {
   try {
     final exif = img.decodeJpgExif(bytes);
     if (exif == null || exif.gpsIfd.isEmpty) return bytes;
-    dropGps(exif);
+    _dropGps(exif);
     return img.injectJpgExif(bytes, exif);
   } on Object {
     return null;

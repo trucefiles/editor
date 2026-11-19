@@ -506,8 +506,8 @@ class _FileScreenState extends ConsumerState<FileScreen> {
                           _messenger.currentState?.showHint(message),
                       color: fileColor(mark.color, folder: _folder.color),
                       images: StoreHostImages(
-                        ref.read(documentImageStoresProvider)(_folder.id),
-                        path.parent,
+                        ref.read(documentImageStoresProvider),
+                        _session,
                       ),
                     ),
                     autofocus: widget._isNew,

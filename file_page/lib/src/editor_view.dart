@@ -19,7 +19,7 @@ final class EditorHost {
     required this.bytesOf,
     required this.hint,
     required this.color,
-    this.images = const NoHostImages(),
+    required this.images,
   });
 
   final String kept;
@@ -43,26 +43,14 @@ abstract interface class HostImages {
   RelPath? keptAt(String link);
 
   /// Keeps [bytes], an image with [extension] (without its dot), for the
-  /// file: the link to write in its text. Fails if the folder can't be
-  /// written (e.g. it can't be reached).
-  Future<Result<String, StoreError>> add(
+  /// file, and puts the link to it in its text by [insert], as one step
+  /// at the file's place: the link leads from where the file is. Fails
+  /// if the folder can't be written (e.g. it can't be reached).
+  Future<Result<void, StoreError>> add(
     Uint8List bytes, {
     required String extension,
+    required void Function(String link) insert,
   });
-}
-
-/// A file for which no images are kept.
-final class NoHostImages implements HostImages {
-  const NoHostImages();
-
-  @override
-  RelPath? keptAt(String link) => null;
-
-  @override
-  Future<Result<String, StoreError>> add(
-    Uint8List bytes, {
-    required String extension,
-  }) async => const Err(StoreError.outside);
 }
 
 /// How a file type's editor part shows on the page: the editor in

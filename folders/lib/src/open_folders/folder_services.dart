@@ -57,16 +57,15 @@ FolderServices folderServices(
   RawFolder raw, {
   required FolderReach reach,
   required bool Function(RelPath file) handles,
-  bool Function(RelPath path)? keptApart,
+  required bool Function(RelPath path) keptApart,
   required String backupsPath,
   required String deviceId,
   required Duration Function() checkEvery,
   required void Function(Set<RelPath> paths) wrote,
 }) {
   // Below the bound: a write it refuses is never told.
-  final apart = keptApart ?? (_) => false;
   void told(Set<RelPath> paths) {
-    final shown = {...paths.where((path) => !apart(path))};
+    final shown = {...paths.where((path) => !keptApart(path))};
     if (shown.isNotEmpty) wrote(shown);
   }
 
@@ -74,7 +73,7 @@ FolderServices folderServices(
     WriteReportingStore(ReachReportingStore(raw.files, reach), told),
     raw.changes,
     handles: (file) => handles(file) || FileMarks.files.includesFile(file),
-    keptApart: apart,
+    keptApart: keptApart,
     checkEvery: checkEvery,
   );
   final open = raw.open(bounded);

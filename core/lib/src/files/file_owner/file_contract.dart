@@ -126,9 +126,9 @@ final class AskMerges extends FileInput<Never> implements Asking {
   final Version seen;
 }
 
-/// A new file's place starts to change: it is not created until this
-/// change and every other one under way are [Placed], so it never lands
-/// at a place it leaves. Nothing for a file that has a file.
+/// A new file's place starts to change: it is not created until it is
+/// [Placed], so it never lands at a place it leaves. Nothing for a file
+/// that has a file.
 final class Placing extends FileInput<Never> {
   const Placing();
 }

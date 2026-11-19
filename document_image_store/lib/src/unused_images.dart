@@ -52,9 +52,8 @@ final class UnusedImages {
         return const Err(CleanupRefused.storeUnreadable);
     }
     if (images.isEmpty) return const Ok([]);
-    final texts = await _texts();
-    if (texts == null) return const Err(CleanupRefused.notAllRead);
-    final used = {for (final text in texts) ...ImageNames.namesIn(text)};
+    final used = await _usedNames();
+    if (used == null) return const Err(CleanupRefused.notAllRead);
     final before = _now().subtract(fresh);
     return Ok(
       images.entries
@@ -76,9 +75,10 @@ final class UnusedImages {
     return removed;
   }
 
-  /// The text of every document, conflict copy and draft of the folder;
-  /// `null` if any can't be read.
-  Future<List<String>?> _texts() async {
+  /// The image names every document, conflict copy and draft of the
+  /// folder holds, each read in turn and not kept; `null` if any can't
+  /// be read.
+  Future<Set<String>?> _usedNames() async {
     final FolderScan scan;
     switch (await _services.scanner.scan()) {
       case Ok(:final value) when value.unreadable.isEmpty:
@@ -88,11 +88,11 @@ final class UnusedImages {
     }
     final drafts = await _drafts();
     if (drafts == null) return null;
-    final texts = [...drafts];
+    final used = {for (final draft in drafts) ...ImageNames.namesIn(draft)};
     for (final file in scan.files) {
       switch (await _services.store.read(file.path)) {
         case Ok(:final value):
-          texts.add(_asText(value.bytes));
+          used.addAll(ImageNames.namesIn(_asText(value.bytes)));
         case Err():
           return null;
       }
@@ -100,12 +100,12 @@ final class UnusedImages {
     for (final copy in scan.conflicts.expand((conflict) => conflict.copies)) {
       switch (await _services.conflicts.readCopy(copy)) {
         case Ok(:final value):
-          texts.add(_asText(value));
+          used.addAll(ImageNames.namesIn(_asText(value)));
         case Err():
           return null;
       }
     }
-    return texts;
+    return used;
   }
 
   /// Names are plain ASCII, so any text encoding finds them.

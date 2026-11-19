@@ -133,8 +133,10 @@ void main() {
       final large = img.Image(width: 3000, height: 1500)
         ..exif = img.decodeJpgExif(_sample('located.jpg'))!;
       final out = prepareImage(img.encodeJpg(large), _smaller)!.bytes;
-      // Upright by its orientation: 1000 wide, 2000 high.
+      // Upright by its orientation: 1000 wide, 2000 high, and no longer
+      // tagged to be turned.
       expect(img.decodeJpg(out)!.height, 2000);
+      expect(img.decodeJpgExif(out)?.imageIfd.orientation, isNull);
       expect(img.decodeJpgExif(out)?.gpsIfd.isEmpty ?? true, isTrue);
       expect(_holds(out, 'GPSLatitude'), isFalse);
     });

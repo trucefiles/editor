@@ -29,6 +29,7 @@ void main() {
         raw,
         reach: reach,
         handles: (_) => true,
+        keptApart: (_) => false,
         backupsPath: '${tempFolder().path}/backups',
         deviceId: 'phone',
         checkEvery: () => Duration.zero,
