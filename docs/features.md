@@ -3,6 +3,25 @@
 Screenshots of Truce's main screens and of each new feature, newest
 first. They show sample documents only.
 
+## Images as files
+
+Pictures in your folders (JPEG, PNG, GIF, WebP, BMP) now show as cards
+with a thumbnail, with an **Images** chip to show only them. Tap one to
+see it full size and zoom in. Move, rename, pin, color or delete it as
+any file, with Undo. If two devices changed a picture, both show side by
+side to keep one, and both are backed up first. Backups show pictures
+too. **New file** has **Image**: choose one, or take a photo on a phone;
+it is saved when you leave, and Truce tells you where with a **Show**
+button. Images stay out of Recently edited unless you turn on **Show
+images in Recently edited** in Settings. Search finds them by name.
+
+<img src="screenshots/images-as-files/images_all_files_desktop.png" width="600" alt="All files: cards with pictures of a garden, a lake, a QR code, a beach and mountains, beside two documents">
+<img src="screenshots/images-as-files/image_page_desktop.png" width="600" alt="A picture of mountains on its own page, its place above it and the menu open: Pin or color, Backups, Delete file">
+<img src="screenshots/images-as-files/image_conflict_desktop.png" width="600" alt="Two versions of a garden picture side by side, each with its date and a Keep this button">
+<img src="screenshots/images-as-files/new_image_sources_touch.png" width="280" alt="On a phone, a new image: Choose image or Take photo">
+<img src="screenshots/images-as-files/image_saved_hint_touch.png" width="280" alt="Back on Home after adding an image: Saved to Documents, with Show">
+<img src="screenshots/images-as-files/images_recent_setting_touch.png" width="280" alt="Settings on a phone with larger text: Show images in Recently edited, off">
+
 ## Images in documents
 
 In Visual edit, the **Image** button on the format bar adds a picture on

@@ -27,13 +27,20 @@ void main() {
     timeout: const Duration(seconds: 15),
   );
 
+  /// Opens the image titled [title] from All files: Home's Recently
+  /// edited leaves images out.
+  Future<void> openImage(WidgetTester tester, String title) async {
+    await tester.tapAndSettle(find.text('Switch to all files'));
+    await tester.openFile(title);
+  }
+
   testApp('an image opens on its page, and shows a change from elsewhere', (
     tester,
   ) async {
     app.writePicture('cat.png', width: 1);
     await tester.addFolder(app);
 
-    await tester.openFile('cat');
+    await openImage(tester, 'cat');
     await tester.waitUntil(() => tester.shownPictureWidth == 1);
     app.writePicture('cat.png', width: 2);
     await tester.tapAndSettle(find.byTooltip('Refresh'));
@@ -44,10 +51,9 @@ void main() {
   testApp('an image is renamed from its page', (tester) async {
     app.writePicture('cat.png', width: 1);
     await tester.addFolder(app);
-    await tester.openFile('cat');
+    await openImage(tester, 'cat');
 
-    await tester.chooseInMenu('$locationAndName…');
-    await tester.fillPlace(name: 'dog');
+    await tester.placeNote(name: 'dog');
 
     await tester.waitFor(find.text('Saved as Documents/dog.png'));
     expect(app.namesIn(), ['dog.png']);
@@ -56,7 +62,7 @@ void main() {
   testApp('a deleted image comes back with Undo', (tester) async {
     app.writePicture('cat.png', width: 1);
     await tester.addFolder(app);
-    await tester.openFile('cat');
+    await openImage(tester, 'cat');
 
     await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('File deleted'));
@@ -89,7 +95,7 @@ void main() {
   testApp('a deleted image is restored from Backups', (tester) async {
     app.writePicture('cat.png', width: 1);
     await tester.addFolder(app);
-    await tester.openFile('cat');
+    await openImage(tester, 'cat');
     await tester.chooseInMenu('Delete file');
     await tester.waitFor(find.text('File deleted'));
 
