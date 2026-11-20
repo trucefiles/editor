@@ -250,6 +250,25 @@ void main() {
     });
   });
 
+  test(
+    'a new image shows as the same content after a move and its write',
+    () async {
+      final page = newPhoto();
+      final before = page.content!.id;
+
+      await page.placeAt((
+        place: topOf(folder),
+        name: 'Cat',
+        newSubfolder: false,
+      ));
+      expect(page.content!.id, same(before));
+      expect(await page.keep(SecureReason.hide), isTrue);
+
+      expect(page.listed, isNotNull);
+      expect(page.content!.id, same(before));
+    },
+  );
+
   test('a newer version shows as other content', () async {
     final file = listedFile(folder, name: 'a.jpg');
     final page = controllerOf(shownFileOwner(file, work()));

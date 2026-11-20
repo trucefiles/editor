@@ -34,6 +34,7 @@ import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
+import 'shown_state_banners.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -289,7 +290,11 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
                   ? 'The file is kept on this device.'
                   : 'Changes from other devices show once it is back.',
             ),
-          ..._stateBanner(),
+          ...shownStateBanners(
+            _controller.state,
+            close: () => closeIfOnTop(context),
+            retry: _controller.retry,
+          ),
           if (place != null && placeSpot == FilePlaceSpot.aboveText)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -319,39 +324,4 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
       ),
     );
   }
-
-  /// What the file's state asks the user to know: it is gone, or a new
-  /// one could be kept nowhere.
-  List<Widget> _stateBanner() => switch (_controller.state) {
-    ShownGone() => [
-      MaterialBanner(
-        leading: const Icon(Icons.delete_outline),
-        content: const Text(
-          'This file was deleted, moved or renamed elsewhere.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => closeIfOnTop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    ],
-    WaitingNew(kept: NewKept.nowhere) => [
-      MaterialBanner(
-        leading: const Icon(Icons.error_outline),
-        content: const Text(
-          "The file couldn't be saved yet. Try again, or pick another "
-          'folder.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: _controller.retry,
-            child: const Text('Try again'),
-          ),
-        ],
-      ),
-    ],
-    WaitingNew() || ShownListed() || ShownDropped() => const [],
-  };
 }

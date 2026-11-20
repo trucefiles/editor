@@ -158,7 +158,7 @@ final class TextEditSession {
   /// Keeps the edits as [secure] does; whether they are kept, and else
   /// whether this device holds them. The question goes to the editor,
   /// which sends its text first; the file owner answers.
-  Future<SecureResult> secureResult(SecureReason reason) async {
+  Future<({bool kept, bool onDevice})> secureResult(SecureReason reason) async {
     final answer = await ask<EditorRequest, Answer>(
       editor.send,
       _file.events,
