@@ -29,7 +29,7 @@ void main() {
   late Directory home;
   late List<Folder> folders;
   late AppStorage storage;
-  final markdown = appFileTypes().forNew;
+  final markdown = appNewTextType();
 
   setUp(() async {
     work = tempFolder();

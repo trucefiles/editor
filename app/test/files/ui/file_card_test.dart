@@ -27,8 +27,7 @@ void main() {
 
   /// [text] as the card's preview, read.
   CardPreview read(String text) => Previewed(
-    appFileTypes()
-        .ofFile(file.type)
+    appTextType(appFileTypes().ofFile(file.type))
         .textCard(FileText(file, const TextFile.empty().withText(text))),
   );
 

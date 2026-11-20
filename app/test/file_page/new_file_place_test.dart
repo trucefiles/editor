@@ -39,7 +39,7 @@ void main() {
   NewFile inSecondFolder() => NewFile((
     folder: fixture.folders[1],
     subfolder: null,
-  ), type: appFileTypes().forNew);
+  ), type: appNewTextType());
 
   test("a new document's place changes once it arrived there", () async {
     final placed = session.place(inSecondFolder());

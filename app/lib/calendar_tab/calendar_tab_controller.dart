@@ -79,44 +79,11 @@ final class HiddenCalendar {
   final String title;
 }
 
-/// A calendar as the tab reads one it shows: its [calendar], `null` if
-/// only its name could be read, and its [title].
-typedef ReadCalendar = ({Calendar? calendar, String title});
-
 /// The calendars of the tab as read, kept while the app runs; a file
 /// that is no calendar is left out.
 final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendar),
 );
-
-/// A file read as the tab keeps a calendar it shows: whole, else by its
-/// name alone; `null` if it is no calendar.
-final ReadCalendar? Function(FileBytes read) readCalendar = _asText(
-  _calendarOf,
-);
-
-/// The title of a calendar file read, from its head alone; `null` if it
-/// is none.
-final String? Function(FileBytes read) readCalendarTitle = _asText(_titleOf);
-
-/// [readAs] on a file read as text; `null` if it is not text.
-T? Function(FileBytes read) _asText<T>(T? Function(FileText read) readAs) =>
-    (read) => switch (FileText.of(read)) {
-      final text? => readAs(text),
-      null => null,
-    };
-
-/// [read] as the tab keeps a calendar it shows (see [readCalendar]).
-ReadCalendar? _calendarOf(FileText read) {
-  final summary = CalendarSummary(read.text);
-  return switch (summary.calendar) {
-    final calendar? => (calendar: calendar, title: titleOf(summary, read.path)),
-    null => switch (_titleOf(read)) {
-      final title? => (calendar: null, title: title),
-      null => null,
-    },
-  };
-}
 
 /// The titles of the tab's calendars it doesn't show, read from their
 /// names alone (no events), kept while the app runs; a file that is no
@@ -124,12 +91,6 @@ ReadCalendar? _calendarOf(FileText read) {
 final calendarTitlesProvider = Provider<FileReads<String>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendarTitle),
 );
-
-/// The title of the calendar [read] (see [readCalendarTitle]).
-String? _titleOf(FileText read) => switch (CalendarHead.read(read.text)) {
-  final head? => ownTitleOr(calendarTitle(head), read.path),
-  null => null,
-};
 
 /// Whether the shown folders hold a calendar: the tab shows only then.
 final hasCalendarsProvider = Provider<bool>(

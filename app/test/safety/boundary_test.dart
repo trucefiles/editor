@@ -103,7 +103,7 @@ void main() {
     final folder = await start('notes/work');
     final actions = container.read(fileActionsProvider);
     final files = TextFiles(container.read(fileAccessProvider).of(folder));
-    final markdown = appFileTypes().forNew;
+    final markdown = appNewTextType();
 
     final found = await scanned();
     expect([

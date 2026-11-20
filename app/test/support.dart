@@ -107,7 +107,7 @@ final noImageFolders = documentImageStoresProvider.overrideWithValue(
 );
 
 /// The file types the app handles, with no folder open for their images.
-ShownFileTypes<EditableType> appFileTypes() {
+ShownFileTypes<FilePageType> appFileTypes() {
   final container = ProviderContainer(overrides: [noImageFolders]);
   try {
     return container.read(fileTypesProvider);
@@ -115,6 +115,14 @@ ShownFileTypes<EditableType> appFileTypes() {
     container.dispose();
   }
 }
+
+/// The app's type for a plain new document, with its editor.
+EditableType appNewTextType() => appTextType(appFileTypes().forNew);
+
+/// [type] as the text editing page opens it; today every type does.
+EditableType appTextType(FilePageType type) => switch (type) {
+  final EditableType type => type,
+};
 
 /// A file as listed, of no file on disk.
 ListedFile listedFile(

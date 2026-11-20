@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 /// Two versions of a file merged into one: the main file's [bytes] to
-/// keep (`KeepMerged`), and what of the other lost to the main file.
+/// keep (`KeepMerged`), and what the merge couldn't keep of the other,
+/// named so the user can find it (e.g. a calendar's event titles).
 typedef MergedSides = ({Uint8List bytes, List<String> lost});
 
 /// How two versions of one file type's files merge into one when the

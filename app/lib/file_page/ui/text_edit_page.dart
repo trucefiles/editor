@@ -54,7 +54,7 @@ class TextEditPage extends ConsumerStatefulWidget {
   /// A new file [made], to go into [place].
   TextEditPage.fresh(
     FilePlace place, {
-    required NewFileChoice<EditableType> made,
+    required NewFileChoice<FilePageType> made,
     super.key,
   }) : _open = ((pages, withFile) =>
            pages.openNew(place, made: made, withFile: withFile)),

@@ -94,7 +94,7 @@ void main() {
                 .read(fileActionsProvider)
                 .create(
                   (folder: workFolder, subfolder: null),
-                  type: appFileTypes().forNew,
+                  type: appNewTextType(),
                   title: 'b',
                   bytes: utf8.encode('# b\n'),
                 ))

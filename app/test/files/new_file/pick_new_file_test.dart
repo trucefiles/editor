@@ -13,7 +13,7 @@ void main() {
   /// Asks what to make new, and gives what the user picked to [picked].
   Future<void> pumpPicker(
     WidgetTester tester,
-    void Function(NewFileChoice<EditableType>? pick) picked,
+    void Function(NewFileChoice<FilePageType>? pick) picked,
   ) => tester.pumpWidget(
     MaterialApp(
       home: Builder(
@@ -26,7 +26,7 @@ void main() {
   );
 
   testWidgets('every kind opens at once, a calendar too', (tester) async {
-    NewFileChoice<EditableType>? pick;
+    NewFileChoice<FilePageType>? pick;
     await pumpPicker(tester, (picked) => pick = picked);
 
     await tester.tap(find.text('New'));
@@ -44,7 +44,7 @@ void main() {
   });
 
   testWidgets('backing out of the choice makes nothing', (tester) async {
-    NewFileChoice<EditableType>? pick;
+    NewFileChoice<FilePageType>? pick;
     var asked = false;
     await pumpPicker(tester, (picked) {
       asked = true;

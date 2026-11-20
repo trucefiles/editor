@@ -4,12 +4,12 @@ import 'package:truce_files/truce_files.dart';
 
 /// Asks what to make new among [choices]: no question if there is only
 /// one. `null` if the user backed out.
-Future<NewFileChoice<EditableType>?> pickNewFile(
+Future<NewFileChoice<FilePageType>?> pickNewFile(
   BuildContext context,
-  List<NewFileChoice<EditableType>> choices,
+  List<NewFileChoice<FilePageType>> choices,
 ) async => choices.length == 1
     ? choices.single
-    : await showModalBottomSheet<NewFileChoice<EditableType>>(
+    : await showModalBottomSheet<NewFileChoice<FilePageType>>(
         context: context,
         showDragHandle: true,
         builder: (context) => SafeArea(

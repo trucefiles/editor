@@ -33,7 +33,7 @@ final fileTypeDetectorProvider = Provider<FileTypeDetector>(
 /// at compile time; handed down from here to whatever needs them, down to
 /// what the app may touch in a folder. Each type says what new files of
 /// it the user can make; a plain new file is a Markdown document.
-final fileTypesProvider = Provider<ShownFileTypes<EditableType>>((ref) {
+final fileTypesProvider = Provider<ShownFileTypes<FilePageType>>((ref) {
   final markdown = MarkdownEditableType(ref.watch(markdownServicesProvider));
   final calendars = CalendarEditableType(
     day: ref.watch(timeTextsProvider).day,

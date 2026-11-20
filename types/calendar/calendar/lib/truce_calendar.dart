@@ -41,6 +41,7 @@ export 'src/model/time_zones.dart' show zoneNames;
 export 'src/owner/calendar_owner.dart';
 export 'src/recurrence/occurrences.dart';
 export 'src/support/calendar_file_type.dart';
+export 'src/support/calendar_reads.dart';
 export 'src/support/calendar_summary.dart';
 export 'src/support/calendar_support.dart';
 export 'src/tasks/task_list.dart';

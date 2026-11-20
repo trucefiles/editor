@@ -300,7 +300,7 @@ void main() {
       'into it, never for an empty new document', () async {
     NewFile intoNew() => NewFile(
       (folder: fixture.folders[0], subfolder: path('2026')),
-      type: appFileTypes().forNew,
+      type: appNewTextType(),
       newSubfolder: true,
     );
     final empty = fixture.session(intoNew());
@@ -356,7 +356,7 @@ void main() {
     Directory('${fixture.dirs[0].path}/sub').createSync();
     final inSub = (await fixture.files[folderId('f1')]!.create(
       'b',
-      type: appFileTypes().forNew,
+      type: appNewTextType(),
       text: '# b\n',
       subfolder: path('sub'),
     )).value;

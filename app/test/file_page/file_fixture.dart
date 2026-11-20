@@ -39,7 +39,7 @@ final class FileFixture {
     );
     fixture.file = (await fixture.files[folderId('f1')]!.create(
       'a',
-      type: appFileTypes().forNew,
+      type: appNewTextType(),
       text: 'one\n',
     )).value;
     return fixture;
@@ -133,10 +133,8 @@ final class FileFixture {
   }
 
   /// A new file going to the top of folder `f1`.
-  NewFile get newFile => NewFile((
-    folder: folders[0],
-    subfolder: null,
-  ), type: appFileTypes().forNew);
+  NewFile get newFile =>
+      NewFile((folder: folders[0], subfolder: null), type: appNewTextType());
 
   /// The text of the file at [name] in folder [index]; `null` if none.
   String? onDisk(String name, {int index = 0}) {

@@ -185,7 +185,7 @@ final class _Device {
   static ListedFile _placeholder(Folder folder) => ListedFile(
     folder: folder,
     path: RelPath.parse('todo.md')!,
-    type: appFileTypes().forNew.support,
+    type: appNewTextType().support,
     version: const FileVersion(0),
     modified: DateTime(2000),
   );

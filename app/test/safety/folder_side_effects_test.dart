@@ -74,7 +74,7 @@ void main() {
   test('creating a document adds only that document', () async {
     final before = snapshot();
 
-    await files.create('New', type: appFileTypes().forNew, text: '# New\n');
+    await files.create('New', type: appNewTextType(), text: '# New\n');
 
     expect(changed(before, snapshot()), {'Documents/New.md'});
   });
@@ -167,7 +167,7 @@ void main() {
       expect(
         (await files.create(
           'New',
-          type: appFileTypes().forNew,
+          type: appNewTextType(),
           text: '# New\n',
         )).error,
         StoreError.notFound,

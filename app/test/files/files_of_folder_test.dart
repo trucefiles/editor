@@ -14,7 +14,7 @@ void main() {
   late Directory dir;
   late FilesOfFolder files;
   late TextFiles text;
-  final markdown = appFileTypes().forNew;
+  final markdown = appNewTextType();
 
   setUp(() {
     dir = tempFolder();
