@@ -121,6 +121,11 @@ void main() {
     await tester.waitFor(find.byTooltip('New file'));
 
     await tester.chooseInMenu('Settings');
+    await tester.scrollUntilVisible(
+      find.text('Check folders for changes'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tapAndSettle(find.text('Check folders for changes'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
