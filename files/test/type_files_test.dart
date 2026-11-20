@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
@@ -187,6 +189,28 @@ void main() {
     );
 
     expect((await searchable.read())!.text, 'teal');
+  });
+
+  test("a text type's card and search read the file as text, titled by "
+      'its summary', () async {
+    put('a.md', 'title\ncolour:teal');
+    final read = (await files().read(path('a.md'))).value;
+
+    expect(_types.forNew.cardSummary(read)?.title, 'title');
+    expect(_types.forNew.searchText(read), (
+      title: 'title',
+      text: 'title\nteal',
+    ));
+  });
+
+  test('a text type shows and searches nothing of a file that is no text, '
+      'and merges no such file', () async {
+    put('a.md', '\u00ff\u00fe');
+    final read = (await files().read(path('a.md'))).value;
+
+    expect(_types.forNew.cardSummary(read), isNull);
+    expect(_types.forNew.searchText(read), isNull);
+    expect(_types.forNew.merge!.merge(read.bytes, utf8.encode('a:1')), isNull);
   });
 
   test("each type's new kinds are offered, the plain new document first", () {

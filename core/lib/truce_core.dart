@@ -21,8 +21,8 @@
 ///    about a folder ([FolderNotices]); the shared way to move a file
 ///    ([moveByCopy]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
-/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
-///    what each type gives lists ([FileTypeSupport]).
+/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), by
+///    each type's extensions ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
 ///    whose copies each sync tool keeps in its [ConflictSource]; how a
 ///    file type merges two texts ([TextMerge]); copies kept as files
@@ -43,12 +43,13 @@
 /// 13. `folder_state`: what the folders hold (listings, conflicts,
 ///     marks), kept in step with changes by its owner, working only on
 ///     what changed ([FolderStateOwner]).
-/// 14. `files`: an open file, kept on the device and in
-///     the folder in step with changes elsewhere, by its owner
-///     ([TextFileOwner]); and what every type's editor shares: the page's
-///     requests and notices ([EditorRequest], [EditorNotice]), the save
-///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
-///     ([EditorSteps]); any file type, any plugin.
+/// 14. `text_editing`: the text editing kit, for types whose files are
+///     text: an open text file, kept on the device and in the folder in
+///     step with changes elsewhere, by its owner ([TextFileOwner]); and
+///     what every text type's editor shares: the page's requests and
+///     notices ([EditorRequest], [EditorNotice]), the save timing
+///     ([SaveClock]), undo ([EditHistory]) and what lists show of a text
+///     ([TextSummary]), handled alike ([EditorSteps]); any plugin.
 ///
 /// `place` bounds a folder's files and changes alike to what the app may
 /// touch, and closes them alike ([BoundedPlace]).

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -21,7 +23,13 @@ final class FileText {
   /// [written] as text: bytes the app wrote as text (e.g. a moved text
   /// file); else a bug.
   static FileText ofWritten(FileBytes written) =>
-      of(written) ?? (throw StateError('Written as text, but not text.'));
+      FileText(written.listed, decodeWritten(written.bytes));
+
+  /// [bytes] the app wrote as text (e.g. a type's arrival), decoded; else
+  /// a bug.
+  static TextFile decodeWritten(Uint8List bytes) =>
+      TextFile.decode(bytes) ??
+      (throw StateError('Written as text, but not text.'));
 
   final ListedFile listed;
   final TextFile textFile;

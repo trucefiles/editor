@@ -230,14 +230,11 @@ final class TextEditSession {
   /// type says ([FileArrivals.restored]).
   Future<void> replaceAll(String text) async {
     final restored = switch (read) {
-      final read? => FileText.ofWritten(
-        FileBytes(
-          read.listed,
-          await _arrivals.restored(
-            read.textFile.encode(text),
-            folder: read.folder,
-            from: read.path,
-          ),
+      final read? => FileText.decodeWritten(
+        await _arrivals.restored(
+          read.textFile.encode(text),
+          folder: read.folder,
+          from: read.path,
         ),
       ).text,
       null => text,
