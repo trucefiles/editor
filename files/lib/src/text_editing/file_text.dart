@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import 'file_bytes.dart';
-import 'listed_file.dart';
+import '../file_bytes.dart';
+import '../listed_file.dart';
 
 /// A text file as the app last read or wrote it: the [listed] and its
 /// text, in its file's byte style ([textFile]). The text editing kit's

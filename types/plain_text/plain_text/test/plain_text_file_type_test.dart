@@ -25,7 +25,7 @@ void main() {
   );
 
   FileCardSummary summaryOf(String text, {String name = 'a.txt'}) =>
-      type.cardSummaryOf(read(text, name: name));
+      type.textCard(read(text, name: name));
 
   test('the title is the first line as written', () {
     expect(summaryOf('# Shopping\nmilk').title, '# Shopping');
@@ -61,7 +61,7 @@ void main() {
   });
 
   test('search reads the whole text; texts are not merged', () {
-    expect(type.searchTextOf(read('a\nb')), 'a\nb');
+    expect(type.textSearchWords(read('a\nb')), 'a\nb');
     expect(type.merge, isNull);
     expect(type.newFileExtension, '.txt');
   });

@@ -29,7 +29,7 @@ void main() {
   );
 
   FileCardSummary summaryOf(String text, {String name = 'a.md'}) =>
-      type.cardSummaryOf(read(text, name: name));
+      type.textCard(read(text, name: name));
 
   test('the title takes the first level-1 heading', () {
     expect(summaryOf('intro\n## Sub\n# Shopping \n# Later').title, 'Shopping');
@@ -66,7 +66,7 @@ void main() {
   });
 
   test('search reads the whole text; texts are not merged', () {
-    expect(type.searchTextOf(read('# A\nb')), '# A\nb');
+    expect(type.textSearchWords(read('# A\nb')), '# A\nb');
     expect(type.merge, isNull);
   });
 

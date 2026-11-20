@@ -15,10 +15,7 @@ Future<void> openFile(
   WidgetRef ref,
   ListedFile file,
 ) async {
-  final read = switch (await ref.read(fileActionsProvider).read(file)) {
-    Ok(:final value) => TextFiles.textOf(value),
-    Err(:final error) => Err<FileText, OpenFailure>(NotRead(error)),
-  };
+  final read = TextFiles.textOf(await ref.read(fileActionsProvider).read(file));
   if (!context.mounted) return;
   switch (read) {
     case Ok(value: final opened):

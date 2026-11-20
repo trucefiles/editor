@@ -7,12 +7,12 @@ import '../file_bytes.dart';
 import '../file_draft.dart';
 import '../file_drafts.dart';
 import '../file_place.dart';
-import '../file_text.dart';
 import '../move_failure.dart';
 import '../open_failure.dart';
-import '../read_version.dart';
 import '../shown_file_type.dart';
+import 'file_text.dart';
 import 'page_file.dart';
+import 'read_version.dart';
 import 'text_files.dart';
 
 /// Creates a file of [type] holding [bytes] at [place], named

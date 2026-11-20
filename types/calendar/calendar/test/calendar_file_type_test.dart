@@ -62,7 +62,7 @@ void main() {
   });
 
   test('a card shows the name and the next events, until the first ends', () {
-    final card = calendars().cardSummaryOf(read);
+    final card = calendars().textCard(read);
 
     expect(card.title, 'Birthdays');
     expect(card.preview(ViewSettings.none), '3/12 Ann');
@@ -70,6 +70,6 @@ void main() {
   });
 
   test('search finds the name, titles and notes, not the file words', () {
-    expect(calendars().searchTextOf(read), 'Birthdays\nAnn\nBring cake');
+    expect(calendars().textSearchWords(read), 'Birthdays\nAnn\nBring cake');
   });
 }

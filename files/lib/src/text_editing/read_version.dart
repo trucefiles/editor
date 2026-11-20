@@ -1,7 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 
+import '../listed_file.dart';
 import 'file_text.dart';
-import 'listed_file.dart';
 
 /// A version of a file as the app read or wrote it: owners only
 /// compare it and hand it back typed; the app acts on its [read] text

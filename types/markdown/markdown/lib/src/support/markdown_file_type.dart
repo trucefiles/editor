@@ -10,7 +10,7 @@ import 'markdown_view.dart';
 /// leave checked items out where the file shows them apart; search reads
 /// the whole text; two texts don't merge (the user picks one). Its
 /// editor package adds how a file of it opens.
-base class MarkdownFileType with TextTypeBytes implements TextFileType {
+base class MarkdownFileType extends TextFileType {
   const MarkdownFileType();
 
   @override
@@ -31,11 +31,11 @@ base class MarkdownFileType with TextTypeBytes implements TextFileType {
 
   /// The whole text.
   @override
-  String searchTextOf(FileText read) => read.text;
+  String textSearchWords(FileText read) => read.text;
 
   @override
-  FileCardSummary cardSummaryOf(FileText read) {
-    final summary = DocumentSummary.of(
+  FileCardSummary textCard(FileText read) {
+    final summary = this.summary(
       read.text,
       maxLines: FileCardSummary.previewLines,
     );

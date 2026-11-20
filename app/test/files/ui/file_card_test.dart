@@ -29,7 +29,7 @@ void main() {
   CardPreview read(String text) => Previewed(
     appFileTypes()
         .ofFile(file.type)
-        .cardSummaryOf(FileText(file, const TextFile.empty().withText(text))),
+        .textCard(FileText(file, const TextFile.empty().withText(text))),
   );
 
   /// Shows the card of a file with [title] and [lines] lines, as wide

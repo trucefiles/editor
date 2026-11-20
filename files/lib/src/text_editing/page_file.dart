@@ -2,9 +2,9 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../file_place.dart';
-import '../file_text.dart';
 import '../new_file_name.dart';
 import '../shown_file_type.dart';
+import 'file_text.dart';
 import 'text_file_type.dart';
 
 /// Where an open file is: one that exists, or the place a new

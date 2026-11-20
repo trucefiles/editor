@@ -4,7 +4,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
-final class _Type with TextTypeBytes implements TextFileType {
+final class _Type extends TextFileType {
   const _Type();
 
   @override
@@ -24,10 +24,10 @@ final class _Type with TextTypeBytes implements TextFileType {
       throw UnimplementedError();
 
   @override
-  String searchTextOf(FileText read) => read.text;
+  String textSearchWords(FileText read) => read.text;
 
   @override
-  FileCardSummary cardSummaryOf(FileText read) => throw UnimplementedError();
+  FileCardSummary textCard(FileText read) => throw UnimplementedError();
 
   @override
   TextMerge? get textMerge => null;

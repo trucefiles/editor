@@ -12,7 +12,7 @@ import 'text_file_work.dart';
 export 'text_file_contract.dart';
 export 'text_file_state.dart' show TextFileState;
 
-/// The owner of one open file (see `file_contract.dart`),
+/// The owner of one open file (see `text_file_contract.dart`),
 /// over versions of kind [V].
 typedef TextFileOwner<V extends Version> =
     Owner<TextFileInput<V>, TextFileState<V>, TextFileEvent>;

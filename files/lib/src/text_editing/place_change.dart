@@ -1,9 +1,9 @@
 import 'package:truce_core/truce_core.dart';
 
 import '../file_place.dart';
-import '../file_text.dart';
 import '../move_failure.dart';
 import '../new_file_name.dart';
+import 'file_text.dart';
 import 'page_file.dart';
 import 'text_edit_effects.dart';
 

@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:truce_core/truce_core.dart';
 
 import '../file_bytes.dart';
-import '../file_text.dart';
 import '../files_of_folder.dart';
 import '../listed_file.dart';
 import '../open_failure.dart';
+import 'file_text.dart';
 import 'text_file_type.dart';
 
 /// The text files of one folder, as the text editing kit reads and
@@ -24,10 +24,7 @@ final class TextFiles {
   /// The file at [path], with its text: refused if the app doesn't show
   /// its type; [NotText] if it is not text.
   Future<Result<FileText, OpenFailure>> open(RelPath path) async =>
-      switch (await _files.read(path)) {
-        Ok(value: final read) => TextFiles.textOf(read),
-        Err(:final error) => Err(NotRead(error)),
-      };
+      textOf(await _files.read(path));
 
   /// New file of [type] in [subfolder] (see [FilesOfFolder.create]),
   /// holding [text] in its type's new file style.
@@ -104,10 +101,15 @@ final class TextFiles {
     (now) => FileText(now.listed, file.textFile.withText(text)),
   );
 
-  /// [read] as text: [NotText] if its bytes are not UTF-8.
-  static Result<FileText, OpenFailure> textOf(FileBytes read) =>
-      switch (FileText.of(read)) {
-        final text? => Ok(text),
-        null => const Err(NotText()),
-      };
+  /// The file [read] gave, as text: [NotRead] if it couldn't be read,
+  /// [NotText] if its bytes are not UTF-8.
+  static Result<FileText, OpenFailure> textOf(
+    Result<FileBytes, StoreError> read,
+  ) => switch (read) {
+    Ok(value: final read) => switch (FileText.of(read)) {
+      final text? => Ok(text),
+      null => const Err(NotText()),
+    },
+    Err(:final error) => Err(NotRead(error)),
+  };
 }

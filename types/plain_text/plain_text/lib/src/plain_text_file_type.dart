@@ -7,7 +7,7 @@ import 'plain_text_support.dart';
 /// Plain text documents, as the app shows them: the first line names
 /// one; search reads the whole text; two texts don't merge (the user
 /// picks one). Its editor package adds how a file of it opens.
-base class PlainTextFileType with TextTypeBytes implements TextFileType {
+base class PlainTextFileType extends TextFileType {
   const PlainTextFileType();
 
   @override
@@ -28,10 +28,10 @@ base class PlainTextFileType with TextTypeBytes implements TextFileType {
 
   /// The whole text.
   @override
-  String searchTextOf(FileText read) => read.text;
+  String textSearchWords(FileText read) => read.text;
 
   @override
-  FileCardSummary cardSummaryOf(FileText read) {
+  FileCardSummary textCard(FileText read) {
     final summary = this.summary(
       read.text,
       maxLines: FileCardSummary.previewLines,

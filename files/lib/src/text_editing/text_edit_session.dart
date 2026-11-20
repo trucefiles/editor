@@ -4,12 +4,12 @@ import 'package:truce_core/truce_core.dart';
 
 import '../file_arrival.dart';
 import '../file_bytes.dart';
-import '../file_text.dart';
 import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
 import '../move_failure.dart';
-import '../read_version.dart';
+import 'file_text.dart';
 import 'page_file.dart';
+import 'read_version.dart';
 import 'save_state.dart';
 import 'text_edit_effects.dart';
 

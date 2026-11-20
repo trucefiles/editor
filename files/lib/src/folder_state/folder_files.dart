@@ -4,8 +4,8 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../conflicts/folder_conflicts.dart';
 import '../listed_file.dart';
-import '../read_version.dart';
 import '../shown_file_types.dart';
+import '../text_editing/read_version.dart';
 
 /// What the added folders hold now, as the screens show it: their
 /// files (listed, never their texts), marks, subfolders, conflicts,

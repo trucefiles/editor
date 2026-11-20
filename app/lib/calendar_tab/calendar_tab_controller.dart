@@ -89,19 +89,29 @@ final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendar),
 );
 
-/// [read] as the tab keeps a calendar it shows: whole, else by its name
-/// alone; `null` if it is no calendar.
-ReadCalendar? readCalendar(FileBytes read) => switch (FileText.of(read)) {
-  final text? => _readCalendar(text),
-  null => null,
-};
+/// A file read as the tab keeps a calendar it shows: whole, else by its
+/// name alone; `null` if it is no calendar.
+final ReadCalendar? Function(FileBytes read) readCalendar = _asText(
+  _calendarOf,
+);
+
+/// The title of a calendar file read, from its head alone; `null` if it
+/// is none.
+final String? Function(FileBytes read) readCalendarTitle = _asText(_titleOf);
+
+/// [readAs] on a file read as text; `null` if it is not text.
+T? Function(FileBytes read) _asText<T>(T? Function(FileText read) readAs) =>
+    (read) => switch (FileText.of(read)) {
+      final text? => readAs(text),
+      null => null,
+    };
 
 /// [read] as the tab keeps a calendar it shows (see [readCalendar]).
-ReadCalendar? _readCalendar(FileText read) {
+ReadCalendar? _calendarOf(FileText read) {
   final summary = CalendarSummary(read.text);
   return switch (summary.calendar) {
     final calendar? => (calendar: calendar, title: titleOf(summary, read.path)),
-    null => switch (_calendarTitle(read)) {
+    null => switch (_titleOf(read)) {
       final title? => (calendar: null, title: title),
       null => null,
     },
@@ -115,16 +125,8 @@ final calendarTitlesProvider = Provider<FileReads<String>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendarTitle),
 );
 
-/// The title of the calendar [read], from its head alone; `null` if it is
-/// none.
-String? readCalendarTitle(FileBytes read) => switch (FileText.of(read)) {
-  final text? => _calendarTitle(text),
-  null => null,
-};
-
-/// The title of the calendar [read], from its head alone; `null` if it is
-/// none.
-String? _calendarTitle(FileText read) => switch (CalendarHead.read(read.text)) {
+/// The title of the calendar [read] (see [readCalendarTitle]).
+String? _titleOf(FileText read) => switch (CalendarHead.read(read.text)) {
   final head? => ownTitleOr(calendarTitle(head), read.path),
   null => null,
 };

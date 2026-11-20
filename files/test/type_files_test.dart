@@ -7,7 +7,7 @@ import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 /// A made-up type that merges: files of `key:value` lines.
-final class _KeyValueType with TextTypeBytes implements TextFileType {
+final class _KeyValueType extends TextFileType {
   const _KeyValueType();
 
   @override
@@ -23,7 +23,7 @@ final class _KeyValueType with TextTypeBytes implements TextFileType {
   @override
   List<NewFileKind> get newKinds => const [
     NewFileKind('Note'),
-    NewFileKind('Named', start: 'name:'),
+    NewFileKind('Named', start: TextStart('name:')),
   ];
 
   @override
@@ -32,12 +32,12 @@ final class _KeyValueType with TextTypeBytes implements TextFileType {
 
   /// The values, not the keys.
   @override
-  String searchTextOf(FileText read) =>
+  String textSearchWords(FileText read) =>
       [for (final line in read.text.split('\n')) line.split(':').last]
           .join('\n');
 
   @override
-  FileCardSummary cardSummaryOf(FileText read) => FileCardSummary(
+  FileCardSummary textCard(FileText read) => FileCardSummary(
     title: _FirstLine(read.text).firstLine,
     preview: (_) => '',
   );
@@ -227,6 +227,13 @@ void main() {
     );
   });
 
+  test('a start that is no text is a bug, not an empty file', () {
+    expect(
+      () => const NewFileKind('Odd', start: _OtherStart()).startText,
+      throwsStateError,
+    );
+  });
+
   test(
     "a gone document's conflict copy is written in its type's style",
     () async {
@@ -295,4 +302,8 @@ void main() {
 
     expect((await kept.readAll(listed)).values, ['k:1']);
   });
+}
+
+final class _OtherStart implements NewFileStart {
+  const _OtherStart();
 }
